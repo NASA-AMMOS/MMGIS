@@ -6,7 +6,6 @@ import SightlineTool from '../SightlineTool'
 import SightlineTool_Graphs from '../SightlineTool_Graphs'
 import L_ from '@basics/Layers_/Layers_'
 import {
-    Button,
     Checkbox,
     Collapsible,
     ColorRampPicker,
@@ -811,15 +810,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
 
                 {/* — Actions (always visible) — */}
                 <div className="vstSightlineActions">
-                    {sightlineMode !== 'static' && el.regenerating ? (
-                        <Button
-                            className="vstCancelSweepBtn"
-                            onClick={() => SightlineTool.cancelSweepElement(elmId)}
-                            title="Cancel the running sweep"
-                        >
-                            {`Cancel (${Math.round(el.loadingProgress || 0)}%)`}
-                        </Button>
-                    ) : (
+                    <div className="vstSweepBtnWrap">
                         <ProgressButton
                             active={generateActive}
                             loading={el.regenerating}
@@ -828,7 +819,21 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                         >
                             {generateLabel}
                         </ProgressButton>
-                    )}
+                        {sightlineMode !== 'static' && el.regenerating && (
+                            <button
+                                type="button"
+                                className="vstCancelSweepX"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    SightlineTool.cancelSweepElement(elmId)
+                                }}
+                                title="Cancel the running sweep"
+                                aria-label="Cancel sweep"
+                            >
+                                <i className="mdi mdi-close mdi-14px" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* — Results (collapsible, controlled by Run header) — */}

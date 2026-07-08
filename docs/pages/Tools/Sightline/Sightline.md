@@ -138,7 +138,7 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 
 - _Generate / Sweep_
   - Submits a request to generate a sightline map with the provided parameters. In static mode it auto-generates when settings change.
-  - **Cancelling a sweep**: In composite/playback mode the button reads **Sweep**; while a sweep is running it becomes a red **Cancel** button showing the progress percentage. Clicking it aborts the in-flight streaming request via an `AbortController`, and the backend per-frame loop stops cleanly when the connection closes.
+  - **Cancelling a sweep**: In composite/playback mode the button reads **Sweep**; while a sweep is running the button keeps showing its progress and a small **×** floats over the right side of it. Clicking the × aborts the in-flight streaming request via an `AbortController`, and the backend per-frame loop stops cleanly when the connection closes.
 
 #### Results
 

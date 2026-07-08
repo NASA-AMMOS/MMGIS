@@ -53,7 +53,7 @@ The **Run** section contains the mode selector and generate controls. Clicking t
 - _Generate / Sweep button_
   - **Static mode**: "Generate" computes a single-timestep sightline map. Auto-generates when settings change.
   - **Composite/Playback mode**: "Sweep" runs the time-range analysis across all timesteps defined by Start Time, End Time, and Step Size. Maximum 256 frames per sweep.
-  - **Cancelling a sweep**: While a sweep is running the button turns into a red **Cancel** button showing the current progress percentage. Clicking it aborts the in-flight request via an `AbortController`; the backend per-frame streaming loop detects the closed connection and stops cleanly.
+  - **Cancelling a sweep**: While a sweep is running the Sweep button keeps showing its progress, and a small **×** floats over the right side of it. Clicking the × aborts the in-flight request via an `AbortController`; the backend per-frame streaming loop detects the closed connection and stops cleanly.
 
 ##### Static Mode Results
 

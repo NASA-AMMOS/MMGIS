@@ -416,16 +416,35 @@
 
 /* Generate and Sweep use the ProgressButton design-system component */
 
-/* Cancel button shown while a sweep is running (replaces the Sweep button) */
-#sightlineTool .vstCancelSweepBtn.vstCancelSweepBtn {
-    background: var(--color-red, #b42828);
-    border: none;
-    color: #fff;
-    font-weight: 600;
+/* Wrapper lets the cancel "x" float over the right side of the Sweep button */
+#sightlineTool .vstSweepBtnWrap {
+    position: relative;
+    display: inline-flex;
 }
-#sightlineTool .vstCancelSweepBtn.vstCancelSweepBtn:hover {
-    background: #d43333;
-    color: #fff;
+
+/* Small non-descript x floating over the right side of the running Sweep button */
+#sightlineTool .vstCancelSweepX {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: currentColor;
+    opacity: 0.7;
+    cursor: pointer;
+    z-index: 1;
+}
+#sightlineTool .vstCancelSweepX:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.25);
 }
 
 /* ====== Sweep section ====== */
