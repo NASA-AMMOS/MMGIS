@@ -419,7 +419,11 @@
 /* Wrapper lets the cancel "x" float over the right side of the Sweep button */
 #sightlineTool .vstSweepBtnWrap {
     position: relative;
-    display: inline-flex;
+    display: flex;
+    width: 100%;
+}
+#sightlineTool .vstSweepBtnWrap > button:not(.vstCancelSweepX) {
+    width: 100%;
 }
 
 /* Small non-descript x floating over the right side of the running Sweep button */
