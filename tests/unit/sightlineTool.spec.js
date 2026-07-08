@@ -1320,18 +1320,26 @@ function fmtMpp(m) {
     return m.toFixed(3) + ' m/px'
 }
 
-// Mirror of SightlineTool._resolutionToMaxDim (relative-scale behavior)
-function resolutionToMaxDim(scale, longestViewportPx) {
+// Mirror of SightlineTool._resolutionToMaxDim (relative scale, capped so the
+// output never exceeds the DEM's native pixels across the viewport extent).
+function resolutionToMaxDim(scale, longestViewportPx, nativeMpp, groundExtentMeters) {
     const s = scale || 0.25
     const longest = Math.max(longestViewportPx || 800, 0)
-    return Math.max(Math.round(longest * s), 50)
+    let dim = Math.round(longest * s)
+    if (Number.isFinite(nativeMpp) && nativeMpp > 0 && groundExtentMeters > 0) {
+        const nativeDim = Math.floor(groundExtentMeters / nativeMpp)
+        if (nativeDim > 0) dim = Math.min(dim, nativeDim)
+    }
+    return Math.max(dim, 50)
 }
 
-// Mirror of SightlineTool.getEffectiveResolutionMpp
-function effectiveResolutionMpp(scale, longestViewportPx, groundExtentMeters) {
-    const dim = resolutionToMaxDim(scale, longestViewportPx)
-    if (groundExtentMeters > 0 && dim > 0) return groundExtentMeters / dim
-    return null
+// Mirror of SightlineTool.getEffectiveResolutionMpp (never finer than native)
+function effectiveResolutionMpp(scale, longestViewportPx, groundExtentMeters, nativeMpp) {
+    const dim = resolutionToMaxDim(scale, longestViewportPx, nativeMpp, groundExtentMeters)
+    if (!(groundExtentMeters > 0) || !(dim > 0)) return null
+    let mpp = groundExtentMeters / dim
+    if (Number.isFinite(nativeMpp) && nativeMpp > 0 && mpp < nativeMpp) mpp = nativeMpp
+    return mpp
 }
 
 test.describe('Resolution scale → maxOutputDim', () => {
@@ -1365,6 +1373,33 @@ test.describe('Effective working resolution (m/px readout)', () => {
 
     test('returns null when ground extent is unavailable', () => {
         expect(effectiveResolutionMpp(1, 1000, 0)).toBe(null)
+    })
+})
+
+test.describe('Native resolution cap', () => {
+    test('maxOutputDim is capped at the native pixel count over the extent', () => {
+        // 1x wants 4000 px, but 10000 m / 20 m/px = 500 native px → capped to 500
+        expect(resolutionToMaxDim(1, 4000, 20, 10000)).toBe(500)
+    })
+
+    test('native cap is ignored when it would not reduce the dimension', () => {
+        // 1x wants 1000 px, native allows 2000 px → stays 1000
+        expect(resolutionToMaxDim(1, 1000, 5, 10000)).toBe(1000)
+    })
+
+    test('effective resolution never goes finer than native', () => {
+        // Without a native floor this would be 10 m/px; native is 20 → 20 m/px
+        expect(effectiveResolutionMpp(1, 1000, 10000, 20)).toBeCloseTo(20, 6)
+    })
+
+    test('effective resolution unaffected by native when already coarser', () => {
+        // 0.25x → 250 px → 40 m/px, coarser than native 20 → stays 40
+        expect(effectiveResolutionMpp(0.25, 1000, 10000, 20)).toBeCloseTo(40, 6)
+    })
+
+    test('unknown native resolution leaves the relative-scale behavior intact', () => {
+        expect(resolutionToMaxDim(1, 1000, null, 10000)).toBe(1000)
+        expect(effectiveResolutionMpp(1, 1000, 10000, null)).toBeCloseTo(10, 6)
     })
 })
 

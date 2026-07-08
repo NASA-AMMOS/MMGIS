@@ -102,6 +102,24 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     )
     const demIndex = el?.demIndex != null ? el.demIndex : 0
 
+    // The selected DEM's native (dataset) resolution in meters-per-pixel:
+    // config-provided value, else the value resolved from the backend.
+    const nativeMpp = useMemo(() => {
+        const dem = demsList[demIndex] || demsList[0]
+        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
+            return dem.resolution
+        if (Number.isFinite(el?.nativeResolution) && el.nativeResolution > 0)
+            return el.nativeResolution
+        return null
+    }, [demsList, demIndex, el?.nativeResolution])
+
+    // Resolve the selected DEM's native resolution from the backend so it can
+    // be shown to the user and used to cap the effective resolution.
+    useEffect(() => {
+        if (demsList.length === 0) return
+        SightlineTool.fetchElementDemInfo(elmId)
+    }, [elmId, demIndex, demsList])
+
     // Re-render the effective-resolution readout when the map viewport changes.
     const [viewportTick, setViewportTick] = useState(0)
     useEffect(() => {
@@ -118,11 +136,11 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
 
     // Effective working resolution (meters-per-pixel) for the current selection
     // and viewport: viewport ground extent / output grid dimension.
-    // el.resolution and viewportTick are intentional recompute triggers.
+    // el.resolution, nativeMpp and viewportTick are intentional recompute triggers.
     const effectiveMpp = useMemo(
         () => SightlineTool.getEffectiveResolutionMpp(elmId),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [elmId, el?.resolution, viewportTick]
+        [elmId, el?.resolution, nativeMpp, viewportTick]
     )
 
     const observerOptions = useMemo(
@@ -642,25 +660,90 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 />
                             </div>
 
-                            {demOptions.length > 1 && (
-                                <div className="vstOptionRow">
-                                    <div className="vstOptionLabel" title="DEM (terrain dataset) to analyze.">
-                                        DEM
+                            {demOptions.length >= 1 && (
+                                <>
+                                    <div className="vstOptionRow">
+                                        <div className="vstOptionLabel" title="DEM (terrain dataset) to analyze.">
+                                            DEM
+                                        </div>
+                                        <Select
+                                            value={String(demIndex)}
+                                            onValueChange={(v) =>
+                                                updateElement(elmId, {
+                                                    demIndex: parseInt(v),
+                                                    nativeResolution: null,
+                                                    changed: true,
+                                                    lastError: false,
+                                                })
+                                            }
+                                            options={demOptions}
+                                            className="vstSelect"
+                                        />
                                     </div>
-                                    <Select
-                                        value={String(demIndex)}
-                                        onValueChange={(v) =>
-                                            updateElement(elmId, {
-                                                demIndex: parseInt(v),
-                                                changed: true,
-                                                lastError: false,
-                                            })
-                                        }
-                                        options={demOptions}
-                                        className="vstSelect"
-                                    />
+                                    {Number.isFinite(nativeMpp) && (
+                                        <div className="vstOptionRow vstEffectiveResRow">
+                                            <div className="vstOptionLabel" />
+                                            <div className="vstEffectiveRes" title="The DEM's native (dataset) ground resolution.">
+                                                Native: {fmtMpp(nativeMpp)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            <div className="vstOptionRow">
+                                <div
+                                    className="vstOptionLabel"
+                                    title="Resolution scale relative to viewport DEM extent. Lower = faster, coarser."
+                                >
+                                    Resolution
+                                </div>
+                                <Select
+                                    value={String(el.resolution)}
+                                    onValueChange={(v) =>
+                                        handleChange('resolution', parseFloat(v))
+                                    }
+                                    options={RESOLUTION_OPTIONS}
+                                    className="vstSelect"
+                                />
+                            </div>
+                            {Number.isFinite(effectiveMpp) && (
+                                <div className="vstOptionRow vstEffectiveResRow">
+                                    <div className="vstOptionLabel" />
+                                    <div className="vstEffectiveRes" title="Approximate working ground resolution at the current viewport and zoom (never finer than native).">
+                                        ≈ {fmtMpp(effectiveMpp)}
+                                    </div>
                                 </div>
                             )}
+                            <div className="vstOptionRow">
+                                <Tooltip content="Extends the terrain loaded for shadow computation beyond the visible map area. Terrain within this radius is read at a lower resolution so that distant features (ridges, crater rims) can cast shadows into the viewport without slowing down the full-resolution computation. Set to 0 to use only the viewport extent.">
+                                    <div className="vstOptionLabel" style={{ cursor: 'help' }}>Shadow Reach</div>
+                                </Tooltip>
+                                <InputWithUnit
+                                    unit="km"
+                                    type="number"
+                                    min="0"
+                                    step="5"
+                                    placeholder="0"
+                                    value={el.shadowReach || ''}
+                                    onChange={(e) =>
+                                        updateElement(elmId, {
+                                            shadowReach: e.target.value,
+                                        })
+                                    }
+                                    onBlur={() =>
+                                        updateElement(elmId, {
+                                            changed: true,
+                                            lastError: false,
+                                        })
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.target.blur()
+                                        }
+                                    }}
+                                    className="vstFieldInput"
+                                />
+                            </div>
                         </div>
                     </Collapsible.Content>
                 </Collapsible>
@@ -710,61 +793,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     />
                                 </div>
                             </div>
-                            <div className="vstOptionRow">
-                                <div
-                                    className="vstOptionLabel"
-                                    title="Resolution scale relative to viewport DEM extent. Lower = faster, coarser."
-                                >
-                                    Resolution
-                                </div>
-                                <Select
-                                    value={String(el.resolution)}
-                                    onValueChange={(v) =>
-                                        handleChange('resolution', parseFloat(v))
-                                    }
-                                    options={RESOLUTION_OPTIONS}
-                                    className="vstSelect"
-                                />
-                            </div>
-                            {Number.isFinite(effectiveMpp) && (
-                                <div className="vstOptionRow vstEffectiveResRow">
-                                    <div className="vstOptionLabel" />
-                                    <div className="vstEffectiveRes" title="Approximate working ground resolution at the current viewport and zoom.">
-                                        ≈ {fmtMpp(effectiveMpp)}
-                                    </div>
-                                </div>
-                            )}
-                            <div className="vstOptionRow">
-                                <Tooltip content="Extends the terrain loaded for shadow computation beyond the visible map area. Terrain within this radius is read at a lower resolution so that distant features (ridges, crater rims) can cast shadows into the viewport without slowing down the full-resolution computation. Set to 0 to use only the viewport extent.">
-                                    <div className="vstOptionLabel" style={{ cursor: 'help' }}>Shadow Reach</div>
-                                </Tooltip>
-                                <InputWithUnit
-                                    unit="km"
-                                    type="number"
-                                    min="0"
-                                    step="5"
-                                    placeholder="0"
-                                    value={el.shadowReach || ''}
-                                    onChange={(e) =>
-                                        updateElement(elmId, {
-                                            shadowReach: e.target.value,
-                                        })
-                                    }
-                                    onBlur={() =>
-                                        updateElement(elmId, {
-                                            changed: true,
-                                            lastError: false,
-                                        })
-                                    }
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.target.blur()
-                                        }
-                                    }}
-                                    className="vstFieldInput"
-                                />
-                            </div>
-
                         </div>
                     </Collapsible.Content>
                 </Collapsible>

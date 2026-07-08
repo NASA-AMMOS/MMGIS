@@ -1,5 +1,6 @@
 const sightmapRouter = require("./routes/sightmap");
 const horizonprofileRouter = require("./routes/horizonprofile");
+const deminfoRouter = require("./routes/deminfo");
 
 let setup = {
   //Once the app initializes
@@ -15,6 +16,12 @@ let setup = {
       s.ensureUser(),
       s.setContentType,
       horizonprofileRouter
+    );
+    s.app.use(
+      s.ROOT_PATH + "/api/sightline",
+      s.ensureUser(),
+      s.setContentType,
+      deminfoRouter
     );
   },
   //Once the server starts

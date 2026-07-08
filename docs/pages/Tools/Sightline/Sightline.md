@@ -85,7 +85,7 @@ There are two SPICE python scripts that require these backend kernel setups:
 
 _**dem**_ - _(legacy, single DEM)_ A path to a DEM.tif. This is used to get the current center elevation. This can/should be the same file used for the Measure Tool and the Coordinate's elevation. Kept for backward compatibility: it is used only when the `dems` list below is empty or absent, so existing single-DEM configs continue to work unchanged.
 
-_**dems**_ - _(multiple DEMs)_ An array of selectable DEMs, mirroring the `MeasureTool`'s `layerDems` precedent. Each entry has a `name` (shown in the per-item DEM dropdown), a `path` (a Cloud Optimized GeoTIFF DEM relative to the mission directory), and an optional `resolution` (the DEM's native ground sample distance in meters-per-pixel, for reference). When two or more DEMs are configured, a DEM selector appears in each sightline item's Source section and the chosen DEM is threaded through the sightmap and horizon-profile computations. When `dems` is empty/absent, the legacy single `dem` field is used.
+_**dems**_ - _(multiple DEMs)_ An array of selectable DEMs, mirroring the `MeasureTool`'s `layerDems` precedent. Each entry has a `name` (shown in the per-item DEM dropdown), a `path` (a Cloud Optimized GeoTIFF DEM relative to the mission directory), and an optional `resolution` (the DEM's native ground sample distance in meters-per-pixel). When `resolution` is set it is shown as the DEM's native resolution and used to cap the effective working resolution; when omitted it is read from the dataset's GeoTransform at runtime via `POST /api/sightline/deminfo`. The DEM selector is always shown in each sightline item's Source section (even with a single DEM) and the chosen DEM is threaded through the sightmap and horizon-profile computations. When `dems` is empty/absent, the legacy single `dem` field is used.
 
 _**data**_ - At minimum, the Sightline tool requires at least one "data" source. A data source describes a DEM tileset (see /auxiliary/gdal2customtiles or /auxiliary/1bto4b) and allows users to select it by name to generate sightline maps over.
 
@@ -130,11 +130,12 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
   - The color to highlight the visible regions on the map.
 - _Opacity_
   - The opaqueness of the visible regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
-- _Resolution_
-  - A relative scale (1×, 0.5×, 0.25× default, 0.125×) applied to the viewport's longest pixel dimension to size the output grid (minimum 50px). Lower scales compute faster and coarser. Directly below the selector the tool displays the **effective working ground resolution** in meters-per-pixel (≈ viewport ground extent ÷ output grid dimension); this readout updates as you pan/zoom so the real detail of the current setting is always visible.
 - _DEM_
-
-  - When more than one DEM is configured (via `dems`), a dropdown selects which terrain dataset this sightline item uses. With a single configured DEM the dropdown is hidden.
+  - A dropdown that selects which terrain dataset this sightline item uses (via `dems`). It is always shown, even with a single configured DEM. Directly beneath it the tool displays the DEM's **native (dataset) resolution** in meters-per-pixel (`Native: … m/px`), from the config `resolution` when set, otherwise read from the DEM's GeoTransform via `POST /api/sightline/deminfo` (cached per DEM path).
+- _Resolution_
+  - A relative scale (1×, 0.5×, 0.25× default, 0.125×) applied to the viewport's longest pixel dimension to size the output grid (minimum 50px). Lower scales compute faster and coarser. Directly below the selector the tool displays the **effective working ground resolution** in meters-per-pixel (≈ viewport ground extent ÷ output grid dimension); this readout updates as you pan/zoom so the real detail of the current setting is always visible. The output grid — and therefore the effective resolution — is capped so it never goes finer than the DEM's native resolution (no oversampling beyond the data).
+- _Shadow Reach_
+  - Extends the terrain loaded for shadow computation beyond the visible map area (kilometers), read at a lower resolution so distant features can cast shadows into the viewport. Set to 0 to use only the viewport extent.
 
 - _Generate / Sweep_
   - Submits a request to generate a sightline map with the provided parameters. In static mode it auto-generates when settings change.
@@ -162,7 +163,7 @@ Each sightline map item can be set to one of three modes:
 - **Composite**: Sweeps through a time range and produces a cumulative heatmap showing how often each point on the ground has line-of-sight across all time steps.
 - **Playback**: Sweeps through a time range and stores each frame. Users can play back the sweep as an animation, stepping through individual sightline frames with time controls.
 
-Multiple sightline maps can be created simultaneously (e.g., Sun + Moon). Each element tracks its own sweep progress independently — starting a sweep on one element does not cancel another. A running sweep can be cancelled per-item via the **Cancel** button (see _Generate / Sweep_ above).
+Multiple sightline maps can be created simultaneously (e.g., Sun + Moon). Each element tracks its own sweep progress independently — starting a sweep on one element does not cancel another. A running sweep can be cancelled per-item via the small **×** that floats over the Sweep button (see _Generate / Sweep_ above).
 
 ### Charts (Horizon Profile + Visibility Timeline)
 
@@ -297,4 +298,20 @@ For each azimuth (default 360 directions at 1° intervals):
 - **Logarithmic stepping** — Instead of stepping 1 pixel per sample, the step size increases logarithmically with distance: `step = max(1, log₂(r + 1))` pixels. Near the observer (r < 2px) it steps 1px for fine detail; at r = 1000px it steps ~10px. This preserves accuracy for nearby terrain (which subtends large angles) while skipping redundant samples at distance (where per-pixel angle change is negligible). Reduces ~2500 samples/ray to ~600 for a 250km radius.
 - **Early termination** — After each sample beyond 1km, the algorithm checks: "Could the tallest plausible terrain (10km relief, minus curvature drop) at this distance produce a steeper angle than the current maximum?" If not, the ray terminates immediately. For typical terrain where the horizon is found within a few km, rays terminate well before the max radius — often at 50–200 samples instead of 600+.
 - **Combined speedup** — Together, logarithmic stepping + early termination yield a 4–8× reduction in samples per ray compared to naïve 1px stepping to max radius.
+
+---
+
+#### DEM Info
+
+**Endpoint:** `POST /api/sightline/deminfo`
+
+Reports a DEM's native (dataset) resolution so the client can display it and cap the effective working resolution at native. The route runs `scripts/deminfo.py`, which opens the raster and derives the pixel size in meters-per-pixel from its GeoTransform.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dem` | string | — | Path/URL to the DEM raster |
+
+**Response:** `{ nativeResolution, cols, rows }` — meters-per-pixel and raster dimensions — or `{ error }` when it can't be determined. The client caches results per DEM path and skips the request entirely when a DEM's config `resolution` is provided.
 
