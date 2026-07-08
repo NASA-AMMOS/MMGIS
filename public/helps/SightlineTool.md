@@ -30,9 +30,9 @@ Each sightline item's header contains:
 - _Height_
   - Height in meters above the surface to use when calculating line-of-sight shading. This value applies to all points on the visible terrain. Gradually increasing this value shows the sightline map n-meters above the surface.
 - _DEM_
-  - A dropdown to choose which terrain dataset this sightline item analyzes (see the **DEMs** config below). It is always shown — even with a single configured DEM. The selected DEM is threaded through both the sightmap and horizon-profile computations. Directly beneath the dropdown the tool displays the DEM's **native (dataset) resolution** in meters-per-pixel (`Native: … m/px`), taken from the config `resolution` when set, otherwise read from the DEM's GeoTransform via the DEM Info endpoint.
+  - A dropdown to choose which terrain dataset this sightline item analyzes (see the **DEMs** config below). It is always shown — even with a single configured DEM. The selected DEM is threaded through both the sightmap and horizon-profile computations. When the DEM's config sets a `resolution`, the tool displays that **native (dataset) resolution** in meters-per-pixel (`Native: … m/px`) directly beneath the dropdown.
 - _Resolution_
-  - A relative scale (1×, 0.5×, 0.25× default, 0.125×) applied to the viewport's longest pixel dimension to size the output grid (minimum 50px). Lower scales are faster and coarser. Below the selector the tool shows the **effective working ground resolution** in meters-per-pixel (≈ viewport ground extent ÷ output grid dimension), which updates as you pan and zoom so you can see the real detail the current setting produces. The output grid — and therefore the effective resolution — is never allowed to go finer than the DEM's native resolution (no oversampling beyond the data).
+  - A relative scale (1×, 0.5×, 0.25× default, 0.125×) applied to the viewport's longest pixel dimension to size the output grid (minimum 50px). Lower scales are faster and coarser. Below the selector the tool shows the **effective working ground resolution** in meters-per-pixel (≈ viewport ground extent ÷ output grid dimension), which updates as you pan and zoom so you can see the real detail the current setting produces. When a DEM's native `resolution` is configured, the output grid — and therefore the effective resolution — is never allowed to go finer than that native resolution (no oversampling beyond the data).
 - _Shadow Reach_
   - Extends the terrain loaded for shadow computation beyond the visible map area (kilometers). Terrain within this radius is read at a lower resolution so distant features (ridges, crater rims) can cast shadows into the viewport without slowing the full-resolution computation. Set to 0 to use only the viewport extent.
 - _Custom Az/El/Range_
@@ -174,20 +174,6 @@ For each azimuth (default 360 directions at 1° intervals):
 - **Early termination** — After each sample beyond 1km, checks: "Could the tallest plausible terrain (10km relief, minus curvature drop) at this distance beat the current max angle?" If not, the ray stops. Most rays terminate at 50–200 samples.
 - **Combined speedup** — 4–8× fewer samples per ray compared to naïve per-pixel stepping.
 
-#### DEM Info
-
-**Endpoint:** `POST /api/sightline/deminfo`
-
-Returns a DEM's native (dataset) resolution so the UI can show it and cap the effective working resolution. The route runs `scripts/deminfo.py`, which opens the raster's GeoTransform and reports the pixel size in meters-per-pixel.
-
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `dem` | string | — | Path/URL to the DEM raster |
-
-**Response:** `{ nativeResolution, cols, rows }` (meters-per-pixel and raster dimensions), or `{ error }` when the resolution can't be determined. Results are cached per DEM path on the client. When a DEM config provides `resolution`, that value is used directly and no request is made.
-
 ---
 
 ### Configuration
@@ -196,6 +182,6 @@ Returns a DEM's native (dataset) resolution so the UI can show it and cap the ef
 - `dems` (array) — A list of selectable DEMs, each with:
   - `name` — display name shown in the per-item DEM dropdown.
   - `path` — path to a Cloud Optimized GeoTIFF (COG) DEM relative to the mission directory.
-  - `resolution` (optional) — the DEM's native ground sample distance in meters-per-pixel. When set it is shown as the DEM's native resolution and used to cap the effective working resolution; when omitted it is read from the DEM's GeoTransform at runtime via the DEM Info endpoint.
+  - `resolution` (optional) — the DEM's native ground sample distance in meters-per-pixel, entered by the mission admin. When set it is shown beneath the DEM dropdown as the DEM's native resolution and used to cap the effective working resolution so it never oversamples beyond the data. When omitted, no native resolution is shown and the effective resolution is uncapped.
 
   This mirrors the `MeasureTool`'s `layerDems` precedent. When `dems` is empty or absent, the legacy single `dem` field is used, so existing single-DEM configs continue to work unchanged.

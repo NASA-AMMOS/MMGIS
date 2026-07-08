@@ -98,8 +98,6 @@ const _sweepRunIds = {}     // elmId → runId
 // can be cancelled and its fetch aborted (the backend streaming loop then stops
 // cleanly when its stdout pipe closes).
 const _sweepAbortControllers = {}   // elmId → AbortController
-// Cache of native DEM resolution (meters-per-pixel) keyed by resolved DEM path.
-const _demInfoCache = {}    // demPath → { nativeResolution, cols, rows } | 'pending' | 'error'
 const _highWaterPcts = {}   // elmId → highest pct seen
 const _lastFlushTimes = {}  // elmId → performance.now()
 function _flushSweepProgress(elmId, pct, msg, force) {
@@ -2122,59 +2120,13 @@ let SightlineTool = {
     },
 
     /** Return the native (dataset) resolution in meters-per-pixel of an
-     *  element's selected DEM: from config, then a cached deminfo lookup,
-     *  then the element's stored value.  null when not yet known. */
+     *  element's selected DEM, taken from the DEM's config `resolution`.
+     *  null when the admin hasn't specified one. */
     getElementNativeResolution(elmId) {
-        const store = useSightlineStore.getState()
-        const id = elmId != null ? elmId : store.activeElmId
-        const el = store.elements[id]
-        const dem = SightlineTool.getElementDem(id)
+        const dem = SightlineTool.getElementDem(elmId)
         if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
             return dem.resolution
-        const url = SightlineTool.getElementDemUrl(id)
-        const cached = url ? _demInfoCache[url] : null
-        if (cached && typeof cached === 'object' && Number.isFinite(cached.nativeResolution))
-            return cached.nativeResolution
-        if (el && Number.isFinite(el.nativeResolution) && el.nativeResolution > 0)
-            return el.nativeResolution
         return null
-    },
-
-    /** Fetch (and cache) an element's DEM native resolution from the backend
-     *  deminfo endpoint, then store it on the element so the UI can show the
-     *  DEM's real dataset resolution. */
-    fetchElementDemInfo(elmId) {
-        const store = useSightlineStore.getState()
-        const id = elmId != null ? elmId : store.activeElmId
-        // Config-provided native resolution needs no backend lookup.
-        const dem = SightlineTool.getElementDem(id)
-        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0) {
-            store.updateElement(id, { nativeResolution: dem.resolution })
-            return
-        }
-        const url = SightlineTool.getElementDemUrl(id)
-        if (!url) return
-        const cached = _demInfoCache[url]
-        if (cached === 'pending') return
-        if (cached && typeof cached === 'object') {
-            store.updateElement(id, { nativeResolution: cached.nativeResolution })
-            return
-        }
-        _demInfoCache[url] = 'pending'
-        calls.api(
-            'getdeminfo',
-            { dem: url },
-            (result) => {
-                if (result && !result.error && Number.isFinite(result.nativeResolution)) {
-                    _demInfoCache[url] = result
-                    const s = useSightlineStore.getState()
-                    if (s.elements[id]) s.updateElement(id, { nativeResolution: result.nativeResolution })
-                } else {
-                    _demInfoCache[url] = 'error'
-                }
-            },
-            () => { _demInfoCache[url] = 'error' }
-        )
     },
 
     // === Utility ===

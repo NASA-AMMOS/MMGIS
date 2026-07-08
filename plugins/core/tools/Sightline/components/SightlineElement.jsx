@@ -102,23 +102,14 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     )
     const demIndex = el?.demIndex != null ? el.demIndex : 0
 
-    // The selected DEM's native (dataset) resolution in meters-per-pixel:
-    // config-provided value, else the value resolved from the backend.
+    // The selected DEM's native (dataset) resolution in meters-per-pixel,
+    // as entered by the admin in the DEM config. null when unspecified.
     const nativeMpp = useMemo(() => {
         const dem = demsList[demIndex] || demsList[0]
         if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
             return dem.resolution
-        if (Number.isFinite(el?.nativeResolution) && el.nativeResolution > 0)
-            return el.nativeResolution
         return null
-    }, [demsList, demIndex, el?.nativeResolution])
-
-    // Resolve the selected DEM's native resolution from the backend so it can
-    // be shown to the user and used to cap the effective resolution.
-    useEffect(() => {
-        if (demsList.length === 0) return
-        SightlineTool.fetchElementDemInfo(elmId)
-    }, [elmId, demIndex, demsList])
+    }, [demsList, demIndex])
 
     // Re-render the effective-resolution readout when the map viewport changes.
     const [viewportTick, setViewportTick] = useState(0)
@@ -671,7 +662,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                             onValueChange={(v) =>
                                                 updateElement(elmId, {
                                                     demIndex: parseInt(v),
-                                                    nativeResolution: null,
                                                     changed: true,
                                                     lastError: false,
                                                 })

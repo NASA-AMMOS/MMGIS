@@ -61,9 +61,6 @@ function makeDefaultElement(id, vars) {
         resolution: 0.25,
         // Selected DEM (index into buildDemsList).
         demIndex: 0,
-        // Native (dataset) resolution in meters-per-pixel of the selected DEM,
-        // resolved from config or the backend deminfo endpoint. null = unknown.
-        nativeResolution: null,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
         sourceIndex: 0,
