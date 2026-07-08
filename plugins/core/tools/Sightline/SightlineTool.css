@@ -72,6 +72,25 @@
 #sightlineTool .vstTime .vstTimeReadonly:first-child {
     text-align: right;
 }
+#sightlineTool .vstTime .vstTimeInput {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    font-size: 11px;
+    color: var(--color-c);
+    background: var(--color-a1-5);
+    border: 1px solid var(--color-e);
+    border-radius: 3px;
+    padding: 3px 5px;
+    box-sizing: border-box;
+}
+#sightlineTool .vstTime .vstTimeInput:first-child {
+    text-align: right;
+}
+#sightlineTool .vstTime .vstTimeInput:focus {
+    outline: none;
+    border-color: var(--color-c);
+}
 #sightlineTool .vstTime .vstTimeStep {
     width: 76px;
     flex: 0 0 auto;
@@ -396,6 +415,18 @@
 }
 
 /* Generate and Sweep use the ProgressButton design-system component */
+
+/* Cancel button shown while a sweep is running (replaces the Sweep button) */
+#sightlineTool .vstCancelSweepBtn.vstCancelSweepBtn {
+    background: var(--color-red, #b42828);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+}
+#sightlineTool .vstCancelSweepBtn.vstCancelSweepBtn:hover {
+    background: #d43333;
+    color: #fff;
+}
 
 /* ====== Sweep section ====== */
 #sightlineTool .vstSweepSection {

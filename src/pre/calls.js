@@ -184,6 +184,10 @@ const c = {
         type: 'POST',
         url: 'api/sightline/sightmap',
     },
+    getdeminfo: {
+        type: 'POST',
+        url: 'api/sightline/deminfo',
+    },
 }
 
 function api(call, data, success, error) {

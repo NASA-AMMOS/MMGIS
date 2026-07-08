@@ -1,7 +1,7 @@
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
-import useSightlineStore from './store'
+import useSightlineStore, { buildDemsList } from './store'
 import calls from '@pre/calls'
 import Toast from '@design/components/Toast/Toast'
 
@@ -183,13 +183,15 @@ const SightlineTool_Horizon = {
         const el = store.elements[elmId]
         if (!el) return
 
-        const vars = store.vars
-        if (!vars?.dem) {
+        // Resolve the element's selected DEM (multi-DEM list, or legacy single dem)
+        const dems = buildDemsList(store.vars)
+        let demUrl = dems.length > 0
+            ? (dems[el.demIndex != null ? el.demIndex : 0] || dems[0]).path
+            : store.vars?.dem
+        if (!demUrl) {
             Toast.warning('No DEM configured for horizon profile.', 4000)
             return
         }
-
-        let demUrl = vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
 
         const ed = store.sweepElData[elmId]
@@ -223,7 +225,7 @@ const SightlineTool_Horizon = {
             return
         }
 
-        const useCurvature = vars.hasOwnProperty('curvature') ? vars.curvature : true
+        const useCurvature = store.vars?.hasOwnProperty('curvature') ? store.vars.curvature : true
         const horizonParams = {
             path: demUrl,
             lat: lat,

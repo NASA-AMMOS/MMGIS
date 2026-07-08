@@ -27,6 +27,23 @@ export default function SightlinePanel() {
     const [dropPosition, setDropPosition] = useState('above')
     const [editableTime, setEditableTime] = useState('')
     const [rawTime, setRawTime] = useState('')
+    // Editable top-section Start/End time inputs (UTC), synced from the store.
+    const [startInput, setStartInput] = useState('')
+    const [endInput, setEndInput] = useState('')
+
+    useEffect(() => { setStartInput(sweepStart || '') }, [sweepStart])
+    useEffect(() => { setEndInput(sweepEnd || '') }, [sweepEnd])
+
+    // Commit an edited top-section time through the shared sweep-time update
+    // logic (same validation + global timeline update as the per-item inputs).
+    const handleStartCommit = useCallback(() => {
+        if (!SightlineTool.applySweepStartTime(startInput))
+            setStartInput(useSightlineStore.getState().sweepStart || '')
+    }, [startInput])
+    const handleEndCommit = useCallback(() => {
+        if (!SightlineTool.applySweepEndTime(endInput))
+            setEndInput(useSightlineStore.getState().sweepEnd || '')
+    }, [endInput])
 
     useEffect(() => {
         Help.finalize(helpKey)
@@ -222,10 +239,17 @@ export default function SightlinePanel() {
             </div>
             {/* Time section — single row: [start] [step|min] [end] */}
             <div className="vstTime">
-                <Tooltip content="Start Time" placement="top">
-                    <span className="vstTimeReadonly">
-                        {sweepStart ? sweepStart.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : 'Start'}
-                    </span>
+                <Tooltip content="Start Time (UTC) — editable" placement="top">
+                    <input
+                        type="text"
+                        className="vstTimeInput"
+                        placeholder="Start"
+                        value={startInput}
+                        title={startInput}
+                        onChange={(e) => setStartInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }}
+                        onBlur={handleStartCommit}
+                    />
                 </Tooltip>
                 <Tooltip content="Step size (minutes) — used for playback and composite sweep intervals" placement="top">
                     <span>
@@ -244,10 +268,17 @@ export default function SightlinePanel() {
                         />
                     </span>
                 </Tooltip>
-                <Tooltip content="End Time" placement="top">
-                    <span className="vstTimeReadonly">
-                        {sweepEnd ? sweepEnd.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : 'End'}
-                    </span>
+                <Tooltip content="End Time (UTC) — editable" placement="top">
+                    <input
+                        type="text"
+                        className="vstTimeInput"
+                        placeholder="End"
+                        value={endInput}
+                        title={endInput}
+                        onChange={(e) => setEndInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur() }}
+                        onBlur={handleEndCommit}
+                    />
                 </Tooltip>
             </div>
 

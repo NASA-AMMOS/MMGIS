@@ -22,6 +22,32 @@ export function buildSourcesList(vars) {
     return list
 }
 
+// Build the list of selectable DEMs from the tool variables.
+// Supports the new multi-DEM `dems` array (each { name, path, resolution })
+// and falls back to the legacy single `dem` string for backward compatibility.
+// `resolution` (when provided) is the DEM's native ground sample distance in
+// meters-per-pixel; null means unknown (resolved at runtime from the dataset).
+export function buildDemsList(vars) {
+    const list = []
+    if (Array.isArray(vars?.dems)) {
+        vars.dems.forEach((d) => {
+            if (!d) return
+            const path = d.path || d.url || d.dem
+            if (!path) return
+            const res = parseFloat(d.resolution)
+            list.push({
+                name: d.name || path,
+                path,
+                resolution: Number.isFinite(res) && res > 0 ? res : null,
+            })
+        })
+    }
+    if (list.length === 0 && vars?.dem) {
+        list.push({ name: 'DEM', path: vars.dem, resolution: null })
+    }
+    return list
+}
+
 function makeDefaultElement(id, vars) {
     const color = MULTI_SOURCE_COLORS[id % MULTI_SOURCE_COLORS.length]
     return {
@@ -33,6 +59,14 @@ function makeDefaultElement(id, vars) {
         color: { ...color },
         opacity: 0.5,
         resolution: 0.25,
+        // Selected DEM (index into buildDemsList) and target working resolution.
+        // resolutionMpp is the requested ground sample distance in meters-per-pixel;
+        // null means use the selected DEM's native (dataset) resolution.
+        demIndex: 0,
+        resolutionMpp: null,
+        // Native (dataset) resolution in meters-per-pixel of the selected DEM,
+        // resolved from config or the backend deminfo endpoint. null = unknown.
+        nativeResolution: null,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
         sourceIndex: 0,

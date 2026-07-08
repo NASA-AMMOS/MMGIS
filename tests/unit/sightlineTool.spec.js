@@ -1188,3 +1188,233 @@ test.describe('Color utilities', () => {
         })
     })
 })
+
+// ============================================================
+// Multi-DEM config (buildDemsList) — mirrors store.js
+// ============================================================
+
+function buildDemsList(vars) {
+    const list = []
+    if (Array.isArray(vars?.dems)) {
+        vars.dems.forEach((d) => {
+            if (!d) return
+            const path = d.path || d.url || d.dem
+            if (!path) return
+            const res = parseFloat(d.resolution)
+            list.push({
+                name: d.name || path,
+                path,
+                resolution: Number.isFinite(res) && res > 0 ? res : null,
+            })
+        })
+    }
+    if (list.length === 0 && vars?.dem) {
+        list.push({ name: 'DEM', path: vars.dem, resolution: null })
+    }
+    return list
+}
+
+test.describe('Multi-DEM config (buildDemsList)', () => {
+    test('legacy single dem field yields one entry', () => {
+        const list = buildDemsList({ dem: 'sub/dem.tif' })
+        expect(list.length).toBe(1)
+        expect(list[0].path).toBe('sub/dem.tif')
+        expect(list[0].resolution).toBe(null)
+    })
+
+    test('dems array is used when present', () => {
+        const list = buildDemsList({
+            dem: 'legacy.tif',
+            dems: [
+                { name: 'Coarse', path: 'a.tif', resolution: 100 },
+                { name: 'Fine', path: 'b.tif', resolution: 5 },
+            ],
+        })
+        expect(list.length).toBe(2)
+        expect(list[0].name).toBe('Coarse')
+        expect(list[0].resolution).toBe(100)
+        expect(list[1].path).toBe('b.tif')
+    })
+
+    test('falls back to legacy dem when dems is empty', () => {
+        const list = buildDemsList({ dem: 'legacy.tif', dems: [] })
+        expect(list.length).toBe(1)
+        expect(list[0].path).toBe('legacy.tif')
+    })
+
+    test('skips malformed dem entries and invalid resolutions', () => {
+        const list = buildDemsList({
+            dems: [
+                null,
+                { name: 'NoPath' },
+                { path: 'ok.tif', resolution: 'nan' },
+                { path: 'neg.tif', resolution: -5 },
+            ],
+        })
+        expect(list.length).toBe(2)
+        expect(list[0].path).toBe('ok.tif')
+        expect(list[0].resolution).toBe(null)
+        expect(list[1].resolution).toBe(null)
+    })
+
+    test('accepts url/dem aliases for path and defaults name to path', () => {
+        const list = buildDemsList({ dems: [{ url: 'c.tif' }] })
+        expect(list.length).toBe(1)
+        expect(list[0].path).toBe('c.tif')
+        expect(list[0].name).toBe('c.tif')
+    })
+
+    test('empty config yields no DEMs', () => {
+        expect(buildDemsList({}).length).toBe(0)
+        expect(buildDemsList(undefined).length).toBe(0)
+    })
+})
+
+// ============================================================
+// Editable sweep-time validation — mirrors SightlineTool.normalizeUTCTime
+// ============================================================
+
+function normalizeUTCTime(str) {
+    if (str == null) return null
+    let time = String(str).trim()
+    if (!time) return null
+    if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(time)) time += 'Z'
+    const d = new Date(time)
+    if (isNaN(d.getTime())) return null
+    return time
+}
+
+test.describe('Editable sweep-time validation (normalizeUTCTime)', () => {
+    test('passes through a valid ISO-Z time', () => {
+        expect(normalizeUTCTime('2025-01-02T03:04:05Z')).toBe('2025-01-02T03:04:05Z')
+    })
+
+    test('appends Z to a zoneless time', () => {
+        expect(normalizeUTCTime('2025-01-02T03:04:05')).toBe('2025-01-02T03:04:05Z')
+    })
+
+    test('preserves an explicit offset', () => {
+        expect(normalizeUTCTime('2025-01-02T03:04:05+02:00')).toBe('2025-01-02T03:04:05+02:00')
+    })
+
+    test('rejects empty and whitespace input', () => {
+        expect(normalizeUTCTime('')).toBe(null)
+        expect(normalizeUTCTime('   ')).toBe(null)
+        expect(normalizeUTCTime(null)).toBe(null)
+    })
+
+    test('rejects unparseable input', () => {
+        expect(normalizeUTCTime('not-a-date')).toBe(null)
+    })
+})
+
+// ============================================================
+// Native (dataset) resolution — pixel scale + selector options + maxOutputDim
+// ============================================================
+
+// Mirror of get_pixel_scale() in sightmap.py / deminfo.py
+function getPixelScale(demRows, gt, srs) {
+    const pw = Math.abs(gt[1])
+    const ph = Math.abs(gt[5])
+    if (srs && srs.isProjected) {
+        return ((pw + ph) / 2.0) * (srs.linearUnit || 1.0)
+    }
+    const midLat = gt[3] + (demRows / 2.0) * gt[5]
+    const deg2m = 111320.0 * Math.cos((midLat * Math.PI) / 180.0)
+    return ((pw + ph) / 2.0) * deg2m
+}
+
+function fmtMpp(m) {
+    if (!Number.isFinite(m)) return ''
+    if (m >= 100) return Math.round(m) + ' m/px'
+    if (m >= 10) return m.toFixed(1) + ' m/px'
+    if (m >= 1) return m.toFixed(2) + ' m/px'
+    return m.toFixed(3) + ' m/px'
+}
+
+function buildResolutionOptions(nativeMpp) {
+    if (!Number.isFinite(nativeMpp) || nativeMpp <= 0) return null
+    return [
+        { value: 'native', label: fmtMpp(nativeMpp) + ' (Native)' },
+        { value: String(nativeMpp * 2), label: fmtMpp(nativeMpp * 2) },
+        { value: String(nativeMpp * 4), label: fmtMpp(nativeMpp * 4) },
+        { value: String(nativeMpp * 8), label: fmtMpp(nativeMpp * 8) },
+    ]
+}
+
+// Mirror of SightlineTool._resolutionToMaxDim dataset-resolution branch
+function resolutionToMaxDim(targetMpp, nativeMpp, groundExtentMeters) {
+    const clamp = (v) => Math.max(50, Math.min(Math.round(v), 4096))
+    let mpp = Number.isFinite(targetMpp) && targetMpp > 0 ? targetMpp : nativeMpp
+    if (Number.isFinite(nativeMpp) && nativeMpp > 0 && Number.isFinite(mpp) && mpp < nativeMpp) {
+        mpp = nativeMpp
+    }
+    if (Number.isFinite(mpp) && mpp > 0 && groundExtentMeters > 0) {
+        return clamp(groundExtentMeters / mpp)
+    }
+    return null
+}
+
+test.describe('Native dataset resolution (pixel scale)', () => {
+    test('projected DEM: meters per pixel from GeoTransform', () => {
+        const gt = [0, 10, 0, 0, 0, -10]
+        const srs = { isProjected: true, linearUnit: 1.0 }
+        expect(getPixelScale(1000, gt, srs)).toBeCloseTo(10, 6)
+    })
+
+    test('projected DEM honors non-meter linear units', () => {
+        const gt = [0, 1, 0, 0, 0, -1]
+        const srs = { isProjected: true, linearUnit: 1000.0 } // km
+        expect(getPixelScale(1000, gt, srs)).toBeCloseTo(1000, 6)
+    })
+
+    test('geographic DEM: degrees converted to meters at equator', () => {
+        const gt = [0, 1, 0, 0, 0, -1] // 1 degree/px at lat 0
+        const srs = { isProjected: false }
+        expect(getPixelScale(0, gt, srs)).toBeCloseTo(111320, 0)
+    })
+})
+
+test.describe('Resolution selector options (dataset units)', () => {
+    test('builds native + coarser steps from native m/px', () => {
+        const opts = buildResolutionOptions(5)
+        expect(opts.length).toBe(4)
+        expect(opts[0].value).toBe('native')
+        expect(opts[0].label).toContain('Native')
+        expect(opts[1].value).toBe('10')
+        expect(opts[2].value).toBe('20')
+        expect(opts[3].value).toBe('40')
+    })
+
+    test('returns null when native resolution unknown', () => {
+        expect(buildResolutionOptions(null)).toBe(null)
+        expect(buildResolutionOptions(0)).toBe(null)
+        expect(buildResolutionOptions(NaN)).toBe(null)
+    })
+})
+
+test.describe('maxOutputDim from dataset resolution', () => {
+    test('native resolution sizes the grid to ground extent', () => {
+        // 10000 m viewport at 10 m/px → 1000 px
+        expect(resolutionToMaxDim(null, 10, 10000)).toBe(1000)
+    })
+
+    test('coarser target reduces the output dimension', () => {
+        expect(resolutionToMaxDim(40, 10, 10000)).toBe(250)
+    })
+
+    test('never requests finer than native resolution', () => {
+        // target 1 m/px is finer than 10 m/px native → clamped to native
+        expect(resolutionToMaxDim(1, 10, 10000)).toBe(1000)
+    })
+
+    test('clamps to the [50, 4096] range', () => {
+        expect(resolutionToMaxDim(0.001, null, 10000)).toBe(4096)
+        expect(resolutionToMaxDim(100000, null, 10000)).toBe(50)
+    })
+
+    test('returns null when no resolution or extent is available', () => {
+        expect(resolutionToMaxDim(null, null, 10000)).toBe(null)
+        expect(resolutionToMaxDim(10, 10, 0)).toBe(null)
+    })
+})

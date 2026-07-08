@@ -25,7 +25,7 @@ import SightlineTool_Graphs from './SightlineTool_Graphs'
 import SightlineTool_Export from './SightlineTool_Export'
 import SightlineTool_Indicators from './SightlineTool_Indicators'
 
-import useSightlineStore, { MULTI_SOURCE_COLORS } from './store'
+import useSightlineStore, { MULTI_SOURCE_COLORS, buildDemsList } from './store'
 import SightlinePanel from './components/SightlinePanel'
 
 import './SightlineTool.css'
@@ -94,6 +94,12 @@ let _timeChangeDebounce = null
 
 // Per-element sweep run IDs and progress tracking so multiple sweeps can run simultaneously.
 const _sweepRunIds = {}     // elmId → runId
+// Per-element AbortControllers for in-flight sweep requests, so a running sweep
+// can be cancelled and its fetch aborted (the backend streaming loop then stops
+// cleanly when its stdout pipe closes).
+const _sweepAbortControllers = {}   // elmId → AbortController
+// Cache of native DEM resolution (meters-per-pixel) keyed by resolved DEM path.
+const _demInfoCache = {}    // demPath → { nativeResolution, cols, rows } | 'pending' | 'error'
 const _highWaterPcts = {}   // elmId → highest pct seen
 const _lastFlushTimes = {}  // elmId → performance.now()
 function _flushSweepProgress(elmId, pct, msg, force) {
@@ -569,8 +575,7 @@ let SightlineTool = {
             }
         }
 
-        let demUrl = vars.dem
-        if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+        const demUrl = SightlineTool.getElementDemUrl(activeElmId)
 
         store.updateElement(activeElmId, {
             regenerating: true,
@@ -1223,12 +1228,29 @@ let SightlineTool = {
 
     // === Time-Range Sweep ===
 
+    // Abort any in-flight sweep fetch(es).  Aborting closes the request so the
+    // backend per-frame streaming loop stops cleanly.
+    _abortSweepRequests: function (elmId) {
+        if (elmId != null) {
+            const c = _sweepAbortControllers[elmId]
+            if (c) { try { c.abort() } catch (_) {} delete _sweepAbortControllers[elmId] }
+            return
+        }
+        for (const id in _sweepAbortControllers) {
+            const c = _sweepAbortControllers[id]
+            if (c) { try { c.abort() } catch (_) {} }
+            delete _sweepAbortControllers[id]
+        }
+    },
+
     cancelSweep: function () {
         // Cancel all in-flight sweeps
         for (const id in _sweepRunIds) {
             _sweepRunIds[id] = (_sweepRunIds[id] || 0) + 1
         }
         SightlineTool._sweepAllRunId = (SightlineTool._sweepAllRunId || 0) + 1
+        // Abort in-flight fetches so the backend streaming loops stop cleanly
+        SightlineTool._abortSweepRequests()
         const store = useSightlineStore.getState()
         store.setSweepField('sweepProgress', '')
         // Reset all elements stuck in regenerating state
@@ -1244,12 +1266,29 @@ let SightlineTool = {
         Toast.info('Sweep cancelled.', 3000)
     },
 
+    // Cancel a single element's in-flight sweep (used by the per-item
+    // Sweep→Cancel toggle button).
+    cancelSweepElement: function (elmId) {
+        if (elmId == null) return SightlineTool.cancelSweep()
+        _sweepRunIds[elmId] = (_sweepRunIds[elmId] || 0) + 1
+        SightlineTool._abortSweepRequests(elmId)
+        const store = useSightlineStore.getState()
+        _flushSweepProgress(elmId, 0, undefined, true)
+        store.setSweepField('sweepProgress', '')
+        if (store.elements[elmId]?.regenerating) {
+            store.updateElement(elmId, { regenerating: false, loading: false, loadingProgress: 0 })
+        }
+        TimeUI.removeIndicator(null, 'sightlinetool')
+        Toast.info('Sweep cancelled.', 3000)
+    },
+
     sightlineSweep: function (startTime, endTime, stepMinutes, activeElmId, onComplete) {
         _highWaterPcts[activeElmId] = 0
         _sweepRunIds[activeElmId] = (_sweepRunIds[activeElmId] || 0) + 1
         const sweepRunId = _sweepRunIds[activeElmId]
         const store = useSightlineStore.getState()
         if (activeElmId == null) { if (onComplete) onComplete(); return }
+        const el = store.elements[activeElmId]
 
         if (SightlineTool._sweepPlayTimer) {
             clearInterval(SightlineTool._sweepPlayTimer)
@@ -1330,8 +1369,7 @@ let SightlineTool = {
             }
         }
 
-        let demUrl = vars.dem
-        if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+        const demUrl = SightlineTool.getElementDemUrl(activeElmId)
 
         const curElm = store.sweepCurrentElm || 1
         const totElms = store.sweepTotalElms || 1
@@ -1374,11 +1412,18 @@ let SightlineTool = {
             shadowReach: parseFloat(options.shadowReach) || 0,
         }
 
+        // AbortController lets cancelSweep()/cancelSweepElement() abort the
+        // in-flight streaming request; the backend stops its per-frame loop
+        // cleanly when the request closes.
+        const abortController = new AbortController()
+        _sweepAbortControllers[activeElmId] = abortController
+
         fetch(sightmapUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify(bodyObj),
+            signal: abortController.signal,
         }).then(async (response) => {
             if (!response.ok) {
                 let errMsg = 'Sightmap batch request failed'
@@ -1613,6 +1658,13 @@ let SightlineTool = {
                 })
             }, 0)
         }).catch((err) => {
+            // Aborted by the user via cancel — not an error; cancelSweep()
+            // handles UI cleanup, so stay quiet here.
+            if (err && err.name === 'AbortError') {
+                if (_sweepAbortControllers[activeElmId] === abortController)
+                    delete _sweepAbortControllers[activeElmId]
+                return
+            }
             const msg = (err && err.message) ? err.message : 'Sightmap sweep request failed.'
             Toast.error(msg, 6000)
             useSightlineStore
@@ -1620,6 +1672,9 @@ let SightlineTool = {
                 .setSweepField('sweepProgress', '')
             _flushSweepProgress(activeElmId, 0, undefined, true)
             if (typeof onComplete === 'function') onComplete()
+        }).finally(() => {
+            if (_sweepAbortControllers[activeElmId] === abortController)
+                delete _sweepAbortControllers[activeElmId]
         })
     },
 
@@ -1981,6 +2036,47 @@ let SightlineTool = {
         )
     },
 
+    // === Shared sweep-time update logic ===
+
+    /** Normalize a user-entered UTC time string to a valid ISO-Z string,
+     *  or null when it can't be parsed. */
+    normalizeUTCTime: function (str) {
+        if (str == null) return null
+        let time = String(str).trim()
+        if (!time) return null
+        // Accept a plain "YYYY-MM-DDTHH:MM:SS" without an explicit zone.
+        if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(time)) time += 'Z'
+        const d = new Date(time)
+        if (isNaN(d.getTime())) return null
+        return time
+    },
+
+    /** Validate a UTC start time, save it to the sweep store, and push it to
+     *  the global MMGIS timeline.  Shared by the top-section Start Time input
+     *  and the per-item observer-local inputs. */
+    applySweepStartTime: function (utcTime) {
+        const utc = SightlineTool.normalizeUTCTime(utcTime)
+        if (!utc) return false
+        const store = useSightlineStore.getState()
+        store.setSweepField('sweepStart', utc)
+        const endUtc = store.sweepEnd || TimeControl.getEndTime()
+        if (endUtc) TimeControl.setTime(utc, endUtc, false)
+        return true
+    },
+
+    /** Validate a UTC end time, save it to the sweep store, and push it to the
+     *  global MMGIS timeline.  Shared by the top-section End Time input and
+     *  the per-item observer-local inputs. */
+    applySweepEndTime: function (utcTime) {
+        const utc = SightlineTool.normalizeUTCTime(utcTime)
+        if (!utc) return false
+        const store = useSightlineStore.getState()
+        store.setSweepField('sweepEnd', utc)
+        const startUtc = store.sweepStart || TimeControl.getStartTime()
+        if (startUtc) TimeControl.setTime(startUtc, utc, false)
+        return true
+    },
+
     // === RAE Indicators (delegated to SightlineTool_Indicators) ===
 
     updateRAEIndicators(rae, sightlineId, allResults) {
@@ -2003,25 +2099,158 @@ let SightlineTool = {
         SightlineTool_Indicators.drawSkyDome(canvasId, results, currentIdx)
     },
 
+    // === DEM selection ===
+
+    /** Return the DEM descriptor { name, path, resolution } selected for an
+     *  element, from the multi-DEM list (or the legacy single DEM). */
+    getElementDem(elmId) {
+        const store = useSightlineStore.getState()
+        const id = elmId != null ? elmId : store.activeElmId
+        const el = store.elements[id]
+        const dems = buildDemsList(store.vars)
+        if (dems.length === 0) return null
+        const idx = el && el.demIndex != null ? el.demIndex : 0
+        return dems[idx] || dems[0]
+    },
+
+    /** Return the absolute URL of an element's selected DEM. */
+    getElementDemUrl(elmId) {
+        const dem = SightlineTool.getElementDem(elmId)
+        let demUrl = dem ? dem.path : useSightlineStore.getState().vars?.dem
+        if (demUrl && !F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+        return demUrl
+    },
+
+    /** Return the native (dataset) resolution in meters-per-pixel of an
+     *  element's selected DEM: from config, then a cached deminfo lookup,
+     *  then the element's stored value.  null when not yet known. */
+    getElementNativeResolution(elmId) {
+        const store = useSightlineStore.getState()
+        const id = elmId != null ? elmId : store.activeElmId
+        const el = store.elements[id]
+        const dem = SightlineTool.getElementDem(id)
+        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
+            return dem.resolution
+        const url = SightlineTool.getElementDemUrl(id)
+        const cached = url ? _demInfoCache[url] : null
+        if (cached && typeof cached === 'object' && Number.isFinite(cached.nativeResolution))
+            return cached.nativeResolution
+        if (el && Number.isFinite(el.nativeResolution) && el.nativeResolution > 0)
+            return el.nativeResolution
+        return null
+    },
+
+    /** Fetch (and cache) an element's DEM native resolution from the backend
+     *  deminfo endpoint, then store it on the element so the resolution
+     *  selector can reflect the real dataset resolution. */
+    fetchElementDemInfo(elmId) {
+        const store = useSightlineStore.getState()
+        const id = elmId != null ? elmId : store.activeElmId
+        // Config-provided native resolution needs no backend lookup.
+        const dem = SightlineTool.getElementDem(id)
+        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0) {
+            store.updateElement(id, { nativeResolution: dem.resolution })
+            return
+        }
+        const url = SightlineTool.getElementDemUrl(id)
+        if (!url) return
+        const cached = _demInfoCache[url]
+        if (cached === 'pending') return
+        if (cached && typeof cached === 'object') {
+            store.updateElement(id, { nativeResolution: cached.nativeResolution })
+            return
+        }
+        _demInfoCache[url] = 'pending'
+        calls.api(
+            'getdeminfo',
+            { dem: url },
+            (result) => {
+                if (result && !result.error && Number.isFinite(result.nativeResolution)) {
+                    _demInfoCache[url] = result
+                    const s = useSightlineStore.getState()
+                    if (s.elements[id]) s.updateElement(id, { nativeResolution: result.nativeResolution })
+                } else {
+                    _demInfoCache[url] = 'error'
+                }
+            },
+            () => { _demInfoCache[url] = 'error' }
+        )
+    },
+
     // === Utility ===
 
-    /** Compute maxOutputDim from the active element's resolution scale
-     *  and the current map viewport pixel dimensions.
-     *  resolution=1 → native (maxOutputDim = viewport longest dim)
-     *  resolution=0.5 → half, etc.
-     *  @param {number} [elmId] - element id to read resolution from; falls back to activeElmId
-     *  @returns {number} maxOutputDim
+    /** Approximate the ground extent (meters) of the longest map viewport
+     *  dimension, used to convert a target meters-per-pixel into an output
+     *  pixel dimension. */
+    _getViewportGroundExtentMeters() {
+        const map = Map_.map
+        if (!map) return 0
+        // Prefer the projected-bounds envelope for custom projected CRS (polar,
+        // etc.), where it is already computed in linear (meter) units.
+        const pb = _getViewportProjBounds()
+        if (pb) {
+            const ext = Math.max(pb[2] - pb[0], pb[3] - pb[1])
+            if (isFinite(ext) && ext > 0) return ext
+        }
+        try {
+            const size = map.getSize()
+            const w = map.distance(
+                map.containerPointToLatLng([0, size.y / 2]),
+                map.containerPointToLatLng([size.x, size.y / 2])
+            )
+            const h = map.distance(
+                map.containerPointToLatLng([size.x / 2, 0]),
+                map.containerPointToLatLng([size.x / 2, size.y])
+            )
+            const ext = Math.max(w || 0, h || 0)
+            if (isFinite(ext) && ext > 0) return ext
+        } catch (_) { /* fall through */ }
+        return 0
+    },
+
+    /** Compute maxOutputDim for the sightmap request.
+     *
+     *  Resolution is now expressed as the DEM's dataset resolution in
+     *  meters-per-pixel: the target meters-per-pixel (el.resolutionMpp, or the
+     *  DEM's native resolution when null) is divided into the viewport ground
+     *  extent to size the output grid.  "Native" therefore means the DEM's
+     *  true pixel size rather than the screen resolution.
+     *
+     *  Falls back to the legacy relative-scale behavior (el.resolution × the
+     *  viewport pixel dimension) only when neither a target nor a native
+     *  dataset resolution is available.
+     *
+     *  @param {number} [elmId] - element id; falls back to activeElmId
+     *  @returns {number} maxOutputDim (clamped to [50, 4096])
      */
     _resolutionToMaxDim(elmId) {
         const store = useSightlineStore.getState()
         const id = elmId != null ? elmId : store.activeElmId
         const el = store.elements[id]
+        const clamp = (v) => Math.max(50, Math.min(Math.round(v), 4096))
+
+        const nativeMpp = SightlineTool.getElementNativeResolution(id)
+        let targetMpp = el && Number.isFinite(el.resolutionMpp) && el.resolutionMpp > 0
+            ? el.resolutionMpp
+            : nativeMpp
+        // Never request finer than the dataset's native resolution.
+        if (Number.isFinite(nativeMpp) && nativeMpp > 0 &&
+            Number.isFinite(targetMpp) && targetMpp < nativeMpp) {
+            targetMpp = nativeMpp
+        }
+
+        if (Number.isFinite(targetMpp) && targetMpp > 0) {
+            const groundExtent = SightlineTool._getViewportGroundExtentMeters()
+            if (groundExtent > 0) return clamp(groundExtent / targetMpp)
+        }
+
+        // Legacy fallback: relative scale of the viewport pixel dimensions.
         const scale = el?.resolution || 0.25
         const map = Map_.map
-        if (!map) return Math.max(Math.round(800 * scale), 50)
+        if (!map) return clamp(800 * scale)
         const size = map.getSize()
         const longestDim = Math.max(size.x || 800, size.y || 800)
-        return Math.max(Math.round(longestDim * scale), 50)
+        return clamp(longestDim * scale)
     },
 
     parseToUTCTime(time, formatted) {

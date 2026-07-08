@@ -9,7 +9,7 @@ _Computes and visualizes line-of-sight visibility to orbiting or celestial targe
 Each sightline item is an independent sightline map with its own source, observer, display settings, and mode. Multiple sightline items can exist simultaneously, each identified by a colored left border.
 
 - _Time_
-  - The shared time section at the top of the tool. Shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End times are in ISO 8601 format (e.g. `2023-09-06T00:00:00Z`). Step Size is the interval between timesteps in minutes (used for composite and playback sweeps). These fields are connected to the MMGIS timeline (expandable via the clock icon in the bottom left of the screen).
+  - The shared time section at the top of the tool. Shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End times are **directly editable** UTC inputs in ISO 8601 format (e.g. `2023-09-06T00:00:00Z`); a bare `YYYY-MM-DDThh:mm:ss` (no zone) is accepted and treated as UTC. Editing a value and blurring (or pressing Enter) validates it and updates the global sweep times and the MMGIS timeline — the same validation and update logic used by the per-item observer-local inputs. Invalid entries revert to the last valid value. Step Size is the interval between timesteps in minutes (used for composite and playback sweeps). These fields are connected to the MMGIS timeline (expandable via the clock icon in the bottom left of the screen).
 
 #### Sightline Item Header
 
@@ -29,8 +29,8 @@ Each sightline item's header contains:
   - When an observer is selected, local time inputs appear showing the observer's local time (converted from UTC). Editing these and blurring converts back to UTC and updates the global sweep times.
 - _Height_
   - Height in meters above the surface to use when calculating line-of-sight shading. This value applies to all points on the visible terrain. Gradually increasing this value shows the sightline map n-meters above the surface.
-- _Elevation Map_
-  - Specifies the terrain dataset to use.
+- _DEM_
+  - When the mission config defines more than one DEM (see the **DEMs** config below), a dropdown appears to choose which terrain dataset this sightline item analyzes. The selected DEM is threaded through both the sightmap and horizon-profile computations. With a single configured DEM the dropdown is hidden and that DEM is used. Changing the DEM resets the Resolution to that DEM's native value.
 - _Custom Az/El/Range_
   - Override the SPICE-computed azimuth, elevation, and range with manual values.
 
@@ -41,7 +41,7 @@ Each sightline item's header contains:
 - _Opacity_
   - The opaqueness of the sightline map layer (0 = transparent, 1 = opaque).
 - _Resolution_
-  - Controls terrain data resolution. Each higher option is 4x the resolution of the previous one. Options: Low, Medium, High, Ultra. Higher resolutions disable auto-regeneration — the Generate button must be pressed manually.
+  - Controls the working ground resolution in **meters-per-pixel** based on the DEM's real dataset resolution (read from its GeoTransform). The default **Native** option uses the DEM's true pixel size; coarser options (2×, 4×, 8× the native meters-per-pixel) trade detail for speed. The output grid is sized from the viewport's ground extent divided by the selected meters-per-pixel (capped at 4096). Selecting finer than native is clamped to native. If the DEM's native resolution can't be determined, the tool falls back to the legacy relative scales (1×, 0.5×, 0.25×, 0.125×).
 
 #### Run
 
@@ -51,8 +51,9 @@ The **Run** section contains the mode selector and generate controls. Clicking t
   - Selects how visibility is computed and displayed for this sightline item. Switching modes clears the existing rendered layer from the map.
 
 - _Generate / Sweep button_
-  - **Static mode**: "Generate" computes a single-timestep sightline map. Auto-generates when settings change (for Low/Medium resolution).
+  - **Static mode**: "Generate" computes a single-timestep sightline map. Auto-generates when settings change.
   - **Composite/Playback mode**: "Sweep" runs the time-range analysis across all timesteps defined by Start Time, End Time, and Step Size. Maximum 256 frames per sweep.
+  - **Cancelling a sweep**: While a sweep is running the button turns into a red **Cancel** button showing the current progress percentage. Clicking it aborts the in-flight request via an `AbortController`; the backend per-frame streaming loop detects the closed connection and stops cleanly.
 
 ##### Static Mode Results
 
@@ -113,7 +114,7 @@ The sightmap computes a 2D visibility grid showing which terrain cells have dire
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `dem` | string | — | Path to DEM raster (under `/Missions/`) |
+| `dem` | string | — | Path to the selected DEM raster (under `/Missions/`); resolved from the per-item DEM selector |
 | `lat`, `lng` | number | — | Observer latitude/longitude |
 | `height` | number | 0 | Observer height above terrain (meters) |
 | `target` | string | — | SPICE target name (e.g. `SUN`, `MRO`) |
@@ -170,3 +171,29 @@ For each azimuth (default 360 directions at 1° intervals):
 - **Logarithmic stepping** — Step size: `step = max(1, log₂(r + 1))` pixels. Near the observer steps 1px; at 1000px steps ~10px. Preserves accuracy close-in (where per-pixel angle change is large) while skipping redundant far samples. Reduces ~2500 samples/ray to ~600 at 250km.
 - **Early termination** — After each sample beyond 1km, checks: "Could the tallest plausible terrain (10km relief, minus curvature drop) at this distance beat the current max angle?" If not, the ray stops. Most rays terminate at 50–200 samples.
 - **Combined speedup** — 4–8× fewer samples per ray compared to naïve per-pixel stepping.
+
+---
+
+#### DEM Info
+
+**Endpoint:** `POST /api/sightline/deminfo`
+
+Reports a DEM's native (dataset) resolution so the Resolution selector can show real meters-per-pixel options. Opens the DEM, reads its GeoTransform, and returns the true ground sample distance. For projected datasets the pixel size is scaled by the SRS linear unit; for geographic datasets degrees are converted to meters at the dataset's mid-latitude (same `get_pixel_scale` logic used internally by the sightmap).
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dem` | string | — | Path to DEM raster (under `/Missions/`) |
+
+**Response:** `{ nativeResolution, pixelSizeX, pixelSizeY, cols, rows, isProjected }` where `nativeResolution` is meters-per-pixel. The client caches the result per DEM path.
+
+### Configuration
+
+- `dem` (string, legacy) — A single DEM path. Kept for backward compatibility and used only when the `dems` list is empty.
+- `dems` (array) — A list of selectable DEMs, each with:
+  - `name` — display name shown in the per-item DEM dropdown.
+  - `path` — path to a Cloud Optimized GeoTIFF (COG) DEM relative to the mission directory.
+  - `resolution` (optional) — the DEM's native ground sample distance in meters-per-pixel. When omitted it is read from the dataset's GeoTransform at runtime via the DEM Info endpoint.
+
+  This mirrors the `MeasureTool`'s `layerDems` precedent. When `dems` is empty or absent, the legacy single `dem` field is used, so existing single-DEM configs continue to work unchanged.

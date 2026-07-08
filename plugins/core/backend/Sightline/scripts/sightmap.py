@@ -1342,10 +1342,19 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
 
         prev_flat = cur_u8.copy()
 
-        sys.stdout.write(json.dumps(frame) + "\n")
-        sys.stdout.flush()
-        sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
-        sys.stderr.flush()
+        # Stream this frame.  If the client aborted the request, Node closes
+        # our stdout pipe; writing then raises BrokenPipeError.  Stop the
+        # per-frame loop cleanly instead of dumping a traceback.
+        try:
+            sys.stdout.write(json.dumps(frame) + "\n")
+            sys.stdout.flush()
+        except (BrokenPipeError, IOError):
+            break
+        try:
+            sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
+            sys.stderr.flush()
+        except (BrokenPipeError, IOError):
+            break
 
     return None  # already streamed
 

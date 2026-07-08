@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import useSightlineStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
+import useSightlineStore, { buildSourcesList, buildDemsList, MULTI_SOURCE_COLORS } from '../store'
 import SightlineResults from './SightlineResults'
 import CardLegend, { getDefaultStops } from './CardLegend'
 import SightlineTool from '../SightlineTool'
 import SightlineTool_Graphs from '../SightlineTool_Graphs'
 import L_ from '@basics/Layers_/Layers_'
-import TimeControl from '@basics/TimeControl_/TimeControl'
 import {
     Button,
     Checkbox,
@@ -41,12 +40,35 @@ const FIT_MODE_OPTIONS = [
     { label: 'Fit to data', value: 'fit' },
 ]
 
-const RESOLUTION_OPTIONS = [
+// Legacy relative-scale options, used only when the DEM's native (dataset)
+// resolution can't be determined.
+const RESOLUTION_OPTIONS_LEGACY = [
     { value: '1', label: '1× (Native)' },
     { value: '0.5', label: '0.5×' },
     { value: '0.25', label: '0.25× (Default)' },
     { value: '0.125', label: '0.125×' },
 ]
+
+// Format a meters-per-pixel value for the resolution dropdown.
+function fmtMpp(m) {
+    if (!Number.isFinite(m)) return ''
+    if (m >= 100) return Math.round(m) + ' m/px'
+    if (m >= 10) return m.toFixed(1) + ' m/px'
+    if (m >= 1) return m.toFixed(2) + ' m/px'
+    return m.toFixed(3) + ' m/px'
+}
+
+// Build dataset-resolution options from a DEM's native meters-per-pixel:
+// Native (true pixel size) plus coarser 2×/4×/8× steps.
+function buildResolutionOptions(nativeMpp) {
+    if (!Number.isFinite(nativeMpp) || nativeMpp <= 0) return null
+    return [
+        { value: 'native', label: fmtMpp(nativeMpp) + ' (Native)' },
+        { value: String(nativeMpp * 2), label: fmtMpp(nativeMpp * 2) },
+        { value: String(nativeMpp * 4), label: fmtMpp(nativeMpp * 4) },
+        { value: String(nativeMpp * 8), label: fmtMpp(nativeMpp * 8) },
+    ]
+}
 
 const EXPORT_OPTIONS_STATIC = [
     { value: 'png', label: 'Sightline Map (PNG)' },
@@ -85,14 +107,34 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         [sourcesList]
     )
 
-    const dataOptions = useMemo(
-        () =>
-            (vars?.data || []).map((d, i) => ({
-                value: String(i),
-                label: d.name,
-            })),
-        [vars]
+    // Selectable DEMs (multi-DEM list, or the legacy single dem).
+    const demsList = useMemo(() => buildDemsList(vars), [vars])
+    const demOptions = useMemo(
+        () => demsList.map((d, i) => ({ value: String(i), label: d.name })),
+        [demsList]
     )
+    const demIndex = el?.demIndex != null ? el.demIndex : 0
+
+    // The selected DEM's native (dataset) resolution in meters-per-pixel:
+    // config-provided value, else the value resolved from the backend.
+    const nativeMpp = useMemo(() => {
+        const dem = demsList[demIndex] || demsList[0]
+        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
+            return dem.resolution
+        if (Number.isFinite(el?.nativeResolution) && el.nativeResolution > 0)
+            return el.nativeResolution
+        return null
+    }, [demsList, demIndex, el?.nativeResolution])
+
+    const datasetResOptions = useMemo(() => buildResolutionOptions(nativeMpp), [nativeMpp])
+
+    // Resolve the selected DEM's native resolution from the backend when it
+    // isn't provided in config, so the resolution selector reflects the real
+    // dataset resolution.
+    useEffect(() => {
+        if (demsList.length === 0) return
+        SightlineTool.fetchElementDemInfo(elmId)
+    }, [elmId, demIndex, demsList])
 
     const observerOptions = useMemo(
         () =>
@@ -222,12 +264,10 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                 // Save ms for exact round-trip, then strip for TimeControl
                 SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
                 const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
-                setSweepField('sweepStart', utc)
-                const endUtc = useSightlineStore.getState().sweepEnd || TimeControl.getEndTime()
-                if (endUtc) TimeControl.setTime(utc, endUtc, false)
+                SightlineTool.applySweepStartTime(utc)
             }
         })
-    }, [obsStartTime, observer, setSweepField])
+    }, [obsStartTime, observer])
 
     const handleObsEndBlur = useCallback(() => {
         if (!obsEndTime || !observer) return
@@ -236,12 +276,10 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                 // Save ms for exact round-trip, then strip for TimeControl
                 SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
                 const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
-                setSweepField('sweepEnd', utc)
-                const startUtc = useSightlineStore.getState().sweepStart || TimeControl.getStartTime()
-                if (startUtc) TimeControl.setTime(startUtc, utc, false)
+                SightlineTool.applySweepEndTime(utc)
             }
         })
-    }, [obsEndTime, observer, setSweepField])
+    }, [obsEndTime, observer])
 
     const handleColorSelect = useCallback(
         (color) => {
@@ -615,17 +653,24 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 />
                             </div>
 
-                            {dataOptions.length > 0 && (
+                            {demOptions.length > 1 && (
                                 <div className="vstOptionRow">
-                                    <div className="vstOptionLabel" title="Dataset to analyze.">
+                                    <div className="vstOptionLabel" title="DEM (terrain dataset) to analyze.">
                                         DEM
                                     </div>
                                     <Select
-                                        value={String(el.dataIndex)}
+                                        value={String(demIndex)}
                                         onValueChange={(v) =>
-                                            handleChange('dataIndex', parseInt(v))
+                                            updateElement(elmId, {
+                                                demIndex: parseInt(v),
+                                                // Reset to native resolution; options depend on the DEM.
+                                                resolutionMpp: null,
+                                                nativeResolution: null,
+                                                changed: true,
+                                                lastError: false,
+                                            })
                                         }
-                                        options={dataOptions}
+                                        options={demOptions}
                                         className="vstSelect"
                                     />
                                 </div>
@@ -680,15 +725,36 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 </div>
                             </div>
                             <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title="Resolution scale relative to viewport DEM extent. Lower = faster, coarser.">Resolution</div>
-                                <Select
-                                    value={String(el.resolution)}
-                                    onValueChange={(v) =>
-                                        handleChange('resolution', parseFloat(v))
-                                    }
-                                    options={RESOLUTION_OPTIONS}
-                                    className="vstSelect"
-                                />
+                                <div
+                                    className="vstOptionLabel"
+                                    title={datasetResOptions
+                                        ? "Working resolution in meters-per-pixel. 'Native' is the DEM's true dataset pixel size; coarser options are faster."
+                                        : "Resolution scale relative to viewport DEM extent. Lower = faster, coarser."}
+                                >
+                                    Resolution
+                                </div>
+                                {datasetResOptions ? (
+                                    <Select
+                                        value={el.resolutionMpp == null ? 'native' : String(el.resolutionMpp)}
+                                        onValueChange={(v) =>
+                                            handleChange(
+                                                'resolutionMpp',
+                                                v === 'native' ? null : parseFloat(v)
+                                            )
+                                        }
+                                        options={datasetResOptions}
+                                        className="vstSelect"
+                                    />
+                                ) : (
+                                    <Select
+                                        value={String(el.resolution)}
+                                        onValueChange={(v) =>
+                                            handleChange('resolution', parseFloat(v))
+                                        }
+                                        options={RESOLUTION_OPTIONS_LEGACY}
+                                        className="vstSelect"
+                                    />
+                                )}
                             </div>
                             <div className="vstOptionRow">
                                 <Tooltip content="Extends the terrain loaded for shadow computation beyond the visible map area. Terrain within this radius is read at a lower resolution so that distant features (ridges, crater rims) can cast shadows into the viewport without slowing down the full-resolution computation. Set to 0 to use only the viewport extent.">
@@ -745,14 +811,24 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
 
                 {/* — Actions (always visible) — */}
                 <div className="vstSightlineActions">
-                    <ProgressButton
-                        active={generateActive}
-                        loading={el.regenerating}
-                        progress={el.loadingProgress || 0}
-                        onClick={handleGenerate}
-                    >
-                        {generateLabel}
-                    </ProgressButton>
+                    {sightlineMode !== 'static' && el.regenerating ? (
+                        <Button
+                            className="vstCancelSweepBtn"
+                            onClick={() => SightlineTool.cancelSweepElement(elmId)}
+                            title="Cancel the running sweep"
+                        >
+                            {`Cancel (${Math.round(el.loadingProgress || 0)}%)`}
+                        </Button>
+                    ) : (
+                        <ProgressButton
+                            active={generateActive}
+                            loading={el.regenerating}
+                            progress={el.loadingProgress || 0}
+                            onClick={handleGenerate}
+                        >
+                            {generateLabel}
+                        </ProgressButton>
+                    )}
                 </div>
 
                 {/* — Results (collapsible, controlled by Run header) — */}
