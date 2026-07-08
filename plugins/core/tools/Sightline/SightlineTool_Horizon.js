@@ -15,6 +15,8 @@ let _horizonCache = null
 let _horizonPolygon = null
 let _polygonEnabled = false
 let _pendingProfile = null
+let _drawRetryFrame = null
+let _drawRetryCount = 0
 
 const SightlineTool_Horizon = {
     getCache() {
@@ -273,6 +275,23 @@ const SightlineTool_Horizon = {
     draw(profile, elmId) {
         const canvas = document.getElementById(HORIZON_CANVAS_ID)
         if (!canvas) return
+
+        // When the graphs panel is (re)opening, its height may still be
+        // transitioning so the canvas has no usable size yet. Retry on the
+        // next frames until it does, otherwise the profile silently fails to
+        // render (e.g. closing then immediately reopening the panel).
+        const parentRect = canvas.parentElement.getBoundingClientRect()
+        if (parentRect.width <= 0 || parentRect.height - 24 <= 0) {
+            if (_drawRetryFrame) cancelAnimationFrame(_drawRetryFrame)
+            if ((_drawRetryCount || 0) < 30) {
+                _drawRetryCount = (_drawRetryCount || 0) + 1
+                _drawRetryFrame = requestAnimationFrame(() => {
+                    SightlineTool_Horizon.draw(profile, elmId)
+                })
+            }
+            return
+        }
+        _drawRetryCount = 0
 
         SightlineTool_Horizon._updatePolygon(profile)
 

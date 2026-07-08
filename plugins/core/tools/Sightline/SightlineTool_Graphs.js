@@ -292,7 +292,7 @@ const SightlineTool_Graphs = {
         const samplingWrap = document.createElement('div')
         samplingWrap.className = 'sightlineVisSamplingWrap'
         const curRate = useSightlineStore.getState().sweepVisSamplingRate || 1
-        const rateOptions = [1, 2, 4, 8, 16, 32]
+        const rateOptions = [1, 2, 4, 8, 16, 32, 64, 128, 256]
         samplingWrap.innerHTML = `
             <span class="sightlineVisSamplingLabel">Visibility Sampling:</span>
             <select class="sightlineVisSamplingSelect" id="sightlineVisSamplingSelect">

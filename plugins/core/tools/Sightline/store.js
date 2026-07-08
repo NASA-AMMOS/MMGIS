@@ -114,9 +114,9 @@ const useSightlineStore = create((set, get) => ({
     sweepCardOrder: [],
     sweepDiscrete: false,
     sweepFitToData: true,
-    // Temporal sampling multiplier for the visibility timeline (1x..32x):
+    // Temporal sampling multiplier for the visibility timeline (1x..256x):
     // number of visibility ray samples computed per sweep timestep.
-    sweepVisSamplingRate: 1,
+    sweepVisSamplingRate: 32,
 
     // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, colorRamp, discrete, atlas, lastData, lastOptions } }
     sweepElData: {},
