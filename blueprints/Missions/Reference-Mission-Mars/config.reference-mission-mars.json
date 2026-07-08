@@ -165,7 +165,18 @@
       "icon": "brightness-4",
       "js": "SightlineTool",
       "variables": {
-        "dem": "Data/DEMs/missionDEM_20m_COG.tif",
+        "dems": [
+          {
+            "name": "Mission DEM (20 m/px)",
+            "path": "Data/DEMs/missionDEM_20m_COG.tif",
+            "resolution": 20
+          },
+          {
+            "name": "Mission DEM (40 m/px)",
+            "path": "Data/DEMs/missionDEM_20m_COG.tif",
+            "resolution": 40
+          }
+        ],
         "sources": [
           {
             "name": "Sun",

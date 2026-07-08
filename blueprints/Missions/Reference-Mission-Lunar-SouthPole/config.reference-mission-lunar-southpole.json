@@ -243,7 +243,18 @@
       "icon": "brightness-4",
       "js": "SightlineTool",
       "variables": {
-        "dem": "Data/DEMs/LRO_LOLA_DEM_4000m.tif",
+        "dems": [
+          {
+            "name": "LOLA DEM (4000 m/px)",
+            "path": "Data/DEMs/LRO_LOLA_DEM_4000m.tif",
+            "resolution": 4000
+          },
+          {
+            "name": "LOLA DEM (8000 m/px)",
+            "path": "Data/DEMs/LRO_LOLA_DEM_4000m.tif",
+            "resolution": 8000
+          }
+        ],
         "sources": [
           {
             "name": "Sun",
