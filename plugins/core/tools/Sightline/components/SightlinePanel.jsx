@@ -11,6 +11,12 @@ import { Button, IconButton, InputWithUnit, Tooltip } from '@design/components'
 
 const helpKey = 'SightlineTool'
 
+// Drop the seconds (and any milliseconds) from an ISO-Z time for a compact
+// display, matching how the top-section times were shown before they became
+// editable.
+const stripSeconds = (s) =>
+    s ? s.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : ''
+
 export default function SightlinePanel() {
     const vars = useSightlineStore((s) => s.vars)
     const elements = useSightlineStore((s) => s.elements)
@@ -31,18 +37,18 @@ export default function SightlinePanel() {
     const [startInput, setStartInput] = useState('')
     const [endInput, setEndInput] = useState('')
 
-    useEffect(() => { setStartInput(sweepStart || '') }, [sweepStart])
-    useEffect(() => { setEndInput(sweepEnd || '') }, [sweepEnd])
+    useEffect(() => { setStartInput(stripSeconds(sweepStart)) }, [sweepStart])
+    useEffect(() => { setEndInput(stripSeconds(sweepEnd)) }, [sweepEnd])
 
     // Commit an edited top-section time through the shared sweep-time update
     // logic (same validation + global timeline update as the per-item inputs).
     const handleStartCommit = useCallback(() => {
         if (!SightlineTool.applySweepStartTime(startInput))
-            setStartInput(useSightlineStore.getState().sweepStart || '')
+            setStartInput(stripSeconds(useSightlineStore.getState().sweepStart))
     }, [startInput])
     const handleEndCommit = useCallback(() => {
         if (!SightlineTool.applySweepEndTime(endInput))
-            setEndInput(useSightlineStore.getState().sweepEnd || '')
+            setEndInput(stripSeconds(useSightlineStore.getState().sweepEnd))
     }, [endInput])
 
     useEffect(() => {

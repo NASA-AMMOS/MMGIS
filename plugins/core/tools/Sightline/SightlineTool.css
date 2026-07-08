@@ -75,21 +75,24 @@
 #sightlineTool .vstTime .vstTimeInput {
     flex: 1;
     min-width: 0;
-    width: 100%;
+    opacity: 0.8;
     font-size: 11px;
-    color: var(--color-c);
-    background: var(--color-a1-5);
-    border: 1px solid var(--color-e);
-    border-radius: 3px;
-    padding: 3px 5px;
+    color: inherit;
+    background: transparent;
+    border: none;
+    padding: 0;
     box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 #sightlineTool .vstTime .vstTimeInput:first-child {
     text-align: right;
 }
+#sightlineTool .vstTime .vstTimeInput:hover,
 #sightlineTool .vstTime .vstTimeInput:focus {
+    opacity: 1;
     outline: none;
-    border-color: var(--color-c);
 }
 #sightlineTool .vstTime .vstTimeStep {
     width: 76px;
