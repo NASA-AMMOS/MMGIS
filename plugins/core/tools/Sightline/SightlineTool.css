@@ -1195,6 +1195,32 @@
     transform: scale(0.8);
 }
 
+.sightlineVisSamplingWrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 10px;
+}
+.sightlineVisSamplingLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    white-space: nowrap;
+    user-select: none;
+}
+.sightlineVisSamplingSelect {
+    font-size: 11px;
+    color: var(--color-a7);
+    background: var(--color-a1);
+    border: 1px solid var(--color-a3);
+    border-radius: 3px;
+    padding: 1px 4px;
+    cursor: pointer;
+    outline: none;
+}
+.sightlineVisSamplingSelect:hover {
+    border-color: var(--color-a6);
+}
+
 .sightlineGraphExcludedInfo {
     position: absolute;
     top: 30px;

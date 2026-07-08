@@ -2129,6 +2129,159 @@ let SightlineTool = {
         return null
     },
 
+    // === Dedicated visibility timeline ===
+
+    /** Fetch the dedicated single-ray, native-resolution visibility series for
+     *  an element's sweep and store it on ed.visResults.
+     *
+     *  Unlike the sweep grid (viewport-downsampled), this casts one ray per
+     *  sample from the observer toward the source azimuth at the DEM's native
+     *  resolution.  *samplingRate* densifies the temporal axis: samplingRate
+     *  samples are computed per sweep timestep (1x..32x), so the visibility
+     *  timeline can be smoother than the sweep frames themselves. */
+    fetchVisibilitySeries(elmId, samplingRate, maxDist, minDist, onDone) {
+        const store = useSightlineStore.getState()
+        const el = store.elements[elmId]
+        const ed = store.sweepElData[elmId]
+        if (!el || !ed?.results || ed.results.length === 0) {
+            if (onDone) onDone(false)
+            return
+        }
+        const rate = Math.max(1, Math.round(samplingRate || 1))
+        const results = ed.results
+        const baseStart = results[0]?.time
+        const baseEnd = results[results.length - 1]?.time
+        const baseCount = results.length
+
+        // Reuse cached series when nothing that affects it has changed.
+        const cached = ed.visResults
+        if (cached && cached.samplingRate === rate &&
+            cached.baseStart === baseStart && cached.baseCount === baseCount &&
+            cached.maxDist === maxDist && cached.minDist === minDist) {
+            if (onDone) onDone(true)
+            return
+        }
+
+        // A single-frame sweep has no interval to densify.
+        if (baseCount < 2) {
+            if (onDone) onDone(false)
+            return
+        }
+
+        const options = store.getSightlineOptions(elmId)
+        const selectedTargets = options.targets || []
+        if (selectedTargets.length === 0) {
+            if (onDone) onDone(false)
+            return
+        }
+        const primary = selectedTargets[0]
+        const primaryIsCustom = primary.value === false || primary.value === 'false'
+
+        const vars = store.vars
+        let obsRefFrame, obsBody
+        if (vars?.observers) {
+            for (let i = 0; i < vars.observers.length; i++) {
+                if (vars.observers[i].value === options.observer) {
+                    obsRefFrame = vars.observers[i].frame
+                    obsBody = vars.observers[i].body
+                    break
+                } else if (options.observer == null) {
+                    obsRefFrame = vars.observers[0].frame
+                    obsBody = vars.observers[0].body
+                    break
+                }
+            }
+        }
+
+        const center = ed.sweepCenter
+        if (!center) {
+            if (onDone) onDone(false)
+            return
+        }
+
+        const coarseStepMs = new Date(results[1].time).getTime() - new Date(results[0].time).getTime()
+        const fineStepSeconds = (coarseStepMs / 1000) / rate
+        if (!isFinite(fineStepSeconds) || fineStepSeconds <= 0) {
+            if (onDone) onDone(false)
+            return
+        }
+
+        let demUrl = SightlineTool.getElementDemUrl(elmId)
+        if (!demUrl) {
+            if (onDone) onDone(false)
+            return
+        }
+        // getElementDemUrl already returns an absolute (missionPath-prefixed)
+        // URL; the backend re-resolves it against the missions root.
+
+        const useCurvature = vars?.hasOwnProperty('curvature') ? vars.curvature : true
+
+        const params = {
+            dem: demUrl,
+            lat: center.lat,
+            lng: center.lng,
+            height: options.height || 0,
+            target: primaryIsCustom ? 'CUSTOM' : primary.value,
+            obsRefFrame,
+            obsBody,
+            planetRadius: useCurvature ? F_.radiusOfPlanetMajor : 0,
+            maxRadius: maxDist,
+            minSkipRadius: minDist,
+            isCustom: primaryIsCustom ? 'true' : 'false',
+            customAz: primaryIsCustom ? (el.customAz || 0) : 0,
+            customEl: primaryIsCustom ? (el.customEl || 0) : 0,
+            startTime: baseStart,
+            endTime: baseEnd,
+            stepSeconds: fineStepSeconds,
+        }
+
+        calls.api(
+            'sightlinevisibility',
+            params,
+            function (data) {
+                let parsed = data
+                if (typeof data === 'string') {
+                    try { parsed = JSON.parse(data) } catch (e) {
+                        if (onDone) onDone(false)
+                        return
+                    }
+                }
+                if (!parsed || parsed.error) {
+                    if (onDone) onDone(false)
+                    return
+                }
+                const samples = parsed.results || []
+                const storeF = useSightlineStore.getState()
+                const edF = storeF.sweepElData[elmId]
+                // Guard against a newer sweep having replaced results meanwhile.
+                if (!edF?.results || edF.results[0]?.time !== baseStart ||
+                    edF.results.length !== baseCount) {
+                    if (onDone) onDone(false)
+                    return
+                }
+                storeF.setSweepElField(elmId, 'visResults', {
+                    samplingRate: rate,
+                    baseStart,
+                    baseCount,
+                    maxDist,
+                    minDist,
+                    samples,
+                })
+                // Replace the grid-derived centerVisible on the coarse frames
+                // with the dedicated native-res ray result (sample every rate-th).
+                const patched = edF.results.map((r, i) => {
+                    const s = samples[i * rate]
+                    return s ? { ...r, centerVisible: !!s.visible } : r
+                })
+                storeF.setSweepElField(elmId, 'results', patched)
+                if (onDone) onDone(true)
+            },
+            function () {
+                if (onDone) onDone(false)
+            }
+        )
+    },
+
     // === Utility ===
 
     /** Approximate the ground extent (meters) of the longest map viewport

@@ -1416,3 +1416,129 @@ test.describe('m/px formatting', () => {
         expect(fmtMpp(null)).toBe('')
     })
 })
+
+// ============================================================
+// Visibility timeline temporal sampling
+// ============================================================
+
+// Fine (dedicated-ray) sampling step: samplingRate samples per sweep timestep.
+function fineStepSeconds(coarseStepMs, samplingRate) {
+    const rate = Math.max(1, Math.round(samplingRate || 1))
+    return coarseStepMs / 1000 / rate
+}
+
+// Number of fine samples spanning [t0, tN] inclusive at the given rate.
+function fineSampleCount(coarseCount, samplingRate) {
+    const rate = Math.max(1, Math.round(samplingRate || 1))
+    if (coarseCount < 2) return coarseCount
+    return (coarseCount - 1) * rate + 1
+}
+
+// Select the series to plot: the dedicated-ray samples when they match the
+// current sweep + rate, otherwise the coarse grid-derived centerVisible.
+function getVisSeries(ed, samplingRate) {
+    const results = ed?.results || []
+    const vr = ed?.visResults
+    if (
+        vr &&
+        vr.samples &&
+        vr.samples.length > 0 &&
+        vr.samplingRate === (samplingRate || 1) &&
+        vr.baseStart === results[0]?.time &&
+        vr.baseCount === results.length
+    ) {
+        return vr.samples
+    }
+    return results.map((r) => ({ time: r.time, visible: !!r.centerVisible }))
+}
+
+test.describe('Visibility timeline temporal sampling', () => {
+    test('1x keeps the sweep step', () => {
+        expect(fineStepSeconds(60000, 1)).toBe(60)
+    })
+
+    test('higher rates subdivide the step', () => {
+        expect(fineStepSeconds(60000, 2)).toBe(30)
+        expect(fineStepSeconds(60000, 4)).toBe(15)
+        expect(fineStepSeconds(64000, 32)).toBe(2)
+    })
+
+    test('rate is clamped to a positive integer', () => {
+        expect(fineStepSeconds(60000, 0)).toBe(60)
+        expect(fineStepSeconds(60000, undefined)).toBe(60)
+    })
+
+    test('fine sample count aligns coarse frames on rate boundaries', () => {
+        // 5 coarse frames at 4x → 4 fine samples per interval + 1 = 17
+        expect(fineSampleCount(5, 4)).toBe(17)
+        // coarse frame k maps to fine index k*rate
+        const count = fineSampleCount(5, 4)
+        expect((5 - 1) * 4).toBe(count - 1)
+    })
+
+    test('single-frame sweep has nothing to densify', () => {
+        expect(fineSampleCount(1, 8)).toBe(1)
+    })
+})
+
+test.describe('Visibility series selection', () => {
+    const ed = {
+        results: [
+            { time: 't0', centerVisible: true },
+            { time: 't1', centerVisible: false },
+        ],
+    }
+
+    test('falls back to grid centerVisible when no dedicated series', () => {
+        const s = getVisSeries(ed, 1)
+        expect(s.map((x) => x.visible)).toEqual([true, false])
+    })
+
+    test('prefers the dedicated ray series when it matches', () => {
+        const edVis = {
+            ...ed,
+            visResults: {
+                samplingRate: 2,
+                baseStart: 't0',
+                baseCount: 2,
+                samples: [
+                    { time: 't0', visible: false },
+                    { time: 't0.5', visible: true },
+                    { time: 't1', visible: true },
+                ],
+            },
+        }
+        const s = getVisSeries(edVis, 2)
+        expect(s.length).toBe(3)
+        expect(s.map((x) => x.visible)).toEqual([false, true, true])
+    })
+
+    test('ignores a stale dedicated series (wrong rate)', () => {
+        const edVis = {
+            ...ed,
+            visResults: {
+                samplingRate: 2,
+                baseStart: 't0',
+                baseCount: 2,
+                samples: [{ time: 't0', visible: false }],
+            },
+        }
+        // Current rate is 1 → cache (rate 2) is stale → fall back to coarse
+        const s = getVisSeries(edVis, 1)
+        expect(s.map((x) => x.visible)).toEqual([true, false])
+    })
+
+    test('ignores a stale dedicated series (different sweep)', () => {
+        const edVis = {
+            ...ed,
+            visResults: {
+                samplingRate: 1,
+                baseStart: 'DIFFERENT',
+                baseCount: 2,
+                samples: [{ time: 'x', visible: false }],
+            },
+        }
+        const s = getVisSeries(edVis, 1)
+        expect(s.map((x) => x.visible)).toEqual([true, false])
+    })
+})

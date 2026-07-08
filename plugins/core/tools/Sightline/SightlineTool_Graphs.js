@@ -7,6 +7,7 @@ import calls from '@pre/calls'
 import Toast from '@design/components/Toast/Toast'
 import tippy from 'tippy.js'
 
+import SightlineTool from './SightlineTool'
 import SightlineTool_Horizon from './SightlineTool_Horizon'
 import SightlineTool_Visibility from './SightlineTool_Visibility'
 
@@ -20,6 +21,7 @@ const HOVER_LINE_ID = 'sightlineHorizonHoverLine'
 let _horizonCache = null // { lat, lng, profile: [[az,el],...] }
 let _activeElmId = null
 let _graphOpen = false
+const _visFetchInFlight = {} // { [elmId]: true } dedupe visibility fetches
 let _activeView = null // 'combined' | null
 let _animFrameId = null
 // Layout state cached for mouse→azimuth conversion
@@ -283,6 +285,22 @@ const SightlineTool_Graphs = {
             <div class="mmgis-checkbox"><input type="checkbox" id="sightlineHorizonPolygonCb"/><label for="sightlineHorizonPolygonCb"></label></div>
         `
         header.appendChild(polygonWrap)
+
+        // Temporal sampling-rate selector for the visibility timeline.
+        // 1x = one dedicated visibility ray per sweep timestep; Nx computes
+        // N samples per timestep for a smoother visibility chart.
+        const samplingWrap = document.createElement('div')
+        samplingWrap.className = 'sightlineVisSamplingWrap'
+        const curRate = useSightlineStore.getState().sweepVisSamplingRate || 1
+        const rateOptions = [1, 2, 4, 8, 16, 32]
+        samplingWrap.innerHTML = `
+            <span class="sightlineVisSamplingLabel">Sampling:</span>
+            <select class="sightlineVisSamplingSelect" id="sightlineVisSamplingSelect">
+                ${rateOptions.map((r) => `<option value="${r}"${r === curRate ? ' selected' : ''}>${r}x</option>`).join('')}
+            </select>
+        `
+        header.appendChild(samplingWrap)
+
         setTimeout(() => {
             const cb = document.getElementById('sightlineHorizonPolygonCb')
             if (cb) {
@@ -298,6 +316,23 @@ const SightlineTool_Graphs = {
                     placement: 'bottom',
                     theme: 'blue',
                     maxWidth: 260,
+                })
+            }
+            const samplingSel = document.getElementById('sightlineVisSamplingSelect')
+            if (samplingSel) {
+                samplingSel.addEventListener('change', () => {
+                    const rate = parseInt(samplingSel.value, 10) || 1
+                    useSightlineStore.getState().setSweepField('sweepVisSamplingRate', rate)
+                    SightlineTool_Graphs._ensureVisibilityData(_activeElmId, true)
+                })
+            }
+            const samplingLabel = samplingWrap.querySelector('.sightlineVisSamplingLabel')
+            if (samplingLabel) {
+                tippy(samplingLabel, {
+                    content: 'Temporal sampling of the visibility timeline: 1x is one native-resolution ray per sweep timestep; higher rates compute intermediate samples for a smoother chart',
+                    placement: 'bottom',
+                    theme: 'blue',
+                    maxWidth: 300,
                 })
             }
         }, 0)
@@ -752,7 +787,42 @@ const SightlineTool_Graphs = {
     },
 
     drawVisibilityTimeline(elmId) {
-        SightlineTool_Visibility.draw(elmId != null ? elmId : _activeElmId)
+        const id = elmId != null ? elmId : _activeElmId
+        SightlineTool_Graphs._ensureVisibilityData(id, false)
+        SightlineTool_Visibility.draw(id)
+    },
+
+    // Fetch the dedicated native-resolution visibility series for every element
+    // shown in the timeline whose cached series is missing or stale (wrong
+    // sampling rate / range). Redraws as each element's data arrives. Fetches
+    // are deduped via _visFetchInFlight so repeated draw calls are cheap.
+    _ensureVisibilityData(elmId, force) {
+        const id = elmId != null ? elmId : _activeElmId
+        if (id == null) return
+        const store = useSightlineStore.getState()
+        const rate = store.sweepVisSamplingRate || 1
+        const maxDist = SightlineTool_Graphs._horizonMaxDist
+        const minDist = SightlineTool_Graphs._horizonMinDist
+        const { included } = _getFilteredVisibilityElms(store, id)
+        for (const { id: eid } of included) {
+            const ed = store.sweepElData[eid]
+            const cached = ed?.visResults
+            const fresh = cached && cached.samplingRate === rate &&
+                cached.baseStart === ed.results[0]?.time &&
+                cached.baseCount === ed.results.length &&
+                cached.maxDist === maxDist && cached.minDist === minDist
+            if (fresh && !force) continue
+            if (_visFetchInFlight[eid]) continue
+            SightlineTool_Graphs._fetchVisibilityFor(eid, rate, maxDist, minDist)
+        }
+    },
+
+    _fetchVisibilityFor(eid, rate, maxDist, minDist) {
+        _visFetchInFlight[eid] = true
+        SightlineTool.fetchVisibilitySeries(eid, rate, maxDist, minDist, () => {
+            delete _visFetchInFlight[eid]
+            if (_graphOpen) SightlineTool_Visibility.draw(_activeElmId)
+        })
     },
 
     updatePlaybackFrame(elmId) {

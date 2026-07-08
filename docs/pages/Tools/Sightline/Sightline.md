@@ -189,11 +189,12 @@ The chart is north-centered (0° N at center, ±180° at edges) and adapts to th
 
 A per-source horizontal bar showing when the source is visible vs. occluded over the sweep time range:
 
-- **Colored segments** indicate the source is visible (lit pixel at observer position in the sightmap grid), using the element's configured color.
+- **Colored segments** indicate the source is above the local terrain horizon (visible), using the element's configured color.
 - **Gray/white segments** indicate the source is occluded.
-- Visibility is determined by the **sightmap grid pixel** at the observer's position — if the pixel is lit (value 1 or 2) the source is visible, if shadowed (value 0) the source is occluded.
+- Visibility is computed by a **dedicated single-ray query** (`POST /api/sightline/visibility`), independent of the sweep grid. For each sample it casts one ray from the observer toward the source azimuth at the DEM's **native resolution** and compares the local horizon elevation against the source's elevation — so the result is zoom/viewport-independent, unlike the earlier grid-pixel derivation. (The Composite heatmap's percent-visible series still rides on the sweep grid.)
+- **Sampling dropdown** — In the charts panel header, to the right of the Polygon checkbox, a `1x…32x` selector controls the **temporal sampling rate** of the timeline. `1x` computes one visibility ray per sweep timestep; higher rates compute that many samples per timestep (interpolated timestamps between sweep frames) for a smoother, higher-fidelity visibility chart. Changing the rate refetches and redraws the timeline.
 - A red slider indicator tracks the current playback frame position.
-- Time labels along the bottom show UTC timestamps spanning the full time range.
+- Time labels along the bottom show UTC timestamps spanning the full time range (denser when a higher sampling rate is selected).
 
 #### Azimuth Lines on Map
 
@@ -298,4 +299,40 @@ For each azimuth (default 360 directions at 1° intervals):
 - **Logarithmic stepping** — Instead of stepping 1 pixel per sample, the step size increases logarithmically with distance: `step = max(1, log₂(r + 1))` pixels. Near the observer (r < 2px) it steps 1px for fine detail; at r = 1000px it steps ~10px. This preserves accuracy for nearby terrain (which subtends large angles) while skipping redundant samples at distance (where per-pixel angle change is negligible). Reduces ~2500 samples/ray to ~600 for a 250km radius.
 - **Early termination** — After each sample beyond 1km, the algorithm checks: "Could the tallest plausible terrain (10km relief, minus curvature drop) at this distance produce a steeper angle than the current maximum?" If not, the ray terminates immediately. For typical terrain where the horizon is found within a few km, rays terminate well before the max radius — often at 50–200 samples instead of 600+.
 - **Combined speedup** — Together, logarithmic stepping + early termination yield a 4–8× reduction in samples per ray compared to naïve 1px stepping to max radius.
+
+---
+
+#### Visibility (dedicated timeline ray)
+
+**Endpoint:** `POST /api/sightline/visibility`
+
+Computes the Visibility Timeline's per-sample visibility as a **single ray** from the observer toward each source over a time range, at the DEM's **native resolution** (no viewport downsampling). This is separate from the sweep grid: the timeline no longer samples a grid pixel, so its result is independent of zoom and working resolution.
+
+**Core Algorithm:**
+
+For each timestep (start → end at `stepSeconds`):
+
+1. **Source direction** — The source azimuth/elevation is computed from SPICE (or taken from the custom az/el for a custom target).
+2. **Single horizon ray** — One ray is cast from the observer toward the source azimuth using the same logarithmic-stepping + early-termination march as the Horizon Profile, yielding the terrain horizon elevation angle along that bearing.
+3. **Visibility test** — The source is `visible` when its elevation is above the local horizon angle along its azimuth (and above 0°); otherwise it is occluded.
+4. **Output** — An array of `{time, az, el, horizonAngle, visible}` per sample.
+
+**Temporal sampling:** The client sizes `stepSeconds` as `sweepStep / samplingRate`, where `samplingRate` is the `1x…32x` selector in the charts header. `1x` yields one sample per sweep timestep; higher rates interpolate that many samples per timestep. Fine sample index `k·rate` aligns with sweep frame `k`, so the playback slider still maps to sweep frames.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dem` | string | — | Path/URL to DEM raster (under `/Missions/`) |
+| `lat`, `lng` | number | — | Observer latitude/longitude |
+| `height` | number | 0 | Observer height above terrain (meters) |
+| `target` | string | — | Source entity (SPICE body) or `CUSTOM` |
+| `startTime`, `endTime` | ISO 8601 | — | Time range |
+| `stepSeconds` | number | — | Sample interval in seconds (= sweep step ÷ sampling rate) |
+| `maxRadius` | number | — | Maximum ray march distance in meters |
+| `minSkipRadius` | number | 0 | Skip terrain samples within this distance (meters) |
+| `planetRadius` | number | 0 | Planet radius in meters (for curvature; 0 = flat) |
+| `isCustom`, `customAz`, `customEl` | — | — | Custom fixed-direction source parameters |
+
+**Performance:** One ray per sample (vs. a full sightmap grid per frame in the old approach) with the horizon march's logarithmic stepping + early termination; the native-resolution window read is hard-capped to bound memory. Frame count is capped (≤ 32768) and the request supports client cancellation.
 

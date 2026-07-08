@@ -114,6 +114,9 @@ const useSightlineStore = create((set, get) => ({
     sweepCardOrder: [],
     sweepDiscrete: false,
     sweepFitToData: true,
+    // Temporal sampling multiplier for the visibility timeline (1x..32x):
+    // number of visibility ray samples computed per sweep timestep.
+    sweepVisSamplingRate: 1,
 
     // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, colorRamp, discrete, atlas, lastData, lastOptions } }
     sweepElData: {},
@@ -180,7 +183,7 @@ const useSightlineStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: null, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: null, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null, visResults: null }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },

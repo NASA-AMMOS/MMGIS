@@ -54,17 +54,21 @@ const SightlineTool_Visibility = {
         if (elms.length === 0) return
 
         const playIndex = store.sweepPlayIndex
+        const samplingRate = store.sweepVisSamplingRate || 1
 
         SightlineTool_Visibility._updateExcludedInfo(excludedCount)
 
         wrap.innerHTML = ''
 
         const refResults = elms[0].ed.results
-        const frameCount = refResults.length
-        if (frameCount === 0) return
+        // Coarse sweep frame count drives the playback slider position.
+        const coarseCount = refResults.length
+        // Fine (dedicated-ray) series drives the bars and time labels.
+        const refSeries = _getVisSeries(elms[0].ed, samplingRate)
+        const frameCount = refSeries.length
+        if (frameCount === 0 || coarseCount === 0) return
 
         elms.forEach(({ id, el, ed }) => {
-            const results = ed.results
             const sources = store.getSelectedSources(id)
             const srcName = sources?.[0]?.name || el.name || 'Source'
             const rawColor = el.color
@@ -87,9 +91,10 @@ const SightlineTool_Visibility = {
             })()
             const occludedColor = visIsLight ? 'rgba(240,240,240,0.7)' : 'rgba(60,60,60,0.5)'
 
+            const series = _getVisSeries(ed, samplingRate)
             const segments = []
-            for (let i = 0; i < results.length; i++) {
-                segments.push(!!results[i].centerVisible)
+            for (let i = 0; i < series.length; i++) {
+                segments.push(!!series[i].visible)
             }
 
             const row = document.createElement('div')
@@ -117,8 +122,8 @@ const SightlineTool_Visibility = {
                 const run = runs[ri]
                 const span = document.createElement('div')
                 span.className = 'sightlineVisSegment'
-                const pctStart = (run.start / frameCount) * 100
-                const pctWidth = ((run.end - run.start) / frameCount) * 100
+                const pctStart = (run.start / segments.length) * 100
+                const pctWidth = ((run.end - run.start) / segments.length) * 100
                 span.style.left = pctStart + '%'
                 span.style.width = pctWidth + '%'
 
@@ -131,8 +136,8 @@ const SightlineTool_Visibility = {
             wrap.appendChild(row)
         })
 
-        // Red time slider
-        if (playIndex >= 0 && playIndex < frameCount) {
+        // Red time slider — position by the coarse playback frame index
+        if (playIndex >= 0 && playIndex < coarseCount) {
             let slider = document.getElementById('sightlineVisSlider')
             if (!slider) {
                 slider = document.createElement('div')
@@ -145,7 +150,7 @@ const SightlineTool_Visibility = {
                 const barRect = firstBar.getBoundingClientRect()
                 const barLeft = barRect.left - wrapRect.left
                 const barWidth = barRect.width
-                const frac = frameCount > 1 ? playIndex / (frameCount - 1) : 0.5
+                const frac = coarseCount > 1 ? playIndex / (coarseCount - 1) : 0.5
                 const px = barLeft + frac * barWidth
                 slider.style.left = px + 'px'
             }
@@ -160,7 +165,7 @@ const SightlineTool_Visibility = {
             const barLeftOffset = firstBarEl.getBoundingClientRect().left - wrapRect.left
             timeContainer.style.marginLeft = barLeftOffset + 'px'
         }
-        SightlineTool_Visibility._drawTimeLabels(refResults)
+        SightlineTool_Visibility._drawTimeLabels(refSeries)
     },
 
     _drawTimeLabels(results) {
@@ -222,6 +227,22 @@ function _formatSmartTimeLabel(timeStr, omitYear) {
     } catch {
         return timeStr
     }
+}
+
+// Return the visibility series ({time, visible}[]) to plot for an element.
+// Prefers the dedicated native-resolution ray series (ed.visResults) at the
+// current sampling rate; falls back to the coarse grid-derived centerVisible
+// when the dedicated series isn't available yet.
+function _getVisSeries(ed, samplingRate) {
+    const results = ed?.results || []
+    const vr = ed?.visResults
+    if (vr && vr.samples && vr.samples.length > 0 &&
+        vr.samplingRate === (samplingRate || 1) &&
+        vr.baseStart === results[0]?.time &&
+        vr.baseCount === results.length) {
+        return vr.samples
+    }
+    return results.map((r) => ({ time: r.time, visible: !!r.centerVisible }))
 }
 
 function _getFilteredVisibilityElms(store, primaryElmId) {
