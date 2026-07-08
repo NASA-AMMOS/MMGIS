@@ -59,14 +59,8 @@ function makeDefaultElement(id, vars) {
         color: { ...color },
         opacity: 0.5,
         resolution: 0.25,
-        // Selected DEM (index into buildDemsList) and target working resolution.
-        // resolutionMpp is the requested ground sample distance in meters-per-pixel;
-        // null means use the selected DEM's native (dataset) resolution.
+        // Selected DEM (index into buildDemsList).
         demIndex: 0,
-        resolutionMpp: null,
-        // Native (dataset) resolution in meters-per-pixel of the selected DEM,
-        // resolved from config or the backend deminfo endpoint. null = unknown.
-        nativeResolution: null,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
         sourceIndex: 0,

@@ -1309,20 +1309,8 @@ test.describe('Editable sweep-time validation (normalizeUTCTime)', () => {
 })
 
 // ============================================================
-// Native (dataset) resolution — pixel scale + selector options + maxOutputDim
+// Resolution — relative scale → maxOutputDim + effective m/px readout
 // ============================================================
-
-// Mirror of get_pixel_scale() in sightmap.py / deminfo.py
-function getPixelScale(demRows, gt, srs) {
-    const pw = Math.abs(gt[1])
-    const ph = Math.abs(gt[5])
-    if (srs && srs.isProjected) {
-        return ((pw + ph) / 2.0) * (srs.linearUnit || 1.0)
-    }
-    const midLat = gt[3] + (demRows / 2.0) * gt[5]
-    const deg2m = 111320.0 * Math.cos((midLat * Math.PI) / 180.0)
-    return ((pw + ph) / 2.0) * deg2m
-}
 
 function fmtMpp(m) {
     if (!Number.isFinite(m)) return ''
@@ -1332,89 +1320,64 @@ function fmtMpp(m) {
     return m.toFixed(3) + ' m/px'
 }
 
-function buildResolutionOptions(nativeMpp) {
-    if (!Number.isFinite(nativeMpp) || nativeMpp <= 0) return null
-    return [
-        { value: 'native', label: fmtMpp(nativeMpp) + ' (Native)' },
-        { value: String(nativeMpp * 2), label: fmtMpp(nativeMpp * 2) },
-        { value: String(nativeMpp * 4), label: fmtMpp(nativeMpp * 4) },
-        { value: String(nativeMpp * 8), label: fmtMpp(nativeMpp * 8) },
-    ]
+// Mirror of SightlineTool._resolutionToMaxDim (relative-scale behavior)
+function resolutionToMaxDim(scale, longestViewportPx) {
+    const s = scale || 0.25
+    const longest = Math.max(longestViewportPx || 800, 0)
+    return Math.max(Math.round(longest * s), 50)
 }
 
-// Mirror of SightlineTool._resolutionToMaxDim dataset-resolution branch
-function resolutionToMaxDim(targetMpp, nativeMpp, groundExtentMeters) {
-    const clamp = (v) => Math.max(50, Math.min(Math.round(v), 4096))
-    let mpp = Number.isFinite(targetMpp) && targetMpp > 0 ? targetMpp : nativeMpp
-    if (Number.isFinite(nativeMpp) && nativeMpp > 0 && Number.isFinite(mpp) && mpp < nativeMpp) {
-        mpp = nativeMpp
-    }
-    if (Number.isFinite(mpp) && mpp > 0 && groundExtentMeters > 0) {
-        return clamp(groundExtentMeters / mpp)
-    }
+// Mirror of SightlineTool.getEffectiveResolutionMpp
+function effectiveResolutionMpp(scale, longestViewportPx, groundExtentMeters) {
+    const dim = resolutionToMaxDim(scale, longestViewportPx)
+    if (groundExtentMeters > 0 && dim > 0) return groundExtentMeters / dim
     return null
 }
 
-test.describe('Native dataset resolution (pixel scale)', () => {
-    test('projected DEM: meters per pixel from GeoTransform', () => {
-        const gt = [0, 10, 0, 0, 0, -10]
-        const srs = { isProjected: true, linearUnit: 1.0 }
-        expect(getPixelScale(1000, gt, srs)).toBeCloseTo(10, 6)
+test.describe('Resolution scale → maxOutputDim', () => {
+    test('1x uses the full viewport longest dimension', () => {
+        expect(resolutionToMaxDim(1, 1000)).toBe(1000)
     })
 
-    test('projected DEM honors non-meter linear units', () => {
-        const gt = [0, 1, 0, 0, 0, -1]
-        const srs = { isProjected: true, linearUnit: 1000.0 } // km
-        expect(getPixelScale(1000, gt, srs)).toBeCloseTo(1000, 6)
+    test('0.25x quarters the viewport dimension', () => {
+        expect(resolutionToMaxDim(0.25, 1000)).toBe(250)
     })
 
-    test('geographic DEM: degrees converted to meters at equator', () => {
-        const gt = [0, 1, 0, 0, 0, -1] // 1 degree/px at lat 0
-        const srs = { isProjected: false }
-        expect(getPixelScale(0, gt, srs)).toBeCloseTo(111320, 0)
+    test('defaults to 0.25x when scale is missing', () => {
+        expect(resolutionToMaxDim(undefined, 1000)).toBe(250)
+    })
+
+    test('never drops below the 50px floor', () => {
+        expect(resolutionToMaxDim(0.125, 100)).toBe(50)
     })
 })
 
-test.describe('Resolution selector options (dataset units)', () => {
-    test('builds native + coarser steps from native m/px', () => {
-        const opts = buildResolutionOptions(5)
-        expect(opts.length).toBe(4)
-        expect(opts[0].value).toBe('native')
-        expect(opts[0].label).toContain('Native')
-        expect(opts[1].value).toBe('10')
-        expect(opts[2].value).toBe('20')
-        expect(opts[3].value).toBe('40')
+test.describe('Effective working resolution (m/px readout)', () => {
+    test('ground extent divided by the output grid dimension', () => {
+        // 10000 m viewport, 1000 px longest, 1x → 1000 px grid → 10 m/px
+        expect(effectiveResolutionMpp(1, 1000, 10000)).toBeCloseTo(10, 6)
     })
 
-    test('returns null when native resolution unknown', () => {
-        expect(buildResolutionOptions(null)).toBe(null)
-        expect(buildResolutionOptions(0)).toBe(null)
-        expect(buildResolutionOptions(NaN)).toBe(null)
+    test('coarser scale yields a larger m/px', () => {
+        // 0.25x → 250 px grid → 40 m/px
+        expect(effectiveResolutionMpp(0.25, 1000, 10000)).toBeCloseTo(40, 6)
+    })
+
+    test('returns null when ground extent is unavailable', () => {
+        expect(effectiveResolutionMpp(1, 1000, 0)).toBe(null)
     })
 })
 
-test.describe('maxOutputDim from dataset resolution', () => {
-    test('native resolution sizes the grid to ground extent', () => {
-        // 10000 m viewport at 10 m/px → 1000 px
-        expect(resolutionToMaxDim(null, 10, 10000)).toBe(1000)
+test.describe('m/px formatting', () => {
+    test('formats across magnitude ranges', () => {
+        expect(fmtMpp(250)).toBe('250 m/px')
+        expect(fmtMpp(12.34)).toBe('12.3 m/px')
+        expect(fmtMpp(1.234)).toBe('1.23 m/px')
+        expect(fmtMpp(0.123)).toBe('0.123 m/px')
     })
 
-    test('coarser target reduces the output dimension', () => {
-        expect(resolutionToMaxDim(40, 10, 10000)).toBe(250)
-    })
-
-    test('never requests finer than native resolution', () => {
-        // target 1 m/px is finer than 10 m/px native → clamped to native
-        expect(resolutionToMaxDim(1, 10, 10000)).toBe(1000)
-    })
-
-    test('clamps to the [50, 4096] range', () => {
-        expect(resolutionToMaxDim(0.001, null, 10000)).toBe(4096)
-        expect(resolutionToMaxDim(100000, null, 10000)).toBe(50)
-    })
-
-    test('returns null when no resolution or extent is available', () => {
-        expect(resolutionToMaxDim(null, null, 10000)).toBe(null)
-        expect(resolutionToMaxDim(10, 10, 0)).toBe(null)
+    test('returns empty string for non-finite values', () => {
+        expect(fmtMpp(NaN)).toBe('')
+        expect(fmtMpp(null)).toBe('')
     })
 })

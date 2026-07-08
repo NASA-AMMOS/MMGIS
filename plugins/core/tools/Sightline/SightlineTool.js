@@ -98,8 +98,6 @@ const _sweepRunIds = {}     // elmId → runId
 // can be cancelled and its fetch aborted (the backend streaming loop then stops
 // cleanly when its stdout pipe closes).
 const _sweepAbortControllers = {}   // elmId → AbortController
-// Cache of native DEM resolution (meters-per-pixel) keyed by resolved DEM path.
-const _demInfoCache = {}    // demPath → { nativeResolution, cols, rows } | 'pending' | 'error'
 const _highWaterPcts = {}   // elmId → highest pct seen
 const _lastFlushTimes = {}  // elmId → performance.now()
 function _flushSweepProgress(elmId, pct, msg, force) {
@@ -2121,67 +2119,10 @@ let SightlineTool = {
         return demUrl
     },
 
-    /** Return the native (dataset) resolution in meters-per-pixel of an
-     *  element's selected DEM: from config, then a cached deminfo lookup,
-     *  then the element's stored value.  null when not yet known. */
-    getElementNativeResolution(elmId) {
-        const store = useSightlineStore.getState()
-        const id = elmId != null ? elmId : store.activeElmId
-        const el = store.elements[id]
-        const dem = SightlineTool.getElementDem(id)
-        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
-            return dem.resolution
-        const url = SightlineTool.getElementDemUrl(id)
-        const cached = url ? _demInfoCache[url] : null
-        if (cached && typeof cached === 'object' && Number.isFinite(cached.nativeResolution))
-            return cached.nativeResolution
-        if (el && Number.isFinite(el.nativeResolution) && el.nativeResolution > 0)
-            return el.nativeResolution
-        return null
-    },
-
-    /** Fetch (and cache) an element's DEM native resolution from the backend
-     *  deminfo endpoint, then store it on the element so the resolution
-     *  selector can reflect the real dataset resolution. */
-    fetchElementDemInfo(elmId) {
-        const store = useSightlineStore.getState()
-        const id = elmId != null ? elmId : store.activeElmId
-        // Config-provided native resolution needs no backend lookup.
-        const dem = SightlineTool.getElementDem(id)
-        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0) {
-            store.updateElement(id, { nativeResolution: dem.resolution })
-            return
-        }
-        const url = SightlineTool.getElementDemUrl(id)
-        if (!url) return
-        const cached = _demInfoCache[url]
-        if (cached === 'pending') return
-        if (cached && typeof cached === 'object') {
-            store.updateElement(id, { nativeResolution: cached.nativeResolution })
-            return
-        }
-        _demInfoCache[url] = 'pending'
-        calls.api(
-            'getdeminfo',
-            { dem: url },
-            (result) => {
-                if (result && !result.error && Number.isFinite(result.nativeResolution)) {
-                    _demInfoCache[url] = result
-                    const s = useSightlineStore.getState()
-                    if (s.elements[id]) s.updateElement(id, { nativeResolution: result.nativeResolution })
-                } else {
-                    _demInfoCache[url] = 'error'
-                }
-            },
-            () => { _demInfoCache[url] = 'error' }
-        )
-    },
-
     // === Utility ===
 
     /** Approximate the ground extent (meters) of the longest map viewport
-     *  dimension, used to convert a target meters-per-pixel into an output
-     *  pixel dimension. */
+     *  dimension, used to report the effective working resolution. */
     _getViewportGroundExtentMeters() {
         const map = Map_.map
         if (!map) return 0
@@ -2208,49 +2149,36 @@ let SightlineTool = {
         return 0
     },
 
-    /** Compute maxOutputDim for the sightmap request.
-     *
-     *  Resolution is now expressed as the DEM's dataset resolution in
-     *  meters-per-pixel: the target meters-per-pixel (el.resolutionMpp, or the
-     *  DEM's native resolution when null) is divided into the viewport ground
-     *  extent to size the output grid.  "Native" therefore means the DEM's
-     *  true pixel size rather than the screen resolution.
-     *
-     *  Falls back to the legacy relative-scale behavior (el.resolution × the
-     *  viewport pixel dimension) only when neither a target nor a native
-     *  dataset resolution is available.
-     *
-     *  @param {number} [elmId] - element id; falls back to activeElmId
-     *  @returns {number} maxOutputDim (clamped to [50, 4096])
+    /** Compute maxOutputDim from the active element's resolution scale
+     *  and the current map viewport pixel dimensions.
+     *  resolution=1 → native (maxOutputDim = viewport longest dim)
+     *  resolution=0.5 → half, etc.
+     *  @param {number} [elmId] - element id to read resolution from; falls back to activeElmId
+     *  @returns {number} maxOutputDim
      */
     _resolutionToMaxDim(elmId) {
         const store = useSightlineStore.getState()
         const id = elmId != null ? elmId : store.activeElmId
         const el = store.elements[id]
-        const clamp = (v) => Math.max(50, Math.min(Math.round(v), 4096))
-
-        const nativeMpp = SightlineTool.getElementNativeResolution(id)
-        let targetMpp = el && Number.isFinite(el.resolutionMpp) && el.resolutionMpp > 0
-            ? el.resolutionMpp
-            : nativeMpp
-        // Never request finer than the dataset's native resolution.
-        if (Number.isFinite(nativeMpp) && nativeMpp > 0 &&
-            Number.isFinite(targetMpp) && targetMpp < nativeMpp) {
-            targetMpp = nativeMpp
-        }
-
-        if (Number.isFinite(targetMpp) && targetMpp > 0) {
-            const groundExtent = SightlineTool._getViewportGroundExtentMeters()
-            if (groundExtent > 0) return clamp(groundExtent / targetMpp)
-        }
-
-        // Legacy fallback: relative scale of the viewport pixel dimensions.
         const scale = el?.resolution || 0.25
         const map = Map_.map
-        if (!map) return clamp(800 * scale)
+        if (!map) return Math.max(Math.round(800 * scale), 50)
         const size = map.getSize()
         const longestDim = Math.max(size.x || 800, size.y || 800)
-        return clamp(longestDim * scale)
+        return Math.max(Math.round(longestDim * scale), 50)
+    },
+
+    /** Report the effective working ground resolution (meters-per-pixel) for
+     *  an element at the current viewport: viewport ground extent divided by
+     *  the output grid dimension the sightmap request will use.
+     *  @param {number} [elmId] - element id; falls back to activeElmId
+     *  @returns {number|null} meters-per-pixel, or null when unavailable
+     */
+    getEffectiveResolutionMpp(elmId) {
+        const ground = SightlineTool._getViewportGroundExtentMeters()
+        const dim = SightlineTool._resolutionToMaxDim(elmId)
+        if (ground > 0 && dim > 0) return ground / dim
+        return null
     },
 
     parseToUTCTime(time, formatted) {

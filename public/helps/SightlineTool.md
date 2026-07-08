@@ -30,7 +30,7 @@ Each sightline item's header contains:
 - _Height_
   - Height in meters above the surface to use when calculating line-of-sight shading. This value applies to all points on the visible terrain. Gradually increasing this value shows the sightline map n-meters above the surface.
 - _DEM_
-  - When the mission config defines more than one DEM (see the **DEMs** config below), a dropdown appears to choose which terrain dataset this sightline item analyzes. The selected DEM is threaded through both the sightmap and horizon-profile computations. With a single configured DEM the dropdown is hidden and that DEM is used. Changing the DEM resets the Resolution to that DEM's native value.
+  - When the mission config defines more than one DEM (see the **DEMs** config below), a dropdown appears to choose which terrain dataset this sightline item analyzes. The selected DEM is threaded through both the sightmap and horizon-profile computations. With a single configured DEM the dropdown is hidden and that DEM is used.
 - _Custom Az/El/Range_
   - Override the SPICE-computed azimuth, elevation, and range with manual values.
 
@@ -41,7 +41,7 @@ Each sightline item's header contains:
 - _Opacity_
   - The opaqueness of the sightline map layer (0 = transparent, 1 = opaque).
 - _Resolution_
-  - Controls the working ground resolution in **meters-per-pixel** based on the DEM's real dataset resolution (read from its GeoTransform). The default **Native** option uses the DEM's true pixel size; coarser options (2×, 4×, 8× the native meters-per-pixel) trade detail for speed. The output grid is sized from the viewport's ground extent divided by the selected meters-per-pixel (capped at 4096). Selecting finer than native is clamped to native. If the DEM's native resolution can't be determined, the tool falls back to the legacy relative scales (1×, 0.5×, 0.25×, 0.125×).
+  - A relative scale (1×, 0.5×, 0.25× default, 0.125×) applied to the viewport's longest pixel dimension to size the output grid (minimum 50px). Lower scales are faster and coarser. Below the selector the tool shows the **effective working ground resolution** in meters-per-pixel (≈ viewport ground extent ÷ output grid dimension), which updates as you pan and zoom so you can see the real detail the current setting produces.
 
 #### Run
 
@@ -174,26 +174,12 @@ For each azimuth (default 360 directions at 1° intervals):
 
 ---
 
-#### DEM Info
-
-**Endpoint:** `POST /api/sightline/deminfo`
-
-Reports a DEM's native (dataset) resolution so the Resolution selector can show real meters-per-pixel options. Opens the DEM, reads its GeoTransform, and returns the true ground sample distance. For projected datasets the pixel size is scaled by the SRS linear unit; for geographic datasets degrees are converted to meters at the dataset's mid-latitude (same `get_pixel_scale` logic used internally by the sightmap).
-
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `dem` | string | — | Path to DEM raster (under `/Missions/`) |
-
-**Response:** `{ nativeResolution, pixelSizeX, pixelSizeY, cols, rows, isProjected }` where `nativeResolution` is meters-per-pixel. The client caches the result per DEM path.
-
 ### Configuration
 
 - `dem` (string, legacy) — A single DEM path. Kept for backward compatibility and used only when the `dems` list is empty.
 - `dems` (array) — A list of selectable DEMs, each with:
   - `name` — display name shown in the per-item DEM dropdown.
   - `path` — path to a Cloud Optimized GeoTIFF (COG) DEM relative to the mission directory.
-  - `resolution` (optional) — the DEM's native ground sample distance in meters-per-pixel. When omitted it is read from the dataset's GeoTransform at runtime via the DEM Info endpoint.
+  - `resolution` (optional) — the DEM's native ground sample distance in meters-per-pixel, for reference.
 
   This mirrors the `MeasureTool`'s `layerDems` precedent. When `dems` is empty or absent, the legacy single `dem` field is used, so existing single-DEM configs continue to work unchanged.
