@@ -182,7 +182,7 @@ For each azimuth (default 360 directions at 1° intervals):
 
 Drives the playback **Visibility Timeline** (the per-source visible/occluded bar under the Horizon Profile chart). Rather than reading a pixel out of the sweep grid, it casts a **single native-resolution ray** from the observer toward each source per sample and compares the source elevation against the terrain horizon along that azimuth. The result is therefore independent of zoom/working resolution.
 
-- **Sampling rate** — A `1x…32x` dropdown in the charts panel header (right of the Polygon checkbox) sets how many samples are computed per sweep timestep. `1x` = one ray per timestep; higher rates add interpolated samples between sweep frames for a smoother timeline. The request's `stepSeconds` is `sweepStep ÷ samplingRate`.
+- **Visibility Sampling rate** — A `1x…32x` dropdown in the charts panel header (right of the Horizon Polygon checkbox) sets how many samples are computed per sweep timestep. `1x` = one ray per timestep; higher rates add interpolated samples between sweep frames for a smoother timeline. The request's `stepSeconds` is `sweepStep ÷ samplingRate`.
 - **Algorithm** — Reuses the Horizon Profile's logarithmic stepping + early termination, but a single ray per sample toward the source azimuth (not a full 360° sweep). Output is `{time, az, el, horizonAngle, visible}` per sample.
 - Note: the Composite heatmap's percent-visible series still uses the sweep grid; only the timeline's per-frame visible/occluded state uses this dedicated ray.
 

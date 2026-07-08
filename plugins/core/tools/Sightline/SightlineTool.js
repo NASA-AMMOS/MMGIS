@@ -1601,6 +1601,9 @@ let SightlineTool = {
                 lat: source.lat,
                 lng: source.lng,
             })
+            // Invalidate the dedicated visibility series so the timeline
+            // refetches against the new sweep instead of reusing stale data.
+            currentStoreF.setSweepElField(activeElmId, 'visResults', null)
             SightlineTool._updateCrosshairPosition()
 
             currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')

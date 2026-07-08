@@ -267,7 +267,7 @@ const SightlineTool_Graphs = {
         const rangeWrap = document.createElement('div')
         rangeWrap.className = 'sightlineHorizonRangeWrap'
         rangeWrap.innerHTML = `
-            <span class="sightlineHorizonRangeLabel" id="sightlineHorizonRangeLabel">Horizon:</span>
+            <span class="sightlineHorizonRangeLabel" id="sightlineHorizonRangeLabel">Horizon Range:</span>
             <span class="sightlineHorizonRangeValue" id="sightlineHorizonMinLabel">1m</span>
             <div class="sightlineHorizonRangeTrack" id="sightlineHorizonRangeTrack">
                 <div class="sightlineHorizonRangeFill" id="sightlineHorizonRangeFill"></div>
@@ -281,7 +281,7 @@ const SightlineTool_Graphs = {
         const polygonWrap = document.createElement('div')
         polygonWrap.className = 'sightlineHorizonPolygonToggle'
         polygonWrap.innerHTML = `
-            <span class="sightlineHorizonPolygonLabel">Polygon:</span>
+            <span class="sightlineHorizonPolygonLabel">Horizon Polygon:</span>
             <div class="mmgis-checkbox"><input type="checkbox" id="sightlineHorizonPolygonCb"/><label for="sightlineHorizonPolygonCb"></label></div>
         `
         header.appendChild(polygonWrap)
@@ -294,7 +294,7 @@ const SightlineTool_Graphs = {
         const curRate = useSightlineStore.getState().sweepVisSamplingRate || 1
         const rateOptions = [1, 2, 4, 8, 16, 32]
         samplingWrap.innerHTML = `
-            <span class="sightlineVisSamplingLabel">Sampling:</span>
+            <span class="sightlineVisSamplingLabel">Visibility Sampling:</span>
             <select class="sightlineVisSamplingSelect" id="sightlineVisSamplingSelect">
                 ${rateOptions.map((r) => `<option value="${r}"${r === curRate ? ' selected' : ''}>${r}x</option>`).join('')}
             </select>
