@@ -13,7 +13,13 @@
     "descriptionFull": {
         "title": "Computes and visualizes line-of-sight visibility to orbiting or celestial targets over terrain.",
         "example": {
-            "dem": "Data/missionDEM.tif",
+            "dems": [
+                {
+                    "name": "User-friendly DEM name",
+                    "path": "Data/missionDEM.tif",
+                    "resolution": 20
+                }
+            ],
             "sources": [
                 {
                     "name": "User-friendly name for orbiter or body",
@@ -51,20 +57,9 @@
             {
                 "components": [
                     {
-                        "field": "variables.dem",
-                        "name": "DEM path (legacy, single)",
-                        "description": "A path to a Cloud Optimized GeoTIFF (COG) DEM relative to the mission directory. Used to compute terrain occlusion and elevation profiles. Large DEMs must be COGs for acceptable performance. Legacy single-DEM field: kept for backward compatibility and used only when the 'DEMs' list below is empty.",
-                        "type": "text",
-                        "width": 12
-                    }
-                ]
-            },
-            {
-                "components": [
-                    {
                         "field": "variables.dems",
                         "name": "DEMs",
-                        "description": "An array of selectable DEMs. Each has a 'name' (shown in the per-item DEM dropdown), a 'path' (a Cloud Optimized GeoTIFF relative to the mission directory), and an optional 'resolution' (the DEM's native ground sample distance in meters-per-pixel). When empty, the legacy single 'DEM path' above is used. Mirrors the MeasureTool 'layerDems' precedent.",
+                        "description": "An array of selectable DEMs. Each has a 'name' (shown in the per-item DEM dropdown), a 'path' (a Cloud Optimized GeoTIFF relative to the mission directory), and an optional 'resolution' (the DEM's native ground sample distance in meters-per-pixel). Large DEMs must be COGs for acceptable performance. Mirrors the MeasureTool 'layerDems' precedent.",
                         "type": "objectarray",
                         "width": 12,
                         "object": [
