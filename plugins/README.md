@@ -33,11 +33,13 @@ plugins/
 ├── core/                      # Core plugins (committed, version-controlled)
 │   ├── tools/                 # Frontend tools (Draw, Measure, Legend, etc.)
 │   ├── backend/               # Server modules (Accounts, Config, Users, etc.)
-│   └── components/            # UI components (OperationsClock, etc.)
+│   ├── components/            # UI components (OperationsClock, etc.)
+│   └── interactions/          # Feature interaction handlers (Select, InfoOpen, etc.)
 └── <org--repo>/               # Installed from git (org--repo naming, gitignored)
     ├── tools/
     ├── backend/
-    └── components/
+    ├── components/
+    └── interactions/
 ```
 
 ## Key Files
@@ -99,7 +101,7 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
 | `enable-all` | Enable all plugins (use `--container` to scope) |
 | `disable-all` | Disable all non-required plugins (use `--container` to scope) |
-| `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |
+| `create <type> <Name>` | Scaffold a new plugin (tool, backend, component, interaction) |
 | `destroy <plugin-id>` | Delete a plugin (prompts confirmation, `--force` to skip) |
 | `activate` | Regenerate frontend plugin imports without a full build |
 | `update [repo-name]` | `git pull` latest for one or all installed repos |
@@ -146,6 +148,61 @@ Server-side Express modules. Have `plugin.json` (metadata) + `plugin.js` (lifecy
 UI components loaded into the MMGIS interface. Directory name is plural (`components/`) but manifest type is singular (`"type": "component"`).
 
 **Required manifest fields**: `name`, `paths`.
+
+### Interactions
+
+Composable handlers that run when a user interacts with a map feature (click, hover, mouseout). Directory name is plural (`interactions/`) but manifest type is singular (`"type": "interaction"`). They replace the legacy `Kinds` system — instead of one hardcoded "kind" per layer, a layer's behavior is a **pipeline** of small, single-purpose interactions.
+
+**Required manifest fields**: `name`, `interactionId`, `paths`.
+
+#### The `use(ctx)` handler
+
+Each interaction exports an object with a `use(ctx)` method. `use` may be `async`; the runner awaits it. The `ctx` object carries everything the handler needs:
+
+| `ctx` field | Description |
+|-------------|-------------|
+| `Map_` | The `Map_` singleton |
+| `feature` | The clicked/hovered GeoJSON feature |
+| `layer` | The Leaflet layer |
+| `layerName` | Name of the layer |
+| `layerData` | The layer's config object (`L_.layers.data[layerName]`) |
+| `layerVar` | Shorthand for `layerData.variables` |
+| `event` | The originating Leaflet event |
+| `eventType` | `"click"`, `"hover"`, or `"mouseout"` |
+| `additional` | Event-specific extra data (or `null`) |
+| `stop` | Set to `true` to halt the rest of the pipeline |
+| `state` | Shared object interactions can read/write to pass data down the pipeline |
+
+```js
+const FeatureGlow = {
+    use(ctx) {
+        if (!ctx.feature) return
+        // do something with ctx.feature / ctx.layer ...
+        // ctx.state can carry data to later interactions
+        // set ctx.stop = true to halt the pipeline
+    },
+}
+
+export default FeatureGlow
+```
+
+#### Phases & pipeline order
+
+Every interaction declares a `phase`. A layer's effective click pipeline is built as **preamble → main → postamble**, so infrastructure behavior runs consistently around whatever the layer is configured to do:
+
+| Phase | Runs | Example interactions |
+|-------|------|----------------------|
+| `preamble` | Always, before the main behavior | `select` (order 0) |
+| `main` | The layer's configured behavior | `info:open`, `waypoint:image`, `viewer:open_panel` |
+| `postamble` | Always, after the main behavior | `info:silent`, `viewer:update`, `search:url`, `event:notify` |
+
+Within a phase, interactions are ordered by their `order` field. A layer chooses its `main`-phase interactions either explicitly via `layerData.interactions.<event>` or implicitly via the legacy `kind` string (mapped through `kindAlias` — see below). The preamble/postamble are always applied by the runner.
+
+An interaction can declare `suppresses` to replace a default when present — e.g. `info:open` (main) suppresses `info:silent` (postamble) so the panel isn't populated twice.
+
+#### Generated file & runtime
+
+At build time, `updateInteractions()` (`API/updateTools.js`) discovers all enabled interactions, enforces `pluginDependencies` (an interaction whose dependency is missing/disabled is excluded), and generates `src/pre/interactions.js` with static imports plus the phase arrays, suppression map, and kind-alias map. The runtime executor `src/essence/Basics/InteractionRunner/InteractionRunner.js` reads that generated data — it contains **no hardcoded interaction IDs**. All orchestration lives in the manifests.
 
 ## Installing Plugins
 
@@ -206,7 +263,7 @@ On Windows, if symlink creation fails due to permissions, `--link` falls back to
 
 ### After Installing
 
-- Frontend plugins are auto-activated by the CLI (regenerates `src/pre/tools.js` and `src/pre/components.js`). In dev mode, webpack-dev-server hot-reloads automatically. For production, run `npm run build`.
+- Frontend plugins are auto-activated by the CLI (regenerates `src/pre/tools.js`, `src/pre/components.js`, and `src/pre/interactions.js`). In dev mode, webpack-dev-server hot-reloads automatically. For production, run `npm run build`.
 - Restart the server to activate backend plugins.
 - Run `npm run plugins:install` to install any new npm/pip dependencies declared by the plugins.
 
@@ -364,6 +421,50 @@ plugins/<container>/components/MyComponent/
 }
 ```
 
+### Interaction Template
+
+Directory structure (scaffolded by `create interaction`):
+```
+plugins/<container>/interactions/FeatureGlow/
+├── plugin.json
+├── FeatureGlow.js
+└── tests/
+    └── featureGlow.spec.js
+```
+
+**`plugin.json`** (scaffolded — `interactionId` is auto-derived from the name, e.g. `FeatureGlow` → `feature:glow`):
+```json
+{
+    "name": "FeatureGlow",
+    "type": "interaction",
+    "interactionId": "feature:glow",
+    "description": "",
+    "applicableLayerTypes": ["vector", "vectortile", "query"],
+    "applicableEvents": ["click"],
+    "phase": "main",
+    "paths": {
+        "FeatureGlow": "./FeatureGlow"
+    }
+}
+```
+
+**`FeatureGlow.js`**:
+```js
+const FeatureGlow = {
+    use(ctx) {
+        // ctx.feature   — the clicked GeoJSON feature
+        // ctx.layer     — the Leaflet layer
+        // ctx.layerName — name of the layer
+        // ctx.state     — shared state between interactions
+        // ctx.stop      — set to true to halt the pipeline
+    },
+}
+
+export default FeatureGlow
+```
+
+After editing, set `interactionId`, `phase`, and `order`, then run `npm run build` (or `npm run plugins -- activate`) to regenerate `src/pre/interactions.js`. If the interaction depends on a tool, declare it in `pluginDependencies` (e.g. `["core/tools/Info"]`) — it will be excluded from the generated file if that dependency isn't enabled.
+
 ---
 
 ## `plugin.json` Reference
@@ -380,7 +481,7 @@ The canonical name of the plugin. Used as the display name in the CLI, configure
 
 #### `paths`
 
-**Type:** `object` — `{ [entryName: string]: string }` · **Required:** Yes (tools and components only)
+**Type:** `object` — `{ [entryName: string]: string }` · **Required:** Yes (tools, components, and interactions)
 
 Maps entry-point names to their file paths relative to the plugin's own directory. For tools, the key is typically `<Name>Tool`. For components, it's the component name.
 
@@ -405,7 +506,7 @@ Plugins with multiple entry points:
 
 #### `type`
 
-**Type:** `string` — one of `"tool"`, `"component"`, `"backend"` · **Required:** No (inferred from directory structure)
+**Type:** `string` — one of `"tool"`, `"component"`, `"backend"`, `"interaction"` · **Required:** No (inferred from directory structure)
 
 Uses **singular** form even though directory names are plural (`tools/`, `components/`).
 
@@ -512,6 +613,22 @@ Standard package metadata. `author` can be a string or `{ name, email, url }`. `
 | `priority` | `number` | Initialization order (lower = first, default 1000) |
 | `routes` | `object` | Informational: `{ prefix, auth }` documenting the API surface |
 | `envs` | `object` | Documents environment variables the plugin reads |
+
+### Interaction-Specific Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `interactionId` | `string` | **Required.** The ID used in layer pipelines and to reference the interaction (e.g. `select`, `info:open`, `waypoint:image`). |
+| `phase` | `string` | One of `"preamble"`, `"main"`, `"postamble"`. Determines pipeline position. Defaults to `"main"`. |
+| `order` | `number` | Sort key within a phase (lower = first). Used to order multiple interactions in the same phase. |
+| `suppresses` | `string[]` | Interaction IDs this one replaces when present in the pipeline (e.g. `info:open` suppresses `["info:silent"]`). |
+| `kindAlias` | `string[]` | Legacy `kind` strings this interaction maps to for backward compatibility (e.g. `["waypoint"]`). Multiple interactions may share a `kindAlias` — all of them run, ordered by `order`. |
+| `applicableEvents` | `string[]` | Event types this interaction handles: `"click"`, `"hover"`, `"mouseout"`. |
+| `applicableLayerTypes` | `string[]` | Layer types this interaction applies to (e.g. `["vector", "vectortile", "query"]`). |
+
+Interactions also commonly set `overridable: false` (infrastructure interactions like `select` can't be overridden or disabled) and `pluginDependencies` (see below) to declare a required tool.
+
+**How `kindAlias` maps a `kind` to a pipeline:** at build time the `kindAlias` arrays across all interactions are inverted into a kind→interactions map. So `kind: "waypoint"` resolves to every interaction declaring `kindAlias: ["waypoint"]` (e.g. `waypoint:image` then `waypoint:model`), sorted by `order`. A layer can bypass this entirely by specifying `interactions.<event>` explicitly in its config.
 
 ### Dependency Fields
 
@@ -690,7 +807,7 @@ Compact reference for agents working with the plugin CLI programmatically.
 
 - All commands support `--json`. Error paths also emit JSON when `--json` is set: `{"error": "message"}`.
 - The `enable` command returns `{"noop": true, "reason": "required"}` for required plugins (exit 0, not an error).
-- The `type` field in JSON output is always **singular** (`tool`, `backend`, `component`) — never the plural directory name.
+- The `type` field in JSON output is always **singular** (`tool`, `backend`, `component`, `interaction`) — never the plural directory name.
 - `list --json` includes: `id`, `name`, `type`, `container`, `enabled`, `core`, `required`, `version`, `tier`, `author`, `description`, `path`.
 - `info --json` includes the full `manifest` object plus computed fields (`enabled`, `core`, `required`, `path`).
 - `validate --json` returns `{ valid, total, passed, errors, warnings, results: [{ plugin, valid, errors }] }`.
