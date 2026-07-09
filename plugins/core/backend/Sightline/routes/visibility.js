@@ -104,6 +104,17 @@ router.post("/visibility", computeLimiter, function (req, res) {
     timeout: timeoutMs,
   });
 
+  // If the client aborts the request (e.g. a sweep is cancelled), kill the
+  // Python process so it does not keep computing to completion (or up to the
+  // spawn timeout) with its output discarded.
+  res.on("close", () => {
+    if (!child.killed) {
+      try {
+        child.kill();
+      } catch (_) {}
+    }
+  });
+
   let stderr = "";
   child.stderr.on("data", (data) => {
     if (stderr.length < 1024 * 1024) stderr += data;
