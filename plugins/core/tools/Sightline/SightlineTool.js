@@ -1361,9 +1361,9 @@ let SightlineTool = {
 
         const stepSeconds = stepMinutes * 60
 
-        if (timestamps.length > 2048) {
+        if (timestamps.length > 4096) {
             Toast.warning(
-                'Too many timesteps (max 2048). Increase step size.',
+                'Too many timesteps (max 4096). Increase step size.',
                 6000
             )
             if (onComplete) onComplete()

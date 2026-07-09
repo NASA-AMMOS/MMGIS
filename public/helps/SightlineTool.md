@@ -52,7 +52,7 @@ The **Run** section contains the mode selector and generate controls. Clicking t
 
 - _Generate / Sweep button_
   - **Static mode**: "Generate" computes a single-timestep sightline map. Auto-generates when settings change.
-  - **Composite/Playback mode**: "Sweep" runs the time-range analysis across all timesteps defined by Start Time, End Time, and Step Size. Maximum 256 frames per sweep.
+  - **Composite/Playback mode**: "Sweep" runs the time-range analysis across all timesteps defined by Start Time, End Time, and Step Size. Maximum 4096 frames per sweep.
   - **Cancelling a sweep**: While a sweep is running the Sweep button keeps showing its progress, and a small **×** floats over the right side of it. Clicking the × aborts the in-flight request via an `AbortController`; the backend per-frame streaming loop detects the closed connection and stops cleanly.
 
 ##### Static Mode Results
@@ -133,7 +133,7 @@ The sightmap computes a 2D visibility grid showing which terrain cells have dire
 - **Managed resolution** — Composite DEM working dimension capped at 4× max to prevent OOM on large shadow reach.
 - **Curvature clamp** — Shadow reach is clamped to `√(2 × planetRadius × 10km)`.
 - **Batch streaming** — DEM and SPICE kernels loaded once; each frame only recomputes the source vector. Progress reported per-frame.
-- **Frame limits** — Scale inversely with resolution: 2048 frames at low res, 256 at ultra.
+- **Frame limits** — Up to 4096 frames per sweep (a sweep with more timesteps must use a larger Step Size).
 
 ---
 
