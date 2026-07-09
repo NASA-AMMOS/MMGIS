@@ -217,6 +217,7 @@ const SightlineTool_Horizon = {
 
         if (
             _horizonCache &&
+            _horizonCache.demUrl === demUrl &&
             _horizonCache.lat === lat &&
             _horizonCache.lng === lng &&
             _horizonCache.height === height &&
@@ -263,7 +264,7 @@ const SightlineTool_Horizon = {
                     return
                 }
                 const profile = parsed.horizonProfile || []
-                _horizonCache = { lat, lng, height, profile, minDist, maxDist }
+                _horizonCache = { demUrl, lat, lng, height, profile, minDist, maxDist }
                 SightlineTool_Horizon.draw(profile, elmId)
                 if (opts.onDone) opts.onDone()
             },
