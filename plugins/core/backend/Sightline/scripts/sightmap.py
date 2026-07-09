@@ -42,6 +42,10 @@
 #   it reaches ~15× base.  This is combined with margin-based acceleration:
 #   when the margin between source elevation and max_el_angle is large (>5°)
 #   the log step is further multiplied by 3; when moderate (>2°) by 1.5.
+#   The combined step is capped at MAX_STEP_MULT × base so distant, thin
+#   occluders (ridge crests, crater rims) can't be skipped wholesale.
+# - Terrain is bilinearly interpolated from the 4 surrounding DEM cells at
+#   each sample (nearest-neighbor fallback on nodata) to reduce aliasing.
 # - Early cutoff: the march is limited to MAX_TERRAIN_H / tan(source_el)
 #   pixels, beyond which no terrain could possibly occlude the source.
 # - Curvature-based pre-march cutoff: the max march distance is capped where
@@ -640,7 +644,7 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
     MAX_TERRAIN_H = 10000.0  # conservative max terrain relief (meters)
     # Cap the adaptive step so distant thin occluders aren't skipped, which
     # otherwise makes shadow edges snap between frames instead of sliding.
-    MAX_STEP_MULT = 12.0
+    MAX_STEP_MULT = 6.0
     n = result_flat.shape[0]
 
     # Convert distance limits from meters to pixels

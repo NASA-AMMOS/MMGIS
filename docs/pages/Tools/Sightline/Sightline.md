@@ -234,7 +234,7 @@ The sightmap computes a 2D visibility grid showing which terrain cells have dire
 1. **Source position** — SPICE computes the azimuth, elevation, and range from the observer (map center lat/lng/height) to the target entity at the given time. For custom sources, user-supplied az/el is used directly.
 2. **DEM composite** — A terrain raster is read from the configured DEM, padded by `shadowReach` in all directions beyond the viewport to capture shadows cast by off-screen terrain. The composite is read at a managed resolution (working dim proportional to viewport, capped at 4× max working dim) to prevent memory exhaustion.
 3. **Tangent-plane projection** — The observer position and source vector are projected onto a local tangent plane. The source's effective position is expressed as (x, y, z) in a grid-aligned coordinate system.
-4. **Ray-march viewshed** — From each grid cell, a ray is cast toward the source. The algorithm (a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_) checks if any intervening terrain along the ray exceeds the line-of-sight slope from that cell to the source. If so, the cell is shadowed; otherwise it is visible.
+4. **Ray-march viewshed** — From each grid cell, a ray is cast toward the source azimuth. The algorithm (a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_) tracks the **maximum terrain elevation angle** encountered while marching outward. At each sample the terrain height is **bilinearly interpolated** from the four surrounding DEM cells (nearest-neighbor fallback on nodata), lowered by the curvature drop `d² / (2R)`, and the elevation angle `atan2(terrain_h − cell_h, distance)` is compared against the source elevation. If the running maximum ever reaches the source elevation the cell is **shadowed**; otherwise it is **visible**. See _Adaptive stepping_ below for how far the ray steps between samples.
 5. **Output** — A 2D integer grid where: `0` = shadowed, `1` = visible from target, `2` = also visible from secondary source (Earth), `8` = no DEM data, `9` = out of bounds.
 
 **Parameters:**
@@ -255,6 +255,15 @@ The sightmap computes a 2D visibility grid showing which terrain cells have dire
 | `isCustom` | string | `'false'` | If `'true'`, use `customAz`/`customEl` instead of SPICE |
 | `customAz`, `customEl` | number | 0 | Custom source azimuth/elevation (degrees) |
 | `viewportBounds` | string | — | Optional viewport bounds for clipping |
+
+**Adaptive stepping:**
+
+Rather than sampling every pixel along each ray, the step size grows with distance and with how far the source sits above the terrain seen so far, giving a **~7–14× speedup** over an every-pixel march. On smooth terrain no occluders are missed; only sharp, thin (a few-pixel-wide) features — ridge crests, crater rims — can be stepped over, which the step cap limits.
+
+- **Progressive log₂ stepping** — Base step scales as `march_step × max(1, log₂(r + 1))` pixels (`r` = distance in pixels): every pixel near the observer (largest per-step angle change), coarser far out (~10× at r = 1000, ~15× at r = 25000).
+- **Margin acceleration** — When the source elevation is well above the running maximum terrain angle the step is enlarged further (×3 when the margin is > 5°, ×1.5 when > 2°), since nearby terrain is then nowhere near blocking the source.
+- **Step cap** — The combined step is capped at `march_step × 6` so the accelerators can never skip a distant thin occluder wholesale; this keeps shadow edges *sliding* smoothly between animation frames rather than *snapping*. Lowering the cap trades speed for fewer missed occluders.
+- **Early cutoffs** — The march is bounded by `MAX_TERRAIN_H / tan(source_el)`, by a curvature cutoff `√(2 × R × MAX_TERRAIN_H)`, and by an in-march test that stops once even the tallest plausible terrain at the current distance could no longer beat the running maximum angle.
 
 **Performance:**
 
