@@ -1361,10 +1361,28 @@ let SightlineTool = {
 
         const stepSeconds = stepMinutes * 60
 
-        if (timestamps.length > 4096) {
+        // Frame cap scales inversely with resolution (mirrors sightmap.js).
+        const sweepGuardMaxDim = SightlineTool._resolutionToMaxDim(activeElmId)
+        const maxFrames =
+            sweepGuardMaxDim >= 800
+                ? 256
+                : sweepGuardMaxDim >= 400
+                ? 512
+                : sweepGuardMaxDim >= 200
+                ? 1024
+                : 4096
+        if (timestamps.length > maxFrames) {
+            const durationMin = (endMs - startMs) / 60000
+            const idealStep = Math.ceil(durationMin / (maxFrames - 1))
             Toast.warning(
-                'Too many timesteps (max 4096). Increase step size.',
-                6000
+                'Too many timesteps: ' +
+                    timestamps.length +
+                    ' requested (max ' +
+                    maxFrames +
+                    ' at this resolution). Use a step of at least ' +
+                    idealStep +
+                    ' min to fit this range.',
+                8000
             )
             if (onComplete) onComplete()
             return
