@@ -17,6 +17,10 @@ Enables programmatic control over GeoDataset layers. GeoDatasets are GeoJSON fil
 - [Endpoints](#endpoints)
   - [GET /get](#get-get)
   - [GET /get/:layer](#get-getlayer)
+  - [POST /intersect](#post-intersect)
+  - [GET /aggregations](#get-aggregations)
+  - [GET /bulk_aggregations](#get-bulk_aggregations)
+  - [GET /schema](#get-schema)
   - [POST /entries](#post-entries)
   - [POST /search](#post-search)
   - [POST /append/:name](#post-appendname)
@@ -58,6 +62,10 @@ Queries and geodataset and returns geojson or vectortiles.
 | **starttime** |  _time_   |  false   |   N/A   |             Start time of time window to query             |
 |  **endProp**  | _string_  |  false   |   N/A   |         Name of key of feature's end time property         |
 |  **endtime**  |  _time_   |  false   |   N/A   |              End time of time window to query              |
+|  **format**   | _string_  |  false   | `YYYY-MM-DDTHH:MI:SSZ` | PostgreSQL date format used to parse starttime/endtime |
+| **group_id**  | _string_  |  false   |   N/A   |     Return only features with this group_id value          |
+|    **id**     | _integer_ |  false   |   N/A   |  Return only the single feature with this internal row id  |
+|**spatialFilter**| _string_|  false   |   N/A   | Return features intersecting a circle: `lat,lng,radius` (radius in meters) |
 |     **x**     | _integer_ |  false   |   N/A   |               If type=mvt, x of tile to get                |
 |     **y**     | _integer_ |  false   |   N/A   |               If type=mvt, y of tile to get                |
 |     **z**     | _integer_ |  false   |   N/A   |               If type=mvt, z of tile to get                |
@@ -75,6 +83,81 @@ See [GET /get](#get-get). `layer` parameter can be passed in through URL instead
 #### Example
 
 `curl -X GET -H "Authorization:Bearer <token>" http://localhost:8889/api/geodatasets/get/my_geodataset?type=geojson&maxy=45.02695045318546&maxx=-77.23388671875&miny=29.70713934813417&minx=-123.77197265625001&starttime=2022-12-19T03%3A25%3A12.335Z&startProp=start_time&endtime=2024-03-13T21%3A26%3A22.090Z&endProp=end_time`
+
+---
+
+### POST /intersect
+
+Returns the features of a geodataset that spatially intersect a supplied GeoJSON geometry. Parameters are sent in the JSON body.
+
+|   Parameter   |      Type       | Required | Default |                     Description                     |
+| :-----------: | :-------------: | :------: | :-----: | :-------------------------------------------------: |
+|   **layer**   |    _string_     |   true   |   N/A   |                Geodataset layer name                |
+| **intersect** | _object/string_ |   true   |   N/A   | GeoJSON geometry (object or stringified) to intersect against |
+|**noDuplicates**|  _boolean_     |  false   |  false  |    Return only DISTINCT features (by group_id/geom) |
+| **starttime** |     _time_      |  false   |   N/A   |             Start time of time window to query      |
+|  **endtime**  |     _time_      |  false   |   N/A   |              End time of time window to query       |
+| **startProp** |    _string_     |  false   |`start_time`|        Name of feature's start time column       |
+|  **endProp**  |    _string_     |  false   | `end_time` |         Name of feature's end time column        |
+|  **format**   |    _string_     |  false   |`YYYY-MM-DDTHH:MI:SSZ`| PostgreSQL date format for time window |
+
+#### Example
+
+`curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" -d '{"layer":"my_geodataset","intersect":{"type":"Polygon","coordinates":[[[-1,-1],[-1,1],[1,1],[1,-1],[-1,-1]]]}}' http://localhost:8889/api/geodatasets/intersect`
+
+---
+
+### GET /aggregations
+
+Returns histograms/aggregations of feature `properties` values for a single geodataset (built from a random sample).
+
+|   Parameter   |   Type   | Required | Default |                    Description                     |
+| :-----------: | :------: | :------: | :-----: | :------------------------------------------------: |
+|   **layer**   | _string_ |   true   |   N/A   |               Geodataset layer name                |
+|   **limit**   | _integer_|  false   |   500   |    Random sample size used to build aggregations   |
+| **minx/miny/maxx/maxy** | _number_ | false | N/A | Optional bounding-box extent                     |
+| **starttime** |  _time_  |  false   |   N/A   |             Start time of time window              |
+|  **endtime**  |  _time_  |  false   |   N/A   |              End time of time window               |
+| **startProp** | _string_ |  false   |`start_time`|         Name of feature's start time column     |
+|  **endProp**  | _string_ |  false   | `end_time` |          Name of feature's end time column      |
+|  **format**   | _string_ |  false   |`YYYY-MM-DDTHH:MI:SSZ`| PostgreSQL date format for time window |
+
+#### Example
+
+`curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/aggregations?layer=my_geodataset&limit=500"`
+
+---
+
+### GET /bulk_aggregations
+
+Like [GET /aggregations](#get-aggregations) but aggregates across multiple layers in one call.
+
+|   Parameter   |   Type   | Required | Default |                    Description                     |
+| :-----------: | :------: | :------: | :-----: | :------------------------------------------------: |
+|  **layers**   | _string_ |   true   |   N/A   | Comma-separated list of layer names (max 100)      |
+|   **limit**   | _integer_|  false   |   500   | Sample size per layer (clamped to 1–1000)          |
+| **starttime** |  _time_  |  false   |   N/A   |  Start time of time window (used with `endtime`)   |
+|  **endtime**  |  _time_  |  false   |   N/A   |   End time of time window (used with `starttime`)  |
+| **startProp** | _string_ |  false   |`start_time`| Start time column used for time filtering       |
+|  **endProp**  | _string_ |  false   | `end_time` |  End time column used for time filtering         |
+
+#### Example
+
+`curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/bulk_aggregations?layers=layer_a,layer_b&limit=500"`
+
+---
+
+### GET /schema
+
+Returns field names, types, and source layers for one or more geodataset layers in bulk.
+
+| Parameter |   Type   | Required | Default |                 Description                  |
+| :-------: | :------: | :------: | :-----: | :------------------------------------------: |
+|**layers** | _string_ |   true   |   N/A   | Comma-separated list of layer names (max 100)|
+
+#### Example
+
+`curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/schema?layers=layer_a,layer_b"`
 
 ---
 
@@ -126,12 +209,19 @@ Returns all features that match a geojson `properties` property key's value.
 
 Append geojson features to an existing geodataset.
 
-| Parameter |   Type   | Required | Default |                 Description                 |
-| :-------: | :------: | :------: | :-----: | :-----------------------------------------: |
-| **:name** | _string_ |   true   |   N/A   | Geodataset layer name - included in the url |
-| **body**  | _object_ |  false   |   N/A   |        Entire body is a geojson file        |
+|    Parameter     |   Type   |  In   | Required | Default |                 Description                 |
+| :--------------: | :------: | :---: | :------: | :-----: | :-----------------------------------------: |
+|    **:name**     | _string_ |  url  |   true   |   N/A   | Geodataset layer name - included in the url |
+|  **start_prop**  | _string_ | query |  false   |   N/A   | Property key to use as each feature's start time |
+|   **end_prop**   | _string_ | query |  false   |   N/A   |  Property key to use as each feature's end time  |
+| **group_id_prop**| _string_ | query |  false   |   N/A   | Property key to use as each feature's group id (comma-separate to merge, e.g. `track,frame`) |
+|**feature_id_prop**| _string_| query |  false   |   N/A   | Property key to use as each feature's feature id (comma-separate to merge) |
+|   **filename**   | _string_ | query |  false   |   N/A   |  Optional source filename recorded on the entry  |
+|     **body**     | _object_ | body  |   true   |   N/A   |        Entire body is a geojson file        |
 
-_Note:_ The geojson body can include the top-level foreign geojson members `startProp` and `endProp` to specific which feature properties fields to use as the start and end times.
+_Note:_ The geojson body can also include the top-level foreign geojson members `startProp`, `endProp`, `groupIdProp`, and `featureIdProp` to specify which feature properties fields to use. Body-level members take precedence over the equivalent query parameters.
+
+> **Important:** Append does **not** automatically reuse the `start_time_field` / `end_time_field` / `group_id_field` / `feature_id_field` that were configured when the geodataset was created. If you do not supply the corresponding prop on the append request (via query param or body-level member), the appended features are stored with `NULL` `start_time`/`end_time`/`group_id`/`feature_id` and therefore will **not** match temporal or `group_id` queries. Pass the same field names on every append.
 
 ```json
 {
@@ -162,7 +252,7 @@ _Note:_ The geojson body can include the top-level foreign geojson members `star
 
 ### POST /append/:name/:start_end_prop
 
-See [POST /append/:name](#post-append-name). `startProp` and `endProp` parameters can be passed in through URL instead. `startProp` and `endProp` are comma-separated.
+See [POST /append/:name](#post-appendname). `startProp` and `endProp` parameters can be passed in through the URL instead as a comma-separated `startProp,endProp` pair. To set group id / feature id on this route, include the body-level `groupIdProp`/`featureIdProp` geojson members.
 
 #### Example
 
@@ -174,12 +264,16 @@ See [POST /append/:name](#post-append-name). `startProp` and `endProp` parameter
 
 Creates or replaces an existing geodataset with a new geojson.
 
-|   Parameter   |   Type   | Required | Default |                 Description                  |
-| :-----------: | :------: | :------: | :-----: | :------------------------------------------: |
-|   **name**    | _string_ |   true   |   N/A   |            Geodataset layer name             |
-|  **geojson**  | _object_ |   true   |   N/A   |         The geojson object to create         |
-| **startProp** | _object_ |  false   |   N/A   | Name of key of feature's start time property |
-|  **endProp**  | _object_ |  false   |   N/A   |  Name of key of feature's end time property  |
+|     Parameter     |   Type   | Required | Default |                 Description                  |
+| :---------------: | :------: | :------: | :-----: | :------------------------------------------: |
+|     **name**      | _string_ |   true   |   N/A   |            Geodataset layer name             |
+|    **geojson**    | _object_ |   true   |   N/A   |         The geojson object to create         |
+|   **startProp**   | _string_ |  false   |   N/A   | Name of key of feature's start time property |
+|    **endProp**    | _string_ |  false   |   N/A   |  Name of key of feature's end time property  |
+|  **groupIdProp**  | _string_ |  false   |   N/A   | Name of key of feature's group id property (comma-separate to merge) |
+| **featureIdProp** | _string_ |  false   |   N/A   | Name of key of feature's feature id property (comma-separate to merge) |
+|   **filename**    | _string_ |  false   |   N/A   |  Optional source filename recorded on the entry  |
+|    **action**     | _string_ |  false   |`recreate`| `recreate` truncates & replaces; `append` adds to existing features |
 
 #### Example
 

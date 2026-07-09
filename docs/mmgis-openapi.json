@@ -2615,6 +2615,46 @@
               "type": "integer",
               "minimum": 0
             }
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "description": "In the case of type=geojson, return only features whose group_id equals this value. Requires the GeoDataset to have been created with a group id field.",
+            "example": "track_042",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "In the case of type=geojson, return only the single feature with this internal row id. Ignored if 'group_id' is also provided.",
+            "example": 12,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "spatialFilter",
+            "in": "query",
+            "description": "In the case of type=geojson, return only features intersecting a circle. Comma-separated 'lat,lng,radius' where radius is in meters.",
+            "example": "29.7,-95.4,50000",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "In the case of a temporal query, the PostgreSQL date format string used to interpret 'starttime'/'endtime'. Defaults to 'YYYY-MM-DDTHH:MI:SSZ'.",
+            "example": "YYYY-MM-DDTHH:MI:SSZ",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2869,6 +2909,46 @@
               "type": "integer",
               "minimum": 0
             }
+          },
+          {
+            "name": "group_id",
+            "in": "query",
+            "description": "In the case of type=geojson, return only features whose group_id equals this value. Requires the GeoDataset to have been created with a group id field.",
+            "example": "track_042",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "In the case of type=geojson, return only the single feature with this internal row id. Ignored if 'group_id' is also provided.",
+            "example": 12,
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "spatialFilter",
+            "in": "query",
+            "description": "In the case of type=geojson, return only features intersecting a circle. Comma-separated 'lat,lng,radius' where radius is in meters.",
+            "example": "29.7,-95.4,50000",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "In the case of a temporal query, the PostgreSQL date format string used to interpret 'starttime'/'endtime'. Defaults to 'YYYY-MM-DDTHH:MI:SSZ'.",
+            "example": "YYYY-MM-DDTHH:MI:SSZ",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3027,6 +3107,20 @@
                   },
                   "maxy": {
                     "type": "number"
+                  },
+                  "operator": {
+                    "type": "string",
+                    "description": "Comparison operator applied to 'key'/'value'. Defaults to '='. Anything invalid falls back to '='.",
+                    "enum": ["=", "!=", "<", ">", "<=", ">=", "contains", "beginswith", "endswith", "in", ",", "isnull", "isnotnull", "regex"]
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "When set to 'number', numeric operators (<, >, <=, >=) cast the field and value to NUMERIC for comparison.",
+                    "enum": ["string", "number"]
+                  },
+                  "last": {
+                    "type": "boolean",
+                    "description": "If true, ignore key/value matching and return only the most recent feature (highest id), honoring any bounding box / geometry-type filters."
                   }
                 },
                 "required": ["layer"]
@@ -3080,6 +3174,104 @@
                     "value": {
                       "status": "failure",
                       "message": "Layer not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/intersect": {
+      "post": {
+        "summary": "Return the features of a GeoDataset that spatially intersect a supplied geometry.",
+        "tags": ["GeoDatasets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "layer": {
+                    "type": "string",
+                    "description": "The name of the GeoDataset to query."
+                  },
+                  "intersect": {
+                    "description": "The GeoJSON geometry (object or stringified) to intersect features against.",
+                    "oneOf": [{ "type": "object" }, { "type": "string" }]
+                  },
+                  "noDuplicates": {
+                    "type": "boolean",
+                    "description": "Returns only DISTINCT features. Uses the group_id field, if set, for distinctness else uses the geometry field."
+                  },
+                  "starttime": {
+                    "type": "string",
+                    "description": "For a temporal query, the start time of the window. If unset but 'endtime' is set, defaults to '1970-01-01T00:00:00Z'."
+                  },
+                  "endtime": {
+                    "type": "string",
+                    "description": "For a temporal query, the end time of the window."
+                  },
+                  "startProp": {
+                    "type": "string",
+                    "description": "For a temporal query, the start time column defined at the GeoDataset's creation. Defaults to 'start_time'."
+                  },
+                  "endProp": {
+                    "type": "string",
+                    "description": "For a temporal query, the end time column defined at the GeoDataset's creation. Defaults to 'end_time'."
+                  },
+                  "format": {
+                    "type": "string",
+                    "description": "For a temporal query, the PostgreSQL date format string used to interpret 'starttime'/'endtime'. Defaults to 'YYYY-MM-DDTHH:MI:SSZ'."
+                  }
+                },
+                "required": ["layer", "intersect"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Intersecting features",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": {
+                        "type": "FeatureCollection",
+                        "features": [
+                          {
+                            "type": "Feature",
+                            "geometry": {
+                              "type": "Point",
+                              "coordinates": [102.0, 0.5]
+                            },
+                            "properties": {
+                              "name": "example_feature",
+                              "_": { "idx": 1 }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to query Geodataset."
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Not Found"
                     }
                   }
                 }
@@ -3169,6 +3361,36 @@
             "in": "query",
             "description": "If only a certain temporal extent is desired, the end time of the window.",
             "example": "2025-04-03T21:55:06.013Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startProp",
+            "in": "query",
+            "description": "For a temporal query, the start time column defined at the GeoDataset's creation. Defaults to 'start_time'.",
+            "example": "start_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endProp",
+            "in": "query",
+            "description": "For a temporal query, the end time column defined at the GeoDataset's creation. Defaults to 'end_time'.",
+            "example": "end_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "description": "For a temporal query, the PostgreSQL date format string used to interpret 'starttime'/'endtime'. Defaults to 'YYYY-MM-DDTHH:MI:SSZ'.",
+            "example": "YYYY-MM-DDTHH:MI:SSZ",
             "required": false,
             "schema": {
               "type": "string"
@@ -3278,6 +3500,106 @@
         }
       }
     },
+    "/api/geodatasets/bulk_aggregations": {
+      "get": {
+        "summary": "Return aggregated feature-property values across multiple GeoDataset layers in a single call.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "layers",
+            "in": "query",
+            "description": "Comma-separated list of GeoDataset layer names to aggregate (capped at 100).",
+            "example": "reference_mission_basic,reference_mission_time_series",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Sample size per layer used to build the aggregations. Default 500, clamped to 1-1000.",
+            "example": 500,
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          },
+          {
+            "name": "starttime",
+            "in": "query",
+            "description": "If set together with 'endtime', restricts the sampled features to those whose time columns fall within the window.",
+            "example": "2024-08-01T00:00:00.000Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endtime",
+            "in": "query",
+            "description": "If set together with 'starttime', restricts the sampled features to those whose time columns fall within the window.",
+            "example": "2025-04-03T21:55:06.013Z",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startProp",
+            "in": "query",
+            "description": "Start time column name used for time filtering. Defaults to 'start_time'.",
+            "example": "start_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endProp",
+            "in": "query",
+            "description": "End time column name used for time filtering. Defaults to 'end_time'.",
+            "example": "end_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Combined aggregations across the requested layers.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "aggregations": {
+                        "passDirection": {
+                          "type": "string",
+                          "aggs": { "Descending": 252, "Ascending": 248 }
+                        }
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failure querying bulk geodataset aggregations."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/geodatasets/append/{name}": {
       "post": {
         "summary": "Append to a geodataset",
@@ -3294,6 +3616,8 @@
           {
             "name": "start_prop",
             "in": "query",
+            "description": "Name of the property inside each feature's 'properties' object to use as its start time. Append does NOT auto-reuse the field configured at creation — supply it (or the body-level 'startProp') on every append or the appended features get a NULL start_time and won't match temporal queries.",
+            "example": "start_time",
             "required": false,
             "schema": {
               "type": "string"
@@ -3302,6 +3626,28 @@
           {
             "name": "end_prop",
             "in": "query",
+            "description": "Name of the property inside each feature's 'properties' object to use as its end time. Append does NOT auto-reuse the field configured at creation — supply it (or the body-level 'endProp') on every append or the appended features get a NULL end_time and won't match temporal queries.",
+            "example": "end_time",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id_prop",
+            "in": "query",
+            "description": "Name of the property inside each feature's 'properties' object to use as its group id. Comma-separated to merge multiple properties (e.g. 'track,frame'). Append does NOT auto-reuse the field configured at creation — supply it (or the body-level 'groupIdProp') on every append or the appended features get a NULL group_id.",
+            "example": "track",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "feature_id_prop",
+            "in": "query",
+            "description": "Name of the property inside each feature's 'properties' object to use as its feature id. Comma-separated to merge multiple properties (e.g. 'track,id'). Append does NOT auto-reuse the field configured at creation — supply it (or the body-level 'featureIdProp') on every append or the appended features get a NULL feature_id.",
+            "example": "id",
             "required": false,
             "schema": {
               "type": "string"
@@ -3310,6 +3656,8 @@
           {
             "name": "filename",
             "in": "query",
+            "description": "Optional source filename recorded on the GeoDataset entry.",
+            "example": "features_to_append.geojson",
             "required": false,
             "schema": {
               "type": "string"
@@ -3318,16 +3666,59 @@
         ],
         "requestBody": {
           "required": true,
+          "description": "The entire request body is the GeoJSON FeatureCollection to append. The field names can alternatively be supplied here as top-level GeoJSON members ('startProp', 'endProp', 'groupIdProp', 'featureIdProp'), which take precedence over the equivalent query parameters. If none are supplied, the appended features get NULL start_time/end_time/group_id/feature_id and will not match temporal or group_id queries even if the GeoDataset was created with those fields.",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "geojson": {
-                    "type": "object"
+                  "type": {
+                    "type": "string",
+                    "example": "FeatureCollection"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "startProp": {
+                    "type": "string",
+                    "description": "Optional. Property key to use as each feature's start time. Takes precedence over the 'start_prop' query parameter."
+                  },
+                  "endProp": {
+                    "type": "string",
+                    "description": "Optional. Property key to use as each feature's end time. Takes precedence over the 'end_prop' query parameter."
+                  },
+                  "groupIdProp": {
+                    "type": "string",
+                    "description": "Optional. Property key (comma-separated to merge) to use as each feature's group id. Takes precedence over the 'group_id_prop' query parameter."
+                  },
+                  "featureIdProp": {
+                    "type": "string",
+                    "description": "Optional. Property key (comma-separated to merge) to use as each feature's feature id. Takes precedence over the 'feature_id_prop' query parameter."
                   }
                 },
-                "required": ["geojson"]
+                "required": ["features"]
+              },
+              "example": {
+                "type": "FeatureCollection",
+                "startProp": "start_time",
+                "endProp": "end_time",
+                "groupIdProp": "track",
+                "featureIdProp": "id",
+                "features": [
+                  {
+                    "type": "Feature",
+                    "geometry": { "type": "Point", "coordinates": [-95.4, 29.7] },
+                    "properties": {
+                      "start_time": "2024-03-13T21:26:22.090Z",
+                      "end_time": "2024-03-13T21:30:00.000Z",
+                      "track": "track_042",
+                      "id": "feat-0001"
+                    }
+                  }
+                ]
               }
             }
           }
@@ -3377,6 +3768,8 @@
           {
             "name": "start_end_prop",
             "in": "path",
+            "description": "Comma-separated 'startProp,endProp' — the property keys to use as each feature's start and end time. To set group id / feature id on this route, include body-level 'groupIdProp'/'featureIdProp' members instead.",
+            "example": "start_time,end_time",
             "required": true,
             "schema": {
               "type": "string"
@@ -3385,16 +3778,24 @@
         ],
         "requestBody": {
           "required": true,
+          "description": "The entire request body is the GeoJSON FeatureCollection to append. Top-level GeoJSON members 'startProp', 'endProp', 'groupIdProp', 'featureIdProp' are also honored and take precedence over the path parameter.",
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "geojson": {
-                    "type": "object"
+                  "type": {
+                    "type": "string",
+                    "example": "FeatureCollection"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
                   }
                 },
-                "required": ["geojson"]
+                "required": ["features"]
               }
             }
           }
@@ -3443,16 +3844,31 @@
                     "type": "string"
                   },
                   "startProp": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Property key to use as each feature's start time."
                   },
                   "endProp": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Property key to use as each feature's end time."
+                  },
+                  "groupIdProp": {
+                    "type": "string",
+                    "description": "Property key (comma-separated to merge) to use as each feature's group id."
+                  },
+                  "featureIdProp": {
+                    "type": "string",
+                    "description": "Property key (comma-separated to merge) to use as each feature's feature id."
+                  },
+                  "filename": {
+                    "type": "string",
+                    "description": "Optional source filename recorded on the GeoDataset entry."
                   },
                   "geojson": {
                     "type": "object"
                   },
                   "action": {
                     "type": "string",
+                    "description": "'recreate' (default) truncates and replaces all features; 'append' adds to the existing features. On 'append', the *_field configuration is preserved but the appended features only get start_time/end_time/group_id/feature_id populated if the corresponding prop is supplied.",
                     "enum": ["append", "recreate"]
                   }
                 },
