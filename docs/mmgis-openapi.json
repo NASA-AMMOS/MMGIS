@@ -159,13 +159,22 @@
                 "type": "object",
                 "properties": {
                   "mission": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Name of the new mission. Must be filesystem-safe: cannot start with a number and cannot contain path traversal sequences ('../').",
+                    "example": "ExampleMission"
                   },
                   "config": {
-                    "type": "object"
+                    "type": "object",
+                    "description": "Optional partial configuration object that is deep-merged onto the default mission template."
                   },
                   "makedir": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "'true' to also create the ./Missions/<mission> directory on disk.",
+                    "example": "true"
+                  },
+                  "setupReferenceMission": {
+                    "description": "Optional. Boolean true, or a variant key string, to instead scaffold a Reference Mission variant rather than a blank mission.",
+                    "oneOf": [{ "type": "boolean" }, { "type": "string" }]
                   }
                 },
                 "required": ["mission"]
@@ -791,6 +800,50 @@
         }
       }
     },
+    "/api/configure/reference-mission/save-to-base": {
+      "post": {
+        "summary": "Save a Reference Mission's current working config back to its blueprint template file. Development mode only.",
+        "tags": ["Configure"],
+        "description": "Only available when NODE_ENV is 'development' and only for missions that are Reference Mission variants; requires mission-level admin permission. Writes the latest config for the mission to its blueprints/Missions/<variant>/<configFile>.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string",
+                    "description": "The Reference Mission variant name whose current config should be written back to its blueprint template.",
+                    "example": "ReferenceMission"
+                  }
+                },
+                "required": ["mission"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Save result.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": { "status": "success", "message": "Config saved to ./blueprints/Missions/Earth/config.json" }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": { "status": "failure", "message": "This endpoint is only available for Reference Mission variants." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/configure/getGeneralOptions": {
       "get": {
         "summary": "Get the system-wide configured options",
@@ -823,7 +876,13 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                  "options": {
+                    "description": "The general options object (or a JSON-encoded string of it). This FULLY REPLACES the existing system-wide general options.",
+                    "oneOf": [{ "type": "object" }, { "type": "string" }]
+                  }
+                },
+                "required": ["options"]
               }
             }
           }
@@ -1647,6 +1706,101 @@
                       "message": "Merge failure.",
                       "body": {}
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/draw/aggregations": {
+      "post": {
+        "summary": "Return property value histograms/aggregations for a random sample of features in Draw file(s).",
+        "tags": ["Drawing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "description": "A single Draw file ID or an array of file IDs to aggregate over. May be sent as a JSON array or a JSON-encoded string.",
+                    "oneOf": [
+                      { "type": "integer" },
+                      { "type": "array", "items": { "type": "integer" } },
+                      { "type": "string" }
+                    ],
+                    "example": [12]
+                  },
+                  "test": {
+                    "type": "string",
+                    "description": "'true' to operate on the test tables (user_features_tests). Default 'false'.",
+                    "example": "false"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Number of features to randomly sample when building the aggregations. Default 500.",
+                    "example": 500
+                  },
+                  "time": {
+                    "type": "integer",
+                    "description": "Optional epoch-ms point-in-time; aggregates the feature history as it existed at or before this time. Defaults to now."
+                  },
+                  "minx": {
+                    "type": "number",
+                    "description": "Optional spatial-bounds filter: minimum longitude. Supply all of minx/miny/maxx/maxy together."
+                  },
+                  "miny": {
+                    "type": "number",
+                    "description": "Optional spatial-bounds filter: minimum latitude."
+                  },
+                  "maxx": {
+                    "type": "number",
+                    "description": "Optional spatial-bounds filter: maximum longitude."
+                  },
+                  "maxy": {
+                    "type": "number",
+                    "description": "Optional spatial-bounds filter: maximum latitude."
+                  },
+                  "startTime": {
+                    "type": "string",
+                    "description": "Optional temporal filter start; used with endTime and timeProp."
+                  },
+                  "endTime": {
+                    "type": "string",
+                    "description": "Optional temporal filter end; used with startTime and timeProp."
+                  },
+                  "timeProp": {
+                    "type": "string",
+                    "description": "Name of the feature property holding the time value for temporal filtering. Default 'time'."
+                  }
+                },
+                "required": ["id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Aggregation counts per property value (plus a 'geometry.type' aggregation).",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "aggregations": {
+                        "geometry.type": { "type": "string", "aggs": { "Point": 3 } },
+                        "status": { "type": "string", "aggs": { "open": 2, "closed": 1 } }
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": { "status": "failure", "message": "No file IDs provided." }
                   }
                 }
               }
@@ -4172,10 +4326,14 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional label for the token. Non-alphanumeric characters are stripped and it is lowercased, then prefixed to the generated token (e.g. name 'My CI' produces a token like 'myci-<hex>').",
+                    "example": "ci-pipeline"
                   },
                   "period": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Token lifetime, measured in MILLISECONDS from creation, or the literal string 'never' for no expiry. IMPORTANT: unit strings like '1d' are NOT parsed \u2014 they resolve to parseInt('1d')=1ms and the token is treated as immediately expired. Use e.g. '86400000' for one day, or 'never'.",
+                    "example": "never"
                   }
                 },
                 "required": ["period"]
@@ -4235,7 +4393,9 @@
                 "type": "object",
                 "properties": {
                   "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "The numeric id of the long term token to delete (as returned by GET /api/longtermtoken/get).",
+                    "example": 1
                   }
                 },
                 "required": ["id"]
@@ -4292,10 +4452,13 @@
                 "type": "object",
                 "properties": {
                   "url": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The full URL to shorten. It is URL-encoded and stored; a short random code is returned.",
+                    "example": "https://example.com/?mission=ExampleMission&s=long-state-string"
                   },
                   "text": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional; not currently persisted by the server."
                   }
                 },
                 "required": ["url"]
@@ -4354,7 +4517,9 @@
                 "type": "object",
                 "properties": {
                   "short": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The short code previously returned by /api/shortener/shorten.",
+                    "example": "a1b2c"
                   }
                 },
                 "required": ["short"]
@@ -4451,10 +4616,14 @@
                 "type": "object",
                 "properties": {
                   "username": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Username for the first (SuperAdmin) account. Only succeeds when there are zero existing users.",
+                    "example": "admin"
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Password. Must be at least 8 characters and contain at least: 1 uppercase, 1 lowercase, 1 number and 1 symbol.",
+                    "example": "ChangeMe1!"
                   }
                 },
                 "required": ["username", "password"]
@@ -4515,16 +4684,22 @@
                 "type": "object",
                 "properties": {
                   "username": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Username for the new account.",
+                    "example": "jane"
                   },
                   "email": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional email address; an empty string is stored as null."
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Password. Must be at least 8 characters and contain at least: 1 uppercase, 1 lowercase, 1 number and 1 symbol.",
+                    "example": "ChangeMe1!"
                   },
                   "skipLogin": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "If true, create the account without logging the new user in on this session. Requires an admin session unless AUTH_LOCAL_ALLOW_SIGNUP is enabled."
                   }
                 },
                 "required": ["username", "password"]
@@ -4594,13 +4769,17 @@
                 "type": "object",
                 "properties": {
                   "username": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Account username.",
+                    "example": "admin"
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Account password. Required for a normal login (omit only when useToken is true)."
                   },
                   "useToken": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "If true, re-authenticate using the token from the MMGISUser cookie instead of a password (used on page reload). Session regeneration and token rotation are intentionally skipped for multi-tab compatibility."
                   }
                 },
                 "required": ["username"]
@@ -4754,13 +4933,16 @@
                 "type": "object",
                 "properties": {
                   "username": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Username of the account whose password is being reset."
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "The new password. Must be at least 8 characters and contain at least: 1 uppercase, 1 lowercase, 1 number and 1 symbol."
                   },
                   "resetToken": {
-                    "type": "boolean"
+                    "type": "string",
+                    "description": "The reset token string (from the reset link). Must match the stored token and not be expired."
                   }
                 },
                 "required": ["username", "password", "resetToken"]
@@ -5200,25 +5382,34 @@
                 "type": "object",
                 "properties": {
                   "path": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Server-side path to the raster (e.g. a DEM GeoTIFF) to sample.",
+                    "example": "Missions/ExampleMission/Layers/dem.tif"
                   },
                   "lat1": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Latitude of the profile's start point."
                   },
                   "lon1": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Longitude of the profile's start point."
                   },
                   "lat2": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Latitude of the profile's end point."
                   },
                   "lon2": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Longitude of the profile's end point."
                   },
                   "steps": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Number of samples to take along the line between the two points.",
+                    "example": "100"
                   },
                   "axes": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Which axes to include in the returned profile."
                   }
                 },
                 "required": [
@@ -5278,19 +5469,27 @@
                 "type": "object",
                 "properties": {
                   "path": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Server-side path to the raster to sample.",
+                    "example": "Missions/ExampleMission/Layers/image.tif"
                   },
                   "x": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "X coordinate: pixel column when xyorll='xy', or longitude when xyorll='ll'."
                   },
                   "y": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Y coordinate: pixel row when xyorll='xy', or latitude when xyorll='ll'."
                   },
                   "xyorll": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "'xy' to interpret x/y as pixel coordinates, or 'll' to interpret them as longitude/latitude.",
+                    "example": "ll"
                   },
                   "bands": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Comma-separated 1-based band index/indices to sample.",
+                    "example": "1"
                   }
                 },
                 "required": ["path", "x", "y", "xyorll", "bands"]
@@ -5313,6 +5512,50 @@
                     "value": {
                       "status": "failure"
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/utils/getminmax": {
+      "post": {
+        "summary": "Get the minimum and maximum pixel values of a raster's band(s)",
+        "tags": ["Utilities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Server-side path to the raster (e.g. a GeoTIFF) to inspect with gdalinfo.",
+                    "example": "Missions/ExampleMission/Layers/dem.tif"
+                  },
+                  "bands": {
+                    "type": "string",
+                    "description": "Comma-separated 1-based band index/indices to compute the min/max for.",
+                    "example": "1"
+                  }
+                },
+                "required": ["path", "bands"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-band minimum and maximum values (raw gdalinfo-derived output).",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": [[1, -4229.0, 21229.0]]
                   }
                 }
               }
@@ -5411,6 +5654,113 @@
         }
       }
     },
+    "/api/utils/ll2aerll_bulk": {
+      "post": {
+        "summary": "Convert Lat/Lon to Azimuth/Elevation/Range for many times in a single request (SPICE kernels are loaded once).",
+        "tags": ["Utilities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lng": {
+                    "type": "number",
+                    "description": "Observer longitude in degrees.",
+                    "example": 137.4
+                  },
+                  "lat": {
+                    "type": "number",
+                    "description": "Observer latitude in degrees.",
+                    "example": -4.6
+                  },
+                  "height": {
+                    "type": "number",
+                    "description": "Observer height above the surface in meters.",
+                    "example": 0
+                  },
+                  "target": {
+                    "type": "string",
+                    "description": "SPICE target body/object to point at (alphanumeric, underscore or hyphen only).",
+                    "example": "SUN"
+                  },
+                  "times": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Non-empty array of time strings to evaluate (maximum 1000 entries).",
+                    "example": ["2024-06-01T00:00:00", "2024-06-01T01:00:00"]
+                  },
+                  "obsRefFrame": {
+                    "type": "string",
+                    "description": "Observer reference frame (alphanumeric, underscore or hyphen only). Default 'IAU_MARS'.",
+                    "example": "IAU_MARS"
+                  },
+                  "obsBody": {
+                    "type": "string",
+                    "description": "Observer body (alphanumeric, underscore or hyphen only). Default 'MARS'.",
+                    "example": "MARS"
+                  },
+                  "includeSunEarth": {
+                    "type": "string",
+                    "description": "'true' to also include Sun and Earth azimuth/elevation in the ancillary output. Default 'false'.",
+                    "example": "false"
+                  },
+                  "isCustom": {
+                    "type": "string",
+                    "description": "'true' to use the supplied customAz/customEl/customRange instead of computing from the target. Default 'false'.",
+                    "example": "false"
+                  },
+                  "customAz": {
+                    "type": "number",
+                    "description": "Custom azimuth (used only when isCustom is 'true')."
+                  },
+                  "customEl": {
+                    "type": "number",
+                    "description": "Custom elevation (used only when isCustom is 'true')."
+                  },
+                  "customRange": {
+                    "type": "number",
+                    "description": "Custom range (used only when isCustom is 'true')."
+                  }
+                },
+                "required": ["lng", "lat", "height", "target", "times"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An array of Az/El/Range results, one per requested time.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": [
+                      { "azimuth": 191.18, "elevation": -45.49, "range": 5166.63 }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (e.g. 'times' missing/empty/too large, or target/obsRefFrame/obsBody contain disallowed characters).",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "failure": {
+                    "summary": "Failure",
+                    "value": { "error": true, "message": "times must be a non-empty array" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/utils/chronice": {
       "post": {
         "summary": "SPICE time converter",
@@ -5494,6 +5844,98 @@
                     "value": {
                       "status": "failure"
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stac/collections": {
+      "get": {
+        "summary": "List STAC collections, each annotated with the MMGIS missions/layers that reference it.",
+        "tags": ["STAC"],
+        "description": "Proxies the adjacent STAC server's GET /collections (any supplied query string is forwarded) and augments each collection with an 'occurrences' map of the mission layers (from the latest configs) whose layer url is 'stac-collection:<id>'.",
+        "responses": {
+          "200": {
+            "description": "The STAC collections plus per-mission occurrences.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": {
+                        "collections": [
+                          {
+                            "id": "example_collection",
+                            "occurrences": {
+                              "ExampleMission": [
+                                { "name": "Example Layer", "uuid": "abc-123", "path": "Group/Example Layer" }
+                              ]
+                            }
+                          }
+                        ],
+                        "links": []
+                      }
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": { "status": "failure", "message": "Failed to find missions for STAC Collections." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stac/collections/{collection}/export": {
+      "get": {
+        "summary": "Export a single STAC collection together with all of its items.",
+        "tags": ["STAC"],
+        "description": "Fetches the collection metadata and pages through all of its items from the adjacent STAC server, returning them combined.",
+        "parameters": [
+          {
+            "name": "collection",
+            "in": "path",
+            "required": true,
+            "description": "The STAC collection id to export.",
+            "schema": { "type": "string" },
+            "example": "example_collection"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection metadata and all of its items.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": {
+                        "collection": { "id": "example_collection", "type": "Collection" },
+                        "items": [{ "type": "Feature", "id": "item-1" }]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Collection not found or items could not be fetched.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "failure": {
+                    "summary": "Failure",
+                    "value": { "status": "failure", "message": "Collection not found" }
                   }
                 }
               }
