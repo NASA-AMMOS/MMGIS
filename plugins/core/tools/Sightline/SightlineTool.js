@@ -33,7 +33,9 @@ import './SightlineTool.css'
 const sunColor = '#d2db58'
 const earthColor = '#58dbb8'
 
-// Decode zlib-compressed base64 grid (gridB64z) into a 2D array
+// Decode zlib-compressed base64 grid (gridB64z) into a flat-backed 2D grid.
+// Rows are Uint8Array subarray views onto one shared buffer (1 byte/cell),
+// so grid[y][x]/grid.length/grid[y].length behave like a 2D array.
 function _decodeGridB64z(b64str, rows, cols) {
     const binStr = atob(b64str)
     const bytes = new Uint8Array(binStr.length)
@@ -59,14 +61,7 @@ function _decodeGridB64z(b64str, rows, cols) {
         return flat
     }
     return readAll().then((flat) => {
-        const grid = []
-        for (let y = 0; y < rows; y++) {
-            const row = new Array(cols)
-            const base = y * cols
-            for (let x = 0; x < cols; x++) row[x] = flat[base + x]
-            grid.push(row)
-        }
-        return { grid, flat }
+        return { grid: _flatToGrid(flat, rows, cols), flat }
     })
 }
 
@@ -77,14 +72,12 @@ function _applyDelta(prevFlat, deltaFlat) {
     return result
 }
 
-// Convert flat Uint8Array to 2D grid
+// Wrap a flat Uint8Array as a 2D grid of row subarray views (no data copy).
 function _flatToGrid(flat, rows, cols) {
-    const grid = []
+    const grid = new Array(rows)
     for (let y = 0; y < rows; y++) {
-        const row = new Array(cols)
         const base = y * cols
-        for (let x = 0; x < cols; x++) row[x] = flat[base + x]
-        grid.push(row)
+        grid[y] = flat.subarray(base, base + cols)
     }
     return grid
 }
