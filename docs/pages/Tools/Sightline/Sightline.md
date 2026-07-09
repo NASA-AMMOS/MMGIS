@@ -106,7 +106,7 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 ### Interface
 
 - _Time_
-  - The shared time section at the top shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End are **directly editable** UTC inputs (ISO 8601, e.g. `2023-09-06T00:00:00Z`; a zoneless `YYYY-MM-DDThh:mm:ss` is accepted as UTC). Editing a value and blurring or pressing 'Enter' validates it and updates the SightlineTool sweep times and all of MMGIS' timeline (expandable via the clock icon in the bottom left) — reusing the same validation/conversion and global update logic as the per-item observer-local inputs. Invalid entries revert to the last valid value.
+  - The shared time section at the top shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End are **directly editable** UTC inputs (ISO 8601, e.g. `2023-09-06T00:00:00Z`; a zoneless `YYYY-MM-DDThh:mm:ss` is accepted as UTC). Editing a value and blurring or pressing 'Enter' validates it and updates the SightlineTool sweep times and all of MMGIS' timeline (expandable via the clock icon in the bottom left). Invalid entries revert to the last valid value. Sweep times are set here or through the MMGIS timeline.
 
 #### Source
 

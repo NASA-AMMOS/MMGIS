@@ -79,8 +79,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const sweepFitToData = useSightlineStore((s) => s.sweepFitToData)
     const setSweepElField = useSightlineStore((s) => s.setSweepElField)
     const setSweepField = useSightlineStore((s) => s.setSweepField)
-    const sweepStart = useSightlineStore((s) => s.sweepStart)
-    const sweepEnd = useSightlineStore((s) => s.sweepEnd)
     const exportProgress = useSightlineStore((s) => s.exportProgress)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
@@ -218,8 +216,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const [exportFormat, setExportFormat] = useState('png')
     useEffect(() => { setExportFormat('png') }, [sightlineMode])
-    const [obsStartTime, setObsStartTime] = useState('')
-    const [obsEndTime, setObsEndTime] = useState('')
     const colorPickerRef = useRef(null)
 
     // Close color picker on outside click
@@ -238,46 +234,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             document.removeEventListener('mousedown', handleOutsideClick, true)
         }
     }, [colorPickerOpen])
-
-    // Convert UTC sweep times to observer-local times when they change
-    const observer = el?.observer
-    useEffect(() => {
-        if (!observer || !observerOptions.length) return
-        if (sweepStart) {
-            SightlineTool.convertUTCToObserver(sweepStart, observer, (result) => {
-                setObsStartTime(result || sweepStart)
-            })
-        }
-        if (sweepEnd) {
-            SightlineTool.convertUTCToObserver(sweepEnd, observer, (result) => {
-                setObsEndTime(result || sweepEnd)
-            })
-        }
-    }, [sweepStart, sweepEnd, observer, observerOptions.length])
-
-    const handleObsStartBlur = useCallback(() => {
-        if (!obsStartTime || !observer) return
-        SightlineTool.convertObserverToUTC(obsStartTime, observer, (result) => {
-            if (result) {
-                // Save ms for exact round-trip, then strip for TimeControl
-                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
-                const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
-                SightlineTool.applySweepStartTime(utc)
-            }
-        })
-    }, [obsStartTime, observer])
-
-    const handleObsEndBlur = useCallback(() => {
-        if (!obsEndTime || !observer) return
-        SightlineTool.convertObserverToUTC(obsEndTime, observer, (result) => {
-            if (result) {
-                // Save ms for exact round-trip, then strip for TimeControl
-                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
-                const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
-                SightlineTool.applySweepEndTime(utc)
-            }
-        })
-    }, [obsEndTime, observer])
 
     const handleColorSelect = useCallback(
         (color) => {
@@ -595,40 +551,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                             className="vstSelect"
                                         />
                                     </div>
-                                    {el.observer && (
-                                        <>
-                                            {sightlineMode !== 'static' && (
-                                                <div className="vstOptionRow">
-                                                    <div className="vstOptionLabel vstObsTimeLabel" title="Observer local start time">
-                                                        <i className="mdi mdi-clock-outline mdi-14px" /> Start
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        className="vstSweepInput"
-                                                        placeholder={vars?.observerTimePlaceholder || ''}
-                                                        value={obsStartTime}
-                                                        onChange={(e) => setObsStartTime(e.target.value)}
-                                                        onBlur={handleObsStartBlur}
-                                                        onKeyDown={(e) => { if (e.key === 'Enter') handleObsStartBlur() }}
-                                                    />
-                                                </div>
-                                            )}
-                                            <div className="vstOptionRow">
-                                                <div className="vstOptionLabel vstObsTimeLabel" title="Observer local end time">
-                                                    <i className="mdi mdi-clock-outline mdi-14px" /> {sightlineMode === 'static' ? 'Time' : 'End'}
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    className="vstSweepInput"
-                                                    placeholder={vars?.observerTimePlaceholder || ''}
-                                                    value={obsEndTime}
-                                                    onChange={(e) => setObsEndTime(e.target.value)}
-                                                    onBlur={handleObsEndBlur}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleObsEndBlur() }}
-                                                />
-                                            </div>
-                                        </>
-                                    )}
                                 </>
                             )}
                             <div className="vstOptionRow">

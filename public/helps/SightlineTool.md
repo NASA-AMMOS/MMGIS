@@ -9,7 +9,7 @@ _Computes and visualizes line-of-sight visibility to orbiting or celestial targe
 Each sightline item is an independent sightline map with its own source, observer, display settings, and mode. Multiple sightline items can exist simultaneously, each identified by a colored left border.
 
 - _Time_
-  - The shared time section at the top of the tool. Shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End times are **directly editable** UTC inputs in ISO 8601 format (e.g. `2023-09-06T00:00:00Z`); a bare `YYYY-MM-DDThh:mm:ss` (no zone) is accepted and treated as UTC. Editing a value and blurring (or pressing Enter) validates it and updates the global sweep times and the MMGIS timeline — the same validation and update logic used by the per-item observer-local inputs. Invalid entries revert to the last valid value. Step Size is the interval between timesteps in minutes (used for composite and playback sweeps). These fields are connected to the MMGIS timeline (expandable via the clock icon in the bottom left of the screen).
+  - The shared time section at the top of the tool. Shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End times are **directly editable** UTC inputs in ISO 8601 format (e.g. `2023-09-06T00:00:00Z`); a bare `YYYY-MM-DDThh:mm:ss` (no zone) is accepted and treated as UTC. Editing a value and blurring (or pressing Enter) validates it and updates the global sweep times and the MMGIS timeline. Invalid entries revert to the last valid value. Step Size is the interval between timesteps in minutes (used for composite and playback sweeps). These fields are connected to the MMGIS timeline (expandable via the clock icon in the bottom left of the screen). Set sweep times here or via the MMGIS timeline.
 
 #### Sightline Item Header
 
@@ -25,8 +25,6 @@ Each sightline item's header contains:
 
 - _Observer_
   - Which observing spacecraft/orbiter to use. This is used for formatting and converting time parameters via the chronice API. The true observer position is always the visible map's center longitude and latitude value (represented by a green circle) and always facing north with zero tilt.
-- _Start Time / End Time_ (observer local)
-  - When an observer is selected, local time inputs appear showing the observer's local time (converted from UTC). Editing these and blurring converts back to UTC and updates the global sweep times.
 - _Height_
   - Height in meters above the surface to use when calculating line-of-sight shading. This value applies to all points on the visible terrain. Gradually increasing this value shows the sightline map n-meters above the surface.
 - _DEM_
