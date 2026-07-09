@@ -822,9 +822,8 @@ const SightlineTool_Graphs = {
         SightlineTool.fetchVisibilitySeries(eid, rate, maxDist, minDist, () => {
             delete _visFetchInFlight[eid]
             if (_graphOpen) {
-                // The sampling rate / range may have changed while this fetch
-                // was in flight (its result would then be stale). Re-check
-                // freshness so a superseding fetch is kicked off, then redraw.
+                // Rate/range may have changed mid-flight (making this result
+                // stale); re-check freshness to kick off a superseding fetch.
                 SightlineTool_Graphs._ensureVisibilityData(_activeElmId, false)
                 SightlineTool_Visibility.draw(_activeElmId)
             }
