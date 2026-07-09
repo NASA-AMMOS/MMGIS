@@ -1381,7 +1381,7 @@ let SightlineTool = {
                     maxFrames +
                     ' at this resolution). Use a step of at least ' +
                     idealStep +
-                    ' min to fit this range.',
+                    ' min to fit this range, lower the resolution, or zoom in further.',
                 8000
             )
             if (onComplete) onComplete()
