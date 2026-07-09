@@ -116,7 +116,7 @@ const useSightlineStore = create((set, get) => ({
     sweepFitToData: true,
     // Temporal sampling multiplier for the visibility timeline (1x..256x):
     // number of visibility ray samples computed per sweep timestep.
-    sweepVisSamplingRate: 32,
+    sweepVisSamplingRate: 16,
 
     // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, colorRamp, discrete, atlas, lastData, lastOptions } }
     sweepElData: {},
