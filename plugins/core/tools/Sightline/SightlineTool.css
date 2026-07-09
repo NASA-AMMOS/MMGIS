@@ -222,7 +222,7 @@
 }
 
 #sightlineTool .vstColorSwatch {
-    width: 145px;
+    width: 170px;
     height: 20px;
     border-radius: 3px;
     cursor: pointer;
@@ -350,7 +350,7 @@
 
 /* Select (design-system) overrides */
 #sightlineTool .vstSelect {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
     min-width: 0;
 }
@@ -363,7 +363,7 @@
 
 /* InputWithUnit field width */
 #sightlineTool .vstFieldInput {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
 }
 
@@ -520,7 +520,7 @@
 }
 
 #sightlineTool .vstSweepInput {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
     height: 26px;
     background: var(--color-a);
@@ -565,7 +565,7 @@
 }
 
 #sightlineTool .vstSweepField {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
 }
 

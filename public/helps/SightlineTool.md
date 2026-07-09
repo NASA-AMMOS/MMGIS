@@ -17,7 +17,7 @@ Each sightline item's header contains:
 
 - _Checkbox_: Toggle the sightline map layer visibility on/off.
 - _Name_: Editable name for the sightline item.
-- _Source dropdown_ (145px): Select the source entity (spacecraft, orbiter, or celestial body) to compute shading against.
+- _Source dropdown_ (170px): Select the source entity (spacecraft, orbiter, or celestial body) to compute shading against.
 - _Drag handle_: Reorder sightline items by dragging.
 - _Close (X)_: Delete the sightline item.
 
