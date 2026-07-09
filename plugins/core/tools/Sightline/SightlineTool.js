@@ -1276,7 +1276,17 @@ let SightlineTool = {
         if (store.elements[elmId]?.regenerating) {
             store.updateElement(elmId, { regenerating: false, loading: false, loadingProgress: 0 })
         }
-        TimeUI.removeIndicator(null, 'sightlinetool')
+        // Invalidate this element's dedicated visibility series so a late
+        // in-flight visibility fetch for the cancelled sweep isn't shown.
+        if (store.sweepElData[elmId]?.visResults) {
+            store.setSweepElField(elmId, 'visResults', null)
+        }
+        // The TimeUI playback indicator is shared across sightline elements;
+        // only remove it if no other element is still sweeping.
+        const othersSweeping = Object.keys(store.elements).some(
+            (id) => parseInt(id) !== elmId && store.elements[id]?.regenerating
+        )
+        if (!othersSweeping) TimeUI.removeIndicator(null, 'sightlinetool')
         Toast.info('Sweep cancelled.', 3000)
     },
 
