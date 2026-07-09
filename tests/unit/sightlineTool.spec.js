@@ -1500,6 +1500,40 @@ test.describe('Visibility timeline temporal sampling', () => {
     })
 })
 
+// Mirror of the backend visibility route's sample-count cap: rather than
+// rejecting, coarsen the step so the series is capped at MAX_SAMPLES.
+function clampVisibilityStep(startMs, endMs, stepSec, MAX_SAMPLES) {
+    let s = stepSec
+    let frameCount = Math.floor((endMs - startMs) / (s * 1000)) + 1
+    if (frameCount > MAX_SAMPLES) {
+        s = (endMs - startMs) / 1000 / (MAX_SAMPLES - 1)
+        frameCount = Math.floor((endMs - startMs) / (s * 1000)) + 1
+    }
+    return { stepSec: s, frameCount }
+}
+
+test.describe('Visibility sample-count cap (backend clamp)', () => {
+    const MAX = 32768
+
+    test('leaves the step alone when under the cap', () => {
+        const start = 0
+        const end = 60 * 60 * 1000 // 1 hour
+        const r = clampVisibilityStep(start, end, 60, MAX) // 61 samples
+        expect(r.stepSec).toBe(60)
+        expect(r.frameCount).toBe(61)
+    })
+
+    test('coarsens the step to stay at the cap instead of erroring', () => {
+        const start = 0
+        const end = 60 * 60 * 1000 // 1 hour
+        // 0.05s step → ~72000 samples, over the cap.
+        const r = clampVisibilityStep(start, end, 0.05, MAX)
+        expect(r.stepSec).toBeGreaterThan(0.05)
+        expect(r.frameCount).toBeLessThanOrEqual(MAX)
+        expect(r.frameCount).toBeGreaterThan(MAX - 2)
+    })
+})
+
 test.describe('Visibility series selection', () => {
     const ed = {
         results: [

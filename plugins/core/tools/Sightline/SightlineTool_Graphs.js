@@ -819,14 +819,15 @@ const SightlineTool_Graphs = {
 
     _fetchVisibilityFor(eid, rate, maxDist, minDist) {
         _visFetchInFlight[eid] = true
-        SightlineTool.fetchVisibilitySeries(eid, rate, maxDist, minDist, () => {
+        SightlineTool.fetchVisibilitySeries(eid, rate, maxDist, minDist, (ok) => {
             delete _visFetchInFlight[eid]
-            if (_graphOpen) {
-                // Rate/range may have changed mid-flight (making this result
-                // stale); re-check freshness to kick off a superseding fetch.
-                SightlineTool_Graphs._ensureVisibilityData(_activeElmId, false)
-                SightlineTool_Visibility.draw(_activeElmId)
-            }
+            if (!_graphOpen) return
+            // Only re-check freshness on success: the series was stored (and
+            // rate/range may have changed mid-flight, warranting a superseding
+            // fetch). On failure, redraw the fallback but do NOT re-ensure —
+            // that would refetch the same failing params in an infinite loop.
+            if (ok) SightlineTool_Graphs._ensureVisibilityData(_activeElmId, false)
+            SightlineTool_Visibility.draw(_activeElmId)
         })
     },
 

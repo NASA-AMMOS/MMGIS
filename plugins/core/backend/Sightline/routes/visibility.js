@@ -32,7 +32,7 @@ router.post("/visibility", computeLimiter, function (req, res) {
     });
   }
 
-  const stepSec = Number(req.body.stepSeconds);
+  let stepSec = Number(req.body.stepSeconds);
   if (!isFinite(stepSec) || stepSec <= 0) {
     return res.status(400).json({ error: true, message: "stepSeconds must be a positive number" });
   }
@@ -41,13 +41,14 @@ router.post("/visibility", computeLimiter, function (req, res) {
   if (isNaN(startMs) || isNaN(endMs) || startMs > endMs) {
     return res.status(400).json({ error: true, message: "Invalid startTime/endTime range" });
   }
-  const frameCount = Math.floor((endMs - startMs) / (stepSec * 1000)) + 1;
   const MAX_SAMPLES = 32768;
+  let frameCount = Math.floor((endMs - startMs) / (stepSec * 1000)) + 1;
   if (frameCount > MAX_SAMPLES) {
-    return res.status(400).json({
-      error: true,
-      message: "Computed " + frameCount + " samples exceeds maximum of " + MAX_SAMPLES,
-    });
+    // Instead of rejecting, coarsen the step so the series is capped at
+    // MAX_SAMPLES evenly-spaced samples across the range.
+    const spanSec = (endMs - startMs) / 1000;
+    stepSec = spanSec / (MAX_SAMPLES - 1);
+    frameCount = Math.floor((endMs - startMs) / (stepSec * 1000)) + 1;
   }
 
   const SAFE_NAME_RE = /^[A-Za-z0-9_-]+$/;
