@@ -17,6 +17,7 @@ let _polygonEnabled = false
 let _pendingProfile = null
 let _drawRetryFrame = null
 let _drawRetryCount = 0
+let _lastDrawParentH = null
 
 const SightlineTool_Horizon = {
     getCache() {
@@ -276,22 +277,32 @@ const SightlineTool_Horizon = {
         const canvas = document.getElementById(HORIZON_CANVAS_ID)
         if (!canvas) return
 
-        // When the graphs panel is (re)opening, its height may still be
-        // transitioning so the canvas has no usable size yet. Retry on the
-        // next frames until it does, otherwise the profile silently fails to
-        // render (e.g. closing then immediately reopening the panel).
+        // When the graphs panel is (re)opening, the horizon canvas lives in a
+        // flex child whose height keeps changing for a few frames while the
+        // panel and its sibling rows lay out. Sizing the canvas during that
+        // transient commits it to a too-small height that is never corrected
+        // (e.g. closing then immediately reopening the panel leaves the profile
+        // blank). Retry on subsequent frames until the parent height is both
+        // usable and stable across two consecutive frames before committing.
         const parentRect = canvas.parentElement.getBoundingClientRect()
-        if (parentRect.width <= 0 || parentRect.height - 24 <= 0) {
+        const usableH = parentRect.height - 24
+        const stable =
+            _lastDrawParentH != null &&
+            Math.abs(parentRect.height - _lastDrawParentH) < 1
+        if (
+            (parentRect.width <= 0 || usableH <= 0 || !stable) &&
+            (_drawRetryCount || 0) < 30
+        ) {
+            _lastDrawParentH = parentRect.height
             if (_drawRetryFrame) cancelAnimationFrame(_drawRetryFrame)
-            if ((_drawRetryCount || 0) < 30) {
-                _drawRetryCount = (_drawRetryCount || 0) + 1
-                _drawRetryFrame = requestAnimationFrame(() => {
-                    SightlineTool_Horizon.draw(profile, elmId)
-                })
-            }
+            _drawRetryCount = (_drawRetryCount || 0) + 1
+            _drawRetryFrame = requestAnimationFrame(() => {
+                SightlineTool_Horizon.draw(profile, elmId)
+            })
             return
         }
         _drawRetryCount = 0
+        _lastDrawParentH = null
 
         SightlineTool_Horizon._updatePolygon(profile)
 
