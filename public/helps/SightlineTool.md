@@ -133,7 +133,7 @@ The sightmap computes a 2D visibility grid showing which terrain cells have dire
 - **Managed resolution** — Composite DEM working dimension capped at 4× max to prevent OOM on large shadow reach.
 - **Curvature clamp** — Shadow reach is clamped to `√(2 × planetRadius × 10km)`.
 - **Batch streaming** — DEM and SPICE kernels loaded once; each frame only recomputes the source vector. Progress reported per-frame.
-- **Frame limits** — Up to 4096 frames per sweep (a sweep with more timesteps must use a larger Step Size).
+- **Frame limits** — Max frames per sweep scale inversely with resolution (fewer cells/frame → more frames allowed): 256 (`maxDim ≥ 800`), 512 (`≥ 400`), 1024 (`≥ 200`), 4096 (finer, e.g. 0.125×). Exceeding the limit requires a larger Step Size.
 
 ---
 
