@@ -206,9 +206,9 @@ let SightlineTool = {
         useSightlineStore.getState().setVars(vars)
 
         if (vars && vars.__noVars !== true) {
-            if (!vars.dem)
+            if (buildDemsList(vars).length === 0)
                 console.warn(
-                    'SightlineTool: variables object does not contain key "dem"!'
+                    'SightlineTool: variables object does not contain a "dems" array or "dem" key!'
                 )
         }
     },
