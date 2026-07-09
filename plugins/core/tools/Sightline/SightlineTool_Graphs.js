@@ -789,7 +789,9 @@ const SightlineTool_Graphs = {
     drawVisibilityTimeline(elmId) {
         const id = elmId != null ? elmId : _activeElmId
         SightlineTool_Graphs._ensureVisibilityData(id, false)
-        SightlineTool_Visibility.draw(id)
+        // If a fetch was just started, render blank (not stale) until it lands.
+        const loading = Object.keys(_visFetchInFlight).length > 0
+        SightlineTool_Visibility.draw(id, { blankVisible: loading })
     },
 
     // Fetch the dedicated native-resolution visibility series for every element
