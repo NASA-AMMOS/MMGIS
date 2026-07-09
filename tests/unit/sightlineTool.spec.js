@@ -1308,6 +1308,25 @@ test.describe('Editable sweep-time validation (normalizeUTCTime)', () => {
     })
 })
 
+test.describe('Top-time display (stripSeconds)', () => {
+    test('drops seconds from a full ISO-Z time', () => {
+        expect(stripSeconds('2025-01-02T03:04:05Z')).toBe('2025-01-02T03:04Z')
+    })
+
+    test('drops seconds and milliseconds', () => {
+        expect(stripSeconds('2025-01-02T03:04:05.678Z')).toBe('2025-01-02T03:04Z')
+    })
+
+    test('leaves a no-seconds time unchanged (does not eat the minutes)', () => {
+        expect(stripSeconds('2025-01-02T03:04Z')).toBe('2025-01-02T03:04Z')
+    })
+
+    test('returns empty string for falsy input', () => {
+        expect(stripSeconds('')).toBe('')
+        expect(stripSeconds(null)).toBe('')
+    })
+})
+
 // ============================================================
 // Resolution — relative scale → maxOutputDim + effective m/px readout
 // ============================================================
@@ -1556,7 +1575,11 @@ test.describe('Visibility series selection', () => {
 
 // --- helpers copied from the real code (kept in sync) ---
 const stripSeconds = (s) =>
-    s ? s.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : ''
+    s
+        ? s
+              .replace(/T(\d{2}:\d{2}):\d{2}\.\d+Z$/, 'T$1Z')
+              .replace(/T(\d{2}:\d{2}):\d{2}Z$/, 'T$1Z')
+        : ''
 const fmtUTC = (s) =>
     s ? s.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z') : s
 

@@ -15,7 +15,11 @@ const helpKey = 'SightlineTool'
 // display, matching how the top-section times were shown before they became
 // editable.
 const stripSeconds = (s) =>
-    s ? s.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : ''
+    s
+        ? s
+              .replace(/T(\d{2}:\d{2}):\d{2}\.\d+Z$/, 'T$1Z')
+              .replace(/T(\d{2}:\d{2}):\d{2}Z$/, 'T$1Z')
+        : ''
 
 export default function SightlinePanel() {
     const vars = useSightlineStore((s) => s.vars)

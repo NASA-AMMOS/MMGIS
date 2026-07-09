@@ -396,8 +396,17 @@ if __name__ == '__main__':
         times_iso = []
         dt = dt_start
         while dt <= dt_end:
-            times_spice.append(dt.strftime('%Y-%m-%d %H:%M:%S') + ' UTC')
-            times_iso.append(dt.strftime('%Y-%m-%dT%H:%M:%SZ'))
+            # Keep sub-second precision so high sampling rates (fine step < 1s)
+            # don't collapse consecutive samples to the same timestamp.
+            ms = dt.microsecond // 1000
+            base = dt.strftime('%Y-%m-%d %H:%M:%S')
+            base_iso = dt.strftime('%Y-%m-%dT%H:%M:%S')
+            if ms:
+                times_spice.append('%s.%03d UTC' % (base, ms))
+                times_iso.append('%s.%03dZ' % (base_iso, ms))
+            else:
+                times_spice.append(base + ' UTC')
+                times_iso.append(base_iso + 'Z')
             dt += step_td
 
         result = compute_visibility_batch(
