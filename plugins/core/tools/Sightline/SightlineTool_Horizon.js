@@ -1,7 +1,7 @@
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
-import useSightlineStore from './store'
+import useSightlineStore, { buildDemsList } from './store'
 import calls from '@pre/calls'
 import Toast from '@design/components/Toast/Toast'
 
@@ -15,6 +15,9 @@ let _horizonCache = null
 let _horizonPolygon = null
 let _polygonEnabled = false
 let _pendingProfile = null
+let _drawRetryFrame = null
+let _drawRetryCount = 0
+let _lastDrawParentH = null
 
 const SightlineTool_Horizon = {
     getCache() {
@@ -183,13 +186,15 @@ const SightlineTool_Horizon = {
         const el = store.elements[elmId]
         if (!el) return
 
-        const vars = store.vars
-        if (!vars?.dem) {
+        // Resolve the element's selected DEM (multi-DEM list, or legacy single dem)
+        const dems = buildDemsList(store.vars)
+        let demUrl = dems.length > 0
+            ? (dems[el.demIndex != null ? el.demIndex : 0] || dems[0]).path
+            : store.vars?.dem
+        if (!demUrl) {
             Toast.warning('No DEM configured for horizon profile.', 4000)
             return
         }
-
-        let demUrl = vars.dem
         if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
 
         const ed = store.sweepElData[elmId]
@@ -212,6 +217,7 @@ const SightlineTool_Horizon = {
 
         if (
             _horizonCache &&
+            _horizonCache.demUrl === demUrl &&
             _horizonCache.lat === lat &&
             _horizonCache.lng === lng &&
             _horizonCache.height === height &&
@@ -223,7 +229,7 @@ const SightlineTool_Horizon = {
             return
         }
 
-        const useCurvature = vars.hasOwnProperty('curvature') ? vars.curvature : true
+        const useCurvature = store.vars?.hasOwnProperty('curvature') ? store.vars.curvature : true
         const horizonParams = {
             path: demUrl,
             lat: lat,
@@ -258,7 +264,7 @@ const SightlineTool_Horizon = {
                     return
                 }
                 const profile = parsed.horizonProfile || []
-                _horizonCache = { lat, lng, height, profile, minDist, maxDist }
+                _horizonCache = { demUrl, lat, lng, height, profile, minDist, maxDist }
                 SightlineTool_Horizon.draw(profile, elmId)
                 if (opts.onDone) opts.onDone()
             },
@@ -271,6 +277,33 @@ const SightlineTool_Horizon = {
     draw(profile, elmId) {
         const canvas = document.getElementById(HORIZON_CANVAS_ID)
         if (!canvas) return
+
+        // When the graphs panel is (re)opening, the horizon canvas lives in a
+        // flex child whose height keeps changing for a few frames while the
+        // panel and its sibling rows lay out. Sizing the canvas during that
+        // transient commits it to a too-small height that is never corrected
+        // (e.g. closing then immediately reopening the panel leaves the profile
+        // blank). Retry on subsequent frames until the parent height is both
+        // usable and stable across two consecutive frames before committing.
+        const parentRect = canvas.parentElement.getBoundingClientRect()
+        const usableH = parentRect.height - 24
+        const stable =
+            _lastDrawParentH != null &&
+            Math.abs(parentRect.height - _lastDrawParentH) < 1
+        if (
+            (parentRect.width <= 0 || usableH <= 0 || !stable) &&
+            (_drawRetryCount || 0) < 30
+        ) {
+            _lastDrawParentH = parentRect.height
+            if (_drawRetryFrame) cancelAnimationFrame(_drawRetryFrame)
+            _drawRetryCount = (_drawRetryCount || 0) + 1
+            _drawRetryFrame = requestAnimationFrame(() => {
+                SightlineTool_Horizon.draw(profile, elmId)
+            })
+            return
+        }
+        _drawRetryCount = 0
+        _lastDrawParentH = null
 
         SightlineTool_Horizon._updatePolygon(profile)
 

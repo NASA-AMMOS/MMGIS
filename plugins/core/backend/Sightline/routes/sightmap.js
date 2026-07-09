@@ -21,7 +21,7 @@ router.post("/sightmap", computeLimiter, function (req, res) {
   }
   // Frame limit scales inversely with resolution: fewer cells/frame → more frames allowed
   const maxDim = Number(req.body.maxOutputDim || 400);
-  const MAX_TIMES = maxDim >= 800 ? 256 : maxDim >= 400 ? 512 : maxDim >= 200 ? 1024 : 2048;
+  const MAX_TIMES = maxDim >= 800 ? 256 : maxDim >= 400 ? 512 : maxDim >= 200 ? 1024 : 4096;
   if (isBatch) {
     const stepSec = Number(req.body.stepSeconds);
     if (!isFinite(stepSec) || stepSec <= 0) {

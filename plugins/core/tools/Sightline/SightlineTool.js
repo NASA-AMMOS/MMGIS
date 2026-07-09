@@ -25,7 +25,7 @@ import SightlineTool_Graphs from './SightlineTool_Graphs'
 import SightlineTool_Export from './SightlineTool_Export'
 import SightlineTool_Indicators from './SightlineTool_Indicators'
 
-import useSightlineStore, { MULTI_SOURCE_COLORS } from './store'
+import useSightlineStore, { MULTI_SOURCE_COLORS, buildDemsList } from './store'
 import SightlinePanel from './components/SightlinePanel'
 
 import './SightlineTool.css'
@@ -33,7 +33,9 @@ import './SightlineTool.css'
 const sunColor = '#d2db58'
 const earthColor = '#58dbb8'
 
-// Decode zlib-compressed base64 grid (gridB64z) into a 2D array
+// Decode zlib-compressed base64 grid (gridB64z) into a flat-backed 2D grid.
+// Rows are Uint8Array subarray views onto one shared buffer (1 byte/cell),
+// so grid[y][x]/grid.length/grid[y].length behave like a 2D array.
 function _decodeGridB64z(b64str, rows, cols) {
     const binStr = atob(b64str)
     const bytes = new Uint8Array(binStr.length)
@@ -59,14 +61,7 @@ function _decodeGridB64z(b64str, rows, cols) {
         return flat
     }
     return readAll().then((flat) => {
-        const grid = []
-        for (let y = 0; y < rows; y++) {
-            const row = new Array(cols)
-            const base = y * cols
-            for (let x = 0; x < cols; x++) row[x] = flat[base + x]
-            grid.push(row)
-        }
-        return { grid, flat }
+        return { grid: _flatToGrid(flat, rows, cols), flat }
     })
 }
 
@@ -77,16 +72,24 @@ function _applyDelta(prevFlat, deltaFlat) {
     return result
 }
 
-// Convert flat Uint8Array to 2D grid
+// Wrap a flat Uint8Array as a 2D grid of row subarray views (no data copy).
 function _flatToGrid(flat, rows, cols) {
-    const grid = []
+    const grid = new Array(rows)
     for (let y = 0; y < rows; y++) {
-        const row = new Array(cols)
         const base = y * cols
-        for (let x = 0; x < cols; x++) row[x] = flat[base + x]
-        grid.push(row)
+        grid[y] = flat.subarray(base, base + cols)
     }
     return grid
+}
+
+// Release object URLs (from toBlob) held in a frameImages array.
+function _revokeFrameImages(arr) {
+    if (!Array.isArray(arr)) return
+    for (const u of arr) {
+        if (typeof u === 'string' && u.indexOf('blob:') === 0) {
+            try { URL.revokeObjectURL(u) } catch (_) { /* noop */ }
+        }
+    }
 }
 
 let _compositeHoverRaf = null
@@ -94,6 +97,10 @@ let _timeChangeDebounce = null
 
 // Per-element sweep run IDs and progress tracking so multiple sweeps can run simultaneously.
 const _sweepRunIds = {}     // elmId → runId
+// Per-element AbortControllers for in-flight sweep requests, so a running sweep
+// can be cancelled and its fetch aborted (the backend streaming loop then stops
+// cleanly when its stdout pipe closes).
+const _sweepAbortControllers = {}   // elmId → AbortController
 const _highWaterPcts = {}   // elmId → highest pct seen
 const _lastFlushTimes = {}  // elmId → performance.now()
 function _flushSweepProgress(elmId, pct, msg, force) {
@@ -199,9 +206,9 @@ let SightlineTool = {
         useSightlineStore.getState().setVars(vars)
 
         if (vars && vars.__noVars !== true) {
-            if (!vars.dem)
+            if (buildDemsList(vars).length === 0)
                 console.warn(
-                    'SightlineTool: variables object does not contain key "dem"!'
+                    'SightlineTool: variables object does not contain a "dems" array or "dem" key!'
                 )
         }
     },
@@ -569,8 +576,7 @@ let SightlineTool = {
             }
         }
 
-        let demUrl = vars.dem
-        if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+        const demUrl = SightlineTool.getElementDemUrl(activeElmId)
 
         store.updateElement(activeElmId, {
             regenerating: true,
@@ -778,6 +784,7 @@ let SightlineTool = {
 
     deleteElement: function (elmId) {
         const store = useSightlineStore.getState()
+        _revokeFrameImages(store.sweepElData[elmId]?.frameImages)
         Map_.rmNotNull(L_.layers.layer['sightline' + elmId])
         Map_.rmNotNull(store.shedMarkers[elmId])
         delete store.canvases[elmId]
@@ -1157,10 +1164,38 @@ let SightlineTool = {
         const colorB = options.color ? options.color.b : 0
         const colorA = options.color ? options.color.a : 0
         const isInvert = options.invert == 0
+        // Pre-pack the paint color as one endianness-correct 32-bit word.
+        const _le = new Uint32Array(new Uint8Array([1, 0, 0, 0]).buffer)[0] === 1
+        const colorWord = _le
+            ? ((colorA << 24) | (colorB << 16) | (colorG << 8) | colorR) >>> 0
+            : ((colorR << 24) | (colorG << 16) | (colorB << 8) | colorA) >>> 0
+
+        // Release object URLs from any prior sweep for this element.
+        _revokeFrameImages(useSightlineStore.getState().sweepElData[activeElmId]?.frameImages)
 
         const frameImages = []
         let frameIdx = 0
         const CHUNK = 4
+        // Frames are serialized to Blob object URLs (async); track outstanding
+        // encodes so we only finish once every frame has resolved.
+        let pending = 0
+        let loopDone = false
+        let finished = false
+        function finish() {
+            if (finished) return
+            finished = true
+            useSightlineStore.getState().setSweepElField(activeElmId, 'frameImages', frameImages)
+            useSightlineStore.getState().setSweepField('sweepProgress', '')
+            _flushSweepProgress(activeElmId, 100, undefined, true)
+            if (typeof onDone === 'function') onDone()
+        }
+        function onFrameBlob(slot) {
+            return (blob) => {
+                frameImages[slot] = blob ? URL.createObjectURL(blob) : null
+                pending--
+                if (loopDone && pending === 0) finish()
+            }
+        }
 
         function processChunk() {
             const end = Math.min(frameIdx + CHUNK, numFrames)
@@ -1177,33 +1212,28 @@ let SightlineTool = {
                 c.height = rows
                 const ctx = c.getContext('2d')
                 const imgData = ctx.createImageData(cols, rows)
-                const px = imgData.data
+                // One 32-bit store per pixel (vs four byte writes). Buffer is
+                // zero-filled, so only painted (colored) cells are written.
+                const u32 = new Uint32Array(imgData.data.buffer)
                 for (let y = 0; y < rows; y++) {
                     const row = grid[y]
+                    if (!row) continue
+                    const base = y * cols
                     for (let x = 0; x < cols; x++) {
-                        const idx = (y * cols + x) * 4
-                        const val = row ? row[x] : null
-                        if (val === 1 || val === 2) {
-                            if (isInvert) {
-                                px[idx] = colorR; px[idx + 1] = colorG
-                                px[idx + 2] = colorB; px[idx + 3] = colorA
-                            } else {
-                                px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
-                            }
-                        } else if (val === 0) {
-                            if (isInvert) {
-                                px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
-                            } else {
-                                px[idx] = colorR; px[idx + 1] = colorG
-                                px[idx + 2] = colorB; px[idx + 3] = colorA
-                            }
-                        } else {
-                            px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
-                        }
+                        const val = row[x]
+                        const paint = isInvert
+                            ? (val === 1 || val === 2)
+                            : (val === 0)
+                        if (paint) u32[base + x] = colorWord
                     }
                 }
                 ctx.putImageData(imgData, 0, 0)
-                frameImages.push(c.toDataURL())
+                // Blob object URL (vs base64 data URL): less memory, no
+                // base64 encode; compatible with the playback setUrl().
+                const slot = frameImages.length
+                frameImages.push(null)
+                pending++
+                c.toBlob(onFrameBlob(slot))
             }
 
             const pct = 55 + Math.round((frameIdx / numFrames) * 40)
@@ -1212,10 +1242,8 @@ let SightlineTool = {
             if (frameIdx < numFrames) {
                 requestAnimationFrame(processChunk)
             } else {
-                useSightlineStore.getState().setSweepElField(activeElmId, 'frameImages', frameImages)
-                useSightlineStore.getState().setSweepField('sweepProgress', '')
-                _flushSweepProgress(activeElmId, 100, undefined, true)
-                if (typeof onDone === 'function') onDone()
+                loopDone = true
+                if (pending === 0) finish()
             }
         }
         processChunk()
@@ -1223,12 +1251,29 @@ let SightlineTool = {
 
     // === Time-Range Sweep ===
 
+    // Abort any in-flight sweep fetch(es).  Aborting closes the request so the
+    // backend per-frame streaming loop stops cleanly.
+    _abortSweepRequests: function (elmId) {
+        if (elmId != null) {
+            const c = _sweepAbortControllers[elmId]
+            if (c) { try { c.abort() } catch (_) {} delete _sweepAbortControllers[elmId] }
+            return
+        }
+        for (const id in _sweepAbortControllers) {
+            const c = _sweepAbortControllers[id]
+            if (c) { try { c.abort() } catch (_) {} }
+            delete _sweepAbortControllers[id]
+        }
+    },
+
     cancelSweep: function () {
         // Cancel all in-flight sweeps
         for (const id in _sweepRunIds) {
             _sweepRunIds[id] = (_sweepRunIds[id] || 0) + 1
         }
         SightlineTool._sweepAllRunId = (SightlineTool._sweepAllRunId || 0) + 1
+        // Abort in-flight fetches so the backend streaming loops stop cleanly
+        SightlineTool._abortSweepRequests()
         const store = useSightlineStore.getState()
         store.setSweepField('sweepProgress', '')
         // Reset all elements stuck in regenerating state
@@ -1244,12 +1289,39 @@ let SightlineTool = {
         Toast.info('Sweep cancelled.', 3000)
     },
 
+    // Cancel a single element's in-flight sweep (used by the per-item
+    // Sweep→Cancel toggle button).
+    cancelSweepElement: function (elmId) {
+        if (elmId == null) return SightlineTool.cancelSweep()
+        _sweepRunIds[elmId] = (_sweepRunIds[elmId] || 0) + 1
+        SightlineTool._abortSweepRequests(elmId)
+        const store = useSightlineStore.getState()
+        _flushSweepProgress(elmId, 0, undefined, true)
+        store.setSweepField('sweepProgress', '')
+        if (store.elements[elmId]?.regenerating) {
+            store.updateElement(elmId, { regenerating: false, loading: false, loadingProgress: 0 })
+        }
+        // Invalidate this element's dedicated visibility series so a late
+        // in-flight visibility fetch for the cancelled sweep isn't shown.
+        if (store.sweepElData[elmId]?.visResults) {
+            store.setSweepElField(elmId, 'visResults', null)
+        }
+        // The TimeUI playback indicator is shared across sightline elements;
+        // only remove it if no other element is still sweeping.
+        const othersSweeping = Object.keys(store.elements).some(
+            (id) => parseInt(id) !== elmId && store.elements[id]?.regenerating
+        )
+        if (!othersSweeping) TimeUI.removeIndicator(null, 'sightlinetool')
+        Toast.info('Sweep cancelled.', 3000)
+    },
+
     sightlineSweep: function (startTime, endTime, stepMinutes, activeElmId, onComplete) {
         _highWaterPcts[activeElmId] = 0
         _sweepRunIds[activeElmId] = (_sweepRunIds[activeElmId] || 0) + 1
         const sweepRunId = _sweepRunIds[activeElmId]
         const store = useSightlineStore.getState()
         if (activeElmId == null) { if (onComplete) onComplete(); return }
+        const el = store.elements[activeElmId]
 
         if (SightlineTool._sweepPlayTimer) {
             clearInterval(SightlineTool._sweepPlayTimer)
@@ -1289,10 +1361,28 @@ let SightlineTool = {
 
         const stepSeconds = stepMinutes * 60
 
-        if (timestamps.length > 2048) {
+        // Frame cap scales inversely with resolution (mirrors sightmap.js).
+        const sweepGuardMaxDim = SightlineTool._resolutionToMaxDim(activeElmId)
+        const maxFrames =
+            sweepGuardMaxDim >= 800
+                ? 256
+                : sweepGuardMaxDim >= 400
+                ? 512
+                : sweepGuardMaxDim >= 200
+                ? 1024
+                : 4096
+        if (timestamps.length > maxFrames) {
+            const durationMin = (endMs - startMs) / 60000
+            const idealStep = Math.ceil(durationMin / (maxFrames - 1))
             Toast.warning(
-                'Too many timesteps (max 2048). Increase step size.',
-                6000
+                'Too many timesteps: ' +
+                    timestamps.length +
+                    ' requested (max ' +
+                    maxFrames +
+                    ' at this resolution). Use a step of at least ' +
+                    idealStep +
+                    ' min to fit this range, lower the resolution, or zoom in further.',
+                8000
             )
             if (onComplete) onComplete()
             return
@@ -1330,8 +1420,7 @@ let SightlineTool = {
             }
         }
 
-        let demUrl = vars.dem
-        if (!F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+        const demUrl = SightlineTool.getElementDemUrl(activeElmId)
 
         const curElm = store.sweepCurrentElm || 1
         const totElms = store.sweepTotalElms || 1
@@ -1374,11 +1463,18 @@ let SightlineTool = {
             shadowReach: parseFloat(options.shadowReach) || 0,
         }
 
+        // AbortController lets cancelSweep()/cancelSweepElement() abort the
+        // in-flight streaming request; the backend stops its per-frame loop
+        // cleanly when the request closes.
+        const abortController = new AbortController()
+        _sweepAbortControllers[activeElmId] = abortController
+
         fetch(sightmapUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify(bodyObj),
+            signal: abortController.signal,
         }).then(async (response) => {
             if (!response.ok) {
                 let errMsg = 'Sightmap batch request failed'
@@ -1558,6 +1654,9 @@ let SightlineTool = {
                 lat: source.lat,
                 lng: source.lng,
             })
+            // Invalidate the dedicated visibility series so the timeline
+            // refetches against the new sweep instead of reusing stale data.
+            currentStoreF.setSweepElField(activeElmId, 'visResults', null)
             SightlineTool._updateCrosshairPosition()
 
             currentStoreF.setSweepField('sweepProgress', 'Computing heatmap...')
@@ -1613,6 +1712,13 @@ let SightlineTool = {
                 })
             }, 0)
         }).catch((err) => {
+            // Aborted by the user via cancel — not an error; cancelSweep()
+            // handles UI cleanup, so stay quiet here.
+            if (err && err.name === 'AbortError') {
+                if (_sweepAbortControllers[activeElmId] === abortController)
+                    delete _sweepAbortControllers[activeElmId]
+                return
+            }
             const msg = (err && err.message) ? err.message : 'Sightmap sweep request failed.'
             Toast.error(msg, 6000)
             useSightlineStore
@@ -1620,6 +1726,9 @@ let SightlineTool = {
                 .setSweepField('sweepProgress', '')
             _flushSweepProgress(activeElmId, 0, undefined, true)
             if (typeof onComplete === 'function') onComplete()
+        }).finally(() => {
+            if (_sweepAbortControllers[activeElmId] === abortController)
+                delete _sweepAbortControllers[activeElmId]
         })
     },
 
@@ -1981,6 +2090,47 @@ let SightlineTool = {
         )
     },
 
+    // === Shared sweep-time update logic ===
+
+    /** Normalize a user-entered UTC time string to a valid ISO-Z string,
+     *  or null when it can't be parsed. */
+    normalizeUTCTime: function (str) {
+        if (str == null) return null
+        let time = String(str).trim()
+        if (!time) return null
+        // Accept a plain "YYYY-MM-DDTHH:MM:SS" without an explicit zone.
+        if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(time)) time += 'Z'
+        const d = new Date(time)
+        if (isNaN(d.getTime())) return null
+        return time
+    },
+
+    /** Validate a UTC start time, save it to the sweep store, and push it to
+     *  the global MMGIS timeline.  Shared by the top-section Start Time input
+     *  and the per-item observer-local inputs. */
+    applySweepStartTime: function (utcTime) {
+        const utc = SightlineTool.normalizeUTCTime(utcTime)
+        if (!utc) return false
+        const store = useSightlineStore.getState()
+        store.setSweepField('sweepStart', utc)
+        const endUtc = store.sweepEnd || TimeControl.getEndTime()
+        if (endUtc) TimeControl.setTime(utc, endUtc, false)
+        return true
+    },
+
+    /** Validate a UTC end time, save it to the sweep store, and push it to the
+     *  global MMGIS timeline.  Shared by the top-section End Time input and
+     *  the per-item observer-local inputs. */
+    applySweepEndTime: function (utcTime) {
+        const utc = SightlineTool.normalizeUTCTime(utcTime)
+        if (!utc) return false
+        const store = useSightlineStore.getState()
+        store.setSweepField('sweepEnd', utc)
+        const startUtc = store.sweepStart || TimeControl.getStartTime()
+        if (startUtc) TimeControl.setTime(startUtc, utc, false)
+        return true
+    },
+
     // === RAE Indicators (delegated to SightlineTool_Indicators) ===
 
     updateRAEIndicators(rae, sightlineId, allResults) {
@@ -2003,12 +2153,229 @@ let SightlineTool = {
         SightlineTool_Indicators.drawSkyDome(canvasId, results, currentIdx)
     },
 
+    // === DEM selection ===
+
+    /** Return the DEM descriptor { name, path, resolution } selected for an
+     *  element, from the multi-DEM list (or the legacy single DEM). */
+    getElementDem(elmId) {
+        const store = useSightlineStore.getState()
+        const id = elmId != null ? elmId : store.activeElmId
+        const el = store.elements[id]
+        const dems = buildDemsList(store.vars)
+        if (dems.length === 0) return null
+        const idx = el && el.demIndex != null ? el.demIndex : 0
+        return dems[idx] || dems[0]
+    },
+
+    /** Return the absolute URL of an element's selected DEM. */
+    getElementDemUrl(elmId) {
+        const dem = SightlineTool.getElementDem(elmId)
+        let demUrl = dem ? dem.path : useSightlineStore.getState().vars?.dem
+        if (demUrl && !F_.isUrlAbsolute(demUrl)) demUrl = L_.missionPath + demUrl
+        return demUrl
+    },
+
+    /** Return the native (dataset) resolution in meters-per-pixel of an
+     *  element's selected DEM, taken from the DEM's config `resolution`.
+     *  null when the admin hasn't specified one. */
+    getElementNativeResolution(elmId) {
+        const dem = SightlineTool.getElementDem(elmId)
+        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
+            return dem.resolution
+        return null
+    },
+
+    // === Dedicated visibility timeline ===
+
+    /** Fetch the dedicated single-ray, native-resolution visibility series for
+     *  an element's sweep and store it on ed.visResults.
+     *
+     *  Unlike the sweep grid (viewport-downsampled), this casts one ray per
+     *  sample from the observer toward the source azimuth at the DEM's native
+     *  resolution.  *samplingRate* densifies the temporal axis: samplingRate
+     *  samples are computed per sweep timestep (1x..32x), so the visibility
+     *  timeline can be smoother than the sweep frames themselves. */
+    fetchVisibilitySeries(elmId, samplingRate, maxDist, minDist, onDone) {
+        const store = useSightlineStore.getState()
+        const el = store.elements[elmId]
+        const ed = store.sweepElData[elmId]
+        if (!el || !ed?.results || ed.results.length === 0) {
+            if (onDone) onDone(false)
+            return
+        }
+        const rate = Math.max(1, Math.round(samplingRate || 1))
+        const results = ed.results
+        const baseStart = results[0]?.time
+        const baseEnd = results[results.length - 1]?.time
+        const baseCount = results.length
+
+        // Reuse cached series when nothing that affects it has changed.
+        const cached = ed.visResults
+        if (cached && cached.samplingRate === rate &&
+            cached.baseStart === baseStart && cached.baseCount === baseCount &&
+            cached.maxDist === maxDist && cached.minDist === minDist) {
+            if (onDone) onDone(true)
+            return
+        }
+
+        // A single-frame sweep has no interval to densify.
+        if (baseCount < 2) {
+            if (onDone) onDone(false)
+            return
+        }
+
+        const options = store.getSightlineOptions(elmId)
+        const selectedTargets = options.targets || []
+        if (selectedTargets.length === 0) {
+            if (onDone) onDone(false)
+            return
+        }
+        const primary = selectedTargets[0]
+        const primaryIsCustom = primary.value === false || primary.value === 'false'
+
+        const vars = store.vars
+        let obsRefFrame, obsBody
+        if (vars?.observers) {
+            for (let i = 0; i < vars.observers.length; i++) {
+                if (vars.observers[i].value === options.observer) {
+                    obsRefFrame = vars.observers[i].frame
+                    obsBody = vars.observers[i].body
+                    break
+                } else if (options.observer == null) {
+                    obsRefFrame = vars.observers[0].frame
+                    obsBody = vars.observers[0].body
+                    break
+                }
+            }
+        }
+
+        const center = ed.sweepCenter
+        if (!center) {
+            if (onDone) onDone(false)
+            return
+        }
+
+        const coarseStepMs = new Date(results[1].time).getTime() - new Date(results[0].time).getTime()
+        const fineStepSeconds = (coarseStepMs / 1000) / rate
+        if (!isFinite(fineStepSeconds) || fineStepSeconds <= 0) {
+            if (onDone) onDone(false)
+            return
+        }
+
+        let demUrl = SightlineTool.getElementDemUrl(elmId)
+        if (!demUrl) {
+            if (onDone) onDone(false)
+            return
+        }
+        // getElementDemUrl already returns an absolute (missionPath-prefixed)
+        // URL; the backend re-resolves it against the missions root.
+
+        const useCurvature = vars?.hasOwnProperty('curvature') ? vars.curvature : true
+
+        const params = {
+            dem: demUrl,
+            lat: center.lat,
+            lng: center.lng,
+            height: options.height || 0,
+            target: primaryIsCustom ? 'CUSTOM' : primary.value,
+            obsRefFrame,
+            obsBody,
+            planetRadius: useCurvature ? F_.radiusOfPlanetMajor : 0,
+            maxRadius: maxDist,
+            minSkipRadius: minDist,
+            isCustom: primaryIsCustom ? 'true' : 'false',
+            customAz: primaryIsCustom ? (el.customAz || 0) : 0,
+            customEl: primaryIsCustom ? (el.customEl || 0) : 0,
+            startTime: baseStart,
+            endTime: baseEnd,
+            stepSeconds: fineStepSeconds,
+        }
+
+        calls.api(
+            'sightlinevisibility',
+            params,
+            function (data) {
+                let parsed = data
+                if (typeof data === 'string') {
+                    try { parsed = JSON.parse(data) } catch (e) {
+                        if (onDone) onDone(false)
+                        return
+                    }
+                }
+                if (!parsed || parsed.error) {
+                    if (onDone) onDone(false)
+                    return
+                }
+                const samples = parsed.results || []
+                const storeF = useSightlineStore.getState()
+                const edF = storeF.sweepElData[elmId]
+                // Guard against a newer sweep having replaced results meanwhile.
+                if (!edF?.results || edF.results[0]?.time !== baseStart ||
+                    edF.results.length !== baseCount) {
+                    if (onDone) onDone(false)
+                    return
+                }
+                storeF.setSweepElField(elmId, 'visResults', {
+                    samplingRate: rate,
+                    baseStart,
+                    baseCount,
+                    maxDist,
+                    minDist,
+                    samples,
+                })
+                // Replace the grid-derived centerVisible on the coarse frames
+                // with the dedicated native-res ray result (sample every rate-th).
+                const patched = edF.results.map((r, i) => {
+                    const s = samples[i * rate]
+                    return s ? { ...r, centerVisible: !!s.visible } : r
+                })
+                storeF.setSweepElField(elmId, 'results', patched)
+                if (onDone) onDone(true)
+            },
+            function () {
+                if (onDone) onDone(false)
+            }
+        )
+    },
+
     // === Utility ===
+
+    /** Approximate the ground extent (meters) of the longest map viewport
+     *  dimension, used to report the effective working resolution. */
+    _getViewportGroundExtentMeters() {
+        const map = Map_.map
+        if (!map) return 0
+        // Prefer the projected-bounds envelope for custom projected CRS (polar,
+        // etc.), where it is already computed in linear (meter) units.
+        const pb = _getViewportProjBounds()
+        if (pb) {
+            const ext = Math.max(pb[2] - pb[0], pb[3] - pb[1])
+            if (isFinite(ext) && ext > 0) return ext
+        }
+        try {
+            const size = map.getSize()
+            const w = map.distance(
+                map.containerPointToLatLng([0, size.y / 2]),
+                map.containerPointToLatLng([size.x, size.y / 2])
+            )
+            const h = map.distance(
+                map.containerPointToLatLng([size.x / 2, 0]),
+                map.containerPointToLatLng([size.x / 2, size.y])
+            )
+            const ext = Math.max(w || 0, h || 0)
+            if (isFinite(ext) && ext > 0) return ext
+        } catch (_) { /* fall through */ }
+        return 0
+    },
 
     /** Compute maxOutputDim from the active element's resolution scale
      *  and the current map viewport pixel dimensions.
      *  resolution=1 → native (maxOutputDim = viewport longest dim)
      *  resolution=0.5 → half, etc.
+     *
+     *  The output dimension is capped so the effective working resolution
+     *  never goes finer than the DEM's native (dataset) resolution — there is
+     *  no benefit to more output pixels than the terrain data actually holds.
      *  @param {number} [elmId] - element id to read resolution from; falls back to activeElmId
      *  @returns {number} maxOutputDim
      */
@@ -2018,10 +2385,44 @@ let SightlineTool = {
         const el = store.elements[id]
         const scale = el?.resolution || 0.25
         const map = Map_.map
-        if (!map) return Math.max(Math.round(800 * scale), 50)
-        const size = map.getSize()
-        const longestDim = Math.max(size.x || 800, size.y || 800)
-        return Math.max(Math.round(longestDim * scale), 50)
+        let dim
+        if (!map) {
+            dim = Math.round(800 * scale)
+        } else {
+            const size = map.getSize()
+            const longestDim = Math.max(size.x || 800, size.y || 800)
+            dim = Math.round(longestDim * scale)
+        }
+        // Cap at the native resolution: don't request more output pixels than
+        // the DEM's own pixels across the current viewport ground extent.
+        const nativeMpp = SightlineTool.getElementNativeResolution(id)
+        if (Number.isFinite(nativeMpp) && nativeMpp > 0) {
+            const ground = SightlineTool._getViewportGroundExtentMeters()
+            if (ground > 0) {
+                const nativeDim = Math.floor(ground / nativeMpp)
+                if (nativeDim > 0) dim = Math.min(dim, nativeDim)
+            }
+        }
+        return Math.max(dim, 50)
+    },
+
+    /** Report the effective working ground resolution (meters-per-pixel) for
+     *  an element at the current viewport: viewport ground extent divided by
+     *  the output grid dimension the sightmap request will use.  Never reported
+     *  finer than the DEM's native resolution.
+     *  @param {number} [elmId] - element id; falls back to activeElmId
+     *  @returns {number|null} meters-per-pixel, or null when unavailable
+     */
+    getEffectiveResolutionMpp(elmId) {
+        const ground = SightlineTool._getViewportGroundExtentMeters()
+        const dim = SightlineTool._resolutionToMaxDim(elmId)
+        if (ground <= 0 || dim <= 0) return null
+        let mpp = ground / dim
+        const nativeMpp = SightlineTool.getElementNativeResolution(elmId)
+        if (Number.isFinite(nativeMpp) && nativeMpp > 0 && mpp < nativeMpp) {
+            mpp = nativeMpp
+        }
+        return mpp
     },
 
     parseToUTCTime(time, formatted) {

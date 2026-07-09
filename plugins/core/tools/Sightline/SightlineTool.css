@@ -72,6 +72,28 @@
 #sightlineTool .vstTime .vstTimeReadonly:first-child {
     text-align: right;
 }
+#sightlineTool .vstTime .vstTimeInput {
+    flex: 1;
+    min-width: 0;
+    opacity: 0.8;
+    font-size: 11px;
+    color: inherit;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#sightlineTool .vstTime .vstTimeInput:first-child {
+    text-align: right;
+}
+#sightlineTool .vstTime .vstTimeInput:hover,
+#sightlineTool .vstTime .vstTimeInput:focus {
+    opacity: 1;
+    outline: none;
+}
 #sightlineTool .vstTime .vstTimeStep {
     width: 76px;
     flex: 0 0 auto;
@@ -200,7 +222,7 @@
 }
 
 #sightlineTool .vstColorSwatch {
-    width: 145px;
+    width: 170px;
     height: 20px;
     border-radius: 3px;
     cursor: pointer;
@@ -328,7 +350,7 @@
 
 /* Select (design-system) overrides */
 #sightlineTool .vstSelect {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
     min-width: 0;
 }
@@ -341,7 +363,7 @@
 
 /* InputWithUnit field width */
 #sightlineTool .vstFieldInput {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
 }
 
@@ -396,6 +418,51 @@
 }
 
 /* Generate and Sweep use the ProgressButton design-system component */
+
+/* Wrapper lets the cancel "x" float over the right side of the Sweep button */
+#sightlineTool .vstSweepBtnWrap {
+    position: relative;
+    display: flex;
+    width: 100%;
+}
+#sightlineTool .vstSweepBtnWrap > button:not(.vstCancelSweepX) {
+    width: 100%;
+}
+
+/* Small non-descript x floating over the right side of the running Sweep button */
+#sightlineTool .vstCancelSweepX {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: currentColor;
+    opacity: 0.7;
+    cursor: pointer;
+    z-index: 1;
+}
+#sightlineTool .vstCancelSweepX:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* Effective working-resolution readout under the Resolution selector */
+#sightlineTool .vstEffectiveResRow {
+    margin-top: -4px;
+}
+#sightlineTool .vstEffectiveRes {
+    font-size: 11px;
+    opacity: 0.6;
+    text-align: right;
+}
 
 /* ====== Sweep section ====== */
 #sightlineTool .vstSweepSection {
@@ -453,7 +520,7 @@
 }
 
 #sightlineTool .vstSweepInput {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
     height: 26px;
     background: var(--color-a);
@@ -498,7 +565,7 @@
 }
 
 #sightlineTool .vstSweepField {
-    width: 145px;
+    width: 170px;
     flex-shrink: 0;
 }
 
@@ -1128,6 +1195,32 @@
     transform: scale(0.8);
 }
 
+.sightlineVisSamplingWrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 10px;
+}
+.sightlineVisSamplingLabel {
+    font-size: 11px;
+    color: var(--color-a5);
+    white-space: nowrap;
+    user-select: none;
+}
+.sightlineVisSamplingSelect {
+    font-size: 11px;
+    color: var(--color-a7);
+    background: var(--color-a1);
+    border: 1px solid var(--color-a3);
+    border-radius: 3px;
+    padding: 1px 4px;
+    cursor: pointer;
+    outline: none;
+}
+.sightlineVisSamplingSelect:hover {
+    border-color: var(--color-a6);
+}
+
 .sightlineGraphExcludedInfo {
     position: absolute;
     top: 30px;
@@ -1192,6 +1285,36 @@
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
+}
+
+/* Subtle indeterminate loading sweep while visibility data is fetching. */
+.sightlineVisWrap.sightlineVisLoading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 40% 100%;
+    background-repeat: no-repeat;
+    animation: sightlineVisLoadingSweep 1.2s ease-in-out infinite;
+}
+
+@keyframes sightlineVisLoadingSweep {
+    0% {
+        background-position: -40% 0;
+    }
+    100% {
+        background-position: 140% 0;
+    }
 }
 
 .sightlineVisRow {

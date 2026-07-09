@@ -30,6 +30,17 @@ There are two SPICE python scripts that require these backend kernel setups:
 ```javascript
 {
     "dem": "Data/missionDEM.tif",
+    "dems": [
+        {
+            "name": "Mission DEM (20 m)",
+            "path": "Data/DEMs/missionDEM_20m_COG.tif",
+            "resolution": 20
+        },
+        {
+            "name": "Regional DEM (200 m)",
+            "path": "Data/DEMs/regionalDEM_200m_COG.tif"
+        }
+    ],
     "data": [
         {
             "name": "MSL_DEM",
@@ -72,7 +83,9 @@ There are two SPICE python scripts that require these backend kernel setups:
 }
 ```
 
-_**dem**_ - A path to a DEM.tif. This is used to get the current center elevation. This can/should be the same file used for the Measure Tool and the Coordinate's elevation.
+_**dem**_ - _(legacy, single DEM)_ A path to a DEM.tif. This is used to get the current center elevation. This can/should be the same file used for the Measure Tool and the Coordinate's elevation. Kept for backward compatibility: it is used only when the `dems` list below is empty or absent, so existing single-DEM configs continue to work unchanged.
+
+_**dems**_ - _(multiple DEMs)_ An array of selectable DEMs, mirroring the `MeasureTool`'s `layerDems` precedent. Each entry has a `name` (shown in the per-item DEM dropdown), a `path` (a Cloud Optimized GeoTIFF DEM relative to the mission directory), and an optional `resolution` (the DEM's native ground sample distance in meters-per-pixel, entered by the mission admin). When `resolution` is set it is shown as the DEM's native resolution and used to cap the effective working resolution so it never oversamples beyond the data; when omitted, no native resolution is shown and the effective resolution is uncapped. The DEM selector is always shown in each sightline item's Source section (even with a single DEM) and the chosen DEM is threaded through the sightmap and horizon-profile computations. When `dems` is empty/absent, the legacy single `dem` field is used.
 
 _**data**_ - At minimum, the Sightline tool requires at least one "data" source. A data source describes a DEM tileset (see /auxiliary/gdal2customtiles or /auxiliary/1bto4b) and allows users to select it by name to generate sightline maps over.
 
@@ -93,7 +106,7 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
 ### Interface
 
 - _Time_
-  - The desired datetime to query. Formatted as `YYYY MMM DD HH:MM:SS` and for example `2023 SEP 06 19:27:05` (or based on `utcTimeFormat`). Updating this time and pressing 'Enter' will set it as the current time for the SightlineTool and for all of MMGIS. It is both connected to the Observer's local time as well as MMGIS' timeline (expandable via the clock icon in the bottom left of the screen).
+  - The shared time section at the top shows **Start Time**, **End Time**, and **Step Size (min)**. Start and End are **directly editable** UTC inputs (ISO 8601, e.g. `2023-09-06T00:00:00Z`; a zoneless `YYYY-MM-DDThh:mm:ss` is accepted as UTC). Editing a value and blurring or pressing 'Enter' validates it and updates the SightlineTool sweep times and all of MMGIS' timeline (expandable via the clock icon in the bottom left). Invalid entries revert to the last valid value. Sweep times are set here or through the MMGIS timeline.
 
 #### Source
 
@@ -117,14 +130,16 @@ _**utcTimeFormat**_ - Sets the placeholder information for when the observer tim
   - The color to highlight the visible regions on the map.
 - _Opacity_
   - The opaqueness of the visible regions on the map. A value of 0 is fully transparent and a value of 1 is fully opaque.
+- _DEM_
+  - A dropdown that selects which terrain dataset this sightline item uses (via `dems`). It is always shown, even with a single configured DEM. When the selected DEM's config sets a `resolution`, the tool displays that **native (dataset) resolution** in meters-per-pixel (`Native: … m/px`) directly beneath the dropdown.
 - _Resolution_
-  - MMGIS downloads terrain data needed for the visibility algorithm. Increasing the resolution improves the quality of the sightline map and the cost of download and render speed. Each higher option is 4x the resolution of the previous one (i.e. 'ultra' is 4x more terrain data than 'high' and 16x more data than 'medium'). To save on performance, if the resolution is 'high' or 'ultra', the Sightline Tool will no longer regenerate the visibility map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
-- _Elevation Map_
+  - A relative scale (1×, 0.5×, 0.25× default, 0.125×) applied to the viewport's longest pixel dimension to size the output grid (minimum 50px). Lower scales compute faster and coarser. Directly below the selector the tool displays the **effective working ground resolution** in meters-per-pixel (≈ viewport ground extent ÷ output grid dimension); this readout updates as you pan/zoom so the real detail of the current setting is always visible. When a DEM's native `resolution` is configured, the output grid — and therefore the effective resolution — is capped so it never goes finer than that native resolution (no oversampling beyond the data).
+- _Shadow Reach_
+  - Extends the terrain loaded for shadow computation beyond the visible map area (kilometers), read at a lower resolution so distant features can cast shadows into the viewport. Set to 0 to use only the viewport extent.
 
-  - Specifies the terrain dataset to use.
-
-- _Generate/Regenerate_
-  - Submits a request to generate a sightline map with the provided parameters. Note that if the resolution is 'high' or 'ultra', the Sightline Tool will not regenerate the visibility map whenever any parameter changes and instead 'Generate/Regenerate' must manually be pressed.
+- _Generate / Sweep_
+  - Submits a request to generate a sightline map with the provided parameters. In static mode it auto-generates when settings change.
+  - **Cancelling a sweep**: In composite/playback mode the button reads **Sweep**; while a sweep is running the button keeps showing its progress and a small **×** floats over the right side of it. Clicking the × aborts the in-flight streaming request via an `AbortController`, and the backend per-frame loop stops cleanly when the connection closes.
 
 #### Results
 
@@ -148,7 +163,7 @@ Each sightline map item can be set to one of three modes:
 - **Composite**: Sweeps through a time range and produces a cumulative heatmap showing how often each point on the ground has line-of-sight across all time steps.
 - **Playback**: Sweeps through a time range and stores each frame. Users can play back the sweep as an animation, stepping through individual sightline frames with time controls.
 
-Multiple sightline maps can be created simultaneously (e.g., Sun + Moon). Each element tracks its own sweep progress independently — starting a sweep on one element does not cancel another.
+Multiple sightline maps can be created simultaneously (e.g., Sun + Moon). Each element tracks its own sweep progress independently — starting a sweep on one element does not cancel another. A running sweep can be cancelled per-item via the small **×** that floats over the Sweep button (see _Generate / Sweep_ above).
 
 ### Charts (Horizon Profile + Visibility Timeline)
 
@@ -174,11 +189,12 @@ The chart is north-centered (0° N at center, ±180° at edges) and adapts to th
 
 A per-source horizontal bar showing when the source is visible vs. occluded over the sweep time range:
 
-- **Colored segments** indicate the source is visible (lit pixel at observer position in the sightmap grid), using the element's configured color.
+- **Colored segments** indicate the source is above the local terrain horizon (visible), using the element's configured color.
 - **Gray/white segments** indicate the source is occluded.
-- Visibility is determined by the **sightmap grid pixel** at the observer's position — if the pixel is lit (value 1 or 2) the source is visible, if shadowed (value 0) the source is occluded.
+- Visibility is computed by a **dedicated single-ray query** (`POST /api/sightline/visibility`), independent of the sweep grid. For each sample it casts one ray from the observer toward the source azimuth at the DEM's **native resolution** and compares the local horizon elevation against the source's elevation — so the result is zoom/viewport-independent, unlike the earlier grid-pixel derivation. (The Composite heatmap's percent-visible series still rides on the sweep grid.)
+- **Visibility Sampling dropdown** — In the charts panel header, to the right of the Horizon Polygon checkbox, a `1x…256x` selector (default `16x`) controls the **temporal sampling rate** of the timeline. `1x` computes one visibility ray per sweep timestep; higher rates compute that many samples per timestep (interpolated timestamps between sweep frames) for a smoother, higher-fidelity visibility chart. Changing the rate refetches and redraws the timeline.
 - A red slider indicator tracks the current playback frame position.
-- Time labels along the bottom show UTC timestamps spanning the full time range.
+- Time labels along the bottom show UTC timestamps spanning the full time range (denser when a higher sampling rate is selected).
 
 #### Azimuth Lines on Map
 
@@ -218,14 +234,14 @@ The sightmap computes a 2D visibility grid showing which terrain cells have dire
 1. **Source position** — SPICE computes the azimuth, elevation, and range from the observer (map center lat/lng/height) to the target entity at the given time. For custom sources, user-supplied az/el is used directly.
 2. **DEM composite** — A terrain raster is read from the configured DEM, padded by `shadowReach` in all directions beyond the viewport to capture shadows cast by off-screen terrain. The composite is read at a managed resolution (working dim proportional to viewport, capped at 4× max working dim) to prevent memory exhaustion.
 3. **Tangent-plane projection** — The observer position and source vector are projected onto a local tangent plane. The source's effective position is expressed as (x, y, z) in a grid-aligned coordinate system.
-4. **Ray-march viewshed** — From each grid cell, a ray is cast toward the source. The algorithm (a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_) checks if any intervening terrain along the ray exceeds the line-of-sight slope from that cell to the source. If so, the cell is shadowed; otherwise it is visible.
+4. **Ray-march viewshed** — From each grid cell, a ray is cast toward the source azimuth. The algorithm (a modified version of [_Generating Viewsheds without Using Sightlines_](https://www.asprs.org/wp-content/uploads/pers/2000journal/january/2000_jan_87-90.pdf) by _Jianjun Wang, Gary J. Robinson, and Kevin White_) tracks the **maximum terrain elevation angle** encountered while marching outward. At each sample the terrain height is **bilinearly interpolated** from the four surrounding DEM cells (nearest-neighbor fallback on nodata), lowered by the curvature drop `d² / (2R)`, and the elevation angle `atan2(terrain_h − cell_h, distance)` is compared against the source elevation. If the running maximum ever reaches the source elevation the cell is **shadowed**; otherwise it is **visible**. See _Adaptive stepping_ below for how far the ray steps between samples.
 5. **Output** — A 2D integer grid where: `0` = shadowed, `1` = visible from target, `2` = also visible from secondary source (Earth), `8` = no DEM data, `9` = out of bounds.
 
 **Parameters:**
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `dem` | string | — | Path to DEM raster (under `/Missions/`) |
+| `dem` | string | — | Path to the selected DEM raster (under `/Missions/`); resolved from the per-item DEM selector |
 | `lat`, `lng` | number | — | Observer latitude/longitude |
 | `height` | number | 0 | Observer height above terrain (meters) |
 | `target` | string | — | SPICE target name (e.g. `SUN`, `MRO`) |
@@ -240,12 +256,21 @@ The sightmap computes a 2D visibility grid showing which terrain cells have dire
 | `customAz`, `customEl` | number | 0 | Custom source azimuth/elevation (degrees) |
 | `viewportBounds` | string | — | Optional viewport bounds for clipping |
 
+**Adaptive stepping:**
+
+Rather than sampling every pixel along each ray, the step size grows with distance and with how far the source sits above the terrain seen so far, giving a **~7–14× speedup** over an every-pixel march. On smooth terrain no occluders are missed; only sharp, thin (a few-pixel-wide) features — ridge crests, crater rims — can be stepped over, which the step cap limits.
+
+- **Progressive log₂ stepping** — Base step scales as `march_step × max(1, log₂(r + 1))` pixels (`r` = distance in pixels): every pixel near the observer (largest per-step angle change), coarser far out (~10× at r = 1000, ~15× at r = 25000).
+- **Margin acceleration** — When the source elevation is well above the running maximum terrain angle the step is enlarged further (×3 when the margin is > 5°, ×1.5 when > 2°), since nearby terrain is then nowhere near blocking the source.
+- **Step cap** — The combined step is capped at `march_step × 6` so the accelerators can never skip a distant thin occluder wholesale; this keeps shadow edges *sliding* smoothly between animation frames rather than *snapping*. Lowering the cap trades speed for fewer missed occluders.
+- **Early cutoffs** — The march is bounded by `MAX_TERRAIN_H / tan(source_el)`, by a curvature cutoff `√(2 × R × MAX_TERRAIN_H)`, and by an in-march test that stops once even the tallest plausible terrain at the current distance could no longer beat the running maximum angle.
+
 **Performance:**
 
 - **Managed resolution** — The composite DEM working dimension is capped (4× max working dim) so large shadow reach values don't cause OOM.
 - **Curvature clamp** — Shadow reach is server-side clamped to `√(2 × planetRadius × 10km)` to prevent excessive padding.
 - **Batch streaming** — In batch mode (multiple timestamps), the DEM and SPICE kernels are loaded once; each frame only recomputes the source vector and re-runs the march kernel. Progress is reported per-frame via stderr.
-- **Frame limits** — Max frames scale inversely with resolution: 2048 frames at low res, 256 at ultra.
+- **Frame limits** — Max frames per sweep scale inversely with resolution (fewer cells/frame → more frames allowed): 256 (`maxDim ≥ 800`), 512 (`≥ 400`), 1024 (`≥ 200`), 4096 (finer, e.g. 0.125×). Exceeding the limit requires a larger Step Size.
 
 ---
 
@@ -283,3 +308,40 @@ For each azimuth (default 360 directions at 1° intervals):
 - **Logarithmic stepping** — Instead of stepping 1 pixel per sample, the step size increases logarithmically with distance: `step = max(1, log₂(r + 1))` pixels. Near the observer (r < 2px) it steps 1px for fine detail; at r = 1000px it steps ~10px. This preserves accuracy for nearby terrain (which subtends large angles) while skipping redundant samples at distance (where per-pixel angle change is negligible). Reduces ~2500 samples/ray to ~600 for a 250km radius.
 - **Early termination** — After each sample beyond 1km, the algorithm checks: "Could the tallest plausible terrain (10km relief, minus curvature drop) at this distance produce a steeper angle than the current maximum?" If not, the ray terminates immediately. For typical terrain where the horizon is found within a few km, rays terminate well before the max radius — often at 50–200 samples instead of 600+.
 - **Combined speedup** — Together, logarithmic stepping + early termination yield a 4–8× reduction in samples per ray compared to naïve 1px stepping to max radius.
+
+---
+
+#### Visibility (dedicated timeline ray)
+
+**Endpoint:** `POST /api/sightline/visibility`
+
+Computes the Visibility Timeline's per-sample visibility as a **single ray** from the observer toward each source over a time range, at the DEM's **native resolution** (no viewport downsampling). This is separate from the sweep grid: the timeline no longer samples a grid pixel, so its result is independent of zoom and working resolution.
+
+**Core Algorithm:**
+
+For each timestep (start → end at `stepSeconds`):
+
+1. **Source direction** — The source azimuth/elevation is computed from SPICE (or taken from the custom az/el for a custom target).
+2. **Single horizon ray** — One ray is cast from the observer toward the source azimuth using the same logarithmic-stepping + early-termination march as the Horizon Profile, yielding the terrain horizon elevation angle along that bearing.
+3. **Visibility test** — The source is `visible` when its elevation is above the local horizon angle along its azimuth (and above 0°); otherwise it is occluded.
+4. **Output** — An array of `{time, az, el, horizonAngle, visible}` per sample.
+
+**Temporal sampling:** The client sizes `stepSeconds` as `sweepStep / samplingRate`, where `samplingRate` is the `1x…256x` selector in the charts header (default `16x`). `1x` yields one sample per sweep timestep; higher rates interpolate that many samples per timestep. Fine sample index `k·rate` aligns with sweep frame `k`, so the playback slider still maps to sweep frames.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dem` | string | — | Path/URL to DEM raster (under `/Missions/`) |
+| `lat`, `lng` | number | — | Observer latitude/longitude |
+| `height` | number | 0 | Observer height above terrain (meters) |
+| `target` | string | — | Source entity (SPICE body) or `CUSTOM` |
+| `startTime`, `endTime` | ISO 8601 | — | Time range |
+| `stepSeconds` | number | — | Sample interval in seconds (= sweep step ÷ sampling rate) |
+| `maxRadius` | number | — | Maximum ray march distance in meters |
+| `minSkipRadius` | number | 0 | Skip terrain samples within this distance (meters) |
+| `planetRadius` | number | 0 | Planet radius in meters (for curvature; 0 = flat) |
+| `isCustom`, `customAz`, `customEl` | — | — | Custom fixed-direction source parameters |
+
+**Performance:** One ray per sample (vs. a full sightmap grid per frame in the old approach) with the horizon march's logarithmic stepping + early termination; the native-resolution window read is hard-capped to bound memory. Frame count is capped (≤ 32768) and the request supports client cancellation.
+
