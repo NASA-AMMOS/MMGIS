@@ -239,7 +239,26 @@ def horizon_angle_for_azimuth(region, local_obs_x, local_obs_y, obs_total,
             r += max(1.0, math.log2(r + 1))
             continue
 
+        # Bilinear-interpolate terrain when the 4 neighbors are valid;
+        # fall back to nearest otherwise.
         terrain_elev = sample
+        x0 = int(math.floor(sx))
+        y0 = int(math.floor(sy))
+        if 0 <= x0 and 0 <= y0 and x0 + 1 < regionW and y0 + 1 < regionH:
+            v00 = float(region[y0, x0])
+            v01 = float(region[y0, x0 + 1])
+            v10 = float(region[y0 + 1, x0])
+            v11 = float(region[y0 + 1, x0 + 1])
+            if no_data is None or not (
+                _isNoData(v00, no_data) or _isNoData(v01, no_data) or
+                _isNoData(v10, no_data) or _isNoData(v11, no_data)
+            ):
+                wx = sx - x0
+                wy = sy - y0
+                top = v00 * (1.0 - wx) + v01 * wx
+                bot = v10 * (1.0 - wx) + v11 * wx
+                terrain_elev = top * (1.0 - wy) + bot * wy
+
         if use_curvature:
             terrain_elev -= (dist_m * dist_m) / (2.0 * planet_radius)
 
