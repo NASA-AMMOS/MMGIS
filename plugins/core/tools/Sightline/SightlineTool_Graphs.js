@@ -826,19 +826,12 @@ const SightlineTool_Graphs = {
         wrap.classList.toggle('sightlineVisLoading', anyInFlight)
     },
 
-    // Clear the visibility timeline's rendered bars/labels so stale data
-    // isn't shown under the loading sweep.
-    _clearVisibilityTimeline() {
-        const wrap = document.getElementById('sightlineVisibilityWrap')
-        if (wrap) wrap.innerHTML = ''
-        const labels = document.getElementById('sightlineVisTimeLabels')
-        if (labels) labels.innerHTML = ''
-    },
-
     _fetchVisibilityFor(eid, rate, maxDist, minDist) {
         _visFetchInFlight[eid] = true
-        SightlineTool_Graphs._clearVisibilityTimeline()
         SightlineTool_Graphs._updateVisLoadingIndicator()
+        // Render the timeline as if nothing were visible while loading, so
+        // stale visibility runs aren't shown under the loading sweep.
+        SightlineTool_Visibility.draw(_activeElmId, { blankVisible: true })
         SightlineTool.fetchVisibilitySeries(eid, rate, maxDist, minDist, (ok) => {
             delete _visFetchInFlight[eid]
             SightlineTool_Graphs._updateVisLoadingIndicator()

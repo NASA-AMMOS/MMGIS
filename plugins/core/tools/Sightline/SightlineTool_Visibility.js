@@ -45,10 +45,12 @@ const SightlineTool_Visibility = {
         if (opts.onScrub) opts.onScrub(Math.max(0, Math.min(frameIndex, frameCount - 1)))
     },
 
-    draw(elmId) {
+    draw(elmId, opts) {
         const wrap = document.getElementById('sightlineVisibilityWrap')
         if (!wrap) return
 
+        // While loading, render every segment as not-visible instead of stale data.
+        const blankVisible = !!(opts && opts.blankVisible)
         const store = useSightlineStore.getState()
         const { included: elms, excludedCount } = _getFilteredVisibilityElms(store, elmId)
         if (elms.length === 0) return
@@ -94,7 +96,7 @@ const SightlineTool_Visibility = {
             const series = _getVisSeries(ed, samplingRate)
             const segments = []
             for (let i = 0; i < series.length; i++) {
-                segments.push(!!series[i].visible)
+                segments.push(blankVisible ? false : !!series[i].visible)
             }
 
             const row = document.createElement('div')
