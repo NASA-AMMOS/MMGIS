@@ -1542,3 +1542,247 @@ test.describe('Visibility series selection', () => {
         expect(s.map((x) => x.visible)).toEqual([true, false])
     })
 })
+
+// ============================================================
+// Time-input cross-update wiring — models the real propagation between the
+// five editable time inputs (top Start / Step / End and the per-item
+// observer-local Start / End) through the sweep store + TimeControl +
+// chronice, mirroring SightlinePanel/SightlineElement/SightlineTool.
+//
+// It verifies that setting any one input updates all the dependent inputs,
+// for every combination and order. The current-time clock field feeds
+// TimeControl (TimeUI) and is intentionally out of scope.
+// ============================================================
+
+// --- helpers copied from the real code (kept in sync) ---
+const stripSeconds = (s) =>
+    s ? s.replace(/:\d{2}Z$/, 'Z').replace(/:\d{2}\.\d+Z$/, 'Z') : ''
+const fmtUTC = (s) =>
+    s ? s.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z') : s
+
+// Deterministic stand-in for the SPICE `chronice` endpoint: the observer
+// clock is a fixed +5h wall-clock offset from UTC. Matches the shapes the
+// real conversions produce ("YYYY-MM-DD HH:MM:SS" local, space+ms for UTC).
+const OBS_OFFSET_MS = 5 * 3600 * 1000
+function utcIsoToObserver(utcIso) {
+    const d = new Date(utcIso)
+    if (isNaN(d.getTime())) return null
+    return new Date(d.getTime() + OBS_OFFSET_MS)
+        .toISOString()
+        .replace('T', ' ')
+        .replace(/\.\d+Z$/, '')
+}
+function observerToUtcResult(localStr) {
+    const asUtc = new Date(localStr.replace(' ', 'T') + 'Z')
+    if (isNaN(asUtc.getTime())) return null
+    // chronice returns "YYYY-MM-DD HH:MM:SS.mmm" (space separated, with ms)
+    return new Date(asUtc.getTime() - OBS_OFFSET_MS)
+        .toISOString()
+        .replace('T', ' ')
+        .replace('Z', '')
+}
+
+function makeTimeSystem({ observer = true } = {}) {
+    const store = { sweepStart: '', sweepEnd: '', sweepStep: '' }
+    const ui = { startInput: '', endInput: '', obsStart: '', obsEnd: '', editableTime: '' }
+    const subs = {}
+    const TC = {
+        _s: '', _e: '',
+        getStartTime: () => TC._s,
+        getEndTime: () => TC._e,
+        setTime(s, e /*, flag */) {
+            TC._s = s
+            TC._e = e
+            const iso = (t) => (t ? new Date(t).toISOString() : t)
+            Object.values(subs).forEach((fn) =>
+                fn({ startTime: iso(TC._s), endTime: iso(TC._e) })
+            )
+        },
+        subscribe(k, fn) { subs[k] = fn },
+    }
+
+    // Reactive derived inputs (SightlinePanel E1/E2 + SightlineElement E4).
+    function runEffects() {
+        ui.startInput = stripSeconds(store.sweepStart)
+        ui.endInput = stripSeconds(store.sweepEnd)
+        if (observer) {
+            if (store.sweepStart) ui.obsStart = utcIsoToObserver(store.sweepStart)
+            if (store.sweepEnd) ui.obsEnd = utcIsoToObserver(store.sweepEnd)
+        }
+    }
+    function setSweepField(field, val) {
+        store[field] = val
+        runEffects()
+    }
+
+    // SightlinePanel's TimeControl subscription (Range mode).
+    TC.subscribe('SightlineTool_TimeSync', (t) => {
+        if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
+        if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
+        ui.editableTime = t.endTime
+    })
+
+    // SightlineTool.applySweepStartTime / applySweepEndTime.
+    function applySweepStartTime(utcTime) {
+        const utc = normalizeUTCTime(utcTime)
+        if (!utc) return false
+        setSweepField('sweepStart', utc)
+        const endUtc = store.sweepEnd || TC.getEndTime()
+        if (endUtc) TC.setTime(utc, endUtc)
+        return true
+    }
+    function applySweepEndTime(utcTime) {
+        const utc = normalizeUTCTime(utcTime)
+        if (!utc) return false
+        setSweepField('sweepEnd', utc)
+        const startUtc = store.sweepStart || TC.getStartTime()
+        if (startUtc) TC.setTime(startUtc, utc)
+        return true
+    }
+
+    // --- the five input commit handlers ---
+    const inputs = {
+        topStart(value) {
+            ui.startInput = value
+            if (!applySweepStartTime(ui.startInput))
+                ui.startInput = stripSeconds(store.sweepStart)
+        },
+        topEnd(value) {
+            ui.endInput = value
+            if (!applySweepEndTime(ui.endInput))
+                ui.endInput = stripSeconds(store.sweepEnd)
+        },
+        step(value) {
+            const v = parseFloat(value)
+            setSweepField('sweepStep', Number.isFinite(v) ? v : '')
+        },
+        obsStart(localValue) {
+            ui.obsStart = localValue
+            const result = observerToUtcResult(localValue)
+            if (!result) return
+            const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
+            applySweepStartTime(utc)
+        },
+        obsEnd(localValue) {
+            ui.obsEnd = localValue
+            const result = observerToUtcResult(localValue)
+            if (!result) return
+            const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
+            applySweepEndTime(utc)
+        },
+    }
+
+    function init(start, end) {
+        TC.setTime(start, end)
+    }
+
+    return { store, ui, inputs, init, setSweepField }
+}
+
+test.describe('Time-input cross-update wiring', () => {
+    const START = '2026-07-08T00:00:00.000Z'
+    const END = '2026-07-08T02:00:00.000Z'
+
+    function fresh() {
+        const sys = makeTimeSystem({ observer: true })
+        sys.init(START, END)
+        return sys
+    }
+
+    test('initial sync populates all five inputs consistently', () => {
+        const { ui, store } = fresh()
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+        expect(ui.endInput).toBe('2026-07-08T02:00Z')
+        expect(ui.obsStart).toBe('2026-07-08 05:00:00')
+        expect(ui.obsEnd).toBe('2026-07-08 07:00:00')
+        expect(store.sweepStart).toBe('2026-07-08T00:00:00Z')
+        expect(store.sweepEnd).toBe('2026-07-08T02:00:00Z')
+    })
+
+    test('editing top Start updates store + observer Start, leaves End alone', () => {
+        const { ui, inputs } = fresh()
+        inputs.topStart('2026-07-08T00:30Z')
+        expect(ui.startInput).toBe('2026-07-08T00:30Z')
+        expect(ui.obsStart).toBe('2026-07-08 05:30:00')
+        // End inputs untouched
+        expect(ui.endInput).toBe('2026-07-08T02:00Z')
+        expect(ui.obsEnd).toBe('2026-07-08 07:00:00')
+    })
+
+    test('editing top End updates store + observer End, leaves Start alone', () => {
+        const { ui, inputs } = fresh()
+        inputs.topEnd('2026-07-08T01:15Z')
+        expect(ui.endInput).toBe('2026-07-08T01:15Z')
+        expect(ui.obsEnd).toBe('2026-07-08 06:15:00')
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+        expect(ui.obsStart).toBe('2026-07-08 05:00:00')
+    })
+
+    test('editing observer Start updates top Start, leaves End alone', () => {
+        const { ui, inputs, store } = fresh()
+        // observer 06:00 local == 01:00 UTC
+        inputs.obsStart('2026-07-08 06:00:00')
+        expect(store.sweepStart).toBe('2026-07-08T01:00:00Z')
+        expect(ui.startInput).toBe('2026-07-08T01:00Z')
+        expect(ui.obsStart).toBe('2026-07-08 06:00:00')
+        expect(ui.endInput).toBe('2026-07-08T02:00Z')
+        expect(ui.obsEnd).toBe('2026-07-08 07:00:00')
+    })
+
+    test('editing observer End updates top End, leaves Start alone', () => {
+        const { ui, inputs, store } = fresh()
+        inputs.obsEnd('2026-07-08 08:30:00') // 03:30 UTC
+        expect(store.sweepEnd).toBe('2026-07-08T03:30:00Z')
+        expect(ui.endInput).toBe('2026-07-08T03:30Z')
+        expect(ui.obsEnd).toBe('2026-07-08 08:30:00')
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+        expect(ui.obsStart).toBe('2026-07-08 05:00:00')
+    })
+
+    test('editing Step touches only sweepStep', () => {
+        const { ui, inputs, store } = fresh()
+        inputs.step('15')
+        expect(store.sweepStep).toBe(15)
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+        expect(ui.endInput).toBe('2026-07-08T02:00Z')
+        expect(ui.obsStart).toBe('2026-07-08 05:00:00')
+        expect(ui.obsEnd).toBe('2026-07-08 07:00:00')
+    })
+
+    test('invalid top Start is rejected and reverts to the stored value', () => {
+        const { ui, inputs, store } = fresh()
+        inputs.topStart('not-a-time')
+        expect(store.sweepStart).toBe('2026-07-08T00:00:00Z')
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+    })
+
+    // ---- every ordered pair of edits leaves all inputs mutually consistent ----
+    const edits = {
+        topStart: ['2026-07-08T00:30Z', 'sweepStart', '2026-07-08T00:30:00Z'],
+        topEnd: ['2026-07-08T01:45Z', 'sweepEnd', '2026-07-08T01:45:00Z'],
+        obsStart: ['2026-07-08 06:00:00', 'sweepStart', '2026-07-08T01:00:00Z'],
+        obsEnd: ['2026-07-08 08:15:00', 'sweepEnd', '2026-07-08T03:15:00Z'],
+    }
+    const names = Object.keys(edits)
+    for (const a of names) {
+        for (const b of names) {
+            if (a === b) continue
+            test(`order: ${a} then ${b} keeps every input consistent`, () => {
+                const { ui, inputs, store } = fresh()
+                inputs[a](edits[a][0])
+                inputs[b](edits[b][0])
+                // The second edit is the last writer of its target field.
+                expect(store[edits[b][1]]).toBe(edits[b][2])
+                // The first edit's value survives only if the two edits
+                // targeted different store fields (otherwise b overwrote it).
+                if (edits[a][1] !== edits[b][1])
+                    expect(store[edits[a][1]]).toBe(edits[a][2])
+                // Every rendered input reflects the current store, in its own format.
+                expect(ui.startInput).toBe(stripSeconds(store.sweepStart))
+                expect(ui.endInput).toBe(stripSeconds(store.sweepEnd))
+                expect(ui.obsStart).toBe(utcIsoToObserver(store.sweepStart))
+                expect(ui.obsEnd).toBe(utcIsoToObserver(store.sweepEnd))
+            })
+        }
+    }
+})
