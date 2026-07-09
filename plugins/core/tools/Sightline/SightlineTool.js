@@ -89,6 +89,16 @@ function _flatToGrid(flat, rows, cols) {
     return grid
 }
 
+// Release object URLs (from toBlob) held in a frameImages array.
+function _revokeFrameImages(arr) {
+    if (!Array.isArray(arr)) return
+    for (const u of arr) {
+        if (typeof u === 'string' && u.indexOf('blob:') === 0) {
+            try { URL.revokeObjectURL(u) } catch (_) { /* noop */ }
+        }
+    }
+}
+
 let _compositeHoverRaf = null
 let _timeChangeDebounce = null
 
@@ -781,6 +791,7 @@ let SightlineTool = {
 
     deleteElement: function (elmId) {
         const store = useSightlineStore.getState()
+        _revokeFrameImages(store.sweepElData[elmId]?.frameImages)
         Map_.rmNotNull(L_.layers.layer['sightline' + elmId])
         Map_.rmNotNull(store.shedMarkers[elmId])
         delete store.canvases[elmId]
@@ -1160,10 +1171,38 @@ let SightlineTool = {
         const colorB = options.color ? options.color.b : 0
         const colorA = options.color ? options.color.a : 0
         const isInvert = options.invert == 0
+        // Pre-pack the paint color as one endianness-correct 32-bit word.
+        const _le = new Uint32Array(new Uint8Array([1, 0, 0, 0]).buffer)[0] === 1
+        const colorWord = _le
+            ? ((colorA << 24) | (colorB << 16) | (colorG << 8) | colorR) >>> 0
+            : ((colorR << 24) | (colorG << 16) | (colorB << 8) | colorA) >>> 0
+
+        // Release object URLs from any prior sweep for this element.
+        _revokeFrameImages(useSightlineStore.getState().sweepElData[activeElmId]?.frameImages)
 
         const frameImages = []
         let frameIdx = 0
         const CHUNK = 4
+        // Frames are serialized to Blob object URLs (async); track outstanding
+        // encodes so we only finish once every frame has resolved.
+        let pending = 0
+        let loopDone = false
+        let finished = false
+        function finish() {
+            if (finished) return
+            finished = true
+            useSightlineStore.getState().setSweepElField(activeElmId, 'frameImages', frameImages)
+            useSightlineStore.getState().setSweepField('sweepProgress', '')
+            _flushSweepProgress(activeElmId, 100, undefined, true)
+            if (typeof onDone === 'function') onDone()
+        }
+        function onFrameBlob(slot) {
+            return (blob) => {
+                frameImages[slot] = blob ? URL.createObjectURL(blob) : null
+                pending--
+                if (loopDone && pending === 0) finish()
+            }
+        }
 
         function processChunk() {
             const end = Math.min(frameIdx + CHUNK, numFrames)
@@ -1180,33 +1219,28 @@ let SightlineTool = {
                 c.height = rows
                 const ctx = c.getContext('2d')
                 const imgData = ctx.createImageData(cols, rows)
-                const px = imgData.data
+                // One 32-bit store per pixel (vs four byte writes). Buffer is
+                // zero-filled, so only painted (colored) cells are written.
+                const u32 = new Uint32Array(imgData.data.buffer)
                 for (let y = 0; y < rows; y++) {
                     const row = grid[y]
+                    if (!row) continue
+                    const base = y * cols
                     for (let x = 0; x < cols; x++) {
-                        const idx = (y * cols + x) * 4
-                        const val = row ? row[x] : null
-                        if (val === 1 || val === 2) {
-                            if (isInvert) {
-                                px[idx] = colorR; px[idx + 1] = colorG
-                                px[idx + 2] = colorB; px[idx + 3] = colorA
-                            } else {
-                                px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
-                            }
-                        } else if (val === 0) {
-                            if (isInvert) {
-                                px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
-                            } else {
-                                px[idx] = colorR; px[idx + 1] = colorG
-                                px[idx + 2] = colorB; px[idx + 3] = colorA
-                            }
-                        } else {
-                            px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 0; px[idx + 3] = 0
-                        }
+                        const val = row[x]
+                        const paint = isInvert
+                            ? (val === 1 || val === 2)
+                            : (val === 0)
+                        if (paint) u32[base + x] = colorWord
                     }
                 }
                 ctx.putImageData(imgData, 0, 0)
-                frameImages.push(c.toDataURL())
+                // Blob object URL (vs base64 data URL): less memory, no
+                // base64 encode; compatible with the playback setUrl().
+                const slot = frameImages.length
+                frameImages.push(null)
+                pending++
+                c.toBlob(onFrameBlob(slot))
             }
 
             const pct = 55 + Math.round((frameIdx / numFrames) * 40)
@@ -1215,10 +1249,8 @@ let SightlineTool = {
             if (frameIdx < numFrames) {
                 requestAnimationFrame(processChunk)
             } else {
-                useSightlineStore.getState().setSweepElField(activeElmId, 'frameImages', frameImages)
-                useSightlineStore.getState().setSweepField('sweepProgress', '')
-                _flushSweepProgress(activeElmId, 100, undefined, true)
-                if (typeof onDone === 'function') onDone()
+                loopDone = true
+                if (pending === 0) finish()
             }
         }
         processChunk()
