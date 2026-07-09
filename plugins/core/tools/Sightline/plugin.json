@@ -13,7 +13,13 @@
     "descriptionFull": {
         "title": "Computes and visualizes line-of-sight visibility to orbiting or celestial targets over terrain.",
         "example": {
-            "dem": "Data/missionDEM.tif",
+            "dems": [
+                {
+                    "name": "User-friendly DEM name",
+                    "path": "Data/missionDEM.tif",
+                    "resolution": 20
+                }
+            ],
             "sources": [
                 {
                     "name": "User-friendly name for orbiter or body",
@@ -51,11 +57,34 @@
             {
                 "components": [
                     {
-                        "field": "variables.dem",
-                        "name": "DEM path",
-                        "description": "A path to a Cloud Optimized GeoTIFF (COG) DEM relative to the mission directory. Used to compute terrain occlusion and elevation profiles. Large DEMs must be COGs for acceptable performance.",
-                        "type": "text",
-                        "width": 12
+                        "field": "variables.dems",
+                        "name": "DEMs",
+                        "description": "An array of selectable DEMs. Each has a 'name' (shown in the per-item DEM dropdown), a 'path' (a Cloud Optimized GeoTIFF relative to the mission directory), and an optional 'resolution' (the DEM's native ground sample distance in meters-per-pixel). Large DEMs must be COGs for acceptable performance. Mirrors the MeasureTool 'layerDems' precedent.",
+                        "type": "objectarray",
+                        "width": 12,
+                        "object": [
+                            {
+                                "field": "name",
+                                "name": "Name",
+                                "description": "Display name for the DEM dropdown.",
+                                "type": "text",
+                                "width": 5
+                            },
+                            {
+                                "field": "path",
+                                "name": "DEM path",
+                                "description": "Path to a Cloud Optimized GeoTIFF (COG) DEM relative to the mission directory.",
+                                "type": "text",
+                                "width": 5
+                            },
+                            {
+                                "field": "resolution",
+                                "name": "Native m/px",
+                                "description": "Optional. The DEM's native ground sample distance in meters-per-pixel. If omitted, it is read from the dataset's GeoTransform at runtime.",
+                                "type": "number",
+                                "width": 2
+                            }
+                        ]
                     }
                 ]
             },

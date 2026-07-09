@@ -1188,3 +1188,581 @@ test.describe('Color utilities', () => {
         })
     })
 })
+
+// ============================================================
+// Multi-DEM config (buildDemsList) — mirrors store.js
+// ============================================================
+
+function buildDemsList(vars) {
+    const list = []
+    if (Array.isArray(vars?.dems)) {
+        vars.dems.forEach((d) => {
+            if (!d) return
+            const path = d.path || d.url || d.dem
+            if (!path) return
+            const res = parseFloat(d.resolution)
+            list.push({
+                name: d.name || path,
+                path,
+                resolution: Number.isFinite(res) && res > 0 ? res : null,
+            })
+        })
+    }
+    if (list.length === 0 && vars?.dem) {
+        list.push({ name: 'DEM', path: vars.dem, resolution: null })
+    }
+    return list
+}
+
+test.describe('Multi-DEM config (buildDemsList)', () => {
+    test('legacy single dem field yields one entry', () => {
+        const list = buildDemsList({ dem: 'sub/dem.tif' })
+        expect(list.length).toBe(1)
+        expect(list[0].path).toBe('sub/dem.tif')
+        expect(list[0].resolution).toBe(null)
+    })
+
+    test('dems array is used when present', () => {
+        const list = buildDemsList({
+            dem: 'legacy.tif',
+            dems: [
+                { name: 'Coarse', path: 'a.tif', resolution: 100 },
+                { name: 'Fine', path: 'b.tif', resolution: 5 },
+            ],
+        })
+        expect(list.length).toBe(2)
+        expect(list[0].name).toBe('Coarse')
+        expect(list[0].resolution).toBe(100)
+        expect(list[1].path).toBe('b.tif')
+    })
+
+    test('falls back to legacy dem when dems is empty', () => {
+        const list = buildDemsList({ dem: 'legacy.tif', dems: [] })
+        expect(list.length).toBe(1)
+        expect(list[0].path).toBe('legacy.tif')
+    })
+
+    test('skips malformed dem entries and invalid resolutions', () => {
+        const list = buildDemsList({
+            dems: [
+                null,
+                { name: 'NoPath' },
+                { path: 'ok.tif', resolution: 'nan' },
+                { path: 'neg.tif', resolution: -5 },
+            ],
+        })
+        expect(list.length).toBe(2)
+        expect(list[0].path).toBe('ok.tif')
+        expect(list[0].resolution).toBe(null)
+        expect(list[1].resolution).toBe(null)
+    })
+
+    test('accepts url/dem aliases for path and defaults name to path', () => {
+        const list = buildDemsList({ dems: [{ url: 'c.tif' }] })
+        expect(list.length).toBe(1)
+        expect(list[0].path).toBe('c.tif')
+        expect(list[0].name).toBe('c.tif')
+    })
+
+    test('empty config yields no DEMs', () => {
+        expect(buildDemsList({}).length).toBe(0)
+        expect(buildDemsList(undefined).length).toBe(0)
+    })
+})
+
+// ============================================================
+// Editable sweep-time validation — mirrors SightlineTool.normalizeUTCTime
+// ============================================================
+
+function normalizeUTCTime(str) {
+    if (str == null) return null
+    let time = String(str).trim()
+    if (!time) return null
+    if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(time)) time += 'Z'
+    const d = new Date(time)
+    if (isNaN(d.getTime())) return null
+    return time
+}
+
+test.describe('Editable sweep-time validation (normalizeUTCTime)', () => {
+    test('passes through a valid ISO-Z time', () => {
+        expect(normalizeUTCTime('2025-01-02T03:04:05Z')).toBe('2025-01-02T03:04:05Z')
+    })
+
+    test('appends Z to a zoneless time', () => {
+        expect(normalizeUTCTime('2025-01-02T03:04:05')).toBe('2025-01-02T03:04:05Z')
+    })
+
+    test('preserves an explicit offset', () => {
+        expect(normalizeUTCTime('2025-01-02T03:04:05+02:00')).toBe('2025-01-02T03:04:05+02:00')
+    })
+
+    test('rejects empty and whitespace input', () => {
+        expect(normalizeUTCTime('')).toBe(null)
+        expect(normalizeUTCTime('   ')).toBe(null)
+        expect(normalizeUTCTime(null)).toBe(null)
+    })
+
+    test('rejects unparseable input', () => {
+        expect(normalizeUTCTime('not-a-date')).toBe(null)
+    })
+})
+
+test.describe('Top-time display (stripSeconds)', () => {
+    test('drops seconds from a full ISO-Z time', () => {
+        expect(stripSeconds('2025-01-02T03:04:05Z')).toBe('2025-01-02T03:04Z')
+    })
+
+    test('drops seconds and milliseconds', () => {
+        expect(stripSeconds('2025-01-02T03:04:05.678Z')).toBe('2025-01-02T03:04Z')
+    })
+
+    test('leaves a no-seconds time unchanged (does not eat the minutes)', () => {
+        expect(stripSeconds('2025-01-02T03:04Z')).toBe('2025-01-02T03:04Z')
+    })
+
+    test('returns empty string for falsy input', () => {
+        expect(stripSeconds('')).toBe('')
+        expect(stripSeconds(null)).toBe('')
+    })
+})
+
+// ============================================================
+// Resolution — relative scale → maxOutputDim + effective m/px readout
+// ============================================================
+
+function fmtMpp(m) {
+    if (!Number.isFinite(m)) return ''
+    if (m >= 100) return Math.round(m) + ' m/px'
+    if (m >= 10) return m.toFixed(1) + ' m/px'
+    if (m >= 1) return m.toFixed(2) + ' m/px'
+    return m.toFixed(3) + ' m/px'
+}
+
+// Mirror of SightlineTool._resolutionToMaxDim (relative scale, capped so the
+// output never exceeds the DEM's native pixels across the viewport extent).
+function resolutionToMaxDim(scale, longestViewportPx, nativeMpp, groundExtentMeters) {
+    const s = scale || 0.25
+    const longest = Math.max(longestViewportPx || 800, 0)
+    let dim = Math.round(longest * s)
+    if (Number.isFinite(nativeMpp) && nativeMpp > 0 && groundExtentMeters > 0) {
+        const nativeDim = Math.floor(groundExtentMeters / nativeMpp)
+        if (nativeDim > 0) dim = Math.min(dim, nativeDim)
+    }
+    return Math.max(dim, 50)
+}
+
+// Mirror of SightlineTool.getEffectiveResolutionMpp (never finer than native)
+function effectiveResolutionMpp(scale, longestViewportPx, groundExtentMeters, nativeMpp) {
+    const dim = resolutionToMaxDim(scale, longestViewportPx, nativeMpp, groundExtentMeters)
+    if (!(groundExtentMeters > 0) || !(dim > 0)) return null
+    let mpp = groundExtentMeters / dim
+    if (Number.isFinite(nativeMpp) && nativeMpp > 0 && mpp < nativeMpp) mpp = nativeMpp
+    return mpp
+}
+
+test.describe('Resolution scale → maxOutputDim', () => {
+    test('1x uses the full viewport longest dimension', () => {
+        expect(resolutionToMaxDim(1, 1000)).toBe(1000)
+    })
+
+    test('0.25x quarters the viewport dimension', () => {
+        expect(resolutionToMaxDim(0.25, 1000)).toBe(250)
+    })
+
+    test('defaults to 0.25x when scale is missing', () => {
+        expect(resolutionToMaxDim(undefined, 1000)).toBe(250)
+    })
+
+    test('never drops below the 50px floor', () => {
+        expect(resolutionToMaxDim(0.125, 100)).toBe(50)
+    })
+})
+
+test.describe('Effective working resolution (m/px readout)', () => {
+    test('ground extent divided by the output grid dimension', () => {
+        // 10000 m viewport, 1000 px longest, 1x → 1000 px grid → 10 m/px
+        expect(effectiveResolutionMpp(1, 1000, 10000)).toBeCloseTo(10, 6)
+    })
+
+    test('coarser scale yields a larger m/px', () => {
+        // 0.25x → 250 px grid → 40 m/px
+        expect(effectiveResolutionMpp(0.25, 1000, 10000)).toBeCloseTo(40, 6)
+    })
+
+    test('returns null when ground extent is unavailable', () => {
+        expect(effectiveResolutionMpp(1, 1000, 0)).toBe(null)
+    })
+})
+
+test.describe('Native resolution cap', () => {
+    test('maxOutputDim is capped at the native pixel count over the extent', () => {
+        // 1x wants 4000 px, but 10000 m / 20 m/px = 500 native px → capped to 500
+        expect(resolutionToMaxDim(1, 4000, 20, 10000)).toBe(500)
+    })
+
+    test('native cap is ignored when it would not reduce the dimension', () => {
+        // 1x wants 1000 px, native allows 2000 px → stays 1000
+        expect(resolutionToMaxDim(1, 1000, 5, 10000)).toBe(1000)
+    })
+
+    test('effective resolution never goes finer than native', () => {
+        // Without a native floor this would be 10 m/px; native is 20 → 20 m/px
+        expect(effectiveResolutionMpp(1, 1000, 10000, 20)).toBeCloseTo(20, 6)
+    })
+
+    test('effective resolution unaffected by native when already coarser', () => {
+        // 0.25x → 250 px → 40 m/px, coarser than native 20 → stays 40
+        expect(effectiveResolutionMpp(0.25, 1000, 10000, 20)).toBeCloseTo(40, 6)
+    })
+
+    test('unknown native resolution leaves the relative-scale behavior intact', () => {
+        expect(resolutionToMaxDim(1, 1000, null, 10000)).toBe(1000)
+        expect(effectiveResolutionMpp(1, 1000, 10000, null)).toBeCloseTo(10, 6)
+    })
+})
+
+test.describe('m/px formatting', () => {
+    test('formats across magnitude ranges', () => {
+        expect(fmtMpp(250)).toBe('250 m/px')
+        expect(fmtMpp(12.34)).toBe('12.3 m/px')
+        expect(fmtMpp(1.234)).toBe('1.23 m/px')
+        expect(fmtMpp(0.123)).toBe('0.123 m/px')
+    })
+
+    test('returns empty string for non-finite values', () => {
+        expect(fmtMpp(NaN)).toBe('')
+        expect(fmtMpp(null)).toBe('')
+    })
+})
+
+// ============================================================
+// Visibility timeline temporal sampling
+// ============================================================
+
+// Fine (dedicated-ray) sampling step: samplingRate samples per sweep timestep.
+function fineStepSeconds(coarseStepMs, samplingRate) {
+    const rate = Math.max(1, Math.round(samplingRate || 1))
+    return coarseStepMs / 1000 / rate
+}
+
+// Number of fine samples spanning [t0, tN] inclusive at the given rate.
+function fineSampleCount(coarseCount, samplingRate) {
+    const rate = Math.max(1, Math.round(samplingRate || 1))
+    if (coarseCount < 2) return coarseCount
+    return (coarseCount - 1) * rate + 1
+}
+
+// Select the series to plot: the dedicated-ray samples when they match the
+// current sweep + rate, otherwise the coarse grid-derived centerVisible.
+function getVisSeries(ed, samplingRate) {
+    const results = ed?.results || []
+    const vr = ed?.visResults
+    if (
+        vr &&
+        vr.samples &&
+        vr.samples.length > 0 &&
+        vr.samplingRate === (samplingRate || 1) &&
+        vr.baseStart === results[0]?.time &&
+        vr.baseCount === results.length
+    ) {
+        return vr.samples
+    }
+    return results.map((r) => ({ time: r.time, visible: !!r.centerVisible }))
+}
+
+test.describe('Visibility timeline temporal sampling', () => {
+    test('1x keeps the sweep step', () => {
+        expect(fineStepSeconds(60000, 1)).toBe(60)
+    })
+
+    test('higher rates subdivide the step', () => {
+        expect(fineStepSeconds(60000, 2)).toBe(30)
+        expect(fineStepSeconds(60000, 4)).toBe(15)
+        expect(fineStepSeconds(64000, 32)).toBe(2)
+    })
+
+    test('rate is clamped to a positive integer', () => {
+        expect(fineStepSeconds(60000, 0)).toBe(60)
+        expect(fineStepSeconds(60000, undefined)).toBe(60)
+    })
+
+    test('fine sample count aligns coarse frames on rate boundaries', () => {
+        // 5 coarse frames at 4x → 4 fine samples per interval + 1 = 17
+        expect(fineSampleCount(5, 4)).toBe(17)
+        // coarse frame k maps to fine index k*rate
+        const count = fineSampleCount(5, 4)
+        expect((5 - 1) * 4).toBe(count - 1)
+    })
+
+    test('single-frame sweep has nothing to densify', () => {
+        expect(fineSampleCount(1, 8)).toBe(1)
+    })
+})
+
+// Mirror of the backend visibility route's sample-count cap: rather than
+// rejecting, coarsen the step so the series is capped at MAX_SAMPLES.
+function clampVisibilityStep(startMs, endMs, stepSec, MAX_SAMPLES) {
+    let s = stepSec
+    let frameCount = Math.floor((endMs - startMs) / (s * 1000)) + 1
+    if (frameCount > MAX_SAMPLES) {
+        s = (endMs - startMs) / 1000 / (MAX_SAMPLES - 1)
+        frameCount = Math.floor((endMs - startMs) / (s * 1000)) + 1
+    }
+    return { stepSec: s, frameCount }
+}
+
+test.describe('Visibility sample-count cap (backend clamp)', () => {
+    const MAX = 32768
+
+    test('leaves the step alone when under the cap', () => {
+        const start = 0
+        const end = 60 * 60 * 1000 // 1 hour
+        const r = clampVisibilityStep(start, end, 60, MAX) // 61 samples
+        expect(r.stepSec).toBe(60)
+        expect(r.frameCount).toBe(61)
+    })
+
+    test('coarsens the step to stay at the cap instead of erroring', () => {
+        const start = 0
+        const end = 60 * 60 * 1000 // 1 hour
+        // 0.05s step → ~72000 samples, over the cap.
+        const r = clampVisibilityStep(start, end, 0.05, MAX)
+        expect(r.stepSec).toBeGreaterThan(0.05)
+        expect(r.frameCount).toBeLessThanOrEqual(MAX)
+        expect(r.frameCount).toBeGreaterThan(MAX - 2)
+    })
+})
+
+test.describe('Visibility series selection', () => {
+    const ed = {
+        results: [
+            { time: 't0', centerVisible: true },
+            { time: 't1', centerVisible: false },
+        ],
+    }
+
+    test('falls back to grid centerVisible when no dedicated series', () => {
+        const s = getVisSeries(ed, 1)
+        expect(s.map((x) => x.visible)).toEqual([true, false])
+    })
+
+    test('prefers the dedicated ray series when it matches', () => {
+        const edVis = {
+            ...ed,
+            visResults: {
+                samplingRate: 2,
+                baseStart: 't0',
+                baseCount: 2,
+                samples: [
+                    { time: 't0', visible: false },
+                    { time: 't0.5', visible: true },
+                    { time: 't1', visible: true },
+                ],
+            },
+        }
+        const s = getVisSeries(edVis, 2)
+        expect(s.length).toBe(3)
+        expect(s.map((x) => x.visible)).toEqual([false, true, true])
+    })
+
+    test('ignores a stale dedicated series (wrong rate)', () => {
+        const edVis = {
+            ...ed,
+            visResults: {
+                samplingRate: 2,
+                baseStart: 't0',
+                baseCount: 2,
+                samples: [{ time: 't0', visible: false }],
+            },
+        }
+        // Current rate is 1 → cache (rate 2) is stale → fall back to coarse
+        const s = getVisSeries(edVis, 1)
+        expect(s.map((x) => x.visible)).toEqual([true, false])
+    })
+
+    test('ignores a stale dedicated series (different sweep)', () => {
+        const edVis = {
+            ...ed,
+            visResults: {
+                samplingRate: 1,
+                baseStart: 'DIFFERENT',
+                baseCount: 2,
+                samples: [{ time: 'x', visible: false }],
+            },
+        }
+        const s = getVisSeries(edVis, 1)
+        expect(s.map((x) => x.visible)).toEqual([true, false])
+    })
+})
+
+// ============================================================
+// Time-input cross-update wiring — models the real propagation between the
+// three editable time inputs (top Start / Step / End) through the sweep
+// store + TimeControl, mirroring SightlinePanel/SightlineTool. The per-item
+// observer-local inputs were removed; sweep times are set via the top
+// inputs or the MMGIS timeline.
+//
+// It verifies that setting any one input updates all the dependent inputs,
+// for every combination and order. The current-time clock field feeds
+// TimeControl (TimeUI) and is intentionally out of scope.
+// ============================================================
+
+// --- helpers copied from the real code (kept in sync) ---
+const stripSeconds = (s) =>
+    s
+        ? s
+              .replace(/T(\d{2}:\d{2}):\d{2}\.\d+Z$/, 'T$1Z')
+              .replace(/T(\d{2}:\d{2}):\d{2}Z$/, 'T$1Z')
+        : ''
+const fmtUTC = (s) =>
+    s ? s.replace(/\.\d{3}Z$/, 'Z').replace(/(\d{2}:\d{2}:\d{2})$/, '$1Z') : s
+
+function makeTimeSystem() {
+    const store = { sweepStart: '', sweepEnd: '', sweepStep: '' }
+    const ui = { startInput: '', endInput: '', editableTime: '' }
+    const subs = {}
+    const TC = {
+        _s: '', _e: '',
+        getStartTime: () => TC._s,
+        getEndTime: () => TC._e,
+        setTime(s, e /*, flag */) {
+            TC._s = s
+            TC._e = e
+            const iso = (t) => (t ? new Date(t).toISOString() : t)
+            Object.values(subs).forEach((fn) =>
+                fn({ startTime: iso(TC._s), endTime: iso(TC._e) })
+            )
+        },
+        subscribe(k, fn) { subs[k] = fn },
+    }
+
+    // Reactive derived inputs (SightlinePanel E1/E2).
+    function runEffects() {
+        ui.startInput = stripSeconds(store.sweepStart)
+        ui.endInput = stripSeconds(store.sweepEnd)
+    }
+    function setSweepField(field, val) {
+        store[field] = val
+        runEffects()
+    }
+
+    // SightlinePanel's TimeControl subscription (Range mode).
+    TC.subscribe('SightlineTool_TimeSync', (t) => {
+        if (t.startTime) setSweepField('sweepStart', fmtUTC(t.startTime))
+        if (t.endTime) setSweepField('sweepEnd', fmtUTC(t.endTime))
+        ui.editableTime = t.endTime
+    })
+
+    // SightlineTool.applySweepStartTime / applySweepEndTime.
+    function applySweepStartTime(utcTime) {
+        const utc = normalizeUTCTime(utcTime)
+        if (!utc) return false
+        setSweepField('sweepStart', utc)
+        const endUtc = store.sweepEnd || TC.getEndTime()
+        if (endUtc) TC.setTime(utc, endUtc)
+        return true
+    }
+    function applySweepEndTime(utcTime) {
+        const utc = normalizeUTCTime(utcTime)
+        if (!utc) return false
+        setSweepField('sweepEnd', utc)
+        const startUtc = store.sweepStart || TC.getStartTime()
+        if (startUtc) TC.setTime(startUtc, utc)
+        return true
+    }
+
+    // --- the three input commit handlers ---
+    const inputs = {
+        topStart(value) {
+            ui.startInput = value
+            if (!applySweepStartTime(ui.startInput))
+                ui.startInput = stripSeconds(store.sweepStart)
+        },
+        topEnd(value) {
+            ui.endInput = value
+            if (!applySweepEndTime(ui.endInput))
+                ui.endInput = stripSeconds(store.sweepEnd)
+        },
+        step(value) {
+            const v = parseFloat(value)
+            setSweepField('sweepStep', Number.isFinite(v) ? v : '')
+        },
+    }
+
+    function init(start, end) {
+        TC.setTime(start, end)
+    }
+
+    return { store, ui, inputs, init, setSweepField }
+}
+
+test.describe('Time-input cross-update wiring', () => {
+    const START = '2026-07-08T00:00:00.000Z'
+    const END = '2026-07-08T02:00:00.000Z'
+
+    function fresh() {
+        const sys = makeTimeSystem()
+        sys.init(START, END)
+        return sys
+    }
+
+    test('initial sync populates the top inputs consistently', () => {
+        const { ui, store } = fresh()
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+        expect(ui.endInput).toBe('2026-07-08T02:00Z')
+        expect(store.sweepStart).toBe('2026-07-08T00:00:00Z')
+        expect(store.sweepEnd).toBe('2026-07-08T02:00:00Z')
+    })
+
+    test('editing top Start updates store, leaves End alone', () => {
+        const { ui, inputs } = fresh()
+        inputs.topStart('2026-07-08T00:30Z')
+        expect(ui.startInput).toBe('2026-07-08T00:30Z')
+        expect(ui.endInput).toBe('2026-07-08T02:00Z')
+    })
+
+    test('editing top End updates store, leaves Start alone', () => {
+        const { ui, inputs } = fresh()
+        inputs.topEnd('2026-07-08T01:15Z')
+        expect(ui.endInput).toBe('2026-07-08T01:15Z')
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+    })
+
+    test('editing Step touches only sweepStep', () => {
+        const { ui, inputs, store } = fresh()
+        inputs.step('15')
+        expect(store.sweepStep).toBe(15)
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+        expect(ui.endInput).toBe('2026-07-08T02:00Z')
+    })
+
+    test('invalid top Start is rejected and reverts to the stored value', () => {
+        const { ui, inputs, store } = fresh()
+        inputs.topStart('not-a-time')
+        expect(store.sweepStart).toBe('2026-07-08T00:00:00Z')
+        expect(ui.startInput).toBe('2026-07-08T00:00Z')
+    })
+
+    // ---- every ordered pair of edits leaves all inputs mutually consistent ----
+    const edits = {
+        topStart: ['2026-07-08T00:30Z', 'sweepStart', '2026-07-08T00:30:00Z'],
+        topEnd: ['2026-07-08T01:45Z', 'sweepEnd', '2026-07-08T01:45:00Z'],
+    }
+    const names = Object.keys(edits)
+    for (const a of names) {
+        for (const b of names) {
+            if (a === b) continue
+            test(`order: ${a} then ${b} keeps every input consistent`, () => {
+                const { ui, inputs, store } = fresh()
+                inputs[a](edits[a][0])
+                inputs[b](edits[b][0])
+                expect(store[edits[b][1]]).toBe(edits[b][2])
+                if (edits[a][1] !== edits[b][1])
+                    expect(store[edits[a][1]]).toBe(edits[a][2])
+                expect(ui.startInput).toBe(stripSeconds(store.sweepStart))
+                expect(ui.endInput).toBe(stripSeconds(store.sweepEnd))
+            })
+        }
+    }
+})

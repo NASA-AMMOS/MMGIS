@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import useSightlineStore, { buildSourcesList, MULTI_SOURCE_COLORS } from '../store'
+import useSightlineStore, { buildSourcesList, buildDemsList, MULTI_SOURCE_COLORS } from '../store'
 import SightlineResults from './SightlineResults'
 import CardLegend, { getDefaultStops } from './CardLegend'
 import SightlineTool from '../SightlineTool'
 import SightlineTool_Graphs from '../SightlineTool_Graphs'
 import L_ from '@basics/Layers_/Layers_'
-import TimeControl from '@basics/TimeControl_/TimeControl'
+import Map_ from '@basics/Map_/Map_'
 import {
-    Button,
     Checkbox,
     Collapsible,
     ColorRampPicker,
@@ -41,12 +40,22 @@ const FIT_MODE_OPTIONS = [
     { label: 'Fit to data', value: 'fit' },
 ]
 
+// Resolution scale relative to the viewport DEM extent. Lower = faster, coarser.
 const RESOLUTION_OPTIONS = [
-    { value: '1', label: '1× (Native)' },
+    { value: '1', label: '1×' },
     { value: '0.5', label: '0.5×' },
     { value: '0.25', label: '0.25× (Default)' },
     { value: '0.125', label: '0.125×' },
 ]
+
+// Format a meters-per-pixel value for display.
+function fmtMpp(m) {
+    if (!Number.isFinite(m)) return ''
+    if (m >= 100) return Math.round(m) + ' m/px'
+    if (m >= 10) return m.toFixed(1) + ' m/px'
+    if (m >= 1) return m.toFixed(2) + ' m/px'
+    return m.toFixed(3) + ' m/px'
+}
 
 const EXPORT_OPTIONS_STATIC = [
     { value: 'png', label: 'Sightline Map (PNG)' },
@@ -70,8 +79,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const sweepFitToData = useSightlineStore((s) => s.sweepFitToData)
     const setSweepElField = useSightlineStore((s) => s.setSweepElField)
     const setSweepField = useSightlineStore((s) => s.setSweepField)
-    const sweepStart = useSightlineStore((s) => s.sweepStart)
-    const sweepEnd = useSightlineStore((s) => s.sweepEnd)
     const exportProgress = useSightlineStore((s) => s.exportProgress)
 
     const sourcesList = useMemo(() => buildSourcesList(vars), [vars])
@@ -85,13 +92,44 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
         [sourcesList]
     )
 
-    const dataOptions = useMemo(
-        () =>
-            (vars?.data || []).map((d, i) => ({
-                value: String(i),
-                label: d.name,
-            })),
-        [vars]
+    // Selectable DEMs (multi-DEM list, or the legacy single dem).
+    const demsList = useMemo(() => buildDemsList(vars), [vars])
+    const demOptions = useMemo(
+        () => demsList.map((d, i) => ({ value: String(i), label: d.name })),
+        [demsList]
+    )
+    const demIndex = el?.demIndex != null ? el.demIndex : 0
+
+    // The selected DEM's native (dataset) resolution in meters-per-pixel,
+    // as entered by the admin in the DEM config. null when unspecified.
+    const nativeMpp = useMemo(() => {
+        const dem = demsList[demIndex] || demsList[0]
+        if (dem && Number.isFinite(dem.resolution) && dem.resolution > 0)
+            return dem.resolution
+        return null
+    }, [demsList, demIndex])
+
+    // Re-render the effective-resolution readout when the map viewport changes.
+    const [viewportTick, setViewportTick] = useState(0)
+    useEffect(() => {
+        const map = Map_?.map
+        if (!map) return
+        const bump = () => setViewportTick((t) => t + 1)
+        map.on('zoomend', bump)
+        map.on('moveend', bump)
+        return () => {
+            map.off('zoomend', bump)
+            map.off('moveend', bump)
+        }
+    }, [])
+
+    // Effective working resolution (meters-per-pixel) for the current selection
+    // and viewport: viewport ground extent / output grid dimension.
+    // el.resolution, nativeMpp and viewportTick are intentional recompute triggers.
+    const effectiveMpp = useMemo(
+        () => SightlineTool.getEffectiveResolutionMpp(elmId),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [elmId, el?.resolution, nativeMpp, viewportTick]
     )
 
     const observerOptions = useMemo(
@@ -178,8 +216,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
     const [colorPickerOpen, setColorPickerOpen] = useState(false)
     const [exportFormat, setExportFormat] = useState('png')
     useEffect(() => { setExportFormat('png') }, [sightlineMode])
-    const [obsStartTime, setObsStartTime] = useState('')
-    const [obsEndTime, setObsEndTime] = useState('')
     const colorPickerRef = useRef(null)
 
     // Close color picker on outside click
@@ -198,50 +234,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
             document.removeEventListener('mousedown', handleOutsideClick, true)
         }
     }, [colorPickerOpen])
-
-    // Convert UTC sweep times to observer-local times when they change
-    const observer = el?.observer
-    useEffect(() => {
-        if (!observer || !observerOptions.length) return
-        if (sweepStart) {
-            SightlineTool.convertUTCToObserver(sweepStart, observer, (result) => {
-                setObsStartTime(result || sweepStart)
-            })
-        }
-        if (sweepEnd) {
-            SightlineTool.convertUTCToObserver(sweepEnd, observer, (result) => {
-                setObsEndTime(result || sweepEnd)
-            })
-        }
-    }, [sweepStart, sweepEnd, observer, observerOptions.length])
-
-    const handleObsStartBlur = useCallback(() => {
-        if (!obsStartTime || !observer) return
-        SightlineTool.convertObserverToUTC(obsStartTime, observer, (result) => {
-            if (result) {
-                // Save ms for exact round-trip, then strip for TimeControl
-                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
-                const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
-                setSweepField('sweepStart', utc)
-                const endUtc = useSightlineStore.getState().sweepEnd || TimeControl.getEndTime()
-                if (endUtc) TimeControl.setTime(utc, endUtc, false)
-            }
-        })
-    }, [obsStartTime, observer, setSweepField])
-
-    const handleObsEndBlur = useCallback(() => {
-        if (!obsEndTime || !observer) return
-        SightlineTool.convertObserverToUTC(obsEndTime, observer, (result) => {
-            if (result) {
-                // Save ms for exact round-trip, then strip for TimeControl
-                SightlineTool._lastConvertedMs = (result.split('.')[1] || '000').replace(/[^0-9]/g, '') || '000'
-                const utc = (result.replace(' ', 'T').replace(/\.\d+$/, '') + 'Z').replace(/ZZ$/, 'Z')
-                setSweepField('sweepEnd', utc)
-                const startUtc = useSightlineStore.getState().sweepStart || TimeControl.getStartTime()
-                if (startUtc) TimeControl.setTime(startUtc, utc, false)
-            }
-        })
-    }, [obsEndTime, observer, setSweepField])
 
     const handleColorSelect = useCallback(
         (color) => {
@@ -448,7 +440,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                     />
                 </div>
                 <div className="vstSightlineHeaderCenter">
-                    <div style={{ width: 145 }}>
+                    <div style={{ width: 170 }}>
                         <Select
                             value={String(el.sourceIndex)}
                             onValueChange={(v) =>
@@ -559,40 +551,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                             className="vstSelect"
                                         />
                                     </div>
-                                    {el.observer && (
-                                        <>
-                                            {sightlineMode !== 'static' && (
-                                                <div className="vstOptionRow">
-                                                    <div className="vstOptionLabel vstObsTimeLabel" title="Observer local start time">
-                                                        <i className="mdi mdi-clock-outline mdi-14px" /> Start
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        className="vstSweepInput"
-                                                        placeholder={vars?.observerTimePlaceholder || ''}
-                                                        value={obsStartTime}
-                                                        onChange={(e) => setObsStartTime(e.target.value)}
-                                                        onBlur={handleObsStartBlur}
-                                                        onKeyDown={(e) => { if (e.key === 'Enter') handleObsStartBlur() }}
-                                                    />
-                                                </div>
-                                            )}
-                                            <div className="vstOptionRow">
-                                                <div className="vstOptionLabel vstObsTimeLabel" title="Observer local end time">
-                                                    <i className="mdi mdi-clock-outline mdi-14px" /> {sightlineMode === 'static' ? 'Time' : 'End'}
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    className="vstSweepInput"
-                                                    placeholder={vars?.observerTimePlaceholder || ''}
-                                                    value={obsEndTime}
-                                                    onChange={(e) => setObsEndTime(e.target.value)}
-                                                    onBlur={handleObsEndBlur}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleObsEndBlur() }}
-                                                />
-                                            </div>
-                                        </>
-                                    )}
                                 </>
                             )}
                             <div className="vstOptionRow">
@@ -615,21 +573,89 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 />
                             </div>
 
-                            {dataOptions.length > 0 && (
-                                <div className="vstOptionRow">
-                                    <div className="vstOptionLabel" title="Dataset to analyze.">
-                                        DEM
+                            {demOptions.length >= 1 && (
+                                <>
+                                    <div className="vstOptionRow">
+                                        <div className="vstOptionLabel" title="DEM (terrain dataset) to analyze.">
+                                            DEM
+                                        </div>
+                                        <Select
+                                            value={String(demIndex)}
+                                            onValueChange={(v) =>
+                                                updateElement(elmId, {
+                                                    demIndex: parseInt(v),
+                                                    changed: true,
+                                                    lastError: false,
+                                                })
+                                            }
+                                            options={demOptions}
+                                            className="vstSelect"
+                                        />
                                     </div>
-                                    <Select
-                                        value={String(el.dataIndex)}
-                                        onValueChange={(v) =>
-                                            handleChange('dataIndex', parseInt(v))
-                                        }
-                                        options={dataOptions}
-                                        className="vstSelect"
-                                    />
+                                    {Number.isFinite(nativeMpp) && (
+                                        <div className="vstOptionRow vstEffectiveResRow">
+                                            <div className="vstOptionLabel" />
+                                            <div className="vstEffectiveRes" title="The DEM's native (dataset) ground resolution.">
+                                                Native: {fmtMpp(nativeMpp)}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            <div className="vstOptionRow">
+                                <div
+                                    className="vstOptionLabel"
+                                    title="Resolution scale relative to viewport DEM extent. Lower = faster, coarser."
+                                >
+                                    Resolution
+                                </div>
+                                <Select
+                                    value={String(el.resolution)}
+                                    onValueChange={(v) =>
+                                        handleChange('resolution', parseFloat(v))
+                                    }
+                                    options={RESOLUTION_OPTIONS}
+                                    className="vstSelect"
+                                />
+                            </div>
+                            {Number.isFinite(effectiveMpp) && (
+                                <div className="vstOptionRow vstEffectiveResRow">
+                                    <div className="vstOptionLabel" />
+                                    <div className="vstEffectiveRes" title="Approximate working ground resolution at the current viewport and zoom (never finer than native).">
+                                        ≈ {fmtMpp(effectiveMpp)}
+                                    </div>
                                 </div>
                             )}
+                            <div className="vstOptionRow">
+                                <Tooltip content="Extends the terrain loaded for shadow computation beyond the visible map area. Terrain within this radius is read at a lower resolution so that distant features (ridges, crater rims) can cast shadows into the viewport without slowing down the full-resolution computation. Set to 0 to use only the viewport extent.">
+                                    <div className="vstOptionLabel" style={{ cursor: 'help' }}>Shadow Reach</div>
+                                </Tooltip>
+                                <InputWithUnit
+                                    unit="km"
+                                    type="number"
+                                    min="0"
+                                    step="5"
+                                    placeholder="0"
+                                    value={el.shadowReach || ''}
+                                    onChange={(e) =>
+                                        updateElement(elmId, {
+                                            shadowReach: e.target.value,
+                                        })
+                                    }
+                                    onBlur={() =>
+                                        updateElement(elmId, {
+                                            changed: true,
+                                            lastError: false,
+                                        })
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.target.blur()
+                                        }
+                                    }}
+                                    className="vstFieldInput"
+                                />
+                            </div>
                         </div>
                     </Collapsible.Content>
                 </Collapsible>
@@ -667,7 +693,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                             </div>
                             <div className="vstOptionRow">
                                 <div className="vstOptionLabel">Opacity</div>
-                                <div style={{ width: 145 }}>
+                                <div style={{ width: 170 }}>
                                     <Slider
                                         value={el.opacity}
                                         onValueChange={handleOpacityChange}
@@ -679,48 +705,6 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     />
                                 </div>
                             </div>
-                            <div className="vstOptionRow">
-                                <div className="vstOptionLabel" title="Resolution scale relative to viewport DEM extent. Lower = faster, coarser.">Resolution</div>
-                                <Select
-                                    value={String(el.resolution)}
-                                    onValueChange={(v) =>
-                                        handleChange('resolution', parseFloat(v))
-                                    }
-                                    options={RESOLUTION_OPTIONS}
-                                    className="vstSelect"
-                                />
-                            </div>
-                            <div className="vstOptionRow">
-                                <Tooltip content="Extends the terrain loaded for shadow computation beyond the visible map area. Terrain within this radius is read at a lower resolution so that distant features (ridges, crater rims) can cast shadows into the viewport without slowing down the full-resolution computation. Set to 0 to use only the viewport extent.">
-                                    <div className="vstOptionLabel" style={{ cursor: 'help' }}>Shadow Reach</div>
-                                </Tooltip>
-                                <InputWithUnit
-                                    unit="km"
-                                    type="number"
-                                    min="0"
-                                    step="5"
-                                    placeholder="0"
-                                    value={el.shadowReach || ''}
-                                    onChange={(e) =>
-                                        updateElement(elmId, {
-                                            shadowReach: e.target.value,
-                                        })
-                                    }
-                                    onBlur={() =>
-                                        updateElement(elmId, {
-                                            changed: true,
-                                            lastError: false,
-                                        })
-                                    }
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.target.blur()
-                                        }
-                                    }}
-                                    className="vstFieldInput"
-                                />
-                            </div>
-
                         </div>
                     </Collapsible.Content>
                 </Collapsible>
@@ -745,14 +729,30 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
 
                 {/* — Actions (always visible) — */}
                 <div className="vstSightlineActions">
-                    <ProgressButton
-                        active={generateActive}
-                        loading={el.regenerating}
-                        progress={el.loadingProgress || 0}
-                        onClick={handleGenerate}
-                    >
-                        {generateLabel}
-                    </ProgressButton>
+                    <div className="vstSweepBtnWrap">
+                        <ProgressButton
+                            active={generateActive}
+                            loading={el.regenerating}
+                            progress={el.loadingProgress || 0}
+                            onClick={handleGenerate}
+                        >
+                            {generateLabel}
+                        </ProgressButton>
+                        {sightlineMode !== 'static' && el.regenerating && (
+                            <button
+                                type="button"
+                                className="vstCancelSweepX"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    SightlineTool.cancelSweepElement(elmId)
+                                }}
+                                title="Cancel the running sweep"
+                                aria-label="Cancel sweep"
+                            >
+                                <i className="mdi mdi-close mdi-14px" />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* — Results (collapsible, controlled by Run header) — */}
@@ -766,7 +766,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 <div className="vstSweepCardBody">
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Mode</div>
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <Select
                                                 value={sweepDiscrete ? 'discrete' : 'continuous'}
                                                 onValueChange={handleDiscreteChange}
@@ -776,7 +776,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     </div>
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Range</div>
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <Select
                                                 value={sweepFitToData ? 'fit' : 'absolute'}
                                                 onValueChange={handleFitModeChange}
@@ -786,7 +786,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     </div>
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Color Ramp</div>
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <ColorRampPicker
                                                 value={sweepColorRamp}
                                                 onValueChange={handleColorRampChange}
@@ -890,7 +890,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 <div className="vstResultsExport vstOptionRow">
                                     <div className="vstOptionLabel">Export</div>
                                     <div className="vstExportControls">
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <Select
                                                 value={exportFormat}
                                                 onValueChange={setExportFormat}

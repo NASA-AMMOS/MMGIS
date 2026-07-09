@@ -4169,7 +4169,18 @@
       "icon": "brightness-4",
       "js": "SightlineTool",
       "variables": {
-        "dem": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+        "dems": [
+          {
+            "name": "USGS 1/3 arc-second (10 m/px)",
+            "path": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+            "resolution": 10
+          },
+          {
+            "name": "USGS 1/3 arc-second (20 m/px)",
+            "path": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+            "resolution": 20
+          }
+        ],
         "sources": [
           {
             "name": "Sun",

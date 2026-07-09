@@ -184,6 +184,10 @@ const c = {
         type: 'POST',
         url: 'api/sightline/sightmap',
     },
+    sightlinevisibility: {
+        type: 'POST',
+        url: 'api/sightline/visibility',
+    },
 }
 
 function api(call, data, success, error) {
