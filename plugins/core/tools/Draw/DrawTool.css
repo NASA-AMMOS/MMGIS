@@ -2620,3 +2620,14 @@ line-height: 20px;
 #DrawTool_TimeToggle_switch {
     top: -14px;
 }
+
+/* Track Me GPS button - active/tracking state */
+.drawToolDrawingTypeTrackMe.tracking {
+    background: #ff6400 !important;
+    color: white !important;
+    animation: trackme-pulse 1.5s ease-in-out infinite;
+}
+@keyframes trackme-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}

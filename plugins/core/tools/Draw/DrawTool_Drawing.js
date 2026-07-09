@@ -262,6 +262,7 @@ var Drawing = {
         DrawTool.drawing.point.end()
         DrawTool.drawing.annotation.end()
         DrawTool.drawing.arrow.end()
+        DrawTool.drawing.trackme.end()
     },
     setDrawingType: function (type) {
         switch (type) {
@@ -285,6 +286,9 @@ var Drawing = {
                 break
             case 'arrow':
                 DrawTool.drawing.arrow.begin(type)
+                break
+            case 'trackme':
+                DrawTool.drawing.trackme.begin(type)
                 break
             default:
                 break
@@ -1676,6 +1680,130 @@ var drawing = {
         shape: {},
         arrowTimeout: null,
         arrowHeads: [],
+    },
+    trackme: {
+        watchId: null,
+        coords: [],
+        intent: null,
+        style: {},
+        tempLine: null,
+        active: false,
+
+        begin: function (intent) {
+            var d = DrawTool.drawing.trackme
+            // End all other drawing modes
+            DrawTool.drawing.polygon.end()
+            DrawTool.drawing.circle.end()
+            DrawTool.drawing.rectangle.end()
+            DrawTool.drawing.line.end()
+            DrawTool.drawing.point.end()
+            DrawTool.drawing.annotation.end()
+            DrawTool.drawing.arrow.end()
+
+            // Toggle: if already tracking, stop and save
+            if (d.active) {
+                d.stop()
+                return
+            }
+
+            if (intent != undefined) {
+                d.intent = 'trail'
+                d.style = DrawTool.categoryStyles && DrawTool.categoryStyles['line']
+                    ? DrawTool.categoryStyles['line']
+                    : { color: '#ff6400', weight: 3, opacity: 0.9 }
+            }
+            d.coords = []
+
+            if (!navigator.geolocation) {
+                Toast.error('Geolocation is not supported by this browser.', 4000)
+                return
+            }
+
+            d.active = true
+
+            // Visual feedback: pulse the button
+            var btn = document.querySelector('.drawToolDrawingTypeTrackMe')
+            if (btn) btn.classList.add('tracking')
+
+            d.watchId = navigator.geolocation.watchPosition(
+                function (pos) {
+                    var latlng = [pos.coords.latitude, pos.coords.longitude]
+                    d.coords.push(latlng)
+
+                    // Center map on first fix
+                    if (d.coords.length === 1 && Map_ && Map_.map) {
+                        Map_.map.setView(latlng, Map_.map.getZoom() < 15 ? 17 : Map_.map.getZoom())
+                    }
+
+                    // Update live preview polyline
+                    if (d.tempLine && Map_ && Map_.map) {
+                        Map_.map.removeLayer(d.tempLine)
+                        d.tempLine = null
+                    }
+                    if (d.coords.length > 1) {
+                        d.tempLine = L.polyline(d.coords, {
+                            color: d.style.color || '#ff6400',
+                            weight: d.style.weight || 3,
+                            opacity: 0.85,
+                            dashArray: '8, 6',
+                        }).addTo(Map_.map)
+                    }
+                },
+                function (err) {
+                    Toast.error('GPS error: ' + err.message, 4000)
+                },
+                { enableHighAccuracy: true, maximumAge: 2000, timeout: 30000 }
+            )
+        },
+
+        end: function () {
+            var d = DrawTool.drawing.trackme
+            if (d.watchId != null) {
+                navigator.geolocation.clearWatch(d.watchId)
+                d.watchId = null
+            }
+            d.active = false
+            var btn = document.querySelector('.drawToolDrawingTypeTrackMe')
+            if (btn) btn.classList.remove('tracking')
+            if (d.tempLine && Map_ && Map_.map) {
+                Map_.map.removeLayer(d.tempLine)
+                d.tempLine = null
+            }
+        },
+
+        stop: function () {
+            var d = DrawTool.drawing.trackme
+            d.end()
+
+            if (d.coords.length < 2) {
+                Toast.warning('Need at least 2 GPS points to save a track.', 4000)
+                return
+            }
+
+            // Convert [lat,lng] to GeoJSON [lng,lat]
+            var geojsonCoords = d.coords.map(function (c) { return [c[1], c[0]] })
+            var geometry = { type: 'LineString', coordinates: geojsonCoords }
+            var n = $('#drawToolDrawFeaturesNewName')
+            var properties = {
+                style: d.style,
+                name: n.val() || n.attr('placeholder') || 'GPS Track ' + new Date().toLocaleString(),
+            }
+
+            DrawTool.addDrawing(
+                {
+                    file_id: DrawTool.currentFileId,
+                    intent: d.intent,
+                    properties: JSON.stringify(properties),
+                    geometry: JSON.stringify(geometry),
+                },
+                function () {
+                    DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, null, null, null, true)
+                },
+                function () {
+                    Toast.error('Failed to save GPS track.', 4000)
+                }
+            )
+        },
     },
 }
 

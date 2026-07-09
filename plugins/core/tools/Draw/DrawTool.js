@@ -85,6 +85,7 @@ var markup = [
     "<div class='drawToolDrawingTypePoint' draw='point' title='Point'><i class='mdi mdi-square-medium-outline mdi-24px'></i></div>",
     "<div class='drawToolDrawingTypeText' draw='text' title='Text'><i class='mdi mdi-format-text mdi-18px'></i></div>",
     "<div class='drawToolDrawingTypeArrow' draw='arrow' title='Arrow'><i class='mdi mdi-arrow-top-right mdi-18px'></i></div>",
+    "<div class='drawToolDrawingTypeTrackMe' draw='trackme' title='Track Me (GPS)'><i class='mdi mdi-crosshairs-gps mdi-18px'></i></div>",
     '</div>',
     "<div id='drawToolDrawingSettingsToggle' title='Draw Settings'><i class='mdi mdi-cog mdi-18px'></i></div>",
     '</div>',
