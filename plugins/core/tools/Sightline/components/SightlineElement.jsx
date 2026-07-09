@@ -440,7 +440,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                     />
                 </div>
                 <div className="vstSightlineHeaderCenter">
-                    <div style={{ width: 145 }}>
+                    <div style={{ width: 170 }}>
                         <Select
                             value={String(el.sourceIndex)}
                             onValueChange={(v) =>
@@ -693,7 +693,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                             </div>
                             <div className="vstOptionRow">
                                 <div className="vstOptionLabel">Opacity</div>
-                                <div style={{ width: 145 }}>
+                                <div style={{ width: 170 }}>
                                     <Slider
                                         value={el.opacity}
                                         onValueChange={handleOpacityChange}
@@ -766,7 +766,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 <div className="vstSweepCardBody">
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Mode</div>
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <Select
                                                 value={sweepDiscrete ? 'discrete' : 'continuous'}
                                                 onValueChange={handleDiscreteChange}
@@ -776,7 +776,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     </div>
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Range</div>
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <Select
                                                 value={sweepFitToData ? 'fit' : 'absolute'}
                                                 onValueChange={handleFitModeChange}
@@ -786,7 +786,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                     </div>
                                     <div className="vstOptionRow vstSweepCardRow">
                                         <div className="vstOptionLabel">Color Ramp</div>
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <ColorRampPicker
                                                 value={sweepColorRamp}
                                                 onValueChange={handleColorRampChange}
@@ -890,7 +890,7 @@ export default function SightlineElement({ elmId, onDragStart, onDragOver, onDra
                                 <div className="vstResultsExport vstOptionRow">
                                     <div className="vstOptionLabel">Export</div>
                                     <div className="vstExportControls">
-                                        <div style={{ width: 145 }}>
+                                        <div style={{ width: 170 }}>
                                             <Select
                                                 value={exportFormat}
                                                 onValueChange={setExportFormat}
