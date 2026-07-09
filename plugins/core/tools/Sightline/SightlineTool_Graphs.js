@@ -267,7 +267,7 @@ const SightlineTool_Graphs = {
         const rangeWrap = document.createElement('div')
         rangeWrap.className = 'sightlineHorizonRangeWrap'
         rangeWrap.innerHTML = `
-            <span class="sightlineHorizonRangeLabel" id="sightlineHorizonRangeLabel">Horizon Range:</span>
+            <span class="sightlineHorizonRangeLabel" id="sightlineHorizonRangeLabel">Range:</span>
             <span class="sightlineHorizonRangeValue" id="sightlineHorizonMinLabel">1m</span>
             <div class="sightlineHorizonRangeTrack" id="sightlineHorizonRangeTrack">
                 <div class="sightlineHorizonRangeFill" id="sightlineHorizonRangeFill"></div>
@@ -817,10 +817,21 @@ const SightlineTool_Graphs = {
         }
     },
 
+    // Toggle the subtle indeterminate loading sweep on the visibility timeline
+    // whenever any element's series is being fetched.
+    _updateVisLoadingIndicator() {
+        const wrap = document.getElementById('sightlineVisibilityWrap')
+        if (!wrap) return
+        const anyInFlight = Object.keys(_visFetchInFlight).length > 0
+        wrap.classList.toggle('sightlineVisLoading', anyInFlight)
+    },
+
     _fetchVisibilityFor(eid, rate, maxDist, minDist) {
         _visFetchInFlight[eid] = true
+        SightlineTool_Graphs._updateVisLoadingIndicator()
         SightlineTool.fetchVisibilitySeries(eid, rate, maxDist, minDist, (ok) => {
             delete _visFetchInFlight[eid]
+            SightlineTool_Graphs._updateVisLoadingIndicator()
             if (!_graphOpen) return
             // Only re-check freshness on success: the series was stored (and
             // rate/range may have changed mid-flight, warranting a superseding

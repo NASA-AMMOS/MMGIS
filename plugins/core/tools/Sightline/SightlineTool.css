@@ -1287,6 +1287,36 @@
     -webkit-user-select: none;
 }
 
+/* Subtle indeterminate loading sweep while visibility data is fetching. */
+.sightlineVisWrap.sightlineVisLoading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 40% 100%;
+    background-repeat: no-repeat;
+    animation: sightlineVisLoadingSweep 1.2s ease-in-out infinite;
+}
+
+@keyframes sightlineVisLoadingSweep {
+    0% {
+        background-position: -40% 0;
+    }
+    100% {
+        background-position: 140% 0;
+    }
+}
+
 .sightlineVisRow {
     display: flex;
     align-items: center;
