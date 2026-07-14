@@ -198,6 +198,8 @@ Every interaction declares a `phase`. A layer's effective click pipeline is buil
 
 Within a phase, interactions are ordered by their `order` field. A layer chooses its `main`-phase interactions either explicitly via `layerData.interactions.<event>` or implicitly via the legacy `kind` string (mapped through `kindAlias` — see below). The preamble/postamble are always applied by the runner.
 
+Mission administrators configure these behaviors in the layer modal's **Interactions** tab. The default Kind picker is populated from enabled plugins' `kindAlias` values and previews the effective pipeline. **Customize pipeline** converts that preset into an ordered list of `main` click interactions, which can be added, removed, and rearranged. Preamble and postamble interactions are shown as locked infrastructure, including any active suppression rules. Returning to **Kind preset** removes only the explicit click pipeline and preserves any separately configured pointer-event pipelines.
+
 An interaction can declare `suppresses` to replace a default when present — e.g. `info:open` (main) suppresses `info:silent` (postamble) so the panel isn't populated twice.
 
 #### Generated file & runtime
