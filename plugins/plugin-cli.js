@@ -1084,9 +1084,11 @@ function cmdUpdate(repoName) {
 }
 
 function cmdValidate() {
-    const { validatePluginConfig, validateDependencies } = require(
-        path.join(__dirname, "..", "API", "pluginValidation")
-    );
+    const {
+        validatePluginConfig,
+        validateDependencies,
+        findDuplicateInteractionIds,
+    } = require(path.join(__dirname, "..", "API", "pluginValidation"));
 
     const plugins = discoverAll();
     const state = loadState();
@@ -1163,11 +1165,35 @@ function cmdValidate() {
         }
     }
 
-    // Interaction-specific validation: order collisions, suppression targets, kindAlias coverage.
+    // Interaction-specific validation: unique IDs, order collisions, and suppression targets.
     const interactionPlugins = plugins.filter((p) => p.type === "interactions" && p.manifest && isPluginEnabled(p, state));
     const interactionIds = new Set(interactionPlugins.map((p) => p.manifest.interactionId).filter(Boolean));
+    let interactionErrors = 0;
+    const interactionErrorMessages = [];
     let interactionWarnings = 0;
     const interactionWarningMessages = [];
+
+    const duplicateIds = findDuplicateInteractionIds(
+        interactionPlugins.map((p) => ({
+            name: p.id,
+            interactionId: p.manifest.interactionId,
+        }))
+    );
+    for (const { interactionId, owners } of duplicateIds) {
+        interactionErrors++;
+        errors++;
+        const msg = `Duplicate interactionId '${interactionId}' declared by: ${owners.join(", ")}`;
+        interactionErrorMessages.push(msg);
+        if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.red(msg)}`);
+        for (const owner of owners) {
+            const result = results.find((entry) => entry.plugin === owner);
+            if (result && result.valid) {
+                result.valid = false;
+                result.errors.push(msg);
+                passed--;
+            }
+        }
+    }
 
     // Check for order collisions within the same (phase, event) bucket.
     const phaseBuckets = {};
@@ -1211,7 +1237,7 @@ function cmdValidate() {
     }
 
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, depWarnings, depWarningMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }

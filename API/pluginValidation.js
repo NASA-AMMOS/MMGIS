@@ -380,8 +380,29 @@ function validatePluginConfig(config, pluginName, pluginType) {
   return errors;
 }
 
+function findDuplicateInteractionIds(interactions) {
+  const ownersById = new Map();
+
+  for (const interaction of interactions) {
+    if (
+      typeof interaction.interactionId !== "string" ||
+      interaction.interactionId.length === 0
+    ) {
+      continue;
+    }
+    const owners = ownersById.get(interaction.interactionId) || [];
+    owners.push(interaction.name);
+    ownersById.set(interaction.interactionId, owners);
+  }
+
+  return Array.from(ownersById.entries())
+    .filter(([, owners]) => owners.length > 1)
+    .map(([interactionId, owners]) => ({ interactionId, owners }));
+}
+
 module.exports = {
   validatePluginConfig,
   validateDependencies,
+  findDuplicateInteractionIds,
   KNOWN_FIELDS,
 };

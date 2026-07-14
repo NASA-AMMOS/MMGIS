@@ -104,6 +104,25 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         expect(cfg).toHaveProperty('Select');
     });
 
+    test('duplicate interaction IDs stop generation', () => {
+        installFixturePlugin({
+            pluginType: 'interaction',
+            containerName: INTERACTION_CONTAINER,
+            fixtureName: 'TestInteraction',
+            fixturesDir: path.join(repoRoot, 'tests', 'fixtures', 'test-plugin-interactions'),
+        });
+        installFixturePlugin({
+            pluginType: 'interaction',
+            containerName: INTERACTION_CONTAINER,
+            fixtureName: 'DuplicateInteraction',
+            fixturesDir: path.join(repoRoot, 'tests', 'fixtures', 'test-plugin-interactions'),
+        });
+
+        expect(() => updateInteractions()).toThrow(
+            "Duplicate interactionId 'test:interaction'"
+        );
+    });
+
     test('invalid interaction is skipped, valid ones still registered', () => {
         installFixturePlugin({
             pluginType: 'interaction',

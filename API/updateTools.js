@@ -3,7 +3,10 @@ const path = require("path");
 const semver = require("semver");
 
 const logger = require("./logger");
-const { validatePluginConfig } = require("./pluginValidation");
+const {
+  validatePluginConfig,
+  findDuplicateInteractionIds,
+} = require("./pluginValidation");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
@@ -321,6 +324,21 @@ function updateInteractions() {
     if (registered) {
       interactionPluginPaths[plugin.name] = plugin.pluginPath;
     }
+  }
+
+  const duplicateIds = findDuplicateInteractionIds(
+    Object.entries(interactions).map(([name, manifest]) => ({
+      name,
+      interactionId: manifest.interactionId,
+    }))
+  );
+  if (duplicateIds.length > 0) {
+    const messages = duplicateIds.map(
+      ({ interactionId, owners }) =>
+        `Duplicate interactionId '${interactionId}' declared by: ${owners.join(", ")}`
+    );
+    messages.forEach((message) => logger("error", message, "Interactions"));
+    throw new Error(messages.join("; "));
   }
 
   // 4. Write interactionConfigs.json for the Configure page.

@@ -7,7 +7,10 @@
 
 import { test, expect } from '@playwright/test';
 
-const { validatePluginConfig } = require('../../API/pluginValidation');
+const {
+    validatePluginConfig,
+    findDuplicateInteractionIds,
+} = require('../../API/pluginValidation');
 
 test.describe('validatePluginConfig - interaction plugins', () => {
     test('valid minimal interaction config returns no errors', () => {
@@ -130,6 +133,33 @@ test.describe('validatePluginConfig - interaction plugins', () => {
         };
         const errors = validatePluginConfig(config, 'DrawContextMenu', 'interaction');
         expect(errors.some((e) => e.includes("'pluginDependencies'"))).toBe(true);
+    });
+});
+
+test.describe('findDuplicateInteractionIds', () => {
+    test('returns duplicate IDs and all declaring plugins', () => {
+        const duplicates = findDuplicateInteractionIds([
+            { name: 'First', interactionId: 'shared:id' },
+            { name: 'Unique', interactionId: 'unique:id' },
+            { name: 'Second', interactionId: 'shared:id' },
+        ]);
+
+        expect(duplicates).toEqual([
+            {
+                interactionId: 'shared:id',
+                owners: ['First', 'Second'],
+            },
+        ]);
+    });
+
+    test('ignores missing IDs and accepts unique IDs', () => {
+        expect(
+            findDuplicateInteractionIds([
+                { name: 'First', interactionId: 'first:id' },
+                { name: 'Missing' },
+                { name: 'Second', interactionId: 'second:id' },
+            ])
+        ).toEqual([]);
     });
 });
 
