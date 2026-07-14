@@ -22,6 +22,32 @@ export function buildSourcesList(vars) {
     return list
 }
 
+// Build the list of selectable DEMs from the tool variables.
+// Supports the new multi-DEM `dems` array (each { name, path, resolution })
+// and falls back to the legacy single `dem` string for backward compatibility.
+// `resolution` (when provided) is the DEM's native ground sample distance in
+// meters-per-pixel; null means unknown (resolved at runtime from the dataset).
+export function buildDemsList(vars) {
+    const list = []
+    if (Array.isArray(vars?.dems)) {
+        vars.dems.forEach((d) => {
+            if (!d) return
+            const path = d.path || d.url || d.dem
+            if (!path) return
+            const res = parseFloat(d.resolution)
+            list.push({
+                name: d.name || path,
+                path,
+                resolution: Number.isFinite(res) && res > 0 ? res : null,
+            })
+        })
+    }
+    if (list.length === 0 && vars?.dem) {
+        list.push({ name: 'DEM', path: vars.dem, resolution: null })
+    }
+    return list
+}
+
 function makeDefaultElement(id, vars) {
     const color = MULTI_SOURCE_COLORS[id % MULTI_SOURCE_COLORS.length]
     return {
@@ -33,6 +59,8 @@ function makeDefaultElement(id, vars) {
         color: { ...color },
         opacity: 0.5,
         resolution: 0.25,
+        // Selected DEM (index into buildDemsList).
+        demIndex: 0,
         height: vars?.defaultHeight || 0,
         observer: vars?.observers?.[0]?.value || null,
         sourceIndex: 0,
@@ -86,6 +114,9 @@ const useSightlineStore = create((set, get) => ({
     sweepCardOrder: [],
     sweepDiscrete: false,
     sweepFitToData: true,
+    // Temporal sampling multiplier for the visibility timeline (1x..256x):
+    // number of visibility ray samples computed per sweep timestep.
+    sweepVisSamplingRate: 16,
 
     // Per-element sweep data: { [elmId]: { results, grids, heatmap, opacity, colorRamp, discrete, atlas, lastData, lastOptions } }
     sweepElData: {},
@@ -152,7 +183,7 @@ const useSightlineStore = create((set, get) => ({
 
     setSweepField: (field, value) => set({ [field]: value }),
 
-    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: null, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null }),
+    _defaultSweepEl: () => ({ results: null, grids: null, heatmap: null, opacity: null, colorRamp: 'sightline', discrete: false, atlas: null, lastData: null, lastOptions: null, minFrac: 0, maxFrac: 1, colorStops: null, visResults: null }),
     getSweepElData: (elmId) => {
         return get().sweepElData[elmId] || null
     },

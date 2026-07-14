@@ -134,7 +134,7 @@ const Coordinates = {
         $('#CoordinatesDiv').remove()
 
         if (!UserInterface.isMobile) {
-            $('body')
+            $('#main-container')
                 .append($('<div>')
                 .attr('id', 'CoordinatesDiv')
                 .html(markup))
@@ -296,6 +296,13 @@ const Coordinates = {
                 Coordinates.states.site.available = true
         }
 
+        // Default latlng on when nothing is selected
+        if (
+            Object.values(Coordinates.states).filter((i) => i.available)
+                .length === 0
+        )
+            Coordinates.states.ll.available = true
+
         // If the available key does not exist, it means they were already deleted
         if (
             Object.keys(Coordinates.states).length ===
@@ -315,7 +322,9 @@ const Coordinates = {
         // Set main type and, if invalid main type, default back to ll
         Coordinates.mainType = L_.configData.coordinates?.coordmain || 'll'
         if (!Object.keys(Coordinates.states).includes(Coordinates.mainType))
-            Coordinates.mainType = 'll'
+            Coordinates.mainType = Coordinates.states.ll
+                ? 'll'
+                : Object.keys(Coordinates.states)[0]
         Coordinates.currentType = Coordinates.mainType
 
         // Make mainType first in dropdown list
@@ -350,6 +359,7 @@ const Coordinates = {
         const names = []
         Coordinates.stateIndices.forEach((state) => {
             const s = Coordinates.states[state]
+            if (s == null) return
             let name = ''
             if (s.title) name += `${s.title} (`
             name += `${s.names[0]}, ${s.names[1]}`
@@ -442,6 +452,7 @@ const Coordinates = {
         type = type || Coordinates.mainType
         const currentState = Coordinates.states[type]
         const newCoords = [0, 0]
+        if (currentState == null) return newCoords
 
         switch (type) {
             case 'll':

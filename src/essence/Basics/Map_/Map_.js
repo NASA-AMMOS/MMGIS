@@ -845,7 +845,6 @@ async function makeLayer(
 
             if (stopLoops !== true && layerObj.type === 'vector') {
                 Filtering.updateGeoJSON(layerObj.name)
-                Filtering.triggerFilter(layerObj.name)
             }
         } catch (err) {
             madeSuccessfully = false
@@ -856,6 +855,23 @@ async function makeLayer(
         } finally {
             // release hold on layer (use same registry as above)
             lockRegistry[layerName] = false
+
+            // Trigger filter AFTER releasing the lock — triggerFilter may call
+            // LocalFilterer.filter which does clearVectorLayer + updateVectorLayer.
+            // updateVectorLayer checks _layersBeingMade and bails if the lock is
+            // still held, which would leave the layer empty (cleared but not
+            // repopulated). Moving this here ensures the lock is free.
+            try {
+                if (
+                    madeSuccessfully &&
+                    stopLoops !== true &&
+                    layerObj.type === 'vector'
+                ) {
+                    Filtering.triggerFilter(layerObj.name)
+                }
+            } catch (filterErr) {
+                console.warn('WARNING - triggerFilter failed for', layerObj.name, filterErr)
+            }
 
             // Drain any queued reload request for this layer that arrived
             // while the lock was held. We dequeue exactly one entry — the

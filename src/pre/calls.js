@@ -152,6 +152,14 @@ const c = {
         type: 'GET',
         url: 'api/geodatasets/aggregations',
     },
+    geodatasets_schema: {
+        type: 'GET',
+        url: 'api/geodatasets/schema',
+    },
+    geodatasets_bulk_aggregations: {
+        type: 'GET',
+        url: 'api/geodatasets/bulk_aggregations',
+    },
     geodatasets_search: {
         type: 'POST',
         url: 'api/geodatasets/search',
@@ -175,6 +183,10 @@ const c = {
     sightmap: {
         type: 'POST',
         url: 'api/sightline/sightmap',
+    },
+    sightlinevisibility: {
+        type: 'POST',
+        url: 'api/sightline/visibility',
     },
 }
 

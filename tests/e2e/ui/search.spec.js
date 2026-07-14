@@ -3,25 +3,23 @@ import { test, expect } from '@playwright/test';
 /**
  * E2E tests for Search functionality.
  *
- * The Reference Mission does not include a dedicated Search tool in its
- * tools array (Identifier, Layers, Legend, Info, Sites, Draw, Measure,
- * Viewshed, Isochrone, Sightline, Chemistry, Curtain, Animation).
+ * Tests the React-based global search bar (.searchBar) which provides:
+ * - Layer/group selection with search constructs
+ * - Value suggestions from vector layers (toGeoJSON) and geodatasets (bulk_aggregations)
+ * - Select mode (highlight/pan) and Filter mode (apply real filters)
+ * - Wildcard pattern matching
  *
- * However, MMGIS has a top-bar search input (#auto_search) that is
- * rendered when the topbar is enabled.  These tests exercise that
- * search interface if present, and skip gracefully otherwise.
+ * Skips gracefully when the Search component is not configured.
  */
 
 test.describe('Search Functionality', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Suppress expected 404 console errors for placeholder data
     page.on('console', () => {});
 
     const response = await page.goto('/?mission=Reference-Mission');
 
-    // AUTH=local guard: if the page returns HTML login instead of the app, skip
-    const contentType = response?.headers()?.['content-type'] || '';
+    // AUTH=local guard
     const isLoginPage = await page.locator('#loginModal, input[name="password"], form[action*="login"]')
       .first()
       .isVisible({ timeout: 3000 })
@@ -33,118 +31,95 @@ test.describe('Search Functionality', () => {
     }
 
     await page.waitForLoadState('networkidle', { timeout: 60000 });
-    await page.waitForFunction(() => !!(window.mmgisAPI && window.mmgisAPI.map), {
+    await page.waitForFunction(() => !!(window.mmgisAPI && window.L_), {
       timeout: 30000,
     });
   });
 
-  test('search input is present in the top bar', async ({ page }) => {
-    // The MMGIS top bar may contain a search input (#auto_search or similar)
-    const searchInput = page.locator(
-      '#auto_search, input[id*="search"], input[placeholder*="Search"], [class*="search"] input'
-    ).first();
-    const searchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+  test('search bar is present', async ({ page }) => {
+    const searchBar = page.locator('.searchBar');
+    const visible = await searchBar.isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (!searchVisible) {
+    if (!visible) {
       test.skip(true, 'SKIP: Search not configured in Reference Mission');
       return;
     }
 
-    await expect(searchInput).toBeVisible();
+    await expect(searchBar).toBeVisible();
   });
 
-  test('search for a known layer name shows results', async ({ page }) => {
-    const searchInput = page.locator(
-      '#auto_search, input[id*="search"], input[placeholder*="Search"], [class*="search"] input'
-    ).first();
-    const searchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+  test('search input accepts text', async ({ page }) => {
+    const searchInput = page.locator('.searchCompactInput');
+    const visible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (!searchVisible) {
+    if (!visible) {
       test.skip(true, 'SKIP: Search not configured in Reference Mission');
       return;
     }
 
-    // Type a known layer name
     await searchInput.click();
-    await searchInput.fill('Points Basic');
+    await searchInput.fill('Golden Gate');
     await page.waitForTimeout(1000);
 
-    // Check for autocomplete / result items
-    const results = page.locator(
-      '.autocomplete-suggestions, [class*="search-result"], [class*="SearchResult"], ul.ui-autocomplete li'
-    );
-    const resultCount = await results.count();
-
-    if (resultCount === 0) {
-      // The search might work differently — check if any dropdown appeared
-      const anyDropdown = page.locator(
-        '[class*="dropdown"]:visible, [class*="suggestion"]:visible, [class*="autocomplete"]:visible'
-      ).first();
-      const dropdownVisible = await anyDropdown.isVisible({ timeout: 2000 }).catch(() => false);
-      // Either results or a dropdown should appear for a valid search term
-      expect(resultCount > 0 || dropdownVisible).toBeTruthy();
-    } else {
-      expect(resultCount).toBeGreaterThan(0);
-    }
+    const value = await searchInput.inputValue();
+    expect(value).toBe('Golden Gate');
   });
 
-  test('search for a known site name shows results', async ({ page }) => {
-    const searchInput = page.locator(
-      '#auto_search, input[id*="search"], input[placeholder*="Search"], [class*="search"] input'
-    ).first();
-    const searchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+  test('clicking input opens the panel with layers', async ({ page }) => {
+    const searchInput = page.locator('.searchCompactInput');
+    const visible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (!searchVisible) {
+    if (!visible) {
       test.skip(true, 'SKIP: Search not configured in Reference Mission');
       return;
     }
 
-    // Type a known site name
     await searchInput.click();
-    await searchInput.fill('Golden Gate Bridge');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
-    // Check for autocomplete / result items
-    const results = page.locator(
-      '.autocomplete-suggestions, [class*="search-result"], [class*="SearchResult"], ul.ui-autocomplete li'
-    );
-    const resultCount = await results.count();
+    const panel = page.locator('.searchUnifiedPanel');
+    const panelVisible = await panel.isVisible({ timeout: 3000 }).catch(() => false);
+    expect(panelVisible).toBeTruthy();
 
-    if (resultCount === 0) {
-      const anyDropdown = page.locator(
-        '[class*="dropdown"]:visible, [class*="suggestion"]:visible, [class*="autocomplete"]:visible'
-      ).first();
-      const dropdownVisible = await anyDropdown.isVisible({ timeout: 2000 }).catch(() => false);
-      expect(resultCount > 0 || dropdownVisible).toBeTruthy();
-    } else {
-      expect(resultCount).toBeGreaterThan(0);
-    }
+    // Should have layer items
+    const layers = page.locator('.searchRegularLayerItem');
+    const count = await layers.count();
+    expect(count).toBeGreaterThan(0);
   });
 
-  test('search for nonexistent term shows no results or empty state', async ({ page }) => {
-    const searchInput = page.locator(
-      '#auto_search, input[id*="search"], input[placeholder*="Search"], [class*="search"] input'
-    ).first();
-    const searchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+  test('search for nonexistent term shows empty state', async ({ page }) => {
+    const searchInput = page.locator('.searchCompactInput');
+    const visible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
 
-    if (!searchVisible) {
+    if (!visible) {
       test.skip(true, 'SKIP: Search not configured in Reference Mission');
       return;
+    }
+
+    // First select a layer to populate values
+    await searchInput.click();
+    const layers = page.locator('.searchRegularLayerItem');
+    if (await layers.count() > 0) {
+      await layers.first().click();
+      await page.waitForTimeout(2000);
     }
 
     // Type a term that should not match anything
-    await searchInput.click();
     await searchInput.fill('zzz_nonexistent_xyzzy_12345');
     await page.waitForTimeout(1000);
 
-    // Verify no results appear
-    const results = page.locator(
-      '.autocomplete-suggestions .autocomplete-suggestion, [class*="search-result"], ul.ui-autocomplete li'
-    );
+    // Verify no suggestion items appear
+    const results = page.locator('.searchSuggestionItem');
     const resultCount = await results.count();
+    expect(resultCount).toBe(0);
 
-    // Either no results or an empty-state message
-    expect(resultCount).toBeLessThanOrEqual(1);
+    // Empty state message should be visible
+    const empty = page.locator('.searchUnifiedEmpty');
+    const emptyVisible = await empty.isVisible().catch(() => false);
+    if (emptyVisible) {
+      const text = await empty.textContent();
+      expect(text.toLowerCase()).toContain('no match');
+    }
   });
 
 });

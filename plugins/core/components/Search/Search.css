@@ -1,0 +1,389 @@
+/* ===== Search Bar — Compact + Panel ===== */
+
+.searchBar {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    pointer-events: auto;
+    position: relative;
+    margin-right: 16px;
+}
+
+/* Compact bar: [🔍] [Layers ▼] | [input] [clear] [?] */
+.searchCompactBar {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    border-bottom: 2px solid transparent;
+    border-radius: 4px;
+    padding: 0 4px;
+    gap: 4px;
+    cursor: text;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.2s;
+    min-width: 300px;
+}
+
+/* Search icon */
+.searchCompactIcon {
+    cursor: pointer;
+    opacity: 0.6;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
+.searchCompactIcon:hover {
+    opacity: 1;
+}
+
+/* Layers trigger button */
+.searchLayersTrigger {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    height: 100%;
+    user-select: none;
+    width: 130px;
+    box-sizing: border-box;
+}
+.searchLayersTrigger:hover {
+    color: var(--color-mmgis);
+}
+.searchLayersTriggerLabel {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-f);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+.searchLayersTriggerChevron {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+.searchLayersTrigger:hover .searchLayersTriggerLabel {
+    color: var(--color-mmgis);
+}
+
+/* Divider */
+.searchBarDivider {
+    width: 1px;
+    height: 18px;
+    background: var(--color-a1);
+    flex-shrink: 0;
+}
+
+.searchCompactInput {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--color-f);
+    font-size: 13px;
+    outline: none;
+    min-width: 243px;
+    width: 243px;
+    padding: 0 4px;
+}
+.searchCompactInput::placeholder {
+    color: var(--color-a4);
+}
+
+.searchCompactClear {
+    flex-shrink: 0;
+    color: var(--color-a3);
+}
+.searchCompactClear:hover {
+    color: var(--color-mmgis);
+}
+
+
+/* ===== Panel ===== */
+.searchUnifiedPanel {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    border-radius: 8px;
+    box-shadow: 0 12px 36px var(--color-shadow);
+    z-index: 10001;
+    overflow: hidden;
+    opacity: 0.65;
+    transition: opacity 0.2s ease;
+}
+.searchBar:hover .searchUnifiedPanel {
+    opacity: 1;
+}
+
+.searchUnifiedColumns {
+    display: flex;
+}
+
+/* ===== Regular Mode Panel ===== */
+.searchRegularPanel {
+    left: 0;
+    right: 0;
+}
+.searchRegularColumns {
+    max-height: 300px;
+    overflow: hidden;
+}
+.searchRegularColLayers {
+    flex: 0 0 200px;
+    min-width: 200px;
+}
+.searchRegularColValues {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Regular mode layer items */
+.searchRegularLayerItem {
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--color-a5);
+    transition: background 0.1s, color 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 18px;
+}
+.searchRegularLayerItem:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+.searchRegularLayerItemActive {
+    background: color-mix(in srgb, var(--color-mmgis) 18%, transparent);
+    color: var(--color-f);
+    font-weight: 500;
+}
+.searchRegularLayerItemGroup {
+    font-weight: 600;
+    padding-top: 8px;
+    padding-bottom: 4px;
+    cursor: pointer;
+}
+.searchRegularLayerItemGroupMember {
+    padding-left: 28px;
+    font-size: 12px;
+}
+.searchRegularLayerLabel {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.searchRegularLayerDetail {
+    font-size: 10px;
+    opacity: 0.5;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+.searchGroupIcon {
+    opacity: 0.6;
+    flex-shrink: 0;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* Values header toggle (All / Shared) */
+.searchValuesToggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+.searchValuesToggleLabel {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--color-a4);
+    user-select: none;
+}
+.searchValuesCount {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--color-a4);
+    opacity: 0.7;
+    user-select: none;
+    margin-left: 4px;
+}
+
+/* Select / Filter mode toggle */
+.searchModeSwitch {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
+
+/* Each column */
+.searchUnifiedCol {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-a1);
+    min-width: 0;
+}
+.searchUnifiedCol:last-child {
+    border-right: none;
+}
+
+/* Column header */
+.searchUnifiedColHeader {
+    padding: 0 10px;
+    height: 30px;
+    min-height: 30px;
+    box-sizing: border-box;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-h);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--color-a1);
+    flex-shrink: 0;
+}
+
+/* Scrollable column body */
+.searchUnifiedColBody {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 2px 0;
+}
+
+/* ===== Suggestion items ===== */
+.searchSuggestionItem {
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-f);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.searchSuggestionLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.searchSuggestionDetail {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--color-a4);
+    font-family: monospace;
+}
+
+.searchSuggestionCount {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-f);
+    opacity: 0.7;
+    background: var(--color-a1);
+    border: 1px solid var(--color-a2, var(--color-a1));
+    border-radius: 8px;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.searchSuggestionItem:hover,
+.searchSuggestionItemActive {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+.searchSuggestionItemSubmitted {
+    background: color-mix(in srgb, var(--color-mmgis) 18%, transparent);
+    color: var(--color-f);
+}
+/* ===== Shared helpers ===== */
+.searchUnifiedEmpty {
+    padding: 12px;
+    text-align: center;
+    color: var(--color-a3);
+    font-size: 12px;
+}
+
+/* ===== Time Range Warning ===== */
+.searchTimeWarning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 15%, var(--color-a));
+    border-top: 1px solid var(--color-a1);
+    font-size: 12px;
+    color: var(--color-f);
+    flex-wrap: wrap;
+}
+.searchTimeWarningIcon {
+    color: var(--color-yellow, #f0ad4e);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.searchTimeWarningText {
+    flex: 1;
+    min-width: 0;
+    opacity: 0.85;
+}
+.searchTimeWarningAction {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 25%, var(--color-a)) !important;
+    border-color: var(--color-yellow, #f0ad4e) !important;
+    color: var(--color-f) !important;
+}
+.searchTimeWarningAction:hover {
+    background: color-mix(in srgb, var(--color-yellow, #f0ad4e) 40%, var(--color-a)) !important;
+}
+.searchTimeWarningDates {
+    display: block;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+/* Time restrict toggle active icon */
+.searchTimeActive {
+    color: var(--color-mmgis);
+}
+
+/* Alternating field shading in multi-field suggestion values */
+.searchFieldOdd {
+    color: #999;
+}
+
+/* Focus + active search: accent underline + background tint */
+.searchBarFocused .searchCompactBar,
+.searchBarActive .searchCompactBar {
+    background: color-mix(in srgb, var(--color-mmgis) 12%, var(--color-a));
+    border-bottom-color: var(--color-mmgis);
+}
+.searchBarFocused .searchCompactIcon,
+.searchBarActive .searchCompactIcon {
+    color: var(--color-mmgis);
+    opacity: 1;
+}

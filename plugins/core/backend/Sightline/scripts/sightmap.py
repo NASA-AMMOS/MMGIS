@@ -42,6 +42,10 @@
 #   it reaches ~15× base.  This is combined with margin-based acceleration:
 #   when the margin between source elevation and max_el_angle is large (>5°)
 #   the log step is further multiplied by 3; when moderate (>2°) by 1.5.
+#   The combined step is capped at MAX_STEP_MULT × base so distant, thin
+#   occluders (ridge crests, crater rims) can't be skipped wholesale.
+# - Terrain is bilinearly interpolated from the 4 surrounding DEM cells at
+#   each sample (nearest-neighbor fallback on nodata) to reduce aliasing.
 # - Early cutoff: the march is limited to MAX_TERRAIN_H / tan(source_el)
 #   pixels, beyond which no terrain could possibly occlude the source.
 # - Curvature-based pre-march cutoff: the max march distance is capped where
@@ -638,6 +642,9 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
     DEG2RAD = 0.017453292519943295
     RAD2DEG = 57.29577951308232
     MAX_TERRAIN_H = 10000.0  # conservative max terrain relief (meters)
+    # Cap the adaptive step so distant thin occluders aren't skipped, which
+    # otherwise makes shadow edges snap between frames instead of sliding.
+    MAX_STEP_MULT = 6.0
     n = result_flat.shape[0]
 
     # Convert distance limits from meters to pixels
@@ -701,8 +708,37 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
                 r += march_step
                 continue
 
-            dist_m = r * pixel_scale
+            # Bilinear-interpolate terrain height when the 4 surrounding
+            # samples are all valid; fall back to nearest otherwise.
             terrain_h = sample
+            x0 = int(math.floor(sx))
+            y0 = int(math.floor(sy))
+            if x0 >= 0 and y0 >= 0 and x0 + 1 < dem_cols and y0 + 1 < dem_rows:
+                v00 = float(dem[y0, x0])
+                v01 = float(dem[y0, x0 + 1])
+                v10 = float(dem[y0 + 1, x0])
+                v11 = float(dem[y0 + 1, x0 + 1])
+                ok = True
+                if has_nd:
+                    if ((abs(v00) >= nd_lo and abs(v00) <= nd_hi) or
+                            (abs(v01) >= nd_lo and abs(v01) <= nd_hi) or
+                            (abs(v10) >= nd_lo and abs(v10) <= nd_hi) or
+                            (abs(v11) >= nd_lo and abs(v11) <= nd_hi)):
+                        ok = False
+                if ok and (abs(v00) > 35000.0 or abs(v01) > 35000.0 or
+                           abs(v10) > 35000.0 or abs(v11) > 35000.0):
+                    ok = False
+                if ok and (v00 == 1010101.0 or v01 == 1010101.0 or
+                           v10 == 1010101.0 or v11 == 1010101.0):
+                    ok = False
+                if ok:
+                    wx = sx - x0
+                    wy = sy - y0
+                    top = v00 * (1.0 - wx) + v01 * wx
+                    bot = v10 * (1.0 - wx) + v11 * wx
+                    terrain_h = top * (1.0 - wy) + bot * wy
+
+            dist_m = r * pixel_scale
             if planet_radius > 0.0:
                 terrain_h -= (dist_m * dist_m) / (2.0 * planet_radius)
 
@@ -741,6 +777,10 @@ def _numba_march_kernel(result_flat, dem, px_flat, py_flat, dx_flat, dy_flat,
                 cur_step = log_step * 1.5
             else:
                 cur_step = log_step
+
+            max_step = march_step * MAX_STEP_MULT
+            if cur_step > max_step:
+                cur_step = max_step
 
             r += cur_step
 
@@ -1342,10 +1382,19 @@ def compute_sightmap_batch(dem_path, obs_lat, obs_lng, obs_height,
 
         prev_flat = cur_u8.copy()
 
-        sys.stdout.write(json.dumps(frame) + "\n")
-        sys.stdout.flush()
-        sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
-        sys.stderr.flush()
+        # Stream this frame.  If the client aborted the request, Node closes
+        # our stdout pipe; writing then raises BrokenPipeError.  Stop the
+        # per-frame loop cleanly instead of dumping a traceback.
+        try:
+            sys.stdout.write(json.dumps(frame) + "\n")
+            sys.stdout.flush()
+        except (BrokenPipeError, IOError):
+            break
+        try:
+            sys.stderr.write(json.dumps({"progress": i + 1, "total": len(times)}) + "\n")
+            sys.stderr.flush()
+        except (BrokenPipeError, IOError):
+            break
 
     return None  # already streamed
 
