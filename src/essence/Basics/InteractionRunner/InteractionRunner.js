@@ -55,6 +55,21 @@ function kindToInteractions(kind, config) {
 }
 
 /**
+ * Resolve a layer's event pipelines. Explicit interactions override the
+ * corresponding legacy kind pipeline while omitted events retain defaults.
+ *
+ * @param {object} layerData
+ * @param {object} [config] - Override config (for testing)
+ * @returns {{ click: string[], hover: string[], mouseout: string[] }}
+ */
+function resolveLayerInteractions(layerData, config) {
+    const legacy = kindToInteractions(layerData.kind || 'none', config)
+    return layerData.interactions
+        ? { ...legacy, ...layerData.interactions }
+        : legacy
+}
+
+/**
  * Build the full pipeline by wrapping user interactions with defaults.
  * For click: preamble + userPipeline + postamble (with suppression).
  * For hover/mouseout: defaults + userPipeline.
@@ -152,9 +167,16 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         runInteractions,
         kindToInteractions,
+        resolveLayerInteractions,
         buildFullPipeline,
         _resetCache,
     }
 }
 
-export { runInteractions, kindToInteractions, buildFullPipeline, _resetCache }
+export {
+    runInteractions,
+    kindToInteractions,
+    resolveLayerInteractions,
+    buildFullPipeline,
+    _resetCache,
+}

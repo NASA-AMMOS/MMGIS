@@ -18,6 +18,7 @@ import MetadataCapturer from '../Layers_/MetadataCapturer.js'
 import {
     runInteractions,
     kindToInteractions,
+    resolveLayerInteractions,
 } from '../InteractionRunner/InteractionRunner'
 import DataShaders from '../../services/DataShaders'
 import calls from '../../../pre/calls'
@@ -907,8 +908,7 @@ function onEachFeatureDefault(feature, layer) {
     }
 
     const layerData = L_.layers.data[layer.options?.layerName] || {}
-    const hooks =
-        layerData.interactions || kindToInteractions(layerData.kind || 'none')
+    const hooks = resolveLayerInteractions(layerData)
 
     if (typeof layer['useKeyAsName'] === 'string' && hooks.hover) {
         layer.on('mouseover', function (e) {
@@ -968,9 +968,7 @@ function featureDefaultClick(feature, layer, e) {
     MetadataCapturer.populateMetadata(layer, async () => {
         const layerName = layer.options.layerName
         const layerData = L_.layers.data[layerName]
-        const pipeline =
-            layerData.interactions?.click ||
-            kindToInteractions(layerData.kind || 'none').click
+        const pipeline = resolveLayerInteractions(layerData).click
 
         Map_.rmNotNull(Map_.tempOverlayImage)
         L_.Globe_.litho.removeLayer('markerAttachmentTempModel')

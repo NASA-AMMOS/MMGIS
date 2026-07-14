@@ -13,6 +13,7 @@ const path = require('path');
 const {
     runInteractions,
     kindToInteractions,
+    resolveLayerInteractions,
     buildFullPipeline,
 } = require('../../src/essence/Basics/InteractionRunner/InteractionRunner');
 
@@ -89,6 +90,48 @@ test.describe('kindToInteractions', () => {
 
     test('hover and mouseout return empty (defaults handled by runner)', () => {
         const result = kindToInteractions('info', CORE_CONFIG);
+        expect(result.hover).toEqual([]);
+        expect(result.mouseout).toEqual([]);
+    });
+});
+
+test.describe('resolveLayerInteractions', () => {
+    test('fills omitted explicit event pipelines so defaults still run', () => {
+        const result = resolveLayerInteractions(
+            { interactions: { click: ['info:open'] } },
+            CORE_CONFIG
+        );
+
+        expect(result).toEqual({
+            click: ['info:open'],
+            hover: [],
+            mouseout: [],
+        });
+    });
+
+    test('preserves explicitly configured hover and mouseout pipelines', () => {
+        const result = resolveLayerInteractions(
+            {
+                interactions: {
+                    click: [],
+                    hover: ['custom:hover'],
+                    mouseout: ['custom:mouseout'],
+                },
+            },
+            CORE_CONFIG
+        );
+
+        expect(result.hover).toEqual(['custom:hover']);
+        expect(result.mouseout).toEqual(['custom:mouseout']);
+    });
+
+    test('uses the legacy kind pipeline without explicit interactions', () => {
+        const result = resolveLayerInteractions(
+            { kind: 'waypoint' },
+            CORE_CONFIG
+        );
+
+        expect(result.click).toEqual(['waypoint:image', 'waypoint:model']);
         expect(result.hover).toEqual([]);
         expect(result.mouseout).toEqual([]);
     });
