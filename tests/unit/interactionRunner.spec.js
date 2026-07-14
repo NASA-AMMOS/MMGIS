@@ -7,11 +7,32 @@
 
 import { test, expect } from '@playwright/test';
 
+const fs = require('fs');
+const path = require('path');
+
 const {
     runInteractions,
     kindToInteractions,
     buildFullPipeline,
 } = require('../../src/essence/Basics/InteractionRunner/InteractionRunner');
+
+test('generated interactions import resolves from InteractionRunner', () => {
+    const runnerPath = path.resolve(
+        __dirname,
+        '../../src/essence/Basics/InteractionRunner/InteractionRunner.js'
+    );
+    const runnerSource = fs.readFileSync(runnerPath, 'utf8');
+    const importMatch = runnerSource.match(
+        /require\(['"]([^'"]*pre\/interactions)['"]\)/
+    );
+
+    expect(importMatch).not.toBeNull();
+    expect(
+        fs.existsSync(
+            path.resolve(path.dirname(runnerPath), `${importMatch[1]}.js`)
+        )
+    ).toBe(true);
+});
 
 // Standard config matching what the core plugin.json manifests produce
 const CORE_CONFIG = {
@@ -180,7 +201,7 @@ test.describe('runInteractions', () => {
     test('wraps click pipeline with defaults and runs in order', async () => {
         const callOrder = [];
         const handlers = {};
-        for (const [id, _] of Object.entries(allHandlers)) {
+        for (const id of Object.keys(allHandlers)) {
             handlers[id] = { use() { callOrder.push(id); } };
         }
 

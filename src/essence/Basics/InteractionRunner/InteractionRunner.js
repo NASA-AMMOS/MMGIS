@@ -14,7 +14,7 @@ let _cachedModule = null
 function _loadGenerated() {
     if (_cachedModule) return _cachedModule
     try {
-        _cachedModule = require('../../pre/interactions')
+        _cachedModule = require('../../../pre/interactions')
     } catch (e) {
         console.warn(
             'InteractionRunner: could not load generated interactions.js',
