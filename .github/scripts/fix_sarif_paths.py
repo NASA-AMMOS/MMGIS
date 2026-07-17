@@ -1,16 +1,87 @@
 #!/usr/bin/env python3
 """
-Fix file paths in SARIF files to be relative to the workspace root.
-This is necessary for SonarQube to correctly map issues to source files.
+Fix file paths in SARIF files to be relative to the workspace root, and
+defensively harden the report so SonarQube can attribute issues to a tool
+and rule.
+
+Two responsibilities:
+
+1. Path relativization: absolute artifact/result URIs rooted at the workspace
+   are made workspace-relative so SonarQube maps issues to source files.
+
+2. Attribution hardening: SonarQube's SARIF importer reads the tool name from
+   ``runs[].tool.driver.name`` (mandatory) and rule metadata from
+   ``runs[].tool.driver.rules[]``. Anything placed under ``runs[].tool.rules``
+   (a known nasa/scrub output bug, fixed upstream in PR #121 but unreleased)
+   is ignored on import, which silently strips rule attribution. To avoid
+   depending on an unreleased scrub, this script normalizes the report itself:
+   it moves misplaced ``tool.rules`` under ``tool.driver.rules``, ensures a
+   ``driver.name`` exists, and corrects the broken ``$schema`` URL.
+
+   For native CodeQL SARIF -- which already has rich rules under
+   ``tool.driver`` and a valid schema -- every hardening step is a no-op, so
+   CodeQL's rule names, descriptions, and severities are preserved intact.
 """
 import json
 import sys
 import os
 
+# The valid SARIF 2.1.0 schema URL. CodeQL and other tools sometimes emit the
+# old master-branch URL (which 404s); rewrite it. Mirrors nasa/scrub PR #121.
+GOOD_SCHEMA_URL = (
+    'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/'
+    'sarif-2.1/schema/sarif-schema-2.1.0.json'
+)
+BAD_SCHEMA_URLS = (
+    'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/'
+    'Schemata/sarif-schema-2.1.0.json',
+)
+
+
+def harden_attribution(sarif):
+    """Normalize a SARIF document so SonarQube can attribute imported issues.
+
+    Returns True if any change was made. Safe no-op on well-formed CodeQL
+    SARIF -- it never overwrites existing driver.name or driver.rules and never
+    discards rule metadata.
+    """
+    modified = False
+
+    # Correct a broken top-level $schema URL (see PR #121).
+    if sarif.get('$schema') in BAD_SCHEMA_URLS:
+        sarif['$schema'] = GOOD_SCHEMA_URL
+        modified = True
+
+    for run in sarif.get('runs', []):
+        tool = run.get('tool')
+        if not isinstance(tool, dict):
+            continue
+        driver = tool.setdefault('driver', {})
+        if not isinstance(driver, dict):
+            continue
+
+        # Move any misplaced rules from tool.rules to tool.driver.rules.
+        # SonarQube only reads tool.driver.rules, so leaving them under tool
+        # loses attribution. Only move when the driver doesn't already have
+        # its own (richer) rules, so native CodeQL metadata is never clobbered.
+        if 'rules' in tool:
+            if not driver.get('rules'):
+                driver['rules'] = tool['rules']
+            del tool['rules']
+            modified = True
+
+        # SonarQube drops the whole report if driver.name is missing.
+        if not driver.get('name'):
+            driver['name'] = 'CodeQL'
+            modified = True
+
+    return modified
+
 
 def fix_sarif_paths(sarif_file, output_file, workspace_path):
     """
-    Convert absolute file paths in SARIF to relative paths.
+    Convert absolute file paths in SARIF to relative paths and harden the
+    report for SonarQube attribution.
 
     Args:
         sarif_file: Input SARIF file path
@@ -22,6 +93,10 @@ def fix_sarif_paths(sarif_file, output_file, workspace_path):
             sarif = json.load(f)
 
         modified = False
+
+        # Normalize tool/driver/rules and schema for reliable attribution.
+        if harden_attribution(sarif):
+            modified = True
 
         # Process all runs in the SARIF file
         for run in sarif.get('runs', []):
@@ -59,9 +134,9 @@ def fix_sarif_paths(sarif_file, output_file, workspace_path):
             json.dump(sarif, f, ensure_ascii=False, indent=2)
 
         if modified:
-            print(f"✓ Fixed file paths in {os.path.basename(output_file)}")
+            print(f"✓ Normalized paths/attribution in {os.path.basename(output_file)}")
         else:
-            print(f"ℹ No path changes needed for {os.path.basename(output_file)}")
+            print(f"ℹ No changes needed for {os.path.basename(output_file)}")
         return 0
 
     except Exception as e:
