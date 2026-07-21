@@ -50,6 +50,60 @@ const _geodatasetRequestLastTimestamp = {}
 const _geodatasetRequestLastLoc = {}
 const _layerRequestLastTimestamp = {}
 const _layerRequestLastLoc = {}
+
+// Returns true when the 2D Leaflet map is actually visible and has a
+// non-degenerate size. When the Map panel is closed the map collapses to
+// 0x0 and getBounds() returns a degenerate (zero-area) extent, which would
+// make dynamic-extent queries return nothing.
+const _isMap2DUsable = () => {
+    try {
+        const size = L_.Map_?.map?.getSize?.()
+        return !!size && size.x > 1 && size.y > 1
+    } catch (e) {
+        return false
+    }
+}
+
+// Resolves which view (extent + zoom + center) a dynamic-extent query should
+// use. Defaults to the 2D Leaflet map. When the callback was triggered by a
+// globe move (e.fromGlobe === true) or the 2D map is not usable (its panel is
+// closed), the Globe's visible extent is used instead. This lets dynamic
+// extent layers populate from the Globe's own viewport — including when the
+// Map panel is closed — rather than being tied solely to the 2D map.
+const _resolveDynamicView = (e) => {
+    const wantGlobe =
+        (e && typeof e === 'object' && e.fromGlobe === true) ||
+        !_isMap2DUsable()
+
+    if (wantGlobe && L_.Globe_ && typeof L_.Globe_.getExtent === 'function') {
+        const ext = L_.Globe_.getExtent()
+        if (ext) {
+            return {
+                source: 'globe',
+                zoom: ext.zoom,
+                minx: ext.minx,
+                miny: ext.miny,
+                maxx: ext.maxx,
+                maxy: ext.maxy,
+                center: { lng: ext.centerLng, lat: ext.centerLat },
+            }
+        }
+    }
+
+    const map = L_.Map_.map
+    const bounds = map.getBounds()
+    const center = map.getCenter()
+    return {
+        source: 'map',
+        zoom: map.getZoom(),
+        minx: bounds._southWest.lng,
+        miny: bounds._southWest.lat,
+        maxx: bounds._northEast.lng,
+        maxy: bounds._northEast.lat,
+        center: { lng: center.lng, lat: center.lat },
+    }
+}
+
 export const captureVector = (layerObj, options, cb, dynamicCb) => {
     options = options || {}
     // If a resolved URL was supplied by the caller (e.g.
@@ -140,14 +194,18 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     // Don't query if layer is off
                     if (L_.layers.on[layerObj.name] !== true) return
 
-                    const zoom = L_.Map_.map.getZoom()
+                    const view = _resolveDynamicView(e)
+                    const zoom = view.zoom
 
                     if (
                         zoom >= (layerData.minZoom || 0) &&
                         (zoom <= layerData.maxZoom || 100)
                     ) {
                         // Then query, delete existing and remake
-                        const bounds = L_.Map_.map.getBounds()
+                        const bounds = {
+                            _northEast: { lat: view.maxy, lng: view.maxx },
+                            _southWest: { lat: view.miny, lng: view.minx },
+                        }
                         // When a value filter is active, omit viewport bounds
                         // so the query returns ALL matching features regardless
                         // of their location. The filter itself constrains the
@@ -223,7 +281,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             (data) => {
                                 const lastLoc =
                                     _geodatasetRequestLastLoc[layerObj.name]
-                                const nowLoc = L_.Map_.map.getCenter()
+                                const nowLoc = view.center
 
                                 if (
                                     _geodatasetRequestLastTimestamp[
@@ -255,7 +313,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                                 ) > -1
                                                     ? Math.pow(
                                                           2,
-                                                          L_.Map_.map.getZoom()
+                                                          view.zoom
                                                       )
                                                     : 1))
                                 ) {
@@ -306,14 +364,18 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     // Don't query if layer is off
                     if (L_.layers.on[layerObj.name] !== true) return
 
-                    const zoom = L_.Map_.map.getZoom()
+                    const view = _resolveDynamicView(e)
+                    const zoom = view.zoom
 
                     if (
                         zoom >= (layerData.minZoom || 0) &&
                         (zoom <= layerData.maxZoom || 100)
                     ) {
                         // Then query, delete existing and remake
-                        const bounds = L_.Map_.map.getBounds()
+                        const bounds = {
+                            _northEast: { lat: view.maxy, lng: view.maxx },
+                            _southWest: { lat: view.miny, lng: view.minx },
+                        }
                         const hasValueFilter2 =
                             !!layerData._filterEncoded?.filters
                         const body = {
@@ -404,7 +466,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             data = F_.parseIntoGeoJSON(data)
 
                             const lastLoc = _layerRequestLastLoc[layerObj.name]
-                            const nowLoc = L_.Map_.map.getCenter()
+                            const nowLoc = view.center
 
                             if (
                                 _layerRequestLastTimestamp[layerObj.name] ==
@@ -431,7 +493,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                             ) > -1
                                                 ? Math.pow(
                                                       2,
-                                                      L_.Map_.map.getZoom()
+                                                      view.zoom
                                                   )
                                                 : 1))
                             ) {

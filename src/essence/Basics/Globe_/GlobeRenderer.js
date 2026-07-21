@@ -1727,7 +1727,12 @@ class GlobeRenderer {
      */
     getCenter() {
         if (this.rendererType === 'lithosphere') {
-            return this.renderer.getCenter()
+            const c = this.renderer.getCenter()
+            return {
+                lng: c.lng,
+                lat: c.lat,
+                zoom: this.renderer.zoom,
+            }
         } else {
             const camera = this.renderer.camera
             const center = camera.positionCartographic
