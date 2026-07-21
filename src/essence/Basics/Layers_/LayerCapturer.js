@@ -281,7 +281,11 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             (data) => {
                                 const lastLoc =
                                     _geodatasetRequestLastLoc[layerObj.name]
-                                const nowLoc = view.center
+                                const nowLoc = {
+                                    lng: view.center.lng,
+                                    lat: view.center.lat,
+                                    zoom: view.zoom,
+                                }
 
                                 if (
                                     _geodatasetRequestLastTimestamp[
@@ -296,6 +300,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                             '' ||
                                         layerData._ignoreDynamicExtentMoveThreshold ===
                                             true ||
+                                        (lastLoc != null &&
+                                            lastLoc.zoom !== nowLoc.zoom) ||
                                         F_.lngLatDistBetween(
                                             lastLoc.lng,
                                             lastLoc.lat,
@@ -466,7 +472,11 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             data = F_.parseIntoGeoJSON(data)
 
                             const lastLoc = _layerRequestLastLoc[layerObj.name]
-                            const nowLoc = view.center
+                            const nowLoc = {
+                                lng: view.center.lng,
+                                lat: view.center.lat,
+                                zoom: view.zoom,
+                            }
 
                             if (
                                 _layerRequestLastTimestamp[layerObj.name] ==
@@ -476,6 +486,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         ?.dynamicExtentMoveThreshold == null ||
                                     layerData._ignoreDynamicExtentMoveThreshold ===
                                         true ||
+                                    (lastLoc != null &&
+                                        lastLoc.zoom !== nowLoc.zoom) ||
                                     F_.lngLatDistBetween(
                                         lastLoc.lng,
                                         lastLoc.lat,
