@@ -387,6 +387,7 @@
 
 #timeUIQuickSelectPopover {
     display: none;
+    z-index: 10000;
     background: var(--color-a);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
     width: 100px;
@@ -401,6 +402,7 @@
 
 #timeUIPlayPopover {
     display: none;
+    z-index: 10000;
     background: var(--color-a);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
     width: 160px;

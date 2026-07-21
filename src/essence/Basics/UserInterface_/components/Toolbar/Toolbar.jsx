@@ -1,5 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react'
 import useUIStore from '../../store/uiStore'
+import { toolConfigs } from '../../../../../pre/tools'
+import { getSeparatedMode } from '../../../ToolController_/toolControllerHelpers'
 import F_ from '../../../Formulae_/Formulae_'
 import BottomBarReact from '../BottomBar/BottomBarReact'
 import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
@@ -320,29 +322,10 @@ function SepToolButton({ tool, isActive }) {
     const handleClick = useCallback(() => {
         const ToolController_ =
             require('../../../ToolController_/ToolController_').default
-        const toolModuleName = tool.name + 'Tool'
-        const tM = ToolController_.toolModules[toolModuleName]
+        const tM = ToolController_.toolModules[tool.name + 'Tool']
         if (!tM) return
-
-        if (tM.made === false) {
-            tM.make(`toolContentSeparated_${tool.name}`)
-            ToolController_.activeSeparatedTools.push(toolModuleName)
-            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
-        } else {
-            tM.destroy()
-            ToolController_.activeSeparatedTools =
-                ToolController_.activeSeparatedTools.filter(
-                    (a) => a !== toolModuleName
-                )
-            useUIStore
-                .getState()
-                .removeActiveSeparatedTool(toolModuleName)
-        }
-        document.dispatchEvent(
-            new CustomEvent('toggleSeparatedTool', {
-                detail: { toggledToolName: tool.js, visible: tM.made },
-            })
-        )
+        if (tM.made === false) ToolController_.openTool(tool.name)
+        else ToolController_.closeTool(tool.name)
     }, [tool])
 
     const button = (
@@ -462,7 +445,7 @@ function Toolbar({ userInterface }) {
         if (isMobile) {
             return mobileTools.length === 0 || mobileTools.includes(t.name)
         }
-        return !t.separatedTool
+        return !getSeparatedMode(toolConfigs, t.name)
     })
 
     return (

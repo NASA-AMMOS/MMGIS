@@ -603,10 +603,19 @@ Standard package metadata. `author` can be a string or `{ name, email, url }`. `
 |-------|------|-------------|
 | `toolbarPriority` | `number` | Position in toolbar (lower = first). Core tools range ~1001–1020 |
 | `expandable` | `boolean` | Whether the tool panel can expand to full width |
-| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel |
+| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel. `true` gives a standard framed floating panel (header + close). `"custom"` renders a chrome-less panel and lets the tool manage its own DOM inside `#toolContentSeparated_<Name>` — use this when the tool draws its own window/overlay (e.g. Identifier) |
 | `hasVars` | `boolean` | Plugin reads per-mission config variables from `config.rows` |
 | `config` | `object` | Defines the configuration UI shown in the configure page. Has `rows[]` with form field definitions |
 | `kinds` | `object` | Sub-types or modes for the tool (used by Kinds tool) |
+
+#### Opening and closing a tool programmatically
+
+A `"custom"` separated tool owns its own UI, so its close button must tell MMGIS to tear the tool down — otherwise the toolbar button stays highlighted. Use the type-agnostic API on the global `ToolController_` (keyed by tool name); both calls no-op if the tool is already in the requested state:
+
+```js
+window.ToolController_.openTool('AgentChat')   // open (separated or regular)
+window.ToolController_.closeTool('AgentChat')  // close and clear the toolbar highlight
+```
 
 ### Backend-Specific Fields
 
