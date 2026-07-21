@@ -3,14 +3,13 @@ import QueryURL from '@essence/services/QueryURL'
 
 const SearchUrl = {
     use(ctx) {
-        var keyAsName
-        if (ctx.layer != null && ctx.layer.hasOwnProperty('options')) {
-            if (ctx.layer.hasOwnProperty('useKeyAsName')) {
-                keyAsName = ctx.layer.feature.properties[ctx.layer.useKeyAsName]
-            } else {
-                keyAsName = ctx.layer.feature.properties[0]
-            }
-        }
+        const properties = ctx.feature?.properties
+        if (properties == null) return
+
+        const useKeyAsName =
+            ctx.layer?.useKeyAsName || ctx.layerData?.useKeyAsName
+        const keyAsName =
+            useKeyAsName != null ? properties[useKeyAsName] : properties[0]
 
         var searchToolVars = L_.getToolVars('search')
         var searchfields = {}
@@ -33,8 +32,8 @@ const SearchUrl = {
         var str = ''
         if (searchfields.hasOwnProperty(ctx.layerName)) {
             var sf = searchfields[ctx.layerName]
-            for (var i = 0; i < sf.length; i++) {
-                str += sf[i][1]
+            for (var j = 0; j < sf.length; j++) {
+                str += sf[j][1]
                 str += ' '
             }
         }
@@ -43,14 +42,17 @@ const SearchUrl = {
         var searchFieldTokens = str.split(' ')
         var searchStr
 
-        if (searchFieldTokens.length === 2) {
+        if (
+            searchFieldTokens.length === 2 &&
+            typeof useKeyAsName === 'string'
+        ) {
             if (
                 searchFieldTokens[0].toLowerCase() ===
-                ctx.layer.useKeyAsName.toLowerCase()
+                useKeyAsName.toLowerCase()
             ) {
-                searchStr = keyAsName + ' ' + ctx.layer.feature.properties.Sol
+                searchStr = keyAsName + ' ' + properties.Sol
             } else {
-                searchStr = ctx.layer.feature.properties.Sol + ' ' + keyAsName
+                searchStr = properties.Sol + ' ' + keyAsName
             }
         }
 

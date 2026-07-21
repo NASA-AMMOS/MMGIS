@@ -293,6 +293,7 @@ const LayerModal = (props) => {
           // Filter empty strings from any indexed text array fields
           const filterEmptyStrings = (obj) => {
             Object.keys(obj).forEach((key) => {
+              if (key === "interactions") return;
               const val = obj[key];
               if (Array.isArray(val)) {
                 obj[key] = val.filter((v) => v != null && v !== "");

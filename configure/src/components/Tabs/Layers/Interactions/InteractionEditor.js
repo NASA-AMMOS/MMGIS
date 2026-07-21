@@ -86,7 +86,7 @@ const useStyles = makeStyles((theme) => ({
   itemMain: {
     paddingLeft: "7px",
     background: theme.palette.swatches.grey[950],
-    borderLeft: `4px solid ${theme.palette.swatches.p[12]}`,
+    borderLeft: `4px solid ${theme.palette.swatches.p[0]}`,
   },
   itemSuppressed: {
     opacity: 0.55,
