@@ -1522,6 +1522,7 @@ async function makeTileLayer(layerObj, mapContext = null) {
         cogMax: layerObj.cogMax,
         currentCogMax: layerObj.currentCogMax,
         cogColormap: layerObj.cogColormap,
+        cogColormapJson: layerObj.cogColormapJson,
         cogExpression: layerObj.cogExpression,
         currentCogExpression: layerObj.currentCogExpression,
         variables: layerObj.variables || {},
