@@ -488,10 +488,31 @@ class GlobeRenderer {
             return this._addLithoSphereGradient(layerConfig)
         }
         if (this.rendererType === 'lithosphere') {
-            return this.renderer.addLayer(type, layerConfig)
+            // LithoSphere's 'vector' layerer only draws points and lines and
+            // throws on polygon geometry; its 'clamped' layerer draws polygons
+            // (and lines/points). Route polygon-containing vector layers to
+            // 'clamped' so they render (draped on terrain) instead of crashing.
+            let lithoType = type
+            if (
+                type === 'vector' &&
+                this._geojsonHasPolygons(layerConfig?.geojson)
+            ) {
+                lithoType = 'clamped'
+            }
+            return this.renderer.addLayer(lithoType, layerConfig)
         } else {
             return this._addCesiumLayer(type, layerConfig)
         }
+    }
+
+    // True if the geojson contains any (Multi)Polygon feature.
+    _geojsonHasPolygons(geojson) {
+        const features = geojson?.features
+        if (!Array.isArray(features)) return false
+        return features.some((f) => {
+            const t = f?.geometry?.type
+            return t === 'Polygon' || t === 'MultiPolygon'
+        })
     }
 
     /**
