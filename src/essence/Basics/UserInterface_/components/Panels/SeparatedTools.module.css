@@ -32,7 +32,7 @@
     display: none;
 }
 
-.panelIdentifier {
+.panelCustom {
     width: 0;
     max-height: 0;
     background: transparent;

@@ -98,7 +98,7 @@ const useUIStore = create((set, get) => ({
     mobileTools: [],        // Array of tool names shown on mobile (e.g. ['Layers', 'Legend', 'Info'])
 
     // Separated tools (Legend, Identifier, etc.)
-    separatedToolsList: [],       // Array of tool config objects where separatedTool === true
+    separatedToolsList: [],       // Tool config objects where separatedTool is true or "custom" (resolved from the manifest)
     activeSeparatedTools: [],     // Array of active separated tool module names (e.g. ['LegendTool'])
     setSeparatedToolsList: (tools) => set({ separatedToolsList: tools }),
     setActiveSeparatedTools: (tools) => set({ activeSeparatedTools: tools }),

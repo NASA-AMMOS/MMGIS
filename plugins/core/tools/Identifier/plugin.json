@@ -23,7 +23,7 @@
     "hasVars": true,
     "name": "Identifier",
     "toolbarPriority": 1,
-    "separatedTool": true,
+    "separatedTool": "custom",
     "paths": {
         "IdentifierTool": "./IdentifierTool"
     },

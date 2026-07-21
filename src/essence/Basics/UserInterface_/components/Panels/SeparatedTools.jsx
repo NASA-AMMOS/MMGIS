@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import useUIStore from '../../store/uiStore'
+import { toolConfigs } from '../../../../../pre/tools'
 
 import styles from './SeparatedTools.module.css'
 
@@ -18,21 +19,7 @@ function SeparatedTools() {
     const handleClose = useCallback((tool) => {
         const ToolController_ =
             require('../../../ToolController_/ToolController_').default
-        const toolModuleName = tool.name + 'Tool'
-        const tM = ToolController_.toolModules[toolModuleName]
-        if (tM && tM.made) {
-            tM.destroy()
-            ToolController_.activeSeparatedTools =
-                ToolController_.activeSeparatedTools.filter(
-                    (a) => a !== toolModuleName
-                )
-            useUIStore.getState().removeActiveSeparatedTool(toolModuleName)
-            document.dispatchEvent(
-                new CustomEvent('toggleSeparatedTool', {
-                    detail: { toggledToolName: tool.js, visible: false },
-                })
-            )
-        }
+        ToolController_.closeTool(tool.name)
     }, [])
 
     if (!sortedTools.length) return null
@@ -40,7 +27,9 @@ function SeparatedTools() {
     return (
         <div id="toolcontroller_sep_content" className={styles.container}>
             {sortedTools.map((tool) => {
-                const isIdentifier = tool.name === 'Identifier'
+                // "custom" tools render chrome-less and manage their own DOM.
+                const isCustom =
+                    toolConfigs[tool.name]?.separatedTool === 'custom'
                 const toolModuleName = tool.name + 'Tool'
                 const isActive = activeSeparatedTools.includes(toolModuleName)
                 const ToolController_ =
@@ -51,7 +40,7 @@ function SeparatedTools() {
                 const panelClasses = [
                     styles.panel,
                     isActive ? styles.panelVisible : styles.panelHidden,
-                    isIdentifier ? styles.panelIdentifier : '',
+                    isCustom ? styles.panelCustom : '',
                 ]
                     .filter(Boolean)
                     .join(' ')
@@ -62,14 +51,14 @@ function SeparatedTools() {
                         id={`toolPanelSeparated_${tool.name}`}
                         className={panelClasses}
                         style={
-                            isIdentifier
+                            isCustom
                                 ? undefined
                                 : {
                                       width: toolWidth + 'px',
                                   }
                         }
                     >
-                        {!isIdentifier && (
+                        {!isCustom && (
                             <div className={styles.header}>
                                 <span className={styles.headerTitle}>
                                     {tool.name}
