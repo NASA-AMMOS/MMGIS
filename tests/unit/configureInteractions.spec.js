@@ -113,30 +113,50 @@ test.describe('Configure interaction pipeline helpers', () => {
             hover: ['feature:hover'],
             click: ['info:open'],
         });
+        expect(withClickPipeline(interactions, [])).toEqual({
+            hover: ['feature:hover'],
+            click: [],
+        });
         expect(withClickPipeline(interactions, null)).toEqual(interactions);
         expect(withClickPipeline({ click: ['info:open'] }, null)).toBeNull();
     });
 });
 
-test('generated core manifests drive the Configure Kind pipeline', () => {
-    const generatedConfigs = JSON.parse(
-        fs.readFileSync(
-            path.resolve(
-                __dirname,
-                '../../configure/public/interactionConfigs.json'
-            ),
-            'utf8'
-        )
+test('core manifests drive the Configure Kind pipeline', () => {
+    const repositoryRoot = path.resolve(__dirname, '../..');
+    const interactionsDirectory = path.join(
+        repositoryRoot,
+        'plugins/core/interactions'
     );
+    const interactionConfigs = fs
+        .readdirSync(interactionsDirectory, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) =>
+            JSON.parse(
+                fs.readFileSync(
+                    path.join(interactionsDirectory, entry.name, 'plugin.json'),
+                    'utf8'
+                )
+            )
+        )
+        .filter((interaction) =>
+            (interaction.pluginDependencies || []).every((dependency) =>
+                fs.existsSync(path.join(repositoryRoot, 'plugins', dependency))
+            )
+        )
+        .reduce((configs, interaction) => {
+            configs[interaction.name] = interaction;
+            return configs;
+        }, {});
 
-    expect(getKindOptions(generatedConfigs, 'vector')).toEqual([
+    expect(getKindOptions(interactionConfigs, 'vector')).toEqual([
         'none',
         'draw_tool',
         'info',
         'viewer_open',
         'waypoint',
     ]);
-    expect(getKindPipeline(generatedConfigs, 'vector', 'waypoint')).toEqual([
+    expect(getKindPipeline(interactionConfigs, 'vector', 'waypoint')).toEqual([
         'waypoint:image',
         'waypoint:model',
     ]);

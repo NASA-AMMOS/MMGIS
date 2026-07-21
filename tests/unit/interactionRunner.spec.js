@@ -29,10 +29,8 @@ test('generated interactions import resolves from InteractionRunner', () => {
 
     expect(importMatch).not.toBeNull();
     expect(
-        fs.existsSync(
-            path.resolve(path.dirname(runnerPath), `${importMatch[1]}.js`)
-        )
-    ).toBe(true);
+        path.resolve(path.dirname(runnerPath), `${importMatch[1]}.js`)
+    ).toBe(path.resolve(__dirname, '../../src/pre/interactions.js'));
 });
 
 // Standard config matching what the core plugin.json manifests produce
