@@ -37,8 +37,10 @@ let ToolController_ = {
             if (tm && typeof tm.initialize === 'function') tm.initialize()
         })
 
-        // Publish separated tools list to store (React renders them)
-        const separatedTools = tools.filter((t) => t.separatedTool === true)
+        // separatedTool: `true` = framed panel, "custom" = chrome-less (tool owns its DOM).
+        const separatedTools = tools.filter(
+            (t) => t.separatedTool === true || t.separatedTool === 'custom'
+        )
         useUIStore.getState().setSeparatedToolsList(separatedTools)
 
         // Auto-open separated tools that have on === true

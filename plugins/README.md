@@ -500,7 +500,7 @@ Standard package metadata. `author` can be a string or `{ name, email, url }`. `
 |-------|------|-------------|
 | `toolbarPriority` | `number` | Position in toolbar (lower = first). Core tools range ~1001–1020 |
 | `expandable` | `boolean` | Whether the tool panel can expand to full width |
-| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel |
+| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel. `true` gives a standard framed floating panel (header + close). `"custom"` renders a chrome-less panel and lets the tool manage its own DOM inside `#toolContentSeparated_<Name>` — use this when the tool draws its own window/overlay (e.g. Identifier) |
 | `hasVars` | `boolean` | Plugin reads per-mission config variables from `config.rows` |
 | `config` | `object` | Defines the configuration UI shown in the configure page. Has `rows[]` with form field definitions |
 | `kinds` | `object` | Sub-types or modes for the tool (used by Kinds tool) |

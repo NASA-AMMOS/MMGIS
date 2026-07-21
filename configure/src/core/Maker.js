@@ -1623,7 +1623,11 @@ const getComponent = (
       let tools = configuration?.tools || null;
       tools = tools
         .filter((tool) => {
-          return tool?.separatedTool !== true && tool?.on !== false;
+          return (
+            tool?.separatedTool !== true &&
+            tool?.separatedTool !== "custom" &&
+            tool?.on !== false
+          );
         })
         .map((tool) => tool.name);
 

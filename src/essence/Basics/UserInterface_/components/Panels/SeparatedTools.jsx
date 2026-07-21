@@ -40,7 +40,8 @@ function SeparatedTools() {
     return (
         <div id="toolcontroller_sep_content" className={styles.container}>
             {sortedTools.map((tool) => {
-                const isIdentifier = tool.name === 'Identifier'
+                // "custom" tools render chrome-less and manage their own DOM.
+                const isCustom = tool.separatedTool === 'custom'
                 const toolModuleName = tool.name + 'Tool'
                 const isActive = activeSeparatedTools.includes(toolModuleName)
                 const ToolController_ =
@@ -51,7 +52,7 @@ function SeparatedTools() {
                 const panelClasses = [
                     styles.panel,
                     isActive ? styles.panelVisible : styles.panelHidden,
-                    isIdentifier ? styles.panelIdentifier : '',
+                    isCustom ? styles.panelCustom : '',
                 ]
                     .filter(Boolean)
                     .join(' ')
@@ -62,14 +63,14 @@ function SeparatedTools() {
                         id={`toolPanelSeparated_${tool.name}`}
                         className={panelClasses}
                         style={
-                            isIdentifier
+                            isCustom
                                 ? undefined
                                 : {
                                       width: toolWidth + 'px',
                                   }
                         }
                     >
-                        {!isIdentifier && (
+                        {!isCustom && (
                             <div className={styles.header}>
                                 <span className={styles.headerTitle}>
                                     {tool.name}
