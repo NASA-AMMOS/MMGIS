@@ -19,21 +19,7 @@ function SeparatedTools() {
     const handleClose = useCallback((tool) => {
         const ToolController_ =
             require('../../../ToolController_/ToolController_').default
-        const toolModuleName = tool.name + 'Tool'
-        const tM = ToolController_.toolModules[toolModuleName]
-        if (tM && tM.made) {
-            tM.destroy()
-            ToolController_.activeSeparatedTools =
-                ToolController_.activeSeparatedTools.filter(
-                    (a) => a !== toolModuleName
-                )
-            useUIStore.getState().removeActiveSeparatedTool(toolModuleName)
-            document.dispatchEvent(
-                new CustomEvent('toggleSeparatedTool', {
-                    detail: { toggledToolName: tool.js, visible: false },
-                })
-            )
-        }
+        ToolController_.closeTool(tool.name)
     }, [])
 
     if (!sortedTools.length) return null

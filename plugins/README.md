@@ -505,6 +505,15 @@ Standard package metadata. `author` can be a string or `{ name, email, url }`. `
 | `config` | `object` | Defines the configuration UI shown in the configure page. Has `rows[]` with form field definitions |
 | `kinds` | `object` | Sub-types or modes for the tool (used by Kinds tool) |
 
+#### Opening and closing a tool programmatically
+
+A `"custom"` separated tool owns its own UI, so its close button must tell MMGIS to tear the tool down — otherwise the toolbar button stays highlighted. Use the type-agnostic API on the global `ToolController_` (keyed by tool name); both calls no-op if the tool is already in the requested state:
+
+```js
+window.ToolController_.openTool('AgentChat')   // open (separated or regular)
+window.ToolController_.closeTool('AgentChat')  // close and clear the toolbar highlight
+```
+
 ### Backend-Specific Fields
 
 | Field | Type | Description |
