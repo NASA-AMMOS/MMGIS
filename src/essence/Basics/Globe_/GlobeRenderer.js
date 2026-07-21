@@ -139,6 +139,14 @@ class GlobeRenderer {
         // Track in-progress layer loads to prevent duplicates
         this._loadingLayers = {}
 
+        // No-flicker vector reload bookkeeping (Cesium). The latest load per
+        // layer wins (loadToken); the data source currently on screen is kept
+        // until its replacement is ready; deferred removals let a reload adopt
+        // the old features instead of clearing them first.
+        this._vectorLoadToken = {}
+        this._displayedVectorDataSource = {}
+        this._pendingVectorRemoval = {}
+
         // Event loop prevention flag (similar to Map_._justSetActiveLayer)
         this._justSelectedFromMap = false
         this._justSelectedTimeout = null
@@ -599,16 +607,24 @@ class GlobeRenderer {
             }
             this._requestRender()
         } else if (type === 'vector' || type === 'clamped') {
-            // Check if this layer is already being loaded (prevent duplicate async loads)
-            if (this._loadingLayers[name]) {
-                return
+            // A reload (dynamic-extent requery, filter/time change) replaces this
+            // layer's data. Keep the features currently on screen visible until the
+            // replacement has loaded and its geometry has compiled, otherwise the
+            // polygons and lines flash off and on between requeries. If removeLayer
+            // deferred a removal for this layer, cancel it so the old features stay
+            // up while the new ones load.
+            const pendingRemoval = this._pendingVectorRemoval[name]
+            if (pendingRemoval) {
+                if (pendingRemoval.frameHandle != null) {
+                    cancelAnimationFrame(pendingRemoval.frameHandle)
+                }
+                delete this._pendingVectorRemoval[name]
             }
 
-            // Check if layer already exists and remove it first (prevents accumulation)
-            const existingLayer = this._layers[name]
-            if (existingLayer && existingLayer.type === 'vector') {
-                this.renderer.dataSources.remove(existingLayer.dataSource)
-            }
+            // Latest load wins: a slower, stale in-flight load must not replace
+            // newer data nor remove the data source a newer load is showing.
+            const loadToken = (this._vectorLoadToken[name] || 0) + 1
+            this._vectorLoadToken[name] = loadToken
 
             // Mark as loading
             this._loadingLayers[name] = true
@@ -671,6 +687,18 @@ class GlobeRenderer {
             dataSource.then((ds) => {
                 // Clear loading flag
                 delete this._loadingLayers[name]
+
+                // A newer reload superseded this load — discard the stale result
+                // and leave the on-screen data source (which the newer load owns)
+                // untouched.
+                if (this._vectorLoadToken[name] !== loadToken) {
+                    return
+                }
+
+                // The data source currently on screen (if any) is removed only
+                // after the new one is ready, so there is no visible gap.
+                const previousDataSource =
+                    this._displayedVectorDataSource[name] || null
 
                 this.renderer.dataSources.add(ds)
 
@@ -799,6 +827,7 @@ class GlobeRenderer {
                 }
 
                 // Store layer with onClick callback and feature mapping
+                this._displayedVectorDataSource[name] = ds
                 this._layers[name] = {
                     type: 'vector',
                     dataSource: ds,
@@ -806,7 +835,25 @@ class GlobeRenderer {
                     onClick: layerConfig.onClick, // Store callback for global handler
                     featureMap: featureMap, // Store id→original feature mapping
                 }
+
+                // Now that the replacement is in the scene, remove the previous
+                // data source once its geometry has finished compiling so the
+                // polygons and lines don't flash off between requeries.
+                if (previousDataSource && previousDataSource !== ds) {
+                    this._removeVectorDataSourceWhenReady(
+                        name,
+                        previousDataSource,
+                        loadToken
+                    )
+                }
+
                 this._requestRender()
+            })
+            dataSource.catch((err) => {
+                // On load failure keep the old data source visible rather than
+                // leaving the layer empty.
+                delete this._loadingLayers[name]
+                console.error(`Failed to load vector layer "${name}":`, err)
             })
         } else if (type === 'vectortile') {
             // MVT vector tile layer with optional 3D extrusion
@@ -1650,9 +1697,11 @@ class GlobeRenderer {
                     this._removeCesiumGradientPolyline(name)
                     return
                 } else if (layerInfo.type === 'vector') {
-                    const removed = this.renderer.dataSources.remove(
-                        layerInfo.dataSource
-                    )
+                    // Defer the removal by a frame so a reload that follows
+                    // immediately (dynamic-extent requery, filter/time change)
+                    // can adopt these features and keep them on screen until its
+                    // replacement is ready. If no reload adopts it, it's removed.
+                    this._scheduleVectorRemoval(name, layerInfo.dataSource)
                 } else if (layerInfo.type === 'vectortile') {
                     layerInfo.mvtLayer.destroy()
                 } else if (layerInfo.type === '3dtiles') {
@@ -1666,6 +1715,71 @@ class GlobeRenderer {
                 this._requestRender()
             }
         }
+    }
+
+    /**
+     * Defer removal of a Cesium vector data source by one frame so a reload that
+     * follows immediately can adopt it (keeping its features visible). If nothing
+     * adopts it, the data source is removed once the frame elapses.
+     * @param {string} name - Layer name
+     * @param {Object} dataSource - Cesium data source to remove
+     */
+    _scheduleVectorRemoval(name, dataSource) {
+        // If an earlier removal is still pending for this layer, flush it now so
+        // we never leak a data source.
+        const existing = this._pendingVectorRemoval[name]
+        if (existing && existing.dataSource !== dataSource) {
+            if (existing.frameHandle != null) {
+                cancelAnimationFrame(existing.frameHandle)
+            }
+            this.renderer.dataSources.remove(existing.dataSource)
+            if (this._displayedVectorDataSource[name] === existing.dataSource) {
+                delete this._displayedVectorDataSource[name]
+            }
+        }
+
+        const handle = requestAnimationFrame(() => {
+            const pending = this._pendingVectorRemoval[name]
+            if (!pending || pending.dataSource !== dataSource) return
+            this.renderer.dataSources.remove(dataSource)
+            delete this._pendingVectorRemoval[name]
+            if (this._displayedVectorDataSource[name] === dataSource) {
+                delete this._displayedVectorDataSource[name]
+            }
+            this._requestRender()
+        })
+        this._pendingVectorRemoval[name] = { dataSource, frameHandle: handle }
+    }
+
+    /**
+     * Remove a superseded vector data source once the replacement's geometry has
+     * finished compiling, so polygons and lines don't flash off during reloads.
+     * A render is requested each frame to drive Cesium's asynchronous primitive
+     * compilation under requestRenderMode.
+     * @param {string} name - Layer name
+     * @param {Object} dataSource - the previous data source to remove
+     * @param {number} loadToken - the load that owns this removal
+     */
+    _removeVectorDataSourceWhenReady(name, dataSource, loadToken) {
+        const display = this.renderer.dataSourceDisplay
+        let frames = 0
+        const maxFrames = 60 // ~1s safety cap so a stale source is never kept forever
+        const tick = () => {
+            // A newer reload took over; it now owns any stale data sources.
+            if (this._vectorLoadToken[name] !== loadToken) return
+            this._requestRender()
+            frames++
+            const ready = !display || display.ready
+            // Require a couple of rendered frames so `ready` reflects the newly
+            // added geometry rather than the previous frame's state.
+            if ((ready && frames >= 2) || frames >= maxFrames) {
+                this.renderer.dataSources.remove(dataSource)
+                this._requestRender()
+                return
+            }
+            requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
     }
 
     /**
