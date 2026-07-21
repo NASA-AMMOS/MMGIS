@@ -83,6 +83,11 @@ const useStyles = makeStyles((theme) => ({
     background: theme.palette.swatches.grey[900],
     border: `1px solid ${theme.palette.swatches.grey[800]}`,
   },
+  itemMain: {
+    paddingLeft: "7px",
+    background: theme.palette.swatches.grey[950],
+    borderLeft: `4px solid ${theme.palette.swatches.p[12]}`,
+  },
   itemSuppressed: {
     opacity: 0.55,
   },
@@ -150,12 +155,15 @@ const InteractionItem = ({
   dragHandleProps,
   onRemove,
   suppressedBy,
+  main,
   c,
 }) => {
   const name = interaction?.name || interactionId;
   return (
     <Paper
-      className={`${c.item} ${suppressedBy ? c.itemSuppressed : ""}`}
+      className={`${c.item} ${main ? c.itemMain : ""} ${
+        suppressedBy ? c.itemSuppressed : ""
+      }`}
       elevation={0}
     >
       {dragHandleProps ? (
@@ -435,6 +443,7 @@ export default function InteractionEditor({
                             dragHandleProps={draggableProvided.dragHandleProps}
                             interaction={configsById[interactionId]}
                             interactionId={interactionId}
+                            main
                             onRemove={() =>
                               updateClickPipeline(
                                 selectedIds.filter(
@@ -462,6 +471,7 @@ export default function InteractionEditor({
               interaction={configsById[interactionId]}
               interactionId={interactionId}
               key={interactionId}
+              main
             />
           ))
         ) : (
