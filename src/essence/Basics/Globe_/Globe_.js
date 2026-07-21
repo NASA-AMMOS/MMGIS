@@ -243,6 +243,11 @@ let Globe_ = {
             })
         }
 
+        // Watch globe movement so dynamic-extent layers re-query from the
+        // Globe's own viewport (also covers the case where the Map panel is
+        // closed and the 2D map can't supply a usable extent).
+        this.startDynamicExtentWatcher()
+
         //console.log(this.litho)
     },
     fina: function (coordinates) {
@@ -293,6 +298,180 @@ let Globe_ = {
                 })
             }
         }
+    },
+    // Below this zoom the globe view spans (nearly) the whole body, so
+    // dynamic-extent queries just request the full extent.
+    GLOBE_FULL_EXTENT_MAX_ZOOM: 4,
+    // The globe bbox is padded beyond the strict top-down footprint so tilted
+    // views (looking across the terrain toward the horizon) still query the
+    // features that are visible but outside the nadir box. The pad scales with
+    // camera tilt: GLOBE_EXTENT_PAD_MIN at nadir up to GLOBE_EXTENT_PAD_MAX
+    // when looking parallel to the ground (e.g. 1x -> 3x extent at full tilt).
+    GLOBE_EXTENT_PAD_MIN: 1.5,
+    GLOBE_EXTENT_PAD_MAX: 3,
+    // Computes the Globe's current visible extent as a lat/lng bbox
+    // (EPSG:4326, what the geodatasets endpoint filters on). Derived from the
+    // globe center + zoom + panel pixel size. The box is clamped to the poles
+    // and to [-180, 180] and never wraps. Works for both the LithoSphere and
+    // Cesium renderers via GlobeRenderer.getExtentCenter().
+    getExtent: function () {
+        try {
+            if (!this.litho || typeof this.litho.getCenter !== 'function')
+                return null
+            const center =
+                typeof this.litho.getExtentCenter === 'function'
+                    ? this.litho.getExtentCenter()
+                    : this.litho.getCenter()
+            if (!center || center.lng == null || center.lat == null)
+                return null
+
+            let zoom = center.zoom
+            if (zoom == null || isNaN(zoom))
+                zoom = (L_.Map_ && L_.Map_.map && L_.Map_.map.getZoom()) || 0
+
+            const centerLng = center.lng
+            const centerLat = center.lat
+
+            if (zoom < this.GLOBE_FULL_EXTENT_MAX_ZOOM) {
+                return {
+                    zoom: zoom,
+                    tilt: 0,
+                    minx: -180,
+                    miny: -90,
+                    maxx: 180,
+                    maxy: 90,
+                    centerLng: centerLng,
+                    centerLat: centerLat,
+                }
+            }
+
+            // Widen the box with camera tilt so a view looking across the
+            // terrain still captures features toward the horizon.
+            let tiltFraction = 0
+            if (typeof this.litho.getViewTiltFraction === 'function')
+                tiltFraction = this.litho.getViewTiltFraction()
+            const pad =
+                this.GLOBE_EXTENT_PAD_MIN +
+                (this.GLOBE_EXTENT_PAD_MAX - this.GLOBE_EXTENT_PAD_MIN) *
+                    tiltFraction
+
+            const el = document.getElementById(this.id)
+            const widthPx = (el && el.clientWidth) || 1024
+            const heightPx = (el && el.clientHeight) || 768
+
+            // Leaflet-style zoom: the full 360deg of longitude spans
+            // 256 * 2^zoom pixels.
+            const worldPx = 256 * Math.pow(2, zoom)
+            const degPerPxLng = 360 / worldPx
+
+            const halfWidthDeg = (widthPx / 2) * degPerPxLng * pad
+            // Widen the latitude span toward the poles (Mercator stretch) so
+            // the box over-approximates rather than clipping edge features.
+            const cosLat = Math.max(
+                0.15,
+                Math.cos((centerLat * Math.PI) / 180)
+            )
+            const halfHeightDeg =
+                (((heightPx / 2) * degPerPxLng) / cosLat) * pad
+
+            let minx = centerLng - halfWidthDeg
+            let maxx = centerLng + halfWidthDeg
+            let miny = centerLat - halfHeightDeg
+            let maxy = centerLat + halfHeightDeg
+
+            // Never wrap. Full-world horizontally -> full longitude range;
+            // otherwise clamp to [-180, 180].
+            if (halfWidthDeg * 2 >= 360) {
+                minx = -180
+                maxx = 180
+            } else {
+                if (minx < -180) minx = -180
+                if (maxx > 180) maxx = 180
+            }
+            if (miny < -90) miny = -90
+            if (maxy > 90) maxy = 90
+
+            return {
+                zoom: zoom,
+                // Bucketed so small tilt jitter doesn't spam re-queries but a
+                // meaningful tilt change still retriggers one.
+                tilt: Math.round(tiltFraction * 10),
+                minx: minx,
+                miny: miny,
+                maxx: maxx,
+                maxy: maxy,
+                centerLng: centerLng,
+                centerLat: centerLat,
+            }
+        } catch (e) {
+            return null
+        }
+    },
+    _dynamicExtentWatcher: null,
+    _dynamicExtentSettleTimeout: null,
+    _lastDynamicExtentKey: null,
+    // Polls the globe center/zoom and, once movement settles, re-runs every
+    // active dynamic-extent layer's query using the Globe's own extent. This
+    // is renderer-agnostic (works for LithoSphere and Cesium) and avoids
+    // depending on renderer-specific camera-move events.
+    startDynamicExtentWatcher: function () {
+        if (this._dynamicExtentWatcher != null) return
+        this._dynamicExtentWatcher = setInterval(() => {
+            if (!this.litho || typeof this.litho.getCenter !== 'function')
+                return
+            // Skip the (raycast) work while the Globe panel isn't visible.
+            const el = document.getElementById(this.id)
+            if (el && el.clientWidth === 0 && el.clientHeight === 0) return
+            let center
+            try {
+                center =
+                    typeof this.litho.getExtentCenter === 'function'
+                        ? this.litho.getExtentCenter()
+                        : this.litho.getCenter()
+            } catch (e) {
+                return
+            }
+            if (!center || center.lng == null || center.lat == null) return
+            let tiltBucket = 0
+            if (typeof this.litho.getViewTiltFraction === 'function')
+                tiltBucket = Math.round(this.litho.getViewTiltFraction() * 10)
+            const key =
+                center.lng.toFixed(5) +
+                ',' +
+                center.lat.toFixed(5) +
+                ',' +
+                (center.zoom != null ? center.zoom : '') +
+                ',' +
+                tiltBucket
+            if (key === this._lastDynamicExtentKey) return
+            this._lastDynamicExtentKey = key
+            clearTimeout(this._dynamicExtentSettleTimeout)
+            this._dynamicExtentSettleTimeout = setTimeout(() => {
+                this._fireDynamicExtentMove()
+            }, 300)
+        }, 150)
+    },
+    stopDynamicExtentWatcher: function () {
+        if (this._dynamicExtentWatcher != null) {
+            clearInterval(this._dynamicExtentWatcher)
+            this._dynamicExtentWatcher = null
+        }
+        clearTimeout(this._dynamicExtentSettleTimeout)
+    },
+    _fireDynamicExtentMove: function () {
+        const subs = L_._onSpecificLayerToggleSubscriptions
+        if (!subs) return
+        Object.keys(subs).forEach((k) => {
+            if (k.indexOf('dynamicextent_') !== 0) return
+            const sub = subs[k]
+            if (
+                sub &&
+                L_.layers.on[sub.layer] === true &&
+                typeof sub.func === 'function'
+            ) {
+                sub.func({ fromGlobe: true })
+            }
+        })
     },
     highlight: function (layerName, feature) {
         if (this.litho && this.litho.highlightFeature) {
