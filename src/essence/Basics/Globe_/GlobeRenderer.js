@@ -146,6 +146,9 @@ class GlobeRenderer {
         this._vectorLoadToken = {}
         this._displayedVectorDataSource = {}
         this._pendingVectorRemoval = {}
+        // Reloads are serialized per layer: while one load is in flight the
+        // latest superseding reload is stashed here and run when it settles.
+        this._pendingVectorReload = {}
 
         // Event loop prevention flag (similar to Map_._justSetActiveLayer)
         this._justSelectedFromMap = false
@@ -607,6 +610,18 @@ class GlobeRenderer {
             }
             this._requestRender()
         } else if (type === 'vector' || type === 'clamped') {
+            // Serialize reloads per layer. The layer reuses one data source and
+            // loads new GeoJSON into it in place; starting a second load on that
+            // same source while one is in flight would race, because Cesium
+            // resolves loads in completion order (not call order), so a slow
+            // older load could finish last and leave stale features shown. Queue
+            // this as the latest pending reload and run it once the in-flight
+            // load settles (see _runPendingVectorReload).
+            if (this._loadingLayers[name]) {
+                this._pendingVectorReload[name] = { type, layerConfig }
+                return
+            }
+
             // A reload (dynamic-extent requery, filter/time change) replaces this
             // layer's data. The layer's existing data source is reused and loaded
             // in place (see below) rather than removed and recreated, so the
@@ -701,6 +716,7 @@ class GlobeRenderer {
                 // A newer reload superseded this load — discard the stale result
                 // so it can't overwrite newer data.
                 if (this._vectorLoadToken[name] !== loadToken) {
+                    this._runPendingVectorReload(name)
                     return
                 }
 
@@ -842,12 +858,16 @@ class GlobeRenderer {
                 }
 
                 this._requestRender()
+
+                // Run any reload that arrived while this load was in flight.
+                this._runPendingVectorReload(name)
             }).catch((err) => {
                 // On load failure keep the previous features rather than leaving
                 // the layer empty. Chained (not a sibling handler) so a rejected
                 // load can't produce an unhandled promise rejection.
                 delete this._loadingLayers[name]
                 console.error(`Failed to load vector layer "${name}":`, err)
+                this._runPendingVectorReload(name)
             })
         } else if (type === 'vectortile') {
             // MVT vector tile layer with optional 3D extrusion
@@ -1743,6 +1763,14 @@ class GlobeRenderer {
             this._requestRender()
         })
         this._pendingVectorRemoval[name] = { dataSource, frameHandle: handle }
+    }
+
+    // Run the reload that was queued while a load was in flight (latest wins).
+    _runPendingVectorReload(name) {
+        const pendingReload = this._pendingVectorReload[name]
+        if (!pendingReload) return
+        delete this._pendingVectorReload[name]
+        this.addLayer(pendingReload.type, pendingReload.layerConfig)
     }
 
     /**
