@@ -726,6 +726,12 @@ class GlobeRenderer {
                             color: fillWithAlpha,
                             outlineColor: strokeColor,
                             outlineWidth: defaultStyle.weight || 2,
+                            // Preserve the terrain clamping the default billboard
+                            // had, so clamped-layer points stay on the surface.
+                            heightReference:
+                                type === 'clamped'
+                                    ? Cesium.HeightReference.CLAMP_TO_GROUND
+                                    : Cesium.HeightReference.NONE,
                         })
                     }
                 })
@@ -820,15 +826,6 @@ class GlobeRenderer {
                                         entity.point.color = pointColor
                                     }
                                 }
-                            }
-
-                            // Apply feature-specific styles to billboards (markers)
-                            if (
-                                entity.billboard &&
-                                featureStyle.radius != null
-                            ) {
-                                entity.billboard.scale =
-                                    parseFloat(featureStyle.radius) / 8 // Normalize to default size
                             }
                         }
                     })
