@@ -60,13 +60,16 @@ const useStyles = makeStyles((theme) => ({
   pipeline: {
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(1),
+    gap: "10px",
+  },
+  section: {
+    paddingTop: "20px",
   },
   sectionLabel: {
     display: "flex",
     alignItems: "center",
     gap: theme.spacing(1),
-    color: theme.palette.swatches.grey[400],
+    color: theme.palette.swatches.p[12],
     fontSize: "12px !important",
     fontWeight: "bold !important",
     letterSpacing: "0.5px !important",
@@ -76,7 +79,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     minHeight: "52px",
-    padding: theme.spacing(1, 1.5),
+    padding: "10px",
     background: theme.palette.swatches.grey[900],
     border: `1px solid ${theme.palette.swatches.grey[800]}`,
   },
@@ -186,7 +189,7 @@ const InteractionItem = ({
 };
 
 const LockedPipeline = ({ title, interactions, suppressionSources, c }) => (
-  <div className={c.pipeline}>
+  <div className={`${c.pipeline} ${c.section}`}>
     <Typography className={c.sectionLabel}>
       <LockIcon fontSize="inherit" /> {title}
     </Typography>
@@ -394,7 +397,7 @@ export default function InteractionEditor({
         title="Always before"
       />
 
-      <div className={c.pipeline}>
+      <div className={`${c.pipeline} ${c.section}`}>
         <Typography className={c.sectionLabel}>Main behavior</Typography>
         {customPipeline ? (
           <DragDropContext

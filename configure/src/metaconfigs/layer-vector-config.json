@@ -124,25 +124,6 @@
       ]
     },
     {
-      "name": "Interactions",
-      "rows": [
-        {
-          "name": "Interactions",
-          "description": "Choose a legacy Kind preset or compose an ordered click-interaction pipeline. Infrastructure interactions remain automatic.",
-          "components": [
-            {
-              "field": "interactions",
-              "fields": ["kind", "interactions"],
-              "name": "Interactions",
-              "description": "",
-              "type": "interactions",
-              "width": 12
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "Style",
       "rows": [
         {
@@ -650,6 +631,25 @@
                   "defaultChecked": false
                 }
               ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Interactions",
+      "rows": [
+        {
+          "name": "Interactions",
+          "description": "Choose a legacy Kind preset or compose an ordered click-interaction pipeline. Infrastructure interactions remain automatic.",
+          "components": [
+            {
+              "field": "interactions",
+              "fields": ["kind", "interactions"],
+              "name": "Interactions",
+              "description": "",
+              "type": "interactions",
+              "width": 12
             }
           ]
         }

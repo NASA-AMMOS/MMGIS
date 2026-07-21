@@ -157,8 +157,14 @@ test('applicable layer metaconfigs expose the Interactions editor', () => {
             (candidate) => candidate.name === 'Interactions'
         );
         const component = tab?.rows?.[0]?.components?.[0];
+        const tabNames = metaconfig.tabs.map((candidate) => candidate.name);
+        const interactionsIndex = tabNames.indexOf('Interactions');
+        const legendIndex = tabNames.indexOf('Legend');
+        const filterIndex = tabNames.indexOf('Filter');
 
         expect(tab).toBeDefined();
+        expect(interactionsIndex).toBe(legendIndex + 1);
+        if (filterIndex >= 0) expect(interactionsIndex).toBe(filterIndex - 1);
         expect(component?.type).toBe('interactions');
         expect(component?.fields).toEqual(['kind', 'interactions']);
     }
