@@ -13,6 +13,12 @@ import {
 import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
 
+// Multiplier applied to a vector layer's Leaflet-style point `radius` when it is
+// used as a Cesium GeoJsonDataSource `markerSize` (a pin height in pixels).
+// A raw radius (~8) renders a tiny pin; scaling it brings Cesium point markers
+// to a size comparable to the 2D map and LithoSphere globe.
+const CESIUM_MARKER_SIZE_SCALE = 4
+
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
  *
@@ -657,7 +663,10 @@ class GlobeRenderer {
                     stroke: strokeColor,
                     strokeWidth: defaultStyle.weight || 2,
                     fill: fillWithAlpha,
-                    markerSize: defaultStyle.radius || 8,
+                    // Style `radius` is a Leaflet circle radius (~8); Cesium's
+                    // markerSize is a pin height in pixels, so scale it up to a
+                    // comparable on-screen size (matches the 2D/LithoSphere feel).
+                    markerSize: (defaultStyle.radius || 8) * CESIUM_MARKER_SIZE_SCALE,
                     markerColor: fillColor,
                 }
             )
