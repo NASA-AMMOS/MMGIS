@@ -13,6 +13,12 @@ import {
 import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
 
+// Point features are rendered as circular Cesium PointGraphics (a filled dot)
+// rather than the default teardrop pin billboard. A Leaflet-style `radius` is a
+// circle radius, while PointGraphics `pixelSize` is a diameter, so double it to
+// match the 2D map's circle points.
+const CESIUM_POINT_PIXEL_SCALE = 2
+
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
  *
@@ -132,6 +138,17 @@ class GlobeRenderer {
 
         // Track in-progress layer loads to prevent duplicates
         this._loadingLayers = {}
+
+        // No-flicker vector reload bookkeeping (Cesium). The latest load per
+        // layer wins (loadToken); the data source currently on screen is kept
+        // until its replacement is ready; deferred removals let a reload adopt
+        // the old features instead of clearing them first.
+        this._vectorLoadToken = {}
+        this._displayedVectorDataSource = {}
+        this._pendingVectorRemoval = {}
+        // Reloads are serialized per layer: while one load is in flight the
+        // latest superseding reload is stashed here and run when it settles.
+        this._pendingVectorReload = {}
 
         // Event loop prevention flag (similar to Map_._justSetActiveLayer)
         this._justSelectedFromMap = false
@@ -471,10 +488,31 @@ class GlobeRenderer {
             return this._addLithoSphereGradient(layerConfig)
         }
         if (this.rendererType === 'lithosphere') {
-            return this.renderer.addLayer(type, layerConfig)
+            // LithoSphere's 'vector' layerer only draws points and lines and
+            // throws on polygon geometry; its 'clamped' layerer draws polygons
+            // (and lines/points). Route polygon-containing vector layers to
+            // 'clamped' so they render (draped on terrain) instead of crashing.
+            let lithoType = type
+            if (
+                type === 'vector' &&
+                this._geojsonHasPolygons(layerConfig?.geojson)
+            ) {
+                lithoType = 'clamped'
+            }
+            return this.renderer.addLayer(lithoType, layerConfig)
         } else {
             return this._addCesiumLayer(type, layerConfig)
         }
+    }
+
+    // True if the geojson contains any (Multi)Polygon feature.
+    _geojsonHasPolygons(geojson) {
+        const features = geojson?.features
+        if (!Array.isArray(features)) return false
+        return features.some((f) => {
+            const t = f?.geometry?.type
+            return t === 'Polygon' || t === 'MultiPolygon'
+        })
     }
 
     /**
@@ -593,16 +631,36 @@ class GlobeRenderer {
             }
             this._requestRender()
         } else if (type === 'vector' || type === 'clamped') {
-            // Check if this layer is already being loaded (prevent duplicate async loads)
+            // Serialize reloads per layer. The layer reuses one data source and
+            // loads new GeoJSON into it in place; starting a second load on that
+            // same source while one is in flight would race, because Cesium
+            // resolves loads in completion order (not call order), so a slow
+            // older load could finish last and leave stale features shown. Queue
+            // this as the latest pending reload and run it once the in-flight
+            // load settles (see _runPendingVectorReload).
             if (this._loadingLayers[name]) {
+                this._pendingVectorReload[name] = { type, layerConfig }
                 return
             }
 
-            // Check if layer already exists and remove it first (prevents accumulation)
-            const existingLayer = this._layers[name]
-            if (existingLayer && existingLayer.type === 'vector') {
-                this.renderer.dataSources.remove(existingLayer.dataSource)
+            // A reload (dynamic-extent requery, filter/time change) replaces this
+            // layer's data. The layer's existing data source is reused and loaded
+            // in place (see below) rather than removed and recreated, so the
+            // polygons and lines don't flash off between requeries. If removeLayer
+            // deferred a removal for this layer, cancel it so the data source
+            // survives to be reused.
+            const pendingRemoval = this._pendingVectorRemoval[name]
+            if (pendingRemoval) {
+                if (pendingRemoval.frameHandle != null) {
+                    cancelAnimationFrame(pendingRemoval.frameHandle)
+                }
+                delete this._pendingVectorRemoval[name]
             }
+
+            // Latest load wins: a slower, stale in-flight load must not replace
+            // newer data nor remove the data source a newer load is showing.
+            const loadToken = (this._vectorLoadToken[name] || 0) + 1
+            this._vectorLoadToken[name] = loadToken
 
             // Mark as loading
             this._loadingLayers[name] = true
@@ -650,28 +708,68 @@ class GlobeRenderer {
                 ? fillColor.withAlpha(0.5)
                 : fillColor.withAlpha(fillOpacity)
 
-            const dataSource = Cesium.GeoJsonDataSource.load(
-                geojsonWithIds, // Use GeoJSON with injected IDs
-                {
-                    clampToGround: type === 'clamped', // Only clamp 'clamped' type, not 'vector'
-                    stroke: strokeColor,
-                    strokeWidth: defaultStyle.weight || 2,
-                    fill: fillWithAlpha,
-                    markerSize: defaultStyle.radius || 8,
-                    markerColor: fillColor,
-                }
-            )
+            const loadOptions = {
+                clampToGround: type === 'clamped', // Only clamp 'clamped' type, not 'vector'
+                stroke: strokeColor,
+                strokeWidth: defaultStyle.weight || 2,
+                fill: fillWithAlpha,
+                markerSize: defaultStyle.radius || 8,
+                markerColor: fillColor,
+            }
 
-            dataSource.then((ds) => {
+            // Reuse the layer's existing data source when reloading and load the
+            // new GeoJSON into it in place. Removing/re-adding a data source (or
+            // adding a second one) forces Cesium to rebuild its batched
+            // polygon/line primitives, which momentarily blanks them — the flash.
+            // Loading into the same data source updates it in one pass and keeps
+            // it in the scene. (Points use an incremental visualizer, so they
+            // never showed the flash.)
+            const reuseDataSource = this._displayedVectorDataSource[name] || null
+
+            const loadPromise = reuseDataSource
+                ? reuseDataSource.load(geojsonWithIds, loadOptions)
+                : Cesium.GeoJsonDataSource.load(geojsonWithIds, loadOptions)
+
+            loadPromise.then((ds) => {
                 // Clear loading flag
                 delete this._loadingLayers[name]
 
-                this.renderer.dataSources.add(ds)
+                // A newer reload superseded this load — discard the stale result
+                // so it can't overwrite newer data.
+                if (this._vectorLoadToken[name] !== loadToken) {
+                    this._runPendingVectorReload(name)
+                    return
+                }
 
-                // Enable outlines on all polygon entities (disabled when clamped to terrain)
+                // A freshly created data source must be added to the scene; a
+                // reused one is already present.
+                if (!reuseDataSource) {
+                    this.renderer.dataSources.add(ds)
+                }
+
                 ds.entities.values.forEach((entity) => {
+                    // Enable outlines on polygons (disabled when clamped to terrain)
                     if (entity.polygon) {
                         entity.polygon.outline = true
+                    }
+                    // Render points as circular dots instead of Cesium's default
+                    // teardrop pin billboards.
+                    if (entity.billboard) {
+                        entity.billboard = undefined
+                        entity.point = new Cesium.PointGraphics({
+                            pixelSize:
+                                (defaultStyle.radius || 8) *
+                                CESIUM_POINT_PIXEL_SCALE,
+                            color: fillWithAlpha,
+                            outlineColor: strokeColor,
+                            outlineWidth: defaultStyle.weight || 2,
+                            // Preserve the terrain clamping the default billboard
+                            // had, so clamped-layer points stay on the surface.
+                            heightReference:
+                                type === 'clamped'
+                                    ? Cesium.HeightReference.CLAMP_TO_GROUND
+                                    : Cesium.HeightReference.NONE,
+                        })
                     }
                 })
 
@@ -752,9 +850,9 @@ class GlobeRenderer {
                             // Apply feature-specific styles to points
                             if (entity.point) {
                                 if (featureStyle.radius != null) {
-                                    entity.point.pixelSize = parseFloat(
-                                        featureStyle.radius
-                                    )
+                                    entity.point.pixelSize =
+                                        parseFloat(featureStyle.radius) *
+                                        CESIUM_POINT_PIXEL_SCALE
                                 }
                                 if (featureStyle.fillColor) {
                                     const pointColor =
@@ -766,20 +864,12 @@ class GlobeRenderer {
                                     }
                                 }
                             }
-
-                            // Apply feature-specific styles to billboards (markers)
-                            if (
-                                entity.billboard &&
-                                featureStyle.radius != null
-                            ) {
-                                entity.billboard.scale =
-                                    parseFloat(featureStyle.radius) / 8 // Normalize to default size
-                            }
                         }
                     })
                 }
 
                 // Store layer with onClick callback and feature mapping
+                this._displayedVectorDataSource[name] = ds
                 this._layers[name] = {
                     type: 'vector',
                     dataSource: ds,
@@ -787,7 +877,18 @@ class GlobeRenderer {
                     onClick: layerConfig.onClick, // Store callback for global handler
                     featureMap: featureMap, // Store id→original feature mapping
                 }
+
                 this._requestRender()
+
+                // Run any reload that arrived while this load was in flight.
+                this._runPendingVectorReload(name)
+            }).catch((err) => {
+                // On load failure keep the previous features rather than leaving
+                // the layer empty. Chained (not a sibling handler) so a rejected
+                // load can't produce an unhandled promise rejection.
+                delete this._loadingLayers[name]
+                console.error(`Failed to load vector layer "${name}":`, err)
+                this._runPendingVectorReload(name)
             })
         } else if (type === 'vectortile') {
             // MVT vector tile layer with optional 3D extrusion
@@ -1631,9 +1732,11 @@ class GlobeRenderer {
                     this._removeCesiumGradientPolyline(name)
                     return
                 } else if (layerInfo.type === 'vector') {
-                    const removed = this.renderer.dataSources.remove(
-                        layerInfo.dataSource
-                    )
+                    // Defer the removal by a frame so a reload that follows
+                    // immediately (dynamic-extent requery, filter/time change)
+                    // can adopt these features and keep them on screen until its
+                    // replacement is ready. If no reload adopts it, it's removed.
+                    this._scheduleVectorRemoval(name, layerInfo.dataSource)
                 } else if (layerInfo.type === 'vectortile') {
                     layerInfo.mvtLayer.destroy()
                 } else if (layerInfo.type === '3dtiles') {
@@ -1647,6 +1750,48 @@ class GlobeRenderer {
                 this._requestRender()
             }
         }
+    }
+
+    /**
+     * Defer removal of a Cesium vector data source by one frame so a reload that
+     * follows immediately can adopt it (keeping its features visible). If nothing
+     * adopts it, the data source is removed once the frame elapses.
+     * @param {string} name - Layer name
+     * @param {Object} dataSource - Cesium data source to remove
+     */
+    _scheduleVectorRemoval(name, dataSource) {
+        // If an earlier removal is still pending for this layer, flush it now so
+        // we never leak a data source.
+        const existing = this._pendingVectorRemoval[name]
+        if (existing && existing.dataSource !== dataSource) {
+            if (existing.frameHandle != null) {
+                cancelAnimationFrame(existing.frameHandle)
+            }
+            this.renderer.dataSources.remove(existing.dataSource)
+            if (this._displayedVectorDataSource[name] === existing.dataSource) {
+                delete this._displayedVectorDataSource[name]
+            }
+        }
+
+        const handle = requestAnimationFrame(() => {
+            const pending = this._pendingVectorRemoval[name]
+            if (!pending || pending.dataSource !== dataSource) return
+            this.renderer.dataSources.remove(dataSource)
+            delete this._pendingVectorRemoval[name]
+            if (this._displayedVectorDataSource[name] === dataSource) {
+                delete this._displayedVectorDataSource[name]
+            }
+            this._requestRender()
+        })
+        this._pendingVectorRemoval[name] = { dataSource, frameHandle: handle }
+    }
+
+    // Run the reload that was queued while a load was in flight (latest wins).
+    _runPendingVectorReload(name) {
+        const pendingReload = this._pendingVectorReload[name]
+        if (!pendingReload) return
+        delete this._pendingVectorReload[name]
+        this.addLayer(pendingReload.type, pendingReload.layerConfig)
     }
 
     /**
@@ -1727,7 +1872,12 @@ class GlobeRenderer {
      */
     getCenter() {
         if (this.rendererType === 'lithosphere') {
-            return this.renderer.getCenter()
+            const c = this.renderer.getCenter()
+            return {
+                lng: c.lng,
+                lat: c.lat,
+                zoom: this.renderer.zoom,
+            }
         } else {
             const camera = this.renderer.camera
             const center = camera.positionCartographic
@@ -1737,6 +1887,84 @@ class GlobeRenderer {
                 lat: Cesium.Math.toDegrees(center.latitude),
                 zoom: this._heightToZoom(center.height), // Convert height to Leaflet zoom
             }
+        }
+    }
+
+    /**
+     * Center + zoom to use for the dynamic-extent bbox. For LithoSphere this
+     * matches getCenter(). For Cesium, getCenter() returns the camera's nadir
+     * sub-point and a zoom derived from the camera height, which are only
+     * meaningful looking straight down: as the camera tilts, the sub-point
+     * drifts away from what the user is looking at and the height shrinks, so
+     * the bbox would both re-center off the view and collapse the more you
+     * tilt. Instead, use the point at the center of the view (screen center
+     * picked onto the ellipsoid) and derive the zoom from the camera's
+     * distance to that point, so the bbox stays centered on the viewed ground
+     * and grows (rather than shrinks) as the view is tilted toward the horizon.
+     * @returns {object|null} { lng, lat, zoom }
+     */
+    getExtentCenter() {
+        if (this.rendererType === 'lithosphere') {
+            return this.getCenter()
+        }
+        try {
+            const scene = this.renderer.scene
+            const camera = this.renderer.camera
+            const ellipsoid = scene.globe.ellipsoid
+            const canvas = scene.canvas
+            const centerPx = new Cesium.Cartesian2(
+                canvas.clientWidth / 2,
+                canvas.clientHeight / 2
+            )
+            const centerCartesian = camera.pickEllipsoid(centerPx, ellipsoid)
+            if (!centerCartesian) {
+                // Screen center is on the horizon/space; fall back to the
+                // sub-camera point (which the caller clamps/pads anyway).
+                return this.getCenter()
+            }
+            const carto = ellipsoid.cartesianToCartographic(centerCartesian)
+            const dist = Cesium.Cartesian3.distance(
+                camera.positionWC,
+                centerCartesian
+            )
+            return {
+                lng: Cesium.Math.toDegrees(carto.longitude),
+                lat: Cesium.Math.toDegrees(carto.latitude),
+                zoom: this._heightToZoom(dist),
+            }
+        } catch (e) {
+            return this.getCenter()
+        }
+    }
+
+    /**
+     * How much the camera is looking across the surface rather than straight
+     * down, as a fraction: 0 = nadir (top-down), 1 = looking parallel to the
+     * ground (toward the horizon). Used to widen the dynamic-extent bbox so
+     * features toward the horizon are still queried when the view is tilted.
+     * @returns {number} tilt fraction in [0, 1]
+     */
+    getViewTiltFraction() {
+        try {
+            if (this.rendererType === 'lithosphere') {
+                const controls = this.renderer?._?.cameras?.orbit?.controls
+                if (!controls || typeof controls.getPolarAngle !== 'function')
+                    return 0
+                // OrbitControls polar angle: 0 at nadir, maxPolarAngle (PI/2)
+                // when looking along the surface.
+                const max = controls.maxPolarAngle || Math.PI / 2
+                return Math.max(0, Math.min(1, controls.getPolarAngle() / max))
+            } else {
+                const pitch = this.renderer?.camera?.pitch
+                if (pitch == null) return 0
+                // Cesium pitch: -PI/2 at nadir, 0 at the horizon.
+                return Math.max(
+                    0,
+                    Math.min(1, 1 - Math.abs(pitch) / (Math.PI / 2))
+                )
+            }
+        } catch (e) {
+            return 0
         }
     }
 
