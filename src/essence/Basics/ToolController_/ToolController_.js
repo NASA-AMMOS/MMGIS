@@ -42,8 +42,15 @@ let ToolController_ = {
         // like `expandable`. `true` = framed panel, "custom" = chrome-less
         // (tool owns its DOM); anything else (incl. unset) = not separated.
         const separatedTools = tools.filter((t) => {
-            const mode = toolConfigs[t.name]?.separatedTool
-            return mode === true || mode === 'custom'
+            const raw = toolConfigs[t.name]?.separatedTool
+            if (raw != null && !getSeparatedMode(toolConfigs, t.name)) {
+                console.warn(
+                    `Tool "${t.name}" has an unrecognized separatedTool value ${JSON.stringify(
+                        raw
+                    )}; expected true or "custom". Treating it as not separated.`
+                )
+            }
+            return getSeparatedMode(toolConfigs, t.name) != null
         })
         useUIStore.getState().setSeparatedToolsList(separatedTools)
 
