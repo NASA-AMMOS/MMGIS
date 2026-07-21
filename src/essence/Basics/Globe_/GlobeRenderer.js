@@ -608,11 +608,11 @@ class GlobeRenderer {
             this._requestRender()
         } else if (type === 'vector' || type === 'clamped') {
             // A reload (dynamic-extent requery, filter/time change) replaces this
-            // layer's data. Keep the features currently on screen visible until the
-            // replacement has loaded and its geometry has compiled, otherwise the
-            // polygons and lines flash off and on between requeries. If removeLayer
-            // deferred a removal for this layer, cancel it so the old features stay
-            // up while the new ones load.
+            // layer's data. The layer's existing data source is reused and loaded
+            // in place (see below) rather than removed and recreated, so the
+            // polygons and lines don't flash off between requeries. If removeLayer
+            // deferred a removal for this layer, cancel it so the data source
+            // survives to be reused.
             const pendingRemoval = this._pendingVectorRemoval[name]
             if (pendingRemoval) {
                 if (pendingRemoval.frameHandle != null) {
@@ -672,35 +672,43 @@ class GlobeRenderer {
                 ? fillColor.withAlpha(0.5)
                 : fillColor.withAlpha(fillOpacity)
 
-            const dataSource = Cesium.GeoJsonDataSource.load(
-                geojsonWithIds, // Use GeoJSON with injected IDs
-                {
-                    clampToGround: type === 'clamped', // Only clamp 'clamped' type, not 'vector'
-                    stroke: strokeColor,
-                    strokeWidth: defaultStyle.weight || 2,
-                    fill: fillWithAlpha,
-                    markerSize: defaultStyle.radius || 8,
-                    markerColor: fillColor,
-                }
-            )
+            const loadOptions = {
+                clampToGround: type === 'clamped', // Only clamp 'clamped' type, not 'vector'
+                stroke: strokeColor,
+                strokeWidth: defaultStyle.weight || 2,
+                fill: fillWithAlpha,
+                markerSize: defaultStyle.radius || 8,
+                markerColor: fillColor,
+            }
 
-            dataSource.then((ds) => {
+            // Reuse the layer's existing data source when reloading and load the
+            // new GeoJSON into it in place. Removing/re-adding a data source (or
+            // adding a second one) forces Cesium to rebuild its batched
+            // polygon/line primitives, which momentarily blanks them — the flash.
+            // Loading into the same data source updates it in one pass and keeps
+            // it in the scene. (Points use an incremental visualizer, so they
+            // never showed the flash.)
+            const reuseDataSource = this._displayedVectorDataSource[name] || null
+
+            const loadPromise = reuseDataSource
+                ? reuseDataSource.load(geojsonWithIds, loadOptions)
+                : Cesium.GeoJsonDataSource.load(geojsonWithIds, loadOptions)
+
+            loadPromise.then((ds) => {
                 // Clear loading flag
                 delete this._loadingLayers[name]
 
                 // A newer reload superseded this load — discard the stale result
-                // and leave the on-screen data source (which the newer load owns)
-                // untouched.
+                // so it can't overwrite newer data.
                 if (this._vectorLoadToken[name] !== loadToken) {
                     return
                 }
 
-                // The data source currently on screen (if any) is removed only
-                // after the new one is ready, so there is no visible gap.
-                const previousDataSource =
-                    this._displayedVectorDataSource[name] || null
-
-                this.renderer.dataSources.add(ds)
+                // A freshly created data source must be added to the scene; a
+                // reused one is already present.
+                if (!reuseDataSource) {
+                    this.renderer.dataSources.add(ds)
+                }
 
                 ds.entities.values.forEach((entity) => {
                     // Enable outlines on polygons (disabled when clamped to terrain)
@@ -836,22 +844,11 @@ class GlobeRenderer {
                     featureMap: featureMap, // Store id→original feature mapping
                 }
 
-                // Now that the replacement is in the scene, remove the previous
-                // data source once its geometry has finished compiling so the
-                // polygons and lines don't flash off between requeries.
-                if (previousDataSource && previousDataSource !== ds) {
-                    this._removeVectorDataSourceWhenReady(
-                        name,
-                        previousDataSource,
-                        loadToken
-                    )
-                }
-
                 this._requestRender()
             })
-            dataSource.catch((err) => {
-                // On load failure keep the old data source visible rather than
-                // leaving the layer empty.
+            loadPromise.catch((err) => {
+                // On load failure keep the previous features rather than leaving
+                // the layer empty.
                 delete this._loadingLayers[name]
                 console.error(`Failed to load vector layer "${name}":`, err)
             })
@@ -1749,37 +1746,6 @@ class GlobeRenderer {
             this._requestRender()
         })
         this._pendingVectorRemoval[name] = { dataSource, frameHandle: handle }
-    }
-
-    /**
-     * Remove a superseded vector data source once the replacement's geometry has
-     * finished compiling, so polygons and lines don't flash off during reloads.
-     * A render is requested each frame to drive Cesium's asynchronous primitive
-     * compilation under requestRenderMode.
-     * @param {string} name - Layer name
-     * @param {Object} dataSource - the previous data source to remove
-     * @param {number} loadToken - the load that owns this removal
-     */
-    _removeVectorDataSourceWhenReady(name, dataSource, loadToken) {
-        const display = this.renderer.dataSourceDisplay
-        let frames = 0
-        const maxFrames = 60 // ~1s safety cap so a stale source is never kept forever
-        const tick = () => {
-            // A newer reload took over; it now owns any stale data sources.
-            if (this._vectorLoadToken[name] !== loadToken) return
-            this._requestRender()
-            frames++
-            const ready = !display || display.ready
-            // Require a couple of rendered frames so `ready` reflects the newly
-            // added geometry rather than the previous frame's state.
-            if ((ready && frames >= 2) || frames >= maxFrames) {
-                this.renderer.dataSources.remove(dataSource)
-                this._requestRender()
-                return
-            }
-            requestAnimationFrame(tick)
-        }
-        requestAnimationFrame(tick)
     }
 
     /**
