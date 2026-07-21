@@ -845,10 +845,10 @@ class GlobeRenderer {
                 }
 
                 this._requestRender()
-            })
-            loadPromise.catch((err) => {
+            }).catch((err) => {
                 // On load failure keep the previous features rather than leaving
-                // the layer empty.
+                // the layer empty. Chained (not a sibling handler) so a rejected
+                // load can't produce an unhandled promise rejection.
                 delete this._loadingLayers[name]
                 console.error(`Failed to load vector layer "${name}":`, err)
             })
