@@ -81,6 +81,7 @@ const _resolveDynamicView = (e) => {
             return {
                 source: 'globe',
                 zoom: ext.zoom,
+                tilt: ext.tilt,
                 minx: ext.minx,
                 miny: ext.miny,
                 maxx: ext.maxx,
@@ -96,6 +97,7 @@ const _resolveDynamicView = (e) => {
     return {
         source: 'map',
         zoom: map.getZoom(),
+        tilt: 0,
         minx: bounds._southWest.lng,
         miny: bounds._southWest.lat,
         maxx: bounds._northEast.lng,
@@ -285,6 +287,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     lng: view.center.lng,
                                     lat: view.center.lat,
                                     zoom: view.zoom,
+                                    tilt: view.tilt,
                                 }
 
                                 if (
@@ -301,7 +304,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                         layerData._ignoreDynamicExtentMoveThreshold ===
                                             true ||
                                         (lastLoc != null &&
-                                            lastLoc.zoom !== nowLoc.zoom) ||
+                                            (lastLoc.zoom !== nowLoc.zoom ||
+                                                lastLoc.tilt !==
+                                                    nowLoc.tilt)) ||
                                         F_.lngLatDistBetween(
                                             lastLoc.lng,
                                             lastLoc.lat,
@@ -476,6 +481,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 lng: view.center.lng,
                                 lat: view.center.lat,
                                 zoom: view.zoom,
+                                tilt: view.tilt,
                             }
 
                             if (
@@ -487,7 +493,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     layerData._ignoreDynamicExtentMoveThreshold ===
                                         true ||
                                     (lastLoc != null &&
-                                        lastLoc.zoom !== nowLoc.zoom) ||
+                                        (lastLoc.zoom !== nowLoc.zoom ||
+                                            lastLoc.tilt !== nowLoc.tilt)) ||
                                     F_.lngLatDistBetween(
                                         lastLoc.lng,
                                         lastLoc.lat,

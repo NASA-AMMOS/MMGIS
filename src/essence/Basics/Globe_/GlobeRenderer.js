@@ -1746,6 +1746,37 @@ class GlobeRenderer {
     }
 
     /**
+     * How much the camera is looking across the surface rather than straight
+     * down, as a fraction: 0 = nadir (top-down), 1 = looking parallel to the
+     * ground (toward the horizon). Used to widen the dynamic-extent bbox so
+     * features toward the horizon are still queried when the view is tilted.
+     * @returns {number} tilt fraction in [0, 1]
+     */
+    getViewTiltFraction() {
+        try {
+            if (this.rendererType === 'lithosphere') {
+                const controls = this.renderer?._?.cameras?.orbit?.controls
+                if (!controls || typeof controls.getPolarAngle !== 'function')
+                    return 0
+                // OrbitControls polar angle: 0 at nadir, maxPolarAngle (PI/2)
+                // when looking along the surface.
+                const max = controls.maxPolarAngle || Math.PI / 2
+                return Math.max(0, Math.min(1, controls.getPolarAngle() / max))
+            } else {
+                const pitch = this.renderer?.camera?.pitch
+                if (pitch == null) return 0
+                // Cesium pitch: -PI/2 at nadir, 0 at the horizon.
+                return Math.max(
+                    0,
+                    Math.min(1, 1 - Math.abs(pitch) / (Math.PI / 2))
+                )
+            }
+        } catch (e) {
+            return 0
+        }
+    }
+
+    /**
      * Set center view
      * @param {object|array} view - { lng, lat, zoom } or [lat, lng, zoom]
      */
