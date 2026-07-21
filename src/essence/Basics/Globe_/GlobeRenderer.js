@@ -1746,6 +1746,53 @@ class GlobeRenderer {
     }
 
     /**
+     * Center + zoom to use for the dynamic-extent bbox. For LithoSphere this
+     * matches getCenter(). For Cesium, getCenter() returns the camera's nadir
+     * sub-point and a zoom derived from the camera height, which are only
+     * meaningful looking straight down: as the camera tilts, the sub-point
+     * drifts away from what the user is looking at and the height shrinks, so
+     * the bbox would both re-center off the view and collapse the more you
+     * tilt. Instead, use the point at the center of the view (screen center
+     * picked onto the ellipsoid) and derive the zoom from the camera's
+     * distance to that point, so the bbox stays centered on the viewed ground
+     * and grows (rather than shrinks) as the view is tilted toward the horizon.
+     * @returns {object|null} { lng, lat, zoom }
+     */
+    getExtentCenter() {
+        if (this.rendererType === 'lithosphere') {
+            return this.getCenter()
+        }
+        try {
+            const scene = this.renderer.scene
+            const camera = this.renderer.camera
+            const ellipsoid = scene.globe.ellipsoid
+            const canvas = scene.canvas
+            const centerPx = new Cesium.Cartesian2(
+                canvas.clientWidth / 2,
+                canvas.clientHeight / 2
+            )
+            const centerCartesian = camera.pickEllipsoid(centerPx, ellipsoid)
+            if (!centerCartesian) {
+                // Screen center is on the horizon/space; fall back to the
+                // sub-camera point (which the caller clamps/pads anyway).
+                return this.getCenter()
+            }
+            const carto = ellipsoid.cartesianToCartographic(centerCartesian)
+            const dist = Cesium.Cartesian3.distance(
+                camera.positionWC,
+                centerCartesian
+            )
+            return {
+                lng: Cesium.Math.toDegrees(carto.longitude),
+                lat: Cesium.Math.toDegrees(carto.latitude),
+                zoom: this._heightToZoom(dist),
+            }
+        } catch (e) {
+            return this.getCenter()
+        }
+    }
+
+    /**
      * How much the camera is looking across the surface rather than straight
      * down, as a fraction: 0 = nadir (top-down), 1 = looking parallel to the
      * ground (toward the horizon). Used to widen the dynamic-extent bbox so

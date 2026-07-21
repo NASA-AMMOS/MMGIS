@@ -313,12 +313,15 @@ let Globe_ = {
     // (EPSG:4326, what the geodatasets endpoint filters on). Derived from the
     // globe center + zoom + panel pixel size. The box is clamped to the poles
     // and to [-180, 180] and never wraps. Works for both the LithoSphere and
-    // Cesium renderers via GlobeRenderer.getCenter().
+    // Cesium renderers via GlobeRenderer.getExtentCenter().
     getExtent: function () {
         try {
             if (!this.litho || typeof this.litho.getCenter !== 'function')
                 return null
-            const center = this.litho.getCenter()
+            const center =
+                typeof this.litho.getExtentCenter === 'function'
+                    ? this.litho.getExtentCenter()
+                    : this.litho.getCenter()
             if (!center || center.lng == null || center.lat == null)
                 return null
 
@@ -421,7 +424,10 @@ let Globe_ = {
             if (el && el.clientWidth === 0 && el.clientHeight === 0) return
             let center
             try {
-                center = this.litho.getCenter()
+                center =
+                    typeof this.litho.getExtentCenter === 'function'
+                        ? this.litho.getExtentCenter()
+                        : this.litho.getCenter()
             } catch (e) {
                 return
             }
