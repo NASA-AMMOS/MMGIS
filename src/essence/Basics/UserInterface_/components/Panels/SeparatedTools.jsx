@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react'
 import useUIStore from '../../store/uiStore'
+import { toolConfigs } from '../../../../../pre/tools'
 
 import styles from './SeparatedTools.module.css'
 
@@ -41,7 +42,8 @@ function SeparatedTools() {
         <div id="toolcontroller_sep_content" className={styles.container}>
             {sortedTools.map((tool) => {
                 // "custom" tools render chrome-less and manage their own DOM.
-                const isCustom = tool.separatedTool === 'custom'
+                const isCustom =
+                    toolConfigs[tool.name]?.separatedTool === 'custom'
                 const toolModuleName = tool.name + 'Tool'
                 const isActive = activeSeparatedTools.includes(toolModuleName)
                 const ToolController_ =

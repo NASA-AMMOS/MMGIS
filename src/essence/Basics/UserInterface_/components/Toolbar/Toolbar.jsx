@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react'
 import useUIStore from '../../store/uiStore'
+import { toolConfigs } from '../../../../../pre/tools'
 import F_ from '../../../Formulae_/Formulae_'
 import BottomBarReact from '../BottomBar/BottomBarReact'
 import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
@@ -462,7 +463,7 @@ function Toolbar({ userInterface }) {
         if (isMobile) {
             return mobileTools.length === 0 || mobileTools.includes(t.name)
         }
-        return !t.separatedTool
+        return !toolConfigs[t.name]?.separatedTool
     })
 
     return (

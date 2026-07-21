@@ -37,16 +37,13 @@ let ToolController_ = {
             if (tm && typeof tm.initialize === 'function') tm.initialize()
         })
 
-        // separatedTool comes from the plugin manifest (toolConfigs), same as
-        // `expandable`, falling back to the mission-config value when unset.
-        // `true` = framed panel, "custom" = chrome-less (tool owns its DOM).
-        const normalizedTools = tools.map((t) => {
+        // separatedTool is defined solely by the plugin manifest (toolConfigs),
+        // like `expandable`. `true` = framed panel, "custom" = chrome-less
+        // (tool owns its DOM); anything else (incl. unset) = not separated.
+        const separatedTools = tools.filter((t) => {
             const mode = toolConfigs[t.name]?.separatedTool
-            return mode !== undefined ? { ...t, separatedTool: mode } : t
+            return mode === true || mode === 'custom'
         })
-        const separatedTools = normalizedTools.filter(
-            (t) => t.separatedTool === true || t.separatedTool === 'custom'
-        )
         useUIStore.getState().setSeparatedToolsList(separatedTools)
 
         // Auto-open separated tools that have on === true
@@ -77,7 +74,7 @@ let ToolController_ = {
         })
 
         // Publish tools list to Zustand store for React rendering
-        useUIStore.getState().setToolsList(normalizedTools)
+        useUIStore.getState().setToolsList(tools)
         useUIStore.getState().setToolsLoaded(true)
 
         ToolController_.loaded = true
