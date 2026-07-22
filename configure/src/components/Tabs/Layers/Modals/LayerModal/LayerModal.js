@@ -241,7 +241,7 @@ const LayerModal = (props) => {
                 if (c.field == null) return;
                 if (c.type === "interactions") {
                   if (getIn(l, "kind", null) == null)
-                    setIn(completedLayer, "kind", "none", true);
+                    setIn(completedLayer, ["kind"], "none", true);
                 } else if (
                   c.type === "dropdown" ||
                   c.type === "colordropdown"
