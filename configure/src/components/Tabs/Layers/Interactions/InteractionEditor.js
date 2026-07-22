@@ -349,7 +349,9 @@ export default function InteractionEditor({
           </Button>
           <Button
             variant={customPipeline ? "contained" : "outlined"}
-            onClick={() => updateClickPipeline(presetPipeline)}
+            onClick={() => {
+              if (!customPipeline) updateClickPipeline(presetPipeline);
+            }}
           >
             Customize pipeline
           </Button>
