@@ -117,7 +117,7 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `--link` | `install` | Symlink local paths instead of copy (falls back to junction on Windows) |
 | `--container <name>` | `create`, `enable-all`, `disable-all` | Target container |
 | `--only <names>` | `install` | Comma-separated plugin names to keep enabled (disables the rest) |
-| `--force` | `destroy` | Skip confirmation prompt |
+| `--force` | `create`, `destroy` | Allow scaffolding into `core`; skip destroy confirmation prompt |
 | `--tier <tier>` | `registry add` | Set tier (`core`, `official`, `community`, `private`, `experimental`, `deprecated`) |
 | `--description <text>` | `registry add` | Set description |
 | `--license <spdx>` | `registry add` | Set license (e.g. `Apache-2.0`) |
@@ -285,6 +285,9 @@ npm run plugins -- create component MyWidget --container my-plugins
 
 # Container is auto-created if it doesn't exist
 npm run plugins -- create tool AnotherTool --container my-plugins
+
+# Core scaffolding requires explicit confirmation
+npm run plugins -- create interaction CoreInteraction --container core --force
 ```
 
 This scaffolds the directory structure, `plugin.json`, entry point, CSS, and a test spec. Frontend plugins are auto-activated.
@@ -707,7 +710,7 @@ Required runtime versions. Enforced at registration time — if the current MMGI
 
 - Core plugins (`plugins/core/`) cannot be **uninstalled**, **destroyed**, or **disabled** via the CLI.
 - `enable-all`/`disable-all` reject `--container core`.
-- `create` rejects `--container core` (core plugins are maintained in the main repo).
+- `create --container core` requires `--force`; without it, the CLI refuses to modify the repository-owned core container.
 - Plugins with `"required": true` or `"overridable": false` cannot be **disabled** or **destroyed** regardless of container.
 
 ### Core Plugins

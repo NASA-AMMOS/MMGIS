@@ -199,9 +199,21 @@ test.describe('CLI enable and disable', () => {
 test.describe('CLI create and destroy', () => {
 
     const CONTAINER = 'e2e-test-container';
+    const CORE_INTERACTION = 'E2eCoreInteraction';
+    const CORE_INTERACTION_DIR = path.join(
+        PLUGINS_ROOT,
+        'core',
+        'interactions',
+        CORE_INTERACTION
+    );
+
+    test.beforeAll(() => {
+        fs.rmSync(CORE_INTERACTION_DIR, { recursive: true, force: true });
+    });
 
     test.afterAll(() => {
         cleanupContainer(CONTAINER);
+        fs.rmSync(CORE_INTERACTION_DIR, { recursive: true, force: true });
         cleanupState([`${CONTAINER}/tools/E2eTool`]);
         runCli('activate');
     });
@@ -245,6 +257,28 @@ test.describe('CLI create and destroy', () => {
         expect(result.command).toBe('create');
         expect(result.name).toBe('E2eTool');
         expect(result.type).toBe('tool');
+    });
+
+    test('create requires --force for the core container', () => {
+        const { stderr, exitCode } = runCli(
+            `create interaction ${CORE_INTERACTION} --container core`
+        );
+        expect(exitCode).not.toBe(0);
+        expect(stderr).toContain(
+            'Cannot create plugins in the core container without --force.'
+        );
+        expect(fs.existsSync(CORE_INTERACTION_DIR)).toBe(false);
+    });
+
+    test('create --force scaffolds into the core container', () => {
+        const { stdout, exitCode } = runCli(
+            `create interaction ${CORE_INTERACTION} --container core --force --json`
+        );
+        expect(exitCode).toBe(0);
+
+        const result = JSON.parse(stdout);
+        expect(result.path).toBe(`core/interactions/${CORE_INTERACTION}`);
+        expect(fs.existsSync(CORE_INTERACTION_DIR)).toBe(true);
     });
 
     test('create backend scaffolds correct structure', () => {

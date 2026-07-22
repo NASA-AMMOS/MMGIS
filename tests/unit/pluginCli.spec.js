@@ -354,15 +354,21 @@ test.describe('plugin-cli interaction support', () => {
         expect(exitCode).not.toBe(0);
     });
 
-    test('create interaction rejects core container', () => {
-        const { exitCode } = runCli('create interaction TestHook --container core');
+    test('create interaction requires --force for the core container', () => {
+        const { stderr, exitCode } = runCli(
+            'create interaction TestHook --container core'
+        );
         expect(exitCode).not.toBe(0);
+        expect(stderr).toContain(
+            'Cannot create plugins in the core container without --force.'
+        );
     });
 
     test('help mentions interaction type', () => {
         const { stdout, exitCode } = runCli('help');
         expect(exitCode).toBe(0);
         expect(stdout).toContain('interaction');
+        expect(stdout).toContain('--container core --force');
     });
 
     test('create and destroy interaction scaffold', () => {

@@ -1867,9 +1867,9 @@ function cmdCreate(type, name) {
         process.exit(1);
     }
 
-    if (FLAG_CONTAINER === CORE_CONTAINER) {
-        jsonError("Cannot create plugins in the core container. Use a different --container name.");
-        console.error(c.red("Cannot create plugins in the core container."));
+    if (FLAG_CONTAINER === CORE_CONTAINER && !FLAG_FORCE) {
+        jsonError("Cannot create plugins in the core container without --force.");
+        console.error(c.red("Cannot create plugins in the core container without --force."));
         console.error(c.dim("Core plugins are maintained as part of the main MMGIS repository."));
         process.exit(1);
     }
@@ -2096,7 +2096,7 @@ ${h("help", "Show this help")}
     ${c.cyan("--json".padEnd(30))} ${c.dim("Output machine-readable JSON (all commands)")}
     ${c.cyan("--link".padEnd(30))} ${c.dim("Symlink local paths instead of copy (falls back to junction on Windows)")}
     ${c.cyan("--container <name>".padEnd(30))} ${c.dim("Target container (create, enable-all, disable-all)")}
-    ${c.cyan("--force".padEnd(30))} ${c.dim("Skip confirmation prompts (destroy)")}
+    ${c.cyan("--force".padEnd(30))} ${c.dim("Allow core scaffolding; skip confirmation prompts (destroy)")}
     ${c.cyan("--tier <tier>".padEnd(30))} ${c.dim("Set tier when adding a registry (core, official, community, private, experimental, deprecated)")}
     ${c.cyan("--description <text>".padEnd(30))} ${c.dim("Set description when adding a registry")}
     ${c.cyan("--license <spdx>".padEnd(30))} ${c.dim("Set license when adding a registry (e.g. Apache-2.0)")}
@@ -2118,6 +2118,7 @@ ${h("help", "Show this help")}
     ${c.dim("$")} npm run plugins -- create tool SpectralAnalysis --container my-plugins
     ${c.dim("$")} npm run plugins -- create backend DataIngest --container my-plugins
     ${c.dim("$")} npm run plugins -- create interaction FeatureHighlight --container my-plugins
+    ${c.dim("$")} npm run plugins -- create interaction CoreInteraction --container core --force
 `);
 }
 
