@@ -54,7 +54,7 @@ const KNOWN_FIELDS = {
     "expandable",
     "separatedTool",
     "config",
-    "kinds",
+    "providesInteractions",
   ]),
   component: new Set([
     ...COMMON_FIELDS,
@@ -71,6 +71,18 @@ const KNOWN_FIELDS = {
     "priority",
     "envs",
     "routes",
+  ]),
+  interaction: new Set([
+    ...COMMON_FIELDS,
+    "paths",
+    "interactionId",
+    "description",
+    "applicableLayerTypes",
+    "applicableEvents",
+    "phase",
+    "order",
+    "suppresses",
+    "kindAlias",
   ]),
 };
 
@@ -189,9 +201,9 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
     );
   }
-  if (config.type !== undefined && !["tool", "component", "backend"].includes(config.type)) {
+  if (config.type !== undefined && !["tool", "component", "backend", "interaction"].includes(config.type)) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend`
+      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction`
     );
   }
   if (config.tier !== undefined && !["core", "community", "private", "official", "experimental", "deprecated"].includes(config.tier)) {
@@ -240,6 +252,68 @@ function validatePluginConfig(config, pluginName, pluginType) {
             `Plugin '${pluginName}' (${pluginType}): each entry in 'pluginDependencies' must be a non-empty string (plugin ID)`
           );
         }
+      }
+    }
+  }
+
+  // For interactions, name, interactionId, and paths are required.
+  if (pluginType === "interaction") {
+    if (typeof config.name !== "string" || config.name.length === 0) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'name' field (must be a non-empty string)`
+      );
+    }
+    if (typeof config.interactionId !== "string" || config.interactionId.length === 0) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'interactionId' field (must be a non-empty string)`
+      );
+    }
+    if (
+      config.paths === undefined ||
+      config.paths === null ||
+      typeof config.paths !== "object" ||
+      Array.isArray(config.paths)
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'paths' object`
+      );
+    } else {
+      const pathKeys = Object.keys(config.paths);
+      if (pathKeys.length === 0) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'paths' object must contain at least one entry`
+        );
+      }
+      for (const key of pathKeys) {
+        if (typeof config.paths[key] !== "string") {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'paths.${key}' must be a string`
+          );
+        }
+      }
+    }
+    if (config.phase !== undefined && !["preamble", "postamble", "main"].includes(config.phase)) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'phase' must be one of: preamble, postamble, main`
+      );
+    }
+    if (config.order !== undefined && typeof config.order !== "number") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'order' must be a number`
+      );
+    }
+    if (config.suppresses !== undefined) {
+      if (!Array.isArray(config.suppresses)) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'suppresses' must be an array of interaction IDs`
+        );
+      }
+    }
+    if (config.kindAlias !== undefined) {
+      if (!Array.isArray(config.kindAlias)) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'kindAlias' must be an array of legacy kind strings`
+        );
       }
     }
   }
@@ -306,8 +380,29 @@ function validatePluginConfig(config, pluginName, pluginType) {
   return errors;
 }
 
+function findDuplicateInteractionIds(interactions) {
+  const ownersById = new Map();
+
+  for (const interaction of interactions) {
+    if (
+      typeof interaction.interactionId !== "string" ||
+      interaction.interactionId.length === 0
+    ) {
+      continue;
+    }
+    const owners = ownersById.get(interaction.interactionId) || [];
+    owners.push(interaction.name);
+    ownersById.set(interaction.interactionId, owners);
+  }
+
+  return Array.from(ownersById.entries())
+    .filter(([, owners]) => owners.length > 1)
+    .map(([interactionId, owners]) => ({ interactionId, owners }));
+}
+
 module.exports = {
   validatePluginConfig,
   validateDependencies,
+  findDuplicateInteractionIds,
   KNOWN_FIELDS,
 };

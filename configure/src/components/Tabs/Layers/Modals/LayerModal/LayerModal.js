@@ -231,14 +231,21 @@ const LayerModal = (props) => {
           config.tabs.forEach((t) => {
             t.rows.forEach((r) => {
               r.components.forEach((c) => {
-                // Skip non-field components (such as the map)
+                const fields = c.fields || (c.field != null ? [c.field] : []);
+                fields.forEach((field) => {
+                  const currentValue = getIn(l, field.split("."), null);
+                  if (currentValue != null)
+                    setIn(completedLayer, field.split("."), currentValue, true);
+                });
+
                 if (c.field == null) return;
-
-                const currentValue = getIn(l, c.field.split("."), null);
-                if (currentValue != null)
-                  setIn(completedLayer, c.field.split("."), currentValue, true);
-
-                if (c.type === "dropdown" || c.type === "colordropdown") {
+                if (c.type === "interactions") {
+                  if (getIn(l, "kind", null) == null)
+                    setIn(completedLayer, ["kind"], "none", true);
+                } else if (
+                  c.type === "dropdown" ||
+                  c.type === "colordropdown"
+                ) {
                   const currentValue = getIn(l, c.field);
                   if (currentValue == null) {
                     setIn(
@@ -286,6 +293,7 @@ const LayerModal = (props) => {
           // Filter empty strings from any indexed text array fields
           const filterEmptyStrings = (obj) => {
             Object.keys(obj).forEach((key) => {
+              if (key === "interactions") return;
               const val = obj[key];
               if (Array.isArray(val)) {
                 obj[key] = val.filter((v) => v != null && v !== "");

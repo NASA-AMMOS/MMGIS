@@ -1,0 +1,13 @@
+{
+    "name": "TestInteraction",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "interactionId": "test:interaction",
+    "description": "Minimal fixture interaction for unit tests.",
+    "applicableLayerTypes": ["vector"],
+    "applicableEvents": ["click"],
+    "paths": {
+        "TestInteraction": "../plugins/mmgis-test/interactions/TestInteraction/TestInteraction"
+    }
+}

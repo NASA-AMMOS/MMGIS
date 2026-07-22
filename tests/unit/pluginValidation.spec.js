@@ -280,3 +280,72 @@ test.describe('validatePluginConfig - Phase 2 manifest fields', () => {
         expect(errors).toEqual([]);
     });
 });
+
+test.describe('validatePluginConfig - interaction manifest fields', () => {
+    const validInteraction = {
+        name: 'TestHook',
+        interactionId: 'test:hook',
+        paths: { TestHook: './TestHook' },
+        phase: 'preamble',
+        order: 0,
+    };
+
+    test('valid interaction with phase and order returns no errors', () => {
+        const errors = validatePluginConfig(validInteraction, 'TestHook', 'interaction');
+        expect(errors).toEqual([]);
+    });
+
+    test('rejects invalid phase value', () => {
+        const config = { ...validInteraction, phase: 'invalid' };
+        const errors = validatePluginConfig(config, 'TestHook', 'interaction');
+        expect(errors.some((e) => e.includes("'phase' must be one of"))).toBe(true);
+    });
+
+    test('accepts all valid phase values', () => {
+        for (const phase of ['preamble', 'postamble', 'main']) {
+            const config = { ...validInteraction, phase };
+            const errors = validatePluginConfig(config, 'TestHook', 'interaction');
+            expect(errors).toEqual([]);
+        }
+    });
+
+    test('rejects non-numeric order', () => {
+        const config = { ...validInteraction, order: 'first' };
+        const errors = validatePluginConfig(config, 'TestHook', 'interaction');
+        expect(errors.some((e) => e.includes("'order' must be a number"))).toBe(true);
+    });
+
+    test('rejects non-array suppresses', () => {
+        const config = { ...validInteraction, suppresses: 'info:silent' };
+        const errors = validatePluginConfig(config, 'TestHook', 'interaction');
+        expect(errors.some((e) => e.includes("'suppresses' must be an array"))).toBe(true);
+    });
+
+    test('accepts valid suppresses array', () => {
+        const config = { ...validInteraction, suppresses: ['info:silent'] };
+        const errors = validatePluginConfig(config, 'TestHook', 'interaction');
+        expect(errors).toEqual([]);
+    });
+
+    test('rejects non-array kindAlias', () => {
+        const config = { ...validInteraction, kindAlias: 'info' };
+        const errors = validatePluginConfig(config, 'TestHook', 'interaction');
+        expect(errors.some((e) => e.includes("'kindAlias' must be an array"))).toBe(true);
+    });
+
+    test('accepts valid kindAlias array', () => {
+        const config = { ...validInteraction, kindAlias: ['info', 'details'] };
+        const errors = validatePluginConfig(config, 'TestHook', 'interaction');
+        expect(errors).toEqual([]);
+    });
+
+    test('phase, order, suppresses, kindAlias are all optional', () => {
+        const config = {
+            name: 'Minimal',
+            interactionId: 'minimal',
+            paths: { Minimal: './Minimal' },
+        };
+        const errors = validatePluginConfig(config, 'Minimal', 'interaction');
+        expect(errors).toEqual([]);
+    });
+});

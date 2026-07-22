@@ -18,6 +18,10 @@ const c = {
     type: "GET",
     url: "configure/public/componentConfigs.json",
   },
+  getInteractionConfig: {
+    type: "GET",
+    url: "configure/public/interactionConfigs.json",
+  },
   get: {
     type: "GET",
     url: "api/configure/get",

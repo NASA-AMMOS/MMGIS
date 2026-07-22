@@ -121,7 +121,7 @@ test.describe('updateTools - plugin discovery and validation', () => {
         const cfg = JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
         // Identifier is part of the standard MMGIS tool set.
         expect(cfg).toHaveProperty('Identifier');
-        expect(cfg).toHaveProperty('Kinds');
+        expect(cfg).toHaveProperty('Info');
     });
 });
 

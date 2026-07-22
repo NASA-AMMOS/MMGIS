@@ -15,7 +15,11 @@ import CursorInfo from '../UserInterface_/components/CursorInfo/CursorInfo'
 import Description from '../UserInterface_/components/Description/Description'
 import QueryURL from '../../services/QueryURL'
 import MetadataCapturer from '../Layers_/MetadataCapturer.js'
-import { Kinds } from '../../../pre/tools'
+import {
+    runInteractions,
+    kindToInteractions,
+    resolveLayerInteractions,
+} from '../InteractionRunner/InteractionRunner'
 import DataShaders from '../../services/DataShaders'
 import calls from '../../../pre/calls'
 import TimeControl from '../TimeControl_/TimeControl'
@@ -919,16 +923,41 @@ function onEachFeatureDefault(feature, layer) {
             layer['useKeyAsName']
     }
 
-    if (typeof layer['useKeyAsName'] === 'string') {
-        //Add a mouseover event to the layer
-        layer.on('mouseover', function () {
-            //Make it turn on CursorInfo and show name and value
-            CursorInfo.update(pv, null, false)
+    const layerData = L_.layers.data[layer.options?.layerName] || {}
+    const hooks = resolveLayerInteractions(layerData)
+
+    if (typeof layer['useKeyAsName'] === 'string' && hooks.hover) {
+        layer.on('mouseover', function (e) {
+            const ctx = {
+                Map_,
+                feature,
+                layer,
+                layerName: layer.options.layerName,
+                layerData,
+                layerVar: layerData.variables || {},
+                event: e,
+                eventType: 'hover',
+                stop: false,
+                state: {},
+            }
+            runInteractions(hooks.hover, ctx)
         })
-        //Add a mouseout event
-        layer.on('mouseout', function () {
-            //Make it turn off CursorInfo
-            CursorInfo.hide()
+    }
+    if (typeof layer['useKeyAsName'] === 'string' && hooks.mouseout) {
+        layer.on('mouseout', function (e) {
+            const ctx = {
+                Map_,
+                feature,
+                layer,
+                layerName: layer.options.layerName,
+                layerData,
+                layerVar: layerData.variables || {},
+                event: e,
+                eventType: 'mouseout',
+                stop: false,
+                state: {},
+            }
+            runInteractions(hooks.mouseout, ctx)
         })
     }
 
@@ -939,7 +968,6 @@ function onEachFeatureDefault(feature, layer) {
             feature.style.noclick
         )
     ) {
-        //Add a click event to send the data to the info tab
         layer.on('click', (e) => {
             featureDefaultClick(feature, layer, e)
         })
@@ -953,82 +981,29 @@ function featureDefaultClick(feature, layer, e) {
         ToolController_.activeTool.disableLayerInteractions === true
     )
         return
-    MetadataCapturer.populateMetadata(layer, () => {
-        Kinds.use(
-            L_.layers.data[layer.options.layerName].kind,
+    MetadataCapturer.populateMetadata(layer, async () => {
+        const layerName = layer.options.layerName
+        const layerData = L_.layers.data[layerName]
+        const pipeline = resolveLayerInteractions(layerData).click
+
+        Map_.rmNotNull(Map_.tempOverlayImage)
+        L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+
+        const ctx = {
             Map_,
             feature,
             layer,
-            layer.options.layerName,
-            null,
-            e
-        )
-
-        //update url
-        if (layer != null && layer.hasOwnProperty('options')) {
-            var keyAsName
-            if (layer.hasOwnProperty('useKeyAsName')) {
-                keyAsName = layer.feature.properties[layer.useKeyAsName]
-            } else {
-                keyAsName = layer.feature.properties[0]
-            }
+            layerName,
+            layerData,
+            layerVar: layerData.variables || {},
+            event: e,
+            eventType: 'click',
+            additional: null,
+            stop: false,
+            state: {},
         }
 
-        Viewer_.changeImages(feature, layer)
-
-        //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
-        //be searched by "target sol", or it can be searched by "sol target" depending on config file.
-        var searchToolVars = L_.getToolVars('search')
-        var searchfields = {}
-        if (searchToolVars.hasOwnProperty('searchfields')) {
-            for (var layerfield in searchToolVars.searchfields) {
-                var fieldString = searchToolVars.searchfields[layerfield]
-                fieldString = fieldString.split(')')
-                for (var i = 0; i < fieldString.length; i++) {
-                    fieldString[i] = fieldString[i].split('(')
-                    var li = fieldString[i][0].lastIndexOf(' ')
-                    if (li != -1) {
-                        fieldString[i][0] = fieldString[i][0].substring(li + 1)
-                    }
-                }
-                fieldString.pop()
-                //0 is function, 1 is parameter
-                searchfields[layerfield] = fieldString
-            }
-        }
-
-        var str = ''
-        if (searchfields.hasOwnProperty(layer.options.layerName)) {
-            var sf = searchfields[layer.options.layerName] //sf for search field
-            for (var i = 0; i < sf.length; i++) {
-                str += sf[i][1]
-                str += ' '
-            }
-        }
-        str = str.substring(0, str.length - 1)
-
-        var searchFieldTokens = str.split(' ')
-        var searchStr
-
-        if (searchFieldTokens.length == 2) {
-            if (
-                searchFieldTokens[0].toLowerCase() ==
-                layer.useKeyAsName.toLowerCase()
-            ) {
-                searchStr = keyAsName + ' ' + layer.feature.properties.Sol
-            } else {
-                searchStr = layer.feature.properties.Sol + ' ' + keyAsName
-            }
-        }
-
-        QueryURL.writeSearchURL([searchStr], layer.options.layerName)
-
-        let _event = new CustomEvent('newActiveFeature', {
-            detail: {
-                activeFeature: L_.activeFeature,
-            },
-        })
-        document.dispatchEvent(_event)
+        await runInteractions(pipeline, ctx)
     })
 }
 
@@ -1637,26 +1612,34 @@ function makeVectorTileLayer(layerObj, mapContext = null) {
                     let ell = { latlng: null }
                     if (e.latlng != null)
                         ell.latlng = JSON.parse(JSON.stringify(e.latlng))
-                    MetadataCapturer.populateMetadata(layer, () => {
-                        Kinds.use(
-                            L_.layers.data[layerName].kind,
-                            Map_,
-                            L_.layers.layer[layerName].activeFeatures[0],
-                            layer,
-                            layerName,
-                            null,
-                            ell
-                        )
+                    MetadataCapturer.populateMetadata(layer, async () => {
+                        const layerData = L_.layers.data[layerName]
+                        const pipeline =
+                            layerData.interactions?.click ||
+                            kindToInteractions(layerData.kind || 'none').click
 
-                        ToolController_.getTool('InfoTool').use(
+                        Map_.rmNotNull(Map_.tempOverlayImage)
+                        L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+
+                        const ctx = {
+                            Map_,
+                            feature:
+                                L_.layers.layer[layerName].activeFeatures[0],
                             layer,
                             layerName,
-                            L_.layers.layer[layerName].activeFeatures,
-                            null,
-                            null,
-                            null,
-                            ell
-                        )
+                            layerData,
+                            layerVar: layerData.variables || {},
+                            event: ell,
+                            eventType: 'click',
+                            additional: null,
+                            stop: false,
+                            state: {
+                                preFeatures:
+                                    L_.layers.layer[layerName].activeFeatures,
+                            },
+                        }
+
+                        await runInteractions(pipeline, ctx)
                         L_.layers.layer[layerName].activeFeatures = []
                     })
                 }

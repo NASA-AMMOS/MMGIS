@@ -48,6 +48,7 @@ import Map from "../components/Map/Map";
 import VideoPreview from "../components/VideoPreview/VideoPreview";
 import ColorButton from "../components/ColorButton/ColorButton";
 import ThemePreview from "../components/ThemePreview/ThemePreview";
+import InteractionEditor from "../components/Tabs/Layers/Interactions/InteractionEditor";
 import MDEditor from "@uiw/react-md-editor";
 import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
@@ -1604,6 +1605,13 @@ const getComponent = (
           </div>
           {section}
         </div>
+      );
+    case "interactions":
+      return (
+        <InteractionEditor
+          layer={layer}
+          updateConfiguration={updateConfiguration}
+        />
       );
     case "map":
       return (

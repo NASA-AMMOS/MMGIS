@@ -1,0 +1,28 @@
+{
+    "uuid": "f7dfa5b2-dec8-4f5d-b0b0-177616585d8a",
+    "id": "core-interaction-viewer-open-panel",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": true,
+    "name": "ViewerOpenPanel",
+    "interactionId": "viewer:open_panel",
+    "description": "Opens the Viewer panel if hidden, then zooms the map to the clicked feature.",
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
+    "phase": "main",
+    "kindAlias": [
+        "viewer_open"
+    ],
+    "paths": {
+        "ViewerOpenPanel": "./ViewerOpenPanel"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

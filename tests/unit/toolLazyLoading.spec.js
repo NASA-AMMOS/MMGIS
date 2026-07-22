@@ -1,7 +1,7 @@
 /**
  * Verify that the generated `src/pre/tools.js` statically imports every
  * tool. Cross-tool consumers (`Map_` feature-click → `InfoTool.use(...)`,
- * `LegendTool` → `LayersTool.populateCogScale`, `mmgisAPI`, `Kinds`)
+ * `LegendTool` → `LayersTool.populateCogScale`, `mmgisAPI`)
  * reach into other tools synchronously, so every tool module must be
  * available the moment `ToolController_` initialises.
  */
@@ -38,12 +38,6 @@ test.describe('Generated tools.js (static imports)', () => {
         );
     });
 
-    test('imports Kinds as `kinds`', () => {
-        const contents = fs.readFileSync(TOOLS_JS, 'utf8');
-        expect(contents).toMatch(/import kinds from '[^']+'/);
-        expect(contents).toContain('export const Kinds = kinds');
-    });
-
     test('does NOT use lazy `() => import(...)` for any tool', () => {
         const contents = fs.readFileSync(TOOLS_JS, 'utf8');
         // Phase 4 lazy loading was reverted — no dynamic-import arrow
@@ -72,6 +66,55 @@ test.describe('Generated tools.js (static imports)', () => {
             expect(cfg[name], `${name} should be present`).toBeTruthy();
             expect(typeof cfg[name].paths).toBe('object');
         }
+    });
+});
+
+test.describe('Generated interactions.js (static imports)', () => {
+    const INTERACTIONS_JS = path.resolve(
+        __dirname,
+        '..',
+        '..',
+        'src',
+        'pre',
+        'interactions.js'
+    );
+
+    test.beforeAll(() => {
+        if (!fs.existsSync(INTERACTIONS_JS)) {
+            const { updateInteractions } = require('../../API/updateTools');
+            updateInteractions();
+        }
+    });
+
+    test('exists and is non-empty', () => {
+        expect(fs.existsSync(INTERACTIONS_JS)).toBe(true);
+        const stat = fs.statSync(INTERACTIONS_JS);
+        expect(stat.size).toBeGreaterThan(0);
+    });
+
+    test('emits static default imports for interactions', () => {
+        const contents = fs.readFileSync(INTERACTIONS_JS, 'utf8');
+        expect(contents).toMatch(
+            /^\s*import\s+interaction_Select_\w+\s+from\s+'[^']+'/m
+        );
+    });
+
+    test('does NOT use lazy `() => import(...)` for any interaction', () => {
+        const contents = fs.readFileSync(INTERACTIONS_JS, 'utf8');
+        expect(contents).not.toMatch(
+            /const\s+\w+\s*=\s*\(\)\s*=>\s*import\(/
+        );
+        expect(contents).not.toContain('webpackChunkName');
+    });
+
+    test('exports interactionHandlers map', () => {
+        const contents = fs.readFileSync(INTERACTIONS_JS, 'utf8');
+        expect(contents).toContain('export const interactionHandlers');
+    });
+
+    test('exports interactionConfigs', () => {
+        const contents = fs.readFileSync(INTERACTIONS_JS, 'utf8');
+        expect(contents).toContain('export const interactionConfigs');
     });
 });
 

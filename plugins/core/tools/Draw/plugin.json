@@ -392,5 +392,8 @@
         "core/backend/Draw",
         "core/backend/Geodatasets",
         "core/backend/Utils"
+    ],
+    "providesInteractions": [
+        "core/interactions/DrawContextMenu"
     ]
 }

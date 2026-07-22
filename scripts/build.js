@@ -28,7 +28,7 @@ const {
   checkBrowsers,
 } = require("../configuration/build-utils");
 
-const { updateTools, updateComponents } = require("../API/updateTools");
+const { updateTools, updateComponents, updateInteractions } = require("../API/updateTools");
 const { resolvePluginDeps } = require("./resolve-plugin-deps");
 
 const measureFileSizesBeforeBuild =
@@ -72,6 +72,10 @@ updateTools();
 // Attach any component plugins to the application
 console.log(chalk.cyan("\nPlugging in Components..."));
 updateComponents();
+
+// Attach any interaction plugins to the application
+console.log(chalk.cyan("\nPlugging in Interactions..."));
+updateInteractions();
 
 checkBrowsers(paths.appPath, isInteractive)
   .then(() => {

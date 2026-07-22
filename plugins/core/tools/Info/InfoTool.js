@@ -2,7 +2,10 @@ import $ from 'jquery'
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
-import { Kinds } from '@pre/tools'
+import {
+    runInteractions,
+    kindToInteractions,
+} from '@basics/InteractionRunner/InteractionRunner'
 import Dropy from '@external/Dropy/dropy'
 
 import MetadataCapturer from '@basics/Layers_/MetadataCapturer'
@@ -682,19 +685,39 @@ var InfoTool = {
         let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
         MetadataCapturer.populateMetadata(
             InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-            () => {
-                Kinds.use(
-                    L_.layers.data[InfoTool.currentLayerName]?.kind || null,
+            async () => {
+                const layerName = InfoTool.currentLayerName
+                const layerData = L_.layers.data[layerName] || {}
+                const pipeline =
+                    layerData.interactions?.click ||
+                    kindToInteractions(layerData.kind || 'none').click
+
+                Map_.rmNotNull(Map_.tempOverlayImage)
+                L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+
+                const ctx = {
                     Map_,
-                    InfoTool.info[idx],
-                    InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-                    InfoTool.currentLayerName,
-                    null,
-                    e,
-                    { idx: idx },
-                    InfoTool.info,
-                    InfoTool.featureLayers[idx] ? InfoTool.featureLayers : null
-                )
+                    feature: InfoTool.info[idx],
+                    layer:
+                        InfoTool.featureLayers[idx] ||
+                        InfoTool.currentLayer,
+                    layerName,
+                    layerData,
+                    layerVar: layerData.variables || {},
+                    event: e,
+                    eventType: 'click',
+                    additional: { idx: idx },
+                    stop: false,
+                    state: {
+                        preFeatures: InfoTool.info,
+                        lastFeatureLayers:
+                            InfoTool.featureLayers[idx]
+                                ? InfoTool.featureLayers
+                                : null,
+                    },
+                }
+
+                await runInteractions(pipeline, ctx)
             }
         )
     },
