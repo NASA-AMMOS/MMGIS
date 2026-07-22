@@ -3,7 +3,10 @@ const path = require("path");
 const semver = require("semver");
 
 const logger = require("./logger");
-const { validatePluginConfig } = require("./pluginValidation");
+const {
+  validatePluginConfig,
+  findDuplicateInteractionIds,
+} = require("./pluginValidation");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
@@ -160,7 +163,6 @@ function updateTools() {
   //    available the moment `ToolController_` is initialised.
   let toolConfigs = "";
   const toolModules = {};
-  let kindsModule = null;
   // Paths values in plugin.json can be:
   //   - Relative ("./DrawTool") — resolved from the plugin's directory
   //   - Legacy ("../plugins/core/tools/X/XTool") — prefixed with "../"
@@ -169,13 +171,8 @@ function updateTools() {
     const pluginPath = toolPluginPaths[t] || null;
     for (const p in tools[t].paths) {
       const resolved = resolvePluginPath(tools[t].paths[p], pluginPath);
-      if (p === "Kinds") {
-        kindsModule = p;
-        toolConfigs += `import kinds from '${resolved}'\n`;
-      } else {
-        toolModules[p] = p;
-        toolConfigs += `import ${p} from '${resolved}'\n`;
-      }
+      toolModules[p] = p;
+      toolConfigs += `import ${p} from '${resolved}'\n`;
     }
   }
 
@@ -184,28 +181,18 @@ function updateTools() {
   toolConfigs += `export const toolModules = ${JSON.stringify(
     toolModules
   ).replace(/"/g, "")}\n`;
-  toolConfigs += `export const Kinds = kinds`;
 
-  if (kindsModule == null) {
+  try {
+    fs.writeFileSync("./src/pre/tools.js", toolConfigs);
+    logger("success", "Successfully plugged-in tools.", "Tools");
+  } catch (err) {
     logger(
       "error",
-      "Kinds tool is required but is not found. Are you missing a plugin.json?",
+      "Failed to write tool paths to src tools.js",
       "Tools",
-      null
+      null,
+      err
     );
-  } else {
-    try {
-      fs.writeFileSync("./src/pre/tools.js", toolConfigs);
-      logger("success", "Successfully plugged-in tools.", "Tools");
-    } catch (err) {
-      logger(
-        "error",
-        "Failed to write tool paths to src tools.js",
-        "Tools",
-        null,
-        err
-      );
-    }
   }
 
   // Check inter-plugin dependencies (warns if a tool's backend dep is missing/disabled).
@@ -284,4 +271,204 @@ function updateComponents() {
   }
 }
 
-module.exports = { updateTools, updateComponents };
+function updateInteractions() {
+  let interactions = {};
+  const interactionPluginPaths = {};
+
+  // 1. Discover all interaction plugins.
+  const allInteractions = discoverPlugins(
+    PLUGINS_ROOT,
+    "interactions",
+    "plugin.json",
+    { loggerCategory: "Interactions" }
+  );
+
+  // 2. Build set of all enabled plugin IDs (tools + backend + components)
+  //    for hard dependency checking.
+  const enabledPluginIds = new Set();
+  for (const type of ["tools", "backend", "components", "interactions"]) {
+    const plugins = discoverPlugins(PLUGINS_ROOT, type, "plugin.json", {
+      loader: "parse",
+      loggerCategory: "Interactions",
+    });
+    for (const p of plugins) {
+      enabledPluginIds.add(`${p.container}/${type}/${p.name}`);
+    }
+  }
+
+  // 3. Register each interaction, enforcing hard dependencies.
+  for (const plugin of allInteractions) {
+    // Hard dependency check — exclude interactions whose deps are missing.
+    if (Array.isArray(plugin.manifest.pluginDependencies)) {
+      const missing = plugin.manifest.pluginDependencies.filter(
+        (dep) => !enabledPluginIds.has(dep)
+      );
+      if (missing.length > 0) {
+        logger(
+          "warn",
+          `Interaction '${plugin.name}' skipped — missing dependencies: ${missing.join(", ")}`,
+          "Interactions"
+        );
+        continue;
+      }
+    }
+
+    const registered = registerPlugin({
+      registry: interactions,
+      name: plugin.name,
+      config: plugin.manifest,
+      pluginType: "interaction",
+      source: plugin.container,
+      loggerCategory: "Interactions",
+    });
+    if (registered) {
+      interactionPluginPaths[plugin.name] = plugin.pluginPath;
+    }
+  }
+
+  const duplicateIds = findDuplicateInteractionIds(
+    Object.entries(interactions).map(([name, manifest]) => ({
+      name,
+      interactionId: manifest.interactionId,
+    }))
+  );
+  if (duplicateIds.length > 0) {
+    const messages = duplicateIds.map(
+      ({ interactionId, owners }) =>
+        `Duplicate interactionId '${interactionId}' declared by: ${owners.join(", ")}`
+    );
+    messages.forEach((message) => logger("error", message, "Interactions"));
+    throw new Error(messages.join("; "));
+  }
+
+  // 4. Write interactionConfigs.json for the Configure page.
+  try {
+    fs.writeFileSync(
+      "./configure/public/interactionConfigs.json",
+      JSON.stringify(interactions)
+    );
+    logger(
+      "success",
+      "Successfully updated interaction configurations.",
+      "Interactions"
+    );
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to write interactionConfigs.json",
+      "Interactions",
+      null,
+      err
+    );
+  }
+
+  // 5. Build phase arrays, suppression map, and kind pipelines from manifests.
+  const phaseBuckets = {
+    click: { preamble: [], postamble: [] },
+    hover: { preamble: [], postamble: [] },
+    mouseout: { preamble: [], postamble: [] },
+  };
+  const suppressionMap = {};
+  const kindAliasEntries = []; // { kind, interactionId, order }
+
+  for (const name in interactions) {
+    const manifest = interactions[name];
+    const id = manifest.interactionId;
+    const phase = manifest.phase;
+    const order = typeof manifest.order === "number" ? manifest.order : 0;
+    const events = manifest.applicableEvents || [];
+
+    if (phase === "preamble" || phase === "postamble") {
+      for (const evt of events) {
+        if (phaseBuckets[evt]) {
+          phaseBuckets[evt][phase].push({ id, order });
+        }
+      }
+    }
+
+    if (Array.isArray(manifest.suppresses) && manifest.suppresses.length > 0) {
+      suppressionMap[id] = manifest.suppresses;
+    }
+
+    if (Array.isArray(manifest.kindAlias)) {
+      for (const kind of manifest.kindAlias) {
+        kindAliasEntries.push({ kind, id, order });
+      }
+    }
+  }
+
+  // Sort each phase bucket by order.
+  for (const evt of Object.keys(phaseBuckets)) {
+    phaseBuckets[evt].preamble.sort((a, b) => a.order - b.order);
+    phaseBuckets[evt].postamble.sort((a, b) => a.order - b.order);
+  }
+
+  // Build kind pipelines by grouping and sorting kindAlias entries.
+  const kindPipelines = { none: [] };
+  for (const entry of kindAliasEntries) {
+    if (!kindPipelines[entry.kind]) kindPipelines[entry.kind] = [];
+    kindPipelines[entry.kind].push({ id: entry.id, order: entry.order });
+  }
+  for (const kind of Object.keys(kindPipelines)) {
+    kindPipelines[kind].sort((a, b) => a.order - b.order);
+    kindPipelines[kind] = kindPipelines[kind].map((e) => e.id);
+  }
+
+  const clickPreamble = phaseBuckets.click.preamble.map((e) => e.id);
+  const clickPostamble = phaseBuckets.click.postamble.map((e) => e.id);
+  const hoverDefaults = phaseBuckets.hover.preamble.map((e) => e.id);
+  const mouseoutDefaults = phaseBuckets.mouseout.preamble.map((e) => e.id);
+
+  // 6. Generate src/pre/interactions.js with static imports and config.
+  let output = "";
+  const handlerEntries = [];
+
+  for (const name in interactions) {
+    const manifest = interactions[name];
+    const pluginPath = interactionPluginPaths[name] || null;
+    const pathKeys = Object.keys(manifest.paths);
+    // Use first path entry — interactions are single-handler by design.
+    const p = pathKeys[0];
+    if (p) {
+      const resolved = resolvePluginPath(manifest.paths[p], pluginPath);
+      const safeName = `interaction_${name}_${p}`;
+      output += `import ${safeName} from '${resolved}'\n`;
+      handlerEntries.push({
+        interactionId: manifest.interactionId,
+        importName: safeName,
+      });
+    }
+  }
+
+  output += "\n";
+  output += "export const interactionHandlers = {\n";
+  for (const entry of handlerEntries) {
+    output += `  '${entry.interactionId}': ${entry.importName},\n`;
+  }
+  output += "}\n\n";
+  output += `export const interactionConfigs = ${JSON.stringify(interactions)}\n\n`;
+  output += `export const CLICK_PREAMBLE = ${JSON.stringify(clickPreamble)}\n`;
+  output += `export const CLICK_POSTAMBLE = ${JSON.stringify(clickPostamble)}\n`;
+  output += `export const HOVER_DEFAULTS = ${JSON.stringify(hoverDefaults)}\n`;
+  output += `export const MOUSEOUT_DEFAULTS = ${JSON.stringify(mouseoutDefaults)}\n`;
+  output += `export const SUPPRESSION_MAP = ${JSON.stringify(suppressionMap)}\n`;
+  output += `export const KIND_PIPELINES = ${JSON.stringify(kindPipelines)}\n`;
+
+  try {
+    fs.writeFileSync("./src/pre/interactions.js", output);
+    logger("success", "Successfully plugged-in interactions.", "Interactions");
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to write src/pre/interactions.js",
+      "Interactions",
+      null,
+      err
+    );
+  }
+
+  // 7. Cross-type dependency check.
+  checkPluginDependencies(PLUGINS_ROOT, "Interactions");
+}
+
+module.exports = { updateTools, updateComponents, updateInteractions };
