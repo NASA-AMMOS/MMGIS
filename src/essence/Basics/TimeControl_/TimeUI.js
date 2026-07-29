@@ -2991,34 +2991,28 @@ const TimeUI = {
         // Helper function to bin STAC collection data
         function binStacData(data, bins) {
             if (data.body && data.body.times) {
-                // Create time bin boundaries
-                const timeBins = []
-                for (let i = 0; i < NUM_BINS; i++) {
-                    timeBins[i] = Math.floor(
-                        F_.linearScale(
-                            [0, NUM_BINS],
-                            [
-                                TimeUI._timelineStartTimestamp,
-                                TimeUI._timelineEndTimestamp,
-                            ],
-                            i
-                        )
+                data.body.times.forEach((time) => {
+                    const total = parseInt(time.total)
+                    if (isNaN(total)) return
+                    // Times are truncated to the query's bin size so they can
+                    // land just outside the timeline
+                    const binIndex = Math.min(
+                        Math.max(
+                            Math.floor(
+                                F_.linearScale(
+                                    [startTimestamp, endTimestamp],
+                                    [0, NUM_BINS],
+                                    TimeUI.removeOffset(
+                                        new Date(time.t).getTime()
+                                    )
+                                )
+                            ),
+                            0
+                        ),
+                        NUM_BINS - 1
                     )
-                }
-
-                // Bin the timestamps
-                let ti = 0
-                for (let bi = 1; bi < timeBins.length; bi++) {
-                    while (
-                        data.body.times[ti] &&
-                        new Date(data.body.times[ti].t).getTime() >=
-                            timeBins[bi - 1] &&
-                        new Date(data.body.times[ti].t).getTime() < timeBins[bi]
-                    ) {
-                        bins[bi - 1] += parseInt(data.body.times[ti].total)
-                        ti++
-                    }
-                }
+                    bins[binIndex] += total
+                })
             }
         }
 
