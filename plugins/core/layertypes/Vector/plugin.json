@@ -1,0 +1,23 @@
+{
+  "name": "Vector",
+  "type": "layertype",
+  "typeId": "vector",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": true,
+  "description": "GeoJSON vector layer (points/lines/polygons, annotations, arrows, gradients) with time, injectable params, dynamic-extent geodatasets, filtering and per-feature attachments.",
+  "capabilities": {
+    "renderers": {
+      "map": true,
+      "globe": { "engines": ["cesium", "lithosphere"] }
+    },
+    "time": true,
+    "filtering": true,
+    "identify": true
+  },
+  "fileTypes": ["geojson", "json", "kml"],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/vector"
+  }
+}

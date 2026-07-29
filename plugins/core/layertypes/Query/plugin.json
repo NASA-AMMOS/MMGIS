@@ -1,0 +1,23 @@
+{
+  "name": "Query",
+  "type": "layertype",
+  "typeId": "query",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": true,
+  "description": "Runtime-populated vector layer (features supplied by tools rather than a static URL). A thin specialization of the Vector map renderer seeded with empty GeoJSON.",
+  "capabilities": {
+    "renderers": {
+      "map": true,
+      "globe": false
+    },
+    "time": false,
+    "filtering": false,
+    "identify": true
+  },
+  "fileTypes": [],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/query"
+  }
+}

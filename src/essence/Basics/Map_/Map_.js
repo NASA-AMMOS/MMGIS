@@ -3,12 +3,7 @@ import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import LayerTypeRegistry from '../Layers_/LayerTypeRegistry'
 import { captureVector } from '../Layers_/LayerCapturer'
-import {
-    constructVectorLayer,
-    constructSublayers,
-} from '../Layers_/LayerConstructors'
 import { transformStacUrl } from '../Layers_/LayerUtils'
-import Filtering from '../Layers_/Filtering/Filtering'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
@@ -26,7 +21,6 @@ import calls from '../../../pre/calls'
 import TimeControl from '../TimeControl_/TimeControl'
 import '../Map_/SimplifiedVectorGrid'
 
-import gjv from 'geojson-validation'
 import {
     evaluate_cmap,
     data as colormapData,
@@ -783,6 +777,16 @@ async function makeLayer(
         // pinned at `true` and every subsequent refreshLayer call for
         // this layer would queue against a permanently-locked entry that
         // never drains — silently breaking all future reloads.
+        // Frozen map renderer context shared across the plugin's make /
+        // afterMake / afterUnlock lifecycle hooks below.
+        const rt = LayerTypeRegistry.get(layerObj.type)
+        const pluginCtx = {
+            evenIfOff,
+            forceGeoJSON,
+            isRefresh,
+            mapContext,
+            resolvedUrl,
+        }
         let madeSuccessfully = true
         try {
             //Decide what kind of layer it is
@@ -793,29 +797,11 @@ async function makeLayer(
                 // the frozen renderer context; otherwise fall back to the
                 // not-yet-migrated builders below. Each type is served by
                 // exactly one path (no per-type dual dispatch).
-                const rt = LayerTypeRegistry.get(layerObj.type)
                 if (rt && rt.map && typeof rt.map.make === 'function') {
-                    await rt.map.make(layerObj, {
-                        evenIfOff,
-                        forceGeoJSON,
-                        isRefresh,
-                        mapContext,
-                        resolvedUrl,
-                    })
+                    await rt.map.make(layerObj, pluginCtx)
                 } else
                 //Simply call the appropriate function for each layer type
                 switch (layerObj.type) {
-                    case 'vector':
-                        await makeVectorLayer(
-                            layerObj,
-                            evenIfOff,
-                            null,
-                            forceGeoJSON,
-                            isRefresh,
-                            mapContext,
-                            resolvedUrl
-                        )
-                        break
                     case 'velocity':
                         await makeVelocityLayer(
                             layerObj,
@@ -827,16 +813,6 @@ async function makeLayer(
                         break
                     case 'vectortile':
                         makeVectorTileLayer(layerObj, mapContext)
-                        break
-                    case 'query':
-                        await makeVectorLayer(
-                            layerObj,
-                            false,
-                            true,
-                            forceGeoJSON,
-                            false,
-                            mapContext
-                        )
                         break
                     case 'data':
                         makeDataLayer(layerObj, mapContext)
@@ -856,8 +832,15 @@ async function makeLayer(
                 }
             }
 
-            if (stopLoops !== true && layerObj.type === 'vector') {
-                Filtering.updateGeoJSON(layerObj.name)
+            // Phase 1 post-make hook (inside the lock): e.g. vector rebuilds
+            // its filtering GeoJSON. Guarded/optional per the frozen interface.
+            if (
+                stopLoops !== true &&
+                rt &&
+                rt.map &&
+                typeof rt.map.afterMake === 'function'
+            ) {
+                rt.map.afterMake(layerObj, pluginCtx)
             }
         } catch (err) {
             madeSuccessfully = false
@@ -878,12 +861,18 @@ async function makeLayer(
                 if (
                     madeSuccessfully &&
                     stopLoops !== true &&
-                    layerObj.type === 'vector'
+                    rt &&
+                    rt.map &&
+                    typeof rt.map.afterUnlock === 'function'
                 ) {
-                    Filtering.triggerFilter(layerObj.name)
+                    rt.map.afterUnlock(layerObj, pluginCtx)
                 }
             } catch (filterErr) {
-                console.warn('WARNING - triggerFilter failed for', layerObj.name, filterErr)
+                console.warn(
+                    'WARNING - afterUnlock hook failed for',
+                    layerObj.name,
+                    filterErr
+                )
             }
 
             // Drain any queued reload request for this layer that arrived
@@ -1017,192 +1006,6 @@ function featureDefaultClick(feature, layer, e) {
         }
 
         await runInteractions(pipeline, ctx)
-    })
-}
-
-//Pretty much like makePointLayer but without the pointToLayer stuff
-async function makeVectorLayer(
-    layerObj,
-    evenIfOff,
-    useEmptyGeoJSON,
-    forceGeoJSON,
-    isRefresh = false,
-    mapContext = null,
-    resolvedUrl = null
-) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-        default: true,
-    }
-
-    return new Promise((resolve, reject) => {
-        if (forceGeoJSON) add(forceGeoJSON)
-        else
-            captureVector(
-                layerObj,
-                {
-                    evenIfOff: evenIfOff,
-                    useEmptyGeoJSON: useEmptyGeoJSON,
-                    resolvedUrl: resolvedUrl,
-                },
-                add,
-                (f) => {
-                    Map_.map.on('moveend', f)
-                    if (
-                        layerObj.time?.enabled === true &&
-                        layerObj.controlled !== true
-                    )
-                        L_.subscribeTimeChange(
-                            `dynamicextent_${layerObj.name}`,
-                            f
-                        )
-                    L_.subscribeOnSpecificLayerToggle(
-                        `dynamicextent_${layerObj.name}`,
-                        layerObj.name,
-                        f
-                    )
-                }
-            )
-
-        function add(data, allowInvalid) {
-            data = F_.parseIntoGeoJSON(data)
-
-            let invalidGeoJSONTrace = gjv.valid(data, true)
-            const allowableErrors = [
-                `position must only contain numbers`,
-                `coord_properties`,
-            ]
-
-            invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
-                if (typeof t !== 'string') return false
-                for (let i = 0; i < allowableErrors.length; i++) {
-                    if (t.toLowerCase().indexOf(allowableErrors[i]) != -1)
-                        return false
-                }
-                return true
-            })
-            if (
-                data == null ||
-                data === 'off' ||
-                (invalidGeoJSONTrace.length > 0 && allowInvalid !== true)
-            ) {
-                if (data != null && data != 'off') {
-                    data = null
-                    console.warn(
-                        `ERROR: ${layerObj.display_name} has invalid GeoJSON!`,
-                        invalidGeoJSONTrace
-                    )
-                }
-
-                // For refresh operations, preserve the existing layer on failure
-                // to prevent temporary network issues from marking the layer as "layernotfound"
-                if (isRefresh && data === null) {
-                    const existingLayer = ctx.layerRegistry.layer[layerObj.name]
-                    if (existingLayer != null && existingLayer !== false) {
-                        console.warn(
-                            `[${new Date().toISOString()}] Refresh failed for ${layerObj.display_name}, ` +
-                                `keeping existing layer. Next refresh in ${layerObj.time?.refreshIntervalAmount || 60}s`
-                        )
-                        // Mark layer as having a failed refresh
-                        ctx.layerRegistry.refreshFailed[layerObj.name] = true
-                        // Dispatch event so LayersTool can update the UI
-                        const event = new CustomEvent(
-                            'layerRefreshStatusChanged',
-                            {
-                                detail: {
-                                    layerName: layerObj.name,
-                                    failed: true,
-                                },
-                            }
-                        )
-                        document.dispatchEvent(event)
-                        resolve()
-                        return
-                    }
-                }
-
-                // Only set to null for initial loads or if no existing layer
-                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
-                    true
-                ctx.layerRegistry.layer[layerObj.name] =
-                    data == null ? null : false
-                allLayersLoaded()
-                resolve()
-                return
-            }
-
-            layerObj.style = layerObj.style || {}
-            layerObj.style.layerName = layerObj.name
-
-            layerObj.style.opacity =
-                ctx.layerRegistry.opacity[layerObj.name] || 1
-            //layerObj.style.fillOpacity = ctx.layerRegistry.opacity[layerObj.name]
-
-            const vl = constructVectorLayer(
-                data,
-                layerObj,
-                onEachFeatureDefault,
-                Map_ // Keep passing Map_ - constructVectorLayer expects this
-            )
-
-            // For refresh operations, toggle off old layer and handle seamless swap
-            let wasOnForRefresh = false
-            if (
-                isRefresh &&
-                ctx.layerRegistry.on[layerObj.name] &&
-                ctx.layerRegistry.layer[layerObj.name] &&
-                ctx.map.hasLayer(ctx.layerRegistry.layer[layerObj.name])
-            ) {
-                wasOnForRefresh = true
-                L_.toggleLayer(
-                    ctx.layerRegistry.data[layerObj.name],
-                    true,
-                    true
-                )
-            }
-
-            // Clear local time filter cache on refresh so new data is used
-            if (isRefresh && L_._localTimeFilterCache) {
-                delete L_._localTimeFilterCache[layerObj.name]
-            }
-
-            ctx.layerRegistry.attachments[layerObj.name] = vl.sublayers
-            ctx.layerRegistry.layer[layerObj.name] = vl.layer
-
-            // Add to appropriate map
-            if (vl.layer && ctx.default != true) {
-                vl.layer.addTo(ctx.map)
-            }
-
-            // Clear refresh failed status on successful load/refresh
-            if (
-                ctx.layerRegistry.refreshFailed &&
-                ctx.layerRegistry.refreshFailed[layerObj.name]
-            ) {
-                ctx.layerRegistry.refreshFailed[layerObj.name] = false
-                // Dispatch event so LayersTool can update the UI
-                const event = new CustomEvent('layerRefreshStatusChanged', {
-                    detail: { layerName: layerObj.name, failed: false },
-                })
-                document.dispatchEvent(event)
-            }
-
-            // For refresh operations, turn the new layer back on if the old one was on
-            if (isRefresh && wasOnForRefresh) {
-                L_.toggleLayer(
-                    ctx.layerRegistry.data[layerObj.name],
-                    false,
-                    true
-                )
-            }
-
-            L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-
-            allLayersLoaded()
-            resolve()
-        }
     })
 }
 

@@ -4,7 +4,7 @@
  * Renders a raster tile source (TMS/WMTS/COG/STAC) on the 2D map. All URL/scheme
  * handling (STAC/COG transforms, TiTiler routing, time-token replacement) is
  * engine-neutral and lives here; the actual imagery is added through the
- * MapRenderer middleware's neutral `addImagery` primitive rather than by touching
+ * MapRenderer middleware's neutral `addTile` primitive rather than by touching
  * Leaflet directly. Leaflet-colorFilter-specific options (COG/time/filter fields)
  * ride through `engineOptions` — the documented per-engine escape hatch.
  *
@@ -91,7 +91,7 @@ async function make(layerObj, ctx = {}) {
         tileFormat = tileFormat ? 'tms' : 'wmts'
     } else tileFormat = layerObj.tileformat
 
-    MapRenderer.addImagery(
+    MapRenderer.addTile(
         layerObj,
         {
             url: layerUrl,

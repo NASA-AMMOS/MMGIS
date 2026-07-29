@@ -3,7 +3,7 @@
  *
  * The 2D-map analog of GlobeRenderer. Today it wraps a single engine (Leaflet),
  * but it exists so that layer-type PLUGINS never touch Leaflet directly: a plugin
- * describes what it wants with neutral primitives (addImagery/addVector/…) and the
+ * describes what it wants with neutral primitives (addTile/addVector/…) and the
  * middleware maps that onto the engine. Adding a second map engine later
  * (deck.gl, MapLibre, …) becomes a core-only change here plus, for genuinely
  * engine-specific layer behavior, a per-engine plugin override file
@@ -26,6 +26,7 @@
  * }
  */
 import L_ from '@basics/Layers_/Layers_'
+import { constructVectorLayer } from '@basics/Layers_/LayerConstructors'
 
 const L = window.L
 
@@ -46,7 +47,7 @@ function context(mapContext) {
     }
 }
 
-// Neutral primitive: add a templated raster (imagery) source.
+// Neutral primitive: add a tiled raster source.
 //
 // spec = {
 //   url,                         // resolved tile-template URL
@@ -58,7 +59,7 @@ function context(mapContext) {
 //   onLoading, onLoad,           // optional per-layer hooks (plugin-specific extras)
 //   engineOptions,               // opaque, engine-specific options (Leaflet colorFilter)
 // }
-function addImagery(layerObj, spec, mctx) {
+function addTile(layerObj, spec, mctx) {
     const name = layerObj.name
 
     let bounds
@@ -105,6 +106,87 @@ function addImagery(layerObj, spec, mctx) {
     return layer
 }
 
+// Neutral primitive: add a vector (GeoJSON) source.
+//
+// The plugin owns all engine-neutral work (capture, time/injectable-param and
+// dynamic-extent handling, GeoJSON validation, refresh bookkeeping) and hands
+// this primitive already-valid GeoJSON. The middleware owns the engine-specific
+// construction: turning GeoJSON into an engine layer (+ its attachment
+// sublayers), the seamless refresh swap, registry wiring, and map insertion.
+//
+// spec = {
+//   geojson,     // valid GeoJSON FeatureCollection to render
+//   isRefresh,   // boolean — seamless swap of an already-on layer
+// }
+//
+// Returns the constructed vector layer wrapper { layer, sublayers }.
+function addVector(layerObj, spec, mctx) {
+    const name = layerObj.name
+    const registry = mctx.layerRegistry
+
+    layerObj.style = layerObj.style || {}
+    layerObj.style.layerName = name
+    layerObj.style.opacity = registry.opacity[name] || 1
+
+    const vl = constructVectorLayer(
+        spec.geojson,
+        layerObj,
+        L_.Map_.onEachFeatureDefault,
+        L_.Map_
+    )
+
+    // For refresh operations, toggle off the old layer first so the swap is
+    // seamless, then toggle the new one back on after it is wired in.
+    let wasOnForRefresh = false
+    if (
+        spec.isRefresh &&
+        registry.on[name] &&
+        registry.layer[name] &&
+        mctx.map.hasLayer(registry.layer[name])
+    ) {
+        wasOnForRefresh = true
+        L_.toggleLayer(registry.data[name], true, true)
+    }
+
+    // Clear local time filter cache on refresh so new data is used.
+    if (spec.isRefresh && L_._localTimeFilterCache) {
+        delete L_._localTimeFilterCache[name]
+    }
+
+    registry.attachments[name] = vl.sublayers
+    registry.layer[name] = vl.layer
+
+    if (vl.layer && mctx.default != true) {
+        vl.layer.addTo(mctx.map)
+    }
+
+    // Clear refresh-failed status on successful load/refresh.
+    if (registry.refreshFailed && registry.refreshFailed[name]) {
+        registry.refreshFailed[name] = false
+        document.dispatchEvent(
+            new CustomEvent('layerRefreshStatusChanged', {
+                detail: { layerName: name, failed: false },
+            })
+        )
+    }
+
+    if (spec.isRefresh && wasOnForRefresh) {
+        L_.toggleLayer(registry.data[name], false, true)
+    }
+
+    L_._layersLoaded[L_._layersOrdered.indexOf(name)] = true
+    L_.Map_.allLayersLoaded()
+
+    return vl
+}
+
+// Neutral primitive: subscribe to map view (pan/zoom) changes. Used by
+// dynamic-extent layers to re-query on `moveend`. Returns nothing; the
+// capturer owns the callback lifecycle.
+function onViewChange(mctx, f) {
+    mctx.map.on('moveend', f)
+}
+
 // Neutral primitive: remove a layer previously added through this middleware.
 function removeLayer(layerObj, mctx) {
     L_.Map_.rmNotNull(mctx.layerRegistry.layer[layerObj.name])
@@ -112,6 +194,8 @@ function removeLayer(layerObj, mctx) {
 
 export default {
     context,
-    addImagery,
+    addTile,
+    addVector,
+    onViewChange,
     removeLayer,
 }
