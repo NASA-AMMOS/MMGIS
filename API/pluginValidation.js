@@ -92,7 +92,7 @@ const KNOWN_FIELDS = {
     "descriptionFull",
     "capabilities",
     "fileTypes",
-    "endpoints",
+    "supportedData",
     "metaconfig",
     "settings",
     "defaultIcon",
@@ -362,7 +362,15 @@ function validatePluginConfig(config, pluginName, pluginType) {
         `Plugin '${pluginName}' (${pluginType}): missing required '${idField}' field (must be a non-empty string)`
       );
     }
-    if (
+    // A layer type may be non-rendering (e.g. 'header'): it owns config/UI
+    // metadata but draws nothing, so it is allowed to omit renderer paths.
+    // Everything else (layer attachments, and any layertype that declares a
+    // `paths` object) must supply at least one string-valued renderer path.
+    const nonRenderingLayerType =
+      pluginType === "layertype" && config.paths === undefined;
+    if (nonRenderingLayerType) {
+      // no renderer paths required
+    } else if (
       config.paths === undefined ||
       config.paths === null ||
       typeof config.paths !== "object" ||
@@ -418,6 +426,56 @@ function validatePluginConfig(config, pluginName, pluginType) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'fileTypes' must be an array of strings`
       );
+    }
+    // `supportedData` is a descriptive-only catalog of the data inputs a layer
+    // type understands (formats, standards, URL schemes, procurement notes). It
+    // drives no runtime behavior — it exists so admins/plugin devs have a single
+    // place documenting "what data do I need to procure", and so a future
+    // Configure reference page can group these entries (by type/category/standard).
+    if (config.supportedData !== undefined) {
+      if (!Array.isArray(config.supportedData)) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'supportedData' must be an array of data-input descriptor objects`
+        );
+      } else {
+        config.supportedData.forEach((entry, i) => {
+          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}]' must be an object`
+            );
+            return;
+          }
+          if (typeof entry.label !== "string" || entry.label.length === 0) {
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].label' is required (non-empty string)`
+            );
+          }
+          if (typeof entry.category !== "string" || entry.category.length === 0) {
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].category' is required (non-empty string, e.g. 'raster', 'vector', 'model')`
+            );
+          }
+          const arrayFields = [
+            "standards",
+            "formats",
+            "extensions",
+            "urlSchemes",
+            "requiresServices",
+          ];
+          for (const f of arrayFields) {
+            if (entry[f] === undefined) continue;
+            if (!Array.isArray(entry[f])) {
+              errors.push(
+                `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].${f}' must be an array of strings when present`
+              );
+            } else if (entry[f].some((v) => typeof v !== "string")) {
+              errors.push(
+                `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].${f}' must contain only strings`
+              );
+            }
+          }
+        });
+      }
     }
     if (config.metaconfig !== undefined && typeof config.metaconfig !== "string") {
       errors.push(

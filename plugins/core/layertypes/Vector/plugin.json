@@ -16,6 +16,51 @@
     "identify": true
   },
   "fileTypes": ["geojson", "json", "kml"],
+  "supportedData": [
+    {
+      "label": "GeoJSON",
+      "category": "vector",
+      "standards": ["GeoJSON", "RFC 7946"],
+      "formats": ["geojson", "json"],
+      "extensions": [".geojson", ".json"],
+      "urlSchemes": ["{url} (relative to mission dir or absolute)"],
+      "description": "A GeoJSON FeatureCollection of points, lines and/or polygons. The primary vector input; supports per-feature style properties, {starttime}/{endtime} time filtering and injectable URL variables.",
+      "procurement": "Export from any GIS (QGIS, ogr2ogr -f GeoJSON) or author by hand."
+    },
+    {
+      "label": "KML",
+      "category": "vector",
+      "standards": ["KML"],
+      "formats": ["kml"],
+      "extensions": [".kml"],
+      "description": "Keyhole Markup Language vector features, converted to GeoJSON on load.",
+      "procurement": "Export from Google Earth or ogr2ogr -f KML."
+    },
+    {
+      "label": "GeoDataset (PostGIS-backed vectors)",
+      "category": "vector",
+      "standards": ["GeoJSON", "PostGIS"],
+      "urlSchemes": ["{geodataset_name}"],
+      "description": "A vector dataset uploaded via 'Manage Geodatasets' and served from PostGIS through the internal API. Enables dynamic-extent (viewport) requerying for large datasets.",
+      "procurement": "Upload a GeoJSON in Configure → Manage Geodatasets.",
+      "requiresServices": ["postgis"]
+    },
+    {
+      "label": "STAC feature source",
+      "category": "vector",
+      "standards": ["STAC"],
+      "urlSchemes": ["stac / stac-catalog / stac-collection / stac-item"],
+      "description": "Features derived from a STAC API, catalog, collection or item, loaded as GeoJSON.",
+      "procurement": "Any STAC-compliant endpoint.",
+      "requiresServices": ["stac"]
+    },
+    {
+      "label": "Runtime API features",
+      "category": "vector",
+      "urlSchemes": ["api"],
+      "description": "GeoJSON fetched from an arbitrary API endpoint (with injectable time/variable params) rather than a static file."
+    }
+  ],
   "metaconfig": "./metaconfig.json",
   "paths": {
     "map": "./map/vector",

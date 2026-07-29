@@ -1,0 +1,46 @@
+{
+  "name": "VectorTile",
+  "type": "layertype",
+  "typeId": "vectortile",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": true,
+  "description": "Mapbox Vector Tile (MVT/PBF) layer rendered with L.vectorGrid on the map, with optional 3D building extrusion on the globe.",
+  "capabilities": {
+    "renderers": {
+      "map": true,
+      "globe": { "engines": ["cesium", "lithosphere"] }
+    },
+    "time": false,
+    "filtering": false,
+    "identify": true
+  },
+  "fileTypes": ["mvt", "pbf"],
+  "supportedData": [
+    {
+      "label": "Mapbox Vector Tiles (MVT / PBF)",
+      "category": "vector-tile",
+      "standards": ["MVT", "Mapbox Vector Tile"],
+      "formats": ["pbf", "mvt"],
+      "extensions": [".pbf", ".mvt"],
+      "urlSchemes": ["{z}/{x}/{y}.pbf template", "geodatasets:{name}"],
+      "description": "Templated protobuf vector tiles addressed by z/x/y. Per-sublayer styling via style.vtLayer; feature identify via style.vtId/vtKey. PostGIS geodatasets can be served as MVT through the internal API.",
+      "procurement": "Generate MVT with tippecanoe or serve from a vector-tile server; upload vectors as a geodataset for API-served MVT.",
+      "requiresServices": ["postgis"]
+    },
+    {
+      "label": "Extrudable building tiles (3D)",
+      "category": "vector-tile",
+      "standards": ["MVT"],
+      "formats": ["pbf", "mvt"],
+      "description": "MVT tiles carrying a height property (e.g. OSM buildings) extruded into 3D polygons on the globe. Configure extrudeHeightProperty/extrudeColor/etc.",
+      "procurement": "MVT tiles that include a per-feature height attribute."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/vectortile",
+    "globe.cesium": "./globe/cesium/vectortile",
+    "globe.lithosphere": "./globe/lithosphere/vectortile"
+  }
+}

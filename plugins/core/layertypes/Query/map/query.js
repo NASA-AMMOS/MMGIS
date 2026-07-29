@@ -11,7 +11,7 @@
  *   ctx = { evenIfOff, forceGeoJSON, isRefresh, mapContext, resolvedUrl }
  */
 import MapRenderer from '@basics/Map_/MapRenderer'
-import { makeVectorMap } from '../../Vector/map/vector'
+import { makeVectorMap } from '@basics/Layers_/VectorLayerCore'
 
 async function make(layerObj, ctx = {}) {
     await makeVectorMap(layerObj, ctx, {

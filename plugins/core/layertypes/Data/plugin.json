@@ -1,0 +1,54 @@
+{
+  "name": "Data",
+  "type": "layertype",
+  "typeId": "data",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": true,
+  "description": "Numeric raster layer decoded client-side and colorized/shaded with a WebGL shader on the 2D map (e.g. DEMs, data products).",
+  "capabilities": {
+    "renderers": {
+      "map": true,
+      "globe": false
+    },
+    "time": true,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["cog", "stac-collection", "tms", "wmts"],
+  "supportedData": [
+    {
+      "label": "Float32 RGBA data tiles",
+      "category": "raster-data",
+      "standards": ["TMS", "WMTS"],
+      "formats": ["png"],
+      "urlSchemes": ["{z}/{x}/{y} template"],
+      "description": "Templated numeric-data tiles encoding values in RGBA (e.g. float32-packed PNG). Decoded and colorized client-side by a WebGL shader.",
+      "procurement": "Produce data-encoded tiles with the MMGIS auxiliary tiling scripts."
+    },
+    {
+      "label": "Cloud-Optimized GeoTIFF (COG) data",
+      "category": "raster-data",
+      "standards": ["COG", "GeoTIFF"],
+      "formats": ["tif", "tiff"],
+      "extensions": [".tif", ".tiff"],
+      "urlSchemes": ["COG:{url}"],
+      "description": "A single-band data COG tiled by TiTiler as NPY (or terrarium/terrainrgb-encoded PNG) and shaded client-side. Supports band selection, no-data sentinels and colorize/hillshade shaders.",
+      "procurement": "gdal_translate <in> <out>.tif -of COG; requires the TiTiler adjacent server.",
+      "requiresServices": ["titiler"]
+    },
+    {
+      "label": "STAC collection (mosaicked data COGs)",
+      "category": "raster-data",
+      "standards": ["STAC", "COG"],
+      "urlSchemes": ["stac-collection:{collection}"],
+      "description": "A STAC collection of data COGs mosaicked and served for client-side shading via titiler-pgstac.",
+      "procurement": "Index data COGs into a STAC collection; requires the titiler-pgstac adjacent server.",
+      "requiresServices": ["stac", "titiler-pgstac"]
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/data"
+  }
+}

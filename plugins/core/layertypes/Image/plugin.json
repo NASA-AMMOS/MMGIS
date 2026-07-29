@@ -1,0 +1,35 @@
+{
+  "name": "Image",
+  "type": "layertype",
+  "typeId": "image",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": true,
+  "description": "Georeferenced single image / GeoTIFF drawn on the 2D map via a GeoRaster layer, with optional single-band colormapping.",
+  "capabilities": {
+    "renderers": {
+      "map": true,
+      "globe": false
+    },
+    "time": false,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["tif", "tiff", "png", "jpg"],
+  "supportedData": [
+    {
+      "label": "GeoTIFF image",
+      "category": "raster",
+      "standards": ["GeoTIFF", "COG"],
+      "formats": ["tif", "tiff"],
+      "extensions": [".tif", ".tiff"],
+      "urlSchemes": ["{url} (relative to mission dir or absolute)"],
+      "description": "A georeferenced GeoTIFF parsed client-side (georaster). RGB rasters render directly; single-band rasters are colormapped with a configurable ramp and min/max rescale (auto-derived via GDAL when unset).",
+      "procurement": "Any georeferenced GeoTIFF; a COG is recommended for large files."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/image"
+  }
+}

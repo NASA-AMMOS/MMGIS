@@ -16,6 +16,15 @@
     "identify": true
   },
   "fileTypes": [],
+  "supportedData": [
+    {
+      "label": "Runtime-populated features (no procured data)",
+      "category": "vector",
+      "standards": ["GeoJSON"],
+      "description": "A query layer holds no configured data source — it is seeded empty and populated at runtime by tools (e.g. an Elasticsearch-backed search). Renders as a vector layer on the map; features are supplied programmatically.",
+      "procurement": "None — data is produced at runtime by the querying tool/service."
+    }
+  ],
   "metaconfig": "./metaconfig.json",
   "paths": {
     "map": "./map/query"
