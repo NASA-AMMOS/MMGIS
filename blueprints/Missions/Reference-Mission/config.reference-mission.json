@@ -3663,7 +3663,7 @@
                 "blend": "none"
               },
               "time": {
-                "enabled": false,
+                "enabled": true,
                 "type": "requery",
                 "compositeTile": false,
                 "refreshIntervalEnabled": false
