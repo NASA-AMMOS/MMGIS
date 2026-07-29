@@ -1690,7 +1690,7 @@ const TimeUI = {
         TimeUI._drawTimeLine(nextStart, nextEnd)
 
         clearTimeout(TimeUI._panHistoTimeout)
-        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._clearHistogram()
         TimeUI._makeHistogram()
     },
     quickSelectPeriod(idx) {
@@ -2887,10 +2887,15 @@ const TimeUI = {
     },
     _refreshHistogramDebounced(delay = 3000) {
         clearTimeout(TimeUI._histogramRefreshTimeout)
-        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._clearHistogram()
         TimeUI._histogramRefreshTimeout = setTimeout(() => {
             TimeUI._makeHistogram()
         }, delay)
+    },
+    // Emptying the histogram must also invalidate its cache so it gets redrawn
+    _clearHistogram() {
+        TimeUI.lastHistoSignature = null
+        $('#mmgisTimeUITimelineHisto').empty()
     },
     _makeHistogram() {
         // Histogram is drawn inside the timeline slider which doesn't exist on mobile
@@ -2898,8 +2903,10 @@ const TimeUI = {
 
         const startTimestamp = TimeUI.removeOffset(
             TimeUI._timelineStartTimestamp
-        )
-        const endTimestamp = TimeUI.removeOffset(TimeUI._timelineEndTimestamp)
+        ).getTime()
+        const endTimestamp = TimeUI.removeOffset(
+            TimeUI._timelineEndTimestamp
+        ).getTime()
 
         // Find all on, time-enabled, tile layers
         const sparklineLayers = []
@@ -2985,6 +2992,7 @@ const TimeUI = {
             $('#mmgisTimeUITimelineHisto').empty()
             return
         }
+
 
         const starttimeISO = new Date(
             TimeUI._timelineStartTimestamp
