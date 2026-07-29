@@ -2901,17 +2901,6 @@ const TimeUI = {
         )
         const endTimestamp = TimeUI.removeOffset(TimeUI._timelineEndTimestamp)
 
-        // Don't remake if nothing changes
-        if (
-            TimeUI.lastHistoStartTimestamp === startTimestamp &&
-            TimeUI.lastHistoEndTimestamp === endTimestamp
-        )
-            return
-        else {
-            TimeUI.lastHistoStartTimestamp = startTimestamp
-            TimeUI.lastHistoEndTimestamp = endTimestamp
-        }
-
         // Find all on, time-enabled, tile layers
         const sparklineLayers = []
         Object.keys(L_.layers.data).forEach((name) => {
@@ -2975,6 +2964,28 @@ const TimeUI = {
             }
         })
 
+        // Don't remake if neither the time range nor the contributing layers changed
+        const histoSignature = sparklineLayers
+            .map((l) => l.name)
+            .sort()
+            .join('|')
+        if (
+            TimeUI.lastHistoStartTimestamp === startTimestamp &&
+            TimeUI.lastHistoEndTimestamp === endTimestamp &&
+            TimeUI.lastHistoSignature === histoSignature
+        )
+            return
+        else {
+            TimeUI.lastHistoStartTimestamp = startTimestamp
+            TimeUI.lastHistoEndTimestamp = endTimestamp
+            TimeUI.lastHistoSignature = histoSignature
+        }
+
+        if (sparklineLayers.length === 0) {
+            $('#mmgisTimeUITimelineHisto').empty()
+            return
+        }
+
         const starttimeISO = new Date(
             TimeUI._timelineStartTimestamp
         ).toISOString()
@@ -2991,34 +3002,28 @@ const TimeUI = {
         // Helper function to bin STAC collection data
         function binStacData(data, bins) {
             if (data.body && data.body.times) {
-                // Create time bin boundaries
-                const timeBins = []
-                for (let i = 0; i < NUM_BINS; i++) {
-                    timeBins[i] = Math.floor(
-                        F_.linearScale(
-                            [0, NUM_BINS],
-                            [
-                                TimeUI._timelineStartTimestamp,
-                                TimeUI._timelineEndTimestamp,
-                            ],
-                            i
-                        )
+                data.body.times.forEach((time) => {
+                    const total = parseInt(time.total)
+                    if (isNaN(total)) return
+                    // Returned times are truncated to the query's bin size and
+                    // so may fall slightly before the timeline start
+                    const binIndex = Math.min(
+                        Math.max(
+                            Math.floor(
+                                F_.linearScale(
+                                    [startTimestamp, endTimestamp],
+                                    [0, NUM_BINS],
+                                    TimeUI.removeOffset(
+                                        new Date(time.t).getTime()
+                                    )
+                                )
+                            ),
+                            0
+                        ),
+                        NUM_BINS - 1
                     )
-                }
-
-                // Bin the timestamps
-                let ti = 0
-                for (let bi = 1; bi < timeBins.length; bi++) {
-                    while (
-                        data.body.times[ti] &&
-                        new Date(data.body.times[ti].t).getTime() >=
-                            timeBins[bi - 1] &&
-                        new Date(data.body.times[ti].t).getTime() < timeBins[bi]
-                    ) {
-                        bins[bi - 1] += parseInt(data.body.times[ti].total)
-                        ti++
-                    }
-                }
+                    bins[binIndex] += total
+                })
             }
         }
 
