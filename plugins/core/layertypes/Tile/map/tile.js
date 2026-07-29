@@ -1,27 +1,23 @@
 /**
- * Tile layer type — map (Leaflet) renderer.
+ * Tile layer type — map renderer.
  *
- * Moved verbatim from Map_.makeTileLayer. Renders a raster tile source
- * (TMS/WMTS/COG/STAC) as a Leaflet colorFilter tileLayer. `L` is the Leaflet
- * global (window.L, extended by bundled Leaflet plugins), matching Map_.js.
+ * Renders a raster tile source (TMS/WMTS/COG/STAC) on the 2D map. All URL/scheme
+ * handling (STAC/COG transforms, TiTiler routing, time-token replacement) is
+ * engine-neutral and lives here; the actual imagery is added through the
+ * MapRenderer middleware's neutral `addImagery` primitive rather than by touching
+ * Leaflet directly. Leaflet-colorFilter-specific options (COG/time/filter fields)
+ * ride through `engineOptions` — the documented per-engine escape hatch.
  *
  * Frozen renderer interface:
  *   ctx = { evenIfOff, forceGeoJSON, isRefresh, mapContext, resolvedUrl }
  */
 import L_ from '@basics/Layers_/Layers_'
+import MapRenderer from '@basics/Map_/MapRenderer'
 import TimeControl from '@basics/TimeControl_/TimeControl'
 import { transformStacUrl } from '@basics/Layers_/LayerUtils'
 
-const L = window.L
-
 async function make(layerObj, ctx = {}) {
-    const mapContext = ctx.mapContext
-    // Default to main map context for backward compatibility
-    const mCtx = mapContext || {
-        map: L_.Map_.map,
-        layerRegistry: L_.layers,
-        default: true,
-    }
+    const mctx = MapRenderer.context(ctx.mapContext)
 
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
@@ -82,13 +78,6 @@ async function make(layerObj, ctx = {}) {
         }
     }
 
-    let bb = null
-    if (layerObj.hasOwnProperty('boundingBox')) {
-        bb = L.latLngBounds(
-            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
-            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
-        )
-    }
     layerUrl = await TimeControl.performTimeUrlReplacements(
         layerUrl,
         layerObj,
@@ -102,109 +91,98 @@ async function make(layerObj, ctx = {}) {
         tileFormat = tileFormat ? 'tms' : 'wmts'
     } else tileFormat = layerObj.tileformat
 
-    mCtx.layerRegistry.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
-        minZoom: parseInt(layerObj.minZoom),
-        maxZoom: parseInt(layerObj.maxZoom),
-        maxNativeZoom: parseInt(layerObj.maxNativeZoom),
-        tileFormat: tileFormat,
-        tms: tileFormat === 'tms',
-        splitColonType: splitColonType,
-        //noWrap: true,
-        continuousWorld: true,
-        reuseTiles: true,
-        bounds: bb,
-        timeEnabled: layerObj.time != null && layerObj.time.enabled === true,
-        time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
-        compositeTile:
-            typeof layerObj.time === 'undefined'
-                ? false
-                : layerObj.time.compositeTile || false,
-        starttime:
-            typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
-        endtime: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
-        customTimes:
-            typeof layerObj.time === 'undefined'
-                ? null
-                : layerObj.time.customTimes,
-        cogTransform: layerObj.cogTransform,
-        cogMin: layerObj.cogMin,
-        currentCogMin: layerObj.currentCogMin,
-        cogMax: layerObj.cogMax,
-        currentCogMax: layerObj.currentCogMax,
-        cogColormap: layerObj.cogColormap,
-        cogExpression: layerObj.cogExpression,
-        currentCogExpression: layerObj.currentCogExpression,
-        variables: layerObj.variables || {},
-    })
-
-    // Time-enabled tile layers should never fade (instant swap on pan or time change)
-    if (layerObj.time && layerObj.time.enabled === true) {
-        mCtx.layerRegistry.layer[layerObj.name]._noFade = true
-    }
-
-    // Add to map
-    if (mCtx.default != true) {
-        mCtx.layerRegistry.layer[layerObj.name].addTo(mCtx.map)
-    }
-
-    L_.setLayerOpacity(
-        layerObj.name,
-        mCtx.layerRegistry.opacity[layerObj.name] || 1
+    MapRenderer.addImagery(
+        layerObj,
+        {
+            url: layerUrl,
+            tms: tileFormat === 'tms',
+            minZoom: parseInt(layerObj.minZoom),
+            maxZoom: parseInt(layerObj.maxZoom),
+            maxNativeZoom: parseInt(layerObj.maxNativeZoom),
+            boundingBox: layerObj.hasOwnProperty('boundingBox')
+                ? layerObj.boundingBox
+                : null,
+            noFade: layerObj.time != null && layerObj.time.enabled === true,
+            engineOptions: {
+                tileFormat: tileFormat,
+                splitColonType: splitColonType,
+                //noWrap: true,
+                continuousWorld: true,
+                reuseTiles: true,
+                timeEnabled:
+                    layerObj.time != null && layerObj.time.enabled === true,
+                time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+                compositeTile:
+                    typeof layerObj.time === 'undefined'
+                        ? false
+                        : layerObj.time.compositeTile || false,
+                starttime:
+                    typeof layerObj.time === 'undefined'
+                        ? ''
+                        : layerObj.time.start,
+                endtime:
+                    typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
+                customTimes:
+                    typeof layerObj.time === 'undefined'
+                        ? null
+                        : layerObj.time.customTimes,
+                cogTransform: layerObj.cogTransform,
+                cogMin: layerObj.cogMin,
+                currentCogMin: layerObj.currentCogMin,
+                cogMax: layerObj.cogMax,
+                currentCogMax: layerObj.currentCogMax,
+                cogColormap: layerObj.cogColormap,
+                cogExpression: layerObj.cogExpression,
+                currentCogExpression: layerObj.currentCogExpression,
+                variables: layerObj.variables || {},
+            },
+            onLoad: () => {
+                // Set default css filters for tile layer
+                if (
+                    layerObj.style?.brightness != null &&
+                    L_.layers.filters[layerObj.name]?.brightness == null
+                )
+                    L_.setLayerFilter(
+                        layerObj.name,
+                        'brightness',
+                        layerObj.style.brightness
+                    )
+                if (
+                    layerObj.style?.contrast != null &&
+                    L_.layers.filters[layerObj.name]?.contrast == null
+                )
+                    L_.setLayerFilter(
+                        layerObj.name,
+                        'contrast',
+                        layerObj.style.contrast
+                    )
+                if (
+                    layerObj.style?.saturation != null &&
+                    L_.layers.filters[layerObj.name]?.saturation == null
+                )
+                    L_.setLayerFilter(
+                        layerObj.name,
+                        'saturation',
+                        layerObj.style.saturation
+                    )
+                if (
+                    layerObj.style?.blend != null &&
+                    L_.layers.filters[layerObj.name]?.blend == null
+                )
+                    L_.setLayerFilter(
+                        layerObj.name,
+                        'mix-blend-mode',
+                        layerObj.style.blend
+                    )
+            },
+        },
+        mctx
     )
-
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    mCtx.layerRegistry.layer[layerObj.name].off('loading')
-    mCtx.layerRegistry.layer[layerObj.name].on('loading', () => {
-        L_.setGlobalLoading(layerObj.name)
-    })
-    mCtx.layerRegistry.layer[layerObj.name].off('load')
-    mCtx.layerRegistry.layer[layerObj.name].on('load', () => {
-        // Set default css filters for tile layer
-        if (
-            layerObj.style?.brightness != null &&
-            L_.layers.filters[layerObj.name]?.brightness == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'brightness',
-                layerObj.style.brightness
-            )
-        if (
-            layerObj.style?.contrast != null &&
-            L_.layers.filters[layerObj.name]?.contrast == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'contrast',
-                layerObj.style.contrast
-            )
-        if (
-            layerObj.style?.saturation != null &&
-            L_.layers.filters[layerObj.name]?.saturation == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'saturation',
-                layerObj.style.saturation
-            )
-        if (
-            layerObj.style?.blend != null &&
-            L_.layers.filters[layerObj.name]?.blend == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'mix-blend-mode',
-                layerObj.style.blend
-            )
-
-        L_.setGlobalLoaded(layerObj.name)
-    })
-    L_.Map_.allLayersLoaded()
 }
 
 function remove(layerObj, ctx = {}) {
-    const mCtx = ctx.mapContext || { layerRegistry: L_.layers }
-    L_.Map_.rmNotNull(mCtx.layerRegistry.layer[layerObj.name])
+    const mctx = MapRenderer.context(ctx.mapContext)
+    MapRenderer.removeLayer(layerObj, mctx)
 }
 
 export default {
