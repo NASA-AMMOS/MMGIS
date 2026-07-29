@@ -18,6 +18,8 @@
   "fileTypes": ["geojson", "json", "kml"],
   "metaconfig": "./metaconfig.json",
   "paths": {
-    "map": "./map/vector"
+    "map": "./map/vector",
+    "globe.cesium": "./globe/cesium/vector",
+    "globe.lithosphere": "./globe/lithosphere/vector"
   }
 }

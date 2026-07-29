@@ -12,12 +12,6 @@ import {
 import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
 
-// Point features are rendered as circular Cesium PointGraphics (a filled dot)
-// rather than the default teardrop pin billboard. A Leaflet-style `radius` is a
-// circle radius, while PointGraphics `pixelSize` is a diameter, so double it to
-// match the 2D map's circle points.
-const CESIUM_POINT_PIXEL_SCALE = 2
-
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
  *
@@ -492,21 +486,10 @@ class GlobeRenderer {
         // the built-in path for not-yet-migrated types.
         const globeModule = this._globeModuleFor(type)
         if (globeModule?.add) {
-            return globeModule.add(layerConfig, this._globeCtx())
+            return globeModule.add(layerConfig, this._globeCtx(type))
         }
         if (this.rendererType === 'lithosphere') {
-            // LithoSphere's 'vector' layerer only draws points and lines and
-            // throws on polygon geometry; its 'clamped' layerer draws polygons
-            // (and lines/points). Route polygon-containing vector layers to
-            // 'clamped' so they render (draped on terrain) instead of crashing.
-            let lithoType = type
-            if (
-                type === 'vector' &&
-                this._geojsonHasPolygons(layerConfig?.geojson)
-            ) {
-                lithoType = 'clamped'
-            }
-            return this.renderer.addLayer(lithoType, layerConfig)
+            return this.renderer.addLayer(type, layerConfig)
         } else {
             return this._addCesiumLayer(type, layerConfig)
         }
@@ -523,22 +506,35 @@ class GlobeRenderer {
     }
 
     // Resolve the per-engine globe renderer module for a migrated layer type
-    // (or null for a not-yet-migrated type / unsupported engine).
+    // (or null for a not-yet-migrated type / unsupported engine). 'clamped' is
+    // the terrain-draped rendering variant of 'vector', so it resolves to the
+    // vector module.
     _globeModuleFor(type) {
         if (!type) return null
-        return LayerTypeRegistry.getGlobe(type, this.rendererType)
+        const lookupType = type === 'clamped' ? 'vector' : type
+        return LayerTypeRegistry.getGlobe(lookupType, this.rendererType)
     }
 
     // Engine context handed to a globe plugin module (Model-3 hybrid): the raw
     // engine handle + the shared `_layers` registry + collection-level helpers
-    // that intentionally stay in GlobeRenderer.
-    _globeCtx() {
+    // and state that intentionally stay in GlobeRenderer. `type` is the layer
+    // type this dispatch is for (so a plugin can tell 'vector' from 'clamped').
+    _globeCtx(type) {
         if (this.rendererType === 'cesium') {
             return {
                 engine: 'cesium',
                 renderer: this.renderer,
                 layers: this._layers,
                 requestRender: () => this._requestRender(),
+                clampToGround: type === 'clamped',
+                // Collection-level vector reload serialization (shared state):
+                loadingLayers: this._loadingLayers,
+                vectorLoadToken: this._vectorLoadToken,
+                pendingVectorReload: this._pendingVectorReload,
+                pendingVectorRemoval: this._pendingVectorRemoval,
+                displayedVectorDataSource: this._displayedVectorDataSource,
+                runPendingVectorReload: (name) =>
+                    this._runPendingVectorReload(name),
                 utils: {
                     calculateImageryIndex: (name, ordered) =>
                         this._calculateTileLayerIndex(name, ordered),
@@ -549,6 +545,8 @@ class GlobeRenderer {
             engine: 'lithosphere',
             renderer: this.renderer,
             layers: this._layers,
+            clampToGround: type === 'clamped',
+            geojsonHasPolygons: (geojson) => this._geojsonHasPolygons(geojson),
         }
     }
 
@@ -556,269 +554,7 @@ class GlobeRenderer {
      * Add a layer to Cesium
      */
     _addCesiumLayer(type, layerConfig) {
-        const { name } = layerConfig
-
-        if (type === 'vector' || type === 'clamped') {
-            // Serialize reloads per layer. The layer reuses one data source and
-            // loads new GeoJSON into it in place; starting a second load on that
-            // same source while one is in flight would race, because Cesium
-            // resolves loads in completion order (not call order), so a slow
-            // older load could finish last and leave stale features shown. Queue
-            // this as the latest pending reload and run it once the in-flight
-            // load settles (see _runPendingVectorReload).
-            if (this._loadingLayers[name]) {
-                this._pendingVectorReload[name] = { type, layerConfig }
-                return
-            }
-
-            // A reload (dynamic-extent requery, filter/time change) replaces this
-            // layer's data. The layer's existing data source is reused and loaded
-            // in place (see below) rather than removed and recreated, so the
-            // polygons and lines don't flash off between requeries. If removeLayer
-            // deferred a removal for this layer, cancel it so the data source
-            // survives to be reused.
-            const pendingRemoval = this._pendingVectorRemoval[name]
-            if (pendingRemoval) {
-                if (pendingRemoval.frameHandle != null) {
-                    cancelAnimationFrame(pendingRemoval.frameHandle)
-                }
-                delete this._pendingVectorRemoval[name]
-            }
-
-            // Latest load wins: a slower, stale in-flight load must not replace
-            // newer data nor remove the data source a newer load is showing.
-            const loadToken = (this._vectorLoadToken[name] || 0) + 1
-            this._vectorLoadToken[name] = loadToken
-
-            // Mark as loading
-            this._loadingLayers[name] = true
-
-            // Add vector layer from GeoJSON
-            // Extract default style (matches LithoSphere structure)
-            const defaultStyle =
-                layerConfig.style?.default || layerConfig.style || {}
-            const letPropertiesOverride =
-                layerConfig.style?.letPropertiesStyleOverride || false
-
-            // Clone GeoJSON and inject internal IDs for fast lookups
-            const geojsonWithIds = JSON.parse(
-                JSON.stringify(layerConfig.geojson)
-            )
-            const featureMap = {}
-
-            if (
-                geojsonWithIds.features &&
-                Array.isArray(geojsonWithIds.features)
-            ) {
-                geojsonWithIds.features.forEach((feature, index) => {
-                    // Create internal ID: layerName_index
-                    const internalId = `${name}_${index}`
-
-                    // Store original feature (without injected ID)
-                    featureMap[internalId] = layerConfig.geojson.features[index]
-
-                    // Inject ID into cloned feature for Cesium
-                    feature.id = internalId
-                })
-            }
-
-            // Parse colors with fallbacks
-            const strokeColor =
-                Cesium.Color.fromCssColorString(
-                    defaultStyle.color || '#ffffff'
-                ) || Cesium.Color.WHITE
-            const fillColor =
-                Cesium.Color.fromCssColorString(
-                    defaultStyle.fillColor || '#ffffff'
-                ) || Cesium.Color.WHITE
-            const fillOpacity = parseFloat(defaultStyle.fillOpacity)
-            const fillWithAlpha = isNaN(fillOpacity)
-                ? fillColor.withAlpha(0.5)
-                : fillColor.withAlpha(fillOpacity)
-
-            const loadOptions = {
-                clampToGround: type === 'clamped', // Only clamp 'clamped' type, not 'vector'
-                stroke: strokeColor,
-                strokeWidth: defaultStyle.weight || 2,
-                fill: fillWithAlpha,
-                markerSize: defaultStyle.radius || 8,
-                markerColor: fillColor,
-            }
-
-            // Reuse the layer's existing data source when reloading and load the
-            // new GeoJSON into it in place. Removing/re-adding a data source (or
-            // adding a second one) forces Cesium to rebuild its batched
-            // polygon/line primitives, which momentarily blanks them — the flash.
-            // Loading into the same data source updates it in one pass and keeps
-            // it in the scene. (Points use an incremental visualizer, so they
-            // never showed the flash.)
-            const reuseDataSource = this._displayedVectorDataSource[name] || null
-
-            const loadPromise = reuseDataSource
-                ? reuseDataSource.load(geojsonWithIds, loadOptions)
-                : Cesium.GeoJsonDataSource.load(geojsonWithIds, loadOptions)
-
-            loadPromise.then((ds) => {
-                // Clear loading flag
-                delete this._loadingLayers[name]
-
-                // A newer reload superseded this load — discard the stale result
-                // so it can't overwrite newer data.
-                if (this._vectorLoadToken[name] !== loadToken) {
-                    this._runPendingVectorReload(name)
-                    return
-                }
-
-                // A freshly created data source must be added to the scene; a
-                // reused one is already present.
-                if (!reuseDataSource) {
-                    this.renderer.dataSources.add(ds)
-                }
-
-                ds.entities.values.forEach((entity) => {
-                    // Enable outlines on polygons (disabled when clamped to terrain)
-                    if (entity.polygon) {
-                        entity.polygon.outline = true
-                    }
-                    // Render points as circular dots instead of Cesium's default
-                    // teardrop pin billboards.
-                    if (entity.billboard) {
-                        entity.billboard = undefined
-                        entity.point = new Cesium.PointGraphics({
-                            pixelSize:
-                                (defaultStyle.radius || 8) *
-                                CESIUM_POINT_PIXEL_SCALE,
-                            color: fillWithAlpha,
-                            outlineColor: strokeColor,
-                            outlineWidth: defaultStyle.weight || 2,
-                            // Preserve the terrain clamping the default billboard
-                            // had, so clamped-layer points stay on the surface.
-                            heightReference:
-                                type === 'clamped'
-                                    ? Cesium.HeightReference.CLAMP_TO_GROUND
-                                    : Cesium.HeightReference.NONE,
-                        })
-                    }
-                })
-
-                // Apply per-feature styles if enabled (matches LithoSphere behavior)
-                if (letPropertiesOverride) {
-                    ds.entities.values.forEach((entity) => {
-                        const props = entity.properties
-                        if (!props) return
-
-                        // Try to get feature-specific style from properties
-                        let featureStyle = null
-                        try {
-                            featureStyle = props.style?.getValue(
-                                Cesium.JulianDate.now()
-                            )
-                        } catch (e) {
-                            // If getValue fails, try direct access
-                            featureStyle = props.style?._value || props.style
-                        }
-
-                        if (featureStyle) {
-                            // Apply feature-specific styles to polygons
-                            if (entity.polygon) {
-                                if (featureStyle.fillColor) {
-                                    const polygonFillColor =
-                                        Cesium.Color.fromCssColorString(
-                                            featureStyle.fillColor
-                                        ) || Cesium.Color.WHITE
-                                    const polygonOpacity =
-                                        parseFloat(featureStyle.fillOpacity) !=
-                                        null
-                                            ? parseFloat(
-                                                  featureStyle.fillOpacity
-                                              )
-                                            : parseFloat(
-                                                  defaultStyle.fillOpacity
-                                              ) || 0.5
-                                    entity.polygon.material =
-                                        polygonFillColor.withAlpha(
-                                            polygonOpacity
-                                        )
-                                }
-                                if (featureStyle.color) {
-                                    const outlineColor =
-                                        Cesium.Color.fromCssColorString(
-                                            featureStyle.color
-                                        )
-                                    if (outlineColor) {
-                                        entity.polygon.outlineColor =
-                                            outlineColor
-                                    }
-                                }
-                                if (featureStyle.weight != null) {
-                                    entity.polygon.outlineWidth = parseFloat(
-                                        featureStyle.weight
-                                    )
-                                }
-                            }
-
-                            // Apply feature-specific styles to polylines
-                            if (entity.polyline) {
-                                if (featureStyle.color) {
-                                    const polylineColor =
-                                        Cesium.Color.fromCssColorString(
-                                            featureStyle.color
-                                        )
-                                    if (polylineColor) {
-                                        entity.polyline.material = polylineColor
-                                    }
-                                }
-                                if (featureStyle.weight != null) {
-                                    entity.polyline.width = parseFloat(
-                                        featureStyle.weight
-                                    )
-                                }
-                            }
-
-                            // Apply feature-specific styles to points
-                            if (entity.point) {
-                                if (featureStyle.radius != null) {
-                                    entity.point.pixelSize =
-                                        parseFloat(featureStyle.radius) *
-                                        CESIUM_POINT_PIXEL_SCALE
-                                }
-                                if (featureStyle.fillColor) {
-                                    const pointColor =
-                                        Cesium.Color.fromCssColorString(
-                                            featureStyle.fillColor
-                                        )
-                                    if (pointColor) {
-                                        entity.point.color = pointColor
-                                    }
-                                }
-                            }
-                        }
-                    })
-                }
-
-                // Store layer with onClick callback and feature mapping
-                this._displayedVectorDataSource[name] = ds
-                this._layers[name] = {
-                    type: 'vector',
-                    dataSource: ds,
-                    visible: true,
-                    onClick: layerConfig.onClick, // Store callback for global handler
-                    featureMap: featureMap, // Store id→original feature mapping
-                }
-
-                this._requestRender()
-
-                // Run any reload that arrived while this load was in flight.
-                this._runPendingVectorReload(name)
-            }).catch((err) => {
-                // On load failure keep the previous features rather than leaving
-                // the layer empty. Chained (not a sibling handler) so a rejected
-                // load can't produce an unhandled promise rejection.
-                delete this._loadingLayers[name]
-                console.error(`Failed to load vector layer "${name}":`, err)
-                this._runPendingVectorReload(name)
-            })
-        } else if (type === 'vectortile') {
+        if (type === 'vectortile') {
             // MVT vector tile layer with optional 3D extrusion
             const mvtLayer = new CesiumMVTLayer(this.renderer, {
                 name: layerConfig.name,
