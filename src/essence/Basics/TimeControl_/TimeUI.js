@@ -1690,7 +1690,7 @@ const TimeUI = {
         TimeUI._drawTimeLine(nextStart, nextEnd)
 
         clearTimeout(TimeUI._panHistoTimeout)
-        TimeUI._clearHistogram()
+        $('#mmgisTimeUITimelineHisto').empty()
         TimeUI._makeHistogram()
     },
     quickSelectPeriod(idx) {
@@ -2887,15 +2887,10 @@ const TimeUI = {
     },
     _refreshHistogramDebounced(delay = 3000) {
         clearTimeout(TimeUI._histogramRefreshTimeout)
-        TimeUI._clearHistogram()
+        $('#mmgisTimeUITimelineHisto').empty()
         TimeUI._histogramRefreshTimeout = setTimeout(() => {
             TimeUI._makeHistogram()
         }, delay)
-    },
-    // Emptying the histogram must also invalidate its cache so it gets redrawn
-    _clearHistogram() {
-        TimeUI.lastHistoSignature = null
-        $('#mmgisTimeUITimelineHisto').empty()
     },
     _makeHistogram() {
         // Histogram is drawn inside the timeline slider which doesn't exist on mobile
@@ -2903,10 +2898,19 @@ const TimeUI = {
 
         const startTimestamp = TimeUI.removeOffset(
             TimeUI._timelineStartTimestamp
-        ).getTime()
-        const endTimestamp = TimeUI.removeOffset(
-            TimeUI._timelineEndTimestamp
-        ).getTime()
+        )
+        const endTimestamp = TimeUI.removeOffset(TimeUI._timelineEndTimestamp)
+
+        // Don't remake if nothing changes
+        if (
+            TimeUI.lastHistoStartTimestamp === startTimestamp &&
+            TimeUI.lastHistoEndTimestamp === endTimestamp
+        )
+            return
+        else {
+            TimeUI.lastHistoStartTimestamp = startTimestamp
+            TimeUI.lastHistoEndTimestamp = endTimestamp
+        }
 
         // Find all on, time-enabled, tile layers
         const sparklineLayers = []
@@ -2971,29 +2975,6 @@ const TimeUI = {
             }
         })
 
-        // Don't remake if neither the time range nor the contributing layers changed
-        const histoSignature = sparklineLayers
-            .map((l) => l.name)
-            .sort()
-            .join('|')
-        if (
-            TimeUI.lastHistoStartTimestamp === startTimestamp &&
-            TimeUI.lastHistoEndTimestamp === endTimestamp &&
-            TimeUI.lastHistoSignature === histoSignature
-        )
-            return
-        else {
-            TimeUI.lastHistoStartTimestamp = startTimestamp
-            TimeUI.lastHistoEndTimestamp = endTimestamp
-            TimeUI.lastHistoSignature = histoSignature
-        }
-
-        if (sparklineLayers.length === 0) {
-            $('#mmgisTimeUITimelineHisto').empty()
-            return
-        }
-
-
         const starttimeISO = new Date(
             TimeUI._timelineStartTimestamp
         ).toISOString()
@@ -3013,8 +2994,8 @@ const TimeUI = {
                 data.body.times.forEach((time) => {
                     const total = parseInt(time.total)
                     if (isNaN(total)) return
-                    // Returned times are truncated to the query's bin size and
-                    // so may fall slightly before the timeline start
+                    // Times are truncated to the query's bin size so they can
+                    // land just outside the timeline
                     const binIndex = Math.min(
                         Math.max(
                             Math.floor(
