@@ -16,19 +16,10 @@
     "identify": false
   },
   "fileTypes": ["tms", "wmts", "cog", "stac-collection"],
-  "endpoints": [
-    {
-      "kind": "titiler",
-      "route": "/titiler/cog/tiles",
-      "description": "COG tiles proxied through TiTiler when using a COG: url."
-    },
-    {
-      "kind": "stac",
-      "description": "stac-collection: urls resolve to a WMTS template via transformStacUrl."
-    }
-  ],
   "metaconfig": "./metaconfig.json",
   "paths": {
-    "map": "./map/tile"
+    "map": "./map/tile",
+    "globe.cesium": "./globe/cesium/tile",
+    "globe.lithosphere": "./globe/lithosphere/tile"
   }
 }

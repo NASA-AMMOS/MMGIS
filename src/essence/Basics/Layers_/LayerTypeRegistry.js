@@ -37,6 +37,10 @@ const LayerTypeRegistry = {
     get(typeId) {
         return _load().layerTypeModules?.[typeId]
     },
+    /** Per-engine globe renderer module for a type, e.g. getGlobe('tile','cesium'). */
+    getGlobe(typeId, engine) {
+        return _load().layerTypeModules?.[typeId]?.globe?.[engine]
+    },
     /** Full plugin manifest for a type. */
     getConfig(typeId) {
         return _load().layerTypeConfigs?.[typeId]
