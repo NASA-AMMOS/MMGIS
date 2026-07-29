@@ -6,6 +6,7 @@ const logger = require("./logger");
 const {
   validatePluginConfig,
   findDuplicateInteractionIds,
+  findDuplicateIds,
 } = require("./pluginValidation");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
@@ -471,4 +472,241 @@ function updateInteractions() {
   checkPluginDependencies(PLUGINS_ROOT, "Interactions");
 }
 
-module.exports = { updateTools, updateComponents, updateInteractions };
+/**
+ * Turn an arbitrary string into a safe JS identifier fragment for use in
+ * generated import statements.
+ */
+function safeIdent(s) {
+  return String(s).replace(/[^A-Za-z0-9_$]/g, "_");
+}
+
+/**
+ * Shared generator for the two renderer-plugin kinds (`layertype` and
+ * `layerattachment`). Both are structurally identical: a `paths` object of
+ * static-import entries (map / globe.<engine> / capture / …), an optional
+ * `settings` JSON, and an optional `metaconfig` JSON for the Configure page.
+ *
+ * Produces:
+ *   - configure/public/<configureFile>  → { [id]: { manifest, metaconfig } }
+ *   - src/pre/<preFile>                 → static imports + generated maps:
+ *       export const <configsExport>  = { [id]: manifest }
+ *       export const <modulesExport>  = { [id]: { map, globe: { <engine> }, … } }
+ *       export const <settingsExport> = { [id]: <parsed settings JSON> }
+ *
+ * Everything is keyed by the plugin's stable id (`typeId`/`attachmentId`) so
+ * runtime lookup by `layerObj.type` is a direct map access.
+ */
+function generateLayerRegistry({
+  discoverType,
+  pluginType,
+  idField,
+  preFile,
+  configureFile,
+  configsExport,
+  modulesExport,
+  settingsExport,
+  loggerCategory,
+}) {
+  let registry = {};
+  const pluginPaths = {};
+
+  const discovered = discoverPlugins(PLUGINS_ROOT, discoverType, "plugin.json", {
+    loggerCategory,
+  });
+  for (const plugin of discovered) {
+    const registered = registerPlugin({
+      registry,
+      name: plugin.name,
+      config: plugin.manifest,
+      pluginType,
+      source: plugin.container,
+      loggerCategory,
+    });
+    if (registered) pluginPaths[plugin.name] = plugin.pluginPath;
+  }
+
+  // Enforce one owner per stable id — runtime resolves layerObj.type to
+  // exactly one plugin, so collisions are fatal.
+  const duplicates = findDuplicateIds(
+    Object.entries(registry).map(([name, manifest]) => ({
+      name,
+      [idField]: manifest[idField],
+    })),
+    idField
+  );
+  if (duplicates.length > 0) {
+    const messages = duplicates.map(
+      ({ id, owners }) =>
+        `Duplicate ${idField} '${id}' declared by: ${owners.join(", ")}`
+    );
+    messages.forEach((message) => logger("error", message, loggerCategory));
+    throw new Error(messages.join("; "));
+  }
+
+  // Re-key by stable id (name → id) so both the Configure app and the runtime
+  // registry look up by layerObj.type.
+  const byId = {};
+  const idToName = {};
+  for (const name in registry) {
+    const id = registry[name][idField];
+    byId[id] = registry[name];
+    idToName[id] = name;
+  }
+
+  // 1. Configure page JSON — embed each plugin's metaconfig contents so the
+  //    separate React app can resolve layer forms by type without importing
+  //    from the plugins directory.
+  const configureOut = {};
+  for (const id in byId) {
+    const manifest = byId[id];
+    const name = idToName[id];
+    const pluginPath = pluginPaths[name] || null;
+    let metaconfig = null;
+    if (manifest.metaconfig && pluginPath) {
+      try {
+        const abs = path.resolve(pluginPath, manifest.metaconfig);
+        metaconfig = JSON.parse(fs.readFileSync(abs, "utf8"));
+      } catch (err) {
+        logger(
+          "error",
+          `Failed to read metaconfig for ${pluginType} '${id}' (${manifest.metaconfig})`,
+          loggerCategory,
+          null,
+          err
+        );
+      }
+    }
+    configureOut[id] = { manifest, metaconfig };
+  }
+  try {
+    fs.writeFileSync(
+      `./configure/public/${configureFile}`,
+      JSON.stringify(configureOut)
+    );
+    logger(
+      "success",
+      `Successfully updated ${loggerCategory} configurations.`,
+      loggerCategory
+    );
+  } catch (err) {
+    logger(
+      "error",
+      `Failed to write ${configureFile}`,
+      loggerCategory,
+      null,
+      err
+    );
+  }
+
+  // 2. src/pre generated module — static imports + registry maps.
+  let out = "";
+  const moduleEntries = {}; // id → { paths: {key: importName}, settings: importName }
+
+  for (const id in byId) {
+    const manifest = byId[id];
+    const name = idToName[id];
+    const pluginPath = pluginPaths[name] || null;
+    moduleEntries[id] = { paths: {}, settings: null };
+
+    for (const key in manifest.paths) {
+      const resolved = resolvePluginPath(manifest.paths[key], pluginPath);
+      const importName = `ltp_${safeIdent(id)}__${safeIdent(key)}`;
+      out += `import ${importName} from '${resolved}'\n`;
+      moduleEntries[id].paths[key] = importName;
+    }
+
+    if (manifest.settings && pluginPath) {
+      const resolved = resolvePluginPath(manifest.settings, pluginPath);
+      const importName = `lts_${safeIdent(id)}`;
+      out += `import ${importName} from '${resolved}'\n`;
+      moduleEntries[id].settings = importName;
+    }
+  }
+
+  out += "\n";
+
+  // Build the nested modules map. A path key like "globe.cesium" becomes a
+  // nested { globe: { cesium: <import> } } entry.
+  out += `export const ${modulesExport} = {\n`;
+  for (const id in moduleEntries) {
+    const nested = {};
+    for (const key in moduleEntries[id].paths) {
+      const importName = moduleEntries[id].paths[key];
+      const segments = key.split(".");
+      let cursor = nested;
+      for (let i = 0; i < segments.length - 1; i++) {
+        cursor[segments[i]] = cursor[segments[i]] || {};
+        cursor = cursor[segments[i]];
+      }
+      cursor[segments[segments.length - 1]] = importName;
+    }
+    // Stringify with import identifiers left unquoted.
+    const body = JSON.stringify(nested).replace(
+      /"(ltp_[A-Za-z0-9_$]+)"/g,
+      "$1"
+    );
+    out += `  '${id}': ${body},\n`;
+  }
+  out += "}\n\n";
+
+  out += `export const ${configsExport} = ${JSON.stringify(byId)}\n\n`;
+
+  out += `export const ${settingsExport} = {\n`;
+  for (const id in moduleEntries) {
+    if (moduleEntries[id].settings) {
+      out += `  '${id}': ${moduleEntries[id].settings},\n`;
+    }
+  }
+  out += "}\n";
+
+  try {
+    fs.writeFileSync(`./src/pre/${preFile}`, out);
+    logger("success", `Successfully plugged-in ${loggerCategory}.`, loggerCategory);
+  } catch (err) {
+    logger(
+      "error",
+      `Failed to write src/pre/${preFile}`,
+      loggerCategory,
+      null,
+      err
+    );
+  }
+
+  checkPluginDependencies(PLUGINS_ROOT, loggerCategory);
+}
+
+function updateLayerTypes() {
+  generateLayerRegistry({
+    discoverType: "layertypes",
+    pluginType: "layertype",
+    idField: "typeId",
+    preFile: "layertypes.js",
+    configureFile: "layerTypeConfigs.json",
+    configsExport: "layerTypeConfigs",
+    modulesExport: "layerTypeModules",
+    settingsExport: "layerTypeSettings",
+    loggerCategory: "LayerTypes",
+  });
+}
+
+function updateLayerAttachments() {
+  generateLayerRegistry({
+    discoverType: "layerattachments",
+    pluginType: "layerattachment",
+    idField: "attachmentId",
+    preFile: "layerattachments.js",
+    configureFile: "layerAttachmentConfigs.json",
+    configsExport: "layerAttachmentConfigs",
+    modulesExport: "layerAttachmentModules",
+    settingsExport: "layerAttachmentSettings",
+    loggerCategory: "LayerAttachments",
+  });
+}
+
+module.exports = {
+  updateTools,
+  updateComponents,
+  updateInteractions,
+  updateLayerTypes,
+  updateLayerAttachments,
+};

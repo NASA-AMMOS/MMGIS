@@ -14,6 +14,8 @@ nul
 configure/public/toolConfigs.json
 /configure/public/componentConfigs.json
 /configure/public/interactionConfigs.json
+/configure/public/layerTypeConfigs.json
+/configure/public/layerAttachmentConfigs.json
 
 # External/private plugin containers (everything except core + CLI files is gitignored)
 /plugins/*
@@ -34,6 +36,8 @@ configure/public/toolConfigs.json
 /src/pre/tools.js
 /src/pre/components.js
 /src/pre/interactions.js
+/src/pre/layertypes.js
+/src/pre/layerattachments.js
 
 /spice/kernels/*
 !/spice/kernels/.gitkeep

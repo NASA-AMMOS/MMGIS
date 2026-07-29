@@ -1,0 +1,34 @@
+{
+  "name": "Tile",
+  "type": "layertype",
+  "typeId": "tile",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": true,
+  "description": "Raster tile layer (TMS/WMTS/COG/STAC) rendered as a Leaflet tileLayer on the map and imagery on the globe.",
+  "capabilities": {
+    "renderers": {
+      "map": true,
+      "globe": { "engines": ["cesium", "lithosphere"] }
+    },
+    "time": true,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["tms", "wmts", "cog", "stac-collection"],
+  "endpoints": [
+    {
+      "kind": "titiler",
+      "route": "/titiler/cog/tiles",
+      "description": "COG tiles proxied through TiTiler when using a COG: url."
+    },
+    {
+      "kind": "stac",
+      "description": "stac-collection: urls resolve to a WMTS template via transformStacUrl."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/tile"
+  }
+}

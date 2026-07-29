@@ -84,6 +84,33 @@ const KNOWN_FIELDS = {
     "suppresses",
     "kindAlias",
   ]),
+  layertype: new Set([
+    ...COMMON_FIELDS,
+    "paths",
+    "typeId",
+    "description",
+    "descriptionFull",
+    "capabilities",
+    "fileTypes",
+    "endpoints",
+    "metaconfig",
+    "settings",
+    "defaultIcon",
+    "color",
+  ]),
+  layerattachment: new Set([
+    ...COMMON_FIELDS,
+    "paths",
+    "attachmentId",
+    "description",
+    "descriptionFull",
+    "applicableLayerTypes",
+    "capabilities",
+    "metaconfig",
+    "settings",
+    "defaultIcon",
+    "color",
+  ]),
 };
 
 /**
@@ -201,9 +228,9 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
     );
   }
-  if (config.type !== undefined && !["tool", "component", "backend", "interaction"].includes(config.type)) {
+  if (config.type !== undefined && !["tool", "component", "backend", "interaction", "layertype", "layerattachment"].includes(config.type)) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction`
+      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction, layertype, layerattachment`
     );
   }
   if (config.tier !== undefined && !["core", "community", "private", "official", "experimental", "deprecated"].includes(config.tier)) {
@@ -318,6 +345,101 @@ function validatePluginConfig(config, pluginName, pluginType) {
     }
   }
 
+  // For layer types, name, typeId, and paths are required. For layer
+  // attachments, name, attachmentId, and paths are required. Both share the
+  // same renderer-plugin shape (a `paths` object of static-import entries plus
+  // an optional `capabilities` block).
+  if (pluginType === "layertype" || pluginType === "layerattachment") {
+    const idField = pluginType === "layertype" ? "typeId" : "attachmentId";
+
+    if (typeof config.name !== "string" || config.name.length === 0) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'name' field (must be a non-empty string)`
+      );
+    }
+    if (typeof config[idField] !== "string" || config[idField].length === 0) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required '${idField}' field (must be a non-empty string)`
+      );
+    }
+    if (
+      config.paths === undefined ||
+      config.paths === null ||
+      typeof config.paths !== "object" ||
+      Array.isArray(config.paths)
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'paths' object`
+      );
+    } else {
+      const pathKeys = Object.keys(config.paths);
+      if (pathKeys.length === 0) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'paths' object must contain at least one entry`
+        );
+      }
+      for (const key of pathKeys) {
+        if (typeof config.paths[key] !== "string") {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'paths.${key}' must be a string`
+          );
+        }
+      }
+    }
+    if (config.capabilities !== undefined) {
+      if (
+        typeof config.capabilities !== "object" ||
+        Array.isArray(config.capabilities) ||
+        config.capabilities === null
+      ) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'capabilities' must be an object when present`
+        );
+      } else if (config.capabilities.renderers !== undefined) {
+        const r = config.capabilities.renderers;
+        if (typeof r !== "object" || Array.isArray(r) || r === null) {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.renderers' must be an object (e.g. { "map": true, "globe": { "engines": ["cesium"] } })`
+          );
+        } else if (r.globe !== undefined && r.globe !== false && r.globe !== true) {
+          if (
+            typeof r.globe !== "object" ||
+            Array.isArray(r.globe) ||
+            (r.globe.engines !== undefined && !Array.isArray(r.globe.engines))
+          ) {
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): 'capabilities.renderers.globe' must be a boolean or an object with an 'engines' array`
+            );
+          }
+        }
+      }
+    }
+    if (config.fileTypes !== undefined && !Array.isArray(config.fileTypes)) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'fileTypes' must be an array of strings`
+      );
+    }
+    if (config.metaconfig !== undefined && typeof config.metaconfig !== "string") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'metaconfig' must be a string path to a metaconfig JSON file`
+      );
+    }
+    if (config.settings !== undefined && typeof config.settings !== "string") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'settings' must be a string path to a settings JSON file`
+      );
+    }
+    if (
+      pluginType === "layerattachment" &&
+      config.applicableLayerTypes !== undefined &&
+      !Array.isArray(config.applicableLayerTypes)
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'applicableLayerTypes' must be an array of layer type IDs`
+      );
+    }
+  }
+
   // For tools and components, both `name` and `paths` are required.
   if (pluginType === "tool" || pluginType === "component") {
     if (typeof config.name !== "string" || config.name.length === 0) {
@@ -400,9 +522,31 @@ function findDuplicateInteractionIds(interactions) {
     .map(([interactionId, owners]) => ({ interactionId, owners }));
 }
 
+/**
+ * Find duplicate IDs across a list of `{ name, id }` entries. Used to enforce
+ * one owner per layer-type `typeId` (and per attachment `attachmentId`), since
+ * `layerObj.type` resolves to exactly one renderer plugin at runtime.
+ */
+function findDuplicateIds(entries, idKey) {
+  const ownersById = new Map();
+
+  for (const entry of entries) {
+    const id = entry[idKey];
+    if (typeof id !== "string" || id.length === 0) continue;
+    const owners = ownersById.get(id) || [];
+    owners.push(entry.name);
+    ownersById.set(id, owners);
+  }
+
+  return Array.from(ownersById.entries())
+    .filter(([, owners]) => owners.length > 1)
+    .map(([id, owners]) => ({ id, owners }));
+}
+
 module.exports = {
   validatePluginConfig,
   validateDependencies,
   findDuplicateInteractionIds,
+  findDuplicateIds,
   KNOWN_FIELDS,
 };

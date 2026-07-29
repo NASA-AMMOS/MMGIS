@@ -29,7 +29,13 @@ const { sequelize } = require("../API/connection");
 
 const setups = require("../API/setups");
 
-const { updateTools, updateComponents, updateInteractions } = require("../API/updateTools");
+const {
+  updateTools,
+  updateComponents,
+  updateInteractions,
+  updateLayerTypes,
+  updateLayerAttachments,
+} = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
@@ -748,6 +754,12 @@ setups.getBackendSetups(function (setups) {
 
     console.log(chalk.cyan("\nPlugging in Interactions..."));
     updateInteractions();
+
+    console.log(chalk.cyan("\nPlugging in Layer Types..."));
+    updateLayerTypes();
+
+    console.log(chalk.cyan("\nPlugging in Layer Attachments..."));
+    updateLayerAttachments();
   }
 
   //////Setups Init//////

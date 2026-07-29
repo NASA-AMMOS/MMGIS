@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
+import LayerTypeRegistry from '../Layers_/LayerTypeRegistry'
 import { captureVector } from '../Layers_/LayerCapturer'
 import {
     constructVectorLayer,
@@ -787,6 +788,21 @@ async function makeLayer(
             //Decide what kind of layer it is
             //Headers do not need to be made
             if (layerObj.type != 'header') {
+                // Layer-type plugins own their map renderer. If a plugin is
+                // registered for this type, dispatch through the registry with
+                // the frozen renderer context; otherwise fall back to the
+                // not-yet-migrated builders below. Each type is served by
+                // exactly one path (no per-type dual dispatch).
+                const rt = LayerTypeRegistry.get(layerObj.type)
+                if (rt && rt.map && typeof rt.map.make === 'function') {
+                    await rt.map.make(layerObj, {
+                        evenIfOff,
+                        forceGeoJSON,
+                        isRefresh,
+                        mapContext,
+                        resolvedUrl,
+                    })
+                } else
                 //Simply call the appropriate function for each layer type
                 switch (layerObj.type) {
                     case 'vector':
@@ -808,9 +824,6 @@ async function makeLayer(
                             forceGeoJSON,
                             mapContext
                         )
-                        break
-                    case 'tile':
-                        makeTileLayer(layerObj, mapContext)
                         break
                     case 'vectortile':
                         makeVectorTileLayer(layerObj, mapContext)
@@ -1378,193 +1391,6 @@ async function makeVelocityLayer(
             resolve()
         }
     })
-}
-
-async function makeTileLayer(layerObj, mapContext = null) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-        default: true,
-    }
-
-    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
-
-    let splitColonType
-    const splitColonLayerUrl = layerObj.url.split(':')
-    if (splitColonLayerUrl[1] != null) {
-        let bandsParam = ''
-        let b
-        let resamplingParam = ''
-
-        switch (splitColonLayerUrl[0]) {
-            case 'stac-collection':
-                splitColonType = splitColonLayerUrl[0]
-                // Use shared transformation function
-                layerUrl = transformStacUrl(
-                    layerObj.url,
-                    layerObj,
-                    'tile',
-                    window.location
-                )
-                // Cache transformed URL for reuse (e.g., in animations)
-                layerObj._transformedUrl = layerUrl
-                layerObj.tileformat = 'wmts'
-                break
-            case 'COG':
-                splitColonType = splitColonLayerUrl[0]
-
-                // Bands parameter (expression will be added dynamically in getTileUrl)
-                bandsParam = ''
-
-                // Only add bands if no expression exists (expression takes precedence)
-                if (
-                    !layerObj.cogExpression ||
-                    layerObj.cogExpression.trim() === ''
-                ) {
-                    b = layerObj.cogBands
-                    if (b != null) {
-                        b.forEach((band) => {
-                            if (band != null) bandsParam += `&bidx=${band}`
-                        })
-                    }
-                }
-
-                resamplingParam = ''
-                if (layerObj.cogResampling) {
-                    resamplingParam = `&resampling=${layerObj.cogResampling}`
-                }
-
-                layerUrl = `${window.location.origin}${(
-                    window.location.pathname || ''
-                ).replace(/\/$/g, '')}/titiler/cog/tiles/${
-                    layerObj.tileMatrixSet || 'WebMercatorQuad'
-                }/{z}/{x}/{y}.webp?url=${layerUrl}${bandsParam}${resamplingParam}`
-
-                break
-            default:
-                break
-        }
-    }
-
-    let bb = null
-    if (layerObj.hasOwnProperty('boundingBox')) {
-        bb = L.latLngBounds(
-            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
-            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
-        )
-    }
-    layerUrl = await TimeControl.performTimeUrlReplacements(
-        layerUrl,
-        layerObj,
-        null
-    )
-
-    let tileFormat = 'tms'
-    // For backward compatibility with the .tms option
-    if (typeof layerObj.tileformat === 'undefined') {
-        tileFormat = typeof layerObj.tms === 'undefined' ? true : layerObj.tms
-        tileFormat = tileFormat ? 'tms' : 'wmts'
-    } else tileFormat = layerObj.tileformat
-
-    ctx.layerRegistry.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
-        minZoom: parseInt(layerObj.minZoom),
-        maxZoom: parseInt(layerObj.maxZoom),
-        maxNativeZoom: parseInt(layerObj.maxNativeZoom),
-        tileFormat: tileFormat,
-        tms: tileFormat === 'tms',
-        splitColonType: splitColonType,
-        //noWrap: true,
-        continuousWorld: true,
-        reuseTiles: true,
-        bounds: bb,
-        timeEnabled: layerObj.time != null && layerObj.time.enabled === true,
-        time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
-        compositeTile:
-            typeof layerObj.time === 'undefined'
-                ? false
-                : layerObj.time.compositeTile || false,
-        starttime:
-            typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
-        endtime: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
-        customTimes:
-            typeof layerObj.time === 'undefined'
-                ? null
-                : layerObj.time.customTimes,
-        cogTransform: layerObj.cogTransform,
-        cogMin: layerObj.cogMin,
-        currentCogMin: layerObj.currentCogMin,
-        cogMax: layerObj.cogMax,
-        currentCogMax: layerObj.currentCogMax,
-        cogColormap: layerObj.cogColormap,
-        cogExpression: layerObj.cogExpression,
-        currentCogExpression: layerObj.currentCogExpression,
-        variables: layerObj.variables || {},
-    })
-
-    // Time-enabled tile layers should never fade (instant swap on pan or time change)
-    if (layerObj.time && layerObj.time.enabled === true) {
-        ctx.layerRegistry.layer[layerObj.name]._noFade = true
-    }
-
-    // Add to map
-    if (ctx.default != true) {
-        ctx.layerRegistry.layer[layerObj.name].addTo(ctx.map)
-    }
-
-    L_.setLayerOpacity(
-        layerObj.name,
-        ctx.layerRegistry.opacity[layerObj.name] || 1
-    )
-
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    ctx.layerRegistry.layer[layerObj.name].off('loading')
-    ctx.layerRegistry.layer[layerObj.name].on('loading', () => {
-        L_.setGlobalLoading(layerObj.name)
-    })
-    ctx.layerRegistry.layer[layerObj.name].off('load')
-    ctx.layerRegistry.layer[layerObj.name].on('load', () => {
-        // Set default css filters for tile layer
-        if (
-            layerObj.style?.brightness != null &&
-            L_.layers.filters[layerObj.name]?.brightness == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'brightness',
-                layerObj.style.brightness
-            )
-        if (
-            layerObj.style?.contrast != null &&
-            L_.layers.filters[layerObj.name]?.contrast == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'contrast',
-                layerObj.style.contrast
-            )
-        if (
-            layerObj.style?.saturation != null &&
-            L_.layers.filters[layerObj.name]?.saturation == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'saturation',
-                layerObj.style.saturation
-            )
-        if (
-            layerObj.style?.blend != null &&
-            L_.layers.filters[layerObj.name]?.blend == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'mix-blend-mode',
-                layerObj.style.blend
-            )
-
-        L_.setGlobalLoaded(layerObj.name)
-    })
-    allLayersLoaded()
 }
 
 function makeVectorTileLayer(layerObj, mapContext = null) {
