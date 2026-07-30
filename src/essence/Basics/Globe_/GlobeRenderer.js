@@ -2,14 +2,14 @@ import LithoSphere from 'lithosphere'
 import Projection_ from './Projection_'
 import * as Cesium from 'cesium'
 import 'cesium/Source/Widgets/widgets.css'
-import LayerTypeRegistry from '../Layers_/LayerTypeRegistry'
-import LayerInterface from '../Layers_/LayerInterface'
+import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import LayerInterface from '../Layers_/interface/LayerInterface'
 import {
     interpolateMultipleColors,
     buildColorStops,
     closestPointOnSegment,
-} from '../Layers_/gradientUtils'
-import { getCoordProperties } from '../Layers_/ExtendedGeoJSON'
+} from '../Layers_/render/gradientUtils'
+import { getCoordProperties } from '../Layers_/render/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
 
 /**

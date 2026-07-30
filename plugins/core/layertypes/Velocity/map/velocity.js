@@ -14,7 +14,7 @@
  */
 import L_ from '@basics/Layers_/Layers_'
 import MapRenderer from '@basics/Map_/MapRenderer'
-import { captureVector } from '@basics/Layers_/LayerCapturer'
+import { captureVector } from '@basics/Layers_/capture/LayerCapturer'
 import { data as colormapData } from '@external/js-colormaps/js-colormaps.js'
 
 function make(layerObj, ctx = {}) {

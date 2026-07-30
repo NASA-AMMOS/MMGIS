@@ -8,7 +8,7 @@ import {
 } from '@basics/InteractionRunner/InteractionRunner'
 import Dropy from '@external/Dropy/dropy'
 
-import MetadataCapturer from '@basics/Layers_/MetadataCapturer'
+import MetadataCapturer from '@basics/Layers_/capture/MetadataCapturer'
 import Help from '@basics/UserInterface_/components/Help/Help'
 import ConfirmationModal from '@basics/UserInterface_/components/ConfirmationModal/ConfirmationModal'
 

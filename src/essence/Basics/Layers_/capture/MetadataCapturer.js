@@ -1,5 +1,5 @@
-import F_ from '../Formulae_/Formulae_'
-import calls from '../../../pre/calls'
+import F_ from '../../Formulae_/Formulae_'
+import calls from '../../../../pre/calls'
 
 const MetadataCapturer = {
     populateMetadata(layer, cb) {

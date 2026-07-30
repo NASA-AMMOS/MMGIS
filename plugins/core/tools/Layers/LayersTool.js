@@ -3,7 +3,7 @@ import Sortable from 'sortablejs'
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
-import LayerTypeRegistry from '@basics/Layers_/LayerTypeRegistry'
+import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 
 import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
@@ -26,7 +26,7 @@ import {
     data as colormapData,
 } from '@external/js-colormaps/js-colormaps.js'
 
-import { isKmlUrl, fetchKmlAsGeoJSON } from '@basics/Layers_/LayerCapturer'
+import { isKmlUrl, fetchKmlAsGeoJSON } from '@basics/Layers_/capture/LayerCapturer'
 import './LayersTool.css'
 
 const helpKey = 'LayersTool'

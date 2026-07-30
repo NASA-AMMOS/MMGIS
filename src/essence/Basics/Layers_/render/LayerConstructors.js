@@ -3,9 +3,9 @@
  */
 
 import $ from 'jquery'
-import F_ from '../Formulae_/Formulae_'
-import L_ from '../Layers_/Layers_'
-import LayerGeologic from './LayerGeologic/LayerGeologic'
+import F_ from '../../Formulae_/Formulae_'
+import L_ from '../../Layers_/Layers_'
+import LayerGeologic from '../LayerGeologic/LayerGeologic'
 import { parseExtendedGeoJSON, getCoordProperties } from './ExtendedGeoJSON'
 import {
     interpolateColor,

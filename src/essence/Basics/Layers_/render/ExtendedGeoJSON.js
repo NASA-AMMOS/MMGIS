@@ -1,4 +1,4 @@
-import F_ from '../Formulae_/Formulae_'
+import F_ from '../../Formulae_/Formulae_'
 
 export const parseExtendedGeoJSON = (geojson, parsers) => {
     parsers = parsers || []

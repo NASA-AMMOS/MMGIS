@@ -1,10 +1,10 @@
 import $ from 'jquery'
 import { utcFormat } from 'd3-time-format'
 import { kml as kmlToGeoJSON } from '@tmcw/togeojson'
-import F_ from '../Formulae_/Formulae_'
-import L_ from '../Layers_/Layers_'
-import calls from '../../../pre/calls'
-import TimeControl from '../TimeControl_/TimeControl'
+import F_ from '../../Formulae_/Formulae_'
+import L_ from '../../Layers_/Layers_'
+import calls from '../../../../pre/calls'
+import TimeControl from '../../TimeControl_/TimeControl'
 
 function isKmlUrl(url) {
     try {

@@ -20,7 +20,7 @@ let _cache = null
 function _load() {
     if (_cache) return _cache
     try {
-        _cache = require('../../../pre/layerattachments')
+        _cache = require('../../../../pre/layerattachments')
     } catch (e) {
         console.warn(
             'LayerAttachmentRegistry: could not load generated layerattachments.js',

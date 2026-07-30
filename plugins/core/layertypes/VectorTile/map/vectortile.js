@@ -11,9 +11,9 @@
  *   ctx = { evenIfOff, forceGeoJSON, isRefresh, mapContext, resolvedUrl }
  */
 import L_ from '@basics/Layers_/Layers_'
-import LayerTypeRegistry from '@basics/Layers_/LayerTypeRegistry'
+import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 import MapRenderer from '@basics/Map_/MapRenderer'
-import MetadataCapturer from '@basics/Layers_/MetadataCapturer.js'
+import MetadataCapturer from '@basics/Layers_/capture/MetadataCapturer.js'
 import {
     runInteractions,
     resolveLayerInteractions,
