@@ -161,12 +161,8 @@ const LayerModal = (props) => {
   config = inject(config);
 
   const handleClose = (skipSetConfiguration) => {
-    // `config` comes from the async-loaded layer-type registry, so it can be an
-    // empty object when the registry failed to load, hasn't resolved yet, or the
-    // layer's type has no plugin metaconfig. In that case no fields were rendered,
-    // so there are no edits to trim/persist — skip the repopulation pass (which
-    // would otherwise throw on `config.tabs` and leave the modal stuck open) and
-    // just close the modal.
+    // config (from the async layer-type registry) may be {} — no fields were
+    // rendered, so skip the repopulation pass (which would throw on config.tabs).
     if (skipSetConfiguration !== true && Array.isArray(config?.tabs)) {
       const nextConfiguration = JSON.parse(JSON.stringify(configuration));
       traverseLayers(nextConfiguration.layers, (l, path, index) => {

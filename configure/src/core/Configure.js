@@ -61,8 +61,16 @@ export default function Configure() {
       (res) => {
         dispatch(setLayerTypeConfiguration(res || {}));
       },
-      () => {
+      (res) => {
         dispatch(setLayerTypeConfiguration({}));
+        dispatch(
+          setSnackBarText({
+            text:
+              res?.message ||
+              "Failed to load layer type configurations. Layer editing will be unavailable.",
+            severity: "error",
+          })
+        );
       }
     );
 

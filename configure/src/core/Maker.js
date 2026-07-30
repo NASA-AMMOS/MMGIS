@@ -81,6 +81,12 @@ const useStyles = makeStyles((theme) => ({
     "& .MuiTabScrollButton-root": {
       color: theme.palette.swatches.grey[1000],
     },
+    // A disabled scroll button (e.g. the left one at the start) keeps its 40px
+    // width at opacity 0 by default, leaving an empty gap before the first tab.
+    "& .MuiTabScrollButton-root.Mui-disabled": {
+      width: 0,
+      overflow: "hidden",
+    },
   },
   contentTabs: {
     height: "calc(100% - 48px)",

@@ -567,6 +567,12 @@ class GlobeRenderer {
         if (type === 'curtain') {
             // Curtain layers not implemented for core features
             console.warn('Curtain layers not yet supported for Cesium renderer')
+        } else {
+            // No Cesium globe renderer module for this type (e.g. 'model', which
+            // only ships a LithoSphere module) — keep the pre-migration warning.
+            console.warn(
+                `Layer type '${type}' has no Cesium globe renderer — nothing was added.`
+            )
         }
     }
 
