@@ -237,7 +237,22 @@ export default function DataFormats() {
       });
     });
     return Object.values(index)
-      .map((f) => ({ ...f, exts: Array.from(f.exts) }))
+      .map((f) => {
+        // Prefer the dotted ".ext" form: drop a bare token (e.g. "dae")
+        // whenever its dotted equivalent (".dae") is also present.
+        const all = Array.from(f.exts);
+        const dotted = new Set(
+          all
+            .filter((e) => e.startsWith("."))
+            .map((e) => e.toLowerCase())
+        );
+        const exts = all
+          .filter(
+            (e) => e.startsWith(".") || !dotted.has("." + e.toLowerCase())
+          )
+          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+        return { ...f, exts };
+      })
       .sort((a, b) =>
         a.name.toLowerCase().localeCompare(b.name.toLowerCase())
       );
