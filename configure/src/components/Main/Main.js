@@ -47,6 +47,7 @@ import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
 import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
 import Users from "../../pages/Users/Users";
+import DataFormats from "../../pages/DataFormats/DataFormats";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -240,6 +241,9 @@ export default function Main() {
       break;
     case "users":
       Page = <Users />;
+      break;
+    case "data_formats":
+      Page = <DataFormats />;
       break;
     default:
   }
