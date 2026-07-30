@@ -321,6 +321,18 @@ export default function Panel() {
             className={c.pageButton}
             variant="contained"
             disableElevation
+            startIcon={<StorageIcon size="small" />}
+            onClick={() => {
+              dispatch(setMission(null));
+              dispatch(setPage({ page: "data_formats" }));
+            }}
+          >
+            Data Formats
+          </Button>
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
             startIcon={<ShapeLineIcon size="small" />}
             onClick={() => {
               dispatch(setMission(null));
@@ -420,19 +432,6 @@ export default function Panel() {
             }}
           >
             Users
-          </Button>
-
-          <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<StorageIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "data_formats" }));
-            }}
-          >
-            Data Formats
           </Button>
         </div>
       </div>

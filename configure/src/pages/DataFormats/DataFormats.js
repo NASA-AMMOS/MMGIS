@@ -37,13 +37,13 @@ const useStyles = makeStyles((theme) => ({
     height: "100%",
     overflowY: "auto",
     display: "flex",
-    padding: "0px 32px 64px 32px",
+    padding: "24px 32px 64px 32px",
     flexFlow: "column",
     boxSizing: "border-box",
   },
   article: {
     width: "100%",
-    maxWidth: "860px",
+    maxWidth: "760px",
     margin: "0 auto",
     display: "flex",
     flexFlow: "column",
@@ -73,8 +73,13 @@ const useStyles = makeStyles((theme) => ({
     flexWrap: "wrap",
   },
   search: {
-    flex: "1 1 320px",
-    maxWidth: "480px",
+    flex: "1 1 auto",
+  },
+  pageDescription: {
+    color: theme.palette.swatches.grey[300],
+    fontSize: "13px",
+    lineHeight: "18px",
+    marginBottom: "16px",
   },
   hint: {
     color: theme.palette.swatches.grey[300],
@@ -102,10 +107,18 @@ const useStyles = makeStyles((theme) => ({
     "&:before": { display: "none" },
   },
   formatToken: {
-    flex: "0 0 260px",
+    flex: "0 0 200px",
     display: "flex",
     flexFlow: "column",
     color: theme.palette.swatches.grey[150],
+  },
+  formatTypeChips: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginLeft: "auto",
   },
   tokenName: {
     fontWeight: "bold",
@@ -360,7 +373,7 @@ export default function DataFormats() {
               </div>
             ) : null}
           </div>
-          <div className={c.chips}>
+          <div className={c.formatTypeChips}>
             {Array.from(f.typeIds)
               .sort()
               .map((typeId) => renderTypeChip(typeId))}
@@ -413,7 +426,6 @@ export default function DataFormats() {
                 <div className={c.typeTitle}>
                   <TypeIcon style={{ color: typeColor, fontSize: "20px" }} />
                   <span>{t.name}</span>
-                  <span className={c.typeKey}>{t.typeId}</span>
                 </div>
                 <div className={c.chips}>
                   {summaryChips.length === 0 ? (
@@ -504,6 +516,12 @@ export default function DataFormats() {
       </Toolbar>
       <div className={c.Inner}>
         <div className={c.article}>
+        <div className={c.pageDescription}>
+          A reference of the data formats and standards each layer type can
+          render — look up a format to find which layer types support it, or
+          browse a layer type to see everything it accepts and how to procure
+          it.
+        </div>
         <div className={c.controls}>
           <ToggleButtonGroup
             value={view}
@@ -535,11 +553,6 @@ export default function DataFormats() {
               ),
             }}
           />
-        </div>
-        <div className={c.hint}>
-          {view === "format"
-            ? "Find a data format or standard to see which layer types can render it."
-            : "Expand a layer type to see every data format it supports and how to procure it."}
         </div>
         {view === "format" ? renderByFormat() : renderByType()}
         </div>
