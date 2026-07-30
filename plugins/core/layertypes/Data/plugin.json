@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#c43541",
+  "defaultIcon": "Storage",
   "description": "Numeric raster layer decoded client-side and colorized/shaded with a WebGL shader on the 2D map (e.g. DEMs, data products).",
   "capabilities": {
     "renderers": {

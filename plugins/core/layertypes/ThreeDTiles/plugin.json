@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#7a5c9e",
+  "defaultIcon": "Hexagon",
   "description": "OGC 3D Tiles dataset (photogrammetry meshes, point clouds, buildings) streamed onto the globe. Globe-only.",
   "capabilities": {
     "renderers": {

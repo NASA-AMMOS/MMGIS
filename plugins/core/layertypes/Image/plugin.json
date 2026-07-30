@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#b0518f",
+  "defaultIcon": "Image",
   "description": "Georeferenced single image / GeoTIFF drawn on the 2D map via a GeoRaster layer, with optional single-band colormapping.",
   "capabilities": {
     "renderers": {

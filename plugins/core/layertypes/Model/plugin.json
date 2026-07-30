@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#a98732",
+  "defaultIcon": "ViewInAr",
   "description": "A 3D model (mesh) placed on the globe at a geographic position with configurable scale and rotation. Globe-only (not drawn on the 2D map).",
   "capabilities": {
     "renderers": {

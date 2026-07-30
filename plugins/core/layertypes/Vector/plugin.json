@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#245980",
+  "defaultIcon": "Polyline",
   "description": "GeoJSON vector layer (points/lines/polygons, annotations, arrows, gradients) with time, injectable params, dynamic-extent geodatasets, filtering and per-feature attachments.",
   "capabilities": {
     "renderers": {

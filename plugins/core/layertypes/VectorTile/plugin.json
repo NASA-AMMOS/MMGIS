@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#0792c5",
+  "defaultIcon": "GridView",
   "description": "Mapbox Vector Tile (MVT/PBF) layer rendered with L.vectorGrid on the map, with optional 3D building extrusion on the globe.",
   "capabilities": {
     "renderers": {

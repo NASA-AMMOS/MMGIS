@@ -18,6 +18,8 @@ import StorageIcon from "@mui/icons-material/Storage";
 import SearchIcon from "@mui/icons-material/Search";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
+import { getLayerTypeVisual } from "../../core/layerTypeVisuals";
+
 const useStyles = makeStyles((theme) => ({
   DataFormats: {
     width: "100%",
@@ -38,6 +40,13 @@ const useStyles = makeStyles((theme) => ({
     padding: "0px 32px 64px 32px",
     flexFlow: "column",
     boxSizing: "border-box",
+  },
+  article: {
+    width: "100%",
+    maxWidth: "860px",
+    margin: "0 auto",
+    display: "flex",
+    flexFlow: "column",
   },
   topbar: {
     width: "calc(100% - 100px)",
@@ -76,8 +85,21 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "flex-start",
     gap: "16px",
-    padding: "10px 12px",
-    borderBottom: `1px solid ${theme.palette.swatches.grey[850]}`,
+    padding: "14px 16px",
+    marginBottom: "10px",
+    background: theme.palette.swatches.grey[900],
+    border: `1px solid ${theme.palette.swatches.grey[850]}`,
+    borderRadius: "8px",
+    boxShadow: "0px 1px 3px rgba(0,0,0,0.35)",
+  },
+  card: {
+    marginBottom: "10px !important",
+    background: `${theme.palette.swatches.grey[900]} !important`,
+    border: `1px solid ${theme.palette.swatches.grey[850]}`,
+    borderRadius: "8px !important",
+    boxShadow: "0px 1px 3px rgba(0,0,0,0.35) !important",
+    overflow: "hidden",
+    "&:before": { display: "none" },
   },
   formatToken: {
     flex: "0 0 260px",
@@ -266,6 +288,25 @@ export default function DataFormats() {
 
   const q = search.trim().toLowerCase();
 
+  // A layer-type chip colored by that type's manifest color, with its icon.
+  const renderTypeChip = (typeId) => {
+    const { color, Icon } = getLayerTypeVisual(layerTypeConfiguration, typeId);
+    return (
+      <Chip
+        key={typeId}
+        size="small"
+        icon={<Icon style={{ color: "white", fontSize: "15px" }} />}
+        label={typeId}
+        sx={{
+          backgroundColor: color,
+          color: "white",
+          fontWeight: "bold",
+          "& .MuiChip-icon": { color: "white" },
+        }}
+      />
+    );
+  };
+
   const filteredFormats = useMemo(() => {
     if (!q) return formatIndex;
     return formatIndex.filter(
@@ -322,14 +363,7 @@ export default function DataFormats() {
           <div className={c.chips}>
             {Array.from(f.typeIds)
               .sort()
-              .map((typeId) => (
-                <Chip
-                  key={typeId}
-                  className={c.typeChip}
-                  size="small"
-                  label={typeId}
-                />
-              ))}
+              .map((typeId) => renderTypeChip(typeId))}
           </div>
         </div>
       ))
@@ -362,11 +396,22 @@ export default function DataFormats() {
           )
         );
         const summaryChips = standards.concat(exts);
+        const { color: typeColor, Icon: TypeIcon } = getLayerTypeVisual(
+          layerTypeConfiguration,
+          t.typeId
+        );
         return (
-          <Accordion key={t.typeId} defaultExpanded={Boolean(q)} disableGutters>
+          <Accordion
+            key={t.typeId}
+            className={c.card}
+            defaultExpanded={Boolean(q)}
+            disableGutters
+            style={{ borderLeft: `4px solid ${typeColor}` }}
+          >
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <div className={c.accordionSummaryInner}>
                 <div className={c.typeTitle}>
+                  <TypeIcon style={{ color: typeColor, fontSize: "20px" }} />
                   <span>{t.name}</span>
                   <span className={c.typeKey}>{t.typeId}</span>
                 </div>
@@ -458,6 +503,7 @@ export default function DataFormats() {
         </div>
       </Toolbar>
       <div className={c.Inner}>
+        <div className={c.article}>
         <div className={c.controls}>
           <ToggleButtonGroup
             value={view}
@@ -496,6 +542,7 @@ export default function DataFormats() {
             : "Expand a layer type to see every data format it supports and how to procure it."}
         </div>
         {view === "format" ? renderByFormat() : renderByType()}
+        </div>
       </div>
     </div>
   );

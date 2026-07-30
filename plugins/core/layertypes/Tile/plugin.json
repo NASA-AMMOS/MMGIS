@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#67401d",
+  "defaultIcon": "Language",
   "description": "Raster tile layer (TMS/WMTS/COG/STAC) rendered as a Leaflet tileLayer on the map and imagery on the globe.",
   "capabilities": {
     "renderers": {

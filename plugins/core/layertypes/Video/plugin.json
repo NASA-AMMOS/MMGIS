@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#7b2323",
+  "defaultIcon": "VideoFile",
   "description": "Georeferenced video overlay (.webm/.mp4) draped onto a bounding box on the 2D map.",
   "capabilities": {
     "renderers": {

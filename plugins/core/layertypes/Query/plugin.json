@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#4c8b2d",
+  "defaultIcon": "TravelExplore",
   "description": "Runtime-populated vector layer (features supplied by tools rather than a static URL). A thin specialization of the Vector map renderer seeded with empty GeoJSON.",
   "capabilities": {
     "renderers": {

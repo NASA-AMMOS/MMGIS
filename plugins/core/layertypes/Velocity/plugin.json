@@ -5,6 +5,8 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "color": "#24807c",
+  "defaultIcon": "Air",
   "description": "Animated vector-field layer (wind/current streamlines or particles) rendered on the 2D map from gridded velocity data.",
   "capabilities": {
     "renderers": {
