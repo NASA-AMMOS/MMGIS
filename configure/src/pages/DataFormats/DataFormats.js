@@ -427,7 +427,7 @@ export default function DataFormats() {
         );
         return (
           <Accordion
-            key={t.typeId}
+            key={`${t.typeId}:${q ? "search" : ""}`}
             className={c.card}
             defaultExpanded={Boolean(q)}
             disableGutters
