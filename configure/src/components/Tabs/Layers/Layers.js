@@ -23,10 +23,7 @@ import Button from "@mui/material/Button";
 
 import AddIcon from "@mui/icons-material/Add";
 
-import {
-  getLayerTypeVisual,
-  DEFAULT_LAYER_TYPE_COLOR,
-} from "../../../core/layerTypeVisuals";
+import { getLayerTypeVisual } from "../../../core/layerTypeVisuals";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AccessTimeFilledIcon from "@mui/icons-material/AccessTimeFilled";
@@ -352,15 +349,10 @@ export default function Layers() {
                 className={c.layersList}
               >
                 {flatLayers.map((l, idx) => {
-                  const { color: typeColor, Icon: TypeIcon } =
-                    getLayerTypeVisual(
-                      layerTypeConfiguration,
-                      l.layer.type
-                    );
-                  const color =
-                    l.layer.type in (layerTypeConfiguration || {})
-                      ? typeColor
-                      : DEFAULT_LAYER_TYPE_COLOR;
+                  const { color, Icon: TypeIcon } = getLayerTypeVisual(
+                    layerTypeConfiguration,
+                    l.layer.type
+                  );
                   const iconType = <TypeIcon fontSize="small" />;
 
                   return (

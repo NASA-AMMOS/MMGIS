@@ -1088,7 +1088,16 @@ class GlobeRenderer {
         const pendingReload = this._pendingVectorReload[name]
         if (!pendingReload) return
         delete this._pendingVectorReload[name]
-        this.addLayer(pendingReload.type, pendingReload.layerConfig)
+        // addLayer is async; log a failed reload rather than letting it surface
+        // as an unhandled rejection (the previous features stay on screen).
+        this.addLayer(pendingReload.type, pendingReload.layerConfig).catch(
+            (e) => {
+                console.error(
+                    `Failed to reload globe layer '${name}':`,
+                    e
+                )
+            }
+        )
     }
 
     /**
