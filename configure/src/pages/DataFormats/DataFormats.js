@@ -80,7 +80,7 @@ const useStyles = makeStyles((theme) => ({
     borderBottom: `1px solid ${theme.palette.swatches.grey[850]}`,
   },
   formatToken: {
-    flex: "0 0 220px",
+    flex: "0 0 260px",
     display: "flex",
     flexFlow: "column",
     color: theme.palette.swatches.grey[150],
@@ -95,6 +95,18 @@ const useStyles = makeStyles((theme) => ({
     textTransform: "uppercase",
     letterSpacing: "0.5px",
     color: theme.palette.swatches.grey[400],
+  },
+  extLine: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "4px",
+    alignItems: "center",
+    marginTop: "6px",
+  },
+  extLabel: {
+    fontSize: "11px",
+    color: theme.palette.swatches.grey[400],
+    marginRight: "2px",
   },
   chips: {
     display: "flex",
@@ -191,27 +203,44 @@ export default function DataFormats() {
       .sort((a, b) => a.typeId.localeCompare(b.typeId));
   }, [layerTypeConfiguration]);
 
-  // token (lowercased) -> { token, category, typeIds:Set }
+  // Group By Format around the format's *standard* (its heading), nesting its
+  // file extensions/aliases beneath it rather than listing them as peer rows
+  // (so "COLLADA" and ".dae" don't appear as two separate entries). Entries
+  // with no declared standard fall back to their label as the heading.
+  // name (lowercased) -> { name, category, exts:Set, typeIds:Set }
   const formatIndex = useMemo(() => {
     const index = {};
     types.forEach(({ typeId, supportedData }) => {
       supportedData.forEach((entry) => {
-        entryTokens(entry).forEach((raw) => {
+        const standards = Array.isArray(entry.standards)
+          ? entry.standards
+          : [];
+        const exts = []
+          .concat(entry.formats || [])
+          .concat(entry.extensions || []);
+        const names = standards.length
+          ? standards
+          : [entry.label || "(unnamed)"];
+        names.forEach((raw) => {
           const key = String(raw).toLowerCase();
           if (!index[key]) {
             index[key] = {
-              token: String(raw),
+              name: String(raw),
               category: entry.category || "",
+              exts: new Set(),
               typeIds: new Set(),
             };
           }
+          exts.forEach((e) => index[key].exts.add(String(e)));
           index[key].typeIds.add(typeId);
         });
       });
     });
-    return Object.values(index).sort((a, b) =>
-      a.token.toLowerCase().localeCompare(b.token.toLowerCase())
-    );
+    return Object.values(index)
+      .map((f) => ({ ...f, exts: Array.from(f.exts) }))
+      .sort((a, b) =>
+        a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+      );
   }, [types]);
 
   const q = search.trim().toLowerCase();
@@ -220,8 +249,9 @@ export default function DataFormats() {
     if (!q) return formatIndex;
     return formatIndex.filter(
       (f) =>
-        f.token.toLowerCase().includes(q) ||
+        f.name.toLowerCase().includes(q) ||
         f.category.toLowerCase().includes(q) ||
+        f.exts.some((e) => e.toLowerCase().includes(q)) ||
         Array.from(f.typeIds).some((t) => t.toLowerCase().includes(q))
     );
   }, [formatIndex, q]);
@@ -248,11 +278,24 @@ export default function DataFormats() {
       <div className={c.empty}>No formats match “{search}”.</div>
     ) : (
       filteredFormats.map((f) => (
-        <div className={c.formatRow} key={f.token}>
+        <div className={c.formatRow} key={f.name}>
           <div className={c.formatToken}>
-            <span className={c.tokenName}>{f.token}</span>
+            <span className={c.tokenName}>{f.name}</span>
             {f.category ? (
               <span className={c.tokenCategory}>{f.category}</span>
+            ) : null}
+            {f.exts.length > 0 ? (
+              <div className={c.extLine}>
+                <span className={c.extLabel}>extensions:</span>
+                {f.exts.map((e) => (
+                  <Chip
+                    key={e}
+                    size="small"
+                    variant="outlined"
+                    label={e}
+                  />
+                ))}
+              </div>
             ) : null}
           </div>
           <div className={c.chips}>

@@ -35,6 +35,15 @@
       "formats": ["pbf", "mvt"],
       "description": "MVT tiles carrying a height property (e.g. OSM buildings) extruded into 3D polygons on the globe. Configure extrudeHeightProperty/extrudeColor/etc.",
       "procurement": "MVT tiles that include a per-feature height attribute."
+    },
+    {
+      "label": "GeoDataset-served vector tiles",
+      "category": "vector-tile",
+      "standards": ["Geodataset (MMGIS)", "MVT"],
+      "urlSchemes": ["geodatasets:{name}"],
+      "description": "A PostGIS geodataset (uploaded via 'Manage Geodatasets') served as MVT vector tiles through the internal API.",
+      "procurement": "Upload vectors in Configure → Manage Geodatasets, then reference via geodatasets:{name}.",
+      "requiresServices": ["postgis"]
     }
   ],
   "metaconfig": "./metaconfig.json",

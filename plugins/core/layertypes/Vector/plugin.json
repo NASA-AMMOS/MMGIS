@@ -39,7 +39,7 @@
     {
       "label": "GeoDataset (PostGIS-backed vectors)",
       "category": "vector",
-      "standards": ["GeoJSON", "PostGIS"],
+      "standards": ["Geodataset (MMGIS)", "GeoJSON", "PostGIS"],
       "urlSchemes": ["{geodataset_name}"],
       "description": "A vector dataset uploaded via 'Manage Geodatasets' and served from PostGIS through the internal API. Enables dynamic-extent (viewport) requerying for large datasets.",
       "procurement": "Upload a GeoJSON in Configure → Manage Geodatasets.",
