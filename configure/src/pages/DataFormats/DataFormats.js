@@ -335,7 +335,11 @@ export default function DataFormats() {
     if (!q) return types;
     return types
       .map((t) => {
-        if (t.typeId.toLowerCase().includes(q)) return t;
+        if (
+          t.typeId.toLowerCase().includes(q) ||
+          String(t.name).toLowerCase().includes(q)
+        )
+          return t;
         const supportedData = t.supportedData.filter((entry) => {
           const haystack = [entry.label, entry.category, entry.description]
             .concat(entryTokens(entry))
