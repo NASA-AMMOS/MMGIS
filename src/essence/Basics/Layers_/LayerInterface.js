@@ -142,6 +142,40 @@ export async function run(surfaceModule, opName, args = [], opts = {}) {
     return result
 }
 
+/**
+ * Synchronous variant of {@link run} for the 2D-map surface.
+ *
+ * The map engine (Leaflet) is synchronous and callers rely on read-after-write
+ * (e.g. setLayerOpacity sets state that the next line reads), so map-side
+ * dispatch must NOT defer the default onto a microtask the way the async `run`
+ * does. `runMap` runs `before → (main ?? coreDefault) → after` inline. A plugin
+ * phase may still return a Promise for its own async work; like the globe's
+ * fire-and-forget dispatch we don't await it.
+ *
+ * @param {LayerTypeModule} surfaceModule
+ * @param {string} opName
+ * @param {Array} args
+ * @param {Object} [opts]
+ * @param {Function} [opts.coreDefault]  Fallback used when no plugin `main`.
+ * @returns {*}                          The result of `main`/coreDefault.
+ */
+export function runMap(surfaceModule, opName, args = [], opts = {}) {
+    const before = getPhase(surfaceModule, opName, 'before')
+    const main = getPhase(surfaceModule, opName, 'main')
+    const after = getPhase(surfaceModule, opName, 'after')
+
+    if (before) before(...args)
+
+    let result
+    if (main) result = main(...args)
+    else if (typeof opts.coreDefault === 'function')
+        result = opts.coreDefault(...args)
+
+    if (after) after(...args)
+
+    return result
+}
+
 export default {
     LAYER_OPS,
     OP_PHASES,
@@ -150,4 +184,5 @@ export default {
     getPhase,
     hasOp,
     run,
+    runMap,
 }

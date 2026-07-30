@@ -7,6 +7,9 @@ import ToolController_ from '../../Basics/ToolController_/ToolController_'
 import LayerGeologic from './LayerGeologic/LayerGeologic'
 import { transformStacUrl, parseExternalStacUrl } from './LayerUtils'
 import Filtering from './Filtering/Filtering'
+import LayerInterface from './LayerInterface'
+import LayerTypeRegistry from './LayerTypeRegistry'
+import MapRenderer from '../Map_/MapRenderer'
 import $ from 'jquery'
 
 const L_ = {
@@ -249,7 +252,12 @@ const L_ = {
             nextUrl != null &&
             nextUrl.toLowerCase().startsWith('stac-collection:')
         ) {
-            nextUrl = transformStacUrl(nextUrl, layerData, type, window.location)
+            nextUrl = transformStacUrl(
+                nextUrl,
+                layerData,
+                type,
+                window.location
+            )
             // After transformation, nextUrl is now an absolute HTTP URL
         }
 
@@ -384,7 +392,25 @@ const L_ = {
                             $('.drawToolContextMenuHeaderClose').click()
                         } catch (err) {}
                     }
-                    L_.Map_.rmNotNull(L_.layers.layer[s.name])
+                    // Hide the primary layer on the 2D map via the type's map
+                    // plugin (setVisibility). Built-ins declare none, so the
+                    // core default (remove from map) runs unchanged.
+                    LayerInterface.runMap(
+                        LayerTypeRegistry.get(s.type)?.map,
+                        'setVisibility',
+                        [
+                            s,
+                            {
+                                ...MapRenderer.context(),
+                                name: s.name,
+                                visible: false,
+                            },
+                        ],
+                        {
+                            coreDefault: () =>
+                                L_.Map_.rmNotNull(L_.layers.layer[s.name]),
+                        }
+                    )
                     if (L_.layers.attachments[s.name]) {
                         for (let sub in L_.layers.attachments[s.name]) {
                             switch (L_.layers.attachments[s.name][sub].type) {
@@ -411,15 +437,9 @@ const L_ = {
                                     L_.Map_.rmNotNull(
                                         L_.layers.attachments[s.name][sub].layer
                                     )
-                                    if (
+                                    L_.removeGradientPolyline(
                                         L_.layers.attachments[s.name][sub]
-                                            .cesiumLayerId
-                                    ) {
-                                        L_.Globe_.litho.removeLayer(
-                                            L_.layers.attachments[s.name][sub]
-                                                .cesiumLayerId
-                                        )
-                                    }
+                                    )
                                     break
                                 case 'labels':
                                 case 'pairings':
@@ -501,27 +521,9 @@ const L_ = {
                                                     s.name
                                                 )
                                         )
-                                        if (
+                                        L_.addGradientPolyline(
                                             L_.layers.attachments[s.name][sub]
-                                                .cesiumGradientOptions
-                                        ) {
-                                            L_.Globe_.litho
-                                                .addLayer(
-                                                    'gradient_polyline',
-                                                    L_.layers.attachments[
-                                                        s.name
-                                                    ][sub]
-                                                        .cesiumGradientOptions
-                                                )
-                                                .then((id) => {
-                                                    L_.layers.attachments[
-                                                        s.name
-                                                    ][sub].cesiumLayerId = id
-                                                })
-                                                .catch((e) => {
-                                                    console.warn('Failed to add 3D gradient polyline:', e)
-                                                })
-                                        }
+                                        )
                                         break
                                     case 'labels':
                                     case 'pairings':
@@ -558,11 +560,30 @@ const L_ = {
                         }
                     }
 
-                    L_.Map_.map.addLayer(L_.layers.layer[s.name])
-                    L_.layers.layer[s.name].setZIndex(
-                        L_._layersOrdered.length +
-                            1 -
-                            L_._layersOrdered.indexOf(s.name)
+                    // Show the primary layer on the 2D map via the type's map
+                    // plugin (setVisibility). Built-ins declare none, so the
+                    // core default (add to map + z-order) runs unchanged.
+                    LayerInterface.runMap(
+                        LayerTypeRegistry.get(s.type)?.map,
+                        'setVisibility',
+                        [
+                            s,
+                            {
+                                ...MapRenderer.context(),
+                                name: s.name,
+                                visible: true,
+                            },
+                        ],
+                        {
+                            coreDefault: () => {
+                                L_.Map_.map.addLayer(L_.layers.layer[s.name])
+                                L_.layers.layer[s.name].setZIndex(
+                                    L_._layersOrdered.length +
+                                        1 -
+                                        L_._layersOrdered.indexOf(s.name)
+                                )
+                            },
+                        }
                     )
                 }
 
@@ -744,8 +765,13 @@ const L_ = {
                             // artifacts.
                             let hasGradientAttachment = false
                             if (L_.layers.attachments[s.name]) {
-                                for (const sub in L_.layers.attachments[s.name]) {
-                                    if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                                for (const sub in L_.layers.attachments[
+                                    s.name
+                                ]) {
+                                    if (
+                                        L_.layers.attachments[s.name][sub]
+                                            .type === 'path_gradient'
+                                    ) {
                                         hasGradientAttachment = true
                                         break
                                     }
@@ -760,11 +786,14 @@ const L_ = {
                                         on: L_.layers.opacity[s.name]
                                             ? true
                                             : false,
-                                        geojson: L_.layers.layer[s.name].toGeoJSON(
-                                            L_.GEOJSON_PRECISION
-                                        ),
+                                        geojson: L_.layers.layer[
+                                            s.name
+                                        ].toGeoJSON(L_.GEOJSON_PRECISION),
                                         onClick: (feature, lnglat, layer) => {
-                                            this.selectFeature(layer.name, feature)
+                                            this.selectFeature(
+                                                layer.name,
+                                                feature
+                                            )
                                         },
                                         useKeyAsHoverName: s.useKeyAsName,
                                         style: {
@@ -782,12 +811,14 @@ const L_ = {
                                             bearing:
                                                 (s.variables?.markerAttachments
                                                     ?.bearing &&
-                                                    s.variables?.markerAttachments
+                                                    s.variables
+                                                        ?.markerAttachments
                                                         ?.bearing.enabled ==
                                                         null) ||
                                                 s.variables?.markerAttachments
                                                     ?.bearing?.enabled === true
-                                                    ? s.variables.markerAttachments
+                                                    ? s.variables
+                                                          .markerAttachments
                                                           .bearing
                                                     : null,
                                         },
@@ -802,33 +833,26 @@ const L_ = {
                                                 : 100,
                                     }
                                 )
-                            } else if (hadToMake && L_.layers.attachments[s.name]) {
+                            } else if (
+                                hadToMake &&
+                                L_.layers.attachments[s.name]
+                            ) {
                                 // On first-time toggle the attachment-processing block
                                 // (lines ~450-568) was skipped because the layer didn't
                                 // exist yet. Defer the heavy Cesium geometry build so the
                                 // UI isn't blocked on initial toggle.
-                                for (const sub in L_.layers.attachments[s.name]) {
-                                    const att = L_.layers.attachments[s.name][sub]
+                                for (const sub in L_.layers.attachments[
+                                    s.name
+                                ]) {
+                                    const att =
+                                        L_.layers.attachments[s.name][sub]
                                     if (
                                         att.type === 'path_gradient' &&
                                         att.on &&
                                         att.cesiumGradientOptions
                                     ) {
                                         setTimeout(() => {
-                                            L_.Globe_.litho
-                                                .addLayer(
-                                                    'gradient_polyline',
-                                                    att.cesiumGradientOptions
-                                                )
-                                                .then((id) => {
-                                                    att.cesiumLayerId = id
-                                                })
-                                                .catch((e) => {
-                                                    console.warn(
-                                                        'Failed to add 3D gradient polyline:',
-                                                        e
-                                                    )
-                                                })
+                                            L_.addGradientPolyline(att)
                                         }, 0)
                                     }
                                 }
@@ -920,11 +944,7 @@ const L_ = {
                         break
                     case 'path_gradient':
                         L_.Map_.rmNotNull(sublayer.layer)
-                        if (sublayer.cesiumLayerId) {
-                            L_.Globe_.litho.removeLayer(
-                                sublayer.cesiumLayerId
-                            )
-                        }
+                        L_.removeGradientPolyline(sublayer)
                         break
                     case 'labels':
                     case 'pairings':
@@ -963,19 +983,7 @@ const L_ = {
                                 1 -
                                 L_._layersOrdered.indexOf(layerName)
                         )
-                        if (sublayer.cesiumGradientOptions) {
-                            L_.Globe_.litho
-                                .addLayer(
-                                    'gradient_polyline',
-                                    sublayer.cesiumGradientOptions
-                                )
-                                .then((id) => {
-                                    sublayer.cesiumLayerId = id
-                                })
-                                .catch((e) => {
-                                    console.warn('Failed to add 3D gradient polyline:', e)
-                                })
-                        }
+                        L_.addGradientPolyline(sublayer)
                         break
                     case 'labels':
                     case 'pairings':
@@ -1080,21 +1088,7 @@ const L_ = {
                                             break
                                         case 'path_gradient':
                                             map.addLayer(sublayer.layer)
-                                            if (
-                                                sublayer.cesiumGradientOptions
-                                            ) {
-                                                L_.Globe_.litho
-                                                    .addLayer(
-                                                        'gradient_polyline',
-                                                        sublayer.cesiumGradientOptions
-                                                    )
-                                                    .then((id) => {
-                                                        sublayer.cesiumLayerId = id
-                                                    })
-                                                    .catch((e) => {
-                                                        console.warn('Failed to add 3D gradient polyline:', e)
-                                                    })
-                                            }
+                                            L_.addGradientPolyline(sublayer)
                                             break
                                         case 'labels':
                                         case 'pairings':
@@ -1214,22 +1208,19 @@ const L_ = {
                             name: s.name,
                             path: layerUrl,
                             opacity: L_.layers.opacity[s.name],
-                            vtLayer: s.extrudeVtLayer
-                                || (s.style?.vtLayer
+                            vtLayer:
+                                s.extrudeVtLayer ||
+                                (s.style?.vtLayer
                                     ? Object.keys(s.style.vtLayer)[0]
                                     : 'building'),
                             extrudeHeightProperty:
                                 s.extrudeHeightProperty || 'render_height',
-                            extrudeDefaultHeight:
-                                s.extrudeDefaultHeight ?? 0,
-                            extrudeBaseProperty:
-                                s.extrudeBaseProperty || null,
-                            extrudeColor:
-                                s.extrudeColor || '#cccccc',
+                            extrudeDefaultHeight: s.extrudeDefaultHeight ?? 0,
+                            extrudeBaseProperty: s.extrudeBaseProperty || null,
+                            extrudeColor: s.extrudeColor || '#cccccc',
                             extrudeOverrideFeatureColor:
                                 s.extrudeOverrideFeatureColor || false,
-                            extrudeOpacity:
-                                s.extrudeOpacity ?? 0.9,
+                            extrudeOpacity: s.extrudeOpacity ?? 0.9,
                             minZoom: s.minZoom,
                             maxZoom: s.maxNativeZoom,
                         })
@@ -1271,13 +1262,19 @@ const L_ = {
                     let hasGradientAttachment2 = false
                     if (s.type === 'vector' && L_.layers.attachments[s.name]) {
                         for (const sub in L_.layers.attachments[s.name]) {
-                            if (L_.layers.attachments[s.name][sub].type === 'path_gradient') {
+                            if (
+                                L_.layers.attachments[s.name][sub].type ===
+                                'path_gradient'
+                            ) {
                                 hasGradientAttachment2 = true
                                 break
                             }
                         }
                     }
-                    if (!hasGradientAttachment2 && typeof L_.layers.layer[s.name].toGeoJSON === 'function')
+                    if (
+                        !hasGradientAttachment2 &&
+                        typeof L_.layers.layer[s.name].toGeoJSON === 'function'
+                    )
                         L_.Globe_.litho.addLayer(
                             s.type == 'vector'
                                 ? s.layer3dType || 'clamped'
@@ -1618,7 +1615,10 @@ const L_ = {
                             )
                             // If this is a LayerGroup with a feature (like arrows),
                             // don't process children separately - they're handled as a unit
-                            if (layer[i]._layers && Object.keys(layer[i]._layers).length > 0) {
+                            if (
+                                layer[i]._layers &&
+                                Object.keys(layer[i]._layers).length > 0
+                            ) {
                                 continue
                             }
                         }
@@ -1637,8 +1637,13 @@ const L_ = {
                 if (L_.layers.attachments[layerName]) {
                     const currentZoom = L_.Map_.map.getZoom()
                     for (let subName in L_.layers.attachments[layerName]) {
-                        const sublayer = L_.layers.attachments[layerName][subName]
-                        if (sublayer && sublayer.minZoom != null && sublayer.maxZoom != null) {
+                        const sublayer =
+                            L_.layers.attachments[layerName][subName]
+                        if (
+                            sublayer &&
+                            sublayer.minZoom != null &&
+                            sublayer.maxZoom != null
+                        ) {
                             const sublayerMinZoom = sublayer.minZoom
                             const sublayerMaxZoom = sublayer.maxZoom
                             const isInRange = F_.isInZoomRange(
@@ -1648,19 +1653,26 @@ const L_ = {
                             )
 
                             // Store the actual zoom visibility state separately from user preference
-                            const wasZoomVisible = sublayer._zoomVisible !== false
+                            const wasZoomVisible =
+                                sublayer._zoomVisible !== false
                             sublayer._zoomVisible = isInRange
 
                             // Only show/hide if user has enabled this sublayer and zoom visibility changed
                             if (sublayer.on === true) {
                                 if (isInRange && !wasZoomVisible) {
                                     // Sublayer entered zoom range - show it
-                                    if (sublayer.layer && typeof sublayer.layer.on === 'function') {
+                                    if (
+                                        sublayer.layer &&
+                                        typeof sublayer.layer.on === 'function'
+                                    ) {
                                         sublayer.layer.on()
                                     }
                                 } else if (!isInRange && wasZoomVisible) {
                                     // Sublayer exited zoom range - hide it
-                                    if (sublayer.layer && typeof sublayer.layer.off === 'function') {
+                                    if (
+                                        sublayer.layer &&
+                                        typeof sublayer.layer.off === 'function'
+                                    ) {
                                         sublayer.layer.off()
                                     }
                                 }
@@ -1722,7 +1734,7 @@ const L_ = {
                 if (l._path) l._path.style.display = 'inherit'
                 if (l._container) l._container.style.display = 'inherit'
                 if (l._icon) l._icon.style.display = 'inherit'
-                
+
                 // Show tooltip if it exists and was previously open
                 if (l._tooltip) {
                     if (l._tooltip._container) {
@@ -1737,7 +1749,7 @@ const L_ = {
                 if (l._path) l._path.style.display = 'none'
                 if (l._container) l._container.style.display = 'none'
                 if (l._icon) l._icon.style.display = 'none'
-                
+
                 // Hide tooltip if it exists
                 if (l._tooltip) {
                     if (l._tooltip._container) {
@@ -2084,78 +2096,142 @@ const L_ = {
                 }
             )
     },
+    // Add a Cesium gradient-polyline primitive for an attachment, tracking the
+    // in-flight build so a teardown that races ahead of it can't orphan the
+    // primitive. GlobeRenderer.addLayer resolves asynchronously, so a layer
+    // toggled off (or re-added) before the build finishes would otherwise leave
+    // a stale primitive on the globe with no way to remove it.
+    addGradientPolyline: function (attachment) {
+        if (!attachment || !attachment.cesiumGradientOptions) return
+        if (!L_.Globe_ || !L_.Globe_.litho) return
+        attachment._gradientWantsOn = true
+        const gen = (attachment._gradientGen =
+            (attachment._gradientGen || 0) + 1)
+        L_.Globe_.litho
+            .addLayer('gradient_polyline', attachment.cesiumGradientOptions)
+            .then((id) => {
+                // Turned off (or superseded by a newer add) while building —
+                // discard this primitive instead of leaving it orphaned.
+                if (
+                    attachment._gradientGen !== gen ||
+                    !attachment._gradientWantsOn
+                ) {
+                    L_.Globe_.litho.removeLayer(id)
+                    return
+                }
+                attachment.cesiumLayerId = id
+            })
+            .catch((e) => {
+                console.warn('Failed to add 3D gradient polyline:', e)
+            })
+    },
+    // Remove an attachment's Cesium gradient-polyline primitive and cancel any
+    // in-flight add (see addGradientPolyline) so it can't reappear afterwards.
+    removeGradientPolyline: function (attachment) {
+        if (!attachment) return
+        attachment._gradientWantsOn = false
+        attachment._gradientGen = (attachment._gradientGen || 0) + 1
+        if (attachment.cesiumLayerId && L_.Globe_ && L_.Globe_.litho) {
+            L_.Globe_.litho.removeLayer(attachment.cesiumLayerId)
+            attachment.cesiumLayerId = null
+        }
+    },
     setLayerOpacity: function (name, newOpacity) {
         newOpacity = parseFloat(newOpacity)
         if (L_.Globe_) L_.Globe_.litho.setLayerOpacity(name, newOpacity)
         let l = L_.layers.layer[name]
 
-        if (l) {
-            if (l.options.initialFillOpacity == null)
-                l.options.initialFillOpacity =
-                    L_.layers.data[name]?.style?.fillOpacity != null
-                        ? parseFloat(L_.layers.data[name].style.fillOpacity)
-                        : 1
-            try {
-                l.setOpacity(newOpacity)
-            } catch (error) {
-                l.setStyle({
-                    opacity: newOpacity,
-                    fillOpacity: newOpacity * l.options.initialFillOpacity,
-                })
-            }
-            $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
-                opacity: newOpacity,
-            })
-
-            const sublayers = L_.layers.attachments[name]
-            if (sublayers) {
-                for (let sub in sublayers) {
-                    if (
-                        sublayers[sub] !== false &&
-                        sublayers[sub].layer != null &&
-                        !['models'].includes(sub)
-                    ) {
+        // Apply opacity on the 2D map through the layer type's map plugin.
+        // Built-in types declare no setOpacity, so the core default runs
+        // unchanged; a plugin may override `main` or wrap it via before/after.
+        const rtOpacity = LayerTypeRegistry.get(L_.layers.data[name]?.type)
+        LayerInterface.runMap(
+            rtOpacity?.map,
+            'setOpacity',
+            [
+                L_.layers.data[name],
+                { ...MapRenderer.context(), name, opacity: newOpacity },
+            ],
+            {
+                coreDefault: () => {
+                    if (l) {
+                        if (l.options.initialFillOpacity == null)
+                            l.options.initialFillOpacity =
+                                L_.layers.data[name]?.style?.fillOpacity != null
+                                    ? parseFloat(
+                                          L_.layers.data[name].style.fillOpacity
+                                      )
+                                    : 1
                         try {
-                            sublayers[sub].layer.setOpacity(newOpacity)
+                            l.setOpacity(newOpacity)
                         } catch (error) {
-                            try {
-                                let opacity = newOpacity
-                                let fillOpacity =
-                                    newOpacity * l.options.initialFillOpacity
-                                if (sub === 'uncertainty_ellipses') {
-                                    opacity = opacity * 0.8
-                                    fillOpacity = fillOpacity * 0.25
-                                }
-                                sublayers[sub].layer.setStyle({
-                                    opacity,
-                                    fillOpacity,
-                                })
-                            } catch (error2) {
-                                /*
+                            l.setStyle({
+                                opacity: newOpacity,
+                                fillOpacity:
+                                    newOpacity * l.options.initialFillOpacity,
+                            })
+                        }
+                        $(`.leafletMarkerShape_${F_.getSafeName(name)}`).css({
+                            opacity: newOpacity,
+                        })
+
+                        const sublayers = L_.layers.attachments[name]
+                        if (sublayers) {
+                            for (let sub in sublayers) {
+                                if (
+                                    sublayers[sub] !== false &&
+                                    sublayers[sub].layer != null &&
+                                    !['models'].includes(sub)
+                                ) {
+                                    try {
+                                        sublayers[sub].layer.setOpacity(
+                                            newOpacity
+                                        )
+                                    } catch (error) {
+                                        try {
+                                            let opacity = newOpacity
+                                            let fillOpacity =
+                                                newOpacity *
+                                                l.options.initialFillOpacity
+                                            if (
+                                                sub === 'uncertainty_ellipses'
+                                            ) {
+                                                opacity = opacity * 0.8
+                                                fillOpacity = fillOpacity * 0.25
+                                            }
+                                            sublayers[sub].layer.setStyle({
+                                                opacity,
+                                                fillOpacity,
+                                            })
+                                        } catch (error2) {
+                                            /*
                                 if (sublayers[sub].layer._layers)
                                     for (let sl in sublayers[sub].layer
                                         ._layers) {
                                     }
                                     */
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-            }
 
-            try {
-                l.options.fillOpacity =
-                    newOpacity * l.options.initialFillOpacity
-                l.options.opacity = newOpacity
-                l.options.style.fillOpacity =
-                    newOpacity * l.options.initialFillOpacity
-                l.options.style.opacity = newOpacity
-            } catch (error) {
-                l.options.fillOpacity =
-                    newOpacity * l.options.initialFillOpacity
-                l.options.opacity = newOpacity
+                        try {
+                            l.options.fillOpacity =
+                                newOpacity * l.options.initialFillOpacity
+                            l.options.opacity = newOpacity
+                            l.options.style.fillOpacity =
+                                newOpacity * l.options.initialFillOpacity
+                            l.options.style.opacity = newOpacity
+                        } catch (error) {
+                            l.options.fillOpacity =
+                                newOpacity * l.options.initialFillOpacity
+                            l.options.opacity = newOpacity
+                        }
+                    }
+                },
             }
-        }
+        )
         L_.layers.opacity[name] = newOpacity
 
         if (L_.activeFeature?.layer && L_.activeFeature.layerName === name) {
@@ -2201,33 +2277,59 @@ const L_ = {
             saturation: 'saturation',
         }
 
-        if (typeof L_.layers.layer[name].updateFilter === 'function') {
-            let filterArray = []
-            // Apply filter effects
-            for (let f in L_.layers.filters[name]) {
-                filterArray.push(f + ':' + L_.layers.filters[name][f])
-                // For Globe/litho
-                if (L_.Globe_) {
-                    if (f === 'mix-blend-mode') {
-                        L_.Globe_.litho.setLayerFilterEffect(
-                            name,
-                            'blendCode',
-                            lithoBlendMappings.indexOf(
-                                L_.layers.filters[name][f]
+        // Dynamic restyle on the 2D map is dispatched as `setStyle` through the
+        // layer type's map plugin. Built-in types declare no setStyle, so the
+        // core default (filter-effect application) runs unchanged.
+        const rtStyle = LayerTypeRegistry.get(L_.layers.data[name]?.type)
+        LayerInterface.runMap(
+            rtStyle?.map,
+            'setStyle',
+            [
+                L_.layers.data[name],
+                {
+                    ...MapRenderer.context(),
+                    name,
+                    filter,
+                    value,
+                    filters: L_.layers.filters[name],
+                },
+            ],
+            {
+                coreDefault: () => {
+                    if (
+                        typeof L_.layers.layer[name].updateFilter === 'function'
+                    ) {
+                        let filterArray = []
+                        // Apply filter effects
+                        for (let f in L_.layers.filters[name]) {
+                            filterArray.push(
+                                f + ':' + L_.layers.filters[name][f]
                             )
-                        )
-                    } else {
-                        L_.Globe_.litho.setLayerFilterEffect(
-                            name,
-                            lithoFilterMappings[f],
-                            parseFloat(L_.layers.filters[name][f])
-                        )
+                            // For Globe/litho
+                            if (L_.Globe_) {
+                                if (f === 'mix-blend-mode') {
+                                    L_.Globe_.litho.setLayerFilterEffect(
+                                        name,
+                                        'blendCode',
+                                        lithoBlendMappings.indexOf(
+                                            L_.layers.filters[name][f]
+                                        )
+                                    )
+                                } else {
+                                    L_.Globe_.litho.setLayerFilterEffect(
+                                        name,
+                                        lithoFilterMappings[f],
+                                        parseFloat(L_.layers.filters[name][f])
+                                    )
+                                }
+                            }
+                        }
+                        // For Map
+                        L_.layers.layer[name].updateFilter(filterArray)
                     }
-                }
+                },
             }
-            // For Map
-            L_.layers.layer[name].updateFilter(filterArray)
-        }
+        )
     },
     resetLayerFills: function (onlyThisLayerName) {
         // Regular Layers
@@ -2534,7 +2636,8 @@ const L_ = {
                 // The search API stores the id in properties._.idx while the
                 // GET endpoint stores it in properties.feature_id.
                 const layerFid = layerFeature.properties?.feature_id
-                const inputFid = f.properties?.feature_id ?? f.properties?._?.idx
+                const inputFid =
+                    f.properties?.feature_id ?? f.properties?._?.idx
                 if (
                     layerFid != null &&
                     inputFid != null &&
@@ -2548,15 +2651,21 @@ const L_ = {
                         ) {
                             L_.Globe_.litho._justSelectedFromMap = true
                             if (L_.Globe_.litho._justSelectedTimeout)
-                                clearTimeout(L_.Globe_.litho._justSelectedTimeout)
+                                clearTimeout(
+                                    L_.Globe_.litho._justSelectedTimeout
+                                )
                             L_.Globe_.litho._justSelectedTimeout = setTimeout(
-                                () => { L_.Globe_.litho._justSelectedFromMap = false },
+                                () => {
+                                    L_.Globe_.litho._justSelectedFromMap = false
+                                },
                                 500
                             )
                         }
                         if (L_.Globe_ && L_.Globe_.highlight)
                             L_.Globe_.highlight(layerName, f)
-                        layers[layerKeys[i + (relation || 0)]].fireEvent('click')
+                        layers[layerKeys[i + (relation || 0)]].fireEvent(
+                            'click'
+                        )
                     }
                     return
                 }
@@ -3646,6 +3755,18 @@ const L_ = {
                         delete L_.layers.nameToUUID[display_name]
                     }
                 }
+
+                // Let the type's map plugin release its own resources
+                // (destroy) before the layer leaves the registry. The map
+                // removal itself already happened via toggleLayer above.
+                LayerInterface.runMap(
+                    LayerTypeRegistry.get(L_.layers.data[layerUUID]?.type)?.map,
+                    'destroy',
+                    [
+                        L_.layers.data[layerUUID],
+                        { ...MapRenderer.context(), name: layerUUID },
+                    ]
+                )
 
                 delete L_.layers.layer[layerUUID]
                 delete L_.layers.data[layerUUID]

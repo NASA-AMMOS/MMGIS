@@ -27,6 +27,8 @@
  */
 import L_ from '@basics/Layers_/Layers_'
 import { constructVectorLayer } from '@basics/Layers_/LayerConstructors'
+import LayerInterface from '@basics/Layers_/LayerInterface'
+import LayerTypeRegistry from '@basics/Layers_/LayerTypeRegistry'
 
 const L = window.L
 
@@ -85,7 +87,9 @@ function addTile(layerObj, spec, mctx) {
 
     L_.setLayerOpacity(
         name,
-        spec.opacity != null ? spec.opacity : mctx.layerRegistry.opacity[name] || 1
+        spec.opacity != null
+            ? spec.opacity
+            : mctx.layerRegistry.opacity[name] || 1
     )
 
     L_._layersLoaded[L_._layersOrdered.indexOf(name)] = true
@@ -188,8 +192,19 @@ function onViewChange(mctx, f) {
 }
 
 // Neutral primitive: remove a layer previously added through this middleware.
+// Dispatches the type's map `destroy` op (mirroring GlobeRenderer.removeLayer);
+// built-ins declare none, so the core default (remove from map) runs.
 function removeLayer(layerObj, mctx) {
-    L_.Map_.rmNotNull(mctx.layerRegistry.layer[layerObj.name])
+    const ctx = mctx || context()
+    LayerInterface.runMap(
+        LayerTypeRegistry.get(layerObj.type)?.map,
+        'destroy',
+        [layerObj, ctx],
+        {
+            coreDefault: () =>
+                L_.Map_.rmNotNull(ctx.layerRegistry.layer[layerObj.name]),
+        }
+    )
 }
 
 export default {

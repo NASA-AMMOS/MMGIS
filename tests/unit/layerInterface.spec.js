@@ -12,6 +12,7 @@ const {
     getPhase,
     hasOp,
     run,
+    runMap,
     LAYER_OPS,
     OP_PHASES,
     MAKE_EXTRA_PHASES,
@@ -201,5 +202,101 @@ test.describe('run() pipeline', () => {
             []
         );
         expect(afterCommitCalled).toBe(false);
+    });
+});
+
+test.describe('runMap() pipeline — synchronous 2D-map dispatch', () => {
+    // The 2D map (Leaflet) is synchronous and callers read state right after
+    // dispatch, so runMap must run inline and NOT return a Promise.
+
+    test('runs before → main → after inline and returns the main result', () => {
+        const calls = [];
+        const surfaceModule = {
+            setOpacity: {
+                before() {
+                    calls.push('before');
+                },
+                main() {
+                    calls.push('main');
+                    return 'ok';
+                },
+                after() {
+                    calls.push('after');
+                },
+            },
+        };
+
+        const result = runMap(surfaceModule, 'setOpacity', ['arg']);
+        // Fully synchronous — not a thenable.
+        expect(result).toBe('ok');
+        expect(calls).toEqual(['before', 'main', 'after']);
+    });
+
+    test('falls back to coreDefault when the plugin defines no main', () => {
+        const calls = [];
+        const surfaceModule = {
+            setVisibility: {
+                before() {
+                    calls.push('before');
+                },
+                after() {
+                    calls.push('after');
+                },
+            },
+        };
+
+        const result = runMap(surfaceModule, 'setVisibility', [], {
+            coreDefault() {
+                calls.push('coreDefault');
+                return 'core';
+            },
+        });
+
+        expect(result).toBe('core');
+        expect(calls).toEqual(['before', 'coreDefault', 'after']);
+    });
+
+    test('plugin main overrides coreDefault (default not called)', () => {
+        let coreCalled = false;
+        const result = runMap({ destroy: () => 'plugin' }, 'destroy', [], {
+            coreDefault() {
+                coreCalled = true;
+                return 'core';
+            },
+        });
+        expect(result).toBe('plugin');
+        expect(coreCalled).toBe(false);
+    });
+
+    test('with no module and a coreDefault, runs the core default (built-in path)', () => {
+        let ran = false;
+        // Built-in types declare no map ops, so `LayerTypeRegistry.get(t)?.map`
+        // is undefined and the core behavior must run unchanged.
+        const result = runMap(undefined, 'setStyle', [], {
+            coreDefault() {
+                ran = true;
+                return 'core-style';
+            },
+        });
+        expect(ran).toBe(true);
+        expect(result).toBe('core-style');
+    });
+
+    test('with no module and no coreDefault, is a no-op returning undefined', () => {
+        expect(runMap(null, 'setOpacity', [])).toBeUndefined();
+    });
+
+    test('reaches every canonical operation', () => {
+        for (const op of LAYER_OPS) {
+            let hit = null;
+            const mod = {
+                [op]() {
+                    hit = op;
+                    return op;
+                },
+            };
+            expect(runMap(mod, op, [])).toBe(op);
+            expect(hit).toBe(op);
+        }
     });
 });
