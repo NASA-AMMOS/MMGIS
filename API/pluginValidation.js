@@ -39,6 +39,25 @@ const COMMON_FIELDS = [
 ];
 
 /**
+ * The layer-type renderer contract (kept in sync with
+ * src/essence/Basics/Layers_/LayerInterface.js). A renderer module's
+ * `export default {}` may only declare these operations, each optionally
+ * broken into these phases. `make` is required and is the only op that may
+ * declare the extra `afterCommit` phase (runs after the make-lock releases).
+ */
+const LAYER_OPS = [
+  "load",
+  "make",
+  "destroy",
+  "setOpacity",
+  "setVisibility",
+  "setStyle",
+  "timeChange",
+];
+const OP_PHASES = ["before", "main", "after"];
+const MAKE_EXTRA_PHASES = ["afterCommit"];
+
+/**
  * Known top-level fields for each plugin type. Anything else triggers a
  * warning (but not an error).
  */
@@ -407,20 +426,103 @@ function validatePluginConfig(config, pluginName, pluginType) {
         const r = config.capabilities.renderers;
         if (typeof r !== "object" || Array.isArray(r) || r === null) {
           errors.push(
-            `Plugin '${pluginName}' (${pluginType}): 'capabilities.renderers' must be an object (e.g. { "map": true, "globe": { "engines": ["cesium"] } })`
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.renderers' must be an object (e.g. { "map": { "engines": ["leaflet"] }, "globe": { "engines": ["cesium"] } })`
           );
-        } else if (r.globe !== undefined && r.globe !== false && r.globe !== true) {
-          if (
-            typeof r.globe !== "object" ||
-            Array.isArray(r.globe) ||
-            (r.globe.engines !== undefined && !Array.isArray(r.globe.engines))
-          ) {
-            errors.push(
-              `Plugin '${pluginName}' (${pluginType}): 'capabilities.renderers.globe' must be a boolean or an object with an 'engines' array`
-            );
+        } else {
+          // Each surface ('map', 'globe') is a boolean (false = unsupported,
+          // true = supported with the default engine) or an object declaring
+          // the concrete engines it renders through, e.g.
+          // { "engines": ["leaflet"] } / { "engines": ["cesium", "lithosphere"] }.
+          ["map", "globe"].forEach((surface) => {
+            const s = r[surface];
+            if (s === undefined || s === false || s === true) return;
+            if (
+              typeof s !== "object" ||
+              Array.isArray(s) ||
+              s === null ||
+              (s.engines !== undefined && !Array.isArray(s.engines))
+            ) {
+              errors.push(
+                `Plugin '${pluginName}' (${pluginType}): 'capabilities.renderers.${surface}' must be a boolean or an object with an 'engines' array`
+              );
+            }
+          });
+        }
+      }
+      // Declarative default interactions: a map of event name -> array of
+      // interaction IDs core merges when a layer of this type doesn't
+      // configure its own. Descriptive/behavioral metadata, validated for shape.
+      if (config.capabilities.defaultInteractions !== undefined) {
+        const di = config.capabilities.defaultInteractions;
+        if (typeof di !== "object" || Array.isArray(di) || di === null) {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions' must be an object mapping event name to an array of interaction IDs`
+          );
+        } else {
+          for (const [ev, ids] of Object.entries(di)) {
+            if (!Array.isArray(ids) || ids.some((v) => typeof v !== "string")) {
+              errors.push(
+                `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings`
+              );
+            }
           }
         }
       }
+    }
+    // Cross-check declared renderer engines against the module `paths` map so a
+    // type can't claim to render on a surface/engine it ships no module for (or
+    // ship a renderer module for a surface it doesn't declare). This is the
+    // manifest-level half of the contract check; the plugin CLI does the
+    // module-export-level half (required `make`, known ops/phases).
+    const renderers = config.capabilities && config.capabilities.renderers;
+    if (
+      renderers &&
+      typeof renderers === "object" &&
+      !Array.isArray(renderers) &&
+      config.paths &&
+      typeof config.paths === "object" &&
+      !Array.isArray(config.paths)
+    ) {
+      const pathKeys = new Set(Object.keys(config.paths));
+      // map surface → single 'map' path key; globe surface → 'globe.<engine>'.
+      if (renderers.map && !pathKeys.has("map")) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): declares a 'map' renderer but has no 'paths.map' module`
+        );
+      }
+      const globe = renderers.globe;
+      if (globe && typeof globe === "object" && Array.isArray(globe.engines)) {
+        globe.engines.forEach((engine) => {
+          if (!pathKeys.has(`globe.${engine}`)) {
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): declares a 'globe' engine '${engine}' but has no 'paths.globe.${engine}' module`
+            );
+          }
+        });
+      }
+      // Reverse: every renderer path must have a matching declared engine.
+      pathKeys.forEach((key) => {
+        if (key === "map") {
+          if (!renderers.map) {
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): has a 'paths.map' module but does not declare a 'map' renderer`
+            );
+          }
+        } else if (key.startsWith("globe.")) {
+          const engine = key.slice("globe.".length);
+          const globeOk =
+            renderers.globe === true ||
+            (renderers.globe &&
+              typeof renderers.globe === "object" &&
+              (renderers.globe.engines === undefined ||
+                renderers.globe.engines.includes(engine)));
+          if (!globeOk) {
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): has a 'paths.${key}' module but does not declare globe engine '${engine}'`
+            );
+          }
+        }
+      });
     }
     if (config.fileTypes !== undefined && !Array.isArray(config.fileTypes)) {
       errors.push(
@@ -601,10 +703,213 @@ function findDuplicateIds(entries, idKey) {
     .map(([id, owners]) => ({ id, owners }));
 }
 
+// --- Layer-type renderer module static analysis --------------------------
+//
+// The plugin CLI validates a renderer module's `export default {}` shape
+// without executing it (the modules use webpack `@basics` aliases and ESM, so
+// they can't be require()d in Node). These helpers are a small brace/string-
+// aware scanner that extracts the top-level operation names and, for ops
+// written in the nested `{ before, main, after }` form, their phase names.
+
+function _skipWsAndComments(src, i) {
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
+      i++;
+    } else if (ch === "/" && src[i + 1] === "/") {
+      i += 2;
+      while (i < src.length && src[i] !== "\n") i++;
+    } else if (ch === "/" && src[i + 1] === "*") {
+      i += 2;
+      while (i < src.length && !(src[i] === "*" && src[i + 1] === "/")) i++;
+      i += 2;
+    } else {
+      break;
+    }
+  }
+  return i;
+}
+
+function _skipString(src, i) {
+  const quote = src[i];
+  i++;
+  while (i < src.length) {
+    if (src[i] === "\\") {
+      i += 2;
+      continue;
+    }
+    if (src[i] === quote) {
+      i++;
+      break;
+    }
+    i++;
+  }
+  return i;
+}
+
+// Skip a value expression until the next top-level ',' or '}' of the enclosing
+// object, tracking nested (), [], {} and strings.
+function _skipValue(src, i) {
+  let depth = 0;
+  while (i < src.length) {
+    i = _skipWsAndComments(src, i);
+    const ch = src[i];
+    if (ch === undefined) break;
+    if (depth === 0 && (ch === "," || ch === "}")) break;
+    if (ch === "{" || ch === "[" || ch === "(") {
+      depth++;
+      i++;
+    } else if (ch === "}" || ch === "]" || ch === ")") {
+      depth--;
+      i++;
+    } else if (ch === "'" || ch === '"' || ch === "`") {
+      i = _skipString(src, i);
+    } else {
+      i++;
+    }
+  }
+  return i;
+}
+
+const _METHOD_MODIFIERS = new Set(["async", "get", "set", "static"]);
+
+// Parse an object literal whose opening brace is at src[start]. Returns
+// { keys: [{ name, valueKind: 'object'|'other', body }], endIndex }.
+function _parseObjectLiteral(src, start) {
+  const keys = [];
+  let i = start + 1; // past '{'
+  while (i < src.length) {
+    i = _skipWsAndComments(src, i);
+    if (src[i] === "}") {
+      i++;
+      break;
+    }
+    if (src[i] === ",") {
+      i++;
+      continue;
+    }
+    if (src[i] === "." && src[i + 1] === "." && src[i + 2] === ".") {
+      i = _skipValue(src, i); // spread — skip
+      continue;
+    }
+    // Consume leading generator '*' / async/get/set/static modifiers so that
+    // e.g. `async main(...)` reads the key as `main`, not `async`.
+    while (true) {
+      i = _skipWsAndComments(src, i);
+      if (src[i] === "*") {
+        i++;
+        continue;
+      }
+      let j = i;
+      while (j < src.length && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      const word = src.slice(i, j);
+      const k = _skipWsAndComments(src, j);
+      if (
+        _METHOD_MODIFIERS.has(word) &&
+        src[k] !== ":" &&
+        src[k] !== "(" &&
+        src[k] !== "," &&
+        src[k] !== "}"
+      ) {
+        i = j;
+        continue;
+      }
+      break;
+    }
+    // Read the key (identifier or quoted string).
+    let name;
+    if (src[i] === "'" || src[i] === '"' || src[i] === "`") {
+      const end = _skipString(src, i);
+      name = src.slice(i + 1, end - 1);
+      i = end;
+    } else {
+      let j = i;
+      while (j < src.length && /[A-Za-z0-9_$]/.test(src[j])) j++;
+      name = src.slice(i, j);
+      i = j;
+    }
+    if (!name) {
+      i++;
+      continue;
+    }
+    i = _skipWsAndComments(src, i);
+    let valueKind = "other";
+    let body = null;
+    if (src[i] === "(") {
+      valueKind = "function"; // method shorthand
+      i = _skipValue(src, i);
+    } else if (src[i] === ":") {
+      i++;
+      i = _skipWsAndComments(src, i);
+      if (src[i] === "{") {
+        valueKind = "object";
+        const parsed = _parseObjectLiteral(src, i);
+        body = parsed.keys;
+        i = parsed.endIndex;
+      } else {
+        i = _skipValue(src, i);
+      }
+    } else {
+      i = _skipValue(src, i); // shorthand property { make }
+    }
+    keys.push({ name, valueKind, body });
+  }
+  return { keys, endIndex: i };
+}
+
+/**
+ * Validate a layer-type / layer-attachment renderer module's `export default`
+ * object against the operation contract. Static (does not execute the module).
+ *
+ * @param {string} source - The module file's text.
+ * @param {string} label  - A human label for messages (e.g. 'tile (map)').
+ * @returns {string[]} error strings (empty == valid)
+ */
+function validateLayerTypeModuleShape(source, label) {
+  const errors = [];
+  const marker = /export\s+default\s*\{/.exec(source);
+  if (!marker) {
+    errors.push(
+      `${label}: no 'export default { … }' renderer object found`
+    );
+    return errors;
+  }
+  const braceIndex = marker.index + marker[0].length - 1;
+  const { keys } = _parseObjectLiteral(source, braceIndex);
+  const opNames = keys.map((k) => k.name);
+  if (!opNames.includes("make")) {
+    errors.push(`${label}: missing required 'make' operation`);
+  }
+  for (const op of keys) {
+    if (!LAYER_OPS.includes(op.name)) {
+      errors.push(
+        `${label}: unknown operation '${op.name}' (expected one of: ${LAYER_OPS.join(", ")})`
+      );
+      continue;
+    }
+    if (op.valueKind === "object" && Array.isArray(op.body)) {
+      const allowed =
+        op.name === "make" ? [...OP_PHASES, ...MAKE_EXTRA_PHASES] : OP_PHASES;
+      for (const phase of op.body) {
+        if (!allowed.includes(phase.name)) {
+          errors.push(
+            `${label}: unknown phase '${phase.name}' in '${op.name}' (expected: ${allowed.join(", ")})`
+          );
+        }
+      }
+    }
+  }
+  return errors;
+}
+
 module.exports = {
   validatePluginConfig,
   validateDependencies,
   findDuplicateInteractionIds,
   findDuplicateIds,
+  validateLayerTypeModuleShape,
+  LAYER_OPS,
+  OP_PHASES,
+  MAKE_EXTRA_PHASES,
   KNOWN_FIELDS,
 };

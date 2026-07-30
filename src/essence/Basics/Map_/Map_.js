@@ -2,6 +2,7 @@ import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import LayerTypeRegistry from '../Layers_/LayerTypeRegistry'
+import LayerInterface from '../Layers_/LayerInterface'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
@@ -770,6 +771,14 @@ async function makeLayer(
             mapContext,
             resolvedUrl,
         }
+        // Resolve the map `make` phases once. `make` is dispatched by phase
+        // (rather than LayerInterface.run) because its lifecycle straddles the
+        // make-lock: before/main/after run inside the lock here, while
+        // afterCommit must run in the finally block after the lock releases.
+        // The `after`/`afterCommit` phases are also gated on `stopLoops`.
+        const makeMain = rt && rt.map
+            ? LayerInterface.getPhase(rt.map, 'make', 'main')
+            : null
         let madeSuccessfully = true
         try {
             //Decide what kind of layer it is
@@ -779,8 +788,23 @@ async function makeLayer(
                 // is plugin-backed and dispatched through the registry with the
                 // frozen renderer context — one real path per type, no per-type
                 // branching in core.
-                if (rt && rt.map && typeof rt.map.make === 'function') {
-                    await rt.map.make(layerObj, pluginCtx)
+                if (makeMain) {
+                    const makeBefore = LayerInterface.getPhase(
+                        rt.map,
+                        'make',
+                        'before'
+                    )
+                    const makeAfter = LayerInterface.getPhase(
+                        rt.map,
+                        'make',
+                        'after'
+                    )
+                    if (makeBefore) await makeBefore(layerObj, pluginCtx)
+                    await makeMain(layerObj, pluginCtx)
+                    // Post-make hook inside the lock (e.g. vector rebuilds its
+                    // filtering GeoJSON). Gated on stopLoops.
+                    if (makeAfter && stopLoops !== true)
+                        await makeAfter(layerObj, pluginCtx)
                 } else if (rt) {
                     // A registered type with no map renderer is globe-only
                     // (e.g. model, 3dtiles). Nothing to draw on the 2D map;
@@ -792,17 +816,6 @@ async function makeLayer(
                 } else {
                     console.warn('Unknown layer type: ' + layerObj.type)
                 }
-            }
-
-            // Phase 1 post-make hook (inside the lock): e.g. vector rebuilds
-            // its filtering GeoJSON. Guarded/optional per the frozen interface.
-            if (
-                stopLoops !== true &&
-                rt &&
-                rt.map &&
-                typeof rt.map.afterMake === 'function'
-            ) {
-                rt.map.afterMake(layerObj, pluginCtx)
             }
         } catch (err) {
             madeSuccessfully = false
@@ -820,18 +833,20 @@ async function makeLayer(
             // still held, which would leave the layer empty (cleared but not
             // repopulated). Moving this here ensures the lock is free.
             try {
-                if (
-                    madeSuccessfully &&
-                    stopLoops !== true &&
-                    rt &&
-                    rt.map &&
-                    typeof rt.map.afterUnlock === 'function'
-                ) {
-                    rt.map.afterUnlock(layerObj, pluginCtx)
+                const afterCommit =
+                    rt && rt.map
+                        ? LayerInterface.getPhase(
+                              rt.map,
+                              'make',
+                              'afterCommit'
+                          )
+                        : null
+                if (madeSuccessfully && stopLoops !== true && afterCommit) {
+                    await afterCommit(layerObj, pluginCtx)
                 }
             } catch (filterErr) {
                 console.warn(
-                    'WARNING - afterUnlock hook failed for',
+                    'WARNING - make.afterCommit hook failed for',
                     layerObj.name,
                     filterErr
                 )
@@ -888,7 +903,11 @@ function onEachFeatureDefault(feature, layer) {
     }
 
     const layerData = L_.layers.data[layer.options?.layerName] || {}
-    const hooks = resolveLayerInteractions(layerData)
+    const hooks = resolveLayerInteractions(
+        layerData,
+        undefined,
+        LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
+    )
 
     if (typeof layer['useKeyAsName'] === 'string' && hooks.hover) {
         layer.on('mouseover', function (e) {
@@ -948,7 +967,11 @@ function featureDefaultClick(feature, layer, e) {
     MetadataCapturer.populateMetadata(layer, async () => {
         const layerName = layer.options.layerName
         const layerData = L_.layers.data[layerName]
-        const pipeline = resolveLayerInteractions(layerData).click
+        const pipeline = resolveLayerInteractions(
+            layerData,
+            undefined,
+            LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
+        ).click
 
         Map_.rmNotNull(Map_.tempOverlayImage)
         L_.Globe_.litho.removeLayer('markerAttachmentTempModel')

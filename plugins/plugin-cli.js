@@ -1236,19 +1236,97 @@ function cmdValidate() {
         }
     }
 
+    // Layer-type / layer-attachment renderer contract validation. These plugin
+    // categories aren't part of discoverAll()'s enable/disable model (they are
+    // always-on core), so scan them directly and validate both the manifest and
+    // each renderer module's `export default {}` operation shape.
+    const { validateLayerTypeModuleShape } = require(
+        path.join(__dirname, "..", "API", "pluginValidation")
+    );
+    let rendererPlugins = [];
+    try {
+        for (const container of fs.readdirSync(PLUGINS_ROOT)) {
+            for (const cat of ["layertypes", "layerattachments"]) {
+                const catPath = path.join(PLUGINS_ROOT, container, cat);
+                let entries;
+                try {
+                    entries = fs.readdirSync(catPath, { withFileTypes: true });
+                } catch {
+                    continue;
+                }
+                const pType = cat === "layertypes" ? "layertype" : "layerattachment";
+                for (const entry of entries) {
+                    if (!entry.isDirectory() || entry.name[0] === "_" || entry.name[0] === ".") continue;
+                    const pluginPath = path.join(catPath, entry.name);
+                    const manifestPath = path.join(pluginPath, "plugin.json");
+                    let manifest = null;
+                    try {
+                        manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+                    } catch {
+                        continue;
+                    }
+                    rendererPlugins.push({ id: `${container}/${cat}/${entry.name}`, pluginPath, manifest, pType });
+                }
+            }
+        }
+    } catch {
+        // no plugins root — nothing to validate
+    }
+
+    for (const p of rendererPlugins) {
+        const prefix = p.id;
+        const pluginErrors = [];
+
+        const errs = validatePluginConfig(p.manifest, p.manifest.name || p.id, p.pType);
+        for (const e of errs) {
+            pluginErrors.push(e);
+            if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
+        }
+        errors += errs.length;
+
+        // Validate each declared renderer module's operation shape.
+        const paths = p.manifest.paths;
+        if (paths && typeof paths === "object" && !Array.isArray(paths)) {
+            for (const [key, rel] of Object.entries(paths)) {
+                if (key !== "map" && !key.startsWith("globe.")) continue;
+                if (typeof rel !== "string") continue;
+                const modPath = path.join(p.pluginPath, `${rel}.js`);
+                let src;
+                try {
+                    src = fs.readFileSync(modPath, "utf8");
+                } catch {
+                    pluginErrors.push(`renderer module '${key}' not found at ${rel}.js`);
+                    if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(`renderer module '${key}' not found at ${rel}.js`)}`);
+                    errors++;
+                    continue;
+                }
+                const modErrs = validateLayerTypeModuleShape(src, `${prefix} [${key}]`);
+                for (const e of modErrs) {
+                    pluginErrors.push(e);
+                    if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
+                }
+                errors += modErrs.length;
+            }
+        }
+
+        if (pluginErrors.length === 0) passed++;
+        results.push({ plugin: prefix, valid: pluginErrors.length === 0, enabled: true, errors: pluginErrors });
+    }
+    const totalPlugins = plugins.length + rendererPlugins.length;
+
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }
 
     if (errors === 0) {
-        console.log(`\n  ${c.green("\u2713")} All ${c.bold(String(plugins.length))} plugin(s) valid.`);
+        console.log(`\n  ${c.green("\u2713")} All ${c.bold(String(totalPlugins))} plugin(s) valid.`);
         if (warnings > 0) console.log(`  ${c.yellow(String(warnings))} disabled plugin(s).`);
         if (depWarnings > 0) console.log(`  ${c.yellow(String(depWarnings))} plugin dependency warning(s).`);
         if (interactionWarnings > 0) console.log(`  ${c.yellow(String(interactionWarnings))} interaction warning(s).`);
     } else {
-        console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(plugins.length))} plugin(s). ${c.green(`${passed} passed`)}.`);
+        console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(totalPlugins))} plugin(s). ${c.green(`${passed} passed`)}.`);
         process.exit(1);
     }
     console.log("");

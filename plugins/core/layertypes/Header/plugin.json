@@ -4,7 +4,7 @@
   "typeId": "header",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "A non-rendering organizational entry in the layers list — a collapsible section header used to group layers. Draws nothing on the map or globe.",
   "capabilities": {
     "renderers": {

@@ -10,10 +10,10 @@
  *
  * gctx (lithosphere) = { engine: 'lithosphere', renderer (LithoSphere), layers }
  */
-function add(layerConfig, gctx) {
+function make(layerConfig, gctx) {
     return gctx.renderer.addLayer('tile', layerConfig)
 }
 
 export default {
-    add,
+    make,
 }

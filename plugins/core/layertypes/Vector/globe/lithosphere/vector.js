@@ -14,7 +14,7 @@
  * gctx (lithosphere) = { engine, renderer, layers, clampToGround,
  *                        geojsonHasPolygons }
  */
-function add(layerConfig, gctx) {
+function make(layerConfig, gctx) {
     let lithoType = 'vector'
     if (gctx.clampToGround || gctx.geojsonHasPolygons(layerConfig?.geojson)) {
         lithoType = 'clamped'
@@ -23,5 +23,5 @@ function add(layerConfig, gctx) {
 }
 
 export default {
-    add,
+    make,
 }

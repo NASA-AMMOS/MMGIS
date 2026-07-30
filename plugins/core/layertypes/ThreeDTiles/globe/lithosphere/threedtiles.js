@@ -7,10 +7,10 @@
  *
  * gctx (lithosphere) = { engine, renderer (LithoSphere), layers }
  */
-function add(layerConfig, gctx) {
+function make(layerConfig, gctx) {
     return gctx.renderer.addLayer('3dtiles', layerConfig)
 }
 
 export default {
-    add,
+    make,
 }

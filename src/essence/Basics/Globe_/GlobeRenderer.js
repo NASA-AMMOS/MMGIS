@@ -3,6 +3,7 @@ import Projection_ from './Projection_'
 import * as Cesium from 'cesium'
 import 'cesium/Source/Widgets/widgets.css'
 import LayerTypeRegistry from '../Layers_/LayerTypeRegistry'
+import LayerInterface from '../Layers_/LayerInterface'
 import {
     interpolateMultipleColors,
     buildColorStops,
@@ -484,8 +485,11 @@ class GlobeRenderer {
         // type is migrated for this engine, delegate; otherwise fall through to
         // the built-in path for not-yet-migrated types.
         const globeModule = this._globeModuleFor(type)
-        if (globeModule?.add) {
-            return globeModule.add(layerConfig, this._globeCtx(type))
+        if (LayerInterface.hasOp(globeModule, 'make')) {
+            return LayerInterface.run(globeModule, 'make', [
+                layerConfig,
+                this._globeCtx(type),
+            ])
         }
         if (this.rendererType === 'lithosphere') {
             return this.renderer.addLayer(type, layerConfig)
@@ -518,7 +522,7 @@ class GlobeRenderer {
     // engine handle + the shared `_layers` registry + collection-level helpers
     // and state that intentionally stay in GlobeRenderer. `type` is the layer
     // type this dispatch is for (so a plugin can tell 'vector' from 'clamped').
-    _globeCtx(type) {
+    _globeCtx(type, extras = {}) {
         if (this.rendererType === 'cesium') {
             return {
                 engine: 'cesium',
@@ -538,6 +542,7 @@ class GlobeRenderer {
                     calculateImageryIndex: (name, ordered) =>
                         this._calculateTileLayerIndex(name, ordered),
                 },
+                ...extras,
             }
         }
         return {
@@ -546,6 +551,7 @@ class GlobeRenderer {
             layers: this._layers,
             clampToGround: type === 'clamped',
             geojsonHasPolygons: (geojson) => this._geojsonHasPolygons(geojson),
+            ...extras,
         }
     }
 
@@ -919,7 +925,7 @@ class GlobeRenderer {
     /**
      * Update time parameters for a specific layer
      */
-    updateLayerTime(layerName, startTime, endTime, customTimes) {
+    updateLayerTime(layerName, startTime, endTime, customTimes, currentTime = null) {
         const layerInfo = this._layers[layerName]
         if (
             !layerInfo ||
@@ -934,10 +940,15 @@ class GlobeRenderer {
         layerInfo.timeConfig.end = endTime
         layerInfo.timeConfig.customTimes = customTimes
 
-        // Refresh the layer via its per-engine globe plugin.
+        // Refresh the layer via its per-engine globe plugin. `currentTime` is
+        // surfaced on the ctx so in-place timeChange implementations (future
+        // types that scrub rather than reload) can read the playhead.
         const globeModule = this._globeModuleFor(layerInfo.type)
-        if (globeModule?.updateTime) {
-            globeModule.updateTime(layerName, this._globeCtx())
+        if (LayerInterface.hasOp(globeModule, 'timeChange')) {
+            LayerInterface.run(globeModule, 'timeChange', [
+                layerName,
+                this._globeCtx(layerInfo.type, { currentTime }),
+            ])
         }
     }
 
@@ -957,10 +968,14 @@ class GlobeRenderer {
         // Update COG parameters (merge with existing)
         Object.assign(layerInfo.cogConfig, cogParams)
 
-        // Refresh the layer with new parameters via its per-engine globe plugin.
+        // Refresh the layer with new parameters via its per-engine globe
+        // plugin. COG param changes are a dynamic restyle → `setStyle`.
         const globeModule = this._globeModuleFor(layerInfo.type)
-        if (globeModule?.refreshCog) {
-            globeModule.refreshCog(layerName, this._globeCtx())
+        if (LayerInterface.hasOp(globeModule, 'setStyle')) {
+            LayerInterface.run(globeModule, 'setStyle', [
+                layerName,
+                this._globeCtx(layerInfo.type),
+            ])
         }
     }
 
@@ -981,7 +996,8 @@ class GlobeRenderer {
                     layerName,
                     startTime,
                     currentTime,
-                    customTimes
+                    customTimes,
+                    currentTime
                 )
             }
         }
@@ -998,8 +1014,11 @@ class GlobeRenderer {
             const layerInfo = this._layers[name]
             if (layerInfo) {
                 const globeModule = this._globeModuleFor(layerInfo.type)
-                if (globeModule?.remove) {
-                    globeModule.remove(name, this._globeCtx())
+                if (LayerInterface.hasOp(globeModule, 'destroy')) {
+                    LayerInterface.run(globeModule, 'destroy', [
+                        name,
+                        this._globeCtx(layerInfo.type),
+                    ])
                 } else if (layerInfo.type === 'gradient_polyline') {
                     this._removeCesiumGradientPolyline(name)
                     return
@@ -1076,8 +1095,12 @@ class GlobeRenderer {
         if (!layerInfo) return
 
         const globeModule = this._globeModuleFor(layerInfo.type)
-        if (globeModule?.setVisibility) {
-            globeModule.setVisibility(name, visible, this._globeCtx())
+        if (LayerInterface.hasOp(globeModule, 'setVisibility')) {
+            LayerInterface.run(globeModule, 'setVisibility', [
+                name,
+                visible,
+                this._globeCtx(layerInfo.type),
+            ])
         } else if (layerInfo.type === 'gradient_polyline') {
             if (layerInfo.primitive) {
                 layerInfo.primitive.show = visible
@@ -1243,8 +1266,12 @@ class GlobeRenderer {
             const globeModule = layerInfo
                 ? this._globeModuleFor(layerInfo.type)
                 : null
-            if (globeModule?.setOpacity) {
-                globeModule.setOpacity(name, opacity, this._globeCtx())
+            if (LayerInterface.hasOp(globeModule, 'setOpacity')) {
+                LayerInterface.run(globeModule, 'setOpacity', [
+                    name,
+                    opacity,
+                    this._globeCtx(layerInfo.type),
+                ])
             }
         }
     }

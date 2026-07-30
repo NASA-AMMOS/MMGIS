@@ -4,11 +4,11 @@
   "typeId": "query",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "Runtime-populated vector layer (features supplied by tools rather than a static URL). A thin specialization of the Vector map renderer seeded with empty GeoJSON.",
   "capabilities": {
     "renderers": {
-      "map": true,
+      "map": { "engines": ["leaflet"] },
       "globe": false
     },
     "time": false,

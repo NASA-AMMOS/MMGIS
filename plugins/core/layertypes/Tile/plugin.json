@@ -4,11 +4,11 @@
   "typeId": "tile",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "Raster tile layer (TMS/WMTS/COG/STAC) rendered as a Leaflet tileLayer on the map and imagery on the globe.",
   "capabilities": {
     "renderers": {
-      "map": true,
+      "map": { "engines": ["leaflet"] },
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
     "time": true,

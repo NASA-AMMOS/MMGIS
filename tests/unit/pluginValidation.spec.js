@@ -8,9 +8,11 @@
 
 import { test, expect } from '@playwright/test';
 
-const { validatePluginConfig, validateDependencies } = require(
-    '../../API/pluginValidation'
-);
+const {
+    validatePluginConfig,
+    validateDependencies,
+    validateLayerTypeModuleShape,
+} = require('../../API/pluginValidation');
 
 test.describe('validatePluginConfig - tool plugins', () => {
     test('valid minimal tool config returns no errors', () => {
@@ -347,5 +349,115 @@ test.describe('validatePluginConfig - interaction manifest fields', () => {
         };
         const errors = validatePluginConfig(config, 'Minimal', 'interaction');
         expect(errors).toEqual([]);
+    });
+});
+
+test.describe('validatePluginConfig - layertype renderer contract', () => {
+    const base = (extra) => ({
+        name: 'Tile',
+        typeId: 'tile',
+        ...extra,
+    });
+
+    test('declared map renderer without a map module is rejected', () => {
+        const config = base({
+            capabilities: { renderers: { map: { engines: ['leaflet'] } } },
+            paths: { 'globe.cesium': './globe/cesium/tile' },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes("no 'paths.map'"))).toBe(true);
+    });
+
+    test('map module without a declared map renderer is rejected', () => {
+        const config = base({
+            capabilities: { renderers: { map: false, globe: false } },
+            paths: { map: './map/tile' },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes("does not declare a 'map' renderer"))).toBe(true);
+    });
+
+    test('declared globe engine without a matching module is rejected', () => {
+        const config = base({
+            capabilities: { renderers: { globe: { engines: ['cesium'] } } },
+            paths: { 'globe.lithosphere': './globe/lithosphere/tile' },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes("no 'paths.globe.cesium'"))).toBe(true);
+        expect(errors.some((e) => e.includes("does not declare globe engine 'lithosphere'"))).toBe(true);
+    });
+
+    test('matching renderers and modules produce no cross-check errors', () => {
+        const config = base({
+            capabilities: {
+                renderers: {
+                    map: { engines: ['leaflet'] },
+                    globe: { engines: ['cesium', 'lithosphere'] },
+                },
+            },
+            paths: {
+                map: './map/tile',
+                'globe.cesium': './globe/cesium/tile',
+                'globe.lithosphere': './globe/lithosphere/tile',
+            },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors).toEqual([]);
+    });
+
+    test('defaultInteractions must map events to string arrays', () => {
+        const config = base({
+            capabilities: { defaultInteractions: { click: 'identifyPopup' } },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes('defaultInteractions.click'))).toBe(true);
+    });
+});
+
+test.describe('validateLayerTypeModuleShape - renderer module contract', () => {
+    test('valid nested + shorthand module passes', () => {
+        const src = `
+            import x from '@basics/x'
+            export default {
+                make: { async main(o, c) {}, after(o) {}, afterCommit(o) {} },
+                destroy: (o, c) => {},
+                setStyle: fn,
+            }`;
+        expect(validateLayerTypeModuleShape(src, 'x')).toEqual([]);
+    });
+
+    test('shorthand property list passes', () => {
+        const src = `export default { make, destroy, setOpacity, timeChange }`;
+        expect(validateLayerTypeModuleShape(src, 'x')).toEqual([]);
+    });
+
+    test('missing make is rejected', () => {
+        const src = `export default { destroy(o, c) {} }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("missing required 'make'"))).toBe(true);
+    });
+
+    test('typo operation name is rejected', () => {
+        const src = `export default { make(o) {}, destory(o) {} }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown operation 'destory'"))).toBe(true);
+    });
+
+    test('unknown phase is rejected', () => {
+        const src = `export default { make: { main() {}, sideways() {} } }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown phase 'sideways'"))).toBe(true);
+    });
+
+    test('afterCommit outside make is rejected', () => {
+        const src = `export default { make() {}, setStyle: { afterCommit() {} } }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown phase 'afterCommit' in 'setStyle'"))).toBe(true);
+    });
+
+    test('missing export default is reported', () => {
+        const src = `const foo = {}; module.exports = foo`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes('no'))).toBe(true);
     });
 });

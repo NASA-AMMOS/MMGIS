@@ -4,11 +4,11 @@
   "typeId": "data",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "Numeric raster layer decoded client-side and colorized/shaded with a WebGL shader on the 2D map (e.g. DEMs, data products).",
   "capabilities": {
     "renderers": {
-      "map": true,
+      "map": { "engines": ["leaflet"] },
       "globe": false
     },
     "time": true,

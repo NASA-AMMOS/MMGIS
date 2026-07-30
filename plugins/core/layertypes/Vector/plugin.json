@@ -4,11 +4,11 @@
   "typeId": "vector",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "GeoJSON vector layer (points/lines/polygons, annotations, arrows, gradients) with time, injectable params, dynamic-extent geodatasets, filtering and per-feature attachments.",
   "capabilities": {
     "renderers": {
-      "map": true,
+      "map": { "engines": ["leaflet"] },
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
     "time": true,

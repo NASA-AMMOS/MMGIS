@@ -4,11 +4,11 @@
   "typeId": "video",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "Georeferenced video overlay (.webm/.mp4) draped onto a bounding box on the 2D map.",
   "capabilities": {
     "renderers": {
-      "map": true,
+      "map": { "engines": ["leaflet"] },
       "globe": false
     },
     "time": false,

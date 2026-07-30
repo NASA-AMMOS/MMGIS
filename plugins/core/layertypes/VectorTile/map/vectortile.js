@@ -235,12 +235,6 @@ function make(layerObj, ctx = {}) {
     L_.Map_.allLayersLoaded()
 }
 
-function remove(layerObj, ctx = {}) {
-    const mctx = MapRenderer.context(ctx.mapContext)
-    MapRenderer.removeLayer(layerObj, mctx)
-}
-
 export default {
     make,
-    remove,
 }

@@ -4,11 +4,11 @@
   "typeId": "image",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "Georeferenced single image / GeoTIFF drawn on the 2D map via a GeoRaster layer, with optional single-band colormapping.",
   "capabilities": {
     "renderers": {
-      "map": true,
+      "map": { "engines": ["leaflet"] },
       "globe": false
     },
     "time": false,

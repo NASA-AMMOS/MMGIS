@@ -4,7 +4,7 @@
   "typeId": "3dtiles",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "OGC 3D Tiles dataset (photogrammetry meshes, point clouds, buildings) streamed onto the globe. Globe-only.",
   "capabilities": {
     "renderers": {

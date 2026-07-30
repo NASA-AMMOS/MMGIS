@@ -4,7 +4,7 @@
   "typeId": "model",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "A 3D model (mesh) placed on the globe at a geographic position with configurable scale and rotation. Globe-only (not drawn on the 2D map).",
   "capabilities": {
     "renderers": {
@@ -30,7 +30,6 @@
   ],
   "metaconfig": "./metaconfig.json",
   "paths": {
-    "globe.cesium": "./globe/cesium/model",
     "globe.lithosphere": "./globe/lithosphere/model"
   }
 }

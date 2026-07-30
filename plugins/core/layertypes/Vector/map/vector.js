@@ -11,39 +11,33 @@
  * Frozen renderer interface:
  *   ctx = { evenIfOff, forceGeoJSON, isRefresh, mapContext, resolvedUrl }
  *
- * Post-make lifecycle (two-phase, dispatched by Map_.makeLayer):
- *   afterMake   → Filtering.updateGeoJSON  (inside the make-lock)
- *   afterUnlock → Filtering.triggerFilter  (after the lock releases — triggerFilter
- *                 clears+repopulates the layer and bails while _layersBeingMade holds)
+ * make lifecycle (nested phases, dispatched by Map_.makeLayer):
+ *   make.main        → build the vector layer (VectorLayerCore.makeVectorMap)
+ *   make.after       → Filtering.updateGeoJSON  (inside the make-lock)
+ *   make.afterCommit → Filtering.triggerFilter  (after the lock releases —
+ *                      triggerFilter clears+repopulates the layer and bails
+ *                      while _layersBeingMade holds)
+ *
+ * destroy is omitted: core's default teardown (generic Leaflet removal) covers
+ * vector layers, so there is no vector-specific teardown to implement.
  */
-import MapRenderer from '@basics/Map_/MapRenderer'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
 import { makeVectorMap } from '@basics/Layers_/VectorLayerCore'
 
-async function make(layerObj, ctx = {}) {
-    await makeVectorMap(layerObj, ctx)
-}
-
-// Phase 1 (inside make-lock): rebuild the working GeoJSON used by filtering.
-function afterMake(layerObj) {
-    Filtering.updateGeoJSON(layerObj.name)
-}
-
-// Phase 2 (after make-lock releases): apply active filters. triggerFilter
-// clears + repopulates the vector layer and bails if _layersBeingMade is still
-// held, so it MUST run after the lock frees.
-function afterUnlock(layerObj) {
-    Filtering.triggerFilter(layerObj.name)
-}
-
-function remove(layerObj, ctx = {}) {
-    const mctx = MapRenderer.context(ctx.mapContext)
-    MapRenderer.removeLayer(layerObj, mctx)
-}
-
 export default {
-    make,
-    afterMake,
-    afterUnlock,
-    remove,
+    make: {
+        async main(layerObj, ctx = {}) {
+            await makeVectorMap(layerObj, ctx)
+        },
+        // Inside make-lock: rebuild the working GeoJSON used by filtering.
+        after(layerObj) {
+            Filtering.updateGeoJSON(layerObj.name)
+        },
+        // After make-lock releases: apply active filters. triggerFilter clears
+        // + repopulates the vector layer and bails if _layersBeingMade is still
+        // held, so it MUST run after the lock frees.
+        afterCommit(layerObj) {
+            Filtering.triggerFilter(layerObj.name)
+        },
+    },
 }

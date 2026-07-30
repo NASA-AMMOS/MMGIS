@@ -11,7 +11,7 @@
  */
 import CesiumMVTLayer from '@basics/Globe_/CesiumMVTLayer'
 
-function add(layerConfig, gctx) {
+function make(layerConfig, gctx) {
     const { renderer, layers } = gctx
 
     const mvtLayer = new CesiumMVTLayer(renderer, {
@@ -37,7 +37,7 @@ function add(layerConfig, gctx) {
 
 // Engine-specific teardown only; GlobeRenderer performs the generic `_layers`
 // cleanup and render request.
-function remove(name, gctx) {
+function destroy(name, gctx) {
     const layerInfo = gctx.layers[name]
     if (layerInfo) layerInfo.mvtLayer.destroy()
 }
@@ -57,8 +57,8 @@ function setOpacity(name, opacity, gctx) {
 }
 
 export default {
-    add,
-    remove,
+    make,
+    destroy,
     setVisibility,
     setOpacity,
 }

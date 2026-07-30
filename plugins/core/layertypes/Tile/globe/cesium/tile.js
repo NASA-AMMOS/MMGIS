@@ -176,7 +176,7 @@ function restoreImageryPosition(renderer, newLayer, index) {
     }
 }
 
-function add(layerConfig, gctx) {
+function make(layerConfig, gctx) {
     const { renderer, layers } = gctx
     const { name } = layerConfig
 
@@ -246,7 +246,7 @@ function add(layerConfig, gctx) {
 
 // Engine-specific removal only; GlobeRenderer performs the generic `_layers`
 // cleanup and render request.
-function remove(name, gctx) {
+function destroy(name, gctx) {
     const layerInfo = gctx.layers[name]
     if (layerInfo) gctx.renderer.imageryLayers.remove(layerInfo.layer)
 }
@@ -290,7 +290,7 @@ function setVisibility(name, visible, gctx) {
 
 // Rebuild the imagery provider with refreshed time tokens (preserving COG
 // params) and restore alpha/visibility/position.
-function updateTime(name, gctx) {
+function timeChange(name, gctx) {
     const { renderer, layers } = gctx
     const layerInfo = layers[name]
     if (!layerInfo || !layerInfo.timeConfig?.enabled) return
@@ -340,7 +340,7 @@ function updateTime(name, gctx) {
 
 // Rebuild the imagery provider with refreshed COG params (preserving time) and
 // restore alpha/visibility/position.
-function refreshCog(name, gctx) {
+function setStyle(name, gctx) {
     const { renderer, layers } = gctx
     const layerInfo = layers[name]
     if (!layerInfo) return
@@ -390,10 +390,10 @@ function refreshCog(name, gctx) {
 }
 
 export default {
-    add,
-    remove,
+    make,
+    destroy,
     setOpacity,
     setVisibility,
-    updateTime,
-    refreshCog,
+    timeChange,
+    setStyle,
 }

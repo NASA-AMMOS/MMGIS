@@ -180,12 +180,6 @@ async function make(layerObj, ctx = {}) {
     )
 }
 
-function remove(layerObj, ctx = {}) {
-    const mctx = MapRenderer.context(ctx.mapContext)
-    MapRenderer.removeLayer(layerObj, mctx)
-}
-
 export default {
     make,
-    remove,
 }

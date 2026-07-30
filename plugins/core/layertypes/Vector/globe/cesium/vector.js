@@ -26,7 +26,7 @@ import * as Cesium from 'cesium'
 
 const CESIUM_POINT_PIXEL_SCALE = 2
 
-function add(layerConfig, gctx) {
+function make(layerConfig, gctx) {
     const { name } = layerConfig
     const type = gctx.clampToGround ? 'clamped' : 'vector'
 
@@ -249,5 +249,5 @@ function add(layerConfig, gctx) {
 }
 
 export default {
-    add,
+    make,
 }

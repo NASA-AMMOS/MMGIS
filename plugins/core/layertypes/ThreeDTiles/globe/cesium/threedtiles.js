@@ -11,7 +11,7 @@
  */
 import * as Cesium from 'cesium'
 
-async function add(layerConfig, gctx) {
+async function make(layerConfig, gctx) {
     const { renderer, layers, loadingLayers } = gctx
     const { name } = layerConfig
 
@@ -74,7 +74,7 @@ async function add(layerConfig, gctx) {
 
 // Engine-specific teardown only; GlobeRenderer performs the generic `_layers`
 // cleanup and render request.
-function remove(name, gctx) {
+function destroy(name, gctx) {
     const layerInfo = gctx.layers[name]
     if (layerInfo) gctx.renderer.scene.primitives.remove(layerInfo.tileset)
 }
@@ -100,8 +100,8 @@ function setOpacity(name, opacity, gctx) {
 }
 
 export default {
-    add,
-    remove,
+    make,
+    destroy,
     setVisibility,
     setOpacity,
 }

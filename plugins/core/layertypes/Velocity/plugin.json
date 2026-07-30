@@ -4,11 +4,11 @@
   "typeId": "velocity",
   "version": "1.0.0",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "description": "Animated vector-field layer (wind/current streamlines or particles) rendered on the 2D map from gridded velocity data.",
   "capabilities": {
     "renderers": {
-      "map": true,
+      "map": { "engines": ["leaflet"] },
       "globe": false
     },
     "time": true,

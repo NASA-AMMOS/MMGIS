@@ -8,10 +8,10 @@
  *
  * gctx (lithosphere) = { engine, renderer (LithoSphere), layers }
  */
-function add(layerConfig, gctx) {
+function make(layerConfig, gctx) {
     return gctx.renderer.addLayer('vectortile', layerConfig)
 }
 
 export default {
-    add,
+    make,
 }
