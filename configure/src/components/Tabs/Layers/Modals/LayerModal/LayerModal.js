@@ -136,6 +136,12 @@ const useStyles = makeStyles((theme) => ({
     border: "none !important",
     width: "100px",
   },
+  unavailable: {
+    padding: theme.spacing(4),
+    color: theme.palette.swatches.grey[400],
+    fontSize: "14px",
+    lineHeight: 1.5,
+  },
 }));
 
 const MODAL_NAME = "layer";
@@ -157,6 +163,12 @@ const LayerModal = (props) => {
   const dispatch = useDispatch();
 
   let config = layerTypeConfiguration?.[layer.type]?.metaconfig || {};
+
+  // Built-in types always have a metaconfig in the registry, so an empty config
+  // for a real layer means the async registry hasn't loaded (or failed) yet —
+  // render a notice and block editing instead of a silent, no-op blank form.
+  const registryUnavailable =
+    layer.type != null && !Array.isArray(config?.tabs);
 
   config = inject(config);
 
@@ -296,7 +308,13 @@ const LayerModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Maker config={config} layer={layer} inlineHelp={true} />
+        {registryUnavailable ? (
+          <div className={c.unavailable}>
+            {`Layer type configurations aren't available yet, so this layer can't be edited. Wait for them to load or reload the page; if this persists the layer type registry failed to load.`}
+          </div>
+        ) : (
+          <Maker config={config} layer={layer} inlineHelp={true} />
+        )}
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <div>
@@ -366,6 +384,7 @@ const LayerModal = (props) => {
 
           <Button
             className={c.doneButton}
+            disabled={registryUnavailable}
             onClick={() => {
               handleClose();
             }}
