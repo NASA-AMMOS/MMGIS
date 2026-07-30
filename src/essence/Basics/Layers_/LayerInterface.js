@@ -143,14 +143,17 @@ export async function run(surfaceModule, opName, args = [], opts = {}) {
 }
 
 /**
- * Synchronous variant of {@link run} for the 2D-map surface.
+ * Synchronous variant of {@link run}.
  *
- * The map engine (Leaflet) is synchronous and callers rely on read-after-write
- * (e.g. setLayerOpacity sets state that the next line reads), so map-side
- * dispatch must NOT defer the default onto a microtask the way the async `run`
- * does. `runMap` runs `before → (main ?? coreDefault) → after` inline. A plugin
- * phase may still return a Promise for its own async work; like the globe's
- * fire-and-forget dispatch we don't await it.
+ * Both engines run their layer operations synchronously (Leaflet always; Cesium
+ * /LithoSphere add/remove/show/opacity are synchronous scene mutations), and
+ * callers rely on deterministic ordering: they read state right after dispatch
+ * (map setLayerOpacity) or perform core bookkeeping right after (GlobeRenderer
+ * deletes its layer record after `destroy`). The async `run` defers `main` onto
+ * a microtask whenever a `before` phase exists, which would reorder `main` after
+ * that core cleanup. `runSync` runs `before → (main ?? coreDefault) → after`
+ * inline so `main` is never deferred. A phase may still return a Promise for its
+ * own async work; like the pre-existing globe dispatch we don't await it.
  *
  * @param {LayerTypeModule} surfaceModule
  * @param {string} opName
@@ -159,7 +162,7 @@ export async function run(surfaceModule, opName, args = [], opts = {}) {
  * @param {Function} [opts.coreDefault]  Fallback used when no plugin `main`.
  * @returns {*}                          The result of `main`/coreDefault.
  */
-export function runMap(surfaceModule, opName, args = [], opts = {}) {
+export function runSync(surfaceModule, opName, args = [], opts = {}) {
     const before = getPhase(surfaceModule, opName, 'before')
     const main = getPhase(surfaceModule, opName, 'main')
     const after = getPhase(surfaceModule, opName, 'after')
@@ -184,5 +187,5 @@ export default {
     getPhase,
     hasOp,
     run,
-    runMap,
+    runSync,
 }

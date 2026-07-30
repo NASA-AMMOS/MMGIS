@@ -955,7 +955,7 @@ class GlobeRenderer {
         // types that scrub rather than reload) can read the playhead.
         const globeModule = this._globeModuleFor(layerInfo.type)
         if (LayerInterface.hasOp(globeModule, 'timeChange')) {
-            LayerInterface.run(globeModule, 'timeChange', [
+            LayerInterface.runSync(globeModule, 'timeChange', [
                 layerName,
                 this._globeCtx(layerInfo.type, { currentTime }),
             ])
@@ -982,7 +982,7 @@ class GlobeRenderer {
         // plugin. COG param changes are a dynamic restyle → `setStyle`.
         const globeModule = this._globeModuleFor(layerInfo.type)
         if (LayerInterface.hasOp(globeModule, 'setStyle')) {
-            LayerInterface.run(globeModule, 'setStyle', [
+            LayerInterface.runSync(globeModule, 'setStyle', [
                 layerName,
                 this._globeCtx(layerInfo.type),
             ])
@@ -1025,7 +1025,7 @@ class GlobeRenderer {
             if (layerInfo) {
                 const globeModule = this._globeModuleFor(layerInfo.type)
                 if (LayerInterface.hasOp(globeModule, 'destroy')) {
-                    LayerInterface.run(globeModule, 'destroy', [
+                    LayerInterface.runSync(globeModule, 'destroy', [
                         name,
                         this._globeCtx(layerInfo.type),
                     ])
@@ -1106,7 +1106,7 @@ class GlobeRenderer {
 
         const globeModule = this._globeModuleFor(layerInfo.type)
         if (LayerInterface.hasOp(globeModule, 'setVisibility')) {
-            LayerInterface.run(globeModule, 'setVisibility', [
+            LayerInterface.runSync(globeModule, 'setVisibility', [
                 name,
                 visible,
                 this._globeCtx(layerInfo.type),
@@ -1277,7 +1277,7 @@ class GlobeRenderer {
                 ? this._globeModuleFor(layerInfo.type)
                 : null
             if (LayerInterface.hasOp(globeModule, 'setOpacity')) {
-                LayerInterface.run(globeModule, 'setOpacity', [
+                LayerInterface.runSync(globeModule, 'setOpacity', [
                     name,
                     opacity,
                     this._globeCtx(layerInfo.type),

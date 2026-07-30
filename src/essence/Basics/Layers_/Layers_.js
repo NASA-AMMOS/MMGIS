@@ -395,7 +395,7 @@ const L_ = {
                     // Hide the primary layer on the 2D map via the type's map
                     // plugin (setVisibility). Built-ins declare none, so the
                     // core default (remove from map) runs unchanged.
-                    LayerInterface.runMap(
+                    LayerInterface.runSync(
                         LayerTypeRegistry.get(s.type)?.map,
                         'setVisibility',
                         [
@@ -563,7 +563,7 @@ const L_ = {
                     // Show the primary layer on the 2D map via the type's map
                     // plugin (setVisibility). Built-ins declare none, so the
                     // core default (add to map + z-order) runs unchanged.
-                    LayerInterface.runMap(
+                    LayerInterface.runSync(
                         LayerTypeRegistry.get(s.type)?.map,
                         'setVisibility',
                         [
@@ -2145,7 +2145,7 @@ const L_ = {
         // Built-in types declare no setOpacity, so the core default runs
         // unchanged; a plugin may override `main` or wrap it via before/after.
         const rtOpacity = LayerTypeRegistry.get(L_.layers.data[name]?.type)
-        LayerInterface.runMap(
+        LayerInterface.runSync(
             rtOpacity?.map,
             'setOpacity',
             [
@@ -2281,7 +2281,7 @@ const L_ = {
         // layer type's map plugin. Built-in types declare no setStyle, so the
         // core default (filter-effect application) runs unchanged.
         const rtStyle = LayerTypeRegistry.get(L_.layers.data[name]?.type)
-        LayerInterface.runMap(
+        LayerInterface.runSync(
             rtStyle?.map,
             'setStyle',
             [
@@ -3759,7 +3759,7 @@ const L_ = {
                 // Let the type's map plugin release its own resources
                 // (destroy) before the layer leaves the registry. The map
                 // removal itself already happened via toggleLayer above.
-                LayerInterface.runMap(
+                LayerInterface.runSync(
                     LayerTypeRegistry.get(L_.layers.data[layerUUID]?.type)?.map,
                     'destroy',
                     [

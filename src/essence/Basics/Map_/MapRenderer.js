@@ -196,7 +196,7 @@ function onViewChange(mctx, f) {
 // built-ins declare none, so the core default (remove from map) runs.
 function removeLayer(layerObj, mctx) {
     const ctx = mctx || context()
-    LayerInterface.runMap(
+    LayerInterface.runSync(
         LayerTypeRegistry.get(layerObj.type)?.map,
         'destroy',
         [layerObj, ctx],
