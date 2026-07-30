@@ -1922,9 +1922,154 @@ function _scaffoldInteraction(name) {
     };
 }
 
+function _scaffoldLayertype(name) {
+    const lower = name[0].toLowerCase() + name.slice(1);
+    const typeId = lower.toLowerCase();
+    return {
+        "plugin.json": JSON.stringify({
+            name,
+            type: "layertype",
+            typeId,
+            version: "1.0.0",
+            tier: "community",
+            overridable: true,
+            color: "#4e9a06",
+            defaultIcon: "Layers",
+            description: "",
+            capabilities: {
+                renderers: {
+                    // Declares which engines this type renders through. Each
+                    // engine listed here must ship a matching module under
+                    // `paths` (map → paths.map, globe → paths['globe.<engine>']).
+                    map: { engines: ["leaflet"] },
+                    globe: false,
+                },
+                time: false,
+                filtering: false,
+                identify: false,
+            },
+            supportedData: [
+                {
+                    label: "Example format",
+                    category: "vector",
+                    standards: [],
+                    formats: [],
+                    extensions: [],
+                    description: "",
+                },
+            ],
+            metaconfig: "./metaconfig.json",
+            paths: {
+                map: `./map/${lower}`,
+            },
+        }, null, 2) + "\n",
+        [`map/${lower}.js`]: [
+            `/**`,
+            ` * ${name} layer type — map renderer.`,
+            ` *`,
+            ` * Implements the LayerInterface contract. Ops run before → main →`,
+            ` * after (make also supports afterCommit); a bare function is shorthand`,
+            ` * for { main }. Unimplemented ops fall back to core defaults, so only`,
+            ` * write what differs. See plugins/core/layertypes/README.md.`,
+            ` */`,
+            `import L_ from '@basics/Layers_/Layers_'`,
+            `import MapRenderer from '@basics/Map_/MapRenderer'`,
+            ``,
+            `function make(layerObj, ctx = {}) {`,
+            `    const mctx = MapRenderer.context(ctx.mapContext)`,
+            `    // const L = mctx.raw // engine-specific escape hatch (Leaflet namespace)`,
+            ``,
+            `    // TODO: construct the layer and assign it to`,
+            `    // L_.layers.layer[layerObj.name], then mark it loaded.`,
+            `    void mctx`,
+            ``,
+            `    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true`,
+            `    L_.Map_.allLayersLoaded()`,
+            `}`,
+            ``,
+            `function destroy(layerObj) {`,
+            `    // TODO: remove the layer from the map and clean up references.`,
+            `    void layerObj`,
+            `}`,
+            ``,
+            `export default {`,
+            `    make,`,
+            `    destroy,`,
+            `}`,
+            ``,
+        ].join("\n"),
+        "metaconfig.json": JSON.stringify({
+            tabs: [
+                {
+                    name: "Core",
+                    rows: [
+                        {
+                            forceHeight: "64px",
+                            components: [
+                                {
+                                    field: "type",
+                                    name: "Layer Type",
+                                    description: "",
+                                    type: "dropdown",
+                                    width: 2,
+                                    options: [typeId],
+                                },
+                                {
+                                    field: "name",
+                                    name: "Layer Name",
+                                    description: "",
+                                    type: "textnotrim",
+                                    width: 8,
+                                    required: true,
+                                },
+                                {
+                                    field: "visibility",
+                                    name: "Initially On",
+                                    description: "",
+                                    type: "checkbox",
+                                    width: 2,
+                                    defaultChecked: false,
+                                },
+                            ],
+                        },
+                        {
+                            name: name,
+                            components: [
+                                {
+                                    field: "url",
+                                    name: "URL",
+                                    description: "",
+                                    type: "text",
+                                    width: 12,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        }, null, 2) + "\n",
+        [`tests/${lower}.spec.js`]: [
+            `const { test, expect } = require('@playwright/test')`,
+            `const path = require('path')`,
+            ``,
+            `test.describe('${name} layer type', () => {`,
+            `    test('plugin.json declares a valid layertype contract', () => {`,
+            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
+            `        expect(manifest.type).toBe('layertype')`,
+            `        expect(manifest.typeId).toBe('${typeId}')`,
+            `        // Every declared renderer engine must ship a matching module.`,
+            `        const r = manifest.capabilities.renderers`,
+            `        if (r.map) expect(manifest.paths.map).toBeDefined()`,
+            `    })`,
+            `})`,
+            ``,
+        ].join("\n"),
+    };
+}
+
 function cmdCreate(type, name) {
-    const VALID_TYPES = ["tool", "backend", "component", "interaction"];
-    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions" };
+    const VALID_TYPES = ["tool", "backend", "component", "interaction", "layertype"];
+    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions", layertype: "layertypes" };
     const typeDir = TYPE_DIRS[type] || type;
 
     if (!type || !VALID_TYPES.includes(type)) {
@@ -1975,6 +2120,7 @@ function cmdCreate(type, name) {
         case "backend":     files = _scaffoldBackend(name); break;
         case "component":   files = _scaffoldComponent(name); break;
         case "interaction": files = _scaffoldInteraction(name); break;
+        case "layertype":   files = _scaffoldLayertype(name); break;
     }
 
     // Fix the paths field in plugin.json to use relative paths.
@@ -2037,6 +2183,12 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to implement the ${c.cyan("use(ctx)")} handler`);
         console.log(`    ${c.dim("2.")} Set ${c.cyan("interactionId")}, ${c.cyan("phase")}, and ${c.cyan("order")} in ${c.cyan("plugin.json")}`);
         console.log(`    ${c.dim("3.")} Run ${c.cyan("npm run build")} to regenerate interactions`);
+    } else if (type === "layertype") {
+        const lower = name[0].toLowerCase() + name.slice(1);
+        console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan(`map/${lower}.js`)} (add globe modules + declare their engines in ${c.cyan("plugin.json")} as needed)`);
+        console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("metaconfig.json")} fields`);
+        console.log(`    ${c.dim("3.")} Run ${c.cyan(`node -e "require('./API/updateTools').updateLayerTypes()"`)} to regenerate the layer-type registry`);
+        console.log(`    ${c.dim("4.")} Run ${c.cyan("node plugins/plugin-cli.js validate")} to check the contract`);
     } else {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to build your component`);
         console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);
@@ -2158,7 +2310,7 @@ ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("enable-all", "Enable all plugins (use --container to scope)")}
 ${h("disable-all", "Disable all non-required plugins (use --container to scope)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
-${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component, interaction)")}
+${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component, interaction, layertype)")}
 ${h("destroy <plugin-id>", "Delete a plugin (prompts for confirmation, --force to skip)")}
 ${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}

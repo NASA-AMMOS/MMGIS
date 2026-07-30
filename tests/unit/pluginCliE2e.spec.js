@@ -312,6 +312,38 @@ test.describe('CLI create and destroy', () => {
         expect(manifest.paths).toBeDefined();
     });
 
+    test('create layertype scaffolds a contract-valid plugin', () => {
+        const { exitCode } = runCli(`create layertype E2eLayer --container ${CONTAINER}`);
+        expect(exitCode).toBe(0);
+
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eLayer');
+        expect(fs.existsSync(pluginDir)).toBe(true);
+
+        const manifest = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf8'));
+        expect(manifest.name).toBe('E2eLayer');
+        expect(manifest.type).toBe('layertype');
+        expect(manifest.typeId).toBe('e2elayer');
+        // Declared map renderer must ship a matching module path.
+        expect(manifest.capabilities.renderers.map).toBeTruthy();
+        expect(manifest.paths.map).toBe('./map/e2eLayer');
+
+        // Scaffolded files exist.
+        expect(fs.existsSync(path.join(pluginDir, 'map', 'e2eLayer.js'))).toBe(true);
+        expect(fs.existsSync(path.join(pluginDir, 'metaconfig.json'))).toBe(true);
+
+        // Manifest passes the layertype contract validator with no errors.
+        const { validatePluginConfig, validateLayerTypeModuleShape } = require('../../API/pluginValidation.js');
+        expect(validatePluginConfig(manifest, 'E2eLayer', 'layertype')).toEqual([]);
+
+        // Renderer module exports a valid make/destroy contract.
+        const moduleSrc = fs.readFileSync(path.join(pluginDir, 'map', 'e2eLayer.js'), 'utf8');
+        expect(validateLayerTypeModuleShape(moduleSrc, 'E2eLayer')).toEqual([]);
+
+        // Layer types are always-on and not part of the enable/disable/destroy
+        // model (see plugin-cli discoverAll), so remove the scaffold directly.
+        fs.rmSync(pluginDir, { recursive: true, force: true });
+    });
+
     test('destroy with --force removes plugin', () => {
         const { stdout, exitCode } = runCli(`destroy ${CONTAINER}/tools/E2eTool --force`);
         expect(exitCode).toBe(0);
