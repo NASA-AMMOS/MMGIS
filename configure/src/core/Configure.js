@@ -7,7 +7,11 @@ import Main from "../components/Main/Main";
 import Panel from "../components/Panel/Panel";
 
 import { calls } from "../core/calls";
-import { setMissions, setSnackBarText } from "./ConfigureStore";
+import {
+  setMissions,
+  setLayerTypeConfiguration,
+  setSnackBarText,
+} from "./ConfigureStore";
 import Websocket from "./Websocket";
 import { getInjectables } from "./injectables";
 
@@ -48,6 +52,17 @@ export default function Configure() {
             severity: "error",
           })
         );
+      }
+    );
+
+    calls.api(
+      "getLayerTypeConfig",
+      null,
+      (res) => {
+        dispatch(setLayerTypeConfiguration(res || {}));
+      },
+      () => {
+        dispatch(setLayerTypeConfiguration({}));
       }
     );
 
