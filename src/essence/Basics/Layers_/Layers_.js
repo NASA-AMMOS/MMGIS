@@ -10,6 +10,7 @@ import Filtering from './Filtering/Filtering'
 import LayerInterface from './interface/LayerInterface'
 import LayerTypeRegistry from './registry/LayerTypeRegistry'
 import MapRenderer from '../Map_/MapRenderer'
+import * as subscriptions from './lifecycle/subscriptions'
 import $ from 'jquery'
 
 const L_ = {
@@ -196,51 +197,39 @@ const L_ = {
         } else console.log('Failure updating to new site')
     },
     _timeChangeSubscriptions: {},
-    subscribeTimeChange: function (fid, func) {
-        if (typeof func === 'function') L_._timeChangeSubscriptions[fid] = func
+    subscribeTimeChange(...a) {
+        return subscriptions.subscribeTimeChange(L_, ...a)
     },
-    unsubscribeTimeChange: function (fid) {
-        if (L_._timeChangeSubscriptions[fid] != null)
-            delete L_._timeChangeSubscriptions[fid]
+    unsubscribeTimeChange(...a) {
+        return subscriptions.unsubscribeTimeChange(L_, ...a)
     },
     _timeLayerReloadFinishSubscriptions: {},
-    subscribeTimeLayerReloadFinish: function (fid, func) {
-        if (typeof func === 'function')
-            L_._timeLayerReloadFinishSubscriptions[fid] = func
+    subscribeTimeLayerReloadFinish(...a) {
+        return subscriptions.subscribeTimeLayerReloadFinish(L_, ...a)
     },
-    unsubscribeTimeLayerReloadFinish: function (fid) {
-        if (L_._timeLayerReloadFinishSubscriptions[fid] != null)
-            delete L_._timeLayerReloadFinishSubscriptions[fid]
+    unsubscribeTimeLayerReloadFinish(...a) {
+        return subscriptions.unsubscribeTimeLayerReloadFinish(L_, ...a)
     },
     _onTimeUIToggleSubscriptions: {},
-    subscribeOnTimeUIToggle: function (fid, func) {
-        if (typeof func === 'function')
-            L_._onTimeUIToggleSubscriptions[fid] = func
+    subscribeOnTimeUIToggle(...a) {
+        return subscriptions.subscribeOnTimeUIToggle(L_, ...a)
     },
-    unsubscribeOnTimeUIToggle: function (fid) {
-        if (L_._onTimeUIToggleSubscriptions[fid] != null)
-            delete L_._onTimeUIToggleSubscriptions[fid]
+    unsubscribeOnTimeUIToggle(...a) {
+        return subscriptions.unsubscribeOnTimeUIToggle(L_, ...a)
     },
     _onLayerToggleSubscriptions: {},
-    subscribeOnLayerToggle: function (fid, func) {
-        if (typeof func === 'function')
-            L_._onLayerToggleSubscriptions[fid] = func
+    subscribeOnLayerToggle(...a) {
+        return subscriptions.subscribeOnLayerToggle(L_, ...a)
     },
-    unsubscribeOnLayerToggle: function (fid) {
-        if (L_._onLayerToggleSubscriptions[fid] != null)
-            delete L_._onLayerToggleSubscriptions[fid]
+    unsubscribeOnLayerToggle(...a) {
+        return subscriptions.unsubscribeOnLayerToggle(L_, ...a)
     },
     _onSpecificLayerToggleSubscriptions: {},
-    subscribeOnSpecificLayerToggle: function (fid, layerId, func) {
-        if (typeof func === 'function')
-            L_._onSpecificLayerToggleSubscriptions[fid] = {
-                layer: layerId,
-                func: func,
-            }
+    subscribeOnSpecificLayerToggle(...a) {
+        return subscriptions.subscribeOnSpecificLayerToggle(L_, ...a)
     },
-    unsubscribeOnSpecificLayerToggle: function (fid) {
-        if (L_._onSpecificLayerToggleSubscriptions[fid] != null)
-            delete L_._onSpecificLayerToggleSubscriptions[fid]
+    unsubscribeOnSpecificLayerToggle(...a) {
+        return subscriptions.unsubscribeOnSpecificLayerToggle(L_, ...a)
     },
     getUrl: function (type, url, layerData) {
         let wasCOG = false
