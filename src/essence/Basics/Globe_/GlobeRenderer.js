@@ -468,11 +468,15 @@ class GlobeRenderer {
     }
 
     /**
-     * Add a layer to the globe
+     * Add a layer to the globe.
+     * Always async: plugin-backed types dispatch through LayerInterface.run
+     * (which is async), so this resolves uniformly to the engine layer handle
+     * for every type — callers that keep the handle must await it.
      * @param {string} type - Layer type: 'tile', 'vector', 'clamped', 'curtain', 'model'
      * @param {object} layerConfig - Layer configuration
+     * @returns {Promise<*>} resolves to the engine layer handle (or undefined)
      */
-    addLayer(type, layerConfig) {
+    async addLayer(type, layerConfig) {
         if (type === 'gradient_polyline') {
             if (this.rendererType === 'cesium') {
                 return this._addCesiumGradientPolyline(layerConfig)

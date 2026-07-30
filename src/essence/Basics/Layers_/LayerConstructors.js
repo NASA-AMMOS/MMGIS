@@ -2361,8 +2361,8 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                     }
                     l.cesiumGradientOptions = updatedOptions
                     clearTimeout(l._cesiumRebuildTimer)
-                    l._cesiumRebuildTimer = setTimeout(() => {
-                        l.cesiumLayerId = L_.Globe_.litho.addLayer(
+                    l._cesiumRebuildTimer = setTimeout(async () => {
+                        l.cesiumLayerId = await L_.Globe_.litho.addLayer(
                             'gradient_polyline',
                             updatedOptions
                         )

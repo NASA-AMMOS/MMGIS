@@ -505,20 +505,22 @@ const L_ = {
                                             L_.layers.attachments[s.name][sub]
                                                 .cesiumGradientOptions
                                         ) {
-                                            try {
-                                                L_.layers.attachments[s.name][
-                                                    sub
-                                                ].cesiumLayerId =
-                                                    L_.Globe_.litho.addLayer(
-                                                        'gradient_polyline',
-                                                        L_.layers.attachments[
-                                                            s.name
-                                                        ][sub]
-                                                            .cesiumGradientOptions
-                                                    )
-                                            } catch (e) {
-                                                console.warn('Failed to add 3D gradient polyline:', e)
-                                            }
+                                            L_.Globe_.litho
+                                                .addLayer(
+                                                    'gradient_polyline',
+                                                    L_.layers.attachments[
+                                                        s.name
+                                                    ][sub]
+                                                        .cesiumGradientOptions
+                                                )
+                                                .then((id) => {
+                                                    L_.layers.attachments[
+                                                        s.name
+                                                    ][sub].cesiumLayerId = id
+                                                })
+                                                .catch((e) => {
+                                                    console.warn('Failed to add 3D gradient polyline:', e)
+                                                })
                                         }
                                         break
                                     case 'labels':
@@ -813,18 +815,20 @@ const L_ = {
                                         att.cesiumGradientOptions
                                     ) {
                                         setTimeout(() => {
-                                            try {
-                                                att.cesiumLayerId =
-                                                    L_.Globe_.litho.addLayer(
-                                                        'gradient_polyline',
-                                                        att.cesiumGradientOptions
-                                                    )
-                                            } catch (e) {
-                                                console.warn(
-                                                    'Failed to add 3D gradient polyline:',
-                                                    e
+                                            L_.Globe_.litho
+                                                .addLayer(
+                                                    'gradient_polyline',
+                                                    att.cesiumGradientOptions
                                                 )
-                                            }
+                                                .then((id) => {
+                                                    att.cesiumLayerId = id
+                                                })
+                                                .catch((e) => {
+                                                    console.warn(
+                                                        'Failed to add 3D gradient polyline:',
+                                                        e
+                                                    )
+                                                })
                                         }, 0)
                                     }
                                 }
@@ -960,15 +964,17 @@ const L_ = {
                                 L_._layersOrdered.indexOf(layerName)
                         )
                         if (sublayer.cesiumGradientOptions) {
-                            try {
-                                sublayer.cesiumLayerId =
-                                    L_.Globe_.litho.addLayer(
-                                        'gradient_polyline',
-                                        sublayer.cesiumGradientOptions
-                                    )
-                            } catch (e) {
-                                console.warn('Failed to add 3D gradient polyline:', e)
-                            }
+                            L_.Globe_.litho
+                                .addLayer(
+                                    'gradient_polyline',
+                                    sublayer.cesiumGradientOptions
+                                )
+                                .then((id) => {
+                                    sublayer.cesiumLayerId = id
+                                })
+                                .catch((e) => {
+                                    console.warn('Failed to add 3D gradient polyline:', e)
+                                })
                         }
                         break
                     case 'labels':
@@ -1077,15 +1083,17 @@ const L_ = {
                                             if (
                                                 sublayer.cesiumGradientOptions
                                             ) {
-                                                try {
-                                                    sublayer.cesiumLayerId =
-                                                        L_.Globe_.litho.addLayer(
-                                                            'gradient_polyline',
-                                                            sublayer.cesiumGradientOptions
-                                                        )
-                                                } catch (e) {
-                                                    console.warn('Failed to add 3D gradient polyline:', e)
-                                                }
+                                                L_.Globe_.litho
+                                                    .addLayer(
+                                                        'gradient_polyline',
+                                                        sublayer.cesiumGradientOptions
+                                                    )
+                                                    .then((id) => {
+                                                        sublayer.cesiumLayerId = id
+                                                    })
+                                                    .catch((e) => {
+                                                        console.warn('Failed to add 3D gradient polyline:', e)
+                                                    })
                                             }
                                             break
                                         case 'labels':
