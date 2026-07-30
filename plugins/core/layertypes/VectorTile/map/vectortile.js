@@ -11,11 +11,12 @@
  *   ctx = { evenIfOff, forceGeoJSON, isRefresh, mapContext, resolvedUrl }
  */
 import L_ from '@basics/Layers_/Layers_'
+import LayerTypeRegistry from '@basics/Layers_/LayerTypeRegistry'
 import MapRenderer from '@basics/Map_/MapRenderer'
 import MetadataCapturer from '@basics/Layers_/MetadataCapturer.js'
 import {
     runInteractions,
-    kindToInteractions,
+    resolveLayerInteractions,
 } from '@basics/InteractionRunner/InteractionRunner'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import '@basics/Map_/SimplifiedVectorGrid'
@@ -58,9 +59,12 @@ function make(layerObj, ctx = {}) {
                         ell.latlng = JSON.parse(JSON.stringify(e.latlng))
                     MetadataCapturer.populateMetadata(layer, async () => {
                         const layerData = L_.layers.data[layerName]
-                        const pipeline =
-                            layerData.interactions?.click ||
-                            kindToInteractions(layerData.kind || 'none').click
+                        const pipeline = resolveLayerInteractions(
+                            layerData,
+                            undefined,
+                            LayerTypeRegistry.capabilities(layerData.type)
+                                .defaultInteractions
+                        ).click
 
                         Map_.rmNotNull(Map_.tempOverlayImage)
                         L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
