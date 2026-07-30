@@ -1,0 +1,34 @@
+{
+  "name": "Query",
+  "type": "layertype",
+  "typeId": "query",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#4c8b2d",
+  "defaultIcon": "TravelExplore",
+  "description": "Runtime-populated vector layer (features supplied by tools rather than a static URL). A thin specialization of the Vector map renderer seeded with empty GeoJSON.",
+  "capabilities": {
+    "renderers": {
+      "map": { "engines": ["leaflet"] },
+      "globe": false
+    },
+    "time": false,
+    "filtering": false,
+    "identify": true
+  },
+  "fileTypes": [],
+  "supportedData": [
+    {
+      "label": "Runtime-populated features (no procured data)",
+      "category": "vector",
+      "standards": ["GeoJSON"],
+      "description": "A query layer holds no configured data source — it is seeded empty and populated at runtime by tools (e.g. an Elasticsearch-backed search). Renders as a vector layer on the map; features are supplied programmatically.",
+      "procurement": "None — data is produced at runtime by the querying tool/service."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/query"
+  }
+}

@@ -5,6 +5,9 @@ import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import Map_ from '../Map_/Map_'
+import LayerInterface from '../Layers_/LayerInterface'
+import LayerTypeRegistry from '../Layers_/LayerTypeRegistry'
+import MapRenderer from '../Map_/MapRenderer'
 import TimeUI from './TimeUI'
 
 import './TimeControl.css'
@@ -32,9 +35,7 @@ var TimeControl = {
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
             TimeControl.enabled = true
-            TimeControl.globalTimeFormat = utcFormat(
-                L_.configData.time.format
-            )
+            TimeControl.globalTimeFormat = utcFormat(L_.configData.time.format)
         } else {
             return
         }
@@ -140,12 +141,8 @@ var TimeControl = {
             layer.time.start = startTime
             layer.time.end = endTime
             layer.time.customTimes = TimeControl.customTimes
-            $('.starttime.' + F_.getSafeName(layer.name)).text(
-                layer.time.start
-            )
-            $('.endtime.' + F_.getSafeName(layer.name)).text(
-                layer.time.end
-            )
+            $('.starttime.' + F_.getSafeName(layer.name)).text(layer.time.start)
+            $('.endtime.' + F_.getSafeName(layer.name)).text(layer.time.end)
 
             if (layer.type == 'tile') {
                 TimeControl.setLayerWmsParams(layer)
@@ -293,35 +290,56 @@ var TimeControl = {
                 // refresh map
                 if (evenIfControlled === true || layer.controlled !== true)
                     if (L_.layers.on[layer.name] || evenIfOff) {
-                        return await Map_.refreshLayer(
-                            layer,
-                            () => {
-                                // if requery was forced, remember to
-                                // timeFilter after load
-                                if (
-                                    layer.time &&
-                                    layer.time.enabled === true &&
-                                    layer.type === 'vector' &&
-                                    layer.time.type === 'local' &&
-                                    layer.time.endProp != null &&
-                                    forceRequery === true
-                                ) {
-                                    if (
-                                        evenIfControlled === true ||
-                                        layer.controlled !== true
-                                    )
-                                        L_.timeFilterVectorLayer(
-                                            layer.name,
-                                            new Date(
-                                                layer.time.start
-                                            ).getTime(),
-                                            new Date(layer.time.end).getTime()
-                                        )
-                                }
-                            },
-                            skipOrderedBringToFront,
-                            undefined,
-                            resolvedUrl
+                        // A time change on the 2D map is dispatched through the
+                        // type's map plugin (timeChange). Core default is a
+                        // reload; a plugin may override to scrub in place. The
+                        // ctx carries currentTime like the globe dispatch.
+                        return await LayerInterface.run(
+                            LayerTypeRegistry.get(layer.type)?.map,
+                            'timeChange',
+                            [
+                                layer,
+                                {
+                                    ...MapRenderer.context(),
+                                    name: layer.name,
+                                    currentTime: TimeControl.currentTime,
+                                },
+                            ],
+                            {
+                                coreDefault: () =>
+                                    Map_.refreshLayer(
+                                        layer,
+                                        () => {
+                                            // if requery was forced, remember to
+                                            // timeFilter after load
+                                            if (
+                                                layer.time &&
+                                                layer.time.enabled === true &&
+                                                layer.type === 'vector' &&
+                                                layer.time.type === 'local' &&
+                                                layer.time.endProp != null &&
+                                                forceRequery === true
+                                            ) {
+                                                if (
+                                                    evenIfControlled === true ||
+                                                    layer.controlled !== true
+                                                )
+                                                    L_.timeFilterVectorLayer(
+                                                        layer.name,
+                                                        new Date(
+                                                            layer.time.start
+                                                        ).getTime(),
+                                                        new Date(
+                                                            layer.time.end
+                                                        ).getTime()
+                                                    )
+                                            }
+                                        },
+                                        skipOrderedBringToFront,
+                                        undefined,
+                                        resolvedUrl
+                                    ),
+                            }
                         )
                     }
             }
@@ -469,15 +487,13 @@ var TimeControl = {
                 savedActiveFeature.feature.geometry.coordinates
             ) {
                 // Fallback to selecting by coordinates
-                const coords =
-                    savedActiveFeature.feature.geometry.coordinates
+                const coords = savedActiveFeature.feature.geometry.coordinates
                 let lat, lon
                 if (savedActiveFeature.feature.geometry.type === 'Point') {
                     lon = coords[0]
                     lat = coords[1]
                 } else if (
-                    savedActiveFeature.feature.geometry.type ===
-                        'LineString' ||
+                    savedActiveFeature.feature.geometry.type === 'LineString' ||
                     savedActiveFeature.feature.geometry.type === 'Polygon'
                 ) {
                     // Get first coordinate or centroid
@@ -517,9 +533,7 @@ var TimeControl = {
                 $('.starttime.' + F_.getSafeName(layer.name)).text(
                     layer.time.start
                 )
-                $('.endtime.' + F_.getSafeName(layer.name)).text(
-                    layer.time.end
-                )
+                $('.endtime.' + F_.getSafeName(layer.name)).text(layer.time.end)
                 updatedLayers.push(layer.name)
                 if (layer.type === 'tile') {
                     TimeControl.setLayerWmsParams(layer)
@@ -598,12 +612,8 @@ function initLayerTimes() {
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
             layer.time.customTimes = TimeControl.customTimes
-            $('.starttime.' + F_.getSafeName(layer.name)).text(
-                layer.time.start
-            )
-            $('.endtime.' + F_.getSafeName(layer.name)).text(
-                layer.time.end
-            )
+            $('.starttime.' + F_.getSafeName(layer.name)).text(layer.time.start)
+            $('.endtime.' + F_.getSafeName(layer.name)).text(layer.time.end)
 
             // Make sure to set the WMS parameters for WMS layers,
             // otherwise the first load will not have the WMS parameters

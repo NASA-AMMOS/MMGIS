@@ -261,7 +261,11 @@ let Globe_ = {
     getMockLitho: function () {
         return {
             removeLayer: function () {},
-            addLayer: function () {},
+            // Mirror GlobeRenderer.addLayer's async contract so callers that
+            // chain .then()/.catch() work when there is no globe panel.
+            addLayer: function () {
+                return Promise.resolve()
+            },
             toggleLayer: function () {},
             hasLayer: function () {},
             getCenter: function () {},

@@ -55,18 +55,34 @@ function kindToInteractions(kind, config) {
 }
 
 /**
- * Resolve a layer's event pipelines. Explicit interactions override the
- * corresponding legacy kind pipeline while omitted events retain defaults.
+ * Resolve a layer's event pipelines.
+ *
+ * Precedence (lowest → highest): layer-type manifest default interactions →
+ * the legacy per-layer `kind` pipeline → the layer's explicit `interactions`.
+ * `typeDefaults` come from the layer type's `capabilities.defaultInteractions`
+ * and are passed in by the caller (which owns the LayerTypeRegistry) so this
+ * module stays dependency-free.
  *
  * @param {object} layerData
  * @param {object} [config] - Override config (for testing)
+ * @param {object} [typeDefaults] - Layer-type default interactions, e.g.
+ *   { click: string[], hover: string[], mouseout: string[] }
  * @returns {{ click: string[], hover: string[], mouseout: string[] }}
  */
-function resolveLayerInteractions(layerData, config) {
+function resolveLayerInteractions(layerData, config, typeDefaults) {
     const legacy = kindToInteractions(layerData.kind || 'none', config)
+    let base = legacy
+    if (typeDefaults) {
+        base = { click: [], hover: [], mouseout: [], ...typeDefaults }
+        // A non-empty legacy kind pipeline is more specific than a type-wide
+        // default, so it wins per event; empty legacy events keep the default.
+        for (const ev of ['click', 'hover', 'mouseout']) {
+            if (legacy[ev] && legacy[ev].length) base[ev] = legacy[ev]
+        }
+    }
     return layerData.interactions
-        ? { ...legacy, ...layerData.interactions }
-        : legacy
+        ? { ...base, ...layerData.interactions }
+        : base
 }
 
 /**

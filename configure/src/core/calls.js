@@ -18,6 +18,10 @@ const c = {
     type: "GET",
     url: "configure/public/componentConfigs.json",
   },
+  getLayerTypeConfig: {
+    type: "GET",
+    url: "configure/public/layerTypeConfigs.json",
+  },
   getInteractionConfig: {
     type: "GET",
     url: "configure/public/interactionConfigs.json",

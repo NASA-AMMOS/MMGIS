@@ -7,7 +7,11 @@ import Main from "../components/Main/Main";
 import Panel from "../components/Panel/Panel";
 
 import { calls } from "../core/calls";
-import { setMissions, setSnackBarText } from "./ConfigureStore";
+import {
+  setMissions,
+  setLayerTypeConfiguration,
+  setSnackBarText,
+} from "./ConfigureStore";
 import Websocket from "./Websocket";
 import { getInjectables } from "./injectables";
 
@@ -45,6 +49,25 @@ export default function Configure() {
         dispatch(
           setSnackBarText({
             text: res?.message || "Failed to get available missions.",
+            severity: "error",
+          })
+        );
+      }
+    );
+
+    calls.api(
+      "getLayerTypeConfig",
+      null,
+      (res) => {
+        dispatch(setLayerTypeConfiguration(res || {}));
+      },
+      (res) => {
+        dispatch(setLayerTypeConfiguration({}));
+        dispatch(
+          setSnackBarText({
+            text:
+              res?.message ||
+              "Failed to load layer type configurations. Layer editing will be unavailable.",
             severity: "error",
           })
         );

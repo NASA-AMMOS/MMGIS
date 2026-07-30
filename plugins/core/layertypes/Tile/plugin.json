@@ -1,0 +1,75 @@
+{
+  "name": "Tile",
+  "type": "layertype",
+  "typeId": "tile",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#67401d",
+  "defaultIcon": "Language",
+  "description": "Raster tile layer (TMS/WMTS/COG/STAC) rendered as a Leaflet tileLayer on the map and imagery on the globe.",
+  "capabilities": {
+    "renderers": {
+      "map": { "engines": ["leaflet"] },
+      "globe": { "engines": ["cesium", "lithosphere"] }
+    },
+    "time": true,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["tms", "wmts", "cog", "stac-collection"],
+  "supportedData": [
+    {
+      "label": "Templated raster tiles (TMS / WMTS)",
+      "category": "raster",
+      "standards": ["TMS", "WMTS"],
+      "formats": ["png", "jpg", "jpeg", "webp"],
+      "urlSchemes": ["{z}/{x}/{y} template"],
+      "description": "256px raster image tiles addressed by zoom/column/row, in either TMS (bottom-origin) or WMTS/XYZ (top-origin) axis order.",
+      "procurement": "Produce with MMGIS auxiliary tiling scripts or gdal2tiles; host as static files or a tile service."
+    },
+    {
+      "label": "Web Map Service (WMS)",
+      "category": "raster",
+      "standards": ["WMS"],
+      "urlSchemes": ["?layers=<name> (OGC WMS GetMap)"],
+      "description": "OGC WMS endpoint rendered per-request. Append ?layers=<layer[,layer]>; extra WMS params and &TILESIZE= supported.",
+      "procurement": "Any OGC-compliant WMS server (GeoServer, MapServer, mundialis, etc.)."
+    },
+    {
+      "label": "GeoTIFF (whole-file)",
+      "category": "raster",
+      "standards": ["GeoTIFF"],
+      "formats": ["tif", "tiff"],
+      "extensions": [".tif", ".tiff"],
+      "description": "A single .tif fetched in full by the client (not tiled). Best for small rasters.",
+      "procurement": "Any georeferenced GeoTIFF."
+    },
+    {
+      "label": "Cloud-Optimized GeoTIFF (COG)",
+      "category": "raster",
+      "standards": ["COG", "GeoTIFF"],
+      "formats": ["tif", "tiff"],
+      "extensions": [".tif", ".tiff"],
+      "urlSchemes": ["COG:{url}"],
+      "description": "A COG dynamically tiled by TiTiler. Supports band selection (bidx), resampling, band-math expressions, colormaps and min/max rescale of single-data-band COGs.",
+      "procurement": "gdal_translate <in> <out>.tif -of COG; requires the TiTiler adjacent server.",
+      "requiresServices": ["titiler"]
+    },
+    {
+      "label": "STAC collection (mosaicked COGs)",
+      "category": "raster",
+      "standards": ["STAC", "COG"],
+      "urlSchemes": ["stac-collection:{collection}", "stac-collection:{external-titiler-pgstac-url}"],
+      "description": "A STAC collection whose member COGs are mosaicked and served as WMTS tiles via titiler-pgstac. Local or external instances.",
+      "procurement": "Index COGs into a STAC collection; requires the titiler-pgstac adjacent server.",
+      "requiresServices": ["stac", "titiler-pgstac"]
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/tile",
+    "globe.cesium": "./globe/cesium/tile",
+    "globe.lithosphere": "./globe/lithosphere/tile"
+  }
+}

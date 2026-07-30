@@ -1,0 +1,46 @@
+{
+  "name": "Velocity",
+  "type": "layertype",
+  "typeId": "velocity",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#24807c",
+  "defaultIcon": "Air",
+  "description": "Animated vector-field layer (wind/current streamlines or particles) rendered on the 2D map from gridded velocity data.",
+  "capabilities": {
+    "renderers": {
+      "map": { "engines": ["leaflet"] },
+      "globe": false
+    },
+    "time": true,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["json", "geojson", "gribjson", "geotiff"],
+  "supportedData": [
+    {
+      "label": "Gridded velocity field (u/v components)",
+      "category": "velocity",
+      "standards": ["velocity-JSON", "GRIB2-JSON"],
+      "formats": ["json", "gribjson"],
+      "extensions": [".json"],
+      "urlSchemes": ["{url} (relative to mission dir or absolute)", "api"],
+      "description": "A gridded vector field describing u/v components, in the leaflet-velocity JSON layout (typically GRIB2 converted to JSON). Rendered as animated streamlines.",
+      "procurement": "Convert GRIB2 to the velocity-JSON layout (e.g. grib2json)."
+    },
+    {
+      "label": "Point vectors for particle animation",
+      "category": "velocity",
+      "standards": ["GeoJSON"],
+      "formats": ["geojson", "json"],
+      "extensions": [".geojson", ".json"],
+      "description": "GeoJSON point features used to seed the 'particles' (rain) animation kind.",
+      "procurement": "Any GeoJSON point FeatureCollection."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/velocity"
+  }
+}

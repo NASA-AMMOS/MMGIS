@@ -1,0 +1,29 @@
+{
+  "name": "Header",
+  "type": "layertype",
+  "typeId": "header",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#2c2f30",
+  "defaultIcon": "KeyboardArrowDown",
+  "description": "A non-rendering organizational entry in the layers list — a collapsible section header used to group layers. Draws nothing on the map or globe.",
+  "capabilities": {
+    "renderers": {
+      "map": false,
+      "globe": false
+    },
+    "time": false,
+    "filtering": false,
+    "identify": false
+  },
+  "supportedData": [
+    {
+      "label": "None (organizational header)",
+      "category": "none",
+      "description": "A header holds no data and renders nothing — it exists only to group and label layers in the Layers tool. No source data is procured.",
+      "procurement": "None — configuration only."
+    }
+  ],
+  "metaconfig": "./metaconfig.json"
+}

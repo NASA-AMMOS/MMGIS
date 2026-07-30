@@ -1236,19 +1236,97 @@ function cmdValidate() {
         }
     }
 
+    // Layer-type / layer-attachment renderer contract validation. These plugin
+    // categories aren't part of discoverAll()'s enable/disable model (they are
+    // always-on core), so scan them directly and validate both the manifest and
+    // each renderer module's `export default {}` operation shape.
+    const { validateLayerTypeModuleShape } = require(
+        path.join(__dirname, "..", "API", "pluginValidation")
+    );
+    let rendererPlugins = [];
+    try {
+        for (const container of fs.readdirSync(PLUGINS_ROOT)) {
+            for (const cat of ["layertypes", "layerattachments"]) {
+                const catPath = path.join(PLUGINS_ROOT, container, cat);
+                let entries;
+                try {
+                    entries = fs.readdirSync(catPath, { withFileTypes: true });
+                } catch {
+                    continue;
+                }
+                const pType = cat === "layertypes" ? "layertype" : "layerattachment";
+                for (const entry of entries) {
+                    if (!entry.isDirectory() || entry.name[0] === "_" || entry.name[0] === ".") continue;
+                    const pluginPath = path.join(catPath, entry.name);
+                    const manifestPath = path.join(pluginPath, "plugin.json");
+                    let manifest = null;
+                    try {
+                        manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+                    } catch {
+                        continue;
+                    }
+                    rendererPlugins.push({ id: `${container}/${cat}/${entry.name}`, pluginPath, manifest, pType });
+                }
+            }
+        }
+    } catch {
+        // no plugins root — nothing to validate
+    }
+
+    for (const p of rendererPlugins) {
+        const prefix = p.id;
+        const pluginErrors = [];
+
+        const errs = validatePluginConfig(p.manifest, p.manifest.name || p.id, p.pType);
+        for (const e of errs) {
+            pluginErrors.push(e);
+            if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
+        }
+        errors += errs.length;
+
+        // Validate each declared renderer module's operation shape.
+        const paths = p.manifest.paths;
+        if (paths && typeof paths === "object" && !Array.isArray(paths)) {
+            for (const [key, rel] of Object.entries(paths)) {
+                if (key !== "map" && !key.startsWith("globe.")) continue;
+                if (typeof rel !== "string") continue;
+                const modPath = path.join(p.pluginPath, `${rel}.js`);
+                let src;
+                try {
+                    src = fs.readFileSync(modPath, "utf8");
+                } catch {
+                    pluginErrors.push(`renderer module '${key}' not found at ${rel}.js`);
+                    if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(`renderer module '${key}' not found at ${rel}.js`)}`);
+                    errors++;
+                    continue;
+                }
+                const modErrs = validateLayerTypeModuleShape(src, `${prefix} [${key}]`);
+                for (const e of modErrs) {
+                    pluginErrors.push(e);
+                    if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
+                }
+                errors += modErrs.length;
+            }
+        }
+
+        if (pluginErrors.length === 0) passed++;
+        results.push({ plugin: prefix, valid: pluginErrors.length === 0, enabled: true, errors: pluginErrors });
+    }
+    const totalPlugins = plugins.length + rendererPlugins.length;
+
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: plugins.length, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }
 
     if (errors === 0) {
-        console.log(`\n  ${c.green("\u2713")} All ${c.bold(String(plugins.length))} plugin(s) valid.`);
+        console.log(`\n  ${c.green("\u2713")} All ${c.bold(String(totalPlugins))} plugin(s) valid.`);
         if (warnings > 0) console.log(`  ${c.yellow(String(warnings))} disabled plugin(s).`);
         if (depWarnings > 0) console.log(`  ${c.yellow(String(depWarnings))} plugin dependency warning(s).`);
         if (interactionWarnings > 0) console.log(`  ${c.yellow(String(interactionWarnings))} interaction warning(s).`);
     } else {
-        console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(plugins.length))} plugin(s). ${c.green(`${passed} passed`)}.`);
+        console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(totalPlugins))} plugin(s). ${c.green(`${passed} passed`)}.`);
         process.exit(1);
     }
     console.log("");
@@ -1844,9 +1922,154 @@ function _scaffoldInteraction(name) {
     };
 }
 
+function _scaffoldLayertype(name) {
+    const lower = name[0].toLowerCase() + name.slice(1);
+    const typeId = lower.toLowerCase();
+    return {
+        "plugin.json": JSON.stringify({
+            name,
+            type: "layertype",
+            typeId,
+            version: "1.0.0",
+            tier: "community",
+            overridable: true,
+            color: "#4e9a06",
+            defaultIcon: "Layers",
+            description: "",
+            capabilities: {
+                renderers: {
+                    // Declares which engines this type renders through. Each
+                    // engine listed here must ship a matching module under
+                    // `paths` (map → paths.map, globe → paths['globe.<engine>']).
+                    map: { engines: ["leaflet"] },
+                    globe: false,
+                },
+                time: false,
+                filtering: false,
+                identify: false,
+            },
+            supportedData: [
+                {
+                    label: "Example format",
+                    category: "vector",
+                    standards: [],
+                    formats: [],
+                    extensions: [],
+                    description: "",
+                },
+            ],
+            metaconfig: "./metaconfig.json",
+            paths: {
+                map: `./map/${lower}`,
+            },
+        }, null, 2) + "\n",
+        [`map/${lower}.js`]: [
+            `/**`,
+            ` * ${name} layer type — map renderer.`,
+            ` *`,
+            ` * Implements the LayerInterface contract. Ops run before → main →`,
+            ` * after (make also supports afterCommit); a bare function is shorthand`,
+            ` * for { main }. Unimplemented ops fall back to core defaults, so only`,
+            ` * write what differs. See plugins/core/layertypes/README.md.`,
+            ` */`,
+            `import L_ from '@basics/Layers_/Layers_'`,
+            `import MapRenderer from '@basics/Map_/MapRenderer'`,
+            ``,
+            `function make(layerObj, ctx = {}) {`,
+            `    const mctx = MapRenderer.context(ctx.mapContext)`,
+            `    // const L = mctx.raw // engine-specific escape hatch (Leaflet namespace)`,
+            ``,
+            `    // TODO: construct the layer and assign it to`,
+            `    // L_.layers.layer[layerObj.name], then mark it loaded.`,
+            `    void mctx`,
+            ``,
+            `    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true`,
+            `    L_.Map_.allLayersLoaded()`,
+            `}`,
+            ``,
+            `function destroy(layerObj) {`,
+            `    // TODO: remove the layer from the map and clean up references.`,
+            `    void layerObj`,
+            `}`,
+            ``,
+            `export default {`,
+            `    make,`,
+            `    destroy,`,
+            `}`,
+            ``,
+        ].join("\n"),
+        "metaconfig.json": JSON.stringify({
+            tabs: [
+                {
+                    name: "Core",
+                    rows: [
+                        {
+                            forceHeight: "64px",
+                            components: [
+                                {
+                                    field: "type",
+                                    name: "Layer Type",
+                                    description: "",
+                                    type: "dropdown",
+                                    width: 2,
+                                    options: [typeId],
+                                },
+                                {
+                                    field: "name",
+                                    name: "Layer Name",
+                                    description: "",
+                                    type: "textnotrim",
+                                    width: 8,
+                                    required: true,
+                                },
+                                {
+                                    field: "visibility",
+                                    name: "Initially On",
+                                    description: "",
+                                    type: "checkbox",
+                                    width: 2,
+                                    defaultChecked: false,
+                                },
+                            ],
+                        },
+                        {
+                            name: name,
+                            components: [
+                                {
+                                    field: "url",
+                                    name: "URL",
+                                    description: "",
+                                    type: "text",
+                                    width: 12,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        }, null, 2) + "\n",
+        [`tests/${lower}.spec.js`]: [
+            `const { test, expect } = require('@playwright/test')`,
+            `const path = require('path')`,
+            ``,
+            `test.describe('${name} layer type', () => {`,
+            `    test('plugin.json declares a valid layertype contract', () => {`,
+            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
+            `        expect(manifest.type).toBe('layertype')`,
+            `        expect(manifest.typeId).toBe('${typeId}')`,
+            `        // Every declared renderer engine must ship a matching module.`,
+            `        const r = manifest.capabilities.renderers`,
+            `        if (r.map) expect(manifest.paths.map).toBeDefined()`,
+            `    })`,
+            `})`,
+            ``,
+        ].join("\n"),
+    };
+}
+
 function cmdCreate(type, name) {
-    const VALID_TYPES = ["tool", "backend", "component", "interaction"];
-    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions" };
+    const VALID_TYPES = ["tool", "backend", "component", "interaction", "layertype"];
+    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions", layertype: "layertypes" };
     const typeDir = TYPE_DIRS[type] || type;
 
     if (!type || !VALID_TYPES.includes(type)) {
@@ -1897,6 +2120,7 @@ function cmdCreate(type, name) {
         case "backend":     files = _scaffoldBackend(name); break;
         case "component":   files = _scaffoldComponent(name); break;
         case "interaction": files = _scaffoldInteraction(name); break;
+        case "layertype":   files = _scaffoldLayertype(name); break;
     }
 
     // Fix the paths field in plugin.json to use relative paths.
@@ -1959,6 +2183,12 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to implement the ${c.cyan("use(ctx)")} handler`);
         console.log(`    ${c.dim("2.")} Set ${c.cyan("interactionId")}, ${c.cyan("phase")}, and ${c.cyan("order")} in ${c.cyan("plugin.json")}`);
         console.log(`    ${c.dim("3.")} Run ${c.cyan("npm run build")} to regenerate interactions`);
+    } else if (type === "layertype") {
+        const lower = name[0].toLowerCase() + name.slice(1);
+        console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan(`map/${lower}.js`)} (add globe modules + declare their engines in ${c.cyan("plugin.json")} as needed)`);
+        console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("metaconfig.json")} fields`);
+        console.log(`    ${c.dim("3.")} Run ${c.cyan(`node -e "require('./API/updateTools').updateLayerTypes()"`)} to regenerate the layer-type registry`);
+        console.log(`    ${c.dim("4.")} Run ${c.cyan("node plugins/plugin-cli.js validate")} to check the contract`);
     } else {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to build your component`);
         console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);
@@ -2080,7 +2310,7 @@ ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("enable-all", "Enable all plugins (use --container to scope)")}
 ${h("disable-all", "Disable all non-required plugins (use --container to scope)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
-${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component, interaction)")}
+${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component, interaction, layertype)")}
 ${h("destroy <plugin-id>", "Delete a plugin (prompts for confirmation, --force to skip)")}
 ${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}

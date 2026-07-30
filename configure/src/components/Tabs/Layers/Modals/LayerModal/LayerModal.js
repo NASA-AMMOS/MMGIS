@@ -37,18 +37,6 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 
 import Maker from "../../../../../core/Maker";
 
-import threedtilesConfig from "../../../../../metaconfigs/layer-3dtiles-config.json";
-import dataConfig from "../../../../../metaconfigs/layer-data-config.json";
-import headerConfig from "../../../../../metaconfigs/layer-header-config.json";
-import modelConfig from "../../../../../metaconfigs/layer-model-config.json";
-import queryConfig from "../../../../../metaconfigs/layer-query-config.json";
-import tileConfig from "../../../../../metaconfigs/layer-tile-config.json";
-import vectorConfig from "../../../../../metaconfigs/layer-vector-config.json";
-import vectortileConfig from "../../../../../metaconfigs/layer-vectortile-config.json";
-import velocityConfig from "../../../../../metaconfigs/layer-velocity-config.json";
-import imageConfig from "../../../../../metaconfigs/layer-image-config.json";
-import videoConfig from "../../../../../metaconfigs/layer-video-config.json";
-
 const useStyles = makeStyles((theme) => ({
   Modal: {
     margin: theme.headHeights[1],
@@ -148,6 +136,12 @@ const useStyles = makeStyles((theme) => ({
     border: "none !important",
     width: "100px",
   },
+  unavailable: {
+    padding: theme.spacing(4),
+    color: theme.palette.swatches.grey[400],
+    fontSize: "14px",
+    lineHeight: 1.5,
+  },
 }));
 
 const MODAL_NAME = "layer";
@@ -156,6 +150,9 @@ const LayerModal = (props) => {
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
   const configuration = useSelector((state) => state.core.configuration);
+  const layerTypeConfiguration = useSelector(
+    (state) => state.core.layerTypeConfiguration
+  );
 
   const layerUUID = modal && modal.layerUUID ? modal.layerUUID : null;
   const layer = getLayerByUUID(configuration.layers, layerUUID) || {};
@@ -165,60 +162,20 @@ const LayerModal = (props) => {
 
   const dispatch = useDispatch();
 
-  let config = {};
-  switch (layer.type) {
-    case "3dtiles":
-      config = threedtilesConfig;
-      break;
+  let config = layerTypeConfiguration?.[layer.type]?.metaconfig || {};
 
-    case "data":
-      config = dataConfig;
-      break;
-
-    case "header":
-      config = headerConfig;
-      break;
-
-    case "model":
-      config = modelConfig;
-      break;
-
-    case "query":
-      config = queryConfig;
-      break;
-
-    case "tile":
-      config = tileConfig;
-      break;
-
-    case "vector":
-      config = vectorConfig;
-      break;
-
-    case "vectortile":
-      config = vectortileConfig;
-      break;
-
-    case "velocity":
-      config = velocityConfig;
-      break;
-
-    case "image":
-      config = imageConfig;
-      break;
-
-    case "video":
-      config = videoConfig;
-      break;
-
-    default:
-      break;
-  }
+  // Built-in types always have a metaconfig in the registry, so an empty config
+  // for a real layer means the async registry hasn't loaded (or failed) yet —
+  // render a notice and block editing instead of a silent, no-op blank form.
+  const registryUnavailable =
+    layer.type != null && !Array.isArray(config?.tabs);
 
   config = inject(config);
 
   const handleClose = (skipSetConfiguration) => {
-    if (skipSetConfiguration !== true) {
+    // config (from the async layer-type registry) may be {} — no fields were
+    // rendered, so skip the repopulation pass (which would throw on config.tabs).
+    if (skipSetConfiguration !== true && Array.isArray(config?.tabs)) {
       const nextConfiguration = JSON.parse(JSON.stringify(configuration));
       traverseLayers(nextConfiguration.layers, (l, path, index) => {
         if (layer.uuid === l.uuid) {
@@ -351,7 +308,13 @@ const LayerModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Maker config={config} layer={layer} inlineHelp={true} />
+        {registryUnavailable ? (
+          <div className={c.unavailable}>
+            {`Layer type configurations aren't available yet, so this layer can't be edited. Wait for them to load or reload the page; if this persists the layer type registry failed to load.`}
+          </div>
+        ) : (
+          <Maker config={config} layer={layer} inlineHelp={true} />
+        )}
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <div>
@@ -421,6 +384,7 @@ const LayerModal = (props) => {
 
           <Button
             className={c.doneButton}
+            disabled={registryUnavailable}
             onClick={() => {
               handleClose();
             }}

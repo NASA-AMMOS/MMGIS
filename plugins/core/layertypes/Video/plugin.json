@@ -1,0 +1,36 @@
+{
+  "name": "Video",
+  "type": "layertype",
+  "typeId": "video",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#7b2323",
+  "defaultIcon": "VideoFile",
+  "description": "Georeferenced video overlay (.webm/.mp4) draped onto a bounding box on the 2D map.",
+  "capabilities": {
+    "renderers": {
+      "map": { "engines": ["leaflet"] },
+      "globe": false
+    },
+    "time": false,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["webm", "mp4"],
+  "supportedData": [
+    {
+      "label": "Web video",
+      "category": "video",
+      "formats": ["webm", "mp4"],
+      "extensions": [".webm", ".mp4"],
+      "urlSchemes": ["{url} (relative to mission dir or absolute)"],
+      "description": "A video file overlaid on the map within a configured bounding box. Supports autoplay and looping; always muted by default.",
+      "procurement": "Encode to H.264 .mp4 or VP8/VP9 .webm; provide the geographic bounding box the frame covers."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/video"
+  }
+}

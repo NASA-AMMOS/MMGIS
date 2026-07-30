@@ -163,12 +163,17 @@ test('core manifests drive the Configure Kind pipeline', () => {
 });
 
 test('applicable layer metaconfigs expose the Interactions editor', () => {
+    const layerTypePluginDirs = {
+        vector: 'Vector',
+        vectortile: 'VectorTile',
+        query: 'Query',
+    };
     for (const layerType of ['vector', 'vectortile', 'query']) {
         const metaconfig = JSON.parse(
             fs.readFileSync(
                 path.resolve(
                     __dirname,
-                    `../../configure/src/metaconfigs/layer-${layerType}-config.json`
+                    `../../plugins/core/layertypes/${layerTypePluginDirs[layerType]}/metaconfig.json`
                 ),
                 'utf8'
             )

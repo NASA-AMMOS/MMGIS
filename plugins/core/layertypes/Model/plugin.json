@@ -1,0 +1,37 @@
+{
+  "name": "Model",
+  "type": "layertype",
+  "typeId": "model",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#a98732",
+  "defaultIcon": "ViewInAr",
+  "description": "A 3D model (mesh) placed on the globe at a geographic position with configurable scale and rotation. Globe-only (not drawn on the 2D map).",
+  "capabilities": {
+    "renderers": {
+      "map": false,
+      "globe": { "engines": ["lithosphere"] }
+    },
+    "time": false,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["dae", "obj"],
+  "supportedData": [
+    {
+      "label": "3D mesh model",
+      "category": "model",
+      "standards": ["COLLADA", "Wavefront OBJ"],
+      "formats": ["dae", "obj"],
+      "extensions": [".dae", ".obj"],
+      "urlSchemes": ["{url} (relative to mission dir or absolute)"],
+      "description": "A textured 3D mesh placed on the globe at a lng/lat position with configurable scale and rotation. Rendered by the LithoSphere globe engine only.",
+      "procurement": "Export a COLLADA (.dae) or OBJ (.obj) mesh with its textures alongside."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "globe.lithosphere": "./globe/lithosphere/model"
+  }
+}

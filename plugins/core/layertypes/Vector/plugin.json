@@ -1,0 +1,72 @@
+{
+  "name": "Vector",
+  "type": "layertype",
+  "typeId": "vector",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#245980",
+  "defaultIcon": "Polyline",
+  "description": "GeoJSON vector layer (points/lines/polygons, annotations, arrows, gradients) with time, injectable params, dynamic-extent geodatasets, filtering and per-feature attachments.",
+  "capabilities": {
+    "renderers": {
+      "map": { "engines": ["leaflet"] },
+      "globe": { "engines": ["cesium", "lithosphere"] }
+    },
+    "time": true,
+    "filtering": true,
+    "identify": true
+  },
+  "fileTypes": ["geojson", "json", "kml"],
+  "supportedData": [
+    {
+      "label": "GeoJSON",
+      "category": "vector",
+      "standards": ["GeoJSON", "RFC 7946"],
+      "formats": ["geojson", "json"],
+      "extensions": [".geojson", ".json"],
+      "urlSchemes": ["{url} (relative to mission dir or absolute)"],
+      "description": "A GeoJSON FeatureCollection of points, lines and/or polygons. The primary vector input; supports per-feature style properties, {starttime}/{endtime} time filtering and injectable URL variables.",
+      "procurement": "Export from any GIS (QGIS, ogr2ogr -f GeoJSON) or author by hand."
+    },
+    {
+      "label": "KML",
+      "category": "vector",
+      "standards": ["KML"],
+      "formats": ["kml"],
+      "extensions": [".kml"],
+      "description": "Keyhole Markup Language vector features, converted to GeoJSON on load.",
+      "procurement": "Export from Google Earth or ogr2ogr -f KML."
+    },
+    {
+      "label": "GeoDataset (PostGIS-backed vectors)",
+      "category": "vector",
+      "standards": ["Geodataset (MMGIS)", "GeoJSON", "PostGIS"],
+      "urlSchemes": ["{geodataset_name}"],
+      "description": "A vector dataset uploaded via 'Manage Geodatasets' and served from PostGIS through the internal API. Enables dynamic-extent (viewport) requerying for large datasets.",
+      "procurement": "Upload a GeoJSON in Configure → Manage Geodatasets.",
+      "requiresServices": ["postgis"]
+    },
+    {
+      "label": "STAC feature source",
+      "category": "vector",
+      "standards": ["STAC"],
+      "urlSchemes": ["stac / stac-catalog / stac-collection / stac-item"],
+      "description": "Features derived from a STAC API, catalog, collection or item, loaded as GeoJSON.",
+      "procurement": "Any STAC-compliant endpoint.",
+      "requiresServices": ["stac"]
+    },
+    {
+      "label": "Runtime API features",
+      "category": "vector",
+      "urlSchemes": ["api"],
+      "description": "GeoJSON fetched from an arbitrary API endpoint (with injectable time/variable params) rather than a static file."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "map": "./map/vector",
+    "globe.cesium": "./globe/cesium/vector",
+    "globe.lithosphere": "./globe/lithosphere/vector"
+  }
+}

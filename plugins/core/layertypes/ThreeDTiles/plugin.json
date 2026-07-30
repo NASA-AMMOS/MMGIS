@@ -1,0 +1,38 @@
+{
+  "name": "ThreeDTiles",
+  "type": "layertype",
+  "typeId": "3dtiles",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "color": "#7a5c9e",
+  "defaultIcon": "Hexagon",
+  "description": "OGC 3D Tiles dataset (photogrammetry meshes, point clouds, buildings) streamed onto the globe. Globe-only.",
+  "capabilities": {
+    "renderers": {
+      "map": false,
+      "globe": { "engines": ["cesium", "lithosphere"] }
+    },
+    "time": false,
+    "filtering": false,
+    "identify": false
+  },
+  "fileTypes": ["json"],
+  "supportedData": [
+    {
+      "label": "OGC 3D Tiles tileset",
+      "category": "3d-tiles",
+      "standards": ["3D Tiles", "OGC 3D Tiles"],
+      "formats": ["json"],
+      "extensions": [".json"],
+      "urlSchemes": ["{url}/tileset.json"],
+      "description": "A 3D Tiles tileset (entry tileset.json) referencing b3dm/i3dm/pnts/glTF content — e.g. photogrammetry meshes, point clouds, or extruded buildings. Streamed and LOD-managed by the globe engine. Supports opacity, a height offset and a Cesium3DTileStyle.",
+      "procurement": "Produce with a 3D Tiles tiler (e.g. py3dtiles, Cesium ion, or a photogrammetry pipeline); host the tileset directory statically."
+    }
+  ],
+  "metaconfig": "./metaconfig.json",
+  "paths": {
+    "globe.cesium": "./globe/cesium/threedtiles",
+    "globe.lithosphere": "./globe/lithosphere/threedtiles"
+  }
+}

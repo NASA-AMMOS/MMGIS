@@ -1601,7 +1601,7 @@
                     "enabled": true,
                     "initialVisibility": true,
                     "layers": [
-                      "Mosaic Targets"
+                      "Mosaic - Receivers"
                     ],
                     "pairProp": "sol",
                     "style": {
@@ -1657,7 +1657,7 @@
                 },
                 "hideMainFeature": false
               },
-              "description": "Rover waypoint for Sol 1051. Click to open the 360\u00b0 Navcam panoramic mosaic. The Mosaic Targets layer must be enabled to see target dots overlaid on the sphere."
+              "description": "Rover waypoint for Sol 1051. Click to open the 360\u00b0 Navcam panoramic mosaic. The Mosaic - Receivers layer must be enabled to see target dots overlaid on the sphere."
             },
             {
               "name": "Mosaic - Receivers",

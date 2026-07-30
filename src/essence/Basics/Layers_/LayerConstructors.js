@@ -21,7 +21,6 @@ import { centroid } from '@turf/turf'
 
 let L = window.L
 
-
 const tooltipProto = L.Tooltip.prototype
 const tooltipProto_setPosition = tooltipProto._setPosition
 L.Tooltip.include({
@@ -292,34 +291,34 @@ export const constructVectorLayer = (
                         ? F_.parseColor(feature.properties[col.substring(5)]) ||
                           '#FFF'
                         : feature.style && feature.style.stroke != null
-                        ? feature.style.stroke
-                        : col
+                          ? feature.style.stroke
+                          : col
                 var finalOpa =
                     opa != null && opa.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[opa.substring(5)] || '1'
                         : feature.style && feature.style.opacity != null
-                        ? feature.style.opacity
-                        : opa
+                          ? feature.style.opacity
+                          : opa
                 var finalWei =
                     wei != null && wei.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[wei.substring(5)] || '1'
                         : feature.style && feature.style.weight != null
-                        ? feature.style.weight
-                        : wei
+                          ? feature.style.weight
+                          : wei
                 if (!isNaN(parseInt(finalWei))) finalWei = parseInt(finalWei)
                 var finalFiC =
                     fiC != null && fiC.toLowerCase().substring(0, 4) === 'prop'
                         ? F_.parseColor(feature.properties[fiC.substring(5)]) ||
                           '#000'
                         : feature.style && feature.style.fill != null
-                        ? feature.style.fill
-                        : fiC
+                          ? feature.style.fill
+                          : fiC
                 var finalFiO =
                     fiO != null && fiO.toLowerCase().substring(0, 4) === 'prop'
                         ? feature.properties[fiO.substring(5)] || '1'
                         : feature.style && feature.style.fillopacity != null
-                        ? feature.style.fillopacity
-                        : fiO
+                          ? feature.style.fillopacity
+                          : fiO
 
                 var finalRad =
                     rad != null && rad.toLowerCase().substring(0, 4) === 'prop'
@@ -327,10 +326,10 @@ export const constructVectorLayer = (
                           layerObj.radius ||
                           '8'
                         : feature.style &&
-                          feature.style.radius != null &&
-                          feature.style.radius != 'undefined'
-                        ? feature.style.radius
-                        : rad
+                            feature.style.radius != null &&
+                            feature.style.radius != 'undefined'
+                          ? feature.style.radius
+                          : rad
                 if (!isNaN(parseInt(finalRad))) finalRad = parseInt(finalRad)
 
                 // Check for radius property if radius=1 (default/prop:radius)
@@ -924,13 +923,17 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                     customOptions.pointOffset[0] = xOffset
 
                     // For lines and polygons, anchor tooltip to first coordinate
-                    if (l.feature?.geometry?.type === 'LineString' ||
+                    if (
+                        l.feature?.geometry?.type === 'LineString' ||
                         l.feature?.geometry?.type === 'Polygon' ||
                         l.feature?.geometry?.type === 'MultiLineString' ||
-                        l.feature?.geometry?.type === 'MultiPolygon') {
+                        l.feature?.geometry?.type === 'MultiPolygon'
+                    ) {
                         // Override getCenter to return first coordinate
-                        l._labelAnchorLatLng = L_.getFirstCoordinate(l.feature.geometry)
-                        l.getCenter = function() {
+                        l._labelAnchorLatLng = L_.getFirstCoordinate(
+                            l.feature.geometry
+                        )
+                        l.getCenter = function () {
                             return this._labelAnchorLatLng
                         }
                     }
@@ -995,13 +998,18 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
                             customOptions.pointOffset[0] = xOffset
 
                             // For lines and polygons, anchor tooltip to first coordinate
-                            if (l.feature?.geometry?.type === 'LineString' ||
+                            if (
+                                l.feature?.geometry?.type === 'LineString' ||
                                 l.feature?.geometry?.type === 'Polygon' ||
-                                l.feature?.geometry?.type === 'MultiLineString' ||
-                                l.feature?.geometry?.type === 'MultiPolygon') {
+                                l.feature?.geometry?.type ===
+                                    'MultiLineString' ||
+                                l.feature?.geometry?.type === 'MultiPolygon'
+                            ) {
                                 // Override getCenter to return first coordinate
-                                l._labelAnchorLatLng = L_.getFirstCoordinate(l.feature.geometry)
-                                l.getCenter = function() {
+                                l._labelAnchorLatLng = L_.getFirstCoordinate(
+                                    l.feature.geometry
+                                )
+                                l.getCenter = function () {
                                     return this._labelAnchorLatLng
                                 }
                             }
@@ -1088,7 +1096,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
         // Only show labels initially if they're within zoom range
         if (labelsVar.initialVisibility === true) {
             const labelMinZoom = layerObj.minZoom != null ? layerObj.minZoom : 0
-            const labelMaxZoom = layerObj.maxZoom != null ? layerObj.maxZoom : 100
+            const labelMaxZoom =
+                layerObj.maxZoom != null ? layerObj.maxZoom : 100
             const currentZoom = L_.Map_.map ? L_.Map_.map.getZoom() : 0
             if (F_.isInZoomRange(labelMinZoom, labelMaxZoom, currentZoom)) {
                 layer.on(true)
@@ -1104,8 +1113,8 @@ const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
             on: L_.layers.attachments[layerObj.name]?.labels
                 ? L_.layers.attachments[layerObj.name]?.labels.on
                 : labelsVar.initialVisibility != null
-                ? labelsVar.initialVisibility
-                : true,
+                  ? labelsVar.initialVisibility
+                  : true,
             type: 'labels',
             geojson: geojson,
             layer: layer,
@@ -1278,8 +1287,8 @@ const pairings = (geojson, layerObj, leafletLayerObject) => {
             on: L_.layers.attachments[layerObj.name]?.pairings
                 ? L_.layers.attachments[layerObj.name]?.pairings.on
                 : pairingsVar.initialVisibility != null
-                ? pairingsVar.initialVisibility
-                : true,
+                  ? pairingsVar.initialVisibility
+                  : true,
             pairedLayers: layers,
             pairProp: pairProp,
             layersAzProp: layersAzProp,
@@ -1328,8 +1337,8 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
             existingOn != null
                 ? existingOn
                 : uncertaintyVar.initialVisibility != null
-                ? uncertaintyVar.initialVisibility
-                : true
+                  ? uncertaintyVar.initialVisibility
+                  : true
 
         uncertaintyStyle = {
             fillOpacity: uncertaintyVar.fillOpacity || 0.25,
@@ -1502,8 +1511,8 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
             existingOn != null
                 ? existingOn
                 : imageVar.initialVisibility != null
-                ? imageVar.initialVisibility
-                : true
+                  ? imageVar.initialVisibility
+                  : true
 
         if (imageVar && imageShow === 'always')
             leafletLayerObjectImageOverlay = {
@@ -1522,11 +1531,7 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
                     // Figure out image path (same logic as model attachments)
                     let imagePath = null
                     if (!path && pathProp) {
-                        imagePath = F_.getIn(
-                            feature.properties,
-                            pathProp,
-                            null
-                        )
+                        imagePath = F_.getIn(feature.properties, pathProp, null)
                     } else {
                         imagePath = pathProp
                             ? F_.getIn(feature.properties, pathProp, path)
@@ -2046,17 +2051,23 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
             // instead of the previous O(N²) per-vertex feature search that
             // froze the browser with large (24K+) datasets.  A single
             // mousemove handler replaces N individual circleMarkers.
-            const coordProps = pathGradientSettings.dropdownColorWithProp.length > 0
-                ? pathGradientSettings.dropdownColorWithProp
-                : [pathGradientSettings.colorWithProp]
+            const coordProps =
+                pathGradientSettings.dropdownColorWithProp.length > 0
+                    ? pathGradientSettings.dropdownColorWithProp
+                    : [pathGradientSettings.colorWithProp]
 
             // Pre-build coordinate→properties Map for O(1) lookup
             const featurePropsByCoord = new Map()
             geojson.features.forEach((feature) => {
-                if (pathGradientSettings.connectAllPoints &&
-                    feature.geometry.type.toLowerCase() === 'point') {
+                if (
+                    pathGradientSettings.connectAllPoints &&
+                    feature.geometry.type.toLowerCase() === 'point'
+                ) {
                     const c = feature.geometry.coordinates
-                    featurePropsByCoord.set(`${c[1]},${c[0]}`, feature.properties)
+                    featurePropsByCoord.set(
+                        `${c[1]},${c[0]}`,
+                        feature.properties
+                    )
                 } else if (!pathGradientSettings.connectAllPoints) {
                     F_.coordinateDepthTraversal(
                         feature.geometry.coordinates,
@@ -2099,8 +2110,12 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 const seenCells = new Set()
                 for (let s = 0; s <= steps; s++) {
                     const t = s / steps
-                    const gx = Math.floor((seg.lng1 + t * (seg.lng2 - seg.lng1)) / hoverGridRes)
-                    const gy = Math.floor((seg.lat1 + t * (seg.lat2 - seg.lat1)) / hoverGridRes)
+                    const gx = Math.floor(
+                        (seg.lng1 + t * (seg.lng2 - seg.lng1)) / hoverGridRes
+                    )
+                    const gy = Math.floor(
+                        (seg.lat1 + t * (seg.lat2 - seg.lat1)) / hoverGridRes
+                    )
                     const key = `${gx},${gy}`
                     if (seenCells.has(key)) continue
                     seenCells.add(key)
@@ -2113,16 +2128,21 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 // connectAllPoints: paths is a flat array of [lat, lng, value] vertices
                 // connected in sequence — build segments between consecutive entries.
                 for (let i = 0; i < paths.length - 1; i++) {
-                    const p1 = paths[i], p2 = paths[i + 1]
+                    const p1 = paths[i],
+                        p2 = paths[i + 1]
                     if (!Array.isArray(p1) || p1.length < 3) continue
                     if (!Array.isArray(p2) || p2.length < 3) continue
                     const [lat1, lng1, val1] = p1
                     const [lat2, lng2, val2] = p2
                     _addHoverSegment({
-                        lng1, lat1, lng2, lat2,
+                        lng1,
+                        lat1,
+                        lng2,
+                        lat2,
                         props: featurePropsByCoord.get(`${lat1},${lng1}`),
                         props2: featurePropsByCoord.get(`${lat2},${lng2}`),
-                        val1, val2,
+                        val1,
+                        val2,
                     })
                 }
             } else {
@@ -2130,16 +2150,21 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 paths.forEach((path) => {
                     if (!Array.isArray(path)) return
                     for (let i = 0; i < path.length - 1; i++) {
-                        const p1 = path[i], p2 = path[i + 1]
+                        const p1 = path[i],
+                            p2 = path[i + 1]
                         if (!Array.isArray(p1) || p1.length < 3) continue
                         if (!Array.isArray(p2) || p2.length < 3) continue
                         const [lat1, lng1, val1] = p1
                         const [lat2, lng2, val2] = p2
                         _addHoverSegment({
-                            lng1, lat1, lng2, lat2,
+                            lng1,
+                            lat1,
+                            lng2,
+                            lat2,
                             props: featurePropsByCoord.get(`${lat1},${lng1}`),
                             props2: featurePropsByCoord.get(`${lat2},${lng2}`),
-                            val1, val2,
+                            val1,
+                            val2,
                         })
                     }
                 })
@@ -2237,9 +2262,12 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                                 seen.add(segIdx)
                                 const seg = hoverSegments[segIdx]
                                 const { t, dist } = closestPointOnSegment(
-                                    lng, lat,
-                                    seg.lng1, seg.lat1,
-                                    seg.lng2, seg.lat2
+                                    lng,
+                                    lat,
+                                    seg.lng1,
+                                    seg.lat1,
+                                    seg.lng2,
+                                    seg.lat2
                                 )
                                 if (dist < bestDist) {
                                     bestDist = dist
@@ -2256,27 +2284,26 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                         // vertex props, near the end (t >= 0.5) use
                         // end-vertex props.  This ensures hovering near
                         // the last vertex of a path shows correct values.
-                        const props = bestT >= 0.5
-                            ? (bestSeg.props2 || bestSeg.props)
-                            : bestSeg.props
-                        const fallbackVal = bestT >= 0.5
-                            ? bestSeg.val2
-                            : bestSeg.val1
+                        const props =
+                            bestT >= 0.5
+                                ? bestSeg.props2 || bestSeg.props
+                                : bestSeg.props
+                        const fallbackVal =
+                            bestT >= 0.5 ? bestSeg.val2 : bestSeg.val1
                         let html = '<table>'
                         coordProps.forEach((prop) => {
                             const val = props
                                 ? F_.getIn(props, prop, '—')
                                 : fallbackVal
                             const label = escapeHtml(
-                                prop.replace(/_/g, ' ')
+                                prop
+                                    .replace(/_/g, ' ')
                                     .replace(/\b\w/g, (c) => c.toUpperCase())
                             )
                             html += `<tr><td class="gk">${label}</td><td class="gv">${escapeHtml(val)}</td></tr>`
                         })
                         html += '</table>'
-                        tooltip
-                            .setLatLng(e.latlng)
-                            .setContent(html)
+                        tooltip.setLatLng(e.latlng).setContent(html)
                         if (!tooltip._map) tooltip.addTo(map)
 
                         // Move 2D highlight dot to closest point on the segment
@@ -2287,7 +2314,10 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                         highlightDot.setLatLng([closestLat, closestLng])
                         if (!highlightDot._map) highlightDot.addTo(map)
                         // Mirror the hover dot in 3D
-                        L_.Globe_?.litho?.setGradientHoverPoint(closestLng, closestLat)
+                        L_.Globe_?.litho?.setGradientHoverPoint(
+                            closestLng,
+                            closestLat
+                        )
                     } else {
                         if (tooltip._map) map.removeLayer(tooltip)
                         if (highlightDot._map) map.removeLayer(highlightDot)
@@ -2313,7 +2343,10 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 if (this._gradientTooltip && this._gradientTooltip._map) {
                     map.removeLayer(this._gradientTooltip)
                 }
-                if (this._gradientHighlightDot && this._gradientHighlightDot._map) {
+                if (
+                    this._gradientHighlightDot &&
+                    this._gradientHighlightDot._map
+                ) {
                     map.removeLayer(this._gradientHighlightDot)
                 }
                 _origOnRemove.call(this, map)
@@ -2350,22 +2383,17 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
                 // removeLayer is cheap (scene.primitives.remove); defer the
                 // heavy addLayer geometry build to avoid blocking the UI thread.
                 if (l.cesiumLayerId && L_.Globe_ && L_.Globe_.litho) {
-                    L_.Globe_.litho.removeLayer(l.cesiumLayerId)
-                    l.cesiumLayerId = null
-                    const updatedOptions = {
+                    L_.removeGradientPolyline(l)
+                    l.cesiumGradientOptions = {
                         ...l.cesiumGradientOptions,
                         gradientSettings: {
                             ...l.cesiumGradientOptions.gradientSettings,
                             colorWithProp: prop,
                         },
                     }
-                    l.cesiumGradientOptions = updatedOptions
                     clearTimeout(l._cesiumRebuildTimer)
                     l._cesiumRebuildTimer = setTimeout(() => {
-                        l.cesiumLayerId = L_.Globe_.litho.addLayer(
-                            'gradient_polyline',
-                            updatedOptions
-                        )
+                        L_.addGradientPolyline(l)
                     }, 0)
                 }
             }
@@ -2383,11 +2411,7 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
         )
 
         const pathGradientSettings = {
-            colorWithProp: F_.getIn(
-                pathGradientVar,
-                'colorWithProp',
-                null
-            ),
+            colorWithProp: F_.getIn(pathGradientVar, 'colorWithProp', null),
             dropdownColorWithProp: F_.getIn(
                 pathGradientVar,
                 'dropdownColorWithProp',

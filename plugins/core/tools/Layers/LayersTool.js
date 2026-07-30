@@ -3,6 +3,7 @@ import Sortable from 'sortablejs'
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
+import LayerTypeRegistry from '@basics/Layers_/LayerTypeRegistry'
 
 import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
@@ -29,6 +30,15 @@ import { isKmlUrl, fetchKmlAsGeoJSON } from '@basics/Layers_/LayerCapturer'
 import './LayersTool.css'
 
 const helpKey = 'LayersTool'
+
+// Neutral fallback when a layer type declares no manifest color.
+const DEFAULT_LAYER_TYPE_COLOR = 'var(--color-a4)'
+
+// Layer type indicator color, sourced from the plugin.json manifest (registry)
+// rather than a hardcoded CSS var, so new/external types are colored too.
+function getLayerTypeColor(type) {
+    return LayerTypeRegistry.getConfig(type)?.color || DEFAULT_LAYER_TYPE_COLOR
+}
 
 /**
  * Generate the tool markup dynamically based on available layer types
@@ -75,7 +85,7 @@ function generateMarkup() {
     let filterIconsHtml = ''
     filterIcons.forEach((filter) => {
         if (availableTypes.has(filter.type)) {
-            filterIconsHtml += `<div class="${filter.type}" type="${filter.type}" title="${filter.title}"><i class="mdi ${filter.icon} mdi-18px"></i></div>`
+            filterIconsHtml += `<div class="${filter.type}" type="${filter.type}" title="${filter.title}" style="--lt-color:${getLayerTypeColor(filter.type)};"><i class="mdi ${filter.icon} mdi-18px"></i></div>`
         }
     })
 
@@ -1369,7 +1379,7 @@ function interfaceWithMMGIS(fromInit) {
                         [
                             `<li class="layersToolHeader" id="header_${node[i].name}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
                                 `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
-                                    '<div class="layersToolColor ' + node[i].type + '">',
+                                    '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
                                     '<div>',
@@ -1398,7 +1408,7 @@ function interfaceWithMMGIS(fromInit) {
                         [
                             '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layers.layer[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '"  style="margin-bottom: 1px;">',
                                 `<div class="title" id="layerstart${F_.getSafeName(node[i].name)}" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
-                                    '<div class="layersToolColor ' + node[i].type + '">',
+                                    '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
                                     '<div class="checkboxcont">',
