@@ -178,6 +178,27 @@ function entryTokens(entry) {
     .concat(entry.extensions || []);
 }
 
+// Prefer the dotted ".ext" form: drop a bare token ("dae") whenever its dotted
+// equivalent (".dae") is also present, and sort what remains alphabetically.
+function dedupeExts(exts) {
+  const dotted = new Set(
+    exts.filter((e) => e.startsWith(".")).map((e) => e.toLowerCase())
+  );
+  return exts
+    .filter((e) => e.startsWith(".") || !dotted.has("." + e.toLowerCase()))
+    .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+}
+
+// Display chips for an entry: keep standards (STAC, COG, …), then the
+// deduped/sorted file extensions.
+function entryDisplayChips(entry) {
+  const standards = Array.isArray(entry.standards) ? entry.standards : [];
+  const exts = dedupeExts(
+    [].concat(entry.formats || []).concat(entry.extensions || [])
+  );
+  return [].concat(standards).concat(exts);
+}
+
 export default function DataFormats() {
   const c = useStyles();
 
@@ -237,22 +258,7 @@ export default function DataFormats() {
       });
     });
     return Object.values(index)
-      .map((f) => {
-        // Prefer the dotted ".ext" form: drop a bare token (e.g. "dae")
-        // whenever its dotted equivalent (".dae") is also present.
-        const all = Array.from(f.exts);
-        const dotted = new Set(
-          all
-            .filter((e) => e.startsWith("."))
-            .map((e) => e.toLowerCase())
-        );
-        const exts = all
-          .filter(
-            (e) => e.startsWith(".") || !dotted.has("." + e.toLowerCase())
-          )
-          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-        return { ...f, exts };
-      })
+      .map((f) => ({ ...f, exts: dedupeExts(Array.from(f.exts)) }))
       .sort((a, b) =>
         a.name.toLowerCase().localeCompare(b.name.toLowerCase())
       );
@@ -334,14 +340,28 @@ export default function DataFormats() {
       <div className={c.empty}>No layer types match “{search}”.</div>
     ) : (
       filteredTypes.map((t) => {
-        const summaryChips = Array.from(
+        const standards = Array.from(
           new Set(
             t.supportedData.reduce(
-              (acc, entry) => acc.concat(entryTokens(entry)),
+              (acc, entry) => acc.concat(entry.standards || []),
               []
             )
           )
         );
+        const exts = dedupeExts(
+          Array.from(
+            new Set(
+              t.supportedData.reduce(
+                (acc, entry) =>
+                  acc
+                    .concat(entry.formats || [])
+                    .concat(entry.extensions || []),
+                []
+              )
+            )
+          )
+        );
+        const summaryChips = standards.concat(exts);
         return (
           <Accordion key={t.typeId} defaultExpanded={Boolean(q)} disableGutters>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -392,7 +412,7 @@ export default function DataFormats() {
                     <div className={c.entryDesc}>{entry.description}</div>
                   ) : null}
                   <div className={c.chips}>
-                    {entryTokens(entry).map((token) => (
+                    {entryDisplayChips(entry).map((token) => (
                       <Chip
                         key={token}
                         size="small"
