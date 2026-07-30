@@ -12,6 +12,7 @@ import LayerTypeRegistry from './registry/LayerTypeRegistry'
 import MapRenderer from '../Map_/MapRenderer'
 import * as getters from './inspect/getters'
 import * as style from './display/style'
+import * as sublayers from './display/sublayers'
 import * as lifecycle from './lifecycle/lifecycle'
 import * as subscriptions from './lifecycle/subscriptions'
 import { parseConfig } from './lifecycle/config'
@@ -753,116 +754,14 @@ const L_ = {
             L_.setLayerOpacity(s.name, L_.layers.opacity[s.name])
         }
     },
-    _refreshAnnotationEvents() {
-        // Add annotation click events since onEachFeatureDefault doesn't apply to popups
-        $('.mmgisAnnotation').off('click')
-        $('.mmgisAnnotation').on('click', function () {
-            const layerName = $(this).attr('layerId')
-            const layerCode = $(this).attr('layer')
-            const layer = L_.layers.layer[layerName]._layers[layerCode]
-            L_.Map_.featureDefaultClick(layer.feature, layer, {
-                latlng: layer._latlng,
-            })
-        })
+    _refreshAnnotationEvents(...a) {
+        return sublayers._refreshAnnotationEvents(L_, ...a)
     },
-    // If opacity is null, reinforces opacities
-    setSublayerOpacity(layerName, sublayerName, opacity) {
-        layerName = L_.asLayerUUID(layerName)
-
-        const sublayers = L_.layers.attachments[layerName] || {}
-        const sublayer = sublayers[sublayerName]
-
-        if (opacity == null) opacity = sublayer?.opacity
-
-        if (sublayer && sublayer.opacity != null) {
-            sublayer.opacity = opacity
-            switch (sublayer.type) {
-                case 'image_overlays':
-                    $(`.${sublayer.type}_${layerName}`).css({
-                        opacity: opacity,
-                    })
-                    break
-                default:
-                    break
-            }
-        }
+    setSublayerOpacity(...a) {
+        return sublayers.setSublayerOpacity(L_, ...a)
     },
-    toggleSublayer: function (layerName, sublayerName) {
-        layerName = L_.asLayerUUID(layerName)
-
-        const sublayers = L_.layers.attachments[layerName] || {}
-        const sublayer = sublayers[sublayerName]
-        if (sublayer) {
-            if (sublayer.on === true) {
-                switch (sublayer.type) {
-                    case 'model':
-                        L_.Globe_.litho.removeLayer(sublayer.layerId)
-                        break
-                    case 'uncertainty_ellipses':
-                        L_.Globe_.litho.removeLayer(sublayer.curtainLayerId)
-                        L_.Globe_.litho.removeLayer(sublayer.clampedLayerId)
-                        L_.Map_.rmNotNull(sublayer.layer)
-                        break
-                    case 'path_gradient':
-                        L_.Map_.rmNotNull(sublayer.layer)
-                        L_.removeGradientPolyline(sublayer)
-                        break
-                    case 'labels':
-                    case 'pairings':
-                        sublayer.layer.off()
-                        break
-                    default:
-                        L_.Map_.rmNotNull(sublayer.layer)
-                        break
-                }
-                sublayer.on = false
-            } else {
-                switch (sublayer.type) {
-                    case 'model':
-                        L_.Globe_.litho.addLayer('model', sublayer.modelOptions)
-                        break
-                    case 'uncertainty_ellipses':
-                        L_.Globe_.litho.addLayer(
-                            'curtain',
-                            sublayer.curtainOptions
-                        )
-                        L_.Globe_.litho.addLayer(
-                            'clamped',
-                            sublayer.clampedOptions
-                        )
-                        L_.Map_.map.addLayer(sublayer.layer)
-                        sublayer.layer.setZIndex(
-                            L_._layersOrdered.length +
-                                1 -
-                                L_._layersOrdered.indexOf(layerName)
-                        )
-                        break
-                    case 'path_gradient':
-                        L_.Map_.map.addLayer(sublayer.layer)
-                        sublayer.layer.setZIndex(
-                            L_._layersOrdered.length +
-                                1 -
-                                L_._layersOrdered.indexOf(layerName)
-                        )
-                        L_.addGradientPolyline(sublayer)
-                        break
-                    case 'labels':
-                    case 'pairings':
-                        sublayer.layer.on(false, sublayer.layer)
-                        break
-                    default:
-                        L_.Map_.map.addLayer(sublayer.layer)
-                        sublayer.layer.setZIndex(
-                            L_._layersOrdered.length +
-                                1 -
-                                L_._layersOrdered.indexOf(layerName)
-                        )
-                        L_.setSublayerOpacity(layerName, sublayerName)
-                        break
-                }
-                sublayer.on = true
-            }
-        }
+    toggleSublayer(...a) {
+        return sublayers.toggleSublayer(L_, ...a)
     },
     disableAllBut: function (siteName, skipDisabling) {
         if (L_.layers.data.hasOwnProperty(siteName)) {
@@ -1955,45 +1854,11 @@ const L_ = {
                 }
             )
     },
-    // Add a Cesium gradient-polyline primitive for an attachment, tracking the
-    // in-flight build so a teardown that races ahead of it can't orphan the
-    // primitive. GlobeRenderer.addLayer resolves asynchronously, so a layer
-    // toggled off (or re-added) before the build finishes would otherwise leave
-    // a stale primitive on the globe with no way to remove it.
-    addGradientPolyline: function (attachment) {
-        if (!attachment || !attachment.cesiumGradientOptions) return
-        if (!L_.Globe_ || !L_.Globe_.litho) return
-        attachment._gradientWantsOn = true
-        const gen = (attachment._gradientGen =
-            (attachment._gradientGen || 0) + 1)
-        L_.Globe_.litho
-            .addLayer('gradient_polyline', attachment.cesiumGradientOptions)
-            .then((id) => {
-                // Turned off (or superseded by a newer add) while building —
-                // discard this primitive instead of leaving it orphaned.
-                if (
-                    attachment._gradientGen !== gen ||
-                    !attachment._gradientWantsOn
-                ) {
-                    L_.Globe_.litho.removeLayer(id)
-                    return
-                }
-                attachment.cesiumLayerId = id
-            })
-            .catch((e) => {
-                console.warn('Failed to add 3D gradient polyline:', e)
-            })
+    addGradientPolyline(...a) {
+        return sublayers.addGradientPolyline(L_, ...a)
     },
-    // Remove an attachment's Cesium gradient-polyline primitive and cancel any
-    // in-flight add (see addGradientPolyline) so it can't reappear afterwards.
-    removeGradientPolyline: function (attachment) {
-        if (!attachment) return
-        attachment._gradientWantsOn = false
-        attachment._gradientGen = (attachment._gradientGen || 0) + 1
-        if (attachment.cesiumLayerId && L_.Globe_ && L_.Globe_.litho) {
-            L_.Globe_.litho.removeLayer(attachment.cesiumLayerId)
-            attachment.cesiumLayerId = null
-        }
+    removeGradientPolyline(...a) {
+        return sublayers.removeGradientPolyline(L_, ...a)
     },
     setLayerOpacity(...a) {
         return style.setLayerOpacity(L_, ...a)
@@ -3017,80 +2882,8 @@ const L_ = {
         }
         return true
     },
-    // Make a layer's sublayer match the layers data again
-    syncSublayerData: async function (layerName, onlyClear) {
-        layerName = L_.asLayerUUID(layerName)
-
-        if (
-            L_.layers.layer[layerName] == null ||
-            L_.layers.layer[layerName] == false
-        )
-            return
-
-        try {
-            let geojson = L_.layers.layer[layerName].toGeoJSON(
-                L_.GEOJSON_PRECISION
-            )
-            if (L_.layers.layer[layerName]._sourceGeoJSON)
-                geojson = L_.layers.layer[layerName]._sourceGeoJSON
-
-            // Now try the sublayers (if any)
-            const subUpdateLayers = L_.layers.attachments[layerName]
-
-            if (subUpdateLayers) {
-                for (let sub in subUpdateLayers) {
-                    if (
-                        subUpdateLayers[sub] !== false &&
-                        subUpdateLayers[sub].layer != null
-                    ) {
-                        subUpdateLayers[sub].layer.clearLayers()
-                        if (
-                            typeof subUpdateLayers[sub].layer
-                                .customClearLayers === 'function'
-                        ) {
-                            subUpdateLayers[sub].layer.customClearLayers(
-                                layerName,
-                                sub
-                            )
-                        }
-
-                        if (!onlyClear) {
-                            if (
-                                typeof subUpdateLayers[sub].layer
-                                    .addDataEnhanced === 'function'
-                            ) {
-                                subUpdateLayers[sub].layer.addDataEnhanced(
-                                    geojson,
-                                    layerName,
-                                    sub,
-                                    L_.Map_
-                                )
-                            } else if (
-                                typeof subUpdateLayers[sub].layer.addData ===
-                                'function'
-                            ) {
-                                subUpdateLayers[sub].layer.addData(geojson)
-                            }
-
-                            if (sub === 'image_overlays') {
-                                subUpdateLayers[sub].layer.setZIndex(
-                                    L_._layersOrdered.length +
-                                        1 -
-                                        L_._layersOrdered.indexOf(layerName)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.log(e)
-            console.warn(
-                'Warning: Failed to update sublayers of layer: ' + layerName
-            )
-        }
-
-        await L_.globeLithoLayerHelper(L_.layers.data[layerName], onlyClear)
+    syncSublayerData(...a) {
+        return sublayers.syncSublayerData(L_, ...a)
     },
     clearVectorLayerInfo: function () {
         // Clear the InfoTools data
@@ -3399,23 +3192,8 @@ const L_ = {
             L_.updateVectorLayer(layerName, filteredGeoJSON)
         }
     },
-    _updatePairings: function (layerName, on) {
-        Object.keys(L_.layers.layer).forEach((name) => {
-            if (
-                L_.layers.on[name] &&
-                L_.layers.attachments[name] &&
-                L_.layers.attachments[name].pairings &&
-                L_.layers.attachments[name].pairings.on &&
-                L_.layers.attachments[name].pairings.pairedLayers.includes(
-                    layerName
-                )
-            ) {
-                L_.layers.attachments[name].pairings.layer.on(
-                    false,
-                    L_.layers.attachments[name].pairings.layer
-                )
-            }
-        })
+    _updatePairings(...a) {
+        return sublayers._updatePairings(L_, ...a)
     },
     getLayersChosenNamePropVal(...a) {
         return getters.getLayersChosenNamePropVal(L_, ...a)
