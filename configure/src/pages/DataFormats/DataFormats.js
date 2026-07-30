@@ -343,6 +343,7 @@ export default function DataFormats() {
         const supportedData = t.supportedData.filter((entry) => {
           const haystack = [entry.label, entry.category, entry.description]
             .concat(entryTokens(entry))
+            .filter((v) => typeof v === "string")
             .join(" ")
             .toLowerCase();
           return haystack.includes(q);
