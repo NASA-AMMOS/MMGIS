@@ -47,6 +47,13 @@ const BUILT_IN_TYPES = [
 ];
 
 test.describe('layerTypeConfigs.json — built-in layer type registry', () => {
+    // The registry is a generated (gitignored) artifact, so generate it from
+    // the built-in layertype plugins before reading it — it may not exist yet
+    // in a fresh checkout / CI.
+    test.beforeAll(() => {
+        updateLayerTypes();
+    });
+
     test('every built-in type is registered with a valid manifest + metaconfig', () => {
         const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 
