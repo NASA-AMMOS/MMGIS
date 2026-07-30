@@ -350,7 +350,11 @@ export default function DataFormats() {
 
   const renderByFormat = () =>
     filteredFormats.length === 0 ? (
-      <div className={c.empty}>No formats match “{search}”.</div>
+      <div className={c.empty}>
+        {q
+          ? `No formats match “${search}”.`
+          : "No layer type data formats are available yet."}
+      </div>
     ) : (
       filteredFormats.map((f) => (
         <div className={c.formatRow} key={f.name}>
@@ -384,7 +388,11 @@ export default function DataFormats() {
 
   const renderByType = () =>
     filteredTypes.length === 0 ? (
-      <div className={c.empty}>No layer types match “{search}”.</div>
+      <div className={c.empty}>
+        {q
+          ? `No layer types match “${search}”.`
+          : "No layer types are available yet."}
+      </div>
     ) : (
       filteredTypes.map((t) => {
         const standards = Array.from(

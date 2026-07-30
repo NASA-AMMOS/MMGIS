@@ -460,4 +460,18 @@ test.describe('validateLayerTypeModuleShape - renderer module contract', () => {
         const errs = validateLayerTypeModuleShape(src, 'x');
         expect(errs.some((e) => e.includes('no'))).toBe(true);
     });
+
+    test('regex literal with brackets/quotes does not hide a later typo', () => {
+        const src = `export default {
+            make: {
+                main(o, c) {
+                    const s = o.url.replace(/["'\\]{}()]/g, '');
+                    return s;
+                },
+            },
+            destory(o) {},
+        }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown operation 'destory'"))).toBe(true);
+    });
 });

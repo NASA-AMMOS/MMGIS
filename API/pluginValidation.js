@@ -755,10 +755,43 @@ function _skipString(src, i) {
   return i;
 }
 
+// Skip a regex literal whose opening '/' is at src[i]. Handles '\' escapes,
+// '[...]' character classes (a '/' inside a class doesn't end the regex), and
+// trailing flags.
+function _skipRegex(src, i) {
+  i++; // past opening '/'
+  let inClass = false;
+  while (i < src.length) {
+    const ch = src[i];
+    if (ch === "\\") {
+      i += 2;
+      continue;
+    }
+    if (ch === "\n") break; // unterminated — bail
+    if (ch === "[") inClass = true;
+    else if (ch === "]") inClass = false;
+    else if (ch === "/" && !inClass) {
+      i++;
+      break;
+    }
+    i++;
+  }
+  while (i < src.length && /[a-z]/i.test(src[i])) i++; // flags
+  return i;
+}
+
+// A '/' starts a regex unless the previous significant token ends an
+// expression (word char, closing ) ] }, or a string/regex).
+function _regexAllowedAfter(ch) {
+  if (ch === undefined) return true;
+  return !/[A-Za-z0-9_$)\]}'"`/]/.test(ch);
+}
+
 // Skip a value expression until the next top-level ',' or '}' of the enclosing
-// object, tracking nested (), [], {} and strings.
+// object, tracking nested (), [], {}, strings and regex literals.
 function _skipValue(src, i) {
   let depth = 0;
+  let last;
   while (i < src.length) {
     i = _skipWsAndComments(src, i);
     const ch = src[i];
@@ -772,9 +805,12 @@ function _skipValue(src, i) {
       i++;
     } else if (ch === "'" || ch === '"' || ch === "`") {
       i = _skipString(src, i);
+    } else if (ch === "/" && _regexAllowedAfter(last)) {
+      i = _skipRegex(src, i);
     } else {
       i++;
     }
+    last = ch;
   }
   return i;
 }
