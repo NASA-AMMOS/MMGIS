@@ -452,7 +452,15 @@ function validatePluginConfig(config, pluginName, pluginType) {
       // Declarative default interactions: a map of event name -> array of
       // interaction IDs core merges when a layer of this type doesn't
       // configure its own. Descriptive/behavioral metadata, validated for shape.
-      if (config.capabilities.defaultInteractions !== undefined) {
+      // Guard against a non-object `capabilities` (e.g. null): the shape error is
+      // already recorded above, and this is a separate `if` at the same nesting
+      // level, so it must re-check before dereferencing to avoid throwing.
+      if (
+        config.capabilities !== null &&
+        typeof config.capabilities === "object" &&
+        !Array.isArray(config.capabilities) &&
+        config.capabilities.defaultInteractions !== undefined
+      ) {
         const di = config.capabilities.defaultInteractions;
         if (typeof di !== "object" || Array.isArray(di) || di === null) {
           errors.push(
