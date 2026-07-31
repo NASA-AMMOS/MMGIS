@@ -2,7 +2,7 @@
 import * as lifecycle from './lifecycle/lifecycle'
 import * as subscriptions from './lifecycle/subscriptions'
 import { parseConfig } from './lifecycle/config'
-import * as tree from './catalog/tree'
+import * as tree from './hierarchy/tree'
 import * as geojson from './data/geojson'
 import * as visibility from './display/visibility'
 import * as style from './display/style'
