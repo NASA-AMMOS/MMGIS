@@ -514,7 +514,7 @@ export async function toggleLayerHelper(
                                         s.name
                                     ].toGeoJSON(L_.GEOJSON_PRECISION),
                                     onClick: (feature, lnglat, layer) => {
-                                        this.selectFeature(
+                                        L_.selectFeature(
                                             layer.name,
                                             feature
                                         )
@@ -902,7 +902,7 @@ export function addVisible(L_, map_, onlyTheseLayers) {
                                 L_.GEOJSON_PRECISION
                             ),
                             onClick: (feature, lnglat, layer) => {
-                                this.selectFeature(layer.name, feature)
+                                L_.selectFeature(layer.name, feature)
                             },
                             useKeyAsHoverName: s.useKeyAsName,
                             style: {
