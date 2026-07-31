@@ -1,5 +1,5 @@
 /**
- * VectorLayerCore — shared, engine-neutral vector-map building logic used by
+ * commons/vector — shared, engine-neutral vector-map building logic used by
  * more than one layer-type plugin.
  *
  * Layer-type plugins must be standalone (a plugin must not import another
@@ -14,7 +14,7 @@
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import MapRenderer from '@basics/Map_/MapRenderer'
-import { captureVector } from '@basics/Layers_/LayerCapturer'
+import { captureVector } from '@basics/Layers_/capture/LayerCapturer'
 import gjv from 'geojson-validation'
 
 export function makeVectorMap(layerObj, ctx = {}, opts = {}) {

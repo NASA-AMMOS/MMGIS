@@ -11,7 +11,7 @@
  * Frozen renderer interface:
  *   ctx = { evenIfOff, forceGeoJSON, isRefresh, mapContext, resolvedUrl }
  */
-import { makeVectorMap } from '@basics/Layers_/VectorLayerCore'
+import { makeVectorMap } from '@basics/Layers_/commons/vector'
 
 async function make(layerObj, ctx = {}) {
     await makeVectorMap(layerObj, ctx, {

@@ -40,7 +40,7 @@ const COMMON_FIELDS = [
 
 /**
  * The layer-type renderer contract (kept in sync with
- * src/essence/Basics/Layers_/LayerInterface.js). A renderer module's
+ * src/essence/Basics/Layers_/interface/LayerInterface.js). A renderer module's
  * `export default {}` may only declare these operations, each optionally
  * broken into these phases. `make` is required and is the only op that may
  * declare the extra `afterCommit` phase (runs after the make-lock releases).

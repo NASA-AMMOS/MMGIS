@@ -26,9 +26,9 @@
  * }
  */
 import L_ from '@basics/Layers_/Layers_'
-import { constructVectorLayer } from '@basics/Layers_/LayerConstructors'
-import LayerInterface from '@basics/Layers_/LayerInterface'
-import LayerTypeRegistry from '@basics/Layers_/LayerTypeRegistry'
+import { constructVectorLayer } from '@basics/Layers_/render/LayerConstructors'
+import LayerInterface from '@basics/Layers_/interface/LayerInterface'
+import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 
 const L = window.L
 

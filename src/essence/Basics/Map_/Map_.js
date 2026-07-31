@@ -1,15 +1,15 @@
 import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
-import LayerTypeRegistry from '../Layers_/LayerTypeRegistry'
-import LayerInterface from '../Layers_/LayerInterface'
+import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import LayerInterface from '../Layers_/interface/LayerInterface'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
 import CursorInfo from '../UserInterface_/components/CursorInfo/CursorInfo'
 import Description from '../UserInterface_/components/Description/Description'
 import QueryURL from '../../services/QueryURL'
-import MetadataCapturer from '../Layers_/MetadataCapturer.js'
+import MetadataCapturer from '../Layers_/capture/MetadataCapturer.js'
 import {
     runInteractions,
     resolveLayerInteractions,

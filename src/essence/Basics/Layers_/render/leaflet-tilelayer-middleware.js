@@ -11,7 +11,7 @@
   https://github.com/xtk93x/Leaflet.TileLayer.ColorFilter
 */
 
-import F_ from '../../Basics/Formulae_/Formulae_'
+import F_ from '../../../Basics/Formulae_/Formulae_'
 
 var colorFilterExtension = {
     intialize: function (url, options) {

@@ -21,7 +21,7 @@ let _cache = null
 function _load() {
     if (_cache) return _cache
     try {
-        _cache = require('../../../pre/layertypes')
+        _cache = require('../../../../pre/layertypes')
     } catch (e) {
         console.warn(
             'LayerTypeRegistry: could not load generated layertypes.js',

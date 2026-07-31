@@ -9,7 +9,7 @@ type into the map and both globe engines, opacity/visibility, the time bar,
 refresh/reload, and teardown — with no core changes.
 
 > The dispatcher and JSDoc typedefs live in
-> [`src/essence/Basics/Layers_/LayerInterface.js`](../../../src/essence/Basics/Layers_/LayerInterface.js).
+> [`src/essence/Basics/Layers_/interface/LayerInterface.js`](../../../src/essence/Basics/Layers_/interface/LayerInterface.js).
 
 ---
 

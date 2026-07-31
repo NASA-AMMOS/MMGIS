@@ -16,7 +16,7 @@ const {
   LAYER_OPS,
   OP_PHASES,
   MAKE_EXTRA_PHASES,
-} = require("../../src/essence/Basics/Layers_/LayerInterface");
+} = require("../../src/essence/Basics/Layers_/interface/LayerInterface");
 
 test.describe("LayerInterface constants", () => {
   test("canonical operation + phase vocabulary is stable", () => {
