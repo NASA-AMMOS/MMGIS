@@ -894,7 +894,130 @@ if (fullAccess)
     }, { full: true, mission: req.body.existingMission });
   });
 
-if (fullAccess) router.post("/rename", function (req, res, next) {});
+if (fullAccess)
+  router.post("/rename", checkMissionPermission, function (req, res, next) {
+    const missionName = req.body.mission;
+    const newName = req.body.newName;
+
+    const nameRegex = /^[A-Za-z0-9_ -]+$/;
+    if (
+      !missionName ||
+      !nameRegex.test(missionName) ||
+      !newName ||
+      !nameRegex.test(newName)
+    ) {
+      logger("error", "Invalid mission name in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+    if (missionName === newName) {
+      res.send({
+        status: "failure",
+        message: "New mission name must differ from the current name.",
+      });
+      return;
+    }
+    const missionsBase = path.resolve("./Missions");
+    const resolvedSrc = path.resolve("./Missions/" + missionName);
+    const resolvedDest = path.resolve("./Missions/" + newName);
+    if (
+      (!resolvedSrc.startsWith(missionsBase + path.sep) &&
+        resolvedSrc !== missionsBase) ||
+      (!resolvedDest.startsWith(missionsBase + path.sep) &&
+        resolvedDest !== missionsBase)
+    ) {
+      logger("error", "Path traversal attempt in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+
+    Config.findAll({ where: { mission: newName } })
+      .then((existing) => {
+        if ((existing && existing.length > 0) || fs.existsSync(resolvedDest)) {
+          res.send({
+            status: "failure",
+            message: "A mission named " + newName + " already exists.",
+          });
+          return null;
+        }
+        return Config.findAll({ where: { mission: missionName } }).then(
+          (rows) => {
+            if (!rows || rows.length === 0) {
+              res.send({
+                status: "failure",
+                message: "Mission " + missionName + " not found.",
+              });
+              return null;
+            }
+            return sequelize
+              .transaction((t) => {
+                return Promise.all(
+                  rows.map((row) => {
+                    // Deep copy so Sequelize detects the JSON change
+                    const cfg = JSON.parse(JSON.stringify(row.config || {}));
+                    if (cfg.msv) {
+                      cfg.msv.mission = newName;
+                      cfg.msv.missionFolderName = newName;
+                    }
+                    return row.update(
+                      { mission: newName, config: cfg },
+                      { transaction: t }
+                    );
+                  })
+                );
+              })
+              .then(() => {
+                logger(
+                  "info",
+                  "Renamed Mission: " + missionName + " to " + newName,
+                  req.originalUrl,
+                  req
+                );
+                const srcDir = "./Missions/" + missionName;
+                const destDir = "./Missions/" + newName;
+                if (fs.existsSync(srcDir)) {
+                  fs.rename(srcDir, destDir, (err) => {
+                    if (err)
+                      res.send({
+                        status: "success",
+                        message:
+                          "Successfully renamed mission to " +
+                          newName +
+                          " but couldn't rename its Missions directory.",
+                      });
+                    else
+                      res.send({
+                        status: "success",
+                        message: "Successfully renamed mission to " + newName,
+                      });
+                  });
+                } else {
+                  res.send({
+                    status: "success",
+                    message: "Successfully renamed mission to " + newName,
+                  });
+                }
+                return null;
+              });
+          }
+        );
+      })
+      .catch((err) => {
+        logger(
+          "error",
+          "Failed to rename mission: " + missionName,
+          req.originalUrl,
+          req,
+          err
+        );
+        res.send({
+          status: "failure",
+          message: "Failed to rename mission " + missionName + ".",
+        });
+        return null;
+      });
+    return null;
+  });
 
 if (fullAccess)
   router.post("/destroy", checkMissionPermission, function (req, res, next) {
