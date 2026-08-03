@@ -110,6 +110,23 @@ function make(layerObj, ctx = {}) {
     }
 }
 
+// The <video> element only exists once the overlay is on the map, so the
+// `muted` guarantee is re-asserted whenever the layer becomes visible (the
+// `muted` constructor option alone is not honored by every browser).
+function onToggle(layerObj, ctx = {}) {
+    if (!ctx.visible) return
+
+    const videoLayer = L_.layers.layer[layerObj.name]
+    if (!videoLayer || !videoLayer.getElement) return
+
+    const videoElement = videoLayer.getElement()
+    if (!videoElement) return
+
+    videoElement.muted = true
+    videoElement.setAttribute('muted', 'true')
+}
+
 export default {
     make,
+    onToggle,
 }

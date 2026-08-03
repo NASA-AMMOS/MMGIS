@@ -214,6 +214,22 @@ function make(layerObj, ctx = {}) {
         })
 }
 
+// A georaster layer that colorizes pixels caches the rendered tiles, and the
+// cache does not survive being taken off the map — so re-show has to clear it,
+// re-apply the color function and force a redraw (otherwise the image only
+// reappears after a zoom).
+function onToggle(layerObj, ctx = {}) {
+    if (!ctx.visible) return
+
+    const layer = L_.layers.layer[layerObj.name]
+    if (!layer || layer.options?.pixelValuesToColorFn == null) return
+
+    layer.clearCache()
+    layer.updateColors(layer.options.pixelValuesToColorFn)
+    layer.redraw()
+}
+
 export default {
     make,
+    onToggle,
 }

@@ -20,9 +20,55 @@
  *
  * destroy is omitted: core's default teardown (generic Leaflet removal) covers
  * vector layers, so there is no vector-specific teardown to implement.
+ *
+ * onToggle owns everything vector needs once a toggle has settled: pairings,
+ * pane re-ordering, opacity refresh and — on the first turn-on only — the local
+ * time window and any configured initial filters.
  */
+import L_ from '@basics/Layers_/Layers_'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
 import { makeVectorMap } from '@basics/Layers_/commons/vector'
+
+// Constrain a freshly-made layer to the current local time window.
+function applyLocalTimeWindow(layerObj) {
+    if (
+        layerObj.time == null ||
+        layerObj.time.type !== 'local' ||
+        layerObj.time.endProp == null ||
+        layerObj.controlled === true
+    )
+        return
+
+    L_.timeFilterVectorLayer(
+        layerObj.name,
+        new Date(layerObj.time.start).getTime(),
+        new Date(layerObj.time.end).getTime()
+    )
+}
+
+// Apply `variables.initialFilters` the first time the layer is turned on.
+function applyInitialFilters(layerObj) {
+    const name = layerObj.name
+    if (
+        !layerObj.variables?.initialFilters?.length ||
+        !Filtering.filters[name]
+    )
+        return
+
+    try {
+        // Populate geojson from the now-loaded layer
+        Filtering.filters[name].geojson =
+            Filtering.filters[name].geojson ||
+            L_.layers.layer[name].toGeoJSON(L_.GEOJSON_PRECISION)
+
+        Filtering.submit(name)
+    } catch (err) {
+        console.warn(
+            `Filtering - Could not apply initial filters for layer: ${name}`,
+            err
+        )
+    }
+}
 
 export default {
     make: {
@@ -39,5 +85,33 @@ export default {
         afterCommit(layerObj) {
             Filtering.triggerFilter(layerObj.name)
         },
+    },
+    onToggle(layerObj, ctx = {}) {
+        // Initial visibility: the layer was never toggled, the map is still
+        // settling and ordering is applied wholesale afterwards — only the
+        // (deferred) opacity refresh applies.
+        if (ctx.source === 'addVisible') {
+            const name = layerObj.name
+            setTimeout(() => {
+                L_.setLayerOpacity(name, L_.layers.opacity[name])
+            }, 300)
+            return
+        }
+
+        if (!ctx.globeOnly) {
+            L_._updatePairings(layerObj.name, ctx.visible)
+
+            // Vector layers live in a Leaflet pane, so showing one puts it on
+            // top of the stack — re-assert the configured draw order.
+            if (ctx.visible && !ctx.skipOrderedBringToFront)
+                L_.Map_.orderedBringToFront()
+        }
+
+        if (ctx.firstTimeOn) {
+            applyLocalTimeWindow(layerObj)
+            applyInitialFilters(layerObj)
+        }
+
+        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
     },
 }

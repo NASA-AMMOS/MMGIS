@@ -220,10 +220,9 @@ export function resetLayerFills(L_, onlyThisLayerName) {
         if (
             (L_.layers.layer[key] &&
                 L_.layers.data[key] &&
-                (L_.layers.data[key].type === 'point' ||
-                    (key.toLowerCase().indexOf('draw') === -1 &&
-                        (L_.layers.data[key].type === 'vector' ||
-                            L_.layers.data[key].type === 'query')))) ||
+                key.toLowerCase().indexOf('draw') === -1 &&
+                (L_.layers.data[key].type === 'vector' ||
+                    L_.layers.data[key].type === 'query')) ||
             (s[0] === 'DrawTool' && !Number.isNaN(onId))
         ) {
             if (

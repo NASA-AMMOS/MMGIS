@@ -26,6 +26,7 @@ test.describe("LayerInterface constants", () => {
       "destroy",
       "setOpacity",
       "setVisibility",
+      "onToggle",
       "setStyle",
       "timeChange",
     ]);

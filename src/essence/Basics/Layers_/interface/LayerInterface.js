@@ -20,11 +20,32 @@
  *                 supplies an applicator only where the engine lacks a uniform
  *                 opacity primitive (e.g. Cesium imagery-alpha vs entity-show).
  *   setVisibility show/hide. Optional — same ownership rule as setOpacity.
+ *                 This op owns the show/hide POLICY (add to / remove from the
+ *                 engine) and runs mid-toggle, before core has finished its
+ *                 bookkeeping.
+ *   onToggle      post-toggle notification: the layer has finished being turned
+ *                 on or off, core's bookkeeping (`layers.on`, ordering) is
+ *                 settled, and the type may now do its own follow-up work
+ *                 (apply initial filters, refresh opacity, update pairings).
+ *                 No core default — absent means "nothing extra to do".
+ *                 Receives the same toggle ctx as `setVisibility`; see below.
  *   setStyle      dynamic restyle / render-param change (color maps, rescale,
  *                 feature styles, COG params). Usually no core default.
  *   timeChange    react to the time bar moving. Core default = reload; a plugin
  *                 may override to update the existing layer in place. The ctx
  *                 carries `currentTime` (see Map_/GlobeRenderer dispatch).
+ *
+ * ── Toggle ctx (setVisibility + onToggle) ────────────────────────────────
+ *   visible        true when the layer is being turned on.
+ *   wasNeverOn     the layer had not been made yet when the toggle started.
+ *   firstTimeOn    first full user-facing toggle-on of this layer — the moment
+ *                  to apply one-time-on work (initial filters, time windows).
+ *   hadToMake      core had to build the layer as part of this toggle.
+ *   globeOnly      the 2D map was intentionally left untouched.
+ *   source         'toggleLayer' (full toggle) | 'toggleLayerHelper' (internal
+ *                  visibility change) | 'addVisible' (initial visibility).
+ *   name           the layer's UUID name (convenience).
+ *   plus the map renderer context (see MapRenderer.context).
  *
  * ── Phases (every operation) ─────────────────────────────────────────────
  *   before → main → after
@@ -56,6 +77,7 @@
  * @property {LayerTypeOpDef} [destroy]
  * @property {LayerTypeOpDef} [setOpacity]
  * @property {LayerTypeOpDef} [setVisibility]
+ * @property {LayerTypeOpDef} [onToggle]
  * @property {LayerTypeOpDef} [setStyle]
  * @property {LayerTypeOpDef} [timeChange]
  *
@@ -69,6 +91,7 @@ export const LAYER_OPS = [
     'destroy',
     'setOpacity',
     'setVisibility',
+    'onToggle',
     'setStyle',
     'timeChange',
 ]

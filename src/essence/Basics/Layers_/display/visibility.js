@@ -2,7 +2,6 @@ import F_ from '../../Formulae_/Formulae_'
 import Description from '../../UserInterface_/components/Description/Description'
 import Attributions from '../../UserInterface_/components/Attributions/Attributions'
 import MapRenderer from '../../Map_/MapRenderer'
-import Filtering from '../Filtering/Filtering'
 import LayerInterface from '../interface/LayerInterface'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 
@@ -19,8 +18,6 @@ export async function toggleLayer(
 ) {
     if (s == null) return
 
-    const wasNeverOn = L_.layers.layer[s.name] === false
-
     let on //if on -> turn off //if off -> turn on
     if (L_.layers.on[s.name] === true) on = true
     else on = false
@@ -30,7 +27,8 @@ export async function toggleLayer(
         on,
         ignoreToggleStateChange,
         null,
-        skipOrderedBringToFront
+        skipOrderedBringToFront,
+        'toggleLayer'
     )
 
     Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
@@ -54,46 +52,6 @@ export async function toggleLayer(
     if (L_.activeFeature && L_.activeFeature.layerName === s.name && on) {
         L_.setActiveFeature(null)
     }
-
-    // Make new vector layer match time constraints
-    if (
-        wasNeverOn &&
-        s.type === 'vector' &&
-        s.time != null &&
-        s.time.type === 'local' &&
-        s.time.endProp != null &&
-        s.controlled !== true
-    ) {
-        L_.timeFilterVectorLayer(
-            s.name,
-            new Date(s.time.start).getTime(),
-            new Date(s.time.end).getTime()
-        )
-    }
-
-    // Apply initial filters when layer is first turned on
-    if (
-        wasNeverOn &&
-        s.type === 'vector' &&
-        s.variables?.initialFilters &&
-        s.variables.initialFilters.length > 0 &&
-        Filtering.filters[s.name]
-    ) {
-        try {
-            // Populate geojson from the now-loaded layer
-            Filtering.filters[s.name].geojson =
-                Filtering.filters[s.name].geojson ||
-                L_.layers.layer[s.name].toGeoJSON(L_.GEOJSON_PRECISION)
-
-            // Apply the initial filters
-            Filtering.submit(s.name)
-        } catch (err) {
-            console.warn(
-                `Filtering - Could not apply initial filters for layer: ${s.name}`,
-                err
-            )
-        }
-    }
 }
 
 export async function toggleLayerHelper(
@@ -102,8 +60,30 @@ export async function toggleLayerHelper(
     on,
     ignoreToggleStateChange,
     globeOnly,
-    skipOrderedBringToFront
+    skipOrderedBringToFront,
+    source
 ) {
+    // Facts about this toggle, handed to the layer type's `setVisibility` and
+    // `onToggle` ops so type-specific follow-up work lives in the type.
+    // `on` is the PREVIOUS state, so the layer ends up visible when !on.
+    const toggleCtx = {
+        name: s.name,
+        visible: !on,
+        wasNeverOn: L_.layers.layer[s.name] === false,
+        hadToMake: false,
+        globeOnly: globeOnly === true,
+        source: source || 'toggleLayerHelper',
+        ignoreToggleStateChange: ignoreToggleStateChange === true,
+        skipOrderedBringToFront: skipOrderedBringToFront === true,
+    }
+    // One-time-on work (initial filters, local time windows) belongs to a full
+    // user-facing toggle only; internal visibility changes (tree restore,
+    // geojson reload) must not re-trigger it.
+    toggleCtx.firstTimeOn =
+        toggleCtx.wasNeverOn &&
+        toggleCtx.visible &&
+        toggleCtx.source === 'toggleLayer'
+
     if (s.type !== 'header') {
         if (on) {
             if (
@@ -122,14 +102,7 @@ export async function toggleLayerHelper(
                 LayerInterface.runSync(
                     LayerTypeRegistry.get(s.type)?.map,
                     'setVisibility',
-                    [
-                        s,
-                        {
-                            ...MapRenderer.context(),
-                            name: s.name,
-                            visible: false,
-                        },
-                    ],
+                    [s, { ...MapRenderer.context(), ...toggleCtx }],
                     {
                         coreDefault: () =>
                             L_.Map_.rmNotNull(L_.layers.layer[s.name]),
@@ -290,14 +263,7 @@ export async function toggleLayerHelper(
                 LayerInterface.runSync(
                     LayerTypeRegistry.get(s.type)?.map,
                     'setVisibility',
-                    [
-                        s,
-                        {
-                            ...MapRenderer.context(),
-                            name: s.name,
-                            visible: true,
-                        },
-                    ],
+                    [s, { ...MapRenderer.context(), ...toggleCtx }],
                     {
                         coreDefault: () => {
                             L_.Map_.map.addLayer(L_.layers.layer[s.name])
@@ -433,6 +399,7 @@ export async function toggleLayerHelper(
                     await L_.Map_.makeLayer(s, true, null, null, true)
                     Description.updateInfo()
                     hadToMake = true
+                    toggleCtx.hadToMake = true
                 }
                 if (L_.layers.layer[s.name]) {
                     if (globeOnly != true) {
@@ -462,23 +429,6 @@ export async function toggleLayerHelper(
                                 1 -
                                 L_._layersOrdered.indexOf(s.name)
                         )
-                    }
-
-                    if (s.type === 'image') {
-                        if (
-                            L_.layers.layer[s.name].options
-                                .pixelValuesToColorFn &&
-                            L_.layers.layer[s.name].options
-                                .pixelValuesToColorFn !== null
-                        ) {
-                            L_.layers.layer[s.name].clearCache()
-                            L_.layers.layer[s.name].updateColors(
-                                L_.layers.layer[s.name].options
-                                    .pixelValuesToColorFn
-                            )
-                            // Redraw the layer or the image will not refresh again unless zooming in/out
-                            L_.layers.layer[s.name].redraw()
-                        }
                     }
 
                     if (s.type === 'vector') {
@@ -587,21 +537,21 @@ export async function toggleLayerHelper(
         }
     }
 
+    if (globeOnly != true && !ignoreToggleStateChange) {
+        if (on) L_.layers.on[s.name] = false
+        if (!on) L_.layers.on[s.name] = true
+    }
+
+    // The toggle is done and core's bookkeeping is settled: let the layer type
+    // do its own follow-up work (pairings, re-ordering, opacity refresh,
+    // first-time-on filtering). No core default — most types need nothing.
+    LayerInterface.runSync(
+        LayerTypeRegistry.get(s.type)?.map,
+        'onToggle',
+        [s, { ...MapRenderer.context(), ...toggleCtx }]
+    )
+
     if (globeOnly != true) {
-        if (!ignoreToggleStateChange) {
-            if (on) L_.layers.on[s.name] = false
-            if (!on) L_.layers.on[s.name] = true
-        }
-
-        if (s.type === 'vector') L_._updatePairings(s.name, !on)
-
-        if (
-            !on &&
-            s.type === 'vector' &&
-            skipOrderedBringToFront !== true
-        ) {
-            L_.Map_.orderedBringToFront()
-        }
         L_._refreshAnnotationEvents()
 
         // Toggling rereveals hidden features, so make sure they stay hidden
@@ -610,10 +560,6 @@ export async function toggleLayerHelper(
                 L_.toggleFeature(f, false)
             })
         }
-    }
-    // Refresh opacity
-    if (s.type === 'vector') {
-        L_.setLayerOpacity(s.name, L_.layers.opacity[s.name])
     }
 }
 
@@ -724,28 +670,26 @@ export function addVisible(L_, map_, onlyTheseLayers) {
                         L_.layers.layer[L_.layers.dataFlat[i].name]
                     )
 
-                    // Ensure video layers start muted when added to map
-                    if (L_.layers.dataFlat[i].type === 'video') {
-                        const videoLayer =
-                            L_.layers.layer[L_.layers.dataFlat[i].name]
-                        if (videoLayer && videoLayer.getElement) {
-                            const videoElement = videoLayer.getElement()
-                            if (videoElement) {
-                                videoElement.muted = true
-                                videoElement.setAttribute('muted', 'true')
-                            }
-                        }
-                    }
-                    // Refresh opacity
-                    if (L_.layers.dataFlat[i].type === 'vector') {
-                        const lname = L_.layers.dataFlat[i].name
-                        setTimeout(() => {
-                            L_.setLayerOpacity(
-                                lname,
-                                L_.layers.opacity[lname]
-                            )
-                        }, 300)
-                    }
+                    // Same post-toggle hook as a user toggle, flagged as the
+                    // initial-visibility path so a type can tell them apart.
+                    const initialLayerObj = L_.layers.dataFlat[i]
+                    LayerInterface.runSync(
+                        LayerTypeRegistry.get(initialLayerObj.type)?.map,
+                        'onToggle',
+                        [
+                            initialLayerObj,
+                            {
+                                ...MapRenderer.context(),
+                                name: initialLayerObj.name,
+                                visible: true,
+                                wasNeverOn: false,
+                                firstTimeOn: false,
+                                hadToMake: false,
+                                globeOnly: false,
+                                source: 'addVisible',
+                            },
+                        ]
+                    )
                 } catch (e) {
                     console.log(e)
                     console.warn(

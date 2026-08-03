@@ -51,6 +51,7 @@ const LAYER_OPS = [
   "destroy",
   "setOpacity",
   "setVisibility",
+  "onToggle",
   "setStyle",
   "timeChange",
 ];
