@@ -7,6 +7,7 @@ const {
   validatePluginConfig,
   findDuplicateInteractionIds,
   findDuplicateIds,
+  validateLayerTypeInheritance,
 } = require("./pluginValidation");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
@@ -551,6 +552,18 @@ function generateLayerRegistry({
     const id = registry[name][idField];
     byId[id] = registry[name];
     idToName[id] = name;
+  }
+
+  // `extends` is resolved at runtime, so a dangling or chained parent would be
+  // a silent no-op renderer; fail the build instead.
+  if (pluginType === "layertype") {
+    const inheritanceErrors = validateLayerTypeInheritance(byId);
+    if (inheritanceErrors.length > 0) {
+      inheritanceErrors.forEach((message) =>
+        logger("error", message, loggerCategory)
+      );
+      throw new Error(inheritanceErrors.join("; "));
+    }
   }
 
   // 1. Configure page JSON — embed each plugin's metaconfig contents so the

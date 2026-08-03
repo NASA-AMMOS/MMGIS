@@ -110,6 +110,10 @@ const SURFACES = {
  */
 function surfaceOfPathKey(key, pluginType = "layertype") {
   if (pluginType === "layerattachment") return "attachment";
+  // A single-module layer type (`paths.plugin`) exports the surfaces as keys
+  // rather than operations, so there is no one op vocabulary to check it
+  // against; its surfaces are validated once resolved.
+  if (key === "plugin") return null;
   if (key === "map") return "map";
   if (key.startsWith("globe.")) return "globe";
   if (SURFACES[key]) return key;
@@ -166,6 +170,7 @@ const KNOWN_FIELDS = {
     ...COMMON_FIELDS,
     "paths",
     "typeId",
+    "extends",
     "description",
     "descriptionFull",
     "capabilities",
@@ -444,6 +449,27 @@ function validatePluginConfig(config, pluginName, pluginType) {
     // metadata but draws nothing, so it is allowed to omit renderer paths.
     // Everything else (layer attachments, and any layertype that declares a
     // `paths` object) must supply at least one string-valued renderer path.
+    // `extends: "<typeId>"` inherits every surface this type doesn't declare
+    // from one parent, so an inheriting type may legitimately ship no modules
+    // at all (a pure capability override).
+    if (config.extends !== undefined) {
+      if (pluginType !== "layertype") {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'extends' is only valid on a layertype`
+        );
+      } else if (
+        typeof config.extends !== "string" ||
+        config.extends.trim() === ""
+      ) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'extends' must be a non-empty typeId string`
+        );
+      } else if (config.extends === config.typeId) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'extends' cannot reference itself ('${config.typeId}')`
+        );
+      }
+    }
     const nonRenderingLayerType =
       pluginType === "layertype" && config.paths === undefined;
     if (nonRenderingLayerType) {
@@ -543,8 +569,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
     // module-export-level half (required `make`, known ops/phases).
     // An attachment declares one module for both engines (`paths.plugin`), so
     // there is nothing per-surface to cross-check.
+    // An extending type may render entirely through its parent's modules, so
+    // there is nothing of its own to cross-check.
     const renderers =
-      pluginType === "layerattachment"
+      pluginType === "layerattachment" || config.extends !== undefined
         ? null
         : config.capabilities && config.capabilities.renderers;
     if (
@@ -1013,6 +1041,35 @@ function validateLayerTypeModuleShape(source, label, surface = "map") {
   return errors;
 }
 
+/**
+ * Cross-plugin check for `extends`: the parent must exist, and inheritance is
+ * one level only — a chain of layer types is a refactoring hazard for no
+ * demonstrated need, and one level already solves the fork-the-parent problem
+ * `extends` exists for.
+ *
+ * @param {Object} manifestsById - { [typeId]: manifest }
+ * @returns {string[]} error strings (empty == valid)
+ */
+function validateLayerTypeInheritance(manifestsById) {
+  const errors = [];
+  for (const typeId in manifestsById) {
+    const parentId = manifestsById[typeId].extends;
+    if (parentId === undefined) continue;
+
+    const parent = manifestsById[parentId];
+    if (parent === undefined) {
+      errors.push(
+        `Layer type '${typeId}': extends '${parentId}', which no plugin provides`
+      );
+    } else if (parent.extends !== undefined) {
+      errors.push(
+        `Layer type '${typeId}': extends '${parentId}', which itself extends '${parent.extends}' — inheritance is one level only`
+      );
+    }
+  }
+  return errors;
+}
+
 module.exports = {
   validatePluginConfig,
   validateDependencies,
@@ -1020,6 +1077,7 @@ module.exports = {
   findDuplicateIds,
   validateLayerTypeModuleShape,
   surfaceOfPathKey,
+  validateLayerTypeInheritance,
   LAYER_OPS,
   ATTACHMENT_OPS,
   CONFIG_OPS,

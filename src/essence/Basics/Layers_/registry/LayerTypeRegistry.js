@@ -17,6 +17,7 @@
  */
 
 let _cache = null
+const _resolved = { modules: {}, capabilities: {} }
 
 function _load() {
     if (_cache) return _cache
@@ -32,14 +33,67 @@ function _load() {
     return _cache
 }
 
+/**
+ * The surfaces a type may implement, in the shape dispatch code expects.
+ *
+ * A plugin may declare them as separate modules (`paths.map`, `paths.config`,
+ * …) or as one module (`paths.plugin`) exporting the same keys — a 30-line
+ * layer type should not need six files. The single module is flattened here so
+ * neither shape is visible to callers.
+ */
+function _ownModules(typeId) {
+    const mods = _load().layerTypeModules?.[typeId]
+    if (mods == null) return null
+    if (mods.plugin == null) return mods
+
+    const single = mods.plugin.default || mods.plugin
+    return {
+        ...single,
+        // Per-surface paths still win where a plugin mixes both shapes.
+        ...Object.fromEntries(
+            Object.entries(mods).filter(([key]) => key !== 'plugin')
+        ),
+        globe: { ...(single.globe || {}), ...(mods.globe || {}) },
+    }
+}
+
+/**
+ * `extends: "<typeId>"` — inherit every surface this type doesn't define from
+ * one parent ("a tile whose url comes from elsewhere", "a vector that filters
+ * differently"). Deliberately one level: a chain of layer types is a
+ * refactoring hazard for no demonstrated need, and one level already removes
+ * the fork-the-parent problem it exists to solve.
+ */
+function _effectiveModules(typeId) {
+    if (typeId == null) return null
+    if (_resolved.modules[typeId] !== undefined)
+        return _resolved.modules[typeId]
+
+    const own = _ownModules(typeId)
+    const parentId = _load().layerTypeConfigs?.[typeId]?.extends
+    const parent = parentId != null ? _ownModules(parentId) : null
+
+    let effective = own
+    if (parent != null) {
+        effective = {
+            ...parent,
+            ...(own || {}),
+            globe: { ...(parent.globe || {}), ...(own?.globe || {}) },
+        }
+    }
+
+    _resolved.modules[typeId] = effective || null
+    return _resolved.modules[typeId]
+}
+
 const LayerTypeRegistry = {
     /** Renderer modules for a type: { map, globe: { cesium, lithosphere }, … } */
     get(typeId) {
-        return _load().layerTypeModules?.[typeId]
+        return _effectiveModules(typeId)
     },
     /** Per-engine globe renderer module for a type, e.g. getGlobe('tile','cesium'). */
     getGlobe(typeId, engine) {
-        return _load().layerTypeModules?.[typeId]?.globe?.[engine]
+        return _effectiveModules(typeId)?.globe?.[engine]
     },
     /** Full plugin manifest for a type. */
     getConfig(typeId) {
@@ -49,9 +103,39 @@ const LayerTypeRegistry = {
     getSettings(typeId) {
         return _load().layerTypeSettings?.[typeId]
     },
-    /** Declared capabilities object for a type (renderers, time, filtering…). */
+    /**
+     * Declared capabilities object for a type (renderers, time, filtering…),
+     * with an `extends` parent's capabilities as the base so an inheriting type
+     * only declares what differs.
+     */
     capabilities(typeId) {
-        return _load().layerTypeConfigs?.[typeId]?.capabilities || {}
+        if (_resolved.capabilities[typeId] !== undefined)
+            return _resolved.capabilities[typeId]
+
+        const config = _load().layerTypeConfigs?.[typeId]
+        const own = config?.capabilities || {}
+        const parent =
+            config?.extends != null
+                ? _load().layerTypeConfigs?.[config.extends]?.capabilities || {}
+                : {}
+
+        const merged = { ...parent, ...own }
+        // One level into each group too, so overriding map.styling doesn't drop
+        // an inherited map.stacking.
+        for (const key of Object.keys(own)) {
+            if (
+                own[key] != null &&
+                typeof own[key] === 'object' &&
+                !Array.isArray(own[key]) &&
+                parent[key] != null &&
+                typeof parent[key] === 'object' &&
+                !Array.isArray(parent[key])
+            )
+                merged[key] = { ...parent[key], ...own[key] }
+        }
+
+        _resolved.capabilities[typeId] = merged
+        return merged
     },
     /**
      * Declarative answers to the questions core must ask while iterating or
@@ -137,6 +221,10 @@ const LayerTypeRegistry = {
     /** True if a plugin owns this type id. */
     has(typeId) {
         return !!_load().layerTypeModules?.[typeId]
+    },
+    /** The type this one inherits its undeclared surfaces from, if any. */
+    parentOf(typeId) {
+        return _load().layerTypeConfigs?.[typeId]?.extends ?? null
     },
     /** All registered manifests, keyed by typeId. */
     all() {

@@ -1240,7 +1240,11 @@ function cmdValidate() {
     // categories aren't part of discoverAll()'s enable/disable model (they are
     // always-on core), so scan them directly and validate both the manifest and
     // each renderer module's `export default {}` operation shape.
-    const { validateLayerTypeModuleShape, surfaceOfPathKey } = require(
+    const {
+        validateLayerTypeModuleShape,
+        surfaceOfPathKey,
+        validateLayerTypeInheritance,
+    } = require(
         path.join(__dirname, "..", "API", "pluginValidation")
     );
     let rendererPlugins = [];
@@ -1288,9 +1292,8 @@ function cmdValidate() {
         const paths = p.manifest.paths;
         if (paths && typeof paths === "object" && !Array.isArray(paths)) {
             for (const [key, rel] of Object.entries(paths)) {
-                const surface = surfaceOfPathKey(key, p.pType);
-                if (surface == null) continue;
                 if (typeof rel !== "string") continue;
+                const surface = surfaceOfPathKey(key, p.pType);
                 const modPath = path.join(p.pluginPath, `${rel}.js`);
                 let src;
                 try {
@@ -1301,6 +1304,9 @@ function cmdValidate() {
                     errors++;
                     continue;
                 }
+                // A single-module layer type exports surfaces, not operations,
+                // so there is no op vocabulary to check it against.
+                if (surface == null) continue;
                 const modErrs = validateLayerTypeModuleShape(src, `${prefix} [${key}]`, surface);
                 for (const e of modErrs) {
                     pluginErrors.push(e);
@@ -1313,6 +1319,18 @@ function cmdValidate() {
         if (pluginErrors.length === 0) passed++;
         results.push({ plugin: prefix, valid: pluginErrors.length === 0, enabled: true, errors: pluginErrors });
     }
+    // `extends` is cross-plugin, so it can only be checked once every manifest
+    // is in hand.
+    const layerTypesById = {};
+    for (const p of rendererPlugins) {
+        if (p.pType === "layertype" && p.manifest.typeId)
+            layerTypesById[p.manifest.typeId] = p.manifest;
+    }
+    for (const e of validateLayerTypeInheritance(layerTypesById)) {
+        if (!FLAG_JSON) console.error(`  ${c.red("\u2717")} ${c.red(e)}`);
+        errors++;
+    }
+
     const totalPlugins = plugins.length + rendererPlugins.length;
 
     if (FLAG_JSON) {

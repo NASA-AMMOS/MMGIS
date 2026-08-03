@@ -215,7 +215,14 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
 function checkPluginDependencies(pluginsRoot, loggerCategory = "PluginDeps") {
     // Discover all types with a lightweight parse-only scan.
     const allPlugins = [];
-    for (const type of ["tools", "backend", "components", "interactions"]) {
+    for (const type of [
+        "tools",
+        "backend",
+        "components",
+        "interactions",
+        "layertypes",
+        "layerattachments",
+    ]) {
         const discovered = discoverPlugins(pluginsRoot, type, "plugin.json", {
             loader: "parse",
             loggerCategory,
