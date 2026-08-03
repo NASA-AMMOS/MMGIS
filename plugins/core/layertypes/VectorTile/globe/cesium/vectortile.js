@@ -10,8 +10,14 @@
  * gctx (cesium) = { engine, renderer, layers, requestRender, ... }
  */
 import CesiumMVTLayer from '@basics/Globe_/CesiumMVTLayer'
+import { makeWith, onToggle } from '../config'
 
-function make(layerConfig, gctx) {
+function make(layerObj, gctx) {
+    return makeWith(layerObj, gctx, render)
+}
+
+// Add an already-built globe layer config (engine-facing entry point).
+function render(layerConfig, gctx) {
     const { renderer, layers } = gctx
 
     const mvtLayer = new CesiumMVTLayer(renderer, {
@@ -58,6 +64,8 @@ function setOpacity(name, opacity, gctx) {
 
 export default {
     make,
+    onToggle,
+    render,
     destroy,
     setVisibility,
     setOpacity,

@@ -1,19 +1,29 @@
 /**
  * Tile layer type — LithoSphere globe renderer.
  *
+ * `make` receives the layer's normal MMGIS config object and owns the whole
+ * translation to this engine: build the globe layer config (shared with the
+ * Cesium module) and hand it to LithoSphere's 'tile' layerer.
+ *
  * LithoSphere is itself a per-type dispatcher: `litho.addLayer(type, cfg)` and
  * the by-name `removeLayer` / `toggleLayer` / `setLayerOpacity` / `orderLayers`
- * are type-agnostic. So the only tile-specific seam on this engine is `add`
- * (where an MMGIS layer type maps to a LithoSphere layerer name). Lifecycle ops
- * carry no tile-specific logic and stay generic in GlobeRenderer, which is why
- * this module intentionally implements only `add`.
+ * are type-agnostic, so no other lifecycle op carries tile-specific logic and
+ * the rest stays generic in GlobeRenderer.
  *
  * gctx (lithosphere) = { engine: 'lithosphere', renderer (LithoSphere), layers }
  */
-function make(layerConfig, gctx) {
+import { toGlobeConfig } from '../config'
+
+function make(layerObj, gctx) {
+    return render(toGlobeConfig(layerObj), gctx)
+}
+
+// Add an already-built globe layer config (engine-facing entry point).
+function render(layerConfig, gctx) {
     return gctx.renderer.addLayer('tile', layerConfig)
 }
 
 export default {
     make,
+    render,
 }

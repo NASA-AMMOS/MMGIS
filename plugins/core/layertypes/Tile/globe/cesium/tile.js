@@ -19,6 +19,7 @@
 import * as Cesium from 'cesium'
 import { utcFormat } from 'd3-time-format'
 import LayerUtils from '@basics/Layers_/LayerUtils'
+import { toGlobeConfig } from '../config'
 
 // TMS y-origin is at the bottom (Cesium's default); WMTS y-origin is at the top.
 // Both currently pass through unchanged — kept as a seam for future transforms.
@@ -176,7 +177,12 @@ function restoreImageryPosition(renderer, newLayer, index) {
     }
 }
 
-function make(layerConfig, gctx) {
+function make(layerObj, gctx) {
+    return render(toGlobeConfig(layerObj), gctx)
+}
+
+// Add an already-built globe layer config (engine-facing entry point).
+function render(layerConfig, gctx) {
     const { renderer, layers } = gctx
     const { name } = layerConfig
 
@@ -391,6 +397,7 @@ function setStyle(name, gctx) {
 
 export default {
     make,
+    render,
     destroy,
     setOpacity,
     setVisibility,

@@ -14,6 +14,7 @@
  */
 import L_ from '@basics/Layers_/Layers_'
 import MapRenderer from '@basics/Map_/MapRenderer'
+import Description from '@basics/UserInterface_/components/Description/Description'
 import { captureVector } from '@basics/Layers_/capture/LayerCapturer'
 import { data as colormapData } from '@external/js-colormaps/js-colormaps.js'
 
@@ -195,6 +196,35 @@ function make(layerObj, ctx = {}) {
     })
 }
 
+/**
+ * A velocity field is an animation over a captured data window, not a static
+ * layer: showing it again has to recapture and rebuild it (the streamline and
+ * particle canvases cannot be re-attached), so this type owns show/hide instead
+ * of using the core add/remove default.
+ */
+async function setVisibility(layerObj, ctx = {}) {
+    const name = layerObj.name
+
+    if (!ctx.visible) {
+        L_.Map_.rmNotNull(L_.layers.layer[name])
+        return
+    }
+
+    if (!ctx.hadToMake) {
+        if (['streamlines', 'particles'].includes(layerObj.kind))
+            L_.Map_.rmNotNull(L_.layers.layer[name])
+
+        await L_.Map_.makeLayer(layerObj, true, null, null, true)
+        Description.updateInfo()
+    }
+
+    L_.Map_.map.addLayer(L_.layers.layer[name])
+    L_.layers.layer[name].setZIndex(
+        L_._layersOrdered.length + 1 - L_._layersOrdered.indexOf(name)
+    )
+}
+
 export default {
     make,
+    setVisibility,
 }

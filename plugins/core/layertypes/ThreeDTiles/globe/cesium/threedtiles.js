@@ -10,8 +10,14 @@
  * gctx (cesium) = { engine, renderer, layers, requestRender, loadingLayers, ... }
  */
 import * as Cesium from 'cesium'
+import { makeWith, onToggle } from '../config'
 
-async function make(layerConfig, gctx) {
+function make(layerObj, gctx) {
+    return makeWith(layerObj, gctx, render)
+}
+
+// Add an already-built globe layer config (engine-facing entry point).
+async function render(layerConfig, gctx) {
     const { renderer, layers, loadingLayers } = gctx
     const { name } = layerConfig
 
@@ -101,6 +107,8 @@ function setOpacity(name, opacity, gctx) {
 
 export default {
     make,
+    onToggle,
+    render,
     destroy,
     setVisibility,
     setOpacity,

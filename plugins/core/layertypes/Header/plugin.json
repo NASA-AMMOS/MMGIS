@@ -13,6 +13,7 @@
       "map": false,
       "globe": false
     },
+    "map": { "stacking": false },
     "time": false,
     "filtering": false,
     "identify": false

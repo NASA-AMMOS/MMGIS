@@ -23,10 +23,21 @@
  * }
  */
 import * as Cesium from 'cesium'
+import { isClamped, toGlobeConfig } from '../config'
 
 const CESIUM_POINT_PIXEL_SCALE = 2
 
-function make(layerConfig, gctx) {
+function make(layerObj, gctx) {
+    const layerConfig = toGlobeConfig(layerObj)
+    if (layerConfig == null) return
+    return render(layerConfig, {
+        ...gctx,
+        clampToGround: isClamped(layerObj),
+    })
+}
+
+// Add an already-built globe layer config (engine-facing entry point).
+function render(layerConfig, gctx) {
     const { name } = layerConfig
     const type = gctx.clampToGround ? 'clamped' : 'vector'
 
@@ -250,4 +261,5 @@ function make(layerConfig, gctx) {
 
 export default {
     make,
+    render,
 }

@@ -44,10 +44,15 @@ const COMMON_FIELDS = [
  * `export default {}` may only declare these operations, each optionally
  * broken into these phases. `make` is required and is the only op that may
  * declare the extra `afterCommit` phase (runs after the make-lock releases).
+ *
+ * `render` is globe-only: it adds an already-built engine layer config, for
+ * core paths and tools that construct engine geometry directly rather than
+ * from a layer's config object.
  */
 const LAYER_OPS = [
   "load",
   "make",
+  "render",
   "destroy",
   "setOpacity",
   "setVisibility",

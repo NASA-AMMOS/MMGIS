@@ -23,6 +23,7 @@ test.describe("LayerInterface constants", () => {
     expect(LAYER_OPS).toEqual([
       "load",
       "make",
+      "render",
       "destroy",
       "setOpacity",
       "setVisibility",

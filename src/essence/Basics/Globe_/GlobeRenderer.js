@@ -468,7 +468,63 @@ class GlobeRenderer {
     }
 
     /**
-     * Add a layer to the globe.
+     * Add an MMGIS layer to the globe.
+     *
+     * The layer type's globe plugin receives the layer's normal MMGIS config
+     * object and builds its own engine config — core knows no type's globe
+     * config shape. A type with no globe module for the active engine simply
+     * isn't drawn on the globe (nothing to do, no warning).
+     *
+     * @param {object} layerObj  An MMGIS layer config (L_.layers.data[name]).
+     * @param {object} [extras]  Extra fields merged into the plugin's gctx.
+     * @returns {Promise<*>} resolves to the engine layer handle (or undefined)
+     */
+    async addLayerFor(layerObj, extras = {}) {
+        if (layerObj == null) return
+        const globeModule = this._globeModuleFor(layerObj.type)
+        if (!LayerInterface.hasOp(globeModule, 'make')) return
+        return LayerInterface.run(globeModule, 'make', [
+            layerObj,
+            this._globeCtx(layerObj.type, extras),
+        ])
+    }
+
+    /**
+     * Apply a host-layer toggle to the globe.
+     *
+     * Whether a globe layer is removed or merely hidden when its layer is
+     * toggled off is per-type policy (LithoSphere models, 3D Tiles sets and
+     * extruded vector tiles are expensive to rebuild, so they stay loaded and
+     * hidden). The type's globe `onToggle` owns that decision; the core default
+     * removes the layer.
+     *
+     * @param {object} layerObj
+     * @param {boolean} visible
+     */
+    onLayerToggle(layerObj, visible) {
+        if (layerObj == null) return
+        const globeModule = this._globeModuleFor(layerObj.type)
+        return LayerInterface.runSync(
+            globeModule,
+            'onToggle',
+            [layerObj, this._globeCtx(layerObj.type, { visible })],
+            {
+                coreDefault: () => {
+                    if (!visible) this.removeLayer(layerObj.name)
+                },
+            }
+        )
+    }
+
+    /**
+     * Add an already-built globe layer config to the engine.
+     *
+     * This is the engine-facing entry point, used for engine render variants
+     * that are not MMGIS layer types of their own ('clamped', 'curtain',
+     * 'gradient_polyline') and by tools that draw ad-hoc globe geometry. For an
+     * MMGIS layer use {@link addLayerFor} instead, which lets the layer type
+     * build its own config.
+     *
      * Always async: plugin-backed types dispatch through LayerInterface.run
      * (which is async), so this resolves uniformly to the engine layer handle
      * for every type — callers that keep the handle must await it.
@@ -489,8 +545,8 @@ class GlobeRenderer {
         // type is migrated for this engine, delegate; otherwise fall through to
         // the built-in path for not-yet-migrated types.
         const globeModule = this._globeModuleFor(type)
-        if (LayerInterface.hasOp(globeModule, 'make')) {
-            return LayerInterface.run(globeModule, 'make', [
+        if (LayerInterface.hasOp(globeModule, 'render')) {
+            return LayerInterface.run(globeModule, 'render', [
                 layerConfig,
                 this._globeCtx(type),
             ])
@@ -527,11 +583,22 @@ class GlobeRenderer {
     // and state that intentionally stay in GlobeRenderer. `type` is the layer
     // type this dispatch is for (so a plugin can tell 'vector' from 'clamped').
     _globeCtx(type, extras = {}) {
+        // Engine primitives every globe plugin may call, whichever engine it
+        // is written for: add an already-built config, and the by-name
+        // lifecycle the engines implement generically.
+        const primitives = {
+            addEngineLayer: (type, layerConfig) =>
+                this.addLayer(type, layerConfig),
+            hasLayer: (name) => this.hasLayer(name),
+            toggleLayer: (name, visible) => this.toggleLayer(name, visible),
+            removeLayer: (name) => this.removeLayer(name),
+        }
         if (this.rendererType === 'cesium') {
             return {
                 engine: 'cesium',
                 renderer: this.renderer,
                 layers: this._layers,
+                ...primitives,
                 requestRender: () => this._requestRender(),
                 clampToGround: type === 'clamped',
                 // Collection-level vector reload serialization (shared state):
@@ -553,6 +620,7 @@ class GlobeRenderer {
             engine: 'lithosphere',
             renderer: this.renderer,
             layers: this._layers,
+            ...primitives,
             clampToGround: type === 'clamped',
             geojsonHasPolygons: (geojson) => this._geojsonHasPolygons(geojson),
             ...extras,

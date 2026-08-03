@@ -54,6 +54,19 @@ export async function toggleLayer(
     }
 }
 
+// An attachment can take over its host layer's globe rendering: a
+// path_gradient draws the host's geometry itself, and adding the host on top
+// would show its default billboards as white artifacts. Becomes an attachment
+// capability once layer attachments are plugins.
+function hasGlobeSuppressingAttachment(L_, layerObj) {
+    const attachments = L_.layers.attachments[layerObj.name]
+    if (!attachments) return false
+    for (const sub in attachments) {
+        if (attachments[sub].type === 'path_gradient') return true
+    }
+    return false
+}
+
 export async function toggleLayerHelper(
     L_,
     s,
@@ -153,19 +166,26 @@ export async function toggleLayerHelper(
                     }
                 }
             }
-            if (
-                s.type === 'model' ||
-                s.type === '3dtiles' ||
-                (s.type === 'vectortile' && s.extrudeEnabled)
-            ) {
-                L_.Globe_.litho.toggleLayer(s.name, false)
-            } else L_.Globe_.litho.removeLayer(s.name)
+            // Hide on the 3D globe. Whether the globe layer is removed or kept
+            // loaded and hidden is the type's globe `onToggle` decision.
+            L_.Globe_.litho.onLayerToggle(s, false)
         } else {
+            // Turning on: build the 2D map layer if it was never made. A
+            // globe-only type (model, 3dtiles) has no map renderer to make.
             if (
-                L_.layers.layer[s.name] &&
+                L_.layers.layer[s.name] === false &&
                 globeOnly != true &&
-                s.type !== 'velocity'
+                LayerInterface.hasOp(
+                    LayerTypeRegistry.get(s.type)?.map,
+                    'make'
+                )
             ) {
+                await L_.Map_.makeLayer(s, true, null, null, true)
+                Description.updateInfo()
+                toggleCtx.hadToMake = true
+            }
+
+            if (L_.layers.layer[s.name] && globeOnly != true) {
                 if (L_.layers.attachments[s.name]) {
                     for (let sub in L_.layers.attachments[s.name]) {
                         if (L_.layers.attachments[s.name][sub].on) {
@@ -257,10 +277,29 @@ export async function toggleLayerHelper(
                     }
                 }
 
+                if (!toggleCtx.hadToMake) {
+                    // Refresh annotation popups
+                    if (L_.layers.layer[s.name]._layers)
+                        Object.keys(L_.layers.layer[s.name]._layers).forEach(
+                            (key) => {
+                                const l = L_.layers.layer[s.name]._layers[key]
+                                if (l._isAnnotation) {
+                                    L_.layers.layer[s.name]._layers[key] =
+                                        L_.createAnnotation(
+                                            l._annotationParams.feature,
+                                            l._annotationParams.className,
+                                            l._annotationParams.layerId,
+                                            l._annotationParams.id1
+                                        )
+                                }
+                            }
+                        )
+                }
+
                 // Show the primary layer on the 2D map via the type's map
-                // plugin (setVisibility). Built-ins declare none, so the
+                // plugin (setVisibility). Most built-ins declare none, so the
                 // core default (add to map + z-order) runs unchanged.
-                LayerInterface.runSync(
+                await LayerInterface.run(
                     LayerTypeRegistry.get(s.type)?.map,
                     'setVisibility',
                     [s, { ...MapRenderer.context(), ...toggleCtx }],
@@ -277,265 +316,30 @@ export async function toggleLayerHelper(
                 )
             }
 
-            if (s.type === 'tile') {
-                let layerUrl = L_.getUrl(s.type, s.url, s)
-                let demUrl = L_.getUrl(s.type, s.demtileurl, s)
-                if (s.demtileurl == undefined || s.demtileurl.length == 0)
-                    demUrl = undefined
-
-                // Detect splitColonType from original URL
-                let splitColonType = undefined
-                if (s.url && typeof s.url === 'string') {
-                    const lowerUrl = s.url.toLowerCase()
-                    if (lowerUrl.startsWith('stac-collection:')) {
-                        splitColonType = 'stac-collection'
-                    } else if (lowerUrl.startsWith('cog:')) {
-                        splitColonType = 'COG'
-                    }
-                }
-
-                L_.Globe_.litho.addLayer('tile', {
-                    name: s.name,
-                    order: L_._layersOrdered,
-                    on: L_.layers.opacity[s.name],
-                    format: s.tileformat || 'tms',
-                    formatOptions: {},
-                    demFormat: s.tileformat || 'tms',
-                    demFormatOptions: {
-                        correctSeams: s.tileformat === 'wms',
-                        wmsParams: {},
-                    },
-                    parser: s.demparser || null,
-                    path: layerUrl,
-                    demPath: demUrl,
-                    opacity: L_.layers.opacity[s.name],
-                    minZoom: s.minZoom,
-                    maxZoom: s.maxNativeZoom,
-                    //boundingBox: s.boundingBox,
-                    time: s.time,
-                    // COG parameters for TiTiler layers
-                    splitColonType: splitColonType,
-                    cogTransform: s.cogTransform,
-                    cogMin: s.cogMin,
-                    cogMax: s.cogMax,
-                    currentCogMin: s.currentCogMin,
-                    currentCogMax: s.currentCogMax,
-                    cogColormap: s.cogColormap,
-                    cogExpression: s.cogExpression,
-                    currentCogExpression: s.currentCogExpression,
-                })
-            } else if (s.type === 'vectortile' && s.extrudeEnabled) {
-                if (L_.Globe_.litho.hasLayer(s.name)) {
-                    L_.Globe_.litho.toggleLayer(s.name, true)
-                } else {
-                    let vtUrl = L_.getUrl(s.type, s.url, s)
-                    L_.Globe_.litho.addLayer('vectortile', {
-                        name: s.name,
-                        path: vtUrl,
-                        opacity: L_.layers.opacity[s.name],
-                        vtLayer:
-                            s.extrudeVtLayer ||
-                            (s.style?.vtLayer
-                                ? Object.keys(s.style.vtLayer)[0]
-                                : 'building'),
-                        extrudeHeightProperty:
-                            s.extrudeHeightProperty || 'render_height',
-                        extrudeDefaultHeight: s.extrudeDefaultHeight ?? 0,
-                        extrudeBaseProperty: s.extrudeBaseProperty || null,
-                        extrudeColor: s.extrudeColor || '#cccccc',
-                        extrudeOverrideFeatureColor:
-                            s.extrudeOverrideFeatureColor || false,
-                        extrudeOpacity: s.extrudeOpacity ?? 0.9,
-                        minZoom: s.minZoom,
-                        maxZoom: s.maxNativeZoom,
-                    })
-                }
-            } else if (s.type === 'data') {
-            } else if (s.type === 'model') {
-                if (L_.Globe_.litho.hasLayer(s.name)) {
-                    L_.Globe_.litho.toggleLayer(s.name, true)
-                } else {
-                    let modelUrl = s.url
-                    if (!F_.isUrlAbsolute(modelUrl))
-                        modelUrl = L_.missionPath + modelUrl
-                    L_.Globe_.litho.addLayer('model', {
-                        name: s.name,
-                        order: 1,
-                        on: true,
-                        path: modelUrl,
-                        opacity: s.initialOpacity,
-                        position: {
-                            longitude: s.position?.longitude || 0,
-                            latitude: s.position?.latitude || 0,
-                            elevation: s.position?.elevation || 0,
-                        },
-                        scale: s.scale || 1,
-                        rotation: {
-                            // y-up is away from planet center. x is pitch, y is yaw, z is roll
-                            x: s.rotation?.x || 0,
-                            y: s.rotation?.y || 0,
-                            z: s.rotation?.z || 0,
-                        },
-                    })
-                }
-            } else if (s.type === 'velocity') {
-                if (['streamlines', 'particles'].includes(s.kind)) {
-                    L_.Map_.rmNotNull(L_.layers.layer[s.name])
-                }
-                await L_.Map_.makeLayer(s, true, null, null, true)
-                Description.updateInfo()
-                L_.Map_.map.addLayer(L_.layers.layer[s.name])
-                L_.layers.layer[s.name].setZIndex(
-                    L_._layersOrdered.length +
-                        1 -
-                        L_._layersOrdered.indexOf(s.name)
-                )
-            } else {
-                let hadToMake = false
-                if (
-                    L_.layers.layer[s.name] === false &&
-                    globeOnly != true
-                ) {
-                    await L_.Map_.makeLayer(s, true, null, null, true)
-                    Description.updateInfo()
-                    hadToMake = true
-                    toggleCtx.hadToMake = true
-                }
-                if (L_.layers.layer[s.name]) {
-                    if (globeOnly != true) {
-                        if (!hadToMake) {
-                            // Refresh annotation popups
-                            if (L_.layers.layer[s.name]._layers)
-                                Object.keys(
-                                    L_.layers.layer[s.name]._layers
-                                ).forEach((key) => {
-                                    const l =
-                                        L_.layers.layer[s.name]._layers[key]
-                                    if (l._isAnnotation) {
-                                        L_.layers.layer[s.name]._layers[
-                                            key
-                                        ] = L_.createAnnotation(
-                                            l._annotationParams.feature,
-                                            l._annotationParams.className,
-                                            l._annotationParams.layerId,
-                                            l._annotationParams.id1
-                                        )
-                                    }
-                                })
-                        }
-                        L_.Map_.map.addLayer(L_.layers.layer[s.name])
-                        L_.layers.layer[s.name].setZIndex(
-                            L_._layersOrdered.length +
-                                1 -
-                                L_._layersOrdered.indexOf(s.name)
-                        )
-                    }
-
-                    if (s.type === 'vector') {
-                        // Skip adding the parent vector layer to the 3D
-                        // globe when it has a path_gradient attachment —
-                        // the gradient polyline already renders the data
-                        // and the default billboards would show as white
-                        // artifacts.
-                        let hasGradientAttachment = false
-                        if (L_.layers.attachments[s.name]) {
-                            for (const sub in L_.layers.attachments[
-                                s.name
-                            ]) {
-                                if (
-                                    L_.layers.attachments[s.name][sub]
-                                        .type === 'path_gradient'
-                                ) {
-                                    hasGradientAttachment = true
-                                    break
-                                }
-                            }
-                        }
-                        if (!hasGradientAttachment) {
-                            L_.Globe_.litho.addLayer(
-                                s.layer3dType || 'clamped',
-                                {
-                                    name: s.name,
-                                    order: L_._layersOrdered, // Since higher order in litho is on top
-                                    on: L_.layers.opacity[s.name]
-                                        ? true
-                                        : false,
-                                    geojson: L_.layers.layer[
-                                        s.name
-                                    ].toGeoJSON(L_.GEOJSON_PRECISION),
-                                    onClick: (feature, lnglat, layer) => {
-                                        L_.selectFeature(
-                                            layer.name,
-                                            feature
-                                        )
-                                    },
-                                    useKeyAsHoverName: s.useKeyAsName,
-                                    style: {
-                                        // Prefer feature[f].properties.style values
-                                        letPropertiesStyleOverride: true, // default false
-                                        default: {
-                                            fillColor: s.style.fillColor, //Use only rgb and hex. No css color names
-                                            fillOpacity: parseFloat(
-                                                s.style.fillOpacity
-                                            ),
-                                            color: s.style.color,
-                                            weight: s.style.weight,
-                                            radius: s.radius,
-                                        },
-                                        bearing:
-                                            (s.variables?.markerAttachments
-                                                ?.bearing &&
-                                                s.variables
-                                                    ?.markerAttachments
-                                                    ?.bearing.enabled ==
-                                                    null) ||
-                                            s.variables?.markerAttachments
-                                                ?.bearing?.enabled === true
-                                                ? s.variables
-                                                      .markerAttachments
-                                                      .bearing
-                                                : null,
-                                    },
-                                    opacity: L_.layers.opacity[s.name],
-                                    minZoom:
-                                        s.visibilitycutoff > 0
-                                            ? s.visibilitycutoff
-                                            : 0,
-                                    maxZoom:
-                                        s.visibilitycutoff < 0
-                                            ? s.visibilitycutoff
-                                            : 100,
-                                }
-                            )
-                        } else if (
-                            hadToMake &&
-                            L_.layers.attachments[s.name]
-                        ) {
-                            // On first-time toggle the attachment-processing block
-                            // (lines ~450-568) was skipped because the layer didn't
-                            // exist yet. Defer the heavy Cesium geometry build so the
-                            // UI isn't blocked on initial toggle.
-                            for (const sub in L_.layers.attachments[
-                                s.name
-                            ]) {
-                                const att =
-                                    L_.layers.attachments[s.name][sub]
-                                if (
-                                    att.type === 'path_gradient' &&
-                                    att.on &&
-                                    att.cesiumGradientOptions
-                                ) {
-                                    setTimeout(() => {
-                                        L_.addGradientPolyline(att)
-                                    }, 0)
-                                }
-                            }
-                        }
+            // Show on the 3D globe: the type's globe plugin builds its own
+            // engine config from this layer's config object.
+            if (!hasGlobeSuppressingAttachment(L_, s)) {
+                await L_.Globe_.litho.addLayerFor(s)
+            } else if (toggleCtx.hadToMake) {
+                // On first-time toggle the attachment-processing block above
+                // was skipped because the layer didn't exist yet. Defer the
+                // heavy Cesium geometry build so the UI isn't blocked.
+                for (const sub in L_.layers.attachments[s.name]) {
+                    const att = L_.layers.attachments[s.name][sub]
+                    if (
+                        att.type === 'path_gradient' &&
+                        att.on &&
+                        att.cesiumGradientOptions
+                    ) {
+                        setTimeout(() => {
+                            L_.addGradientPolyline(att)
+                        }, 0)
                     }
                 }
             }
         }
     }
+
 
     if (globeOnly != true && !ignoreToggleStateChange) {
         if (on) L_.layers.on[s.name] = false
@@ -699,193 +503,30 @@ export function addVisible(L_, map_, onlyTheseLayers) {
                 }
             }
 
-            // Add Globe layers
             const s = L_.layers.dataFlat[i]
-            // Use getUrl to properly transform STAC URLs and handle COG prefix
-            let layerUrl = L_.getUrl('tile', s.url, s)
+
+            // Raster-stacked types are ordered by z-index (rather than by pane
+            // insertion), so their z-index has to be set explicitly at start —
+            // element order is not their order.
             if (
-                s.type === 'tile' ||
-                s.type === 'data' ||
-                s.type === 'vectortile'
+                LayerTypeRegistry.capabilities(s.type).map?.stacking ===
+                'raster'
             ) {
-                // Make sure all tile layers follow z-index order at start instead of element order
                 L_.layers.layer[s.name].setZIndex(
                     L_._layersOrdered.length +
                         1 -
                         L_._layersOrdered.indexOf(s.name)
                 )
+            }
 
-                let demUrl = s.demtileurl
-                if (!F_.isUrlAbsolute(demUrl))
-                    demUrl = L_.missionPath + demUrl
-                if (s.demtileurl == undefined) demUrl = undefined
-
-                // Detect splitColonType from original URL
-                let splitColonType = undefined
-                if (s.url && typeof s.url === 'string') {
-                    const lowerUrl = s.url.toLowerCase()
-                    if (lowerUrl.startsWith('stac-collection:')) {
-                        splitColonType = 'stac-collection'
-                    } else if (lowerUrl.startsWith('cog:')) {
-                        splitColonType = 'COG'
-                    }
-                }
-
-                if (s.type === 'tile')
-                    L_.Globe_.litho.addLayer('tile', {
-                        name: s.name,
-                        order: L_._layersOrdered,
-                        on: L_.layers.opacity[s.name],
-                        format: s.tileformat || 'tms',
-                        formatOptions: {},
-                        demFormat: s.tileformat || 'tms',
-                        demFormatOptions: {
-                            correctSeams: s.tileformat === 'wms',
-                            wmsParams: {},
-                        },
-                        parser: s.demparser || null,
-                        path: layerUrl,
-                        demPath: demUrl,
-                        opacity: L_.layers.opacity[s.name],
-                        minZoom: s.minZoom,
-                        maxZoom: s.maxNativeZoom,
-                        //boundingBox: s.boundingBox,
-                        time: s.time,
-                        // COG parameters for TiTiler layers
-                        splitColonType: splitColonType,
-                        cogTransform: s.cogTransform,
-                        cogMin: s.cogMin,
-                        cogMax: s.cogMax,
-                        currentCogMin: s.currentCogMin,
-                        currentCogMax: s.currentCogMax,
-                        cogColormap: s.cogColormap,
-                        cogExpression: s.cogExpression,
-                        currentCogExpression: s.currentCogExpression,
-                    })
-                else if (s.type === 'vectortile' && s.extrudeEnabled)
-                    L_.Globe_.litho.addLayer('vectortile', {
-                        name: s.name,
-                        path: layerUrl,
-                        opacity: L_.layers.opacity[s.name],
-                        vtLayer:
-                            s.extrudeVtLayer ||
-                            (s.style?.vtLayer
-                                ? Object.keys(s.style.vtLayer)[0]
-                                : 'building'),
-                        extrudeHeightProperty:
-                            s.extrudeHeightProperty || 'render_height',
-                        extrudeDefaultHeight: s.extrudeDefaultHeight ?? 0,
-                        extrudeBaseProperty: s.extrudeBaseProperty || null,
-                        extrudeColor: s.extrudeColor || '#cccccc',
-                        extrudeOverrideFeatureColor:
-                            s.extrudeOverrideFeatureColor || false,
-                        extrudeOpacity: s.extrudeOpacity ?? 0.9,
-                        minZoom: s.minZoom,
-                        maxZoom: s.maxNativeZoom,
-                    })
-            } else if (s.type === 'model') {
-                L_.Globe_.litho.addLayer('model', {
-                    name: s.name,
-                    order: L_._layersOrdered,
-                    on: true,
-                    path: layerUrl,
-                    opacity: L_.layers.opacity[s.name],
-                    position: {
-                        longitude: s.position?.longitude || 0,
-                        latitude: s.position?.latitude || 0,
-                        elevation: s.position?.elevation || 0,
-                    },
-                    scale: s.scale || 1,
-                    rotation: {
-                        // y-up is away from planet center. x is pitch, y is yaw, z is roll
-                        x: s.rotation?.x || 0,
-                        y: s.rotation?.y || 0,
-                        z: s.rotation?.z || 0,
-                    },
-                })
-            } else if (s.type === '3dtiles') {
-                L_.Globe_.litho.addLayer('3dtiles', {
-                    name: s.name,
-                    path: layerUrl,
-                    opacity: L_.layers.opacity[s.name],
-                    maximumScreenSpaceError:
-                        s.maximumScreenSpaceError ?? 16,
-                    maximumMemoryUsage: s.maximumMemoryUsage ?? 512,
-                    heightOffset: s.heightOffset || 0,
-                    style: s.tileStyle || null,
-                })
-            } else if (s.type != 'header') {
-                // Skip parent vector layer in 3D when a path_gradient
-                // attachment handles the rendering (avoids duplicate
-                // white billboard artifacts).
-                let hasGradientAttachment2 = false
-                if (s.type === 'vector' && L_.layers.attachments[s.name]) {
-                    for (const sub in L_.layers.attachments[s.name]) {
-                        if (
-                            L_.layers.attachments[s.name][sub].type ===
-                            'path_gradient'
-                        ) {
-                            hasGradientAttachment2 = true
-                            break
-                        }
-                    }
-                }
-                if (
-                    !hasGradientAttachment2 &&
-                    typeof L_.layers.layer[s.name].toGeoJSON === 'function'
-                )
-                    L_.Globe_.litho.addLayer(
-                        s.type == 'vector'
-                            ? s.layer3dType || 'clamped'
-                            : s.type,
-                        {
-                            name: s.name,
-                            order: L_._layersOrdered, // Since higher order in litho is on top
-                            on: L_.layers.opacity[s.name] ? true : false,
-                            geojson: L_.layers.layer[s.name].toGeoJSON(
-                                L_.GEOJSON_PRECISION
-                            ),
-                            onClick: (feature, lnglat, layer) => {
-                                L_.selectFeature(layer.name, feature)
-                            },
-                            useKeyAsHoverName: s.useKeyAsName,
-                            style: {
-                                // Prefer feature[f].properties.style values
-                                letPropertiesStyleOverride: true, // default false
-                                default: {
-                                    fillColor: s.style?.fillColor, //Use only rgb and hex. No css color names
-                                    fillOpacity: parseFloat(
-                                        s.style?.fillOpacity
-                                    ),
-                                    color: s.style?.color,
-                                    weight: s.style?.weight,
-                                    radius: s.radius,
-                                },
-                                bearing:
-                                    (s.variables?.markerAttachments
-                                        ?.bearing &&
-                                        s.variables?.markerAttachments
-                                            ?.bearing.enabled == null) ||
-                                    s.variables?.markerAttachments?.bearing
-                                        ?.enabled === true
-                                        ? s.variables.markerAttachments
-                                              .bearing
-                                        : null,
-                            },
-                            opacity: L_.layers.opacity[s.name],
-                            minZoom:
-                                s.visibilitycutoff > 0
-                                    ? s.visibilitycutoff
-                                    : null,
-                            maxZoom:
-                                s.visibilitycutoff < 0
-                                    ? s.visibilitycutoff
-                                    : null,
-                        }
-                    )
+            // Add Globe layers: the type's globe plugin builds its own engine
+            // config from this layer's config object.
+            if (!hasGlobeSuppressingAttachment(L_, s)) {
+                L_.Globe_.litho.addLayerFor(s)
             }
         }
     }
+
 
     L_._refreshAnnotationEvents()
 }

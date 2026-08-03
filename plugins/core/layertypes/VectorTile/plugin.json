@@ -13,6 +13,7 @@
       "map": { "engines": ["leaflet"] },
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
+    "map": { "stacking": "raster" },
     "time": false,
     "filtering": false,
     "identify": true
