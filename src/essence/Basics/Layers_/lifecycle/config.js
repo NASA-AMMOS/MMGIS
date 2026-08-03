@@ -97,14 +97,15 @@ export async function parseConfig(L_, configData, urlOnLayers) {
 
             // One configured layer may describe more than one layer (a STAC
             // catalog becomes a header with a sublayer per child). Only the
-            // layer type knows, so ask it — `config.expand` defaults to
-            // returning the entry unchanged.
-            d[i] = await LayerInterface.run(
-                LayerTypeRegistry.get(d[i].type)?.config,
-                'expand',
-                [d[i]],
-                { coreDefault: (layerObj) => layerObj }
-            )
+            // layer type knows, so ask it — a type that declares no `expand`
+            // keeps its entry unchanged, and parsing stays synchronous (core
+            // reads dataFlat as soon as parseConfig resolves).
+            const configModule = LayerTypeRegistry.get(d[i].type)?.config
+            if (LayerInterface.hasOp(configModule, 'expand'))
+                d[i] =
+                    (await LayerInterface.run(configModule, 'expand', [
+                        d[i],
+                    ])) || d[i]
 
             // Quick hack to use uuid instead of name as main id
             d[i].uuid = d[i].uuid || d[i].name
@@ -260,7 +261,7 @@ export async function parseConfig(L_, configData, urlOnLayers) {
             var dNext = getSublayers(d[i])
             //If they are sublayers, call this function again and move up a level
             if (dNext != 0) {
-                expandLayers(dNext, level + 1, d[i].name)
+                await expandLayers(dNext, level + 1, d[i].name)
             }
         }
     }
