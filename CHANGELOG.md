@@ -1,5 +1,81 @@
 # MMGIS Changelog
 
+---
+
+## 5.2.24
+
+_August 3, 2026_
+
+#### Summary
+
+This release overhauls the plugin ecosystem into a unified, manifest-driven `/plugins/` directory with a CLI, per-plugin validation, and a new first-class Interactions plugin type replacing the hardcoded Kinds dispatcher. The ShadeTool becomes the Sightline Tool, gaining editable sweep times, cancellable sweeps, multi-DEM selection, and native-resolution sizing. A new Global Feature Search panel adds cross-layer feature search with select and filter modes. Dynamic-extent geodataset layers are now driven by the Globe viewport in addition to the 2D map. Separated tools gain a chrome-less `"custom"` mode plus public `openTool`/`closeTool` APIs. The release also includes Express 5 and PostgreSQL 18 follow-up fixes, security hardening (XSS, log sanitization, geodataset parameter validation, CI permissions), legal attribution corrections with a root `NOTICE` file, expanded OpenAPI documentation, and a number of Legend, Filtering, TimeUI, DrawTool, and Coordinates fixes.
+
+### Compatibility
+
+- **Mission configurations: Backward compatible.** Existing layer `kind` values continue to work — legacy Kinds are resolved through manifest `kindAlias` pipelines in the new Interactions system. No mission config changes are required. Note that `separatedTool` is now read only from a tool's plugin manifest, so the mission-config value for it is ignored.
+- **JavaScript API (`window.mmgisAPI`): Fully backward compatible.** No migration needed.
+- **End users: No breaking changes.** The ShadeTool is now named the Sightline Tool.
+- **Deployments:** Docker users should redeploy with the updated `Dockerfile` and `docker-compose` (the `plugins/` copy and the PostgreSQL 18 volume path fixes) — an existing install on the old db volume path can crash-loop on a fresh install.
+
+### Migration Guide (Plugin Developers Only)
+
+- **Breaking (Plugin Developers): Plugin manifests standardized.** Tools must rename `config.json` → `plugin.json`; backends must rename `setup.js` → `plugin.js` and add a `plugin.json`. Lifecycle hooks (`onceInit`, `onceStarted`, `onceSynced`) and existing tool fields (`name`, `paths`, `description`, …) are unchanged. Legacy formats still load but log a deprecation warning.
+- **Breaking (Plugin Developers): Plugin directory layout.** All plugins now live under `plugins/<container>/<type>/<PluginName>/` (core plugins under `plugins/core/{tools,backend,components}/`). `plugin.json` `paths` should use `./` relative paths rather than absolute paths.
+- **Breaking (Plugin Developers): Kinds dispatcher removed.** The `plugins/core/tools/Kinds` dispatcher is gone; click/hover behavior is now composed from Interaction plugins run by `InteractionRunner`. Existing `kind` configs are preserved via `kindAlias`.
+- **Changed: plugin CLI `remove` → `uninstall`.** Git installs now use `org--repo` container directory naming to avoid collisions; `uninstall` no longer removes registry entries (use `registry remove`).
+
+#### Added
+
+- Plugin ecosystem overhaul: unified `/plugins/` hierarchy, `plugin.json` manifests, validation, semver/peerDependency resolution, engines compatibility, and a git-registry-based plugin CLI (PR #999)
+- Interactions plugin type: manifest-driven interaction discovery, `InteractionRunner`, 12 core Interactions, CLI scaffolding, and a Configure layer-modal Interactions tab with drag-and-drop click pipelines (PR #1026)
+- Global Feature Search: React search panel across vector and geodataset layers, select and filter modes, wildcard search, per-field value parsing, All/Common group toggle, time-aware search with time-range fitting (PR #1012)
+- Sightline Tool (formerly ShadeTool) for horizon profiles and shadow/visibility sweeps (PR #993)
+- Sightline: editable top-section Start/End times, cancellable sweeps, multiple DEM selection, and working resolution derived from each DEM's real meters-per-pixel (PR #1016)
+- `separatedTool: "custom"` mode for chrome-less separated panels where the tool owns its own DOM (PR #1020)
+- `ToolController_.openTool` / `ToolController_.closeTool` public API for opening/closing any tool by name (PR #1020)
+- `Globe_.getExtent()` and a debounced globe dynamic-extent watcher, making both LithoSphere and Cesium first-class extent sources for `dynamicextent_*` geodataset queries (PR #1022)
+- `OpGridSelector` compact grid selector for Filtering tool operator dropdowns (PR #1009)
+- "Legend Source Types" example layers (CSV, inline JSON, image, TiTiler color ramp) in the Earth reference mission (PR #1005)
+- Root `NOTICE` file per Apache 2.0 conventions (PR #997)
+- `scripts/rateLimiters.js` shared rate-limiter module (PR #998)
+- `test:plugins` npm script to run co-located `plugins/**/tests/*.spec.js` specs (PR #1027)
+- Express error-handling middleware so unhandled route errors return 500 instead of crashing the process (PR #1001)
+- OpenAPI/Swagger documentation for GeoDataset append params (`group_id_prop`, `feature_id_prop`, `startProp`/`endProp`/`groupIdProp`/`featureIdProp`) and previously undocumented core plugin endpoints (PR #1015)
+
+#### Changed
+
+- `separatedTool` is now read only from the plugin manifest (`toolConfigs`), a single source of truth with no mission-config fallback (PR #1020)
+- Generalized separated-tool panel max-height so any separated panel clears the map's bottom-left compass and scale bar (previously Legend-only) (PR #1005)
+- Legend: units render as a chip in the layer title row, images scale to panel width, labels use 14px Roboto (PR #1005)
+- Replaced Dropy dropdowns in the Filtering tool with a body-appended fixed-position popup that escapes ancestor overflow clipping (PR #1009)
+- Rate limiters imported directly by route files, removing the `router._authLimiter` / `router._computeLimiter` late-binding pattern (PR #998)
+- Plugin CLI: `remove` renamed to `uninstall`, `org--repo` container naming for git installs, `./` relative `paths` in `plugin.json` (PR #1002)
+- Updated plugin documentation (README, CONTRIBUTING, docs) and pointed users to [NASA-AMMOS/MMGIS-Plugins](https://github.com/NASA-AMMOS/MMGIS-Plugins) (PR #1002)
+- Corrected `attributions.js` license types, versions, and misattributed entries; added missing vendored library entries (PR #997)
+- `Utils.forceAlphaNumUnder()` accepts an optional `allowList` of preserved characters (PR #1006)
+
+#### Fixed
+
+- Express 5 `req.query` is read-only: Draw publish (which crash-looped the server), `GET /geodatasets/get/:layer`, and mission clone all silently broke on mutation and are now passed explicit options (PR #1001)
+- Docker db volume mount path for PostGIS 18 (`/var/lib/postgresql`), which crash-looped the db container on fresh installs after the PostgreSQL 16→18 upgrade (PR #1000)
+- Docker runtime stage was missing `COPY` of `plugins/`, causing backend plugin 404s and a 404 `/configure` page (PR #1003)
+- TimeUI: opaque `#mmgisTimeUITimelineInner` background painted over the availability histogram, hiding the blue availability bars for time-enabled tile layers (PR #1028)
+- TimeUI: Play and Quick Select popovers hidden behind the floating layout (PR #1019)
+- DrawTool: Review panel invisible because `backdrop-filter` on `.toolPanel` made it a containing block for the `position: fixed` panel; panel now overlays DrawTool content and widens to 390px while open (PR #1004)
+- COG colormap names are lowercased before being sent to TiTiler as `colormap_name`, fixing failed tile requests for mixed-case colormaps (e.g. `BrBG`) (PR #1013)
+- `Coordinates.init` crash when a mission set `coordinates.coordll: false`, which aborted the essence init chain and broke `Description` (PR #1014)
+- Legend: horizontal continuous tick labels centered with bar-end padding, units chip no longer overlaps the title, image legends no longer clip, hover tooltip clamped within the bar (PR #1005)
+- Sightline `sightmap.py` now handles `BrokenPipeError`/`IOError` and stops cleanly when a client aborts a sweep (PR #1016)
+
+#### Security
+
+- XSS prevention in DrawTool (`newTag` DOM construction, removal of inline interpolated `value` attributes) (PR #1006)
+- Geodataset `_source` parameter validation via `forceAlphaNumUnder` (PR #1006)
+- Log sanitization now strips `\r` while preserving `\n`/`\t` for stack traces (PR #1006)
+- CI hardening: `permissions: contents: read` and SHA-pinned `actions/checkout` in `secrets-detection.yaml` (PR #1006)
+
+---
+
 ## 5.0.15
 
 _June 11, 2026_
@@ -134,6 +210,8 @@ The following breaking changes affect **developers who maintain custom tool plug
 - 7 Sonar security recommendations applied with TDD (PR #983)
 - Security upgrades: 49→13 vulnerabilities, materialize-css removal (PR #987)
 
+---
+
 ## 4.2.34
 
 _April 2, 2026_
@@ -210,6 +288,8 @@ This release introduces beta CesiumJS integration as an alternative 3D globe ren
 
 - npm audit fix (unforced) (#832)
 - Adjacent servers placed behind authentication (#911)
+
+---
 
 ## 4.1.0
 
