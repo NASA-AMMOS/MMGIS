@@ -183,6 +183,95 @@ test.describe('Config API', () => {
     if (idx > -1) testMissionsCreated.splice(idx, 1);
   });
 
+  // POST /api/configure/rename — rename a mission and verify the new name
+  test('POST /api/configure/rename renames a mission', async ({ request }) => {
+    const testMission = `RenameMission-${Date.now()}`;
+    const renamedMission = `${testMission}-Renamed`;
+
+    const addRes = await request.post(`${baseURL}/api/configure/add`, {
+      data: { mission: testMission },
+    });
+    const addBody = await addRes.json();
+
+    if (addBody.status !== 'success') {
+      test.skip(true, 'Config add requires SuperAdmin — skipping rename test');
+      return;
+    }
+    testMissionsCreated.push(testMission);
+
+    const renameRes = await request.post(`${baseURL}/api/configure/rename`, {
+      data: { mission: testMission, newName: renamedMission },
+    });
+    expect(renameRes.status()).toBeLessThan(500);
+    const renameBody = await renameRes.json();
+    expect(renameBody.status).toBe('success');
+
+    // Old name gone, new name present
+    const listRes = await request.get(`${baseURL}/api/configure/missions`);
+    const listBody = await listRes.json();
+    expect(listBody.missions).not.toContain(testMission);
+    expect(listBody.missions).toContain(renamedMission);
+
+    // Clean up
+    await request.post(`${baseURL}/api/configure/destroy`, {
+      data: { mission: renamedMission },
+    });
+    const idx = testMissionsCreated.indexOf(testMission);
+    if (idx > -1) testMissionsCreated.splice(idx, 1);
+  });
+
+  // POST /api/configure/rename — rejects invalid names and path traversal
+  test('POST /api/configure/rename rejects invalid names', async ({ request }) => {
+    const response = await request.post(`${baseURL}/api/configure/rename`, {
+      data: { mission: 'SomeMission', newName: '../evil' },
+    });
+    expect(response.status()).toBeLessThan(500);
+    const body = await response.json();
+    expect(body.status).toBe('failure');
+    expect(body.message).toMatch(/invalid mission name/i);
+  });
+
+  // POST /api/configure/rename — rejects a rename to an existing mission name
+  test('POST /api/configure/rename rejects an existing target name', async ({ request }) => {
+    const missionA = `RenameSrc-${Date.now()}`;
+    const missionB = `RenameDst-${Date.now()}`;
+
+    const addA = await request.post(`${baseURL}/api/configure/add`, {
+      data: { mission: missionA },
+    });
+    const addABody = await addA.json();
+    if (addABody.status !== 'success') {
+      test.skip(true, 'Config add requires SuperAdmin — skipping collision test');
+      return;
+    }
+    testMissionsCreated.push(missionA);
+
+    const addB = await request.post(`${baseURL}/api/configure/add`, {
+      data: { mission: missionB },
+    });
+    const addBBody = await addB.json();
+    expect(addBBody.status).toBe('success');
+    testMissionsCreated.push(missionB);
+
+    const renameRes = await request.post(`${baseURL}/api/configure/rename`, {
+      data: { mission: missionA, newName: missionB },
+    });
+    expect(renameRes.status()).toBeLessThan(500);
+    const renameBody = await renameRes.json();
+    expect(renameBody.status).toBe('failure');
+    expect(renameBody.message).toMatch(/already exists/i);
+  });
+
+  // POST /api/configure/rename — rejects renaming a mission that does not exist
+  test('POST /api/configure/rename rejects an unknown mission', async ({ request }) => {
+    const response = await request.post(`${baseURL}/api/configure/rename`, {
+      data: { mission: `NoSuchMission-${Date.now()}`, newName: `Target-${Date.now()}` },
+    });
+    expect(response.status()).toBeLessThan(500);
+    const body = await response.json();
+    expect(body.status).toBe('failure');
+  });
+
   // Authorization: non-admin rejected (skip if AUTH=off)
   test('rejects non-admin config changes', async ({ request }) => {
     test.skip(

@@ -949,22 +949,64 @@ if (fullAccess)
               });
               return null;
             }
+
+            // The folder name is intentionally separable from the mission name.
+            // Only follow the rename when the mission currently points at its
+            // own folder; if it points elsewhere, leave the folder alone.
+            const latest = rows.reduce((a, b) =>
+              (b.version || 0) > (a.version || 0) ? b : a
+            );
+            const latestFolder =
+              latest.config && latest.config.msv
+                ? latest.config.msv.missionFolderName
+                : undefined;
+            const followFolder =
+              !latestFolder ||
+              latestFolder === "" ||
+              latestFolder === missionName;
+
             return sequelize
               .transaction((t) => {
-                return Promise.all(
-                  rows.map((row) => {
-                    // Deep copy so Sequelize detects the JSON change
-                    const cfg = JSON.parse(JSON.stringify(row.config || {}));
-                    if (cfg.msv) {
-                      cfg.msv.mission = newName;
+                const configUpdates = rows.map((row) => {
+                  // Deep copy so Sequelize detects the JSON change
+                  const cfg = JSON.parse(JSON.stringify(row.config || {}));
+                  if (cfg.msv) {
+                    cfg.msv.mission = newName;
+                    if (followFolder) {
                       cfg.msv.missionFolderName = newName;
                     }
-                    return row.update(
-                      { mission: newName, config: cfg },
-                      { transaction: t }
-                    );
-                  })
-                );
+                  }
+                  return row.update(
+                    { mission: newName, config: cfg },
+                    { transaction: t }
+                  );
+                });
+
+                // Mission-manager permissions are stored as mission names, so
+                // they must follow the rename or the manager loses access.
+                const permissionUpdate = User.findAll({
+                  transaction: t,
+                }).then((users) => {
+                  const affected = (users || []).filter(
+                    (u) =>
+                      Array.isArray(u.missions_managing) &&
+                      u.missions_managing.includes(missionName)
+                  );
+                  return Promise.all(
+                    affected.map((u) =>
+                      u.update(
+                        {
+                          missions_managing: u.missions_managing.map((m) =>
+                            m === missionName ? newName : m
+                          ),
+                        },
+                        { transaction: t }
+                      )
+                    )
+                  );
+                });
+
+                return Promise.all([...configUpdates, permissionUpdate]);
               })
               .then(() => {
                 logger(
@@ -973,31 +1015,59 @@ if (fullAccess)
                   req.originalUrl,
                   req
                 );
-                const srcDir = "./Missions/" + missionName;
-                const destDir = "./Missions/" + newName;
-                if (fs.existsSync(srcDir)) {
-                  fs.rename(srcDir, destDir, (err) => {
-                    if (err)
-                      res.send({
-                        status: "success",
-                        message:
+
+                // Other missions may embed ../OldName/ relative paths (written
+                // by clone/relativizePaths). Those silently break, so report them.
+                return Config.findAll().then((allRows) => {
+                  const needle = "../" + missionName + "/";
+                  const warnings = [];
+                  (allRows || []).forEach((row) => {
+                    if (row.mission === newName) {
+                      return;
+                    }
+                    try {
+                      if (JSON.stringify(row.config || {}).indexOf(needle) !== -1) {
+                        if (warnings.indexOf(row.mission) === -1) {
+                          warnings.push(row.mission);
+                        }
+                      }
+                    } catch (e) {
+                      // ignore unparsable configs
+                    }
+                  });
+
+                  const respond = (message) => {
+                    const payload = { status: "success", message: message };
+                    if (warnings.length > 0) {
+                      payload.warnings = [
+                        "These missions contain relative paths to " +
+                          missionName +
+                          " that will need updating: " +
+                          warnings.join(", "),
+                      ];
+                    }
+                    res.send(payload);
+                  };
+
+                  const srcDir = "./Missions/" + missionName;
+                  const destDir = "./Missions/" + newName;
+                  if (followFolder && fs.existsSync(srcDir)) {
+                    fs.rename(srcDir, destDir, (err) => {
+                      if (err) {
+                        respond(
                           "Successfully renamed mission to " +
-                          newName +
-                          " but couldn't rename its Missions directory.",
-                      });
-                    else
-                      res.send({
-                        status: "success",
-                        message: "Successfully renamed mission to " + newName,
-                      });
-                  });
-                } else {
-                  res.send({
-                    status: "success",
-                    message: "Successfully renamed mission to " + newName,
-                  });
-                }
-                return null;
+                            newName +
+                            " but couldn't rename its Missions directory."
+                        );
+                      } else {
+                        respond("Successfully renamed mission to " + newName);
+                      }
+                    });
+                  } else {
+                    respond("Successfully renamed mission to " + newName);
+                  }
+                  return null;
+                });
               });
           }
         );
