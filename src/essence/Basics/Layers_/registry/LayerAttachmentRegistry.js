@@ -48,6 +48,10 @@ const LayerAttachmentRegistry = {
         const mods = _load().layerAttachmentModules?.[attachmentId]
         return mods?.plugin || null
     },
+    /** True if this attachment draws anything on the 2D map at all. */
+    rendersOnMap(attachmentId) {
+        return this.capabilities(attachmentId).renderers?.map !== false
+    },
     /** Full plugin manifest for an attachment. */
     getConfig(attachmentId) {
         return _load().layerAttachmentConfigs?.[attachmentId]

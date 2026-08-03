@@ -36,6 +36,7 @@ function render(layerConfig, gctx) {
 
     layers[layerConfig.name] = {
         type: 'vectortile',
+        kind: 'mvt',
         mvtLayer: mvtLayer,
         visible: true,
     }

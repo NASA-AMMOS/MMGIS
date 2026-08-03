@@ -239,6 +239,7 @@ function render(layerConfig, gctx) {
             gctx.displayedVectorDataSource[name] = ds
             gctx.layers[name] = {
                 type: 'vector',
+                kind: 'entities',
                 dataSource: ds,
                 visible: true,
                 onClick: layerConfig.onClick,

@@ -67,6 +67,7 @@ async function render(layerConfig, gctx) {
 
         layers[name] = {
             type: '3dtiles',
+            kind: 'tileset',
             tileset: tileset,
             visible: true,
             opacity: layerConfig.opacity ?? 1.0,

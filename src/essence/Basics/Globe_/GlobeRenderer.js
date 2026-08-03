@@ -530,6 +530,14 @@ class GlobeRenderer {
      * for every type — callers that keep the handle must await it.
      * @param {string} type - Layer type: 'tile', 'vector', 'clamped', 'curtain', 'model'
      * @param {object} layerConfig - Layer configuration
+     *
+     * Whatever adds a layer records it in `this._layers[name]` with:
+     *   type  the MMGIS layer type, used to dispatch back to its globe plugin
+     *   kind  what the engine is actually holding — 'imagery', 'entities',
+     *         'tileset', 'mvt', 'gradient'. Core's own engine work (Cesium's
+     *         imagery stack is ordered separately from the scene, a DataSource
+     *         is shown differently from a primitive) keys off `kind`, so it
+     *         stays engine vocabulary rather than a list of layer types.
      * @returns {Promise<*>} resolves to the engine layer handle (or undefined)
      */
     async addLayer(type, layerConfig) {
@@ -701,6 +709,7 @@ class GlobeRenderer {
         const buildId = Symbol()
         this._layers[layerName] = {
             type: 'gradient_polyline',
+            kind: 'gradient',
             primitive: null,
             visible: true,
             hoverSegments: [],
@@ -957,7 +966,7 @@ class GlobeRenderer {
      */
     _removeCesiumGradientPolyline(layerName) {
         const layerInfo = this._layers[layerName]
-        if (layerInfo && layerInfo.type === 'gradient_polyline') {
+        if (layerInfo && layerInfo.kind === 'gradient') {
             if (layerInfo.primitive) {
                 this.renderer.scene.primitives.remove(layerInfo.primitive)
             }
@@ -987,10 +996,10 @@ class GlobeRenderer {
         for (let i = 0; i < globalIndex; i++) {
             const checkName = orderedLayerNames[i]
             const checkLayer = this._layers[checkName]
-            // Only count visible tile layers
+            // Only imagery-backed layers occupy the imagery stack
             if (
                 checkLayer &&
-                checkLayer.type === 'tile' &&
+                checkLayer.kind === 'imagery' &&
                 checkLayer.visible
             ) {
                 tileBelowCount++
@@ -1058,14 +1067,12 @@ class GlobeRenderer {
     }
 
     /**
-     * Update all time-enabled layers with new time values
+     * Update all time-enabled layers with new time values. `customTimes` comes
+     * from the caller (the time subscription owns TimeControl); the renderer
+     * has no view of it.
      */
-    updateAllTimeEnabledLayers(startTime, currentTime, endTime) {
+    updateAllTimeEnabledLayers(startTime, currentTime, endTime, customTimes = null) {
         if (this.rendererType !== 'cesium') return
-
-        // Access TimeControl if available
-        const customTimes =
-            typeof TimeControl !== 'undefined' ? TimeControl.customTimes : null
 
         for (const layerName in this._layers) {
             const layerInfo = this._layers[layerName]
@@ -1097,10 +1104,10 @@ class GlobeRenderer {
                         name,
                         this._globeCtx(layerInfo.type),
                     ])
-                } else if (layerInfo.type === 'gradient_polyline') {
+                } else if (layerInfo.kind === 'gradient') {
                     this._removeCesiumGradientPolyline(name)
                     return
-                } else if (layerInfo.type === 'vector') {
+                } else if (layerInfo.kind === 'entities') {
                     // Defer the removal by a frame so a reload that follows
                     // immediately (dynamic-extent requery, filter/time change)
                     // can adopt these features and keep them on screen until its
@@ -1188,12 +1195,12 @@ class GlobeRenderer {
                 visible,
                 this._globeCtx(layerInfo.type),
             ])
-        } else if (layerInfo.type === 'gradient_polyline') {
+        } else if (layerInfo.kind === 'gradient') {
             if (layerInfo.primitive) {
                 layerInfo.primitive.show = visible
             }
             layerInfo.visible = visible
-        } else if (layerInfo.type === 'vector') {
+        } else if (layerInfo.kind === 'entities') {
             layerInfo.dataSource.show = visible
             layerInfo.visible = visible
         }
@@ -1401,7 +1408,11 @@ class GlobeRenderer {
         // Collect all visible tile layers with their desired position
         for (const name of orderedLayerNames) {
             const layerInfo = this._layers[name]
-            if (layerInfo && layerInfo.type === 'tile' && layerInfo.visible) {
+            if (
+                layerInfo &&
+                layerInfo.kind === 'imagery' &&
+                layerInfo.visible
+            ) {
                 visibleTileLayers.push({ name, layerInfo })
             }
         }
@@ -1544,7 +1555,10 @@ class GlobeRenderer {
                 for (const layerName of Object.keys(this._layers)) {
                     const layerInfo = this._layers[layerName]
 
-                    if (layerInfo.type === 'vector' && layerInfo.dataSource) {
+                    if (
+                        layerInfo.kind === 'entities' &&
+                        layerInfo.dataSource
+                    ) {
                         // Check if this dataSource contains the clicked entity
                         if (layerInfo.dataSource.entities.contains(entity)) {
                             // Found the layer - call its onClick callback
@@ -2061,7 +2075,7 @@ class GlobeRenderer {
                         // Store reference for clearing later
                         this._lithoActiveFeature = {
                             layerName: layerName,
-                            type: 'vector',
+                            kind: 'vector',
                             obj: mesh,
                             feature: mesh.feature,
                         }
@@ -2093,7 +2107,7 @@ class GlobeRenderer {
                         // Store reference for clearing later
                         this._lithoActiveFeature = {
                             layerName: layerName,
-                            type: 'clamped',
+                            kind: 'clamped',
                             layer: layer,
                             feature: f,
                         }
@@ -2121,7 +2135,7 @@ class GlobeRenderer {
     _highlightFeatureCesium(layerName, feature) {
         // Find the layer
         const layerInfo = this._layers[layerName]
-        if (!layerInfo || layerInfo.type !== 'vector') {
+        if (!layerInfo || layerInfo.kind !== 'entities') {
             return
         }
 
@@ -2490,12 +2504,12 @@ class GlobeRenderer {
         }
 
         // Trigger restyle based on type
-        if (activeFeature.type === 'vector' && activeFeature.obj) {
+        if (activeFeature.kind === 'vector' && activeFeature.obj) {
             // Vector layer - call restyle on the mesh
             if (activeFeature.obj.restyle) {
                 activeFeature.obj.restyle()
             }
-        } else if (activeFeature.type === 'clamped' && activeFeature.layer) {
+        } else if (activeFeature.kind === 'clamped' && activeFeature.layer) {
             // Clamped layer - update tiles
             if (this.renderer._ && this.renderer._.tiledWorld) {
                 this.renderer._.tiledWorld.updateAllRasters()

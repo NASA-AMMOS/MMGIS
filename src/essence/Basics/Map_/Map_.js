@@ -2,6 +2,7 @@ import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '../Layers_/registry/LayerAttachmentRegistry'
 import LayerInterface from '../Layers_/interface/LayerInterface'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
@@ -449,10 +450,14 @@ let Map_ = {
                         L_.layers.attachments[L_._layersOrdered[hasIndex[i]]][s]
                             .on
                     ) {
+                        // Only attachments that draw on the 2D map take part
+                        // in map ordering.
                         if (
-                            L_.layers.attachments[
-                                L_._layersOrdered[hasIndex[i]]
-                            ][s].type !== 'model'
+                            LayerAttachmentRegistry.rendersOnMap(
+                                L_.layers.attachments[
+                                    L_._layersOrdered[hasIndex[i]]
+                                ][s].type
+                            )
                         ) {
                             Map_.map.addLayer(
                                 L_.layers.attachments[

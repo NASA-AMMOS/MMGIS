@@ -226,6 +226,7 @@ function render(layerConfig, gctx) {
 
     layers[name] = {
         type: 'tile',
+        kind: 'imagery',
         layer: layer,
         visible: true,
         timeConfig: timeConfig,
