@@ -9,18 +9,17 @@
   "capabilities": {
     "renderers": {
       "map": {
-        "engines": [
-          "leaflet"
-        ]
+        "engines": ["leaflet"]
       },
       "globe": false
+    },
+    "host": {
+      "order": 0,
+      "buildsAfterSiblings": true
     }
   },
   "paths": {
     "plugin": "./labels"
   },
-  "applicableLayerTypes": [
-    "vector",
-    "query"
-  ]
+  "applicableLayerTypes": ["vector", "query"]
 }

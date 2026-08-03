@@ -79,7 +79,8 @@ const TIME_OPS = ["availability", "format", "applyTimeParams"];
  * A layer attachment is a single renderable that may straddle both engines (an
  * uncertainty ellipse is a map overlay AND two globe layers), so it declares
  * one module (`paths.plugin`) rather than one per surface, with its own
- * vocabulary. Core still constructs attachments, so `make` is not required.
+ * vocabulary, in which `make` — building itself from its host's data — is what
+ * an attachment fundamentally is, and so is required.
  */
 const ATTACHMENT_OPS = [
   "make",
@@ -87,8 +88,10 @@ const ATTACHMENT_OPS = [
   "setOpacity",
   "setVisibility",
   "onHostToggle",
+  "onPeerToggle",
   "syncData",
   "setStyle",
+  "peerFeaturesFor",
 ];
 
 /** Operations valid on each surface, and whether `make` is required there. */
@@ -98,7 +101,7 @@ const SURFACES = {
   config: { ops: CONFIG_OPS, requiresMake: false },
   filter: { ops: FILTER_OPS, requiresMake: false },
   time: { ops: TIME_OPS, requiresMake: false },
-  attachment: { ops: ATTACHMENT_OPS, requiresMake: false },
+  attachment: { ops: ATTACHMENT_OPS, requiresMake: true },
 };
 
 /**
@@ -311,17 +314,40 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
     );
   }
-  if (config.type !== undefined && !["tool", "component", "backend", "interaction", "layertype", "layerattachment"].includes(config.type)) {
+  if (
+    config.type !== undefined &&
+    ![
+      "tool",
+      "component",
+      "backend",
+      "interaction",
+      "layertype",
+      "layerattachment",
+    ].includes(config.type)
+  ) {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction, layertype, layerattachment`
     );
   }
-  if (config.tier !== undefined && !["core", "community", "private", "official", "experimental", "deprecated"].includes(config.tier)) {
+  if (
+    config.tier !== undefined &&
+    ![
+      "core",
+      "community",
+      "private",
+      "official",
+      "experimental",
+      "deprecated",
+    ].includes(config.tier)
+  ) {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'tier' must be one of: core, community, private, official, experimental, deprecated`
     );
   }
-  if (config.overridable !== undefined && typeof config.overridable !== "boolean") {
+  if (
+    config.overridable !== undefined &&
+    typeof config.overridable !== "boolean"
+  ) {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'overridable' must be a boolean`
     );
@@ -337,14 +363,22 @@ function validatePluginConfig(config, pluginName, pluginType) {
     );
   }
   if (config.engines !== undefined) {
-    if (typeof config.engines !== "object" || Array.isArray(config.engines) || config.engines === null) {
+    if (
+      typeof config.engines !== "object" ||
+      Array.isArray(config.engines) ||
+      config.engines === null
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'engines' must be an object (e.g. { "mmgis": ">=5.0.0" })`
       );
     }
   }
   if (config.peerDependencies !== undefined) {
-    if (typeof config.peerDependencies !== "object" || Array.isArray(config.peerDependencies) || config.peerDependencies === null) {
+    if (
+      typeof config.peerDependencies !== "object" ||
+      Array.isArray(config.peerDependencies) ||
+      config.peerDependencies === null
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'peerDependencies' must be an object mapping plugin-id to version range`
       );
@@ -373,7 +407,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
         `Plugin '${pluginName}' (${pluginType}): missing required 'name' field (must be a non-empty string)`
       );
     }
-    if (typeof config.interactionId !== "string" || config.interactionId.length === 0) {
+    if (
+      typeof config.interactionId !== "string" ||
+      config.interactionId.length === 0
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): missing required 'interactionId' field (must be a non-empty string)`
       );
@@ -402,7 +439,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
         }
       }
     }
-    if (config.phase !== undefined && !["preamble", "postamble", "main"].includes(config.phase)) {
+    if (
+      config.phase !== undefined &&
+      !["preamble", "postamble", "main"].includes(config.phase)
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'phase' must be one of: preamble, postamble, main`
       );
@@ -561,6 +601,42 @@ function validatePluginConfig(config, pluginName, pluginType) {
           }
         }
       }
+      // How an attachment sits on its host: where it is stored, where it comes
+      // in the host's build/render order, and whether it needs its siblings
+      // built first. Core reads these while assembling a host's attachments, so
+      // a wrong type there is silent — check the shape.
+      if (
+        config.capabilities !== null &&
+        typeof config.capabilities === "object" &&
+        !Array.isArray(config.capabilities) &&
+        config.capabilities.host !== undefined
+      ) {
+        const host = config.capabilities.host;
+        if (typeof host !== "object" || Array.isArray(host) || host === null) {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.host' must be an object (e.g. { "order": 0, "sublayerKey": "models" })`
+          );
+        } else {
+          if (host.order !== undefined && typeof host.order !== "number")
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): 'capabilities.host.order' must be a number`
+            );
+          if (
+            host.sublayerKey !== undefined &&
+            typeof host.sublayerKey !== "string"
+          )
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): 'capabilities.host.sublayerKey' must be a string`
+            );
+          if (
+            host.buildsAfterSiblings !== undefined &&
+            typeof host.buildsAfterSiblings !== "boolean"
+          )
+            errors.push(
+              `Plugin '${pluginName}' (${pluginType}): 'capabilities.host.buildsAfterSiblings' must be a boolean`
+            );
+        }
+      }
     }
     // Cross-check declared renderer engines against the module `paths` map so a
     // type can't claim to render on a surface/engine it ships no module for (or
@@ -641,7 +717,11 @@ function validatePluginConfig(config, pluginName, pluginType) {
         );
       } else {
         config.supportedData.forEach((entry, i) => {
-          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+          if (
+            typeof entry !== "object" ||
+            entry === null ||
+            Array.isArray(entry)
+          ) {
             errors.push(
               `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}]' must be an object`
             );
@@ -652,7 +732,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
               `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].label' is required (non-empty string)`
             );
           }
-          if (typeof entry.category !== "string" || entry.category.length === 0) {
+          if (
+            typeof entry.category !== "string" ||
+            entry.category.length === 0
+          ) {
             errors.push(
               `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].category' is required (non-empty string, e.g. 'raster', 'vector', 'model')`
             );
@@ -679,7 +762,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
         });
       }
     }
-    if (config.metaconfig !== undefined && typeof config.metaconfig !== "string") {
+    if (
+      config.metaconfig !== undefined &&
+      typeof config.metaconfig !== "string"
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'metaconfig' must be a string path to a metaconfig JSON file`
       );
@@ -1008,9 +1094,7 @@ function validateLayerTypeModuleShape(source, label, surface = "map") {
   const { ops: validOps, requiresMake } = SURFACES[surface] || SURFACES.map;
   const marker = /export\s+default\s*\{/.exec(source);
   if (!marker) {
-    errors.push(
-      `${label}: no 'export default { … }' renderer object found`
-    );
+    errors.push(`${label}: no 'export default { … }' renderer object found`);
     return errors;
   }
   const braceIndex = marker.index + marker[0].length - 1;

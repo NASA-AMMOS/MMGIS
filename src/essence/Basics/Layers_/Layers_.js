@@ -205,12 +205,6 @@ const L_ = {
     removePopupStopPropogationFunctions(...a) {
         return annotations.removePopupStopPropogationFunctions(L_, ...a)
     },
-    addGradientPolyline(...a) {
-        return sublayers.addGradientPolyline(L_, ...a)
-    },
-    removeGradientPolyline(...a) {
-        return sublayers.removeGradientPolyline(L_, ...a)
-    },
     setLayerOpacity(...a) {
         return style.setLayerOpacity(L_, ...a)
     },
@@ -329,8 +323,11 @@ const L_ = {
     timeFilterVectorLayer(...a) {
         return geojson.timeFilterVectorLayer(L_, ...a)
     },
-    _updatePairings(...a) {
-        return sublayers._updatePairings(L_, ...a)
+    getPeerFeatures(...a) {
+        return sublayers.getPeerFeatures(L_, ...a)
+    },
+    notifyAttachmentsOfPeerToggle(...a) {
+        return sublayers.notifyAttachmentsOfPeerToggle(L_, ...a)
     },
     getLayersChosenNamePropVal(...a) {
         return getters.getLayersChosenNamePropVal(L_, ...a)

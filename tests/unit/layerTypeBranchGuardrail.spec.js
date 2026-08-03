@@ -14,6 +14,11 @@
  * property regressed before: individually reasonable branches, added one at a
  * time.
  *
+ * It also fails on an attachment reached by its hardcoded name
+ * (`attachments[layer].pairings`, `['models'].includes(sub)`) — the same
+ * knowledge, spelled as a property key instead of a comparison, which is how
+ * attachments stayed in core after their types left.
+ *
  * It deliberately looks only at comparisons against those ids, so generic words
  * are still free to be used for other things — GeoJSON geometry (`'Point'`),
  * `time.type`, filter value types, menu-item types, engine primitive kinds
@@ -35,6 +40,22 @@ const PLUGINS_ROOT = path.join(REPO_ROOT, 'plugins')
  */
 const EXCLUDED_DIRS = new Set(['external', 'pre'])
 
+/** Manifests of a plugin category, in discovery order. */
+function manifests(category) {
+    const categoryPath = path.join(PLUGINS_ROOT, 'core', category)
+    return fs
+        .readdirSync(categoryPath, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) =>
+            JSON.parse(
+                fs.readFileSync(
+                    path.join(categoryPath, entry.name, 'plugin.json'),
+                    'utf8'
+                )
+            )
+        )
+}
+
 /** Every id a plugin claims, gathered from the plugins themselves. */
 function builtInIds() {
     const ids = []
@@ -42,21 +63,25 @@ function builtInIds() {
         ['layertypes', 'typeId'],
         ['layerattachments', 'attachmentId'],
     ]) {
-        const categoryPath = path.join(PLUGINS_ROOT, 'core', category)
-        for (const entry of fs.readdirSync(categoryPath, {
-            withFileTypes: true,
-        })) {
-            if (!entry.isDirectory()) continue
-            const manifest = JSON.parse(
-                fs.readFileSync(
-                    path.join(categoryPath, entry.name, 'plugin.json'),
-                    'utf8'
-                )
-            )
+        for (const manifest of manifests(category)) {
             if (manifest[idField]) ids.push(manifest[idField])
         }
     }
     return ids
+}
+
+/**
+ * Every name an attachment is known by: its id and, where they differ, the key
+ * it is stored under on its host.
+ */
+function attachmentNames() {
+    const names = []
+    for (const manifest of manifests('layerattachments')) {
+        if (manifest.attachmentId) names.push(manifest.attachmentId)
+        const key = manifest.capabilities?.host?.sublayerKey
+        if (key) names.push(key)
+    }
+    return names
 }
 
 function sourceFiles(dir) {
@@ -83,10 +108,7 @@ function typeComparisons(source, ids) {
     const idAlternation = ids.map((id) => id.replace(/[^\w-]/g, '')).join('|')
     const patterns = [
         // <something>type <op> '<id>'   and the mirrored form
-        new RegExp(
-            `\\btype\\s*[=!]==?\\s*['"\`](${idAlternation})['"\`]`,
-            'g'
-        ),
+        new RegExp(`\\btype\\s*[=!]==?\\s*['"\`](${idAlternation})['"\`]`, 'g'),
         new RegExp(
             `['"\`](${idAlternation})['"\`]\\s*[=!]==?\\s*[\\w.?[\\]]*\\btype\\b`,
             'g'
@@ -132,6 +154,43 @@ function typeSwitches(source, ids) {
     return hits
 }
 
+/**
+ * An attachment singled out by name rather than reached through the registry:
+ *   L_.layers.attachments[name].pairings      sublayers['labels']
+ *   sub === 'image_overlays'                  ['models'].includes(sub)
+ */
+function attachmentNameUses(source, names) {
+    const alternation = names.map((n) => n.replace(/[^\w-]/g, '')).join('|')
+    const patterns = [
+        // an attachment collection indexed by a hardcoded name
+        new RegExp(
+            `\\b(attachments|sublayers)\\b[\\w.?[\\]'"\`]*(\\.|\\[\\s*['"\`])(${alternation})\\b`,
+            'g'
+        ),
+        // a loop's current attachment compared to a hardcoded name
+        new RegExp(
+            `\\b(sub|subName|sublayerName|attachmentName|attachmentId)\\s*[=!]==?\\s*['"\`](${alternation})['"\`]`,
+            'g'
+        ),
+        // a hardcoded list of attachment names to test membership in
+        new RegExp(`['"\`](${alternation})['"\`]\\s*\\]\\s*\\.includes`, 'g'),
+        new RegExp(`\\.includes\\(\\s*['"\`](${alternation})['"\`]`, 'g'),
+    ]
+
+    const hits = []
+    source.split('\n').forEach((line, i) => {
+        const code = line.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '')
+        for (const pattern of patterns) {
+            pattern.lastIndex = 0
+            if (pattern.test(code)) {
+                hits.push(`${i + 1}: ${line.trim()}`)
+                break
+            }
+        }
+    })
+    return hits
+}
+
 test.describe('core carries no built-in layer type branches', () => {
     test('no file under src/ compares a layer or attachment type to a built-in id', () => {
         const ids = builtInIds()
@@ -144,6 +203,28 @@ test.describe('core carries no built-in layer type branches', () => {
                 ...typeComparisons(source, ids),
                 ...typeSwitches(source, ids),
             ]
+            if (hits.length > 0)
+                offenders.push(
+                    `${path.relative(REPO_ROOT, file)}\n    ${hits.join('\n    ')}`
+                )
+        }
+
+        expect(
+            offenders,
+            `Type-specific behavior belongs to the layer type's plugin (reached through LayerInterface), and questions core asks while iterating all layers belong in plugin.json capabilities (read through LayerTypeRegistry / LayerAttachmentRegistry):\n\n${offenders.join(
+                '\n'
+            )}`
+        ).toEqual([])
+    })
+
+    test('no file under src/ singles out an attachment by name', () => {
+        const names = attachmentNames()
+        expect(names.length).toBeGreaterThan(5)
+
+        const offenders = []
+        for (const file of sourceFiles(SRC_ROOT)) {
+            const source = fs.readFileSync(file, 'utf8')
+            const hits = attachmentNameUses(source, names)
             if (hits.length > 0)
                 offenders.push(
                     `${path.relative(REPO_ROOT, file)}\n    ${hits.join('\n    ')}`

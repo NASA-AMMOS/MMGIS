@@ -9,15 +9,14 @@
   "capabilities": {
     "renderers": {
       "map": {
-        "engines": [
-          "leaflet"
-        ]
+        "engines": ["leaflet"]
       },
       "globe": {
-        "engines": [
-          "lithosphere"
-        ]
+        "engines": ["lithosphere"]
       }
+    },
+    "host": {
+      "order": 2
     }
   },
   "paths": {

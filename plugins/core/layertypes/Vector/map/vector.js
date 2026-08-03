@@ -99,8 +99,6 @@ export default {
         }
 
         if (!ctx.globeOnly) {
-            L_._updatePairings(layerObj.name, ctx.visible)
-
             // Vector layers live in a Leaflet pane, so showing one puts it on
             // top of the stack — re-assert the configured draw order.
             if (ctx.visible && !ctx.skipOrderedBringToFront)

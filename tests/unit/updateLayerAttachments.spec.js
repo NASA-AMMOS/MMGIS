@@ -11,10 +11,14 @@ import { test, expect } from '@playwright/test'
 const fs = require('fs')
 const path = require('path')
 
-const { validatePluginConfig } = require('../../API/pluginValidation')
+const {
+    validatePluginConfig,
+    validateLayerTypeModuleShape,
+} = require('../../API/pluginValidation')
 const { updateLayerAttachments } = require('../../API/updateTools')
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..')
+const PLUGINS_ROOT = path.join(REPO_ROOT, 'plugins')
 const REGISTRY_PATH = path.join(
     REPO_ROOT,
     'configure',
@@ -75,5 +79,50 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
         // globe, so core must not draw the host there as well.
         expect(capabilities('path_gradient').globe.suppressesHost).toBe(true)
         expect(capabilities('labels').globe?.suppressesHost).toBeUndefined()
+    })
+
+    test('every attachment builds itself, in ops core knows', () => {
+        const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'))
+
+        for (const attachmentId of BUILT_IN_ATTACHMENTS) {
+            const manifest = registry[attachmentId].manifest
+            const modulePath = path.join(
+                PLUGINS_ROOT,
+                'core',
+                'layerattachments',
+                manifest.name,
+                `${manifest.paths.plugin}.js`
+            )
+            const source = fs.readFileSync(modulePath, 'utf8')
+
+            // `make` is the attachment: core builds nothing itself, it asks.
+            expect(
+                validateLayerTypeModuleShape(
+                    source,
+                    attachmentId,
+                    'attachment'
+                )
+            ).toEqual([])
+        }
+    })
+
+    test('an attachment declares where it sits on its host', () => {
+        const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'))
+        const host = (id) => registry[id].manifest.capabilities.host
+
+        // Build order is also render order (bottom on top), so it is declared
+        // rather than left to whatever order the plugins are discovered in.
+        const orders = BUILT_IN_ATTACHMENTS.map((id) => host(id).order)
+        expect(orders.every((o) => typeof o === 'number')).toBe(true)
+        expect(new Set(orders).size).toBe(orders.length)
+
+        // Labels decorate the other attachments, so they are built last and
+        // handed their siblings.
+        expect(host('labels').buildsAfterSiblings).toBe(true)
+        expect(host('pairings').buildsAfterSiblings).toBeUndefined()
+
+        // Only where the key on the host differs from the attachment's id.
+        expect(host('model').sublayerKey).toBe('models')
+        expect(host('labels').sublayerKey).toBeUndefined()
     })
 })

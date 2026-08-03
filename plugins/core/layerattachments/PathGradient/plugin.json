@@ -9,18 +9,17 @@
   "capabilities": {
     "renderers": {
       "map": {
-        "engines": [
-          "leaflet"
-        ]
+        "engines": ["leaflet"]
       },
       "globe": {
-        "engines": [
-          "cesium"
-        ]
+        "engines": ["cesium"]
       }
     },
     "globe": {
       "suppressesHost": true
+    },
+    "host": {
+      "order": 6
     }
   },
   "paths": {

@@ -145,10 +145,7 @@ export async function toggleLayerHelper(
             if (
                 L_.layers.layer[s.name] === false &&
                 globeOnly != true &&
-                LayerInterface.hasOp(
-                    LayerTypeRegistry.get(s.type)?.map,
-                    'make'
-                )
+                LayerInterface.hasOp(LayerTypeRegistry.get(s.type)?.map, 'make')
             ) {
                 await L_.Map_.makeLayer(s, true, null, null, true)
                 Description.updateInfo()
@@ -224,20 +221,23 @@ export async function toggleLayerHelper(
         }
     }
 
-
     if (globeOnly != true && !ignoreToggleStateChange) {
         if (on) L_.layers.on[s.name] = false
         if (!on) L_.layers.on[s.name] = true
     }
 
     // The toggle is done and core's bookkeeping is settled: let the layer type
-    // do its own follow-up work (pairings, re-ordering, opacity refresh,
-    // first-time-on filtering). No core default — most types need nothing.
-    LayerInterface.runSync(
-        LayerTypeRegistry.get(s.type)?.map,
-        'onToggle',
-        [s, { ...MapRenderer.context(), ...toggleCtx }]
-    )
+    // do its own follow-up work (re-ordering, opacity refresh, first-time-on
+    // filtering). No core default — most types need nothing.
+    LayerInterface.runSync(LayerTypeRegistry.get(s.type)?.map, 'onToggle', [
+        s,
+        { ...MapRenderer.context(), ...toggleCtx },
+    ])
+
+    // Attachments elsewhere may draw from this layer (pairings), so they get
+    // told too — whatever this layer's type is.
+    if (globeOnly != true)
+        L_.notifyAttachmentsOfPeerToggle(s.name, toggleCtx.visible)
 
     if (globeOnly != true) {
         L_._refreshAnnotationEvents()
@@ -287,9 +287,7 @@ export function addVisible(L_, map_, onlyTheseLayers) {
     var map = map_
     if (map == null) {
         if (L_.Map_ == null) {
-            console.warn(
-                "Can't addVisible layers before Map_ is initialized."
-            )
+            console.warn("Can't addVisible layers before Map_ is initialized.")
             return
         }
         map = L_.Map_.map
@@ -317,9 +315,7 @@ export function addVisible(L_, map_, onlyTheseLayers) {
                         if (L_.layers.attachments[hostName][sub].on)
                             L_.setAttachmentVisibility(hostName, sub, true)
                     }
-                    map.addLayer(
-                        L_.layers.layer[L_.layers.dataFlat[i].name]
-                    )
+                    map.addLayer(L_.layers.layer[L_.layers.dataFlat[i].name])
 
                     // Same post-toggle hook as a user toggle, flagged as the
                     // initial-visibility path so a type can tell them apart.
@@ -373,7 +369,6 @@ export function addVisible(L_, map_, onlyTheseLayers) {
             }
         }
     }
-
 
     L_._refreshAnnotationEvents()
 }
@@ -511,8 +506,7 @@ export function enforceVisibilityCutoffs(L_, forceLayerNames) {
             if (L_.layers.attachments[layerName]) {
                 const currentZoom = L_.Map_.map.getZoom()
                 for (let subName in L_.layers.attachments[layerName]) {
-                    const sublayer =
-                        L_.layers.attachments[layerName][subName]
+                    const sublayer = L_.layers.attachments[layerName][subName]
                     if (
                         sublayer &&
                         sublayer.minZoom != null &&
@@ -527,8 +521,7 @@ export function enforceVisibilityCutoffs(L_, forceLayerNames) {
                         )
 
                         // Store the actual zoom visibility state separately from user preference
-                        const wasZoomVisible =
-                            sublayer._zoomVisible !== false
+                        const wasZoomVisible = sublayer._zoomVisible !== false
                         sublayer._zoomVisible = isInRange
 
                         // Only show/hide if user has enabled this sublayer and zoom visibility changed

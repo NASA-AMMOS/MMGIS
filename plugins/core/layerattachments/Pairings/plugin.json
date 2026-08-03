@@ -9,18 +9,16 @@
   "capabilities": {
     "renderers": {
       "map": {
-        "engines": [
-          "leaflet"
-        ]
+        "engines": ["leaflet"]
       },
       "globe": false
+    },
+    "host": {
+      "order": 1
     }
   },
   "paths": {
     "plugin": "./pairings"
   },
-  "applicableLayerTypes": [
-    "vector",
-    "query"
-  ]
+  "applicableLayerTypes": ["vector", "query"]
 }

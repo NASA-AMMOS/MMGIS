@@ -15,6 +15,8 @@
  * @module LayerAttachmentRegistry
  */
 
+import LayerInterface from '../interface/LayerInterface'
+
 let _cache = null
 
 function _load() {
@@ -62,7 +64,9 @@ const LayerAttachmentRegistry = {
     },
     /** Declared capabilities object for an attachment. */
     capabilities(attachmentId) {
-        return _load().layerAttachmentConfigs?.[attachmentId]?.capabilities || {}
+        return (
+            _load().layerAttachmentConfigs?.[attachmentId]?.capabilities || {}
+        )
     },
     /** True if a plugin owns this attachment id. */
     has(attachmentId) {
@@ -75,6 +79,46 @@ const LayerAttachmentRegistry = {
             const applicable = configs[id].applicableLayerTypes
             return !applicable || applicable.includes(layerType)
         })
+    },
+    /**
+     * Attachment ids applicable to a host layer type, in the order they are
+     * built and listed on the host. That order is also their render order
+     * (bottom on top), which is why it is declared rather than incidental.
+     */
+    orderedFor(layerType) {
+        return this.forLayerType(layerType).sort((a, b) => {
+            const oa = this.capabilities(a).host?.order
+            const ob = this.capabilities(b).host?.order
+            return (
+                (oa == null ? Infinity : oa) - (ob == null ? Infinity : ob) ||
+                a.localeCompare(b)
+            )
+        })
+    },
+    /**
+     * The key this attachment is stored under on its host
+     * (`L_.layers.attachments[host][key]`). Defaults to the attachmentId; an
+     * attachment declares `capabilities.host.sublayerKey` only where the two
+     * legitimately differ (`model` is stored as `models`).
+     */
+    sublayerKey(attachmentId) {
+        return this.capabilities(attachmentId).host?.sublayerKey || attachmentId
+    },
+    /**
+     * True if this attachment decorates its siblings and so must be built after
+     * them — it is handed what has been built so far as `ctx.siblings`.
+     */
+    buildsAfterSiblings(attachmentId) {
+        return (
+            this.capabilities(attachmentId).host?.buildsAfterSiblings === true
+        )
+    },
+    /** Attachment ids whose module declares `opName`. */
+    withOp(opName) {
+        const mods = _load().layerAttachmentModules || {}
+        return Object.keys(mods).filter((id) =>
+            LayerInterface.hasOp(mods[id]?.plugin, opName)
+        )
     },
     /** All registered manifests, keyed by attachmentId. */
     all() {

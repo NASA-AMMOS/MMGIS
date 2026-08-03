@@ -100,7 +100,11 @@ export function setSublayerOpacity(L_, layerName, sublayerName, opacity) {
             [
                 sublayer,
                 opacity,
-                { hostName: layerName, attachmentName: sublayerName },
+                {
+                    hostName: layerName,
+                    attachmentName: sublayerName,
+                    source: 'attachment',
+                },
             ]
         )
     }
@@ -121,48 +125,6 @@ export function toggleSublayer(L_, layerName, sublayerName) {
     }
 }
 
-// Add a Cesium gradient-polyline primitive for an attachment, tracking the
-// in-flight build so a teardown that races ahead of it can't orphan the
-// primitive. GlobeRenderer.addLayer resolves asynchronously, so a layer
-// toggled off (or re-added) before the build finishes would otherwise leave
-// a stale primitive on the globe with no way to remove it.
-export function addGradientPolyline(L_, attachment) {
-    if (!attachment || !attachment.cesiumGradientOptions) return
-    if (!L_.Globe_ || !L_.Globe_.litho) return
-    attachment._gradientWantsOn = true
-    const gen = (attachment._gradientGen =
-        (attachment._gradientGen || 0) + 1)
-    L_.Globe_.litho
-        .addLayer('gradient_polyline', attachment.cesiumGradientOptions)
-        .then((id) => {
-            // Turned off (or superseded by a newer add) while building —
-            // discard this primitive instead of leaving it orphaned.
-            if (
-                attachment._gradientGen !== gen ||
-                !attachment._gradientWantsOn
-            ) {
-                L_.Globe_.litho.removeLayer(id)
-                return
-            }
-            attachment.cesiumLayerId = id
-        })
-        .catch((e) => {
-            console.warn('Failed to add 3D gradient polyline:', e)
-        })
-}
-
-// Remove an attachment's Cesium gradient-polyline primitive and cancel any
-// in-flight add (see addGradientPolyline) so it can't reappear afterwards.
-export function removeGradientPolyline(L_, attachment) {
-    if (!attachment) return
-    attachment._gradientWantsOn = false
-    attachment._gradientGen = (attachment._gradientGen || 0) + 1
-    if (attachment.cesiumLayerId && L_.Globe_ && L_.Globe_.litho) {
-        L_.Globe_.litho.removeLayer(attachment.cesiumLayerId)
-        attachment.cesiumLayerId = null
-    }
-}
-
 // Make a layer's sublayer match the layers data again
 export async function syncSublayerData(L_, layerName, onlyClear) {
     layerName = L_.asLayerUUID(layerName)
@@ -174,9 +136,7 @@ export async function syncSublayerData(L_, layerName, onlyClear) {
         return
 
     try {
-        let geojson = L_.layers.layer[layerName].toGeoJSON(
-            L_.GEOJSON_PRECISION
-        )
+        let geojson = L_.layers.layer[layerName].toGeoJSON(L_.GEOJSON_PRECISION)
         if (L_.layers.layer[layerName]._sourceGeoJSON)
             geojson = L_.layers.layer[layerName]._sourceGeoJSON
 
@@ -185,48 +145,49 @@ export async function syncSublayerData(L_, layerName, onlyClear) {
 
         if (subUpdateLayers) {
             for (let sub in subUpdateLayers) {
-                if (
-                    subUpdateLayers[sub] !== false &&
-                    subUpdateLayers[sub].layer != null
-                ) {
-                    subUpdateLayers[sub].layer.clearLayers()
-                    if (
-                        typeof subUpdateLayers[sub].layer
-                            .customClearLayers === 'function'
-                    ) {
-                        subUpdateLayers[sub].layer.customClearLayers(
-                            layerName,
-                            sub
-                        )
-                    }
+                const attachment = subUpdateLayers[sub]
+                if (attachment === false || attachment.layer == null) continue
 
-                    if (!onlyClear) {
-                        if (
-                            typeof subUpdateLayers[sub].layer
-                                .addDataEnhanced === 'function'
-                        ) {
-                            subUpdateLayers[sub].layer.addDataEnhanced(
-                                geojson,
-                                layerName,
-                                sub,
-                                L_.Map_
-                            )
-                        } else if (
-                            typeof subUpdateLayers[sub].layer.addData ===
-                            'function'
-                        ) {
-                            subUpdateLayers[sub].layer.addData(geojson)
-                        }
-
-                        if (sub === 'image_overlays') {
-                            subUpdateLayers[sub].layer.setZIndex(
-                                L_._layersOrdered.length +
-                                    1 -
-                                    L_._layersOrdered.indexOf(layerName)
-                            )
-                        }
-                    }
+                const ctx = {
+                    hostName: layerName,
+                    attachmentName: sub,
+                    geojson,
+                    onlyClear: onlyClear === true,
+                    zIndex:
+                        L_._layersOrdered.length +
+                        1 -
+                        L_._layersOrdered.indexOf(layerName),
                 }
+
+                // The host's data changed: rebuild the attachment from it.
+                // Core's default covers any attachment whose layer takes
+                // GeoJSON; anything an attachment draws outside that layer is
+                // its own to clear and restate.
+                LayerInterface.runSync(
+                    LayerAttachmentRegistry.module(attachment.type),
+                    'syncData',
+                    [attachment, ctx],
+                    {
+                        coreDefault: () => {
+                            attachment.layer.clearLayers()
+                            if (ctx.onlyClear) return
+                            if (
+                                typeof attachment.layer.addDataEnhanced ===
+                                'function'
+                            )
+                                attachment.layer.addDataEnhanced(
+                                    geojson,
+                                    layerName,
+                                    sub,
+                                    L_.Map_
+                                )
+                            else if (
+                                typeof attachment.layer.addData === 'function'
+                            )
+                                attachment.layer.addData(geojson)
+                        },
+                    }
+                )
             }
         }
     } catch (e) {
@@ -239,21 +200,60 @@ export async function syncSublayerData(L_, layerName, onlyClear) {
     await L_.globeLithoLayerHelper(L_.layers.data[layerName], onlyClear)
 }
 
-export function _updatePairings(L_, layerName, on) {
-    Object.keys(L_.layers.layer).forEach((name) => {
-        if (
-            L_.layers.on[name] &&
-            L_.layers.attachments[name] &&
-            L_.layers.attachments[name].pairings &&
-            L_.layers.attachments[name].pairings.on &&
-            L_.layers.attachments[name].pairings.pairedLayers.includes(
-                layerName
+/**
+ * Where a feature's related features from other layers sit relative to it.
+ *
+ * Relating features across layers is an attachment's business (pairings), so
+ * core asks the host's attachments rather than knowing what a relation is. The
+ * first attachment that answers wins.
+ *
+ * @param {string} hostName    UUID name of the layer the feature belongs to.
+ * @param {Object} feature     The feature to relate from.
+ * @param {Object} [ctx]       Passed through to the attachment (`originOffset`).
+ * @returns {{origin: number[], layerNames: string[], peers: Object[]}|false}
+ */
+export function getPeerFeatures(L_, hostName, feature, ctx = {}) {
+    const attachments = L_.layers.attachments[hostName] || {}
+    for (const id of LayerAttachmentRegistry.withOp('peerFeaturesFor')) {
+        const attachment = attachments[LayerAttachmentRegistry.sublayerKey(id)]
+        if (!attachment) continue
+        const result = LayerInterface.runSync(
+            LayerAttachmentRegistry.module(id),
+            'peerFeaturesFor',
+            [attachment, { ...ctx, hostName, feature }]
+        )
+        if (result) return result
+    }
+    return false
+}
+
+/**
+ * A layer was toggled: tell every other layer's attachments about it.
+ *
+ * Some attachments draw from layers other than their host (pairings connect
+ * features across layers), so they have to be told when one of those layers
+ * comes or goes. Core doesn't know which attachments care or which layers each
+ * one watches — it notifies those declaring `onPeerToggle` and they decide.
+ *
+ * @param {string} layerName  UUID name of the layer that was toggled.
+ * @param {boolean} on        Its new visibility.
+ */
+export function notifyAttachmentsOfPeerToggle(L_, layerName, on) {
+    const interested = LayerAttachmentRegistry.withOp('onPeerToggle')
+    if (interested.length === 0) return
+
+    Object.keys(L_.layers.attachments).forEach((hostName) => {
+        if (!L_.layers.on[hostName]) return
+        const attachments = L_.layers.attachments[hostName] || {}
+        interested.forEach((id) => {
+            const attachment =
+                attachments[LayerAttachmentRegistry.sublayerKey(id)]
+            if (!attachment) return
+            LayerInterface.runSync(
+                LayerAttachmentRegistry.module(id),
+                'onPeerToggle',
+                [attachment, { hostName, layerName, on }]
             )
-        ) {
-            L_.layers.attachments[name].pairings.layer.on(
-                false,
-                L_.layers.attachments[name].pairings.layer
-            )
-        }
+        })
     })
 }

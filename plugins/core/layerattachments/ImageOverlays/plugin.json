@@ -9,11 +9,12 @@
   "capabilities": {
     "renderers": {
       "map": {
-        "engines": [
-          "leaflet"
-        ]
+        "engines": ["leaflet"]
       },
       "globe": false
+    },
+    "host": {
+      "order": 3
     }
   },
   "paths": {

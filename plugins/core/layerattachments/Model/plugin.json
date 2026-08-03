@@ -5,15 +5,17 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
-  "description": "A 3D model placed at each of the host layer's features. Drawn only on the globe \u2014 it has nothing on the 2D map.",
+  "description": "A 3D model placed at each of the host layer's features. Drawn only on the globe — it has nothing on the 2D map.",
   "capabilities": {
     "renderers": {
       "map": false,
       "globe": {
-        "engines": [
-          "lithosphere"
-        ]
+        "engines": ["lithosphere"]
       }
+    },
+    "host": {
+      "order": 4,
+      "sublayerKey": "models"
     }
   },
   "paths": {
