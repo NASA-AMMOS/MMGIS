@@ -13,8 +13,8 @@
       "map": { "engines": ["leaflet"] },
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
-    "map": { "stacking": "raster" },
-    "time": true,
+    "map": { "stacking": "raster", "stacEndpoint": "tiles" },
+    "time": { "enabled": true, "histogram": true },
     "filtering": false,
     "identify": false
   },
@@ -71,6 +71,7 @@
   "paths": {
     "map": "./map/tile",
     "config": "./config/tile",
+    "time": "./time/tile",
     "globe.cesium": "./globe/cesium/tile",
     "globe.lithosphere": "./globe/lithosphere/tile"
   }

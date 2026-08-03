@@ -78,7 +78,7 @@ function make(layerObj, ctx = {}) {
         const normUrl = demUrl.startsWith('stac-collection:')
             ? demUrl
             : `stac-collection:${demUrl}`
-        layerUrl = transformStacUrl(normUrl, layerObj, 'data', window.location)
+        layerUrl = transformStacUrl(normUrl, layerObj, 'terrain', window.location)
     } else {
         layerUrl = L_.getUrl(layerObj.type, demUrl, layerObj)
     }

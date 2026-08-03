@@ -13,7 +13,8 @@
       "map": { "engines": ["leaflet"] },
       "globe": false
     },
-    "map": { "stacking": "raster", "tracksLoad": false },
+    "map": { "stacking": "raster",
+        "stacEndpoint": "terrain", "tracksLoad": false },
     "time": true,
     "filtering": false,
     "identify": false

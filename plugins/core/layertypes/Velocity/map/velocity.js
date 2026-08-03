@@ -232,7 +232,22 @@ async function setVisibility(layerObj, ctx = {}) {
     )
 }
 
+/**
+ * The animation is built from a captured data window, so a new time window means
+ * a new animation: the layer is cycled off and back on (which recaptures and
+ * rebuilds it) rather than reloaded in place.
+ */
+function timeChange(layerObj, ctx = {}) {
+    if (layerObj.time?.enabled !== true) return
+    if (!['streamlines', 'particles'].includes(layerObj.kind)) return
+    if (!L_.layers.on[layerObj.name]) return
+
+    L_.toggleLayer(L_.layers.data[layerObj.name], ctx.skipOrderedBringToFront)
+    L_.toggleLayer(L_.layers.data[layerObj.name], ctx.skipOrderedBringToFront)
+}
+
 export default {
     make,
     setVisibility,
+    timeChange,
 }

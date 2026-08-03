@@ -92,6 +92,23 @@ const LayerTypeRegistry = {
     refreshesByRemake(typeId) {
         return this.capabilities(typeId).map?.refreshByRemake === true
     },
+    /**
+     * Which TiTiler endpoint this type wants when its url is a STAC collection:
+     * 'tiles' (raster tiles), 'terrain' (elevation tiles) or 'preview' (a single
+     * image, the default).
+     */
+    stacEndpoint(typeId) {
+        return this.capabilities(typeId).map?.stacEndpoint || 'preview'
+    },
+    /**
+     * True if this type can report when data exists over time, which is what the
+     * time bar's availability histogram is built from. Core must know this while
+     * iterating every layer, before it involves any of them, so it is declared
+     * (`capabilities.time.histogram`) rather than asked per layer.
+     */
+    providesTimeHistogram(typeId) {
+        return this.capabilities(typeId).time?.histogram === true
+    },
     /** True if a plugin owns this type id. */
     has(typeId) {
         return !!_load().layerTypeModules?.[typeId]

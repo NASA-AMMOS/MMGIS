@@ -30,12 +30,12 @@ import Filtering from '@basics/Layers_/Filtering/Filtering'
 import { makeVectorMap } from '@basics/Layers_/commons/vector'
 
 // Constrain a freshly-made layer to the current local time window.
-function applyLocalTimeWindow(layerObj) {
+function applyLocalTimeWindow(layerObj, opts = {}) {
     if (
         layerObj.time == null ||
         layerObj.time.type !== 'local' ||
         layerObj.time.endProp == null ||
-        layerObj.controlled === true
+        (layerObj.controlled === true && opts.evenIfControlled !== true)
     )
         return
 
@@ -113,5 +113,39 @@ export default {
         }
 
         L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+    },
+    /**
+     * A vector layer whose features each carry their own time can be filtered
+     * to the new time window client-side instead of refetching — unless the
+     * caller forced a requery, in which case core reloads and the window is
+     * re-applied once the new features have landed.
+     */
+    timeChange(layerObj, ctx = {}) {
+        const isLocallyTimed =
+            layerObj.time?.type === 'local' && layerObj.time?.endProp != null
+        const mayAct =
+            ctx.evenIfControlled === true || layerObj.controlled !== true
+
+        if (isLocallyTimed && ctx.forceRequery !== true) {
+            if (mayAct)
+                applyLocalTimeWindow(layerObj, {
+                    evenIfControlled: ctx.evenIfControlled,
+                })
+            return
+        }
+
+        return ctx.reload({
+            afterLoad: () => {
+                if (
+                    layerObj.time?.enabled === true &&
+                    isLocallyTimed &&
+                    ctx.forceRequery === true &&
+                    mayAct
+                )
+                    applyLocalTimeWindow(layerObj, {
+                        evenIfControlled: ctx.evenIfControlled,
+                    })
+            },
+        })
     },
 }

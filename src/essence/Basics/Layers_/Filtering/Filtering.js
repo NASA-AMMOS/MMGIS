@@ -5,9 +5,8 @@ import F_ from '../../Formulae_/Formulae_'
 import L_ from '../../Layers_/Layers_'
 import Map_ from '../../Map_/Map_'
 
-import LocalFilterer from '../../../services/LocalFilterer'
-import ESFilterer from './ESFilterer'
-import GeodatasetFilterer from './GeodatasetFilterer'
+import LayerInterface from '../interface/LayerInterface'
+import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 
 import Help from '../../UserInterface_/components/Help/Help'
 import OpGridSelector from './OpGridSelector'
@@ -19,16 +18,49 @@ import './Filtering.css'
 
 const helpKey = 'LayersTool-Filtering'
 
+/**
+ * Which types can be filtered, and how, is the layer type's business: a type
+ * ships a `filter` surface with `getAggregations` (what can I filter on?) and
+ * `filter` (apply this filter state). A type without one simply isn't
+ * filterable, and every call below no-ops for it.
+ */
+function filterModuleOf(layerName) {
+    return LayerTypeRegistry.get(L_.layers.data[layerName]?.type)?.filter
+}
+
 const Filtering = {
     filters: {},
     current: {},
     currentContainer: null,
     mapSpatialLayer: null,
+    /** True if this layer's type ships a filtering strategy. */
+    isFilterable: function (layerName) {
+        return LayerInterface.hasOp(filterModuleOf(layerName), 'filter')
+    },
+    /**
+     * Ask the layer's type what can be filtered on. Returns undefined for a
+     * type that isn't filterable and null when the type could not answer.
+     */
+    getAggregations: async function (layerName, ctx = {}) {
+        return LayerInterface.run(filterModuleOf(layerName), 'getAggregations', [
+            layerName,
+            Filtering.filters[layerName],
+            ctx,
+        ])
+    },
+    /** Ask the layer's type to apply the layer's current filter state. */
+    applyFilter: async function (layerName, ctx = {}) {
+        return LayerInterface.run(filterModuleOf(layerName), 'filter', [
+            layerName,
+            Filtering.filters[layerName],
+            ctx,
+        ])
+    },
     initialize: function () {
         Object.keys(L_.layers.data).forEach((layerName) => {
             const layerObj = L_.layers.data[layerName]
 
-            if (layerObj == null || layerObj.type != 'vector') return
+            if (layerObj == null || !Filtering.isFilterable(layerName)) return
 
             let shouldInitiallySubmit = false
 
@@ -82,41 +114,13 @@ const Filtering = {
             layerName: layerName,
             layerObj: layerObj,
             type: layerObj.type,
-            needsToQueryGeodataset:
-                layerObj?.url.startsWith('geodatasets:') &&
-                layerObj?.variables?.getFeaturePropertiesOnClick === true,
         }
 
-        if (Filtering.current.type === 'vector') {
-            if (Filtering.current.needsToQueryGeodataset) {
-                Filtering.filters[layerName].aggs =
-                    await GeodatasetFilterer.getAggregations(layerName)
-            } else {
-                try {
-                    Filtering.filters[layerName].geojson =
-                        Filtering.filters[layerName].geojson ||
-                        L_.layers.layer[layerName].toGeoJSON(
-                            L_.GEOJSON_PRECISION
-                        )
-                } catch (err) {
-                    console.warn(
-                        `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
-                    )
-                    return
-                }
-                Filtering.filters[layerName].aggs =
-                    LocalFilterer.getAggregations(
-                        Filtering.filters[layerName].geojson,
-                        layerName
-                    )
-            }
-        } else if (Filtering.current.type === 'query') {
-            Filtering.filters[layerName].aggs =
-                await ESFilterer.getAggregations(
-                    layerName,
-                    Filtering.getConfig()
-                )
-        }
+        const aggs = await Filtering.getAggregations(layerName)
+        // null == the type has a filtering strategy but could not answer (a
+        // vector layer with no readable GeoJSON); there is nothing to show.
+        if (aggs === null) return
+        if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
         const spatialActive =
             Filtering.filters[layerName].spatial?.center != null
 
@@ -474,25 +478,7 @@ const Filtering = {
             })
 
             // Refilter to show all
-            if (Filtering.current.type === 'vector') {
-                if (Filtering.current.needsToQueryGeodataset) {
-                    GeodatasetFilterer.filter(
-                        layerName,
-                        Filtering.filters[layerName]
-                    )
-                } else {
-                    LocalFilterer.filter(
-                        layerName,
-                        Filtering.filters[layerName]
-                    )
-                }
-            } else if (Filtering.current.type === 'query') {
-                await ESFilterer.filter(
-                    layerName,
-                    Filtering.filters[layerName],
-                    Filtering.getConfig()
-                )
-            }
+            await Filtering.applyFilter(layerName)
 
             // Reset count
             $('#layersTool_filtering_count').text('')
@@ -767,26 +753,7 @@ const Filtering = {
 
         Filtering.setSubmitButtonState(true)
         $(`#layersTool_filtering_submit_loading`).addClass('active')
-        if (layerObj.type === 'vector') {
-            // needsToQueryGeodataset (but pulled out so submit could be called standalone)
-            if (
-                layerObj?.url.startsWith('geodatasets:') &&
-                layerObj?.variables?.getFeaturePropertiesOnClick === true
-            ) {
-                GeodatasetFilterer.filter(
-                    layerName,
-                    Filtering.filters[layerName]
-                )
-            } else {
-                LocalFilterer.filter(layerName, Filtering.filters[layerName])
-            }
-        } else if (layerObj.type === 'query') {
-            await ESFilterer.filter(
-                layerName,
-                Filtering.filters[layerName],
-                Filtering.getConfig()
-            )
-        }
+        await Filtering.applyFilter(layerName, { source: 'submit' })
 
         $(`#layersTool_filtering_submit_loading`).removeClass('active')
         Filtering.setSubmitButtonState(false)
@@ -886,84 +853,21 @@ const Filtering = {
                 break
         }
     },
-    getConfig: function () {
-        if (
-            Filtering.current.layerObj.type === 'query' &&
-            Filtering.current.layerObj.query
-        ) {
-            return {
-                endpoint: Filtering.current.layerObj.query.endpoint,
-                type: Filtering.current.layerObj.query.type || 'elasticsearch',
-                ...(Filtering.current.layerObj.variables
-                    ? Filtering.current.layerObj.variables.query || {}
-                    : {}),
-            }
-        }
-        return {}
-    },
     // Let other places of the code trigger filters as needed
     triggerFilter: function (layerName) {
         if (Filtering.filters[layerName]) {
-            if (L_.layers.data[layerName].type === 'vector')
-                if (Filtering.filters[layerName]?.values?.[0]?.type != null) {
-                    // If the layer already has _filterEncoded set and is a
-                    // geodataset (url starts with "geodatasets:"), the server
-                    // already filtered the results during captureVector.
-                    // Re-applying a client-side local filter is redundant and
-                    // would cause a visual flash (clear + re-add same data).
-                    const layerData = L_.layers.data[layerName]
-                    if (
-                        layerData?._filterEncoded?.filters &&
-                        layerData?.url
-                            ?.toLowerCase()
-                            .startsWith('geodatasets:')
-                    ) {
-                        return
-                    }
-                    if (Filtering.current.needsToQueryGeodataset) {
-                        GeodatasetFilterer.filter(
-                            layerName,
-                            Filtering.filters[layerName]
-                        )
-                    } else {
-                        LocalFilterer.filter(
-                            layerName,
-                            Filtering.filters[layerName]
-                        )
-                    }
-                }
+            if (Filtering.filters[layerName]?.values?.[0]?.type != null)
+                Filtering.applyFilter(layerName, { source: 'trigger' })
         }
     },
-    // Useful for dynamicExtent vector layers so that the geojson and aggs match the visible features
+    // Useful for dynamicExtent layers so that the data and aggs match the visible features
     updateGeoJSON: async function (layerName) {
         if (Filtering.filters[layerName]) {
-            if (L_.layers.data[layerName].type === 'vector') {
-                if (Filtering.current.needsToQueryGeodataset) {
-                    Filtering.filters[layerName].aggs =
-                        await GeodatasetFilterer.getAggregations(layerName)
-                } else {
-                    try {
-                        Filtering.filters[layerName].geojson = L_.layers.layer[
-                            layerName
-                        ].toGeoJSON(L_.GEOJSON_PRECISION)
-                    } catch (err) {
-                        console.warn(
-                            `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
-                        )
-                        return
-                    }
-                    Filtering.filters[layerName].aggs =
-                        LocalFilterer.getAggregations(
-                            Filtering.filters[layerName].geojson,
-                            layerName
-                        )
-                }
-            } else if (L_.layers.data[layerName].type === 'query')
-                Filtering.filters[layerName].aggs =
-                    await ESFilterer.getAggregations(
-                        layerName,
-                        Filtering.getConfig()
-                    )
+            const aggs = await Filtering.getAggregations(layerName, {
+                refresh: true,
+            })
+            if (aggs === null) return
+            if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
 
             if (Filtering.filters[layerName]?.values) {
                 Filtering.filters[layerName]?.values.forEach((v, idx) => {

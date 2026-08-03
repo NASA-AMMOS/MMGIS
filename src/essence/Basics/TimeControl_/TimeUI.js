@@ -10,6 +10,7 @@ import F_ from '../Formulae_/Formulae_'
 import Map_ from '../Map_/Map_'
 import L_ from '../Layers_/Layers_'
 import { parseExternalStacUrl } from '../Layers_/LayerUtils'
+import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
 import calls from '../../../pre/calls'
 import tippy from 'tippy.js'
 import Dropy from '../../../external/Dropy/dropy'
@@ -343,7 +344,7 @@ const TimeUI = {
             const layer = L_.layers.data[layerName]
             if (
                 layer &&
-                layer.type === 'tile' &&
+                LayerTypeRegistry.providesTimeHistogram(layer.type) &&
                 layer.time &&
                 layer.time.enabled === true
             ) {
@@ -2918,7 +2919,7 @@ const TimeUI = {
             const l = L_.layers.data[name]
             if (
                 l &&
-                l.type === 'tile' &&
+                LayerTypeRegistry.providesTimeHistogram(l.type) &&
                 l.time &&
                 l.time.enabled === true &&
                 L_.layers.on[name] === true

@@ -31,6 +31,7 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "map": "./map/query",
-    "config": "./config/query"
+    "config": "./config/query",
+    "filter": "./filter/query"
   }
 }

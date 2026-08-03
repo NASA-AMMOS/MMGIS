@@ -68,6 +68,7 @@
   "paths": {
     "map": "./map/vector",
     "config": "./config/vector",
+    "filter": "./filter/vector",
     "globe.cesium": "./globe/cesium/vector",
     "globe.lithosphere": "./globe/lithosphere/vector"
   }

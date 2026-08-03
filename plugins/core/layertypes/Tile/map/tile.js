@@ -16,6 +16,8 @@ import MapRenderer from '@basics/Map_/MapRenderer'
 import TimeControl from '@basics/TimeControl_/TimeControl'
 import { transformStacUrl } from '@basics/Layers_/LayerUtils'
 
+import { applyTimeParams } from '../time/tile'
+
 async function make(layerObj, ctx = {}) {
     const mctx = MapRenderer.context(ctx.mapContext)
 
@@ -35,7 +37,7 @@ async function make(layerObj, ctx = {}) {
                 layerUrl = transformStacUrl(
                     layerObj.url,
                     layerObj,
-                    'tile',
+                    'tiles',
                     window.location
                 )
                 // Cache transformed URL for reuse (e.g., in animations)
@@ -180,6 +182,20 @@ async function make(layerObj, ctx = {}) {
     )
 }
 
+/**
+ * A tile service takes the time window as request parameters, so a time change
+ * re-requests tiles in place rather than rebuilding the layer.
+ */
+function timeChange(layerObj, ctx = {}) {
+    if (layerObj.time?.enabled === true) applyTimeParams(layerObj)
+
+    if (ctx.evenIfControlled !== true && layerObj.controlled === true) return
+    if (!L_.layers.on[layerObj.name] && !ctx.evenIfOff) return
+
+    L_.layers.layer[layerObj.name].refresh(ctx.changedUrl)
+}
+
 export default {
     make,
+    timeChange,
 }
