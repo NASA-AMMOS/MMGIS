@@ -1,0 +1,22 @@
+{
+  "name": "ImageOverlays",
+  "type": "layerattachment",
+  "attachmentId": "image_overlays",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "description": "Images georeferenced onto the 2D map from the host layer's features. Its opacity is applied to the overlay elements themselves rather than through a map layer.",
+  "capabilities": {
+    "renderers": {
+      "map": {
+        "engines": [
+          "leaflet"
+        ]
+      },
+      "globe": false
+    }
+  },
+  "paths": {
+    "plugin": "./imageOverlays"
+  }
+}

@@ -1288,7 +1288,7 @@ function cmdValidate() {
         const paths = p.manifest.paths;
         if (paths && typeof paths === "object" && !Array.isArray(paths)) {
             for (const [key, rel] of Object.entries(paths)) {
-                const surface = surfaceOfPathKey(key);
+                const surface = surfaceOfPathKey(key, p.pType);
                 if (surface == null) continue;
                 if (typeof rel !== "string") continue;
                 const modPath = path.join(p.pluginPath, `${rel}.js`);

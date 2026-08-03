@@ -157,6 +157,9 @@ const L_ = {
     toggleSublayer(...a) {
         return sublayers.toggleSublayer(L_, ...a)
     },
+    setAttachmentVisibility(...a) {
+        return sublayers.setAttachmentVisibility(L_, ...a)
+    },
     disableAllBut(...a) {
         return visibility.disableAllBut(L_, ...a)
     },

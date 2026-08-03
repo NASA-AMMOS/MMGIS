@@ -4,6 +4,7 @@ import Attributions from '../../UserInterface_/components/Attributions/Attributi
 import MapRenderer from '../../Map_/MapRenderer'
 import LayerInterface from '../interface/LayerInterface'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 
 import $ from 'jquery'
 
@@ -58,13 +59,22 @@ export async function toggleLayer(
 // path_gradient draws the host's geometry itself, and adding the host on top
 // would show its default billboards as white artifacts. Becomes an attachment
 // capability once layer attachments are plugins.
+// An attachment may BE its host's geometry drawn differently on the globe (a
+// path gradient is the host line, recolored), in which case the host must not
+// also be drawn there. The attachment declares that
+// (capabilities.globe.suppressesHost).
+function globeSuppressingAttachments(L_, layerObj) {
+    const attachments = L_.layers.attachments[layerObj.name] || {}
+    return Object.keys(attachments).filter(
+        (sub) =>
+            attachments[sub] &&
+            LayerAttachmentRegistry.capabilities(attachments[sub].type).globe
+                ?.suppressesHost === true
+    )
+}
+
 function hasGlobeSuppressingAttachment(L_, layerObj) {
-    const attachments = L_.layers.attachments[layerObj.name]
-    if (!attachments) return false
-    for (const sub in attachments) {
-        if (attachments[sub].type === 'path_gradient') return true
-    }
-    return false
+    return globeSuppressingAttachments(L_, layerObj).length > 0
 }
 
 export async function toggleLayerHelper(
@@ -122,48 +132,8 @@ export async function toggleLayerHelper(
                     }
                 )
                 if (L_.layers.attachments[s.name]) {
-                    for (let sub in L_.layers.attachments[s.name]) {
-                        switch (L_.layers.attachments[s.name][sub].type) {
-                            case 'model':
-                                L_.Globe_.litho.removeLayer(
-                                    L_.layers.attachments[s.name][sub]
-                                        .layerId
-                                )
-                                break
-                            case 'uncertainty_ellipses':
-                                L_.Globe_.litho.removeLayer(
-                                    L_.layers.attachments[s.name][sub]
-                                        .curtainLayerId
-                                )
-                                L_.Globe_.litho.removeLayer(
-                                    L_.layers.attachments[s.name][sub]
-                                        .clampedLayerId
-                                )
-                                L_.Map_.rmNotNull(
-                                    L_.layers.attachments[s.name][sub].layer
-                                )
-                                break
-                            case 'path_gradient':
-                                L_.Map_.rmNotNull(
-                                    L_.layers.attachments[s.name][sub].layer
-                                )
-                                L_.removeGradientPolyline(
-                                    L_.layers.attachments[s.name][sub]
-                                )
-                                break
-                            case 'labels':
-                            case 'pairings':
-                                L_.layers.attachments[s.name][
-                                    sub
-                                ].layer.off()
-                                break
-                            default:
-                                L_.Map_.rmNotNull(
-                                    L_.layers.attachments[s.name][sub].layer
-                                )
-                                break
-                        }
-                    }
+                    for (let sub in L_.layers.attachments[s.name])
+                        L_.setAttachmentVisibility(s.name, sub, false)
                 }
             }
             // Hide on the 3D globe. Whether the globe layer is removed or kept
@@ -188,92 +158,10 @@ export async function toggleLayerHelper(
             if (L_.layers.layer[s.name] && globeOnly != true) {
                 if (L_.layers.attachments[s.name]) {
                     for (let sub in L_.layers.attachments[s.name]) {
-                        if (L_.layers.attachments[s.name][sub].on) {
-                            switch (
-                                L_.layers.attachments[s.name][sub].type
-                            ) {
-                                case 'model':
-                                    L_.Globe_.litho.addLayer(
-                                        'model',
-                                        L_.layers.attachments[s.name][sub]
-                                            .modelOptions
-                                    )
-                                    break
-                                case 'uncertainty_ellipses':
-                                    L_.Globe_.litho.addLayer(
-                                        'curtain',
-                                        L_.layers.attachments[s.name][sub]
-                                            .curtainOptions
-                                    )
-                                    L_.Globe_.litho.addLayer(
-                                        'clamped',
-                                        L_.layers.attachments[s.name][sub]
-                                            .clampedOptions
-                                    )
-                                    L_.Map_.map.addLayer(
-                                        L_.layers.attachments[s.name][sub]
-                                            .layer
-                                    )
-                                    L_.layers.attachments[s.name][
-                                        sub
-                                    ].layer.setZIndex(
-                                        L_._layersOrdered.length +
-                                            1 -
-                                            L_._layersOrdered.indexOf(
-                                                s.name
-                                            )
-                                    )
-                                    break
-                                case 'path_gradient':
-                                    L_.Map_.map.addLayer(
-                                        L_.layers.attachments[s.name][sub]
-                                            .layer
-                                    )
-                                    L_.layers.attachments[s.name][
-                                        sub
-                                    ].layer.setZIndex(
-                                        L_._layersOrdered.length +
-                                            1 -
-                                            L_._layersOrdered.indexOf(
-                                                s.name
-                                            )
-                                    )
-                                    L_.addGradientPolyline(
-                                        L_.layers.attachments[s.name][sub]
-                                    )
-                                    break
-                                case 'labels':
-                                case 'pairings':
-                                    if (
-                                        L_.layers.attachments[s.name][sub]
-                                            .layer
-                                    )
-                                        L_.layers.attachments[s.name][
-                                            sub
-                                        ].layer.on(
-                                            false,
-                                            L_.layers.attachments[s.name][
-                                                sub
-                                            ].layer
-                                        )
-                                    break
-                                default:
-                                    L_.Map_.map.addLayer(
-                                        L_.layers.attachments[s.name][sub]
-                                            .layer
-                                    )
-                                    L_.layers.attachments[s.name][
-                                        sub
-                                    ].layer.setZIndex(
-                                        L_._layersOrdered.length +
-                                            1 -
-                                            L_._layersOrdered.indexOf(
-                                                s.name
-                                            )
-                                    )
-                                    break
-                            }
-                        }
+                        if (L_.layers.attachments[s.name][sub].on)
+                            L_.setAttachmentVisibility(s.name, sub, true, {
+                                order: true,
+                            })
                     }
                 }
 
@@ -324,17 +212,13 @@ export async function toggleLayerHelper(
                 // On first-time toggle the attachment-processing block above
                 // was skipped because the layer didn't exist yet. Defer the
                 // heavy Cesium geometry build so the UI isn't blocked.
-                for (const sub in L_.layers.attachments[s.name]) {
-                    const att = L_.layers.attachments[s.name][sub]
-                    if (
-                        att.type === 'path_gradient' &&
-                        att.on &&
-                        att.cesiumGradientOptions
-                    ) {
-                        setTimeout(() => {
-                            L_.addGradientPolyline(att)
-                        }, 0)
-                    }
+                for (const sub of globeSuppressingAttachments(L_, s)) {
+                    if (L_.layers.attachments[s.name][sub].on !== true) continue
+                    setTimeout(() => {
+                        L_.setAttachmentVisibility(s.name, sub, true, {
+                            globeOnly: true,
+                        })
+                    }, 0)
                 }
             }
         }
@@ -428,51 +312,10 @@ export function addVisible(L_, map_, onlyTheseLayers) {
             // Add Map layers
             if (L_.layers.layer[L_.layers.dataFlat[i].name]) {
                 try {
-                    if (L_.layers.attachments[L_.layers.dataFlat[i].name]) {
-                        for (let s in L_.layers.attachments[
-                            L_.layers.dataFlat[i].name
-                        ]) {
-                            const sublayer =
-                                L_.layers.attachments[
-                                    L_.layers.dataFlat[i].name
-                                ][s]
-                            if (sublayer.on) {
-                                switch (sublayer.type) {
-                                    case 'model':
-                                        L_.Globe_.litho.addLayer(
-                                            'model',
-                                            sublayer.modelOptions
-                                        )
-                                        break
-                                    case 'uncertainty_ellipses':
-                                        L_.Globe_.litho.addLayer(
-                                            'curtain',
-                                            sublayer.curtainOptions
-                                        )
-                                        L_.Globe_.litho.addLayer(
-                                            'clamped',
-                                            sublayer.clampedOptions
-                                        )
-                                        map.addLayer(sublayer.layer)
-                                        break
-                                    case 'path_gradient':
-                                        map.addLayer(sublayer.layer)
-                                        L_.addGradientPolyline(sublayer)
-                                        break
-                                    case 'labels':
-                                    case 'pairings':
-                                        if (sublayer.layer)
-                                            sublayer.layer.on(
-                                                false,
-                                                sublayer.layer
-                                            )
-                                        break
-                                    default:
-                                        map.addLayer(sublayer.layer)
-                                        break
-                                }
-                            }
-                        }
+                    const hostName = L_.layers.dataFlat[i].name
+                    for (const sub in L_.layers.attachments[hostName] || {}) {
+                        if (L_.layers.attachments[hostName][sub].on)
+                            L_.setAttachmentVisibility(hostName, sub, true)
                     }
                     map.addLayer(
                         L_.layers.layer[L_.layers.dataFlat[i].name]

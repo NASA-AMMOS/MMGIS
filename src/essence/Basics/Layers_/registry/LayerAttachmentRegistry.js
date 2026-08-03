@@ -36,6 +36,18 @@ const LayerAttachmentRegistry = {
     get(attachmentId) {
         return _load().layerAttachmentModules?.[attachmentId]
     },
+    /**
+     * The attachment's operation module.
+     *
+     * An attachment is one renderable that may straddle both engines (an
+     * uncertainty ellipse is a map overlay AND two globe layers), so unlike a
+     * layer type it declares a single module (`paths.plugin`) rather than one
+     * per surface.
+     */
+    module(attachmentId) {
+        const mods = _load().layerAttachmentModules?.[attachmentId]
+        return mods?.plugin || null
+    },
     /** Full plugin manifest for an attachment. */
     getConfig(attachmentId) {
         return _load().layerAttachmentConfigs?.[attachmentId]

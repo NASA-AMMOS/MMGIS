@@ -1,0 +1,26 @@
+{
+  "name": "Pairings",
+  "type": "layerattachment",
+  "attachmentId": "pairings",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "description": "Lines drawn between a host layer's features and the matching features of other layers. Redraws itself whenever one of the layers it pairs with is toggled.",
+  "capabilities": {
+    "renderers": {
+      "map": {
+        "engines": [
+          "leaflet"
+        ]
+      },
+      "globe": false
+    }
+  },
+  "paths": {
+    "plugin": "./pairings"
+  },
+  "applicableLayerTypes": [
+    "vector",
+    "query"
+  ]
+}

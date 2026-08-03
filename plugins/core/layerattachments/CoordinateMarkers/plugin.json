@@ -1,0 +1,22 @@
+{
+  "name": "CoordinateMarkers",
+  "type": "layerattachment",
+  "attachmentId": "coordinate_markers",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "description": "A graticule of coordinate markers over the host layer on the 2D map. Behaves like a plain map layer, so it declares no operations of its own and rides core's defaults.",
+  "capabilities": {
+    "renderers": {
+      "map": {
+        "engines": [
+          "leaflet"
+        ]
+      },
+      "globe": false
+    }
+  },
+  "paths": {
+    "plugin": "./coordinateMarkers"
+  }
+}

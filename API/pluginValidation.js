@@ -75,6 +75,22 @@ const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
 const TIME_OPS = ["availability", "format", "applyTimeParams"];
 
+/**
+ * A layer attachment is a single renderable that may straddle both engines (an
+ * uncertainty ellipse is a map overlay AND two globe layers), so it declares
+ * one module (`paths.plugin`) rather than one per surface, with its own
+ * vocabulary. Core still constructs attachments, so `make` is not required.
+ */
+const ATTACHMENT_OPS = [
+  "make",
+  "destroy",
+  "setOpacity",
+  "setVisibility",
+  "onHostToggle",
+  "syncData",
+  "setStyle",
+];
+
 /** Operations valid on each surface, and whether `make` is required there. */
 const SURFACES = {
   map: { ops: LAYER_OPS.filter((op) => op !== "render"), requiresMake: true },
@@ -82,10 +98,18 @@ const SURFACES = {
   config: { ops: CONFIG_OPS, requiresMake: false },
   filter: { ops: FILTER_OPS, requiresMake: false },
   time: { ops: TIME_OPS, requiresMake: false },
+  attachment: { ops: ATTACHMENT_OPS, requiresMake: false },
 };
 
-/** The surface a manifest `paths` key belongs to, or null if it isn't one. */
-function surfaceOfPathKey(key) {
+/**
+ * The surface a manifest `paths` key belongs to, or null if it isn't one.
+ *
+ * @param {string} key
+ * @param {string} [pluginType='layertype'] - 'layerattachment' keys all resolve
+ *   to the single attachment surface.
+ */
+function surfaceOfPathKey(key, pluginType = "layertype") {
+  if (pluginType === "layerattachment") return "attachment";
   if (key === "map") return "map";
   if (key.startsWith("globe.")) return "globe";
   if (SURFACES[key]) return key;
@@ -517,7 +541,12 @@ function validatePluginConfig(config, pluginName, pluginType) {
     // ship a renderer module for a surface it doesn't declare). This is the
     // manifest-level half of the contract check; the plugin CLI does the
     // module-export-level half (required `make`, known ops/phases).
-    const renderers = config.capabilities && config.capabilities.renderers;
+    // An attachment declares one module for both engines (`paths.plugin`), so
+    // there is nothing per-surface to cross-check.
+    const renderers =
+      pluginType === "layerattachment"
+        ? null
+        : config.capabilities && config.capabilities.renderers;
     if (
       renderers &&
       typeof renderers === "object" &&
@@ -992,6 +1021,7 @@ module.exports = {
   validateLayerTypeModuleShape,
   surfaceOfPathKey,
   LAYER_OPS,
+  ATTACHMENT_OPS,
   CONFIG_OPS,
   FILTER_OPS,
   TIME_OPS,
