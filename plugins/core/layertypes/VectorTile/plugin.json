@@ -52,6 +52,7 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "map": "./map/vectortile",
+    "config": "./config/vectortile",
     "globe.cesium": "./globe/cesium/vectortile",
     "globe.lithosphere": "./globe/lithosphere/vectortile"
   }

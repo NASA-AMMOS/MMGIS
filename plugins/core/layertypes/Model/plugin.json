@@ -13,7 +13,7 @@
       "map": false,
       "globe": { "engines": ["lithosphere"] }
     },
-    "map": { "stacking": false },
+    "map": { "stacking": false, "tracksLoad": false },
     "time": false,
     "filtering": false,
     "identify": false

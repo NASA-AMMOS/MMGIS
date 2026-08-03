@@ -291,22 +291,6 @@ let Map_ = {
             $('.map-autoset-zoom').text(Map_.map.getZoom())
         })
 
-        this.map.on('movestart', fadeOutCertainLayers)
-        this.map.on('zoomstart', fadeOutCertainLayers)
-
-        function fadeOutCertainLayers() {
-            // Fade out Velocity layer Streamlines to prevent rendering jumps
-            Object.keys(L_.layers.data).forEach((layerUUID) => {
-                const layerData = L_.layers.data[layerUUID]
-                if (
-                    layerData.type === 'velocity' &&
-                    (layerData.kind === 'streamlines' || layerData.kind == null)
-                ) {
-                    L_.layers.layer[layerUUID].setOpacity(0)
-                }
-            })
-        }
-
         if (Globe_.controls.link) {
             this.map.on('move', (e) => {
                 const c = this.map.getCenter()
@@ -418,15 +402,21 @@ let Map_ = {
     },
     //Redraws all layers, starting with the bottom one
     orderedBringToFront: function () {
+        // An 'overlay' type is ordered by insertion, so it has to be removed
+        // and re-added in order; a 'raster' type only needs its z-index reset.
+        // Which one a type is, is declared (capabilities.map.stacking) rather
+        // than asked of the layer — core partitions every layer here before it
+        // touches any of them.
         let hasIndex = []
         let hasIndexRaster = []
 
         for (let i = L_._layersOrdered.length - 1; i >= 0; i--) {
             if (Map_.hasLayer(L_._layersOrdered[i])) {
                 if (L_.layers.data[L_._layersOrdered[i]]) {
-                    if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'vector'
-                    ) {
+                    const stacking = LayerTypeRegistry.mapStacking(
+                        L_.layers.data[L_._layersOrdered[i]].type
+                    )
+                    if (stacking === 'overlay') {
                         if (L_.layers.attachments[L_._layersOrdered[i]]) {
                             for (let s in L_.layers.attachments[
                                 L_._layersOrdered[i]
@@ -442,18 +432,8 @@ let Map_ = {
                             L_.layers.layer[L_._layersOrdered[i]]
                         )
                         hasIndex.push(i)
-                    } else if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'tile' ||
-                        L_.layers.data[L_._layersOrdered[i]].type === 'data'
-                    ) {
+                    } else if (stacking === 'raster') {
                         hasIndexRaster.push(i)
-                    } else if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'image'
-                    ) {
-                        Map_.map.removeLayer(
-                            L_.layers.layer[L_._layersOrdered[i]]
-                        )
-                        hasIndex.push(i)
                     }
                 }
             }
@@ -486,9 +466,12 @@ let Map_ = {
 
             Map_.map.addLayer(L_.layers.layer[L_._layersOrdered[hasIndex[i]]])
 
-            // If image layer, reorder the z index and redraw the layer
+            // Some overlay types (image) also need their z-index reset and
+            // their tiles redrawn after being re-added.
             if (
-                L_.layers.data[L_._layersOrdered[hasIndex[i]]].type === 'image'
+                LayerTypeRegistry.redrawsOnReorder(
+                    L_.layers.data[L_._layersOrdered[hasIndex[i]]].type
+                )
             ) {
                 L_.layers.layer[L_._layersOrdered[hasIndex[i]]].setZIndex(
                     L_._layersOrdered.length +
@@ -567,7 +550,9 @@ let Map_ = {
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
             if (
                 L_.layers.data[L_._layersOrdered[i]] &&
-                L_.layers.data[L_._layersOrdered[i]].type == 'vector' &&
+                LayerTypeRegistry.refreshesByRemake(
+                    L_.layers.data[L_._layersOrdered[i]].type
+                ) &&
                 L_.layers.data[L_._layersOrdered[i]].name == layerObj.name
             ) {
                 // Original
@@ -782,8 +767,8 @@ async function makeLayer(
         let madeSuccessfully = true
         try {
             //Decide what kind of layer it is
-            //Headers do not need to be made
-            if (layerObj.type != 'header') {
+            //Structural layers (headers) hold no data and are never made
+            if (!LayerTypeRegistry.isStructural(layerObj.type)) {
                 // Layer-type plugins own their map renderer. Every built-in type
                 // is plugin-backed and dispatched through the registry with the
                 // frozen renderer context — one real path per type, no per-type

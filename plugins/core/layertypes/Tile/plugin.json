@@ -70,6 +70,7 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "map": "./map/tile",
+    "config": "./config/tile",
     "globe.cesium": "./globe/cesium/tile",
     "globe.lithosphere": "./globe/lithosphere/tile"
   }

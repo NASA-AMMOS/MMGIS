@@ -1240,7 +1240,7 @@ function cmdValidate() {
     // categories aren't part of discoverAll()'s enable/disable model (they are
     // always-on core), so scan them directly and validate both the manifest and
     // each renderer module's `export default {}` operation shape.
-    const { validateLayerTypeModuleShape } = require(
+    const { validateLayerTypeModuleShape, surfaceOfPathKey } = require(
         path.join(__dirname, "..", "API", "pluginValidation")
     );
     let rendererPlugins = [];
@@ -1288,7 +1288,8 @@ function cmdValidate() {
         const paths = p.manifest.paths;
         if (paths && typeof paths === "object" && !Array.isArray(paths)) {
             for (const [key, rel] of Object.entries(paths)) {
-                if (key !== "map" && !key.startsWith("globe.")) continue;
+                const surface = surfaceOfPathKey(key);
+                if (surface == null) continue;
                 if (typeof rel !== "string") continue;
                 const modPath = path.join(p.pluginPath, `${rel}.js`);
                 let src;
@@ -1300,7 +1301,7 @@ function cmdValidate() {
                     errors++;
                     continue;
                 }
-                const modErrs = validateLayerTypeModuleShape(src, `${prefix} [${key}]`);
+                const modErrs = validateLayerTypeModuleShape(src, `${prefix} [${key}]`, surface);
                 for (const e of modErrs) {
                     pluginErrors.push(e);
                     if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);

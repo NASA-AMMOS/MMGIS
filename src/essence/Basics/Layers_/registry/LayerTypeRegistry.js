@@ -53,6 +53,45 @@ const LayerTypeRegistry = {
     capabilities(typeId) {
         return _load().layerTypeConfigs?.[typeId]?.capabilities || {}
     },
+    /**
+     * Declarative answers to the questions core must ask while iterating or
+     * partitioning ALL layers, where calling a per-layer hook would be
+     * backwards (core would have to call every layer to learn which ones to
+     * call). Everything else is an operation on the type's renderer module.
+     */
+    /** True for a type that organizes the layer tree but draws nothing (header). */
+    isStructural(typeId) {
+        return this.capabilities(typeId).structural === true
+    },
+    /**
+     * How this type participates in 2D map draw order:
+     *   'raster'  ordered by z-index only (tile, data, vectortile)
+     *   'overlay' ordered by insertion: must be removed and re-added
+     *   false     not map-ordered (globe-only types, video, velocity)
+     */
+    mapStacking(typeId) {
+        return this.capabilities(typeId).map?.stacking ?? false
+    },
+    /** True if reordering this type also needs a cache clear + redraw (image). */
+    redrawsOnReorder(typeId) {
+        return this.capabilities(typeId).map?.redrawOnReorder === true
+    },
+    /**
+     * True if core waits for this type's map layer to finish loading before
+     * the map counts as loaded. False for types that are never loaded on the 2D
+     * map (globe-only) or that render progressively with no load event.
+     */
+    tracksMapLoad(typeId) {
+        return this.capabilities(typeId).map?.tracksLoad !== false
+    },
+    /**
+     * True if refreshing this type's data means rebuilding its map layer.
+     * False for types that re-request in place (tile params) or hold no
+     * fetched data at all.
+     */
+    refreshesByRemake(typeId) {
+        return this.capabilities(typeId).map?.refreshByRemake === true
+    },
     /** True if a plugin owns this type id. */
     has(typeId) {
         return !!_load().layerTypeModules?.[typeId]

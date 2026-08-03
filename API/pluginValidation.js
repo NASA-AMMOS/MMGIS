@@ -64,6 +64,35 @@ const OP_PHASES = ["before", "main", "after"];
 const MAKE_EXTRA_PHASES = ["afterCommit"];
 
 /**
+ * A layer type may also ship the optional NON-renderer surfaces, each with its
+ * own small vocabulary. They are validated per-surface: a `render` in a map
+ * module or an `expand` in a globe module is an error, not a silent no-op.
+ *   config  parse-time ownership of the layer's config object
+ *   filter  the filtering strategy for the type
+ *   time    what the type's time support means to the time bar
+ */
+const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
+const FILTER_OPS = ["getAggregations", "filter"];
+const TIME_OPS = ["availability", "format", "applyTimeParams"];
+
+/** Operations valid on each surface, and whether `make` is required there. */
+const SURFACES = {
+  map: { ops: LAYER_OPS.filter((op) => op !== "render"), requiresMake: true },
+  globe: { ops: LAYER_OPS, requiresMake: true },
+  config: { ops: CONFIG_OPS, requiresMake: false },
+  filter: { ops: FILTER_OPS, requiresMake: false },
+  time: { ops: TIME_OPS, requiresMake: false },
+};
+
+/** The surface a manifest `paths` key belongs to, or null if it isn't one. */
+function surfaceOfPathKey(key) {
+  if (key === "map") return "map";
+  if (key.startsWith("globe.")) return "globe";
+  if (SURFACES[key]) return key;
+  return null;
+}
+
+/**
  * Known top-level fields for each plugin type. Anything else triggers a
  * warning (but not an error).
  */
@@ -913,10 +942,13 @@ function _parseObjectLiteral(src, start) {
  *
  * @param {string} source - The module file's text.
  * @param {string} label  - A human label for messages (e.g. 'tile (map)').
+ * @param {string} [surface='map'] - Which surface this module implements; the
+ *   valid operations and whether `make` is required depend on it.
  * @returns {string[]} error strings (empty == valid)
  */
-function validateLayerTypeModuleShape(source, label) {
+function validateLayerTypeModuleShape(source, label, surface = "map") {
   const errors = [];
+  const { ops: validOps, requiresMake } = SURFACES[surface] || SURFACES.map;
   const marker = /export\s+default\s*\{/.exec(source);
   if (!marker) {
     errors.push(
@@ -927,13 +959,13 @@ function validateLayerTypeModuleShape(source, label) {
   const braceIndex = marker.index + marker[0].length - 1;
   const { keys } = _parseObjectLiteral(source, braceIndex);
   const opNames = keys.map((k) => k.name);
-  if (!opNames.includes("make")) {
+  if (requiresMake && !opNames.includes("make")) {
     errors.push(`${label}: missing required 'make' operation`);
   }
   for (const op of keys) {
-    if (!LAYER_OPS.includes(op.name)) {
+    if (!validOps.includes(op.name)) {
       errors.push(
-        `${label}: unknown operation '${op.name}' (expected one of: ${LAYER_OPS.join(", ")})`
+        `${label}: unknown operation '${op.name}' (expected one of: ${validOps.join(", ")})`
       );
       continue;
     }
@@ -958,7 +990,12 @@ module.exports = {
   findDuplicateInteractionIds,
   findDuplicateIds,
   validateLayerTypeModuleShape,
+  surfaceOfPathKey,
   LAYER_OPS,
+  CONFIG_OPS,
+  FILTER_OPS,
+  TIME_OPS,
+  SURFACES,
   OP_PHASES,
   MAKE_EXTRA_PHASES,
   KNOWN_FIELDS,

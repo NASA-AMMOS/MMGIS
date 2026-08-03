@@ -151,6 +151,14 @@ function make(layerObj, ctx = {}) {
                     })
                     velocityLayer.setZIndex = function () {}
                     L_.layers.layer[layerObj.name] = velocityLayer
+
+                    // Streamlines are animated against the current view, so
+                    // they jump while the map moves: fade them out until the
+                    // move settles (the opacity is restored by the layer's
+                    // regular opacity refresh).
+                    MapRenderer.onViewChangeStart(mctx, () => {
+                        L_.layers.layer[layerObj.name]?.setOpacity(0)
+                    })
                 } else if (layerObj.kind == 'particles') {
                     let points = []
                     if (data.features) {

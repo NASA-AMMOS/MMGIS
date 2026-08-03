@@ -13,7 +13,7 @@
       "map": { "engines": ["leaflet"] },
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
-    "map": { "stacking": "overlay" },
+    "map": { "stacking": "overlay", "refreshByRemake": true },
     "time": true,
     "filtering": true,
     "identify": true
@@ -67,6 +67,7 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "map": "./map/vector",
+    "config": "./config/vector",
     "globe.cesium": "./globe/cesium/vector",
     "globe.lithosphere": "./globe/lithosphere/vector"
   }
