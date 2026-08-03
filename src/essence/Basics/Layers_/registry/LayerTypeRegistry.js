@@ -100,6 +100,14 @@ const LayerTypeRegistry = {
     stacEndpoint(typeId) {
         return this.capabilities(typeId).map?.stacEndpoint || 'preview'
     },
+    /** True if this type has a 2D map renderer at all. */
+    rendersOnMap(typeId) {
+        return this.capabilities(typeId).renderers?.map !== false
+    },
+    /** True if this type has a 3D globe renderer at all. */
+    rendersOnGlobe(typeId) {
+        return this.capabilities(typeId).renderers?.globe !== false
+    },
     /**
      * True if this type draws individually selectable features, i.e. a click on
      * the map may hit one of them. Core asks this while walking every on-screen

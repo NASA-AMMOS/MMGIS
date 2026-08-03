@@ -97,7 +97,7 @@ export async function toggleLayerHelper(
         toggleCtx.visible &&
         toggleCtx.source === 'toggleLayer'
 
-    if (s.type !== 'header') {
+    if (!LayerTypeRegistry.isStructural(s.type)) {
         if (on) {
             if (
                 L_.Map_.map.hasLayer(L_.layers.layer[s.name]) &&
@@ -417,9 +417,13 @@ export function addVisible(L_, map_, onlyTheseLayers) {
             (onlyTheseLayers == null ||
                 onlyTheseLayers.includes(L_.layers.dataFlat[i].name)) &&
             L_.layers.on[L_.layers.dataFlat[i].name] === true &&
-            (L_.layers.dataFlat[i].type === 'model' ||
-                L_.layers.dataFlat[i].type === '3dtiles' ||
-                L_.layers.layer[L_.layers.dataFlat[i].name] != null)
+            // Either it has something on the map to add, or it is a
+            // globe-only type (no map renderer) that still needs adding there.
+            (L_.layers.layer[L_.layers.dataFlat[i].name] != null ||
+                (!LayerTypeRegistry.rendersOnMap(L_.layers.dataFlat[i].type) &&
+                    !LayerTypeRegistry.isStructural(
+                        L_.layers.dataFlat[i].type
+                    )))
         ) {
             // Add Map layers
             if (L_.layers.layer[L_.layers.dataFlat[i].name]) {
@@ -591,17 +595,19 @@ export function enforceVisibilityCutoffs(L_, forceLayerNames) {
         let layerObj = L_.layers.data[layerName]
         let layer = L_.layers.layer[layerName]
 
-        if (layerObj == null && layerDisplayName.includes('DrawTool'))
-            layerObj = {
-                type: 'vector',
-            }
+        // Draw layers are core-owned features with no layer config of their own.
+        const isDrawLayer =
+            layerObj == null && layerDisplayName.includes('DrawTool')
+        if (isDrawLayer) layerObj = {}
 
         if (layer && layer.length == null) layer = [layer]
 
-        // vector, loaded and on
+        // Per-feature zoom cutoffs only mean something for a type whose
+        // features are individually addressable, and only once it is on the map.
         if (
             layerObj != null &&
-            layerObj.type === 'vector' &&
+            (isDrawLayer ||
+                LayerTypeRegistry.hasFeatureStyling(layerObj.type)) &&
             layer &&
             (L_.layers.data[layerName]
                 ? L_.Map_.map.hasLayer(L_.layers.layer[layerName])
