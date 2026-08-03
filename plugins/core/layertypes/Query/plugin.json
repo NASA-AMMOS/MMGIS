@@ -13,7 +13,7 @@
       "map": { "engines": ["leaflet"] },
       "globe": false
     },
-    "map": { "stacking": "overlay" },
+    "map": { "stacking": "overlay", "picking": true, "styling": true },
     "time": false,
     "filtering": false,
     "identify": true

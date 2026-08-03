@@ -101,6 +101,23 @@ const LayerTypeRegistry = {
         return this.capabilities(typeId).map?.stacEndpoint || 'preview'
     },
     /**
+     * True if this type draws individually selectable features, i.e. a click on
+     * the map may hit one of them. Core asks this while walking every on-screen
+     * layer looking for what was clicked, so it is declared
+     * (`capabilities.map.picking`) rather than asked per layer.
+     */
+    hasFeaturePicking(typeId) {
+        return this.capabilities(typeId).map?.picking === true
+    },
+    /**
+     * True if this type's individual features carry their own style, so core may
+     * restyle them (selection highlight, filter dimming). Declared
+     * (`capabilities.map.styling`) because core partitions all layers first.
+     */
+    hasFeatureStyling(typeId) {
+        return this.capabilities(typeId).map?.styling === true
+    },
+    /**
      * True if this type can report when data exists over time, which is what the
      * time bar's availability histogram is built from. Core must know this while
      * iterating every layer, before it involves any of them, so it is declared

@@ -13,7 +13,12 @@
       "map": { "engines": ["leaflet"] },
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
-    "map": { "stacking": "overlay", "refreshByRemake": true },
+    "map": {
+      "stacking": "overlay",
+      "refreshByRemake": true,
+      "picking": true,
+      "styling": true
+    },
     "time": true,
     "filtering": true,
     "identify": true

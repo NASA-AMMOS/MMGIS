@@ -188,8 +188,8 @@ export function expandLayersToArray(L_, layer) {
     function expandLayers(d, level, prevName) {
         //Iterate over each layer
         for (let i = 0; i < d.length; i++) {
-            //Check if it's not a header and thus an actual layer with data
-            if (d[i].type != 'header') {
+            //Check if it's not structural (a header) and thus an actual layer with data
+            if (!LayerTypeRegistry.isStructural(d[i].type)) {
                 //Create parsed layers ordered
                 layersOrdered.push(d[i].name)
             }

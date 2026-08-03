@@ -221,8 +221,9 @@ export function resetLayerFills(L_, onlyThisLayerName) {
             (L_.layers.layer[key] &&
                 L_.layers.data[key] &&
                 key.toLowerCase().indexOf('draw') === -1 &&
-                (L_.layers.data[key].type === 'vector' ||
-                    L_.layers.data[key].type === 'query')) ||
+                LayerTypeRegistry.hasFeatureStyling(
+                    L_.layers.data[key].type
+                )) ||
             (s[0] === 'DrawTool' && !Number.isNaN(onId))
         ) {
             if (
