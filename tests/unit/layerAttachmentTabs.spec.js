@@ -14,6 +14,7 @@ const {
     attachmentTabsFor,
     attachmentConfigPaths,
 } = require('../../configure/src/core/layerAttachmentTabs')
+const { updateLayerAttachments } = require('../../API/updateTools')
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..')
 const REGISTRY_PATH = path.join(
@@ -40,6 +41,11 @@ const fieldsOf = (rows) => {
 }
 
 test.describe('attachment settings in the Layer modal', () => {
+    // Generated (gitignored) artifact — generate it before reading.
+    test.beforeAll(() => {
+        updateLayerAttachments()
+    })
+
     test('every attachment applicable to a host contributes its settings', () => {
         const tabs = attachmentTabsFor(registry(), {}, 'vector')
         const tabNames = tabs.map((t) => t.name)
