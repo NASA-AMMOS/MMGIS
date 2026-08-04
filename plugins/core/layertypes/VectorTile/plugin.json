@@ -49,7 +49,7 @@
       "requiresServices": ["postgis"]
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

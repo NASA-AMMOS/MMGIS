@@ -1977,7 +1977,7 @@ function _scaffoldLayertype(name) {
                     description: "",
                 },
             ],
-            metaconfig: {
+            config: {
                 tabs: [
                     {
                         name: "Core",
@@ -2204,7 +2204,7 @@ function cmdCreate(type, name) {
     } else if (type === "layertype") {
         const lower = name[0].toLowerCase() + name.slice(1);
         console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan(`map/${lower}.js`)} (add globe modules + declare their engines in ${c.cyan("plugin.json")} as needed)`);
-        console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("metaconfig")} fields in ${c.cyan("plugin.json")}`);
+        console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("config")} fields in ${c.cyan("plugin.json")}`);
         console.log(`    ${c.dim("3.")} Run ${c.cyan(`node -e "require('./API/updateTools').updateLayerTypes()"`)} to regenerate the layer-type registry`);
         console.log(`    ${c.dim("4.")} Run ${c.cyan("node plugins/plugin-cli.js validate")} to check the contract`);
     } else {

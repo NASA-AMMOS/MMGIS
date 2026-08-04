@@ -162,14 +162,14 @@ test('core manifests drive the Configure Kind pipeline', () => {
     ]);
 });
 
-test('applicable layer metaconfigs expose the Interactions editor', () => {
+test('applicable layer configs expose the Interactions editor', () => {
     const layerTypePluginDirs = {
         vector: 'Vector',
         vectortile: 'VectorTile',
         query: 'Query',
     };
     for (const layerType of ['vector', 'vectortile', 'query']) {
-        const metaconfig = JSON.parse(
+        const layerTypeConfig = JSON.parse(
             fs.readFileSync(
                 path.resolve(
                     __dirname,
@@ -177,12 +177,12 @@ test('applicable layer metaconfigs expose the Interactions editor', () => {
                 ),
                 'utf8'
             )
-        ).metaconfig;
-        const tab = metaconfig.tabs.find(
+        ).config;
+        const tab = layerTypeConfig.tabs.find(
             (candidate) => candidate.name === 'Interactions'
         );
         const component = tab?.rows?.[0]?.components?.[0];
-        const tabNames = metaconfig.tabs.map((candidate) => candidate.name);
+        const tabNames = layerTypeConfig.tabs.map((candidate) => candidate.name);
         const interactionsIndex = tabNames.indexOf('Interactions');
         const legendIndex = tabNames.indexOf('Legend');
         const filterIndex = tabNames.indexOf('Filter');

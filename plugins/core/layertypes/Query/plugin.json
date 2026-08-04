@@ -28,7 +28,7 @@
       "procurement": "None — data is produced at runtime by the querying tool/service."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

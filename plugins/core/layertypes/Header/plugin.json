@@ -27,7 +27,7 @@
       "procurement": "None — configuration only."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

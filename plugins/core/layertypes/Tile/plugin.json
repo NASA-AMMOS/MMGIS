@@ -67,7 +67,7 @@
       "requiresServices": ["stac", "titiler-pgstac"]
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

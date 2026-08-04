@@ -3,7 +3,7 @@
  *
  *  1. Per-type smoke: every built-in layer type is present in the generated
  *     `configure/public/layerTypeConfigs.json` with a contract-valid manifest
- *     and an embedded metaconfig, keyed by its stable typeId.
+ *     and an embedded Configure-page config, keyed by its stable typeId.
  *
  *  2. New-type flow: scaffolding a layer type with the plugin CLI and running
  *     updateLayerTypes() registers it into the generated registry — i.e. a
@@ -54,16 +54,16 @@ test.describe('layerTypeConfigs.json — built-in layer type registry', () => {
         updateLayerTypes();
     });
 
-    test('every built-in type is registered with a valid manifest + metaconfig', () => {
+    test('every built-in type is registered with a valid manifest + config', () => {
         const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 
         for (const typeId of BUILT_IN_TYPES) {
             const entry = registry[typeId];
             expect(entry, `registry entry for '${typeId}'`).toBeDefined();
 
-            // Entry shape: { manifest, metaconfig }.
+            // Entry shape: { manifest, config }.
             expect(entry.manifest, `manifest for '${typeId}'`).toBeDefined();
-            expect(entry.metaconfig, `metaconfig for '${typeId}'`).toBeTruthy();
+            expect(entry.config, `config for '${typeId}'`).toBeTruthy();
 
             // Keyed by its own stable id.
             expect(entry.manifest.typeId).toBe(typeId);
@@ -110,9 +110,9 @@ test.describe.serial('updateLayerTypes — a scaffolded layer type registers', (
         expect(entry).toBeDefined();
         expect(entry.manifest.name).toBe('ScaffoldSmoke');
         expect(entry.manifest.typeId).toBe('scaffoldsmoke');
-        // The scaffold's metaconfig is embedded so Configure can render its form.
-        expect(entry.metaconfig).toBeTruthy();
-        expect(entry.metaconfig.tabs).toBeDefined();
+        // The scaffold's config is embedded so Configure can render its form.
+        expect(entry.config).toBeTruthy();
+        expect(entry.config.tabs).toBeDefined();
         // Built-ins remain registered alongside the new type.
         expect(registry.vector).toBeDefined();
     });

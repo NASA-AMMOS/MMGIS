@@ -30,7 +30,7 @@
       "procurement": "Encode to H.264 .mp4 or VP8/VP9 .webm; provide the geographic bounding box the frame covers."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

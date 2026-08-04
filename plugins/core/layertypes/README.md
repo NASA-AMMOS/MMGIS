@@ -17,7 +17,7 @@ refresh/reload, and teardown — with no core changes.
 
 ```
 plugins/core/layertypes/<Type>/
-  plugin.json                    # manifest (identity, capabilities, paths, configure-page metaconfig, …)
+  plugin.json                    # manifest (identity, capabilities, paths, configure-page config, …)
   map/<type>.js                  # map (Leaflet) renderer module      — optional
   globe/cesium/<type>.js         # Cesium globe renderer module        — optional
   globe/lithosphere/<type>.js    # LithoSphere globe renderer module   — optional

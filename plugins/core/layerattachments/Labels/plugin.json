@@ -19,7 +19,7 @@
       "buildsAfterSiblings": true
     }
   },
-  "metaconfig": {
+  "config": {
     "tab": "Attachment - Layers",
     "tabOrder": 10,
     "order": 0,

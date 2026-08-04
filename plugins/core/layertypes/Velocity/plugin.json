@@ -40,7 +40,7 @@
       "procurement": "Any GeoJSON point FeatureCollection."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

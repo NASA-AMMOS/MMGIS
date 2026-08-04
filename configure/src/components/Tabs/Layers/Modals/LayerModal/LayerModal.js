@@ -169,9 +169,9 @@ const LayerModal = (props) => {
 
   const dispatch = useDispatch();
 
-  let config = layerTypeConfiguration?.[layer.type]?.metaconfig || {};
+  let config = layerTypeConfiguration?.[layer.type]?.config || {};
 
-  // Built-in types always have a metaconfig in the registry, so an empty config
+  // Built-in types always have a config in the registry, so an empty config
   // for a real layer means the async registry hasn't loaded (or failed) yet —
   // render a notice and block editing instead of a silent, no-op blank form.
   const registryUnavailable =

@@ -189,7 +189,7 @@ const KNOWN_FIELDS = {
     "capabilities",
     "fileTypes",
     "supportedData",
-    "metaconfig",
+    "config",
     "settings",
     "defaultIcon",
     "color",
@@ -203,7 +203,7 @@ const KNOWN_FIELDS = {
     "descriptionFull",
     "applicableLayerTypes",
     "capabilities",
-    "metaconfig",
+    "config",
     "settings",
     "defaultIcon",
     "color",
@@ -796,13 +796,13 @@ function validatePluginConfig(config, pluginName, pluginType) {
       }
     }
     if (
-      config.metaconfig !== undefined &&
-      (typeof config.metaconfig !== "object" ||
-        config.metaconfig === null ||
-        Array.isArray(config.metaconfig))
+      config.config !== undefined &&
+      (typeof config.config !== "object" ||
+        config.config === null ||
+        Array.isArray(config.config))
     ) {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'metaconfig' must be an inline object describing the Configure-page form`
+        `Plugin '${pluginName}' (${pluginType}): 'config' must be an inline object describing the Configure-page form`
       );
     }
     if (config.settings !== undefined && typeof config.settings !== "string") {

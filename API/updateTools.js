@@ -485,11 +485,11 @@ function safeIdent(s) {
  * Shared generator for the two renderer-plugin kinds (`layertype` and
  * `layerattachment`). Both are structurally identical: a `paths` object of
  * static-import entries (map / globe.<engine> / capture / …), an optional
- * `settings` JSON, and an optional inline `metaconfig` object describing the
+ * `settings` JSON, and an optional inline `config` object describing the
  * plugin's Configure-page form.
  *
  * Produces:
- *   - configure/public/<configureFile>  → { [id]: { manifest, metaconfig } }
+ *   - configure/public/<configureFile>  → { [id]: { manifest, config } }
  *   - src/pre/<preFile>                 → static imports + generated maps:
  *       export const <configsExport>  = { [id]: manifest }
  *       export const <modulesExport>  = { [id]: { map, globe: { <engine> }, … } }
@@ -567,13 +567,13 @@ function generateLayerRegistry({
     }
   }
 
-  // 1. Configure page JSON — surface each plugin's metaconfig so the separate
-  //    React app can resolve layer forms by type without importing from the
-  //    plugins directory.
+  // 1. Configure page JSON — surface each plugin's config so the separate React
+  //    app can resolve layer forms by type without importing from the plugins
+  //    directory.
   const configureOut = {};
   for (const id in byId) {
-    const { metaconfig = null, ...manifest } = byId[id];
-    configureOut[id] = { manifest, metaconfig };
+    const { config = null, ...manifest } = byId[id];
+    configureOut[id] = { manifest, config };
   }
   try {
     fs.writeFileSync(
@@ -646,12 +646,12 @@ function generateLayerRegistry({
   }
   out += "}\n\n";
 
-  // The metaconfig only describes the Configure-page form, so it is served in
-  // the Configure JSON above rather than shipped in the frontend bundle.
+  // `config` only describes the Configure-page form, so it is served in the
+  // Configure JSON above rather than shipped in the frontend bundle.
   const runtimeManifests = {};
   for (const id in byId) {
-    const { metaconfig, ...manifest } = byId[id];
-    void metaconfig;
+    const { config, ...manifest } = byId[id];
+    void config;
     runtimeManifests[id] = manifest;
   }
   out += `export const ${configsExport} = ${JSON.stringify(

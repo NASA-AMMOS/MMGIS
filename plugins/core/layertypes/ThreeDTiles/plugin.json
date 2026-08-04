@@ -31,7 +31,7 @@
       "procurement": "Produce with a 3D Tiles tiler (e.g. py3dtiles, Cesium ion, or a photogrammetry pipeline); host the tileset directory statically."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

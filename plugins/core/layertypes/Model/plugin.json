@@ -31,7 +31,7 @@
       "procurement": "Export a COLLADA (.dae) or OBJ (.obj) mesh with its textures alongside."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

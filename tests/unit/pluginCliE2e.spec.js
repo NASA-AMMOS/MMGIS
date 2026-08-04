@@ -329,7 +329,7 @@ test.describe('CLI create and destroy', () => {
 
         // Scaffolded files exist.
         expect(fs.existsSync(path.join(pluginDir, 'map', 'e2eLayer.js'))).toBe(true);
-        expect(manifest.metaconfig?.tabs).toBeDefined();
+        expect(manifest.config?.tabs).toBeDefined();
 
         // Manifest passes the layertype contract validator with no errors.
         const { validatePluginConfig, validateLayerTypeModuleShape } = require('../../API/pluginValidation.js');

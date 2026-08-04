@@ -1,7 +1,7 @@
 // Attachment settings live on the host layer's config, but they belong to the
 // attachment plugins — so the Layer modal's attachment tabs are composed from
 // the `layerAttachmentConfigs.json` registry rather than pasted into each layer
-// type's metaconfig. An attachment contributes rows to a named tab; several
+// type's config. An attachment contributes rows to a named tab; several
 // attachments share one (bearings, images, models and uncertainties are all
 // configured on markers), which is why it declares a tab and an order in it
 // rather than owning a whole tab.
@@ -21,12 +21,12 @@ function appliesTo(manifest, layerType, parentType) {
 }
 
 /**
- * The metaconfig tabs a layer type's attachments contribute, in display order.
+ * The config tabs a layer type's attachments contribute, in display order.
  *
  * @param {Object} layerAttachmentConfiguration  layerAttachmentConfigs.json
  * @param {Object} layerTypeConfiguration        layerTypeConfigs.json
  * @param {string} layerType
- * @returns {Array} tabs in metaconfig shape ({ name, rows })
+ * @returns {Array} tabs in config shape ({ name, rows })
  */
 export function attachmentTabsFor(
   layerAttachmentConfiguration,
@@ -39,10 +39,10 @@ export function attachmentTabsFor(
 
   const contributions = [];
   Object.values(layerAttachmentConfiguration || {}).forEach((entry) => {
-    const metaconfig = entry?.metaconfig;
-    if (!metaconfig || !Array.isArray(metaconfig.rows)) return;
+    const config = entry?.config;
+    if (!config || !Array.isArray(config.rows)) return;
     if (!appliesTo(entry.manifest, layerType, parentType)) return;
-    contributions.push(metaconfig);
+    contributions.push(config);
   });
 
   const tabs = [];
@@ -55,13 +55,13 @@ export function attachmentTabsFor(
         String(a.tab).localeCompare(String(b.tab)) ||
         (a.order ?? Infinity) - (b.order ?? Infinity),
     )
-    .forEach((metaconfig) => {
-      const name = metaconfig.tab;
+    .forEach((attachmentConfig) => {
+      const name = attachmentConfig.tab;
       if (byName[name] == null) {
         byName[name] = { name, rows: [] };
         tabs.push(byName[name]);
       }
-      byName[name].rows.push(...metaconfig.rows);
+      byName[name].rows.push(...attachmentConfig.rows);
     });
 
   return tabs;

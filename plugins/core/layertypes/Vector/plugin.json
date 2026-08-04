@@ -69,7 +69,7 @@
       "description": "GeoJSON fetched from an arbitrary API endpoint (with injectable time/variable params) rather than a static file."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

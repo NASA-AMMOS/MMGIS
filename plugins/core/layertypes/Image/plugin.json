@@ -31,7 +31,7 @@
       "procurement": "Any georeferenced GeoTIFF; a COG is recommended for large files."
     }
   ],
-  "metaconfig": {
+  "config": {
     "tabs": [
       {
         "name": "Core",

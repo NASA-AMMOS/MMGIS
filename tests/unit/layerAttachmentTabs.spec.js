@@ -1,7 +1,7 @@
 /**
  * Unit tests for composing the Layer modal's attachment settings from the
  * attachment registry: the Configure page asks the attachments what a layer of
- * this type can be configured with, instead of each layer type's metaconfig
+ * this type can be configured with, instead of each layer type's config
  * carrying a pasted copy of every attachment's fields.
  */
 
