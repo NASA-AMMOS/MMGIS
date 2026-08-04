@@ -45,8 +45,11 @@ npm run plugins -- install MMGIS-Plugins
 | **tools** | `plugins/<container>/tools/` | Frontend sidebar tools (Draw, Measure, Legend, etc.) |
 | **backend** | `plugins/<container>/backend/` | Server-side Express route modules (Accounts, Config, Users, etc.) |
 | **components** | `plugins/<container>/components/` | Lightweight UI widgets (OperationsClock, etc.) |
+| **interactions** | `plugins/<container>/interactions/` | Feature interaction handlers (Select, InfoOpen, etc.) |
+| **layertypes** | `plugins/<container>/layertypes/` | Layer renderers and their config/filter/time behavior (Vector, Tile, etc.) |
+| **layerattachments** | `plugins/<container>/layerattachments/` | Extras built from a host layer's data (Labels, PathGradient, etc.) |
 
-Each plugin directory contains a `plugin.json` manifest describing the plugin's metadata, paths, and optional dependencies. See [`plugins/README.md`](/plugins/README.md) for the full manifest reference.
+Each plugin directory contains a `plugin.json` manifest describing the plugin's metadata, paths, and optional dependencies. See [`plugins/README.md`](/plugins/README.md) for the full manifest reference, and the per-family `README.md` in `plugins/core/layertypes/` and `plugins/core/layerattachments/` for those contracts.
 
 ### Plugin CLI
 
@@ -59,7 +62,7 @@ Manage plugins via the built-in CLI (`npm run plugins -- <command>`):
 | `uninstall <repo-name>` | Uninstall an installed plugin repo (cannot uninstall `core`) |
 | `enable <plugin-id>` | Mark a plugin as active |
 | `disable <plugin-id>` | Mark a plugin as inactive |
-| `create <type> <Name>` | Scaffold a new plugin (tool, backend, component) |
+| `create <type> <Name>` | Scaffold a new plugin of any of the six types above |
 | `validate` | Validate all `plugin.json` manifests |
 | `deps` | Show aggregated dependencies with conflict detection |
 | `update [repo-name]` | `git pull` latest for one or all installed repos |
@@ -72,9 +75,13 @@ npm run plugins -- create tool MyTool --container my-plugins
 
 # Scaffold a new backend plugin
 npm run plugins -- create backend MyBackend --container my-plugins
+
+# …or a layer type / layer attachment
+npm run plugins -- create layertype MyGrid --container my-plugins
+npm run plugins -- create layerattachment MyHalos --container my-plugins
 ```
 
-This generates the directory structure and starter files under `plugins/<container>/<type>/<Name>/`. External plugin containers (anything outside `plugins/core/`) are automatically gitignored.
+This copies `plugin-cli/scaffolds/<type>/` to `plugins/<container>/<type>/<Name>/`, substituting the name — so the scaffold itself is the starting point to read. External plugin containers (anything outside `plugins/core/`) are automatically gitignored.
 
 ### Override Behavior
 
