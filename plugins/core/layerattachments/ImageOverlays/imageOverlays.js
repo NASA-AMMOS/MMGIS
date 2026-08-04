@@ -12,16 +12,12 @@ import L_ from '@basics/Layers_/Layers_'
 
 const L = window.L
 
-const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
+const imageOverlays = (geojson, layerObj, leafletLayerObject, config) => {
     // IMAGE
-    const imageVar = F_.getIn(layerObj, 'variables.markerAttachments.image')
+    const imageVar = config
 
     if (imageVar && (imageVar.enabled === true || imageVar.enabled == null)) {
-        const imageShow = F_.getIn(
-            layerObj,
-            'variables.markerAttachments.image.show',
-            'click'
-        )
+        const imageShow = F_.getIn(imageVar, 'show', 'click')
         let leafletLayerObjectImageOverlay
 
         let existingOn = null
@@ -47,15 +43,11 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
             leafletLayerObjectImageOverlay = {
                 pointToLayer: (feature, latlong) => {
                     const path = F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.path',
+                        imageVar,
+                        'path',
                         'public/images/rovers/PerseveranceTopDown.png'
                     )
-                    const pathProp = F_.getIn(
-                        layerObj,
-                        'variables.markerAttachments.image.pathProp',
-                        null
-                    )
+                    const pathProp = F_.getIn(imageVar, 'pathProp', null)
 
                     // Figure out image path (same logic as model attachments)
                     let imagePath = null
@@ -76,36 +68,12 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject) => {
 
                     let imageSettings = {
                         image: imagePath,
-                        widthMeters: F_.getIn(
-                            layerObj,
-                            'variables.markerAttachments.image.widthMeters',
-                            2.6924
-                        ),
-                        widthPixels: F_.getIn(
-                            layerObj,
-                            'variables.markerAttachments.image.widthPixels',
-                            420
-                        ),
-                        heightPixels: F_.getIn(
-                            layerObj,
-                            'variables.markerAttachments.image.heightPixels',
-                            600
-                        ),
-                        angleProp: F_.getIn(
-                            layerObj,
-                            'variables.markerAttachments.image.angleProp',
-                            'yaw_rad'
-                        ),
-                        angleUnit: F_.getIn(
-                            layerObj,
-                            'variables.markerAttachments.image.angleUnit',
-                            'rad'
-                        ),
-                        show: F_.getIn(
-                            layerObj,
-                            'variables.markerAttachments.image.show',
-                            'click'
-                        ),
+                        widthMeters: F_.getIn(imageVar, 'widthMeters', 2.6924),
+                        widthPixels: F_.getIn(imageVar, 'widthPixels', 420),
+                        heightPixels: F_.getIn(imageVar, 'heightPixels', 600),
+                        angleProp: F_.getIn(imageVar, 'angleProp', 'yaw_rad'),
+                        angleUnit: F_.getIn(imageVar, 'angleUnit', 'rad'),
+                        show: F_.getIn(imageVar, 'show', 'click'),
                     }
                     const wm = parseFloat(imageSettings.widthMeters)
                     const w = parseFloat(imageSettings.widthPixels)
@@ -221,7 +189,12 @@ const syncData = {
 
 export default {
     make: (ctx) =>
-        imageOverlays(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject),
+        imageOverlays(
+            ctx.geojson,
+            ctx.layerObj,
+            ctx.leafletLayerObject,
+            ctx.config
+        ),
     setOpacity,
     syncData,
 }

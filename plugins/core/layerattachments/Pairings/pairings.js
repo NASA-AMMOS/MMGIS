@@ -14,12 +14,9 @@ import { centroid } from '@turf/turf'
 const L = window.L
 
 // Draws a thin faint line to the center of features from other layers that are connected to this layer
-const pairings = (geojson, layerObj, leafletLayerObject) => {
+const pairings = (geojson, layerObj, leafletLayerObject, config) => {
     //PAIRINGS
-    const pairingsVar = F_.getIn(
-        layerObj,
-        'variables.layerAttachments.pairings'
-    )
+    const pairingsVar = config
 
     if (
         pairingsVar &&
@@ -257,7 +254,11 @@ function peerFeaturesFor(attachment, ctx = {}) {
         origin = [up.lng, up.lat, origin[2]]
     }
 
-    const pairValue = F_.getIn(feature.properties, attachment.pairProp, '___null')
+    const pairValue = F_.getIn(
+        feature.properties,
+        attachment.pairProp,
+        '___null'
+    )
     const layerNames = []
     const peers = []
 
@@ -322,7 +323,8 @@ function peerFeaturesFor(attachment, ctx = {}) {
 }
 
 export default {
-    make: (ctx) => pairings(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject),
+    make: (ctx) =>
+        pairings(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject, ctx.config),
     setVisibility,
     onPeerToggle,
     peerFeaturesFor,

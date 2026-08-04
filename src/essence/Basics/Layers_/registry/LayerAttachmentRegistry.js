@@ -15,7 +15,9 @@
  * @module LayerAttachmentRegistry
  */
 
+import F_ from '../../Formulae_/Formulae_'
 import LayerInterface from '../interface/LayerInterface'
+import LayerTypeRegistry from './LayerTypeRegistry'
 
 let _cache = null
 
@@ -72,13 +74,58 @@ const LayerAttachmentRegistry = {
     has(attachmentId) {
         return !!_load().layerAttachmentModules?.[attachmentId]
     },
-    /** Attachment ids applicable to a given host layer type. */
+    /**
+     * Attachment ids applicable to a given host layer type.
+     *
+     * An attachment that names its hosts also applies to a type that `extends`
+     * one of them: a type inheriting vector's surfaces would otherwise inherit
+     * its filtering and picking but silently lose its labels and pairings.
+     */
     forLayerType(layerType) {
         const configs = _load().layerAttachmentConfigs || {}
+        const parentType = LayerTypeRegistry.parentOf(layerType)
         return Object.keys(configs).filter((id) => {
             const applicable = configs[id].applicableLayerTypes
-            return !applicable || applicable.includes(layerType)
+            return (
+                !applicable ||
+                applicable.includes(layerType) ||
+                (parentType != null && applicable.includes(parentType))
+            )
         })
+    },
+    /**
+     * Where in a host layer's config this attachment is configured, e.g.
+     * `variables.markerAttachments.image`. Declared rather than inferred: an
+     * attachment's id, its storage key and its config key are all allowed to
+     * differ (`image_overlays` is configured as `markerAttachments.image`), and
+     * everything that has to find an attachment's settings — core, the plugin
+     * itself, the Configure page — needs the same answer.
+     */
+    configPath(attachmentId) {
+        return this.getConfig(attachmentId)?.configPath || null
+    },
+    /** This attachment's slice of a host layer's config, if it has one. */
+    configFor(attachmentId, layerObj) {
+        const path = this.configPath(attachmentId)
+        if (path == null || layerObj == null) return null
+        return F_.getIn(layerObj, path, null)
+    },
+    /**
+     * Whether a host layer asks for this attachment at all. Configured but
+     * without `enabled` counts as enabled — the key's presence is the request.
+     */
+    isEnabledOn(attachmentId, layerObj) {
+        const config = this.configFor(attachmentId, layerObj)
+        if (config == null) return false
+        return config.enabled === true || config.enabled == null
+    },
+    /**
+     * True if this attachment is a renderable of its own, rather than a change
+     * to how its host draws itself (a bearing turns its host's markers and has
+     * nothing to add to the host's list of attachments).
+     */
+    buildsSublayer(attachmentId) {
+        return this.capabilities(attachmentId).host?.decoratesHost !== true
     },
     /**
      * Attachment ids applicable to a host layer type, in the order they are
@@ -86,14 +133,16 @@ const LayerAttachmentRegistry = {
      * (bottom on top), which is why it is declared rather than incidental.
      */
     orderedFor(layerType) {
-        return this.forLayerType(layerType).sort((a, b) => {
-            const oa = this.capabilities(a).host?.order
-            const ob = this.capabilities(b).host?.order
-            return (
-                (oa == null ? Infinity : oa) - (ob == null ? Infinity : ob) ||
-                a.localeCompare(b)
-            )
-        })
+        return this.forLayerType(layerType)
+            .filter((id) => this.buildsSublayer(id))
+            .sort((a, b) => {
+                const oa = this.capabilities(a).host?.order
+                const ob = this.capabilities(b).host?.order
+                return (
+                    (oa == null ? Infinity : oa) -
+                        (ob == null ? Infinity : ob) || a.localeCompare(b)
+                )
+            })
     },
     /**
      * The key this attachment is stored under on its host

@@ -12,12 +12,9 @@ import { parseExtendedGeoJSON } from '@basics/Layers_/render/ExtendedGeoJSON'
 
 const L = window.L
 
-const coordinateMarkers = (geojson, layerObj, leafletLayerObject) => {
+const coordinateMarkers = (geojson, layerObj, leafletLayerObject, config) => {
     // COORDINATE MARKERS
-    const coordMarkerVar = F_.getIn(
-        layerObj,
-        'variables.coordinateAttachments.marker'
-    )
+    const coordMarkerVar = config
 
     if (
         coordMarkerVar &&
@@ -87,6 +84,11 @@ function setStyle(attachment) {
 
 export default {
     make: (ctx) =>
-        coordinateMarkers(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject),
+        coordinateMarkers(
+            ctx.geojson,
+            ctx.layerObj,
+            ctx.leafletLayerObject,
+            ctx.config
+        ),
     setStyle,
 }

@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "configPath": "variables.markerAttachments.image",
   "description": "A scaled and oriented image placed under each of the host layer's point markers. Its opacity is applied to the overlay elements themselves rather than through a map layer.",
   "capabilities": {
     "renderers": {

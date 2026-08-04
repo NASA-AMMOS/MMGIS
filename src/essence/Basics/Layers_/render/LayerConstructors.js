@@ -433,44 +433,15 @@ export const constructVectorLayer = (
             let layer = null
             const pixelBuffer = featureStyle.weight || 0
 
-            // Bearing Attachment
-            let yaw = 0
-            const bearingVar = F_.getIn(
-                layerObj,
-                'variables.markerAttachments.bearing'
-            )
-            if (
-                bearingVar &&
-                (bearingVar.enabled === true || bearingVar.enabled == null)
-            ) {
-                const unit = bearingVar.angleUnit || 'deg'
-                const bearingProp = bearingVar.angleProp || false
-
-                if (bearingProp !== false) {
-                    yaw = parseFloat(F_.getIn(feature.properties, bearingProp))
-                    if (unit === 'rad') {
-                        yaw = yaw * (180 / Math.PI)
-                    }
-                    if (bearingVar.useCustomShape !== true)
-                        layerObj.shape = 'directional-circle'
-                }
-
-                const markerXY = Map_.map.latLngToLayerPoint(latlong)
-                const markerLatLong = Map_.map.containerPointToLatLng([
-                    markerXY.x,
-                    markerXY.y,
-                ])
-                const pixelBelowMarkerLatLong = Map_.map.containerPointToLatLng(
-                    [markerXY.x, markerXY.y + 1]
-                )
-                yaw -= F_.bearingBetweenTwoLatLngs(
-                    pixelBelowMarkerLatLong.lat,
-                    pixelBelowMarkerLatLong.lng,
-                    markerLatLong.lat,
-                    markerLatLong.lng
-                )
-                yaw = -((360 - yaw) % 360)
-            }
+            // An attachment may draw nothing of its own and instead change how
+            // its host draws this marker (a bearing turns it to face a
+            // heading). Core asks and applies what comes back.
+            const decoration = L_.decorateFeature(layerObj, feature, {
+                latlong,
+                featureStyle,
+            })
+            const yaw = decoration?.yaw || 0
+            if (decoration?.shape) layerObj.shape = decoration.shape
 
             // Use style.shapeProp
             let finalShape =
@@ -505,8 +476,7 @@ export const constructVectorLayer = (
                             pixelBuffer +
                             6
                         )})"fill="${
-                            layerObj.variables?.markerAttachments?.bearing
-                                ?.color || featureStyle.color
+                            decoration?.color || featureStyle.color
                         }" stroke-width="1"/>`,
                         `<circle cx="12" cy="12" r="${12 - pixelBuffer}"/>`,
                         `</svg>`,
@@ -804,7 +774,13 @@ export const constructSublayers = (
     leafletLayerObject,
     layer
 ) => {
-    const ids = LayerAttachmentRegistry.orderedFor(layerObj.type)
+    const applicable = LayerAttachmentRegistry.orderedFor(layerObj.type)
+    // Whether the host asked for an attachment is the same question for all of
+    // them, so core answers it from the declared `configPath` and a plugin's
+    // `make` is only ever called for a host that wants it.
+    const ids = applicable.filter((id) =>
+        LayerAttachmentRegistry.isEnabledOn(id, layerObj)
+    )
     const hostCtx = {
         geojson,
         layerObj,
@@ -815,17 +791,25 @@ export const constructSublayers = (
     // Seed the keys in declared order first: an attachment built later must
     // still be listed in its declared position.
     const sublayers = {}
-    ids.forEach((id) => {
+    applicable.forEach((id) => {
         sublayers[LayerAttachmentRegistry.sublayerKey(id)] = false
     })
 
-    const makeAttachment = (id, siblings) =>
-        LayerInterface.runSync(
-            LayerAttachmentRegistry.module(id),
-            'make',
-            [siblings ? { ...hostCtx, siblings } : hostCtx],
-            { coreDefault: () => false }
-        ) || false
+    const makeAttachment = (id, siblings) => {
+        const ctx = {
+            ...hostCtx,
+            config: LayerAttachmentRegistry.configFor(id, layerObj),
+        }
+        if (siblings) ctx.siblings = siblings
+        return (
+            LayerInterface.runSync(
+                LayerAttachmentRegistry.module(id),
+                'make',
+                [ctx],
+                { coreDefault: () => false }
+            ) || false
+        )
+    }
 
     const deferred = []
     ids.forEach((id) => {

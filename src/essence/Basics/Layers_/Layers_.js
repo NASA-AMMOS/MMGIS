@@ -329,6 +329,12 @@ const L_ = {
     notifyAttachmentsOfPeerToggle(...a) {
         return sublayers.notifyAttachmentsOfPeerToggle(L_, ...a)
     },
+    decorateFeature(...a) {
+        return sublayers.decorateFeature(L_, ...a)
+    },
+    attachmentGlobeStyle(...a) {
+        return sublayers.attachmentGlobeStyle(L_, ...a)
+    },
     getLayersChosenNamePropVal(...a) {
         return getters.getLayersChosenNamePropVal(L_, ...a)
     },

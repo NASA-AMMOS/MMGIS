@@ -9,9 +9,9 @@
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 
-const models = (geojson, layerObj, leafletLayerObject) => {
+const models = (geojson, layerObj, leafletLayerObject, config) => {
     // MODEL
-    const modelVar = F_.getIn(layerObj, 'variables.markerAttachments.model')
+    const modelVar = config
 
     if (modelVar && (modelVar.enabled === true || modelVar.enabled == null)) {
         const modelShow = F_.getIn(modelVar, 'show', 'click')
@@ -186,6 +186,7 @@ function setVisibility(attachment, ctx = {}) {
 }
 
 export default {
-    make: (ctx) => models(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject),
+    make: (ctx) =>
+        models(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject, ctx.config),
     setVisibility,
 }

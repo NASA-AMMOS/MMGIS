@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "configPath": "variables.markerAttachments.model",
   "description": "A 3D model rendered at each of the host layer's point features, oriented by yaw/pitch/roll properties. Globe only — it has nothing on the 2D map.",
   "capabilities": {
     "renderers": {

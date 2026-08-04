@@ -10,12 +10,9 @@ import L_ from '@basics/Layers_/Layers_'
 
 const L = window.L
 
-const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject) => {
+const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject, config) => {
     //UNCERTAINTY
-    const uncertaintyVar = F_.getIn(
-        layerObj,
-        'variables.markerAttachments.uncertainty'
-    )
+    const uncertaintyVar = config
     let uncertaintyStyle
     let curtainUncertaintyOptions
     let clampedUncertaintyOptions
@@ -224,7 +221,12 @@ const syncData = {
 
 export default {
     make: (ctx) =>
-        uncertaintyEllipses(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject),
+        uncertaintyEllipses(
+            ctx.geojson,
+            ctx.layerObj,
+            ctx.leafletLayerObject,
+            ctx.config
+        ),
     setVisibility,
     setOpacity,
     syncData,

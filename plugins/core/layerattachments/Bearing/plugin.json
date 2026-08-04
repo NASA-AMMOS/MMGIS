@@ -1,0 +1,27 @@
+{
+  "name": "Bearing",
+  "type": "layerattachment",
+  "attachmentId": "bearing",
+  "configPath": "variables.markerAttachments.bearing",
+  "version": "1.0.0",
+  "tier": "core",
+  "overridable": false,
+  "description": "Points the host layer's own markers in a direction taken from a feature property (clockwise from north). It decorates its host instead of drawing a sublayer, so it never appears in the layer's Composite Layers list.",
+  "capabilities": {
+    "renderers": {
+      "map": {
+        "engines": ["leaflet"]
+      },
+      "globe": {
+        "engines": ["lithosphere"]
+      }
+    },
+    "host": {
+      "decoratesHost": true
+    }
+  },
+  "paths": {
+    "plugin": "./bearing"
+  },
+  "applicableLayerTypes": ["vector", "query"]
+}

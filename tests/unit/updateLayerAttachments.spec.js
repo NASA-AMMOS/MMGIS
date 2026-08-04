@@ -26,7 +26,8 @@ const REGISTRY_PATH = path.join(
     'layerAttachmentConfigs.json'
 )
 
-const BUILT_IN_ATTACHMENTS = [
+// Attachments that are renderables of their own, listed on their host.
+const BUILT_IN_SUBLAYER_ATTACHMENTS = [
     'coordinate_markers',
     'image_overlays',
     'labels',
@@ -34,6 +35,15 @@ const BUILT_IN_ATTACHMENTS = [
     'pairings',
     'path_gradient',
     'uncertainty_ellipses',
+]
+
+// Attachments that draw nothing of their own and instead change how their host
+// draws itself.
+const BUILT_IN_DECORATION_ATTACHMENTS = ['bearing']
+
+const BUILT_IN_ATTACHMENTS = [
+    ...BUILT_IN_SUBLAYER_ATTACHMENTS,
+    ...BUILT_IN_DECORATION_ATTACHMENTS,
 ]
 
 test.describe('layerAttachmentConfigs.json — built-in attachment registry', () => {
@@ -84,7 +94,7 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
     test('every attachment builds itself, in ops core knows', () => {
         const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'))
 
-        for (const attachmentId of BUILT_IN_ATTACHMENTS) {
+        for (const attachmentId of BUILT_IN_SUBLAYER_ATTACHMENTS) {
             const manifest = registry[attachmentId].manifest
             const modulePath = path.join(
                 PLUGINS_ROOT,
@@ -97,11 +107,7 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
 
             // `make` is the attachment: core builds nothing itself, it asks.
             expect(
-                validateLayerTypeModuleShape(
-                    source,
-                    attachmentId,
-                    'attachment'
-                )
+                validateLayerTypeModuleShape(source, attachmentId, 'attachment')
             ).toEqual([])
         }
     })
@@ -112,7 +118,7 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
 
         // Build order is also render order (bottom on top), so it is declared
         // rather than left to whatever order the plugins are discovered in.
-        const orders = BUILT_IN_ATTACHMENTS.map((id) => host(id).order)
+        const orders = BUILT_IN_SUBLAYER_ATTACHMENTS.map((id) => host(id).order)
         expect(orders.every((o) => typeof o === 'number')).toBe(true)
         expect(new Set(orders).size).toBe(orders.length)
 
@@ -124,5 +130,37 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
         // Only where the key on the host differs from the attachment's id.
         expect(host('model').sublayerKey).toBe('models')
         expect(host('labels').sublayerKey).toBeUndefined()
+
+        // A decoration has no place on its host to sit: it is not a renderable
+        // and never appears in the host's attachments.
+        expect(host('bearing').decoratesHost).toBe(true)
+        expect(host('bearing').order).toBeUndefined()
+    })
+
+    test('an attachment declares where it is configured on its host', () => {
+        const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'))
+        const configPath = (id) => registry[id].manifest.configPath
+
+        // Core resolves this to decide whether a host wants the attachment at
+        // all, so every attachment must answer it, and the answer must live
+        // under the host's `variables`.
+        for (const attachmentId of BUILT_IN_ATTACHMENTS) {
+            expect(typeof configPath(attachmentId)).toBe('string')
+            expect(configPath(attachmentId).startsWith('variables.')).toBe(true)
+        }
+
+        // An attachment's id, its key on the host and its config key are three
+        // different names, which is the reason this is declared at all.
+        expect(configPath('image_overlays')).toBe(
+            'variables.markerAttachments.image'
+        )
+        expect(configPath('coordinate_markers')).toBe(
+            'variables.coordinateAttachments.marker'
+        )
+
+        // Two attachments configured under one key would make "is this
+        // attachment wanted?" ambiguous.
+        const paths = BUILT_IN_ATTACHMENTS.map(configPath)
+        expect(new Set(paths).size).toBe(paths.length)
     })
 })

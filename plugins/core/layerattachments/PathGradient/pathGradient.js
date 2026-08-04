@@ -16,13 +16,10 @@ import {
 
 const L = window.L
 
-const pathGradient = (geojson, layerObj, leafletLayerObject) => {
+const pathGradient = (geojson, layerObj, leafletLayerObject, config) => {
     function getLayer(geojson, layerObj, overrideColorWithProp) {
         // PATH GRADIENT
-        const pathGradientVar = F_.getIn(
-            layerObj,
-            'variables.pathAttachments.gradient'
-        )
+        const pathGradientVar = config
         if (
             pathGradientVar &&
             (pathGradientVar.enabled === true ||
@@ -523,10 +520,7 @@ const pathGradient = (geojson, layerObj, leafletLayerObject) => {
 
     const layer = getLayer(geojson, layerObj)
     if (layer) {
-        const pathGradientVar = F_.getIn(
-            layerObj,
-            'variables.pathAttachments.gradient'
-        )
+        const pathGradientVar = config
 
         const pathGradientSettings = {
             colorWithProp: F_.getIn(pathGradientVar, 'colorWithProp', null),
@@ -635,6 +629,11 @@ function setVisibility(attachment, ctx = {}) {
 
 export default {
     make: (ctx) =>
-        pathGradient(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject),
+        pathGradient(
+            ctx.geojson,
+            ctx.layerObj,
+            ctx.leafletLayerObject,
+            ctx.config
+        ),
     setVisibility,
 }

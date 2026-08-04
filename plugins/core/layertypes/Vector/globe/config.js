@@ -25,7 +25,9 @@ export function toGlobeConfig(layerObj) {
     const mapLayer = L_.layers.layer[s.name]
     if (!mapLayer || typeof mapLayer.toGeoJSON !== 'function') return null
 
-    const bearing = s.variables?.markerAttachments?.bearing
+    // Whatever this layer's attachments add to how the globe draws it (a
+    // bearing turns its markers) — asked for rather than known about.
+    const attachmentStyle = L_.attachmentGlobeStyle(s)
 
     return {
         name: s.name,
@@ -46,11 +48,8 @@ export function toGlobeConfig(layerObj) {
                 weight: s.style?.weight,
                 radius: s.radius,
             },
-            bearing:
-                (bearing && bearing.enabled == null) ||
-                bearing?.enabled === true
-                    ? bearing
-                    : null,
+            bearing: null,
+            ...attachmentStyle,
         },
         opacity: L_.layers.opacity[s.name],
         minZoom: s.visibilitycutoff > 0 ? s.visibilitycutoff : 0,

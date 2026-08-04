@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "configPath": "variables.pathAttachments.gradient",
   "description": "A 'hotline' gradient along the host's path, coloring it by a feature property to visualize value changes along the way. On the globe it replaces its host: the gradient primitive it builds is the host's geometry, so the host must not also be drawn.",
   "capabilities": {
     "renderers": {

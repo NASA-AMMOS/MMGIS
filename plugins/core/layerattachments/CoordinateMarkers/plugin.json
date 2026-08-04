@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "configPath": "variables.coordinateAttachments.marker",
   "description": "A marker at every coordinate pair of every one of the host layer's features. Requires Enhanced GeoJSON features with 'coord_properties' defined.",
   "capabilities": {
     "renderers": {

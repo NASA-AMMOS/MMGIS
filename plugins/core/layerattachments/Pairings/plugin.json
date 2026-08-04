@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
+  "configPath": "variables.layerAttachments.pairings",
   "description": "Links this layer's features to the matching features of other layers: a line between each pair on the map, and the azimuth-elevation relationship those pairs are drawn with in the Viewer. Redraws itself whenever one of the layers it pairs with is toggled.",
   "capabilities": {
     "renderers": {

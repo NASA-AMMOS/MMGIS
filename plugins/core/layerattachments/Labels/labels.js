@@ -11,9 +11,16 @@
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 
-const labels = (geojson, layerObj, leafletLayerObject, layer, sublayers) => {
+const labels = (
+    geojson,
+    layerObj,
+    leafletLayerObject,
+    layer,
+    sublayers,
+    config
+) => {
     //LABELS
-    const labelsVar = F_.getIn(layerObj, 'variables.layerAttachments.labels')
+    const labelsVar = config
 
     if (
         labelsVar &&
@@ -305,7 +312,8 @@ export default {
             ctx.layerObj,
             ctx.leafletLayerObject,
             ctx.hostLayer,
-            ctx.siblings
+            ctx.siblings,
+            ctx.config
         ),
     setVisibility,
 }

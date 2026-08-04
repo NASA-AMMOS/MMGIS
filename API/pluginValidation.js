@@ -84,6 +84,8 @@ const TIME_OPS = ["availability", "format", "applyTimeParams"];
  */
 const ATTACHMENT_OPS = [
   "make",
+  "decorateFeature",
+  "globeStyle",
   "destroy",
   "setOpacity",
   "setVisibility",
@@ -102,6 +104,9 @@ const SURFACES = {
   filter: { ops: FILTER_OPS, requiresMake: false },
   time: { ops: TIME_OPS, requiresMake: false },
   attachment: { ops: ATTACHMENT_OPS, requiresMake: true },
+  // An attachment that only decorates its host (a bearing turns its host's
+  // markers) adds nothing to the map of its own, so it has nothing to `make`.
+  attachmentDecoration: { ops: ATTACHMENT_OPS, requiresMake: false },
 };
 
 /**
@@ -111,8 +116,11 @@ const SURFACES = {
  * @param {string} [pluginType='layertype'] - 'layerattachment' keys all resolve
  *   to the single attachment surface.
  */
-function surfaceOfPathKey(key, pluginType = "layertype") {
-  if (pluginType === "layerattachment") return "attachment";
+function surfaceOfPathKey(key, pluginType = "layertype", manifest = null) {
+  if (pluginType === "layerattachment")
+    return manifest?.capabilities?.host?.decoratesHost === true
+      ? "attachmentDecoration"
+      : "attachment";
   // A single-module layer type (`paths.plugin`) exports the surfaces as keys
   // rather than operations, so there is no one op vocabulary to check it
   // against; its surfaces are validated once resolved.
@@ -188,6 +196,7 @@ const KNOWN_FIELDS = {
     ...COMMON_FIELDS,
     "paths",
     "attachmentId",
+    "configPath",
     "description",
     "descriptionFull",
     "applicableLayerTypes",
@@ -483,6 +492,28 @@ function validatePluginConfig(config, pluginName, pluginType) {
     if (typeof config[idField] !== "string" || config[idField].length === 0) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): missing required '${idField}' field (must be a non-empty string)`
+      );
+    }
+    // An attachment's settings live in its host layer's config, and its id is
+    // free to differ from the key it is configured under (`image_overlays` is
+    // configured as `markerAttachments.image`), so the path is declared. Core
+    // resolves it to decide whether a host wants the attachment at all.
+    if (pluginType === "layerattachment") {
+      if (
+        typeof config.configPath !== "string" ||
+        config.configPath.trim() === ""
+      ) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): missing required 'configPath' field (e.g. 'variables.markerAttachments.image')`
+        );
+      } else if (!config.configPath.startsWith("variables.")) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'configPath' must point into a layer's 'variables' ('${config.configPath}')`
+        );
+      }
+    } else if (config.configPath !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'configPath' is only valid on a layerattachment`
       );
     }
     // A layer type may be non-rendering (e.g. 'header'): it owns config/UI

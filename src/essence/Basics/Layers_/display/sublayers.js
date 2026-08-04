@@ -228,6 +228,76 @@ export function getPeerFeatures(L_, hostName, feature, ctx = {}) {
 }
 
 /**
+ * How this host's attachments change the way it draws one of its own features.
+ *
+ * Not every attachment is a sublayer: some have nothing to add to the map and
+ * instead decorate their host (a bearing turns its markers to face a heading).
+ * They have no built instance to dispatch through, so core asks the attachments
+ * the host's config enables, as it draws, and merges what they answer.
+ *
+ * @param {Object} layerObj  The host layer's config.
+ * @param {Object} feature   The feature being drawn.
+ * @param {Object} [ctx]     Engine-side context (`latlong`, `featureStyle`).
+ * @returns {Object|null}    Merged decoration (`yaw`, `shape`, `color`, …).
+ */
+export function decorateFeature(L_, layerObj, feature, ctx = {}) {
+    const ids = LayerAttachmentRegistry.forLayerType(layerObj?.type).filter(
+        (id) =>
+            LayerInterface.hasOp(
+                LayerAttachmentRegistry.module(id),
+                'decorateFeature'
+            ) && LayerAttachmentRegistry.isEnabledOn(id, layerObj)
+    )
+    if (ids.length === 0) return null
+
+    let decoration = null
+    ids.forEach((id) => {
+        const result = LayerInterface.runSync(
+            LayerAttachmentRegistry.module(id),
+            'decorateFeature',
+            [
+                {
+                    ...ctx,
+                    layerObj,
+                    feature,
+                    config: LayerAttachmentRegistry.configFor(id, layerObj),
+                },
+            ]
+        )
+        if (result) decoration = { ...(decoration || {}), ...result }
+    })
+    return decoration
+}
+
+/**
+ * What this host's attachments add to the style it is drawn with on the globe.
+ *
+ * The globe engine draws some decorations itself given their settings, so the
+ * attachment contributes the settings rather than geometry.
+ *
+ * @param {Object} layerObj  The host layer's config.
+ * @returns {Object}         Merged into the globe config's `style`.
+ */
+export function attachmentGlobeStyle(L_, layerObj) {
+    const style = {}
+    LayerAttachmentRegistry.forLayerType(layerObj?.type).forEach((id) => {
+        if (!LayerAttachmentRegistry.isEnabledOn(id, layerObj)) return
+        const result = LayerInterface.runSync(
+            LayerAttachmentRegistry.module(id),
+            'globeStyle',
+            [
+                {
+                    layerObj,
+                    config: LayerAttachmentRegistry.configFor(id, layerObj),
+                },
+            ]
+        )
+        if (result) Object.assign(style, result)
+    })
+    return style
+}
+
+/**
  * A layer was toggled: tell every other layer's attachments about it.
  *
  * Some attachments draw from layers other than their host (pairings connect
