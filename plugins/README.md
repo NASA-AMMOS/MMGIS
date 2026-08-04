@@ -146,6 +146,8 @@ Server-side Express modules. Have `plugin.json` (metadata) + `plugin.js` (lifecy
 
 **Required manifest fields**: `name` (recommended but optional — backends are keyed by directory name).
 
+The server contract — the `s` setup object, lifecycle ordering, choosing an auth gate, `envs`, models and migrations — is documented in [`core/backend/README.md`](./core/backend/README.md).
+
 ### Components
 
 UI components loaded into the MMGIS interface. Directory name is plural (`components/`) but manifest type is singular (`"type": "component"`).
@@ -205,6 +207,8 @@ Mission administrators configure these behaviors in the layer modal's **Interact
 
 An interaction can declare `suppresses` to replace a default when present — e.g. `info:open` (main) suppresses `info:silent` (postamble) so the panel isn't populated twice.
 
+Before running the pipeline, the runner drops any interaction whose `applicableLayerTypes` doesn't include the layer's type, so a mission config (or a `kind` preset, or a layer type's `defaultInteractions`) can't hand a vector-feature interaction a tile layer. A type that `extends` another counts as its parent here, so a custom vector-derived type keeps vector's interactions without redeclaring anything.
+
 #### Generated file & runtime
 
 At build time, `updateInteractions()` (`API/updateTools.js`) discovers all enabled interactions, enforces `pluginDependencies` (an interaction whose dependency is missing/disabled is excluded), and generates `src/pre/interactions.js` with static imports plus the phase arrays, suppression map, and kind-alias map. The runtime executor `src/essence/Basics/InteractionRunner/InteractionRunner.js` reads that generated data — it contains **no hardcoded interaction IDs**. All orchestration lives in the manifests.
@@ -215,7 +219,7 @@ How a layer of a given `layer.type` (`vector`, `tile`, `model`, …) is drawn an
 
 **Required manifest fields**: `name`, `typeId` (the value a mission config's `layer.type` names), `capabilities.renderers`, and `modules` (or `module`) unless the type inherits everything through `extends`.
 
-The renderer contract — surfaces, the seven operations, phases, `extends` — is documented in [`core/layertypes/README.md`](./core/layertypes/README.md).
+The renderer contract — surfaces, the operations, `extends` — is documented in [`core/layertypes/README.md`](./core/layertypes/README.md).
 
 ### Layer Attachments
 
@@ -309,7 +313,31 @@ npm run plugins -- create interaction CoreInteraction --container core --force
 
 This scaffolds the directory structure, `plugin.json`, entry point, CSS, and a test spec. Frontend plugins are auto-activated. The scaffolds themselves are real files under `plugin-cli/scaffolds/<type>/`, so reading one is the same as reading what you will get.
 
-> **Everything but `core/` is gitignored** (`.gitignore`: `/plugins/*`, `!/plugins/core/`), because a container is normally an installed repo with its own history. A plugin you scaffold into your own container is therefore untracked in *this* repo: commit it in its own repo, or `git add -f` if you deliberately want it in an MMGIS branch.
+### Where your plugin lives
+
+**Everything but `core/` is gitignored** (`.gitignore`: `/plugins/*`, `!/plugins/core/`). This is deliberate — a container is a *separate* repository checked out inside this one, so MMGIS must not track its files — but it means a plugin you scaffold is invisible to `git status` in this repo. Pick a home before you start writing:
+
+| your plugin is | where it goes | how it gets here |
+|---|---|---|
+| a change to MMGIS itself | `plugins/core/<type>/` | `create <type> <Name> --container core --force`, committed to MMGIS |
+| generally useful, sharable | [NASA-AMMOS/MMGIS-Plugins](https://github.com/NASA-AMMOS/MMGIS-Plugins) | contribute there; `install MMGIS-Plugins` |
+| yours / your mission's | its own git repo | `install https://…` (or `install --link /local/path` while writing it) |
+
+So the normal flow for a third-party plugin is: `create … --container my-plugins`, develop in place, then `git init` **that container** as its own repo — not MMGIS. `git add -f` also works if you deliberately want it on an MMGIS branch (to share a work in progress, say), but it is the exception, not the path.
+
+### You're not done when `validate` passes
+
+`validate` checks manifests and module exports. It cannot see whether your plugin is *registered* or whether anything is *configured to use it* — so a green validate plus an app that does nothing is the expected result of stopping early. The remaining two steps, per family:
+
+| family | register | then make something use it |
+|---|---|---|
+| tool, component | `plugins -- activate` (regenerates `src/pre/tools.js` / `components.js`) | the mission's config must place it (Configure → the mission's tools) |
+| interaction | `activate` (regenerates `src/pre/interactions.js`) | a layer must name it in `interactions.<event>`, or it must carry a `kindAlias` the layer's kind preset selects — Configure's layer modal → Interactions |
+| layertype | `activate` (regenerates `src/pre/layertypes.js`) | a layer's `type` must be your `typeId` |
+| layerattachment | `activate` (regenerates `src/pre/layerattachments.js`) | a layer must fill in your `configPath` — the Configure tab your manifest's `config.tab` names, which should be an **existing** tab (`Attachment - Markers`, `Attachment - Paths`, …) unless you mean to add one |
+| backend | nothing to generate | restart the server; `plugin.js` mounts your routes |
+
+`create` runs `activate` for you, so this bites on the *second* change — adding a module key, renaming a path — not the first.
 
 ### Tool Template
 
@@ -406,6 +434,7 @@ let setup = {
     onceInit: (s) => {
         s.app.use(
             s.ROOT_PATH + "/api/mymodule",
+            s.ensureUser(), // pick a gate deliberately — see the backend README
             s.checkHeadersCodeInjection,
             s.setContentType,
             router
@@ -419,6 +448,14 @@ let setup = {
 
 module.exports = setup;
 ```
+
+Backends have no registry to regenerate and no `activate` step — but they also
+get no auth by default: **the middleware chain in your own `onceInit` is the
+security boundary**. The full contract — every field of `s`, the three lifecycle
+hooks and their ordering, `ensureAdmin`'s built-in whitelist and its
+`allowGets`/`disallow` parameters, why an `AUTH=off` instance can't reach an
+admin route, `envs`, and models/migrations — is in
+**[`core/backend/README.md`](./core/backend/README.md)**.
 
 ### Component Template
 
@@ -689,7 +726,7 @@ window.ToolController_.closeTool('AgentChat')  // close and clear the toolbar hi
 | `suppresses` | `string[]` | Interaction IDs this one replaces when present in the pipeline (e.g. `info:open` suppresses `["info:silent"]`). |
 | `kindAlias` | `string[]` | Legacy `kind` strings this interaction maps to for backward compatibility (e.g. `["waypoint"]`). Multiple interactions may share a `kindAlias` — all of them run, ordered by `order`. |
 | `applicableEvents` | `string[]` | Event types this interaction handles: `"click"`, `"hover"`, `"mouseout"`. |
-| `applicableLayerTypes` | `string[]` | Layer types this interaction applies to (e.g. `["vector", "vectortile", "query"]`). |
+| `applicableLayerTypes` | `string[]` | Layer types this interaction applies to (e.g. `["vector", "vectortile", "query"]`). **Enforced** at runtime: the runner drops the interaction — preamble and postamble included — on a layer whose type (or the type it `extends`) isn't listed, and warns. Omit the field to apply to every type. |
 
 Interactions also commonly set `overridable: false` (infrastructure interactions like `select` can't be overridden or disabled) and `pluginDependencies` (see below) to declare a required tool.
 

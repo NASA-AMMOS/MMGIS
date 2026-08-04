@@ -16,9 +16,7 @@
       "globe": false
     },
     "map": { "stacking": false },
-    "time": false,
-    "filtering": false,
-    "identify": false
+    "time": false
   },
   "fileTypes": ["webm", "mp4"],
   "supportedData": [

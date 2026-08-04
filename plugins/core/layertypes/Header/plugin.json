@@ -17,9 +17,7 @@
     },
     "structural": true,
     "map": { "stacking": false },
-    "time": false,
-    "filtering": false,
-    "identify": false
+    "time": false
   },
   "supportedData": [
     {

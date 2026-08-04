@@ -12,6 +12,7 @@
  *   __name__         myGriddedThing   file names, css classes
  *   __flatname__     mygriddedthing   layertype `typeId`
  *   __snake_name__   my_gridded_thing layerattachment `attachmentId`
+ *   __SNAKE_NAME__   MY_GRIDDED_THING environment variable names
  *   __colon_name__   my:gridded:thing interaction `interactionId`
  */
 
@@ -23,8 +24,10 @@ const SCAFFOLDS_ROOT = path.join(__dirname, "..", "scaffolds");
 /** The substitutions for one plugin name, longest token first. */
 function tokensFor(name) {
   const camel = name[0].toLowerCase() + name.slice(1);
+  const snake = camel.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
   return {
-    __snake_name__: camel.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase(),
+    __SNAKE_NAME__: snake.toUpperCase(),
+    __snake_name__: snake,
     __colon_name__: camel.replace(/([A-Z])/g, (m) => `:${m.toLowerCase()}`),
     __flatname__: camel.toLowerCase(),
     __name__: camel,

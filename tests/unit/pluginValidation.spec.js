@@ -439,8 +439,6 @@ test.describe('validateLayerCapabilities - classification contract', () => {
                     styling: false,
                 },
                 time: { enabled: true, histogram: true },
-                filtering: false,
-                identify: true,
             })
         ).toEqual([]);
     });

@@ -372,6 +372,10 @@ function updateInteractions() {
     mouseout: { preamble: [], postamble: [] },
   };
   const suppressionMap = {};
+  // interactionId -> the layer types it declares itself applicable to. Only
+  // interactions that declare a (non-empty) list appear; an absent entry means
+  // "any layer type", so the runner needs no separate "declared?" flag.
+  const applicableLayerTypes = {};
   const kindAliasEntries = []; // { kind, interactionId, order }
 
   for (const name in interactions) {
@@ -391,6 +395,13 @@ function updateInteractions() {
 
     if (Array.isArray(manifest.suppresses) && manifest.suppresses.length > 0) {
       suppressionMap[id] = manifest.suppresses;
+    }
+
+    if (
+      Array.isArray(manifest.applicableLayerTypes) &&
+      manifest.applicableLayerTypes.length > 0
+    ) {
+      applicableLayerTypes[id] = manifest.applicableLayerTypes;
     }
 
     if (Array.isArray(manifest.kindAlias)) {
@@ -456,6 +467,9 @@ function updateInteractions() {
   output += `export const MOUSEOUT_DEFAULTS = ${JSON.stringify(mouseoutDefaults)}\n`;
   output += `export const SUPPRESSION_MAP = ${JSON.stringify(suppressionMap)}\n`;
   output += `export const KIND_PIPELINES = ${JSON.stringify(kindPipelines)}\n`;
+  output += `export const APPLICABLE_LAYER_TYPES = ${JSON.stringify(
+    applicableLayerTypes
+  )}\n`;
 
   try {
     fs.writeFileSync("./src/pre/interactions.js", output);

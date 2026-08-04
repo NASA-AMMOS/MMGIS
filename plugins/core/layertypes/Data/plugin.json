@@ -17,9 +17,7 @@
     },
     "map": { "stacking": "raster",
         "stacEndpoint": "terrain", "tracksLoad": false },
-    "time": true,
-    "filtering": false,
-    "identify": false
+    "time": true
   },
   "fileTypes": ["cog", "stac-collection", "tms", "wmts"],
   "supportedData": [

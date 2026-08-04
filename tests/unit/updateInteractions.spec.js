@@ -244,4 +244,20 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         expect(mouseoutMatch).not.toBeNull();
         expect(JSON.parse(mouseoutMatch[1])).toContain('cursor:hide');
     });
+
+    test('generated interactions.js exports APPLICABLE_LAYER_TYPES', () => {
+        updateInteractions();
+
+        const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
+        const match = contents.match(
+            /export const APPLICABLE_LAYER_TYPES = ({.*?})\n/
+        );
+        expect(match).not.toBeNull();
+        const applicable = JSON.parse(match[1]);
+        expect(applicable['info:open']).toContain('vector');
+        // Declaring nothing is an absent entry, not an empty list — the runner
+        // reads absence as "applies to any layer type".
+        for (const ids of Object.values(applicable))
+            expect(ids.length).toBeGreaterThan(0);
+    });
 });

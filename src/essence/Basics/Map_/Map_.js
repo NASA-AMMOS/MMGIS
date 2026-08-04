@@ -904,6 +904,8 @@ function onEachFeatureDefault(feature, layer) {
         undefined,
         LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
     )
+    // Lets the runner enforce each interaction's `applicableLayerTypes`.
+    const layerTypeChain = LayerTypeRegistry.typeChain(layerData.type)
 
     if (typeof layer['useKeyAsName'] === 'string' && hooks.hover) {
         layer.on('mouseover', function (e) {
@@ -916,6 +918,7 @@ function onEachFeatureDefault(feature, layer) {
                 layerVar: layerData.variables || {},
                 event: e,
                 eventType: 'hover',
+                layerTypeChain,
                 stop: false,
                 state: {},
             }
@@ -933,6 +936,7 @@ function onEachFeatureDefault(feature, layer) {
                 layerVar: layerData.variables || {},
                 event: e,
                 eventType: 'mouseout',
+                layerTypeChain,
                 stop: false,
                 state: {},
             }
@@ -978,6 +982,7 @@ function featureDefaultClick(feature, layer, e) {
             layerVar: layerData.variables || {},
             event: e,
             eventType: 'click',
+            layerTypeChain: LayerTypeRegistry.typeChain(layerData.type),
             additional: null,
             stop: false,
             state: {},

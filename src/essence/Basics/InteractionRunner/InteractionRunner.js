@@ -34,7 +34,42 @@ function _defaultConfig() {
         mouseoutDefaults: gen.MOUSEOUT_DEFAULTS || [],
         suppressionMap: gen.SUPPRESSION_MAP || {},
         kindPipelines: gen.KIND_PIPELINES || {},
+        applicableLayerTypes: gen.APPLICABLE_LAYER_TYPES || {},
     }
+}
+
+/**
+ * Drop interactions that don't apply to the layer being interacted with.
+ *
+ * `applicableLayerTypes` is a manifest declaration, so it is enforced here
+ * rather than trusted: a mission config (or a `kind` preset, or a type's
+ * `defaultInteractions`) can name an interaction the interaction itself says it
+ * doesn't handle, and running it anyway means a plugin written for vector
+ * features gets handed, say, a tile layer.
+ *
+ * Applicability is inherited: a type that `extends` vector is applicable
+ * wherever vector is, or it would inherit vector's surfaces while silently
+ * losing its interactions. The caller passes the chain because this module
+ * stays free of the layer registries.
+ *
+ * @param {string[]} ids
+ * @param {string[]} [layerTypeChain] - [type, parentType?]; omitted ⇒ no filtering
+ * @param {object} config
+ * @returns {string[]}
+ */
+function filterApplicable(ids, layerTypeChain, config) {
+    if (!Array.isArray(layerTypeChain) || layerTypeChain.length === 0) return ids
+    return ids.filter((id) => {
+        const applicable = config.applicableLayerTypes?.[id]
+        if (!applicable) return true
+        if (layerTypeChain.some((t) => applicable.includes(t))) return true
+        console.warn(
+            `Interaction '${id}' is not applicable to layer type '${layerTypeChain[0]}' (it declares ${applicable.join(
+                ', '
+            )}), skipping`
+        )
+        return false
+    })
 }
 
 /**
@@ -91,12 +126,18 @@ function resolveLayerInteractions(layerData, config, typeDefaults) {
  * For hover/mouseout: defaults + userPipeline.
  * Other event types pass through without wrapping.
  *
+ * Interactions that declare `applicableLayerTypes` are dropped when the layer's
+ * type (or the type it extends) isn't among them — including from the preamble
+ * and postamble, which are otherwise always applied.
+ *
  * @param {string[]} userIds - User-configured interaction IDs
  * @param {string} eventType - Event type (click, hover, mouseout)
  * @param {object} [config] - Override config (for testing)
+ * @param {string[]} [layerTypeChain] - [type, parentType?]; omitted ⇒ no filtering
  */
-function buildFullPipeline(userIds, eventType, config) {
+function buildFullPipeline(userIds, eventType, config, layerTypeChain) {
     if (!config) config = _defaultConfig()
+    const applicable = (ids) => filterApplicable(ids, layerTypeChain, config)
 
     if (eventType === 'click') {
         const toSuppress = new Set()
@@ -110,18 +151,22 @@ function buildFullPipeline(userIds, eventType, config) {
             toSuppress.size > 0
                 ? config.clickPostamble.filter((id) => !toSuppress.has(id))
                 : config.clickPostamble
-        return [...config.clickPreamble, ...userIds, ...postamble]
+        return applicable([
+            ...config.clickPreamble,
+            ...userIds,
+            ...postamble,
+        ])
     }
 
     if (eventType === 'hover') {
-        return [...config.hoverDefaults, ...userIds]
+        return applicable([...config.hoverDefaults, ...userIds])
     }
 
     if (eventType === 'mouseout') {
-        return [...config.mouseoutDefaults, ...userIds]
+        return applicable([...config.mouseoutDefaults, ...userIds])
     }
 
-    return userIds
+    return applicable(userIds)
 }
 
 /**
@@ -129,7 +174,8 @@ function buildFullPipeline(userIds, eventType, config) {
  * For click events, wraps the provided IDs with default preamble/postamble.
  *
  * @param {string[]} interactionIds - User-configured interaction IDs (variable part)
- * @param {object} ctx - Shared InteractionContext object (must include eventType)
+ * @param {object} ctx - Shared InteractionContext object (must include eventType).
+ *   `ctx.layerTypeChain` ([type, parentType?]) enables applicability filtering.
  * @param {object} [options] - Handler map OR { handlers, config } for testing.
  *   When omitted, loads from the generated src/pre/interactions.js.
  */
@@ -159,7 +205,12 @@ async function runInteractions(interactionIds, ctx, options) {
     }
 
     const fullPipeline = config
-        ? buildFullPipeline(interactionIds, ctx.eventType || 'click', config)
+        ? buildFullPipeline(
+              interactionIds,
+              ctx.eventType || 'click',
+              config,
+              ctx.layerTypeChain
+          )
         : interactionIds
 
     for (const id of fullPipeline) {
@@ -185,6 +236,7 @@ if (typeof module !== 'undefined' && module.exports) {
         kindToInteractions,
         resolveLayerInteractions,
         buildFullPipeline,
+        filterApplicable,
         _resetCache,
     }
 }
@@ -194,5 +246,6 @@ export {
     kindToInteractions,
     resolveLayerInteractions,
     buildFullPipeline,
+    filterApplicable,
     _resetCache,
 }

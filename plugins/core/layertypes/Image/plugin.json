@@ -16,9 +16,7 @@
       "globe": false
     },
     "map": { "stacking": "overlay", "redrawOnReorder": true },
-    "time": false,
-    "filtering": false,
-    "identify": false
+    "time": false
   },
   "fileTypes": ["tif", "tiff", "png", "jpg"],
   "supportedData": [

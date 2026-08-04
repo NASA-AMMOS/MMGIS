@@ -21,9 +21,7 @@
       "picking": true,
       "styling": true
     },
-    "time": true,
-    "filtering": true,
-    "identify": true
+    "time": true
   },
   "fileTypes": ["geojson", "json", "kml"],
   "supportedData": [

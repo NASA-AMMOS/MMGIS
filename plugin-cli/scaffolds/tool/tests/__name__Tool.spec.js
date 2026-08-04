@@ -1,12 +1,27 @@
-const { test, expect } = require('@playwright/test')
-const path = require('path')
+/**
+ * __Name__Tool — unit tests.
+ *
+ * Run with `npm run test:plugins:unit` (the `@unit` tag selects these;
+ * `npm run test:unit` only covers `tests/unit`). A tool imports React, CSS and
+ * MMGIS singletons, none of which load outside the bundler, so these tests
+ * assert the contract; open-the-tool behavior belongs in an E2E spec.
+ */
+import { test, expect } from '@playwright/test'
+import {
+    manifestOf,
+    unresolvedModules,
+} from '../../../../../tests/helpers/plugin-contract.js'
 
-test.describe('__Name__Tool', () => {
-    test('plugin.json is valid', () => {
-        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))
-        expect(manifest.name).toBe('__Name__')
-        expect(manifest.type).toBe('tool')
-        expect(manifest.paths).toBeDefined()
-        expect(manifest.paths['__Name__Tool']).toBeDefined()
-    })
+const manifest = manifestOf(__dirname)
+
+test('plugin.json is valid @unit', () => {
+    expect(manifest.name).toBe('__Name__')
+    expect(manifest.type).toBe('tool')
+    expect(manifest.paths['__Name__Tool']).toBeDefined()
+})
+
+test('every declared path resolves to a file @unit', () => {
+    // Fails after renaming the tool file without re-running
+    // `npm run plugins -- activate`.
+    expect(unresolvedModules(__dirname, manifest)).toEqual([])
 })

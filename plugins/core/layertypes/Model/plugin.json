@@ -16,9 +16,7 @@
       "globe": { "engines": ["lithosphere"] }
     },
     "map": { "stacking": false, "tracksLoad": false },
-    "time": false,
-    "filtering": false,
-    "identify": false
+    "time": false
   },
   "fileTypes": ["dae", "obj"],
   "supportedData": [

@@ -205,57 +205,77 @@ asks them while partitioning every layer.
 
 ---
 
-## Phases — `before → main → after`
-
-Every operation may be a bare function **or** a nested object of phases:
-
-```js
-export default {
-    // shorthand: a bare function === { main: fn }  ← the 95% case
-    make(layerObj, ctx) { /* build + register the layer */ },
-
-    // full form: opt into phases only where you need them
-    setStyle: {
-        before(layerObj, ctx) {},
-        main(layerObj, ctx)   {},   // providing `main` REPLACES the core default
-        after(layerObj, ctx)  {},
-    },
-}
-```
-
-- `before` and `after` always wrap whatever runs in `main` (your `main` **or**
-  the core default).
-- Providing `main` **is** the override of the core default.
-- **`make` has one extra phase, `afterCommit`**, which runs *after* the
-  make-lock releases (see `Map_.makeLayer`). Vector uses it to trigger
-  filtering, which bails while the lock is held:
-
-  ```js
-  make: {
-      main(layerObj, ctx)        { /* build the vector layer */ },
-      after(layerObj)            { Filtering.updateGeoJSON(layerObj.name) }, // in-lock
-      afterCommit(layerObj)      { Filtering.triggerFilter(layerObj.name) }, // post-lock
-  }
-  ```
-
----
-
 ## Signatures & context
 
-**Map module** — `(layerObj, ctx)`. Reach Leaflet through `MapRenderer`:
+Every operation is `(layerObj, ctx)` — the layer's own mission-config object
+(the same mutable object for the layer's whole life, so what you write in `make`
+is there in `setStyle`) plus the context for the surface you are on.
+
+### Map — `ctx`, and `mctx` from it
 
 ```js
 import MapRenderer from '@basics/Map_/MapRenderer'
 const mctx = MapRenderer.context(ctx.mapContext)
 MapRenderer.addTile(layerObj, { … }, mctx)     // neutral primitives
 MapRenderer.addVector(layerObj, { … }, mctx)
-mctx.raw                                        // explicit Leaflet escape hatch
 ```
 
-**Globe module** — `(layerObj|name, …, gctx)`. `gctx` is the frozen engine
-context: the raw engine handle, the shared `_layers` registry, and
-collection-level helpers that stay in core. `timeChange`'s `gctx.currentTime`
-carries the playhead for in-place scrub implementations.
+| `ctx` field | what it is |
+|---|---|
+| `mapContext` | the frozen map context to resolve into an `mctx`; absent ⇒ the main map |
+| `data` | the acquired data for this make, when core acquired it (GeoJSON for vector-ish types) |
+| `startTime`, `endTime` | the current time window, on `timeChange` |
+
+| `mctx` field | what it is |
+|---|---|
+| `engine` | `'leaflet'` — branch on this, never on a global |
+| `map` | the `L.Map` for **this** context (the main map or a secondary one) |
+| `layerRegistry` | `L_.layers` for this context — where `.layer[name]`, `.opacity[name]`, `.on[name]` live |
+| `default` | `true` on the main map; `false` in a secondary map, where core skips some bookkeeping |
+| `raw` | `window.L` — the explicit engine escape hatch |
+
+### Globe — `gctx`
+
+`gctx` is built per dispatch by `GlobeRenderer._globeCtx`. Neutral across both
+engines:
+
+| `gctx` field | what it is |
+|---|---|
+| `engine` | `'cesium'` or `'lithosphere'` |
+| `renderer` | the raw engine handle (a `Cesium.Viewer`, or the LithoSphere instance) |
+| `layers` | `{ [layerName]: { type, kind, … } }` — the shared record of what the engine is holding (below) |
+| `addEngineLayer(type, layerConfig)` | add an already-built engine config (async) |
+| `hasLayer(name)`, `toggleLayer(name, visible)`, `removeLayer(name)` | the by-name lifecycle both engines implement generically |
+| `clampToGround` | `true` when this dispatch is for the `clamped` variant rather than plain `vector` |
+| `visible` | on `onToggle`: the toggle's new state |
+| `currentTime` | on `timeChange`: the playhead, for in-place scrub |
+
+Cesium only:
+
+| `gctx` field | what it is |
+|---|---|
+| `requestRender()` | ask for a frame — **required** after mutating the scene in `requestRenderMode` |
+| `loadingLayers`, `vectorLoadToken`, `pendingVectorReload`, `pendingVectorRemoval`, `displayedVectorDataSource` | core's collection-level reload serialization; read, don't reinvent |
+| `runPendingVectorReload(name)` | run a reload that was queued behind an in-flight one |
+| `utils.calculateImageryIndex(name, ordered)` | where this layer belongs in Cesium's separately-ordered imagery stack |
+
+LithoSphere only:
+
+| `gctx` field | what it is |
+|---|---|
+| `geojsonHasPolygons(geojson)` | LithoSphere needs polygons declared up front |
+
+`gctx.layers[name]` is the record core dispatches from, and **`make` is expected
+to write it**:
+
+| field | meaning |
+|---|---|
+| `type` | the MMGIS layer type — how core finds its way back to *your* globe module |
+| `kind` | what the engine is actually holding: `'imagery'`, `'entities'`, `'tileset'`, `'mvt'`, `'gradient'`. Engine vocabulary on purpose — core's own engine work (imagery ordering, `DataSource` vs primitive) keys off it rather than off a list of layer types |
+| anything else | yours; keep the engine handles you need for `destroy`/`setStyle` here |
+
+A `kind` core doesn't know is fine as long as your module implements the ops core
+would otherwise handle generically for that kind.
 
 Use neutral `MapRenderer`/`GlobeRenderer` primitives first; drop to the raw
 handle (`mctx.raw` / `gctx.renderer`) only for engine-specific behavior — e.g. a
@@ -310,7 +330,13 @@ error, an unknown key warns (typo), and omitting one core acts on warns too.
 | `time` | the type understands time at all (`true`, or the object form below) | no time support |
 | `time.histogram` | it can report when data exists over time, so the time bar draws its availability sparkline | no histogram |
 | `defaultInteractions` | default click/hover interaction ids for the type (see above) | none |
-| `filtering`, `identify` | **descriptive only** — no core code reads them; filtering follows from a `filter` module, picking from `map.picking` | — |
+
+Every capability in this table is read by core. There is deliberately no
+descriptive capability: filterability follows from declaring a `filter` module
+and identifiability from `map.picking`, so `capabilities.filtering` /
+`capabilities.identify` — which nothing read — are gone, and declaring one now
+warns as an unknown key. Documentation about what data a type accepts belongs in
+`supportedData`.
 
 ---
 
@@ -329,6 +355,47 @@ The contract is enforced in two complementary layers:
    typo like `destory` fails loudly instead of silently falling back to the
    core default. Each surface is checked against **its own** vocabulary: a
    `render` in a map module or a `normalize` in a globe module is an error.
+
+---
+
+## Appendix: phases (`before → main → after`)
+
+An operation is normally just a function, and that is the form to reach for.
+Where you need to run something around what core would do, the same operation
+may instead be an object of phases:
+
+```js
+export default {
+    // the form you want: a bare function === { main: fn }
+    make(layerObj, ctx) { /* build + register the layer */ },
+
+    // only where you need to wrap rather than replace
+    setStyle: {
+        before(layerObj, ctx) {},
+        main(layerObj, ctx)   {},   // providing `main` REPLACES the core default
+        after(layerObj, ctx)  {},
+    },
+}
+```
+
+- `before` and `after` always wrap whatever runs in `main` — your `main` **or**
+  the core default. That is the point of the form: `{ after }` with no `main`
+  lets you add to core's behavior instead of taking it over.
+- Providing `main` **is** the override of the core default.
+- **`make` has one extra phase, `afterCommit`**, which runs *after* the
+  make-lock releases (see `Map_.makeLayer`). Vector is the reason the form
+  exists — its filtering has to straddle that lock:
+
+  ```js
+  make: {
+      main(layerObj, ctx)        { /* build the vector layer */ },
+      after(layerObj)            { Filtering.updateGeoJSON(layerObj.name) }, // in-lock
+      afterCommit(layerObj)      { Filtering.triggerFilter(layerObj.name) }, // post-lock
+  }
+  ```
+
+If you are writing a new type and reaching for phases, check first that you
+aren't reimplementing something core already does around your `main`.
 
 ---
 

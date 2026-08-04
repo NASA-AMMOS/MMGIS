@@ -16,9 +16,7 @@
       "globe": false
     },
     "map": { "stacking": "overlay", "picking": true, "styling": true },
-    "time": false,
-    "filtering": false,
-    "identify": true
+    "time": false
   },
   "fileTypes": [],
   "supportedData": [

@@ -16,9 +16,7 @@
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
     "map": { "stacking": false, "tracksLoad": false },
-    "time": false,
-    "filtering": false,
-    "identify": false
+    "time": false
   },
   "fileTypes": ["json"],
   "supportedData": [

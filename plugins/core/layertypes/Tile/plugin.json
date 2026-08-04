@@ -16,9 +16,7 @@
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
     "map": { "stacking": "raster", "stacEndpoint": "tiles" },
-    "time": { "enabled": true, "histogram": true },
-    "filtering": false,
-    "identify": false
+    "time": { "enabled": true, "histogram": true }
   },
   "fileTypes": ["tms", "wmts", "cog", "stac-collection"],
   "supportedData": [

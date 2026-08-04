@@ -66,6 +66,7 @@
     "test:e2e:cross-browser": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/cross-browser",
     "test:e2e:startup": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/startup",
     "test:plugins": "cross-env DB_NAME=mmgis-test playwright test plugins",
+    "test:plugins:unit": "cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true playwright test plugins --grep @unit",
     "test:clean": "node --experimental-vm-modules tests/test-db-clean.js",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",

@@ -22,9 +22,7 @@
             "picking": true,
             "styling": true
         },
-        "time": false,
-        "filtering": false,
-        "identify": false
+        "time": false
     },
     "supportedData": [
         {

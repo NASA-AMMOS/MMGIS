@@ -16,9 +16,7 @@
       "globe": false
     },
     "map": { "stacking": false },
-    "time": true,
-    "filtering": false,
-    "identify": false
+    "time": true
   },
   "fileTypes": ["json", "geojson", "gribjson", "geotiff"],
   "supportedData": [

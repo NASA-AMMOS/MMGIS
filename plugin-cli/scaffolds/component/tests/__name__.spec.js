@@ -1,12 +1,27 @@
-const { test, expect } = require('@playwright/test')
-const path = require('path')
+/**
+ * __Name__ component — unit tests.
+ *
+ * Run with `npm run test:plugins:unit` (the `@unit` tag selects these;
+ * `npm run test:unit` only covers `tests/unit`). A component imports CSS and
+ * MMGIS singletons, which don't load outside the bundler, so these tests assert
+ * the contract; rendered behavior belongs in an E2E spec.
+ */
+import { test, expect } from '@playwright/test'
+import {
+    manifestOf,
+    unresolvedModules,
+} from '../../../../../tests/helpers/plugin-contract.js'
 
-test.describe('__Name__ component', () => {
-    test('plugin.json is valid', () => {
-        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))
-        expect(manifest.name).toBe('__Name__')
-        expect(manifest.type).toBe('component')
-        expect(manifest.paths).toBeDefined()
-        expect(manifest.paths['__Name__']).toBeDefined()
-    })
+const manifest = manifestOf(__dirname)
+
+test('plugin.json is valid @unit', () => {
+    expect(manifest.name).toBe('__Name__')
+    expect(manifest.type).toBe('component')
+    expect(manifest.paths['__Name__']).toBeDefined()
+})
+
+test('every declared path resolves to a file @unit', () => {
+    // Fails after renaming the component file without re-running
+    // `npm run plugins -- activate`.
+    expect(unresolvedModules(__dirname, manifest)).toEqual([])
 })

@@ -181,8 +181,9 @@ function flattenLayerModules(manifest) {
  * mistake rather than a choice (see CONSEQUENTIAL_OMISSIONS).
  *
  * `values` lists the allowed values where the capability is an enum rather than
- * a boolean. `descriptive: true` marks a capability no core code reads today —
- * it documents the type for admins/plugin authors (like `supportedData`).
+ * a boolean. Every capability here is read by core: a capability nothing reads
+ * belongs in `supportedData` (a documented catalog) rather than here, where it
+ * would read as behavior a plugin author can rely on.
  *
  * Kept in sync with LayerTypeRegistry / LayerAttachmentRegistry, which are the
  * only readers.
@@ -217,8 +218,6 @@ const CAPABILITY_SCHEMA = {
         histogram: { type: "boolean" },
       },
     },
-    filtering: { type: "boolean", descriptive: true },
-    identify: { type: "boolean", descriptive: true },
   },
   layerattachment: {
     renderers: { type: "object" },
@@ -318,10 +317,6 @@ function validateLayerCapabilities(
       warn(
         `unknown capability 'capabilities.${key}' — core reads none of it, so it has no effect (typo?)`
       );
-      continue;
-    }
-    if (spec.descriptive === true) {
-      checkLeaf(spec, value, key);
       continue;
     }
     if (spec.type === "group" || spec.type === "booleanOrGroup") {

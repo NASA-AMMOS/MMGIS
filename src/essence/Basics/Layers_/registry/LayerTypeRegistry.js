@@ -221,6 +221,16 @@ const LayerTypeRegistry = {
     parentOf(typeId) {
         return _load().layerTypeConfigs?.[typeId]?.extends ?? null
     },
+    /**
+     * This type and the one it extends, for anything matching a declared list of
+     * layer types (interaction and attachment applicability): a custom type that
+     * extends vector counts as vector wherever such a list is checked.
+     */
+    typeChain(typeId) {
+        if (typeId == null) return []
+        const parent = this.parentOf(typeId)
+        return parent != null ? [typeId, parent] : [typeId]
+    },
     /** All registered manifests, keyed by typeId. */
     all() {
         return _load().layerTypeConfigs || {}

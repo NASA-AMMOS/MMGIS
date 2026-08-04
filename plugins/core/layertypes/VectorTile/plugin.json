@@ -16,9 +16,7 @@
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
     "map": { "stacking": "raster" },
-    "time": false,
-    "filtering": false,
-    "identify": true
+    "time": false
   },
   "fileTypes": ["mvt", "pbf"],
   "supportedData": [
