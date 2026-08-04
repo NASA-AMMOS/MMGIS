@@ -184,7 +184,7 @@ const LayerAttachmentRegistry = {
     withOp(opName) {
         const mods = _load().layerAttachmentModules || {}
         return Object.keys(mods).filter((id) =>
-            LayerInterface.hasOp(mods[id]?.plugin, opName)
+            LayerInterface.hasOp(mods[id]?.module, opName)
         )
     },
     /** All registered manifests, keyed by attachmentId. */

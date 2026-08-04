@@ -77,6 +77,40 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
         )
     })
 
+    test('the registry reads the module map the generator writes', () => {
+        // Both sides of a generated boundary, so a rename of the module key
+        // fails here instead of silently making every op of every attachment
+        // look undeclared (which is a no-op, not an error).
+        updateLayerAttachments()
+        const generated = fs.readFileSync(
+            path.join(REPO_ROOT, 'src', 'pre', 'layerattachments.js'),
+            'utf8'
+        )
+        const registrySource = fs.readFileSync(
+            path.join(
+                REPO_ROOT,
+                'src',
+                'essence',
+                'Basics',
+                'Layers_',
+                'registry',
+                'LayerAttachmentRegistry.js'
+            ),
+            'utf8'
+        )
+
+        const emitted = new Set(
+            [...generated.matchAll(/\{\s*"(\w+)"\s*:/g)].map((m) => m[1])
+        )
+        expect(emitted.size).toBeGreaterThan(0)
+
+        const read = [
+            ...registrySource.matchAll(/\bmods(?:\[[^\]]+\])?\?\.(\w+)/g),
+        ].map((m) => m[1])
+        expect(read.length).toBeGreaterThan(0)
+        for (const key of read) expect([...emitted]).toContain(key)
+    })
+
     test('an attachment declares where it draws, which is what core asks it', () => {
         const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'))
         const capabilities = (id) => registry[id].manifest.capabilities
