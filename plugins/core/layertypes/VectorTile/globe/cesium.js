@@ -10,7 +10,7 @@
  * gctx (cesium) = { engine, renderer, layers, requestRender, ... }
  */
 import CesiumMVTLayer from '@basics/Globe_/CesiumMVTLayer'
-import { makeWith, onToggle } from '../config'
+import { makeWith, onToggle } from './layerConfig'
 
 function make(layerObj, gctx) {
     return makeWith(layerObj, gctx, render)

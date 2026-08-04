@@ -529,6 +529,6 @@
     ]
   },
   "modules": {
-    "map": "./map/image"
+    "map": "./map"
   }
 }

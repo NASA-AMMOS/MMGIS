@@ -1303,12 +1303,12 @@
     ]
   },
   "modules": {
-    "map": "./map/vector",
-    "config": "./config/vector",
-    "filter": "./filter/vector",
+    "map": "./map",
+    "config": "./config",
+    "filter": "./filter",
     "globe": {
-      "cesium": "./globe/cesium/vector",
-      "lithosphere": "./globe/lithosphere/vector"
+      "cesium": "./globe/cesium",
+      "lithosphere": "./globe/lithosphere"
     }
   }
 }

@@ -48,10 +48,3 @@ export function makeWith(layerObj, gctx, render) {
         return gctx.toggleLayer(layerObj.name, true)
     return render(toGlobeConfig(layerObj), gctx)
 }
-
-export default {
-    isRenderable,
-    toGlobeConfig,
-    onToggle,
-    makeWith,
-}

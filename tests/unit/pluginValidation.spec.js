@@ -363,7 +363,7 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
     test('declared map renderer without a map module is rejected', () => {
         const config = base({
             capabilities: { renderers: { map: { engines: ['leaflet'] } } },
-            modules: { globe: { cesium: './globe/cesium/tile' } },
+            modules: { globe: { cesium: './globe/cesium' } },
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');
         expect(errors.some((e) => e.includes("no 'modules.map'"))).toBe(true);
@@ -372,7 +372,7 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
     test('map module without a declared map renderer is rejected', () => {
         const config = base({
             capabilities: { renderers: { map: false, globe: false } },
-            modules: { map: './map/tile' },
+            modules: { map: './map' },
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');
         expect(errors.some((e) => e.includes("does not declare a 'map' renderer"))).toBe(true);
@@ -381,7 +381,7 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
     test('declared globe engine without a matching module is rejected', () => {
         const config = base({
             capabilities: { renderers: { globe: { engines: ['cesium'] } } },
-            modules: { globe: { lithosphere: './globe/lithosphere/tile' } },
+            modules: { globe: { lithosphere: './globe/lithosphere' } },
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');
         expect(errors.some((e) => e.includes("no 'modules.globe.cesium'"))).toBe(true);
@@ -397,10 +397,10 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
                 },
             },
             modules: {
-                map: './map/tile',
+                map: './map',
                 globe: {
-                    cesium: './globe/cesium/tile',
-                    lithosphere: './globe/lithosphere/tile',
+                    cesium: './globe/cesium',
+                    lithosphere: './globe/lithosphere',
                 },
             },
         });

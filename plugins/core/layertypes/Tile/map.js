@@ -16,7 +16,7 @@ import MapRenderer from '@basics/Map_/MapRenderer'
 import TimeControl from '@basics/TimeControl_/TimeControl'
 import { transformStacUrl } from '@basics/Layers_/LayerUtils'
 
-import { applyTimeParams } from '../time/tile'
+import { applyTimeParams } from './time'
 
 async function make(layerObj, ctx = {}) {
     const mctx = MapRenderer.context(ctx.mapContext)

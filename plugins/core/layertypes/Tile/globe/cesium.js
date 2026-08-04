@@ -19,7 +19,7 @@
 import * as Cesium from 'cesium'
 import { utcFormat } from 'd3-time-format'
 import LayerUtils from '@basics/Layers_/LayerUtils'
-import { toGlobeConfig } from '../config'
+import { toGlobeConfig } from './layerConfig'
 
 // TMS y-origin is at the bottom (Cesium's default); WMTS y-origin is at the top.
 // Both currently pass through unchanged — kept as a seam for future transforms.

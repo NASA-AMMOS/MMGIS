@@ -56,8 +56,3 @@ export function toGlobeConfig(layerObj) {
         maxZoom: s.visibilitycutoff < 0 ? s.visibilitycutoff : 100,
     }
 }
-
-export default {
-    isClamped,
-    toGlobeConfig,
-}

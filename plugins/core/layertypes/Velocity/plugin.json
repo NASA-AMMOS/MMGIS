@@ -623,6 +623,6 @@
     ]
   },
   "modules": {
-    "map": "./map/velocity"
+    "map": "./map"
   }
 }

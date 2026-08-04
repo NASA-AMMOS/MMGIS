@@ -467,7 +467,7 @@ test.describe('scaffold templates', () => {
     test('the layer scaffolds implement only what core has no default for', () => {
         // Over-implementation is the failure mode here: an empty setOpacity
         // silently replaces a working core default, so the stubs stay commented.
-        const layertype = scaffold('layertype', 'MyGriddedThing')['map/myGriddedThing.js'];
+        const layertype = scaffold('layertype', 'MyGriddedThing')['map.js'];
         expect(validateLayerTypeModuleShape(layertype, 'x', 'map')).toEqual([]);
         expect(layertype).toContain('make');
 

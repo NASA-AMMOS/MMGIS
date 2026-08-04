@@ -953,7 +953,7 @@
   },
   "modules": {
     "globe": {
-      "lithosphere": "./globe/lithosphere/model"
+      "lithosphere": "./globe/lithosphere"
     }
   }
 }

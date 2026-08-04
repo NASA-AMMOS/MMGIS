@@ -18,7 +18,7 @@
  * gctx (lithosphere) = { engine, renderer, layers, clampToGround,
  *                        geojsonHasPolygons }
  */
-import { isClamped, toGlobeConfig } from '../config'
+import { isClamped, toGlobeConfig } from './layerConfig'
 
 function make(layerObj, gctx) {
     const layerConfig = toGlobeConfig(layerObj)

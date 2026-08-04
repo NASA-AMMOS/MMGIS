@@ -945,12 +945,12 @@
     ]
   },
   "modules": {
-    "map": "./map/tile",
-    "config": "./config/tile",
-    "time": "./time/tile",
+    "map": "./map",
+    "config": "./config",
+    "time": "./time",
     "globe": {
-      "cesium": "./globe/cesium/tile",
-      "lithosphere": "./globe/lithosphere/tile"
+      "cesium": "./globe/cesium",
+      "lithosphere": "./globe/lithosphere"
     }
   }
 }

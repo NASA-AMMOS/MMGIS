@@ -325,10 +325,10 @@ test.describe('CLI create and destroy', () => {
         expect(manifest.typeId).toBe('e2elayer');
         // Declared map renderer must ship a matching module path.
         expect(manifest.capabilities.renderers.map).toBeTruthy();
-        expect(manifest.modules.map).toBe('./map/e2eLayer');
+        expect(manifest.modules.map).toBe('./map');
 
         // Scaffolded files exist.
-        expect(fs.existsSync(path.join(pluginDir, 'map', 'e2eLayer.js'))).toBe(true);
+        expect(fs.existsSync(path.join(pluginDir, 'map.js'))).toBe(true);
         expect(manifest.config?.tabs).toBeDefined();
 
         // Manifest passes the layertype contract validator with no errors.
@@ -336,7 +336,7 @@ test.describe('CLI create and destroy', () => {
         expect(validatePluginConfig(manifest, 'E2eLayer', 'layertype')).toEqual([]);
 
         // Renderer module exports a valid make/destroy contract.
-        const moduleSrc = fs.readFileSync(path.join(pluginDir, 'map', 'e2eLayer.js'), 'utf8');
+        const moduleSrc = fs.readFileSync(path.join(pluginDir, 'map.js'), 'utf8');
         expect(validateLayerTypeModuleShape(moduleSrc, 'E2eLayer')).toEqual([]);
 
         // A layer type is a plugin like any other: it is discovered, listed and

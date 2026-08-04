@@ -138,9 +138,9 @@ function surfaceOfModuleKey(key, pluginType = "layertype", manifest = null) {
  * A layer type's / attachment's declared modules, flattened to one dotted key
  * per module so callers (generator, validator, CLI) share one shape:
  *
- *   { "modules": { "map": "./map/vector",
- *                  "globe": { "cesium": "./globe/cesium/vector" } } }
- *     → { "map": "./map/vector", "globe.cesium": "./globe/cesium/vector" }
+ *   { "modules": { "map": "./map",
+ *                  "globe": { "cesium": "./globe/cesium" } } }
+ *     → { "map": "./map", "globe.cesium": "./globe/cesium" }
  *   { "module": "./mytype" } → { "module": "./mytype" }
  *
  * Deliberately not the `paths` of tools/interactions: there a key is the
@@ -775,7 +775,7 @@ function validatePluginConfig(config, pluginName, pluginType) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'paths' is the tools/interactions field (export name \u2192 module); declare renderer modules by surface instead (${
           pluginType === "layertype"
-            ? `'modules': { "map": "./map/x", "globe": { "cesium": "./globe/cesium/x" } }`
+            ? `'modules': { "map": "./map", "globe": { "cesium": "./globe/cesium" } }`
             : `'module': "./x"`
         })`
       );

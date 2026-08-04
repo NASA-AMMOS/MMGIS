@@ -149,8 +149,8 @@
   },
   "modules": {
     "globe": {
-      "cesium": "./globe/cesium/threedtiles",
-      "lithosphere": "./globe/lithosphere/threedtiles"
+      "cesium": "./globe/cesium",
+      "lithosphere": "./globe/lithosphere"
     }
   }
 }

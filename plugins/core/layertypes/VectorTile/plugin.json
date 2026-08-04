@@ -1141,11 +1141,11 @@
     ]
   },
   "modules": {
-    "map": "./map/vectortile",
-    "config": "./config/vectortile",
+    "map": "./map",
+    "config": "./config",
     "globe": {
-      "cesium": "./globe/cesium/vectortile",
-      "lithosphere": "./globe/lithosphere/vectortile"
+      "cesium": "./globe/cesium",
+      "lithosphere": "./globe/lithosphere"
     }
   }
 }

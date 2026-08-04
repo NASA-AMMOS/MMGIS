@@ -289,6 +289,6 @@
     ]
   },
   "modules": {
-    "map": "./map/video"
+    "map": "./map"
   }
 }

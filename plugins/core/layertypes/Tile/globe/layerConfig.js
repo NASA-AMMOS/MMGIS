@@ -54,7 +54,3 @@ export function toGlobeConfig(layerObj) {
         currentCogExpression: s.currentCogExpression,
     }
 }
-
-export default {
-    toGlobeConfig,
-}

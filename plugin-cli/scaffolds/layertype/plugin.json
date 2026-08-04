@@ -89,6 +89,6 @@
         ]
     },
     "modules": {
-        "map": "./map/__name__"
+        "map": "./map"
     }
 }

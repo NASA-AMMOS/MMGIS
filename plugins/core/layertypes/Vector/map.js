@@ -70,80 +70,81 @@ function applyInitialFilters(layerObj) {
     }
 }
 
-export default {
-    make: {
-        async main(layerObj, ctx = {}) {
-            await makeVectorMap(layerObj, ctx)
-        },
-        // Inside make-lock: rebuild the working GeoJSON used by filtering.
-        after(layerObj) {
-            Filtering.updateGeoJSON(layerObj.name)
-        },
-        // After make-lock releases: apply active filters. triggerFilter clears
-        // + repopulates the vector layer and bails if _layersBeingMade is still
-        // held, so it MUST run after the lock frees.
-        afterCommit(layerObj) {
-            Filtering.triggerFilter(layerObj.name)
-        },
+// make.after runs inside the make-lock; afterCommit after it frees, because
+// triggerFilter repopulates the layer and bails while _layersBeingMade holds.
+const make = {
+    async main(layerObj, ctx = {}) {
+        await makeVectorMap(layerObj, ctx)
     },
-    onToggle(layerObj, ctx = {}) {
-        // Initial visibility: the layer was never toggled, the map is still
-        // settling and ordering is applied wholesale afterwards — only the
-        // (deferred) opacity refresh applies.
-        if (ctx.source === 'addVisible') {
-            const name = layerObj.name
-            setTimeout(() => {
-                L_.setLayerOpacity(name, L_.layers.opacity[name])
-            }, 300)
-            return
-        }
-
-        if (!ctx.globeOnly) {
-            // Vector layers live in a Leaflet pane, so showing one puts it on
-            // top of the stack — re-assert the configured draw order.
-            if (ctx.visible && !ctx.skipOrderedBringToFront)
-                L_.Map_.orderedBringToFront()
-        }
-
-        if (ctx.firstTimeOn) {
-            applyLocalTimeWindow(layerObj)
-            applyInitialFilters(layerObj)
-        }
-
-        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+    after(layerObj) {
+        Filtering.updateGeoJSON(layerObj.name)
     },
-    /**
-     * A vector layer whose features each carry their own time can be filtered
-     * to the new time window client-side instead of refetching — unless the
-     * caller forced a requery, in which case core reloads and the window is
-     * re-applied once the new features have landed.
-     */
-    timeChange(layerObj, ctx = {}) {
-        const isLocallyTimed =
-            layerObj.time?.type === 'local' && layerObj.time?.endProp != null
-        const mayAct =
-            ctx.evenIfControlled === true || layerObj.controlled !== true
+    afterCommit(layerObj) {
+        Filtering.triggerFilter(layerObj.name)
+    },
+}
 
-        if (isLocallyTimed && ctx.forceRequery !== true) {
-            if (mayAct)
+function onToggle(layerObj, ctx = {}) {
+    // Initial visibility: the layer was never toggled, the map is still
+    // settling and ordering is applied wholesale afterwards — only the
+    // (deferred) opacity refresh applies.
+    if (ctx.source === 'addVisible') {
+        const name = layerObj.name
+        setTimeout(() => {
+            L_.setLayerOpacity(name, L_.layers.opacity[name])
+        }, 300)
+        return
+    }
+
+    // Vector layers live in a Leaflet pane, so showing one puts it on top of
+    // the stack — re-assert the configured draw order.
+    if (!ctx.globeOnly && ctx.visible && !ctx.skipOrderedBringToFront)
+        L_.Map_.orderedBringToFront()
+
+    if (ctx.firstTimeOn) {
+        applyLocalTimeWindow(layerObj)
+        applyInitialFilters(layerObj)
+    }
+
+    L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
+}
+
+/**
+ * A vector layer whose features each carry their own time can be filtered to
+ * the new time window client-side instead of refetching — unless the caller
+ * forced a requery, in which case core reloads and the window is re-applied
+ * once the new features have landed.
+ */
+function timeChange(layerObj, ctx = {}) {
+    const isLocallyTimed =
+        layerObj.time?.type === 'local' && layerObj.time?.endProp != null
+    const mayAct = ctx.evenIfControlled === true || layerObj.controlled !== true
+
+    if (isLocallyTimed && ctx.forceRequery !== true) {
+        if (mayAct)
+            applyLocalTimeWindow(layerObj, {
+                evenIfControlled: ctx.evenIfControlled,
+            })
+        return
+    }
+
+    return ctx.reload({
+        afterLoad: () => {
+            if (
+                layerObj.time?.enabled === true &&
+                isLocallyTimed &&
+                ctx.forceRequery === true &&
+                mayAct
+            )
                 applyLocalTimeWindow(layerObj, {
                     evenIfControlled: ctx.evenIfControlled,
                 })
-            return
-        }
+        },
+    })
+}
 
-        return ctx.reload({
-            afterLoad: () => {
-                if (
-                    layerObj.time?.enabled === true &&
-                    isLocallyTimed &&
-                    ctx.forceRequery === true &&
-                    mayAct
-                )
-                    applyLocalTimeWindow(layerObj, {
-                        evenIfControlled: ctx.evenIfControlled,
-                    })
-            },
-        })
-    },
+export default {
+    make,
+    onToggle,
+    timeChange,
 }

@@ -23,7 +23,7 @@
  * }
  */
 import * as Cesium from 'cesium'
-import { isClamped, toGlobeConfig } from '../config'
+import { isClamped, toGlobeConfig } from './layerConfig'
 
 const CESIUM_POINT_PIXEL_SCALE = 2
 

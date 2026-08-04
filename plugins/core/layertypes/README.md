@@ -18,12 +18,15 @@ refresh/reload, and teardown — with no core changes.
 ```
 plugins/core/layertypes/<Type>/
   plugin.json                    # manifest (identity, capabilities, modules, configure-page config, …)
-  map/<type>.js                  # map (Leaflet) renderer module      — optional
-  globe/cesium/<type>.js         # Cesium globe renderer module        — optional
-  globe/lithosphere/<type>.js    # LithoSphere globe renderer module   — optional
-  config/<type>.js               # parse-time ownership of the config  — optional
-  filter/<type>.js               # the type's filtering strategy       — optional
-  time/<type>.js                 # what time means to this type        — optional
+  map.js                         # map (Leaflet) renderer module       — optional
+  globe/cesium.js                # Cesium globe renderer module        — optional
+  globe/lithosphere.js           # LithoSphere globe renderer module   — optional
+  globe/layerConfig.js           # engine-neutral globe layer config, shared
+                                 #   by the engine modules — a helper, not a surface
+  config.js                      # parse-time ownership of the config  — optional
+  filter.js                      # the type's filtering strategy       — optional
+  time.js                        # what time means to this type        — optional
+  lib/                           # anything else the type needs
 ```
 
 `plugin.json` declares which surfaces/engines the type supports and maps them to
@@ -40,10 +43,10 @@ modules:
     }
   },
   "modules": {
-    "map": "./map/tile",
+    "map": "./map",
     "globe": {
-      "cesium": "./globe/cesium/tile",
-      "lithosphere": "./globe/lithosphere/tile"
+      "cesium": "./globe/cesium",
+      "lithosphere": "./globe/lithosphere"
     }
   }
 }

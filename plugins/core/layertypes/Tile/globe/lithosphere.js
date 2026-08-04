@@ -12,7 +12,7 @@
  *
  * gctx (lithosphere) = { engine: 'lithosphere', renderer (LithoSphere), layers }
  */
-import { toGlobeConfig } from '../config'
+import { toGlobeConfig } from './layerConfig'
 
 function make(layerObj, gctx) {
     return render(toGlobeConfig(layerObj), gctx)

@@ -141,11 +141,11 @@ test.describe('surfaces', () => {
         expect(
             flattenLayerModules({
                 modules: {
-                    map: './map/x',
-                    globe: { cesium: './globe/cesium/x' },
+                    map: './map',
+                    globe: { cesium: './globe/cesium' },
                 },
             })
-        ).toEqual({ map: './map/x', 'globe.cesium': './globe/cesium/x' })
+        ).toEqual({ map: './map', 'globe.cesium': './globe/cesium' })
         expect(flattenLayerModules({ module: './x' })).toEqual({
             module: './x',
         })

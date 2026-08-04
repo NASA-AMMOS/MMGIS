@@ -532,8 +532,8 @@ Maps the **render surfaces** a layer type implements to their modules, relative 
 
 ```json
 "modules": {
-    "map": "./map/tile",
-    "globe": { "cesium": "./globe/cesium/tile" }
+    "map": "./map",
+    "globe": { "cesium": "./globe/cesium" }
 }
 ```
 

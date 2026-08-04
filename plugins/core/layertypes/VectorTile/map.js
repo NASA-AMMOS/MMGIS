@@ -19,7 +19,7 @@ import {
     resolveLayerInteractions,
 } from '@basics/InteractionRunner/InteractionRunner'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
-import './SimplifiedVectorGrid'
+import './lib/SimplifiedVectorGrid'
 
 function make(layerObj, ctx = {}) {
     const mctx = MapRenderer.context(ctx.mapContext)

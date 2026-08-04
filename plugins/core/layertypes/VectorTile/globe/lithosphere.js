@@ -10,7 +10,7 @@
  * gctx (lithosphere) = { engine, renderer (LithoSphere), layers, hasLayer,
  *                        toggleLayer, removeLayer }
  */
-import { makeWith, onToggle } from '../config'
+import { makeWith, onToggle } from './layerConfig'
 
 function make(layerObj, gctx) {
     return makeWith(layerObj, gctx, render)
