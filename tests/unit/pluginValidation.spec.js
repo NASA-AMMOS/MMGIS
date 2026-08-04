@@ -624,6 +624,30 @@ test.describe('validateMetaconfig - the Configure form a manifest declares', () 
         ).toBe(1);
     });
 
+    test("rows sizes a textarea and means nothing anywhere else", () => {
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'textarea', rows: 8 }]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'text', rows: 8 }]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain("only applies to type 'textarea'");
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'textarea', rows: 0 }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+    });
+
     test('width must fit the 12-column grid', () => {
         expect(
             validateMetaconfig(

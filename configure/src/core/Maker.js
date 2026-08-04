@@ -169,6 +169,11 @@ const useStyles = makeStyles((theme) => ({
   text: {
     width: "100%",
   },
+  textareaInput: {
+    fontFamily: "monospace",
+    fontSize: "13px",
+    lineHeight: 1.4,
+  },
   textArrayHexes: {
     display: "flex",
   },
@@ -525,6 +530,55 @@ const getComponent = (
       );
       return (
         <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "textarea":
+      inner = (
+        <TextField
+          className={c.text}
+          label={com.name}
+          variant="filled"
+          size="small"
+          multiline
+          minRows={com.rows || 4}
+          disabled={disabled || isDisabled}
+          required={isRequired}
+          error={hasError}
+          helperText={hasError ? "This field is required" : ""}
+          FormHelperTextProps={{
+            className: c.noMarginHelperText,
+          }}
+          inputProps={{
+            autoComplete: "off",
+            // A multiline value is usually something written in another
+            // language (a query, a template, a shader snippet), where
+            // alignment is part of the meaning.
+            className: c.textareaInput,
+            spellCheck: false,
+          }}
+          value={fieldValue}
+          onChange={(e) => {
+            if (!isDisabled) {
+              updateConfiguration(forceField || com.field, e.target.value, layer);
+            }
+          }}
+        />
+      );
+      return (
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
           {inlineHelp ? (
             <>
               {inner}

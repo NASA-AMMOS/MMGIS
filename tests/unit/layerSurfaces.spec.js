@@ -146,10 +146,11 @@ test.describe('interaction configPath', () => {
                 configPaths: { sonify: 'variables.interactions.sonify' },
             },
         })
-        // sonify gets its settings; select declares no path, so ctx.config is
-        // left alone rather than clobbered with null
+        // sonify gets its settings; select declares no path, so it gets null —
+        // the ctx is shared down the pipeline and one interaction's settings are
+        // not another's
         expect(seen[0]).toEqual({ hz: 440 })
-        expect(seen[1]).toEqual({ hz: 440 })
+        expect(seen[1]).toBeNull()
     })
 
     test('the generator emits the paths the runner reads', () => {

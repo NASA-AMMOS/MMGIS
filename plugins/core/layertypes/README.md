@@ -91,6 +91,12 @@ so overriding `map.styling` doesn't drop an inherited `map.stacking`. Declare
 only what differs; the validator does not warn an extending type about
 capabilities its parent supplies.
 
+`npm run plugins -- create layertype <Name>` scaffolds a standalone renderer —
+`map.js` with `make`/`destroy` — because it cannot know what you are building. If
+your type draws like something MMGIS already draws, that scaffold is the wrong
+starting point: delete `map.js`, put `"extends"` and a single `"module"` in the
+manifest, and implement only the surface that differs.
+
 Inheriting the *renderer* while replacing only `config` is the common case, and
 it is why a new data source is usually a `config` surface (`expand` to turn one
 entry into a service's collections, `resolveUrl` to have the last word on what
@@ -325,13 +331,23 @@ engines:
 |---|---|
 | `engine` | `'cesium'` or `'lithosphere'` |
 | `renderer` | the raw engine handle (a `Cesium.Viewer`, or the LithoSphere instance) |
-| `raw` | the engine *namespace* — `Cesium` on Cesium, `LithoSphere` on LithoSphere — so a module needn't import (and bundle a second copy of) the engine. The globe twin of `mctx.raw`. Symmetric in name only: Cesium's namespace is its whole API, while LithoSphere's exposes little beyond its constructor and does not re-export the THREE it bundles, so a LithoSphere module mostly works through `renderer` |
+| `raw` | the engine *namespace* — `Cesium` on Cesium, `LithoSphere` on LithoSphere — so a module needn't import (and bundle a second copy of) the engine. The globe twin of `mctx.raw`. Symmetric in name only: `Cesium` is the engine's whole API, while the `lithosphere` package exports one thing, the globe class, so on LithoSphere `raw` is a formality and the work happens through `renderer` and `window.THREE` (below) |
 | `layers` | `{ [layerName]: { type, kind, … } }` — the shared record of what the engine is holding (below) |
 | `addEngineLayer(type, layerConfig)` | add an already-built engine config (async) |
 | `hasLayer(name)`, `toggleLayer(name, visible)`, `removeLayer(name)` | the by-name lifecycle both engines implement generically |
 | `clampToGround` | `true` when this dispatch is for the `clamped` variant rather than plain `vector` |
 | `visible` | on `onToggle`: the toggle's new state |
 | `currentTime` | on `timeChange`: the playhead, for in-place scrub |
+
+On LithoSphere, `renderer` is the live globe: `renderer.layers` (its own layer
+records, by kind), `renderer.scene`/`scenesLOD`/`sceneFront`/`sceneBack` (the
+THREE scene graphs it renders in order), `renderer.projection` (lat/lng ↔ world
+coordinates, including `radiusScale`), `renderer.controls` and `renderer.setCenter`.
+The THREE it draws with is **not** exposed on `raw`, but MMGIS vendors THREE and
+puts it on the window (`src/external/THREE/three118.js`, imported by `src/index.js`),
+so a LithoSphere module builds geometry with `window.THREE` — read per call, not at
+import time — rather than adding a `three` dependency of its own. MMGIS has none;
+that global is the only copy.
 
 Cesium only:
 

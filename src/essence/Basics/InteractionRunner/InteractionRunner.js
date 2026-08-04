@@ -239,8 +239,10 @@ async function runInteractions(interactionIds, ctx, options) {
             console.warn(`Unknown interaction '${id}', skipping`)
             continue
         }
-        if (config?.configPaths?.[id] != null)
-            ctx.config = configForInteraction(id, ctx, config)
+        // Set unconditionally: the ctx is shared down the pipeline, so an
+        // interaction with no settings of its own must not be handed the
+        // previous interaction's.
+        if (config) ctx.config = configForInteraction(id, ctx, config)
         await handler.use(ctx)
         if (ctx.stop) break
     }

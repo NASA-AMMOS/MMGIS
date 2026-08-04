@@ -708,6 +708,67 @@ window.ToolController_.openTool('AgentChat')   // open (separated or regular)
 window.ToolController_.closeTool('AgentChat')  // close and clear the toolbar highlight
 ```
 
+### `config` — the Configure form a plugin declares
+
+Tools, layer types and layer attachments can all declare a `config` metaconfig, and
+Configure's Maker (`configure/src/core/Maker.js`) builds the form from it. Nothing
+about it is per-family: a row is a horizontal band, `components` are the controls in
+it laid out on a 12-column grid, and each control writes to the `field` path it names.
+
+```json
+"config": {
+  "tab": "Attachment - Markers",
+  "rows": [
+    { "name": "Radius Rings" },
+    { "components": [
+        { "type": "switch", "field": "variables.layerAttachments.radiusRings.enabled",
+          "name": "Enabled", "width": 3 },
+        { "type": "number", "field": "variables.layerAttachments.radiusRings.radiusMeters",
+          "name": "Radius (m)", "width": 3, "description": "Shown as a tooltip" }
+    ] }
+  ]
+}
+```
+
+| component field | what it does |
+|---|---|
+| `type` | which control to render, from the table below. A type Maker doesn't know renders **nothing** — the row appears with a hole in it — which is why `plugins -- validate` treats an unknown type as an error |
+| `field` | the config path the control reads and writes. Required for everything but the display-only types; an attachment's must sit inside its `configPath`, or the setting is written where core never reads it |
+| `name` | the control's label |
+| `description` | help text — a tooltip, or inline text under the control depending on where it is rendered |
+| `width` | columns out of 12. Omitted means full width, so a row of three unwidthed controls stacks |
+| `default` | the value shown before the mission has one |
+| `options` | required by the dropdown types; an array, or a string Maker parses |
+| `disableSwitch` / `enableWhenField` | grey the control out until another field is on / equals a value — how a settings block hangs off its own `enabled` switch |
+| `rows` | `textarea` only: visible lines (default 4) |
+
+| `type` | control |
+|---|---|
+| `text` | single-line text, trimmed on blur |
+| `textnotrim` | the same, keeping surrounding whitespace |
+| `textarea` | multiline monospace text, for a value written in another language — a query, a template, a shader snippet — where newlines and alignment are part of the meaning. `rows` sets its initial height |
+| `number` | numeric text field |
+| `checkbox`, `switch` | boolean |
+| `slider` | bounded number with `min`/`max`/`step` |
+| `dropdown` | select over `options` |
+| `searchdropdown` | the same with a filter box, for long lists |
+| `colordropdown` | select over `options` with a colour swatch per entry |
+| `colorpicker` | full colour picker |
+| `textarray` | comma-separated text stored as an array |
+| `objectarray` | a repeatable group of fields, each item shaped by `object` |
+| `json` | raw JSON editor, for a subtree with no schema |
+| `markdown` | markdown editor with preview |
+| `layerMultiSelect` | pick layers from the mission, narrowable with `layerTypes` |
+| `defaulttooldropdown` | pick one of the mission's non-separated tools |
+| `interactions` | the interaction editor for a layer |
+| `gap` | no control — a `description` used as a note between rows |
+| `button` | runs a named `action` (populate-from-XML and friends); actions are core's, not a plugin's |
+| `map`, `videopreview`, `themepreview` | previews, sized by `height` |
+
+`tab` names the Configure tab the rows join. For an attachment it should be an
+**existing** tab (`Attachment - Markers`, `Attachment - Paths`, …) unless you mean
+to add one — a typo silently creates a new tab holding your rows alone.
+
 ### Backend-Specific Fields
 
 | Field | Type | Description |
@@ -727,7 +788,7 @@ window.ToolController_.closeTool('AgentChat')  // close and clear the toolbar hi
 | `kindAlias` | `string[]` | Legacy `kind` strings this interaction maps to for backward compatibility (e.g. `["waypoint"]`). Multiple interactions may share a `kindAlias` — all of them run, ordered by `order`. |
 | `applicableEvents` | `string[]` | Event types this interaction handles: `"click"`, `"hover"`, `"mouseout"`. |
 | `applicableLayerTypes` | `string[]` | Layer types this interaction applies to (e.g. `["vector", "vectortile", "query"]`). **Enforced** at runtime: the runner drops the interaction — preamble and postamble included — on a layer whose type (or the type it `extends`) isn't listed, and warns. Omit the field to apply to every type. |
-| `configPath` | `string` | Where in a layer's config this interaction is configured (e.g. `variables.interactions.sonify`). The runner reads that subtree and hands it over as `ctx.config`, so the plugin never spells out where its own settings live. Omit it if the interaction has no per-layer settings. |
+| `configPath` | `string` | Where in a layer's config this interaction is configured (e.g. `variables.interactions.sonify`). The runner reads that subtree and hands it over as `ctx.config`, so the plugin never spells out where its own settings live. Omit it if the interaction has no per-layer settings — the runner then hands that interaction `ctx.config = null`, since one interaction's settings are never another's. A layer that has never been configured also yields `null`, so default in the plugin (`const { hz = 440 } = ctx.config || {}`). |
 
 Interactions also commonly set `overridable: false` (infrastructure interactions like `select` can't be overridden or disabled) and `pluginDependencies` (see below) to declare a required tool.
 

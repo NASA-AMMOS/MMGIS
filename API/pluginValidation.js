@@ -278,6 +278,7 @@ const METACONFIG_COMPONENT_TYPES = new Set([
   "gap",
   "text",
   "textnotrim",
+  "textarea",
   "button",
   "textarray",
   "markdown",
@@ -403,6 +404,20 @@ function validateMetaconfig(
           errors.push(
             `${where}: '${comLabel}.object' must be an array describing each item's fields`
           );
+        if (com.rows !== undefined) {
+          if (com.type !== "textarea")
+            errors.push(
+              `${where}: '${comLabel}.rows' only applies to type 'textarea'`
+            );
+          else if (
+            typeof com.rows !== "number" ||
+            !Number.isInteger(com.rows) ||
+            com.rows < 1
+          )
+            errors.push(
+              `${where}: '${comLabel}.rows' must be a positive integer (visible lines; the field grows past it)`
+            );
+        }
         if (com.width !== undefined) {
           if (
             typeof com.width !== "number" ||
