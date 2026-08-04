@@ -55,14 +55,10 @@ export async function toggleLayer(
     }
 }
 
-// An attachment can take over its host layer's globe rendering: a
-// path_gradient draws the host's geometry itself, and adding the host on top
-// would show its default billboards as white artifacts. Becomes an attachment
-// capability once layer attachments are plugins.
 // An attachment may BE its host's geometry drawn differently on the globe (a
 // path gradient is the host line, recolored), in which case the host must not
-// also be drawn there. The attachment declares that
-// (capabilities.globe.suppressesHost).
+// also be drawn there — its default billboards would show as white artifacts.
+// The attachment declares that (capabilities.globe.suppressesHost).
 function globeSuppressingAttachments(L_, layerObj) {
     const attachments = L_.layers.attachments[layerObj.name] || {}
     return Object.keys(attachments).filter(
@@ -152,8 +148,10 @@ export async function toggleLayerHelper(
                 toggleCtx.hadToMake = true
             }
 
+            let shownAttachments = false
             if (L_.layers.layer[s.name] && globeOnly != true) {
                 if (L_.layers.attachments[s.name]) {
+                    shownAttachments = true
                     for (let sub in L_.layers.attachments[s.name]) {
                         if (L_.layers.attachments[s.name][sub].on)
                             L_.setAttachmentVisibility(s.name, sub, true, {
@@ -205,10 +203,11 @@ export async function toggleLayerHelper(
             // engine config from this layer's config object.
             if (!hasGlobeSuppressingAttachment(L_, s)) {
                 await L_.Globe_.litho.addLayerFor(s)
-            } else if (toggleCtx.hadToMake) {
-                // On first-time toggle the attachment-processing block above
-                // was skipped because the layer didn't exist yet. Defer the
-                // heavy Cesium geometry build so the UI isn't blocked.
+            } else if (!shownAttachments) {
+                // The block above didn't run (a globe-only toggle, or the layer
+                // isn't on the map), so the suppressing attachment still owes
+                // its globe geometry. Defer the heavy Cesium build so the UI
+                // isn't blocked.
                 for (const sub of globeSuppressingAttachments(L_, s)) {
                     if (L_.layers.attachments[s.name][sub].on !== true) continue
                     setTimeout(() => {

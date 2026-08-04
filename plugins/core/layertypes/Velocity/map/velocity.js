@@ -18,6 +18,11 @@ import Description from '@basics/UserInterface_/components/Description/Descripti
 import { captureVector } from '@basics/Layers_/capture/LayerCapturer'
 import { data as colormapData } from '@external/js-colormaps/js-colormaps.js'
 
+// Layers whose fade-out subscription is already installed. `make` runs on every
+// re-show (see `setVisibility`), while the subscription is per layer for the life
+// of the map — the handler resolves the current layer at fire time.
+const fadeOnViewChange = new Set()
+
 function make(layerObj, ctx = {}) {
     const { evenIfOff, forceGeoJSON, mapContext } = ctx
     const mctx = MapRenderer.context(mapContext)
@@ -156,9 +161,12 @@ function make(layerObj, ctx = {}) {
                     // they jump while the map moves: fade them out until the
                     // move settles (the opacity is restored by the layer's
                     // regular opacity refresh).
-                    MapRenderer.onViewChangeStart(mctx, () => {
-                        L_.layers.layer[layerObj.name]?.setOpacity(0)
-                    })
+                    if (!fadeOnViewChange.has(layerObj.name)) {
+                        fadeOnViewChange.add(layerObj.name)
+                        MapRenderer.onViewChangeStart(mctx, () => {
+                            L_.layers.layer[layerObj.name]?.setOpacity(0)
+                        })
+                    }
                 } else if (layerObj.kind == 'particles') {
                     let points = []
                     if (data.features) {
