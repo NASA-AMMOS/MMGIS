@@ -11,6 +11,7 @@ import {
   setMissions,
   setLayerTypeConfiguration,
   setLayerAttachmentConfiguration,
+  setInteractionConfiguration,
   setSnackBarText,
 } from "./ConfigureStore";
 import Websocket from "./Websocket";
@@ -87,6 +88,19 @@ export default function Configure() {
       },
       () => {
         dispatch(setLayerAttachmentConfiguration({}));
+      },
+    );
+
+    // An interaction's settings are configured on the layers that run it, so
+    // the layer modal needs to know which config paths interactions own.
+    calls.api(
+      "getInteractionConfig",
+      null,
+      (res) => {
+        dispatch(setInteractionConfiguration(res || {}));
+      },
+      () => {
+        dispatch(setInteractionConfiguration({}));
       },
     );
 

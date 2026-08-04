@@ -20,6 +20,7 @@ import {
   attachmentTabsFor,
   attachmentConfigPaths,
 } from "../../../../../core/layerAttachmentTabs";
+import { interactionConfigPaths } from "../../Interactions/interactionUtils";
 
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -157,6 +158,9 @@ const LayerModal = (props) => {
   const layerTypeConfiguration = useSelector(
     (state) => state.core.layerTypeConfiguration,
   );
+  const interactionConfiguration = useSelector(
+    (state) => state.core.interactionConfiguration,
+  );
   const layerAttachmentConfiguration = useSelector(
     (state) => state.core.layerAttachmentConfiguration,
   );
@@ -207,13 +211,16 @@ const LayerModal = (props) => {
           // Settings that belong to an attachment this layer type doesn't
           // show are still the attachment's, not junk: keep them rather than
           // trimming them away because no tab rendered them.
-          attachmentConfigPaths(layerAttachmentConfiguration).forEach(
-            (configPath) => {
-              const existing = getIn(l, configPath.split("."), null);
-              if (existing != null)
-                setIn(completedLayer, configPath.split("."), existing, true);
-            },
-          );
+          // The same holds for an interaction's settings, which its manifest
+          // declares rather than the layer type's tabs.
+          [
+            ...attachmentConfigPaths(layerAttachmentConfiguration),
+            ...interactionConfigPaths(interactionConfiguration),
+          ].forEach((configPath) => {
+            const existing = getIn(l, configPath.split("."), null);
+            if (existing != null)
+              setIn(completedLayer, configPath.split("."), existing, true);
+          });
           config.tabs.forEach((t) => {
             t.rows.forEach((r) => {
               r.components.forEach((c) => {

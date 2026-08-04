@@ -247,4 +247,19 @@ test.describe('interaction configPath', () => {
             getSettingsRows({ config: { rows } })
         ).toBeNull()
     })
+
+    test("an interaction's settings survive the layer modal trimming a layer to its tabs", () => {
+        const {
+            interactionConfigPaths,
+        } = require('../../configure/src/components/Tabs/Layers/Interactions/interactionUtils')
+
+        expect(
+            interactionConfigPaths({
+                Sonify: { configPath: 'variables.interactions.sonify' },
+                Select: {},
+                Broken: { configPath: '' },
+            })
+        ).toEqual(['variables.interactions.sonify'])
+        expect(interactionConfigPaths(null)).toEqual([])
+    })
 })

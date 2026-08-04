@@ -67,6 +67,14 @@ const getSettingsRows = (interaction) => {
   return typeof interaction.configPath === "string" ? rows : null;
 };
 
+// Every config path owned by a registered interaction. The layer modal trims a
+// layer to the fields its tabs declare, so settings an interaction owns would
+// otherwise be dropped on close.
+const interactionConfigPaths = (interactionConfigs) =>
+  Object.values(interactionConfigs || {})
+    .map((interaction) => interaction?.configPath)
+    .filter((path) => typeof path === "string" && path.length > 0);
+
 const withClickPipeline = (interactions, clickPipeline) => {
   const next =
     interactions != null && typeof interactions === "object"
@@ -83,6 +91,7 @@ export {
   getKindPipeline,
   getSettingsRows,
   getSuppressionSources,
+  interactionConfigPaths,
   interactionOrder,
   withClickPipeline,
 };
