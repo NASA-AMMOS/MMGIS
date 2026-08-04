@@ -25,6 +25,10 @@ function destroy(layerObj) {
     void layerObj
 }
 
+// `make` above is shorthand for `{ main: make }`; any op may instead be a phase
+// object — `{ before, main, after }`, plus `afterCommit` on make, which runs
+// once the make-lock frees. See Vector's map.js.
+
 /*
  * The rest of the vocabulary, with the default each one replaces. Uncomment only
  * where the default is wrong — an empty implementation silently overrides a
