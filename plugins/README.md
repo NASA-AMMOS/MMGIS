@@ -710,10 +710,11 @@ window.ToolController_.closeTool('AgentChat')  // close and clear the toolbar hi
 
 ### `config` — the Configure form a plugin declares
 
-Tools, layer types and layer attachments can all declare a `config` metaconfig, and
-Configure's Maker (`configure/src/core/Maker.js`) builds the form from it. Nothing
-about it is per-family: a row is a horizontal band, `components` are the controls in
-it laid out on a 12-column grid, and each control writes to the `field` path it names.
+Tools, layer types, layer attachments and interactions can all declare a `config`
+metaconfig, and Configure's Maker (`configure/src/core/Maker.js`) builds the form from
+it. Nothing about it is per-family: a row is a horizontal band, `components` are the
+controls in it laid out on a 12-column grid, and each control writes to the `field`
+path it names.
 
 ```json
 "config": {
@@ -733,11 +734,11 @@ it laid out on a 12-column grid, and each control writes to the `field` path it 
 | component field | what it does |
 |---|---|
 | `type` | which control to render, from the table below. A type Maker doesn't know renders **nothing** — the row appears with a hole in it — which is why `plugins -- validate` treats an unknown type as an error |
-| `field` | the config path the control reads and writes. Required for everything but the display-only types; an attachment's must sit inside its `configPath`, or the setting is written where core never reads it |
+| `field` | the config path the control reads and writes. Required for everything but the display-only types; an attachment's or interaction's must sit inside its `configPath`, or the setting is written where core never reads it |
 | `name` | the control's label |
 | `description` | help text — a tooltip, or inline text under the control depending on where it is rendered |
 | `width` | columns out of 12. Omitted means full width, so a row of three unwidthed controls stacks |
-| `default` | the value shown before the mission has one |
+| `default` | the value shown before the mission has one. It is a **form** default, not a runtime one: nothing is written until an admin touches the field, so the plugin still receives a partial (or absent) config and defaults its own values — `const { hz = 440 } = ctx.config \|\| {}` |
 | `options` | required by the dropdown types; an array, or a string Maker parses |
 | `disableSwitch` / `enableWhenField` | grey the control out until another field is on / equals a value — how a settings block hangs off its own `enabled` switch |
 | `rows` | `textarea` only: visible lines (default 4) |
@@ -769,6 +770,27 @@ it laid out on a 12-column grid, and each control writes to the `field` path it 
 **existing** tab (`Attachment - Markers`, `Attachment - Paths`, …) unless you mean
 to add one — a typo silently creates a new tab holding your rows alone.
 
+**An interaction takes `rows` and nothing else.** Its settings render on its own card
+in a layer's Interactions tab — beside where the interaction was chosen — so there is
+no `tab` to name, and no `enabled` control to add either: an interaction is enabled by
+being in the layer's pipeline, which is what the editor above the card manipulates.
+Rows without a `configPath` are an error, since the runner would have nowhere to read
+them back from.
+
+```json
+"configPath": "variables.interactions.sonify",
+"config": {
+  "rows": [
+    { "components": [
+        { "type": "text", "field": "variables.interactions.sonify.property",
+          "name": "Property", "width": 6 },
+        { "type": "number", "field": "variables.interactions.sonify.hz",
+          "name": "Base Hz", "width": 3, "default": 440 }
+    ] }
+  ]
+}
+```
+
 ### Backend-Specific Fields
 
 | Field | Type | Description |
@@ -787,6 +809,7 @@ to add one — a typo silently creates a new tab holding your rows alone.
 | `suppresses` | `string[]` | Interaction IDs this one replaces when present in the pipeline (e.g. `info:open` suppresses `["info:silent"]`). |
 | `kindAlias` | `string[]` | Legacy `kind` strings this interaction maps to for backward compatibility (e.g. `["waypoint"]`). Multiple interactions may share a `kindAlias` — all of them run, ordered by `order`. |
 | `applicableEvents` | `string[]` | Event types this interaction handles: `"click"`, `"hover"`, `"mouseout"`. |
+| `config` | `object` | `rows` only — the settings form Configure renders on this interaction's card in a layer's Interactions tab. Requires `configPath`, and every `field` must sit inside it. See [`config`](#config--the-configure-form-a-plugin-declares). |
 | `applicableLayerTypes` | `string[]` | Layer types this interaction applies to (e.g. `["vector", "vectortile", "query"]`). **Enforced** at runtime: the runner drops the interaction — preamble and postamble included — on a layer whose type (or the type it `extends`) isn't listed, and warns. Omit the field to apply to every type. |
 | `configPath` | `string` | Where in a layer's config this interaction is configured (e.g. `variables.interactions.sonify`). The runner reads that subtree and hands it over as `ctx.config`, so the plugin never spells out where its own settings live. Omit it if the interaction has no per-layer settings — the runner then hands that interaction `ctx.config = null`, since one interaction's settings are never another's. A layer that has never been configured also yields `null`, so default in the plugin (`const { hz = 440 } = ctx.config || {}`). |
 

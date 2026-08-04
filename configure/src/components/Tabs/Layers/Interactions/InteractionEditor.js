@@ -23,6 +23,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LockIcon from "@mui/icons-material/Lock";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 
 import { calls } from "../../../../core/calls";
@@ -31,6 +32,7 @@ import {
   getApplicableInteractions,
   getKindOptions,
   getKindPipeline,
+  getSettingsRows,
   getSuppressionSources,
   interactionOrder,
   withClickPipeline,
@@ -76,12 +78,19 @@ const useStyles = makeStyles((theme) => ({
     textTransform: "uppercase",
   },
   item: {
-    display: "flex",
-    alignItems: "center",
-    minHeight: "52px",
     padding: "10px",
     background: theme.palette.swatches.grey[900],
     border: `1px solid ${theme.palette.swatches.grey[800]}`,
+  },
+  itemRow: {
+    display: "flex",
+    alignItems: "center",
+    minHeight: "32px",
+  },
+  itemSettings: {
+    paddingTop: "10px",
+    marginTop: "10px",
+    borderTop: `1px solid ${theme.palette.swatches.grey[800]}`,
   },
   itemMain: {
     paddingLeft: "7px",
@@ -154,11 +163,13 @@ const InteractionItem = ({
   interactionId,
   dragHandleProps,
   onRemove,
+  settings,
   suppressedBy,
   main,
   c,
 }) => {
   const name = interaction?.name || interactionId;
+  const [settingsOpen, setSettingsOpen] = useState(false);
   return (
     <Paper
       className={`${c.item} ${main ? c.itemMain : ""} ${
@@ -166,37 +177,56 @@ const InteractionItem = ({
       }`}
       elevation={0}
     >
-      {dragHandleProps ? (
-        <div className={c.dragHandle} {...dragHandleProps}>
-          <DragIndicatorIcon />
-        </div>
-      ) : (
-        <LockIcon className={c.dragHandle} fontSize="small" />
-      )}
-      <div className={c.itemContent}>
-        <Typography className={c.itemTitle}>
-          {name}
-          {suppressedBy ? (
-            <Chip size="small" label={`Suppressed by ${suppressedBy}`} />
-          ) : null}
-        </Typography>
-        <Typography className={c.interactionId}>{interactionId}</Typography>
-        {interaction?.description ? (
-          <Typography className={c.itemDescription}>
-            {interaction.description}
+      <div className={c.itemRow}>
+        {dragHandleProps ? (
+          <div className={c.dragHandle} {...dragHandleProps}>
+            <DragIndicatorIcon />
+          </div>
+        ) : (
+          <LockIcon className={c.dragHandle} fontSize="small" />
+        )}
+        <div className={c.itemContent}>
+          <Typography className={c.itemTitle}>
+            {name}
+            {suppressedBy ? (
+              <Chip size="small" label={`Suppressed by ${suppressedBy}`} />
+            ) : null}
           </Typography>
+          <Typography className={c.interactionId}>{interactionId}</Typography>
+          {interaction?.description ? (
+            <Typography className={c.itemDescription}>
+              {interaction.description}
+            </Typography>
+          ) : null}
+        </div>
+        {settings ? (
+          <IconButton
+            aria-label={`${settingsOpen ? "Hide" : "Show"} ${name} settings`}
+            onClick={() => setSettingsOpen(!settingsOpen)}
+          >
+            <SettingsIcon fontSize="small" />
+          </IconButton>
+        ) : null}
+        {onRemove ? (
+          <IconButton aria-label={`Remove ${name}`} onClick={onRemove}>
+            <CloseIcon />
+          </IconButton>
         ) : null}
       </div>
-      {onRemove ? (
-        <IconButton aria-label={`Remove ${name}`} onClick={onRemove}>
-          <CloseIcon />
-        </IconButton>
+      {settings && settingsOpen ? (
+        <div className={c.itemSettings}>{settings}</div>
       ) : null}
     </Paper>
   );
 };
 
-const LockedPipeline = ({ title, interactions, suppressionSources, c }) => (
+const LockedPipeline = ({
+  title,
+  interactions,
+  settingsFor,
+  suppressionSources,
+  c,
+}) => (
   <div className={`${c.pipeline} ${c.section}`}>
     <Typography className={c.sectionLabel}>
       <LockIcon fontSize="inherit" /> {title}
@@ -208,6 +238,7 @@ const LockedPipeline = ({ title, interactions, suppressionSources, c }) => (
           interaction={interaction}
           interactionId={interaction.interactionId}
           key={interaction.interactionId}
+          settings={settingsFor?.(interaction)}
           suppressedBy={suppressionSources?.[interaction.interactionId]}
         />
       ))
@@ -220,6 +251,7 @@ const LockedPipeline = ({ title, interactions, suppressionSources, c }) => (
 export default function InteractionEditor({
   interactionConfigs: providedInteractionConfigs,
   layer,
+  renderSettings,
   updateConfiguration,
 }) {
   const c = useStyles();
@@ -309,6 +341,12 @@ export default function InteractionEditor({
   const duplicateIds = selectedIds.filter(
     (interactionId, index) => selectedIds.indexOf(interactionId) !== index
   );
+
+  // An interaction's settings belong on the card where it was chosen.
+  const settingsFor = (interaction) => {
+    const rows = getSettingsRows(interaction);
+    return rows && renderSettings ? renderSettings(rows) : null;
+  };
 
   const updateClickPipeline = (clickPipeline) => {
     updateConfiguration(
@@ -404,6 +442,7 @@ export default function InteractionEditor({
       <LockedPipeline
         c={c}
         interactions={clickPreamble}
+        settingsFor={settingsFor}
         title="Always before"
       />
 
@@ -446,6 +485,7 @@ export default function InteractionEditor({
                             interaction={configsById[interactionId]}
                             interactionId={interactionId}
                             main
+                            settings={settingsFor(configsById[interactionId])}
                             onRemove={() =>
                               updateClickPipeline(
                                 selectedIds.filter(
@@ -474,6 +514,7 @@ export default function InteractionEditor({
               interactionId={interactionId}
               key={interactionId}
               main
+              settings={settingsFor(configsById[interactionId])}
             />
           ))
         ) : (
@@ -532,6 +573,7 @@ export default function InteractionEditor({
       <LockedPipeline
         c={c}
         interactions={clickPostamble}
+        settingsFor={settingsFor}
         suppressionSources={suppressionSources}
         title="Always after"
       />
@@ -545,11 +587,13 @@ export default function InteractionEditor({
             <LockedPipeline
               c={c}
               interactions={hoverDefaults}
+              settingsFor={settingsFor}
               title="Hover defaults"
             />
             <LockedPipeline
               c={c}
               interactions={mouseoutDefaults}
+              settingsFor={settingsFor}
               title="Mouseout defaults"
             />
           </div>

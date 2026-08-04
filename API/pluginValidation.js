@@ -328,7 +328,7 @@ const METACONFIG_OPTION_TYPES = new Set([
  * @param {object} metaconfig - `config` from plugin.json
  * @param {string} pluginName
  * @param {string} pluginType
- * @param {string|null} configPath - an attachment's owned subtree, if any
+ * @param {string|null} configPath - the plugin's owned subtree, if any
  * @returns {string[]} errors
  */
 function validateMetaconfig(
@@ -597,6 +597,7 @@ const KNOWN_FIELDS = {
     "suppresses",
     "kindAlias",
     "configPath",
+    "config",
   ]),
   layertype: new Set([
     ...COMMON_FIELDS,
@@ -917,6 +918,37 @@ function validatePluginConfig(config, pluginName, pluginType) {
     ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'configPath' must point into a layer's 'variables' ('${config.configPath}')`
+      );
+    }
+    // An interaction's form renders on its card in a layer's Interactions tab,
+    // so it configures that interaction's own subtree and nowhere else.
+    if (config.config?.rows !== undefined && config.configPath === undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'config.rows' needs a 'configPath' — without one the runner hands the interaction no settings, so the form would write what nothing reads`
+      );
+    }
+    if (config.config?.tab !== undefined || config.config?.tabs !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): an interaction's 'config' takes only 'rows' — its settings render on its card in a layer's Interactions tab, not in a tab of their own`
+      );
+    }
+    if (
+      config.config !== undefined &&
+      (typeof config.config !== "object" ||
+        config.config === null ||
+        Array.isArray(config.config))
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'config' must be an inline object describing the Configure-page form`
+      );
+    } else {
+      errors.push(
+        ...validateMetaconfig(
+          config.config,
+          pluginName,
+          pluginType,
+          typeof config.configPath === "string" ? config.configPath : null
+        )
       );
     }
   }
@@ -1255,8 +1287,7 @@ function validatePluginConfig(config, pluginName, pluginType) {
           config.config,
           pluginName,
           pluginType,
-          (pluginType === "layerattachment" ||
-            pluginType === "interaction") &&
+          pluginType === "layerattachment" &&
             typeof config.configPath === "string"
             ? config.configPath
             : null

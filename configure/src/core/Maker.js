@@ -1670,6 +1670,20 @@ const getComponent = (
       return (
         <InteractionEditor
           layer={layer}
+          renderSettings={(rows) =>
+            makeConfig(
+              updateConfiguration,
+              { rows },
+              configuration,
+              layer,
+              tool,
+              component,
+              c,
+              false,
+              inlineHelp,
+              dispatch
+            )
+          }
           updateConfiguration={updateConfiguration}
         />
       );

@@ -59,6 +59,14 @@ const getSuppressionSources = (interactionConfigs, interactionIds) => {
   }, {});
 };
 
+// The rows an interaction is configured by, if it has any. Settings mean
+// nothing without the `configPath` core reads them back out of.
+const getSettingsRows = (interaction) => {
+  const rows = interaction?.config?.rows;
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return typeof interaction.configPath === "string" ? rows : null;
+};
+
 const withClickPipeline = (interactions, clickPipeline) => {
   const next =
     interactions != null && typeof interactions === "object"
@@ -73,6 +81,7 @@ export {
   getApplicableInteractions,
   getKindOptions,
   getKindPipeline,
+  getSettingsRows,
   getSuppressionSources,
   interactionOrder,
   withClickPipeline,

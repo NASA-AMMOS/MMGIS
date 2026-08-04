@@ -179,4 +179,72 @@ test.describe('interaction configPath', () => {
                 .join(' ')
         ).toContain("'variables'")
     })
+
+    test('an interaction declares its settings form as rows, like an attachment', () => {
+        const { validatePluginConfig } = require('../../API/pluginValidation')
+        const { getSettingsRows } = require('../../configure/src/components/Tabs/Layers/Interactions/interactionUtils')
+        const manifest = (extra) => ({
+            name: 'Sonify',
+            type: 'interaction',
+            interactionId: 'sonify',
+            configPath: 'variables.interactions.sonify',
+            paths: { Sonify: './Sonify' },
+            ...extra,
+        })
+        const rows = [
+            {
+                components: [
+                    {
+                        type: 'number',
+                        field: 'variables.interactions.sonify.hz',
+                        name: 'Base Hz',
+                    },
+                ],
+            },
+        ]
+
+        expect(
+            validatePluginConfig(manifest({ config: { rows } }), 'Sonify', 'interaction')
+        ).toEqual([])
+        // The form configures the interaction's own subtree and nothing else.
+        expect(
+            validatePluginConfig(
+                manifest({
+                    config: {
+                        rows: [
+                            {
+                                components: [
+                                    { type: 'number', field: 'variables.elsewhere.hz' },
+                                ],
+                            },
+                        ],
+                    },
+                }),
+                'Sonify',
+                'interaction'
+            ).join(' ')
+        ).toContain('outside')
+        // Rows with nowhere to be read from, and a tab with nowhere to go.
+        expect(
+            validatePluginConfig(
+                { ...manifest({ config: { rows } }), configPath: undefined },
+                'Sonify',
+                'interaction'
+            ).join(' ')
+        ).toContain("needs a 'configPath'")
+        expect(
+            validatePluginConfig(
+                manifest({ config: { rows, tab: 'Sonify' } }),
+                'Sonify',
+                'interaction'
+            ).join(' ')
+        ).toContain('only')
+
+        // Configure renders the rows on the interaction's own card.
+        expect(getSettingsRows(manifest({ config: { rows } }))).toEqual(rows)
+        expect(getSettingsRows(manifest({}))).toBeNull()
+        expect(
+            getSettingsRows({ config: { rows } })
+        ).toBeNull()
+    })
 })
