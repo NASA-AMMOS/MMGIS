@@ -26,5 +26,6 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "plugin": "./pathGradient"
-  }
+  },
+  "applicableLayerTypes": ["vector", "query"]
 }

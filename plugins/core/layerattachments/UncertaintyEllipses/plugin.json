@@ -23,5 +23,6 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "plugin": "./uncertaintyEllipses"
-  }
+  },
+  "applicableLayerTypes": ["vector", "query"]
 }

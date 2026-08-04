@@ -21,5 +21,6 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "plugin": "./imageOverlays"
-  }
+  },
+  "applicableLayerTypes": ["vector", "query"]
 }

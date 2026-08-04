@@ -22,5 +22,6 @@
   "metaconfig": "./metaconfig.json",
   "paths": {
     "plugin": "./model"
-  }
+  },
+  "applicableLayerTypes": ["vector", "query"]
 }

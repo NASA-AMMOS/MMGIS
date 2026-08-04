@@ -312,7 +312,7 @@ export function makeFeatureAttachment(
  * every attachment that draws per-feature is told.
  */
 export function clearFeatureAttachments(L_) {
-    LayerAttachmentRegistry.all().forEach((id) => {
+    LayerAttachmentRegistry.withOp('clearForFeature').forEach((id) => {
         LayerInterface.runSync(
             LayerAttachmentRegistry.module(id),
             'clearForFeature',
