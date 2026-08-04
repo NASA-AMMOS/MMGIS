@@ -19,12 +19,13 @@ const manifest = manifestOf(__dirname)
 test('plugin.json declares a valid layertype contract @unit', () => {
     expect(manifest.type).toBe('layertype')
     expect(manifest.typeId).toBe('__flatname__')
-    // Every declared renderer engine must ship a matching module.
+    // Every declared renderer engine must ship a matching module. A single-module
+    // plugin (common with `extends`) declares `module` instead of `modules`.
     const renderers = manifest.capabilities.renderers
-    if (renderers.map) expect(manifest.modules.map).toBeDefined()
-    if (renderers.globe)
-        for (const engine of Object.keys(renderers.globe))
-            expect(manifest.modules.globe?.[engine]).toBeDefined()
+    const modules = manifest.modules || (manifest.module ? { map: manifest.module } : {})
+    if (renderers.map) expect(modules.map).toBeDefined()
+    for (const engine of renderers.globe?.engines || [])
+        expect(modules.globe?.[engine]).toBeDefined()
 })
 
 test('every declared module resolves to a file @unit', () => {

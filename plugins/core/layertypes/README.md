@@ -115,9 +115,10 @@ globe — only the core defaults differ.
 | `setStyle` | dynamic restyle / render-param change (color maps, rescale, feature styles, COG params) | optional | no-op (styling is type-specific) |
 | `timeChange` | the time bar moved | optional | reload the layer |
 
-Data acquisition is **not** in this vocabulary: fetching, and the dynamic-extent
-refetch on pan/zoom, are core's (see `Layers_/capture/LayerCapturer`), and a
-type that needs its own source shapes it in `make`.
+Data acquisition is not one of these operations. Core fetches, and core owns the
+dynamic-extent refetch on pan/zoom (see `Layers_/capture/LayerCapturer`); a type
+whose data does not come out of a url core can fetch declares the [`source`
+surface](#source--data-core-cannot-fetch-itself) instead.
 
 ### Ownership rule
 
@@ -218,6 +219,16 @@ treated as `null`. A `source`-backed type may have no `url` configured at all.
 | `filters` | the layer's encoded value filters, when a filter is active |
 | `spatialFilter` | the layer's encoded spatial filter, when one is active |
 
+`ctx.view` is `null` — and `trigger` is never `'view'` — unless the layer opts
+into dynamic extent with `variables.dynamicExtent: true`. That is a layer
+configuration setting rather than something the type declares, so a
+viewport-driven source should default it in its `config.expand` (and offer it as
+a `config` row) rather than assume a mission author knows to set it. Note also
+that a dynamic-extent layer is driven *only* by the view: core deliberately
+leaves it out of the time-bar reload, so a layer that is both time-enabled and
+dynamic-extent is refetched when the view settles, with the current time window
+in `ctx.time`.
+
 ```js
 // source.js — an OGC API Features collection, bbox-limited to the view
 async function fetch(layerObj, ctx) {
@@ -244,6 +255,13 @@ export default { fetch }
 | operation | signature | when | core default |
 |---|---|---|---|
 | `derive` | `(layerObj) → boolean` | the LayersTool/LegendTool wants a legend and the layer has none configured | nothing — the layer simply has no legend |
+
+`derive` is handed the layer's config, not its data. Render state you need to
+build a legend from lives on the live layer — `L_.layers.layer[layerObj.name]`
+for what the map is holding, `layerObj.variables`/`layerObj._cogRange` and
+friends for render parameters — so a legend derived from the *data* (a value
+range, a category set) is cheapest to compute in `source.fetch` or `make` and
+stash on the layer for `derive` to read.
 
 Most legends are configured (`legend` url, `variables.legend`) and core reads
 them. Declare `legend` when the legend *is* the render: a single-band COG's
@@ -307,6 +325,7 @@ engines:
 |---|---|
 | `engine` | `'cesium'` or `'lithosphere'` |
 | `renderer` | the raw engine handle (a `Cesium.Viewer`, or the LithoSphere instance) |
+| `raw` | the engine *namespace* — `Cesium` on Cesium, `LithoSphere` on LithoSphere — so a module needn't import (and bundle a second copy of) the engine. The globe twin of `mctx.raw`. Symmetric in name only: Cesium's namespace is its whole API, while LithoSphere's exposes little beyond its constructor and does not re-export the THREE it bundles, so a LithoSphere module mostly works through `renderer` |
 | `layers` | `{ [layerName]: { type, kind, … } }` — the shared record of what the engine is holding (below) |
 | `addEngineLayer(type, layerConfig)` | add an already-built engine config (async) |
 | `hasLayer(name)`, `toggleLayer(name, visible)`, `removeLayer(name)` | the by-name lifecycle both engines implement generically |
@@ -341,9 +360,29 @@ to write it**:
 A `kind` core doesn't know is fine as long as your module implements the ops core
 would otherwise handle generically for that kind.
 
-Use neutral `MapRenderer`/`GlobeRenderer` primitives first; drop to the raw
-handle (`mctx.raw` / `gctx.renderer`) only for engine-specific behavior — e.g. a
-custom `L.Layer` (as `data`/`image`/`video` already do).
+Use neutral `MapRenderer`/`GlobeRenderer` primitives first; drop to the engine
+(`mctx.raw`, `gctx.raw` for the namespace and `gctx.renderer` for the live
+instance) only for engine-specific behavior — e.g. a custom `L.Layer` (as
+`data`/`image`/`video` already do), or a Cesium entity type core has no neutral
+primitive for.
+
+**Globe operations are not passed a layer object.** Only `make` gets one; every
+other globe op is dispatched by layer *name*, because core is dispatching from
+`gctx.layers[name]` — which is also where you should have stashed whatever the
+op needs:
+
+| globe operation | signature |
+|---|---|
+| `make` | `(layerObj, gctx)` |
+| `render` | `(layerConfig, gctx)` |
+| `destroy`, `setStyle` | `(layerName, gctx)` |
+| `setVisibility` | `(layerName, visible, gctx)` |
+| `setOpacity` | `(layerName, opacity, gctx)` |
+| `timeChange` | `(layerName, gctx)` — the playhead is `gctx.currentTime` |
+
+The new value for `setVisibility`/`setOpacity` is that positional argument, not
+a `gctx` field. `L_.layers.data[layerName]` is the layer's live config if you
+need it.
 
 ---
 

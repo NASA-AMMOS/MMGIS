@@ -5,7 +5,10 @@
  * so write only what differs. See plugins/core/layerattachments/README.md.
  */
 
-const L = window.L
+// Leaflet is a global the app sets up before any attachment is built. Read it
+// per call rather than at import time, so this module can be imported (and unit
+// tested) outside the browser.
+const leaflet = () => window.L
 
 /**
  * @param {Object} ctx
@@ -17,7 +20,7 @@ const L = window.L
  */
 function make(ctx) {
     // TODO: build something from ctx.geojson.
-    const layer = L.geoJson(ctx.geojson)
+    const layer = leaflet().geoJson(ctx.geojson)
 
     return {
         // Initially shown unless the host says otherwise.
@@ -36,8 +39,9 @@ function make(ctx) {
  *
  * syncData(attachment, ctx)        host data changed. Default: clearLayers, then
  *                                  re-add the host's GeoJSON.
- * onConfigChange(ctx)              these settings changed while built (ctx.config,
- *                                  ctx.prevConfig). Default: rebuild the host.
+ * onConfigChange(ctx)              these settings changed (ctx.config,
+ *                                  ctx.prevConfig, ctx.attachment — null when
+ *                                  nothing is built). Default: rebuild the host.
  * setVisibility(attachment, ctx)   shown/hidden, with its host or on its own.
  *                                  Default: add to / remove from the map.
  * setOpacity(attachment, o, ctx)   Default: setOpacity, else setStyle.

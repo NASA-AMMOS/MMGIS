@@ -1814,6 +1814,17 @@ function cmdCreate(type, name) {
         process.exit(1);
     }
 
+    // A plugin's name is its identity across every family and container, so a
+    // second `Curtain` is ambiguous even when the first one is a tool.
+    const nameClash = discoverAll().filter((p) => p.name === name);
+    if (nameClash.length && !FLAG_JSON) {
+        for (const clash of nameClash)
+            console.log(
+                `  ${c.yellow("!")} A plugin named ${c.cyan(name)} already exists: ${c.dim(`${clash.container}/${clash.type}/${name}`)}`
+            );
+        console.log(`    ${c.dim("Names identify plugins across families — pick another unless this is deliberate.")}`);
+    }
+
     // Ensure container directory exists.
     const containerDir = path.join(PLUGINS_ROOT, container);
     if (!fs.existsSync(containerDir)) {
@@ -1847,6 +1858,8 @@ function cmdCreate(type, name) {
     }
 
     console.log(`\n  ${c.green("Created")} ${c.cyan(`${container}/${typeDir}/${name}`)}:`);
+    if (container !== CORE_CONTAINER)
+        console.log(`  ${c.dim(`(MMGIS tracks only plugins/${CORE_CONTAINER}/, so these files will not show up in its git status — a container is meant to be its own repository. See plugins/README.md.)`)}`);
     for (const f of created) {
         console.log(`    ${c.dim("+")} ${f}`);
     }
@@ -1868,7 +1881,7 @@ function cmdCreate(type, name) {
     } else if (type === "interaction") {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to implement the ${c.cyan("use(ctx)")} handler`);
         console.log(`    ${c.dim("2.")} Set ${c.cyan("interactionId")}, ${c.cyan("phase")}, and ${c.cyan("order")} in ${c.cyan("plugin.json")}`);
-        console.log(`    ${c.dim("3.")} Run ${c.cyan("npm run build")} to regenerate interactions`);
+        console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("interactionId")}, ${c.cyan("phase")}, ${c.cyan("order")} or ${c.cyan("configPath")} to regenerate the interaction registry`);
     } else if (type === "layertype") {
         console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan("map.js")} (for the globe, add ${c.cyan("globe/<engine>.js")} and declare it under ${c.cyan('"modules": {"globe": …}')} in ${c.cyan("plugin.json")} — see ${c.cyan("plugins/core/layertypes/README.md")})`);
         console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("config")} fields in ${c.cyan("plugin.json")}`);

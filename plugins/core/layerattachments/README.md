@@ -145,7 +145,10 @@ The per-instance operations get the built attachment plus
 and the `applyOrder`/`applyOpacity` callbacks core wants run after you show
 something; `setOpacity` adds `source: 'host' | 'attachment'`; `syncData` adds the
 new `geojson` and `onlyClear`; `onPeerToggle` adds the `layerName` that toggled
-and its new state; `onConfigChange` adds `config`, `prevConfig` and `layerObj`.
+and its new state; `onConfigChange` adds `config`, `prevConfig`, `layerObj` and
+the built `attachment` (its signature is `(ctx)` alone — core dispatches it after
+writing the new settings, whether or not an instance exists, so read
+`ctx.attachment` and treat `null` as "nothing built yet").
 
 `onConfigChange` is what `mmgisAPI.setLayerAttachmentConfig(layerName,
 attachmentId, config)` dispatches — core has already written the new settings
@@ -267,26 +270,29 @@ an ordinary map layer, so `make` is the whole plugin.
 
 ```js
 // plugins/mine/layerattachments/RadiusRings/radiusRings.js
-import F_ from '@basics/Formulae_/Formulae_'
-
-const L = window.L
+// Read the Leaflet global per call, not at import time, so the module can be
+// imported outside the browser (`npm run test:plugins:unit` does exactly that).
+// Importing an MMGIS singleton — `F_` included — pulls jQuery and makes the
+// module un-importable in a unit test, so this one stays dependency-free.
+const leaflet = () => window.L
+const num = (v, fallback) => (Number.isFinite(parseFloat(v)) ? parseFloat(v) : fallback)
 
 const ringsOf = (geojson, radius) =>
     (geojson?.features || [])
         .filter((f) => f.geometry?.type === 'Point')
         .map((f) => {
             const [lng, lat] = f.geometry.coordinates
-            return L.circle([lat, lng], { radius, fill: false })
+            return leaflet().circle([lat, lng], { radius, fill: false })
         })
 
 function make({ geojson, config }) {
-    const radius = parseFloat(F_.getIn(config, 'radiusMeters', 10))
+    const radius = num(config?.radiusMeters, 10)
 
     return {
-        on: F_.getIn(config, 'initialVisibility', true),
+        on: config?.initialVisibility !== false,
         type: 'radius_rings',
         geojson,
-        layer: L.layerGroup(ringsOf(geojson, radius)),
+        layer: leaflet().layerGroup(ringsOf(geojson, radius)),
         // Kept for syncData below, which is handed new data but not the config.
         _radius: radius,
     }
