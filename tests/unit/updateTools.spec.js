@@ -7,7 +7,9 @@
  * artifacts (`configure/public/toolConfigs.json` and `src/pre/tools.js`).
  *
  * Tests are serial — they mutate the plugins tree and must clean up in
- * order to avoid leaking fixtures into subsequent runs.
+ * order to avoid leaking fixtures into subsequent runs. The generated
+ * artifacts are shared with every other spec that regenerates them, so
+ * generate-then-assert runs under the registry lock.
  */
 
 import { test, expect } from '@playwright/test';
@@ -20,6 +22,8 @@ const {
     uninstallContainer,
     repoRoot,
 } = require('../helpers/plugin-helpers');
+
+const { withRegistryLock } = require('../helpers/registry-lock');
 
 const { updateTools, updateComponents } = require('../../API/updateTools');
 
@@ -64,10 +68,11 @@ test.describe('updateTools - plugin discovery and validation', () => {
             fixtureName: 'TestPlugin',
         });
 
-        updateTools();
+        const cfg = withRegistryLock(() => {
+            updateTools();
+            return JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
+        });
 
-        const raw = fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8');
-        const cfg = JSON.parse(raw);
         expect(cfg).toHaveProperty('TestPlugin');
         expect(cfg.TestPlugin.name).toBe('TestPlugin');
         expect(cfg.TestPlugin.paths).toBeDefined();
@@ -85,9 +90,11 @@ test.describe('updateTools - plugin discovery and validation', () => {
             fixtureName: 'TestPlugin',
         });
 
-        updateTools();
+        const cfg = withRegistryLock(() => {
+            updateTools();
+            return JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
+        });
 
-        const cfg = JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
         // Valid plugin must be present
         expect(cfg).toHaveProperty('TestPlugin');
         // Invalid plugin (missing required fields) must NOT be present
@@ -105,9 +112,11 @@ test.describe('updateTools - plugin discovery and validation', () => {
             installAs: 'Identifier',
         });
 
-        updateTools();
+        const cfg = withRegistryLock(() => {
+            updateTools();
+            return JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
+        });
 
-        const cfg = JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
         // The override fixture uses name=Identifier with a distinctive
         // toolbarPriority (9998) so we can detect that the override
         // replaced the standard Identifier (toolbarPriority=1) entry.
@@ -117,8 +126,10 @@ test.describe('updateTools - plugin discovery and validation', () => {
 
     test('standard tools remain registered when no plugins are present', () => {
         // No fixture install — verify baseline still works.
-        updateTools();
-        const cfg = JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
+        const cfg = withRegistryLock(() => {
+            updateTools();
+            return JSON.parse(fs.readFileSync(TOOL_CONFIGS_PATH, 'utf8'));
+        });
         // Identifier is part of the standard MMGIS tool set.
         expect(cfg).toHaveProperty('Identifier');
         expect(cfg).toHaveProperty('Info');
@@ -160,9 +171,11 @@ test.describe('updateComponents - plugin discovery and validation', () => {
             'module.exports = { init: function() {} };\n'
         );
 
-        updateComponents();
+        const cfg = withRegistryLock(() => {
+            updateComponents();
+            return JSON.parse(fs.readFileSync(COMPONENT_CONFIGS_PATH, 'utf8'));
+        });
 
-        const cfg = JSON.parse(fs.readFileSync(COMPONENT_CONFIGS_PATH, 'utf8'));
         expect(cfg).toHaveProperty('TestComponent');
     });
 });

@@ -14,6 +14,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const { discoverPlugins } = require('../../API/pluginDiscovery');
+const { withRegistryLock } = require('../helpers/registry-lock');
 
 const CLI_PATH = path.resolve(__dirname, '../../plugin-cli/cli.js');
 const REPO_ROOT = path.resolve(__dirname, '../..');
@@ -35,19 +36,23 @@ function writeFile(filePath, contents) {
     fs.writeFileSync(filePath, contents);
 }
 
+// Most commands regenerate the shared registries, so hold the lock for the
+// duration of the call (see helpers/registry-lock).
 function runCli(args, opts = {}) {
     const cmd = `node "${CLI_PATH}" ${args}`;
-    try {
-        const output = execSync(cmd, {
-            cwd: REPO_ROOT,
-            encoding: 'utf8',
-            timeout: 10000,
-            ...opts,
-        });
-        return { stdout: output, exitCode: 0 };
-    } catch (err) {
-        return { stdout: err.stdout || '', stderr: err.stderr || '', exitCode: err.status };
-    }
+    return withRegistryLock(() => {
+        try {
+            const output = execSync(cmd, {
+                cwd: REPO_ROOT,
+                encoding: 'utf8',
+                timeout: 10000,
+                ...opts,
+            });
+            return { stdout: output, exitCode: 0 };
+        } catch (err) {
+            return { stdout: err.stdout || '', stderr: err.stderr || '', exitCode: err.status };
+        }
+    });
 }
 
 // ─── CLI command tests ──────────────────────────────────────────────────────
