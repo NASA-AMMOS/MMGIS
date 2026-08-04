@@ -17,6 +17,7 @@ const LOCK_DIR = path.join(os.tmpdir(), 'mmgis-test-registry.lock');
 const STALE_MS = 60000;
 
 // A lock is a directory: mkdir is atomic on every platform we run on.
+/* global Atomics, SharedArrayBuffer */
 function sleepSync(ms) {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
