@@ -104,7 +104,7 @@ All commands support `--json` for machine-readable output. Use `npm run plugin` 
 | `disable <plugin-id>` | Mark a plugin as inactive (cannot disable `required` plugins) |
 | `enable-all` | Enable all plugins (use `--container` to scope) |
 | `disable-all` | Disable all non-required plugins (use `--container` to scope) |
-| `create <type> <Name>` | Scaffold a new plugin (tool, backend, component, interaction) |
+| `create <type> <Name>` | Scaffold a new plugin (tool, backend, component, interaction, layertype, layerattachment) |
 | `destroy <plugin-id>` | Delete a plugin (prompts confirmation, `--force` to skip) |
 | `activate` | Regenerate frontend plugin imports without a full build |
 | `update [repo-name]` | `git pull` latest for one or all installed repos |
@@ -576,7 +576,7 @@ Either a semantic version or the sentinel `"core"`, which resolves to the MMGIS 
 
 **Type:** `string` · **Default:** `"puzzle-outline"` · **Applies to:** Tools, Components
 
-Icon displayed in the toolbar and configure page. Uses [Ionicons](https://ionic.io/ionicons) icon names.
+Icon displayed in the toolbar and configure page. A [Material Design Icons](https://pictogrammers.com/library/mdi/) name without the `mdi-` prefix (`layers`, `map-marker`, `clock-outline`) — MMGIS renders it as `<i className='mdi mdi-<name>'>`.
 
 ### Identity Fields
 
@@ -655,7 +655,7 @@ Standard package metadata. `author` can be a string or `{ name, email, url }`. `
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `toolbarPriority` | `number` | Position in toolbar (lower = first). Core tools range ~1001–1020 |
+| `toolbarPriority` | `number` | Position in toolbar (lower = first). Core tools use 1–4 for the ones that lead the bar, then 101–102, then 1001–1002 — the gaps are room to insert, so pick a band rather than a number near one you want to sit beside |
 | `expandable` | `boolean` | Whether the tool panel can expand to full width |
 | `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel. `true` gives a standard framed floating panel (header + close). `"custom"` renders a chrome-less panel and lets the tool manage its own DOM inside `#toolContentSeparated_<Name>` — use this when the tool draws its own window/overlay (e.g. Identifier) |
 | `hasVars` | `boolean` | Plugin reads per-mission config variables from `config.rows` |
@@ -846,10 +846,15 @@ Plugin-specific tests live in `plugins/<container>/<type>/<Name>/tests/`.
 Playwright config scans both `tests/` and `plugins/**/tests/`.
 
 ```bash
-npx playwright test plugins/core/tools/Draw/tests/  # Specific plugin
+npx cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true npx playwright test plugins/core/tools/Draw/tests/
 npm run test:unit                                     # All unit tests
 npm test                                              # All tests
 ```
+
+`PLAYWRIGHT_TEST_UNIT_ONLY=true` is what keeps a pure-logic test from bringing up
+the Postgres test database global setup otherwise requires (`npm run test:unit`
+sets it for you). Note that `test:unit` runs `tests/unit` only, so a plugin's own
+`tests/` directory is not in it — run it by path, as above, or `npm test`.
 
 ## Migrating from Legacy Formats
 
