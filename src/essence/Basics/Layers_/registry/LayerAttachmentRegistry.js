@@ -162,6 +162,30 @@ const LayerAttachmentRegistry = {
             this.capabilities(attachmentId).host?.buildsAfterSiblings === true
         )
     },
+    /**
+     * The attachment stored under a given key on a host, i.e. the inverse of
+     * `sublayerKey`. What UI has to hand is the key it found on the host; what
+     * it needs is the plugin that put it there.
+     */
+    idForSublayerKey(key) {
+        const configs = _load().layerAttachmentConfigs || {}
+        return (
+            Object.keys(configs).find((id) => this.sublayerKey(id) === key) ||
+            null
+        )
+    },
+    /**
+     * What an attachment is, for display. Identity is the plugin's to declare,
+     * so UI reads it from the manifest rather than from whatever string an
+     * instance happens to carry.
+     */
+    describe(attachmentId) {
+        const manifest = this.getConfig(attachmentId) || {}
+        return {
+            name: manifest.displayName || null,
+            description: manifest.description || '',
+        }
+    },
     /** Attachment ids whose module declares `opName`. */
     withOp(opName) {
         const mods = _load().layerAttachmentModules || {}

@@ -209,9 +209,17 @@ let Map_ = {
         var HomeControl = L.Control.extend({
             options: { position: 'topright' },
             onAdd: function () {
-                var container = L.DomUtil.create('div', 'leaflet-control-zoom leaflet-bar leaflet-control')
-                var btn = L.DomUtil.create('a', 'leaflet-control-zoom-home', container)
-                btn.innerHTML = '<i class="mdi mdi-home-variant-outline" style="font-size:16px;line-height:30px;"></i>'
+                var container = L.DomUtil.create(
+                    'div',
+                    'leaflet-control-zoom leaflet-bar leaflet-control'
+                )
+                var btn = L.DomUtil.create(
+                    'a',
+                    'leaflet-control-zoom-home',
+                    container
+                )
+                btn.innerHTML =
+                    '<i class="mdi mdi-home-variant-outline" style="font-size:16px;line-height:30px;"></i>'
                 btn.href = '#'
                 btn.title = 'Reset View'
                 btn.setAttribute('role', 'button')
@@ -527,10 +535,11 @@ let Map_ = {
     ) {
         // If it's a dynamic extent layer, just re-call its function
         const dynamicExtentKey = `dynamicextent_${layerObj.name}`
-        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}`  // For velocity layers
+        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}` // For velocity layers
 
-        const subscription = L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey]
-                          || L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
+        const subscription =
+            L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey] ||
+            L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
 
         if (subscription != null) {
             if (L_.layers.on[layerObj.name]) {
@@ -734,7 +743,8 @@ async function makeLayer(
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
         // Use map-specific lock if available, otherwise fall back to global lock
-        const lockRegistry = mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
+        const lockRegistry =
+            mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
         if (forceMake !== true && lockRegistry[layerName] === true) {
             console.error(
                 `ERROR - makeLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
@@ -766,9 +776,10 @@ async function makeLayer(
         // make-lock: before/main/after run inside the lock here, while
         // afterCommit must run in the finally block after the lock releases.
         // The `after`/`afterCommit` phases are also gated on `stopLoops`.
-        const makeMain = rt && rt.map
-            ? LayerInterface.getPhase(rt.map, 'make', 'main')
-            : null
+        const makeMain =
+            rt && rt.map
+                ? LayerInterface.getPhase(rt.map, 'make', 'main')
+                : null
         let madeSuccessfully = true
         try {
             //Decide what kind of layer it is
@@ -799,9 +810,8 @@ async function makeLayer(
                     // A registered type with no map renderer is globe-only
                     // (e.g. model, 3dtiles). Nothing to draw on the 2D map;
                     // mark it loaded so allLayersLoaded() can resolve.
-                    L_._layersLoaded[
-                        L_._layersOrdered.indexOf(layerObj.name)
-                    ] = true
+                    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
+                        true
                     allLayersLoaded()
                 } else {
                     console.warn('Unknown layer type: ' + layerObj.type)
@@ -825,11 +835,7 @@ async function makeLayer(
             try {
                 const afterCommit =
                     rt && rt.map
-                        ? LayerInterface.getPhase(
-                              rt.map,
-                              'make',
-                              'afterCommit'
-                          )
+                        ? LayerInterface.getPhase(rt.map, 'make', 'afterCommit')
                         : null
                 if (madeSuccessfully && stopLoops !== true && afterCommit) {
                     await afterCommit(layerObj, pluginCtx)
@@ -934,13 +940,11 @@ function onEachFeatureDefault(feature, layer) {
         })
     }
 
-    if (
-        !(
-            feature.style &&
-            feature.style.hasOwnProperty('noclick') &&
-            feature.style.noclick
-        )
-    ) {
+    if (!(
+        feature.style &&
+        feature.style.hasOwnProperty('noclick') &&
+        feature.style.noclick
+    )) {
         layer.on('click', (e) => {
             featureDefaultClick(feature, layer, e)
         })
@@ -963,8 +967,7 @@ function featureDefaultClick(feature, layer, e) {
             LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
         ).click
 
-        Map_.rmNotNull(Map_.tempOverlayImage)
-        L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+        L_.clearFeatureAttachments()
 
         const ctx = {
             Map_,

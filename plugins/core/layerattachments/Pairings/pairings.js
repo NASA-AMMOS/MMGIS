@@ -182,7 +182,6 @@ const pairings = (geojson, layerObj, leafletLayerObject, config) => {
             type: 'pairings',
             geojson: geojson,
             layer: layer,
-            title: 'Feature Pairings',
             minZoom: layerObj.minZoom != null ? layerObj.minZoom : 0,
             maxZoom: layerObj.maxZoom != null ? layerObj.maxZoom : 100,
         }

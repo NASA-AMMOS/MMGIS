@@ -173,7 +173,6 @@ const uncertaintyEllipses = (geojson, layerObj, leafletLayerObject, config) => {
                   clampedOptions: clampedUncertaintyOptions,
                   geojson: geojson,
                   layer: layer,
-                  title: 'Renders elliptical buffers about point features based on X and Y uncertainty properties.',
               }
             : false
     } else return false

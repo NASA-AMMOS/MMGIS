@@ -86,6 +86,8 @@ const ATTACHMENT_OPS = [
   "make",
   "decorateFeature",
   "globeStyle",
+  "makeForFeature",
+  "clearForFeature",
   "destroy",
   "setOpacity",
   "setVisibility",

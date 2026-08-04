@@ -18,6 +18,7 @@
       "order": 5
     }
   },
+  "metaconfig": "./metaconfig.json",
   "paths": {
     "plugin": "./coordinateMarkers"
   }

@@ -10,6 +10,7 @@ import { calls } from "../core/calls";
 import {
   setMissions,
   setLayerTypeConfiguration,
+  setLayerAttachmentConfiguration,
   setSnackBarText,
 } from "./ConfigureStore";
 import Websocket from "./Websocket";
@@ -42,7 +43,9 @@ export default function Configure() {
       (res) => {
         const missions = (res?.missions || [])
           .slice()
-          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+          .sort((a, b) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" }),
+          );
         dispatch(setMissions(missions));
       },
       (res) => {
@@ -50,9 +53,9 @@ export default function Configure() {
           setSnackBarText({
             text: res?.message || "Failed to get available missions.",
             severity: "error",
-          })
+          }),
         );
-      }
+      },
     );
 
     calls.api(
@@ -69,9 +72,22 @@ export default function Configure() {
               res?.message ||
               "Failed to load layer type configurations. Layer editing will be unavailable.",
             severity: "error",
-          })
+          }),
         );
-      }
+      },
+    );
+
+    // Attachments are configured on their host layer, so their settings UI
+    // comes from the attachment plugins rather than from each layer type.
+    calls.api(
+      "getLayerAttachmentConfig",
+      null,
+      (res) => {
+        dispatch(setLayerAttachmentConfiguration(res || {}));
+      },
+      () => {
+        dispatch(setLayerAttachmentConfiguration({}));
+      },
     );
 
     getInjectables();

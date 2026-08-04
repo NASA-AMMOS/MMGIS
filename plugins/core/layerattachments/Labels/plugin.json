@@ -19,6 +19,7 @@
       "buildsAfterSiblings": true
     }
   },
+  "metaconfig": "./metaconfig.json",
   "paths": {
     "plugin": "./labels"
   },

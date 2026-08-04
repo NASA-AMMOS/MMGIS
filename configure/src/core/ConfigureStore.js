@@ -15,6 +15,7 @@ export const ConfigureStore = createSlice({
     toolConfiguration: {},
     componentConfiguration: {},
     layerTypeConfiguration: {},
+    layerAttachmentConfiguration: {},
     geodatasets: [],
     datasets: [],
     stacCollections: [],
@@ -82,6 +83,9 @@ export const ConfigureStore = createSlice({
     },
     setLayerTypeConfiguration: (state, action) => {
       state.layerTypeConfiguration = action.payload;
+    },
+    setLayerAttachmentConfiguration: (state, action) => {
+      state.layerAttachmentConfiguration = action.payload;
     },
     setGeodatasets: (state, action) => {
       state.geodatasets = action.payload;
@@ -209,7 +213,7 @@ export const ConfigureStore = createSlice({
         },
         (res) => {
           action.payload.cb("error", res);
-        }
+        },
       );
     },
   },
@@ -223,6 +227,7 @@ export const {
   setToolConfiguration,
   setComponentConfiguration,
   setLayerTypeConfiguration,
+  setLayerAttachmentConfiguration,
   setGeodatasets,
   setDatasets,
   setStacCollections,

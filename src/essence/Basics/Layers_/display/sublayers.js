@@ -270,6 +270,58 @@ export function decorateFeature(L_, layerObj, feature, ctx = {}) {
 }
 
 /**
+ * Draw what an attachment shows for a single, selected feature.
+ *
+ * An attachment can be configured to appear only for the feature the user
+ * clicked (`show: 'click'`) rather than for every feature at once. What it
+ * draws then is still its own to decide — core only says which feature.
+ *
+ * @param {string} attachmentId  The attachment being asked.
+ * @param {Object} layerObj      The host layer's config.
+ * @param {Object} feature       The selected feature.
+ * @param {Object} [ctx]         `latlng` of the selection.
+ */
+export function makeFeatureAttachment(
+    L_,
+    attachmentId,
+    layerObj,
+    feature,
+    ctx = {}
+) {
+    if (!LayerAttachmentRegistry.isEnabledOn(attachmentId, layerObj)) return
+    LayerInterface.runSync(
+        LayerAttachmentRegistry.module(attachmentId),
+        'makeForFeature',
+        [
+            {
+                ...ctx,
+                layerObj,
+                feature,
+                config: LayerAttachmentRegistry.configFor(
+                    attachmentId,
+                    layerObj
+                ),
+            },
+        ]
+    )
+}
+
+/**
+ * Nothing is selected anymore: take down whatever the attachments drew for the
+ * feature that was. Deselection isn't tied to the layer that was selected, so
+ * every attachment that draws per-feature is told.
+ */
+export function clearFeatureAttachments(L_) {
+    LayerAttachmentRegistry.all().forEach((id) => {
+        LayerInterface.runSync(
+            LayerAttachmentRegistry.module(id),
+            'clearForFeature',
+            [{}]
+        )
+    })
+}
+
+/**
  * What this host's attachments add to the style it is drawn with on the globe.
  *
  * The globe engine draws some decorations itself given their settings, so the

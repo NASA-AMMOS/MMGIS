@@ -291,7 +291,6 @@ const labels = (
             type: 'labels',
             geojson: geojson,
             layer: layer,
-            title: 'Feature Labels',
             minZoom: layerObj.minZoom != null ? layerObj.minZoom : 0,
             maxZoom: layerObj.maxZoom != null ? layerObj.maxZoom : 100,
         }

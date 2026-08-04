@@ -566,7 +566,6 @@ const pathGradient = (geojson, layerObj, leafletLayerObject, config) => {
                 gradientSettings: pathGradientSettings,
                 layerObj: layerObj,
             },
-            title: 'A colorful visualization of values along a path.\nPoint values from the specified feature property are min-max fit to a color ramp.',
         }
     } else return false
 }

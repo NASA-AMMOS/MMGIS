@@ -66,8 +66,7 @@ function make(layerObj, ctx = {}) {
                                 .defaultInteractions
                         ).click
 
-                        Map_.rmNotNull(Map_.tempOverlayImage)
-                        L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+                        L_.clearFeatureAttachments()
 
                         const ctx = {
                             Map_,

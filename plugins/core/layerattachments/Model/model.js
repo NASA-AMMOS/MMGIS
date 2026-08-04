@@ -9,6 +9,10 @@
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 
+// The globe layer holding the clicked feature's model, of which there is only
+// ever one.
+const TEMP_MODEL_NAME = 'markerAttachmentTempModel'
+
 const models = (geojson, layerObj, leafletLayerObject, config) => {
     // MODEL
     const modelVar = config
@@ -174,7 +178,6 @@ const models = (geojson, layerObj, leafletLayerObject, config) => {
                   type: 'model',
                   layerId: modelOptions.name,
                   modelOptions: modelOptions,
-                  title: 'Associated 3D models for the Globe View.',
               }
             : false
     } else return false
@@ -185,8 +188,79 @@ function setVisibility(attachment, ctx = {}) {
     else L_.Globe_.litho.removeLayer(attachment.layerId)
 }
 
+/**
+ * The `show: 'click'` half of the same attachment: the clicked feature's model
+ * alone, for as long as it stays selected. Same settings, same model, so it
+ * belongs here rather than in whatever interaction happens to ask for it.
+ */
+function makeForFeature(ctx = {}) {
+    const modelVar = ctx.config
+    if (!modelVar) return
+    if (F_.getIn(modelVar, 'show', 'click') !== 'click') return
+
+    const properties = ctx.feature?.properties
+    const path = F_.getIn(modelVar, 'path', null)
+    let model = F_.getIn(properties, F_.getIn(modelVar, 'pathProp', path), path)
+    if (!model) return
+    if (!F_.isUrlAbsolute(model) && !model.startsWith('public'))
+        model = L_.missionPath + model
+
+    // A property name to read off the feature, or the value itself.
+    const valueOf = (prop, fallback) =>
+        typeof prop === 'number' ? prop : F_.getIn(properties, prop, fallback)
+
+    const angle = (prop, unit, invert, fallback) => {
+        let a = valueOf(prop, fallback)
+        if (unit === 'deg') a *= Math.PI / 180
+        if (invert) a *= -1
+        return a
+    }
+
+    L_.Globe_.litho.addLayer('model', {
+        name: TEMP_MODEL_NAME,
+        order: 99999,
+        on: true,
+        path: model,
+        mtlPath: F_.getIn(modelVar, 'mtlPath', null),
+        opacity: 1,
+        position: {
+            longitude: ctx.latlng?.lng || 0,
+            latitude: ctx.latlng?.lat || 0,
+            elevation: valueOf(F_.getIn(modelVar, 'elevationProp', 0), 0),
+        },
+        scale: valueOf(F_.getIn(modelVar, 'scaleProp', 1), 1),
+        rotation: {
+            y: angle(
+                F_.getIn(modelVar, 'yawProp', 0),
+                F_.getIn(modelVar, 'yawUnit', 'rad'),
+                F_.getIn(modelVar, 'invertYaw', false),
+                0
+            ),
+            x: angle(
+                F_.getIn(modelVar, 'pitchProp', 0),
+                F_.getIn(modelVar, 'pitchUnit', 'rad'),
+                F_.getIn(modelVar, 'invertPitch', false),
+                0
+            ),
+            z: angle(
+                F_.getIn(modelVar, 'rollProp', 0),
+                F_.getIn(modelVar, 'rollUnit', 'rad'),
+                F_.getIn(modelVar, 'invertRoll', false),
+                0
+            ),
+        },
+    })
+}
+
+/** Deselecting takes the clicked feature's model with it. */
+function clearForFeature() {
+    L_.Globe_.litho.removeLayer(TEMP_MODEL_NAME)
+}
+
 export default {
     make: (ctx) =>
         models(ctx.geojson, ctx.layerObj, ctx.leafletLayerObject, ctx.config),
+    makeForFeature,
+    clearForFeature,
     setVisibility,
 }

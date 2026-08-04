@@ -63,7 +63,6 @@ const coordinateMarkers = (geojson, layerObj, leafletLayerObject, config) => {
             type: 'coordinate_markers',
             geojson: geojson,
             layer: layer,
-            title: 'Markers rendered at every coordinate pair of every feature.',
         }
     } else return false
 }

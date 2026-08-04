@@ -9,6 +9,7 @@
 import $ from 'jquery'
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
 
 const L = window.L
 
@@ -159,7 +160,6 @@ const imageOverlays = (geojson, layerObj, leafletLayerObject, config) => {
                   type: 'image_overlays',
                   opacity: existingOpacity,
                   layer: L.geoJson(geojson, leafletLayerObjectImageOverlay),
-                  title: 'Map rendered image overlays.',
               }
             : false
     } else return false
@@ -187,6 +187,75 @@ const syncData = {
     },
 }
 
+/**
+ * The `show: 'click'` half of the same attachment: one overlay, under the
+ * clicked feature only, for as long as it stays selected. It's the same
+ * settings and the same image, so it belongs here rather than in whatever
+ * interaction happens to ask for it.
+ */
+function makeForFeature(ctx = {}) {
+    const imageVar = ctx.config
+    if (!imageVar) return
+    if (F_.getIn(imageVar, 'show', 'click') !== 'click') return
+
+    const path = F_.getIn(
+        imageVar,
+        'path',
+        'public/images/rovers/PerseveranceTopDown.png'
+    )
+    const properties = ctx.feature?.properties
+    let image = F_.getIn(properties, F_.getIn(imageVar, 'pathProp', path), path)
+    if (!image) return
+    if (!F_.isUrlAbsolute(image) && !image.startsWith('public'))
+        image = L_.missionPath + image
+
+    const wm = parseFloat(F_.getIn(imageVar, 'widthMeters', 2.6924))
+    const w = parseFloat(F_.getIn(imageVar, 'widthPixels', 420))
+    const h = parseFloat(F_.getIn(imageVar, 'heightPixels', 600))
+    const lngM = F_.metersToDegrees(wm) / 2
+    const latM = lngM * (h / w)
+
+    const latlng = ctx.latlng
+    if (latlng == null) return
+    const center = [latlng.lng, latlng.lat]
+    let angle = -F_.getIn(
+        properties,
+        F_.getIn(imageVar, 'angleProp', 'yaw_rad'),
+        0
+    )
+    if (F_.getIn(imageVar, 'angleUnit', 'rad') === 'deg')
+        angle = angle * (Math.PI / 180)
+
+    const corner = (dLat, dLng) =>
+        F_.rotatePoint(
+            { y: latlng.lat + dLat, x: latlng.lng + dLng },
+            center,
+            angle
+        )
+    const anchors = [
+        corner(latM, -lngM),
+        corner(latM, lngM),
+        corner(-latM, lngM),
+        corner(-latM, -lngM),
+    ].map((p) => [p.y, p.x])
+
+    try {
+        Map_.tempOverlayImage = L.imageTransform(image, anchors, {
+            opacity: 1,
+            clip: anchors,
+        })
+        Map_.tempOverlayImage.addTo(Map_.map).bringToBack()
+    } catch (err) {
+        // Image transform can fail for edge-case geometries
+    }
+}
+
+/** Deselecting takes the clicked feature's overlay with it. */
+function clearForFeature() {
+    Map_.rmNotNull(Map_.tempOverlayImage)
+    Map_.tempOverlayImage = null
+}
+
 export default {
     make: (ctx) =>
         imageOverlays(
@@ -195,6 +264,8 @@ export default {
             ctx.leafletLayerObject,
             ctx.config
         ),
+    makeForFeature,
+    clearForFeature,
     setOpacity,
     syncData,
 }

@@ -18,6 +18,7 @@
       "order": 1
     }
   },
+  "metaconfig": "./metaconfig.json",
   "paths": {
     "plugin": "./pairings"
   },

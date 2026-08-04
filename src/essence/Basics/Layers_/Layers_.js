@@ -332,6 +332,12 @@ const L_ = {
     decorateFeature(...a) {
         return sublayers.decorateFeature(L_, ...a)
     },
+    makeFeatureAttachment(...a) {
+        return sublayers.makeFeatureAttachment(L_, ...a)
+    },
+    clearFeatureAttachments(...a) {
+        return sublayers.clearFeatureAttachments(L_, ...a)
+    },
     attachmentGlobeStyle(...a) {
         return sublayers.attachmentGlobeStyle(L_, ...a)
     },
@@ -356,7 +362,6 @@ const L_ = {
         return getters.getListOfUsedGeoDatasets(L_, ...a)
     },
 }
-
 
 window.L_ = L_
 export default L_
