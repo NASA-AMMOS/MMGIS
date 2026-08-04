@@ -21,7 +21,6 @@ const {
 test.describe("LayerInterface constants", () => {
   test("canonical operation + phase vocabulary is stable", () => {
     expect(LAYER_OPS).toEqual([
-      "load",
       "make",
       "render",
       "destroy",

@@ -71,21 +71,23 @@ against the module files actually present** — a declared engine with no module
 ## The operations (identical on map and globe)
 
 A renderer module is `export default { …operations }`. Both surfaces speak the
-**same 7-operation vocabulary**, so the interface reads identically on map and
+**same operation vocabulary**, so the interface reads identically on map and
 globe — only the core defaults differ.
 
 | operation | when it runs | required? | core default if you omit it |
 |---|---|---|---|
-| `load` | every time data is (re)acquired: initial make, refresh interval, time requery, dynamic-extent reload | optional | none (types that fetch inside `make` don't need it) |
 | `make` | build the engine layer from data + register it | **required** | — |
+| `render` | globe only: add an already-built engine layer config | optional | — |
 | `destroy` | teardown | optional | generic engine removal (Leaflet `removeLayer` / native) |
 | `setOpacity` | apply opacity | optional | engine-uniform applier (Leaflet/LithoSphere); Cesium needs a per-type applicator |
 | `setVisibility` | show / hide | optional | same rule as `setOpacity` |
+| `onToggle` | the layer finished being toggled, core's bookkeeping settled | optional | nothing extra to do |
 | `setStyle` | dynamic restyle / render-param change (color maps, rescale, feature styles, COG params) | optional | no-op (styling is type-specific) |
 | `timeChange` | the time bar moved | optional | reload the layer |
 
-`load` is **not** a once-per-layer hook — it runs on every (re)acquisition. A
-future `init` (once per layer) is intentionally out of scope.
+Data acquisition is **not** in this vocabulary: fetching, and the dynamic-extent
+refetch on pan/zoom, are core's (see `Layers_/capture/LayerCapturer`), and a
+type that needs its own source shapes it in `make`.
 
 ### Ownership rule
 

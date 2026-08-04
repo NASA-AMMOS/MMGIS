@@ -37,25 +37,22 @@ const PLUGINS_ROOT = path.join(REPO_ROOT, "plugins");
 const REGISTRIES_PATH = path.join(__dirname, "registries.json");
 const STATE_PATH = path.join(PLUGINS_ROOT, "plugin-state.json");
 const CORE_CONTAINER = "core";
-// Every plugin family, by the directory a container holds them in. Layer types
-// and layer attachments are in here too: core's are `overridable: false` and so
-// can never be disabled, but a third-party one is a plugin like any other.
-const PLUGIN_TYPE_DIRS = [
-    "tools",
-    "backend",
-    "components",
-    "interactions",
-    "layertypes",
-    "layerattachments",
-];
-const PLUGIN_TYPE_SINGULAR = {
-    tools: "tool",
+// Every plugin family: the type `create` and a manifest's `type` name → the
+// directory a container holds it in. Layer types and attachments are families
+// like any other; core's are just `overridable: false` and so undisableable.
+const TYPE_DIRS = {
+    tool: "tools",
     backend: "backend",
-    components: "component",
-    interactions: "interaction",
-    layertypes: "layertype",
-    layerattachments: "layerattachment",
+    component: "components",
+    interaction: "interactions",
+    layertype: "layertypes",
+    layerattachment: "layerattachments",
 };
+const VALID_TYPES = Object.keys(TYPE_DIRS);
+const PLUGIN_TYPE_DIRS = Object.values(TYPE_DIRS);
+const PLUGIN_TYPE_SINGULAR = Object.fromEntries(
+    Object.entries(TYPE_DIRS).map(([type, dir]) => [dir, type])
+);
 
 // ---------------------------------------------------------------------------
 // CLI flags — parsed early so colour helpers can reference them.
@@ -1693,8 +1690,6 @@ function cmdRegistry(subcommand, arg) {
 }
 
 function cmdCreate(type, name) {
-    const VALID_TYPES = ["tool", "backend", "component", "interaction", "layertype", "layerattachment"];
-    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions", layertype: "layertypes", layerattachment: "layerattachments" };
     const typeDir = TYPE_DIRS[type] || type;
 
     if (!type || !VALID_TYPES.includes(type)) {
@@ -1919,7 +1914,7 @@ ${h("disable <plugin-id>", "Disable a plugin (not core)")}
 ${h("enable-all", "Enable all plugins (use --container to scope)")}
 ${h("disable-all", "Disable all non-required plugins (use --container to scope)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
-${h("create <type> <Name>", "Scaffold a new plugin (tool, backend, component, interaction, layertype)")}
+${h("create <type> <Name>", `Scaffold a new plugin (${VALID_TYPES.join(", ")})`)}
 ${h("destroy <plugin-id>", "Delete a plugin (prompts for confirmation, --force to skip)")}
 ${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}

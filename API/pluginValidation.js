@@ -52,7 +52,6 @@ const COMMON_FIELDS = [
  * from a layer's config object.
  */
 const LAYER_OPS = [
-  "load",
   "make",
   "render",
   "destroy",

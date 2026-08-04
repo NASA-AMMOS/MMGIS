@@ -34,9 +34,8 @@ function destroy(layerObj) {
  * where the default is wrong — an empty implementation silently overrides a
  * working one.
  *
- * load(layerObj, ctx)           data is (re)acquired: initial make, refresh
- *                               interval, time requery, extent reload. Default:
- *                               none — types that fetch inside make don't need it.
+ * onToggle(layerObj, ctx)       toggled, core's bookkeeping settled. Default:
+ *                               nothing extra to do.
  * setOpacity(layerObj, o, ctx)  Default: the engine's uniform applier (Leaflet
  * setVisibility(layerObj, ctx)  and LithoSphere have one; Cesium does not).
  * setStyle(layerObj, ctx)       restyle / render params changed. Default: no-op.

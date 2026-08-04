@@ -11,9 +11,6 @@
  * globe. Only the core defaults differ per surface.
  *
  * ── Operations (identical on map & globe) ────────────────────────────────
- *   load          acquire/produce the layer's data (async). Runs every time
- *                 data is (re)acquired: initial make, refresh interval, time
- *                 requery, dynamic-extent reload — NOT once-per-layer.
  *   make          build the engine layer from the layer's normal MMGIS config
  *                 object and register it. On the globe this means the type — not
  *                 core — owns the translation to its engine config. REQUIRED.
@@ -78,7 +75,6 @@
  * @typedef {(Function|LayerTypeOperation)} LayerTypeOpDef
  *
  * @typedef {Object} LayerTypeModule
- * @property {LayerTypeOpDef} [load]
  * @property {LayerTypeOpDef} make               REQUIRED.
  * @property {LayerTypeOpDef} [render]           globe only.
  * @property {LayerTypeOpDef} [destroy]
@@ -93,7 +89,6 @@
 
 /** Canonical operation names, in lifecycle order. */
 export const LAYER_OPS = [
-    'load',
     'make',
     'render',
     'destroy',
