@@ -21,6 +21,9 @@ plugins/core/layertypes/<Type>/
   map/<type>.js                  # map (Leaflet) renderer module      — optional
   globe/cesium/<type>.js         # Cesium globe renderer module        — optional
   globe/lithosphere/<type>.js    # LithoSphere globe renderer module   — optional
+  config/<type>.js               # parse-time ownership of the config  — optional
+  filter/<type>.js               # the type's filtering strategy       — optional
+  time/<type>.js                 # what time means to this type        — optional
 ```
 
 `plugin.json` declares which surfaces/engines the type supports and maps them to
@@ -46,8 +49,8 @@ modules:
 }
 ```
 
-`modules` keys are **render surfaces** — `map`, `globe.<engine>`, `config`,
-`filter`, `time`, `capture` — not export names, which is why this is not the
+`modules` keys are **surfaces** — `map`, `globe.<engine>`, `config`, `filter`,
+`time` — not export names, which is why this is not the
 `paths` of tools and interactions (there a key is the export identifier a mission
 names in `"js"`). Every surface is optional: `Header` declares no modules at all
 and `Model` has no `map`.
@@ -92,6 +95,76 @@ That's why map plugins rarely implement `setOpacity`/`setVisibility` (Leaflet is
 uniform), LithoSphere globe modules usually implement only `make` (it manages
 layers natively by name), and Cesium modules implement more (imagery-alpha vs
 entity-`show` vs primitive — no uniform primitive to lean on).
+
+---
+
+## The non-render surfaces
+
+A type also owns the decisions core used to make *about* it. Each is a module
+with its own small vocabulary, declared like any other surface
+(`"modules": { "config": "./config/tile" }`), and each operation is optional with
+a core default — a type that declares no `filter` module simply isn't filterable.
+
+### `config` — the layer's config object is the type's
+
+| operation | signature | when | core default |
+|---|---|---|---|
+| `expand` | `async (layerObj) → layerObj \| layerObj[]` | mission-config parsing, before `name` becomes the uuid | the entry is unchanged |
+| `normalize` | `(layerObj) → layerObj` | parsing, before core reads the layer | unchanged |
+| `resolveUrl` | `(url, layerObj, ctx) → url` | every time core resolves the layer's url | the url core resolved |
+
+`expand` is how one configured layer becomes many: Vector turns a STAC catalog
+url into a `header` whose sublayers are the catalog's children. Returned objects
+go through the rest of parsing normally.
+
+`resolveUrl` gets the **last** word, after core has expanded STAC, stripped
+`COG:` and made mission-relative paths absolute; `ctx.wasCOG` says whether it
+did. Tile uses it to re-root urls that come back out of MMGIS' own tile server.
+
+```js
+// config/tile.js
+function normalize(layerObj) {
+    if (layerObj.throughTileServer === true) layerObj.tileformat = 'wmts'
+    return layerObj
+}
+
+function resolveUrl(url, layerObj, ctx = {}) {
+    if (!(layerObj.throughTileServer || ctx.wasCOG) || F_.isUrlAbsolute(url))
+        return url
+    return window.mmgisglobal.IS_DOCKER === 'true' ? `/${url}` : `../../${url}`
+}
+
+export default { normalize, resolveUrl }
+```
+
+### `filter` — the type's filtering strategy
+
+| operation | signature | when | core default |
+|---|---|---|---|
+| `getAggregations` | `async (layerName, filters, ctx) → Object` | the filter UI needs what can be filtered on | none |
+| `filter` | `async (layerName, filters, ctx) → void` | the layer's filter state is applied | none |
+
+Declaring `filter` **is** what makes a layer filterable (`Filtering.isFilterable`
+asks for the op, not a capability), so a type with no strategy needs no opt-out.
+Where the features live is the type's business, not core's: Vector filters
+locally, but dispatches to the server for a geodataset-backed layer holding only
+what is in view. `filters` is the layer's filter state and is also where a type
+may cache (Vector keeps its GeoJSON there); `ctx.refresh` asks it not to.
+
+### `time` — what a time change means to this type
+
+| operation | signature | when | core default |
+|---|---|---|---|
+| `format` | `(date, layerObj) → string` | a time is written into a request | `layerObj.time.format`, else ISO `%Y-%m-%dT%H:%M:%SZ` |
+| `applyTimeParams` | `(layerObj, ctx) → void` | the time window moved | nothing is stamped, so the layer reloads |
+
+These are the *other* half of time support: `timeChange` on the render surface
+rebuilds or scrubs the layer, while `applyTimeParams` is for a type that takes
+the window as request parameters and so never needs rebuilding — Tile stamps
+`time`/`starttime`/`endtime` onto the live layer and the next tile request
+carries them. Whether the type appears in the time bar at all, and whether it
+contributes an availability histogram, are capabilities (below), because core
+asks them while partitioning every layer.
 
 ---
 
@@ -177,20 +250,48 @@ because they already resolve through `kind`; the field exists for new types.
 
 ---
 
+## Capabilities — what core reads instead of asking
+
+Capabilities answer the questions core must ask while iterating or partitioning
+**all** layers, where calling a per-layer operation would be backwards (draw
+order, which layers the time bar covers, which are pickable). They are declared,
+not inferred — and they are the one part of this contract that fails *quietly*
+if you get it wrong, so validation checks them: a wrong type or value is an
+error, an unknown key warns (typo), and omitting one core acts on warns too.
+
+| capability | what core does with it | default if omitted |
+|---|---|---|
+| `renderers.map` / `renderers.globe` | which surfaces/engines this type renders through; cross-checked against `modules` | renders on neither |
+| `structural` | the type organizes the layer tree rather than carrying data (`header`), so it is skipped by ordering, loading and the map entirely | it has data |
+| `map.stacking` | which 2D pane it draws in: `"raster"` (under vectors) or `"overlay"` | `false` — left out of 2D draw ordering |
+| `map.redrawOnReorder` | it must be re-added to be reordered rather than restacked in place | restacked in place |
+| `map.tracksLoad` | core waits on its 2D load before counting the map loaded | it is tracked |
+| `map.refreshByRemake` | a refresh interval remakes the layer instead of reloading its data | reloaded |
+| `map.stacEndpoint` | which STAC endpoint a `stac:` url of this type resolves through: `"tiles"`, `"terrain"` or `"preview"` | `"preview"` |
+| `map.picking` | its features can be clicked/identified, so core wires feature selection | not pickable |
+| `map.styling` | its features carry their own style, so core may restyle them (highlight, filter dimming) | not restyled |
+| `time` | the type understands time at all (`true`, or the object form below) | no time support |
+| `time.histogram` | it can report when data exists over time, so the time bar draws its availability sparkline | no histogram |
+| `defaultInteractions` | default click/hover interaction ids for the type (see above) | none |
+| `filtering`, `identify` | **descriptive only** — no core code reads them; filtering follows from a `filter` module, picking from `map.picking` | — |
+
+---
+
 ## Validation
 
 The contract is enforced in two complementary layers:
 
 1. **Manifest** (`API/pluginValidation.js`, runs at startup and in the CLI):
-   validates `capabilities.renderers`/`defaultInteractions` shape and
-   cross-checks declared engines ↔ the `modules` renderer modules — a type can't
-   claim a `map`/`globe.<engine>` renderer it ships no module for, nor ship a
-   module for a surface it doesn't declare.
-2. **Module** (`node plugins/plugin-cli.js validate`): statically parses each
-   renderer module's `export default {}`, requires `make`, and rejects unknown
+   validates the `capabilities` shape against the table above and cross-checks
+   declared engines ↔ the `modules` renderer modules — a type can't claim a
+   `map`/`globe.<engine>` renderer it ships no module for, nor ship a module for
+   a surface it doesn't declare.
+2. **Module** (`npm run plugins -- validate`): statically parses each module's
+   `export default {}`, requires `make` on a render surface, and rejects unknown
    operation names and phase names (and `afterCommit` outside `make`) — so a
    typo like `destory` fails loudly instead of silently falling back to the
-   core default.
+   core default. Each surface is checked against **its own** vocabulary: a
+   `render` in a map module or a `normalize` in a globe module is an error.
 
 ---
 
@@ -201,6 +302,6 @@ The contract is enforced in two complementary layers:
 3. Add only the other operations your engine can't do uniformly for you.
 4. Prefer neutral primitives; use the raw escape hatch only when necessary.
 5. Declare default interactions in the manifest if your type needs them.
-6. Run the plugin CLI validator, then the app; regenerate the registry
-   (`node -e "require('./API/updateTools').updateLayerTypes()"`) — never
-   hand-edit `src/pre/layertypes.js`.
+6. Add the non-render surfaces your type needs (`config`, `filter`, `time`).
+7. Run `npm run plugins -- validate`, then `npm run plugins -- activate` to
+   regenerate `src/pre/layertypes.js` — never hand-edit it.

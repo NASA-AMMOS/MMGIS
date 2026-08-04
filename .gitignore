@@ -17,11 +17,9 @@ configure/public/toolConfigs.json
 /configure/public/layerTypeConfigs.json
 /configure/public/layerAttachmentConfigs.json
 
-# External/private plugin containers (everything except core + CLI files is gitignored)
+# External/private plugin containers (everything except core is gitignored)
 /plugins/*
 !/plugins/core/
-!/plugins/plugin-cli.js
-!/plugins/plugin-registries.json
 !/plugins/README.md
 /plugins/plugin-state.json
 

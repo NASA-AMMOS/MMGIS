@@ -6,7 +6,7 @@
  * Manages plugin installation, activation, and inspection.
  *
  * Usage:
- *   node plugins/plugin-cli.js <command> [options]
+ *   npm run plugins -- <command> [options]      (node plugin-cli/cli.js …)
  *
  * Commands:
  *   list                          List all plugins with status
@@ -28,9 +28,13 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+const { scaffold } = require("./lib/scaffolds");
 
-const PLUGINS_ROOT = path.resolve(__dirname);
-const REGISTRIES_PATH = path.join(PLUGINS_ROOT, "plugin-registries.json");
+const REPO_ROOT = path.resolve(__dirname, "..");
+const PLUGINS_ROOT = path.join(REPO_ROOT, "plugins");
+// The CLI's own config lives with the CLI; plugin state lives with the plugins,
+// since the server reads it at discovery time.
+const REGISTRIES_PATH = path.join(__dirname, "registries.json");
 const STATE_PATH = path.join(PLUGINS_ROOT, "plugin-state.json");
 const CORE_CONTAINER = "core";
 // Every plugin family, by the directory a container holds them in. Layer types
@@ -107,7 +111,7 @@ const c = {
 function getMMGISVersion() {
     try {
         const pkg = JSON.parse(
-            fs.readFileSync(path.join(PLUGINS_ROOT, "..", "package.json"), "utf8")
+            fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")
         );
         return pkg.version || "unknown";
     } catch {
@@ -1688,393 +1692,9 @@ function cmdRegistry(subcommand, arg) {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Scaffold templates
-// ---------------------------------------------------------------------------
-
-function _scaffoldTool(name) {
-    return {
-        "plugin.json": JSON.stringify({
-            name,
-            type: "tool",
-            defaultIcon: "puzzle-outline",
-            paths: {}  // placeholder — filled dynamically below
-        }, null, 4) + "\n",
-        [`${name}Tool.js`]: [
-            `import React from 'react'`,
-            `import { createRoot } from 'react-dom/client'`,
-            ``,
-            `import ToolController_ from '@basics/ToolController_/ToolController_'`,
-            `import L_ from '@basics/Layers_/Layers_'`,
-            `import Map_ from '@basics/Map_/Map_'`,
-            `import { IconButton } from '@design/components'`,
-            ``,
-            `import './${name}Tool.css'`,
-            ``,
-            `let ${name}Tool = {`,
-            `    height: 0,`,
-            `    width: 300,`,
-            `    _root: null,`,
-            ``,
-            `    make: function () {`,
-            `        const toolPanel = document.getElementById('toolPanel')`,
-            `        if (toolPanel) toolPanel.innerHTML = ''`,
-            ``,
-            `        ${name}Tool._root = createRoot(toolPanel)`,
-            `        ${name}Tool._root.render(`,
-            `            <div className='${name[0].toLowerCase() + name.slice(1)}Tool'>`,
-            `                <div className='mmgisToolHeader'>`,
-            `                    <div>`,
-            `                        <div>`,
-            `                            <div className='mmgisToolTitle'>${name}</div>`,
-            `                        </div>`,
-            `                        <div>`,
-            `                            <IconButton`,
-            `                                size='sm'`,
-            `                                onClick={() => ToolController_.closeActiveTool()}`,
-            `                                title='Close Tool'`,
-            `                            >`,
-            `                                <i className='mdi mdi-close mdi-18px' />`,
-            `                            </IconButton>`,
-            `                        </div>`,
-            `                    </div>`,
-            `                </div>`,
-            `                <div className='${name[0].toLowerCase() + name.slice(1)}Tool_content'>`,
-            `                    {/* Tool content goes here */}`,
-            `                </div>`,
-            `            </div>`,
-            `        )`,
-            `    },`,
-            ``,
-            `    destroy: function () {`,
-            `        if (${name}Tool._root) {`,
-            `            ${name}Tool._root.unmount()`,
-            `            ${name}Tool._root = null`,
-            `        }`,
-            `    },`,
-            `}`,
-            ``,
-            `export default ${name}Tool`,
-            ``,
-        ].join("\n"),
-        [`${name}Tool.css`]: [
-            `.${name[0].toLowerCase() + name.slice(1)}Tool {`,
-            `}`,
-            `.${name[0].toLowerCase() + name.slice(1)}Tool_content {`,
-            `    padding: 8px;`,
-            `}`,
-            ``,
-        ].join("\n"),
-        [`tests/${name[0].toLowerCase() + name.slice(1)}Tool.spec.js`]: [
-            `const { test, expect } = require('@playwright/test')`,
-            `const path = require('path')`,
-            ``,
-            `test.describe('${name}Tool', () => {`,
-            `    test('plugin.json is valid', () => {`,
-            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
-            `        expect(manifest.name).toBe('${name}')`,
-            `        expect(manifest.type).toBe('tool')`,
-            `        expect(manifest.paths).toBeDefined()`,
-            `        expect(manifest.paths['${name}Tool']).toBeDefined()`,
-            `    })`,
-            `})`,
-            ``,
-        ].join("\n"),
-    };
-}
-
-function _scaffoldBackend(name) {
-    const lower = name[0].toLowerCase() + name.slice(1);
-    return {
-        "plugin.json": JSON.stringify({
-            name,
-            type: "backend",
-        }, null, 4) + "\n",
-        "plugin.js": [
-            `const router = require('./routes/${lower}')`,
-            ``,
-            `let setup = {`,
-            `    onceInit: (s) => {`,
-            `        s.app.use(`,
-            `            s.ROOT_PATH + '/api/${lower}',`,
-            `            s.checkHeadersCodeInjection,`,
-            `            s.setContentType,`,
-            `            router`,
-            `        )`,
-            `    },`,
-            `    onceStarted: (s) => {},`,
-            `    onceSynced: (s) => {},`,
-            `}`,
-            ``,
-            `module.exports = setup`,
-            ``,
-        ].join("\n"),
-        [`routes/${lower}.js`]: [
-            `const express = require('express')`,
-            `const router = express.Router()`,
-            ``,
-            `router.get('/', (req, res) => {`,
-            `    res.json({ status: 'ok' })`,
-            `})`,
-            ``,
-            `module.exports = router`,
-            ``,
-        ].join("\n"),
-        [`tests/${lower}.spec.js`]: [
-            `const { test, expect } = require('@playwright/test')`,
-            `const path = require('path')`,
-            ``,
-            `test.describe('${name} backend', () => {`,
-            `    test('plugin.json is valid', () => {`,
-            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
-            `        expect(manifest.name).toBe('${name}')`,
-            `        expect(manifest.type).toBe('backend')`,
-            `    })`,
-            `})`,
-            ``,
-        ].join("\n"),
-    };
-}
-
-function _scaffoldComponent(name) {
-    const lower = name[0].toLowerCase() + name.slice(1);
-    return {
-        "plugin.json": JSON.stringify({
-            name,
-            type: "component",
-            defaultIcon: "puzzle-outline",
-            paths: {}  // placeholder — filled dynamically below
-        }, null, 4) + "\n",
-        [`${name}.js`]: [
-            `import L_ from '@basics/Layers_/Layers_'`,
-            ``,
-            `import './${name}.css'`,
-            ``,
-            `const ${name} = {`,
-            `    state: {},`,
-            ``,
-            `    init: function (vars) {`,
-            `        // Called when the component is initialized.`,
-            `        // 'vars' contains configuration from the Configure page.`,
-            `    },`,
-            `}`,
-            ``,
-            `export default ${name}`,
-            ``,
-        ].join("\n"),
-        [`${name}.css`]: `.${lower} {\n}\n`,
-        [`tests/${lower}.spec.js`]: [
-            `const { test, expect } = require('@playwright/test')`,
-            `const path = require('path')`,
-            ``,
-            `test.describe('${name} component', () => {`,
-            `    test('plugin.json is valid', () => {`,
-            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
-            `        expect(manifest.name).toBe('${name}')`,
-            `        expect(manifest.type).toBe('component')`,
-            `        expect(manifest.paths).toBeDefined()`,
-            `        expect(manifest.paths['${name}']).toBeDefined()`,
-            `    })`,
-            `})`,
-            ``,
-        ].join("\n"),
-    };
-}
-
-function _scaffoldInteraction(name) {
-    const lower = name[0].toLowerCase() + name.slice(1);
-    const interactionId = lower.replace(/([A-Z])/g, (m) => `:${m.toLowerCase()}`);
-    return {
-        "plugin.json": JSON.stringify({
-            name,
-            type: "interaction",
-            interactionId,
-            description: "",
-            applicableLayerTypes: ["vector", "vectortile", "query"],
-            applicableEvents: ["click"],
-            phase: "main",
-            paths: {}  // placeholder — filled dynamically below
-        }, null, 4) + "\n",
-        [`${name}.js`]: [
-            `const ${name} = {`,
-            `    use(ctx) {`,
-            `        // ctx.feature  — the clicked GeoJSON feature`,
-            `        // ctx.layer    — the Leaflet layer`,
-            `        // ctx.layerName — name of the layer`,
-            `        // ctx.state    — shared state between interactions`,
-            `        // ctx.stop     — set to true to halt the pipeline`,
-            `    },`,
-            `}`,
-            ``,
-            `export default ${name}`,
-            ``,
-        ].join("\n"),
-        [`tests/${lower}.spec.js`]: [
-            `const { test, expect } = require('@playwright/test')`,
-            `const path = require('path')`,
-            ``,
-            `test.describe('${name} interaction', () => {`,
-            `    test('plugin.json is valid', () => {`,
-            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
-            `        expect(manifest.name).toBe('${name}')`,
-            `        expect(manifest.type).toBe('interaction')`,
-            `        expect(manifest.interactionId).toBeDefined()`,
-            `        expect(manifest.paths).toBeDefined()`,
-            `        expect(manifest.paths['${name}']).toBeDefined()`,
-            `    })`,
-            `})`,
-            ``,
-        ].join("\n"),
-    };
-}
-
-function _scaffoldLayertype(name) {
-    const lower = name[0].toLowerCase() + name.slice(1);
-    const typeId = lower.toLowerCase();
-    return {
-        "plugin.json": JSON.stringify({
-            name,
-            type: "layertype",
-            typeId,
-            version: "1.0.0",
-            tier: "community",
-            overridable: true,
-            color: "#4e9a06",
-            defaultIcon: "Layers",
-            description: "",
-            capabilities: {
-                renderers: {
-                    // Declares which engines this type renders through. Each
-                    // engine listed here must ship a matching module under
-                    // `modules` (map → modules.map, globe → modules.globe.<engine>).
-                    map: { engines: ["leaflet"] },
-                    globe: false,
-                },
-                time: false,
-                filtering: false,
-                identify: false,
-            },
-            supportedData: [
-                {
-                    label: "Example format",
-                    category: "vector",
-                    standards: [],
-                    formats: [],
-                    extensions: [],
-                    description: "",
-                },
-            ],
-            config: {
-                tabs: [
-                    {
-                        name: "Core",
-                        rows: [
-                            {
-                                forceHeight: "64px",
-                                components: [
-                                    {
-                                        field: "type",
-                                        name: "Layer Type",
-                                        description: "",
-                                        type: "dropdown",
-                                        width: 2,
-                                        options: [typeId],
-                                    },
-                                    {
-                                        field: "name",
-                                        name: "Layer Name",
-                                        description: "",
-                                        type: "textnotrim",
-                                        width: 8,
-                                        required: true,
-                                    },
-                                    {
-                                        field: "visibility",
-                                        name: "Initially On",
-                                        description: "",
-                                        type: "checkbox",
-                                        width: 2,
-                                        defaultChecked: false,
-                                    },
-                                ],
-                            },
-                            {
-                                name: name,
-                                components: [
-                                    {
-                                        field: "url",
-                                        name: "URL",
-                                        description: "",
-                                        type: "text",
-                                        width: 12,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-        },
-            modules: {
-                map: `./map/${lower}`,
-            },
-        }, null, 2) + "\n",
-        [`map/${lower}.js`]: [
-            `/**`,
-            ` * ${name} layer type — map renderer.`,
-            ` *`,
-            ` * Implements the LayerInterface contract. Ops run before → main →`,
-            ` * after (make also supports afterCommit); a bare function is shorthand`,
-            ` * for { main }. Unimplemented ops fall back to core defaults, so only`,
-            ` * write what differs. See plugins/core/layertypes/README.md.`,
-            ` */`,
-            `import L_ from '@basics/Layers_/Layers_'`,
-            `import MapRenderer from '@basics/Map_/MapRenderer'`,
-            ``,
-            `function make(layerObj, ctx = {}) {`,
-            `    const mctx = MapRenderer.context(ctx.mapContext)`,
-            `    // const L = mctx.raw // engine-specific escape hatch (Leaflet namespace)`,
-            ``,
-            `    // TODO: construct the layer and assign it to`,
-            `    // L_.layers.layer[layerObj.name], then mark it loaded.`,
-            `    void mctx`,
-            ``,
-            `    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true`,
-            `    L_.Map_.allLayersLoaded()`,
-            `}`,
-            ``,
-            `function destroy(layerObj) {`,
-            `    // TODO: remove the layer from the map and clean up references.`,
-            `    void layerObj`,
-            `}`,
-            ``,
-            `export default {`,
-            `    make,`,
-            `    destroy,`,
-            `}`,
-            ``,
-        ].join("\n"),
-        [`tests/${lower}.spec.js`]: [
-            `const { test, expect } = require('@playwright/test')`,
-            `const path = require('path')`,
-            ``,
-            `test.describe('${name} layer type', () => {`,
-            `    test('plugin.json declares a valid layertype contract', () => {`,
-            `        const manifest = require(path.resolve(__dirname, '..', 'plugin.json'))`,
-            `        expect(manifest.type).toBe('layertype')`,
-            `        expect(manifest.typeId).toBe('${typeId}')`,
-            `        // Every declared renderer engine must ship a matching module.`,
-            `        const r = manifest.capabilities.renderers`,
-            `        if (r.map) expect(manifest.modules.map).toBeDefined()`,
-            `    })`,
-            `})`,
-            ``,
-        ].join("\n"),
-    };
-}
-
 function cmdCreate(type, name) {
-    const VALID_TYPES = ["tool", "backend", "component", "interaction", "layertype"];
-    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions", layertype: "layertypes" };
+    const VALID_TYPES = ["tool", "backend", "component", "interaction", "layertype", "layerattachment"];
+    const TYPE_DIRS = { tool: "tools", backend: "backend", component: "components", interaction: "interactions", layertype: "layertypes", layerattachment: "layerattachments" };
     const typeDir = TYPE_DIRS[type] || type;
 
     if (!type || !VALID_TYPES.includes(type)) {
@@ -2118,30 +1738,7 @@ function cmdCreate(type, name) {
         if (!FLAG_JSON) console.log(`  ${c.green("✓")} Created container: ${c.cyan(container + "/")}`);
     }
 
-    // Generate scaffold files.
-    let files;
-    switch (type) {
-        case "tool":        files = _scaffoldTool(name); break;
-        case "backend":     files = _scaffoldBackend(name); break;
-        case "component":   files = _scaffoldComponent(name); break;
-        case "interaction": files = _scaffoldInteraction(name); break;
-        case "layertype":   files = _scaffoldLayertype(name); break;
-    }
-
-    // Fix the paths field in plugin.json to use relative paths.
-    if (type === "tool") {
-        const manifest = JSON.parse(files["plugin.json"]);
-        manifest.paths = { [`${name}Tool`]: `./${name}Tool` };
-        files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
-    } else if (type === "component") {
-        const manifest = JSON.parse(files["plugin.json"]);
-        manifest.paths = { [name]: `./${name}` };
-        files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
-    } else if (type === "interaction") {
-        const manifest = JSON.parse(files["plugin.json"]);
-        manifest.paths = { [name]: `./${name}` };
-        files["plugin.json"] = JSON.stringify(manifest, null, 4) + "\n";
-    }
+    const files = scaffold(type, name);
 
     // Write all files.
     const created = [];
@@ -2154,7 +1751,7 @@ function cmdCreate(type, name) {
 
     if (FLAG_JSON) {
         let activated = null;
-        if (type === "tool" || type === "component" || type === "interaction") {
+        if (type !== "backend") {
             activated = activate({ expectChanges: true, silent: true });
         }
         console.log(JSON.stringify({
@@ -2171,8 +1768,9 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("+")} ${f}`);
     }
 
-    // Auto-activate for frontend plugins.
-    if (type === "tool" || type === "component" || type === "interaction") {
+    // Auto-activate for frontend plugins (everything but backend, which the
+    // server discovers at startup rather than through a generated registry).
+    if (type !== "backend") {
         activate({ expectChanges: true });
     }
 
@@ -2192,8 +1790,14 @@ function cmdCreate(type, name) {
         const lower = name[0].toLowerCase() + name.slice(1);
         console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan(`map/${lower}.js`)} (add globe modules + declare their engines in ${c.cyan("plugin.json")} as needed)`);
         console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("config")} fields in ${c.cyan("plugin.json")}`);
-        console.log(`    ${c.dim("3.")} Run ${c.cyan(`node -e "require('./API/updateTools').updateLayerTypes()"`)} to regenerate the layer-type registry`);
-        console.log(`    ${c.dim("4.")} Run ${c.cyan("node plugins/plugin-cli.js validate")} to check the contract`);
+        console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("modules")} to regenerate the layer registries`);
+        console.log(`    ${c.dim("4.")} Run ${c.cyan("npm run plugins -- validate")} to check the contract`);
+    } else if (type === "layerattachment") {
+        const lower = name[0].toLowerCase() + name.slice(1);
+        console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")} in ${c.cyan(`${lower}.js`)} (add the other operations only where a core default is wrong)`);
+        console.log(`    ${c.dim("2.")} Set ${c.cyan("configPath")}, ${c.cyan("applicableLayerTypes")} and ${c.cyan("capabilities.host.order")} in ${c.cyan("plugin.json")}, and the ${c.cyan("config")} rows that write under that path`);
+        console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("module")} to regenerate the layer registries`);
+        console.log(`    ${c.dim("4.")} Run ${c.cyan("npm run plugins -- validate")} to check the contract`);
     } else {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to build your component`);
         console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);
@@ -2303,8 +1907,8 @@ function cmdHelp() {
     console.log(`
   ${c.bold(c.white("MMGIS Plugin CLI"))} ${c.dim(`v${getMMGISVersion()}`)}
 
-  ${c.dim("Usage:")} node plugins/plugin-cli.js ${c.cyan("<command>")} [options]
-         npm run plugins -- ${c.cyan("<command>")} [options]
+  ${c.dim("Usage:")} npm run plugins -- ${c.cyan("<command>")} [options]
+         node plugin-cli/cli.js ${c.cyan("<command>")} [options]
 
   ${c.bold(c.white("Commands:"))}
 ${h("list", "List all plugins with status")}

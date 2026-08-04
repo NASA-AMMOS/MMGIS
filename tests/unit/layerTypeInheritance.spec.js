@@ -159,6 +159,8 @@ test.describe('surfaces', () => {
         expect(surfaceOfModuleKey('map', 'layerattachment')).toBe('attachment')
         expect(ATTACHMENT_OPS).toContain('setVisibility')
         expect(ATTACHMENT_OPS).toContain('setOpacity')
-        expect(ATTACHMENT_OPS).toContain('onHostToggle')
+        // A toggled host reaches its attachments as setVisibility, so there is
+        // no separate host-toggle op.
+        expect(ATTACHMENT_OPS).not.toContain('onHostToggle')
     })
 })

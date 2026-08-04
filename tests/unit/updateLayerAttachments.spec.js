@@ -72,9 +72,12 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
 
     test('registry contains no unexpected attachments', () => {
         const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'))
-        expect(Object.keys(registry).sort()).toEqual(
-            [...BUILT_IN_ATTACHMENTS].sort()
+        // Only core's own attachments: the registry is a shared generated
+        // artifact, so another spec's fixture may legitimately be in it now.
+        const core = Object.keys(registry).filter(
+            (id) => registry[id].manifest.tier === 'core'
         )
+        expect(core.sort()).toEqual([...BUILT_IN_ATTACHMENTS].sort())
     })
 
     test('the registry reads the module map the generator writes', () => {

@@ -1,5 +1,5 @@
 /**
- * Unit tests for plugin-cli.js commands and plugin-state.json integration
+ * Unit tests for plugin-cli/cli.js commands and plugin-state.json integration
  * with discoverPlugins().
  *
  * Tests build temporary directory trees to simulate plugin containers,
@@ -15,7 +15,7 @@ const { execSync } = require('child_process');
 
 const { discoverPlugins } = require('../../API/pluginDiscovery');
 
-const CLI_PATH = path.resolve(__dirname, '../../plugins/plugin-cli.js');
+const CLI_PATH = path.resolve(__dirname, '../../plugin-cli/cli.js');
 const REPO_ROOT = path.resolve(__dirname, '../..');
 
 function makeTmpDir() {
@@ -120,7 +120,7 @@ test.describe('plugin-cli', () => {
     });
 
     test('registry list shows empty when no registries', () => {
-        const regPath = path.join(REPO_ROOT, 'plugins', 'plugin-registries.json');
+        const regPath = path.join(REPO_ROOT, 'plugin-cli', 'registries.json');
         const saved = fs.readFileSync(regPath, 'utf8');
         fs.writeFileSync(regPath, JSON.stringify({ registries: [] }, null, 4));
         try {
@@ -407,6 +407,74 @@ test.describe('plugin-cli interaction support', () => {
             if (fs.existsSync(containerDir)) {
                 fs.rmSync(containerDir, { recursive: true, force: true });
             }
+        }
+    });
+});
+
+// ─── scaffolds ───────────────────────────────────────────────────────────────
+
+test.describe('scaffold templates', () => {
+    // Scaffolds are real files under plugin-cli/scaffolds/, so a broken one
+    // fails here rather than in someone's first plugin. Materialized through the
+    // loader rather than `create` so nothing touches the shared plugins tree.
+    const { scaffold } = require('../../plugin-cli/lib/scaffolds');
+    const { validatePluginConfig, validateLayerTypeModuleShape } = require('../../API/pluginValidation.js');
+
+    const TYPES = [
+        'tool',
+        'backend',
+        'component',
+        'interaction',
+        'layertype',
+        'layerattachment',
+    ];
+
+    for (const type of TYPES) {
+        test(`the ${type} scaffold is a valid plugin`, () => {
+            const name = 'MyGriddedThing';
+            const files = scaffold(type, name);
+
+            expect(Object.keys(files)).toContain('plugin.json');
+            for (const [relPath, contents] of Object.entries(files)) {
+                // Every token was substituted, in paths as well as contents.
+                expect(relPath).not.toMatch(/__[A-Za-z_]+__/);
+                expect(contents).not.toMatch(/__[A-Za-z_]+__/);
+            }
+
+            const manifest = JSON.parse(files['plugin.json']);
+            expect(manifest.name).toBe(name);
+            expect(manifest.type).toBe(type);
+            expect(validatePluginConfig(manifest, name, type)).toEqual([]);
+        });
+    }
+
+    test('name variants reach the ids each family keys on', () => {
+        expect(JSON.parse(scaffold('layertype', 'MyGriddedThing')['plugin.json']).typeId)
+            .toBe('mygriddedthing');
+
+        const attachment = JSON.parse(scaffold('layerattachment', 'MyGriddedThing')['plugin.json']);
+        expect(attachment.attachmentId).toBe('my_gridded_thing');
+        expect(attachment.module).toBe('./myGriddedThing');
+        // The form must write where core resolves this attachment's settings.
+        for (const row of attachment.config.rows)
+            for (const component of row.components)
+                expect(component.field.startsWith(attachment.configPath)).toBe(true);
+
+        expect(JSON.parse(scaffold('interaction', 'MyGriddedThing')['plugin.json']).interactionId)
+            .toBe('my:gridded:thing');
+    });
+
+    test('the layer scaffolds implement only what core has no default for', () => {
+        // Over-implementation is the failure mode here: an empty setOpacity
+        // silently replaces a working core default, so the stubs stay commented.
+        const layertype = scaffold('layertype', 'MyGriddedThing')['map/myGriddedThing.js'];
+        expect(validateLayerTypeModuleShape(layertype, 'x', 'map')).toEqual([]);
+        expect(layertype).toContain('make');
+
+        const attachment = scaffold('layerattachment', 'MyGriddedThing')['myGriddedThing.js'];
+        expect(validateLayerTypeModuleShape(attachment, 'x', 'attachment')).toEqual([]);
+        for (const op of ['setOpacity', 'setVisibility', 'syncData']) {
+            expect(attachment).not.toMatch(new RegExp(`^\\s*${op}[,(]`, 'm'));
         }
     });
 });

@@ -25,9 +25,7 @@ MMGIS uses a plugin-based architecture for tools, backend modules, and component
 ## Directory Structure
 
 ```
-plugins/
-├── plugin-cli.js              # CLI tool for plugin management
-├── plugin-registries.json     # Registered plugin sources (git URLs, local paths)
+plugins/                       # containers only — the CLI lives in /plugin-cli
 ├── plugin-state.json          # Enable/disable state per plugin (gitignored)
 ├── README.md                  # This file
 ├── core/                      # Core plugins (committed, version-controlled)
@@ -50,8 +48,9 @@ plugins/
 
 | File | Purpose |
 |------|---------|
-| `plugins/plugin-cli.js` | CLI for plugin management (`npm run plugins -- <cmd>`) |
-| `plugins/plugin-registries.json` | Git URLs / local paths of known plugin sources |
+| `plugin-cli/cli.js` | CLI for plugin management (`npm run plugins -- <cmd>`) |
+| `plugin-cli/scaffolds/<type>/` | What `create <type>` copies — the starting point for each family |
+| `plugin-cli/registries.json` | Git URLs / local paths of known plugin sources |
 | `plugins/plugin-state.json` | Enable/disable state (gitignored, instance-specific) |
 | `API/pluginDiscovery.js` | Discovery logic — `discoverPlugins()` scans all containers |
 | `API/pluginValidation.js` | Manifest validation — `validatePluginConfig()` |

@@ -2,6 +2,7 @@ import MapRenderer from '../../Map_/MapRenderer'
 import ToolController_ from '../../ToolController_/ToolController_'
 import LayerInterface from '../interface/LayerInterface'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 
 export function reorderLayers(L_, newLayersOrdered) {
     // Check that newLayersOrdered is valid
@@ -170,6 +171,19 @@ export async function removeLayerFromLayersData(L_, layerName) {
                     { ...MapRenderer.context(), name: layerUUID },
                 ]
             )
+
+            // Same for its attachments: anything held outside a map layer (a
+            // globe layer, a DOM element) is only theirs to release.
+            const attachments = L_.layers.attachments[layerUUID] || {}
+            for (const attachmentName in attachments) {
+                const attachment = attachments[attachmentName]
+                if (!attachment) continue
+                LayerInterface.runSync(
+                    LayerAttachmentRegistry.module(attachment.type),
+                    'destroy',
+                    [attachment, { hostName: layerUUID, attachmentName }]
+                )
+            }
 
             delete L_.layers.layer[layerUUID]
             delete L_.layers.data[layerUUID]

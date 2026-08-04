@@ -1,5 +1,5 @@
 /**
- * E2E tests for plugin-cli.js commands that modify state:
+ * E2E tests for plugin-cli/cli.js commands that modify state:
  * install, uninstall, enable, disable, create, destroy, activate.
  *
  * Uses the fixture repo at tests/fixtures/test-plugin-repo/ which has
@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const CLI_PATH = path.resolve(__dirname, '../../plugins/plugin-cli.js');
+const CLI_PATH = path.resolve(__dirname, '../../plugin-cli/cli.js');
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const PLUGINS_ROOT = path.resolve(REPO_ROOT, 'plugins');
 const FIXTURE_REPO = path.resolve(__dirname, '../fixtures/test-plugin-repo');
@@ -345,6 +345,38 @@ test.describe('CLI create and destroy', () => {
         expect(fs.existsSync(pluginDir)).toBe(false);
     });
 
+    test('create layerattachment scaffolds a contract-valid plugin', () => {
+        const { exitCode } = runCli(`create layerattachment E2eHalos --container ${CONTAINER}`);
+        expect(exitCode).toBe(0);
+
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'layerattachments', 'E2eHalos');
+        const manifest = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf8'));
+        expect(manifest.type).toBe('layerattachment');
+        expect(manifest.attachmentId).toBe('e2e_halos');
+        expect(manifest.module).toBe('./e2eHalos');
+        expect(fs.existsSync(path.join(pluginDir, 'e2eHalos.js'))).toBe(true);
+
+        // Every form field must land under the configPath core resolves to
+        // ctx.config; a field anywhere else writes settings nothing reads.
+        for (const row of manifest.config.rows)
+            for (const component of row.components)
+                expect(component.field.startsWith(manifest.configPath)).toBe(true);
+
+        const {
+            validatePluginConfig,
+            validateLayerTypeModuleShape,
+        } = require('../../API/pluginValidation.js');
+        expect(validatePluginConfig(manifest, 'E2eHalos', 'layerattachment')).toEqual([]);
+
+        // Checked against the attachment vocabulary, not the renderer one.
+        const moduleSrc = fs.readFileSync(path.join(pluginDir, 'e2eHalos.js'), 'utf8');
+        expect(
+            validateLayerTypeModuleShape(moduleSrc, 'E2eHalos', 'attachment')
+        ).toEqual([]);
+
+        expect(runCli(`destroy ${CONTAINER}/layerattachments/E2eHalos --force`).exitCode).toBe(0);
+    });
+
     test('destroy with --force removes plugin', () => {
         const { stdout, exitCode } = runCli(`destroy ${CONTAINER}/tools/E2eTool --force`);
         expect(exitCode).toBe(0);
@@ -372,7 +404,7 @@ test.describe('CLI create and destroy', () => {
 
 test.describe('CLI registry', () => {
 
-    const REGISTRIES_PATH = path.join(PLUGINS_ROOT, 'plugin-registries.json');
+    const REGISTRIES_PATH = path.join(REPO_ROOT, 'plugin-cli', 'registries.json');
     let savedRegistries;
 
     test.beforeAll(() => {

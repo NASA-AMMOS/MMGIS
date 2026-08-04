@@ -24,7 +24,7 @@ const { validatePluginConfig } = require('../../API/pluginValidation');
 const { updateLayerTypes } = require('../../API/updateTools');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const CLI_PATH = path.join(REPO_ROOT, 'plugins', 'plugin-cli.js');
+const CLI_PATH = path.join(REPO_ROOT, 'plugin-cli', 'cli.js');
 const REGISTRY_PATH = path.join(
     REPO_ROOT,
     'configure',
@@ -78,12 +78,19 @@ test.describe('layerTypeConfigs.json — built-in layer type registry', () => {
 
     test('registry contains no unexpected layer types', () => {
         const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
-        expect(Object.keys(registry).sort()).toEqual([...BUILT_IN_TYPES].sort());
+        // Only core's own types: the registry is a shared generated artifact, so
+        // another spec's fixture container may legitimately be in it right now.
+        const core = Object.keys(registry).filter(
+            (typeId) => registry[typeId].manifest.tier === 'core'
+        );
+        expect(core.sort()).toEqual([...BUILT_IN_TYPES].sort());
     });
 });
 
 test.describe.serial('updateLayerTypes — a scaffolded layer type registers', () => {
-    const CONTAINER = 'mmgis-test';
+    // Its own container: the afterEach removes it wholesale, and other specs
+    // scaffold their fixtures concurrently.
+    const CONTAINER = 'mmgis-test-layertypes';
     const CONTAINER_DIR = path.join(REPO_ROOT, 'plugins', CONTAINER);
 
     test.afterEach(() => {

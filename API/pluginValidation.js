@@ -75,7 +75,7 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
  */
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
-const TIME_OPS = ["availability", "format", "applyTimeParams"];
+const TIME_OPS = ["format", "applyTimeParams"];
 
 /**
  * A layer attachment is a single renderable that may straddle both engines (an
@@ -93,7 +93,6 @@ const ATTACHMENT_OPS = [
   "destroy",
   "setOpacity",
   "setVisibility",
-  "onHostToggle",
   "onPeerToggle",
   "syncData",
   "setStyle",
@@ -167,6 +166,193 @@ function flattenLayerModules(manifest) {
     }
   }
   return out;
+}
+
+/**
+ * The classification capabilities core reads, per plugin type.
+ *
+ * These answer the questions core must ask while iterating or partitioning ALL
+ * layers, where calling a per-layer operation would be backwards. Unlike an
+ * operation — where a typo like `destory` is caught by the module validator —
+ * a mistyped or mistyped-value capability would otherwise be silent: the layer
+ * simply never gets ordered, picked, styled or counted, with no error anywhere.
+ * So the vocabulary is declared here and checked: unknown keys warn (a newer
+ * plugin may know capabilities this MMGIS does not), wrong types and values are
+ * errors, and an omission core would read as "no" warns where that is likely a
+ * mistake rather than a choice (see CONSEQUENTIAL_OMISSIONS).
+ *
+ * `values` lists the allowed values where the capability is an enum rather than
+ * a boolean. `descriptive: true` marks a capability no core code reads today —
+ * it documents the type for admins/plugin authors (like `supportedData`).
+ *
+ * Kept in sync with LayerTypeRegistry / LayerAttachmentRegistry, which are the
+ * only readers.
+ */
+const CAPABILITY_SCHEMA = {
+  layertype: {
+    // Validated in detail separately (engines ↔ modules cross-check).
+    renderers: { type: "object" },
+    defaultInteractions: { type: "object" },
+    structural: { type: "boolean" },
+    map: {
+      type: "group",
+      keys: {
+        stacking: { type: "enum", values: ["raster", "overlay", false] },
+        redrawOnReorder: { type: "boolean" },
+        tracksLoad: { type: "boolean" },
+        refreshByRemake: { type: "boolean" },
+        stacEndpoint: {
+          type: "enum",
+          values: ["tiles", "terrain", "preview"],
+        },
+        picking: { type: "boolean" },
+        styling: { type: "boolean" },
+      },
+    },
+    time: {
+      // `true`/`false` is shorthand for "this type understands time at all";
+      // the object form adds what that means to the time bar.
+      type: "booleanOrGroup",
+      keys: {
+        enabled: { type: "boolean" },
+        histogram: { type: "boolean" },
+      },
+    },
+    filtering: { type: "boolean", descriptive: true },
+    identify: { type: "boolean", descriptive: true },
+  },
+  layerattachment: {
+    renderers: { type: "object" },
+    // How an attachment sits on its host: where it is stored, where it comes in
+    // the host's build (and so render) order, and whether it needs its siblings
+    // built first. Core reads these while assembling a host's attachments.
+    host: {
+      type: "group",
+      keys: {
+        order: { type: "number" },
+        sublayerKey: { type: "string" },
+        buildsAfterSiblings: { type: "boolean" },
+        decoratesHost: { type: "boolean" },
+      },
+    },
+    globe: {
+      type: "group",
+      keys: { suppressesHost: { type: "boolean" } },
+    },
+  },
+};
+
+/**
+ * Capabilities whose absence means something core acts on, where the default is
+ * more likely an oversight than a decision — warned about (never an error,
+ * since each is a legitimate choice for some type).
+ */
+const CONSEQUENTIAL_OMISSIONS = {
+  layertype: [
+    {
+      path: "map.stacking",
+      when: (c) => c.renderers?.map !== undefined && c.renderers.map !== false,
+      why: "a type that renders on the map but doesn't declare how it stacks is left out of 2D draw ordering entirely (declare false if that is intended)",
+    },
+  ],
+  layerattachment: [
+    {
+      path: "host.order",
+      when: (c) => c.host?.decoratesHost !== true,
+      why: "an attachment without a declared order is built (and so drawn) in whatever order plugins happen to be discovered in",
+    },
+  ],
+};
+
+/** Read a dotted path out of a capabilities object. */
+function _capAt(capabilities, path) {
+  return path
+    .split(".")
+    .reduce((o, k) => (o == null ? undefined : o[k]), capabilities);
+}
+
+/**
+ * Validate the classification capabilities against CAPABILITY_SCHEMA.
+ *
+ * Errors are returned; unknown keys and consequential omissions are logged as
+ * warnings, matching how unknown top-level manifest fields are handled.
+ */
+function validateLayerCapabilities(capabilities, pluginName, pluginType) {
+  const errors = [];
+  const schema = CAPABILITY_SCHEMA[pluginType];
+  if (
+    schema == null ||
+    capabilities == null ||
+    typeof capabilities !== "object" ||
+    Array.isArray(capabilities)
+  )
+    return errors;
+
+  const where = `Plugin '${pluginName}' (${pluginType})`;
+  const warn = (message) =>
+    logger("warn", `${where}: ${message}`, "PluginValidation");
+
+  const checkLeaf = (spec, value, path) => {
+    if (
+      (spec.type === "boolean" ||
+        spec.type === "number" ||
+        spec.type === "string") &&
+      typeof value !== spec.type
+    )
+      errors.push(`${where}: 'capabilities.${path}' must be a ${spec.type}`);
+    if (spec.type === "enum" && !spec.values.includes(value))
+      errors.push(
+        `${where}: 'capabilities.${path}' must be one of ${spec.values
+          .map((v) => JSON.stringify(v))
+          .join(", ")}`
+      );
+  };
+
+  for (const [key, value] of Object.entries(capabilities)) {
+    const spec = schema[key];
+    if (spec === undefined) {
+      warn(
+        `unknown capability 'capabilities.${key}' — core reads none of it, so it has no effect (typo?)`
+      );
+      continue;
+    }
+    if (spec.descriptive === true) {
+      checkLeaf(spec, value, key);
+      continue;
+    }
+    if (spec.type === "group" || spec.type === "booleanOrGroup") {
+      if (spec.type === "booleanOrGroup" && typeof value === "boolean")
+        continue;
+      if (value == null || typeof value !== "object" || Array.isArray(value)) {
+        errors.push(
+          `${where}: 'capabilities.${key}' must be an object${
+            spec.type === "booleanOrGroup" ? " or a boolean" : ""
+          } (${Object.keys(spec.keys).join(", ")})`
+        );
+        continue;
+      }
+      for (const [subKey, subValue] of Object.entries(value)) {
+        const subSpec = spec.keys[subKey];
+        if (subSpec === undefined) {
+          warn(
+            `unknown capability 'capabilities.${key}.${subKey}' — core reads none of it, so it has no effect (typo?)`
+          );
+          continue;
+        }
+        checkLeaf(subSpec, subValue, `${key}.${subKey}`);
+      }
+      continue;
+    }
+    checkLeaf(spec, value, key);
+  }
+
+  for (const omission of CONSEQUENTIAL_OMISSIONS[pluginType] || []) {
+    if (_capAt(capabilities, omission.path) !== undefined) continue;
+    if (!omission.when(capabilities)) continue;
+    warn(`'capabilities.${omission.path}' is not declared — ${omission.why}`);
+  }
+
+  return errors;
 }
 
 /**
@@ -643,7 +829,23 @@ function validatePluginConfig(config, pluginName, pluginType) {
         }
       }
     }
+    if (config.capabilities === undefined) {
+      // Every capability core reads then answers "no", which for `renderers`
+      // means "draws on neither surface" — legal (a header) but rarely meant.
+      logger(
+        "warn",
+        `Plugin '${pluginName}' (${pluginType}): declares no 'capabilities' — core will classify it as rendering on no surface, and out of ordering, picking and the time bar`,
+        "PluginValidation"
+      );
+    }
     if (config.capabilities !== undefined) {
+      errors.push(
+        ...validateLayerCapabilities(
+          config.capabilities,
+          pluginName,
+          pluginType
+        )
+      );
       if (
         typeof config.capabilities !== "object" ||
         Array.isArray(config.capabilities) ||
@@ -704,42 +906,6 @@ function validatePluginConfig(config, pluginName, pluginType) {
               );
             }
           }
-        }
-      }
-      // How an attachment sits on its host: where it is stored, where it comes
-      // in the host's build/render order, and whether it needs its siblings
-      // built first. Core reads these while assembling a host's attachments, so
-      // a wrong type there is silent — check the shape.
-      if (
-        config.capabilities !== null &&
-        typeof config.capabilities === "object" &&
-        !Array.isArray(config.capabilities) &&
-        config.capabilities.host !== undefined
-      ) {
-        const host = config.capabilities.host;
-        if (typeof host !== "object" || Array.isArray(host) || host === null) {
-          errors.push(
-            `Plugin '${pluginName}' (${pluginType}): 'capabilities.host' must be an object (e.g. { "order": 0, "sublayerKey": "models" })`
-          );
-        } else {
-          if (host.order !== undefined && typeof host.order !== "number")
-            errors.push(
-              `Plugin '${pluginName}' (${pluginType}): 'capabilities.host.order' must be a number`
-            );
-          if (
-            host.sublayerKey !== undefined &&
-            typeof host.sublayerKey !== "string"
-          )
-            errors.push(
-              `Plugin '${pluginName}' (${pluginType}): 'capabilities.host.sublayerKey' must be a string`
-            );
-          if (
-            host.buildsAfterSiblings !== undefined &&
-            typeof host.buildsAfterSiblings !== "boolean"
-          )
-            errors.push(
-              `Plugin '${pluginName}' (${pluginType}): 'capabilities.host.buildsAfterSiblings' must be a boolean`
-            );
         }
       }
     }
@@ -1263,6 +1429,8 @@ module.exports = {
   surfaceOfModuleKey,
   flattenLayerModules,
   validateLayerTypeInheritance,
+  validateLayerCapabilities,
+  CAPABILITY_SCHEMA,
   LAYER_OPS,
   ATTACHMENT_OPS,
   CONFIG_OPS,

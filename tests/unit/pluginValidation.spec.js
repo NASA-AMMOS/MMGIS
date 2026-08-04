@@ -12,6 +12,7 @@ const {
     validatePluginConfig,
     validateDependencies,
     validateLayerTypeModuleShape,
+    validateLayerCapabilities,
 } = require('../../API/pluginValidation');
 
 test.describe('validatePluginConfig - tool plugins', () => {
@@ -413,6 +414,100 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');
         expect(errors.some((e) => e.includes('defaultInteractions.click'))).toBe(true);
+    });
+});
+
+test.describe('validateLayerCapabilities - classification contract', () => {
+    // Capabilities are what core reads while partitioning every layer, so
+    // getting one wrong mis-orders or un-picks a layer with no runtime error.
+    // These are the errors that replace that silence.
+    const caps = (capabilities, type = 'layertype') =>
+        validateLayerCapabilities(capabilities, 'X', type);
+
+    test('the full built-in vocabulary passes', () => {
+        expect(
+            caps({
+                renderers: { map: { engines: ['leaflet'] }, globe: false },
+                structural: false,
+                map: {
+                    stacking: 'raster',
+                    redrawOnReorder: true,
+                    tracksLoad: false,
+                    refreshByRemake: true,
+                    stacEndpoint: 'tiles',
+                    picking: true,
+                    styling: false,
+                },
+                time: { enabled: true, histogram: true },
+                filtering: false,
+                identify: true,
+            })
+        ).toEqual([]);
+    });
+
+    test('time may be a plain boolean', () => {
+        expect(caps({ time: true })).toEqual([]);
+        expect(caps({ time: 'yes' }).length).toBe(1);
+    });
+
+    test('a wrong leaf type is an error, naming its full path', () => {
+        const errors = caps({ map: { picking: 'true' } });
+        expect(errors.some((e) => e.includes("'capabilities.map.picking'"))).toBe(true);
+    });
+
+    test('a value outside an enum is an error', () => {
+        expect(caps({ map: { stacking: 'top' } }).length).toBe(1);
+        expect(caps({ map: { stacking: false } })).toEqual([]);
+        expect(caps({ map: { stacEndpoint: 'elevation' } }).length).toBe(1);
+    });
+
+    test('an unknown capability warns rather than failing', () => {
+        // Forward compatibility: a capability this MMGIS doesn't know may be
+        // read by a newer one, so a typo is a warning, not a build break.
+        expect(caps({ retainOnHide: true })).toEqual([]);
+        expect(caps({ map: { stackign: 'raster' } })).toEqual([]);
+    });
+
+    test('attachment host capabilities are checked against their own schema', () => {
+        expect(
+            caps(
+                {
+                    renderers: { map: { engines: ['leaflet'] } },
+                    host: {
+                        order: 3,
+                        sublayerKey: 'models',
+                        buildsAfterSiblings: true,
+                        decoratesHost: false,
+                    },
+                    globe: { suppressesHost: true },
+                },
+                'layerattachment'
+            )
+        ).toEqual([]);
+        expect(
+            caps({ host: { order: 'first' } }, 'layerattachment').length
+        ).toBe(1);
+        // A layertype has no host, and an attachment no map stacking.
+        expect(caps({ host: { order: 3 } })).toEqual([]);
+    });
+
+    test('every core layertype and attachment manifest validates', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const root = path.resolve(__dirname, '../../plugins/core');
+        for (const [dir, type] of [
+            ['layertypes', 'layertype'],
+            ['layerattachments', 'layerattachment'],
+        ]) {
+            for (const name of fs.readdirSync(path.join(root, dir))) {
+                const manifestPath = path.join(root, dir, name, 'plugin.json');
+                if (!fs.existsSync(manifestPath)) continue;
+                const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                expect(
+                    validateLayerCapabilities(manifest.capabilities, name, type)
+                ).toEqual([]);
+            }
+        }
     });
 });
 
