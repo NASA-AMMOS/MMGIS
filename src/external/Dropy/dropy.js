@@ -65,9 +65,14 @@ export default {
                 const bcr = initialDropyElm.get(0).getBoundingClientRect()
                 elm.css({
                     position: 'fixed',
+                    // Above #topBar (z-index 2005): the list is appended to <body>,
+                    // so without this it renders beneath the topbar stacking context.
+                    zIndex: 2010,
                     left: bcr.left + 5,
                     right: bcr.right,
-                    top: bcr.top,
+                    // Open below the trigger rather than overlapping it (bcr.top would
+                    // pin the list behind the topbar the trigger lives in).
+                    top: bcr.bottom,
                     width: bcr.width,
                 })
                 const bcr2 = elm.find('ul').get(0).getBoundingClientRect()
