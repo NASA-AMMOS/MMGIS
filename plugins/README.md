@@ -235,7 +235,7 @@ This clones the repository into `plugins/org--mmgis-geo-plugins/`. The container
 
 ### By Registry Name
 
-If the argument isn't a URL or existing path, the CLI looks it up in `plugin-registries.json` by name:
+If the argument isn't a URL or existing path, the CLI looks it up in `plugin-cli/registries.json` by name:
 
 ```bash
 # First, register a source (or use a pre-populated registries file)
@@ -307,7 +307,9 @@ npm run plugins -- create tool AnotherTool --container my-plugins
 npm run plugins -- create interaction CoreInteraction --container core --force
 ```
 
-This scaffolds the directory structure, `plugin.json`, entry point, CSS, and a test spec. Frontend plugins are auto-activated.
+This scaffolds the directory structure, `plugin.json`, entry point, CSS, and a test spec. Frontend plugins are auto-activated. The scaffolds themselves are real files under `plugin-cli/scaffolds/<type>/`, so reading one is the same as reading what you will get.
+
+> **Everything but `core/` is gitignored** (`.gitignore`: `/plugins/*`, `!/plugins/core/`), because a container is normally an installed repo with its own history. A plugin you scaffold into your own container is therefore untracked in *this* repo: commit it in its own repo, or `git add -f` if you deliberately want it in an MMGIS branch.
 
 ### Tool Template
 
@@ -486,6 +488,15 @@ export default FeatureGlow
 ```
 
 After editing, set `interactionId`, `phase`, and `order`, then run `npm run build` (or `npm run plugins -- activate`) to regenerate `src/pre/interactions.js`. If the interaction depends on a tool, declare it in `pluginDependencies` (e.g. `["core/tools/Info"]`) — it will be excluded from the generated file if that dependency isn't enabled.
+
+### Layer Type and Layer Attachment Templates
+
+`create layertype` and `create layerattachment` scaffold these two families, but their contracts are large enough to have their own documents, and each is written against the scaffold it hands you:
+
+- **[`core/layertypes/README.md`](./core/layertypes/README.md)** — the render surfaces (`map`, `globe.<engine>`) and their operation vocabulary, the `config`/`filter`/`time` surfaces, `extends`, single-file types, and the capability table.
+- **[`core/layerattachments/README.md`](./core/layerattachments/README.md)** — `configPath`, `applicableLayerTypes`, the attachment operations and the core default each replaces, host capabilities, and a worked example.
+
+The layertype scaffold is deliberately map-only (`"globe": false`, `"modules": {"map": "./map"}`). A globe-capable type adds `globe/<engine>.js` and declares it under `modules.globe`; `core/layertypes/ThreeDTiles` is the smallest example of one.
 
 ---
 
@@ -811,7 +822,7 @@ See `API/pluginValidation.js` for the implementation.
 
 ## Registries
 
-`plugin-registries.json` tracks known plugin sources. When you `install` a git-based plugin repo, it is automatically added. Local paths are validated on `registry add`.
+`plugin-cli/registries.json` tracks known plugin sources. When you `install` a git-based plugin repo, it is automatically added. Local paths are validated on `registry add`.
 
 ```bash
 npm run plugins -- registry add https://github.com/org/mmgis-plugins.git

@@ -276,7 +276,12 @@ function _capAt(capabilities, path) {
  * Errors are returned; unknown keys and consequential omissions are logged as
  * warnings, matching how unknown top-level manifest fields are handled.
  */
-function validateLayerCapabilities(capabilities, pluginName, pluginType) {
+function validateLayerCapabilities(
+  capabilities,
+  pluginName,
+  pluginType,
+  inheritsCapabilities = false
+) {
   const errors = [];
   const schema = CAPABILITY_SCHEMA[pluginType];
   if (
@@ -345,7 +350,11 @@ function validateLayerCapabilities(capabilities, pluginName, pluginType) {
     checkLeaf(spec, value, key);
   }
 
-  for (const omission of CONSEQUENTIAL_OMISSIONS[pluginType] || []) {
+  // A type that `extends` another inherits the parent's capabilities at
+  // runtime, so an omission here is not necessarily one.
+  for (const omission of inheritsCapabilities
+    ? []
+    : CONSEQUENTIAL_OMISSIONS[pluginType] || []) {
     if (_capAt(capabilities, omission.path) !== undefined) continue;
     if (!omission.when(capabilities)) continue;
     warn(`'capabilities.${omission.path}' is not declared — ${omission.why}`);
@@ -842,7 +851,8 @@ function validatePluginConfig(config, pluginName, pluginType) {
         ...validateLayerCapabilities(
           config.capabilities,
           pluginName,
-          pluginType
+          pluginType,
+          typeof config.extends === "string" && config.extends.trim() !== ""
         )
       );
       if (

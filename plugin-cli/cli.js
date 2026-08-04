@@ -660,7 +660,7 @@ function cmdInstall(target) {
         }
 
         // Auto-register in registries if not already present.
-        if (!FLAG_JSON) step(2, 3, "Registering in plugin-registries.json");
+        if (!FLAG_JSON) step(2, 3, "Registering in plugin-cli/registries.json");
         const registries = loadRegistries();
         const existing = registries.registries.find((r) => r.url === target);
         if (!existing) {
@@ -1782,8 +1782,7 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("2.")} Set ${c.cyan("interactionId")}, ${c.cyan("phase")}, and ${c.cyan("order")} in ${c.cyan("plugin.json")}`);
         console.log(`    ${c.dim("3.")} Run ${c.cyan("npm run build")} to regenerate interactions`);
     } else if (type === "layertype") {
-        const lower = name[0].toLowerCase() + name.slice(1);
-        console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan(`map/${lower}.js`)} (add globe modules + declare their engines in ${c.cyan("plugin.json")} as needed)`);
+        console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan("map.js")} (for the globe, add ${c.cyan("globe/<engine>.js")} and declare it under ${c.cyan('"modules": {"globe": …}')} in ${c.cyan("plugin.json")} — see ${c.cyan("plugins/core/layertypes/README.md")})`);
         console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("config")} fields in ${c.cyan("plugin.json")}`);
         console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("modules")} to regenerate the layer registries`);
         console.log(`    ${c.dim("4.")} Run ${c.cyan("npm run plugins -- validate")} to check the contract`);
