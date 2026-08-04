@@ -262,6 +262,177 @@ const CONSEQUENTIAL_OMISSIONS = {
   ],
 };
 
+/**
+ * The component types Configure's Maker can render (`configure/src/core/Maker.js`).
+ * A type outside this set renders nothing at all — the row appears with a hole in
+ * it — so it is an error rather than a warning.
+ */
+const METACONFIG_COMPONENT_TYPES = new Set([
+  "gap",
+  "text",
+  "textnotrim",
+  "button",
+  "textarray",
+  "markdown",
+  "json",
+  "number",
+  "checkbox",
+  "slider",
+  "switch",
+  "dropdown",
+  "searchdropdown",
+  "colordropdown",
+  "colorpicker",
+  "layerMultiSelect",
+  "objectarray",
+  "interactions",
+  "map",
+  "videopreview",
+  "themepreview",
+  "defaulttooldropdown",
+]);
+
+/** Component types that display something rather than edit a field. */
+const METACONFIG_FIELDLESS_TYPES = new Set([
+  "gap",
+  "button",
+  "interactions",
+  "map",
+  "videopreview",
+  "themepreview",
+]);
+
+/** Component types whose control is empty without `options`. */
+const METACONFIG_OPTION_TYPES = new Set([
+  "dropdown",
+  "searchdropdown",
+  "colordropdown",
+]);
+
+/**
+ * Validate a plugin's `config` metaconfig — the Configure-page form it declares.
+ *
+ * This is the part of a manifest that fails quietly: Maker skips a component it
+ * can't render and writes wherever `field` points, so a typo'd type or a field
+ * outside the subtree core reads produces a form that looks fine and configures
+ * nothing.
+ *
+ * @param {object} metaconfig - `config` from plugin.json
+ * @param {string} pluginName
+ * @param {string} pluginType
+ * @param {string|null} configPath - an attachment's owned subtree, if any
+ * @returns {string[]} errors
+ */
+function validateMetaconfig(
+  metaconfig,
+  pluginName,
+  pluginType,
+  configPath = null
+) {
+  const errors = [];
+  if (metaconfig == null || typeof metaconfig !== "object") return errors;
+  const where = `Plugin '${pluginName}' (${pluginType})`;
+
+  const validateRows = (rows, label) => {
+    if (rows === undefined) return;
+    if (!Array.isArray(rows)) {
+      errors.push(`${where}: '${label}' must be an array of rows`);
+      return;
+    }
+    rows.forEach((row, i) => {
+      const rowLabel = `${label}[${i}]`;
+      if (row == null || typeof row !== "object" || Array.isArray(row)) {
+        errors.push(`${where}: '${rowLabel}' must be an object`);
+        return;
+      }
+      if (row.components === undefined) {
+        if (row.name === undefined && row.subname === undefined)
+          errors.push(
+            `${where}: '${rowLabel}' has neither 'components' nor a 'name'/'subname' — it renders as nothing`
+          );
+        return;
+      }
+      if (!Array.isArray(row.components)) {
+        errors.push(`${where}: '${rowLabel}.components' must be an array`);
+        return;
+      }
+      row.components.forEach((com, j) => {
+        const comLabel = `${rowLabel}.components[${j}]`;
+        if (com == null || typeof com !== "object" || Array.isArray(com)) {
+          errors.push(`${where}: '${comLabel}' must be an object`);
+          return;
+        }
+        if (!METACONFIG_COMPONENT_TYPES.has(com.type)) {
+          errors.push(
+            `${where}: '${comLabel}.type' is '${com.type}' — Configure renders none such (one of: ${[
+              ...METACONFIG_COMPONENT_TYPES,
+            ].join(", ")})`
+          );
+          return;
+        }
+        if (!METACONFIG_FIELDLESS_TYPES.has(com.type)) {
+          if (typeof com.field !== "string" || com.field.length === 0)
+            errors.push(
+              `${where}: '${comLabel}.field' is required for type '${com.type}' — without it the control edits nothing`
+            );
+          else if (
+            configPath != null &&
+            !com.field.startsWith(configPath) &&
+            !com.field.startsWith(`${configPath}.`)
+          )
+            errors.push(
+              `${where}: '${comLabel}.field' ('${com.field}') is outside this plugin's 'configPath' ('${configPath}') — core reads only that subtree, so the setting would be written and never read`
+            );
+        }
+        if (
+          METACONFIG_OPTION_TYPES.has(com.type) &&
+          !Array.isArray(com.options) &&
+          typeof com.options !== "string"
+        )
+          errors.push(
+            `${where}: '${comLabel}.options' is required for type '${com.type}'`
+          );
+        if (com.type === "objectarray" && !Array.isArray(com.object))
+          errors.push(
+            `${where}: '${comLabel}.object' must be an array describing each item's fields`
+          );
+        if (com.width !== undefined) {
+          if (
+            typeof com.width !== "number" ||
+            !Number.isInteger(com.width) ||
+            com.width < 1 ||
+            com.width > 12
+          )
+            errors.push(
+              `${where}: '${comLabel}.width' must be an integer from 1 to 12 (Configure lays rows out on a 12-column grid)`
+            );
+        }
+      });
+    });
+  };
+
+  validateRows(metaconfig.rows, "config.rows");
+
+  if (metaconfig.tabs !== undefined) {
+    if (!Array.isArray(metaconfig.tabs)) {
+      errors.push(`${where}: 'config.tabs' must be an array of tabs`);
+    } else {
+      metaconfig.tabs.forEach((tab, i) => {
+        const tabLabel = `config.tabs[${i}]`;
+        if (tab == null || typeof tab !== "object" || Array.isArray(tab)) {
+          errors.push(`${where}: '${tabLabel}' must be an object`);
+          return;
+        }
+        if (typeof tab.name !== "string" || tab.name.length === 0)
+          errors.push(`${where}: '${tabLabel}.name' is required`);
+        validateRows(tab.rows, `${tabLabel}.rows`);
+      });
+    }
+  }
+
+  return errors;
+}
+
 /** Read a dotted path out of a capabilities object. */
 function _capAt(capabilities, path) {
   return path
@@ -1044,6 +1215,18 @@ function validatePluginConfig(config, pluginName, pluginType) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'config' must be an inline object describing the Configure-page form`
       );
+    } else {
+      errors.push(
+        ...validateMetaconfig(
+          config.config,
+          pluginName,
+          pluginType,
+          pluginType === "layerattachment" &&
+            typeof config.configPath === "string"
+            ? config.configPath
+            : null
+        )
+      );
     }
     if (
       pluginType === "layerattachment" &&
@@ -1058,6 +1241,9 @@ function validatePluginConfig(config, pluginName, pluginType) {
 
   // For tools and components, both `name` and `paths` are required.
   if (pluginType === "tool" || pluginType === "component") {
+    errors.push(
+      ...validateMetaconfig(config.config, pluginName, pluginType)
+    );
     if (typeof config.name !== "string" || config.name.length === 0) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): missing required 'name' field (must be a non-empty string)`
@@ -1434,6 +1620,7 @@ module.exports = {
   flattenLayerModules,
   validateLayerTypeInheritance,
   validateLayerCapabilities,
+  validateMetaconfig,
   CAPABILITY_SCHEMA,
   LAYER_OPS,
   ATTACHMENT_OPS,

@@ -255,6 +255,83 @@ function parsePreImports(filePath) {
     return names;
 }
 
+/** The generated registry file for each frontend plugin family. */
+function preFileFor(type) {
+    const FILES = {
+        tools: "tools.js",
+        components: "components.js",
+        interactions: "interactions.js",
+        layertypes: "layertypes.js",
+        layerattachments: "layerattachments.js",
+    };
+    return FILES[type]
+        ? path.join(__dirname, "..", "src", "pre", FILES[type])
+        : null;
+}
+
+/**
+ * Enabled frontend plugins missing from src/pre/, and registered plugins whose
+ * directory is gone — either way the registries are stale and `activate` hasn't
+ * been run since.
+ *
+ * @returns {string[]} human-readable warnings
+ */
+function findStaleRegistrations(plugins, state) {
+    const messages = [];
+    const contents = new Map();
+    const registryOf = (type) => {
+        if (!contents.has(type)) {
+            const file = preFileFor(type);
+            let src = null;
+            try {
+                src = file ? fs.readFileSync(file, "utf8") : null;
+            } catch { /* not generated yet */ }
+            contents.set(type, src);
+        }
+        return contents.get(type);
+    };
+
+    const enabledIds = new Set(
+        plugins.filter((p) => isPluginEnabled(p, state)).map((p) => p.id)
+    );
+
+    for (const p of plugins) {
+        if (!p.manifest || preFileFor(p.type) == null) continue;
+        if (!isPluginEnabled(p, state)) continue;
+        // An unmet plugin dependency already warns, and generation deliberately
+        // skips the plugin, so don't say it twice.
+        const deps = p.manifest.pluginDependencies;
+        if (Array.isArray(deps) && deps.some((d) => !enabledIds.has(d))) continue;
+
+        const src = registryOf(p.type);
+        if (src == null) {
+            messages.push(`${p.id}: src/pre/ has no ${p.type} registry yet — the plugin is not loaded`);
+            continue;
+        }
+        // A registered plugin appears either as an import of one of its modules
+        // or — for a structural type, which has none — as its uuid in the
+        // embedded config.
+        const registered =
+            src.includes(`plugins/${p.container}/${p.type}/${p.name}/`) ||
+            (p.manifest.uuid && src.includes(p.manifest.uuid));
+        if (!registered)
+            messages.push(`${p.id}: valid but absent from src/pre/${path.basename(preFileFor(p.type))} — the app will not load it`);
+    }
+
+    // The reverse: a registry importing a plugin nobody discovers.
+    for (const type of ["tools", "components", "interactions", "layertypes", "layerattachments"]) {
+        const src = registryOf(type);
+        if (src == null) continue;
+        for (const m of src.matchAll(/from ['"]\.\.\/\.\.\/(plugins\/[^'"]+)['"]/g)) {
+            const dir = path.join(__dirname, "..", path.dirname(m[1]));
+            if (!fs.existsSync(dir) && !fs.existsSync(`${dir}.js`))
+                messages.push(`src/pre/${path.basename(preFileFor(type))}: imports ${m[1]} which no longer exists`);
+        }
+    }
+
+    return messages;
+}
+
 /**
  * Re-generate src/pre/tools.js and src/pre/components.js so that newly
  * installed (or removed) frontend plugins are picked up by webpack without
@@ -1319,10 +1396,20 @@ function cmdValidate() {
         errors++;
     }
 
+    // A valid plugin that isn't in the generated registries is invisible to the
+    // app with no error anywhere, so say so here rather than letting the author
+    // hunt for it.
+    const staleMessages = findStaleRegistrations(plugins, state);
+    for (const msg of staleMessages) {
+        if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.yellow(msg)}`);
+    }
+    if (staleMessages.length > 0 && !FLAG_JSON)
+        console.log(`  ${c.dim("Run")} ${c.cyan("npm run plugins -- activate")} ${c.dim("to regenerate src/pre/.")}`);
+
     const totalPlugins = plugins.length;
 
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, staleMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }
@@ -1332,6 +1419,7 @@ function cmdValidate() {
         if (warnings > 0) console.log(`  ${c.yellow(String(warnings))} disabled plugin(s).`);
         if (depWarnings > 0) console.log(`  ${c.yellow(String(depWarnings))} plugin dependency warning(s).`);
         if (interactionWarnings > 0) console.log(`  ${c.yellow(String(interactionWarnings))} interaction warning(s).`);
+        if (staleMessages.length > 0) console.log(`  ${c.yellow(String(staleMessages.length))} plugin(s) not in the generated registries.`);
     } else {
         console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(totalPlugins))} plugin(s). ${c.green(`${passed} passed`)}.`);
         process.exit(1);

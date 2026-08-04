@@ -723,3 +723,41 @@ test.describe('CLI enable-all / disable-all', () => {
         expect(result.skippedRequired).toBe(0); // fixture plugins aren't required
     });
 });
+
+// ─── stale registries ────────────────────────────────────────────────────────
+
+test.describe('CLI validate reports stale registries', () => {
+    // The fixture's manifests spell out their own container, so it has to keep
+    // its name for the generated import paths to match.
+    const CONTAINER = 'test-plugin-repo';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        cleanupState([`${CONTAINER}/tools/TestPlugin`, `${CONTAINER}/tools/SecondPlugin`]);
+        runCli('activate');
+    });
+
+    test('a plugin copied in without activate is reported, and cleared by activate', () => {
+        const dest = path.join(PLUGINS_ROOT, CONTAINER);
+        fs.cpSync(FIXTURE_REPO, dest, { recursive: true });
+
+        const stale = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            stale.staleMessages.some((m) => m.includes(`${CONTAINER}/tools/TestPlugin`))
+        ).toBe(true);
+
+        runCli('activate');
+        const fresh = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            fresh.staleMessages.some((m) => m.includes(CONTAINER))
+        ).toBe(false);
+    });
+
+    test('a registered plugin whose directory is gone is reported', () => {
+        runCli('activate');
+        cleanupContainer(CONTAINER);
+
+        const gone = JSON.parse(runCli('validate --json').stdout);
+        expect(gone.staleMessages.some((m) => m.includes(CONTAINER))).toBe(true);
+    });
+});

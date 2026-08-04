@@ -13,6 +13,7 @@ const {
     validateDependencies,
     validateLayerTypeModuleShape,
     validateLayerCapabilities,
+    validateMetaconfig,
 } = require('../../API/pluginValidation');
 
 test.describe('validatePluginConfig - tool plugins', () => {
@@ -568,5 +569,108 @@ test.describe('validateLayerTypeModuleShape - renderer module contract', () => {
         }`;
         const errs = validateLayerTypeModuleShape(src, 'x');
         expect(errs.some((e) => e.includes("unknown operation 'destory'"))).toBe(true);
+    });
+});
+
+test.describe('validateMetaconfig - the Configure form a manifest declares', () => {
+    const rows = (components) => ({ rows: [{ subname: 'X', components }] });
+
+    test('a valid form returns no errors', () => {
+        const errs = validateMetaconfig(
+            rows([
+                { field: 'a.b', name: 'B', type: 'text', width: 6 },
+                { field: 'a.c', name: 'C', type: 'dropdown', options: ['x'] },
+                { type: 'gap', description: 'spacer' },
+            ]),
+            'P',
+            'tool'
+        );
+        expect(errs).toEqual([]);
+    });
+
+    test('an unrenderable component type is an error', () => {
+        const errs = validateMetaconfig(
+            rows([{ field: 'a.b', type: 'textfield' }]),
+            'P',
+            'tool'
+        );
+        expect(errs.length).toBe(1);
+        expect(errs[0]).toContain("is 'textfield'");
+    });
+
+    test('a control with no field is an error, but a display component is fine', () => {
+        expect(
+            validateMetaconfig(rows([{ type: 'switch' }]), 'P', 'tool').length
+        ).toBe(1);
+        expect(
+            validateMetaconfig(rows([{ type: 'themepreview' }]), 'P', 'tool')
+        ).toEqual([]);
+    });
+
+    test('a dropdown with no options and an objectarray with no object are errors', () => {
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'dropdown' }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'objectarray' }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+    });
+
+    test('width must fit the 12-column grid', () => {
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'text', width: 13 }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+    });
+
+    test("an attachment field outside its configPath is an error", () => {
+        const errs = validateMetaconfig(
+            rows([{ field: 'variables.other.enabled', type: 'switch' }]),
+            'P',
+            'layerattachment',
+            'variables.layerAttachments.p'
+        );
+        expect(errs.length).toBe(1);
+        expect(errs[0]).toContain('outside');
+
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'variables.layerAttachments.p.enabled',
+                        type: 'switch',
+                    },
+                ]),
+                'P',
+                'layerattachment',
+                'variables.layerAttachments.p'
+            )
+        ).toEqual([]);
+    });
+
+    test('a row that renders nothing is an error', () => {
+        const errs = validateMetaconfig({ rows: [{}] }, 'P', 'tool');
+        expect(errs.length).toBe(1);
+        expect(errs[0]).toContain('renders as nothing');
+    });
+
+    test('tabs are validated like rows, and need a name', () => {
+        const errs = validateMetaconfig(
+            { tabs: [{ rows: [{ components: [{ type: 'nope' }] }] }] },
+            'P',
+            'layertype'
+        );
+        expect(errs.length).toBe(2);
     });
 });
