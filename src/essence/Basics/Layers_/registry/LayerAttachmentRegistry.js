@@ -8,9 +8,8 @@
  * the single runtime entry point for attachment render/lifecycle dispatch.
  *
  * Generated shape (src/pre/layerattachments.js):
- *   layerAttachmentModules  = { [attachmentId]: { map, globe: { … }, … } }
+ *   layerAttachmentModules  = { [attachmentId]: { module } }
  *   layerAttachmentConfigs  = { [attachmentId]: <manifest> }
- *   layerAttachmentSettings = { [attachmentId]: <parsed settings.json> }
  *
  * @module LayerAttachmentRegistry
  */
@@ -45,12 +44,11 @@ const LayerAttachmentRegistry = {
      *
      * An attachment is one renderable that may straddle both engines (an
      * uncertainty ellipse is a map overlay AND two globe layers), so unlike a
-     * layer type it declares a single module (`paths.plugin`) rather than one
-     * per surface.
+     * layer type it declares a single `module` rather than one per surface.
      */
     module(attachmentId) {
         const mods = _load().layerAttachmentModules?.[attachmentId]
-        return mods?.plugin || null
+        return mods?.module || null
     },
     /** True if this attachment draws anything on the 2D map at all. */
     rendersOnMap(attachmentId) {
@@ -59,10 +57,6 @@ const LayerAttachmentRegistry = {
     /** Full plugin manifest for an attachment. */
     getConfig(attachmentId) {
         return _load().layerAttachmentConfigs?.[attachmentId]
-    },
-    /** Declarative runtime-settings schema (parsed settings.json), if any. */
-    getSettings(attachmentId) {
-        return _load().layerAttachmentSettings?.[attachmentId]
     },
     /** Declared capabilities object for an attachment. */
     capabilities(attachmentId) {

@@ -1,8 +1,10 @@
 {
+  "uuid": "f8be72f7-1380-4f97-a48a-bbd8bc362b56",
+  "id": "core-layertype-header",
   "name": "Header",
   "type": "layertype",
   "typeId": "header",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#2c2f30",

@@ -1,8 +1,10 @@
 {
+  "uuid": "19bdbad0-e583-4475-8e9e-60187f75ff9d",
+  "id": "core-layerattachment-path-gradient",
   "name": "PathGradient",
   "type": "layerattachment",
   "attachmentId": "path_gradient",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "configPath": "variables.pathAttachments.gradient",
@@ -89,8 +91,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./pathGradient"
-  },
+  "module": "./pathGradient",
   "applicableLayerTypes": ["vector", "query"]
 }

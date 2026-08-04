@@ -33,6 +33,25 @@ const PLUGINS_ROOT = path.resolve(__dirname);
 const REGISTRIES_PATH = path.join(PLUGINS_ROOT, "plugin-registries.json");
 const STATE_PATH = path.join(PLUGINS_ROOT, "plugin-state.json");
 const CORE_CONTAINER = "core";
+// Every plugin family, by the directory a container holds them in. Layer types
+// and layer attachments are in here too: core's are `overridable: false` and so
+// can never be disabled, but a third-party one is a plugin like any other.
+const PLUGIN_TYPE_DIRS = [
+    "tools",
+    "backend",
+    "components",
+    "interactions",
+    "layertypes",
+    "layerattachments",
+];
+const PLUGIN_TYPE_SINGULAR = {
+    tools: "tool",
+    backend: "backend",
+    components: "component",
+    interactions: "interaction",
+    layertypes: "layertype",
+    layerattachments: "layerattachment",
+};
 
 // ---------------------------------------------------------------------------
 // CLI flags — parsed early so colour helpers can reference them.
@@ -245,13 +264,18 @@ function parsePreImports(filePath) {
 function activate({ expectChanges = false, silent = false } = {}) {
     try {
         const repoRoot = path.resolve(__dirname, "..");
-        const toolsFile = path.join(repoRoot, "src", "pre", "tools.js");
-        const componentsFile = path.join(repoRoot, "src", "pre", "components.js");
-        const interactionsFile = path.join(repoRoot, "src", "pre", "interactions.js");
+        const preFile = (f) => path.join(repoRoot, "src", "pre", f);
+        const FRONTEND_PRE = {
+            tool: preFile("tools.js"),
+            component: preFile("components.js"),
+            interaction: preFile("interactions.js"),
+            layertype: preFile("layertypes.js"),
+            layerattachment: preFile("layerattachments.js"),
+        };
 
-        const beforeTools = parsePreImports(toolsFile);
-        const beforeComponents = parsePreImports(componentsFile);
-        const beforeInteractions = parsePreImports(interactionsFile);
+        const before = {};
+        for (const [type, file] of Object.entries(FRONTEND_PRE))
+            before[type] = parsePreImports(file);
 
         // Suppress logger console output during regeneration.
         const origWrite = process.stdout.write;
@@ -262,40 +286,35 @@ function activate({ expectChanges = false, silent = false } = {}) {
             console.log = () => {};
             console.error = () => {};
 
-            const { updateTools, updateComponents, updateInteractions } = require("../API/updateTools");
+            const {
+                updateTools,
+                updateComponents,
+                updateInteractions,
+                updateLayerTypes,
+                updateLayerAttachments,
+            } = require("../API/updateTools");
             updateTools();
             updateComponents();
             updateInteractions();
+            updateLayerTypes();
+            updateLayerAttachments();
         } finally {
             process.stdout.write = origWrite;
             console.log = origLog;
             console.error = origError;
         }
 
-        const afterTools = parsePreImports(toolsFile);
-        const afterComponents = parsePreImports(componentsFile);
-        const afterInteractions = parsePreImports(interactionsFile);
-
         // Compute diffs.
         const added = [];
         const removed = [];
-        for (const name of afterTools) {
-            if (!beforeTools.has(name)) added.push({ name, type: "tool" });
-        }
-        for (const name of afterComponents) {
-            if (!beforeComponents.has(name)) added.push({ name, type: "component" });
-        }
-        for (const name of afterInteractions) {
-            if (!beforeInteractions.has(name)) added.push({ name, type: "interaction" });
-        }
-        for (const name of beforeTools) {
-            if (!afterTools.has(name)) removed.push({ name, type: "tool" });
-        }
-        for (const name of beforeComponents) {
-            if (!afterComponents.has(name)) removed.push({ name, type: "component" });
-        }
-        for (const name of beforeInteractions) {
-            if (!afterInteractions.has(name)) removed.push({ name, type: "interaction" });
+        for (const [type, file] of Object.entries(FRONTEND_PRE)) {
+            const after = parsePreImports(file);
+            for (const name of after) {
+                if (!before[type].has(name)) added.push({ name, type });
+            }
+            for (const name of before[type]) {
+                if (!after.has(name)) removed.push({ name, type });
+            }
         }
 
         if (!silent) {
@@ -331,7 +350,7 @@ function activate({ expectChanges = false, silent = false } = {}) {
  */
 function discoverAll() {
     const plugins = [];
-    const TYPES = ["tools", "backend", "components", "interactions"];
+    const TYPES = PLUGIN_TYPE_DIRS;
 
     let containers;
     try {
@@ -488,10 +507,7 @@ function findDependents(plugins, pluginId, state) {
  */
 function singularType(dirType, manifest) {
     if (manifest && manifest.type) return manifest.type;
-    if (dirType === "tools") return "tool";
-    if (dirType === "components") return "component";
-    if (dirType === "interactions") return "interaction";
-    return dirType;
+    return PLUGIN_TYPE_SINGULAR[dirType] || dirType;
 }
 
 /**
@@ -547,8 +563,8 @@ function cmdList() {
     }
 
     // Type display helpers — colour per type and friendly labels.
-    const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components", interactions: "Interactions" };
-    const TYPE_COLOR = { tools: c.cyan, backend: c.yellow, components: c.green, interactions: c.magenta };
+    const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components", interactions: "Interactions", layertypes: "Layer Types", layerattachments: "Layer Attachments" };
+    const TYPE_COLOR = { tools: c.cyan, backend: c.yellow, components: c.green, interactions: c.magenta, layertypes: c.blue, layerattachments: c.blue };
 
     // Compute column widths for alignment (name only, since type is a header).
     let maxName = 0;
@@ -561,7 +577,7 @@ function cmdList() {
 
     let enabledCount = 0;
     let disabledCount = 0;
-    const TYPE_ORDER = ["tools", "backend", "components", "interactions"];
+    const TYPE_ORDER = PLUGIN_TYPE_DIRS;
 
     for (const [container, types] of Object.entries(groups)) {
         console.log(`\n  ${c.bold(c.white(container + "/"))}`);
@@ -718,8 +734,7 @@ function cmdInstall(target) {
 
         // Warn about flat repo structure (no tools/backend/components subdir).
         if (plugins.length === 0) {
-            const TYPES = ["tools", "backend", "components", "interactions"];
-            const hasTypeDir = TYPES.some((t) =>
+            const hasTypeDir = PLUGIN_TYPE_DIRS.some((t) =>
                 fs.existsSync(path.join(dest, t))
             );
             if (!hasTypeDir) {
@@ -1111,8 +1126,7 @@ function cmdValidate() {
             continue;
         }
 
-        const typeMap = { tools: "tool", components: "component", backend: "backend", interactions: "interaction" };
-        const validationType = typeMap[p.type] || p.type;
+        const validationType = PLUGIN_TYPE_SINGULAR[p.type] || p.type;
 
         const errs = validatePluginConfig(p.manifest, p.name, validationType);
         if (errs.length > 0) {
@@ -1236,94 +1250,67 @@ function cmdValidate() {
         }
     }
 
-    // Layer-type / layer-attachment renderer contract validation. These plugin
-    // categories aren't part of discoverAll()'s enable/disable model (they are
-    // always-on core), so scan them directly and validate both the manifest and
-    // each renderer module's `export default {}` operation shape.
+    // Layer-type / layer-attachment renderer contract validation: on top of the
+    // manifest check every family gets above, each declared module's
+    // `export default {}` operation shape is checked against its surface.
     const {
         validateLayerTypeModuleShape,
-        surfaceOfPathKey,
+        surfaceOfModuleKey,
+        flattenLayerModules,
         validateLayerTypeInheritance,
     } = require(
         path.join(__dirname, "..", "API", "pluginValidation")
     );
-    let rendererPlugins = [];
-    try {
-        for (const container of fs.readdirSync(PLUGINS_ROOT)) {
-            for (const cat of ["layertypes", "layerattachments"]) {
-                const catPath = path.join(PLUGINS_ROOT, container, cat);
-                let entries;
-                try {
-                    entries = fs.readdirSync(catPath, { withFileTypes: true });
-                } catch {
-                    continue;
-                }
-                const pType = cat === "layertypes" ? "layertype" : "layerattachment";
-                for (const entry of entries) {
-                    if (!entry.isDirectory() || entry.name[0] === "_" || entry.name[0] === ".") continue;
-                    const pluginPath = path.join(catPath, entry.name);
-                    const manifestPath = path.join(pluginPath, "plugin.json");
-                    let manifest = null;
-                    try {
-                        manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-                    } catch {
-                        continue;
-                    }
-                    rendererPlugins.push({ id: `${container}/${cat}/${entry.name}`, pluginPath, manifest, pType });
-                }
-            }
-        }
-    } catch {
-        // no plugins root — nothing to validate
-    }
+    const rendererPlugins = plugins.filter(
+        (p) =>
+            p.manifest &&
+            (p.type === "layertypes" || p.type === "layerattachments")
+    );
 
     for (const p of rendererPlugins) {
         const prefix = p.id;
+        const pType = PLUGIN_TYPE_SINGULAR[p.type];
         const pluginErrors = [];
 
-        const errs = validatePluginConfig(p.manifest, p.manifest.name || p.id, p.pType);
-        for (const e of errs) {
-            pluginErrors.push(e);
-            if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
-        }
-        errors += errs.length;
-
         // Validate each declared renderer module's operation shape.
-        const paths = p.manifest.paths;
-        if (paths && typeof paths === "object" && !Array.isArray(paths)) {
-            for (const [key, rel] of Object.entries(paths)) {
-                if (typeof rel !== "string") continue;
-                const surface = surfaceOfPathKey(key, p.pType, p.manifest);
-                const modPath = path.join(p.pluginPath, `${rel}.js`);
-                let src;
-                try {
-                    src = fs.readFileSync(modPath, "utf8");
-                } catch {
-                    pluginErrors.push(`renderer module '${key}' not found at ${rel}.js`);
-                    if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(`renderer module '${key}' not found at ${rel}.js`)}`);
-                    errors++;
-                    continue;
-                }
-                // A single-module layer type exports surfaces, not operations,
-                // so there is no op vocabulary to check it against.
-                if (surface == null) continue;
-                const modErrs = validateLayerTypeModuleShape(src, `${prefix} [${key}]`, surface);
-                for (const e of modErrs) {
-                    pluginErrors.push(e);
-                    if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
-                }
-                errors += modErrs.length;
+        for (const [key, rel] of Object.entries(flattenLayerModules(p.manifest))) {
+            if (typeof rel !== "string") continue;
+            const surface = surfaceOfModuleKey(key, pType, p.manifest);
+            const modPath = path.join(p.pluginPath, `${rel}.js`);
+            let src;
+            try {
+                src = fs.readFileSync(modPath, "utf8");
+            } catch {
+                pluginErrors.push(`renderer module '${key}' not found at ${rel}.js`);
+                if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(`renderer module '${key}' not found at ${rel}.js`)}`);
+                errors++;
+                continue;
             }
+            // A single-module layer type exports surfaces, not operations,
+            // so there is no op vocabulary to check it against.
+            if (surface == null) continue;
+            const modErrs = validateLayerTypeModuleShape(src, `${prefix} [${key}]`, surface);
+            for (const e of modErrs) {
+                pluginErrors.push(e);
+                if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
+            }
+            errors += modErrs.length;
         }
 
-        if (pluginErrors.length === 0) passed++;
-        results.push({ plugin: prefix, valid: pluginErrors.length === 0, enabled: true, errors: pluginErrors });
+        if (pluginErrors.length > 0) {
+            const result = results.find((entry) => entry.plugin === prefix);
+            if (result && result.valid) {
+                result.valid = false;
+                passed--;
+            }
+            if (result) result.errors.push(...pluginErrors);
+        }
     }
     // `extends` is cross-plugin, so it can only be checked once every manifest
     // is in hand.
     const layerTypesById = {};
     for (const p of rendererPlugins) {
-        if (p.pType === "layertype" && p.manifest.typeId)
+        if (p.type === "layertypes" && p.manifest.typeId)
             layerTypesById[p.manifest.typeId] = p.manifest;
     }
     for (const e of validateLayerTypeInheritance(layerTypesById)) {
@@ -1331,7 +1318,7 @@ function cmdValidate() {
         errors++;
     }
 
-    const totalPlugins = plugins.length + rendererPlugins.length;
+    const totalPlugins = plugins.length;
 
     if (FLAG_JSON) {
         console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, results }, null, 2));
@@ -1959,7 +1946,7 @@ function _scaffoldLayertype(name) {
                 renderers: {
                     // Declares which engines this type renders through. Each
                     // engine listed here must ship a matching module under
-                    // `paths` (map → paths.map, globe → paths['globe.<engine>']).
+                    // `modules` (map → modules.map, globe → modules.globe.<engine>).
                     map: { engines: ["leaflet"] },
                     globe: false,
                 },
@@ -2027,7 +2014,7 @@ function _scaffoldLayertype(name) {
                     },
                 ],
         },
-            paths: {
+            modules: {
                 map: `./map/${lower}`,
             },
         }, null, 2) + "\n",
@@ -2077,7 +2064,7 @@ function _scaffoldLayertype(name) {
             `        expect(manifest.typeId).toBe('${typeId}')`,
             `        // Every declared renderer engine must ship a matching module.`,
             `        const r = manifest.capabilities.renderers`,
-            `        if (r.map) expect(manifest.paths.map).toBeDefined()`,
+            `        if (r.map) expect(manifest.modules.map).toBeDefined()`,
             `    })`,
             `})`,
             ``,
@@ -2289,7 +2276,7 @@ function _performDestroy(match) {
     } catch { /* ignore cleanup errors */ }
 
     if (FLAG_JSON) {
-        const isFrontend = match.type === "tools" || match.type === "components" || match.type === "interactions";
+        const isFrontend = match.type !== "backend";
         let activated = null;
         if (isFrontend) {
             activated = activate({ expectChanges: true, silent: true });
@@ -2300,7 +2287,7 @@ function _performDestroy(match) {
         }, null, 2));
     } else {
         console.log(`\n  ${c.green("Destroyed:")} ${c.cyan(match.id)}`);
-        const isFrontend = match.type === "tools" || match.type === "components" || match.type === "interactions";
+        const isFrontend = match.type !== "backend";
         if (isFrontend) {
             activate({ expectChanges: true });
             console.log(`  ${c.yellow("Note:")} If webpack-dev-server is running, restart it to clear its module cache.`);

@@ -1,8 +1,10 @@
 {
+  "uuid": "7f4676f0-e012-4e8b-975e-8ef54b2b0cf5",
+  "id": "core-layertype-image",
   "name": "Image",
   "type": "layertype",
   "typeId": "image",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#b0518f",
@@ -526,7 +528,7 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/image"
   }
 }

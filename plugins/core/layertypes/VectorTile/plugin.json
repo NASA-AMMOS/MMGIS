@@ -1,8 +1,10 @@
 {
+  "uuid": "72e95f3a-beff-44ee-988c-014f472a07ae",
+  "id": "core-layertype-vectortile",
   "name": "VectorTile",
   "type": "layertype",
   "typeId": "vectortile",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#0792c5",
@@ -1138,10 +1140,12 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/vectortile",
     "config": "./config/vectortile",
-    "globe.cesium": "./globe/cesium/vectortile",
-    "globe.lithosphere": "./globe/lithosphere/vectortile"
+    "globe": {
+      "cesium": "./globe/cesium/vectortile",
+      "lithosphere": "./globe/lithosphere/vectortile"
+    }
   }
 }

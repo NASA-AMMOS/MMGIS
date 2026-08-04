@@ -1,8 +1,10 @@
 {
+  "uuid": "9d34f867-0c15-4ee0-8b39-31b7343779ee",
+  "id": "core-layertype-velocity",
   "name": "Velocity",
   "type": "layertype",
   "typeId": "velocity",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#24807c",
@@ -620,7 +622,7 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/velocity"
   }
 }

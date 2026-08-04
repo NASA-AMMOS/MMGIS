@@ -8,6 +8,7 @@ const {
   findDuplicateInteractionIds,
   findDuplicateIds,
   validateLayerTypeInheritance,
+  flattenLayerModules,
 } = require("./pluginValidation");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 
@@ -483,17 +484,16 @@ function safeIdent(s) {
 
 /**
  * Shared generator for the two renderer-plugin kinds (`layertype` and
- * `layerattachment`). Both are structurally identical: a `paths` object of
- * static-import entries (map / globe.<engine> / capture / …), an optional
- * `settings` JSON, and an optional inline `config` object describing the
- * plugin's Configure-page form.
+ * `layerattachment`). Both declare their implementation by render surface —
+ * a layertype's `modules` ({ map, config, filter, time, globe: { <engine> } })
+ * or either kind's single `module` — plus an optional inline `config` object
+ * describing the plugin's Configure-page form.
  *
  * Produces:
  *   - configure/public/<configureFile>  → { [id]: { manifest, config } }
  *   - src/pre/<preFile>                 → static imports + generated maps:
  *       export const <configsExport>  = { [id]: manifest }
  *       export const <modulesExport>  = { [id]: { map, globe: { <engine> }, … } }
- *       export const <settingsExport> = { [id]: <parsed settings JSON> }
  *
  * Everything is keyed by the plugin's stable id (`typeId`/`attachmentId`) so
  * runtime lookup by `layerObj.type` is a direct map access.
@@ -506,7 +506,6 @@ function generateLayerRegistry({
   configureFile,
   configsExport,
   modulesExport,
-  settingsExport,
   loggerCategory,
 }) {
   let registry = {};
@@ -597,26 +596,19 @@ function generateLayerRegistry({
 
   // 2. src/pre generated module — static imports + registry maps.
   let out = "";
-  const moduleEntries = {}; // id → { paths: {key: importName}, settings: importName }
+  const moduleEntries = {}; // id → { surfaceKey: importName }
 
   for (const id in byId) {
-    const manifest = byId[id];
     const name = idToName[id];
     const pluginPath = pluginPaths[name] || null;
-    moduleEntries[id] = { paths: {}, settings: null };
+    moduleEntries[id] = {};
 
-    for (const key in manifest.paths) {
-      const resolved = resolvePluginPath(manifest.paths[key], pluginPath);
+    const declared = flattenLayerModules(byId[id]);
+    for (const key in declared) {
+      const resolved = resolvePluginPath(declared[key], pluginPath);
       const importName = `ltp_${safeIdent(id)}__${safeIdent(key)}`;
       out += `import ${importName} from '${resolved}'\n`;
-      moduleEntries[id].paths[key] = importName;
-    }
-
-    if (manifest.settings && pluginPath) {
-      const resolved = resolvePluginPath(manifest.settings, pluginPath);
-      const importName = `lts_${safeIdent(id)}`;
-      out += `import ${importName} from '${resolved}'\n`;
-      moduleEntries[id].settings = importName;
+      moduleEntries[id][key] = importName;
     }
   }
 
@@ -627,8 +619,8 @@ function generateLayerRegistry({
   out += `export const ${modulesExport} = {\n`;
   for (const id in moduleEntries) {
     const nested = {};
-    for (const key in moduleEntries[id].paths) {
-      const importName = moduleEntries[id].paths[key];
+    for (const key in moduleEntries[id]) {
+      const importName = moduleEntries[id][key];
       const segments = key.split(".");
       let cursor = nested;
       for (let i = 0; i < segments.length - 1; i++) {
@@ -656,15 +648,7 @@ function generateLayerRegistry({
   }
   out += `export const ${configsExport} = ${JSON.stringify(
     runtimeManifests
-  )}\n\n`;
-
-  out += `export const ${settingsExport} = {\n`;
-  for (const id in moduleEntries) {
-    if (moduleEntries[id].settings) {
-      out += `  '${id}': ${moduleEntries[id].settings},\n`;
-    }
-  }
-  out += "}\n";
+  )}\n`;
 
   try {
     fs.writeFileSync(`./src/pre/${preFile}`, out);
@@ -691,7 +675,6 @@ function updateLayerTypes() {
     configureFile: "layerTypeConfigs.json",
     configsExport: "layerTypeConfigs",
     modulesExport: "layerTypeModules",
-    settingsExport: "layerTypeSettings",
     loggerCategory: "LayerTypes",
   });
 }
@@ -705,7 +688,6 @@ function updateLayerAttachments() {
     configureFile: "layerAttachmentConfigs.json",
     configsExport: "layerAttachmentConfigs",
     modulesExport: "layerAttachmentModules",
-    settingsExport: "layerAttachmentSettings",
     loggerCategory: "LayerAttachments",
   });
 }

@@ -1,8 +1,10 @@
 {
+  "uuid": "6807c52b-d998-4d4b-aa21-2329c644dce2",
+  "id": "core-layerattachment-image-overlays",
   "name": "ImageOverlays",
   "type": "layerattachment",
   "attachmentId": "image_overlays",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "configPath": "variables.markerAttachments.image",
@@ -134,8 +136,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./imageOverlays"
-  },
+  "module": "./imageOverlays",
   "applicableLayerTypes": ["vector", "query"]
 }

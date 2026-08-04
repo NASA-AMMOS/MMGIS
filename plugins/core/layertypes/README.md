@@ -17,7 +17,7 @@ refresh/reload, and teardown — with no core changes.
 
 ```
 plugins/core/layertypes/<Type>/
-  plugin.json                    # manifest (identity, capabilities, paths, configure-page config, …)
+  plugin.json                    # manifest (identity, capabilities, modules, configure-page config, …)
   map/<type>.js                  # map (Leaflet) renderer module      — optional
   globe/cesium/<type>.js         # Cesium globe renderer module        — optional
   globe/lithosphere/<type>.js    # LithoSphere globe renderer module   — optional
@@ -36,13 +36,24 @@ modules:
       "globe": { "engines": ["cesium", "lithosphere"] }
     }
   },
-  "paths": {
+  "modules": {
     "map": "./map/tile",
-    "globe.cesium": "./globe/cesium/tile",
-    "globe.lithosphere": "./globe/lithosphere/tile"
+    "globe": {
+      "cesium": "./globe/cesium/tile",
+      "lithosphere": "./globe/lithosphere/tile"
+    }
   }
 }
 ```
+
+`modules` keys are **render surfaces** — `map`, `globe.<engine>`, `config`,
+`filter`, `time`, `capture` — not export names, which is why this is not the
+`paths` of tools and interactions (there a key is the export identifier a mission
+names in `"js"`). Every surface is optional: `Header` declares no modules at all
+and `Model` has no `map`.
+
+A type small enough not to want a directory of files may instead declare a single
+`"module": "./myType"` exporting the same surface keys (`{ map, globe, config, … }`).
 
 A surface a type does not support is `false` (e.g. `"map": false` for a
 globe-only type). **Startup validation cross-checks `capabilities.renderers`
@@ -172,7 +183,7 @@ The contract is enforced in two complementary layers:
 
 1. **Manifest** (`API/pluginValidation.js`, runs at startup and in the CLI):
    validates `capabilities.renderers`/`defaultInteractions` shape and
-   cross-checks declared engines ↔ the `paths` renderer modules — a type can't
+   cross-checks declared engines ↔ the `modules` renderer modules — a type can't
    claim a `map`/`globe.<engine>` renderer it ships no module for, nor ship a
    module for a surface it doesn't declare.
 2. **Module** (`node plugins/plugin-cli.js validate`): statically parses each
@@ -185,7 +196,7 @@ The contract is enforced in two complementary layers:
 
 ## Checklist for a new type
 
-1. `plugin.json` — `typeId`, `capabilities.renderers`, `paths`, `supportedData`.
+1. `plugin.json` — `typeId`, `capabilities.renderers`, `modules`, `supportedData`.
 2. Implement **`make`** for each surface you support (a bare function is fine).
 3. Add only the other operations your engine can't do uniformly for you.
 4. Prefer neutral primitives; use the raw escape hatch only when necessary.

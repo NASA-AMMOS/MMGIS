@@ -1,8 +1,10 @@
 {
+  "uuid": "573bf3e3-3b6e-404f-ab89-717da6aefea5",
+  "id": "core-layertype-3dtiles",
   "name": "ThreeDTiles",
   "type": "layertype",
   "typeId": "3dtiles",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#7a5c9e",
@@ -145,8 +147,10 @@
       }
     ]
   },
-  "paths": {
-    "globe.cesium": "./globe/cesium/threedtiles",
-    "globe.lithosphere": "./globe/lithosphere/threedtiles"
+  "modules": {
+    "globe": {
+      "cesium": "./globe/cesium/threedtiles",
+      "lithosphere": "./globe/lithosphere/threedtiles"
+    }
   }
 }

@@ -34,12 +34,16 @@ plugins/
 │   ├── tools/                 # Frontend tools (Draw, Measure, Legend, etc.)
 │   ├── backend/               # Server modules (Accounts, Config, Users, etc.)
 │   ├── components/            # UI components (OperationsClock, etc.)
-│   └── interactions/          # Feature interaction handlers (Select, InfoOpen, etc.)
+│   ├── interactions/          # Feature interaction handlers (Select, InfoOpen, etc.)
+│   ├── layertypes/            # Layer renderers (Vector, Tile, Model, etc.)
+│   └── layerattachments/      # Per-feature extras (Labels, PathGradient, etc.)
 └── <org--repo>/               # Installed from git (org--repo naming, gitignored)
     ├── tools/
     ├── backend/
     ├── components/
-    └── interactions/
+    ├── interactions/
+    ├── layertypes/
+    └── layerattachments/
 ```
 
 ## Key Files
@@ -205,6 +209,20 @@ An interaction can declare `suppresses` to replace a default when present — e.
 #### Generated file & runtime
 
 At build time, `updateInteractions()` (`API/updateTools.js`) discovers all enabled interactions, enforces `pluginDependencies` (an interaction whose dependency is missing/disabled is excluded), and generates `src/pre/interactions.js` with static imports plus the phase arrays, suppression map, and kind-alias map. The runtime executor `src/essence/Basics/InteractionRunner/InteractionRunner.js` reads that generated data — it contains **no hardcoded interaction IDs**. All orchestration lives in the manifests.
+
+### Layer Types
+
+How a layer of a given `layer.type` (`vector`, `tile`, `model`, …) is drawn and managed on each rendering surface. Directory name is plural (`layertypes/`), manifest type is singular (`"type": "layertype"`).
+
+**Required manifest fields**: `name`, `typeId` (the value a mission config's `layer.type` names), `capabilities.renderers`, and `modules` (or `module`) unless the type inherits everything through `extends`.
+
+The renderer contract — surfaces, the seven operations, phases, `extends` — is documented in [`core/layertypes/README.md`](./core/layertypes/README.md).
+
+### Layer Attachments
+
+Extra renderables and decorations built onto a host layer's features: labels, uncertainty ellipses, path gradients, bearing-oriented markers. Directory name is plural (`layerattachments/`), manifest type is singular (`"type": "layerattachment"`).
+
+**Required manifest fields**: `name`, `attachmentId`, `configPath` (the layer-config subtree the attachment owns, e.g. `variables.markerAttachments.image`), `applicableLayerTypes`, and `module`.
 
 ## Installing Plugins
 
@@ -488,7 +506,7 @@ The canonical name of the plugin. Used as the display name in the CLI, configure
 
 **Type:** `object` — `{ [entryName: string]: string }` · **Required:** Yes (tools, components, and interactions)
 
-Maps entry-point names to their file paths relative to the plugin's own directory. For tools, the key is typically `<Name>Tool`. For components, it's the component name.
+Maps entry-point names to their file paths relative to the plugin's own directory. For tools, the key is typically `<Name>Tool`. For components, it's the component name. A key here is an **export name** — it is what a mission config names in `"js"` — which is why layer types and layer attachments declare their implementation with `modules`/`module` instead: their keys are render surfaces, not identifiers.
 
 These paths are resolved at build time and written into `src/pre/tools.js` and `src/pre/components.js` as webpack imports. Use `./` prefix for paths relative to the plugin directory.
 
@@ -507,11 +525,34 @@ Plugins with multiple entry points:
 }
 ```
 
+#### `modules`
+
+**Type:** `object` — `{ [surface: string]: string | { [engine: string]: string } }` · **Applies to:** Layer types
+
+Maps the **render surfaces** a layer type implements to their modules, relative to the plugin's directory. Surfaces are `map`, `globe.<engine>`, `config`, `filter`, `time` and `capture`; all are optional, and startup validation cross-checks them against `capabilities.renderers`.
+
+```json
+"modules": {
+    "map": "./map/tile",
+    "globe": { "cesium": "./globe/cesium/tile" }
+}
+```
+
+#### `module`
+
+**Type:** `string` · **Required:** Yes (layer attachments) · **Applies to:** Layer attachments, layer types
+
+One module implementing the whole plugin. An attachment is a single renderable even when it spans both engines, so it always uses this. A layer type may use it instead of `modules` when it is small enough not to want a file per surface — the module then exports the surface keys (`{ map, globe, config, … }`).
+
+```json
+"module": "./labels"
+```
+
 ### Recommended Fields
 
 #### `type`
 
-**Type:** `string` — one of `"tool"`, `"component"`, `"backend"`, `"interaction"` · **Required:** No (inferred from directory structure)
+**Type:** `string` — one of `"tool"`, `"component"`, `"backend"`, `"interaction"`, `"layertype"`, `"layerattachment"` · **Required:** No (inferred from directory structure)
 
 Uses **singular** form even though directory names are plural (`tools/`, `components/`).
 
@@ -519,7 +560,7 @@ Uses **singular** form even though directory names are plural (`tools/`, `compon
 
 **Type:** `string`
 
-Semantic version. Core plugins use `"core"` which resolves to the MMGIS application version at runtime.
+Either a semantic version or the sentinel `"core"`, which resolves to the MMGIS application version at runtime and is what every plugin shipped in this repository uses. Any other value is a validation error.
 
 #### `defaultIcon`
 
@@ -592,7 +633,7 @@ A one-line summary. Shown in `list --json` and `info` output.
 
 #### `descriptionFull`
 
-**Type:** `object` — `{ title: string, example: object }` · **Applies to:** Tools, Components
+**Type:** `object` — `{ title: string, example: object }`
 
 Extended description with a long-form `title` and an `example` object showing all available configuration variables.
 

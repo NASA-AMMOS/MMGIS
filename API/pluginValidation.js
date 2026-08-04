@@ -12,6 +12,8 @@
  * compatible with older MMGIS versions.
  */
 
+const semver = require("semver");
+
 const logger = require("./logger");
 
 /**
@@ -78,9 +80,9 @@ const TIME_OPS = ["availability", "format", "applyTimeParams"];
 /**
  * A layer attachment is a single renderable that may straddle both engines (an
  * uncertainty ellipse is a map overlay AND two globe layers), so it declares
- * one module (`paths.plugin`) rather than one per surface, with its own
- * vocabulary, in which `make` — building itself from its host's data — is what
- * an attachment fundamentally is, and so is required.
+ * one `module` rather than one per surface, with its own vocabulary, in which
+ * `make` — building itself from its host's data — is what an attachment
+ * fundamentally is, and so is required.
  */
 const ATTACHMENT_OPS = [
   "make",
@@ -112,25 +114,59 @@ const SURFACES = {
 };
 
 /**
- * The surface a manifest `paths` key belongs to, or null if it isn't one.
+ * The surface a manifest module key belongs to, or null if it isn't one.
  *
  * @param {string} key
  * @param {string} [pluginType='layertype'] - 'layerattachment' keys all resolve
  *   to the single attachment surface.
  */
-function surfaceOfPathKey(key, pluginType = "layertype", manifest = null) {
+function surfaceOfModuleKey(key, pluginType = "layertype", manifest = null) {
   if (pluginType === "layerattachment")
     return manifest?.capabilities?.host?.decoratesHost === true
       ? "attachmentDecoration"
       : "attachment";
-  // A single-module layer type (`paths.plugin`) exports the surfaces as keys
-  // rather than operations, so there is no one op vocabulary to check it
-  // against; its surfaces are validated once resolved.
-  if (key === "plugin") return null;
+  // A single-module layer type (`module`) exports the surfaces as keys rather
+  // than operations, so there is no one op vocabulary to check it against; its
+  // surfaces are validated once resolved.
+  if (key === "module") return null;
   if (key === "map") return "map";
   if (key.startsWith("globe.")) return "globe";
   if (SURFACES[key]) return key;
   return null;
+}
+
+/**
+ * A layer type's / attachment's declared modules, flattened to one dotted key
+ * per module so callers (generator, validator, CLI) share one shape:
+ *
+ *   { "modules": { "map": "./map/vector",
+ *                  "globe": { "cesium": "./globe/cesium/vector" } } }
+ *     → { "map": "./map/vector", "globe.cesium": "./globe/cesium/vector" }
+ *   { "module": "./mytype" } → { "module": "./mytype" }
+ *
+ * Deliberately not the `paths` of tools/interactions: there a key is the
+ * module's *export name* (`"DrawTool"`), here it is the *render surface* the
+ * module plugs into, which is a different contract with a different vocabulary.
+ *
+ * @param {object} manifest
+ * @returns {Object<string,string>} dotted surface key → declared path
+ */
+function flattenLayerModules(manifest) {
+  const out = {};
+  if (manifest == null || typeof manifest !== "object") return out;
+  if (typeof manifest.module === "string") out.module = manifest.module;
+  const modules = manifest.modules;
+  if (modules == null || typeof modules !== "object" || Array.isArray(modules))
+    return out;
+  for (const key in modules) {
+    const value = modules[key];
+    if (value != null && typeof value === "object" && !Array.isArray(value)) {
+      for (const sub in value) out[`${key}.${sub}`] = value[sub];
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
 }
 
 /**
@@ -181,7 +217,8 @@ const KNOWN_FIELDS = {
   ]),
   layertype: new Set([
     ...COMMON_FIELDS,
-    "paths",
+    "modules",
+    "module",
     "typeId",
     "extends",
     "description",
@@ -190,13 +227,12 @@ const KNOWN_FIELDS = {
     "fileTypes",
     "supportedData",
     "config",
-    "settings",
     "defaultIcon",
     "color",
   ]),
   layerattachment: new Set([
     ...COMMON_FIELDS,
-    "paths",
+    "module",
     "attachmentId",
     "configPath",
     "description",
@@ -204,7 +240,6 @@ const KNOWN_FIELDS = {
     "applicableLayerTypes",
     "capabilities",
     "config",
-    "settings",
     "defaultIcon",
     "color",
   ]),
@@ -320,10 +355,23 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'id' must be a string`
     );
   }
-  if (config.version !== undefined && typeof config.version !== "string") {
-    errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
-    );
+  // `version` is either the sentinel "core" — versioned with MMGIS itself, which
+  // is what every plugin shipped in this repository is — or the plugin's own
+  // semver. Anything else (a bare "2", a date) reads as a version but resolves
+  // to nothing, so it is rejected rather than displayed as-is.
+  if (config.version !== undefined) {
+    if (typeof config.version !== "string") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
+      );
+    } else if (
+      config.version !== "core" &&
+      semver.valid(config.version) == null
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'version' must be "core" (versioned with MMGIS) or a semver string`
+      );
+    }
   }
   if (
     config.type !== undefined &&
@@ -479,10 +527,11 @@ function validatePluginConfig(config, pluginName, pluginType) {
     }
   }
 
-  // For layer types, name, typeId, and paths are required. For layer
-  // attachments, name, attachmentId, and paths are required. Both share the
-  // same renderer-plugin shape (a `paths` object of static-import entries plus
-  // an optional `capabilities` block).
+  // For layer types, name, typeId, and `modules`/`module` are required. For
+  // layer attachments, name, attachmentId, and `module` are required. Both
+  // declare their renderer modules by render surface (`map`, `globe.<engine>`,
+  // `config`, …) rather than by export name as tools/interactions' `paths`
+  // does, plus an optional `capabilities` block.
   if (pluginType === "layertype" || pluginType === "layerattachment") {
     const idField = pluginType === "layertype" ? "typeId" : "attachmentId";
 
@@ -518,13 +567,6 @@ function validatePluginConfig(config, pluginName, pluginType) {
         `Plugin '${pluginName}' (${pluginType}): 'configPath' is only valid on a layerattachment`
       );
     }
-    // A layer type may be non-rendering (e.g. 'header'): it owns config/UI
-    // metadata but draws nothing, so it is allowed to omit renderer paths.
-    // Everything else (layer attachments, and any layertype that declares a
-    // `paths` object) must supply at least one string-valued renderer path.
-    // `extends: "<typeId>"` inherits every surface this type doesn't declare
-    // from one parent, so an inheriting type may legitimately ship no modules
-    // at all (a pure capability override).
     if (config.extends !== undefined) {
       if (pluginType !== "layertype") {
         errors.push(
@@ -543,30 +585,60 @@ function validatePluginConfig(config, pluginName, pluginType) {
         );
       }
     }
-    const nonRenderingLayerType =
-      pluginType === "layertype" && config.paths === undefined;
-    if (nonRenderingLayerType) {
-      // no renderer paths required
-    } else if (
-      config.paths === undefined ||
-      config.paths === null ||
-      typeof config.paths !== "object" ||
-      Array.isArray(config.paths)
+    if (config.paths !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'paths' is the tools/interactions field (export name \u2192 module); declare renderer modules by surface instead (${
+          pluginType === "layertype"
+            ? `'modules': { "map": "./map/x", "globe": { "cesium": "./globe/cesium/x" } }`
+            : `'module': "./x"`
+        })`
+      );
+    }
+    if (pluginType === "layerattachment" && config.modules !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): an attachment is one renderable across both engines \u2014 declare a single 'module' string, not 'modules'`
+      );
+    }
+    if (
+      pluginType === "layertype" &&
+      config.modules !== undefined &&
+      (config.modules === null ||
+        typeof config.modules !== "object" ||
+        Array.isArray(config.modules))
     ) {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): missing required 'paths' object`
+        `Plugin '${pluginName}' (${pluginType}): 'modules' must be an object keyed by render surface ('map', 'config', 'filter', 'time', 'globe': { '<engine>': … })`
+      );
+    }
+    if (config.module !== undefined && typeof config.module !== "string") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'module' must be a string path to the plugin's module`
+      );
+    }
+    const declaredModules = flattenLayerModules(config);
+    // A layer type may be non-rendering (e.g. 'header'): it owns config/UI
+    // metadata but draws nothing, so it is allowed to declare no modules.
+    // `extends: "<typeId>"` inherits every surface this type doesn't declare
+    // from one parent, so an inheriting type may legitimately ship no modules
+    // at all (a pure capability override).
+    const declaresNoModules =
+      config.modules === undefined && config.module === undefined;
+    if (pluginType === "layertype" && declaresNoModules) {
+      // no renderer modules required
+    } else if (declaresNoModules) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'module' path`
       );
     } else {
-      const pathKeys = Object.keys(config.paths);
-      if (pathKeys.length === 0) {
+      if (Object.keys(declaredModules).length === 0) {
         errors.push(
-          `Plugin '${pluginName}' (${pluginType}): 'paths' object must contain at least one entry`
+          `Plugin '${pluginName}' (${pluginType}): 'modules' must declare at least one surface`
         );
       }
-      for (const key of pathKeys) {
-        if (typeof config.paths[key] !== "string") {
+      for (const key in declaredModules) {
+        if (typeof declaredModules[key] !== "string") {
           errors.push(
-            `Plugin '${pluginName}' (${pluginType}): 'paths.${key}' must be a string`
+            `Plugin '${pluginName}' (${pluginType}): module '${key}' must be a string path`
           );
         }
       }
@@ -671,13 +743,13 @@ function validatePluginConfig(config, pluginName, pluginType) {
         }
       }
     }
-    // Cross-check declared renderer engines against the module `paths` map so a
+    // Cross-check declared renderer engines against the declared modules so a
     // type can't claim to render on a surface/engine it ships no module for (or
     // ship a renderer module for a surface it doesn't declare). This is the
     // manifest-level half of the contract check; the plugin CLI does the
     // module-export-level half (required `make`, known ops/phases).
-    // An attachment declares one module for both engines (`paths.plugin`), so
-    // there is nothing per-surface to cross-check.
+    // An attachment declares one module for both engines, so there is nothing
+    // per-surface to cross-check.
     // An extending type may render entirely through its parent's modules, so
     // there is nothing of its own to cross-check.
     const renderers =
@@ -688,33 +760,31 @@ function validatePluginConfig(config, pluginName, pluginType) {
       renderers &&
       typeof renderers === "object" &&
       !Array.isArray(renderers) &&
-      config.paths &&
-      typeof config.paths === "object" &&
-      !Array.isArray(config.paths)
+      Object.keys(declaredModules).length > 0
     ) {
-      const pathKeys = new Set(Object.keys(config.paths));
-      // map surface → single 'map' path key; globe surface → 'globe.<engine>'.
-      if (renderers.map && !pathKeys.has("map")) {
+      const moduleKeys = new Set(Object.keys(declaredModules));
+      // map surface → single 'map' key; globe surface → 'globe.<engine>'.
+      if (renderers.map && !moduleKeys.has("map")) {
         errors.push(
-          `Plugin '${pluginName}' (${pluginType}): declares a 'map' renderer but has no 'paths.map' module`
+          `Plugin '${pluginName}' (${pluginType}): declares a 'map' renderer but has no 'modules.map' module`
         );
       }
       const globe = renderers.globe;
       if (globe && typeof globe === "object" && Array.isArray(globe.engines)) {
         globe.engines.forEach((engine) => {
-          if (!pathKeys.has(`globe.${engine}`)) {
+          if (!moduleKeys.has(`globe.${engine}`)) {
             errors.push(
-              `Plugin '${pluginName}' (${pluginType}): declares a 'globe' engine '${engine}' but has no 'paths.globe.${engine}' module`
+              `Plugin '${pluginName}' (${pluginType}): declares a 'globe' engine '${engine}' but has no 'modules.globe.${engine}' module`
             );
           }
         });
       }
-      // Reverse: every renderer path must have a matching declared engine.
-      pathKeys.forEach((key) => {
+      // Reverse: every renderer module must have a matching declared engine.
+      moduleKeys.forEach((key) => {
         if (key === "map") {
           if (!renderers.map) {
             errors.push(
-              `Plugin '${pluginName}' (${pluginType}): has a 'paths.map' module but does not declare a 'map' renderer`
+              `Plugin '${pluginName}' (${pluginType}): has a 'modules.map' module but does not declare a 'map' renderer`
             );
           }
         } else if (key.startsWith("globe.")) {
@@ -727,7 +797,7 @@ function validatePluginConfig(config, pluginName, pluginType) {
                 renderers.globe.engines.includes(engine)));
           if (!globeOk) {
             errors.push(
-              `Plugin '${pluginName}' (${pluginType}): has a 'paths.${key}' module but does not declare globe engine '${engine}'`
+              `Plugin '${pluginName}' (${pluginType}): has a 'modules.${key}' module but does not declare globe engine '${engine}'`
             );
           }
         }
@@ -803,11 +873,6 @@ function validatePluginConfig(config, pluginName, pluginType) {
     ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'config' must be an inline object describing the Configure-page form`
-      );
-    }
-    if (config.settings !== undefined && typeof config.settings !== "string") {
-      errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'settings' must be a string path to a settings JSON file`
       );
     }
     if (
@@ -1195,7 +1260,8 @@ module.exports = {
   findDuplicateInteractionIds,
   findDuplicateIds,
   validateLayerTypeModuleShape,
-  surfaceOfPathKey,
+  surfaceOfModuleKey,
+  flattenLayerModules,
   validateLayerTypeInheritance,
   LAYER_OPS,
   ATTACHMENT_OPS,

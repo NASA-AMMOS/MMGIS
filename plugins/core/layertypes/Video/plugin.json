@@ -1,8 +1,10 @@
 {
+  "uuid": "6ed977c4-a6be-4434-b33f-7a2048893297",
+  "id": "core-layertype-video",
   "name": "Video",
   "type": "layertype",
   "typeId": "video",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#7b2323",
@@ -286,7 +288,7 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/video"
   }
 }

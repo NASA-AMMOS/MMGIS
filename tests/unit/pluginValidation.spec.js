@@ -362,16 +362,16 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
     test('declared map renderer without a map module is rejected', () => {
         const config = base({
             capabilities: { renderers: { map: { engines: ['leaflet'] } } },
-            paths: { 'globe.cesium': './globe/cesium/tile' },
+            modules: { globe: { cesium: './globe/cesium/tile' } },
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');
-        expect(errors.some((e) => e.includes("no 'paths.map'"))).toBe(true);
+        expect(errors.some((e) => e.includes("no 'modules.map'"))).toBe(true);
     });
 
     test('map module without a declared map renderer is rejected', () => {
         const config = base({
             capabilities: { renderers: { map: false, globe: false } },
-            paths: { map: './map/tile' },
+            modules: { map: './map/tile' },
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');
         expect(errors.some((e) => e.includes("does not declare a 'map' renderer"))).toBe(true);
@@ -380,10 +380,10 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
     test('declared globe engine without a matching module is rejected', () => {
         const config = base({
             capabilities: { renderers: { globe: { engines: ['cesium'] } } },
-            paths: { 'globe.lithosphere': './globe/lithosphere/tile' },
+            modules: { globe: { lithosphere: './globe/lithosphere/tile' } },
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');
-        expect(errors.some((e) => e.includes("no 'paths.globe.cesium'"))).toBe(true);
+        expect(errors.some((e) => e.includes("no 'modules.globe.cesium'"))).toBe(true);
         expect(errors.some((e) => e.includes("does not declare globe engine 'lithosphere'"))).toBe(true);
     });
 
@@ -395,10 +395,12 @@ test.describe('validatePluginConfig - layertype renderer contract', () => {
                     globe: { engines: ['cesium', 'lithosphere'] },
                 },
             },
-            paths: {
+            modules: {
                 map: './map/tile',
-                'globe.cesium': './globe/cesium/tile',
-                'globe.lithosphere': './globe/lithosphere/tile',
+                globe: {
+                    cesium: './globe/cesium/tile',
+                    lithosphere: './globe/lithosphere/tile',
+                },
             },
         });
         const errors = validatePluginConfig(config, 'Tile', 'layertype');

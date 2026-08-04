@@ -325,7 +325,7 @@ test.describe('CLI create and destroy', () => {
         expect(manifest.typeId).toBe('e2elayer');
         // Declared map renderer must ship a matching module path.
         expect(manifest.capabilities.renderers.map).toBeTruthy();
-        expect(manifest.paths.map).toBe('./map/e2eLayer');
+        expect(manifest.modules.map).toBe('./map/e2eLayer');
 
         // Scaffolded files exist.
         expect(fs.existsSync(path.join(pluginDir, 'map', 'e2eLayer.js'))).toBe(true);
@@ -339,9 +339,10 @@ test.describe('CLI create and destroy', () => {
         const moduleSrc = fs.readFileSync(path.join(pluginDir, 'map', 'e2eLayer.js'), 'utf8');
         expect(validateLayerTypeModuleShape(moduleSrc, 'E2eLayer')).toEqual([]);
 
-        // Layer types are always-on and not part of the enable/disable/destroy
-        // model (see plugin-cli discoverAll), so remove the scaffold directly.
-        fs.rmSync(pluginDir, { recursive: true, force: true });
+        // A layer type is a plugin like any other: it is discovered, listed and
+        // destroyable (core's are only undisableable because of overridable).
+        expect(runCli(`destroy ${CONTAINER}/layertypes/E2eLayer --force`).exitCode).toBe(0);
+        expect(fs.existsSync(pluginDir)).toBe(false);
     });
 
     test('destroy with --force removes plugin', () => {
@@ -551,8 +552,15 @@ test.describe('CLI --json output quality', () => {
         expect(plugins.length).toBeGreaterThan(0);
 
         for (const p of plugins) {
-            // Type should be singular (tool, backend, component, interaction) — never plural
-            expect(['tool', 'backend', 'component', 'interaction']).toContain(p.type);
+            // Type should be singular — never the plural directory name.
+            expect([
+                'tool',
+                'backend',
+                'component',
+                'interaction',
+                'layertype',
+                'layerattachment',
+            ]).toContain(p.type);
             expect(p).toHaveProperty('required');
             expect(p).toHaveProperty('path');
             // description may be null but key must exist

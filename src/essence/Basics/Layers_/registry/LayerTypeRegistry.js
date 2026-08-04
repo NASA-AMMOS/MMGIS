@@ -11,7 +11,6 @@
  * Generated shape (src/pre/layertypes.js):
  *   layerTypeModules  = { [typeId]: { map, globe: { cesium, lithosphere }, … } }
  *   layerTypeConfigs  = { [typeId]: <manifest> }
- *   layerTypeSettings = { [typeId]: <parsed settings.json> }
  *
  * @module LayerTypeRegistry
  */
@@ -36,22 +35,22 @@ function _load() {
 /**
  * The surfaces a type may implement, in the shape dispatch code expects.
  *
- * A plugin may declare them as separate modules (`paths.map`, `paths.config`,
- * …) or as one module (`paths.plugin`) exporting the same keys — a 30-line
+ * A plugin may declare them as separate modules (`modules.map`,
+ * `modules.config`, …) or as one `module` exporting the same keys — a 30-line
  * layer type should not need six files. The single module is flattened here so
  * neither shape is visible to callers.
  */
 function _ownModules(typeId) {
     const mods = _load().layerTypeModules?.[typeId]
     if (mods == null) return null
-    if (mods.plugin == null) return mods
+    if (mods.module == null) return mods
 
-    const single = mods.plugin.default || mods.plugin
+    const single = mods.module.default || mods.module
     return {
         ...single,
-        // Per-surface paths still win where a plugin mixes both shapes.
+        // Per-surface modules still win where a plugin mixes both shapes.
         ...Object.fromEntries(
-            Object.entries(mods).filter(([key]) => key !== 'plugin')
+            Object.entries(mods).filter(([key]) => key !== 'module')
         ),
         globe: { ...(single.globe || {}), ...(mods.globe || {}) },
     }
@@ -98,10 +97,6 @@ const LayerTypeRegistry = {
     /** Full plugin manifest for a type. */
     getConfig(typeId) {
         return _load().layerTypeConfigs?.[typeId]
-    },
-    /** Declarative runtime-settings schema (parsed settings.json), if any. */
-    getSettings(typeId) {
-        return _load().layerTypeSettings?.[typeId]
     },
     /**
      * Declared capabilities object for a type (renderers, time, filtering…),

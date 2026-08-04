@@ -1,8 +1,10 @@
 {
+  "uuid": "2b510e27-40ca-431c-ad70-40c06ab28d2c",
+  "id": "core-layerattachment-coordinate-markers",
   "name": "CoordinateMarkers",
   "type": "layerattachment",
   "attachmentId": "coordinate_markers",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "configPath": "variables.coordinateAttachments.marker",
@@ -105,8 +107,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./coordinateMarkers"
-  },
+  "module": "./coordinateMarkers",
   "applicableLayerTypes": ["vector", "query"]
 }

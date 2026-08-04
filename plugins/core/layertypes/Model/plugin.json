@@ -1,8 +1,10 @@
 {
+  "uuid": "5b29f08c-fdda-49d5-a761-0f00f8f120d7",
+  "id": "core-layertype-model",
   "name": "Model",
   "type": "layertype",
   "typeId": "model",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#a98732",
@@ -949,7 +951,9 @@
       }
     ]
   },
-  "paths": {
-    "globe.lithosphere": "./globe/lithosphere/model"
+  "modules": {
+    "globe": {
+      "lithosphere": "./globe/lithosphere/model"
+    }
   }
 }

@@ -1,8 +1,10 @@
 {
+  "uuid": "57ee2075-7ac2-467c-9fcf-9b3c3d9818d8",
+  "id": "core-layertype-query",
   "name": "Query",
   "type": "layertype",
   "typeId": "query",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#4c8b2d",
@@ -1103,7 +1105,7 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/query",
     "config": "./config/query",
     "filter": "./filter/query"

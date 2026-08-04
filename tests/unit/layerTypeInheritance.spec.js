@@ -4,7 +4,7 @@
  *   extends: "<typeId>"   inherit every surface it doesn't declare from ONE
  *                         parent, so "tile but the url comes from elsewhere"
  *                         doesn't mean forking tile.
- *   paths.plugin          ship all surfaces in one module instead of a
+ *   module                ship all surfaces in one module instead of a
  *                         directory of six files.
  *
  * Both are resolved at runtime, so a dangling or chained parent would silently
@@ -16,7 +16,8 @@ import { test, expect } from '@playwright/test'
 const {
     validatePluginConfig,
     validateLayerTypeInheritance,
-    surfaceOfPathKey,
+    surfaceOfModuleKey,
+    flattenLayerModules,
     ATTACHMENT_OPS,
 } = require('../../API/pluginValidation')
 
@@ -26,7 +27,7 @@ const parent = () => ({
     typeId: 'parent',
     version: '1.0.0',
     capabilities: { renderers: { map: { engines: ['leaflet'] }, globe: false } },
-    paths: { map: './map/parent' },
+    modules: { map: './map/parent' },
 })
 
 const child = (extra = {}) => ({
@@ -82,7 +83,7 @@ test.describe('extends — manifest shape', () => {
                 attachmentId: 'att',
                 version: '1.0.0',
                 extends: 'labels',
-                paths: { plugin: './att' },
+                module: './att',
             },
             'Att',
             'layerattachment'
@@ -131,15 +132,31 @@ test.describe('surfaces', () => {
     test('a single-module layer type is not validated against one op vocabulary', () => {
         // It exports { map, globe, config, … } rather than operations, so there
         // is no single surface to check its keys against.
-        expect(surfaceOfPathKey('plugin', 'layertype')).toBeNull()
-        expect(surfaceOfPathKey('map', 'layertype')).toBe('map')
-        expect(surfaceOfPathKey('globe.cesium', 'layertype')).toBe('globe')
+        expect(surfaceOfModuleKey('module', 'layertype')).toBeNull()
+        expect(surfaceOfModuleKey('map', 'layertype')).toBe('map')
+        expect(surfaceOfModuleKey('globe.cesium', 'layertype')).toBe('globe')
     })
 
-    test('every attachment path resolves to the one attachment surface', () => {
+    test('a nested globe declaration flattens to one key per engine', () => {
+        expect(
+            flattenLayerModules({
+                modules: {
+                    map: './map/x',
+                    globe: { cesium: './globe/cesium/x' },
+                },
+            })
+        ).toEqual({ map: './map/x', 'globe.cesium': './globe/cesium/x' })
+        expect(flattenLayerModules({ module: './x' })).toEqual({
+            module: './x',
+        })
+    })
+
+    test('every attachment module resolves to the one attachment surface', () => {
         // An attachment is one renderable even when it straddles both engines.
-        expect(surfaceOfPathKey('plugin', 'layerattachment')).toBe('attachment')
-        expect(surfaceOfPathKey('map', 'layerattachment')).toBe('attachment')
+        expect(surfaceOfModuleKey('module', 'layerattachment')).toBe(
+            'attachment'
+        )
+        expect(surfaceOfModuleKey('map', 'layerattachment')).toBe('attachment')
         expect(ATTACHMENT_OPS).toContain('setVisibility')
         expect(ATTACHMENT_OPS).toContain('setOpacity')
         expect(ATTACHMENT_OPS).toContain('onHostToggle')

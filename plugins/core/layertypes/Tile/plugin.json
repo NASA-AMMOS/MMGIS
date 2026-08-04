@@ -1,8 +1,10 @@
 {
+  "uuid": "2f49b72d-aaf4-45b1-878a-9e0218f3e9f3",
+  "id": "core-layertype-tile",
   "name": "Tile",
   "type": "layertype",
   "typeId": "tile",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#67401d",
@@ -942,11 +944,13 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/tile",
     "config": "./config/tile",
     "time": "./time/tile",
-    "globe.cesium": "./globe/cesium/tile",
-    "globe.lithosphere": "./globe/lithosphere/tile"
+    "globe": {
+      "cesium": "./globe/cesium/tile",
+      "lithosphere": "./globe/lithosphere/tile"
+    }
   }
 }

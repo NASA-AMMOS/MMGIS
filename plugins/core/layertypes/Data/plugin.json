@@ -1,8 +1,10 @@
 {
+  "uuid": "9ec6ce2d-135b-443c-a9ae-7ee91e7bbd56",
+  "id": "core-layertype-data",
   "name": "Data",
   "type": "layertype",
   "typeId": "data",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#c43541",
@@ -605,7 +607,7 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/data"
   }
 }

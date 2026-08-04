@@ -1,8 +1,10 @@
 {
+  "uuid": "f4b67378-2f6c-4c7b-8483-48b920bd1d78",
+  "id": "core-layerattachment-uncertainty-ellipses",
   "name": "UncertaintyEllipses",
   "type": "layerattachment",
   "attachmentId": "uncertainty_ellipses",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "configPath": "variables.markerAttachments.uncertainty",
@@ -171,8 +173,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./uncertaintyEllipses"
-  },
+  "module": "./uncertaintyEllipses",
   "applicableLayerTypes": ["vector", "query"]
 }

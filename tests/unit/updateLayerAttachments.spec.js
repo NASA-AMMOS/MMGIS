@@ -101,7 +101,7 @@ test.describe('layerAttachmentConfigs.json — built-in attachment registry', ()
                 'core',
                 'layerattachments',
                 manifest.name,
-                `${manifest.paths.plugin}.js`
+                `${manifest.module}.js`
             )
             const source = fs.readFileSync(modulePath, 'utf8')
 

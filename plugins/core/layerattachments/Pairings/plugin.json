@@ -1,8 +1,10 @@
 {
+  "uuid": "645ea7e4-15c4-4f3f-be5f-d8c8a8c46e75",
+  "id": "core-layerattachment-pairings",
   "name": "Pairings",
   "type": "layerattachment",
   "attachmentId": "pairings",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "configPath": "variables.layerAttachments.pairings",
@@ -108,8 +110,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./pairings"
-  },
+  "module": "./pairings",
   "applicableLayerTypes": ["vector", "query"]
 }

@@ -1,8 +1,10 @@
 {
+  "uuid": "c9c14b53-1aeb-4903-aac4-9b03d0053fa2",
+  "id": "core-layerattachment-labels",
   "name": "Labels",
   "type": "layerattachment",
   "attachmentId": "labels",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "configPath": "variables.layerAttachments.labels",
@@ -74,8 +76,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./labels"
-  },
+  "module": "./labels",
   "applicableLayerTypes": ["vector", "query"]
 }

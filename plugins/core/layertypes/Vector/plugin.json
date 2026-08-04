@@ -1,8 +1,10 @@
 {
+  "uuid": "3ec2d074-2c21-46eb-8101-0db81a89493b",
+  "id": "core-layertype-vector",
   "name": "Vector",
   "type": "layertype",
   "typeId": "vector",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#245980",
@@ -1300,11 +1302,13 @@
       }
     ]
   },
-  "paths": {
+  "modules": {
     "map": "./map/vector",
     "config": "./config/vector",
     "filter": "./filter/vector",
-    "globe.cesium": "./globe/cesium/vector",
-    "globe.lithosphere": "./globe/lithosphere/vector"
+    "globe": {
+      "cesium": "./globe/cesium/vector",
+      "lithosphere": "./globe/lithosphere/vector"
+    }
   }
 }

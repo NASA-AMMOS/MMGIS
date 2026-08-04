@@ -1,9 +1,11 @@
 {
+  "uuid": "0b8ddde8-4c6a-4a95-b62c-1b4a76c53c19",
+  "id": "core-layerattachment-bearing",
   "name": "Bearing",
   "type": "layerattachment",
   "attachmentId": "bearing",
   "configPath": "variables.markerAttachments.bearing",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "description": "Points the host layer's own markers in a direction taken from a feature property (clockwise from north). It decorates its host instead of drawing a sublayer, so it never appears in the layer's Composite Layers list.",
@@ -78,8 +80,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./bearing"
-  },
+  "module": "./bearing",
   "applicableLayerTypes": ["vector", "query"]
 }

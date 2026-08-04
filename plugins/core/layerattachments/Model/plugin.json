@@ -1,8 +1,10 @@
 {
+  "uuid": "b14e6f26-af97-462e-ac78-7e0c5e264209",
+  "id": "core-layerattachment-model",
   "name": "Model",
   "type": "layerattachment",
   "attachmentId": "model",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "configPath": "variables.markerAttachments.model",
@@ -184,8 +186,6 @@
       }
     ]
   },
-  "paths": {
-    "plugin": "./model"
-  },
+  "module": "./model",
   "applicableLayerTypes": ["vector", "query"]
 }
