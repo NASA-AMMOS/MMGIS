@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
-  "description": "Images georeferenced onto the 2D map from the host layer's features. Its opacity is applied to the overlay elements themselves rather than through a map layer.",
+  "description": "A scaled and oriented image placed under each of the host layer's point markers. Its opacity is applied to the overlay elements themselves rather than through a map layer.",
   "capabilities": {
     "renderers": {
       "map": {

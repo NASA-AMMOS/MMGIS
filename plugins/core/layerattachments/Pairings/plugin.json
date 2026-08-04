@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
-  "description": "Lines drawn between a host layer's features and the matching features of other layers. Redraws itself whenever one of the layers it pairs with is toggled.",
+  "description": "Links this layer's features to the matching features of other layers: a line between each pair on the map, and the azimuth-elevation relationship those pairs are drawn with in the Viewer. Redraws itself whenever one of the layers it pairs with is toggled.",
   "capabilities": {
     "renderers": {
       "map": {

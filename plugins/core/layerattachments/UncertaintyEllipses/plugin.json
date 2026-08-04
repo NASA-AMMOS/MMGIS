@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
-  "description": "Positional-uncertainty ellipses around a host layer's features: an image overlay on the 2D map plus a curtain and a clamped surface on the globe.",
+  "description": "Ellipses about the host layer's point features indicating positional uncertainty, sized from X/Y uncertainty properties: a polygon overlay on the 2D map plus a vertical curtain and a clamped surface on the globe.",
   "capabilities": {
     "renderers": {
       "map": {

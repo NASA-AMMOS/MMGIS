@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
-  "description": "A graticule of coordinate markers over the host layer on the 2D map. Behaves like a plain map layer, so it declares no operations of its own and rides core's defaults.",
+  "description": "A marker at every coordinate pair of every one of the host layer's features. Requires Enhanced GeoJSON features with 'coord_properties' defined.",
   "capabilities": {
     "renderers": {
       "map": {

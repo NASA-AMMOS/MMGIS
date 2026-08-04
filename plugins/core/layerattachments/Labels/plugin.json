@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "tier": "core",
   "overridable": false,
-  "description": "Per-feature text labels drawn beside their host layer's features on the 2D map. Shown and hidden through its own label layer rather than by adding/removing a map layer.",
+  "description": "A text label beside each of the host layer's features, including its coordinate markers. Shown and hidden through its own label layer rather than by adding and removing a map layer.",
   "capabilities": {
     "renderers": {
       "map": {
