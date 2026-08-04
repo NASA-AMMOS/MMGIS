@@ -485,7 +485,8 @@ function safeIdent(s) {
  * Shared generator for the two renderer-plugin kinds (`layertype` and
  * `layerattachment`). Both are structurally identical: a `paths` object of
  * static-import entries (map / globe.<engine> / capture / …), an optional
- * `settings` JSON, and an optional `metaconfig` JSON for the Configure page.
+ * `settings` JSON, and an optional inline `metaconfig` object describing the
+ * plugin's Configure-page form.
  *
  * Produces:
  *   - configure/public/<configureFile>  → { [id]: { manifest, metaconfig } }
@@ -566,29 +567,12 @@ function generateLayerRegistry({
     }
   }
 
-  // 1. Configure page JSON — embed each plugin's metaconfig contents so the
-  //    separate React app can resolve layer forms by type without importing
-  //    from the plugins directory.
+  // 1. Configure page JSON — surface each plugin's metaconfig so the separate
+  //    React app can resolve layer forms by type without importing from the
+  //    plugins directory.
   const configureOut = {};
   for (const id in byId) {
-    const manifest = byId[id];
-    const name = idToName[id];
-    const pluginPath = pluginPaths[name] || null;
-    let metaconfig = null;
-    if (manifest.metaconfig && pluginPath) {
-      try {
-        const abs = path.resolve(pluginPath, manifest.metaconfig);
-        metaconfig = JSON.parse(fs.readFileSync(abs, "utf8"));
-      } catch (err) {
-        logger(
-          "error",
-          `Failed to read metaconfig for ${pluginType} '${id}' (${manifest.metaconfig})`,
-          loggerCategory,
-          null,
-          err
-        );
-      }
-    }
+    const { metaconfig = null, ...manifest } = byId[id];
     configureOut[id] = { manifest, metaconfig };
   }
   try {
@@ -662,7 +646,17 @@ function generateLayerRegistry({
   }
   out += "}\n\n";
 
-  out += `export const ${configsExport} = ${JSON.stringify(byId)}\n\n`;
+  // The metaconfig only describes the Configure-page form, so it is served in
+  // the Configure JSON above rather than shipped in the frontend bundle.
+  const runtimeManifests = {};
+  for (const id in byId) {
+    const { metaconfig, ...manifest } = byId[id];
+    void metaconfig;
+    runtimeManifests[id] = manifest;
+  }
+  out += `export const ${configsExport} = ${JSON.stringify(
+    runtimeManifests
+  )}\n\n`;
 
   out += `export const ${settingsExport} = {\n`;
   for (const id in moduleEntries) {

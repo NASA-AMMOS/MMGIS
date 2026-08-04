@@ -20,7 +20,157 @@
       "order": 2
     }
   },
-  "metaconfig": "./metaconfig.json",
+  "metaconfig": {
+    "tab": "Attachment - Markers",
+    "tabOrder": 12,
+    "order": 3,
+    "rows": [
+      {
+        "subname": "Uncertainty Ellipses",
+        "components": [
+          {
+            "field": "variables.markerAttachments.uncertainty.enabled",
+            "name": "Enabled",
+            "description": "Turns on a sublayer feature that places ellipses about point features in order to indicate positional uncertainties.",
+            "type": "switch",
+            "width": 3,
+            "defaultChecked": false
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.markerAttachments.uncertainty.initialVisibility",
+            "name": "Initial Visibility",
+            "description": "Whether the uncertainty sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+            "type": "checkbox",
+            "width": 2,
+            "defaultChecked": false
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.strokeColor",
+            "name": "Stroke Color",
+            "description": "A stroke/border color for the uncertainty ellipse. Defaults to 'black'.",
+            "type": "colorpicker",
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.opacity",
+            "name": "Stroke Opacity",
+            "description": "A stroke/border opacity for the uncertainty ellipse. 0 (transparent) to 1 (opaque).",
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.color",
+            "name": "Fill Color",
+            "description": "A fill color for the uncertainty ellipse. It will appear more transparent than set. Defaults to 'white'.",
+            "type": "colorpicker",
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.fillOpacity",
+            "name": "Fill Opacity",
+            "description": "A fill opacity for the uncertainty ellipse. 0 (transparent) to 1 (opaque).",
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "width": 2
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.markerAttachments.uncertainty.weight",
+            "name": "Weight",
+            "description": "A stroke/border weight for the uncertainty ellipse.",
+            "type": "number",
+            "min": 1,
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.color3d",
+            "name": "3D Color",
+            "description": "A color for the ellipse's vertical curtain in the 3D Globe. Can be an array for a vertical gradient: 'rgba(0,0,0,0), #26A8FF'.",
+            "type": "textarray",
+            "width": 4
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.opacity3d",
+            "name": "3D Opacity",
+            "description": "A fill opacity for the ellipse's vertical curtain in the 3D Globe. 0 (transparent) to 1 (opaque).",
+            "type": "number",
+            "min": 0,
+            "max": 1,
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.depth3d",
+            "name": "3D Depth",
+            "description": "A depth, in meters, for the ellipse's vertical curtain in the 3D Globe. Defaults to 2.",
+            "type": "number",
+            "min": 0,
+            "width": 2
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.markerAttachments.uncertainty.xAxisProp",
+            "name": "X-Axis Property",
+            "description": "Prop path to the x-axis radius value of the ellipse.",
+            "type": "text",
+            "width": 5
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.yAxisProp",
+            "name": "Y-Axis Property",
+            "description": "Prop path to the y-axis radius value of the ellipse.",
+            "type": "text",
+            "width": 5
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.axisUnit",
+            "name": "Axis Unit",
+            "description": "The units of 'X-Axis Property' and 'Y-Axis Property'.",
+            "type": "dropdown",
+            "width": 2,
+            "options": [
+              "meters",
+              "kilometers"
+            ]
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.markerAttachments.uncertainty.angleProp",
+            "name": "Angle Property",
+            "description": "Prop path to the rotation of the ellipse.",
+            "type": "text",
+            "width": 5
+          },
+          {
+            "field": "variables.markerAttachments.uncertainty.angleUnit",
+            "name": "Angle Unit",
+            "description": "The units of 'Angle Property'.",
+            "type": "dropdown",
+            "width": 2,
+            "options": [
+              "deg",
+              "rad"
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "paths": {
     "plugin": "./uncertaintyEllipses"
   },

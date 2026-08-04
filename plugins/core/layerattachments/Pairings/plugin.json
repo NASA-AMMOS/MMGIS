@@ -18,7 +18,96 @@
       "order": 1
     }
   },
-  "metaconfig": "./metaconfig.json",
+  "metaconfig": {
+    "tab": "Attachment - Layers",
+    "tabOrder": 10,
+    "order": 1,
+    "rows": [
+      {
+        "subname": "Pairings",
+        "components": [
+          {
+            "field": "variables.layerAttachments.pairings.enabled",
+            "name": "Enabled",
+            "description": "Links cross-layer features together. Features paired to this layer will attempt to compute the azimuth-elevation relationship between the two to draw in the Viewer's PhotoSphere. Additionally, on the Map, a line will be drawn between the two features.",
+            "type": "switch",
+            "width": 3,
+            "defaultChecked": false
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.layerAttachments.pairings.initialVisibility",
+            "name": "Initial Visibility",
+            "description": "Whether the pairing line sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+            "type": "checkbox",
+            "width": 2,
+            "defaultChecked": false
+          },
+          {
+            "field": "variables.layerAttachments.pairings.layers",
+            "name": "Layers with which to Pair",
+            "description": "An comma-separated array of names or UUIDs of other layers.",
+            "type": "textarray",
+            "width": 6
+          },
+          {
+            "field": "variables.layerAttachments.pairings.pairProp",
+            "name": "Pair Property",
+            "description": "The dot.notated path to the feature properties that contains the property to pair on. This layer and all paired layers need this property to properly pair up. A feature in this layer is said to be paired with a feature of one of the other specified layers, if and only if the values of this property in both features matches.",
+            "type": "text",
+            "width": 4
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.layerAttachments.pairings.layerAzProp",
+            "name": "Layer Azimuth Property",
+            "description": "The dot.notated path to the feature properties that contains the features' azimuth. If unset, the azimuth will be calculated through the feature's longitude, latitude, elevation coordinates.",
+            "type": "text",
+            "width": 4
+          },
+          {
+            "field": "variables.layerAttachments.pairings.layerElProp",
+            "name": "Layer Elevation Property",
+            "description": "The dot notated path to the feature properties that contains the features' elevation. If unset, the elevation will be calculated through the feature's longitude, latitude, elevation coordinates.",
+            "type": "text",
+            "width": 4
+          },
+          {
+            "field": "variables.layerAttachments.pairings.originOffsetOrder",
+            "name": "Origin Offset Order",
+            "description": "In many cases, a marker's center is not the camera's center. Within a feature's 'properties.images' objects, 'originOffset' can be defined. 'originOffsetOrder' describes the XYZ order and signage that 'originOffset' should be read in. Possible values are X, -X, Y, -Y, Z, -Z. Example value: 'X,Y,-Z'",
+            "type": "textarray",
+            "width": 4
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.layerAttachments.pairings.style.color",
+            "name": "Pairing Line Color",
+            "description": "The color of the line to drawn between paired features that indicate their connectivity.",
+            "type": "colorpicker",
+            "width": 2
+          },
+          {
+            "field": "variables.layerAttachments.pairings.style.weight",
+            "name": "Pairing Line Weight",
+            "description": "The weight (thickness) of the line to drawn between paired features that indicate their connectivity.",
+            "type": "number",
+            "min": 1,
+            "width": 3
+          }
+        ]
+      }
+    ]
+  },
   "paths": {
     "plugin": "./pairings"
   },

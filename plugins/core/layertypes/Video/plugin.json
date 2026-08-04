@@ -30,7 +30,262 @@
       "procurement": "Encode to H.264 .mp4 or VP8/VP9 .webm; provide the geographic bounding box the frame covers."
     }
   ],
-  "metaconfig": "./metaconfig.json",
+  "metaconfig": {
+    "tabs": [
+      {
+        "name": "Core",
+        "rows": [
+          {
+            "forceHeight": "64px",
+            "components": [
+              {
+                "field": "type",
+                "name": "Layer Type",
+                "description": "",
+                "type": "dropdown",
+                "width": 2,
+                "options": [
+                  "3dtiles",
+                  "data",
+                  "header",
+                  "image",
+                  "model",
+                  "query",
+                  "tile",
+                  "vector",
+                  "vectortile",
+                  "velocity",
+                  "video"
+                ]
+              },
+              {
+                "field": "name",
+                "name": "Layer Name",
+                "description": "",
+                "type": "textnotrim",
+                "width": 4,
+                "required": true
+              },
+              {
+                "field": "visibility",
+                "name": "Initially On",
+                "description": "",
+                "type": "checkbox",
+                "width": 2,
+                "defaultChecked": false
+              },
+              {
+                "type": "videopreview",
+                "width": 4,
+                "height": "354px"
+              }
+            ]
+          },
+          {
+            "subname": "Source",
+            "components": [
+              {
+                "field": "url",
+                "name": "Video URL",
+                "description": "Path to the video file (.webm or .mp4 format)",
+                "type": "text",
+                "width": 8,
+                "required": true
+              },
+              {
+                "field": "boundingBox",
+                "name": "Bounding Box",
+                "description": "Geographic bounds: nw_lng,nw_lat,se_lng,se_lat",
+                "type": "textarray",
+                "width": 8,
+                "required": true
+              }
+            ]
+          },
+          {
+            "subname": "Display Settings",
+            "components": [
+              {
+                "field": "initialOpacity",
+                "name": "Initial Opacity",
+                "description": "0 (transparent) to 1 (opaque)",
+                "type": "number",
+                "min": 0,
+                "max": 1,
+                "step": 0.1,
+                "width": 3,
+                "defaultValue": 1
+              }
+            ]
+          },
+          {
+            "subname": "Video Playback Options",
+            "components": [
+              {
+                "field": "variables.video.autoplay",
+                "name": "Autoplay",
+                "description": "Automatically start playing when layer is enabled",
+                "type": "checkbox",
+                "width": 3,
+                "defaultChecked": false
+              },
+              {
+                "field": "variables.video.loop",
+                "name": "Loop",
+                "description": "Loop the video continuously",
+                "type": "checkbox",
+                "width": 3,
+                "defaultChecked": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Interface",
+        "rows": [
+          {
+            "name": "Interface",
+            "subname": "Key Bindings",
+            "components": [
+              {
+                "field": "variables.shortcutSuffix",
+                "name": "Alt + {letter} Toggle Shortcut",
+                "description": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
+                "type": "text",
+                "width": 6
+              }
+            ]
+          },
+          {
+            "subname": "Downloads",
+            "components": [
+              {
+                "field": "variables.downloadURL",
+                "name": "Download URL",
+                "description": "Provides a menu option for users to download the specified source video file for the layer.",
+                "type": "text",
+                "width": 12
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Information",
+        "rows": [
+          {
+            "name": "Information",
+            "subname": "Layer Tags",
+            "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool. A category may be specified with the following pattern: 'category:tag'",
+            "components": [
+              {
+                "field": "tags.0",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.1",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.2",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.3",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.4",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.5",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "tags.6",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.7",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.8",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.9",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.10",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.11",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "subname": "Description",
+            "subdescription": "A freeform markdown description of the layer. In the LayersTool, users may click the information icon beside the layer's name to view this information.",
+            "components": [
+              {
+                "field": "description",
+                "name": "Description",
+                "description": "",
+                "type": "markdown",
+                "width": 12
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "paths": {
     "map": "./map/video"
   }

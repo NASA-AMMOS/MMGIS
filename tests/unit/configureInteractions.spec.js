@@ -173,11 +173,11 @@ test('applicable layer metaconfigs expose the Interactions editor', () => {
             fs.readFileSync(
                 path.resolve(
                     __dirname,
-                    `../../plugins/core/layertypes/${layerTypePluginDirs[layerType]}/metaconfig.json`
+                    `../../plugins/core/layertypes/${layerTypePluginDirs[layerType]}/plugin.json`
                 ),
                 'utf8'
             )
-        );
+        ).metaconfig;
         const tab = metaconfig.tabs.find(
             (candidate) => candidate.name === 'Interactions'
         );

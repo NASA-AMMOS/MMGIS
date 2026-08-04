@@ -797,10 +797,12 @@ function validatePluginConfig(config, pluginName, pluginType) {
     }
     if (
       config.metaconfig !== undefined &&
-      typeof config.metaconfig !== "string"
+      (typeof config.metaconfig !== "object" ||
+        config.metaconfig === null ||
+        Array.isArray(config.metaconfig))
     ) {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'metaconfig' must be a string path to a metaconfig JSON file`
+        `Plugin '${pluginName}' (${pluginType}): 'metaconfig' must be an inline object describing the Configure-page form`
       );
     }
     if (config.settings !== undefined && typeof config.settings !== "string") {

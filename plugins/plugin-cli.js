@@ -1977,7 +1977,56 @@ function _scaffoldLayertype(name) {
                     description: "",
                 },
             ],
-            metaconfig: "./metaconfig.json",
+            metaconfig: {
+                tabs: [
+                    {
+                        name: "Core",
+                        rows: [
+                            {
+                                forceHeight: "64px",
+                                components: [
+                                    {
+                                        field: "type",
+                                        name: "Layer Type",
+                                        description: "",
+                                        type: "dropdown",
+                                        width: 2,
+                                        options: [typeId],
+                                    },
+                                    {
+                                        field: "name",
+                                        name: "Layer Name",
+                                        description: "",
+                                        type: "textnotrim",
+                                        width: 8,
+                                        required: true,
+                                    },
+                                    {
+                                        field: "visibility",
+                                        name: "Initially On",
+                                        description: "",
+                                        type: "checkbox",
+                                        width: 2,
+                                        defaultChecked: false,
+                                    },
+                                ],
+                            },
+                            {
+                                name: name,
+                                components: [
+                                    {
+                                        field: "url",
+                                        name: "URL",
+                                        description: "",
+                                        type: "text",
+                                        width: 12,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+        },
             paths: {
                 map: `./map/${lower}`,
             },
@@ -2017,56 +2066,6 @@ function _scaffoldLayertype(name) {
             `}`,
             ``,
         ].join("\n"),
-        "metaconfig.json": JSON.stringify({
-            tabs: [
-                {
-                    name: "Core",
-                    rows: [
-                        {
-                            forceHeight: "64px",
-                            components: [
-                                {
-                                    field: "type",
-                                    name: "Layer Type",
-                                    description: "",
-                                    type: "dropdown",
-                                    width: 2,
-                                    options: [typeId],
-                                },
-                                {
-                                    field: "name",
-                                    name: "Layer Name",
-                                    description: "",
-                                    type: "textnotrim",
-                                    width: 8,
-                                    required: true,
-                                },
-                                {
-                                    field: "visibility",
-                                    name: "Initially On",
-                                    description: "",
-                                    type: "checkbox",
-                                    width: 2,
-                                    defaultChecked: false,
-                                },
-                            ],
-                        },
-                        {
-                            name: name,
-                            components: [
-                                {
-                                    field: "url",
-                                    name: "URL",
-                                    description: "",
-                                    type: "text",
-                                    width: 12,
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        }, null, 2) + "\n",
         [`tests/${lower}.spec.js`]: [
             `const { test, expect } = require('@playwright/test')`,
             `const path = require('path')`,
@@ -2205,7 +2204,7 @@ function cmdCreate(type, name) {
     } else if (type === "layertype") {
         const lower = name[0].toLowerCase() + name.slice(1);
         console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan(`map/${lower}.js`)} (add globe modules + declare their engines in ${c.cyan("plugin.json")} as needed)`);
-        console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("metaconfig.json")} fields`);
+        console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("metaconfig")} fields in ${c.cyan("plugin.json")}`);
         console.log(`    ${c.dim("3.")} Run ${c.cyan(`node -e "require('./API/updateTools').updateLayerTypes()"`)} to regenerate the layer-type registry`);
         console.log(`    ${c.dim("4.")} Run ${c.cyan("node plugins/plugin-cli.js validate")} to check the contract`);
     } else {

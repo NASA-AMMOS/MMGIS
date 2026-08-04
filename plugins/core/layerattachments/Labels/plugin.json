@@ -19,7 +19,61 @@
       "buildsAfterSiblings": true
     }
   },
-  "metaconfig": "./metaconfig.json",
+  "metaconfig": {
+    "tab": "Attachment - Layers",
+    "tabOrder": 10,
+    "order": 0,
+    "rows": [
+      {
+        "name": "Attachment - Layers",
+        "subname": "Labels",
+        "components": [
+          {
+            "field": "variables.layerAttachments.labels.enabled",
+            "name": "Enabled",
+            "description": "Place a label beside each feature. Also applies to 'Coordinate Attachments -> Marker' features.",
+            "type": "switch",
+            "width": 3,
+            "defaultChecked": false
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.layerAttachments.labels.initialVisibility",
+            "name": "Initial Visibility",
+            "description": "Whether the label sublayer is initially on. Users can toggle sublayers on and off in the layer settings in the LayersTool.",
+            "type": "checkbox",
+            "width": 2,
+            "defaultChecked": false
+          },
+          {
+            "field": "variables.layerAttachments.labels.theme",
+            "name": "Theme",
+            "description": "Label theme. Either default or solid. Default is white text with a black border. Solid is white text with a dark-grey background box.",
+            "type": "dropdown",
+            "width": 2,
+            "options": [
+              "default",
+              "solid"
+            ]
+          },
+          {
+            "field": "variables.layerAttachments.labels.size",
+            "name": "Size",
+            "description": "Label size. Either default or large. Default is 14px, large is 16px.",
+            "type": "dropdown",
+            "width": 2,
+            "options": [
+              "default",
+              "large"
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "paths": {
     "plugin": "./labels"
   },
