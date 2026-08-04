@@ -66,6 +66,34 @@ globe-only type). **Startup validation cross-checks `capabilities.renderers`
 against the module files actually present** — a declared engine with no module
 (or a module with no declared engine) is an error.
 
+### `extends` — inherit a type you only differ from
+
+`"extends": "<typeId>"` gives a type every surface and capability it doesn't
+declare itself, from one parent. It is what makes "a vector whose data comes
+from somewhere else" a one-file plugin rather than a fork of Vector:
+
+```jsonc
+{
+  "typeId": "ogcfeatures",
+  "extends": "vector",              // drawing, picking, filtering, both globes
+  "module": "./ogcfeatures",        // export default { config: { expand, resolveUrl } }
+  "capabilities": { "renderers": { "map": { "engines": ["leaflet"] } } }
+}
+```
+
+Resolution is per surface, and one level deep only (a parent that itself
+`extends` does not chain) — `LayerTypeRegistry.get()` merges the parent's
+modules under the child's (`globe` merged per engine), and `capabilities()`
+merges the parent's capabilities under the child's, one level into each group,
+so overriding `map.styling` doesn't drop an inherited `map.stacking`. Declare
+only what differs; the validator does not warn an extending type about
+capabilities its parent supplies.
+
+Inheriting the *renderer* while replacing only `config` is the common case, and
+it is why a new data source is usually a `config` surface (`expand` to turn one
+entry into a service's collections, `resolveUrl` to have the last word on what
+core fetches) rather than a renderer at all.
+
 ---
 
 ## The operations (identical on map and globe)
@@ -120,7 +148,11 @@ a core default — a type that declares no `filter` module simply isn't filterab
 
 `expand` is how one configured layer becomes many: Vector turns a STAC catalog
 url into a `header` whose sublayers are the catalog's children. Returned objects
-go through the rest of parsing normally.
+go through the rest of parsing normally, so each one needs the identity fields a
+configured layer has — a `uuid` unique among its siblings and a `name` (core
+replaces `name` with the uuid as it parses) — and a sublayer must not carry the
+parent's `sublayers`. Both operations may mutate and return `layerObj` or return
+a new object; core uses the return value.
 
 `resolveUrl` gets the **last** word, after core has expanded STAC, stripped
 `COG:` and made mission-relative paths absolute; `ctx.wasCOG` says whether it
