@@ -350,6 +350,60 @@ export function attachmentGlobeStyle(L_, layerObj) {
 }
 
 /**
+ * An attachment's settings changed while it was already built.
+ *
+ * `syncData` covers new *data*; this covers new *configuration* — an operator
+ * retuning a gradient's ramp or a label's property would otherwise see nothing
+ * until the layer was rebuilt. Core writes the new settings into the host's live
+ * config object at the attachment's declared `configPath` (so everything that
+ * reads settings, including the attachment itself, sees them) and then tells the
+ * attachment. Its default is the blunt but always-correct one: rebuild the host.
+ *
+ * @param {string} layerName     UUID name of the host layer.
+ * @param {string} attachmentId  The attachment whose settings changed.
+ * @param {Object} config        The attachment's new settings subtree.
+ */
+export function setAttachmentConfig(L_, layerName, attachmentId, config) {
+    layerName = L_.asLayerUUID(layerName)
+    const layerObj = L_.layers.data[layerName]
+    const path = LayerAttachmentRegistry.configPath(attachmentId)
+    if (layerObj == null || path == null) return
+
+    const prevConfig = LayerAttachmentRegistry.configFor(attachmentId, layerObj)
+    const keys = path.split('.')
+    let node = layerObj
+    for (const key of keys.slice(0, -1)) {
+        if (node[key] == null || typeof node[key] !== 'object') node[key] = {}
+        node = node[key]
+    }
+    node[keys[keys.length - 1]] = config
+
+    LayerInterface.runSync(
+        LayerAttachmentRegistry.module(attachmentId),
+        'onConfigChange',
+        [
+            {
+                hostName: layerName,
+                attachmentName:
+                    LayerAttachmentRegistry.sublayerKey(attachmentId),
+                layerObj,
+                config,
+                prevConfig,
+                attachment:
+                    L_.layers.attachments[layerName]?.[
+                        LayerAttachmentRegistry.sublayerKey(attachmentId)
+                    ] || null,
+            },
+        ],
+        {
+            // Nothing cheaper is guaranteed to be right: settings can change
+            // what an attachment builds, not only how it looks.
+            coreDefault: () => L_.Map_?.refreshLayer?.(layerObj),
+        }
+    )
+}
+
+/**
  * A layer was toggled: tell every other layer's attachments about it.
  *
  * Some attachments draw from layers other than their host (pairings connect

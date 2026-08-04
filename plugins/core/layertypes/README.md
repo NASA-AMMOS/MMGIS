@@ -26,6 +26,8 @@ plugins/core/layertypes/<Type>/
   config.js                      # parse-time ownership of the config  — optional
   filter.js                      # the type's filtering strategy       — optional
   time.js                        # what time means to this type        — optional
+  source.js                      # how the type acquires its data      — optional
+  legend.js                      # a legend derived from the render     — optional
   lib/                           # anything else the type needs
 ```
 
@@ -53,7 +55,7 @@ modules:
 ```
 
 `modules` keys are **surfaces** — `map`, `globe.<engine>`, `config`, `filter`,
-`time` — not export names, which is why this is not the
+`time`, `source`, `legend` — not export names, which is why this is not the
 `paths` of tools and interactions (there a key is the export identifier a mission
 names in `"js"`). Every surface is optional: `Header` declares no modules at all
 and `Model` has no `map`.
@@ -76,7 +78,7 @@ from somewhere else" a one-file plugin rather than a fork of Vector:
 {
   "typeId": "ogcfeatures",
   "extends": "vector",              // drawing, picking, filtering, both globes
-  "module": "./ogcfeatures",        // export default { config: { expand, resolveUrl } }
+  "module": "./ogcfeatures",        // export default { source: { fetch } }
   "capabilities": { "renderers": { "map": { "engines": ["leaflet"] } } }
 }
 ```
@@ -187,6 +189,68 @@ Where the features live is the type's business, not core's: Vector filters
 locally, but dispatches to the server for a geodataset-backed layer holding only
 what is in view. `filters` is the layer's filter state and is also where a type
 may cache (Vector keeps its GeoJSON there); `ctx.refresh` asks it not to.
+
+### `source` — how the type acquires its data
+
+| operation | signature | when | core default |
+|---|---|---|---|
+| `fetch` | `async (layerObj, ctx) → GeoJSON` | every acquisition of a vector-ish layer: initial make, refresh, time change and each dynamic-extent view change | core's own url transports (a file/api url, a `geodatasets:` name, KML) |
+
+Declare `source` when the layer's data does not come out of a url that core can
+fetch — a `POST` body, request headers, pagination, an SDK, several requests
+stitched together. It is the *only* thing that moves out of core: the extent,
+the debounce and settling, the zoom gate, request staleness, the move threshold,
+clearing and updating the layer, and telling reload subscribers all stay core's,
+so `fetch` is a pure "given this, give me GeoJSON" function.
+
+Return a `FeatureCollection` (a bare array of features or `{ Features }` is
+normalized), or `null` to leave the layer as it is. Throwing is logged and
+treated as `null`. A `source`-backed type may have no `url` configured at all.
+
+| `ctx` field | what it is |
+|---|---|
+| `url` | the layer's url with time placeholders resolved and mission-relative paths made absolute; `''` when the layer has none |
+| `trigger` | `'make'` (initial/refresh), `'view'` (dynamic extent moved) or `'time'` (the time window moved) |
+| `view` | the current extent for a dynamic-extent request: `minx`/`miny`/`maxx`/`maxy`, `zoom`, `tilt`, `center`, and `source` (`'map'` or `'globe'`) — `null` otherwise |
+| `dynamicExtent` | `true` when this is a viewport-driven request |
+| `crsCode` | the mission's CRS code without its `EPSG:` prefix |
+| `time` | `{ start, end, startProp, endProp, requery }` for a time-enabled layer, else `null` |
+| `filters` | the layer's encoded value filters, when a filter is active |
+| `spatialFilter` | the layer's encoded spatial filter, when one is active |
+
+```js
+// source.js — an OGC API Features collection, bbox-limited to the view
+async function fetch(layerObj, ctx) {
+    const url = new URL(ctx.url)
+    url.searchParams.set('limit', layerObj.variables?.limit ?? 1000)
+    if (ctx.view)
+        url.searchParams.set(
+            'bbox',
+            [ctx.view.minx, ctx.view.miny, ctx.view.maxx, ctx.view.maxy].join(',')
+        )
+    if (ctx.time?.requery)
+        url.searchParams.set('datetime', `${ctx.time.start}/${ctx.time.end}`)
+
+    const res = await window.fetch(url, { headers: { Accept: 'application/geo+json' } })
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+    return res.json()
+}
+
+export default { fetch }
+```
+
+### `legend` — a legend that comes from the render, not the config
+
+| operation | signature | when | core default |
+|---|---|---|---|
+| `derive` | `(layerObj) → boolean` | the LayersTool/LegendTool wants a legend and the layer has none configured | nothing — the layer simply has no legend |
+
+Most legends are configured (`legend` url, `variables.legend`) and core reads
+them. Declare `legend` when the legend *is* the render: a single-band COG's
+colormap over its rescale range, a data shader's ramp, a velocity magnitude
+scale. Write the entries to `layerObj._legend` (the shape the LegendTool draws,
+also reachable via `mmgisAPI.overwriteLegends`) and return `false` if this
+particular layer has nothing to derive after all.
 
 ### `time` — what a time change means to this type
 

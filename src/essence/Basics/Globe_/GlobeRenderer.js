@@ -605,6 +605,9 @@ class GlobeRenderer {
             return {
                 engine: 'cesium',
                 renderer: this.renderer,
+                // The engine namespace, so a plugin needn't import (and bundle)
+                // its own copy — the globe twin of mctx.raw.
+                raw: Cesium,
                 layers: this._layers,
                 ...primitives,
                 requestRender: () => this._requestRender(),
@@ -627,6 +630,9 @@ class GlobeRenderer {
         return {
             engine: 'lithosphere',
             renderer: this.renderer,
+            // Same escape hatch as Cesium's: the engine namespace, next to the
+            // live instance in `renderer`.
+            raw: LithoSphere,
             layers: this._layers,
             ...primitives,
             clampToGround: type === 'clamped',

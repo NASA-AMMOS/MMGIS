@@ -329,6 +329,9 @@ const L_ = {
     notifyAttachmentsOfPeerToggle(...a) {
         return sublayers.notifyAttachmentsOfPeerToggle(L_, ...a)
     },
+    setAttachmentConfig(...a) {
+        return sublayers.setAttachmentConfig(L_, ...a)
+    },
     decorateFeature(...a) {
         return sublayers.decorateFeature(L_, ...a)
     },

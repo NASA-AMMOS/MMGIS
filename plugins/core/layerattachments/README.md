@@ -102,6 +102,7 @@ map layer and need two or three.
 |---|---|---|---|
 | `make` | `(ctx) → attachment \| false` | the host is built | nothing is added (`false`) |
 | `syncData` | `(attachment, ctx)` | the host's data changed | `clearLayers()`, then re-`addData` the host's GeoJSON |
+| `onConfigChange` | `(ctx)` | the attachment's settings changed while it was built | rebuild the host layer |
 | `setVisibility` | `(attachment, ctx)` | the attachment, or its host, is shown/hidden | add to / remove from the 2D map |
 | `setOpacity` | `(attachment, opacity, ctx)` | the host's or the attachment's opacity changed | `setOpacity`, falling back to `setStyle` on the layer |
 | `setStyle` | `(attachment, ctx)` | feature highlight/fills were reset | no-op |
@@ -144,7 +145,13 @@ The per-instance operations get the built attachment plus
 and the `applyOrder`/`applyOpacity` callbacks core wants run after you show
 something; `setOpacity` adds `source: 'host' | 'attachment'`; `syncData` adds the
 new `geojson` and `onlyClear`; `onPeerToggle` adds the `layerName` that toggled
-and its new state.
+and its new state; `onConfigChange` adds `config`, `prevConfig` and `layerObj`.
+
+`onConfigChange` is what `mmgisAPI.setLayerAttachmentConfig(layerName,
+attachmentId, config)` dispatches — core has already written the new settings
+into the host's live config at your `configPath`, so implement it to retune in
+place (a new ramp, a new label property) instead of paying for core's default,
+which rebuilds the whole host layer.
 
 The host-scoped operations (`decorateFeature`, `globeStyle`, `makeForFeature`,
 `clearForFeature`) run without an instance — there may not be one — and get

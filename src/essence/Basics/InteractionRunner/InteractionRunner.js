@@ -35,7 +35,27 @@ function _defaultConfig() {
         suppressionMap: gen.SUPPRESSION_MAP || {},
         kindPipelines: gen.KIND_PIPELINES || {},
         applicableLayerTypes: gen.APPLICABLE_LAYER_TYPES || {},
+        configPaths: gen.INTERACTION_CONFIG_PATHS || {},
     }
+}
+
+// The value at a dotted path, or null.
+function _getIn(obj, path) {
+    return path.split('.').reduce((o, k) => (o == null ? null : o[k]), obj)
+}
+
+/**
+ * An interaction's own settings on the layer being interacted with.
+ *
+ * An interaction that declares `configPath` (`variables.interactions.sonify`)
+ * is configured per layer like an attachment is, so core reads that subtree and
+ * hands it over as `ctx.config` — the plugin needn't know where its settings
+ * live, and nothing else has to guess either.
+ */
+function configForInteraction(id, ctx, config) {
+    const path = config?.configPaths?.[id]
+    if (path == null) return null
+    return _getIn(ctx?.layerData, path) ?? null
 }
 
 /**
@@ -219,6 +239,8 @@ async function runInteractions(interactionIds, ctx, options) {
             console.warn(`Unknown interaction '${id}', skipping`)
             continue
         }
+        if (config?.configPaths?.[id] != null)
+            ctx.config = configForInteraction(id, ctx, config)
         await handler.use(ctx)
         if (ctx.stop) break
     }
@@ -237,6 +259,7 @@ if (typeof module !== 'undefined' && module.exports) {
         resolveLayerInteractions,
         buildFullPipeline,
         filterApplicable,
+        configForInteraction,
         _resetCache,
     }
 }
@@ -247,5 +270,6 @@ export {
     resolveLayerInteractions,
     buildFullPipeline,
     filterApplicable,
+    configForInteraction,
     _resetCache,
 }

@@ -36,6 +36,8 @@ function make(ctx) {
  *
  * syncData(attachment, ctx)        host data changed. Default: clearLayers, then
  *                                  re-add the host's GeoJSON.
+ * onConfigChange(ctx)              these settings changed while built (ctx.config,
+ *                                  ctx.prevConfig). Default: rebuild the host.
  * setVisibility(attachment, ctx)   shown/hidden, with its host or on its own.
  *                                  Default: add to / remove from the map.
  * setOpacity(attachment, o, ctx)   Default: setOpacity, else setStyle.

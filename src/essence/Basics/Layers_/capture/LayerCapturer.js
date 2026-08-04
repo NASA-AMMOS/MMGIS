@@ -5,6 +5,9 @@ import F_ from '../../Formulae_/Formulae_'
 import L_ from '../../Layers_/Layers_'
 import calls from '../../../../pre/calls'
 import TimeControl from '../../TimeControl_/TimeControl'
+import LayerTypeRegistry from '../registry/LayerTypeRegistry'
+import LayerInterface from '../interface/LayerInterface'
+import { acceptsDynamicResult, sourceCtx } from './dynamicExtent'
 
 function isKmlUrl(url) {
     try {
@@ -106,6 +109,111 @@ const _resolveDynamicView = (e) => {
     }
 }
 
+// Swap a dynamic-extent layer's features for freshly acquired ones.
+const _commitDynamicGeoJSON = (layerObj, layerData, data) => {
+    layerData._ignoreDynamicExtentMoveThreshold = false
+    L_.clearVectorLayer(layerObj.name)
+    L_.updateVectorLayer(layerObj.name, data, null, layerData._stopLoops)
+
+    Object.keys(L_?._timeLayerReloadFinishSubscriptions || {}).forEach((k) => {
+        L_._timeLayerReloadFinishSubscriptions[k]()
+    })
+}
+
+/**
+ * Acquire a layer's GeoJSON through its type's `source.fetch` instead of core's
+ * url transports. Core keeps everything around the fetch: the extent, the zoom
+ * gate, request staleness, the move threshold and the clear/update.
+ */
+const _captureFromSource = (
+    layerObj,
+    layerData,
+    sourceModule,
+    url,
+    cb,
+    dynamicCb
+) => {
+    const fetch = (view, trigger, onData) => {
+        const ctx = sourceCtx(layerData, url, view, trigger)
+        Promise.resolve(
+            LayerInterface.run(sourceModule, 'fetch', [layerObj, ctx])
+        )
+            .then((data) => onData(data == null ? null : F_.parseIntoGeoJSON(data)))
+            .catch((err) => {
+                console.warn(
+                    `ERROR! source.fetch of layer type '${layerData?.type}' failed for ${layerObj.name} /// ${err?.message || err}`
+                )
+                onData(null)
+            })
+    }
+
+    if (layerData?.variables?.dynamicExtent !== true) {
+        fetch(null, 'make', cb)
+        return
+    }
+
+    dynamicCb((e) => {
+        if (L_.layers.on[layerObj.name] !== true) return
+
+        const view = _resolveDynamicView(e)
+        if (
+            view.zoom < (layerData.minZoom || 0) ||
+            view.zoom > (layerData.maxZoom ?? 100)
+        ) {
+            L_.clearVectorLayer(layerObj.name)
+            return
+        }
+
+        const isTimeChange = e != null && e.endTime != null
+        const dateNow = new Date().getTime()
+        _layerRequestLastTimestamp[layerObj.name] = Math.max(
+            _layerRequestLastTimestamp[layerObj.name] || 0,
+            dateNow
+        )
+
+        const ctx = sourceCtx(
+            layerData,
+            url,
+            view,
+            isTimeChange ? 'time' : 'view'
+        )
+        if (isTimeChange && ctx.time != null) {
+            ctx.time.start = e.startTime
+            ctx.time.end = e.endTime
+        }
+
+        Promise.resolve(
+            LayerInterface.run(sourceModule, 'fetch', [layerObj, ctx])
+        )
+            .then((data) => {
+                if (data == null) return
+                if (
+                    acceptsDynamicResult(
+                        layerObj,
+                        layerData,
+                        view,
+                        dateNow,
+                        _layerRequestLastTimestamp,
+                        _layerRequestLastLoc
+                    )
+                )
+                    _commitDynamicGeoJSON(
+                        layerObj,
+                        layerData,
+                        F_.parseIntoGeoJSON(data)
+                    )
+            })
+            .catch((err) => {
+                console.warn(
+                    `ERROR! source.fetch of layer type '${layerData?.type}' failed for ${layerObj.name} /// ${err?.message || err}`
+                )
+            })
+    })
+
+    // The layer is made empty; the first view event fills it.
+    cb({ type: 'FeatureCollection', features: [] }, true)
+}
+
 export const captureVector = (layerObj, options, cb, dynamicCb) => {
     options = options || {}
     // If a resolved URL was supplied by the caller (e.g.
@@ -135,9 +243,16 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
         return
     }
 
+    // A type that fetches its own data (`modules.source`) may have no url at all.
+    const sourceModule = LayerTypeRegistry.get(layerData?.type)?.source
+    const hasSourceFetch = LayerInterface.hasOp(sourceModule, 'fetch')
+
     if (typeof layerUrl !== 'string' || layerUrl.length === 0) {
-        cb(null)
-        return
+        if (!hasSourceFetch) {
+            cb(null)
+            return
+        }
+        layerUrl = ''
     }
 
     // Give time enabled layers a default start and end time to avoid errors
@@ -182,7 +297,22 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             }
         }
     }
-    if (!F_.isUrlAbsolute(layerUrl)) layerUrl = L_.missionPath + layerUrl
+    if (layerUrl.length > 0 && !F_.isUrlAbsolute(layerUrl))
+        layerUrl = L_.missionPath + layerUrl
+
+    // The type owns its acquisition; core's url transports below are the
+    // default for types that don't.
+    if (hasSourceFetch) {
+        _captureFromSource(
+            layerObj,
+            layerData,
+            sourceModule,
+            layerUrl,
+            cb,
+            dynamicCb
+        )
+        return
+    }
 
     let done = true
     let urlSplitRaw = layerObj.url.split(':')

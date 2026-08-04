@@ -43,7 +43,8 @@ function destroy(layerObj) {
  *
  * Non-render surfaces are separate modules declared in plugin.json `modules`:
  * config (expand/normalize/resolveUrl), filter (getAggregations/filter),
- * time (format/applyTimeParams).
+ * time (format/applyTimeParams), source (fetch — when the data doesn't come out
+ * of a url core can fetch), legend (derive — when the legend is the render).
  */
 export default {
     make,

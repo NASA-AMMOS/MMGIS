@@ -727,6 +727,7 @@ window.ToolController_.closeTool('AgentChat')  // close and clear the toolbar hi
 | `kindAlias` | `string[]` | Legacy `kind` strings this interaction maps to for backward compatibility (e.g. `["waypoint"]`). Multiple interactions may share a `kindAlias` — all of them run, ordered by `order`. |
 | `applicableEvents` | `string[]` | Event types this interaction handles: `"click"`, `"hover"`, `"mouseout"`. |
 | `applicableLayerTypes` | `string[]` | Layer types this interaction applies to (e.g. `["vector", "vectortile", "query"]`). **Enforced** at runtime: the runner drops the interaction — preamble and postamble included — on a layer whose type (or the type it `extends`) isn't listed, and warns. Omit the field to apply to every type. |
+| `configPath` | `string` | Where in a layer's config this interaction is configured (e.g. `variables.interactions.sonify`). The runner reads that subtree and hands it over as `ctx.config`, so the plugin never spells out where its own settings live. Omit it if the interaction has no per-layer settings. |
 
 Interactions also commonly set `overridable: false` (infrastructure interactions like `select` can't be overridden or disabled) and `pluginDependencies` (see below) to declare a required tool.
 

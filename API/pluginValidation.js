@@ -71,10 +71,14 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
  *   config  parse-time ownership of the layer's config object
  *   filter  the filtering strategy for the type
  *   time    what the type's time support means to the time bar
+ *   source  how the type acquires its data (core keeps extent/staleness)
+ *   legend  a legend derived from how the layer is rendered
  */
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
 const TIME_OPS = ["format", "applyTimeParams"];
+const SOURCE_OPS = ["fetch"];
+const LEGEND_OPS = ["derive"];
 
 /**
  * A layer attachment is a single renderable that may straddle both engines (an
@@ -94,6 +98,7 @@ const ATTACHMENT_OPS = [
   "setVisibility",
   "onPeerToggle",
   "syncData",
+  "onConfigChange",
   "setStyle",
   "peerFeaturesFor",
 ];
@@ -105,6 +110,8 @@ const SURFACES = {
   config: { ops: CONFIG_OPS, requiresMake: false },
   filter: { ops: FILTER_OPS, requiresMake: false },
   time: { ops: TIME_OPS, requiresMake: false },
+  source: { ops: SOURCE_OPS, requiresMake: false },
+  legend: { ops: LEGEND_OPS, requiresMake: false },
   attachment: { ops: ATTACHMENT_OPS, requiresMake: true },
   // An attachment that only decorates its host (a bearing turns its host's
   // markers) adds nothing to the map of its own, so it has nothing to `make`.
@@ -574,6 +581,7 @@ const KNOWN_FIELDS = {
     "order",
     "suppresses",
     "kindAlias",
+    "configPath",
   ]),
   layertype: new Set([
     ...COMMON_FIELDS,
@@ -885,6 +893,17 @@ function validatePluginConfig(config, pluginName, pluginType) {
         );
       }
     }
+    // Optional for an interaction: declaring it is what gets the interaction its
+    // own settings as `ctx.config` instead of the whole layer.
+    if (
+      config.configPath !== undefined &&
+      (typeof config.configPath !== "string" ||
+        !config.configPath.startsWith("variables."))
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'configPath' must point into a layer's 'variables' ('${config.configPath}')`
+      );
+    }
   }
 
   // For layer types, name, typeId, and `modules`/`module` are required. For
@@ -924,7 +943,7 @@ function validatePluginConfig(config, pluginName, pluginType) {
       }
     } else if (config.configPath !== undefined) {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'configPath' is only valid on a layerattachment`
+        `Plugin '${pluginName}' (${pluginType}): 'configPath' is only valid on a layerattachment or an interaction`
       );
     }
     if (config.extends !== undefined) {
@@ -1221,7 +1240,8 @@ function validatePluginConfig(config, pluginName, pluginType) {
           config.config,
           pluginName,
           pluginType,
-          pluginType === "layerattachment" &&
+          (pluginType === "layerattachment" ||
+            pluginType === "interaction") &&
             typeof config.configPath === "string"
             ? config.configPath
             : null
@@ -1627,6 +1647,8 @@ module.exports = {
   CONFIG_OPS,
   FILTER_OPS,
   TIME_OPS,
+  SOURCE_OPS,
+  LEGEND_OPS,
   SURFACES,
   OP_PHASES,
   MAKE_EXTRA_PHASES,

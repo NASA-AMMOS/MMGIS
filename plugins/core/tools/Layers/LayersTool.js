@@ -5,6 +5,7 @@ import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
 import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 import LayerAttachmentRegistry from '@basics/Layers_/registry/LayerAttachmentRegistry'
+import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
 
 import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
@@ -1480,17 +1481,9 @@ function interfaceWithMMGIS(fromInit) {
                             )
                     }
 
-                    // Populate the legends for tile (COG), image, velocity, and data layers
-                    if (
-                        (['image', 'tile'].includes(node[i].type) &&
-                            node[i].cogTransform) ||
-                        node[i].type === 'velocity' ||
-                        (node[i].type === 'data' &&
-                            F_.getIn(node[i], 'variables.shader.type') ===
-                                'colorize')
-                    ) {
-                        LayersTool.populateCogScale(node[i].name)
-                    }
+                    // Types whose legend comes from how they're rendered
+                    // (a COG's scale, a shader's ramp) derive it themselves.
+                    deriveLegend(node[i])
 
                     break
             }

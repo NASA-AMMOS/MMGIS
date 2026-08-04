@@ -621,6 +621,7 @@
     ]
   },
   "modules": {
-    "map": "./map"
+    "map": "./map",
+    "legend": "./legend"
   }
 }

@@ -376,6 +376,9 @@ function updateInteractions() {
   // interactions that declare a (non-empty) list appear; an absent entry means
   // "any layer type", so the runner needs no separate "declared?" flag.
   const applicableLayerTypes = {};
+  // interactionId -> where in a layer's config it is configured, so the runner
+  // can hand the interaction its own settings instead of the whole layer.
+  const configPaths = {};
   const kindAliasEntries = []; // { kind, interactionId, order }
 
   for (const name in interactions) {
@@ -403,6 +406,9 @@ function updateInteractions() {
     ) {
       applicableLayerTypes[id] = manifest.applicableLayerTypes;
     }
+
+    if (typeof manifest.configPath === "string" && manifest.configPath !== "")
+      configPaths[id] = manifest.configPath;
 
     if (Array.isArray(manifest.kindAlias)) {
       for (const kind of manifest.kindAlias) {
@@ -469,6 +475,9 @@ function updateInteractions() {
   output += `export const KIND_PIPELINES = ${JSON.stringify(kindPipelines)}\n`;
   output += `export const APPLICABLE_LAYER_TYPES = ${JSON.stringify(
     applicableLayerTypes
+  )}\n`;
+  output += `export const INTERACTION_CONFIG_PATHS = ${JSON.stringify(
+    configPaths
   )}\n`;
 
   try {

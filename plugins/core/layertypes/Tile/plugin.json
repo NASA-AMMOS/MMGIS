@@ -946,6 +946,7 @@
     "map": "./map",
     "config": "./config",
     "time": "./time",
+    "legend": "./legend",
     "globe": {
       "cesium": "./globe/cesium",
       "lithosphere": "./globe/lithosphere"
