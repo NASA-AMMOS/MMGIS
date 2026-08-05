@@ -111,7 +111,7 @@
     "dompurify": "^3.4.5",
     "dotenv": "8.2.0",
     "dotenv-expand": "5.1.0",
-    "echarts": "^5.4.3",
+    "echarts": "^6.1.0",
     "express": "5.2.1",
     "express-rate-limit": "7.5.1",
     "express-session": "1.18.2",
