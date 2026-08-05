@@ -472,6 +472,43 @@ because they already resolve through `kind`; the field exists for new types.
 
 ---
 
+## Default attachments — the attachments your type comes with
+
+Attachments are a separate family for good reason (labels and bearings belong to
+no type in particular), but a feature is often a type *plus* something drawn
+beside its features. Declare that, rather than leaving an admin to discover it:
+
+```jsonc
+"capabilities": {
+  "defaultAttachments": {
+    "magnitude_rings": { "magnitudeProp": "mag", "scale": 200 },
+    "labels": {}
+  }
+}
+```
+
+The keys are `attachmentId`s of enabled attachment plugins; the values are that
+attachment's settings, i.e. whatever it reads from its own `configPath`. `{}`
+means "on, with the attachment's own defaults".
+
+Why the settings and not just a list of ids: they are the reason this exists. The
+property holding a magnitude is a fact your type knows and the attachment does
+not, and before this the only way to pass it along was for your type's config
+rows to write into the attachment's subtree — a string-literal `configPath` that
+broke whenever either plugin was renamed. Now it is declared once, and core hands
+it to the attachment as if an admin had filled the form in.
+
+A layer of your type overrides it **field by field** (`{ scale: 50 }` keeps your
+`magnitudeProp`), and opts out with `enabled: false`. Precedence is therefore the
+same shape as interactions': type defaults → the layer's own settings.
+
+One thing to check: the attachment's `applicableLayerTypes` decides whether it
+accepts your type as a host at all, and a default it excludes silently never
+applies — `validate` warns about exactly that, and about an `attachmentId` no
+enabled plugin provides.
+
+---
+
 ## Capabilities — what core reads instead of asking
 
 Capabilities answer the questions core must ask while iterating or partitioning
@@ -495,6 +532,7 @@ error, an unknown key warns (typo), and omitting one core acts on warns too.
 | `time` | the type understands time at all (`true`, or the object form below) | no time support |
 | `time.histogram` | it can report when data exists over time, so the time bar draws its availability sparkline | no histogram |
 | `defaultInteractions` | default click/hover interaction ids for the type (see above) | none |
+| `defaultAttachments` | attachments the type comes with, and their settings (see above) | none |
 
 Every capability in this table is read by core. There is deliberately no
 descriptive capability: filterability follows from declaring a `filter` module
@@ -570,7 +608,8 @@ aren't reimplementing something core already does around your `main`.
 2. Implement **`make`** for each surface you support (a bare function is fine).
 3. Add only the other operations your engine can't do uniformly for you.
 4. Prefer neutral primitives; use the raw escape hatch only when necessary.
-5. Declare default interactions in the manifest if your type needs them.
+5. Declare default interactions and attachments in the manifest if your type
+   comes with them.
 6. Add the non-render surfaces your type needs (`config`, `filter`, `time`).
 7. Run `npm run plugins -- validate`, then `npm run plugins -- activate` to
    regenerate `src/pre/layertypes.js` — never hand-edit it.

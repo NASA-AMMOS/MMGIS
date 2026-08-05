@@ -1437,6 +1437,37 @@ function cmdValidate() {
                     crossFamilyWarning(p, "declares default interaction", id);
         }
     }
+    // A type declaring the attachments it comes with is only honoured for
+    // attachments that accept it as a host, so an `applicableLayerTypes` that
+    // excludes it is a default that silently never applies.
+    const attachmentsById = {};
+    for (const p of attachmentPlugins)
+        if (p.manifest.attachmentId)
+            attachmentsById[p.manifest.attachmentId] = p.manifest;
+    for (const p of layerTypePlugins) {
+        const declared = (p.manifest.capabilities || {}).defaultAttachments;
+        if (declared == null || typeof declared !== "object" || Array.isArray(declared))
+            continue;
+        for (const id of Object.keys(declared)) {
+            const attachment = attachmentsById[id];
+            if (attachment == null) {
+                crossFamilyWarning(p, "declares default attachment", id);
+                continue;
+            }
+            const applicable = attachment.applicableLayerTypes;
+            const hosts = [p.manifest.typeId, p.manifest.extends].filter(Boolean);
+            if (
+                Array.isArray(applicable) &&
+                !applicable.includes("*") &&
+                !hosts.some((h) => applicable.includes(h))
+            ) {
+                const msg = `${p.id} declares default attachment '${id}', whose applicableLayerTypes excludes this type, so the default never applies`;
+                crossFamilyWarningMessages.push(msg);
+                if (!FLAG_JSON)
+                    console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: default attachment ${c.red(id)} ${c.yellow("does not apply to this type")}`);
+            }
+        }
+    }
     for (const p of [...attachmentPlugins, ...interactionPlugins]) {
         const applicable = p.manifest.applicableLayerTypes;
         if (!Array.isArray(applicable)) continue;

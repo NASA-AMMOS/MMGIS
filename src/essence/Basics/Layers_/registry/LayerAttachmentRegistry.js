@@ -17,6 +17,10 @@
 import F_ from '../../Formulae_/Formulae_'
 import LayerInterface from '../interface/LayerInterface'
 import LayerTypeRegistry from './LayerTypeRegistry'
+import {
+    declaredAttachmentConfig,
+    resolveAttachmentConfig,
+} from './attachmentDefaults'
 
 let _cache = null
 
@@ -98,15 +102,43 @@ const LayerAttachmentRegistry = {
     configPath(attachmentId) {
         return this.getConfig(attachmentId)?.configPath || null
     },
-    /** This attachment's slice of a host layer's config, if it has one. */
+    /**
+     * What a host layer's *type* says this attachment should be, for a layer
+     * that hasn't said otherwise — the type's
+     * `capabilities.defaultAttachments[attachmentId]`.
+     *
+     * This is how a feature made of a layer type, an attachment and an
+     * interaction arrives whole: the type declares the attachment it comes with
+     * exactly as it declares its `defaultInteractions`, instead of writing
+     * another plugin's `configPath` itself.
+     */
+    defaultConfigFor(attachmentId, layerObj) {
+        if (layerObj?.type == null) return null
+        return declaredAttachmentConfig(
+            LayerTypeRegistry.capabilities(layerObj.type),
+            attachmentId
+        )
+    },
+    /**
+     * This attachment's slice of a host layer's config, if it has one.
+     *
+     * A layer's own settings sit on top of whatever its type declared, field by
+     * field, so an admin who changes one thing doesn't lose the rest of what the
+     * type came with.
+     */
     configFor(attachmentId, layerObj) {
         const path = this.configPath(attachmentId)
         if (path == null || layerObj == null) return null
-        return F_.getIn(layerObj, path, null)
+        return resolveAttachmentConfig(
+            F_.getIn(layerObj, path, null),
+            this.defaultConfigFor(attachmentId, layerObj)
+        )
     },
     /**
      * Whether a host layer asks for this attachment at all. Configured but
-     * without `enabled` counts as enabled — the key's presence is the request.
+     * without `enabled` counts as enabled — the key's presence is the request —
+     * and a type that declares the attachment counts as configuring it, which a
+     * layer overrides with an explicit `enabled: false`.
      */
     isEnabledOn(attachmentId, layerObj) {
         const config = this.configFor(attachmentId, layerObj)

@@ -200,6 +200,7 @@ const CAPABILITY_SCHEMA = {
     // Validated in detail separately (engines ↔ modules cross-check).
     renderers: { type: "object" },
     defaultInteractions: { type: "object" },
+    defaultAttachments: { type: "object" },
     structural: { type: "boolean" },
     map: {
       type: "group",
@@ -1157,6 +1158,36 @@ function validatePluginConfig(config, pluginName, pluginType) {
             if (!Array.isArray(ids) || ids.some((v) => typeof v !== "string")) {
               errors.push(
                 `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings`
+              );
+            }
+          }
+        }
+      }
+
+      // The attachments a type comes with, and what they should be on a layer
+      // that hasn't configured them: `{ [attachmentId]: { …settings } }`, `{}`
+      // meaning "on, the attachment's own defaults". An object rather than a
+      // list of ids because "comes with" is only useful if it can say how.
+      if (
+        config.capabilities !== null &&
+        typeof config.capabilities === "object" &&
+        !Array.isArray(config.capabilities) &&
+        config.capabilities.defaultAttachments !== undefined
+      ) {
+        const da = config.capabilities.defaultAttachments;
+        if (typeof da !== "object" || Array.isArray(da) || da === null) {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultAttachments' must be an object mapping attachment ID to its default settings ({} for none)`
+          );
+        } else {
+          for (const [id, settings] of Object.entries(da)) {
+            if (
+              settings === null ||
+              typeof settings !== "object" ||
+              Array.isArray(settings)
+            ) {
+              errors.push(
+                `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultAttachments.${id}' must be an object of that attachment's settings ({} for none)`
               );
             }
           }

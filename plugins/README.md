@@ -365,9 +365,24 @@ How the families reach each other — all declarative, none of it a lookup:
 | seam | how |
 |---|---|
 | type → attachment | the attachment's `applicableLayerTypes: ["<typeId>"]`, which also hides it from every other type |
+| type ships an attachment | the type's `capabilities.defaultAttachments`, which also carries the attachment's settings — see below |
 | type → interaction | the type's `capabilities.defaultInteractions.<event>: ["<interactionId>"]` |
 | either → an admin | each plugin's own `configPath` + `config.rows`; a plugin owns its subtree and should not write another's |
 | plugin → plugin, at runtime | share a module, or leave something on the layer: an attachment's own object is at `L_.layers.attachments[layerName][attachmentId]` and is yours verbatim, and interactions pass state along the pipeline in `ctx.state` |
+
+The settings problem the last two rows solve is worth spelling out, because the obvious workaround is wrong. A feature's three plugins often need the *same* facts — the property holding an azimuth, say — and each family owns a different subtree, so an admin would type it three times and they would have to agree. Do **not** have your layer type write into the attachment's `configPath`; declare what the attachment should be instead:
+
+```json
+"capabilities": {
+    "defaultAttachments": {
+        "look_direction": { "azimuthProp": "emission_azimuth", "scale": 200 }
+    }
+}
+```
+
+Core then hands that to the attachment under the attachment's own `configPath`, as if an admin had filled it in. A layer of your type gets the attachment turned on with those settings; its own settings, if an admin gives it any, sit on top **field by field**, so changing one thing does not lose the rest, and `enabled: false` on the layer opts out. `{}` means "on, with the attachment's own defaults".
+
+So the property names live once, in the manifest of the plugin that knows them, and neither plugin reads the other's config. Two caveats: the attachment's `applicableLayerTypes` still decides whether it can host your type at all (`validate` warns when a declared default can never apply), and the Configure form for that attachment shows *empty* fields on such a layer — empty means "as the type declared", and typing a value overrides it.
 
 There is deliberately no registry lookup by `attachmentId`/`interactionId` for plugins, and no way to *call* another plugin's operations: core dispatches them, so a plugin that needs another's work should read what it left behind rather than invoke it. Two plugins that must run in a fixed order are one plugin.
 
@@ -1036,7 +1051,7 @@ npm run plugins -- validate          # Human-readable
 npm run plugins -- validate --json   # Structured output with per-plugin results
 ```
 
-It checks manifests and the shape of the modules they declare — statically, without loading them — plus the things that fail quietly at runtime: a module a manifest declares but the plugin no longer has, an `applicableLayerTypes` or `defaultInteractions` id no enabled plugin provides, a `pluginDependencies` id that cannot be resolved (which keeps the plugin out of the generated registry), and a generated registry that is stale relative to what is on disk. See `API/pluginValidation.js` for the implementation.
+It checks manifests and the shape of the modules they declare — statically, without loading them — plus the things that fail quietly at runtime: a module a manifest declares but the plugin no longer has, an `applicableLayerTypes`, `defaultInteractions` or `defaultAttachments` id no enabled plugin provides (or a declared default attachment that refuses your type as a host), a `pluginDependencies` id that cannot be resolved (which keeps the plugin out of the generated registry), and a generated registry that is stale relative to what is on disk. See `API/pluginValidation.js` for the implementation.
 
 Linting a plugin needs `NODE_ENV` set — the repo's Babel preset refuses to run without it, with an error that looks unrelated to your code:
 

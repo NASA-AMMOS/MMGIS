@@ -83,6 +83,14 @@ answers "does this host want this attachment at all", so your `make` is only
 called for a host that asked: a `configPath` subtree that exists counts as
 enabled unless it says `enabled: false`.
 
+A host can also have asked through its **layer type**, which may declare you in
+`capabilities.defaultAttachments` along with the settings it wants (see
+[`../layertypes/README.md`](../layertypes/README.md)). Nothing changes for you —
+`ctx.config` is the type's settings with the layer's own on top, field by field —
+but it is worth knowing that a `ctx.config` you were handed does not imply an
+admin ever opened your form, and that your `applicableLayerTypes` still decides
+whether a type may declare you at all.
+
 ### Hosts
 
 `applicableLayerTypes` lists the layer types this attachment applies to; omitting

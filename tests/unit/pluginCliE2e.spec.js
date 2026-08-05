@@ -801,4 +801,51 @@ test.describe('CLI validate cross-checks ids between families', () => {
             out.crossFamilyWarningMessages.some((m) => m.includes('nosuchlayertype'))
         ).toBe(true);
     });
+
+    test('a layer type declaring an attachment nobody provides is reported', () => {
+        expect(runCli(`create layertype E2eFeature --container ${CONTAINER} --json`).exitCode).toBe(0);
+        const manifestPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest.capabilities.defaultAttachments = { nosuchattachment: {} };
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) => m.includes('default attachment') && m.includes('nosuchattachment')
+            )
+        ).toBe(true);
+    });
+
+    test('a declared attachment that refuses this type as a host is reported', () => {
+        // The default is well-formed and the attachment exists, so nothing else
+        // complains — but `applicableLayerTypes` filters the attachment out of
+        // this type's hosts, so the type ships an attachment that never appears.
+        const attachmentPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layerattachments', 'E2eOrphan', 'plugin.json'
+        );
+        const attachment = JSON.parse(fs.readFileSync(attachmentPath, 'utf8'));
+        attachment.applicableLayerTypes = ['vector'];
+        fs.writeFileSync(attachmentPath, JSON.stringify(attachment, null, 4));
+
+        const typePath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(typePath, 'utf8'));
+        manifest.capabilities.defaultAttachments = {
+            [attachment.attachmentId]: {},
+        };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) =>
+                    m.includes(attachment.attachmentId) &&
+                    m.includes('never applies')
+            )
+        ).toBe(true);
+    });
 });
