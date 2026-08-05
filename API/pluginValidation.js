@@ -404,6 +404,19 @@ function validateMetaconfig(
           errors.push(
             `${where}: '${comLabel}.object' must be an array describing each item's fields`
           );
+        // Given a bare path instead of `{ field, value }`, Configure compares
+        // undefined to undefined-the-value and greys the control out forever.
+        if (
+          com.enableWhenField !== undefined &&
+          (com.enableWhenField == null ||
+            typeof com.enableWhenField !== "object" ||
+            Array.isArray(com.enableWhenField) ||
+            typeof com.enableWhenField.field !== "string" ||
+            com.enableWhenField.value === undefined)
+        )
+          errors.push(
+            `${where}: '${comLabel}.enableWhenField' must be an object with a 'field' and the 'value' that enables the control`
+          );
         if (com.rows !== undefined) {
           if (com.type !== "textarea")
             errors.push(

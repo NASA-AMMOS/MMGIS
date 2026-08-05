@@ -469,6 +469,40 @@ test.describe('scaffold templates', () => {
             .toBe('my:gridded:thing');
     });
 
+    test('an acronym in a name is one word', () => {
+        // Otherwise `FOVWedges` becomes `f_ovwedges` / `fOVWedges`, which is
+        // both wrong and inconsistent between the id and the module.
+        const attachment = JSON.parse(scaffold('layerattachment', 'FOVWedges')['plugin.json']);
+        expect(attachment.attachmentId).toBe('fov_wedges');
+        expect(attachment.module).toBe('./fovWedges');
+        expect(attachment.configPath).toBe('variables.layerAttachments.fovWedges');
+
+        expect(JSON.parse(scaffold('interaction', 'FOVWedges')['plugin.json']).interactionId)
+            .toBe('fov:wedges');
+        expect(JSON.parse(scaffold('layertype', 'FOVWedges')['plugin.json']).typeId)
+            .toBe('fovwedges');
+
+        // A digit belongs to the word it is written in.
+        expect(JSON.parse(scaffold('layerattachment', 'HTML5Parser')['plugin.json']).attachmentId)
+            .toBe('html5_parser');
+        expect(JSON.parse(scaffold('layerattachment', 'E2eHalos')['plugin.json']).attachmentId)
+            .toBe('e2e_halos');
+    });
+
+    test('the attachment scaffold joins an existing Configure tab', () => {
+        // A tab name of its own becomes a one-row tab no admin opens, which is
+        // the failure mode the family docs warn about.
+        const attachment = JSON.parse(scaffold('layerattachment', 'MyGriddedThing')['plugin.json']);
+        expect(attachment.config.tab).not.toContain('MyGriddedThing');
+        const coreTabs = fs
+            .readdirSync(path.join(REPO_ROOT, 'plugins', 'core', 'layerattachments'))
+            .map((dir) => path.join(REPO_ROOT, 'plugins', 'core', 'layerattachments', dir, 'plugin.json'))
+            .filter((file) => fs.existsSync(file))
+            .map((file) => JSON.parse(fs.readFileSync(file, 'utf8')))
+            .map((manifest) => manifest.config && manifest.config.tab);
+        expect(coreTabs).toContain(attachment.config.tab);
+    });
+
     test('the layer scaffolds implement only what core has no default for', () => {
         // Over-implementation is the failure mode here: an empty setOpacity
         // silently replaces a working core default, so the stubs stay commented.

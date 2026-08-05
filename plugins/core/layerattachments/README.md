@@ -133,6 +133,25 @@ function make({ geojson, layerObj, leafletLayerObject, hostLayer, config, siblin
 }
 ```
 
+The returned object is what core stores on the host
+(`L_.layers.attachments[hostName][attachmentId]`) and hands back to every
+per-instance operation, **verbatim** — so keys beyond the four below survive, and
+stashing what a later operation needs on it (`_radius`, an engine handle, a
+feature index) is the intended way to keep state. Return `false`, not `{}`, when
+there is nothing to add.
+
+| key | meaning |
+|---|---|
+| `type` | your `attachmentId`. Core and UI read this to find their way back to your plugin |
+| `on` | initial visibility. Core adds it to the map only if true |
+| `layer` | the Leaflet layer core adds, removes, orders and opacities for you |
+| `geojson` | the data you built from, so `syncData` can diff and core can rebuild without re-deriving it. Yours, not the host's — return the subset you actually drew if it differs |
+
+- `config` is your settings subtree — the value at your `configPath` on the host.
+  It is **never** `null` in `make`: an attachment is built only for a host that
+  configured it, and a configured-but-`enabled`-less config counts as enabled
+  (the key's presence is the request). It can still be *partial*, so default your
+  own values.
 - `leafletLayerObject` is the host's own `onEachFeature`/`pointToLayer`/`style`,
   to reuse so your features look like their host's.
 - `siblings` is only present if you declared
@@ -197,7 +216,16 @@ whole tabs — an attachment joins a tab, so it says which one and where:
 Every `field` must be under the manifest's `configPath` — that is the same
 subtree core resolves to `ctx.config`, so a form writing anywhere else produces
 settings nothing reads. `<configPath>.enabled` is the switch that turns the
-attachment on.
+attachment on. (An `objectarray`'s item fields are the one exception: they are
+relative to the array's own field — see the component table in
+[`../../README.md`](../../README.md).)
+
+`tab` should name a tab that **already exists** — `Attachment - Markers`,
+`Attachment - Coordinates`, `Attachment - Layers`, `Attachment - Paths` — which is
+why the scaffold defaults to one. A name no other attachment declares is not an
+error: Configure quietly gives it a tab of its own holding your rows alone, which
+an admin has no reason to open. `plugins -- validate` warns when yours is a tab of
+its own, so a typo says so instead of disappearing.
 
 ---
 

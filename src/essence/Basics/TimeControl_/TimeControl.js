@@ -71,9 +71,8 @@ var TimeControl = {
         if (TimeControl.enabled === true && TimeControl.timeUI != null)
             TimeControl.timeUI.fina()
     },
-    subscribe: function () {},
-    unsubscribe: function () {},
     _subscriptions: {},
+    /** Run `func` on every time change, until `unsubscribe(fid)`. */
     subscribe: function (fid, func) {
         if (typeof func === 'function') TimeControl._subscriptions[fid] = func
     },

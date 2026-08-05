@@ -14,6 +14,9 @@
  *   __snake_name__   my_gridded_thing layerattachment `attachmentId`
  *   __SNAKE_NAME__   MY_GRIDDED_THING environment variable names
  *   __colon_name__   my:gridded:thing interaction `interactionId`
+ *
+ * An acronym is one word: `FOVWedges` is `fovWedges` / `fov_wedges`, not
+ * `fOVWedges` / `f_ovwedges`.
  */
 
 const fs = require("fs");
@@ -21,15 +24,27 @@ const path = require("path");
 
 const SCAFFOLDS_ROOT = path.join(__dirname, "..", "scaffolds");
 
+/** A name's words: runs of capitals count as one (`FOVWedges` → FOV, Wedges). */
+function wordsOf(name) {
+  return (
+    name.match(
+      /[A-Z]+[0-9]*(?![a-z])(?![0-9]*[a-z])|[A-Z][a-z0-9]*|[a-z0-9]+/g
+    ) || [name]
+  );
+}
+
 /** The substitutions for one plugin name, longest token first. */
 function tokensFor(name) {
-  const camel = name[0].toLowerCase() + name.slice(1);
-  const snake = camel.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+  const words = wordsOf(name);
+  const snake = words.map((w) => w.toLowerCase()).join("_");
+  const camel = words
+    .map((w, i) => (i === 0 ? w.toLowerCase() : w))
+    .join("");
   return {
     __SNAKE_NAME__: snake.toUpperCase(),
     __snake_name__: snake,
-    __colon_name__: camel.replace(/([A-Z])/g, (m) => `:${m.toLowerCase()}`),
-    __flatname__: camel.toLowerCase(),
+    __colon_name__: words.map((w) => w.toLowerCase()).join(":"),
+    __flatname__: words.join("").toLowerCase(),
     __name__: camel,
     __Name__: name,
   };

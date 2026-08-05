@@ -28,7 +28,10 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
-const { scaffold } = require("./lib/scaffolds");
+const { scaffold, tokensFor } = require("./lib/scaffolds");
+
+/** A plugin name as its module file is named (`FOVWedges` → `fovWedges`). */
+const moduleNameOf = (name) => tokensFor(name).__name__;
 
 const REPO_ROOT = path.resolve(__dirname, "..");
 const PLUGINS_ROOT = path.join(REPO_ROOT, "plugins");
@@ -63,6 +66,9 @@ const FLAG_NO_COLOR = RAW_ARGS.includes("--no-color") || !!process.env.NO_COLOR;
 const FLAG_JSON = RAW_ARGS.includes("--json");
 const FLAG_LINK = RAW_ARGS.includes("--link");
 const FLAG_FORCE = RAW_ARGS.includes("--force");
+const FLAG_VERBOSE = RAW_ARGS.includes("--verbose");
+// How much of an activate's registry diff to print before summarising it.
+const ACTIVATE_DIFF_LINES = 8;
 const FLAG_CONTAINER = (() => {
     const idx = RAW_ARGS.indexOf("--container");
     return idx !== -1 && idx + 1 < RAW_ARGS.length ? RAW_ARGS[idx + 1] : null;
@@ -79,7 +85,7 @@ const FLAG_ONLY = flagValue("--only");
 const VALUE_FLAGS = ["--container", "--tier", "--description", "--license", "--author", "--only"];
 // Strip flags so positional command parsing still works.
 const args = RAW_ARGS.filter((a, i) =>
-    a !== "--no-color" && a !== "--json" && a !== "--link" && a !== "--force" &&
+    a !== "--no-color" && a !== "--json" && a !== "--link" && a !== "--force" && a !== "--verbose" &&
     !VALUE_FLAGS.includes(a) && (i === 0 || !VALUE_FLAGS.includes(RAW_ARGS[i - 1]))
 );
 
@@ -403,12 +409,18 @@ function activate({ expectChanges = false, silent = false } = {}) {
                 console.log(`\n  ${c.green("Frontend plugins activated.")} ${noChange}`);
             } else {
                 console.log(`\n  ${c.green("Frontend plugins activated.")}`);
-                for (const a of added) {
+                // The first activate of a fresh checkout adds every plugin
+                // there is, which would bury whatever the author just did.
+                const shown = FLAG_VERBOSE ? Infinity : ACTIVATE_DIFF_LINES;
+                added.slice(0, shown).forEach((a) => {
                     console.log(`    ${c.green("+")} ${c.cyan(a.name)} ${c.dim(`(${a.type})`)}`);
-                }
-                for (const r of removed) {
+                });
+                removed.slice(0, Math.max(0, shown - added.length)).forEach((r) => {
                     console.log(`    ${c.red("-")} ${c.dim(r.name)} ${c.dim(`(${r.type})`)}`);
-                }
+                });
+                const hidden = added.length + removed.length - Math.min(shown, added.length + removed.length);
+                if (hidden > 0)
+                    console.log(`    ${c.dim(`…and ${hidden} more (${c.cyan("--verbose")} to list them all)`)}`);
             }
         }
 
@@ -1328,6 +1340,31 @@ function cmdValidate() {
         }
     }
 
+    // An attachment's `config.tab` joins an existing Configure tab when it
+    // matches one exactly, and silently creates a tab of its own when it does
+    // not — a one-row tab no admin thinks to open. Usually that is a typo or a
+    // scaffold default left in place, so say so.
+    const attachmentPlugins = plugins.filter(
+        (p) => p.type === "layerattachments" && p.manifest && isPluginEnabled(p, state)
+    );
+    // Core's attachments define the tabs an admin already knows to look in.
+    const coreTabs = new Set(
+        attachmentPlugins
+            .filter((p) => p.container === CORE_CONTAINER)
+            .map((p) => p.manifest.config && p.manifest.config.tab)
+            .filter((tab) => typeof tab === "string" && tab.length > 0)
+    );
+    const attachmentWarningMessages = [];
+    for (const p of attachmentPlugins) {
+        if (p.container === CORE_CONTAINER) continue;
+        const tab = p.manifest.config && p.manifest.config.tab;
+        if (typeof tab !== "string" || tab.length === 0) continue;
+        if (coreTabs.has(tab)) continue;
+        const msg = `${p.id}: 'config.tab' ('${tab}') matches no existing tab, so Configure gives it a tab of its own — one of ${[...coreTabs].join(", ")} unless that is intended`;
+        attachmentWarningMessages.push(msg);
+        if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: ${c.yellow(`'config.tab' ('${tab}') matches no existing tab — Configure gives it a tab of its own`)}${c.dim(` (existing: ${[...coreTabs].join(", ")})`)}`);
+    }
+
     // Layer-type / layer-attachment renderer contract validation: on top of the
     // manifest check every family gets above, each declared module's
     // `export default {}` operation shape is checked against its surface.
@@ -1409,7 +1446,7 @@ function cmdValidate() {
     const totalPlugins = plugins.length;
 
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, staleMessages, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, attachmentWarningMessages, staleMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }
@@ -1419,6 +1456,7 @@ function cmdValidate() {
         if (warnings > 0) console.log(`  ${c.yellow(String(warnings))} disabled plugin(s).`);
         if (depWarnings > 0) console.log(`  ${c.yellow(String(depWarnings))} plugin dependency warning(s).`);
         if (interactionWarnings > 0) console.log(`  ${c.yellow(String(interactionWarnings))} interaction warning(s).`);
+        if (attachmentWarningMessages.length > 0) console.log(`  ${c.yellow(String(attachmentWarningMessages.length))} attachment(s) declaring a Configure tab of their own.`);
         if (staleMessages.length > 0) console.log(`  ${c.yellow(String(staleMessages.length))} plugin(s) not in the generated registries.`);
     } else {
         console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(totalPlugins))} plugin(s). ${c.green(`${passed} passed`)}.`);
@@ -1875,7 +1913,7 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}Tool.js`)} to build your tool UI`);
         console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);
     } else if (type === "backend") {
-        console.log(`    ${c.dim("1.")} Edit ${c.cyan(`routes/${name[0].toLowerCase() + name.slice(1)}.js`)} to add your API routes`);
+        console.log(`    ${c.dim("1.")} Edit ${c.cyan(`routes/${moduleNameOf(name)}.js`)} to add your API routes`);
         console.log(`    ${c.dim("2.")} Edit ${c.cyan("plugin.js")} to configure middleware and lifecycle hooks`);
         console.log(`    ${c.dim("3.")} Restart the server to load the backend`);
     } else if (type === "interaction") {
@@ -1888,11 +1926,11 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("modules")} to regenerate the layer registries`);
         console.log(`    ${c.dim("4.")} Run ${c.cyan("npm run plugins -- validate")} to check the contract`);
     } else if (type === "layerattachment") {
-        const lower = name[0].toLowerCase() + name.slice(1);
-        console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")} in ${c.cyan(`${lower}.js`)} (add the other operations only where a core default is wrong)`);
+        console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")} in ${c.cyan(`${moduleNameOf(name)}.js`)} (add the other operations only where a core default is wrong)`);
         console.log(`    ${c.dim("2.")} Set ${c.cyan("configPath")}, ${c.cyan("applicableLayerTypes")} and ${c.cyan("capabilities.host.order")} in ${c.cyan("plugin.json")}, and the ${c.cyan("config")} rows that write under that path`);
-        console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("module")} to regenerate the layer registries`);
-        console.log(`    ${c.dim("4.")} Run ${c.cyan("npm run plugins -- validate")} to check the contract`);
+        console.log(`    ${c.dim("3.")} Keep ${c.cyan("config.tab")} on an existing Configure tab (it defaults to ${c.cyan("Attachment - Markers")}) — a name nothing else declares becomes a one-row tab of its own`);
+        console.log(`    ${c.dim("4.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("module")} to regenerate the layer registries`);
+        console.log(`    ${c.dim("5.")} Run ${c.cyan("npm run plugins -- validate")} to check the contract`);
     } else {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to build your component`);
         console.log(`    ${c.dim("2.")} Configure variables in ${c.cyan("plugin.json")} under ${c.cyan('"config"')}`);

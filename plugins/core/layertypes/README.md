@@ -256,6 +256,22 @@ async function fetch(layerObj, ctx) {
 export default { fetch }
 ```
 
+**What the inherited renderer does with what you return.** A type that
+`extends` `vector` gets Vector's styling, and it reads the features you produced
+— so styling a `source` type is a matter of what `fetch` puts in each feature,
+not of writing a renderer. In precedence order:
+
+| what | where | notes |
+|---|---|---|
+| a per-feature override | `feature.properties.style` | a Leaflet path-options object (`color`, `weight`, `fillColor`, `fillOpacity`, `radius`, `dashArray`, and `minZoom`/`maxZoom` to hide the feature outside a zoom range). It **replaces** the configured style for that feature, and it is the only styling that wins over everything below |
+| a legend the layer derived | `layerObj._legend` entries with `styleMatching` | colours a feature by matching one of its properties; see the `legend` surface below |
+| the layer's configured style | `style` in the layer config | Configure's per-layer colour/weight/radius. A value of `prop-<name>` means "read this from the feature's property `<name>`", so `"color": "prop-magnitude"` colours from data with no per-feature style at all |
+
+So the cheapest way to style live data is to compute the property you want to
+style by in `fetch`, and let the mission's `style` name it with `prop-`; write
+`properties.style` only when a feature must look a specific way regardless of
+how the layer is configured.
+
 ### `legend` — a legend that comes from the render, not the config
 
 | operation | signature | when | core default |
@@ -398,7 +414,10 @@ op needs:
 
 The new value for `setVisibility`/`setOpacity` is that positional argument, not
 a `gctx` field. `L_.layers.data[layerName]` is the layer's live config if you
-need it.
+need it — reach it with `import L_ from '@basics/Layers_/Layers_'`, as core's own
+globe modules do, rather than `window.L_`; the alias resolves under webpack and
+keeps the module importable by a unit test. (An *attachment* is the exception: it
+reads `window.L` per call because Leaflet's global is what it decorates.)
 
 ---
 

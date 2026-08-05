@@ -12,13 +12,14 @@ MMGIS uses a plugin-based architecture for tools, backend modules, and component
 6. [Installing Plugins](#installing-plugins)
 7. [Creating Plugins](#creating-plugins)
 8. [`plugin.json` Reference](#pluginjson-reference)
-9. [Discovery & State](#discovery--state)
-10. [Webpack Aliases](#webpack-aliases)
-11. [Validation](#validation)
-12. [Registries](#registries)
-13. [Testing Plugins](#testing-plugins)
-14. [Migrating from Legacy Formats](#migrating-from-legacy-formats)
-15. [AI Agent Notes](#ai-agent-notes)
+9. [Time](#time)
+10. [Discovery & State](#discovery--state)
+11. [Webpack Aliases](#webpack-aliases)
+12. [Validation](#validation)
+13. [Registries](#registries)
+14. [Testing Plugins](#testing-plugins)
+15. [Migrating from Legacy Formats](#migrating-from-legacy-formats)
+16. [AI Agent Notes](#ai-agent-notes)
 
 ---
 
@@ -526,12 +527,16 @@ export default FeatureGlow
 
 After editing, set `interactionId`, `phase`, and `order`, then run `npm run build` (or `npm run plugins -- activate`) to regenerate `src/pre/interactions.js`. If the interaction depends on a tool, declare it in `pluginDependencies` (e.g. `["core/tools/Info"]`) — it will be excluded from the generated file if that dependency isn't enabled.
 
+**[`core/interactions/README.md`](./core/interactions/README.md)** is the family reference: the full `ctx` table, phase/order and suppression, admin-editable settings via `configPath` + `config.rows`, and what can and cannot be unit tested.
+
 ### Layer Type and Layer Attachment Templates
 
 `create layertype` and `create layerattachment` scaffold these two families, but their contracts are large enough to have their own documents, and each is written against the scaffold it hands you:
 
 - **[`core/layertypes/README.md`](./core/layertypes/README.md)** — the render surfaces (`map`, `globe.<engine>`) and their operation vocabulary, the `config`/`filter`/`time` surfaces, `extends`, single-file types, and the capability table.
 - **[`core/layerattachments/README.md`](./core/layerattachments/README.md)** — `configPath`, `applicableLayerTypes`, the attachment operations and the core default each replaces, host capabilities, and a worked example.
+
+The other families' references: **[`core/interactions/README.md`](./core/interactions/README.md)** and **[`core/backend/README.md`](./core/backend/README.md)**.
 
 The layertype scaffold is deliberately map-only (`"globe": false`, `"modules": {"map": "./map"}`). A globe-capable type adds `globe/<engine>.js` and declares it under `modules.globe`; `core/layertypes/ThreeDTiles` is the smallest example of one.
 
@@ -738,10 +743,37 @@ path it names.
 | `name` | the control's label |
 | `description` | help text — a tooltip, or inline text under the control depending on where it is rendered |
 | `width` | columns out of 12. Omitted means full width, so a row of three unwidthed controls stacks |
-| `default` | the value shown before the mission has one. It is a **form** default, not a runtime one: nothing is written until an admin touches the field, so the plugin still receives a partial (or absent) config and defaults its own values — `const { hz = 440 } = ctx.config \|\| {}` |
+| `default` | the value shown before the mission has one. It is a **form** default, not a runtime one: nothing is written until an admin touches the field, so the plugin still receives a partial (or absent) config and defaults its own values — `const { hz = 440 } = ctx.config \|\| {}`. `checkbox`/`switch` read `defaultChecked` instead |
 | `options` | required by the dropdown types; an array, or a string Maker parses |
-| `disableSwitch` / `enableWhenField` | grey the control out until another field is on / equals a value — how a settings block hangs off its own `enabled` switch |
+| `disableSwitch` | a config path to a boolean: the control is greyed out until that field is on — how a settings block hangs off its own `enabled` switch |
+| `enableWhenField` | an **object**, `{ "field": "…", "value": "…" }` (plus an optional `default` for when the field is unset): the control is greyed out until that field equals that value |
+| `object` | `objectarray` only: the components one item is made of (below) |
 | `rows` | `textarea` only: visible lines (default 4) |
+
+A value an admin clears is written as an empty string rather than removed, so a
+`number` field can reach a plugin as `""`. Read config defensively —
+`const hz = parseFloat(ctx.config?.hz) || 440` — rather than assuming a missing
+setting is `undefined`.
+
+**`objectarray`** is the one component whose inner fields are *not* config paths.
+`field` is the path of the array; `object` lists the components of one item, and each
+item component's `field` is **relative** to it, so Maker writes
+`${field}.${index}.${innerField}`:
+
+```json
+{ "type": "objectarray",
+  "field": "variables.layerAttachments.rangeRings.rings",
+  "name": "Rings",
+  "object": [
+    { "type": "number", "field": "radius", "name": "Radius (m)", "width": 6 },
+    { "type": "colorpicker", "field": "color", "name": "Colour", "width": 6 }
+  ]
+}
+```
+
+The plugin then reads `ctx.config.rings` as
+`[{ radius: 500, color: '#f00' }, …]`. Because item fields are relative, they are the
+only `field`s exempt from the "must sit inside `configPath`" rule.
 
 | `type` | control |
 |---|---|
@@ -866,6 +898,33 @@ Required runtime versions. Enforced at registration time — if the current MMGI
 ```json
 "engines": { "mmgis": ">=5.0.0", "node": ">=22.0.0" }
 ```
+
+---
+
+## Time
+
+A mission's time window is one piece of shared state (`TimeControl`), and a
+plugin of any family reads or moves it through the same surface:
+`import TimeControl from '@basics/TimeControl_/TimeControl'`.
+
+| what | how |
+|---|---|
+| is time on at all | `TimeControl.enabled` — false unless the mission enables it, so guard everything below |
+| the window | `getStartTime()`, `getEndTime()`, `getTime()` (the playhead) |
+| a layer's own window | `getLayerStartTime(layerOrName)`, `getLayerEndTime(layerOrName)` — a layer may be pinned off the global window |
+| react to a change | `subscribe(id, func)` / `unsubscribe(id)`. `id` is yours (use the plugin's name); subscribing again with the same `id` replaces the callback, and a tool **must** unsubscribe in `destroy` |
+| move the window | `setTime(startTime, endTime, isRelative, timeOffset, currentTime, customTimes)` — ISO strings, `isRelative` for a window that follows now, `timeOffset` as `'HH:MM:SS'` or seconds. It returns `false` and does nothing when time is disabled |
+| move one layer | `setLayerTime(layerOrName, startTime, endTime)` |
+
+A **feature's** own timestamps are not held anywhere central: the layer's config
+names the properties they live in, so read them off the feature —
+`F_.getIn(feature.properties, layerData.time.startProp)` and `…time.endProp`
+(`startProp` may be absent, meaning the feature is a single point in time). Never
+reach for a `_`-prefixed field of core's; those are caches, and they move.
+
+A layer *type* that needs to re-request or re-stamp its data when time changes
+declares the [`time` surface](./core/layertypes/README.md) instead of
+subscribing — core dispatches it for every layer of that type.
 
 ---
 

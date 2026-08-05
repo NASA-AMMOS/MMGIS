@@ -624,6 +624,72 @@ test.describe('validateMetaconfig - the Configure form a manifest declares', () 
         ).toBe(1);
     });
 
+    test('enableWhenField names a field and the value that enables the control', () => {
+        // Given a bare path, Configure greys the control out for good, so the
+        // form renders and nothing in it can be edited.
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'text',
+                        enableWhenField: 'variables.b',
+                    },
+                ]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain('enableWhenField');
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'text',
+                        enableWhenField: { field: 'variables.b' },
+                    },
+                ]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'text',
+                        enableWhenField: { field: 'variables.b', value: 'on' },
+                    },
+                ]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+    });
+
+    test('an objectarray item field is relative, so it is not under configPath', () => {
+        // Maker writes `${field}.${index}.${inner}`, so an item's field is not
+        // a config path and must not be judged as one.
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'variables.layerAttachments.rings.rings',
+                        type: 'objectarray',
+                        object: [
+                            { field: 'radius', type: 'number' },
+                            { field: 'color', type: 'colorpicker' },
+                        ],
+                    },
+                ]),
+                'P',
+                'layerattachment',
+                'variables.layerAttachments.rings'
+            )
+        ).toEqual([]);
+    });
+
     test("rows sizes a textarea and means nothing anywhere else", () => {
         expect(
             validateMetaconfig(
