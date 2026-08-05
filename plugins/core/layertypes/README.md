@@ -148,6 +148,12 @@ uniform), LithoSphere globe modules usually implement only `make` (it manages
 layers natively by name), and Cesium modules implement more (imagery-alpha vs
 entity-`show` vs primitive — no uniform primitive to lean on).
 
+A LithoSphere type that draws something the engine cannot manage by name — its
+own THREE geometry, say — does implement `destroy`/`setVisibility`/`setOpacity`,
+and must record itself in `gctx.layers[layerName]` in `make` for them to be
+dispatched: that registry is how core knows which type is holding a layer, and
+an unregistered layer is left to the engine's own by-name lifecycle.
+
 ---
 
 ## The non-render surfaces

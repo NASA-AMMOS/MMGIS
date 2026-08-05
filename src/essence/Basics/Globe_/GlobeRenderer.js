@@ -586,6 +586,25 @@ class GlobeRenderer {
         return LayerTypeRegistry.getGlobe(lookupType, this.rendererType)
     }
 
+    // Dispatch a lifecycle operation to the globe module of a layer this
+    // renderer knows about, for engines whose own by-name layer management is
+    // the default path. Returns whether the plugin handled it: a type that
+    // declares the operation is the one that must run it, and one that doesn't
+    // falls through to the engine as before.
+    _runEngineLayerOp(name, op, extraArgs = []) {
+        const type = this._layers[name]?.type
+        if (type == null) return false
+        const globeModule = this._globeModuleFor(type)
+        if (!LayerInterface.hasOp(globeModule, op)) return false
+        LayerInterface.runSync(globeModule, op, [
+            name,
+            ...extraArgs,
+            this._globeCtx(type),
+        ])
+        this._requestRender()
+        return true
+    }
+
     // Engine context handed to a globe plugin module (Model-3 hybrid): the raw
     // engine handle + the shared `_layers` registry + collection-level helpers
     // and state that intentionally stay in GlobeRenderer. `type` is the layer
@@ -1100,6 +1119,13 @@ class GlobeRenderer {
      */
     removeLayer(name) {
         if (this.rendererType === 'lithosphere') {
+            // A LithoSphere type that registered itself in the shared layer
+            // registry owns its own teardown; the engine manages the rest by
+            // name.
+            if (this._runEngineLayerOp(name, 'destroy')) {
+                delete this._layers[name]
+                return
+            }
             return this.renderer.removeLayer(name)
         } else {
             const layerInfo = this._layers[name]
@@ -1188,6 +1214,7 @@ class GlobeRenderer {
      */
     toggleLayer(name, visible) {
         if (this.rendererType === 'lithosphere') {
+            if (this._runEngineLayerOp(name, 'setVisibility', [visible])) return
             return this.renderer.toggleLayer(name, visible)
         }
 
@@ -1360,6 +1387,7 @@ class GlobeRenderer {
      */
     setLayerOpacity(name, opacity) {
         if (this.rendererType === 'lithosphere') {
+            if (this._runEngineLayerOp(name, 'setOpacity', [opacity])) return
             return this.renderer.setLayerOpacity(name, opacity)
         } else {
             const layerInfo = this._layers[name]

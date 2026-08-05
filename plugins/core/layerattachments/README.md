@@ -369,8 +369,6 @@ function make({ geojson, config }) {
         type: 'radius_rings',
         geojson,
         layer: leaflet().layerGroup(ringsOf(geojson, radius)),
-        // Kept for syncData below, which is handed new data but not the config.
-        _radius: radius,
     }
 }
 
@@ -379,10 +377,10 @@ function make({ geojson, config }) {
  * layer, which is right for a `L.geoJson` attachment; these are derived circles
  * in a layerGroup, so they are rebuilt instead.
  */
-function syncData(attachment, { geojson, onlyClear }) {
+function syncData(attachment, { geojson, onlyClear, config }) {
     attachment.layer.clearLayers()
     if (onlyClear) return
-    ringsOf(geojson, attachment._radius).forEach((ring) =>
+    ringsOf(geojson, num(config?.radiusMeters, 10)).forEach((ring) =>
         attachment.layer.addLayer(ring)
     )
 }

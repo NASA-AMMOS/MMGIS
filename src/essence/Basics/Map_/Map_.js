@@ -809,7 +809,15 @@ async function makeLayer(
                 } else if (rt) {
                     // A registered type with no map renderer is globe-only
                     // (e.g. model, 3dtiles). Nothing to draw on the 2D map;
-                    // mark it loaded so allLayersLoaded() can resolve.
+                    // mark it loaded so allLayersLoaded() can resolve. A type
+                    // that declares a map renderer and resolved none is a
+                    // broken type rather than a globe-only one, and would
+                    // otherwise present as a layer that loads and draws
+                    // nothing.
+                    if (LayerTypeRegistry.rendersOnMap(layerObj.type))
+                        console.warn(
+                            `Layer type '${layerObj.type}' declares a map renderer but resolved no map make.main — nothing will be drawn for layer '${layerObj.name}'.`
+                        )
                     L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
                         true
                     allLayersLoaded()

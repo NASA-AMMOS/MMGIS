@@ -66,6 +66,22 @@ if (typeof globalThis.document === 'undefined') {
     }
 }
 
+// A page URL, so that resolving a possibly-relative layer url with
+// `new URL(url, window.location.href)` works in a unit test.
+if (typeof globalThis.location === 'undefined') {
+    globalThis.location = {
+        href: 'http://localhost/',
+        origin: 'http://localhost',
+        protocol: 'http:',
+        host: 'localhost',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/',
+        search: '',
+        hash: '',
+    }
+}
+
 if (typeof globalThis.localStorage === 'undefined') {
     const store = new Map()
     globalThis.localStorage = {
