@@ -233,7 +233,7 @@ treated as `null`. A `source`-backed type may have no `url` configured at all.
 | `ctx` field | what it is |
 |---|---|
 | `url` | the layer's url with time placeholders resolved and mission-relative paths made absolute; `''` when the layer has none |
-| `trigger` | `'make'` for every acquisition core drives — the initial make, a refresh interval, and a time change on a layer that is not dynamic-extent (core remakes the layer, so `fetch` is called again from `make`); `'view'` and `'time'` come only from the dynamic-extent watcher, when the view settles and when the time window moves under it |
+| `trigger` | `'make'` for every acquisition core drives — the initial make, and a time change on a layer that is not dynamic-extent (core remakes the layer, so `fetch` is called again from `make`); `'refresh'` for a re-acquisition of a layer that is already up, i.e. a refresh interval or a plugin's `ctx.refreshLayer()`; `'view'` and `'time'` come only from the dynamic-extent watcher, when the view settles and when the time window moves under it |
 | `view` | the current extent for a dynamic-extent request: `minx`/`miny`/`maxx`/`maxy`, `zoom`, `tilt`, `center`, and `source` (`'map'` or `'globe'`) — `null` otherwise |
 | `dynamicExtent` | `true` when this is a viewport-driven request |
 | `crsCode` | the mission's CRS code without its `EPSG:` prefix |
@@ -334,14 +334,22 @@ layerObj._legend = [
 |---|---|---|---|
 | `format` | `(date, layerObj) → string` | a time is written into a request | `layerObj.time.format`, else ISO `%Y-%m-%dT%H:%M:%SZ` |
 | `applyTimeParams` | `(layerObj, ctx) → void` | the time window moved | nothing is stamped, so the layer reloads |
+| `availability` | `async (layerObj, ctx) → [{ t, total? }]` | the time bar redraws its sparkline, for a type declaring `capabilities.time.histogram` | nothing — the type contributes no availability |
 
 These are the *other* half of time support: `timeChange` on the render surface
 rebuilds or scrubs the layer, while `applyTimeParams` is for a type that takes
 the window as request parameters and so never needs rebuilding — Tile stamps
 `time`/`starttime`/`endtime` onto the live layer and the next tile request
-carries them. Whether the type appears in the time bar at all, and whether it
-contributes an availability histogram, are capabilities (below), because core
-asks them while partitioning every layer.
+carries them. Whether the type appears in the time bar at all is a capability
+(below), because core asks it while partitioning every layer.
+
+`availability` is what makes `capabilities.time.histogram` mean something. Core
+hands it the window it is drawing (`ctx.startTime`, `ctx.endTime`, both ISO, and
+`ctx.bins`) and expects times back — `t` parseable as a date, `total` optional
+(a time with no count is one). Core bins them, clamps a time that lands just
+outside the window into the edge bin, and draws. Where the answer comes from is
+the type's: Tile asks its `stac-collection:` collection, or the directory
+behind a `{t}` url, or nothing at all if it is neither.
 
 ---
 
@@ -561,7 +569,7 @@ error, an unknown key warns (typo), and omitting one core acts on warns too.
 | `map.picking` | its features can be clicked/identified, so core wires feature selection | not pickable |
 | `map.styling` | its features carry their own style, so core may restyle them (highlight, filter dimming) | not restyled |
 | `time` | the type understands time at all (`true`, or the object form below) | no time support |
-| `time.histogram` | it can report when data exists over time, so the time bar draws its availability sparkline | no histogram |
+| `time.histogram` | it implements `time.availability`, so the time bar asks it for its sparkline | no histogram |
 | `defaultInteractions` | default click/hover interactions for the type: ids, or ids with their settings (see above) | none |
 | `defaultAttachments` | attachments the type comes with, and their settings (see above) | none |
 

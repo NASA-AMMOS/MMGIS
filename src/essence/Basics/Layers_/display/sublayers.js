@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import LayerInterface from '../interface/LayerInterface'
 import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
+import refreshLayer from '../lifecycle/refresh'
 
 /**
  * Show or hide one of a layer's attachments.
@@ -397,6 +398,7 @@ export function setAttachmentConfig(L_, layerName, attachmentId, config) {
                 layerObj,
                 config,
                 prevConfig,
+                refreshLayer: () => refreshLayer(layerObj),
                 attachment:
                     L_.layers.attachments[layerName]?.[
                         LayerAttachmentRegistry.sublayerKey(attachmentId)

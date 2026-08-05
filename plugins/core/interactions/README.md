@@ -56,7 +56,15 @@ export default FeatureGlow
 | `config` | **this** interaction's settings — see below. `null` when it declares no `configPath`, or when the layer has none |
 | `state` | a plain object shared by the whole pipeline: read what ran before you, leave what runs after you |
 | `stop` | set `true` to halt the rest of the pipeline |
+| `refreshLayer()` | re-acquire the layer's data — see below |
 | `Map_` | the `Map_` singleton |
+
+`await ctx.refreshLayer()` when you have changed what the layer's data *would*
+be — written a feature to your own backend, say — and want that on the map. It
+is the supported way to ask: the layer goes through the same acquisition every
+other trigger does (a `source`-backed type sees `ctx.trigger === 'refresh'`), so
+you needn't know `Map_.refreshLayer`'s internal parameters, and it works the
+same whether the layer's data comes from a url, a geodataset or a plugin.
 
 `ctx` is one object reused down the pipeline, so `state` is deliberate sharing —
 but `config` is reassigned for every interaction, and is `null` for one with no

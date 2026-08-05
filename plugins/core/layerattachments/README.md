@@ -172,6 +172,12 @@ there is nothing to add.
   entry if an admin should be able to set it.
 - `leafletLayerObject` is the host's own `onEachFeature`/`pointToLayer`/`style`,
   to reuse so your features look like their host's.
+- `refreshLayer()` re-acquires the host's data (`await ctx.refreshLayer()`), for
+  when you have changed what it *would* be — written to your own backend, say.
+  It is the supported way to ask: the host goes through the same acquisition
+  every other trigger does (a `source`-backed type sees `ctx.trigger ===
+  'refresh'`), rather than you calling `Map_.refreshLayer` and its positional
+  internals. Also on `onConfigChange`.
 - `siblings` is only present if you declared
   `capabilities.host.buildsAfterSiblings: true` — declare it when you decorate
   the other attachments rather than the host (Labels labels the coordinate

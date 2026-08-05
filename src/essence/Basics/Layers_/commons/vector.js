@@ -39,6 +39,9 @@ export function makeVectorMap(layerObj, ctx = {}, opts = {}) {
                         opts.evenIfOff != null ? opts.evenIfOff : evenIfOff,
                     useEmptyGeoJSON: opts.useEmptyGeoJSON,
                     resolvedUrl: resolvedUrl,
+                    // So a `source` type can tell a re-acquisition of a layer
+                    // it already has from its first one.
+                    isRefresh,
                 },
                 add,
                 (f) => {

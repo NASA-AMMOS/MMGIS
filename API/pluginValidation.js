@@ -76,7 +76,7 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
  */
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
-const TIME_OPS = ["format", "applyTimeParams"];
+const TIME_OPS = ["format", "applyTimeParams", "availability"];
 const SOURCE_OPS = ["fetch"];
 const LEGEND_OPS = ["derive"];
 
@@ -1278,6 +1278,19 @@ function validatePluginConfig(config, pluginName, pluginType) {
           }
         }
       });
+    }
+    // A type that says it can report when its data exists must ship the
+    // operation core asks for it with, or the time bar silently draws nothing
+    // for its layers.
+    if (
+      pluginType === "layertype" &&
+      config.capabilities?.time?.histogram === true &&
+      config.extends === undefined &&
+      declaredModules.time === undefined
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): declares 'capabilities.time.histogram' but has no 'modules.time' module to implement 'availability' in`
+      );
     }
     if (config.fileTypes !== undefined && !Array.isArray(config.fileTypes)) {
       errors.push(

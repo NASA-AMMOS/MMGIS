@@ -10,6 +10,7 @@
  */
 
 import { resolveInteractionConfig } from '../Layers_/registry/interactionDefaults'
+import refreshLayer from '../Layers_/lifecycle/refresh'
 
 let _cachedModule = null
 
@@ -241,6 +242,12 @@ async function runInteractions(interactionIds, ctx, options) {
               ctx.layerTypeChain
           )
         : interactionIds
+
+    // Every interaction may ask for its layer to be re-acquired (it may have
+    // just written to the backend the layer reads from), without knowing
+    // `Map_.refreshLayer`'s internal signature.
+    if (typeof ctx.refreshLayer !== 'function')
+        ctx.refreshLayer = () => refreshLayer(ctx.layerData || ctx.layerName)
 
     for (const id of fullPipeline) {
         const handler = handlers[id]

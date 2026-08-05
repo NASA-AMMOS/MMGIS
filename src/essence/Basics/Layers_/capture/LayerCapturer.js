@@ -131,7 +131,8 @@ const _captureFromSource = (
     sourceModule,
     url,
     cb,
-    dynamicCb
+    dynamicCb,
+    isRefresh
 ) => {
     const fetch = (view, trigger, onData) => {
         const ctx = sourceCtx(layerData, url, view, trigger)
@@ -148,7 +149,7 @@ const _captureFromSource = (
     }
 
     if (layerData?.variables?.dynamicExtent !== true) {
-        fetch(null, 'make', cb)
+        fetch(null, isRefresh === true ? 'refresh' : 'make', cb)
         return
     }
 
@@ -309,7 +310,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             sourceModule,
             layerUrl,
             cb,
-            dynamicCb
+            dynamicCb,
+            options.isRefresh
         )
         return
     }

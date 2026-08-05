@@ -7,6 +7,7 @@ import L_ from '../../Layers_/Layers_'
 import LayerGeologic from '../LayerGeologic/LayerGeologic'
 import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 import LayerInterface from '../interface/LayerInterface'
+import refreshLayer from '../lifecycle/refresh'
 import { interpolateMultipleColors } from './gradientUtils'
 
 let L = window.L
@@ -786,6 +787,10 @@ export const constructSublayers = (
         layerObj,
         leafletLayerObject,
         hostLayer: layer,
+        // An attachment that changes what the host's source would return (by
+        // writing to its own backend, say) asks for the host to be re-acquired
+        // with this rather than with Map_'s internals.
+        refreshLayer: () => refreshLayer(layerObj),
     }
 
     // Seed the keys in declared order first: an attachment built later must
