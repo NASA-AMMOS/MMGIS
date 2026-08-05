@@ -2019,7 +2019,7 @@ export default function Maker(props) {
   if (toolName) tool = getToolFromConfiguration(toolName, configuration);
 
   let component = null;
-  if (componentName) component = getComponentFromConfiguration(componentName, configuration);
+  if (componentName) component = getComponentFromConfiguration(componentName, configuration) || {};
 
   const updateConfiguration = (
     keyPath,
@@ -2039,9 +2039,9 @@ export default function Maker(props) {
         keyPath.split("."),
         value
       );
-    } else if (component != null) {
+    } else if (componentName != null) {
       updateComponentInConfiguration(
-        component.name,
+        componentName,
         nextConfiguration,
         keyPath.split("."),
         value
