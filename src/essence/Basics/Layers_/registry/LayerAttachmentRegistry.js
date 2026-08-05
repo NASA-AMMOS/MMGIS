@@ -116,7 +116,8 @@ const LayerAttachmentRegistry = {
         if (layerObj?.type == null) return null
         return declaredAttachmentConfig(
             LayerTypeRegistry.capabilities(layerObj.type),
-            attachmentId
+            attachmentId,
+            layerObj
         )
     },
     /**

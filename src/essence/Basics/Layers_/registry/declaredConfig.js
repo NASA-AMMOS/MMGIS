@@ -45,6 +45,54 @@ export function asConfig(value) {
         : null
 }
 
+// The value at a dotted path on a layer, or undefined. Local rather than F_'s
+// so this module stays importable without the map's globals.
+function _getIn(obj, path) {
+    return path
+        .split('.')
+        .reduce((o, k) => (o == null ? undefined : o[k]), obj)
+}
+
+/**
+ * A declared value that is a reference to a field of the host layer.
+ *
+ * A type declares its attachment's and interaction's settings because it is the
+ * plugin that knows them — but some of them are the admin's answer on this
+ * layer, not a constant the manifest can hold (which property holds the wind
+ * speed, say). `"$variables.windStation.speedProp"` reads that field of the
+ * layer, so the fact is configured once, on the type's own form, and the type
+ * still owns which of its fields the other plugin gets. `"$$literal"` is an
+ * escape for a value that really does start with a `$`.
+ *
+ * A reference the layer can't answer drops its key entirely, so the plugin's own
+ * `const { speedProp = 'speed' } = ctx.config || {}` still applies — which an
+ * explicit null would defeat.
+ */
+function _resolveValue(value, layerObj) {
+    if (Array.isArray(value))
+        return value.map((entry) => _resolveValue(entry, layerObj))
+    if (asConfig(value) != null) return resolveDeclaredReferences(value, layerObj)
+    if (typeof value !== 'string' || !value.startsWith('$')) return value
+    if (value.startsWith('$$')) return value.slice(1)
+    return _getIn(layerObj, value.slice(1))
+}
+
+/**
+ * A type's declared settings with its `$`-references read off the host layer.
+ *
+ * @param {object|null} declared
+ * @param {object|null} layerObj
+ * @returns {object|null}
+ */
+export function resolveDeclaredReferences(declared, layerObj) {
+    if (asConfig(declared) == null) return declared
+    return Object.fromEntries(
+        Object.entries(declared)
+            .map(([key, value]) => [key, _resolveValue(value, layerObj)])
+            .filter(([, value]) => value !== undefined)
+    )
+}
+
 /**
  * A layer's own settings on top of what its type declared.
  *

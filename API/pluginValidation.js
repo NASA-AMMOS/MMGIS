@@ -1834,24 +1834,30 @@ function validateLayerTypeModuleShape(source, label, surface = "map") {
  * @param {Object} manifestsById - { [typeId]: manifest }
  * @returns {string[]} error strings (empty == valid)
  */
-function validateLayerTypeInheritance(manifestsById) {
-  const errors = [];
+function findLayerTypeInheritanceProblems(manifestsById) {
+  const problems = [];
   for (const typeId in manifestsById) {
     const parentId = manifestsById[typeId].extends;
     if (parentId === undefined) continue;
 
     const parent = manifestsById[parentId];
     if (parent === undefined) {
-      errors.push(
-        `Layer type '${typeId}': extends '${parentId}', which no plugin provides`
-      );
+      problems.push({
+        typeId,
+        message: `Layer type '${typeId}': extends '${parentId}', which no plugin provides`,
+      });
     } else if (parent.extends !== undefined) {
-      errors.push(
-        `Layer type '${typeId}': extends '${parentId}', which itself extends '${parent.extends}' — inheritance is one level only`
-      );
+      problems.push({
+        typeId,
+        message: `Layer type '${typeId}': extends '${parentId}', which itself extends '${parent.extends}' — inheritance is one level only`,
+      });
     }
   }
-  return errors;
+  return problems;
+}
+
+function validateLayerTypeInheritance(manifestsById) {
+  return findLayerTypeInheritanceProblems(manifestsById).map((p) => p.message);
 }
 
 module.exports = {
@@ -1863,6 +1869,7 @@ module.exports = {
   surfaceOfModuleKey,
   flattenLayerModules,
   validateLayerTypeInheritance,
+  findLayerTypeInheritanceProblems,
   validateLayerCapabilities,
   validateMetaconfig,
   CAPABILITY_SCHEMA,

@@ -178,6 +178,12 @@ there is nothing to add.
   every other trigger does (a `source`-backed type sees `ctx.trigger ===
   'refresh'`), rather than you calling `Map_.refreshLayer` and its positional
   internals. Also on `onConfigChange`.
+- `acquire(layerName)` is another configured layer's data as GeoJSON
+  (`await ctx.acquire('Wind Stations')`), for when what you draw beside your host
+  depends on a second layer of the mission. Its own layer type does the
+  acquiring; the layer is not turned on, nothing of it is drawn, and you get a
+  snapshot rather than a handle on its render — `null` if it can't be acquired.
+  It is a fetch, so acquire once and hold it. Also on `onConfigChange`.
 - `siblings` is only present if you declared
   `capabilities.host.buildsAfterSiblings: true` — declare it when you decorate
   the other attachments rather than the host (Labels labels the coordinate

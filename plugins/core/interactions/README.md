@@ -57,6 +57,7 @@ export default FeatureGlow
 | `state` | a plain object shared by the whole pipeline: read what ran before you, leave what runs after you |
 | `stop` | set `true` to halt the rest of the pipeline |
 | `refreshLayer()` | re-acquire the layer's data — see below |
+| `acquire(layerName)` | another configured layer's data as GeoJSON, acquired headlessly — see below |
 | `Map_` | the `Map_` singleton |
 
 `await ctx.refreshLayer()` when you have changed what the layer's data *would*
@@ -65,6 +66,8 @@ is the supported way to ask: the layer goes through the same acquisition every
 other trigger does (a `source`-backed type sees `ctx.trigger === 'refresh'`), so
 you needn't know `Map_.refreshLayer`'s internal parameters, and it works the
 same whether the layer's data comes from a url, a geodataset or a plugin.
+
+`await ctx.acquire('Wind Stations')` when what you do needs a *second* layer of the mission — stations to snap to, a network to look up against. It resolves with that layer's GeoJSON, acquired through its own layer type (`null` if it can't be: no such layer, or a type with no features to give). It is acquisition only, deliberately: the layer is not turned on, nothing of it is drawn, and you get a snapshot rather than a handle on another plugin's render — which is the part that would not have held. It is a fetch, so hold the result rather than calling it per feature.
 
 `ctx` is one object reused down the pipeline, so `state` is deliberate sharing —
 but `config` is reassigned for every interaction, and is `null` for one with no

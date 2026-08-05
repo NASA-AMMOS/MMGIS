@@ -279,6 +279,7 @@ treated as `null`. A `source`-backed type may have no `url` configured at all.
 | `signal` | an `AbortSignal` aborted when core issues the layer's next acquisition — pass it to `window.fetch` so a source that pages doesn't keep pulling a viewport the user has left |
 | `emit` | `(GeoJSON) → void`: draw what you have so far (see below) |
 | `resolveUrl` | `(url) → url`: absolute left alone, a leading `/` made root-relative (behind `ROOT_PATH`), anything else mission-relative — for an endpoint out of your own config, so you don't hand-roll it off `window.mmgisglobal` |
+| `acquire` | `(layerName) → Promise<GeoJSON\|null>`: another configured layer's data, when your type's product is a join of your url and a layer of the mission. Its own type does the acquiring; nothing of it is turned on or drawn, and you get a snapshot rather than its render (see "Composing across layers" in [`../../README.md`](../../README.md)) |
 
 **Cancellation.** A layer has one live acquisition: starting the next aborts
 `ctx.signal` on the last. Core discards a stale response either way, so honouring
@@ -604,6 +605,21 @@ it to the attachment as if an admin had filled the form in.
 A layer of your type overrides it **field by field** (`{ scale: 50 }` keeps your
 `magnitudeProp`), and opts out with `enabled: false`. Precedence is therefore the
 same shape as interactions': type defaults → the layer's own settings.
+
+For the fact that isn't a constant — the property *this* layer's admin picked on
+your own form — declare a reference instead of a literal:
+
+```jsonc
+"defaultAttachments": {
+  "magnitude_rings": { "magnitudeProp": "$variables.quakes.magProp", "scale": 200 }
+}
+```
+
+`$` plus a dotted path is read off the layer, so the property is answered once
+and you still choose which of your fields the attachment gets. An unanswerable
+path drops its key, so the attachment's own default still applies, and `$$`
+escapes a literal leading `$`. References
+work in nested objects and arrays, and in `defaultInteractions` settings.
 
 One thing to check: the attachment's `applicableLayerTypes` decides whether it
 accepts your type as a host at all, and a default it excludes silently never

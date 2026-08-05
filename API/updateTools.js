@@ -7,7 +7,7 @@ const {
   validatePluginConfig,
   findDuplicateInteractionIds,
   findDuplicateIds,
-  validateLayerTypeInheritance,
+  findLayerTypeInheritanceProblems,
   flattenLayerModules,
 } = require("./pluginValidation");
 const {
@@ -330,13 +330,17 @@ function updateInteractions() {
       interactionId: manifest.interactionId,
     }))
   );
-  if (duplicateIds.length > 0) {
-    const messages = duplicateIds.map(
-      ({ interactionId, owners }) =>
-        `Duplicate interactionId '${interactionId}' declared by: ${owners.join(", ")}`
+  // Left out rather than fatal: one broken plugin must not keep every other
+  // plugin's registry at the previous generation (see generateLayerRegistry).
+  for (const { interactionId, owners } of duplicateIds) {
+    logger(
+      "error",
+      `Duplicate interactionId '${interactionId}' declared by: ${owners.join(
+        ", "
+      )} — all of them are left out of the registry`,
+      "Interactions"
     );
-    messages.forEach((message) => logger("error", message, "Interactions"));
-    throw new Error(messages.join("; "));
+    for (const owner of owners) delete interactions[owner];
   }
 
   // 4. Write interactionConfigs.json for the Configure page.
@@ -553,18 +557,25 @@ function generateLayerRegistry({
     })),
     idField
   );
-  if (duplicates.length > 0) {
-    const messages = duplicates.map(
-      ({ id, owners }) =>
-        `Duplicate ${idField} '${id}' declared by: ${owners.join(", ")}`
+  // A broken plugin is left out rather than allowed to abort the regeneration:
+  // aborting keeps the *previous* generation of every registry on disk, so the
+  // app silently runs the last good build of plugins the author has since
+  // changed. `validate` reports what was dropped and why.
+  for (const { id, owners } of duplicates) {
+    logger(
+      "error",
+      `Duplicate ${idField} '${id}' declared by: ${owners.join(
+        ", "
+      )} — all of them are left out of the registry`,
+      loggerCategory
     );
-    messages.forEach((message) => logger("error", message, loggerCategory));
-    throw new Error(messages.join("; "));
+    for (const owner of owners) delete registry[owner];
   }
 
   // Re-key by stable id (name → id) so both the Configure app and the runtime
   // registry look up by layerObj.type.
   const byId = {};
+  /** @type {Object<string, string>} */
   const idToName = {};
   for (const name in registry) {
     const id = registry[name][idField];
@@ -573,14 +584,17 @@ function generateLayerRegistry({
   }
 
   // `extends` is resolved at runtime, so a dangling or chained parent would be
-  // a silent no-op renderer; fail the build instead.
+  // a silent no-op renderer. Drop the child; its parent and every unrelated
+  // plugin still regenerate.
   if (pluginType === "layertype") {
-    const inheritanceErrors = validateLayerTypeInheritance(byId);
-    if (inheritanceErrors.length > 0) {
-      inheritanceErrors.forEach((message) =>
-        logger("error", message, loggerCategory)
+    for (const { typeId, message } of findLayerTypeInheritanceProblems(byId)) {
+      logger(
+        "error",
+        `${message} — it is left out of the registry`,
+        loggerCategory
       );
-      throw new Error(inheritanceErrors.join("; "));
+      delete byId[typeId];
+      delete idToName[typeId];
     }
   }
 

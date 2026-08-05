@@ -17,7 +17,7 @@ test.describe.configure({ mode: 'serial' });
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
 const { withRegistryLock } = require('../helpers/registry-lock');
 
@@ -33,17 +33,20 @@ const TOOLS_JS = path.resolve(REPO_ROOT, 'src', 'pre', 'tools.js');
 function runCli(args, opts = {}) {
     const cmd = `node "${CLI_PATH}" ${args}`;
     return withRegistryLock(() => {
-        try {
-            const output = execSync(cmd, {
-                cwd: REPO_ROOT,
-                encoding: 'utf8',
-                timeout: 15000,
-                ...opts,
-            });
-            return { stdout: output, exitCode: 0 };
-        } catch (err) {
-            return { stdout: err.stdout || '', stderr: err.stderr || '', exitCode: err.status };
-        }
+        // stderr is captured rather than inherited so a successful run's
+        // warnings are assertable (and don't pollute the test output).
+        const run = spawnSync(cmd, {
+            cwd: REPO_ROOT,
+            encoding: 'utf8',
+            timeout: 15000,
+            shell: true,
+            ...opts,
+        });
+        return {
+            stdout: run.stdout || '',
+            stderr: run.stderr || '',
+            exitCode: run.status,
+        };
     });
 }
 
@@ -837,6 +840,40 @@ test.describe('CLI validate rejects a duplicate stable id', () => {
             paths.forEach((p) => fs.rmSync(path.dirname(p), { recursive: true, force: true }));
         });
     }
+});
+
+test.describe('CLI activate leaves out only the offender', () => {
+    const CONTAINER = 'e2e-activate-skip';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        runCli('activate');
+    });
+
+    // Aborting the whole regeneration keeps the *previous* generation of every
+    // registry on disk, so the app silently runs the last good build.
+    test('a layer type extending a type nobody provides is dropped, and the rest regenerate', () => {
+        expect(
+            runCli(`create layertype E2eDangling --container ${CONTAINER} --json`).exitCode
+        ).toBe(0);
+        const manifestPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eDangling', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest.extends = 'nosuchparent';
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
+
+        const run = runCli('activate');
+        expect(run.exitCode).toBe(0);
+        expect(`${run.stdout}${run.stderr || ''}`).toContain('left out of the registry');
+
+        const registry = fs.readFileSync(
+            path.resolve(REPO_ROOT, 'src', 'pre', 'layertypes.js'), 'utf8'
+        );
+        expect(registry).not.toContain(manifest.typeId);
+        // Every built-in still made it: the offender did not take them with it.
+        expect(registry).toContain("'vector'");
+    });
 });
 
 test.describe('CLI validate cross-checks ids between families', () => {

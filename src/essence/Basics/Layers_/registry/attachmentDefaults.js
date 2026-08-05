@@ -10,7 +10,11 @@
  * @module attachmentDefaults
  */
 
-import { declaredConfigFor, mergeDeclaredConfig } from './declaredConfig'
+import {
+    declaredConfigFor,
+    mergeDeclaredConfig,
+    resolveDeclaredReferences,
+} from './declaredConfig'
 
 /**
  * The settings a type declares for one attachment, or null if it declares none.
@@ -19,12 +23,20 @@ import { declaredConfigFor, mergeDeclaredConfig } from './declaredConfig'
  * "this type comes with rings" is only useful if it can also say how big they
  * are; `{}` means "on, with the attachment's own defaults".
  *
+ * A declared value may be a `$`-reference to a field of the host layer
+ * (`"$variables.windStation.speedProp"`), so a fact the admin answers on the
+ * type's own form isn't typed again on the attachment's.
+ *
  * @param {object} capabilities - the type's resolved capabilities
  * @param {string} attachmentId
+ * @param {object|null} [layerObj] - the host layer, for `$`-references
  * @returns {object|null}
  */
-export function declaredAttachmentConfig(capabilities, attachmentId) {
-    return declaredConfigFor(capabilities?.defaultAttachments, attachmentId)
+export function declaredAttachmentConfig(capabilities, attachmentId, layerObj) {
+    return resolveDeclaredReferences(
+        declaredConfigFor(capabilities?.defaultAttachments, attachmentId),
+        layerObj
+    )
 }
 
 /**

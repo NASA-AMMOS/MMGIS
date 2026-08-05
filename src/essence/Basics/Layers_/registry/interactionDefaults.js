@@ -18,7 +18,11 @@
  * @module interactionDefaults
  */
 
-import { asConfig, mergeDeclaredConfig } from './declaredConfig'
+import {
+    asConfig,
+    mergeDeclaredConfig,
+    resolveDeclaredReferences,
+} from './declaredConfig'
 
 /**
  * Split a `defaultInteractions` declaration into pipeline ids and settings.
@@ -54,10 +58,18 @@ export function normalizeDefaultInteractions(declared) {
 /**
  * An interaction's effective settings: the layer's own over the type's declared.
  *
+ * A declared value may be a `$`-reference to a field of the layer
+ * (`"$variables.windStation.speedProp"`), read off the layer being interacted
+ * with, so a fact the admin answers on the type's own form isn't typed again.
+ *
  * @param {object|null} own - the layer's subtree at the interaction's configPath
  * @param {object|null} declared - what the layer's type declared for this id
+ * @param {object|null} [layerObj] - the layer, for `$`-references
  * @returns {object|null}
  */
-export function resolveInteractionConfig(own, declared) {
-    return mergeDeclaredConfig(own, asConfig(declared))
+export function resolveInteractionConfig(own, declared, layerObj) {
+    return mergeDeclaredConfig(
+        own,
+        resolveDeclaredReferences(asConfig(declared), layerObj)
+    )
 }

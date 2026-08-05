@@ -104,7 +104,7 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         expect(cfg).toHaveProperty('Select');
     });
 
-    test('duplicate interaction IDs stop generation', () => {
+    test('duplicate interaction IDs leave out the claimants, not the registry', () => {
         installFixturePlugin({
             pluginType: 'interaction',
             containerName: INTERACTION_CONTAINER,
@@ -118,9 +118,15 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
             fixturesDir: path.join(repoRoot, 'tests', 'fixtures', 'test-plugin-interactions'),
         });
 
-        expect(() => updateInteractions()).toThrow(
-            "Duplicate interactionId 'test:interaction'"
-        );
+        // Aborting would keep the *previous* generation of every registry on
+        // disk, so the app runs the last good build of plugins the author has
+        // since changed. Both claimants are dropped; everyone else regenerates.
+        updateInteractions();
+
+        const cfg = JSON.parse(fs.readFileSync(INTERACTION_CONFIGS_PATH, 'utf8'));
+        expect(cfg).not.toHaveProperty('TestInteraction');
+        expect(cfg).not.toHaveProperty('DuplicateInteraction');
+        expect(cfg).toHaveProperty('Select');
     });
 
     test('invalid interaction is skipped, valid ones still registered', () => {

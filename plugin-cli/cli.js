@@ -393,14 +393,20 @@ function activate({ expectChanges = false, silent = false } = {}) {
             beforeText[type] = readIfPresent(file);
         }
 
-        // Suppress logger console output during regeneration.
+        // Suppress logger console output during regeneration, but keep what it
+        // said: a plugin left out of a registry is the one thing an author must
+        // hear about, and it is otherwise only visible as a missing import.
+        const captured = [];
+        const capture = (chunk) => {
+            if (typeof chunk === "string") captured.push(chunk);
+        };
         const origWrite = process.stdout.write;
         const origLog = console.log;
         const origError = console.error;
         try {
-            process.stdout.write = () => true;
-            console.log = () => {};
-            console.error = () => {};
+            process.stdout.write = (chunk) => (capture(chunk), true);
+            console.log = (...args) => capture(args.join(" "));
+            console.error = (...args) => capture(args.join(" "));
 
             const {
                 updateTools,
@@ -419,6 +425,19 @@ function activate({ expectChanges = false, silent = false } = {}) {
             console.log = origLog;
             console.error = origError;
         }
+
+        const droppedMessages = captured
+            .join("\n")
+            .split("\n")
+            .filter((line) => line.includes("left out of the registry"))
+            .map((line) => {
+                // The logger writes structured JSON; the author wants the msg.
+                try {
+                    return JSON.parse(line.replace(/\u001b\[[0-9;]*m/g, "")).msg;
+                } catch {
+                    return line.replace(/\u001b\[[0-9;]*m/g, "").trim();
+                }
+            });
 
         // Compute diffs.
         const added = [];
@@ -441,6 +460,8 @@ function activate({ expectChanges = false, silent = false } = {}) {
             .map(([type]) => type);
 
         if (!silent) {
+            for (const message of droppedMessages)
+                console.error(`  ${c.red("✗")} ${c.red(message)}`);
             if (added.length === 0 && removed.length === 0) {
                 const noChange =
                     rewritten.length > 0

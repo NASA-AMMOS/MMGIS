@@ -8,6 +8,7 @@ import LayerGeologic from '../LayerGeologic/LayerGeologic'
 import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 import LayerInterface from '../interface/LayerInterface'
 import refreshLayer from '../lifecycle/refresh'
+import acquire from '../lifecycle/acquire'
 import { interpolateMultipleColors } from './gradientUtils'
 
 let L = window.L
@@ -791,6 +792,9 @@ export const constructSublayers = (
         // writing to its own backend, say) asks for the host to be re-acquired
         // with this rather than with Map_'s internals.
         refreshLayer: () => refreshLayer(layerObj),
+        // And may need a second layer of the mission as an input: its data,
+        // acquired headlessly, never another layer's rendered state.
+        acquire,
     }
 
     // Seed the keys in declared order first: an attachment built later must

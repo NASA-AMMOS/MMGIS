@@ -176,18 +176,33 @@ const _captureFromSource = (
     url,
     cb,
     dynamicCb,
-    isRefresh
+    isRefresh,
+    isDynamic,
+    headless
 ) => {
     const fetch = (view, trigger, onData) => {
         const ctx = sourceCtx(layerData, url, view, trigger)
-        ctx.signal = _abortPrevious(layerObj.name)
+        // A headless acquisition must not cancel the layer's own live one, and
+        // has nothing on the map to progressively paint into: its pages are
+        // collected and handed over once, whole.
+        ctx.signal = _abortPrevious(
+            headless ? `${layerObj.name}::acquire` : layerObj.name
+        )
         ctx.resolveUrl = _resolveSourceUrl
+        // A type whose data is a join of its own url and a layer of the mission
+        // asks for the second one rather than reaching into what it rendered.
+        ctx.acquire = acquireLayer
 
         // A paged source draws what it has so far instead of leaving the map
         // blank until the last page: each call is everything acquired to date.
         let painted = false
+        let emitted = null
         const paint = (data) => {
             const geojson = F_.parseIntoGeoJSON(data)
+            if (headless) {
+                emitted = geojson
+                return
+            }
             if (!painted) {
                 painted = true
                 onData(geojson)
@@ -205,7 +220,12 @@ const _captureFromSource = (
                 // A source that emitted its pages may return nothing; the last
                 // page it painted is the result.
                 if (data == null) {
-                    if (!painted) onData(null)
+                    if (headless) onData(emitted)
+                    else if (!painted) onData(null)
+                    return
+                }
+                if (headless) {
+                    onData(F_.parseIntoGeoJSON(data))
                     return
                 }
                 paint(data)
@@ -215,11 +235,11 @@ const _captureFromSource = (
                 console.warn(
                     `ERROR! source.fetch of layer type '${layerData?.type}' failed for ${layerObj.name} /// ${err?.message || err}`
                 )
-                if (!painted) onData(null)
+                if (headless || !painted) onData(null)
             })
     }
 
-    if (layerData?.variables?.dynamicExtent !== true) {
+    if (!isDynamic) {
         fetch(null, isRefresh === true ? 'refresh' : 'make', cb)
         return
     }
@@ -255,6 +275,7 @@ const _captureFromSource = (
         }
         ctx.signal = _abortPrevious(layerObj.name)
         ctx.resolveUrl = _resolveSourceUrl
+        ctx.acquire = acquireLayer
 
         // Still the newest request for this layer. A page is held to only this
         // — the move threshold is about whether a NEW view is worth redrawing,
@@ -305,6 +326,10 @@ const _captureFromSource = (
 
 export const captureVector = (layerObj, options, cb, dynamicCb) => {
     options = options || {}
+    // A headless acquisition (`ctx.acquire`) wants the layer's data, not the
+    // layer: it is not on, it has no view of its own to be bound to, and
+    // nothing of it is drawn.
+    const headless = options.headless === true
     // If a resolved URL was supplied by the caller (e.g.
     // TimeControl.reloadLayer already performed time placeholder
     // replacement) use that instead of reading `layerObj.url`. This lets
@@ -327,7 +352,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
         return
     }
 
-    if (options.evenIfOff !== true && !L_.layers.on[layerObj.name]) {
+    if (options.evenIfOff !== true && !headless && !L_.layers.on[layerObj.name]) {
         cb('off')
         return
     }
@@ -399,7 +424,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
             layerUrl,
             cb,
             dynamicCb,
-            options.isRefresh
+            options.isRefresh,
+            !headless && layerData?.variables?.dynamicExtent === true,
+            headless
         )
         return
     }
@@ -408,7 +435,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
     let urlSplitRaw = layerObj.url.split(':')
     let urlSplit = layerObj.url.toLowerCase().split(':')
 
-    if (layerData?.variables?.dynamicExtent === true) {
+    if (!headless && layerData?.variables?.dynamicExtent === true) {
         switch (urlSplit[0]) {
             case 'geodatasets':
                 // Return .on('moveend zoomend') event
@@ -1009,5 +1036,70 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
         }
     }
 }
+
+const _acquiring = new Set()
+
+/**
+ * A configured layer's data, acquired headlessly — the seam a feature needs when
+ * one of its inputs is already a layer of the mission rather than a url the
+ * plugin can fetch itself.
+ *
+ * It is *acquisition* only, deliberately: the layer is not turned on, nothing is
+ * drawn, and the result is a plain GeoJSON snapshot rather than a live view of
+ * another plugin's rendered state (which is unsupported for the reasons in
+ * plugins/README.md — an off layer has nothing rendered, a vector-tile layer
+ * never will, and there is no invalidation contract). Whatever the layer's type
+ * does to get its data is what happens here, including its own `source.fetch`;
+ * a dynamic-extent layer is acquired whole rather than bound to the viewport.
+ * A layer with no feature collection to give (a tiled raster, whose url is a
+ * template) resolves to null.
+ *
+ * @param {string} layerName - display name or uuid, as `L_.layers.data` keys it
+ * @returns {Promise<object|null>} GeoJSON, or null if the layer can't be acquired
+ */
+export const acquireLayer = (layerName) =>
+    new Promise((resolve) => {
+        const uuid = L_.asLayerUUID(layerName)
+        const layerData = L_.layers.data[uuid]
+        if (layerData == null) {
+            console.warn(
+                `ERROR! acquire('${layerName}') — no such layer in this mission.`
+            )
+            resolve(null)
+            return
+        }
+        // Two source types that acquire each other would otherwise recurse
+        // until the stack gives out; the second one gets nothing instead.
+        if (_acquiring.has(uuid)) {
+            console.warn(
+                `ERROR! acquire('${layerName}') — that layer is itself acquiring, which would not terminate.`
+            )
+            resolve(null)
+            return
+        }
+        _acquiring.add(uuid)
+
+        let settled = false
+        const done = (data) => {
+            if (settled) return
+            settled = true
+            _acquiring.delete(uuid)
+            resolve(data === 'off' || data == null ? null : data)
+        }
+
+        try {
+            captureVector(
+                { ...layerData, name: uuid },
+                { headless: true, evenIfOff: true },
+                done,
+                () => {}
+            )
+        } catch (err) {
+            console.warn(
+                `ERROR! acquire('${layerName}') failed /// ${err?.message || err}`
+            )
+            done(null)
+        }
+    })
 
 export { isKmlUrl, fetchKmlAsGeoJSON }

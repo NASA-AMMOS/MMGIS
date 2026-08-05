@@ -384,6 +384,16 @@ The settings problem the last two rows solve is worth spelling out, because the 
 
 Core then hands that to the attachment under the attachment's own `configPath`, as if an admin had filled it in. A layer of your type gets the attachment turned on with those settings; its own settings, if an admin gives it any, sit on top **field by field**, so changing one thing does not lose the rest, and `enabled: false` on the layer opts out. `{}` means "on, with the attachment's own defaults".
 
+A declared value can be a **reference to a field of the layer** rather than a constant, for the fact that isn't yours to hardcode — which property an admin picked on *this* layer:
+
+```json
+"defaultAttachments": {
+    "look_direction": { "azimuthProp": "$variables.stereo.azimuthProp", "scale": 200 }
+}
+```
+
+`$` followed by a dotted path reads that path off the layer, so the property is answered once — on your own config rows — and you still choose which of your fields the attachment is handed. A path the layer cannot answer drops its key, so the plugin's own default still applies; `$$` escapes a value that really begins with a `$`. It works anywhere in a declaration, including nested objects and arrays, and in `defaultInteractions` settings too.
+
 `defaultInteractions` takes the same two shapes per event, so a type that ships an interaction configures it the same way:
 
 ```json
@@ -410,6 +420,16 @@ The seams above are all within one layer. Reaching into a **different** layer �
 - **it is not the same shape everywhere.** What `L_.layers.layer[name]` holds is the render, and the render is the layer type's business — a Leaflet `GeoJSON` group for one type, a tile layer for another, something else for a plugin type. Reading it couples your plugin to another type's renderer.
 
 If a feature genuinely needs two layers' data, the supportable shape is to make it **one layer**: a layer type whose `source.fetch` acquires both inputs and returns the combined GeoJSON, which is then a normal layer with a normal lifecycle — it refetches when core says to, it filters, it draws through an inherited renderer, and nothing depends on what an unrelated layer happens to be holding. Where the join belongs on the server, a backend plugin route that returns the joined result and a thin `source.fetch` in front of it is the same shape.
+
+When one of those inputs is *itself a configured layer* of the mission, `ctx.acquire(layerName)` is how you get it:
+
+```js
+const stations = await ctx.acquire('Wind Stations')
+```
+
+It resolves with that layer's GeoJSON — going through whatever its own type does to acquire, including its `source.fetch` — or `null` if it can't be acquired (no such layer, or a type with no feature collection to give, like a tiled raster). It is available on a `source.fetch` `ctx`, and on an interaction's and attachment's.
+
+It is **acquisition, not access**: the layer is not turned on, nothing of it is drawn, its own live acquisition is left alone, and what you get is a snapshot rather than a handle on its render — which is what makes it safe where reading `L_.layers.layer[name]` is not. A dynamic-extent layer is acquired whole rather than bound to your viewport, so acquire deliberately (it is a fetch, not a lookup) and hold the result yourself, remembering that it is a snapshot: re-acquire when you need it fresh.
 
 `L_.layers.data` — the *configuration* of every layer — is a different matter and is fine to read; it is declarative, always present, and what core itself reads.
 
@@ -1108,7 +1128,7 @@ npm run plugins -- validate          # Human-readable
 npm run plugins -- validate --json   # Structured output with per-plugin results
 ```
 
-It checks manifests and the shape of the modules they declare — statically, without loading them — plus the things that fail quietly at runtime: a module a manifest declares but the plugin no longer has, an `applicableLayerTypes`, `defaultInteractions` or `defaultAttachments` id no enabled plugin provides (or a declared default attachment that refuses your type as a host), a `pluginDependencies` id that cannot be resolved (which keeps the plugin out of the generated registry), two plugins claiming one `typeId`, `attachmentId` or `interactionId` (registry generation refuses those, and a failed generation leaves the *previous* registries in place), and a generated registry that is stale relative to what is on disk. See `API/pluginValidation.js` for the implementation.
+It checks manifests and the shape of the modules they declare — statically, without loading them — plus the things that fail quietly at runtime: a module a manifest declares but the plugin no longer has, an `applicableLayerTypes`, `defaultInteractions` or `defaultAttachments` id no enabled plugin provides (or a declared default attachment that refuses your type as a host), a `pluginDependencies` id that cannot be resolved (which keeps the plugin out of the generated registry), two plugins claiming one `typeId`, `attachmentId` or `interactionId` (activation leaves *all* the claimants out of the generated registry rather than aborting, so the rest of your plugins still regenerate — the omission is printed, but `validate` is where you're meant to see it), and a generated registry that is stale relative to what is on disk. See `API/pluginValidation.js` for the implementation.
 
 Linting a plugin needs `NODE_ENV` set — the repo's Babel preset refuses to run without it, with an error that looks unrelated to your code:
 

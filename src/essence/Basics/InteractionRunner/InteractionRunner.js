@@ -11,6 +11,7 @@
 
 import { resolveInteractionConfig } from '../Layers_/registry/interactionDefaults'
 import refreshLayer from '../Layers_/lifecycle/refresh'
+import acquire from '../Layers_/lifecycle/acquire'
 
 let _cachedModule = null
 
@@ -63,7 +64,11 @@ function _getIn(obj, path) {
 function configForInteraction(id, ctx, config) {
     const path = config?.configPaths?.[id]
     const own = path == null ? null : (_getIn(ctx?.layerData, path) ?? null)
-    return resolveInteractionConfig(own, ctx?.typeInteractionConfigs?.[id])
+    return resolveInteractionConfig(
+        own,
+        ctx?.typeInteractionConfigs?.[id],
+        ctx?.layerData
+    )
 }
 
 /**
@@ -248,6 +253,10 @@ async function runInteractions(interactionIds, ctx, options) {
     // `Map_.refreshLayer`'s internal signature.
     if (typeof ctx.refreshLayer !== 'function')
         ctx.refreshLayer = () => refreshLayer(ctx.layerData || ctx.layerName)
+
+    // And may need a second layer of the mission as an input — its data, not
+    // its rendered state.
+    if (typeof ctx.acquire !== 'function') ctx.acquire = acquire
 
     for (const id of fullPipeline) {
         const handler = handlers[id]
