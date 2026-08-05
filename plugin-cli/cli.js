@@ -1451,14 +1451,40 @@ function cmdValidate() {
         if (!FLAG_JSON)
             console.log(`  ${c.yellow("⚠")} ${c.cyan(plugin.id)}: ${msg} ${c.red(bad)} ${c.yellow("(not found)")}`);
     };
+    const interactionsById = {};
+    for (const p of interactionPlugins)
+        if (p.manifest.interactionId)
+            interactionsById[p.manifest.interactionId] = p.manifest;
     for (const p of layerTypePlugins) {
         const byEvent = (p.manifest.capabilities || {}).defaultInteractions;
         if (byEvent == null || typeof byEvent !== "object") continue;
-        for (const ids of Object.values(byEvent)) {
-            if (!Array.isArray(ids)) continue;
-            for (const id of ids)
-                if (!interactionIds.has(id))
+        const hosts = [p.manifest.typeId, p.manifest.extends].filter(Boolean);
+        for (const forEvent of Object.values(byEvent)) {
+            // Either form: a list of ids, or ids mapped to their settings.
+            const ids = Array.isArray(forEvent)
+                ? forEvent
+                : forEvent != null && typeof forEvent === "object"
+                ? Object.keys(forEvent)
+                : [];
+            for (const id of ids) {
+                if (!interactionIds.has(id)) {
                     crossFamilyWarning(p, "declares default interaction", id);
+                    continue;
+                }
+                // Settings a type declares for an interaction it doesn't apply
+                // to are settings the runner will never read.
+                const applicable = interactionsById[id]?.applicableLayerTypes;
+                if (
+                    Array.isArray(applicable) &&
+                    !applicable.includes("*") &&
+                    !hosts.some((h) => applicable.includes(h))
+                ) {
+                    const msg = `${p.id} declares default interaction '${id}', whose applicableLayerTypes excludes this type, so the default never applies`;
+                    crossFamilyWarningMessages.push(msg);
+                    if (!FLAG_JSON)
+                        console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: default interaction ${c.red(id)} ${c.yellow("does not apply to this type")}`);
+                }
+            }
         }
     }
     // A type declaring the attachments it comes with is only honoured for

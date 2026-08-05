@@ -366,7 +366,7 @@ How the families reach each other — all declarative, none of it a lookup:
 |---|---|
 | type → attachment | the attachment's `applicableLayerTypes: ["<typeId>"]`, which also hides it from every other type |
 | type ships an attachment | the type's `capabilities.defaultAttachments`, which also carries the attachment's settings — see below |
-| type → interaction | the type's `capabilities.defaultInteractions.<event>: ["<interactionId>"]` — ids only, unlike the row above: it puts the interaction in the pipeline but cannot hand it settings, so an interaction owns its own defaults |
+| type ships an interaction | the type's `capabilities.defaultInteractions.<event>` — `["<interactionId>"]` for ids alone, or `{ "<interactionId>": { …settings } }` to configure it too, the mirror of the row above |
 | either → an admin | each plugin's own `configPath` + `config.rows`; a plugin owns its subtree and should not write another's |
 | plugin → plugin, at runtime | share a module, or leave something on the layer: an attachment's own object is at `L_.layers.attachments[<host>][<sublayerKey>]` and is yours verbatim, and interactions pass state along the pipeline in `ctx.state`. `<host>` is the host's name as `L_.layers.data` keys it (`L_.asLayerUUID(name)` for a display name), and `<sublayerKey>` is the `attachmentId` unless the attachment declared `capabilities.host.sublayerKey` |
 
@@ -381,6 +381,19 @@ The settings problem the last two rows solve is worth spelling out, because the 
 ```
 
 Core then hands that to the attachment under the attachment's own `configPath`, as if an admin had filled it in. A layer of your type gets the attachment turned on with those settings; its own settings, if an admin gives it any, sit on top **field by field**, so changing one thing does not lose the rest, and `enabled: false` on the layer opts out. `{}` means "on, with the attachment's own defaults".
+
+`defaultInteractions` takes the same two shapes per event, so a type that ships an interaction configures it the same way:
+
+```json
+"capabilities": {
+    "defaultInteractions": {
+        "click": { "stereo:pairs": { "azimuthProp": "emission_azimuth" } },
+        "hover": ["cursor:show"]
+    }
+}
+```
+
+Object key order is the pipeline order, as the array's is, and the settings are resolved into the interaction's own `configPath` on the way to `ctx.config` — so an interaction is written once and works whether a type configured it or an admin did.
 
 So the property names live once, in the manifest of the plugin that knows them, and neither plugin reads the other's config. Two caveats: the attachment's `applicableLayerTypes` still decides whether it can host your type at all (`validate` warns when a declared default can never apply), and the Configure form for that attachment shows *empty* fields on such a layer — empty means "as the type declared", and typing a value overrides it. Emptiness is what an untouched form field looks like, so a blank or missing field leaves the type's value standing; `false` and `0` are answers and do override.
 

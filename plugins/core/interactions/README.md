@@ -128,12 +128,17 @@ things to know:
 There is no `enabled` field to add: an interaction is enabled by being in the
 layer's pipeline.
 
-Note the asymmetry with attachments: a layer type can declare the attachments it
-comes with *and their settings*
-(`capabilities.defaultAttachments`), but `capabilities.defaultInteractions` lists
-interaction **ids** only. A type cannot hand you settings — so an interaction
-written for a particular type either defaults sensibly in code or reads the
-layer's own config off `ctx.layer`, and its admin-facing settings stay its own.
+A layer type that ships you can also *configure* you: an event in its
+`capabilities.defaultInteractions` may be an object rather than a list of ids,
+
+```json
+"defaultInteractions": { "click": { "wind:report": { "speedProp": "windSpeed" } } }
+```
+
+and core resolves those settings into your `configPath` before handing you
+`ctx.config`, with the layer's own settings on top field by field. Nothing about
+your plugin changes: you read `ctx.config` and apply your own defaults, and it
+works the same whether a type configured you or an admin did.
 
 ## Reaching a tool
 

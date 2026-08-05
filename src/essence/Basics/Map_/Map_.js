@@ -899,10 +899,13 @@ function onEachFeatureDefault(feature, layer) {
     }
 
     const layerData = L_.layers.data[layer.options?.layerName] || {}
+    const typeInteractions = LayerTypeRegistry.defaultInteractions(
+        layerData.type
+    )
     const hooks = resolveLayerInteractions(
         layerData,
         undefined,
-        LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
+        typeInteractions.ids
     )
     // Lets the runner enforce each interaction's `applicableLayerTypes`.
     const layerTypeChain = LayerTypeRegistry.typeChain(layerData.type)
@@ -919,6 +922,7 @@ function onEachFeatureDefault(feature, layer) {
                 event: e,
                 eventType: 'hover',
                 layerTypeChain,
+                typeInteractionConfigs: typeInteractions.settings,
                 stop: false,
                 state: {},
             }
@@ -937,6 +941,7 @@ function onEachFeatureDefault(feature, layer) {
                 event: e,
                 eventType: 'mouseout',
                 layerTypeChain,
+                typeInteractionConfigs: typeInteractions.settings,
                 stop: false,
                 state: {},
             }
@@ -965,10 +970,13 @@ function featureDefaultClick(feature, layer, e) {
     MetadataCapturer.populateMetadata(layer, async () => {
         const layerName = layer.options.layerName
         const layerData = L_.layers.data[layerName]
+        const typeInteractions = LayerTypeRegistry.defaultInteractions(
+            layerData.type
+        )
         const pipeline = resolveLayerInteractions(
             layerData,
             undefined,
-            LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
+            typeInteractions.ids
         ).click
 
         L_.clearFeatureAttachments()
@@ -983,6 +991,7 @@ function featureDefaultClick(feature, layer, e) {
             event: e,
             eventType: 'click',
             layerTypeChain: LayerTypeRegistry.typeChain(layerData.type),
+            typeInteractionConfigs: typeInteractions.settings,
             additional: null,
             stop: false,
             state: {},

@@ -863,4 +863,62 @@ test.describe('CLI validate cross-checks ids between families', () => {
             )
         ).toBe(true);
     });
+
+    test('an unknown default interaction is reported in either declaration form', () => {
+        const typePath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(typePath, 'utf8'));
+        delete manifest.capabilities.defaultAttachments;
+
+        // The settings form has to be cross-checked like the list form, or a
+        // typo means settings nothing ever reads.
+        manifest.capabilities.defaultInteractions = {
+            click: { 'nosuch:interaction': { speedProp: 'windSpeed' } },
+        };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+        let out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) => m.includes('default interaction') && m.includes('nosuch:interaction')
+            )
+        ).toBe(true);
+
+        manifest.capabilities.defaultInteractions = { click: ['nosuch:interaction'] };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+        out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) => m.includes('default interaction') && m.includes('nosuch:interaction')
+            )
+        ).toBe(true);
+    });
+
+    test('a declared default interaction that refuses this type is reported', () => {
+        expect(runCli(`create interaction E2eNarrow --container ${CONTAINER} --json`).exitCode).toBe(0);
+        const interactionPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'interactions', 'E2eNarrow', 'plugin.json'
+        );
+        const interaction = JSON.parse(fs.readFileSync(interactionPath, 'utf8'));
+        interaction.applicableLayerTypes = ['vector'];
+        fs.writeFileSync(interactionPath, JSON.stringify(interaction, null, 4));
+
+        const typePath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(typePath, 'utf8'));
+        manifest.capabilities.defaultInteractions = {
+            click: { [interaction.interactionId]: { speedProp: 'windSpeed' } },
+        };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) =>
+                    m.includes(interaction.interactionId) &&
+                    m.includes('never applies')
+            )
+        ).toBe(true);
+    });
 });

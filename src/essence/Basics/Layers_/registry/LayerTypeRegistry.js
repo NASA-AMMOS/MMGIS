@@ -16,9 +16,10 @@
  */
 
 import { mergeSurfaces } from './typeInheritance'
+import { normalizeDefaultInteractions } from './interactionDefaults'
 
 let _cache = null
-const _resolved = { modules: {}, capabilities: {} }
+const _resolved = { modules: {}, capabilities: {}, interactions: {} }
 
 function _load() {
     if (_cache) return _cache
@@ -207,6 +208,22 @@ const LayerTypeRegistry = {
      */
     providesTimeHistogram(typeId) {
         return this.capabilities(typeId).time?.histogram === true
+    },
+    /**
+     * The interactions this type comes with, as pipeline ids per event plus the
+     * settings it declared for them (`{ ids, settings }`). A type may declare
+     * either form — `"click": ["identify:popup"]` or
+     * `"click": { "wind:report": { "speedProp": "windSpeed" } }` — and callers
+     * see the same shape either way.
+     */
+    defaultInteractions(typeId) {
+        if (_resolved.interactions[typeId] !== undefined)
+            return _resolved.interactions[typeId]
+
+        _resolved.interactions[typeId] = normalizeDefaultInteractions(
+            this.capabilities(typeId).defaultInteractions
+        )
+        return _resolved.interactions[typeId]
     },
     /** True if a plugin owns this type id. */
     has(typeId) {

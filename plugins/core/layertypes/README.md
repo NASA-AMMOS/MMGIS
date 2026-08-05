@@ -473,6 +473,28 @@ lowest → highest: type defaults → the legacy per-layer `kind` pipeline →
 the layer's explicit `interactions`. Built-in types ship no `defaultInteractions`
 because they already resolve through `kind`; the field exists for new types.
 
+If your type ships an interaction of its own, it can declare that interaction's
+**settings** too — you know the property names you just fetched, and an admin
+should not have to type them into a second subtree. Give the event an object
+instead of a list:
+
+```jsonc
+"capabilities": {
+  "defaultInteractions": {
+    "click": { "wind:report": { "speedProp": "windSpeed" } },
+    "hover": ["cursor:show"]                                    // still fine
+  }
+}
+```
+
+Object key order is the pipeline order, exactly as the array's is, and `{}` means
+"comes with it, nothing to say about it". Core resolves the settings into the
+interaction's own `configPath`, so the interaction reads `ctx.config` and never
+learns which of the two wrote it; the layer's own settings sit on top field by
+field, and an empty form field does not override what you declared (`false` and
+`0` do). This mirrors `defaultAttachments` below, and the rule is the same for
+both: **declare what a sibling should be — never write into its subtree.**
+
 ---
 
 ## Default attachments — the attachments your type comes with
@@ -534,7 +556,7 @@ error, an unknown key warns (typo), and omitting one core acts on warns too.
 | `map.styling` | its features carry their own style, so core may restyle them (highlight, filter dimming) | not restyled |
 | `time` | the type understands time at all (`true`, or the object form below) | no time support |
 | `time.histogram` | it can report when data exists over time, so the time bar draws its availability sparkline | no histogram |
-| `defaultInteractions` | default click/hover interaction ids for the type (see above) | none |
+| `defaultInteractions` | default click/hover interactions for the type: ids, or ids with their settings (see above) | none |
 | `defaultAttachments` | attachments the type comes with, and their settings (see above) | none |
 
 Every capability in this table is read by core. There is deliberately no

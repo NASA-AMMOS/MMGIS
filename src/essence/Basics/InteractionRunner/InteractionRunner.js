@@ -9,6 +9,8 @@
  * @module InteractionRunner
  */
 
+import { resolveInteractionConfig } from '../Layers_/registry/interactionDefaults'
+
 let _cachedModule = null
 
 function _loadGenerated() {
@@ -51,11 +53,16 @@ function _getIn(obj, path) {
  * is configured per layer like an attachment is, so core reads that subtree and
  * hands it over as `ctx.config` — the plugin needn't know where its settings
  * live, and nothing else has to guess either.
+ *
+ * A layer type that ships an interaction may also declare that interaction's
+ * settings (`capabilities.defaultInteractions.<event>.<id>`), which the caller
+ * passes as `ctx.typeInteractionConfigs`: the type knows the property names it
+ * just fetched, and the layer's own settings sit on top of them field by field.
  */
 function configForInteraction(id, ctx, config) {
     const path = config?.configPaths?.[id]
-    if (path == null) return null
-    return _getIn(ctx?.layerData, path) ?? null
+    const own = path == null ? null : (_getIn(ctx?.layerData, path) ?? null)
+    return resolveInteractionConfig(own, ctx?.typeInteractionConfigs?.[id])
 }
 
 /**
@@ -114,13 +121,15 @@ function kindToInteractions(kind, config) {
  *
  * Precedence (lowest → highest): layer-type manifest default interactions →
  * the legacy per-layer `kind` pipeline → the layer's explicit `interactions`.
- * `typeDefaults` come from the layer type's `capabilities.defaultInteractions`
- * and are passed in by the caller (which owns the LayerTypeRegistry) so this
- * module stays dependency-free.
+ * `typeDefaults` are the ids from the layer type's
+ * `capabilities.defaultInteractions` — `LayerTypeRegistry.defaultInteractions()`
+ * normalizes the two manifest forms and the caller passes the `ids` half, so
+ * this module never reads a manifest itself. Its `settings` half rides on
+ * `ctx.typeInteractionConfigs` instead (see `configForInteraction`).
  *
  * @param {object} layerData
  * @param {object} [config] - Override config (for testing)
- * @param {object} [typeDefaults] - Layer-type default interactions, e.g.
+ * @param {object} [typeDefaults] - Layer-type default interaction ids, e.g.
  *   { click: string[], hover: string[], mouseout: string[] }
  * @returns {{ click: string[], hover: string[], mouseout: string[] }}
  */

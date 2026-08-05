@@ -1136,9 +1136,11 @@ function validatePluginConfig(config, pluginName, pluginType) {
           });
         }
       }
-      // Declarative default interactions: a map of event name -> array of
-      // interaction IDs core merges when a layer of this type doesn't
-      // configure its own. Descriptive/behavioral metadata, validated for shape.
+      // Declarative default interactions: a map of event name -> either an array
+      // of interaction IDs, or an object of ID -> that interaction's settings
+      // (the mirror of defaultAttachments, for a type that ships an interaction
+      // and knows how it should be configured). Core merges either when a layer
+      // of this type doesn't configure its own.
       // Guard against a non-object `capabilities` (e.g. null): the shape error is
       // already recorded above, and this is a separate `if` at the same nesting
       // level, so it must re-check before dereferencing to avoid throwing.
@@ -1151,14 +1153,37 @@ function validatePluginConfig(config, pluginName, pluginType) {
         const di = config.capabilities.defaultInteractions;
         if (typeof di !== "object" || Array.isArray(di) || di === null) {
           errors.push(
-            `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions' must be an object mapping event name to an array of interaction IDs`
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions' must be an object mapping event name to an array of interaction IDs, or to an object of interaction ID -> settings`
           );
         } else {
-          for (const [ev, ids] of Object.entries(di)) {
-            if (!Array.isArray(ids) || ids.some((v) => typeof v !== "string")) {
+          for (const [ev, forEvent] of Object.entries(di)) {
+            if (Array.isArray(forEvent)) {
+              if (forEvent.some((v) => typeof v !== "string"))
+                errors.push(
+                  `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings`
+                );
+              continue;
+            }
+            if (
+              forEvent === null ||
+              typeof forEvent !== "object" ||
+              Array.isArray(forEvent)
+            ) {
               errors.push(
-                `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings`
+                `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings, or an object of interaction ID -> settings ({} for none)`
               );
+              continue;
+            }
+            for (const [id, settings] of Object.entries(forEvent)) {
+              if (
+                settings === null ||
+                typeof settings !== "object" ||
+                Array.isArray(settings)
+              ) {
+                errors.push(
+                  `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}.${id}' must be an object of that interaction's settings ({} for none)`
+                );
+              }
             }
           }
         }

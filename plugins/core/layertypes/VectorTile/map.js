@@ -59,11 +59,14 @@ function make(layerObj, ctx = {}) {
                         ell.latlng = JSON.parse(JSON.stringify(e.latlng))
                     MetadataCapturer.populateMetadata(layer, async () => {
                         const layerData = L_.layers.data[layerName]
+                        const typeInteractions =
+                            LayerTypeRegistry.defaultInteractions(
+                                layerData.type
+                            )
                         const pipeline = resolveLayerInteractions(
                             layerData,
                             undefined,
-                            LayerTypeRegistry.capabilities(layerData.type)
-                                .defaultInteractions
+                            typeInteractions.ids
                         ).click
 
                         L_.clearFeatureAttachments()
@@ -78,6 +81,10 @@ function make(layerObj, ctx = {}) {
                             layerVar: layerData.variables || {},
                             event: ell,
                             eventType: 'click',
+                            layerTypeChain: LayerTypeRegistry.typeChain(
+                                layerData.type
+                            ),
+                            typeInteractionConfigs: typeInteractions.settings,
                             additional: null,
                             stop: false,
                             state: {
