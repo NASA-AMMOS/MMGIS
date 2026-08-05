@@ -20,7 +20,7 @@
     "clsx": "^2.0.0",
     "file-saver": "^2.0.5",
     "html2pug": "^4.0.0",
-    "immutable": "^5.0.0-beta.4",
+    "immutable": "^5.1.8",
     "leaflet": "^1.9.4",
     "papaparse": "^5.4.1",
     "react": "^17.0.2",
