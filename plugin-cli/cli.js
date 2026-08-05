@@ -1278,6 +1278,7 @@ function cmdValidate() {
         validatePluginConfig,
         validateDependencies,
         findDuplicateInteractionIds,
+        findDuplicateIds,
     } = require(path.join(__dirname, "..", "API", "pluginValidation"));
 
     const plugins = discoverAll();
@@ -1445,6 +1446,33 @@ function cmdValidate() {
     const attachmentPlugins = plugins.filter(
         (p) => p.type === "layerattachments" && p.manifest && isPluginEnabled(p, state)
     );
+
+    // One owner per stable id. Registry generation refuses these outright, so
+    // reporting them here is what keeps a green `validate` from being followed
+    // by a build that fails — and, worse, leaves the previous generation of
+    // every registry in place.
+    for (const [family, idKey] of [
+        [layerTypePlugins, "typeId"],
+        [attachmentPlugins, "attachmentId"],
+    ]) {
+        const duplicates = findDuplicateIds(
+            family.map((p) => ({ name: p.id, [idKey]: p.manifest[idKey] })),
+            idKey
+        );
+        for (const { id, owners } of duplicates) {
+            errors++;
+            const msg = `Duplicate ${idKey} '${id}' declared by: ${owners.join(", ")}`;
+            if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.red(msg)}`);
+            for (const owner of owners) {
+                const result = results.find((entry) => entry.plugin === owner);
+                if (result && result.valid) {
+                    result.valid = false;
+                    result.errors.push(msg);
+                    passed--;
+                }
+            }
+        }
+    }
     const crossFamilyWarningMessages = [];
     const crossFamilyWarning = (plugin, msg, bad) => {
         crossFamilyWarningMessages.push(`${plugin.id} ${msg} '${bad}' which no enabled plugin provides`);

@@ -44,20 +44,8 @@
                 "name": "Layer Type",
                 "description": "",
                 "type": "dropdown",
-                "width": 2,
-                "options": [
-                  "3dtiles",
-                  "data",
-                  "header",
-                  "image",
-                  "model",
-                  "query",
-                  "tile",
-                  "vector",
-                  "vectortile",
-                  "velocity",
-                  "video"
-                ]
+                "optionsFrom": "layerTypes",
+                "width": 2
               },
               {
                 "field": "name",

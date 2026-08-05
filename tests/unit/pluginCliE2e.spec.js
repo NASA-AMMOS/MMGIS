@@ -794,6 +794,51 @@ test.describe('CLI validate reports stale registries', () => {
 
 // ─── cross-family references ─────────────────────────────────────────────────
 
+test.describe('CLI validate rejects a duplicate stable id', () => {
+    const CONTAINER = 'e2e-duplicate-id';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        runCli('activate');
+    });
+
+    // Registry generation refuses two owners of one id outright, so a green
+    // `validate` followed by a failed `activate` leaves the *previous*
+    // generation of every registry in place — an app running last build's
+    // plugins with no error to chase.
+    for (const [family, idKey] of [
+        ['layertype', 'typeId'],
+        ['layerattachment', 'attachmentId'],
+    ]) {
+        test(`two ${family}s claiming one ${idKey} fail validate`, () => {
+            const names = [`E2eDupA${idKey}`, `E2eDupB${idKey}`];
+            const paths = names.map((name) => {
+                expect(
+                    runCli(`create ${family} ${name} --container ${CONTAINER} --json`).exitCode
+                ).toBe(0);
+                return path.join(
+                    PLUGINS_ROOT, CONTAINER, `${family}s`, name, 'plugin.json'
+                );
+            });
+
+            const first = JSON.parse(fs.readFileSync(paths[0], 'utf8'));
+            const second = JSON.parse(fs.readFileSync(paths[1], 'utf8'));
+            second[idKey] = first[idKey];
+            fs.writeFileSync(paths[1], JSON.stringify(second, null, 4));
+
+            const run = runCli('validate --json');
+            expect(run.exitCode).toBe(1);
+            const out = JSON.parse(run.stdout);
+            const offenders = out.results.filter(
+                (r) => !r.valid && r.errors.some((e) => e.includes(`Duplicate ${idKey}`))
+            );
+            expect(offenders.length).toBe(2);
+
+            paths.forEach((p) => fs.rmSync(path.dirname(p), { recursive: true, force: true }));
+        });
+    }
+});
+
 test.describe('CLI validate cross-checks ids between families', () => {
     const CONTAINER = 'e2e-cross-family';
 

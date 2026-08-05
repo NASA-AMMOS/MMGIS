@@ -98,13 +98,21 @@ parent supplies.
 parent's, which is wrong whenever you mean "and also mine" — overriding Vector's
 `config.normalize` to add a field silently loses the `kind` and `radius` it sets.
 A child's operation is therefore handed the inherited implementation as **one
-extra argument after the ones the operation normally takes**:
+extra argument after the ones that operation's own signature takes** — those
+signatures are in the surface tables below and they differ per operation, so
+count from the table rather than assuming:
 
 ```js
-// config.normalize(layerObj, ctx) — so `inherited` is the third argument
-function normalize(layerObj, ctx, inherited) {
+// the table below gives config.normalize as (layerObj) → layerObj,
+// so `inherited` is the second argument
+function normalize(layerObj, inherited) {
     inherited() // run Vector's, on the same arguments
     layerObj.variables.myThing = layerObj.variables.myThing ?? true
+}
+
+// every map operation is (layerObj, ctx), so there it's the third
+async function make(layerObj, ctx, inherited) {
+    await inherited()
 }
 ```
 
@@ -142,6 +150,11 @@ core fetches) rather than a renderer at all.
 A renderer module is `export default { …operations }`. Both surfaces speak the
 **same operation vocabulary**, so the interface reads identically on map and
 globe — only the core defaults differ.
+
+Every map operation is dispatched as `(layerObj, ctx)` — the same two arguments,
+whichever it is — so an overriding child's `inherited` is the third. Globe
+operations take a layer *name* instead, and some take a value: see
+[Globe — `gctx`](#globe--gctx).
 
 | operation | when it runs | required? | core default if you omit it |
 |---|---|---|---|

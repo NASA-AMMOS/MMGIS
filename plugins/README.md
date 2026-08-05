@@ -903,6 +903,12 @@ only `field`s exempt from the "must sit inside `configPath`" rule.
 **existing** tab (`Attachment - Markers`, `Attachment - Paths`, …) unless you mean
 to add one — a typo silently creates a new tab holding your rows alone.
 
+**A layer type declares the tabs themselves**, since its `config` is the whole layer
+modal rather than an addition to someone else's: `config.tabs[]`, each with a `name`
+and its own `rows[]` (this is what `create layertype` scaffolds). Tools, attachments
+and interactions add rows to a form that already exists, so they take `rows` at the
+top level.
+
 **An interaction takes `rows` and nothing else.** Its settings render on its own card
 in a layer's Interactions tab — beside where the interaction was chosen — so there is
 no `tab` to name, and no `enabled` control to add either: an interaction is enabled by
@@ -1102,7 +1108,7 @@ npm run plugins -- validate          # Human-readable
 npm run plugins -- validate --json   # Structured output with per-plugin results
 ```
 
-It checks manifests and the shape of the modules they declare — statically, without loading them — plus the things that fail quietly at runtime: a module a manifest declares but the plugin no longer has, an `applicableLayerTypes`, `defaultInteractions` or `defaultAttachments` id no enabled plugin provides (or a declared default attachment that refuses your type as a host), a `pluginDependencies` id that cannot be resolved (which keeps the plugin out of the generated registry), and a generated registry that is stale relative to what is on disk. See `API/pluginValidation.js` for the implementation.
+It checks manifests and the shape of the modules they declare — statically, without loading them — plus the things that fail quietly at runtime: a module a manifest declares but the plugin no longer has, an `applicableLayerTypes`, `defaultInteractions` or `defaultAttachments` id no enabled plugin provides (or a declared default attachment that refuses your type as a host), a `pluginDependencies` id that cannot be resolved (which keeps the plugin out of the generated registry), two plugins claiming one `typeId`, `attachmentId` or `interactionId` (registry generation refuses those, and a failed generation leaves the *previous* registries in place), and a generated registry that is stale relative to what is on disk. See `API/pluginValidation.js` for the implementation.
 
 Linting a plugin needs `NODE_ENV` set — the repo's Babel preset refuses to run without it, with an error that looks unrelated to your code:
 

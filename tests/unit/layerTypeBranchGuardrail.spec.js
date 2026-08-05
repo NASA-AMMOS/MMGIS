@@ -238,4 +238,41 @@ test.describe('core carries no built-in layer type branches', () => {
             )}`
         ).toEqual([])
     })
+    test("no manifest hardcodes the list of layer types in its Layer Type row", () => {
+        // The layer modal's Layer Type control is rendered from the *selected*
+        // type's own manifest, so a literal `options` there is core deciding
+        // which types exist — a plugin type validates, activates, registers and
+        // then cannot be chosen by an admin. `optionsFrom: "layerTypes"` asks
+        // the registry instead.
+        const offenders = []
+        for (const category of ['layertypes']) {
+            const dir = path.join(PLUGINS_ROOT, 'core', category)
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+                if (!entry.isDirectory()) continue
+                const file = path.join(dir, entry.name, 'plugin.json')
+                if (!fs.existsSync(file)) continue
+                const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+                const typeRows = []
+                const walk = (node) => {
+                    if (Array.isArray(node)) return node.forEach(walk)
+                    if (node == null || typeof node !== 'object') return
+                    if (node.field === 'type' && node.name === 'Layer Type')
+                        typeRows.push(node)
+                    Object.values(node).forEach(walk)
+                }
+                walk(manifest.config)
+                for (const com of typeRows) {
+                    if (com.optionsFrom !== 'layerTypes')
+                        offenders.push(
+                            `${entry.name}: type row must declare optionsFrom: "layerTypes"`
+                        )
+                    if ((com.options || []).length > 0)
+                        offenders.push(
+                            `${entry.name}: type row lists layer types literally`
+                        )
+                }
+            }
+        }
+        expect(offenders, offenders.join('\n')).toEqual([])
+    })
 })
