@@ -7,8 +7,14 @@ const {
   validatePluginConfig,
   findDuplicateInteractionIds,
   findDuplicateIds,
+  findLayerTypeInheritanceProblems,
+  flattenLayerModules,
 } = require("./pluginValidation");
-const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
+const {
+  discoverPlugins,
+  checkPluginDependencies,
+  enabledPluginIds,
+} = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 const REPO_ROOT = path.join(__dirname, "..");
@@ -284,25 +290,16 @@ function updateInteractions() {
     { loggerCategory: "Interactions" }
   );
 
-  // 2. Build set of all enabled plugin IDs (tools + backend + components)
-  //    for hard dependency checking.
-  const enabledPluginIds = new Set();
-  for (const type of ["tools", "backend", "components", "interactions"]) {
-    const plugins = discoverPlugins(PLUGINS_ROOT, type, "plugin.json", {
-      loader: "parse",
-      loggerCategory: "Interactions",
-    });
-    for (const p of plugins) {
-      enabledPluginIds.add(`${p.container}/${type}/${p.name}`);
-    }
-  }
+  // 2. Every enabled plugin, in every family, for hard dependency checking:
+  //    an interaction commonly depends on the layer type it is written for.
+  const enabled = enabledPluginIds(PLUGINS_ROOT, "Interactions");
 
   // 3. Register each interaction, enforcing hard dependencies.
   for (const plugin of allInteractions) {
     // Hard dependency check — exclude interactions whose deps are missing.
     if (Array.isArray(plugin.manifest.pluginDependencies)) {
       const missing = plugin.manifest.pluginDependencies.filter(
-        (dep) => !enabledPluginIds.has(dep)
+        (dep) => !enabled.has(dep)
       );
       if (missing.length > 0) {
         logger(
@@ -333,13 +330,17 @@ function updateInteractions() {
       interactionId: manifest.interactionId,
     }))
   );
-  if (duplicateIds.length > 0) {
-    const messages = duplicateIds.map(
-      ({ interactionId, owners }) =>
-        `Duplicate interactionId '${interactionId}' declared by: ${owners.join(", ")}`
+  // Left out rather than fatal: one broken plugin must not keep every other
+  // plugin's registry at the previous generation (see generateLayerRegistry).
+  for (const { interactionId, owners } of duplicateIds) {
+    logger(
+      "error",
+      `Duplicate interactionId '${interactionId}' declared by: ${owners.join(
+        ", "
+      )} — all of them are left out of the registry`,
+      "Interactions"
     );
-    messages.forEach((message) => logger("error", message, "Interactions"));
-    throw new Error(messages.join("; "));
+    for (const owner of owners) delete interactions[owner];
   }
 
   // 4. Write interactionConfigs.json for the Configure page.
@@ -370,6 +371,13 @@ function updateInteractions() {
     mouseout: { preamble: [], postamble: [] },
   };
   const suppressionMap = {};
+  // interactionId -> the layer types it declares itself applicable to. Only
+  // interactions that declare a (non-empty) list appear; an absent entry means
+  // "any layer type", so the runner needs no separate "declared?" flag.
+  const applicableLayerTypes = {};
+  // interactionId -> where in a layer's config it is configured, so the runner
+  // can hand the interaction its own settings instead of the whole layer.
+  const configPaths = {};
   const kindAliasEntries = []; // { kind, interactionId, order }
 
   for (const name in interactions) {
@@ -390,6 +398,16 @@ function updateInteractions() {
     if (Array.isArray(manifest.suppresses) && manifest.suppresses.length > 0) {
       suppressionMap[id] = manifest.suppresses;
     }
+
+    if (
+      Array.isArray(manifest.applicableLayerTypes) &&
+      manifest.applicableLayerTypes.length > 0
+    ) {
+      applicableLayerTypes[id] = manifest.applicableLayerTypes;
+    }
+
+    if (typeof manifest.configPath === "string" && manifest.configPath !== "")
+      configPaths[id] = manifest.configPath;
 
     if (Array.isArray(manifest.kindAlias)) {
       for (const kind of manifest.kindAlias) {
@@ -454,6 +472,12 @@ function updateInteractions() {
   output += `export const MOUSEOUT_DEFAULTS = ${JSON.stringify(mouseoutDefaults)}\n`;
   output += `export const SUPPRESSION_MAP = ${JSON.stringify(suppressionMap)}\n`;
   output += `export const KIND_PIPELINES = ${JSON.stringify(kindPipelines)}\n`;
+  output += `export const APPLICABLE_LAYER_TYPES = ${JSON.stringify(
+    applicableLayerTypes
+  )}\n`;
+  output += `export const INTERACTION_CONFIG_PATHS = ${JSON.stringify(
+    configPaths
+  )}\n`;
 
   try {
     fs.writeFileSync("./src/pre/interactions.js", output);
@@ -482,16 +506,16 @@ function safeIdent(s) {
 
 /**
  * Shared generator for the two renderer-plugin kinds (`layertype` and
- * `layerattachment`). Both are structurally identical: a `paths` object of
- * static-import entries (map / globe.<engine> / capture / …), an optional
- * `settings` JSON, and an optional `metaconfig` JSON for the Configure page.
+ * `layerattachment`). Both declare their implementation by render surface —
+ * a layertype's `modules` ({ map, config, filter, time, globe: { <engine> } })
+ * or either kind's single `module` — plus an optional inline `config` object
+ * describing the plugin's Configure-page form.
  *
  * Produces:
- *   - configure/public/<configureFile>  → { [id]: { manifest, metaconfig } }
+ *   - configure/public/<configureFile>  → { [id]: { manifest, config } }
  *   - src/pre/<preFile>                 → static imports + generated maps:
  *       export const <configsExport>  = { [id]: manifest }
  *       export const <modulesExport>  = { [id]: { map, globe: { <engine> }, … } }
- *       export const <settingsExport> = { [id]: <parsed settings JSON> }
  *
  * Everything is keyed by the plugin's stable id (`typeId`/`attachmentId`) so
  * runtime lookup by `layerObj.type` is a direct map access.
@@ -504,7 +528,6 @@ function generateLayerRegistry({
   configureFile,
   configsExport,
   modulesExport,
-  settingsExport,
   loggerCategory,
 }) {
   let registry = {};
@@ -534,18 +557,25 @@ function generateLayerRegistry({
     })),
     idField
   );
-  if (duplicates.length > 0) {
-    const messages = duplicates.map(
-      ({ id, owners }) =>
-        `Duplicate ${idField} '${id}' declared by: ${owners.join(", ")}`
+  // A broken plugin is left out rather than allowed to abort the regeneration:
+  // aborting keeps the *previous* generation of every registry on disk, so the
+  // app silently runs the last good build of plugins the author has since
+  // changed. `validate` reports what was dropped and why.
+  for (const { id, owners } of duplicates) {
+    logger(
+      "error",
+      `Duplicate ${idField} '${id}' declared by: ${owners.join(
+        ", "
+      )} — all of them are left out of the registry`,
+      loggerCategory
     );
-    messages.forEach((message) => logger("error", message, loggerCategory));
-    throw new Error(messages.join("; "));
+    for (const owner of owners) delete registry[owner];
   }
 
   // Re-key by stable id (name → id) so both the Configure app and the runtime
   // registry look up by layerObj.type.
   const byId = {};
+  /** @type {Object<string, string>} */
   const idToName = {};
   for (const name in registry) {
     const id = registry[name][idField];
@@ -553,30 +583,28 @@ function generateLayerRegistry({
     idToName[id] = name;
   }
 
-  // 1. Configure page JSON — embed each plugin's metaconfig contents so the
-  //    separate React app can resolve layer forms by type without importing
-  //    from the plugins directory.
+  // `extends` is resolved at runtime, so a dangling or chained parent would be
+  // a silent no-op renderer. Drop the child; its parent and every unrelated
+  // plugin still regenerate.
+  if (pluginType === "layertype") {
+    for (const { typeId, message } of findLayerTypeInheritanceProblems(byId)) {
+      logger(
+        "error",
+        `${message} — it is left out of the registry`,
+        loggerCategory
+      );
+      delete byId[typeId];
+      delete idToName[typeId];
+    }
+  }
+
+  // 1. Configure page JSON — surface each plugin's config so the separate React
+  //    app can resolve layer forms by type without importing from the plugins
+  //    directory.
   const configureOut = {};
   for (const id in byId) {
-    const manifest = byId[id];
-    const name = idToName[id];
-    const pluginPath = pluginPaths[name] || null;
-    let metaconfig = null;
-    if (manifest.metaconfig && pluginPath) {
-      try {
-        const abs = path.resolve(pluginPath, manifest.metaconfig);
-        metaconfig = JSON.parse(fs.readFileSync(abs, "utf8"));
-      } catch (err) {
-        logger(
-          "error",
-          `Failed to read metaconfig for ${pluginType} '${id}' (${manifest.metaconfig})`,
-          loggerCategory,
-          null,
-          err
-        );
-      }
-    }
-    configureOut[id] = { manifest, metaconfig };
+    const { config = null, ...manifest } = byId[id];
+    configureOut[id] = { manifest, config };
   }
   try {
     fs.writeFileSync(
@@ -600,26 +628,19 @@ function generateLayerRegistry({
 
   // 2. src/pre generated module — static imports + registry maps.
   let out = "";
-  const moduleEntries = {}; // id → { paths: {key: importName}, settings: importName }
+  const moduleEntries = {}; // id → { surfaceKey: importName }
 
   for (const id in byId) {
-    const manifest = byId[id];
     const name = idToName[id];
     const pluginPath = pluginPaths[name] || null;
-    moduleEntries[id] = { paths: {}, settings: null };
+    moduleEntries[id] = {};
 
-    for (const key in manifest.paths) {
-      const resolved = resolvePluginPath(manifest.paths[key], pluginPath);
+    const declared = flattenLayerModules(byId[id]);
+    for (const key in declared) {
+      const resolved = resolvePluginPath(declared[key], pluginPath);
       const importName = `ltp_${safeIdent(id)}__${safeIdent(key)}`;
       out += `import ${importName} from '${resolved}'\n`;
-      moduleEntries[id].paths[key] = importName;
-    }
-
-    if (manifest.settings && pluginPath) {
-      const resolved = resolvePluginPath(manifest.settings, pluginPath);
-      const importName = `lts_${safeIdent(id)}`;
-      out += `import ${importName} from '${resolved}'\n`;
-      moduleEntries[id].settings = importName;
+      moduleEntries[id][key] = importName;
     }
   }
 
@@ -630,8 +651,8 @@ function generateLayerRegistry({
   out += `export const ${modulesExport} = {\n`;
   for (const id in moduleEntries) {
     const nested = {};
-    for (const key in moduleEntries[id].paths) {
-      const importName = moduleEntries[id].paths[key];
+    for (const key in moduleEntries[id]) {
+      const importName = moduleEntries[id][key];
       const segments = key.split(".");
       let cursor = nested;
       for (let i = 0; i < segments.length - 1; i++) {
@@ -649,15 +670,17 @@ function generateLayerRegistry({
   }
   out += "}\n\n";
 
-  out += `export const ${configsExport} = ${JSON.stringify(byId)}\n\n`;
-
-  out += `export const ${settingsExport} = {\n`;
-  for (const id in moduleEntries) {
-    if (moduleEntries[id].settings) {
-      out += `  '${id}': ${moduleEntries[id].settings},\n`;
-    }
+  // `config` only describes the Configure-page form, so it is served in the
+  // Configure JSON above rather than shipped in the frontend bundle.
+  const runtimeManifests = {};
+  for (const id in byId) {
+    const { config, ...manifest } = byId[id];
+    void config;
+    runtimeManifests[id] = manifest;
   }
-  out += "}\n";
+  out += `export const ${configsExport} = ${JSON.stringify(
+    runtimeManifests
+  )}\n`;
 
   try {
     fs.writeFileSync(`./src/pre/${preFile}`, out);
@@ -684,7 +707,6 @@ function updateLayerTypes() {
     configureFile: "layerTypeConfigs.json",
     configsExport: "layerTypeConfigs",
     modulesExport: "layerTypeModules",
-    settingsExport: "layerTypeSettings",
     loggerCategory: "LayerTypes",
   });
 }
@@ -698,7 +720,6 @@ function updateLayerAttachments() {
     configureFile: "layerAttachmentConfigs.json",
     configsExport: "layerAttachmentConfigs",
     modulesExport: "layerAttachmentModules",
-    settingsExport: "layerAttachmentSettings",
     loggerCategory: "LayerAttachments",
   });
 }

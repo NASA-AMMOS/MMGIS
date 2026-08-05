@@ -1,6 +1,7 @@
 import F_ from '../../Formulae_/Formulae_'
 import Description from '../../UserInterface_/components/Description/Description'
 import ToolController_ from '../../ToolController_/ToolController_'
+import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 
 import $ from 'jquery'
 
@@ -483,8 +484,9 @@ export function getFeaturesAtPoint(L_, e, fullLayers) {
         Object.keys(L_.layers.layer).forEach((lName) => {
             if (
                 (L_.layers.on[lName] &&
-                    (L_.layers.data[lName].type === 'vector' ||
-                        L_.layers.data[lName].type === 'query') &&
+                    LayerTypeRegistry.hasFeaturePicking(
+                        L_.layers.data[lName].type
+                    ) &&
                     L_.layers.layer[lName]) ||
                 (lName.indexOf('DrawTool_') === 0 &&
                     L_.layers.layer[lName]?.[0]?._map != null)

@@ -6,25 +6,49 @@
  *   - map:   plugins/core/layertypes/<Type>/map/<type>.js
  *   - globe: plugins/core/layertypes/<Type>/globe/<engine>/<type>.js
  *
- * Both surfaces speak the SAME operation vocabulary (7 canonical operations),
+ * Both surfaces speak the SAME operation vocabulary (the canonical operations),
  * so a plugin author learns one interface and it reads identically on map and
  * globe. Only the core defaults differ per surface.
  *
  * ── Operations (identical on map & globe) ────────────────────────────────
- *   load          acquire/produce the layer's data (async). Runs every time
- *                 data is (re)acquired: initial make, refresh interval, time
- *                 requery, dynamic-extent reload — NOT once-per-layer.
- *   make          build the engine layer from data + register it. REQUIRED.
+ *   make          build the engine layer from the layer's normal MMGIS config
+ *                 object and register it. On the globe this means the type — not
+ *                 core — owns the translation to its engine config. REQUIRED.
+ *   render        globe only: add an ALREADY-BUILT engine layer config. For
+ *                 engine render variants that are not MMGIS layer types of
+ *                 their own ('clamped') and for tools drawing ad-hoc geometry;
+ *                 `make` is `render(toGlobeConfig(layerObj))`.
  *   destroy       tear the layer down. Optional — core provides a default.
  *   setOpacity    apply opacity. Optional — core owns the policy; a plugin
  *                 supplies an applicator only where the engine lacks a uniform
  *                 opacity primitive (e.g. Cesium imagery-alpha vs entity-show).
  *   setVisibility show/hide. Optional — same ownership rule as setOpacity.
+ *                 This op owns the show/hide POLICY (add to / remove from the
+ *                 engine) and runs mid-toggle, before core has finished its
+ *                 bookkeeping.
+ *   onToggle      post-toggle notification: the layer has finished being turned
+ *                 on or off, core's bookkeeping (`layers.on`, ordering) is
+ *                 settled, and the type may now do its own follow-up work
+ *                 (apply initial filters, refresh opacity, update pairings).
+ *                 No core default — absent means "nothing extra to do".
+ *                 Receives the same toggle ctx as `setVisibility`; see below.
  *   setStyle      dynamic restyle / render-param change (color maps, rescale,
  *                 feature styles, COG params). Usually no core default.
  *   timeChange    react to the time bar moving. Core default = reload; a plugin
  *                 may override to update the existing layer in place. The ctx
  *                 carries `currentTime` (see Map_/GlobeRenderer dispatch).
+ *
+ * ── Toggle ctx (setVisibility + onToggle) ────────────────────────────────
+ *   visible        true when the layer is being turned on.
+ *   wasNeverOn     the layer had not been made yet when the toggle started.
+ *   firstTimeOn    first full user-facing toggle-on of this layer — the moment
+ *                  to apply one-time-on work (initial filters, time windows).
+ *   hadToMake      core had to build the layer as part of this toggle.
+ *   globeOnly      the 2D map was intentionally left untouched.
+ *   source         'toggleLayer' (full toggle) | 'toggleLayerHelper' (internal
+ *                  visibility change) | 'addVisible' (initial visibility).
+ *   name           the layer's UUID name (convenience).
+ *   plus the map renderer context (see MapRenderer.context).
  *
  * ── Phases (every operation) ─────────────────────────────────────────────
  *   before → main → after
@@ -51,11 +75,12 @@
  * @typedef {(Function|LayerTypeOperation)} LayerTypeOpDef
  *
  * @typedef {Object} LayerTypeModule
- * @property {LayerTypeOpDef} [load]
  * @property {LayerTypeOpDef} make               REQUIRED.
+ * @property {LayerTypeOpDef} [render]           globe only.
  * @property {LayerTypeOpDef} [destroy]
  * @property {LayerTypeOpDef} [setOpacity]
  * @property {LayerTypeOpDef} [setVisibility]
+ * @property {LayerTypeOpDef} [onToggle]
  * @property {LayerTypeOpDef} [setStyle]
  * @property {LayerTypeOpDef} [timeChange]
  *
@@ -64,11 +89,12 @@
 
 /** Canonical operation names, in lifecycle order. */
 export const LAYER_OPS = [
-    'load',
     'make',
+    'render',
     'destroy',
     'setOpacity',
     'setVisibility',
+    'onToggle',
     'setStyle',
     'timeChange',
 ]

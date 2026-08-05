@@ -2,6 +2,7 @@ import F_ from '../../Formulae_/Formulae_'
 import MapRenderer from '../../Map_/MapRenderer'
 import LayerInterface from '../interface/LayerInterface'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 
 import $ from 'jquery'
 
@@ -50,45 +51,48 @@ export function setLayerOpacity(L_, name, newOpacity) {
                         opacity: newOpacity,
                     })
 
-                    const sublayers = L_.layers.attachments[name]
-                    if (sublayers) {
-                        for (let sub in sublayers) {
-                            if (
-                                sublayers[sub] !== false &&
-                                sublayers[sub].layer != null &&
-                                !['models'].includes(sub)
-                            ) {
-                                try {
-                                    sublayers[sub].layer.setOpacity(
-                                        newOpacity
-                                    )
-                                } catch (error) {
+                    // The layer's attachments follow its opacity. Most are a
+                    // plain map layer, so the default below covers them; one
+                    // that draws itself deliberately fainter than its host owns
+                    // that in its `setOpacity`.
+                    const attachments = L_.layers.attachments[name] || {}
+                    for (let sub in attachments) {
+                        const attachment = attachments[sub]
+                        if (attachment === false || attachment.layer == null)
+                            continue
+
+                        LayerInterface.runSync(
+                            LayerAttachmentRegistry.module(attachment.type),
+                            'setOpacity',
+                            [
+                                attachment,
+                                newOpacity,
+                                {
+                                    hostName: name,
+                                    attachmentName: sub,
+                                    source: 'host',
+                                    hostFillOpacity:
+                                        l.options.initialFillOpacity,
+                                },
+                            ],
+                            {
+                                coreDefault: () => {
                                     try {
-                                        let opacity = newOpacity
-                                        let fillOpacity =
-                                            newOpacity *
-                                            l.options.initialFillOpacity
-                                        if (
-                                            sub === 'uncertainty_ellipses'
-                                        ) {
-                                            opacity = opacity * 0.8
-                                            fillOpacity = fillOpacity * 0.25
-                                        }
-                                        sublayers[sub].layer.setStyle({
-                                            opacity,
-                                            fillOpacity,
-                                        })
-                                    } catch (error2) {
-                                        /*
-                            if (sublayers[sub].layer._layers)
-                                for (let sl in sublayers[sub].layer
-                                    ._layers) {
-                                }
-                                */
+                                        attachment.layer.setOpacity(newOpacity)
+                                    } catch (error) {
+                                        try {
+                                            attachment.layer.setStyle({
+                                                opacity: newOpacity,
+                                                fillOpacity:
+                                                    newOpacity *
+                                                    l.options
+                                                        .initialFillOpacity,
+                                            })
+                                        } catch (error2) {}
                                     }
-                                }
+                                },
                             }
-                        }
+                        )
                     }
 
                     try {
@@ -173,15 +177,11 @@ export function setLayerFilter(L_, name, filter, value) {
         ],
         {
             coreDefault: () => {
-                if (
-                    typeof L_.layers.layer[name].updateFilter === 'function'
-                ) {
+                if (typeof L_.layers.layer[name].updateFilter === 'function') {
                     let filterArray = []
                     // Apply filter effects
                     for (let f in L_.layers.filters[name]) {
-                        filterArray.push(
-                            f + ':' + L_.layers.filters[name][f]
-                        )
+                        filterArray.push(f + ':' + L_.layers.filters[name][f])
                         // For Globe/litho
                         if (L_.Globe_) {
                             if (f === 'mix-blend-mode') {
@@ -220,10 +220,10 @@ export function resetLayerFills(L_, onlyThisLayerName) {
         if (
             (L_.layers.layer[key] &&
                 L_.layers.data[key] &&
-                (L_.layers.data[key].type === 'point' ||
-                    (key.toLowerCase().indexOf('draw') === -1 &&
-                        (L_.layers.data[key].type === 'vector' ||
-                            L_.layers.data[key].type === 'query')))) ||
+                key.toLowerCase().indexOf('draw') === -1 &&
+                LayerTypeRegistry.hasFeatureStyling(
+                    L_.layers.data[key].type
+                )) ||
             (s[0] === 'DrawTool' && !Number.isNaN(onId))
         ) {
             if (
@@ -257,9 +257,10 @@ export function resetLayerFills(L_, onlyThisLayerName) {
                                 )
                     } else if (layer._isArrow) {
                         // Arrow
-                        $(
-                            `.LayerArrow_${layer._idx}.mmgisArrowOutline`
-                        ).css('stroke', '')
+                        $(`.LayerArrow_${layer._idx}.mmgisArrowOutline`).css(
+                            'stroke',
+                            ''
+                        )
                     } else {
                         L_.layers.layer[key].resetStyle(layer)
                     }
@@ -293,8 +294,7 @@ export function resetLayerFills(L_, onlyThisLayerName) {
                             // Arrow
                             let layers = L_.layers.layer[key][k]._layers
                             const style =
-                                L_.layers.layer[key][k].feature.properties
-                                    .style
+                                L_.layers.layer[key][k].feature.properties.style
                             const color = style.color
                             layers[Object.keys(layers)[0]].setStyle({
                                 color,
@@ -304,8 +304,7 @@ export function resetLayerFills(L_, onlyThisLayerName) {
                             })
                         }
                     } else if (
-                        L_.layers.layer[key][k].feature?.properties
-                            ?.annotation
+                        L_.layers.layer[key][k].feature?.properties?.annotation
                     ) {
                         // Annotation
                         let layer = L_.layers.layer[key][k]
@@ -347,32 +346,19 @@ export function resetLayerFills(L_, onlyThisLayerName) {
         }
     }
 
-    // Sublayers
-    // Currently only coordinate_markers
-    // Expects feature._style to be set
-    const highlightableSublayers = ['coordinate_markers']
-    for (let layerName in L_.layers.attachments) {
-        if (L_.layers.attachments[layerName]) {
-            for (let sublayerName in L_.layers.attachments[layerName]) {
-                if (
-                    L_.layers.attachments[layerName][sublayerName] &&
-                    highlightableSublayers.includes(sublayerName)
-                ) {
-                    for (let sll in L_.layers.attachments[layerName][
-                        sublayerName
-                    ].layer._layers) {
-                        try {
-                            L_.layers.attachments[layerName][
-                                sublayerName
-                            ].layer._layers[sll].setStyle(
-                                L_.layers.attachments[layerName][
-                                    sublayerName
-                                ].layer._layers[sll].feature._style
-                            )
-                        } catch (err) {}
-                    }
-                }
-            }
+    // Attachments that draw their host's features again (coordinate markers)
+    // were highlighted alongside them, so they get told to restyle too. An
+    // attachment with nothing to restore declares no `setStyle`.
+    for (let hostName in L_.layers.attachments) {
+        const attachments = L_.layers.attachments[hostName] || {}
+        for (let attachmentName in attachments) {
+            const attachment = attachments[attachmentName]
+            if (!attachment) continue
+            LayerInterface.runSync(
+                LayerAttachmentRegistry.module(attachment.type),
+                'setStyle',
+                [attachment, { hostName, attachmentName, reason: 'resetFills' }]
+            )
         }
     }
 }

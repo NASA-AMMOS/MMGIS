@@ -8,18 +8,6 @@ import flat from 'flat'
 import { booleanIntersects, booleanContains } from '@turf/turf'
 
 const LocalFilterer = {
-    make: function (container, layerName) {
-        const layerObj = L_.layers.data[layerName]
-
-        if (layerObj == null) return
-
-        const type = layerObj.type
-
-        if (type === 'vector') {
-        } else if (type === 'query') {
-        }
-    },
-    destroy: function (layerName) {},
     getAggregations: function (geojson) {
         const aggs = {
             'geometry.type': { type: 'string', aggs: {} },

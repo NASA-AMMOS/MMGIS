@@ -2,6 +2,7 @@ import MapRenderer from '../../Map_/MapRenderer'
 import ToolController_ from '../../ToolController_/ToolController_'
 import LayerInterface from '../interface/LayerInterface'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 
 export function reorderLayers(L_, newLayersOrdered) {
     // Check that newLayersOrdered is valid
@@ -171,6 +172,19 @@ export async function removeLayerFromLayersData(L_, layerName) {
                 ]
             )
 
+            // Same for its attachments: anything held outside a map layer (a
+            // globe layer, a DOM element) is only theirs to release.
+            const attachments = L_.layers.attachments[layerUUID] || {}
+            for (const attachmentName in attachments) {
+                const attachment = attachments[attachmentName]
+                if (!attachment) continue
+                LayerInterface.runSync(
+                    LayerAttachmentRegistry.module(attachment.type),
+                    'destroy',
+                    [attachment, { hostName: layerUUID, attachmentName }]
+                )
+            }
+
             delete L_.layers.layer[layerUUID]
             delete L_.layers.data[layerUUID]
             delete L_.layers.on[layerUUID]
@@ -188,8 +202,8 @@ export function expandLayersToArray(L_, layer) {
     function expandLayers(d, level, prevName) {
         //Iterate over each layer
         for (let i = 0; i < d.length; i++) {
-            //Check if it's not a header and thus an actual layer with data
-            if (d[i].type != 'header') {
+            //Check if it's not structural (a header) and thus an actual layer with data
+            if (!LayerTypeRegistry.isStructural(d[i].type)) {
                 //Create parsed layers ordered
                 layersOrdered.push(d[i].name)
             }

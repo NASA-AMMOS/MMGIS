@@ -766,8 +766,9 @@ export function timeFilterVectorLayer(L_, layerName, start, end) {
     const layerConfig = L_.layers.data[layerName]
     const layer = L_.layers.layer[layerName]
 
+    // A layer holding its own features (_sourceGeoJSON) whose features carry
+    // their own time; the type is irrelevant.
     if (
-        layerConfig.type === 'vector' &&
         layerConfig.time.type === 'local' &&
         layerConfig.time.endProp != null &&
         layer != false &&

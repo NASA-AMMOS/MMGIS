@@ -1,8 +1,10 @@
 {
+  "uuid": "3ec2d074-2c21-46eb-8101-0db81a89493b",
+  "id": "core-layertype-vector",
   "name": "Vector",
   "type": "layertype",
   "typeId": "vector",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#245980",
@@ -13,9 +15,13 @@
       "map": { "engines": ["leaflet"] },
       "globe": { "engines": ["cesium", "lithosphere"] }
     },
-    "time": true,
-    "filtering": true,
-    "identify": true
+    "map": {
+      "stacking": "overlay",
+      "refreshByRemake": true,
+      "picking": true,
+      "styling": true
+    },
+    "time": true
   },
   "fileTypes": ["geojson", "json", "kml"],
   "supportedData": [
@@ -63,10 +69,1232 @@
       "description": "GeoJSON fetched from an arbitrary API endpoint (with injectable time/variable params) rather than a static file."
     }
   ],
-  "metaconfig": "./metaconfig.json",
-  "paths": {
-    "map": "./map/vector",
-    "globe.cesium": "./globe/cesium/vector",
-    "globe.lithosphere": "./globe/lithosphere/vector"
+  "config": {
+    "tabs": [
+      {
+        "name": "Core",
+        "rows": [
+          {
+            "name": "Core",
+            "components": [
+              {
+                "field": "type",
+                "name": "Layer Type",
+                "description": "",
+                "type": "dropdown",
+                "optionsFrom": "layerTypes",
+                "width": 2
+              },
+              {
+                "field": "name",
+                "name": "Layer Name",
+                "description": "A display name for the layer.",
+                "type": "textnotrim",
+                "width": 6,
+                "required": true
+              },
+              {
+                "field": "visibility",
+                "name": "Initial Visibility",
+                "description": "Whether the layer is on initially.",
+                "type": "checkbox",
+                "width": 2,
+                "defaultChecked": false
+              }
+            ]
+          },
+          {
+            "subname": "Source",
+            "components": [
+              {
+                "field": "sourceType",
+                "name": "Source Type",
+                "description": "What the 'Source URL' is meant to reference. See the 'Source URL' description for more.",
+                "type": "dropdown",
+                "width": 2,
+                "options": [
+                  "url",
+                  "geodatasets",
+                  "api",
+                  "stac",
+                  "stac-catalog",
+                  "stac-collection",
+                  "stac-item"
+                ]
+              },
+              {
+                "field": "url",
+                "name": "Source URL",
+                "description": "<strong>• URL: '{url}'</strong> - A file path that points to a geojson or .kml file. If the path is relative, it will be relative to the mission's directory.<br><strong>• GeoDatasets: '{geodataset_name}'</strong> - Simply go to 'Manage Geodatasets' at the bottom left, upload a geojson and link to it in this URL field with '{geodataset_name}'<br><strong>• API: 'publishedall'</strong> - Grabs all features published via the DrawTool.<br><strong>• API: 'published:{file_intent}'</strong> - Grabs all features published via the DrawTool of a certain intent. Possible values are: roi, campaign, campsite, signpost, trail, all<br><strong>• API: 'drawn:{file_id}'</strong> - Grabs a user drawn file from the DrawTool. The file_id is an integer and can be found by hovering over the desired file in the DrawTool. Note that if the file chosen is still private, the file owner will be the only user who can view it.<br><strong>• STAC: '{url_to_stac}'</strong> - Point to a STAC catalog/collection/item of GeoJSON features.<br><strong>• STAC-CATALOG: '{url_to_stac_catalog}'</strong> - Use this prefix if the URL is specifically to a Catalog object.<br><strong>• STAC-COLLECTION: '{url_to_stac_collection}'</strong> - Use this prefix if the URL is specifically to a Collection object.<br><strong>• STAC-ITEM: '{url_to_stac_item}'</strong> - Use this prefix if the URL is to an Item object<br>• If the underlying data is a COG or similar data product, use the <strong>Tile</strong> layer type instead.",
+                "type": "text",
+                "width": 10,
+                "required": true,
+                "conditionalRequired": {
+                  "field": "controlled",
+                  "value": false
+                }
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "minZoom",
+                "name": "Minimum Zoom",
+                "description": "The lowest (smallest number) zoom level for which to show this layer. If the current Map's zoom level is less than this, the layer will not be rendered even if the layer is still on.",
+                "type": "number",
+                "min": 0,
+                "step": 1,
+                "width": 2
+              },
+              {
+                "field": "maxZoom",
+                "name": "Maximum Zoom",
+                "description": "The highest (greatest number) zoom level for which to show this layer. If the current Map's zoom level is higher/deeper than this, the layer will not be rendered even if the layer is still on.",
+                "type": "number",
+                "min": 0,
+                "step": 1,
+                "width": 2
+              },
+              {
+                "field": "layer3dType",
+                "name": "3D Layer Type",
+                "description": "Whether, in the Globe, to clamp this layer onto the ground textures or to represent with sprites and line objects.",
+                "type": "dropdown",
+                "width": 2,
+                "options": [
+                  "clamped",
+                  "vector"
+                ]
+              },
+              {
+                "field": "initialOpacity",
+                "name": "Initial Opacity",
+                "description": "A value from 0 (transparent) to 1 (opaque) of the layer's initial opacity.",
+                "type": "number",
+                "min": 0,
+                "max": 1,
+                "width": 2
+              },
+              {
+                "field": "controlled",
+                "name": "Controlled",
+                "description": "Whether the layer can be dynamically updated via the JavaScript API or not. If true, the layer can be dynamically updated and the URL is not required. If true and a URL is set and Time Enabled is true, the initial url query will be performed.",
+                "type": "checkbox",
+                "width": 4,
+                "defaultChecked": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Style",
+        "rows": [
+          {
+            "name": "Style",
+            "components": [
+              {
+                "field": "style.color",
+                "name": "Color",
+                "description": "The border color of each feature. If the feature is a line, this field is the color of the line.",
+                "type": "colorpicker",
+                "default": "#FFFFFF",
+                "width": 2
+              },
+              {
+                "field": "style.colorProp",
+                "name": "Color From Property",
+                "description": "Color but taken from each individual feature's property. For example 'color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Color' field.",
+                "type": "text",
+                "width": 4
+              },
+              {
+                "field": "style.opacity",
+                "name": "Opacity",
+                "description": "Stroke Opacity",
+                "type": "slider",
+                "default": 1,
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "width": 2
+              },
+              {
+                "field": "style.opacityProp",
+                "name": "Opacity From Property",
+                "description": "Opacity but taken from each individual feature's property. For example 'opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Opacity' field.",
+                "type": "text",
+                "width": 4
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "style.fillColor",
+                "name": "Fill Color",
+                "description": "Fill Color",
+                "type": "colorpicker",
+                "default": "#FFFFFF",
+                "width": 2
+              },
+              {
+                "field": "style.fillColorProp",
+                "name": "Fill Color From Property",
+                "description": "Fill Color but taken from each individual feature's property. For example 'fill_color' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Color' field.",
+                "type": "text",
+                "width": 4
+              },
+              {
+                "field": "style.fillOpacity",
+                "name": "Fill Opacity",
+                "description": "Fill Opacity",
+                "type": "slider",
+                "default": 0.8,
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "width": 2
+              },
+              {
+                "field": "style.fillOpacityProp",
+                "name": "Fill Opacity From Property",
+                "description": "Fill Opacity but taken from each individual feature's property. For example 'fill_opacity' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Fill Opacity' field.",
+                "type": "text",
+                "width": 4
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "style.weight",
+                "name": "Weight",
+                "description": "Stroke weight in pixels of point features.",
+                "type": "slider",
+                "default": 2,
+                "min": 0,
+                "max": 16,
+                "step": 1,
+                "width": 2
+              },
+              {
+                "field": "style.weightProp",
+                "name": "Weight From Property",
+                "description": "Weight but taken from each individual feature's property. For example 'weight' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Weight' field.",
+                "type": "text",
+                "width": 4
+              },
+              {
+                "field": "style.radius",
+                "name": "Radius",
+                "description": "Radius in pixels of point features.",
+                "type": "slider",
+                "default": 6,
+                "min": 0,
+                "max": 32,
+                "step": 1,
+                "width": 2
+              },
+              {
+                "field": "style.radiusProp",
+                "name": "Radius From Property",
+                "description": "Radius but taken from each individual feature's property. For example 'radius' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'Radius' field.",
+                "type": "text",
+                "width": 4
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "shape",
+                "name": "Shape",
+                "description": "A marker symbol for point features for this layer. When set to 'None', a simple circle is used. Marker icons and other attachments may override this setting.",
+                "type": "dropdown",
+                "width": 3,
+                "options": [
+                  "none",
+                  "circle",
+                  "directional-circle",
+                  "triangle",
+                  "triangle-flipped",
+                  "square",
+                  "diamond",
+                  "pentagon",
+                  "hexagon",
+                  "star",
+                  "plus",
+                  "pin"
+                ]
+              },
+              {
+                "field": "style.shapeIcon",
+                "name": "Shape From Icon",
+                "description": "Shape but taken from the Material Design Icon (mdi) library. Takes priority over the value in the 'shape' field. See <a target='_blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
+                "type": "text",
+                "width": 3
+              },
+              {
+                "field": "style.shapeProp",
+                "name": "Shape From Property",
+                "description": "Shape but taken from each individual feature's property. For example 'shape' or 'path.to.prop.in.properties.object'. Takes priority over the value in the 'shape' and 'shape from icon' fields. Shape values are formatted like the dropdown options but all lowercase. Material Design Icon (mdi) icon names are also supported values.",
+                "type": "text",
+                "width": 3
+              },
+              {
+                "field": "style.shapeRotationOffset",
+                "name": "Shape Rotation Offset",
+                "description": "A original offset by which the rotate the original shape/icon so that it is natively pointing up. Useful with Attachment - Marker Bearings where, for instance, a plane with a bearing is desired but the plane icon natively points leftward.",
+                "type": "number",
+                "width": 3
+              },
+              {
+                "field": "style.animation",
+                "name": "Animation",
+                "description": "Animation effect for vector features. All animations are synchronized across the map for visual consistency. Options include opacity effects, CSS filters, and subtle transforms.",
+                "type": "dropdown",
+                "width": 3,
+                "options": [
+                  "none",
+                  "pulse",
+                  "pulse-fast",
+                  "pulse-slow",
+                  "pulse-sharp",
+                  "pulse-bounce",
+                  "hue-shift",
+                  "glow",
+                  "shimmer",
+                  "fade-blur",
+                  "breathe",
+                  "flutter",
+                  "blink",
+                  "alert",
+                  "highlight"
+                ],
+                "default": "none"
+              }
+            ]
+          },
+          {
+            "subname": "Marker Icons",
+            "subdescription": "Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.",
+            "components": [
+              {
+                "field": "variables.markerIcon.iconUrl",
+                "name": "Icon URL",
+                "description": "A URL to an image to use as a marker icon.",
+                "type": "text",
+                "width": 12
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "variables.markerIcon.shadowUrl",
+                "name": "Shadow URL",
+                "description": "An optional URL to an image to use as a marker icon's shadow..",
+                "type": "text",
+                "width": 12
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "variables.markerIcon.iconSize.0",
+                "name": "Icon X Size",
+                "description": "Pixel width of the icon's image.",
+                "type": "number",
+                "min": 0,
+                "step": 1,
+                "width": 3
+              },
+              {
+                "field": "variables.markerIcon.iconSize.1",
+                "name": "Icon Y Size",
+                "description": "Pixel height of the icon's image.",
+                "type": "number",
+                "min": 0,
+                "step": 1,
+                "width": 3
+              },
+              {
+                "field": "variables.markerIcon.shadowSize.0",
+                "name": "Shadow X Size",
+                "description": "Pixel width of the icon's shadow.",
+                "type": "number",
+                "min": 0,
+                "step": 1,
+                "width": 3
+              },
+              {
+                "field": "variables.markerIcon.shadowSize.1",
+                "name": "Shadow Y Size",
+                "description": "Pixel height of the icon's shadow.",
+                "type": "number",
+                "min": 0,
+                "step": 1,
+                "width": 3
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "variables.markerIcon.iconAnchor.0",
+                "name": "Icon X Anchor",
+                "description": "X point of the icon which will correspond to marker's center location.",
+                "type": "number",
+                "width": 3
+              },
+              {
+                "field": "variables.markerIcon.iconAnchor.1",
+                "name": "Icon Y Anchor",
+                "description": "Y point of the icon which will correspond to marker's center location.",
+                "type": "number",
+                "width": 3
+              },
+              {
+                "field": "variables.markerIcon.shadowAnchor.0",
+                "name": "Shadow X Anchor",
+                "description": "X point of the shadow which will correspond to marker's center location.",
+                "type": "number",
+                "width": 3
+              },
+              {
+                "field": "variables.markerIcon.shadowAnchor.1",
+                "name": "Shadow Y Anchor",
+                "description": "Y point of the shadow which will correspond to marker's center location.",
+                "type": "number",
+                "width": 3
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Time",
+        "rows": [
+          {
+            "name": "Time",
+            "components": [
+              {
+                "field": "time.enabled",
+                "name": "Time Enabled",
+                "description": "True if the layer is time enabled. URLs that contain {starttime} or {endtime} will be dynamically replaced by their set values when the layer is fetched. If true and a URL is set and Controlled is true, only the initial url query will be performed.",
+                "type": "switch",
+                "width": 3,
+                "defaultChecked": false
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "time.type",
+                "name": "Time Type",
+                "description": "How time filtering is performed:\n\t<strong>• local</strong> - Downloads the entire file first, then filters features client-side based on their time properties (e.g., a timestamp field in the GeoJSON). If a refresh interval is set, the file will be re-downloaded periodically and then filtered locally.\n\t<strong>• requery</strong> - Re-requests the URL with {starttime} and {endtime} injected as parameters, expecting the server to do the time filtering. Does not filter client-side.",
+                "type": "dropdown",
+                "width": 3,
+                "options": [
+                  "requery",
+                  "local"
+                ]
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "time.format",
+                "name": "Time Format",
+                "description": "The string format to be used in the URL for {starttime} and {endtime}. Uses D3 time format specifiers: <a target='_blank' href='https://github.com/d3/d3-time-format'>https://github.com/d3/d3-time-format</a>. Default: %Y-%m-%dT%H:%M:%SZ",
+                "type": "text",
+                "width": 6
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "time.startProp",
+                "name": "Start Time Property Name",
+                "description": "Optional and only in use if Time Enabled = true and Time Type = Local. The starting time property path. For geodatasets with time columns already set, leave this field empty. Leave this field empty  Setting this is addition to Main Time Property Name casts the feature's time over a range instead of as a single point in time. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a Z to designate that it should be treated as a UTC time).",
+                "type": "text",
+                "width": 6
+              },
+              {
+                "field": "time.endProp",
+                "name": "Main/End Time Property Name",
+                "description": "Required in Time Enabled = true and Time Type = Local. The main time property path. For geodatasets with time columns already set, leave this field empty. Can use dot-notation for nested path. Can be a unix timestamp or an ISO time (end the ISO with a Z to designate that it should be treated as a UTC time).",
+                "type": "text",
+                "width": 6
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "time.refreshIntervalEnabled",
+                "name": "Refresh Interval Enabled",
+                "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every 'Refresh Every N Seconds'. This is useful when the layer's data updates at some uniform cadence. Be aware that this may be an expensive operation depending on the amount of data a layer needs and the number of layers that have this enabled.",
+                "type": "switch",
+                "width": 5,
+                "defaultChecked": false
+              },
+              {
+                "field": "time.refreshIntervalAmount",
+                "name": "Refresh Every N Seconds",
+                "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds. If null or 0, defaults to 60.",
+                "type": "number",
+                "min": 1,
+                "width": 3
+              }
+            ]
+          },
+          {
+            "subname": "Data Time Extent",
+            "components": [
+              {
+                "field": "time.dataStartTime",
+                "name": "Data Start Time",
+                "description": "The earliest time for which data is available in this layer. This is for display purposes only and does not constrain queries. Format: ISO 8601 datetime string (e.g., 2020-01-01T00:00:00Z).",
+                "type": "text",
+                "width": 6
+              },
+              {
+                "field": "time.dataEndTime",
+                "name": "Data End Time",
+                "description": "The latest time for which data is available in this layer. This is for display purposes only and does not constrain queries. Format: ISO 8601 datetime string (e.g., 2025-12-31T23:59:59Z).",
+                "type": "text",
+                "width": 6
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Legend",
+        "rows": [
+          {
+            "name": "Legend",
+            "components": [
+              {
+                "new": true,
+                "field": "legend",
+                "name": "Legend From URL",
+                "description": "A URL to a static image or .csv with the following header: 'color,strokecolor,shape,value'. If the path is relative, it will be relative to the mission's directory. This legend is overridden if a legend is also configured below.",
+                "type": "text",
+                "width": 8
+              },
+              {
+                "new": true,
+                "field": "variables.legendOrientation",
+                "name": "Legend Orientation",
+                "description": "Displays the legend horizontally or vertically.",
+                "type": "dropdown",
+                "width": 2,
+                "options": [
+                  "vertical",
+                  "horizontal"
+                ]
+              },
+              {
+                "new": true,
+                "field": "variables.hideLegendLayerName",
+                "name": "Hide layer name",
+                "description": "Hide layer name in the legend.",
+                "type": "checkbox",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "variables.legend",
+                "name": "Legend",
+                "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on.",
+                "type": "objectarray",
+                "width": 12,
+                "object": [
+                  {
+                    "field": "color",
+                    "name": "Fill Color",
+                    "description": "A color for the main fill of the symbol.",
+                    "type": "colorpicker",
+                    "width": 2
+                  },
+                  {
+                    "field": "strokecolor",
+                    "name": "Border Color",
+                    "description": "A stroke/border color. Note that 'discreet' and 'continuous' shapes have no borders.",
+                    "type": "colorpicker",
+                    "width": 2
+                  },
+                  {
+                    "field": "value",
+                    "name": "Label",
+                    "description": "A label description for this legend entry.",
+                    "type": "text",
+                    "width": 8
+                  },
+                  {
+                    "field": "shape",
+                    "name": "Shape",
+                    "description": "The symbol for which to use for this legend entry. Discreet and continuous describe scales. These scales are broken into groups by a change in shape value. For instance, 'discreet, discreet, discreet, circle, discreet, discreet' represents a discreet scales of three colors, a circle and then a discreet scale of two colors.",
+                    "type": "dropdown",
+                    "width": 4,
+                    "options": [
+                      "circle",
+                      "square",
+                      "rect",
+                      "triangle",
+                      "continuous",
+                      "discreet"
+                    ]
+                  },
+                  {
+                    "field": "shapeIcon",
+                    "name": "Shape From Icon",
+                    "description": "Shape but taken from the Material Design Icon (mdi) library. Takes priority over the value in the 'shape' field. See <a target='_blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
+                    "type": "text",
+                    "width": 4
+                  },
+                  {
+                    "field": "shapeImage",
+                    "name": "Shape From Image",
+                    "description": "A URL to a custom image (jpeg|jpg|gif|png|svg|webp) for which to use for this legend entry. If the path is relative, it will be relative to the mission's directory. This field will override values in the Shape and Shape From Icon fields.",
+                    "type": "text",
+                    "width": 4
+                  },
+                  {
+                    "field": "propertyName",
+                    "name": "Property Name",
+                    "description": "The name of the property to match for this legend entry.",
+                    "type": "text",
+                    "width": 4
+                  },
+                  {
+                    "field": "propertyValue",
+                    "name": "Property Value",
+                    "description": "The value of the property to match for this legend entry.",
+                    "type": "text",
+                    "width": 4
+                  },
+                  {
+                    "field": "styleMatching",
+                    "name": "Style Matching",
+                    "description": "If true, the feature will use this legend entry for its style. If false, the default style will be applied to the feature.",
+                    "type": "checkbox",
+                    "width": 2,
+                    "defaultChecked": false
+                  },
+                  {
+                    "field": "hideFromLegend",
+                    "name": "Hide From Legend",
+                    "description": "If true, this legend entry will be hidden from the legend.",
+                    "type": "checkbox",
+                    "width": 2,
+                    "defaultChecked": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Interactions",
+        "rows": [
+          {
+            "name": "Interactions",
+            "description": "Choose a legacy Kind preset or compose an ordered click-interaction pipeline. Infrastructure interactions remain automatic.",
+            "components": [
+              {
+                "field": "interactions",
+                "fields": [
+                  "kind",
+                  "interactions"
+                ],
+                "name": "Interactions",
+                "description": "",
+                "type": "interactions",
+                "width": 12
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Filter",
+        "rows": [
+          {
+            "name": "Filters",
+            "components": [
+              {
+                "field": "variables.initialFilters",
+                "name": "Initial Filters",
+                "description": "Configures the layer's filters for displaying an initial custom subset of the data.",
+                "type": "objectarray",
+                "width": 12,
+                "object": [
+                  {
+                    "field": "type",
+                    "name": "Type of Property",
+                    "description": "If not a Group, whether the property's value should be treated as a string or as a number.",
+                    "type": "dropdown",
+                    "width": 2,
+                    "options": [
+                      "string",
+                      "number"
+                    ]
+                  },
+                  {
+                    "field": "key",
+                    "name": "Property",
+                    "description": "If not a Group, a field name from the properties object of each feature of this layer to be to construct a filter. Supports dot.notation for nested properties.",
+                    "type": "text",
+                    "width": 4
+                  },
+                  {
+                    "field": "op",
+                    "name": "Operator",
+                    "description": "If not a Group, the operator to use between the 'Property' and 'Value'.",
+                    "type": "dropdown",
+                    "width": 2,
+                    "options": [
+                      "=",
+                      "!=",
+                      ",",
+                      "<",
+                      ">",
+                      "<=",
+                      ">=",
+                      "contains",
+                      "beginswith",
+                      "endswith"
+                    ]
+                  },
+                  {
+                    "field": "value",
+                    "name": "Value",
+                    "description": "If not a Group, a value for the equation to operate on.",
+                    "type": "text",
+                    "width": 4
+                  },
+                  {
+                    "field": "isGroup",
+                    "name": "Is A Group",
+                    "description": "A group contains all property-value rows beneath this row and up until the next Group row or up until the end. Groups themselves are always ANDed together but enables member rows within them to abide by a different operator. If this entry 'Is A Group', then the type, property, operator and values fields are ignored.",
+                    "type": "switch",
+                    "width": 6,
+                    "defaultChecked": false
+                  },
+                  {
+                    "field": "groupOp",
+                    "name": "Group Operator",
+                    "description": "If 'Is A Group', the operator to use for members within the group. 'AND' ands all the group members together. 'OR' ors all the group members together. 'NOT_AND' ands all the group members together and then negates the evaluation. 'NOT_OR' ors all the group members together and then negates the evaluation.",
+                    "type": "dropdown",
+                    "width": 6,
+                    "options": [
+                      "AND",
+                      "OR",
+                      "NOT_AND",
+                      "NOT_OR"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Interface",
+        "rows": [
+          {
+            "name": "Interface",
+            "subname": "Hover Feature Label",
+            "subdescription": "The property key whose value should be the hover text of each feature. If left unset, the hover key and value will be the first one listed in the feature's properties.",
+            "components": [
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.0",
+                "name": "Property 1",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.1",
+                "name": "Property 2",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.2",
+                "name": "Property 3",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.3",
+                "name": "Property 4",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.4",
+                "name": "Property 5",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.5",
+                "name": "Property 6",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.6",
+                "name": "Property 7",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.7",
+                "name": "Property 8",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.8",
+                "name": "Property 9",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.9",
+                "name": "Property 10",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.10",
+                "name": "Property 11",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "new": true,
+                "field": "variables.useKeyAsName.11",
+                "name": "Property 12",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "subname": "Key Bindings",
+            "components": [
+              {
+                "field": "variables.shortcutSuffix",
+                "name": "Alt + {letter} Toggle Shortcut",
+                "description": "A single letter to 'ALT + {letter}' toggle the layer on and off. Please verify that your chosen shortcut does not conflict with other system or browser-level keyboard shortcuts.",
+                "type": "text",
+                "width": 6
+              }
+            ]
+          },
+          {
+            "subname": "Search",
+            "components": [
+              {
+                "field": "variables.search",
+                "name": "Search Construct",
+                "description": "When set, this layer will become searchable through the search bar at the top. The search will look for and autocomplete on the properties specified. All properties are enclosed by parentheses and space-separated. 'round()' can be used like a function to round the property beforehand. 'rmunder()' works similarly but removes all underscores instead. For example: '(RMC) rmunder(sol)'",
+                "type": "text",
+                "width": 12
+              }
+            ]
+          },
+          {
+            "subname": "Links",
+            "components": [
+              {
+                "field": "variables.links",
+                "name": "External Links",
+                "description": "Configure deep links to other sites based on the properties on a selected feature. Upon clicking a feature, a list of deep links are put into the top bar and can be clicked on to navigate to any other page.",
+                "type": "objectarray",
+                "width": 12,
+                "object": [
+                  {
+                    "field": "name",
+                    "name": "Display Name",
+                    "description": "The name of the deep link. It should be unique.",
+                    "type": "text",
+                    "width": 3
+                  },
+                  {
+                    "field": "link",
+                    "name": "URL",
+                    "description": "A url template. Curly brackets are included. On feature click, all '{prop}' are replaced with the corresponding features[i].properties.prop value. Multiple '{prop}' are supported as an access to nested props using dot notation '{stores.food.candy}'.",
+                    "type": "text",
+                    "width": 9
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "subname": "Information",
+            "components": [
+              {
+                "field": "variables.info",
+                "name": "TopBar Information",
+                "description": "Creates an informational record at the top of the page. The first use case was showing the value of the latest sol. Clicking this record pans to the feature specified by 'which'. This is used on startup and not when a user selects a feature in this layer.",
+                "type": "objectarray",
+                "width": 12,
+                "object": [
+                  {
+                    "field": "value",
+                    "name": "Information Construct",
+                    "description": "A name to display. All '{prop}'s will be replaced by their corresponding features[which].properties[prop] value.",
+                    "type": "text",
+                    "width": 4
+                  },
+                  {
+                    "field": "icon",
+                    "name": "Icon Name",
+                    "description": "Any Material Design Icon name: <a target='_blank' href='https://pictogrammers.com/library/mdi/'>https://pictogrammers.com/library/mdi/</a>",
+                    "type": "text",
+                    "width": 3
+                  },
+                  {
+                    "field": "which",
+                    "name": "From Feature",
+                    "description": "This only supports the value 'last' at this point meaning that the properties from the last feature in the layer while be used to populate the information in the TopBar. ",
+                    "type": "dropdown",
+                    "width": 3,
+                    "options": [
+                      "last"
+                    ]
+                  },
+                  {
+                    "field": "go",
+                    "name": "Go",
+                    "description": "if true, pans and zooms to the feature of which on initial load. The zoom used is Map Scale Zoom or the current zoom. In the case of multiple layers configured with 'Go', only the first feature with info.go is gone to.",
+                    "type": "checkbox",
+                    "width": 2,
+                    "defaultChecked": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Information",
+        "rows": [
+          {
+            "name": "Information",
+            "subname": "Layer Tags",
+            "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool. A category may be specified with the following pattern: 'category:tag'",
+            "components": [
+              {
+                "field": "tags.0",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.1",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.2",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.3",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.4",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.5",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "tags.6",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.7",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.8",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.9",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.10",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.11",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "subname": "Description",
+            "subdescription": "A freeform markdown description of the layer. In the LayersTool, users may click the information icon beside the layer's name to view this information.",
+            "components": [
+              {
+                "field": "description",
+                "name": "Description",
+                "description": "",
+                "type": "markdown",
+                "width": 12
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Performance",
+        "rows": [
+          {
+            "name": "Performance",
+            "subname": "Dynamic Extent",
+            "components": [
+              {
+                "field": "variables.dynamicExtent",
+                "name": "Enabled",
+                "description": "If true, tries to only query the vector features present in the user's current map viewport. This can be very performant for large vector datasets especially if minimum and maximum zooms are set for the layer. Pan and zooming causes requeries. If used with a geodataset, the time and extent queries will work out-of-the-box. Otherwise, if using an external server, the following parameters in {} will be automatically replaced on query in the url: 'starttime={starttime}&endtime={endtime}&startprop={startprop}&endprop={endprop}&crscode={crscode}&zoom={zoom}&minx={minx}&miny={miny}&maxx={maxx}&maxy={maxy}'. This setting is not advised if the data source is a straight geojson file because it expects a server that can crop the data to given extents.",
+                "type": "switch",
+                "width": 5,
+                "defaultChecked": false
+              },
+              {
+                "field": "variables.dynamicExtentMoveThreshold",
+                "name": "Threshold",
+                "description": "If dynamicExtent is true, only requery if the map was panned past the stated threshold. Unit is in meters. If a zoom-dependent threshold is desired, set this value to a string ending in '/z'. This will then internally use 'dynamicExtentMoveThreshold / Math.pow(2, zoom)' as the threshold value.",
+                "type": "text",
+                "width": 3
+              }
+            ]
+          },
+          {
+            "subname": "GeoDataset Settings",
+            "components": [
+              {
+                "field": "variables.noDuplicates",
+                "name": "Don't Return Duplicates",
+                "description": "If checked, only the first of a series of duplicated features from a GeoDataset is returned. If the GeoDataset uses a 'Group Id', it will be used to check whether features are duplicated. If a 'Group Id' is not set, the geometry field will be used to check for duplicated features. Using the geometry field may result in more of a performance hit for massive GeoDatasets. This functionality is useful, for instance, when many features with differing properties shared the same geometry.",
+                "type": "checkbox",
+                "width": 4,
+                "defaultChecked": false
+              },
+              {
+                "field": "variables.getFeaturePropertiesOnClick",
+                "name": "Get Feature Properties on Click",
+                "description": "Works just like Dataset links to get feature properties. For performance reasons, if checked, the main GeoDataset will be returned with only DB row ids or, if set, 'Group Id' and 'Feature Id' and will requery the rest of the feature's properties on-click. If a 'Group Id' is specified for the GeoDataset, all properties for every feature within its group will be returned as this makes it possible to still access every feature even while 'Don't Return Duplicates' is set.",
+                "type": "checkbox",
+                "width": 4,
+                "defaultChecked": false
+              }
+            ]
+          },
+          {
+            "subname": "Identification",
+            "components": [
+              {
+                "field": "variables.useKeyAsId",
+                "name": "Property Key of Unique Id",
+                "description": "In the case of deep-linking to certain features, a feature.properties key/field name is needed that points to a unique id in order to reselect it. dot.notation.is.supported for nested fields. You must make sure unique key values exist per feature for this to function properly. It is advised to set this if 'Dynamic Extent' is enabled.",
+                "type": "text",
+                "width": 3
+              }
+            ]
+          },
+          {
+            "subname": "Miscellaneous",
+            "components": [
+              {
+                "field": "variables.style.nointeraction",
+                "name": "Disable Interactivity",
+                "description": "If checked, no mouse events will trigger on features of this layer.",
+                "type": "checkbox",
+                "width": 2,
+                "defaultChecked": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Datasets",
+        "rows": [
+          {
+            "name": "Datasets",
+            "subname": "Dataset Connections",
+            "components": [
+              {
+                "field": "variables.datasetLinks",
+                "name": "Connections",
+                "description": "Datasets are csvs uploaded from the 'Manage Datasets' page accessible on the lower left. Every time a feature from this layer is clicked with datasetLinks configured, it will request the data from the server and include it with it's regular geojson properties. This is especially useful when single features need a lot of metadata to perform a task as it loads it only as needed. A unique value needs to be present in both the feature's 'prop'erties and in the dataset's 'column' in order to combine the metadata.",
+                "type": "objectarray",
+                "width": 12,
+                "object": [
+                  {
+                    "field": "dataset",
+                    "name": "Dataset Name",
+                    "description": "The name of a dataset to link to. A list of datasets can be found in the 'Manage Datasets' page.",
+                    "type": "text",
+                    "width": 3
+                  },
+                  {
+                    "field": "column",
+                    "name": "Connecting Dataset Column",
+                    "description": "This is a column/csv header name within the dataset. If the value of the prop key matches the value in this column, the entire row will be return. All rows that match are returned.",
+                    "type": "text",
+                    "width": 3
+                  },
+                  {
+                    "field": "prop",
+                    "name": "Connecting Feature Property",
+                    "description": "This is a property key already within the features properties. It's value will be searched for in the specified dataset column.",
+                    "type": "text",
+                    "width": 3
+                  },
+                  {
+                    "field": "displayProp",
+                    "name": "Connecting Feature Display Name Property",
+                    "description": "This is a property key within the returned dataset feature properties. This is effectively an optional second-order property key. In the case of multiple dataset row entries being returned, this is useful for users of the UI to be able to distinguish between them. If unset, defaults to the value of 'Connecting Feature Property'.",
+                    "type": "text",
+                    "width": 3
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Miscellaneous",
+        "rows": [
+          {
+            "name": "Miscellaneous",
+            "subname": "Chemistry",
+            "components": [
+              {
+                "field": "variables.chemistry",
+                "name": "Chemistry Values",
+                "description": "Comma-separated chemistry columns to use as percentages and in what order. Should be used with a Dataset. Ex. 'Al2O3,CaO,FeOT,K2O,MgO,Na2O,SiO2,TiO2'. Look into the docs for the ChemistryTool for more information.",
+                "type": "textarray",
+                "width": 12
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "variables.hideMainFeature",
+                "name": "Hide Main Features",
+                "description": " If true, hides all typically rendered features. This is useful if showing only the 'Attachments' of layers is desired and not their features themselves. ",
+                "type": "checkbox",
+                "width": 3,
+                "defaultChecked": false
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "modules": {
+    "map": "./map",
+    "config": "./config",
+    "filter": "./filter",
+    "globe": {
+      "cesium": "./globe/cesium",
+      "lithosphere": "./globe/lithosphere"
+    }
   }
 }

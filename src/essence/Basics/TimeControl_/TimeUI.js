@@ -9,8 +9,8 @@ import * as moment from 'moment'
 import F_ from '../Formulae_/Formulae_'
 import Map_ from '../Map_/Map_'
 import L_ from '../Layers_/Layers_'
-import { parseExternalStacUrl } from '../Layers_/LayerUtils'
-import calls from '../../../pre/calls'
+import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import LayerInterface from '../Layers_/interface/LayerInterface'
 import tippy from 'tippy.js'
 import Dropy from '../../../external/Dropy/dropy'
 
@@ -343,7 +343,7 @@ const TimeUI = {
             const layer = L_.layers.data[layerName]
             if (
                 layer &&
-                layer.type === 'tile' &&
+                LayerTypeRegistry.providesTimeHistogram(layer.type) &&
                 layer.time &&
                 layer.time.enabled === true
             ) {
@@ -2912,99 +2912,78 @@ const TimeUI = {
             TimeUI.lastHistoEndTimestamp = endTimestamp
         }
 
-        // Find all on, time-enabled, tile layers
-        const sparklineLayers = []
-        Object.keys(L_.layers.data).forEach((name) => {
-            const l = L_.layers.data[name]
-            if (
-                l &&
-                l.type === 'tile' &&
-                l.time &&
-                l.time.enabled === true &&
-                L_.layers.on[name] === true
-            ) {
-                let layerUrl = l.url
-                if (layerUrl.indexOf('stac-collection:') === 0) {
-                    const afterColon = layerUrl.substring(
-                        layerUrl.indexOf(':') + 1
-                    )
-                    let collectionName = afterColon
-                    let isExternal = false
-                    let externalBaseUrl = null
-
-                    // Handle external STAC URLs (format: https://example.com/mmgis/titilerpgstac/collections/name)
-                    if (afterColon.includes('://')) {
-                        const parsed = parseExternalStacUrl(afterColon)
-                        if (parsed) {
-                            collectionName = parsed.collectionName
-                            isExternal = true
-
-                            // Convert TiTiler URL to MMGIS base URL
-                            // From: https://example.com/mmgis/titilerpgstac
-                            // To:   https://example.com/mmgis
-                            externalBaseUrl = parsed.baseUrl.replace(
-                                /\/titilerpgstac$/,
-                                ''
-                            )
-                        } else {
-                            console.error(
-                                'Failed to parse external STAC URL for histogram:',
-                                layerUrl
-                            )
-                            return
-                        }
-                    } else {
-                        // Local format - just strip query params if present
-                        collectionName = afterColon.split('?')[0]
-                    }
-
-                    sparklineLayers.push({
-                        name: name,
-                        stacCollection: collectionName,
-                        isExternal: isExternal,
-                        externalBaseUrl: externalBaseUrl,
-                    })
-                } else if (!F_.isUrlAbsolute(layerUrl)) {
-                    layerUrl = L_.missionPath + layerUrl
-                    if (layerUrl.indexOf('{t}') > -1)
-                        sparklineLayers.push({
-                            name: name,
-                            path: `/${layerUrl}`.replace(/{t}/g, '_time_'),
-                        })
-                }
-            }
-        })
-
-        const starttimeISO = new Date(
-            TimeUI._timelineStartTimestamp
-        ).toISOString()
-
-        const endtimeISO = new Date(TimeUI._timelineEndTimestamp).toISOString()
-
         const NUM_BINS = Math.max(
             Math.min(endTimestamp - startTimestamp, 255),
             1
         )
-        let bins = new Array(NUM_BINS).fill(0)
-        let completedCalls = 0
+        const bins = new Array(NUM_BINS).fill(0)
 
-        // Helper function to bin STAC collection data
-        function binStacData(data, bins) {
-            if (data.body && data.body.times) {
-                data.body.times.forEach((time) => {
-                    const total = parseInt(time.total)
+        const ctx = {
+            startTime: new Date(TimeUI._timelineStartTimestamp).toISOString(),
+            endTime: new Date(TimeUI._timelineEndTimestamp).toISOString(),
+            bins: NUM_BINS,
+        }
+
+        // Every on, time-enabled layer whose type can say when its data exists.
+        // What "exists" means, and where the answer comes from, is the type's:
+        // core asks for times and counts and does the binning and drawing.
+        const asked = []
+        Object.keys(L_.layers.data).forEach((name) => {
+            const layerObj = L_.layers.data[name]
+            if (
+                layerObj == null ||
+                layerObj.time?.enabled !== true ||
+                L_.layers.on[name] !== true ||
+                !LayerTypeRegistry.providesTimeHistogram(layerObj.type)
+            )
+                return
+
+            const timeModule = LayerTypeRegistry.get(layerObj.type)?.time
+            if (!LayerInterface.hasOp(timeModule, 'availability')) {
+                console.warn(
+                    `Layer type '${layerObj.type}' declares capabilities.time.histogram but implements no time.availability, so '${name}' contributes nothing to the time bar's availability.`
+                )
+                return
+            }
+
+            asked.push(
+                Promise.resolve(
+                    LayerInterface.run(timeModule, 'availability', [
+                        layerObj,
+                        ctx,
+                    ])
+                ).catch((err) => {
+                    console.warn(
+                        `ERROR! time.availability of layer type '${layerObj.type}' failed for ${name} /// ${
+                            err?.message || err
+                        }`
+                    )
+                    return null
+                })
+            )
+        })
+
+        Promise.all(asked).then((results) => {
+            results.forEach((times) => {
+                if (!Array.isArray(times)) return
+                times.forEach((entry) => {
+                    const at = TimeUI.removeOffset(
+                        new Date(entry?.t).getTime()
+                    )
+                    if (isNaN(at)) return
+                    const total =
+                        entry.total == null ? 1 : parseInt(entry.total)
                     if (isNaN(total)) return
-                    // Times are truncated to the query's bin size so they can
-                    // land just outside the timeline
+                    // Reported times are truncated to whatever bin size the
+                    // type queried with, so they can land just outside the
+                    // timeline.
                     const binIndex = Math.min(
                         Math.max(
                             Math.floor(
                                 F_.linearScale(
                                     [startTimestamp, endTimestamp],
                                     [0, NUM_BINS],
-                                    TimeUI.removeOffset(
-                                        new Date(time.t).getTime()
-                                    )
+                                    at
                                 )
                             ),
                             0
@@ -3013,29 +2992,8 @@ const TimeUI = {
                     )
                     bins[binIndex] += total
                 })
-            }
-        }
+            })
 
-        // Helper function to bin file-based layer data
-        function binFileData(data, bins) {
-            if (data.body && data.body.times) {
-                data.body.times.forEach((time) => {
-                    const binIndex = Math.floor(
-                        F_.linearScale(
-                            [startTimestamp, endTimestamp],
-                            [0, NUM_BINS],
-                            TimeUI.removeOffset(new Date(time.t).getTime())
-                        )
-                    )
-                    if (binIndex >= 0 && binIndex < NUM_BINS) {
-                        bins[binIndex]++
-                    }
-                })
-            }
-        }
-
-        // Helper function to render histogram
-        function renderHistogram() {
             const minmax = F_.getMinMaxOfArray(bins)
             const histoElm = $('#mmgisTimeUITimelineHisto')
             histoElm.empty()
@@ -3048,72 +3006,6 @@ const TimeUI = {
                         }%;"></div>`
                     )
                 })
-            }
-        }
-
-        // Query each layer for availability data
-        sparklineLayers.forEach((l) => {
-            const onComplete = () => {
-                completedCalls++
-                if (completedCalls === sparklineLayers.length) {
-                    renderHistogram()
-                }
-            }
-
-            // Check if this is an external STAC collection
-            if (l.isExternal && l.externalBaseUrl) {
-                // Query external MMGIS instance
-                const externalUrl =
-                    `${l.externalBaseUrl}/api/utils/queryTilesetTimes?` +
-                    `stacCollection=${encodeURIComponent(l.stacCollection)}&` +
-                    `starttime=${encodeURIComponent(starttimeISO)}&` +
-                    `endtime=${encodeURIComponent(endtimeISO)}`
-
-                fetch(externalUrl)
-                    .then((response) => {
-                        if (!response.ok)
-                            throw new Error(`HTTP ${response.status}`)
-                        return response.json()
-                    })
-                    .then((data) => {
-                        binStacData(data, bins)
-                        onComplete()
-                    })
-                    .catch((err) => {
-                        console.error(
-                            `Failed to fetch external STAC times from ${l.externalBaseUrl}:`,
-                            err
-                        )
-                        onComplete()
-                    })
-            } else {
-                // Local STAC or file-based layer
-                calls.api(
-                    'query_tileset_times',
-                    l.stacCollection != null
-                        ? {
-                              stacCollection: l.stacCollection,
-                              starttime: starttimeISO,
-                              endtime: endtimeISO,
-                          }
-                        : {
-                              path: l.path,
-                              starttime: starttimeISO,
-                              endtime: endtimeISO,
-                          },
-                    function (data) {
-                        if (l.stacCollection != null) {
-                            binStacData(data, bins)
-                        } else {
-                            binFileData(data, bins)
-                        }
-                        onComplete()
-                    },
-                    function (e) {
-                        console.error('Failed to query tileset times:', e)
-                        onComplete()
-                    }
-                )
             }
         })
     },

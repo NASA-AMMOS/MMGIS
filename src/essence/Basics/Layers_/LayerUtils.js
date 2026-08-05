@@ -67,21 +67,29 @@ export function parseExternalStacUrl(afterColon) {
  *
  * @param {string} url - The URL to transform (may or may not be a stac-collection: URL)
  * @param {object} layerData - The layer configuration object
- * @param {string} type - The type of endpoint to generate ('tile' or 'image')
+ * @param {string} endpoint - Which TiTiler endpoint to generate: 'tiles' (raster
+ *   tiles), 'terrain' (elevation tiles) or 'preview' (a single image). The layer
+ *   TYPE does not appear here — the caller (a layer type's renderer, or core via
+ *   capabilities.map.stacEndpoint) says which endpoint it wants.
  * @param {object} location - Location object with origin and pathname (defaults to window.location)
  * @returns {string} - The transformed URL or the original URL if not a STAC URL
  *
  * @example
  * // Local STAC URL
- * transformStacUrl('stac-collection:my_collection', { cogBands: [1, 2, 3] }, 'tile')
+ * transformStacUrl('stac-collection:my_collection', { cogBands: [1, 2, 3] }, 'tiles')
  * // => 'http://localhost:8888/MMGIS/titilerpgstac/collections/my_collection/tiles/...'
  *
  * @example
  * // External STAC URL
- * transformStacUrl('stac-collection:https://example.com/titilerpgstac:remote_collection', {}, 'tile')
+ * transformStacUrl('stac-collection:https://example.com/titilerpgstac:remote_collection', {}, 'tiles')
  * // => 'https://example.com/titilerpgstac/collections/remote_collection/tiles/...'
  */
-export function transformStacUrl(url, layerData, type = 'tile', location = null) {
+export function transformStacUrl(
+    url,
+    layerData,
+    endpoint = 'tiles',
+    location = null
+) {
     if (!url || typeof url !== 'string') return url
 
     // Check if this is a STAC collection URL
@@ -137,13 +145,13 @@ export function transformStacUrl(url, layerData, type = 'tile', location = null)
         resamplingParam = `&resampling=${layerData.cogResampling}`
     }
 
-    // Generate different endpoints based on type
-    if (type === 'tile') {
+    // Generate different endpoints based on the requested endpoint kind
+    if (endpoint === 'tiles') {
         // Tile endpoint for raster tiles
         return `${baseUrl}/collections/${collectionName}/tiles/${
             (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
         }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
-    } else if (type === 'data') {
+    } else if (endpoint === 'terrain') {
         const tmsId = (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
         const parser = layerData && layerData.demparser
         const tileBase = `${baseUrl}/collections/${collectionName}/tiles/${tmsId}`
@@ -156,12 +164,11 @@ export function transformStacUrl(url, layerData, type = 'tile', location = null)
             return `${tileBase}/{z}/{x}/{y}.npy?assets=asset${bandsParam}${resamplingParam}`
         }
     } else {
-        // For images, we use preview endpoint
-        // Note: STAC collections are typically designed for tile serving
+        // A single preview image rather than tiles
         if (layerData && layerData.name) {
             console.warn(
-                `STAC layer "${layerData.name}" is configured as an image layer. ` +
-                    `STAC collections work best with tile layer type. ` +
+                `STAC layer "${layerData.name}" requested a 'preview' endpoint. ` +
+                    `STAC collections work best served as tiles. ` +
                     `Attempting to use preview endpoint.`
             )
         }

@@ -378,7 +378,7 @@ MMGIS uses a `/plugins/` directory. All plugins (core and external) are discover
 
 #### Plugin CLI
 
-MMGIS includes a CLI tool for managing plugins (`plugins/plugin-cli.js`). Run it with:
+MMGIS includes a CLI tool for managing plugins (`plugin-cli/cli.js`). Run it with:
 
 ```bash
 npm run plugins -- <command>
@@ -399,7 +399,7 @@ Key commands:
 | `info <plugin-id>` | Show plugin details |
 | `registry add <url>` | Register a plugin source |
 
-Registries are configured in `plugins/plugin-registries.json`. Plugin enable/disable state is tracked in `plugins/plugin-state.json` (gitignored — instance-specific).
+Registries are configured in `plugin-cli/registries.json`. Plugin enable/disable state is tracked in `plugins/plugin-state.json` (gitignored — instance-specific).
 
 See `plugins/README.md` for the full CLI reference.
 

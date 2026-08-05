@@ -12,6 +12,8 @@
  * compatible with older MMGIS versions.
  */
 
+const semver = require("semver");
+
 const logger = require("./logger");
 
 /**
@@ -44,18 +46,548 @@ const COMMON_FIELDS = [
  * `export default {}` may only declare these operations, each optionally
  * broken into these phases. `make` is required and is the only op that may
  * declare the extra `afterCommit` phase (runs after the make-lock releases).
+ *
+ * `render` is globe-only: it adds an already-built engine layer config, for
+ * core paths and tools that construct engine geometry directly rather than
+ * from a layer's config object.
  */
 const LAYER_OPS = [
-  "load",
   "make",
+  "render",
   "destroy",
   "setOpacity",
   "setVisibility",
+  "onToggle",
   "setStyle",
   "timeChange",
 ];
 const OP_PHASES = ["before", "main", "after"];
 const MAKE_EXTRA_PHASES = ["afterCommit"];
+
+/**
+ * A layer type may also ship the optional NON-renderer surfaces, each with its
+ * own small vocabulary. They are validated per-surface: a `render` in a map
+ * module or an `expand` in a globe module is an error, not a silent no-op.
+ *   config  parse-time ownership of the layer's config object
+ *   filter  the filtering strategy for the type
+ *   time    what the type's time support means to the time bar
+ *   source  how the type acquires its data (core keeps extent/staleness)
+ *   legend  a legend derived from how the layer is rendered
+ */
+const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
+const FILTER_OPS = ["getAggregations", "filter"];
+const TIME_OPS = ["format", "applyTimeParams", "availability"];
+const SOURCE_OPS = ["fetch"];
+const LEGEND_OPS = ["derive"];
+
+/**
+ * A layer attachment is a single renderable that may straddle both engines (an
+ * uncertainty ellipse is a map overlay AND two globe layers), so it declares
+ * one `module` rather than one per surface, with its own vocabulary, in which
+ * `make` — building itself from its host's data — is what an attachment
+ * fundamentally is, and so is required.
+ */
+const ATTACHMENT_OPS = [
+  "make",
+  "decorateFeature",
+  "globeStyle",
+  "makeForFeature",
+  "clearForFeature",
+  "destroy",
+  "setOpacity",
+  "setVisibility",
+  "onPeerToggle",
+  "syncData",
+  "onConfigChange",
+  "setStyle",
+  "peerFeaturesFor",
+];
+
+/** Operations valid on each surface, and whether `make` is required there. */
+const SURFACES = {
+  map: { ops: LAYER_OPS.filter((op) => op !== "render"), requiresMake: true },
+  globe: { ops: LAYER_OPS, requiresMake: true },
+  config: { ops: CONFIG_OPS, requiresMake: false },
+  filter: { ops: FILTER_OPS, requiresMake: false },
+  time: { ops: TIME_OPS, requiresMake: false },
+  source: { ops: SOURCE_OPS, requiresMake: false },
+  legend: { ops: LEGEND_OPS, requiresMake: false },
+  attachment: { ops: ATTACHMENT_OPS, requiresMake: true },
+  // An attachment that only decorates its host (a bearing turns its host's
+  // markers) adds nothing to the map of its own, so it has nothing to `make`.
+  attachmentDecoration: { ops: ATTACHMENT_OPS, requiresMake: false },
+};
+
+/**
+ * The surface a manifest module key belongs to, or null if it isn't one.
+ *
+ * @param {string} key
+ * @param {string} [pluginType='layertype'] - 'layerattachment' keys all resolve
+ *   to the single attachment surface.
+ */
+function surfaceOfModuleKey(key, pluginType = "layertype", manifest = null) {
+  if (pluginType === "layerattachment")
+    return manifest?.capabilities?.host?.decoratesHost === true
+      ? "attachmentDecoration"
+      : "attachment";
+  // A single-module layer type (`module`) exports the surfaces as keys rather
+  // than operations, so there is no one op vocabulary to check it against; its
+  // surfaces are validated once resolved.
+  if (key === "module") return null;
+  if (key === "map") return "map";
+  if (key.startsWith("globe.")) return "globe";
+  if (SURFACES[key]) return key;
+  return null;
+}
+
+/**
+ * A layer type's / attachment's declared modules, flattened to one dotted key
+ * per module so callers (generator, validator, CLI) share one shape:
+ *
+ *   { "modules": { "map": "./map",
+ *                  "globe": { "cesium": "./globe/cesium" } } }
+ *     → { "map": "./map", "globe.cesium": "./globe/cesium" }
+ *   { "module": "./mytype" } → { "module": "./mytype" }
+ *
+ * Deliberately not the `paths` of tools/interactions: there a key is the
+ * module's *export name* (`"DrawTool"`), here it is the *render surface* the
+ * module plugs into, which is a different contract with a different vocabulary.
+ *
+ * @param {object} manifest
+ * @returns {Object<string,string>} dotted surface key → declared path
+ */
+function flattenLayerModules(manifest) {
+  const out = {};
+  if (manifest == null || typeof manifest !== "object") return out;
+  if (typeof manifest.module === "string") out.module = manifest.module;
+  const modules = manifest.modules;
+  if (modules == null || typeof modules !== "object" || Array.isArray(modules))
+    return out;
+  for (const key in modules) {
+    const value = modules[key];
+    if (value != null && typeof value === "object" && !Array.isArray(value)) {
+      for (const sub in value) out[`${key}.${sub}`] = value[sub];
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+/**
+ * The classification capabilities core reads, per plugin type.
+ *
+ * These answer the questions core must ask while iterating or partitioning ALL
+ * layers, where calling a per-layer operation would be backwards. Unlike an
+ * operation — where a typo like `destory` is caught by the module validator —
+ * a mistyped or mistyped-value capability would otherwise be silent: the layer
+ * simply never gets ordered, picked, styled or counted, with no error anywhere.
+ * So the vocabulary is declared here and checked: unknown keys warn (a newer
+ * plugin may know capabilities this MMGIS does not), wrong types and values are
+ * errors, and an omission core would read as "no" warns where that is likely a
+ * mistake rather than a choice (see CONSEQUENTIAL_OMISSIONS).
+ *
+ * `values` lists the allowed values where the capability is an enum rather than
+ * a boolean. Every capability here is read by core: a capability nothing reads
+ * belongs in `supportedData` (a documented catalog) rather than here, where it
+ * would read as behavior a plugin author can rely on.
+ *
+ * Kept in sync with LayerTypeRegistry / LayerAttachmentRegistry, which are the
+ * only readers.
+ */
+const CAPABILITY_SCHEMA = {
+  layertype: {
+    // Validated in detail separately (engines ↔ modules cross-check).
+    renderers: { type: "object" },
+    defaultInteractions: { type: "object" },
+    defaultAttachments: { type: "object" },
+    structural: { type: "boolean" },
+    map: {
+      type: "group",
+      keys: {
+        stacking: { type: "enum", values: ["raster", "overlay", false] },
+        redrawOnReorder: { type: "boolean" },
+        tracksLoad: { type: "boolean" },
+        refreshByRemake: { type: "boolean" },
+        stacEndpoint: {
+          type: "enum",
+          values: ["tiles", "terrain", "preview"],
+        },
+        picking: { type: "boolean" },
+        styling: { type: "boolean" },
+      },
+    },
+    time: {
+      // `true`/`false` is shorthand for "this type understands time at all";
+      // the object form adds what that means to the time bar.
+      type: "booleanOrGroup",
+      keys: {
+        enabled: { type: "boolean" },
+        histogram: { type: "boolean" },
+      },
+    },
+  },
+  layerattachment: {
+    renderers: { type: "object" },
+    // How an attachment sits on its host: where it is stored, where it comes in
+    // the host's build (and so render) order, and whether it needs its siblings
+    // built first. Core reads these while assembling a host's attachments.
+    host: {
+      type: "group",
+      keys: {
+        order: { type: "number" },
+        sublayerKey: { type: "string" },
+        buildsAfterSiblings: { type: "boolean" },
+        decoratesHost: { type: "boolean" },
+      },
+    },
+    globe: {
+      type: "group",
+      keys: { suppressesHost: { type: "boolean" } },
+    },
+  },
+};
+
+/**
+ * Capabilities whose absence means something core acts on, where the default is
+ * more likely an oversight than a decision — warned about (never an error,
+ * since each is a legitimate choice for some type).
+ */
+const CONSEQUENTIAL_OMISSIONS = {
+  layertype: [
+    {
+      path: "map.stacking",
+      when: (c) => c.renderers?.map !== undefined && c.renderers.map !== false,
+      why: "a type that renders on the map but doesn't declare how it stacks is left out of 2D draw ordering entirely (declare false if that is intended)",
+    },
+  ],
+  layerattachment: [
+    {
+      path: "host.order",
+      when: (c) => c.host?.decoratesHost !== true,
+      why: "an attachment without a declared order is built (and so drawn) in whatever order plugins happen to be discovered in",
+    },
+  ],
+};
+
+/**
+ * The component types Configure's Maker can render (`configure/src/core/Maker.js`).
+ * A type outside this set renders nothing at all — the row appears with a hole in
+ * it — so it is an error rather than a warning.
+ */
+const METACONFIG_COMPONENT_TYPES = new Set([
+  "gap",
+  "text",
+  "textnotrim",
+  "textarea",
+  "button",
+  "textarray",
+  "markdown",
+  "json",
+  "number",
+  "checkbox",
+  "slider",
+  "switch",
+  "dropdown",
+  "searchdropdown",
+  "colordropdown",
+  "colorpicker",
+  "layerMultiSelect",
+  "objectarray",
+  "interactions",
+  "map",
+  "videopreview",
+  "themepreview",
+  "defaulttooldropdown",
+]);
+
+/** Component types that display something rather than edit a field. */
+const METACONFIG_FIELDLESS_TYPES = new Set([
+  "gap",
+  "button",
+  "interactions",
+  "map",
+  "videopreview",
+  "themepreview",
+]);
+
+/** Component types whose control is empty without `options`. */
+const METACONFIG_OPTION_TYPES = new Set([
+  "dropdown",
+  "searchdropdown",
+  "colordropdown",
+]);
+
+/**
+ * Providers a dropdown may take its options from instead of listing them.
+ * Mirrors configure/src/core/optionProviders.js — a name Maker doesn't know
+ * resolves to nothing at runtime, so it is worth catching here.
+ */
+const METACONFIG_OPTION_PROVIDERS = new Set([
+  "layerProperties",
+  "layers",
+  "layerTypes",
+]);
+
+/**
+ * Validate a plugin's `config` metaconfig — the Configure-page form it declares.
+ *
+ * This is the part of a manifest that fails quietly: Maker skips a component it
+ * can't render and writes wherever `field` points, so a typo'd type or a field
+ * outside the subtree core reads produces a form that looks fine and configures
+ * nothing.
+ *
+ * @param {object} metaconfig - `config` from plugin.json
+ * @param {string} pluginName
+ * @param {string} pluginType
+ * @param {string|null} configPath - the plugin's owned subtree, if any
+ * @returns {string[]} errors
+ */
+function validateMetaconfig(
+  metaconfig,
+  pluginName,
+  pluginType,
+  configPath = null
+) {
+  const errors = [];
+  if (metaconfig == null || typeof metaconfig !== "object") return errors;
+  const where = `Plugin '${pluginName}' (${pluginType})`;
+
+  const validateRows = (rows, label) => {
+    if (rows === undefined) return;
+    if (!Array.isArray(rows)) {
+      errors.push(`${where}: '${label}' must be an array of rows`);
+      return;
+    }
+    rows.forEach((row, i) => {
+      const rowLabel = `${label}[${i}]`;
+      if (row == null || typeof row !== "object" || Array.isArray(row)) {
+        errors.push(`${where}: '${rowLabel}' must be an object`);
+        return;
+      }
+      if (row.components === undefined) {
+        if (row.name === undefined && row.subname === undefined)
+          errors.push(
+            `${where}: '${rowLabel}' has neither 'components' nor a 'name'/'subname' — it renders as nothing`
+          );
+        return;
+      }
+      if (!Array.isArray(row.components)) {
+        errors.push(`${where}: '${rowLabel}.components' must be an array`);
+        return;
+      }
+      row.components.forEach((com, j) => {
+        const comLabel = `${rowLabel}.components[${j}]`;
+        if (com == null || typeof com !== "object" || Array.isArray(com)) {
+          errors.push(`${where}: '${comLabel}' must be an object`);
+          return;
+        }
+        if (!METACONFIG_COMPONENT_TYPES.has(com.type)) {
+          errors.push(
+            `${where}: '${comLabel}.type' is '${com.type}' — Configure renders none such (one of: ${[
+              ...METACONFIG_COMPONENT_TYPES,
+            ].join(", ")})`
+          );
+          return;
+        }
+        if (!METACONFIG_FIELDLESS_TYPES.has(com.type)) {
+          if (typeof com.field !== "string" || com.field.length === 0)
+            errors.push(
+              `${where}: '${comLabel}.field' is required for type '${com.type}' — without it the control edits nothing`
+            );
+          else if (
+            configPath != null &&
+            !com.field.startsWith(configPath) &&
+            !com.field.startsWith(`${configPath}.`)
+          )
+            errors.push(
+              `${where}: '${comLabel}.field' ('${com.field}') is outside this plugin's 'configPath' ('${configPath}') — core reads only that subtree, so the setting would be written and never read`
+            );
+        }
+        if (com.optionsFrom !== undefined) {
+          if (com.type !== "dropdown" && com.type !== "searchdropdown")
+            errors.push(
+              `${where}: '${comLabel}.optionsFrom' only applies to types 'dropdown' and 'searchdropdown'`
+            );
+          else if (!METACONFIG_OPTION_PROVIDERS.has(com.optionsFrom))
+            errors.push(
+              `${where}: '${comLabel}.optionsFrom' is '${com.optionsFrom}' — Configure provides none such (one of: ${[
+                ...METACONFIG_OPTION_PROVIDERS,
+              ].join(", ")})`
+            );
+        }
+        if (
+          METACONFIG_OPTION_TYPES.has(com.type) &&
+          com.optionsFrom === undefined &&
+          !Array.isArray(com.options) &&
+          typeof com.options !== "string"
+        )
+          errors.push(
+            `${where}: '${comLabel}.options' is required for type '${com.type}' (or an 'optionsFrom' provider)`
+          );
+        if (com.type === "objectarray" && !Array.isArray(com.object))
+          errors.push(
+            `${where}: '${comLabel}.object' must be an array describing each item's fields`
+          );
+        // Given a bare path instead of `{ field, value }`, Configure compares
+        // undefined to undefined-the-value and greys the control out forever.
+        if (
+          com.enableWhenField !== undefined &&
+          (com.enableWhenField == null ||
+            typeof com.enableWhenField !== "object" ||
+            Array.isArray(com.enableWhenField) ||
+            typeof com.enableWhenField.field !== "string" ||
+            com.enableWhenField.value === undefined)
+        )
+          errors.push(
+            `${where}: '${comLabel}.enableWhenField' must be an object with a 'field' and the 'value' that enables the control`
+          );
+        if (com.rows !== undefined) {
+          if (com.type !== "textarea")
+            errors.push(
+              `${where}: '${comLabel}.rows' only applies to type 'textarea'`
+            );
+          else if (
+            typeof com.rows !== "number" ||
+            !Number.isInteger(com.rows) ||
+            com.rows < 1
+          )
+            errors.push(
+              `${where}: '${comLabel}.rows' must be a positive integer (visible lines; the field grows past it)`
+            );
+        }
+        if (com.width !== undefined) {
+          if (
+            typeof com.width !== "number" ||
+            !Number.isInteger(com.width) ||
+            com.width < 1 ||
+            com.width > 12
+          )
+            errors.push(
+              `${where}: '${comLabel}.width' must be an integer from 1 to 12 (Configure lays rows out on a 12-column grid)`
+            );
+        }
+      });
+    });
+  };
+
+  validateRows(metaconfig.rows, "config.rows");
+
+  if (metaconfig.tabs !== undefined) {
+    if (!Array.isArray(metaconfig.tabs)) {
+      errors.push(`${where}: 'config.tabs' must be an array of tabs`);
+    } else {
+      metaconfig.tabs.forEach((tab, i) => {
+        const tabLabel = `config.tabs[${i}]`;
+        if (tab == null || typeof tab !== "object" || Array.isArray(tab)) {
+          errors.push(`${where}: '${tabLabel}' must be an object`);
+          return;
+        }
+        if (typeof tab.name !== "string" || tab.name.length === 0)
+          errors.push(`${where}: '${tabLabel}.name' is required`);
+        validateRows(tab.rows, `${tabLabel}.rows`);
+      });
+    }
+  }
+
+  return errors;
+}
+
+/** Read a dotted path out of a capabilities object. */
+function _capAt(capabilities, path) {
+  return path
+    .split(".")
+    .reduce((o, k) => (o == null ? undefined : o[k]), capabilities);
+}
+
+/**
+ * Validate the classification capabilities against CAPABILITY_SCHEMA.
+ *
+ * Errors are returned; unknown keys and consequential omissions are logged as
+ * warnings, matching how unknown top-level manifest fields are handled.
+ */
+function validateLayerCapabilities(
+  capabilities,
+  pluginName,
+  pluginType,
+  inheritsCapabilities = false
+) {
+  const errors = [];
+  const schema = CAPABILITY_SCHEMA[pluginType];
+  if (
+    schema == null ||
+    capabilities == null ||
+    typeof capabilities !== "object" ||
+    Array.isArray(capabilities)
+  )
+    return errors;
+
+  const where = `Plugin '${pluginName}' (${pluginType})`;
+  const warn = (message) =>
+    logger("warn", `${where}: ${message}`, "PluginValidation");
+
+  const checkLeaf = (spec, value, path) => {
+    if (
+      (spec.type === "boolean" ||
+        spec.type === "number" ||
+        spec.type === "string") &&
+      typeof value !== spec.type
+    )
+      errors.push(`${where}: 'capabilities.${path}' must be a ${spec.type}`);
+    if (spec.type === "enum" && !spec.values.includes(value))
+      errors.push(
+        `${where}: 'capabilities.${path}' must be one of ${spec.values
+          .map((v) => JSON.stringify(v))
+          .join(", ")}`
+      );
+  };
+
+  for (const [key, value] of Object.entries(capabilities)) {
+    const spec = schema[key];
+    if (spec === undefined) {
+      warn(
+        `unknown capability 'capabilities.${key}' — core reads none of it, so it has no effect (typo?)`
+      );
+      continue;
+    }
+    if (spec.type === "group" || spec.type === "booleanOrGroup") {
+      if (spec.type === "booleanOrGroup" && typeof value === "boolean")
+        continue;
+      if (value == null || typeof value !== "object" || Array.isArray(value)) {
+        errors.push(
+          `${where}: 'capabilities.${key}' must be an object${
+            spec.type === "booleanOrGroup" ? " or a boolean" : ""
+          } (${Object.keys(spec.keys).join(", ")})`
+        );
+        continue;
+      }
+      for (const [subKey, subValue] of Object.entries(value)) {
+        const subSpec = spec.keys[subKey];
+        if (subSpec === undefined) {
+          warn(
+            `unknown capability 'capabilities.${key}.${subKey}' — core reads none of it, so it has no effect (typo?)`
+          );
+          continue;
+        }
+        checkLeaf(subSpec, subValue, `${key}.${subKey}`);
+      }
+      continue;
+    }
+    checkLeaf(spec, value, key);
+  }
+
+  // A type that `extends` another inherits the parent's capabilities at
+  // runtime, so an omission here is not necessarily one.
+  for (const omission of inheritsCapabilities
+    ? []
+    : CONSEQUENTIAL_OMISSIONS[pluginType] || []) {
+    if (_capAt(capabilities, omission.path) !== undefined) continue;
+    if (!omission.when(capabilities)) continue;
+    warn(`'capabilities.${omission.path}' is not declared — ${omission.why}`);
+  }
+
+  return errors;
+}
 
 /**
  * Known top-level fields for each plugin type. Anything else triggers a
@@ -102,31 +634,34 @@ const KNOWN_FIELDS = {
     "order",
     "suppresses",
     "kindAlias",
+    "configPath",
+    "config",
   ]),
   layertype: new Set([
     ...COMMON_FIELDS,
-    "paths",
+    "modules",
+    "module",
     "typeId",
+    "extends",
     "description",
     "descriptionFull",
     "capabilities",
     "fileTypes",
     "supportedData",
-    "metaconfig",
-    "settings",
+    "config",
     "defaultIcon",
     "color",
   ]),
   layerattachment: new Set([
     ...COMMON_FIELDS,
-    "paths",
+    "module",
     "attachmentId",
+    "configPath",
     "description",
     "descriptionFull",
     "applicableLayerTypes",
     "capabilities",
-    "metaconfig",
-    "settings",
+    "config",
     "defaultIcon",
     "color",
   ]),
@@ -242,22 +777,58 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'id' must be a string`
     );
   }
-  if (config.version !== undefined && typeof config.version !== "string") {
-    errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
-    );
+  // `version` is either the sentinel "core" — versioned with MMGIS itself, which
+  // is what every plugin shipped in this repository is — or the plugin's own
+  // semver. Anything else (a bare "2", a date) reads as a version but resolves
+  // to nothing, so it is rejected rather than displayed as-is.
+  if (config.version !== undefined) {
+    if (typeof config.version !== "string") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'version' must be a string`
+      );
+    } else if (
+      config.version !== "core" &&
+      semver.valid(config.version) == null
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'version' must be "core" (versioned with MMGIS) or a semver string`
+      );
+    }
   }
-  if (config.type !== undefined && !["tool", "component", "backend", "interaction", "layertype", "layerattachment"].includes(config.type)) {
+  if (
+    config.type !== undefined &&
+    ![
+      "tool",
+      "component",
+      "backend",
+      "interaction",
+      "layertype",
+      "layerattachment",
+    ].includes(config.type)
+  ) {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction, layertype, layerattachment`
     );
   }
-  if (config.tier !== undefined && !["core", "community", "private", "official", "experimental", "deprecated"].includes(config.tier)) {
+  if (
+    config.tier !== undefined &&
+    ![
+      "core",
+      "community",
+      "private",
+      "official",
+      "experimental",
+      "deprecated",
+    ].includes(config.tier)
+  ) {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'tier' must be one of: core, community, private, official, experimental, deprecated`
     );
   }
-  if (config.overridable !== undefined && typeof config.overridable !== "boolean") {
+  if (
+    config.overridable !== undefined &&
+    typeof config.overridable !== "boolean"
+  ) {
     errors.push(
       `Plugin '${pluginName}' (${pluginType}): 'overridable' must be a boolean`
     );
@@ -273,14 +844,22 @@ function validatePluginConfig(config, pluginName, pluginType) {
     );
   }
   if (config.engines !== undefined) {
-    if (typeof config.engines !== "object" || Array.isArray(config.engines) || config.engines === null) {
+    if (
+      typeof config.engines !== "object" ||
+      Array.isArray(config.engines) ||
+      config.engines === null
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'engines' must be an object (e.g. { "mmgis": ">=5.0.0" })`
       );
     }
   }
   if (config.peerDependencies !== undefined) {
-    if (typeof config.peerDependencies !== "object" || Array.isArray(config.peerDependencies) || config.peerDependencies === null) {
+    if (
+      typeof config.peerDependencies !== "object" ||
+      Array.isArray(config.peerDependencies) ||
+      config.peerDependencies === null
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'peerDependencies' must be an object mapping plugin-id to version range`
       );
@@ -309,7 +888,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
         `Plugin '${pluginName}' (${pluginType}): missing required 'name' field (must be a non-empty string)`
       );
     }
-    if (typeof config.interactionId !== "string" || config.interactionId.length === 0) {
+    if (
+      typeof config.interactionId !== "string" ||
+      config.interactionId.length === 0
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): missing required 'interactionId' field (must be a non-empty string)`
       );
@@ -338,7 +920,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
         }
       }
     }
-    if (config.phase !== undefined && !["preamble", "postamble", "main"].includes(config.phase)) {
+    if (
+      config.phase !== undefined &&
+      !["preamble", "postamble", "main"].includes(config.phase)
+    ) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): 'phase' must be one of: preamble, postamble, main`
       );
@@ -362,12 +947,55 @@ function validatePluginConfig(config, pluginName, pluginType) {
         );
       }
     }
+    // Optional for an interaction: declaring it is what gets the interaction its
+    // own settings as `ctx.config` instead of the whole layer.
+    if (
+      config.configPath !== undefined &&
+      (typeof config.configPath !== "string" ||
+        !config.configPath.startsWith("variables."))
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'configPath' must point into a layer's 'variables' ('${config.configPath}')`
+      );
+    }
+    // An interaction's form renders on its card in a layer's Interactions tab,
+    // so it configures that interaction's own subtree and nowhere else.
+    if (config.config?.rows !== undefined && config.configPath === undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'config.rows' needs a 'configPath' — without one the runner hands the interaction no settings, so the form would write what nothing reads`
+      );
+    }
+    if (config.config?.tab !== undefined || config.config?.tabs !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): an interaction's 'config' takes only 'rows' — its settings render on its card in a layer's Interactions tab, not in a tab of their own`
+      );
+    }
+    if (
+      config.config !== undefined &&
+      (typeof config.config !== "object" ||
+        config.config === null ||
+        Array.isArray(config.config))
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'config' must be an inline object describing the Configure-page form`
+      );
+    } else {
+      errors.push(
+        ...validateMetaconfig(
+          config.config,
+          pluginName,
+          pluginType,
+          typeof config.configPath === "string" ? config.configPath : null
+        )
+      );
+    }
   }
 
-  // For layer types, name, typeId, and paths are required. For layer
-  // attachments, name, attachmentId, and paths are required. Both share the
-  // same renderer-plugin shape (a `paths` object of static-import entries plus
-  // an optional `capabilities` block).
+  // For layer types, name, typeId, and `modules`/`module` are required. For
+  // layer attachments, name, attachmentId, and `module` are required. Both
+  // declare their renderer modules by render surface (`map`, `globe.<engine>`,
+  // `config`, …) rather than by export name as tools/interactions' `paths`
+  // does, plus an optional `capabilities` block.
   if (pluginType === "layertype" || pluginType === "layerattachment") {
     const idField = pluginType === "layertype" ? "typeId" : "attachmentId";
 
@@ -381,39 +1009,122 @@ function validatePluginConfig(config, pluginName, pluginType) {
         `Plugin '${pluginName}' (${pluginType}): missing required '${idField}' field (must be a non-empty string)`
       );
     }
-    // A layer type may be non-rendering (e.g. 'header'): it owns config/UI
-    // metadata but draws nothing, so it is allowed to omit renderer paths.
-    // Everything else (layer attachments, and any layertype that declares a
-    // `paths` object) must supply at least one string-valued renderer path.
-    const nonRenderingLayerType =
-      pluginType === "layertype" && config.paths === undefined;
-    if (nonRenderingLayerType) {
-      // no renderer paths required
-    } else if (
-      config.paths === undefined ||
-      config.paths === null ||
-      typeof config.paths !== "object" ||
-      Array.isArray(config.paths)
-    ) {
-      errors.push(
-        `Plugin '${pluginName}' (${pluginType}): missing required 'paths' object`
-      );
-    } else {
-      const pathKeys = Object.keys(config.paths);
-      if (pathKeys.length === 0) {
+    // An attachment's settings live in its host layer's config, and its id is
+    // free to differ from the key it is configured under (`image_overlays` is
+    // configured as `markerAttachments.image`), so the path is declared. Core
+    // resolves it to decide whether a host wants the attachment at all.
+    if (pluginType === "layerattachment") {
+      if (
+        typeof config.configPath !== "string" ||
+        config.configPath.trim() === ""
+      ) {
         errors.push(
-          `Plugin '${pluginName}' (${pluginType}): 'paths' object must contain at least one entry`
+          `Plugin '${pluginName}' (${pluginType}): missing required 'configPath' field (e.g. 'variables.markerAttachments.image')`
+        );
+      } else if (!config.configPath.startsWith("variables.")) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'configPath' must point into a layer's 'variables' ('${config.configPath}')`
         );
       }
-      for (const key of pathKeys) {
-        if (typeof config.paths[key] !== "string") {
+    } else if (config.configPath !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'configPath' is only valid on a layerattachment or an interaction`
+      );
+    }
+    if (config.extends !== undefined) {
+      if (pluginType !== "layertype") {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'extends' is only valid on a layertype`
+        );
+      } else if (
+        typeof config.extends !== "string" ||
+        config.extends.trim() === ""
+      ) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'extends' must be a non-empty typeId string`
+        );
+      } else if (config.extends === config.typeId) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'extends' cannot reference itself ('${config.typeId}')`
+        );
+      }
+    }
+    if (config.paths !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'paths' is the tools/interactions field (export name \u2192 module); declare renderer modules by surface instead (${
+          pluginType === "layertype"
+            ? `'modules': { "map": "./map", "globe": { "cesium": "./globe/cesium" } }`
+            : `'module': "./x"`
+        })`
+      );
+    }
+    if (pluginType === "layerattachment" && config.modules !== undefined) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): an attachment is one renderable across both engines \u2014 declare a single 'module' string, not 'modules'`
+      );
+    }
+    if (
+      pluginType === "layertype" &&
+      config.modules !== undefined &&
+      (config.modules === null ||
+        typeof config.modules !== "object" ||
+        Array.isArray(config.modules))
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'modules' must be an object keyed by render surface ('map', 'config', 'filter', 'time', 'globe': { '<engine>': … })`
+      );
+    }
+    if (config.module !== undefined && typeof config.module !== "string") {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'module' must be a string path to the plugin's module`
+      );
+    }
+    const declaredModules = flattenLayerModules(config);
+    // A layer type may be non-rendering (e.g. 'header'): it owns config/UI
+    // metadata but draws nothing, so it is allowed to declare no modules.
+    // `extends: "<typeId>"` inherits every surface this type doesn't declare
+    // from one parent, so an inheriting type may legitimately ship no modules
+    // at all (a pure capability override).
+    const declaresNoModules =
+      config.modules === undefined && config.module === undefined;
+    if (pluginType === "layertype" && declaresNoModules) {
+      // no renderer modules required
+    } else if (declaresNoModules) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): missing required 'module' path`
+      );
+    } else {
+      if (Object.keys(declaredModules).length === 0) {
+        errors.push(
+          `Plugin '${pluginName}' (${pluginType}): 'modules' must declare at least one surface`
+        );
+      }
+      for (const key in declaredModules) {
+        if (typeof declaredModules[key] !== "string") {
           errors.push(
-            `Plugin '${pluginName}' (${pluginType}): 'paths.${key}' must be a string`
+            `Plugin '${pluginName}' (${pluginType}): module '${key}' must be a string path`
           );
         }
       }
     }
+    if (config.capabilities === undefined) {
+      // Every capability core reads then answers "no", which for `renderers`
+      // means "draws on neither surface" — legal (a header) but rarely meant.
+      logger(
+        "warn",
+        `Plugin '${pluginName}' (${pluginType}): declares no 'capabilities' — core will classify it as rendering on no surface, and out of ordering, picking and the time bar`,
+        "PluginValidation"
+      );
+    }
     if (config.capabilities !== undefined) {
+      errors.push(
+        ...validateLayerCapabilities(
+          config.capabilities,
+          pluginName,
+          pluginType,
+          typeof config.extends === "string" && config.extends.trim() !== ""
+        )
+      );
       if (
         typeof config.capabilities !== "object" ||
         Array.isArray(config.capabilities) ||
@@ -449,9 +1160,11 @@ function validatePluginConfig(config, pluginName, pluginType) {
           });
         }
       }
-      // Declarative default interactions: a map of event name -> array of
-      // interaction IDs core merges when a layer of this type doesn't
-      // configure its own. Descriptive/behavioral metadata, validated for shape.
+      // Declarative default interactions: a map of event name -> either an array
+      // of interaction IDs, or an object of ID -> that interaction's settings
+      // (the mirror of defaultAttachments, for a type that ships an interaction
+      // and knows how it should be configured). Core merges either when a layer
+      // of this type doesn't configure its own.
       // Guard against a non-object `capabilities` (e.g. null): the shape error is
       // already recorded above, and this is a separate `if` at the same nesting
       // level, so it must re-check before dereferencing to avoid throwing.
@@ -464,56 +1177,114 @@ function validatePluginConfig(config, pluginName, pluginType) {
         const di = config.capabilities.defaultInteractions;
         if (typeof di !== "object" || Array.isArray(di) || di === null) {
           errors.push(
-            `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions' must be an object mapping event name to an array of interaction IDs`
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions' must be an object mapping event name to an array of interaction IDs, or to an object of interaction ID -> settings`
           );
         } else {
-          for (const [ev, ids] of Object.entries(di)) {
-            if (!Array.isArray(ids) || ids.some((v) => typeof v !== "string")) {
+          for (const [ev, forEvent] of Object.entries(di)) {
+            if (Array.isArray(forEvent)) {
+              if (forEvent.some((v) => typeof v !== "string"))
+                errors.push(
+                  `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings`
+                );
+              continue;
+            }
+            if (
+              forEvent === null ||
+              typeof forEvent !== "object" ||
+              Array.isArray(forEvent)
+            ) {
               errors.push(
-                `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings`
+                `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}' must be an array of interaction ID strings, or an object of interaction ID -> settings ({} for none)`
+              );
+              continue;
+            }
+            for (const [id, settings] of Object.entries(forEvent)) {
+              if (
+                settings === null ||
+                typeof settings !== "object" ||
+                Array.isArray(settings)
+              ) {
+                errors.push(
+                  `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultInteractions.${ev}.${id}' must be an object of that interaction's settings ({} for none)`
+                );
+              }
+            }
+          }
+        }
+      }
+
+      // The attachments a type comes with, and what they should be on a layer
+      // that hasn't configured them: `{ [attachmentId]: { …settings } }`, `{}`
+      // meaning "on, the attachment's own defaults". An object rather than a
+      // list of ids because "comes with" is only useful if it can say how.
+      if (
+        config.capabilities !== null &&
+        typeof config.capabilities === "object" &&
+        !Array.isArray(config.capabilities) &&
+        config.capabilities.defaultAttachments !== undefined
+      ) {
+        const da = config.capabilities.defaultAttachments;
+        if (typeof da !== "object" || Array.isArray(da) || da === null) {
+          errors.push(
+            `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultAttachments' must be an object mapping attachment ID to its default settings ({} for none)`
+          );
+        } else {
+          for (const [id, settings] of Object.entries(da)) {
+            if (
+              settings === null ||
+              typeof settings !== "object" ||
+              Array.isArray(settings)
+            ) {
+              errors.push(
+                `Plugin '${pluginName}' (${pluginType}): 'capabilities.defaultAttachments.${id}' must be an object of that attachment's settings ({} for none)`
               );
             }
           }
         }
       }
     }
-    // Cross-check declared renderer engines against the module `paths` map so a
+    // Cross-check declared renderer engines against the declared modules so a
     // type can't claim to render on a surface/engine it ships no module for (or
     // ship a renderer module for a surface it doesn't declare). This is the
     // manifest-level half of the contract check; the plugin CLI does the
     // module-export-level half (required `make`, known ops/phases).
-    const renderers = config.capabilities && config.capabilities.renderers;
+    // An attachment declares one module for both engines, so there is nothing
+    // per-surface to cross-check.
+    // An extending type may render entirely through its parent's modules, so
+    // there is nothing of its own to cross-check.
+    const renderers =
+      pluginType === "layerattachment" || config.extends !== undefined
+        ? null
+        : config.capabilities && config.capabilities.renderers;
     if (
       renderers &&
       typeof renderers === "object" &&
       !Array.isArray(renderers) &&
-      config.paths &&
-      typeof config.paths === "object" &&
-      !Array.isArray(config.paths)
+      Object.keys(declaredModules).length > 0
     ) {
-      const pathKeys = new Set(Object.keys(config.paths));
-      // map surface → single 'map' path key; globe surface → 'globe.<engine>'.
-      if (renderers.map && !pathKeys.has("map")) {
+      const moduleKeys = new Set(Object.keys(declaredModules));
+      // map surface → single 'map' key; globe surface → 'globe.<engine>'.
+      if (renderers.map && !moduleKeys.has("map")) {
         errors.push(
-          `Plugin '${pluginName}' (${pluginType}): declares a 'map' renderer but has no 'paths.map' module`
+          `Plugin '${pluginName}' (${pluginType}): declares a 'map' renderer but has no 'modules.map' module`
         );
       }
       const globe = renderers.globe;
       if (globe && typeof globe === "object" && Array.isArray(globe.engines)) {
         globe.engines.forEach((engine) => {
-          if (!pathKeys.has(`globe.${engine}`)) {
+          if (!moduleKeys.has(`globe.${engine}`)) {
             errors.push(
-              `Plugin '${pluginName}' (${pluginType}): declares a 'globe' engine '${engine}' but has no 'paths.globe.${engine}' module`
+              `Plugin '${pluginName}' (${pluginType}): declares a 'globe' engine '${engine}' but has no 'modules.globe.${engine}' module`
             );
           }
         });
       }
-      // Reverse: every renderer path must have a matching declared engine.
-      pathKeys.forEach((key) => {
+      // Reverse: every renderer module must have a matching declared engine.
+      moduleKeys.forEach((key) => {
         if (key === "map") {
           if (!renderers.map) {
             errors.push(
-              `Plugin '${pluginName}' (${pluginType}): has a 'paths.map' module but does not declare a 'map' renderer`
+              `Plugin '${pluginName}' (${pluginType}): has a 'modules.map' module but does not declare a 'map' renderer`
             );
           }
         } else if (key.startsWith("globe.")) {
@@ -526,11 +1297,24 @@ function validatePluginConfig(config, pluginName, pluginType) {
                 renderers.globe.engines.includes(engine)));
           if (!globeOk) {
             errors.push(
-              `Plugin '${pluginName}' (${pluginType}): has a 'paths.${key}' module but does not declare globe engine '${engine}'`
+              `Plugin '${pluginName}' (${pluginType}): has a 'modules.${key}' module but does not declare globe engine '${engine}'`
             );
           }
         }
       });
+    }
+    // A type that says it can report when its data exists must ship the
+    // operation core asks for it with, or the time bar silently draws nothing
+    // for its layers.
+    if (
+      pluginType === "layertype" &&
+      config.capabilities?.time?.histogram === true &&
+      config.extends === undefined &&
+      declaredModules.time === undefined
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): declares 'capabilities.time.histogram' but has no 'modules.time' module to implement 'availability' in`
+      );
     }
     if (config.fileTypes !== undefined && !Array.isArray(config.fileTypes)) {
       errors.push(
@@ -549,7 +1333,11 @@ function validatePluginConfig(config, pluginName, pluginType) {
         );
       } else {
         config.supportedData.forEach((entry, i) => {
-          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+          if (
+            typeof entry !== "object" ||
+            entry === null ||
+            Array.isArray(entry)
+          ) {
             errors.push(
               `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}]' must be an object`
             );
@@ -560,7 +1348,10 @@ function validatePluginConfig(config, pluginName, pluginType) {
               `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].label' is required (non-empty string)`
             );
           }
-          if (typeof entry.category !== "string" || entry.category.length === 0) {
+          if (
+            typeof entry.category !== "string" ||
+            entry.category.length === 0
+          ) {
             errors.push(
               `Plugin '${pluginName}' (${pluginType}): 'supportedData[${i}].category' is required (non-empty string, e.g. 'raster', 'vector', 'model')`
             );
@@ -587,14 +1378,26 @@ function validatePluginConfig(config, pluginName, pluginType) {
         });
       }
     }
-    if (config.metaconfig !== undefined && typeof config.metaconfig !== "string") {
+    if (
+      config.config !== undefined &&
+      (typeof config.config !== "object" ||
+        config.config === null ||
+        Array.isArray(config.config))
+    ) {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'metaconfig' must be a string path to a metaconfig JSON file`
+        `Plugin '${pluginName}' (${pluginType}): 'config' must be an inline object describing the Configure-page form`
       );
-    }
-    if (config.settings !== undefined && typeof config.settings !== "string") {
+    } else {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'settings' must be a string path to a settings JSON file`
+        ...validateMetaconfig(
+          config.config,
+          pluginName,
+          pluginType,
+          pluginType === "layerattachment" &&
+            typeof config.configPath === "string"
+            ? config.configPath
+            : null
+        )
       );
     }
     if (
@@ -610,6 +1413,9 @@ function validatePluginConfig(config, pluginName, pluginType) {
 
   // For tools and components, both `name` and `paths` are required.
   if (pluginType === "tool" || pluginType === "component") {
+    errors.push(
+      ...validateMetaconfig(config.config, pluginName, pluginType)
+    );
     if (typeof config.name !== "string" || config.name.length === 0) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): missing required 'name' field (must be a non-empty string)`
@@ -902,32 +1708,105 @@ function _parseObjectLiteral(src, start) {
 }
 
 /**
+ * Walk `src` from `i`, skipping comments and string/template literals, calling
+ * `at(index)` on every other character. Returns whatever `at` first returns
+ * that isn't undefined, else null.
+ */
+function _scanCode(src, at) {
+  let i = 0;
+  let last;
+  while (i < src.length) {
+    const before = i;
+    i = _skipWsAndComments(src, i);
+    if (i !== before) {
+      last = undefined;
+      continue;
+    }
+    const ch = src[i];
+    if (ch === undefined) break;
+    if (ch === "'" || ch === '"' || ch === "`") {
+      i = _skipString(src, i);
+      last = ch;
+      continue;
+    }
+    if (ch === "/" && _regexAllowedAfter(last)) {
+      i = _skipRegex(src, i);
+      last = "/";
+      continue;
+    }
+    const found = at(i);
+    if (found !== undefined) return found;
+    last = ch;
+    i++;
+  }
+  return null;
+}
+
+/**
+ * The index of the `{` opening the object a module default-exports, or null.
+ *
+ * Both documented forms count: the object literal inline
+ * (`export default { make }`) and the named const eslint's
+ * `import/no-anonymous-default-export` asks for (`const Vector = { make };
+ * export default Vector`). Comments are skipped, so a doc comment showing
+ * `export default {` is not mistaken for the real one.
+ */
+function _defaultExportObjectIndex(source) {
+  const exportAt = _scanCode(source, (i) => {
+    if (!source.startsWith("export", i)) return undefined;
+    const after = _skipWsAndComments(source, i + "export".length);
+    if (!source.startsWith("default", after)) return undefined;
+    return _skipWsAndComments(source, after + "default".length);
+  });
+  if (exportAt == null) return null;
+  if (source[exportAt] === "{") return exportAt;
+
+  // `export default Name` — find the declaration of `Name`.
+  let j = exportAt;
+  while (j < source.length && /[A-Za-z0-9_$]/.test(source[j])) j++;
+  const name = source.slice(exportAt, j);
+  if (!name) return null;
+  return _scanCode(source, (i) => {
+    if (!/[A-Za-z0-9_$]/.test(source[i])) return undefined;
+    if (i > 0 && /[A-Za-z0-9_$.]/.test(source[i - 1])) return undefined;
+    if (!source.startsWith(name, i)) return undefined;
+    if (/[A-Za-z0-9_$]/.test(source[i + name.length] || "")) return undefined;
+    const eq = _skipWsAndComments(source, i + name.length);
+    if (source[eq] !== "=" || source[eq + 1] === "=") return undefined;
+    const brace = _skipWsAndComments(source, eq + 1);
+    return source[brace] === "{" ? brace : undefined;
+  });
+}
+
+/**
  * Validate a layer-type / layer-attachment renderer module's `export default`
  * object against the operation contract. Static (does not execute the module).
  *
  * @param {string} source - The module file's text.
  * @param {string} label  - A human label for messages (e.g. 'tile (map)').
+ * @param {string} [surface='map'] - Which surface this module implements; the
+ *   valid operations and whether `make` is required depend on it.
  * @returns {string[]} error strings (empty == valid)
  */
-function validateLayerTypeModuleShape(source, label) {
+function validateLayerTypeModuleShape(source, label, surface = "map") {
   const errors = [];
-  const marker = /export\s+default\s*\{/.exec(source);
-  if (!marker) {
+  const { ops: validOps, requiresMake } = SURFACES[surface] || SURFACES.map;
+  const braceIndex = _defaultExportObjectIndex(source);
+  if (braceIndex == null) {
     errors.push(
-      `${label}: no 'export default { … }' renderer object found`
+      `${label}: no default-exported object found — 'export default { … }', or 'const X = { … }' with 'export default X'`
     );
     return errors;
   }
-  const braceIndex = marker.index + marker[0].length - 1;
   const { keys } = _parseObjectLiteral(source, braceIndex);
   const opNames = keys.map((k) => k.name);
-  if (!opNames.includes("make")) {
+  if (requiresMake && !opNames.includes("make")) {
     errors.push(`${label}: missing required 'make' operation`);
   }
   for (const op of keys) {
-    if (!LAYER_OPS.includes(op.name)) {
+    if (!validOps.includes(op.name)) {
       errors.push(
-        `${label}: unknown operation '${op.name}' (expected one of: ${LAYER_OPS.join(", ")})`
+        `${label}: unknown operation '${op.name}' (expected one of: ${validOps.join(", ")})`
       );
       continue;
     }
@@ -946,13 +1825,62 @@ function validateLayerTypeModuleShape(source, label) {
   return errors;
 }
 
+/**
+ * Cross-plugin check for `extends`: the parent must exist, and inheritance is
+ * one level only — a chain of layer types is a refactoring hazard for no
+ * demonstrated need, and one level already solves the fork-the-parent problem
+ * `extends` exists for.
+ *
+ * @param {Object} manifestsById - { [typeId]: manifest }
+ * @returns {string[]} error strings (empty == valid)
+ */
+function findLayerTypeInheritanceProblems(manifestsById) {
+  const problems = [];
+  for (const typeId in manifestsById) {
+    const parentId = manifestsById[typeId].extends;
+    if (parentId === undefined) continue;
+
+    const parent = manifestsById[parentId];
+    if (parent === undefined) {
+      problems.push({
+        typeId,
+        message: `Layer type '${typeId}': extends '${parentId}', which no plugin provides`,
+      });
+    } else if (parent.extends !== undefined) {
+      problems.push({
+        typeId,
+        message: `Layer type '${typeId}': extends '${parentId}', which itself extends '${parent.extends}' — inheritance is one level only`,
+      });
+    }
+  }
+  return problems;
+}
+
+function validateLayerTypeInheritance(manifestsById) {
+  return findLayerTypeInheritanceProblems(manifestsById).map((p) => p.message);
+}
+
 module.exports = {
   validatePluginConfig,
   validateDependencies,
   findDuplicateInteractionIds,
   findDuplicateIds,
   validateLayerTypeModuleShape,
+  surfaceOfModuleKey,
+  flattenLayerModules,
+  validateLayerTypeInheritance,
+  findLayerTypeInheritanceProblems,
+  validateLayerCapabilities,
+  validateMetaconfig,
+  CAPABILITY_SCHEMA,
   LAYER_OPS,
+  ATTACHMENT_OPS,
+  CONFIG_OPS,
+  FILTER_OPS,
+  TIME_OPS,
+  SOURCE_OPS,
+  LEGEND_OPS,
+  SURFACES,
   OP_PHASES,
   MAKE_EXTRA_PHASES,
   KNOWN_FIELDS,

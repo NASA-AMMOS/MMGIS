@@ -1,4 +1,6 @@
 import F_ from '../../Formulae_/Formulae_'
+import LayerInterface from '../interface/LayerInterface'
+import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 
 import $ from 'jquery'
 
@@ -82,8 +84,6 @@ export async function parseConfig(L_, configData, urlOnLayers) {
     await expandLayers(layers, 0, null)
 
     async function expandLayers(d, level, prevName) {
-        const stacRegex = /^stac(-((item)|(catalog)|(collection)))?:/i
-
         //Iterate over each layer
         for (let i = 0; i < d.length; i++) {
             // If sourceType, prefix onto url
@@ -95,11 +95,17 @@ export async function parseConfig(L_, configData, urlOnLayers) {
                 d[i].url = `${d[i].sourceType}:${d[i].url}`
             }
 
-            // check if this is a vector STAC catalog or collection
-            // if so, prefetch the data and replace this entry
-            if (d[i].type === 'vector' && stacRegex.test(d[i].url)) {
-                d[i] = await getSTACLayers(d[i])
-            }
+            // One configured layer may describe more than one layer (a STAC
+            // catalog becomes a header with a sublayer per child). Only the
+            // layer type knows, so ask it — a type that declares no `expand`
+            // keeps its entry unchanged, and parsing stays synchronous (core
+            // reads dataFlat as soon as parseConfig resolves).
+            const configModule = LayerTypeRegistry.get(d[i].type)?.config
+            if (LayerInterface.hasOp(configModule, 'expand'))
+                d[i] =
+                    (await LayerInterface.run(configModule, 'expand', [
+                        d[i],
+                    ])) || d[i]
 
             // Quick hack to use uuid instead of name as main id
             d[i].uuid = d[i].uuid || d[i].name
@@ -172,29 +178,25 @@ export async function parseConfig(L_, configData, urlOnLayers) {
             //Save the prevName for easy tracing back
             L_._layersParent[d[i].name] = prevName
 
-            // Set default kind to 'none'
-            if (
-                d[i].type === 'vector' ||
-                d[i].type === 'vectortile' ||
-                d[i].type === 'query'
-            ) {
-                L_.layers.data[d[i].name].kind = d[i].kind || 'none'
-            }
-            if (d[i].type === 'vector') {
-                d[i].radius = d[i].style?.radius || d[i].radius || 8
-            }
+            // The layer type fills in its own config defaults (kind, radius,
+            // tile format…) — `config.normalize` gets the last word on the
+            // config object before core reads it.
+            d[i] =
+                LayerInterface.runSync(
+                    LayerTypeRegistry.get(d[i].type)?.config,
+                    'normalize',
+                    [d[i]],
+                    { coreDefault: (layerObj) => layerObj }
+                ) || d[i]
+            L_.layers.data[d[i].name] = d[i]
 
-            //Check if it's not a header and thus an actual layer with data
-            if (d[i].type != 'header') {
+            //Structural layers organize the tree; everything else has data
+            if (!LayerTypeRegistry.isStructural(d[i].type)) {
                 //Create parsed layers ordered
                 L_._layersOrdered.push(d[i].name)
-                //Create parsed layers loaded
-                if (
-                    d[i].type != 'data' &&
-                    d[i].type != 'model' &&
-                    d[i].type != '3dtiles'
-                )
-                    //No load checking for model/3dtiles since they are globe only
+                //Create parsed layers loaded. A type that never loads on the 2D
+                //map (globe-only, or progressive) counts as loaded immediately.
+                if (LayerTypeRegistry.tracksMapLoad(d[i].type))
                     L_._layersLoaded.push(false)
                 else L_._layersLoaded.push(true)
 
@@ -220,10 +222,6 @@ export async function parseConfig(L_, configData, urlOnLayers) {
                 if (d[i].time == null) {
                     d[i].time = { enabled: false }
                 }
-
-                if (d[i].type === 'tile' && d[i].throughTileServer === true) {
-                    d[i].tileformat = 'wmts'
-                }
             }
 
             //Create parsed layers data
@@ -233,9 +231,10 @@ export async function parseConfig(L_, configData, urlOnLayers) {
             L_.layers.on[d[i].name] =
                 d[i].visibility == undefined ? true : d[i].visibility
 
-            // Headers always start as true
+            // Structural layers (headers) always start as true
             // Toggling header visibility toggles between all-off and previous-on states
-            if (d[i].type === 'header') L_.layers.on[d[i].name] = true
+            if (LayerTypeRegistry.isStructural(d[i].type))
+                L_.layers.on[d[i].name] = true
 
             //Create parsed opacity array
             let io = d[i].initialOpacity
@@ -262,7 +261,7 @@ export async function parseConfig(L_, configData, urlOnLayers) {
             var dNext = getSublayers(d[i])
             //If they are sublayers, call this function again and move up a level
             if (dNext != 0) {
-                expandLayers(dNext, level + 1, d[i].name)
+                await expandLayers(dNext, level + 1, d[i].name)
             }
         }
     }
@@ -276,141 +275,4 @@ export async function parseConfig(L_, configData, urlOnLayers) {
         return 0
     }
 
-    // recurse through a STAC layer building sublayers
-    function getSTACLayers(d) {
-        return new Promise(async (resolve, reject) => {
-            let stac_data
-            const stacRegex =
-                /^(?<prefix>stac(-((item)|(catalog)|(collection)))?:)?(?<url>.*)/i
-            const urlMatch = d.url.match(stacRegex)
-            if (!urlMatch) {
-                console.warn('Could not process STAC URL')
-                resolve(d)
-            }
-            const { prefix, url } = urlMatch.groups
-            d.url = url // replace the current URL so we no longer need to worry about the special prefix
-            if (prefix !== 'stac-item:') {
-                $.ajax({
-                    url: L_.getUrl('stac', d.url, d),
-                    success: async (resp) => {
-                        stac_data = resp
-                        const path = d.url.split('/').slice(0, -1).join('/')
-                        const basename = F_.fileNameFromPath(d.url)
-                        const stac_type = stac_data.type.toLowerCase()
-                        if (stac_type === 'catalog') {
-                            let sublayers = []
-                            const children = stac_data.links.filter((l) =>
-                                /^child/i.test(l.rel)
-                            )
-                            const promArr = []
-                            for (let i = 0; i < children.length; i++) {
-                                const uuid = `${d.uuid}-${i}`
-                                promArr.push(
-                                    getSTACLayers(
-                                        Object.assign({}, d, {
-                                            url: children[i].href.replace(
-                                                './',
-                                                `${path}/`
-                                            ),
-                                            display_name:
-                                                children[i].title ||
-                                                F_.fileNameFromPath(
-                                                    children[i].href
-                                                ),
-                                            uuid: uuid,
-                                            name: uuid,
-                                        })
-                                    )
-                                )
-                            }
-
-                            try {
-                                const subls = await Promise.all(promArr)
-                                sublayers = sublayers.concat(subls)
-                            } catch (err) {
-                                console.warn(err)
-                                resolve(d)
-                            }
-
-                            resolve(
-                                Object.assign(
-                                    {
-                                        type: 'header',
-                                        sublayers,
-                                        description: '',
-                                        display_name: '',
-                                        name: '',
-                                        uuid: '',
-                                    },
-                                    {
-                                        description: d.description,
-                                        display_name:
-                                            d.display_name || basename,
-                                        name: d.name,
-                                        uuid: d.uuid,
-                                    }
-                                )
-                            )
-                        } else if (stac_type === 'collection') {
-                            const sublayers = []
-                            const items = stac_data.links.filter((l) =>
-                                /^item/i.test(l.rel)
-                            )
-                            for (let i = 0; i < items.length; i++) {
-                                const uuid = `${d.uuid}-${i}`
-                                sublayers.push(
-                                    // we shouldn't need to pre-fetch item data
-                                    Object.assign({}, d, {
-                                        url: items[i].href.replace(
-                                            './',
-                                            `${path}/`
-                                        ),
-                                        display_name:
-                                            items[i].title ||
-                                            F_.fileNameFromPath(items[i].href),
-                                        uuid: uuid,
-                                        name: uuid,
-                                    })
-                                )
-                            }
-                            resolve(
-                                Object.assign(
-                                    {
-                                        type: 'header',
-                                        sublayers,
-                                        description: '',
-                                        display_name: '',
-                                        name: '',
-                                        uuid: '',
-                                    },
-                                    {
-                                        description: d.description,
-                                        display_name:
-                                            d.display_name || basename,
-                                        name: d.name,
-                                        uuid: d.uuid,
-                                    }
-                                )
-                            )
-                        } else if (/^feature(collection)?$/i.test(stac_type)) {
-                            resolve(
-                                Object.assign({}, d, {
-                                    display_name: d.display_name || basename,
-                                })
-                            )
-                        } else {
-                            console.warn('Could not process STAC layer')
-                            resolve(d)
-                        }
-                    },
-                    error: (resp) => {
-                        console.warn(resp)
-                        resolve(d)
-                    },
-                })
-            } else {
-                resolve(d)
-            }
-        })
-    }
 }

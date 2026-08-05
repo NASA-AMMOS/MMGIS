@@ -157,6 +157,9 @@ const L_ = {
     toggleSublayer(...a) {
         return sublayers.toggleSublayer(L_, ...a)
     },
+    setAttachmentVisibility(...a) {
+        return sublayers.setAttachmentVisibility(L_, ...a)
+    },
     disableAllBut(...a) {
         return visibility.disableAllBut(L_, ...a)
     },
@@ -201,12 +204,6 @@ const L_ = {
     },
     removePopupStopPropogationFunctions(...a) {
         return annotations.removePopupStopPropogationFunctions(L_, ...a)
-    },
-    addGradientPolyline(...a) {
-        return sublayers.addGradientPolyline(L_, ...a)
-    },
-    removeGradientPolyline(...a) {
-        return sublayers.removeGradientPolyline(L_, ...a)
     },
     setLayerOpacity(...a) {
         return style.setLayerOpacity(L_, ...a)
@@ -326,8 +323,26 @@ const L_ = {
     timeFilterVectorLayer(...a) {
         return geojson.timeFilterVectorLayer(L_, ...a)
     },
-    _updatePairings(...a) {
-        return sublayers._updatePairings(L_, ...a)
+    getPeerFeatures(...a) {
+        return sublayers.getPeerFeatures(L_, ...a)
+    },
+    notifyAttachmentsOfPeerToggle(...a) {
+        return sublayers.notifyAttachmentsOfPeerToggle(L_, ...a)
+    },
+    setAttachmentConfig(...a) {
+        return sublayers.setAttachmentConfig(L_, ...a)
+    },
+    decorateFeature(...a) {
+        return sublayers.decorateFeature(L_, ...a)
+    },
+    makeFeatureAttachment(...a) {
+        return sublayers.makeFeatureAttachment(L_, ...a)
+    },
+    clearFeatureAttachments(...a) {
+        return sublayers.clearFeatureAttachments(L_, ...a)
+    },
+    attachmentGlobeStyle(...a) {
+        return sublayers.attachmentGlobeStyle(L_, ...a)
     },
     getLayersChosenNamePropVal(...a) {
         return getters.getLayersChosenNamePropVal(L_, ...a)
@@ -350,7 +365,6 @@ const L_ = {
         return getters.getListOfUsedGeoDatasets(L_, ...a)
     },
 }
-
 
 window.L_ = L_
 export default L_

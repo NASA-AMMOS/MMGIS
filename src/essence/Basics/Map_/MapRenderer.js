@@ -191,6 +191,14 @@ function onViewChange(mctx, f) {
     mctx.map.on('moveend', f)
 }
 
+// Neutral primitive: run `f` when the view STARTS changing (as opposed to
+// `onViewChange`, which fires once it settles). For layers whose rendering is
+// tied to the current view and would otherwise visibly jump mid-move.
+function onViewChangeStart(mctx, f) {
+    mctx.map.on('movestart', f)
+    mctx.map.on('zoomstart', f)
+}
+
 // Neutral primitive: remove a layer previously added through this middleware.
 // Dispatches the type's map `destroy` op (mirroring GlobeRenderer.removeLayer);
 // built-ins declare none, so the core default (remove from map) runs.
@@ -212,5 +220,6 @@ export default {
     addTile,
     addVector,
     onViewChange,
+    onViewChangeStart,
     removeLayer,
 }

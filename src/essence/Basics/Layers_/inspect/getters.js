@@ -1,13 +1,25 @@
 import F_ from '../../Formulae_/Formulae_'
 
 import { transformStacUrl } from '../LayerUtils'
+import LayerInterface from '../interface/LayerInterface'
+import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 
+/**
+ * Resolve a layer's url. Core owns the parts that are true of every layer —
+ * STAC collection expansion, `COG:` stripping, making relative mission paths
+ * absolute — and then gives the layer type the last word via its
+ * `config.resolveUrl` op (a type served through MMGIS' own tile server, for
+ * instance, needs a different relative prefix).
+ *
+ * `type` is the resolution purpose, normally the layer's type.
+ */
 export function getUrl(L_, type, url, layerData) {
     let wasCOG = false
 
     let nextUrl = url
 
-    // Handle STAC collection URLs using shared transformation function
+    // Handle STAC collection URLs using shared transformation function. Which
+    // TiTiler endpoint a type wants is declared, not inferred.
     if (
         nextUrl != null &&
         nextUrl.toLowerCase().startsWith('stac-collection:')
@@ -15,7 +27,7 @@ export function getUrl(L_, type, url, layerData) {
         nextUrl = transformStacUrl(
             nextUrl,
             layerData,
-            type,
+            LayerTypeRegistry.stacEndpoint(type),
             window.location
         )
         // After transformation, nextUrl is now an absolute HTTP URL
@@ -28,24 +40,13 @@ export function getUrl(L_, type, url, layerData) {
     if (!F_.isUrlAbsolute(nextUrl)) {
         nextUrl = L_.missionPath + nextUrl
     }
-    if (
-        type === 'tile' &&
-        ((layerData && layerData.throughTileServer === true) ||
-            wasCOG == true)
-    ) {
-        if (
-            !F_.isUrlAbsolute(nextUrl) &&
-            window.mmgisglobal.IS_DOCKER !== 'true'
-        ) {
-            nextUrl = `../../${nextUrl}`
-        } else if (
-            !F_.isUrlAbsolute(nextUrl) &&
-            window.mmgisglobal.IS_DOCKER === 'true'
-        ) {
-            nextUrl = `/${nextUrl}`
-        }
-    }
-    return nextUrl
+
+    return LayerInterface.runSync(
+        LayerTypeRegistry.get(type)?.config,
+        'resolveUrl',
+        [nextUrl, layerData, { purpose: type, wasCOG }],
+        { coreDefault: (resolved) => resolved }
+    )
 }
 
 export function hasTool(L_, toolName) {

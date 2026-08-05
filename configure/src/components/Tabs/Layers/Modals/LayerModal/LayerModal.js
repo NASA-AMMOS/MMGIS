@@ -16,6 +16,11 @@ import {
 } from "../../../../../core/ConfigureStore";
 
 import { inject } from "../../../../../core/injectables";
+import {
+  attachmentTabsFor,
+  attachmentConfigPaths,
+} from "../../../../../core/layerAttachmentTabs";
+import { interactionConfigPaths } from "../../Interactions/interactionUtils";
 
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -151,7 +156,13 @@ const LayerModal = (props) => {
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
   const configuration = useSelector((state) => state.core.configuration);
   const layerTypeConfiguration = useSelector(
-    (state) => state.core.layerTypeConfiguration
+    (state) => state.core.layerTypeConfiguration,
+  );
+  const interactionConfiguration = useSelector(
+    (state) => state.core.interactionConfiguration,
+  );
+  const layerAttachmentConfiguration = useSelector(
+    (state) => state.core.layerAttachmentConfiguration,
   );
 
   const layerUUID = modal && modal.layerUUID ? modal.layerUUID : null;
@@ -162,13 +173,24 @@ const LayerModal = (props) => {
 
   const dispatch = useDispatch();
 
-  let config = layerTypeConfiguration?.[layer.type]?.metaconfig || {};
+  let config = layerTypeConfiguration?.[layer.type]?.config || {};
 
-  // Built-in types always have a metaconfig in the registry, so an empty config
+  // Built-in types always have a config in the registry, so an empty config
   // for a real layer means the async registry hasn't loaded (or failed) yet —
   // render a notice and block editing instead of a silent, no-op blank form.
   const registryUnavailable =
     layer.type != null && !Array.isArray(config?.tabs);
+
+  // A layer type's own settings, then whatever its attachments add.
+  if (Array.isArray(config?.tabs)) {
+    const attachmentTabs = attachmentTabsFor(
+      layerAttachmentConfiguration,
+      layerTypeConfiguration,
+      layer.type,
+    );
+    if (attachmentTabs.length > 0)
+      config = { ...config, tabs: [...config.tabs, ...attachmentTabs] };
+  }
 
   config = inject(config);
 
@@ -185,6 +207,20 @@ const LayerModal = (props) => {
             uuid: l.uuid,
             sublayers: l.sublayers || [],
           };
+
+          // Settings that belong to an attachment this layer type doesn't
+          // show are still the attachment's, not junk: keep them rather than
+          // trimming them away because no tab rendered them.
+          // The same holds for an interaction's settings, which its manifest
+          // declares rather than the layer type's tabs.
+          [
+            ...attachmentConfigPaths(layerAttachmentConfiguration),
+            ...interactionConfigPaths(interactionConfiguration),
+          ].forEach((configPath) => {
+            const existing = getIn(l, configPath.split("."), null);
+            if (existing != null)
+              setIn(completedLayer, configPath.split("."), existing, true);
+          });
           config.tabs.forEach((t) => {
             t.rows.forEach((r) => {
               r.components.forEach((c) => {
@@ -209,7 +245,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.options[0],
-                      true
+                      true,
                     );
                   }
                 } else if (c.type === "checkbox" || c.type === "switch") {
@@ -219,7 +255,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.defaultChecked,
-                      true
+                      true,
                     );
                   }
                 } else if (c.type === "slider") {
@@ -229,7 +265,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.default || c.min || 0,
-                      true
+                      true,
                     );
                   }
                 } else if (c.type === "colorpicker") {
@@ -239,7 +275,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.default || "#FFFFFF",
-                      true
+                      true,
                     );
                   }
                 }
@@ -324,7 +360,7 @@ const LayerModal = (props) => {
             startIcon={<DeleteForeverIcon size="small" />}
             onClick={() => {
               const nextConfiguration = JSON.parse(
-                JSON.stringify(configuration)
+                JSON.stringify(configuration),
               );
               traverseLayers(nextConfiguration.layers, (l, path, index) => {
                 if (layer.uuid === l.uuid) {
@@ -336,7 +372,7 @@ const LayerModal = (props) => {
                 setSnackBarText({
                   text: `Removed '${layer.name}'.`,
                   severity: "success",
-                })
+                }),
               );
               handleClose(true);
             }}
@@ -355,7 +391,7 @@ const LayerModal = (props) => {
               className={c.cloneButton}
               onClick={() => {
                 const nextConfiguration = JSON.parse(
-                  JSON.stringify(configuration)
+                  JSON.stringify(configuration),
                 );
                 const clonedLayer = JSON.parse(JSON.stringify(layer));
                 window.newUUIDCount++;
@@ -365,14 +401,14 @@ const LayerModal = (props) => {
                 insertLayerAfterUUID(
                   nextConfiguration.layers,
                   clonedLayer,
-                  layer.uuid
+                  layer.uuid,
                 );
                 dispatch(setConfiguration(nextConfiguration));
                 dispatch(
                   setSnackBarText({
                     text: `Cloned '${layer.name}'.`,
                     severity: "success",
-                  })
+                  }),
                 );
               }}
             >

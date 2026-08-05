@@ -15,6 +15,8 @@ export const ConfigureStore = createSlice({
     toolConfiguration: {},
     componentConfiguration: {},
     layerTypeConfiguration: {},
+    layerAttachmentConfiguration: {},
+    interactionConfiguration: {},
     geodatasets: [],
     datasets: [],
     stacCollections: [],
@@ -71,8 +73,13 @@ export const ConfigureStore = createSlice({
     },
     setConfiguration: (state, action) => {
       state.configuration = action.payload;
-      // Update validation errors whenever configuration changes
-      state.validationErrors = getAllValidationErrors(action.payload);
+      // Update validation errors whenever configuration changes. The layer
+      // type registry is what says which types exist, so that a layer of a
+      // plugin-provided type is not reported as unknown.
+      state.validationErrors = getAllValidationErrors(
+        action.payload,
+        state.layerTypeConfiguration
+      );
     },
     setToolConfiguration: (state, action) => {
       state.toolConfiguration = action.payload;
@@ -82,6 +89,19 @@ export const ConfigureStore = createSlice({
     },
     setLayerTypeConfiguration: (state, action) => {
       state.layerTypeConfiguration = action.payload;
+      // The registry can arrive after a configuration has been validated
+      // against an empty one, which would leave plugin types marked unknown.
+      if (state.configuration?.layers != null)
+        state.validationErrors = getAllValidationErrors(
+          state.configuration,
+          action.payload
+        );
+    },
+    setLayerAttachmentConfiguration: (state, action) => {
+      state.layerAttachmentConfiguration = action.payload;
+    },
+    setInteractionConfiguration: (state, action) => {
+      state.interactionConfiguration = action.payload;
     },
     setGeodatasets: (state, action) => {
       state.geodatasets = action.payload;
@@ -209,7 +229,7 @@ export const ConfigureStore = createSlice({
         },
         (res) => {
           action.payload.cb("error", res);
-        }
+        },
       );
     },
   },
@@ -223,6 +243,8 @@ export const {
   setToolConfiguration,
   setComponentConfiguration,
   setLayerTypeConfiguration,
+  setLayerAttachmentConfiguration,
+  setInteractionConfiguration,
   setGeodatasets,
   setDatasets,
   setStacCollections,

@@ -135,6 +135,91 @@ test.describe('resolveLayerInteractions', () => {
     });
 });
 
+test.describe('applicableLayerTypes enforcement', () => {
+    const APPLICABLE_CONFIG = {
+        ...CORE_CONFIG,
+        applicableLayerTypes: {
+            select: ['vector', 'vectortile', 'query'],
+            'info:open': ['vector', 'vectortile', 'query'],
+            'info:silent': ['vector', 'vectortile', 'query'],
+            'viewer:update': ['vector', 'vectortile', 'query'],
+            'search:url': ['vector', 'vectortile', 'query'],
+            'event:notify': ['vector', 'vectortile', 'query'],
+            'cursor:show': ['vector', 'vectortile', 'query'],
+            'cursor:hide': ['vector', 'vectortile', 'query'],
+        },
+    };
+
+    test('no layer type chain means no filtering', () => {
+        expect(
+            buildFullPipeline(['info:open'], 'click', APPLICABLE_CONFIG)
+        ).toContain('info:open');
+    });
+
+    test('an applicable type keeps the whole pipeline', () => {
+        expect(
+            buildFullPipeline(['info:open'], 'click', APPLICABLE_CONFIG, [
+                'vector',
+            ])
+        ).toEqual([
+            'select',
+            'info:open',
+            'viewer:update',
+            'search:url',
+            'event:notify',
+        ]);
+    });
+
+    test('an inapplicable type drops preamble and postamble too', () => {
+        expect(
+            buildFullPipeline(['info:open'], 'click', APPLICABLE_CONFIG, [
+                'tile',
+            ])
+        ).toEqual([]);
+    });
+
+    test('a type that extends an applicable one is applicable', () => {
+        expect(
+            buildFullPipeline(['info:open'], 'click', APPLICABLE_CONFIG, [
+                'ogcfeatures',
+                'vector',
+            ])
+        ).toContain('info:open');
+    });
+
+    test('an interaction declaring nothing applies to every type', () => {
+        expect(
+            buildFullPipeline(['custom:anything'], 'click', APPLICABLE_CONFIG, [
+                'tile',
+            ])
+        ).toEqual(['custom:anything']);
+    });
+
+    test('hover and mouseout defaults are filtered as well', () => {
+        expect(
+            buildFullPipeline([], 'hover', APPLICABLE_CONFIG, ['tile'])
+        ).toEqual([]);
+        expect(
+            buildFullPipeline([], 'mouseout', APPLICABLE_CONFIG, ['vector'])
+        ).toEqual(['cursor:hide']);
+    });
+
+    test('runInteractions skips an inapplicable handler', async () => {
+        const ran = [];
+        await runInteractions(
+            ['info:open'],
+            { eventType: 'click', layerTypeChain: ['tile'] },
+            {
+                handlers: {
+                    'info:open': { use: () => ran.push('info:open') },
+                },
+                config: APPLICABLE_CONFIG,
+            }
+        );
+        expect(ran).toEqual([]);
+    });
+});
+
 test.describe('buildFullPipeline', () => {
     test('wraps click pipeline with preamble and postamble', () => {
         const full = buildFullPipeline(['info:open'], 'click', CORE_CONFIG);

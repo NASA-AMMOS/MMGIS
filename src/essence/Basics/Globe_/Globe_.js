@@ -238,7 +238,8 @@ let Globe_ = {
                 this.litho.updateAllTimeEnabledLayers(
                     timeData.startTime,
                     timeData.currentTime,
-                    timeData.endTime
+                    timeData.endTime,
+                    TimeControl.customTimes
                 )
             })
         }

@@ -2,6 +2,7 @@ import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '../Layers_/registry/LayerAttachmentRegistry'
 import LayerInterface from '../Layers_/interface/LayerInterface'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
@@ -208,9 +209,17 @@ let Map_ = {
         var HomeControl = L.Control.extend({
             options: { position: 'topright' },
             onAdd: function () {
-                var container = L.DomUtil.create('div', 'leaflet-control-zoom leaflet-bar leaflet-control')
-                var btn = L.DomUtil.create('a', 'leaflet-control-zoom-home', container)
-                btn.innerHTML = '<i class="mdi mdi-home-variant-outline" style="font-size:16px;line-height:30px;"></i>'
+                var container = L.DomUtil.create(
+                    'div',
+                    'leaflet-control-zoom leaflet-bar leaflet-control'
+                )
+                var btn = L.DomUtil.create(
+                    'a',
+                    'leaflet-control-zoom-home',
+                    container
+                )
+                btn.innerHTML =
+                    '<i class="mdi mdi-home-variant-outline" style="font-size:16px;line-height:30px;"></i>'
                 btn.href = '#'
                 btn.title = 'Reset View'
                 btn.setAttribute('role', 'button')
@@ -290,22 +299,6 @@ let Map_ = {
             // Set all zoom elements
             $('.map-autoset-zoom').text(Map_.map.getZoom())
         })
-
-        this.map.on('movestart', fadeOutCertainLayers)
-        this.map.on('zoomstart', fadeOutCertainLayers)
-
-        function fadeOutCertainLayers() {
-            // Fade out Velocity layer Streamlines to prevent rendering jumps
-            Object.keys(L_.layers.data).forEach((layerUUID) => {
-                const layerData = L_.layers.data[layerUUID]
-                if (
-                    layerData.type === 'velocity' &&
-                    (layerData.kind === 'streamlines' || layerData.kind == null)
-                ) {
-                    L_.layers.layer[layerUUID].setOpacity(0)
-                }
-            })
-        }
 
         if (Globe_.controls.link) {
             this.map.on('move', (e) => {
@@ -418,15 +411,21 @@ let Map_ = {
     },
     //Redraws all layers, starting with the bottom one
     orderedBringToFront: function () {
+        // An 'overlay' type is ordered by insertion, so it has to be removed
+        // and re-added in order; a 'raster' type only needs its z-index reset.
+        // Which one a type is, is declared (capabilities.map.stacking) rather
+        // than asked of the layer — core partitions every layer here before it
+        // touches any of them.
         let hasIndex = []
         let hasIndexRaster = []
 
         for (let i = L_._layersOrdered.length - 1; i >= 0; i--) {
             if (Map_.hasLayer(L_._layersOrdered[i])) {
                 if (L_.layers.data[L_._layersOrdered[i]]) {
-                    if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'vector'
-                    ) {
+                    const stacking = LayerTypeRegistry.mapStacking(
+                        L_.layers.data[L_._layersOrdered[i]].type
+                    )
+                    if (stacking === 'overlay') {
                         if (L_.layers.attachments[L_._layersOrdered[i]]) {
                             for (let s in L_.layers.attachments[
                                 L_._layersOrdered[i]
@@ -442,18 +441,8 @@ let Map_ = {
                             L_.layers.layer[L_._layersOrdered[i]]
                         )
                         hasIndex.push(i)
-                    } else if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'tile' ||
-                        L_.layers.data[L_._layersOrdered[i]].type === 'data'
-                    ) {
+                    } else if (stacking === 'raster') {
                         hasIndexRaster.push(i)
-                    } else if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'image'
-                    ) {
-                        Map_.map.removeLayer(
-                            L_.layers.layer[L_._layersOrdered[i]]
-                        )
-                        hasIndex.push(i)
                     }
                 }
             }
@@ -469,10 +458,14 @@ let Map_ = {
                         L_.layers.attachments[L_._layersOrdered[hasIndex[i]]][s]
                             .on
                     ) {
+                        // Only attachments that draw on the 2D map take part
+                        // in map ordering.
                         if (
-                            L_.layers.attachments[
-                                L_._layersOrdered[hasIndex[i]]
-                            ][s].type !== 'model'
+                            LayerAttachmentRegistry.rendersOnMap(
+                                L_.layers.attachments[
+                                    L_._layersOrdered[hasIndex[i]]
+                                ][s].type
+                            )
                         ) {
                             Map_.map.addLayer(
                                 L_.layers.attachments[
@@ -486,9 +479,12 @@ let Map_ = {
 
             Map_.map.addLayer(L_.layers.layer[L_._layersOrdered[hasIndex[i]]])
 
-            // If image layer, reorder the z index and redraw the layer
+            // Some overlay types (image) also need their z-index reset and
+            // their tiles redrawn after being re-added.
             if (
-                L_.layers.data[L_._layersOrdered[hasIndex[i]]].type === 'image'
+                LayerTypeRegistry.redrawsOnReorder(
+                    L_.layers.data[L_._layersOrdered[hasIndex[i]]].type
+                )
             ) {
                 L_.layers.layer[L_._layersOrdered[hasIndex[i]]].setZIndex(
                     L_._layersOrdered.length +
@@ -539,10 +535,11 @@ let Map_ = {
     ) {
         // If it's a dynamic extent layer, just re-call its function
         const dynamicExtentKey = `dynamicextent_${layerObj.name}`
-        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}`  // For velocity layers
+        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}` // For velocity layers
 
-        const subscription = L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey]
-                          || L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
+        const subscription =
+            L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey] ||
+            L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
 
         if (subscription != null) {
             if (L_.layers.on[layerObj.name]) {
@@ -567,7 +564,9 @@ let Map_ = {
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
             if (
                 L_.layers.data[L_._layersOrdered[i]] &&
-                L_.layers.data[L_._layersOrdered[i]].type == 'vector' &&
+                LayerTypeRegistry.refreshesByRemake(
+                    L_.layers.data[L_._layersOrdered[i]].type
+                ) &&
                 L_.layers.data[L_._layersOrdered[i]].name == layerObj.name
             ) {
                 // Original
@@ -744,7 +743,8 @@ async function makeLayer(
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
         // Use map-specific lock if available, otherwise fall back to global lock
-        const lockRegistry = mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
+        const lockRegistry =
+            mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
         if (forceMake !== true && lockRegistry[layerName] === true) {
             console.error(
                 `ERROR - makeLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
@@ -776,14 +776,15 @@ async function makeLayer(
         // make-lock: before/main/after run inside the lock here, while
         // afterCommit must run in the finally block after the lock releases.
         // The `after`/`afterCommit` phases are also gated on `stopLoops`.
-        const makeMain = rt && rt.map
-            ? LayerInterface.getPhase(rt.map, 'make', 'main')
-            : null
+        const makeMain =
+            rt && rt.map
+                ? LayerInterface.getPhase(rt.map, 'make', 'main')
+                : null
         let madeSuccessfully = true
         try {
             //Decide what kind of layer it is
-            //Headers do not need to be made
-            if (layerObj.type != 'header') {
+            //Structural layers (headers) hold no data and are never made
+            if (!LayerTypeRegistry.isStructural(layerObj.type)) {
                 // Layer-type plugins own their map renderer. Every built-in type
                 // is plugin-backed and dispatched through the registry with the
                 // frozen renderer context — one real path per type, no per-type
@@ -808,10 +809,17 @@ async function makeLayer(
                 } else if (rt) {
                     // A registered type with no map renderer is globe-only
                     // (e.g. model, 3dtiles). Nothing to draw on the 2D map;
-                    // mark it loaded so allLayersLoaded() can resolve.
-                    L_._layersLoaded[
-                        L_._layersOrdered.indexOf(layerObj.name)
-                    ] = true
+                    // mark it loaded so allLayersLoaded() can resolve. A type
+                    // that declares a map renderer and resolved none is a
+                    // broken type rather than a globe-only one, and would
+                    // otherwise present as a layer that loads and draws
+                    // nothing.
+                    if (LayerTypeRegistry.rendersOnMap(layerObj.type))
+                        console.warn(
+                            `Layer type '${layerObj.type}' declares a map renderer but resolved no map make.main — nothing will be drawn for layer '${layerObj.name}'.`
+                        )
+                    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
+                        true
                     allLayersLoaded()
                 } else {
                     console.warn('Unknown layer type: ' + layerObj.type)
@@ -835,11 +843,7 @@ async function makeLayer(
             try {
                 const afterCommit =
                     rt && rt.map
-                        ? LayerInterface.getPhase(
-                              rt.map,
-                              'make',
-                              'afterCommit'
-                          )
+                        ? LayerInterface.getPhase(rt.map, 'make', 'afterCommit')
                         : null
                 if (madeSuccessfully && stopLoops !== true && afterCommit) {
                     await afterCommit(layerObj, pluginCtx)
@@ -903,11 +907,16 @@ function onEachFeatureDefault(feature, layer) {
     }
 
     const layerData = L_.layers.data[layer.options?.layerName] || {}
+    const typeInteractions = LayerTypeRegistry.defaultInteractions(
+        layerData.type
+    )
     const hooks = resolveLayerInteractions(
         layerData,
         undefined,
-        LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
+        typeInteractions.ids
     )
+    // Lets the runner enforce each interaction's `applicableLayerTypes`.
+    const layerTypeChain = LayerTypeRegistry.typeChain(layerData.type)
 
     if (typeof layer['useKeyAsName'] === 'string' && hooks.hover) {
         layer.on('mouseover', function (e) {
@@ -920,6 +929,8 @@ function onEachFeatureDefault(feature, layer) {
                 layerVar: layerData.variables || {},
                 event: e,
                 eventType: 'hover',
+                layerTypeChain,
+                typeInteractionConfigs: typeInteractions.settings,
                 stop: false,
                 state: {},
             }
@@ -937,6 +948,8 @@ function onEachFeatureDefault(feature, layer) {
                 layerVar: layerData.variables || {},
                 event: e,
                 eventType: 'mouseout',
+                layerTypeChain,
+                typeInteractionConfigs: typeInteractions.settings,
                 stop: false,
                 state: {},
             }
@@ -944,13 +957,11 @@ function onEachFeatureDefault(feature, layer) {
         })
     }
 
-    if (
-        !(
-            feature.style &&
-            feature.style.hasOwnProperty('noclick') &&
-            feature.style.noclick
-        )
-    ) {
+    if (!(
+        feature.style &&
+        feature.style.hasOwnProperty('noclick') &&
+        feature.style.noclick
+    )) {
         layer.on('click', (e) => {
             featureDefaultClick(feature, layer, e)
         })
@@ -967,14 +978,16 @@ function featureDefaultClick(feature, layer, e) {
     MetadataCapturer.populateMetadata(layer, async () => {
         const layerName = layer.options.layerName
         const layerData = L_.layers.data[layerName]
+        const typeInteractions = LayerTypeRegistry.defaultInteractions(
+            layerData.type
+        )
         const pipeline = resolveLayerInteractions(
             layerData,
             undefined,
-            LayerTypeRegistry.capabilities(layerData.type).defaultInteractions
+            typeInteractions.ids
         ).click
 
-        Map_.rmNotNull(Map_.tempOverlayImage)
-        L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+        L_.clearFeatureAttachments()
 
         const ctx = {
             Map_,
@@ -985,6 +998,8 @@ function featureDefaultClick(feature, layer, e) {
             layerVar: layerData.variables || {},
             event: e,
             eventType: 'click',
+            layerTypeChain: LayerTypeRegistry.typeChain(layerData.type),
+            typeInteractionConfigs: typeInteractions.settings,
             additional: null,
             stop: false,
             state: {},

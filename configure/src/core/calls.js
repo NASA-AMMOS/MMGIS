@@ -22,6 +22,10 @@ const c = {
     type: "GET",
     url: "configure/public/layerTypeConfigs.json",
   },
+  getLayerAttachmentConfig: {
+    type: "GET",
+    url: "configure/public/layerAttachmentConfigs.json",
+  },
   getInteractionConfig: {
     type: "GET",
     url: "configure/public/interactionConfigs.json",
@@ -225,10 +229,13 @@ function api(call, data, success, error) {
     delete data.forceParams;
   }
 
-  if (c[call].type === "POST" || c[call].type === "PUT" || c[call].type === "PATCH")
+  if (
+    c[call].type === "POST" ||
+    c[call].type === "PUT" ||
+    c[call].type === "PATCH"
+  )
     options.body = JSON.stringify(data);
-  else if (c[call].type === "GET")
-    options.data = JSON.stringify(data);
+  else if (c[call].type === "GET") options.data = JSON.stringify(data);
 
   fetch(
     `${domain}${url}${
@@ -238,7 +245,7 @@ function api(call, data, success, error) {
           : ""
         : ""
     }`,
-    options
+    options,
   )
     .then((res) => res.json())
     .then((json) => {

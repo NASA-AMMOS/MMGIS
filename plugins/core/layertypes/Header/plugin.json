@@ -1,8 +1,10 @@
 {
+  "uuid": "f8be72f7-1380-4f97-a48a-bbd8bc362b56",
+  "id": "core-layertype-header",
   "name": "Header",
   "type": "layertype",
   "typeId": "header",
-  "version": "1.0.0",
+  "version": "core",
   "tier": "core",
   "overridable": false,
   "color": "#2c2f30",
@@ -13,9 +15,9 @@
       "map": false,
       "globe": false
     },
-    "time": false,
-    "filtering": false,
-    "identify": false
+    "structural": true,
+    "map": { "stacking": false },
+    "time": false
   },
   "supportedData": [
     {
@@ -25,5 +27,155 @@
       "procurement": "None — configuration only."
     }
   ],
-  "metaconfig": "./metaconfig.json"
+  "config": {
+    "tabs": [
+      {
+        "name": "Core",
+        "rows": [
+          {
+            "name": "Core",
+            "components": [
+              {
+                "field": "type",
+                "name": "Layer Type",
+                "description": "",
+                "type": "dropdown",
+                "optionsFrom": "layerTypes",
+                "width": 2
+              },
+              {
+                "field": "name",
+                "name": "Layer Name",
+                "description": "",
+                "type": "textnotrim",
+                "width": 8,
+                "required": true
+              },
+              {
+                "field": "expanded",
+                "name": "Expanded",
+                "description": "Whether all child layers under the header default to being expanded (as opposed to being collapsed).",
+                "type": "checkbox",
+                "width": 2,
+                "defaultChecked": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Information",
+        "rows": [
+          {
+            "name": "Information",
+            "subname": "Layer Tags",
+            "subdescription": "Assign tags to this layer so that they may be searched upon through the LayersTool. A category may be specified with the following pattern: 'category:tag'",
+            "components": [
+              {
+                "field": "tags.0",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.1",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.2",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.3",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.4",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.5",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "tags.6",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.7",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.8",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.9",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.10",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              },
+              {
+                "field": "tags.11",
+                "name": "Tag",
+                "description": "",
+                "type": "text",
+                "width": 2
+              }
+            ]
+          },
+          {
+            "subname": "Description",
+            "subdescription": "A freeform markdown description of the layer. In the LayersTool, users may click the information icon beside the layer's name to view this information.",
+            "components": [
+              {
+                "field": "description",
+                "name": "Description",
+                "description": "",
+                "type": "markdown",
+                "width": 12
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }
