@@ -200,6 +200,28 @@ available (`init-db.js` creates the extension). Never `DROP DATABASE` or
 
 ---
 
+## Calling it from the frontend
+
+A tool, interaction or layer type in the same container reaches your routes over
+plain HTTP, and must build the url the same way you mounted it — MMGIS may be
+served under a subpath, and the frontend's copy of it is
+`window.mmgisglobal.ROOT_PATH`:
+
+```js
+const root = window.mmgisglobal.ROOT_PATH ? `${window.mmgisglobal.ROOT_PATH}/` : ''
+const res = await fetch(`${root}api/mything/list`, {
+    // A route behind ensureUser/ensureAdmin needs the session cookie.
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+})
+```
+
+Note there is no leading slash on `api/…`: the trailing slash comes from
+`ROOT_PATH`, so concatenating gives `/mmgis/api/…` under a subpath and `api/…` at
+the root, both correct. A hardcoded `/api/mything` works only at the root.
+
+---
+
 ## Testing
 
 Backend tests are Playwright specs like everything else. A unit-only spec

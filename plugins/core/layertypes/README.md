@@ -91,11 +91,18 @@ so overriding `map.styling` doesn't drop an inherited `map.stacking`. Declare
 only what differs; the validator does not warn an extending type about
 capabilities its parent supplies.
 
-`npm run plugins -- create layertype <Name>` scaffolds a standalone renderer —
-`map.js` with `make`/`destroy` — because it cannot know what you are building. If
-your type draws like something MMGIS already draws, that scaffold is the wrong
-starting point: delete `map.js`, put `"extends"` and a single `"module"` in the
-manifest, and implement only the surface that differs.
+Scaffold one with
+
+```bash
+npm run plugins -- create layertype <Name> --container <container> --extends vector
+```
+
+which writes the manifest's `extends` and a single `module` whose keys are
+*surfaces* (it starts with `source.fetch`) instead of a renderer's `map.js`. The
+parent is checked as you type it: a `typeId` no plugin provides, or one that
+itself extends, is refused rather than left for `validate`. Without `--extends`
+you get a standalone renderer — `map.js` with `make`/`destroy` — which is the
+right start only for a type that draws unlike anything MMGIS already draws.
 
 Inheriting the *renderer* while replacing only `config` is the common case, and
 it is why a new data source is usually a `config` surface (`expand` to turn one
@@ -201,7 +208,7 @@ may cache (Vector keeps its GeoJSON there); `ctx.refresh` asks it not to.
 
 | operation | signature | when | core default |
 |---|---|---|---|
-| `fetch` | `async (layerObj, ctx) → GeoJSON` | every acquisition of a vector-ish layer: initial make, refresh, time change and each dynamic-extent view change | core's own url transports (a file/api url, a `geodatasets:` name, KML) |
+| `fetch` | `async (layerObj, ctx) → GeoJSON` | every acquisition of a vector-ish layer: the initial make, a refresh interval, a time change, and each dynamic-extent view change | core's own url transports (a file/api url, a `geodatasets:` name, KML) |
 
 Declare `source` when the layer's data does not come out of a url that core can
 fetch — a `POST` body, request headers, pagination, an SDK, several requests
@@ -217,7 +224,7 @@ treated as `null`. A `source`-backed type may have no `url` configured at all.
 | `ctx` field | what it is |
 |---|---|
 | `url` | the layer's url with time placeholders resolved and mission-relative paths made absolute; `''` when the layer has none |
-| `trigger` | `'make'` (initial/refresh), `'view'` (dynamic extent moved) or `'time'` (the time window moved) |
+| `trigger` | `'make'` for every acquisition core drives — the initial make, a refresh interval, and a time change on a layer that is not dynamic-extent (core remakes the layer, so `fetch` is called again from `make`); `'view'` and `'time'` come only from the dynamic-extent watcher, when the view settles and when the time window moves under it |
 | `view` | the current extent for a dynamic-extent request: `minx`/`miny`/`maxx`/`maxy`, `zoom`, `tilt`, `center`, and `source` (`'map'` or `'globe'`) — `null` otherwise |
 | `dynamicExtent` | `true` when this is a viewport-driven request |
 | `crsCode` | the mission's CRS code without its `EPSG:` prefix |
@@ -288,9 +295,29 @@ stash on the layer for `derive` to read.
 Most legends are configured (`legend` url, `variables.legend`) and core reads
 them. Declare `legend` when the legend *is* the render: a single-band COG's
 colormap over its rescale range, a data shader's ramp, a velocity magnitude
-scale. Write the entries to `layerObj._legend` (the shape the LegendTool draws,
-also reachable via `mmgisAPI.overwriteLegends`) and return `false` if this
-particular layer has nothing to derive after all.
+scale. Write the entries to `layerObj._legend` (also reachable via
+`mmgisAPI.overwriteLegends`) and return `false` if this particular layer has
+nothing to derive after all.
+
+`_legend` is an **array** of entries, drawn in order:
+
+| key | what it is |
+|---|---|
+| `color` | the swatch's fill, any CSS colour |
+| `strokecolor` | its border |
+| `value` | the label beside it (and its tooltip) |
+| `shape` | `circle`, `square`, `rect`, `line`, `discreet` or `continuous`. Consecutive `discreet`/`continuous` entries are gathered into one scale bar, so a ramp is a run of them |
+| `shapeIcon` / `shapeImage` | an MDI icon name, or an image url, instead of a shape |
+| `hideFromLegend` | `true` to keep the entry out of the LegendTool while still using it to style |
+| `styleMatching` | `true` makes the entry *style features* as well as label them, which is how a derived legend colours a vector layer with no configured style |
+| `propertyName`, `propertyValue` | with `styleMatching`: the feature property to read and the value this entry matches. Numeric `propertyValue`s across `continuous` entries interpolate, so two entries make a gradient |
+
+```js
+layerObj._legend = [
+    { shape: 'continuous', color: '#2c7bb6', value: '0', styleMatching: true, propertyName: 'magnitude', propertyValue: 0 },
+    { shape: 'continuous', color: '#d7191c', value: '8', styleMatching: true, propertyName: 'magnitude', propertyValue: 8 },
+]
+```
 
 ### `time` — what a time change means to this type
 

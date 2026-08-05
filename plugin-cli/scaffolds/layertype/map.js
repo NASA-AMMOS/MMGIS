@@ -46,7 +46,9 @@ function destroy(layerObj) {
  * time (format/applyTimeParams), source (fetch — when the data doesn't come out
  * of a url core can fetch), legend (derive — when the legend is the render).
  */
-export default {
+const __Name__ = {
     make,
     destroy,
 }
+
+export default __Name__

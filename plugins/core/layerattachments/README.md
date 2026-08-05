@@ -163,7 +163,8 @@ The per-instance operations get the built attachment plus
 `{ hostName, attachmentName, … }`: `setVisibility` adds `visible`, `globeOnly`
 and the `applyOrder`/`applyOpacity` callbacks core wants run after you show
 something; `setOpacity` adds `source: 'host' | 'attachment'`; `syncData` adds the
-new `geojson` and `onlyClear`; `onPeerToggle` adds the `layerName` that toggled
+new `geojson`, `onlyClear`, and — as `make` got them — `layerObj`, `config` and
+`zIndex`, so a redraw needs nothing stashed; `onPeerToggle` adds the `layerName` that toggled
 and its new state; `onConfigChange` adds `config`, `prevConfig`, `layerObj` and
 the built `attachment` (its signature is `(ctx)` alone — core dispatches it after
 writing the new settings, whether or not an instance exists, so read
@@ -178,6 +179,35 @@ which rebuilds the whole host layer.
 The host-scoped operations (`decorateFeature`, `globeStyle`, `makeForFeature`,
 `clearForFeature`) run without an instance — there may not be one — and get
 `{ layerObj, feature?, config, … }` instead.
+
+### Time
+
+There is no time operation, and an attachment of a time-enabled layer does not
+need one: when the time bar moves, the host reacquires or refilters its features
+and core then calls your `syncData` with the new GeoJSON, so drawing from
+`ctx.geojson` is already time-correct. An attachment that must follow the
+*playhead* itself — fading a trail as time passes, with the host's data
+unchanged — subscribes in `make` and unsubscribes in `destroy`:
+
+```js
+import TimeControl from '@basics/TimeControl_/TimeControl'
+
+function make(ctx) {
+    const attachment = { type: 'trail', on: true, /* … */ }
+    const fid = `trail_${ctx.hostName}`
+    TimeControl.subscribe(fid, () => redraw(attachment, TimeControl.getTime()))
+    attachment._fid = fid
+    return attachment
+}
+
+function destroy(attachment) {
+    TimeControl.unsubscribe(attachment._fid)
+}
+```
+
+Feature timestamps live in the feature's own properties, under the names the
+*layer* configured (`layerObj.time.startProp` / `endProp`) — read them with
+`F_.getIn`, never a hardcoded property name.
 
 ---
 

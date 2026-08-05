@@ -1615,6 +1615,77 @@ function _parseObjectLiteral(src, start) {
 }
 
 /**
+ * Walk `src` from `i`, skipping comments and string/template literals, calling
+ * `at(index)` on every other character. Returns whatever `at` first returns
+ * that isn't undefined, else null.
+ */
+function _scanCode(src, at) {
+  let i = 0;
+  let last;
+  while (i < src.length) {
+    const before = i;
+    i = _skipWsAndComments(src, i);
+    if (i !== before) {
+      last = undefined;
+      continue;
+    }
+    const ch = src[i];
+    if (ch === undefined) break;
+    if (ch === "'" || ch === '"' || ch === "`") {
+      i = _skipString(src, i);
+      last = ch;
+      continue;
+    }
+    if (ch === "/" && _regexAllowedAfter(last)) {
+      i = _skipRegex(src, i);
+      last = "/";
+      continue;
+    }
+    const found = at(i);
+    if (found !== undefined) return found;
+    last = ch;
+    i++;
+  }
+  return null;
+}
+
+/**
+ * The index of the `{` opening the object a module default-exports, or null.
+ *
+ * Both documented forms count: the object literal inline
+ * (`export default { make }`) and the named const eslint's
+ * `import/no-anonymous-default-export` asks for (`const Vector = { make };
+ * export default Vector`). Comments are skipped, so a doc comment showing
+ * `export default {` is not mistaken for the real one.
+ */
+function _defaultExportObjectIndex(source) {
+  const exportAt = _scanCode(source, (i) => {
+    if (!source.startsWith("export", i)) return undefined;
+    const after = _skipWsAndComments(source, i + "export".length);
+    if (!source.startsWith("default", after)) return undefined;
+    return _skipWsAndComments(source, after + "default".length);
+  });
+  if (exportAt == null) return null;
+  if (source[exportAt] === "{") return exportAt;
+
+  // `export default Name` — find the declaration of `Name`.
+  let j = exportAt;
+  while (j < source.length && /[A-Za-z0-9_$]/.test(source[j])) j++;
+  const name = source.slice(exportAt, j);
+  if (!name) return null;
+  return _scanCode(source, (i) => {
+    if (!/[A-Za-z0-9_$]/.test(source[i])) return undefined;
+    if (i > 0 && /[A-Za-z0-9_$.]/.test(source[i - 1])) return undefined;
+    if (!source.startsWith(name, i)) return undefined;
+    if (/[A-Za-z0-9_$]/.test(source[i + name.length] || "")) return undefined;
+    const eq = _skipWsAndComments(source, i + name.length);
+    if (source[eq] !== "=" || source[eq + 1] === "=") return undefined;
+    const brace = _skipWsAndComments(source, eq + 1);
+    return source[brace] === "{" ? brace : undefined;
+  });
+}
+
+/**
  * Validate a layer-type / layer-attachment renderer module's `export default`
  * object against the operation contract. Static (does not execute the module).
  *
@@ -1627,12 +1698,13 @@ function _parseObjectLiteral(src, start) {
 function validateLayerTypeModuleShape(source, label, surface = "map") {
   const errors = [];
   const { ops: validOps, requiresMake } = SURFACES[surface] || SURFACES.map;
-  const marker = /export\s+default\s*\{/.exec(source);
-  if (!marker) {
-    errors.push(`${label}: no 'export default { … }' renderer object found`);
+  const braceIndex = _defaultExportObjectIndex(source);
+  if (braceIndex == null) {
+    errors.push(
+      `${label}: no default-exported object found — 'export default { … }', or 'const X = { … }' with 'export default X'`
+    );
     return errors;
   }
-  const braceIndex = marker.index + marker[0].length - 1;
   const { keys } = _parseObjectLiteral(source, braceIndex);
   const opNames = keys.map((k) => k.name);
   if (requiresMake && !opNames.includes("make")) {

@@ -10,7 +10,11 @@ const {
   validateLayerTypeInheritance,
   flattenLayerModules,
 } = require("./pluginValidation");
-const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
+const {
+  discoverPlugins,
+  checkPluginDependencies,
+  enabledPluginIds,
+} = require("./pluginDiscovery");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 const REPO_ROOT = path.join(__dirname, "..");
@@ -286,25 +290,16 @@ function updateInteractions() {
     { loggerCategory: "Interactions" }
   );
 
-  // 2. Build set of all enabled plugin IDs (tools + backend + components)
-  //    for hard dependency checking.
-  const enabledPluginIds = new Set();
-  for (const type of ["tools", "backend", "components", "interactions"]) {
-    const plugins = discoverPlugins(PLUGINS_ROOT, type, "plugin.json", {
-      loader: "parse",
-      loggerCategory: "Interactions",
-    });
-    for (const p of plugins) {
-      enabledPluginIds.add(`${p.container}/${type}/${p.name}`);
-    }
-  }
+  // 2. Every enabled plugin, in every family, for hard dependency checking:
+  //    an interaction commonly depends on the layer type it is written for.
+  const enabled = enabledPluginIds(PLUGINS_ROOT, "Interactions");
 
   // 3. Register each interaction, enforcing hard dependencies.
   for (const plugin of allInteractions) {
     // Hard dependency check — exclude interactions whose deps are missing.
     if (Array.isArray(plugin.manifest.pluginDependencies)) {
       const missing = plugin.manifest.pluginDependencies.filter(
-        (dep) => !enabledPluginIds.has(dep)
+        (dep) => !enabled.has(dep)
       );
       if (missing.length > 0) {
         logger(

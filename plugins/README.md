@@ -277,7 +277,13 @@ npm run plugins -- enable mmgis-geo-plugins/tools/ElevationTool
 npm run plugins -- install /path/to/my-plugin-repo
 ```
 
-This copies the directory into `plugins/<dirname>/` (local paths use the directory basename as-is since there is no org to infer). To create a symlink instead (useful during active development so changes are reflected immediately), use the `--link` flag:
+This copies the directory into `plugins/<dirname>/`, minus any `.git` (a copy, not a clone — `install <git-url>` is the clone). Local paths use the directory basename as the container name, and **a plugin's id embeds its container**, so installing the same work from a differently-named directory renames every plugin in it and breaks any `pluginDependencies` between them. Pin it:
+
+```bash
+npm run plugins -- install /path/to/my-plugin-repo --container my-plugins
+```
+
+To create a symlink instead (useful during active development so changes are reflected immediately), use the `--link` flag:
 
 ```bash
 npm run plugins -- install --link /path/to/my-plugin-repo
@@ -339,6 +345,35 @@ So the normal flow for a third-party plugin is: `create … --container my-plugi
 | backend | nothing to generate | restart the server; `plugin.js` mounts your routes |
 
 `create` runs `activate` for you, so this bites on the *second* change — adding a module key, renaming a path — not the first.
+
+### One feature, several plugins
+
+A real feature is often a layer type *and* an attachment *and* an interaction — a new data source, something drawn beside its features, something that happens when you click one. Put them in **one container**, which is then the unit you install, version and uninstall:
+
+```
+plugins/hazard-zones/
+├── layertypes/HazardZone/
+├── layerattachments/HazardBuffer/
+├── interactions/HazardReport/
+└── lib/hazardGeometry.js        # shared, imported relatively
+```
+
+Code they all need goes in a plain module anywhere in the container — `lib/` by convention — and is imported relatively (`import { bufferOf } from '../../lib/hazardGeometry'`). Webpack resolves it like any other import. Keep it free of `src/essence` imports and it is also the part you can unit test.
+
+How the families reach each other — all declarative, none of it a lookup:
+
+| seam | how |
+|---|---|
+| type → attachment | the attachment's `applicableLayerTypes: ["<typeId>"]`, which also hides it from every other type |
+| type → interaction | the type's `capabilities.defaultInteractions.<event>: ["<interactionId>"]` |
+| either → an admin | each plugin's own `configPath` + `config.rows`; a plugin owns its subtree and should not write another's |
+| plugin → plugin, at runtime | share a module, or leave something on the layer: an attachment's own object is at `L_.layers.attachments[layerName][attachmentId]` and is yours verbatim, and interactions pass state along the pipeline in `ctx.state` |
+
+There is deliberately no registry lookup by `attachmentId`/`interactionId` for plugins, and no way to *call* another plugin's operations: core dispatches them, so a plugin that needs another's work should read what it left behind rather than invoke it. Two plugins that must run in a fixed order are one plugin.
+
+Declaring `pluginDependencies` between them is worth doing — it makes `disable` warn, and `deps` draw the graph — but get the ids right, container included: an unresolved dependency silently keeps the plugin out of the generated registry (see [`pluginDependencies`](#plugindependencies)).
+
+`uninstall <container>` removes the directory *and* that container's entries in `plugin-cli/plugin-state.json`, so a deliberate `disable` inside it does not survive a reinstall — everything comes back enabled.
 
 ### Tool Template
 
@@ -581,7 +616,7 @@ Plugins with multiple entry points:
 
 **Type:** `object` — `{ [surface: string]: string | { [engine: string]: string } }` · **Applies to:** Layer types
 
-Maps the **render surfaces** a layer type implements to their modules, relative to the plugin's directory. Surfaces are `map`, `globe.<engine>`, `config`, `filter`, `time` and `capture`; all are optional, and startup validation cross-checks them against `capabilities.renderers`.
+Maps the **render surfaces** a layer type implements to their modules, relative to the plugin's directory. Surfaces are `map`, `globe.<engine>`, `config`, `filter`, `time`, `source` and `legend`; all are optional, and startup validation cross-checks them against `capabilities.renderers`. A type that implements few enough surfaces to fit in one file declares a single `module` instead, whose *keys* are those surface names — see [`core/layertypes/README.md`](./core/layertypes/README.md).
 
 ```json
 "modules": {
@@ -870,7 +905,9 @@ Declares runtime dependencies. Aggregated by the `deps` command and `scripts/res
 
 #### `pluginDependencies`
 
-Array of plugin IDs that this plugin depends on at runtime. Primarily used by tools to declare which backends they need.
+Array of plugin IDs that this plugin depends on at runtime, in any family: a tool naming the backend it calls, an interaction naming the layer type whose features it understands, an attachment naming the type it draws beside.
+
+It is not only advisory. A frontend plugin whose dependency is missing or disabled is **left out of the generated registry** — `list` still shows it enabled and `validate` still reports the manifest valid, so the only sign is `validate`'s dependency warning and the plugin never loading. So an id here has to be exactly right, and an id is `<container>/<family>/<Name>` — note the **container**, which for a locally installed container is the directory it was installed under (pin it with `install <path> --container <name>`, or a plugin's own siblings become unreachable when the directory is renamed).
 
 **Type:** `string[]` · **Required:** No · **Default:** `[]`
 
@@ -999,7 +1036,13 @@ npm run plugins -- validate          # Human-readable
 npm run plugins -- validate --json   # Structured output with per-plugin results
 ```
 
-See `API/pluginValidation.js` for the implementation.
+It checks manifests and the shape of the modules they declare — statically, without loading them — plus the things that fail quietly at runtime: a module a manifest declares but the plugin no longer has, an `applicableLayerTypes` or `defaultInteractions` id no enabled plugin provides, a `pluginDependencies` id that cannot be resolved (which keeps the plugin out of the generated registry), and a generated registry that is stale relative to what is on disk. See `API/pluginValidation.js` for the implementation.
+
+Linting a plugin needs `NODE_ENV` set — the repo's Babel preset refuses to run without it, with an error that looks unrelated to your code:
+
+```bash
+NODE_ENV=test npx eslint plugins/my-plugins/interactions/MyThing
+```
 
 ## Registries
 
@@ -1027,10 +1070,15 @@ Plugin-specific tests live in `plugins/<container>/<type>/<Name>/tests/`.
 Playwright config scans both `tests/` and `plugins/**/tests/`.
 
 ```bash
+npm run test:plugins:unit                             # Every plugin's @unit tests
 npx cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true npx playwright test plugins/core/tools/Draw/tests/
-npm run test:unit                                     # All unit tests
+npm run test:unit                                     # MMGIS's own unit tests
 npm test                                              # All tests
 ```
+
+The `@unit` tag in a test's title is what `test:plugins:unit` selects, and the
+scaffolds tag theirs, so an untagged test of yours runs only when you name its
+path.
 
 `PLAYWRIGHT_TEST_UNIT_ONLY=true` is what keeps a pure-logic test from bringing up
 the Postgres test database global setup otherwise requires (`npm run test:unit`

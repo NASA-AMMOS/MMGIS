@@ -12,6 +12,21 @@ const path = require("path");
 const logger = require("./logger");
 
 /**
+ * Every plugin family, and so every type subdirectory a container may hold.
+ * `pluginDependencies` are cross-family — an interaction may depend on the
+ * layer type it is written for — so anything resolving them must scan all of
+ * these rather than the family it happens to be generating.
+ */
+const PLUGIN_TYPES = [
+    "tools",
+    "backend",
+    "components",
+    "interactions",
+    "layertypes",
+    "layerattachments",
+];
+
+/**
  * Three-level plugin discovery for the `/plugins/` directory.
  *
  * Directory layout:
@@ -204,7 +219,7 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
 /**
  * Cross-check pluginDependencies across all plugin types.
  *
- * Does a lightweight scan of tools, backend, and components, then warns
+ * Does a lightweight scan of every family, then warns
  * about any pluginDependency that references a plugin that is missing
  * or disabled.  Called at build time (updateTools) and server startup
  * (setups) so operators see problems before they hit 404s at runtime.
@@ -215,14 +230,7 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
 function checkPluginDependencies(pluginsRoot, loggerCategory = "PluginDeps") {
     // Discover all types with a lightweight parse-only scan.
     const allPlugins = [];
-    for (const type of [
-        "tools",
-        "backend",
-        "components",
-        "interactions",
-        "layertypes",
-        "layerattachments",
-    ]) {
+    for (const type of PLUGIN_TYPES) {
         const discovered = discoverPlugins(pluginsRoot, type, "plugin.json", {
             loader: "parse",
             loggerCategory,
@@ -261,4 +269,30 @@ function checkPluginDependencies(pluginsRoot, loggerCategory = "PluginDeps") {
     return warningCount;
 }
 
-module.exports = { discoverPlugins, checkPluginDependencies };
+/**
+ * The IDs of every enabled plugin, in every family, as `pluginDependencies`
+ * spell them (`core/layertypes/Vector`).
+ *
+ * @param {string} pluginsRoot  Absolute path to the `plugins/` directory.
+ * @param {string} [loggerCategory="PluginDeps"]
+ * @returns {Set<string>}
+ */
+function enabledPluginIds(pluginsRoot, loggerCategory = "PluginDeps") {
+    const ids = new Set();
+    for (const type of PLUGIN_TYPES) {
+        const discovered = discoverPlugins(pluginsRoot, type, "plugin.json", {
+            loader: "parse",
+            loggerCategory,
+        });
+        for (const p of discovered)
+            ids.add(`${p.container}/${type}/${p.name}`);
+    }
+    return ids;
+}
+
+module.exports = {
+    PLUGIN_TYPES,
+    discoverPlugins,
+    checkPluginDependencies,
+    enabledPluginIds,
+};

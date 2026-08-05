@@ -503,6 +503,47 @@ test.describe('scaffold templates', () => {
         expect(coreTabs).toContain(attachment.config.tab);
     });
 
+    test('--extends scaffolds surfaces instead of a renderer', () => {
+        // The standalone `map.js` scaffold is the wrong start for a type that
+        // only differs in where its data comes from, which is most of them.
+        const files = scaffold('layertype', 'MyGriddedThing', { extendsType: 'vector' });
+        expect(Object.keys(files)).not.toContain('map.js');
+
+        const manifest = JSON.parse(files['plugin.json']);
+        expect(manifest.extends).toBe('vector');
+        expect(manifest.module).toBe('./myGriddedThing');
+        expect(manifest.modules).toBeUndefined();
+        expect(validatePluginConfig(manifest, 'MyGriddedThing', 'layertype')).toEqual([]);
+
+        // A single module's keys are surfaces, so the op-shape validator does
+        // not apply to it — what must hold is that it declares one.
+        expect(files['myGriddedThing.js']).toContain('source: { fetch }');
+    });
+
+    test('a module may be default-exported by name, and comments are not code', () => {
+        // eslint's import/no-anonymous-default-export asks for the named form,
+        // so rejecting it left an author unable to satisfy both tools. And the
+        // scanner used to match the first textual `export default {`, so a doc
+        // comment containing one made a valid module fail.
+        const named = `
+/**
+ * A worked example:
+ *   export default { notAnOperation }
+ */
+const MyType = {
+    make(layerObj, mctx) {},
+}
+
+export default MyType
+`;
+        expect(validateLayerTypeModuleShape(named, 'x', 'map')).toEqual([]);
+
+        const missing = `const MyType = { destroy() {} }\nexport default MyType\n`;
+        expect(validateLayerTypeModuleShape(missing, 'x', 'map')).toEqual([
+            "x: missing required 'make' operation",
+        ]);
+    });
+
     test('the layer scaffolds implement only what core has no default for', () => {
         // Over-implementation is the failure mode here: an empty setOpacity
         // silently replaces a working core default, so the stubs stay commented.

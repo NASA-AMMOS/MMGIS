@@ -14,6 +14,7 @@
  *   __snake_name__   my_gridded_thing layerattachment `attachmentId`
  *   __SNAKE_NAME__   MY_GRIDDED_THING environment variable names
  *   __colon_name__   my:gridded:thing interaction `interactionId`
+ *   __parent__       vector           layertype `extends` (from `--extends`)
  *
  * An acronym is one word: `FOVWedges` is `fovWedges` / `fov_wedges`, not
  * `fOVWedges` / `f_ovwedges`.
@@ -78,14 +79,19 @@ function has(type) {
  *
  * @param {string} type  Plugin type, singular (`tool`, `layerattachment`, …).
  * @param {string} name  The plugin name as the author typed it.
+ * @param {Object} [opts]
+ * @param {string} [opts.extendsType] A layer type to inherit from, which picks
+ *   the `extends` variant of the scaffold: one module, no renderer.
  * @returns {Object<string, string>} relative path → contents
  */
-function scaffold(type, name) {
-  const root = path.join(SCAFFOLDS_ROOT, type);
+function scaffold(type, name, opts = {}) {
+  const variant =
+    type === "layertype" && opts.extendsType ? "layertype-extends" : type;
+  const root = path.join(SCAFFOLDS_ROOT, variant);
   if (!fs.existsSync(root))
-    throw new Error(`No scaffold for plugin type '${type}' in ${root}`);
+    throw new Error(`No scaffold for plugin type '${variant}' in ${root}`);
 
-  const tokens = tokensFor(name);
+  const tokens = { __parent__: opts.extendsType || "", ...tokensFor(name) };
   const files = {};
   for (const rel of walk(root)) {
     files[substitute(rel, tokens)] = substitute(

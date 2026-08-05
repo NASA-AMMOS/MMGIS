@@ -1,0 +1,84 @@
+{
+    "name": "__Name__",
+    "type": "layertype",
+    "typeId": "__flatname__",
+    "extends": "__parent__",
+    "version": "1.0.0",
+    "tier": "community",
+    "overridable": true,
+    "color": "#4e9a06",
+    "defaultIcon": "Layers",
+    "description": "",
+    "capabilities": {
+        "renderers": {
+            "map": {
+                "engines": [
+                    "leaflet"
+                ]
+            }
+        }
+    },
+    "supportedData": [
+        {
+            "label": "Example service",
+            "category": "vector",
+            "standards": [],
+            "formats": [],
+            "extensions": [],
+            "description": ""
+        }
+    ],
+    "config": {
+        "tabs": [
+            {
+                "name": "Core",
+                "rows": [
+                    {
+                        "forceHeight": "64px",
+                        "components": [
+                            {
+                                "field": "type",
+                                "name": "Layer Type",
+                                "description": "",
+                                "type": "dropdown",
+                                "width": 2,
+                                "options": [
+                                    "__flatname__"
+                                ]
+                            },
+                            {
+                                "field": "name",
+                                "name": "Layer Name",
+                                "description": "",
+                                "type": "textnotrim",
+                                "width": 8,
+                                "required": true
+                            },
+                            {
+                                "field": "visibility",
+                                "name": "Initially On",
+                                "description": "",
+                                "type": "checkbox",
+                                "width": 2,
+                                "defaultChecked": false
+                            }
+                        ]
+                    },
+                    {
+                        "name": "__Name__",
+                        "components": [
+                            {
+                                "field": "url",
+                                "name": "Service URL",
+                                "description": "",
+                                "type": "text",
+                                "width": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "module": "./__name__"
+}

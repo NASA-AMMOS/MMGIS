@@ -56,6 +56,8 @@ function make(ctx) {
  * makeForFeature(ctx)              a feature was selected and this attachment is
  * clearForFeature(ctx)             configured show: 'click'.
  */
-export default {
+const __Name__ = {
     make,
 }
+
+export default __Name__

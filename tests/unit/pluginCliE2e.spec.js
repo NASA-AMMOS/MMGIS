@@ -760,4 +760,45 @@ test.describe('CLI validate reports stale registries', () => {
         const gone = JSON.parse(runCli('validate --json').stdout);
         expect(gone.staleMessages.some((m) => m.includes(CONTAINER))).toBe(true);
     });
+
+    test('a registered module the plugin no longer has is reported', () => {
+        // Switching a layer type to `extends` deletes its renderer while the
+        // registry still imports it — a webpack build error validate used to
+        // miss, because the plugin's directory was still there.
+        const created = runCli(`create layertype E2eStale --container ${CONTAINER} --json`);
+        expect(created.exitCode).toBe(0);
+        runCli('activate');
+        fs.rmSync(path.join(PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eStale', 'map.js'));
+
+        const stale = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            stale.staleMessages.some((m) => m.includes('E2eStale/map') && m.includes('no longer exists'))
+        ).toBe(true);
+    });
+});
+
+// ─── cross-family references ─────────────────────────────────────────────────
+
+test.describe('CLI validate cross-checks ids between families', () => {
+    const CONTAINER = 'e2e-cross-family';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        runCli('activate');
+    });
+
+    test('an attachment applying to a layer type nobody provides is reported', () => {
+        expect(runCli(`create layerattachment E2eOrphan --container ${CONTAINER} --json`).exitCode).toBe(0);
+        const manifestPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layerattachments', 'E2eOrphan', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest.applicableLayerTypes = ['nosuchlayertype'];
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some((m) => m.includes('nosuchlayertype'))
+        ).toBe(true);
+    });
 });

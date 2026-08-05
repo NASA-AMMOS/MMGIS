@@ -69,6 +69,13 @@ const FLAG_FORCE = RAW_ARGS.includes("--force");
 const FLAG_VERBOSE = RAW_ARGS.includes("--verbose");
 // How much of an activate's registry diff to print before summarising it.
 const ACTIVATE_DIFF_LINES = 8;
+// `create layertype <Name> --extends vector`: the type inherits a built-in
+// type's renderer and declares only the surface that differs, which is what most
+// new types are and the opposite of the standalone-renderer scaffold.
+const FLAG_EXTENDS = (() => {
+    const idx = RAW_ARGS.indexOf("--extends");
+    return idx !== -1 && idx + 1 < RAW_ARGS.length ? RAW_ARGS[idx + 1] : null;
+})();
 const FLAG_CONTAINER = (() => {
     const idx = RAW_ARGS.indexOf("--container");
     return idx !== -1 && idx + 1 < RAW_ARGS.length ? RAW_ARGS[idx + 1] : null;
@@ -82,7 +89,7 @@ const FLAG_DESCRIPTION = flagValue("--description");
 const FLAG_LICENSE = flagValue("--license");
 const FLAG_AUTHOR = flagValue("--author");
 const FLAG_ONLY = flagValue("--only");
-const VALUE_FLAGS = ["--container", "--tier", "--description", "--license", "--author", "--only"];
+const VALUE_FLAGS = ["--container", "--tier", "--description", "--license", "--author", "--only", "--extends"];
 // Strip flags so positional command parsing still works.
 const args = RAW_ARGS.filter((a, i) =>
     a !== "--no-color" && a !== "--json" && a !== "--link" && a !== "--force" && a !== "--verbose" &&
@@ -170,10 +177,16 @@ function saveState(data) {
 
 /**
  * Recursively copy a directory. Works cross-platform (no shell deps).
+ *
+ * `.git` is left behind: copying it makes the installed container an embedded
+ * repository, which turns `git add -f` on it into a gitlink pointing at nothing
+ * anyone else can fetch. An installed container is a copy of the work, not a
+ * clone of it — `install <git-url>` is the clone.
  */
 function cpDirSync(src, dest) {
     fs.mkdirSync(dest, { recursive: true });
     for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+        if (entry.name === ".git") continue;
         const srcPath = path.join(src, entry.name);
         const destPath = path.join(dest, entry.name);
         if (entry.isDirectory()) {
@@ -329,8 +342,15 @@ function findStaleRegistrations(plugins, state) {
         const src = registryOf(type);
         if (src == null) continue;
         for (const m of src.matchAll(/from ['"]\.\.\/\.\.\/(plugins\/[^'"]+)['"]/g)) {
-            const dir = path.join(__dirname, "..", path.dirname(m[1]));
-            if (!fs.existsSync(dir) && !fs.existsSync(`${dir}.js`))
+            // The module, not just its plugin: a type that switched from its own
+            // renderer to `extends` deletes a file the registry still imports,
+            // and webpack — not validate — was the one to say so.
+            const target = path.join(__dirname, "..", m[1]);
+            const resolves =
+                fs.existsSync(`${target}.js`) ||
+                fs.existsSync(path.join(target, "index.js")) ||
+                fs.existsSync(target);
+            if (!resolves)
                 messages.push(`src/pre/${path.basename(preFileFor(type))}: imports ${m[1]} which no longer exists`);
         }
     }
@@ -784,7 +804,11 @@ function cmdInstall(target) {
             process.exit(1);
         }
 
-        const repoName = path.basename(absPath);
+        // A plugin's id is `<container>/<family>/<Name>`, and the container is
+        // this directory's name — so installing the same work from a directory
+        // named something else renames every id in it, breaking any
+        // `pluginDependencies` between them. `--container` pins it.
+        const repoName = FLAG_CONTAINER || path.basename(absPath);
         const dest = path.join(PLUGINS_ROOT, repoName);
 
         if (fs.existsSync(dest)) {
@@ -814,6 +838,8 @@ function cmdInstall(target) {
 
         if (!FLAG_JSON) step(2, 2, "Discovering plugins");
         const plugins = discoverAll().filter((p) => p.container === repoName);
+        if (!FLAG_JSON && plugins.length > 0)
+            console.log(`  ${c.dim(`Container ${c.cyan(repoName)}, so these are ${c.cyan(`${repoName}/<family>/<Name>`)} — the ids any 'pluginDependencies' must name. Use ${c.cyan("--container")} to pin it.`)}`);
         if (FLAG_JSON) {
             jsonResult.discovered = plugins.map((p) => ({ id: p.id, type: singularType(p.type, p.manifest), name: p.name }));
         } else if (plugins.length === 0) {
@@ -861,7 +887,9 @@ function cmdInstall(target) {
     // --only: disable all plugins in this container except the named ones.
     if (FLAG_ONLY) {
         const keepNames = FLAG_ONLY.split(",").map((n) => n.trim());
-        const containerName = isGit ? repoNameFromURL(target) : path.basename(path.resolve(target));
+        const containerName = isGit
+            ? repoNameFromURL(target)
+            : FLAG_CONTAINER || path.basename(path.resolve(target));
         const allInContainer = discoverAll().filter((p) => p.container === containerName);
         const state = loadState();
         let disabledCount = 0;
@@ -1188,6 +1216,39 @@ function cmdUpdate(repoName) {
     }
 }
 
+/**
+ * Run `fn`, returning what it returned plus the messages the app's logger
+ * printed while it ran. The validator warns through `logger`, which writes JSON
+ * lines to stdout — informative, but it also lands in the middle of our own
+ * `--json` payload and makes it unparseable.
+ */
+function capturingLogs(fn) {
+    const origWrite = process.stdout.write.bind(process.stdout);
+    const lines = [];
+    process.stdout.write = (chunk, ...rest) => {
+        lines.push(String(chunk));
+        return true;
+    };
+    let value;
+    try {
+        value = fn();
+    } finally {
+        process.stdout.write = origWrite;
+    }
+    const messages = [];
+    for (const line of lines.join("").split("\n")) {
+        if (!line.trim()) continue;
+        try {
+            const parsed = JSON.parse(line);
+            if (parsed && parsed.msg) messages.push(parsed.msg);
+            else messages.push(line);
+        } catch {
+            messages.push(line);
+        }
+    }
+    return { value, messages };
+}
+
 function cmdValidate() {
     const {
         validatePluginConfig,
@@ -1198,6 +1259,7 @@ function cmdValidate() {
     const plugins = discoverAll();
     const state = loadState();
     const results = [];
+    const manifestWarningMessages = [];
     let errors = 0;
     let warnings = 0;
     let passed = 0;
@@ -1218,7 +1280,16 @@ function cmdValidate() {
 
         const validationType = PLUGIN_TYPE_SINGULAR[p.type] || p.type;
 
-        const errs = validatePluginConfig(p.manifest, p.name, validationType);
+        // Whatever the validator logged is about this plugin, so show it as a
+        // warning of its own rather than as noise (or as corrupt JSON).
+        const { value: errs, messages: logged } = capturingLogs(() =>
+            validatePluginConfig(p.manifest, p.name, validationType)
+        );
+        for (const msg of logged) {
+            manifestWarningMessages.push(msg);
+            if (!FLAG_JSON)
+                console.log(`  ${c.yellow("⚠")} ${c.cyan(prefix)}: ${c.yellow(msg.replace(`Plugin '${p.name}' (${validationType}): `, ""))}`);
+        }
         if (errs.length > 0) {
             for (const e of errs) {
                 pluginErrors.push(e);
@@ -1257,14 +1328,14 @@ function cmdValidate() {
         for (const depId of p.manifest.pluginDependencies) {
             if (!pluginIds.has(depId)) {
                 depWarnings++;
-                const msg = `${p.id} depends on '${depId}' which was not found`;
+                const msg = `${p.id} depends on '${depId}' which was not found, so it is left out of the generated registry and never loads`;
                 depWarningMessages.push(msg);
-                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: depends on ${c.red(depId)} ${c.yellow("(not found)")}`);
+                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: depends on ${c.red(depId)} ${c.yellow("(not found) — so this plugin is left out of the generated registry and never loads")}`);
             } else if (!enabledIds.has(depId)) {
                 depWarnings++;
-                const msg = `${p.id} depends on '${depId}' which is disabled`;
+                const msg = `${p.id} depends on '${depId}' which is disabled, so it is left out of the generated registry and never loads`;
                 depWarningMessages.push(msg);
-                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: depends on ${c.red(depId)} ${c.yellow("(disabled)")}`);
+                if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: depends on ${c.red(depId)} ${c.yellow("(disabled) — so this plugin is left out of the generated registry and never loads")}`);
             }
         }
     }
@@ -1340,13 +1411,44 @@ function cmdValidate() {
         }
     }
 
+    // Cross-family ids: a feature built from a layer type, an attachment and an
+    // interaction names its siblings by bare id, and a typo in any of them is a
+    // feature that simply never happens.
+    const layerTypePlugins = plugins.filter(
+        (p) => p.type === "layertypes" && p.manifest && isPluginEnabled(p, state)
+    );
+    const typeIds = new Set(layerTypePlugins.map((p) => p.manifest.typeId).filter(Boolean));
+    const attachmentPlugins = plugins.filter(
+        (p) => p.type === "layerattachments" && p.manifest && isPluginEnabled(p, state)
+    );
+    const crossFamilyWarningMessages = [];
+    const crossFamilyWarning = (plugin, msg, bad) => {
+        crossFamilyWarningMessages.push(`${plugin.id} ${msg} '${bad}' which no enabled plugin provides`);
+        if (!FLAG_JSON)
+            console.log(`  ${c.yellow("⚠")} ${c.cyan(plugin.id)}: ${msg} ${c.red(bad)} ${c.yellow("(not found)")}`);
+    };
+    for (const p of layerTypePlugins) {
+        const byEvent = (p.manifest.capabilities || {}).defaultInteractions;
+        if (byEvent == null || typeof byEvent !== "object") continue;
+        for (const ids of Object.values(byEvent)) {
+            if (!Array.isArray(ids)) continue;
+            for (const id of ids)
+                if (!interactionIds.has(id))
+                    crossFamilyWarning(p, "declares default interaction", id);
+        }
+    }
+    for (const p of [...attachmentPlugins, ...interactionPlugins]) {
+        const applicable = p.manifest.applicableLayerTypes;
+        if (!Array.isArray(applicable)) continue;
+        for (const typeId of applicable)
+            if (typeId !== "*" && !typeIds.has(typeId))
+                crossFamilyWarning(p, "applies to layer type", typeId);
+    }
+
     // An attachment's `config.tab` joins an existing Configure tab when it
     // matches one exactly, and silently creates a tab of its own when it does
     // not — a one-row tab no admin thinks to open. Usually that is a typo or a
     // scaffold default left in place, so say so.
-    const attachmentPlugins = plugins.filter(
-        (p) => p.type === "layerattachments" && p.manifest && isPluginEnabled(p, state)
-    );
     // Core's attachments define the tabs an admin already knows to look in.
     const coreTabs = new Set(
         attachmentPlugins
@@ -1446,7 +1548,7 @@ function cmdValidate() {
     const totalPlugins = plugins.length;
 
     if (FLAG_JSON) {
-        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, attachmentWarningMessages, staleMessages, results }, null, 2));
+        console.log(JSON.stringify({ valid: errors === 0, total: totalPlugins, passed, errors, warnings, depWarnings, depWarningMessages, interactionErrors, interactionErrorMessages, interactionWarnings, interactionWarningMessages, attachmentWarningMessages, manifestWarningMessages, crossFamilyWarningMessages, staleMessages, results }, null, 2));
         if (errors > 0) process.exit(1);
         return;
     }
@@ -1457,6 +1559,8 @@ function cmdValidate() {
         if (depWarnings > 0) console.log(`  ${c.yellow(String(depWarnings))} plugin dependency warning(s).`);
         if (interactionWarnings > 0) console.log(`  ${c.yellow(String(interactionWarnings))} interaction warning(s).`);
         if (attachmentWarningMessages.length > 0) console.log(`  ${c.yellow(String(attachmentWarningMessages.length))} attachment(s) declaring a Configure tab of their own.`);
+        if (manifestWarningMessages.length > 0) console.log(`  ${c.yellow(String(manifestWarningMessages.length))} manifest warning(s).`);
+        if (crossFamilyWarningMessages.length > 0) console.log(`  ${c.yellow(String(crossFamilyWarningMessages.length))} reference(s) to an id no plugin provides.`);
         if (staleMessages.length > 0) console.log(`  ${c.yellow(String(staleMessages.length))} plugin(s) not in the generated registries.`);
     } else {
         console.error(`\n  ${c.red(`${errors} error(s)`)} across ${c.bold(String(totalPlugins))} plugin(s). ${c.green(`${passed} passed`)}.`);
@@ -1836,6 +1940,30 @@ function cmdCreate(type, name) {
         process.exit(1);
     }
 
+    if (FLAG_EXTENDS != null && type !== "layertype") {
+        jsonError("--extends applies to layertype only.");
+        console.error(c.red("--extends applies to layertype only."));
+        process.exit(1);
+    }
+    if (FLAG_EXTENDS != null) {
+        // One level only, so the parent must be a type that does not itself
+        // extend — the same rule validate enforces, said before the files exist.
+        const parents = discoverAll().filter(
+            (p) => p.type === "layertypes" && p.manifest && p.manifest.typeId === FLAG_EXTENDS
+        );
+        if (parents.length === 0) {
+            jsonError(`No layer type provides '${FLAG_EXTENDS}' to extend.`);
+            console.error(c.red(`No layer type provides '${FLAG_EXTENDS}' to extend.`));
+            console.error(c.dim(`Available: ${discoverAll().filter((p) => p.type === "layertypes" && p.manifest && p.manifest.typeId).map((p) => p.manifest.typeId).sort().join(", ")}`));
+            process.exit(1);
+        }
+        if (parents.some((p) => p.manifest.extends !== undefined)) {
+            jsonError(`'${FLAG_EXTENDS}' itself extends another type — inheritance is one level only.`);
+            console.error(c.red(`'${FLAG_EXTENDS}' itself extends another type — inheritance is one level only.`));
+            process.exit(1);
+        }
+    }
+
     if (FLAG_CONTAINER === CORE_CONTAINER && !FLAG_FORCE) {
         jsonError("Cannot create plugins in the core container without --force.");
         console.error(c.red("Cannot create plugins in the core container without --force."));
@@ -1870,7 +1998,7 @@ function cmdCreate(type, name) {
         if (!FLAG_JSON) console.log(`  ${c.green("✓")} Created container: ${c.cyan(container + "/")}`);
     }
 
-    const files = scaffold(type, name);
+    const files = scaffold(type, name, { extendsType: FLAG_EXTENDS });
 
     // Write all files.
     const created = [];
@@ -1920,6 +2048,11 @@ function cmdCreate(type, name) {
         console.log(`    ${c.dim("1.")} Edit ${c.cyan(`${name}.js`)} to implement the ${c.cyan("use(ctx)")} handler`);
         console.log(`    ${c.dim("2.")} Set ${c.cyan("interactionId")}, ${c.cyan("phase")}, and ${c.cyan("order")} in ${c.cyan("plugin.json")}`);
         console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("interactionId")}, ${c.cyan("phase")}, ${c.cyan("order")} or ${c.cyan("configPath")} to regenerate the interaction registry`);
+    } else if (type === "layertype" && FLAG_EXTENDS) {
+        console.log(`    ${c.dim("1.")} Implement the surfaces that differ from ${c.cyan(FLAG_EXTENDS)} in ${c.cyan(`${moduleNameOf(name)}.js`)} — it starts with ${c.cyan("source.fetch")}; drawing, picking, filtering and both globes are inherited`);
+        console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("config")} fields in ${c.cyan("plugin.json")} (declare only the capabilities that differ from ${c.cyan(FLAG_EXTENDS)}'s)`);
+        console.log(`    ${c.dim("3.")} Re-run ${c.cyan("npm run plugins -- activate")} after changing ${c.cyan("module")} to regenerate the layer registries`);
+        console.log(`    ${c.dim("4.")} Run ${c.cyan("npm run plugins -- validate")} to check the contract`);
     } else if (type === "layertype") {
         console.log(`    ${c.dim("1.")} Implement ${c.cyan("make")}/${c.cyan("destroy")} in ${c.cyan("map.js")} (for the globe, add ${c.cyan("globe/<engine>.js")} and declare it under ${c.cyan('"modules": {"globe": …}')} in ${c.cyan("plugin.json")} — see ${c.cyan("plugins/core/layertypes/README.md")})`);
         console.log(`    ${c.dim("2.")} Fill in ${c.cyan("supportedData")}, ${c.cyan("color")}/${c.cyan("defaultIcon")}, and the ${c.cyan("config")} fields in ${c.cyan("plugin.json")}`);
@@ -2053,6 +2186,7 @@ ${h("enable-all", "Enable all plugins (use --container to scope)")}
 ${h("disable-all", "Disable all non-required plugins (use --container to scope)")}
 ${h("update [repo-name]", "Pull latest for repo(s)")}
 ${h("create <type> <Name>", `Scaffold a new plugin (${VALID_TYPES.join(", ")})`)}
+${h("", "layertype: --extends <typeId> to inherit a type and override one surface")}
 ${h("destroy <plugin-id>", "Delete a plugin (prompts for confirmation, --force to skip)")}
 ${h("activate", "Regenerate frontend plugin imports (no full build needed)")}
 ${h("validate", "Validate all plugin manifests")}

@@ -162,6 +162,26 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         expect(contents).not.toContain('dep:missing');
     });
 
+    test('a dependency on another family is satisfiable', () => {
+        // The idiom for a feature spanning families: the interaction depends on
+        // the layer type it is written for. Resolving deps against only some
+        // families dropped it with a warning nobody reads.
+        installFixturePlugin({
+            pluginType: 'interaction',
+            containerName: INTERACTION_CONTAINER,
+            fixtureName: 'DepCrossFamilyInteraction',
+            fixturesDir: path.join(repoRoot, 'tests', 'fixtures', 'test-plugin-interactions'),
+        });
+
+        updateInteractions();
+
+        const cfg = JSON.parse(fs.readFileSync(INTERACTION_CONFIGS_PATH, 'utf8'));
+        expect(cfg).toHaveProperty('DepCrossFamilyInteraction');
+        expect(fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8')).toContain(
+            'dep:crossfamily'
+        );
+    });
+
     test('interactions.js does not contain dynamic import patterns', () => {
         updateInteractions();
 

@@ -62,9 +62,11 @@ export default FeatureGlow
 but `config` is reassigned for every interaction, and is `null` for one with no
 settings of its own. Never read another interaction's settings out of `ctx`.
 
-Everything else comes from the singletons, imported by alias so the module still
-loads in a unit test: `import L_ from '@basics/Layers_/Layers_'`,
-`import F_ from '@basics/Formulae_/Formulae_'`.
+Everything else comes from the singletons, imported by alias rather than read off
+`window`: `import L_ from '@basics/Layers_/Layers_'`,
+`import F_ from '@basics/Formulae_/Formulae_'`. That import is also what makes the
+module un-importable in a Node test (see [Testing](#testing)), so keep logic worth
+testing in a plain module your handler calls.
 
 ## Phase and order
 
@@ -83,7 +85,14 @@ pipeline (`info:open` suppresses `info:silent`).
 `applicableLayerTypes` is **enforced**, not advisory: the runner drops your
 interaction for a layer whose type (or the type it extends) isn't listed, from
 the preamble and postamble too. Declaring it is how you avoid being handed a tile
-layer when you expect features.
+layer when you expect features. `validate` warns when it names a `typeId` no
+enabled plugin provides.
+
+`kindAlias` is an **array** of legacy `kind` strings — `["waypoint"]`, not
+`"waypoint"` — and it is how a layer whose config predates explicit pipelines
+selects you: every interaction aliasing that kind runs, in `order`. A layer type
+can put you in a layer's pipeline instead, without the layer naming you, with
+`capabilities.defaultInteractions.<event>: ["<interactionId>"]`.
 
 ## Settings an admin can edit
 

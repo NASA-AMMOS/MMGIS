@@ -151,6 +151,14 @@ export async function syncSublayerData(L_, layerName, onlyClear) {
                 const ctx = {
                     hostName: layerName,
                     attachmentName: sub,
+                    layerObj: L_.layers.data[layerName],
+                    // Its settings, same as `make` got them: without these an
+                    // attachment either stashes them itself or redraws with
+                    // defaults, silently.
+                    config: LayerAttachmentRegistry.configFor(
+                        attachment.type,
+                        L_.layers.data[layerName]
+                    ),
                     geojson,
                     onlyClear: onlyClear === true,
                     zIndex:
