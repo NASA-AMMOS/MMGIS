@@ -32,14 +32,22 @@ export async function toggleLayer(
         'toggleLayer'
     )
 
-    Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
-        L_._onLayerToggleSubscriptions[k](s.name, !on)
-    })
+    // `ignoreToggleStateChange` means the layer's on-ness is deliberately not
+    // changing — it is the hide/show pair a refresh swaps a rebuilt layer in
+    // with. Subscribers track on-ness (the Layers tool's checkbox, the
+    // dynamic-extent re-query), so telling them is telling them something
+    // untrue: both halves of the pair read the unchanged state and report the
+    // same thing, leaving a refreshed layer's checkbox showing off.
+    if (ignoreToggleStateChange !== true) {
+        Object.keys(L_._onLayerToggleSubscriptions).forEach((k) => {
+            L_._onLayerToggleSubscriptions[k](s.name, !on)
+        })
 
-    Object.keys(L_._onSpecificLayerToggleSubscriptions).forEach((k) => {
-        const subs = L_._onSpecificLayerToggleSubscriptions[k]
-        if (subs.layer === s.name) subs.func(s.name, !on)
-    })
+        Object.keys(L_._onSpecificLayerToggleSubscriptions).forEach((k) => {
+            const subs = L_._onSpecificLayerToggleSubscriptions[k]
+            if (subs.layer === s.name) subs.func(s.name, !on)
+        })
+    }
 
     // Always reupdate layer infos at the end to keep them in sync
     Description.updateInfo()
