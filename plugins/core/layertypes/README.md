@@ -83,13 +83,16 @@ from somewhere else" a one-file plugin rather than a fork of Vector:
 }
 ```
 
-Resolution is per surface, and one level deep only (a parent that itself
-`extends` does not chain) — `LayerTypeRegistry.get()` merges the parent's
-modules under the child's (`globe` merged per engine), and `capabilities()`
-merges the parent's capabilities under the child's, one level into each group,
-so overriding `map.styling` doesn't drop an inherited `map.stacking`. Declare
-only what differs; the validator does not warn an extending type about
-capabilities its parent supplies.
+Resolution is one level deep only (a parent that itself `extends` does not
+chain), and it happens **per operation, not per surface**:
+`LayerTypeRegistry.get()` merges the parent's modules under the child's, one
+level into each surface (and, for `globe`, one level into each engine), so
+declaring a `config.normalize` keeps the parent's `config.expand` and overriding
+`globe.cesium.make` keeps its `destroy`. `capabilities()` merges the same way,
+one level into each group, so overriding `map.styling` doesn't drop an inherited
+`map.stacking`. Declare only what differs — for a whole surface, one operation,
+or a single engine — and the validator won't warn you about capabilities your
+parent supplies.
 
 Scaffold one with
 

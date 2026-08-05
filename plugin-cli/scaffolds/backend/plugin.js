@@ -6,6 +6,9 @@
  * `ensureAdmin`'s whitelist does.
  */
 const router = require('./routes/__name__')
+// Uncomment to create/migrate models/__name__.js's table on startup. A required
+// model is a required table, so a plugin that stores nothing should delete it.
+// const { up } = require('./models/__name__')
 
 let setup = {
     // During app setup, before the server listens. Mount routes here.
@@ -29,7 +32,9 @@ let setup = {
     onceStarted: (s) => {},
     // After sequelize.sync() — tables exist. Run model.up() migrations here;
     // sync() does NOT add columns to existing tables.
-    onceSynced: (s) => {},
+    onceSynced: (s) => {
+        // up()
+    },
 
     // Environment variables core should validate and log at startup:
     // envs: [{ name: '__SNAKE_NAME___HOST', required: true }],

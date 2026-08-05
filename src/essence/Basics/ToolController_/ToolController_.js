@@ -4,6 +4,10 @@ import { toolModules, toolConfigs } from '../../../pre/tools'
 import useUIStore from '../UserInterface_/store/uiStore'
 import { getSeparatedMode, resolveToolJs } from './toolControllerHelpers'
 
+// Once per name: a miss is usually in a click handler, so warning every time
+// would be a console full of the same line.
+const _warnedMissingTools = new Set()
+
 let ToolController_ = {
     tools: null,
     activeSeparatedTools: [],
@@ -105,6 +109,15 @@ let ToolController_ = {
     },
     getTool: function (name) {
         var tool = this.toolModules[name]
+        if (tool == null && !_warnedMissingTools.has(name)) {
+            // The stub keeps a caller from throwing, but silence turns "the
+            // tool isn't in this mission's toolbar" into "my plugin does
+            // nothing", which is the harder thing to debug.
+            _warnedMissingTools.add(name)
+            console.warn(
+                `ToolController_.getTool('${name}'): no such tool is loaded — calls on it do nothing. Is it in the mission's toolbar and enabled?`
+            )
+        }
         return tool || { use: function () {} }
     },
     // openTool/closeTool — type-agnostic public API (keyed by tool name, e.g.

@@ -12,6 +12,10 @@
  */
 
 import { test, expect } from '@playwright/test'
+import {
+    mergeSurface,
+    mergeSurfaces,
+} from '../../src/essence/Basics/Layers_/registry/typeInheritance'
 
 const {
     validatePluginConfig,
@@ -125,6 +129,45 @@ test.describe('extends — cross-plugin resolution', () => {
         expect(errors).toEqual([
             "Layer type 'grandchild': extends 'child', which itself extends 'parent' — inheritance is one level only",
         ])
+    })
+})
+
+test.describe('extends — what a child inherits inside a surface', () => {
+    const parentConfig = { expand: () => 'expanded', normalize: () => 'parent' }
+
+    test('declaring one operation of a surface keeps the parent\'s others', () => {
+        // The trap this exists for: adding a `normalize` to inherit the rest of
+        // vector's `config` used to drop vector's STAC `expand` silently.
+        const merged = mergeSurface(parentConfig, { normalize: () => 'child' })
+        expect(merged.normalize()).toBe('child')
+        expect(merged.expand()).toBe('expanded')
+    })
+
+    test('a surface the child says nothing about is the parent\'s', () => {
+        expect(mergeSurface(parentConfig, undefined)).toBe(parentConfig)
+    })
+
+    test('globe merges per engine, then per operation', () => {
+        const merged = mergeSurfaces(
+            {
+                map: { make: () => 'parent map' },
+                globe: {
+                    cesium: { make: () => 'parent cesium', destroy: () => 'kept' },
+                    lithosphere: { make: () => 'parent litho' },
+                },
+            },
+            { globe: { cesium: { make: () => 'child cesium' } } }
+        )
+        expect(merged.map.make()).toBe('parent map')
+        expect(merged.globe.cesium.make()).toBe('child cesium')
+        expect(merged.globe.cesium.destroy()).toBe('kept')
+        expect(merged.globe.lithosphere.make()).toBe('parent litho')
+    })
+
+    test('a type with no parent is its own modules', () => {
+        const own = { map: { make: () => 1 } }
+        expect(mergeSurfaces(null, own)).toBe(own)
+        expect(mergeSurfaces(null, null)).toBeNull()
     })
 })
 

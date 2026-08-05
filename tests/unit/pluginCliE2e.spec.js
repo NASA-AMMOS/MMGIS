@@ -220,29 +220,29 @@ test.describe('CLI create and destroy', () => {
     test.afterAll(() => {
         cleanupContainer(CONTAINER);
         fs.rmSync(CORE_INTERACTION_DIR, { recursive: true, force: true });
-        cleanupState([`${CONTAINER}/tools/E2eTool`]);
+        cleanupState([`${CONTAINER}/tools/E2e`]);
         runCli('activate');
     });
 
     test('create tool scaffolds correct structure', () => {
-        const { stdout, exitCode } = runCli(`create tool E2eTool --container ${CONTAINER}`);
+        const { stdout, exitCode } = runCli(`create tool E2e --container ${CONTAINER}`);
         expect(exitCode).toBe(0);
 
-        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eTool');
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2e');
         expect(fs.existsSync(pluginDir)).toBe(true);
 
         // plugin.json exists and is valid
         const manifest = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf8'));
-        expect(manifest.name).toBe('E2eTool');
+        expect(manifest.name).toBe('E2e');
         expect(manifest.type).toBe('tool');
         expect(manifest.paths).toBeDefined();
         expect(manifest.defaultIcon).toBe('puzzle-outline');
 
-        // Entry point exists
-        expect(fs.existsSync(path.join(pluginDir, 'E2eToolTool.js'))).toBe(true);
+        // Entry point exists — the scaffold adds the Tool suffix
+        expect(fs.existsSync(path.join(pluginDir, 'E2eTool.js'))).toBe(true);
 
         // CSS exists
-        expect(fs.existsSync(path.join(pluginDir, 'E2eToolTool.css'))).toBe(true);
+        expect(fs.existsSync(path.join(pluginDir, 'E2eTool.css'))).toBe(true);
 
         // Test spec exists
         const testDir = path.join(pluginDir, 'tests');
@@ -250,18 +250,33 @@ test.describe('CLI create and destroy', () => {
 
         // tools.js should include the new tool
         const toolsJs = fs.readFileSync(TOOLS_JS, 'utf8');
-        expect(toolsJs).toContain('E2eTool');
+        expect(toolsJs).toContain('E2e');
+    });
+
+    test('create tool trims a Tool suffix rather than doubling it', () => {
+        // The scaffold appends `Tool` to the directory, component and toolbar
+        // key, so `create tool E2eSuffixTool` would produce E2eSuffixToolTool.
+        runCli(`create tool E2eSuffixTool --container ${CONTAINER}`);
+        expect(
+            fs.existsSync(path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eSuffix'))
+        ).toBe(true);
+        expect(
+            fs.existsSync(
+                path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eSuffix', 'E2eSuffixTool.js')
+            )
+        ).toBe(true);
+        runCli(`destroy ${CONTAINER}/tools/E2eSuffix --force`);
     });
 
     test('create --json returns structured output', () => {
         // Destroy first, then re-create with --json
-        runCli(`destroy ${CONTAINER}/tools/E2eTool --force`);
-        const { stdout, exitCode } = runCli(`create tool E2eTool --container ${CONTAINER} --json`);
+        runCli(`destroy ${CONTAINER}/tools/E2e --force`);
+        const { stdout, exitCode } = runCli(`create tool E2e --container ${CONTAINER} --json`);
         expect(exitCode).toBe(0);
 
         const result = JSON.parse(stdout);
         expect(result.command).toBe('create');
-        expect(result.name).toBe('E2eTool');
+        expect(result.name).toBe('E2e');
         expect(result.type).toBe('tool');
     });
 
@@ -384,15 +399,15 @@ test.describe('CLI create and destroy', () => {
     });
 
     test('destroy with --force removes plugin', () => {
-        const { stdout, exitCode } = runCli(`destroy ${CONTAINER}/tools/E2eTool --force`);
+        const { stdout, exitCode } = runCli(`destroy ${CONTAINER}/tools/E2e --force`);
         expect(exitCode).toBe(0);
 
-        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eTool');
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2e');
         expect(fs.existsSync(pluginDir)).toBe(false);
 
         // tools.js should no longer include it
         const toolsJs = fs.readFileSync(TOOLS_JS, 'utf8');
-        expect(toolsJs).not.toContain('E2eTool');
+        expect(toolsJs).not.toContain('E2e');
     });
 
     test('destroy nonexistent plugin fails', () => {

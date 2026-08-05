@@ -11,7 +11,10 @@
  * core's. See plugins/core/layertypes/README.md.
  */
 async function fetch(layerObj, ctx) {
-    // ctx.url    — the layer's url, time placeholders resolved ('' if none)
+    // ctx.url    — the layer's url, time placeholders resolved ('' if none).
+    //              It is '' unless the layer has one, so a type whose endpoint
+    //              is computed (or whose request is a POST body) should build
+    //              its own request here and drop the manifest's `url` row.
     // ctx.view   — the current extent, only when the layer sets
     //              `variables.dynamicExtent: true`; null otherwise
     // ctx.time   — { start, end, requery, … } for a time-enabled layer, else null
@@ -29,7 +32,9 @@ async function fetch(layerObj, ctx) {
 }
 
 /*
- * The other surfaces, should this type differ in more than its data:
+ * The other surfaces, should this type differ in more than its data. Declare a
+ * whole surface or a single operation — inheritance is per operation, so adding
+ * a `config: { normalize }` keeps the parent's `config.expand`:
  *
  *   config: { expand, normalize, resolveUrl }  layer config in / url out
  *   filter: { getAggregations, filter }        what the FilterTool can offer

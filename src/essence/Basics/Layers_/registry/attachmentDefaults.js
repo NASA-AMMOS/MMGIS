@@ -32,6 +32,21 @@ export function declaredAttachmentConfig(capabilities, attachmentId) {
 }
 
 /**
+ * Whether a layer's field is empty rather than answered.
+ *
+ * Configure writes `''` into a row an admin never filled in, which would
+ * otherwise beat the type's declared value and leave the attachment with no
+ * property name at all. `false` and `0` are answers, so only nullish and the
+ * empty string count as empty.
+ *
+ * @param {*} value
+ * @returns {boolean}
+ */
+function _isEmpty(value) {
+    return value == null || value === ''
+}
+
+/**
  * A layer's own attachment settings on top of what its type declared.
  *
  * Field by field, so an admin changing one thing doesn't lose the rest of what
@@ -45,5 +60,11 @@ export function declaredAttachmentConfig(capabilities, attachmentId) {
 export function resolveAttachmentConfig(own, declared) {
     if (declared == null) return own == null ? null : own
     if (own == null) return { ...declared }
-    return { ...declared, ...own }
+
+    const answered = Object.fromEntries(
+        Object.entries(own).filter(
+            ([key, value]) => !(_isEmpty(value) && key in declared)
+        )
+    )
+    return { ...declared, ...answered }
 }

@@ -366,9 +366,9 @@ How the families reach each other — all declarative, none of it a lookup:
 |---|---|
 | type → attachment | the attachment's `applicableLayerTypes: ["<typeId>"]`, which also hides it from every other type |
 | type ships an attachment | the type's `capabilities.defaultAttachments`, which also carries the attachment's settings — see below |
-| type → interaction | the type's `capabilities.defaultInteractions.<event>: ["<interactionId>"]` |
+| type → interaction | the type's `capabilities.defaultInteractions.<event>: ["<interactionId>"]` — ids only, unlike the row above: it puts the interaction in the pipeline but cannot hand it settings, so an interaction owns its own defaults |
 | either → an admin | each plugin's own `configPath` + `config.rows`; a plugin owns its subtree and should not write another's |
-| plugin → plugin, at runtime | share a module, or leave something on the layer: an attachment's own object is at `L_.layers.attachments[layerName][attachmentId]` and is yours verbatim, and interactions pass state along the pipeline in `ctx.state` |
+| plugin → plugin, at runtime | share a module, or leave something on the layer: an attachment's own object is at `L_.layers.attachments[<host>][<sublayerKey>]` and is yours verbatim, and interactions pass state along the pipeline in `ctx.state`. `<host>` is the host's name as `L_.layers.data` keys it (`L_.asLayerUUID(name)` for a display name), and `<sublayerKey>` is the `attachmentId` unless the attachment declared `capabilities.host.sublayerKey` |
 
 The settings problem the last two rows solve is worth spelling out, because the obvious workaround is wrong. A feature's three plugins often need the *same* facts — the property holding an azimuth, say — and each family owns a different subtree, so an admin would type it three times and they would have to agree. Do **not** have your layer type write into the attachment's `configPath`; declare what the attachment should be instead:
 
@@ -382,7 +382,7 @@ The settings problem the last two rows solve is worth spelling out, because the 
 
 Core then hands that to the attachment under the attachment's own `configPath`, as if an admin had filled it in. A layer of your type gets the attachment turned on with those settings; its own settings, if an admin gives it any, sit on top **field by field**, so changing one thing does not lose the rest, and `enabled: false` on the layer opts out. `{}` means "on, with the attachment's own defaults".
 
-So the property names live once, in the manifest of the plugin that knows them, and neither plugin reads the other's config. Two caveats: the attachment's `applicableLayerTypes` still decides whether it can host your type at all (`validate` warns when a declared default can never apply), and the Configure form for that attachment shows *empty* fields on such a layer — empty means "as the type declared", and typing a value overrides it.
+So the property names live once, in the manifest of the plugin that knows them, and neither plugin reads the other's config. Two caveats: the attachment's `applicableLayerTypes` still decides whether it can host your type at all (`validate` warns when a declared default can never apply), and the Configure form for that attachment shows *empty* fields on such a layer — empty means "as the type declared", and typing a value overrides it. Emptiness is what an untouched form field looks like, so a blank or missing field leaves the type's value standing; `false` and `0` are answers and do override.
 
 There is deliberately no registry lookup by `attachmentId`/`interactionId` for plugins, and no way to *call* another plugin's operations: core dispatches them, so a plugin that needs another's work should read what it left behind rather than invoke it. Two plugins that must run in a fixed order are one plugin.
 
@@ -666,9 +666,11 @@ Either a semantic version or the sentinel `"core"`, which resolves to the MMGIS 
 
 #### `defaultIcon`
 
-**Type:** `string` · **Default:** `"puzzle-outline"` · **Applies to:** Tools, Components
+**Type:** `string` · **Default:** `"puzzle-outline"` · **Applies to:** Tools, Components, Layer types
 
 Icon displayed in the toolbar and configure page. A [Material Design Icons](https://pictogrammers.com/library/mdi/) name without the `mdi-` prefix (`layers`, `map-marker`, `clock-outline`) — MMGIS renders it as `<i className='mdi mdi-<name>'>`.
+
+Layer types are the exception: Configure draws them with **MUI** icons (`Polyline`, `Storage`, `TravelExplore`), resolved against the map in `configure/src/core/layerTypeVisuals.js`, so a name that isn't in that map — including any MDI name — silently falls back to the generic layers icon. A third-party type either picks a name already imported there or accepts the fallback; adding one means a core change.
 
 ### Identity Fields
 

@@ -258,6 +258,15 @@ function pluginId(container, type, name) {
     return `${container}/${type}/${name}`;
 }
 
+/** A generated file's contents, or null when it doesn't exist yet. */
+function readIfPresent(filePath) {
+    try {
+        return fs.readFileSync(filePath, "utf8");
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Parse tool/component names from the generated src/pre/ files.
  * Returns a Set of import identifiers (e.g. "DrawTool", "OperationsClock").
@@ -378,8 +387,11 @@ function activate({ expectChanges = false, silent = false } = {}) {
         };
 
         const before = {};
-        for (const [type, file] of Object.entries(FRONTEND_PRE))
+        const beforeText = {};
+        for (const [type, file] of Object.entries(FRONTEND_PRE)) {
             before[type] = parsePreImports(file);
+            beforeText[type] = readIfPresent(file);
+        }
 
         // Suppress logger console output during regeneration.
         const origWrite = process.stdout.write;
@@ -421,11 +433,23 @@ function activate({ expectChanges = false, silent = false } = {}) {
             }
         }
 
+        // A manifest edit (an interactionId, a capability) rewrites a registry
+        // without adding or removing an import, and reporting that as "no
+        // changes" reads as "your edit didn't take".
+        const rewritten = Object.entries(FRONTEND_PRE)
+            .filter(([type, file]) => readIfPresent(file) !== beforeText[type])
+            .map(([type]) => type);
+
         if (!silent) {
             if (added.length === 0 && removed.length === 0) {
-                const noChange = expectChanges
-                    ? c.yellow("No changes detected.")
-                    : c.dim("No changes.");
+                const noChange =
+                    rewritten.length > 0
+                        ? c.dim(
+                              `Same plugins, updated ${rewritten.join(", ")} registr${rewritten.length === 1 ? "y" : "ies"} from their manifests.`
+                          )
+                        : expectChanges
+                          ? c.yellow("No changes detected.")
+                          : c.dim("No changes.");
                 console.log(`\n  ${c.green("Frontend plugins activated.")} ${noChange}`);
             } else {
                 console.log(`\n  ${c.green("Frontend plugins activated.")}`);
@@ -2000,6 +2024,19 @@ function cmdCreate(type, name) {
         console.error(c.red("Cannot create plugins in the core container without --force."));
         console.error(c.dim("Core plugins are maintained as part of the main MMGIS repository."));
         process.exit(1);
+    }
+
+    // The tool scaffold appends `Tool` itself (directory, component, toolbar
+    // key), so `create tool SpectraTool` would produce `SpectraToolTool`.
+    if (type === "tool" && /Tool$/.test(name)) {
+        const trimmed = name.replace(/Tool$/, "");
+        if (trimmed.length) {
+            if (!FLAG_JSON)
+                console.log(
+                    `  ${c.yellow("!")} Creating ${c.cyan(trimmed + "Tool")} — ${c.dim("the scaffold adds the 'Tool' suffix, so name a tool by what it does.")}`
+                );
+            name = trimmed;
+        }
     }
 
     const container = FLAG_CONTAINER;

@@ -128,6 +128,38 @@ things to know:
 There is no `enabled` field to add: an interaction is enabled by being in the
 layer's pipeline.
 
+Note the asymmetry with attachments: a layer type can declare the attachments it
+comes with *and their settings*
+(`capabilities.defaultAttachments`), but `capabilities.defaultInteractions` lists
+interaction **ids** only. A type cannot hand you settings — so an interaction
+written for a particular type either defaults sensibly in code or reads the
+layer's own config off `ctx.layer`, and its admin-facing settings stay its own.
+
+## Reaching a tool
+
+`ToolController_` is the seam, and the two calls worth knowing are
+`openTool(name)` / `closeTool(name)`, keyed by the tool's **name** as the
+mission's toolbar lists it (`'Identifier'`), and `getTool(moduleName)`, keyed by
+the tool's **module** (`'IdentifierTool'` — the key in its manifest's `paths`),
+which returns the module so you can call whatever it exports:
+
+```js
+import TC_ from '@basics/ToolController_/ToolController_'
+
+const MyUse = {
+    use(ctx) {
+        TC_.getTool('ChemistryTool').use(ctx.layer)
+    },
+}
+```
+
+`getTool` returns a `{ use() {} }` stub rather than throwing when the tool isn't
+loaded — a mission whose toolbar omits it, or a plugin that is disabled — so it
+also logs a warning: the call is a no-op, not an error. Declare the tool in your
+`pluginDependencies` (`"<container>/tools/<Name>"`) so `validate` and `disable`
+know about the link; an id that resolves to nothing keeps *your* plugin out of
+the registry entirely.
+
 ## Testing
 
 The pipeline itself is testable in Node — `runInteractions(ids, ctx, { handlers,

@@ -15,6 +15,8 @@
  * @module LayerTypeRegistry
  */
 
+import { mergeSurfaces } from './typeInheritance'
+
 let _cache = null
 const _resolved = { modules: {}, capabilities: {} }
 
@@ -72,14 +74,7 @@ function _effectiveModules(typeId) {
     const parentId = _load().layerTypeConfigs?.[typeId]?.extends
     const parent = parentId != null ? _ownModules(parentId) : null
 
-    let effective = own
-    if (parent != null) {
-        effective = {
-            ...parent,
-            ...(own || {}),
-            globe: { ...(parent.globe || {}), ...(own?.globe || {}) },
-        }
-    }
+    const effective = parent != null ? mergeSurfaces(parent, own) : own
 
     _resolved.modules[typeId] = effective || null
     return _resolved.modules[typeId]

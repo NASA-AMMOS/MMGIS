@@ -61,7 +61,7 @@ The same `s` is passed to every hook of every plugin.
 | `ensureUser()` | any logged-in user; the usual gate for user-facing data |
 | `ensureUserForAdjacentServers()` | the adjacent-server variant: `GET` is open when `AUTH` is `off`/`none`, everything else needs admin |
 | `ensureGroup(...groups)` | membership in a CSSO group |
-| `stopGuests` | rejects guest sessions — put it *after* an `ensure*` on any write route |
+| `stopGuests` | rejects guest sessions — put it *after* an `ensure*`, and mount it on the write route rather than the whole mount (see below) |
 | `checkHeadersCodeInjection` | header sanitation; include it on every mount |
 | `setContentType` | response content-type normalization; include it on every mount |
 | `permissions` | the permission-string constants (`'111'` site admin, …) |
@@ -91,7 +91,7 @@ Middleware order is Express order: the gate must come before the router, and
 to the world regardless of the `AUTH` env, so the omission in the scaffold is a
 starting point, not a default policy.
 
-Two things surprise people:
+Four things surprise people:
 
 1. **`ensureAdmin()` is not purely "admin".** Before checking the session it
    allows a hardcoded whitelist of read-only core endpoints
@@ -118,6 +118,20 @@ Two things surprise people:
    why hitting your own new endpoint in a fresh checkout returns the
    unauthorized page rather than your JSON. Test such routes with a long-term
    token, or gate them so the paths you want to exercise are `allowGets`.
+
+3. **`stopGuests` knows nothing about your route.** It rejects when the user is
+   the guest user **or `AUTH` is `off`** — the method is irrelevant, so putting it
+   on the whole mount blocks your reads too, and blocks everything in a dev
+   instance. Core's Draw mounts it on the whole `/api/draw` mount because every
+   one of those routes is a user write; if any of yours is a read you want a dev
+   instance to answer, put it on the write handlers instead
+   (`router.post('/save', s.stopGuests, handler)`).
+
+4. **A rejection is an HTTP 200 with a failure body.** `stopGuests` and most core
+   handlers answer `{ status: 'failure', message: … }` with a 200 status, so a
+   frontend `if (!res.ok)` sees success. Check `body.status !== 'failure'`, and
+   have your own handlers keep the same shape — `{ status: 'success', body }` —
+   since that is what every existing client expects.
 
 `ensureAdmin` parameters, in order: `toLoginPage` (render the admin login page
 instead of rejecting), `denyLongTermTokens` (refuse `Authorization`-header

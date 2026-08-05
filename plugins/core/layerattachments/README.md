@@ -142,7 +142,9 @@ function make({ geojson, layerObj, leafletLayerObject, hostLayer, config, siblin
 ```
 
 The returned object is what core stores on the host
-(`L_.layers.attachments[hostName][attachmentId]`) and hands back to every
+(`L_.layers.attachments[hostName][sublayerKey]`, the host keyed as
+`L_.layers.data` keys it and the key your `attachmentId` unless you declared
+`capabilities.host.sublayerKey`) and hands back to every
 per-instance operation, **verbatim** — so keys beyond the four below survive, and
 stashing what a later operation needs on it (`_radius`, an engine handle, a
 feature index) is the intended way to keep state. Return `false`, not `{}`, when
@@ -155,11 +157,19 @@ there is nothing to add.
 | `layer` | the Leaflet layer core adds, removes, orders and opacities for you |
 | `geojson` | the data you built from, so `syncData` can diff and core can rebuild without re-deriving it. Yours, not the host's — return the subset you actually drew if it differs |
 
-- `config` is your settings subtree — the value at your `configPath` on the host.
-  It is **never** `null` in `make`: an attachment is built only for a host that
-  configured it, and a configured-but-`enabled`-less config counts as enabled
-  (the key's presence is the request). It can still be *partial*, so default your
-  own values.
+- `config` is your settings subtree — the value at your `configPath` on the host,
+  or what the host's layer type declared for you in
+  `capabilities.defaultAttachments`, with the host's own fields on top. Core
+  never calls `make` with a `null` config: an attachment is built only for a host
+  that asked for it, one way or the other, and an `enabled`-less config counts as
+  enabled (the key's presence is the request). It can still be *partial*, so
+  default your own values — which is why the scaffold and the examples here write
+  `config?.x`: it costs nothing and it keeps a `make({})` in your unit test from
+  throwing.
+- `initialVisibility` is a convention rather than a core-read key: every core
+  attachment treats `config.initialVisibility === false` as "built but not shown"
+  and nothing else in core looks at it. Follow it, and give it a `config.rows`
+  entry if an admin should be able to set it.
 - `leafletLayerObject` is the host's own `onEachFeature`/`pointToLayer`/`style`,
   to reuse so your features look like their host's.
 - `siblings` is only present if you declared

@@ -91,6 +91,26 @@ test.describe('a layer overrides its type field by field', () => {
         expect(config.enabled).toBe(false)
     })
 
+    test('an untouched form field does not beat the type', () => {
+        // Configure writes '' into a row nobody filled in, which would
+        // otherwise leave the attachment with no property name at all.
+        expect(
+            resolveAttachmentConfig(
+                { magnitudeProp: '', scale: 50 },
+                { magnitudeProp: 'mag', scale: 200 }
+            )
+        ).toEqual({ magnitudeProp: 'mag', scale: 50 })
+        // A field the type says nothing about is the layer's either way.
+        expect(resolveAttachmentConfig({ label: '' }, { scale: 200 })).toEqual({
+            scale: 200,
+            label: '',
+        })
+        // false and 0 are answers, not empties.
+        expect(
+            resolveAttachmentConfig({ enabled: false, scale: 0 }, { scale: 200 })
+        ).toEqual({ enabled: false, scale: 0 })
+    })
+
     test('nothing declared and nothing configured stays nothing', () => {
         expect(resolveAttachmentConfig(null, null)).toBeNull()
     })
