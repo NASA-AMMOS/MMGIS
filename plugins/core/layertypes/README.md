@@ -94,6 +94,29 @@ one level into each group, so overriding `map.styling` doesn't drop an inherited
 or a single engine — and the validator won't warn you about capabilities your
 parent supplies.
 
+**Calling the operation you overrode.** An operation you declare replaces the
+parent's, which is wrong whenever you mean "and also mine" — overriding Vector's
+`config.normalize` to add a field silently loses the `kind` and `radius` it sets.
+A child's operation is therefore handed the inherited implementation as **one
+extra argument after the ones the operation normally takes**:
+
+```js
+// config.normalize(layerObj, ctx) — so `inherited` is the third argument
+function normalize(layerObj, ctx, inherited) {
+    inherited() // run Vector's, on the same arguments
+    layerObj.variables.myThing = layerObj.variables.myThing ?? true
+}
+```
+
+`inherited()` with no arguments passes yours straight through; pass your own to
+call the parent with something else. It returns what the parent returned (await
+it if the parent is async), and it is a no-op function when the parent has no
+implementation of that operation — so calling it is always safe. Only an
+operation you actually declare is wrapped; one you leave alone is the parent's,
+untouched. Phases work the same way and are matched by name: your `main` is
+handed the parent's `main`, and a phase the parent declares and you don't
+(a parent `after`, say) still runs.
+
 Scaffold one with
 
 ```bash
@@ -240,6 +263,34 @@ treated as `null`. A `source`-backed type may have no `url` configured at all.
 | `time` | `{ start, end, startProp, endProp, requery }` for a time-enabled layer, else `null` |
 | `filters` | the layer's encoded value filters, when a filter is active |
 | `spatialFilter` | the layer's encoded spatial filter, when one is active |
+| `signal` | an `AbortSignal` aborted when core issues the layer's next acquisition — pass it to `window.fetch` so a source that pages doesn't keep pulling a viewport the user has left |
+| `emit` | `(GeoJSON) → void`: draw what you have so far (see below) |
+| `resolveUrl` | `(url) → url`: absolute left alone, a leading `/` made root-relative (behind `ROOT_PATH`), anything else mission-relative — for an endpoint out of your own config, so you don't hand-roll it off `window.mmgisglobal` |
+
+**Cancellation.** A layer has one live acquisition: starting the next aborts
+`ctx.signal` on the last. Core discards a stale response either way, so honouring
+the signal is about not doing the work — it matters for a paged or expensive
+source and is optional for a single request. A rejection whose `name` is
+`'AbortError'` is swallowed rather than logged as a failure.
+
+**Progressive results.** A source that pages can draw as it goes by calling
+`ctx.emit(geojson)` with **everything acquired so far** (not the delta — each
+call replaces what is drawn), then returning the final collection or `null` if
+the last `emit` was already it. Emits after the request is stale are dropped.
+
+```js
+async function fetch(layerObj, ctx) {
+    const features = []
+    for (let page = 0; page < 10; page++) {
+        const res = await window.fetch(pageUrl(ctx, page), { signal: ctx.signal })
+        const fc = await res.json()
+        features.push(...fc.features)
+        ctx.emit({ type: 'FeatureCollection', features })
+        if (fc.features.length < PAGE_SIZE) break
+    }
+    return null // every page was already emitted
+}
+```
 
 `ctx.view` is `null` — and `trigger` is never `'view'` — unless the layer opts
 into dynamic extent with `variables.dynamicExtent: true`. That is a layer

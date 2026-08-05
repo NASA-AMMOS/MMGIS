@@ -171,6 +171,114 @@ test.describe('extends — what a child inherits inside a surface', () => {
     })
 })
 
+test.describe('extends — calling the operation you overrode', () => {
+    test('the child is handed the parent\'s op after the op\'s own arguments', () => {
+        // Vector's normalize sets fields a child that only wanted to add one
+        // used to lose entirely.
+        const merged = mergeSurface(
+            { normalize: (layer) => (layer.kind = 'point') },
+            {
+                normalize: (layer, ctx, inherited) => {
+                    inherited()
+                    layer.mine = true
+                },
+            }
+        )
+        const layer = {}
+        merged.normalize(layer, {})
+        expect(layer).toEqual({ kind: 'point', mine: true })
+    })
+
+    test('inherited() passes the child\'s arguments through, or ones it chooses', () => {
+        const merged = mergeSurface(
+            { resolveUrl: (layer, url) => `parent:${url}` },
+            {
+                resolveUrl: (layer, url, inherited) => [
+                    inherited(),
+                    inherited(layer, 'other'),
+                ],
+            }
+        )
+        expect(merged.resolveUrl({}, 'mine')).toEqual([
+            'parent:mine',
+            'parent:other',
+        ])
+    })
+
+    test('inherited() is a safe no-op when the parent has no such op', () => {
+        const merged = mergeSurface(
+            { expand: () => 'parent' },
+            { normalize: (layer, ctx, inherited) => inherited() ?? 'mine' }
+        )
+        expect(merged.normalize({}, {})).toBe('mine')
+    })
+
+    test('inherited() returns what the parent returned, including a promise', async () => {
+        const merged = mergeSurface(
+            { fetch: async () => ({ features: [1] }) },
+            {
+                fetch: async (layer, ctx, inherited) => {
+                    const parent = await inherited()
+                    return { features: [...parent.features, 2] }
+                },
+            }
+        )
+        expect(await merged.fetch({}, {})).toEqual({ features: [1, 2] })
+    })
+
+    test('phases match by name, and one the child skips stays the parent\'s', () => {
+        const order = []
+        const merged = mergeSurface(
+            {
+                make: {
+                    before: () => order.push('parent before'),
+                    main: () => order.push('parent main'),
+                    after: () => order.push('parent after'),
+                },
+            },
+            {
+                make: {
+                    main: (layerObj, inherited) => {
+                        order.push('child main')
+                        inherited()
+                    },
+                },
+            }
+        )
+        merged.make.before()
+        merged.make.main({})
+        merged.make.after()
+        expect(order).toEqual([
+            'parent before',
+            'child main',
+            'parent main',
+            'parent after',
+        ])
+    })
+
+    test('a bare function overrides only the parent\'s main', () => {
+        const order = []
+        const merged = mergeSurface(
+            {
+                make: {
+                    main: () => order.push('parent main'),
+                    after: () => order.push('parent after'),
+                },
+            },
+            { make: () => order.push('child main') }
+        )
+        merged.make.main()
+        merged.make.after()
+        expect(order).toEqual(['child main', 'parent after'])
+    })
+
+    test('an operation the child never declares is the parent\'s, unwrapped', () => {
+        const expand = () => 'parent'
+        const merged = mergeSurface({ expand }, { normalize: () => 'child' })
+        expect(merged.expand).toBe(expand)
+    })
+})
+
 test.describe('surfaces', () => {
     test('a single-module layer type is not validated against one op vocabulary', () => {
         // It exports { map, globe, config, … } rather than operations, so there

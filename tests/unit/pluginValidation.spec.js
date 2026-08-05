@@ -714,6 +714,47 @@ test.describe('validateMetaconfig - the Configure form a manifest declares', () 
         ).toBe(1);
     });
 
+    test('optionsFrom stands in for options, on dropdowns only', () => {
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'dropdown',
+                        optionsFrom: 'layerProperties',
+                    },
+                ]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+        // A provider Configure doesn't have resolves to an empty list at
+        // runtime, i.e. a dropdown with nothing in it and no error.
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'dropdown', optionsFrom: 'nope' }]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain('Configure provides none such');
+        expect(
+            validateMetaconfig(
+                rows([
+                    { field: 'a', type: 'text', optionsFrom: 'layerProperties' },
+                ]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain("only applies to types 'dropdown' and 'searchdropdown'");
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'dropdown' }]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain("is required for type 'dropdown'");
+    });
+
     test('width must fit the 12-column grid', () => {
         expect(
             validateMetaconfig(

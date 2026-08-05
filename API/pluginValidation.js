@@ -319,6 +319,17 @@ const METACONFIG_OPTION_TYPES = new Set([
 ]);
 
 /**
+ * Providers a dropdown may take its options from instead of listing them.
+ * Mirrors configure/src/core/optionProviders.js — a name Maker doesn't know
+ * resolves to nothing at runtime, so it is worth catching here.
+ */
+const METACONFIG_OPTION_PROVIDERS = new Set([
+  "layerProperties",
+  "layers",
+  "layerTypes",
+]);
+
+/**
  * Validate a plugin's `config` metaconfig — the Configure-page form it declares.
  *
  * This is the part of a manifest that fails quietly: Maker skips a component it
@@ -393,13 +404,26 @@ function validateMetaconfig(
               `${where}: '${comLabel}.field' ('${com.field}') is outside this plugin's 'configPath' ('${configPath}') — core reads only that subtree, so the setting would be written and never read`
             );
         }
+        if (com.optionsFrom !== undefined) {
+          if (com.type !== "dropdown" && com.type !== "searchdropdown")
+            errors.push(
+              `${where}: '${comLabel}.optionsFrom' only applies to types 'dropdown' and 'searchdropdown'`
+            );
+          else if (!METACONFIG_OPTION_PROVIDERS.has(com.optionsFrom))
+            errors.push(
+              `${where}: '${comLabel}.optionsFrom' is '${com.optionsFrom}' — Configure provides none such (one of: ${[
+                ...METACONFIG_OPTION_PROVIDERS,
+              ].join(", ")})`
+            );
+        }
         if (
           METACONFIG_OPTION_TYPES.has(com.type) &&
+          com.optionsFrom === undefined &&
           !Array.isArray(com.options) &&
           typeof com.options !== "string"
         )
           errors.push(
-            `${where}: '${comLabel}.options' is required for type '${com.type}'`
+            `${where}: '${comLabel}.options' is required for type '${com.type}' (or an 'optionsFrom' provider)`
           );
         if (com.type === "objectarray" && !Array.isArray(com.object))
           errors.push(

@@ -120,6 +120,50 @@ const _commitDynamicGeoJSON = (layerObj, layerData, data) => {
     })
 }
 
+// A layer has one live acquisition at a time: issuing the next one aborts the
+// last, so a source that honours `ctx.signal` stops paging through a viewport
+// the user has already left. Core discards a stale response either way.
+const _sourceAborters = {}
+const _abortPrevious = (layerName) => {
+    try {
+        _sourceAborters[layerName]?.abort()
+    } catch (e) {}
+    const controller =
+        typeof AbortController !== 'undefined' ? new AbortController() : null
+    _sourceAborters[layerName] = controller
+    return controller ? controller.signal : undefined
+}
+
+// Mission-relative by default (as core resolves a layer's url), root-relative
+// for an api path, absolute left alone — so a source with an endpoint in its
+// own config doesn't hand-roll this off `mmgisglobal.ROOT_PATH`.
+const _resolveSourceUrl = (url) => {
+    if (typeof url !== 'string' || url.length === 0) return url
+    if (F_.isUrlAbsolute(url)) return url
+    if (url.startsWith('/')) {
+        const root = window.mmgisglobal?.ROOT_PATH || ''
+        return `${root.replace(/\/$/, '')}${url}`
+    }
+    return L_.missionPath + url
+}
+
+// Render a page that arrived after the layer already exists. updateVectorLayer
+// bails while the make-lock is held (leaving the layer cleared but not
+// repopulated), and an early page can land inside that window.
+const _renderPage = (layerObj, layerData, geojson, attempt = 0) => {
+    const held =
+        (L_._layersBeingMade || {})[L_.asLayerUUID(layerObj.name)] === true
+    if (held && attempt < 40) {
+        setTimeout(
+            () => _renderPage(layerObj, layerData, geojson, attempt + 1),
+            50
+        )
+        return
+    }
+    L_.clearVectorLayer(layerObj.name)
+    L_.updateVectorLayer(layerObj.name, geojson, null, layerData?._stopLoops)
+}
+
 /**
  * Acquire a layer's GeoJSON through its type's `source.fetch` instead of core's
  * url transports. Core keeps everything around the fetch: the extent, the zoom
@@ -136,15 +180,42 @@ const _captureFromSource = (
 ) => {
     const fetch = (view, trigger, onData) => {
         const ctx = sourceCtx(layerData, url, view, trigger)
+        ctx.signal = _abortPrevious(layerObj.name)
+        ctx.resolveUrl = _resolveSourceUrl
+
+        // A paged source draws what it has so far instead of leaving the map
+        // blank until the last page: each call is everything acquired to date.
+        let painted = false
+        const paint = (data) => {
+            const geojson = F_.parseIntoGeoJSON(data)
+            if (!painted) {
+                painted = true
+                onData(geojson)
+            } else _renderPage(layerObj, layerData, geojson)
+        }
+        ctx.emit = (data) => {
+            if (data == null || ctx.signal?.aborted) return
+            paint(data)
+        }
+
         Promise.resolve(
             LayerInterface.run(sourceModule, 'fetch', [layerObj, ctx])
         )
-            .then((data) => onData(data == null ? null : F_.parseIntoGeoJSON(data)))
+            .then((data) => {
+                // A source that emitted its pages may return nothing; the last
+                // page it painted is the result.
+                if (data == null) {
+                    if (!painted) onData(null)
+                    return
+                }
+                paint(data)
+            })
             .catch((err) => {
+                if (err?.name === 'AbortError') return
                 console.warn(
                     `ERROR! source.fetch of layer type '${layerData?.type}' failed for ${layerObj.name} /// ${err?.message || err}`
                 )
-                onData(null)
+                if (!painted) onData(null)
             })
     }
 
@@ -182,22 +253,38 @@ const _captureFromSource = (
             ctx.time.start = e.startTime
             ctx.time.end = e.endTime
         }
+        ctx.signal = _abortPrevious(layerObj.name)
+        ctx.resolveUrl = _resolveSourceUrl
+
+        // Still the newest request for this layer. A page is held to only this
+        // — the move threshold is about whether a NEW view is worth redrawing,
+        // and every page after the first shares the view of the one before it.
+        const isCurrent = () =>
+            _layerRequestLastTimestamp[layerObj.name] === dateNow
+
+        let painted = false
+        ctx.emit = (data) => {
+            if (data == null || ctx.signal?.aborted || !isCurrent()) return
+            painted = true
+            _commitDynamicGeoJSON(layerObj, layerData, F_.parseIntoGeoJSON(data))
+        }
 
         Promise.resolve(
             LayerInterface.run(sourceModule, 'fetch', [layerObj, ctx])
         )
             .then((data) => {
                 if (data == null) return
-                if (
-                    acceptsDynamicResult(
-                        layerObj,
-                        layerData,
-                        view,
-                        dateNow,
-                        _layerRequestLastTimestamp,
-                        _layerRequestLastLoc
-                    )
-                )
+                const accepted = painted
+                    ? isCurrent()
+                    : acceptsDynamicResult(
+                          layerObj,
+                          layerData,
+                          view,
+                          dateNow,
+                          _layerRequestLastTimestamp,
+                          _layerRequestLastLoc
+                      )
+                if (accepted)
                     _commitDynamicGeoJSON(
                         layerObj,
                         layerData,
@@ -205,6 +292,7 @@ const _captureFromSource = (
                     )
             })
             .catch((err) => {
+                if (err?.name === 'AbortError') return
                 console.warn(
                     `ERROR! source.fetch of layer type '${layerData?.type}' failed for ${layerObj.name} /// ${err?.message || err}`
                 )

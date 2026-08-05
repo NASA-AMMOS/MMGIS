@@ -155,6 +155,8 @@ UI components loaded into the MMGIS interface. Directory name is plural (`compon
 
 **Required manifest fields**: `name`, `paths`.
 
+A component is page-level UI with no panel and no toolbar entry: one `init(vars)`, called once after the UI is finalized, and no `destroy`. [`core/components/README.md`](./core/components/README.md) is the family reference — when `init` runs and what exists by then, where to mount and the z-index bands to mount between, the subscriptions it can use, and why there is no core channel from an interaction to a component.
+
 ### Interactions
 
 Composable handlers that run when a user interacts with a map feature (click, hover, mouseout). Directory name is plural (`interactions/`) but manifest type is singular (`"type": "interaction"`). They replace the legacy `Kinds` system — instead of one hardcoded "kind" per layer, a layer's behavior is a **pipeline** of small, single-purpose interactions.
@@ -398,6 +400,18 @@ Object key order is the pipeline order, as the array's is, and the settings are 
 So the property names live once, in the manifest of the plugin that knows them, and neither plugin reads the other's config. Two caveats: the attachment's `applicableLayerTypes` still decides whether it can host your type at all (`validate` warns when a declared default can never apply), and the Configure form for that attachment shows *empty* fields on such a layer — empty means "as the type declared", and typing a value overrides it. Emptiness is what an untouched form field looks like, so a blank or missing field leaves the type's value standing; `false` and `0` are answers and do override.
 
 There is deliberately no registry lookup by `attachmentId`/`interactionId` for plugins, and no way to *call* another plugin's operations: core dispatches them, so a plugin that needs another's work should read what it left behind rather than invoke it. Two plugins that must run in a fixed order are one plugin.
+
+#### Composing across *layers* is not supported
+
+The seams above are all within one layer. Reaching into a **different** layer — reading `L_.layers.layer['Other Layer']` for its features to intersect, buffer or join against — is not a supported composition API, and a plugin that does it is depending on things core does not promise:
+
+- **the data may not be there.** A layer that is off has no Leaflet layer at all, and one that is on may still be mid-make; a dynamic-extent layer holds only what the current viewport asked for; a vector tile layer never has a feature collection to read, only the tiles currently drawn; and a `source` type's features exist only after its `fetch` resolved.
+- **nothing tells you when it changes.** There is no invalidation: the other layer is refetched on a time change, a refresh interval, a view settle or a filter edit, and your derived product is simply stale afterwards. `subscribeOnSpecificLayerToggle` and `subscribeTimeChange` tell you about two of those, not the rest.
+- **it is not the same shape everywhere.** What `L_.layers.layer[name]` holds is the render, and the render is the layer type's business — a Leaflet `GeoJSON` group for one type, a tile layer for another, something else for a plugin type. Reading it couples your plugin to another type's renderer.
+
+If a feature genuinely needs two layers' data, the supportable shape is to make it **one layer**: a layer type whose `source.fetch` acquires both inputs and returns the combined GeoJSON, which is then a normal layer with a normal lifecycle — it refetches when core says to, it filters, it draws through an inherited renderer, and nothing depends on what an unrelated layer happens to be holding. Where the join belongs on the server, a backend plugin route that returns the joined result and a thin `source.fetch` in front of it is the same shape.
+
+`L_.layers.data` — the *configuration* of every layer — is a different matter and is fine to read; it is declarative, always present, and what core itself reads.
 
 Declaring `pluginDependencies` between them is worth doing — it makes `disable` warn, and `deps` draw the graph — but get the ids right, container included: an unresolved dependency silently keeps the plugin out of the generated registry (see [`pluginDependencies`](#plugindependencies)).
 
@@ -810,10 +824,32 @@ path it names.
 | `width` | columns out of 12. Omitted means full width, so a row of three unwidthed controls stacks |
 | `default` | the value shown before the mission has one. It is a **form** default, not a runtime one: nothing is written until an admin touches the field, so the plugin still receives a partial (or absent) config and defaults its own values — `const { hz = 440 } = ctx.config \|\| {}`. `checkbox`/`switch` read `defaultChecked` instead |
 | `options` | required by the dropdown types; an array, or a string Maker parses |
+| `optionsFrom` | `dropdown`/`searchdropdown` only: the name of a provider Maker asks for the options instead (below), for a list a manifest can't know |
 | `disableSwitch` | a config path to a boolean: the control is greyed out until that field is on — how a settings block hangs off its own `enabled` switch |
 | `enableWhenField` | an **object**, `{ "field": "…", "value": "…" }` (plus an optional `default` for when the field is unset): the control is greyed out until that field equals that value |
 | `object` | `objectarray` only: the components one item is made of (below) |
 | `rows` | `textarea` only: visible lines (default 4) |
+
+**`optionsFrom`** is for the list you can't write down in a manifest — above all
+"a property of this layer's data", which is otherwise an unchecked text field in
+every plugin that reads feature properties:
+
+```json
+{ "type": "dropdown", "name": "Azimuth property", "width": 4,
+  "field": "variables.layerAttachments.lookDirection.azimuthProp",
+  "optionsFrom": "layerProperties" }
+```
+
+| provider | what it offers |
+|---|---|
+| `layerProperties` | the property names of the layer's own features — from the geodataset's schema for a `geodatasets:` layer, or by sampling the file for a `.geojson`/`.json` one. A layer whose data core can't see (a tile layer, a `source` type fetching from elsewhere) offers nothing |
+| `layers` | every layer in the mission being configured, by name |
+| `layerTypes` | the registered layer type ids, plugin types included |
+
+The provider is asked once per layer and cached for the session. Until it
+answers — and if it answers with nothing — the control shows whatever `options`
+the component declared, so declaring both gives a sane fallback. An
+`optionsFrom` naming a provider that doesn't exist is a validation error.
 
 A value an admin clears is written as an empty string rather than removed, so a
 `number` field can reach a plugin as `""`. Read config defensively —

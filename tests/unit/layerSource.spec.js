@@ -227,4 +227,52 @@ test.describe('LayerCapturer dispatch', () => {
         expect(/acceptsDynamicResult\(/.test(CAPTURER)).toBe(true)
         expect(/_commitDynamicGeoJSON\(/.test(CAPTURER)).toBe(true)
     })
+
+    test('both paths hand the source a signal, an emit and a url helper', () => {
+        // Two acquisition paths (plain and dynamic-extent) that have drifted
+        // apart before; a seam added to one only is a seam a plugin can't rely
+        // on.
+        expect(CAPTURER.match(/ctx\.signal = _abortPrevious\(/g)).toHaveLength(2)
+        expect(CAPTURER.match(/ctx\.resolveUrl = _resolveSourceUrl/g)).toHaveLength(
+            2
+        )
+        expect(CAPTURER.match(/ctx\.emit = /g)).toHaveLength(2)
+    })
+
+    test("starting an acquisition aborts the layer's last one", () => {
+        expect(/_sourceAborters\[layerName\]\?\.abort\(\)/.test(CAPTURER)).toBe(
+            true
+        )
+        expect(/_sourceAborters\[layerName\] = controller/.test(CAPTURER)).toBe(
+            true
+        )
+    })
+
+    test('an abort is not reported as a failed fetch', () => {
+        expect(
+            CAPTURER.match(/if \(err\?\.name === 'AbortError'\) return/g)
+        ).toHaveLength(2)
+    })
+
+    test('a stale emit is dropped rather than drawn', () => {
+        expect(/ctx\.signal\?\.aborted/.test(CAPTURER)).toBe(true)
+        expect(
+            /_layerRequestLastTimestamp\[layerObj\.name\] === dateNow/.test(
+                CAPTURER
+            )
+        ).toBe(true)
+    })
+
+    test('a source that emitted every page may resolve with nothing', () => {
+        expect(/if \(!painted\) onData\(null\)/.test(CAPTURER)).toBe(true)
+    })
+
+    test('the url helper resolves the three cases core itself does', () => {
+        expect(/const _resolveSourceUrl = \(url\) =>/.test(CAPTURER)).toBe(true)
+        expect(/if \(F_\.isUrlAbsolute\(url\)\) return url/.test(CAPTURER)).toBe(
+            true
+        )
+        expect(/mmgisglobal\.ROOT_PATH/.test(CAPTURER)).toBe(true)
+        expect(/L_\.missionPath \+ url/.test(CAPTURER)).toBe(true)
+    })
 })
