@@ -345,7 +345,7 @@ const UserInterfaceBridge = {
 
         // Mobile-specific fina behavior
         if (this.isMobile) {
-            const mobileTools = ['Layers', 'Legend', 'Info']
+            const mobileTools = ['Layers', 'Legend', 'Info', 'Analysis']
 
             // Keep mapToolBar and compass in default desktop position (bottom-left)
 
