@@ -9,7 +9,7 @@ import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
 import {
     COLOR_ATTRIBUTES,
     DEFAULT_ATTRIBUTE,
-    STYLE_ATTRIBUTES,
+    styleableAttributes,
 } from '@basics/Layers_/render/dynamicStyle'
 import {
     getDomainMode,
@@ -3123,7 +3123,9 @@ function interfaceWithMMGIS(fromInit) {
                 '<div title="The style attribute the property drives. Colours take a ramp; the others take a range of numbers.">Styles</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleAttribute" layername="${name}">`,
-                        STYLE_ATTRIBUTES.map((a) =>
+                        // Only what this rule can still produce: a value table
+                        // of colours has no weight to give.
+                        styleableAttributes(rule).map((a) =>
                             `<option value="${a}"${a === (rule.attribute || DEFAULT_ATTRIBUTE) ? ' selected' : ''}>${ATTRIBUTE_LABELS[a] || a}</option>`
                         ).join('\n'),
                     '</select>',

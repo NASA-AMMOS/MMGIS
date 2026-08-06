@@ -346,6 +346,25 @@ export function isUsableRule(rule) {
     return true
 }
 
+/**
+ * The attributes a rule can still style once aimed at them: a value table of
+ * colours has no weight to give, while a numeric rule takes a ramp or a range.
+ *
+ * @param {object} rule
+ * @returns {string[]}
+ */
+export function styleableAttributes(rule) {
+    if (rule == null || rule.type !== 'categorical') return STYLE_ATTRIBUTES
+    const mappings = Array.isArray(rule.mappings) ? rule.mappings : []
+    const colored = mappings.some(
+        (mapping) => typeof mapping?.color === 'string' && mapping.color !== ''
+    )
+    const numeric = mappings.some((mapping) => asNumber(mapping?.to) != null)
+    if (colored && !numeric) return COLOR_ATTRIBUTES
+    if (numeric && !colored) return NUMERIC_ATTRIBUTES
+    return STYLE_ATTRIBUTES
+}
+
 function mappedValue(mapping, isColor) {
     return isColor ? mapping.color : asNumber(mapping.to)
 }
@@ -507,6 +526,7 @@ const DynamicStyle = {
     rampStops,
     readProperty,
     resolveDomain,
+    styleableAttributes,
 }
 
 export default DynamicStyle

@@ -9,6 +9,7 @@ import {
     rampStops,
     readProperty,
     resolveDomain,
+    styleableAttributes,
 } from '../../src/essence/Basics/Layers_/render/dynamicStyle.js'
 
 /**
@@ -330,6 +331,48 @@ test.describe('dynamicStyle - isUsableRule', () => {
                 mappings: [],
             })
         ).toBe(true)
+    })
+})
+
+test.describe('dynamicStyle - styleableAttributes', () => {
+    const categorical = (mappings) => ({
+        property: 'k',
+        attribute: 'fillColor',
+        type: 'categorical',
+        mappings,
+    })
+
+    test('a numeric rule can be aimed at any of them', () => {
+        expect(styleableAttributes(numericRule())).toEqual([
+            'fillColor',
+            'color',
+            'fillOpacity',
+            'opacity',
+            'weight',
+            'radius',
+        ])
+    })
+
+    test('a table of colours offers only the colours', () => {
+        expect(
+            styleableAttributes(
+                categorical([{ value: 'a', color: '#ff0000' }])
+            )
+        ).toEqual(['fillColor', 'color'])
+    })
+
+    test('a table of numbers offers only what takes a number', () => {
+        expect(
+            styleableAttributes(categorical([{ value: 'a', to: 4 }]))
+        ).toEqual(['fillOpacity', 'opacity', 'weight', 'radius'])
+    })
+
+    test('a table holding both offers both', () => {
+        expect(
+            styleableAttributes(
+                categorical([{ value: 'a', color: '#ff0000', to: 4 }])
+            ).length
+        ).toBe(6)
     })
 })
 
