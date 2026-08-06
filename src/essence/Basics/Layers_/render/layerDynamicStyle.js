@@ -89,7 +89,42 @@ export function getLayerDynamicStyleResolver(layerObj) {
     return layerObj?._dynamicStyleResolver || null
 }
 
+/**
+ * Write a layer's dynamic style into a GeoJSON's features as
+ * `properties.style`, which is what the globe renderers read.
+ *
+ * The features are copied rather than styled in place: the map's own features
+ * are what Draw, export and filtering work with, and they must keep whatever
+ * `properties.style` they were given. A feature that already has one keeps it —
+ * same precedence as in 2D.
+ *
+ * @param {object} layerObj
+ * @param {object} geojson  A FeatureCollection, typically a `toGeoJSON()` clone.
+ * @returns {object} the same GeoJSON when the layer has no dynamic style, or a
+ *                   copy whose features carry it.
+ */
+export function applyDynamicStyleToGeoJSON(layerObj, geojson) {
+    if (geojson == null || !Array.isArray(geojson.features)) return geojson
+    const resolve =
+        getLayerDynamicStyleResolver(layerObj) ||
+        compileLayerDynamicStyle(layerObj, geojson.features)
+    if (resolve == null) return geojson
+
+    const features = geojson.features.map((feature) => {
+        const properties = feature?.properties
+        const dynamic = resolve(properties)
+        if (dynamic == null) return feature
+        return Object.assign({}, feature, {
+            properties: Object.assign({}, properties, {
+                style: Object.assign({}, dynamic, properties.style),
+            }),
+        })
+    })
+    return Object.assign({}, geojson, { features })
+}
+
 const LayerDynamicStyle = {
+    applyDynamicStyleToGeoJSON,
     compileLayerDynamicStyle,
     getDynamicStyle,
     getDynamicStyleProps,

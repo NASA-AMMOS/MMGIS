@@ -6,6 +6,7 @@
  * builds this.
  */
 import L_ from '@basics/Layers_/Layers_'
+import { applyDynamicStyleToGeoJSON } from '@basics/Layers_/render/layerDynamicStyle'
 
 /**
  * True when this layer should be drawn draped on the terrain ('clamped') rather
@@ -33,7 +34,13 @@ export function toGlobeConfig(layerObj) {
         name: s.name,
         order: L_._layersOrdered, // Since higher order in litho is on top
         on: L_.layers.opacity[s.name] ? true : false,
-        geojson: mapLayer.toGeoJSON(L_.GEOJSON_PRECISION),
+        // The globe styles from properties.style, so a dynamic style is
+        // resolved onto this clone — the same compiled resolver 2D used, so
+        // the two views agree on what a value looks like.
+        geojson: applyDynamicStyleToGeoJSON(
+            s,
+            mapLayer.toGeoJSON(L_.GEOJSON_PRECISION)
+        ),
         onClick: (feature, lnglat, layer) => {
             L_.selectFeature(layer.name, feature)
         },
