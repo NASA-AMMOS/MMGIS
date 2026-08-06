@@ -44,7 +44,7 @@ function entriesForNumericRule(compiledRule) {
 
     if (rule.discrete) {
         const bins = Math.max(1, Math.round(Number(rule.bins) || 5))
-        return binEdges(domain, bins)
+        return binEdges(domain, bins, rule.stops)
             .map((edge) => {
                 const middle = (edge.min + edge.max) / 2
                 return {

@@ -236,16 +236,50 @@ export function collectValues(features, property) {
 }
 
 /**
+ * A discrete rule's bin boundaries as fractions of the domain, or null for the
+ * even split. A rule may move them - "most of my readings are shallow, so give
+ * the first bin a tenth of the scale" - and anything that doesn't describe
+ * `bins` bins in strictly increasing order inside (0, 1) is ignored rather than
+ * half-applied, which is also how a stale set survives a change of bin count.
+ *
+ * @param {*} stops
+ * @param {number} bins
+ * @returns {number[]|null}
+ */
+export function normalizeStops(stops, bins) {
+    if (!Array.isArray(stops) || !bins || stops.length !== bins - 1) return null
+    const normalized = []
+    let previous = 0
+    for (const stop of stops) {
+        const num = asNumber(stop)
+        if (num == null || num <= previous || num >= 1) return null
+        normalized.push(num)
+        previous = num
+    }
+    return normalized
+}
+
+/** Which bin a 0-to-1 position falls in. */
+function binIndexOf(t, bins, stops) {
+    if (stops == null) return Math.min(bins - 1, Math.floor(t * bins))
+    for (let i = 0; i < stops.length; i++) if (t < stops[i]) return i
+    return bins - 1
+}
+
+/**
  * Where a value sits in the domain, 0 to 1 — snapped to the middle of its bin
  * when the rule is discrete, so a bin is one flat colour rather than a gradient.
+ *
+ * Moving a boundary changes which values fall in a bin, not what colour the bin
+ * is: bin *n* keeps the colour an even split would have given it, so widening a
+ * bin doesn't silently recolour the ones beside it.
  */
-function positionOf(value, domain, bins) {
+function positionOf(value, domain, bins, stops) {
     const span = domain.max - domain.min
     const t = span === 0 ? 0 : (value - domain.min) / span
     const clamped = Math.max(0, Math.min(1, t))
     if (!bins || bins < 1) return clamped
-    const index = Math.min(bins - 1, Math.floor(clamped * bins))
-    return (index + 0.5) / bins
+    return (binIndexOf(clamped, bins, stops) + 0.5) / bins
 }
 
 /**
@@ -254,16 +288,20 @@ function positionOf(value, domain, bins) {
  *
  * @param {{min: number, max: number}} domain
  * @param {number} bins
+ * @param {number[]} [stops]  Boundaries as fractions; see {@link normalizeStops}.
  * @returns {Array<{min: number, max: number}>}
  */
-export function binEdges(domain, bins) {
+export function binEdges(domain, bins, stops) {
     if (domain == null || !bins || bins < 1) return []
-    const step = (domain.max - domain.min) / bins
+    const span = domain.max - domain.min
+    const fractions = normalizeStops(stops, bins)
+    const at = (i) =>
+        domain.min + span * (fractions ? fractions[i - 1] : i / bins)
     const edges = []
     for (let i = 0; i < bins; i++)
         edges.push({
-            min: domain.min + i * step,
-            max: domain.min + (i + 1) * step,
+            min: i === 0 ? domain.min : at(i),
+            max: i === bins - 1 ? domain.max : at(i + 1),
         })
     return edges
 }
@@ -318,6 +356,7 @@ function compileRule(rule, context) {
     const bins = rule.discrete
         ? Math.max(1, Math.round(asNumber(rule.bins) || 5))
         : 0
+    const binStops = normalizeStops(rule.stops, bins)
 
     if (isColor) {
         const stops = rampStops(rule.ramp || DEFAULT_RAMP, rule.reverse)
@@ -325,7 +364,7 @@ function compileRule(rule, context) {
         return (raw) => {
             const num = asNumber(raw)
             if (num == null) return nullValue
-            const t = positionOf(num, domain, bins)
+            const t = positionOf(num, domain, bins, binStops)
             return interpolateMultipleColors(stops, t, 0, 1)
         }
     }
@@ -337,7 +376,7 @@ function compileRule(rule, context) {
     return (raw) => {
         const num = asNumber(raw)
         if (num == null) return nullValue
-        return low + positionOf(num, domain, bins) * (high - low)
+        return low + positionOf(num, domain, bins, binStops) * (high - low)
     }
 }
 
@@ -440,6 +479,7 @@ const DynamicStyle = {
     compileRules,
     resolverOf,
     isUsableRule,
+    normalizeStops,
     rampStops,
     readProperty,
     resolveDomain,

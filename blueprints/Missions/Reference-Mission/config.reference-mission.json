@@ -425,6 +425,55 @@
                   "demparser": "",
                   "controlled": false,
                   "uuid": "7bae36ec-30a8-42eb-ade9-370a136bd14a"
+                },
+                {
+                  "name": "Dynamic Style",
+                  "type": "vector",
+                  "url": "Layers/Vectors/dynamic-style.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "dynamicstyle",
+                    "strokeColor": "#222222",
+                    "strokeWeight": 1,
+                    "fillColor": "#888888",
+                    "fillOpacity": 0.9,
+                    "radius": 8
+                  },
+                  "description": "Coloured by its data rather than a fixed colour: fillColor ramps over depth_m and weight over confidence. Flat GeoJSON, no geodataset. Its LayersTool settings switch the property, ramp and bins, and whether the scale covers the whole file or just what is in view.",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "ed61f202-38a3-41e7-ae83-20dec262f884",
+                  "variables": {
+                    "search": "(name) (reading_type)",
+                    "dynamicStyle": {
+                      "enabled": true,
+                      "rules": [
+                        {
+                          "property": "depth_m",
+                          "attribute": "fillColor",
+                          "type": "numeric",
+                          "ramp": "viridis",
+                          "domain": {
+                            "source": "auto"
+                          },
+                          "nullValue": "#666666"
+                        },
+                        {
+                          "property": "confidence",
+                          "attribute": "weight",
+                          "type": "numeric",
+                          "range": [
+                            1,
+                            6
+                          ],
+                          "domain": {
+                            "source": "loaded"
+                          }
+                        }
+                      ]
+                    }
+                  }
                 }
               ],
               "description": "",

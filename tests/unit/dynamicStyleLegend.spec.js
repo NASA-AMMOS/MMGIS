@@ -67,6 +67,13 @@ test.describe('dynamicStyleLegend - dynamicStyleLegendEntries', () => {
         expect(entries[3].value).toBe('0 – 25')
     })
 
+    test('moved bin boundaries are the ones the legend labels', () => {
+        const entries = dynamicStyleLegendEntries(
+            layerWith([numericRule({ discrete: true, bins: 2, stops: [0.8] })])
+        )
+        expect(entries.map((e) => e.value)).toEqual(['80 – 100', '0 – 80'])
+    })
+
     test('a categorical rule becomes one swatch per mapping, the later of a repeat winning as it does on the map', () => {
         const entries = dynamicStyleLegendEntries(
             layerWith([

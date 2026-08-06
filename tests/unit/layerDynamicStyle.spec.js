@@ -264,4 +264,23 @@ test.describe('layerDynamicStyle - session overrides', () => {
             resolve({ value: 90 }).fillColor
         )
     })
+
+    test('dragged bin boundaries apply, and are dropped when the count changes', () => {
+        const layer = layerWith([rule({ domain: { min: 0, max: 100 } })])
+        setDynamicStyleOverride(layer, {
+            discrete: true,
+            bins: 2,
+            stops: [0.8],
+        })
+        let resolve = compileLayerDynamicStyle(layer, [])
+        expect(resolve({ value: 60 }).fillColor).toBe(
+            resolve({ value: 10 }).fillColor
+        )
+
+        setDynamicStyleOverride(layer, { bins: 4, stops: null })
+        resolve = compileLayerDynamicStyle(layer, [])
+        expect(resolve({ value: 60 }).fillColor).not.toBe(
+            resolve({ value: 10 }).fillColor
+        )
+    })
 })

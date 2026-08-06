@@ -12,7 +12,11 @@ import {
 } from '@basics/Layers_/render/layerDynamicStyle'
 import { overrideDynamicStyle } from '@basics/Layers_/render/dynamicStyleRuntime'
 
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+
 import DataShaders from '@essence/services/DataShaders'
+import DynamicStyleRamp from './components/DynamicStyleRamp'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
 import Help from '@basics/UserInterface_/components/Help/Help'
@@ -159,6 +163,9 @@ var LayersTool = {
     MMGISInterface: null,
     orderingHistory: [],
     _maxDepth: 0,
+    // React roots for the dynamic style's ramp editors, by layer, so opening a
+    // layer's settings twice doesn't leave one mounted over another.
+    _dynamicStyleRoots: {},
     initialize: function () {
         //Get tool variables
         this.vars = L_.getToolVars('layers')
@@ -207,6 +214,10 @@ var LayersTool = {
         this.MMGISInterface = new interfaceWithMMGIS(fromInit)
     },
     destroy: function () {
+        Object.values(LayersTool._dynamicStyleRoots).forEach((root) =>
+            root.unmount()
+        )
+        LayersTool._dynamicStyleRoots = {}
         this.MMGISInterface.separateFromMMGIS()
     },
     getUrlString: function () {
@@ -1715,6 +1726,11 @@ function interfaceWithMMGIS(fromInit) {
         $('.gears').parent().parent().removeClass('gears_on')
         if (!wasOn) li.addClass('gears_on')
 
+        // The dynamic style's controls describe the features the layer holds
+        // now - which properties it has, what it's currently coloured by - so
+        // they're built when the panel is opened rather than with the list.
+        if (!wasOn) refreshDynamicStyleSettings(layerName)
+
         // Fetch STAC asset/band info if applicable
         if (!wasOn && type === 'tile') {
             const layerUUID = L_.asLayerUUID(layerName)
@@ -3037,8 +3053,8 @@ function interfaceWithMMGIS(fromInit) {
 
         // prettier-ignore
         return [
-            '<div class="sublayerHeading">Dynamic Style</div>',
-            '<div class="sublayer">',
+            '<div class="sublayerHeading dynamicStyleRow">Dynamic Style</div>',
+            '<div class="sublayer dynamicStyleRow">',
                 '<div title="Whether the colour scale is stretched over the whole dataset - so a feature\'s colour means the same wherever you are - or over just what is currently in view, which re-stretches the ramp as you pan.">Domain</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleDomain" layername="${layerName}">`,
@@ -3048,7 +3064,7 @@ function interfaceWithMMGIS(fromInit) {
                 '</div>',
             '</div>',
             properties.length > 0 ? [
-            '<div class="sublayer">',
+            '<div class="sublayer dynamicStyleRow">',
                 '<div title="The feature property the layer is coloured by.">Property</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleProperty" layername="${layerName}">`,
@@ -3058,24 +3074,67 @@ function interfaceWithMMGIS(fromInit) {
                     '</select>',
                 '</div>',
             '</div>'].join('\n') : '',
-            rule.type === 'categorical' ? '' : [
-            '<div class="sublayer">',
-                '<div title="The colour ramp the property is mapped through.">Ramp</div>',
-                '<div style="display: flex;">',
-                    `<select class="dropdown dynamicStyleRamp" layername="${layerName}">`,
-                        Object.keys(colormapData).map((cmap) =>
-                            `<option value="${cmap}"${cmap === rule.ramp ? ' selected' : ''}>${cmap}</option>`
-                        ).join('\n'),
-                    '</select>',
-                '</div>',
-            '</div>',
-            '<div class="sublayer">',
-                '<div title="Divides the scale into flat bins instead of a smooth gradient.">Bins</div>',
-                '<div style="display: flex;">',
-                    `<input class="dynamicStyleBins" layername="${layerName}" type="number" min="0" step="1" style="width: 76px;" value="${rule.discrete ? (rule.bins || 5) : 0}" title="0 for a smooth gradient.">`,
-                '</div>',
-            '</div>'].join('\n'),
+            // The ramp is picked from its colours rather than its name, and
+            // its bins are draggable, so this part is React - mounted into
+            // here by mountDynamicStyleRamp once the markup is in the page.
+            rule.type === 'categorical' ? '' :
+            `<div class="dynamicStyleRow dynamicStyleRampMount" layername="${layerName}"></div>`,
         ].join('\n')
+    }
+
+    /**
+     * Draw the ramp picker and bin editor into the mount point the settings
+     * markup left for them, replacing any previous one.
+     */
+    function mountDynamicStyleRamp(layerName) {
+        const mount = $(
+            `#LayersTool${F_.getSafeName(
+                layerName
+            )} > .settingsmainvector .dynamicStyleRampMount`
+        )[0]
+        if (mount == null) return
+
+        const uuid = L_.asLayerUUID(layerName)
+        const layerObj = L_.layers.data[uuid]
+        const rule = getDynamicStyle(layerObj)?.rules?.[0]
+        if (rule == null) return
+
+        const root = LayersTool._dynamicStyleRoots[uuid] || createRoot(mount)
+        LayersTool._dynamicStyleRoots[uuid] = root
+        root.render(
+            <DynamicStyleRamp
+                ramp={rule.ramp || 'viridis'}
+                bins={rule.discrete ? rule.bins || 5 : 0}
+                stops={rule.stops}
+                onChange={(override) => {
+                    overrideDynamicStyle(uuid, override)
+                    LegendTool.refreshLegends()
+                    mountDynamicStyleRamp(layerName)
+                }}
+            />
+        )
+    }
+
+    /**
+     * Rebuild a layer's dynamic style controls in place, against the features
+     * it holds now.
+     */
+    function refreshDynamicStyleSettings(layerName) {
+        const uuid = L_.asLayerUUID(layerName)
+        const settings = $(
+            `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
+        )
+        const opacity = settings.find('.transparencyslider').parent()
+        if (opacity.length === 0) return
+        const root = LayersTool._dynamicStyleRoots[uuid]
+        if (root != null) {
+            root.unmount()
+            delete LayersTool._dynamicStyleRoots[uuid]
+        }
+        settings.find('.dynamicStyleRow').remove()
+        opacity.after(getDynamicStyleSettings(uuid))
+        setSublayerEvents()
+        mountDynamicStyleRamp(layerName)
     }
 
     function getVectorLayerSettings(layerName) {
@@ -3250,20 +3309,6 @@ function interfaceWithMMGIS(fromInit) {
         $('.dynamicStyleProperty').off('change')
         $('.dynamicStyleProperty').on('change', function () {
             restyleFrom(this, { property: $(this).val() })
-        })
-
-        $('.dynamicStyleRamp').off('change')
-        $('.dynamicStyleRamp').on('change', function () {
-            restyleFrom(this, { ramp: $(this).val() })
-        })
-
-        $('.dynamicStyleBins').off('change')
-        $('.dynamicStyleBins').on('change', function () {
-            const bins = parseInt($(this).val())
-            restyleFrom(this, {
-                discrete: Number.isFinite(bins) && bins > 0,
-                bins: Number.isFinite(bins) && bins > 0 ? bins : null,
-            })
         })
 
         $(

@@ -1,0 +1,71 @@
+.dynamicStyleRampControls {
+    padding: 0 12px 8px 20px;
+}
+
+.dynamicStyleRampRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 30px;
+}
+
+.dynamicStyleRampRow > div:first-child {
+    font-size: 13px;
+}
+
+.dynamicStyleRampPicker {
+    width: 120px;
+}
+
+.dynamicStyleRampRow > input.dynamicStyleBins {
+    width: 76px;
+}
+
+.dynamicStyleStopBar {
+    position: relative;
+    height: 16px;
+    margin: 2px 0 6px 0;
+}
+
+.dynamicStyleStopGradient {
+    height: 100%;
+    border-radius: 2px;
+}
+
+/* Wider than it looks, so the 3px line is still easy to grab. */
+.dynamicStyleStop {
+    position: absolute;
+    top: -2px;
+    width: 11px;
+    height: 20px;
+    margin-left: -5px;
+    cursor: ew-resize;
+}
+
+.dynamicStyleStop::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--color-a5);
+    box-shadow: 0 0 3px var(--color-shadow);
+}
+
+.dynamicStyleStop:hover::after,
+.dynamicStyleStop.dragging::after {
+    background: var(--color-mmgis);
+}
+
+.dynamicStyleStopReset {
+    position: absolute;
+    top: 0px;
+    right: -18px;
+    cursor: pointer;
+    color: var(--color-a4);
+}
+
+.dynamicStyleStopReset:hover {
+    color: var(--color-mmgis);
+}

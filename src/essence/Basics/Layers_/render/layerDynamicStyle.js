@@ -25,8 +25,8 @@ import {
  * written anywhere: it is a way of looking at the data, not a configuration of
  * it, and it is gone on reload.
  *
- * `property`, `ramp`, `discrete` and `bins` apply to the first rule, which is
- * the one the LayersTool panel shows; `domain` applies to all of them, since
+ * `property`, `ramp`, `discrete`, `bins` and `stops` apply to the first rule,
+ * which is the one the LayersTool panel shows; `domain` applies to all, since
  * "stretch this layer over what I'm looking at" is about the layer.
  *
  * @param {object} layerObj
@@ -80,6 +80,9 @@ function withOverride(dynamicStyle, override) {
             if (override.ramp) next.ramp = override.ramp
             if (override.discrete != null) next.discrete = override.discrete
             if (override.bins != null) next.bins = override.bins
+            // Boundaries belong to a bin count: dropping them when it changes
+            // is what makes an even split the thing you fall back to.
+            if (override.stops !== undefined) next.stops = override.stops
         }
         if (override.domain)
             next.domain = Object.assign({}, next.domain, {

@@ -5,6 +5,7 @@ import {
     collectValues,
     compileDynamicStyle,
     isUsableRule,
+    normalizeStops,
     rampStops,
     readProperty,
     resolveDomain,
@@ -236,6 +237,37 @@ test.describe('dynamicStyle - collectValues and binEdges', () => {
         expect(binEdges(null, 2)).toEqual([])
         expect(binEdges({ min: 0, max: 10 }, 0)).toEqual([])
     })
+
+    test('divides it at the boundaries a rule moved instead', () => {
+        expect(binEdges({ min: 0, max: 10 }, 2, [0.8])).toEqual([
+            { min: 0, max: 8 },
+            { min: 8, max: 10 },
+        ])
+    })
+
+    test('falls back to even bins when the boundaries do not describe them', () => {
+        const even = binEdges({ min: 0, max: 10 }, 2)
+        expect(binEdges({ min: 0, max: 10 }, 2, [0.3, 0.6])).toEqual(even)
+        expect(binEdges({ min: 0, max: 10 }, 2, [1.5])).toEqual(even)
+    })
+})
+
+test.describe('dynamicStyle - normalizeStops', () => {
+    test('accepts increasing fractions inside the domain', () => {
+        expect(normalizeStops([0.25, 0.5], 3)).toEqual([0.25, 0.5])
+        expect(normalizeStops(['0.5'], 2)).toEqual([0.5])
+    })
+
+    test('rejects anything that would half-apply', () => {
+        // Wrong count for the bins, out of order, or outside (0, 1) - each of
+        // which describes a different set of bins than the one asked for.
+        expect(normalizeStops([0.5], 3)).toBeNull()
+        expect(normalizeStops([0.6, 0.4], 3)).toBeNull()
+        expect(normalizeStops([0], 2)).toBeNull()
+        expect(normalizeStops([1], 2)).toBeNull()
+        expect(normalizeStops(['x'], 2)).toBeNull()
+        expect(normalizeStops(null, 2)).toBeNull()
+    })
 })
 
 test.describe('dynamicStyle - isUsableRule', () => {
@@ -300,6 +332,43 @@ test.describe('dynamicStyle - compileDynamicStyle, numeric colours', () => {
         const low = resolve({ value: 1 }).fillColor
         expect(resolve({ value: 49 }).fillColor).toBe(low)
         expect(resolve({ value: 51 }).fillColor).not.toBe(low)
+    })
+
+    test('a moved boundary changes which bin a value is in, not the colours', () => {
+        const even = compileDynamicStyle({
+            enabled: true,
+            rules: [numericRule({ discrete: true, bins: 2 })],
+        })
+        const moved = compileDynamicStyle({
+            enabled: true,
+            rules: [numericRule({ discrete: true, bins: 2, stops: [0.8] })],
+        })
+        // 60 sat in the upper bin under an even split; it is in the lower one
+        // now, and wearing the same colour that bin always had.
+        expect(even({ value: 60 }).fillColor).toBe(even({ value: 90 }).fillColor)
+        expect(moved({ value: 60 }).fillColor).toBe(
+            even({ value: 10 }).fillColor
+        )
+        expect(moved({ value: 90 }).fillColor).toBe(
+            even({ value: 90 }).fillColor
+        )
+    })
+
+    test('a numeric range bins the same way', () => {
+        const resolve = compileDynamicStyle({
+            enabled: true,
+            rules: [
+                numericRule({
+                    attribute: 'weight',
+                    range: [1, 5],
+                    discrete: true,
+                    bins: 2,
+                    stops: [0.8],
+                }),
+            ],
+        })
+        expect(resolve({ value: 60 }).weight).toBe(2)
+        expect(resolve({ value: 90 }).weight).toBe(4)
     })
 
     test('reads numeric strings and dotted paths', () => {
