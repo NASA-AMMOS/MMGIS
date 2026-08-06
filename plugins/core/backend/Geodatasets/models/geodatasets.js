@@ -63,6 +63,8 @@ const options = {
 // setup User model and its fields.
 var Geodatasets = sequelize.define("geodatasets", attributes, options);
 
+// success() receives { name, table, tableObj, existed } — `existed` false when
+// this call created the geodataset (an append to an unknown name does that).
 function makeNewGeodatasetTable(
   name,
   filename,
@@ -216,6 +218,7 @@ function makeNewGeodatasetTable(
                       name: result.dataValues.name,
                       table: result.dataValues.table,
                       tableObj: GeodatasetTable,
+                      existed: true,
                     });
 
                     return null;
@@ -318,6 +321,7 @@ function makeNewGeodatasetTable(
                               name: name,
                               table: newTable,
                               tableObj: GeodatasetTable,
+                              existed: false,
                             });
                             return null;
                           })

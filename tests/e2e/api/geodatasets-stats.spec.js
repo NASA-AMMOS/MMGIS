@@ -267,4 +267,31 @@ test.describe.serial('Geodatasets statistics', () => {
       avg: 26.5,
     });
   });
+
+  test('an append that creates the geodataset still gets field_stats', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    // Appending to an unknown name creates the geodataset, so the appended
+    // features are all of them — nothing earlier is left unsummarized.
+    const newLayer = `${layerName}_via_append`;
+    const appendRes = await api.post(`/api/geodatasets/append/${newLayer}`, {
+      data: {
+        type: 'FeatureCollection',
+        features: [feature({ elev: 7 }), feature({ elev: 9 })],
+      },
+    });
+    expect((await appendRes.json()).status).toBe('success');
+
+    const schema = await api.get(`/api/geodatasets/schema?layers=${newLayer}`);
+    expect((await schema.json()).field_stats[newLayer].elev).toEqual({
+      type: 'number',
+      min: 7,
+      max: 9,
+      sum: 16,
+      count: 2,
+      avg: 8,
+    });
+
+    await api.delete(`/api/geodatasets/remove/${newLayer}`).catch(() => {});
+  });
 });

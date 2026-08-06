@@ -1782,7 +1782,12 @@ function recreate(req, res, next) {
                 body: {},
               });
             },
-            { name: result.name, action: req?.body?.action || null }
+            {
+              name: result.name,
+              // An append that created the geodataset holds all of its
+              // features, so its statistics replace rather than merge.
+              action: result.existed ? req?.body?.action || null : null,
+            }
           );
 
           return null;
