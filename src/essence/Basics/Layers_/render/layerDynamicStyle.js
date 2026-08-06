@@ -13,8 +13,9 @@
 
 import {
     collectValues,
-    compileDynamicStyle,
+    compileRules,
     isUsableRule,
+    resolverOf,
 } from './dynamicStyle'
 
 /**
@@ -60,6 +61,7 @@ export function compileLayerDynamicStyle(layerObj, features) {
     if (layerObj == null) return null
     const dynamicStyle = getDynamicStyle(layerObj)
     if (dynamicStyle == null) {
+        layerObj._dynamicStyleRules = null
         layerObj._dynamicStyleResolver = null
         return null
     }
@@ -70,12 +72,26 @@ export function compileLayerDynamicStyle(layerObj, features) {
             values[rule.property] = collectValues(features, rule.property)
     })
 
-    const resolver = compileDynamicStyle(dynamicStyle, {
+    const compiled = compileRules(dynamicStyle, {
         fieldStats: layerObj._fieldStats,
         values: values,
     })
+    const resolver = resolverOf(compiled)
+    layerObj._dynamicStyleRules = resolver == null ? null : compiled
     layerObj._dynamicStyleResolver = resolver
     return resolver
+}
+
+/**
+ * The rules a layer is currently styled by — each with the domain it resolved
+ * to and the function that styles a value. What the legend describes, so it
+ * describes the map rather than the configuration.
+ *
+ * @param {object} layerObj
+ * @returns {Array<object>}
+ */
+export function getLayerDynamicStyleRules(layerObj) {
+    return layerObj?._dynamicStyleRules || []
 }
 
 /**
@@ -129,6 +145,7 @@ const LayerDynamicStyle = {
     getDynamicStyle,
     getDynamicStyleProps,
     getLayerDynamicStyleResolver,
+    getLayerDynamicStyleRules,
 }
 
 export default LayerDynamicStyle

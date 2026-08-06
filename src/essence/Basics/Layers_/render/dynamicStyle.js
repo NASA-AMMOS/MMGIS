@@ -325,6 +325,43 @@ function compileRule(rule, context) {
 }
 
 /**
+ * Compile each of a layer's rules, dropping the ones that can't produce
+ * anything. The legend draws from these rather than from a second
+ * interpretation of the configuration, so it can only ever show the scale the
+ * features are actually coloured by — `domain` is the one the resolver used,
+ * not a re-derivation of it.
+ *
+ * @param {object} dynamicStyle  A layer's `variables.dynamicStyle`.
+ * @param {object} [context]     See {@link resolveDomain}.
+ * @returns {Array<{rule: object, attribute: string, property: string,
+ *                  domain: ?{min: number, max: number},
+ *                  resolve: function(*): *}>}
+ */
+export function compileRules(dynamicStyle, context) {
+    if (dynamicStyle == null || dynamicStyle.enabled !== true) return []
+    if (!Array.isArray(dynamicStyle.rules)) return []
+
+    const compiled = []
+    for (const rule of dynamicStyle.rules) {
+        if (!isUsableRule(rule)) continue
+        const ruleContext = contextFor(rule, context)
+        const resolve = compileRule(rule, ruleContext)
+        if (resolve == null) continue
+        compiled.push({
+            rule,
+            attribute: rule.attribute,
+            property: rule.property,
+            domain:
+                rule.type === 'categorical'
+                    ? null
+                    : resolveDomain(rule, ruleContext),
+            resolve,
+        })
+    }
+    return compiled
+}
+
+/**
  * Compile a layer's `variables.dynamicStyle` into a function of a feature's
  * properties, returning the attributes it sets — or null when the layer has no
  * usable rule, which callers read as "style this the ordinary way".
@@ -339,21 +376,17 @@ function compileRule(rule, context) {
  * @returns {(function(object): object|null)|null}
  */
 export function compileDynamicStyle(dynamicStyle, context) {
-    if (dynamicStyle == null || dynamicStyle.enabled !== true) return null
-    if (!Array.isArray(dynamicStyle.rules)) return null
+    return resolverOf(compileRules(dynamicStyle, context))
+}
 
-    const compiled = []
-    for (const rule of dynamicStyle.rules) {
-        if (!isUsableRule(rule)) continue
-        const resolve = compileRule(rule, contextFor(rule, context))
-        if (resolve == null) continue
-        compiled.push({
-            attribute: rule.attribute,
-            property: rule.property,
-            resolve,
-        })
-    }
-    if (compiled.length === 0) return null
+/**
+ * The feature-styling function of already-compiled rules.
+ *
+ * @param {Array<object>} compiled  From {@link compileRules}.
+ * @returns {(function(object): object|null)|null}
+ */
+export function resolverOf(compiled) {
+    if (!Array.isArray(compiled) || compiled.length === 0) return null
 
     return (properties) => {
         let style = null
@@ -386,6 +419,8 @@ const DynamicStyle = {
     binEdges,
     collectValues,
     compileDynamicStyle,
+    compileRules,
+    resolverOf,
     isUsableRule,
     rampStops,
     readProperty,

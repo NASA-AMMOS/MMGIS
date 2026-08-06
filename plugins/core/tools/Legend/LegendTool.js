@@ -7,6 +7,8 @@ import {
     deriveLegend,
     derivesLegend,
 } from '@basics/Layers_/legend/LayerLegend'
+import { dynamicStyleLegendEntries } from '@basics/Layers_/render/dynamicStyleLegend'
+import { getDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
@@ -173,10 +175,21 @@ function refreshLegends() {
                         }
                     }
 
-                    if (L_.layers.data[l]?._legend != undefined) {
+                    // A dynamic style is drawn from the same compiled rules
+                    // the features are coloured by, so the legend shows the
+                    // domain actually in use rather than the configured one.
+                    const dynamicEntries = dynamicStyleLegendEntries(L_.layers.data[l])
+                    const configured = L_.layers.data[l]?._legend
+                    const entries = Array.isArray(configured)
+                        ? configured.concat(dynamicEntries)
+                        : dynamicEntries.length > 0
+                        ? dynamicEntries
+                        : configured
+
+                    if (entries != undefined) {
                         drawLegends(
                             LegendTool.tools,
-                            L_.layers.data[l]?._legend,
+                            entries,
                             l,
                             L_.layers.data[l].display_name,
                             L_.layers.opacity[l],
@@ -188,6 +201,7 @@ function refreshLegends() {
                             .map(i => i.name)
                             .filter(i => {
                                 return ((L_.layers.data[i]._legend?.length > 0
+                                    || getDynamicStyle(L_.layers.data[i]) != null
                                     || (L_.layers.data[i]?._legend === undefined
                                         && derivesLegend(L_.layers.data[i]))) && L_.layers.on[i])
                             })
@@ -427,12 +441,13 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             ? _legend[d].shapeImage : _legend[d].shapeIcon && _legend[d].shapeIcon.trim()
             ? _legend[d].shapeIcon : _legend[d].shape
         if (shape == 'continuous' || shape == 'discreet') {
-            if (lastShape != shape) {
+            if (lastShape != shape || _legend[d].scaleTitle) {
                 if (legendEntries.length > 0) {
                     pushScale(legendEntries)
                     legendEntries = []
                 }
             }
+            drawScaleTitle(_legend[d].scaleTitle)
             legendEntries.push({
                 color: _legend[d].color,
                 shape: shape,
@@ -447,6 +462,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 pushScale(legendEntries)
                 legendEntries = []
             }
+            drawScaleTitle(_legend[d].scaleTitle)
             var r = $('<div>')
                 .attr('class', 'row')
                 .css({
@@ -571,6 +587,27 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
     if (legendEntries.length > 0) {
         pushScale(legendEntries)
         legendEntries = []
+    }
+
+    // The property a dynamic style's scale describes — the layer's title says
+    // which layer, this says what its colours mean.
+    function drawScaleTitle(scaleTitle) {
+        if (!scaleTitle) return
+        c.append(
+            $('<div>')
+                .attr('class', 'row')
+                .css({
+                    'font-size': '12px',
+                    'color': 'var(--color-a4)',
+                    'padding-left': '9px',
+                    'margin-bottom': '3px',
+                    'overflow': 'hidden',
+                    'white-space': 'nowrap',
+                    'text-overflow': 'ellipsis'
+                })
+                .attr('title', scaleTitle)
+                .text(scaleTitle)
+        )
     }
 
     function pushScale(legendEntries) {
