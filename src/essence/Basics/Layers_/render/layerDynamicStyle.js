@@ -84,12 +84,17 @@ function withOverride(dynamicStyle, override) {
             // is what makes an even split the thing you fall back to.
             if (override.stops !== undefined) next.stops = override.stops
         }
-        if (override.domain)
-            next.domain = Object.assign({}, next.domain, {
-                // A domain pinned to literal numbers stays pinned; the toggle
-                // is about where an unpinned one is measured.
-                source: override.domain === 'view' ? 'loaded' : 'auto',
-            })
+        // A domain pinned to literal numbers stays pinned; the toggle is about
+        // where an unpinned one is measured. Only 'view' is a source of its
+        // own — back at 'dataset' the rule is measured however it was written,
+        // which keeps an avg ± σ scale from decaying into a min/max one.
+        if (override.domain === 'view')
+            next.domain = Object.assign({}, next.domain, { source: 'loaded' })
+        else if (
+            override.domain === 'dataset' &&
+            next.domain?.source === 'loaded'
+        )
+            next.domain = Object.assign({}, next.domain, { source: 'auto' })
         return next
     })
     return Object.assign({}, dynamicStyle, { rules })
