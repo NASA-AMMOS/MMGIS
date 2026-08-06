@@ -9,7 +9,11 @@ import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 import LayerInterface from '../interface/LayerInterface'
 import refreshLayer from '../lifecycle/refresh'
 import acquire from '../lifecycle/acquire'
-import { compileLayerDynamicStyle } from './layerDynamicStyle'
+import {
+    compileLayerDynamicStyle,
+    getLayerDynamicStyleResolver,
+} from './layerDynamicStyle'
+import { ensureFieldStats } from './dynamicStyleRuntime'
 
 let L = window.L
 
@@ -72,8 +76,14 @@ export const constructVectorLayer = (
     const _originalStyle = layerObj.style
 
     // Compiled once here rather than per feature: a rule's ramp and domain are
-    // the same for every feature of the layer.
-    const dynamicStyle = compileLayerDynamicStyle(layerObj, geojson?.features)
+    // the same for every feature of the layer. The resolver is then read off
+    // the layer at style time rather than closed over, so recompiling it (a
+    // ramp switched at runtime, a domain restretched to the current view) takes
+    // effect on a restyle instead of needing the layer remade.
+    compileLayerDynamicStyle(layerObj, geojson?.features)
+    // A geodataset's whole-dataset domain lives on the server; asking for it
+    // restyles the layer when it arrives.
+    ensureFieldStats(layerObj)
 
     let leafletLayerObject = {
         style: function (feature, preferredStyle) {
@@ -182,6 +192,7 @@ export const constructVectorLayer = (
 
                 // Styling from data: wins over the configured style and the
                 // `*Prop` fields above, loses to feature.properties.style.
+                const dynamicStyle = getLayerDynamicStyleResolver(layerObj)
                 if (dynamicStyle != null) {
                     const dynamic = dynamicStyle(feature.properties)
                     if (dynamic != null) Object.assign(layerObj.style, dynamic)

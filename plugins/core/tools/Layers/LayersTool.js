@@ -6,6 +6,11 @@ import Map_ from '@basics/Map_/Map_'
 import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 import LayerAttachmentRegistry from '@basics/Layers_/registry/LayerAttachmentRegistry'
 import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
+import {
+    getDomainMode,
+    getDynamicStyle,
+} from '@basics/Layers_/render/layerDynamicStyle'
+import { overrideDynamicStyle } from '@basics/Layers_/render/dynamicStyleRuntime'
 
 import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
@@ -2991,6 +2996,88 @@ function interfaceWithMMGIS(fromInit) {
 
     // Sublayer things
 
+    /**
+     * The properties a layer's features have, for the dynamic style's property
+     * switcher: a geodataset's stored statistics name them all, and anything
+     * else is asked of the features in hand.
+     */
+    function getStyleableProperties(layerName) {
+        const layerObj = L_.layers.data[layerName]
+        const names = new Set(Object.keys(layerObj?._fieldStats || {}))
+        const leafletLayer = L_.layers.layer[layerName]
+        if (names.size === 0 && leafletLayer?.eachLayer) {
+            let sampled = 0
+            leafletLayer.eachLayer((sublayer) => {
+                if (sampled >= 50 || sublayer?.feature?.properties == null)
+                    return
+                sampled++
+                Object.keys(sublayer.feature.properties).forEach((key) => {
+                    if (key !== 'style' && key !== '_') names.add(key)
+                })
+            })
+        }
+        return [...names].sort()
+    }
+
+    /**
+     * The dynamic style's runtime controls: what a viewer may change about how
+     * a layer is coloured without being an admin, and without it outliving the
+     * session. Only shown for a layer that has a dynamic style to change.
+     */
+    function getDynamicStyleSettings(layerName) {
+        const layerObj = L_.layers.data[layerName]
+        const dynamicStyle = getDynamicStyle(layerObj)
+        if (dynamicStyle == null) return ''
+
+        const rule = dynamicStyle.rules[0] || {}
+        const mode = getDomainMode(layerObj)
+        const properties = getStyleableProperties(layerName)
+        if (properties.indexOf(rule.property) === -1 && rule.property != null)
+            properties.unshift(rule.property)
+
+        // prettier-ignore
+        return [
+            '<div class="sublayerHeading">Dynamic Style</div>',
+            '<div class="sublayer">',
+                '<div title="Whether the colour scale is stretched over the whole dataset - so a feature\'s colour means the same wherever you are - or over just what is currently in view, which re-stretches the ramp as you pan.">Domain</div>',
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleDomain" layername="${layerName}">`,
+                        `<option value="dataset"${mode === 'dataset' ? ' selected' : ''}>Whole dataset</option>`,
+                        `<option value="view"${mode === 'view' ? ' selected' : ''}>Current view</option>`,
+                    '</select>',
+                '</div>',
+            '</div>',
+            properties.length > 0 ? [
+            '<div class="sublayer">',
+                '<div title="The feature property the layer is coloured by.">Property</div>',
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleProperty" layername="${layerName}">`,
+                        properties.map((p) =>
+                            `<option value="${p}"${p === rule.property ? ' selected' : ''}>${p}</option>`
+                        ).join('\n'),
+                    '</select>',
+                '</div>',
+            '</div>'].join('\n') : '',
+            rule.type === 'categorical' ? '' : [
+            '<div class="sublayer">',
+                '<div title="The colour ramp the property is mapped through.">Ramp</div>',
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleRamp" layername="${layerName}">`,
+                        Object.keys(colormapData).map((cmap) =>
+                            `<option value="${cmap}"${cmap === rule.ramp ? ' selected' : ''}>${cmap}</option>`
+                        ).join('\n'),
+                    '</select>',
+                '</div>',
+            '</div>',
+            '<div class="sublayer">',
+                '<div title="Divides the scale into flat bins instead of a smooth gradient.">Bins</div>',
+                '<div style="display: flex;">',
+                    `<input class="dynamicStyleBins" layername="${layerName}" type="number" min="0" step="1" style="width: 76px;" value="${rule.discrete ? (rule.bins || 5) : 0}" title="0 for a smooth gradient.">`,
+                '</div>',
+            '</div>'].join('\n'),
+        ].join('\n')
+    }
+
     function getVectorLayerSettings(layerName) {
         let currentOpacity = L_.getLayerOpacity(layerName)
         if (currentOpacity == null)
@@ -3004,6 +3091,7 @@ function interfaceWithMMGIS(fromInit) {
                             '<div>Opacity</div>',
                                 '<input class="transparencyslider slider2" layername="' + layerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[layerName] + '">',
                             '</div>',
+                            getDynamicStyleSettings(layerName),
                             L_.layers.attachments[layerName] ? `<div class="sublayerHeading">Composite Layers</div>` : null,
                             L_.layers.attachments[layerName] ? Object.keys(L_.layers.attachments[layerName]).map(function(s) {
                                 return L_.layers.attachments[layerName][s] === false ? '' : [
@@ -3144,6 +3232,39 @@ function interfaceWithMMGIS(fromInit) {
                 }
             }
         )
+
+        // The dynamic style's runtime controls. Each one only changes how the
+        // layer is looked at for this session, so it restyles what's drawn
+        // rather than writing anything or re-fetching the data.
+        const restyleFrom = (el, override) => {
+            const layerName = $(el).attr('layername')
+            overrideDynamicStyle(layerName, override)
+            LegendTool.refreshLegends()
+        }
+
+        $('.dynamicStyleDomain').off('change')
+        $('.dynamicStyleDomain').on('change', function () {
+            restyleFrom(this, { domain: $(this).val() })
+        })
+
+        $('.dynamicStyleProperty').off('change')
+        $('.dynamicStyleProperty').on('change', function () {
+            restyleFrom(this, { property: $(this).val() })
+        })
+
+        $('.dynamicStyleRamp').off('change')
+        $('.dynamicStyleRamp').on('change', function () {
+            restyleFrom(this, { ramp: $(this).val() })
+        })
+
+        $('.dynamicStyleBins').off('change')
+        $('.dynamicStyleBins').on('change', function () {
+            const bins = parseInt($(this).val())
+            restyleFrom(this, {
+                discrete: Number.isFinite(bins) && bins > 0,
+                bins: Number.isFinite(bins) && bins > 0 ? bins : null,
+            })
+        })
 
         $(
             '#layersToolList > li > .settings .sublayer .sublayeropacityslider'

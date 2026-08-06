@@ -3,8 +3,11 @@ import {
     applyDynamicStyleToGeoJSON,
     compileLayerDynamicStyle,
     getDynamicStyle,
+    getDomainMode,
+    getDynamicStyleOverride,
     getDynamicStyleProps,
     getLayerDynamicStyleResolver,
+    setDynamicStyleOverride,
 } from '../../src/essence/Basics/Layers_/render/layerDynamicStyle.js'
 
 /**
@@ -183,5 +186,82 @@ test.describe('layerDynamicStyle - applyDynamicStyleToGeoJSON', () => {
         )
         expect(styled.features[1].properties.style.fillColor).toBe('#ffffff')
         expect(getLayerDynamicStyleResolver(layer)).not.toBeNull()
+    })
+})
+
+test.describe('layerDynamicStyle - session overrides', () => {
+    test('an unconfigured layer follows the whole dataset', () => {
+        expect(getDomainMode(layerWith([rule()]))).toBe('dataset')
+    })
+
+    test("a rule configured to measure what's loaded starts on the current view", () => {
+        expect(
+            getDomainMode(layerWith([rule({ domain: { source: 'loaded' } })]))
+        ).toBe('view')
+    })
+
+    test('the domain toggle wins over the configuration, and moves every rule', () => {
+        const layer = layerWith([
+            rule(),
+            rule({ attribute: 'weight', range: [1, 8] }),
+        ])
+        setDynamicStyleOverride(layer, { domain: 'view' })
+        expect(getDomainMode(layer)).toBe('view')
+        expect(
+            getDynamicStyle(layer).rules.map((r) => r.domain.source)
+        ).toEqual(['loaded', 'loaded'])
+    })
+
+    test('a switched property and ramp restyle the map, and the config is untouched', () => {
+        const layer = layerWith([rule()])
+        setDynamicStyleOverride(layer, { property: 'other', ramp: 'viridis' })
+        const resolve = compileLayerDynamicStyle(
+            layer,
+            [0, 10].map((other) => ({ properties: { other } }))
+        )
+        expect(resolve({ other: 0 })).not.toBeNull()
+        expect(resolve({ value: 0 })).toBeNull()
+        expect(layer.variables.dynamicStyle.rules[0].property).toBe('value')
+    })
+
+    test('only the first rule follows the property switcher', () => {
+        const layer = layerWith([
+            rule(),
+            rule({
+                property: 'confidence',
+                attribute: 'weight',
+                range: [1, 8],
+            }),
+        ])
+        setDynamicStyleOverride(layer, { property: 'other' })
+        expect(getDynamicStyle(layer).rules.map((r) => r.property)).toEqual([
+            'other',
+            'confidence',
+        ])
+    })
+
+    test('overrides merge rather than replace, and clear together', () => {
+        const layer = layerWith([rule()])
+        setDynamicStyleOverride(layer, { ramp: 'plasma' })
+        setDynamicStyleOverride(layer, { domain: 'view' })
+        expect(getDynamicStyleOverride(layer)).toEqual({
+            ramp: 'plasma',
+            domain: 'view',
+        })
+        setDynamicStyleOverride(layer, null)
+        expect(getDynamicStyleOverride(layer)).toBeNull()
+        expect(getDomainMode(layer)).toBe('dataset')
+    })
+
+    test('binning it discretely gives a value one of that many colours', () => {
+        const layer = layerWith([rule({ domain: { min: 0, max: 100 } })])
+        setDynamicStyleOverride(layer, { discrete: true, bins: 2 })
+        const resolve = compileLayerDynamicStyle(layer, [])
+        expect(resolve({ value: 10 }).fillColor).toBe(
+            resolve({ value: 40 }).fillColor
+        )
+        expect(resolve({ value: 10 }).fillColor).not.toBe(
+            resolve({ value: 90 }).fillColor
+        )
     })
 })

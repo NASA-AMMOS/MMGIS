@@ -19,7 +19,83 @@ import {
 } from './dynamicStyle'
 
 /**
- * A layer's dynamic style configuration, or null if it has none enabled.
+ * What a viewer has changed about a layer's dynamic style for this session —
+ * a different property to colour by, a different ramp, a domain stretched over
+ * the current view instead of the whole dataset. Kept on the layer rather than
+ * written anywhere: it is a way of looking at the data, not a configuration of
+ * it, and it is gone on reload.
+ *
+ * `property`, `ramp`, `discrete` and `bins` apply to the first rule, which is
+ * the one the LayersTool panel shows; `domain` applies to all of them, since
+ * "stretch this layer over what I'm looking at" is about the layer.
+ *
+ * @param {object} layerObj
+ * @param {object|null} override  Merged into any existing one; null clears it.
+ * @returns {object|null} the override now in effect.
+ */
+export function setDynamicStyleOverride(layerObj, override) {
+    if (layerObj == null) return null
+    if (override == null) {
+        layerObj._dynamicStyleOverride = null
+        return null
+    }
+    layerObj._dynamicStyleOverride = Object.assign(
+        {},
+        layerObj._dynamicStyleOverride,
+        override
+    )
+    return layerObj._dynamicStyleOverride
+}
+
+/**
+ * @param {object} layerObj
+ * @returns {object|null}
+ */
+export function getDynamicStyleOverride(layerObj) {
+    return layerObj?._dynamicStyleOverride || null
+}
+
+/**
+ * Which end of the Whole dataset / Current view toggle a layer is at. Without
+ * an override it's whatever its first rule was configured with: only 'loaded'
+ * means "what's in hand", every other source describes the whole dataset.
+ *
+ * @param {object} layerObj
+ * @returns {'dataset'|'view'}
+ */
+export function getDomainMode(layerObj) {
+    const override = getDynamicStyleOverride(layerObj)
+    if (override && override.domain) return override.domain
+    const source = layerObj?.variables?.dynamicStyle?.rules?.[0]?.domain?.source
+    return source === 'loaded' ? 'view' : 'dataset'
+}
+
+function withOverride(dynamicStyle, override) {
+    if (override == null) return dynamicStyle
+
+    const rules = dynamicStyle.rules.map((rule, index) => {
+        const next = Object.assign({}, rule)
+        if (index === 0) {
+            if (override.property) next.property = override.property
+            if (override.ramp) next.ramp = override.ramp
+            if (override.discrete != null) next.discrete = override.discrete
+            if (override.bins != null) next.bins = override.bins
+        }
+        if (override.domain)
+            next.domain = Object.assign({}, next.domain, {
+                // A domain pinned to literal numbers stays pinned; the toggle
+                // is about where an unpinned one is measured.
+                source: override.domain === 'view' ? 'loaded' : 'auto',
+            })
+        return next
+    })
+    return Object.assign({}, dynamicStyle, { rules })
+}
+
+/**
+ * A layer's dynamic style configuration as it is currently being viewed —
+ * what it was configured with, plus any session override — or null if it has
+ * none enabled.
  *
  * @param {object} layerObj
  * @returns {object|null}
@@ -28,7 +104,11 @@ export function getDynamicStyle(layerObj) {
     const dynamicStyle = layerObj?.variables?.dynamicStyle
     if (dynamicStyle == null || dynamicStyle.enabled !== true) return null
     if (!Array.isArray(dynamicStyle.rules)) return null
-    return dynamicStyle.rules.some(isUsableRule) ? dynamicStyle : null
+    const overridden = withOverride(
+        dynamicStyle,
+        getDynamicStyleOverride(layerObj)
+    )
+    return overridden.rules.some(isUsableRule) ? overridden : null
 }
 
 /**
@@ -142,10 +222,13 @@ export function applyDynamicStyleToGeoJSON(layerObj, geojson) {
 const LayerDynamicStyle = {
     applyDynamicStyleToGeoJSON,
     compileLayerDynamicStyle,
+    getDomainMode,
     getDynamicStyle,
+    getDynamicStyleOverride,
     getDynamicStyleProps,
     getLayerDynamicStyleResolver,
     getLayerDynamicStyleRules,
+    setDynamicStyleOverride,
 }
 
 export default LayerDynamicStyle
