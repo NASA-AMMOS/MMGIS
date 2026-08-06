@@ -106,6 +106,37 @@ test.describe('dynamicStyle - rampStops', () => {
         expect(stops[0].color).toMatch(/^rgb\(/)
     })
 
+    test('keeps a stop that says where it sits', () => {
+        expect(
+            rampStops([
+                { position: 0, color: '#000' },
+                { position: 0.1, color: '#f00' },
+                { position: 1, color: '#fff' },
+            ])
+        ).toEqual([
+            { position: 0, color: '#000' },
+            { position: 0.1, color: '#f00' },
+            { position: 1, color: '#fff' },
+        ])
+    })
+
+    test('reversing placed stops mirrors them rather than reordering colours', () => {
+        expect(
+            rampStops(
+                [
+                    { position: 0, color: '#000' },
+                    { position: 0.1, color: '#f00' },
+                    { position: 1, color: '#fff' },
+                ],
+                true
+            )
+        ).toEqual([
+            { position: 0, color: '#fff' },
+            { position: 0.9, color: '#f00' },
+            { position: 1, color: '#000' },
+        ])
+    })
+
     test('returns nothing for an unknown ramp', () => {
         expect(rampStops('not-a-colormap')).toEqual([])
         expect(rampStops(null)).toEqual([])

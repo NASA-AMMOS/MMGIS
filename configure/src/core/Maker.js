@@ -231,6 +231,25 @@ const useStyles = makeStyles((theme) => ({
     "& > div:first-child": { width: "25%", marginRight: "8px" },
     "& > div:last-child": { flex: 1 },
   },
+  subheading: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    width: "100%",
+    margin: "4px 0px 2px 0px",
+    fontSize: "11px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    color: theme.palette.swatches.grey[300],
+    // The line runs on past the words to the end of the row, so the fields
+    // beneath read as belonging to it.
+    "&:after": {
+      content: "''",
+      flex: 1,
+      height: "1px",
+      background: theme.palette.swatches.grey[700],
+    },
+  },
   objectArrayBox: {
     display: "flex",
     margin: "0px 10px 10px 10px",
@@ -385,9 +404,15 @@ const rampGradient = (name) => {
   // and those are the exact colours the layer was drawn with.
   if (Array.isArray(name)) {
     if (name.length < 2) return null;
-    const stops = name.map(
-      (color, i) => `${color} ${((i / (name.length - 1)) * 100).toFixed(1)}%`
-    );
+    // A stop may say where it sits, which is how a converted legend keeps its
+    // colours at the values they were drawn at rather than evenly spread.
+    const stops = name.map((stop, i) => {
+      const placed =
+        stop != null && typeof stop === "object" && isFinite(stop.position);
+      const at = placed ? stop.position * 100 : (i / (name.length - 1)) * 100;
+      const color = stop != null && typeof stop === "object" ? stop.color : stop;
+      return `${color} ${at.toFixed(1)}%`;
+    });
     return `linear-gradient(to right, ${stops.join(", ")})`;
   }
   if (typeof name !== "string") return null;
@@ -497,6 +522,32 @@ const WithDynamicOptions = ({ com, layer, children }) => {
   );
 };
 
+/**
+ * A component may declare `showIf` to be drawn only when another field says it
+ * is relevant - a sigma is meaningless unless the domain is measured in them.
+ * `field` is read beside the component: a sibling of the same objectarray item,
+ * or a path into the configuration for an ordinary row.
+ *
+ * `{field, equals}`, `{field, in: []}`, `{field, not}`, `{field, notIn: []}` and
+ * `{field, truthy}` are the tests; an array of them must all pass. A field that
+ * is unset reads as null, so `in: [null, "fillColor"]` covers a default.
+ */
+const passesShowIf = (com, read) => {
+  if (com.showIf == null) return true;
+  const tests = Array.isArray(com.showIf) ? com.showIf : [com.showIf];
+  return tests.every((test) => {
+    if (test == null || typeof test.field !== "string") return true;
+    const value = read(test.field);
+    const at = value === undefined || value === "" ? null : value;
+    if (test.in !== undefined) return (test.in || []).indexOf(at) !== -1;
+    if (test.notIn !== undefined) return (test.notIn || []).indexOf(at) === -1;
+    if (test.not !== undefined) return at !== test.not;
+    if (test.truthy !== undefined) return test.truthy ? !!at : !at;
+    if (test.equals !== undefined) return at === test.equals;
+    return true;
+  });
+};
+
 const getComponent = (
   com,
   configuration,
@@ -549,6 +600,12 @@ const getComponent = (
   const hasError = isRequired && (fieldValue === "" || fieldValue == null);
   
   switch (com.type) {
+    case "subheading":
+      return (
+        <div className={c.subheading} title={com.description || ""}>
+          {com.name || ""}
+        </div>
+      );
     case "gap":
       return (
         <div>
@@ -1770,7 +1827,11 @@ const getComponent = (
               justifyContent="left"
               alignItems="left"
             >
-              {com.object.map((icom, idx2) => {
+              {com.object
+                .filter((icom) =>
+                  passesShowIf(icom, (field) => itemValue(item, field))
+                )
+                .map((icom, idx2) => {
                 return (
                   <Grid
                     item
@@ -2128,7 +2189,23 @@ const makeConfig = (
                 alignItems="left"
                 style={row.forceHeight ? { height: row.forceHeight } : null}
               >
-                {row.components.map((com, idx2) => {
+                {row.components
+                  .filter((com) =>
+                    passesShowIf(com, (field) =>
+                      getIn(
+                        layer == null
+                          ? tool == null
+                            ? component == null
+                              ? configuration
+                              : component
+                            : tool
+                          : layer,
+                        field.split("."),
+                        undefined
+                      )
+                    )
+                  )
+                  .map((com, idx2) => {
               return (
                 <Grid
                   item

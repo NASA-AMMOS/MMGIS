@@ -50,30 +50,42 @@ function rulesForProperty(property, entries) {
     .sort((a, b) => a.at - b.at);
 
   if (continuous.length >= 2) {
-    const domain = {
-      source: "literal",
-      min: continuous[0].at,
-      max: continuous[continuous.length - 1].at,
+    // The old engine put each colour at its own value's fraction of the scale,
+    // so the stops carry where they sit: entries at 0, 10 and 100 are not three
+    // evenly spaced colours. The domain comes from the entries that actually
+    // contributed a colour, since a colourless one shifts neither end.
+    const placed = (colored) => {
+      const stops = continuous.filter((e) => colored(e));
+      if (stops.length < 2) return null;
+      const min = stops[0].at;
+      const max = stops[stops.length - 1].at;
+      if (min === max) return null;
+      return {
+        domain: { source: "literal", min, max },
+        ramp: stops.map((e) => ({
+          position: (e.at - min) / (max - min),
+          color: colored(e),
+        })),
+      };
     };
-    const fill = continuous.map((e) => e.color).filter(Boolean);
-    const stroke = continuous
-      .map((e) => e.strokecolor || e.color)
-      .filter(Boolean);
-    if (fill.length >= 2)
+
+    const fill = placed((e) => e.color || null);
+    const stroke = placed((e) => e.strokecolor || e.color || null);
+    if (fill != null)
       rules.push({
         property,
         attribute: "fillColor",
         type: "numeric",
-        ramp: fill,
-        domain,
+        ramp: fill.ramp,
+        domain: fill.domain,
       });
-    if (stroke.length >= 2)
+    if (stroke != null)
       rules.push({
         property,
         attribute: "color",
         type: "numeric",
-        ramp: stroke,
-        domain,
+        ramp: stroke.ramp,
+        domain: stroke.domain,
       });
   }
 

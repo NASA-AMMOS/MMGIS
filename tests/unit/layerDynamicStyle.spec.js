@@ -150,6 +150,20 @@ test.describe("layerDynamicStyle - applyDynamicStyleToGeoJSON", () => {
     expect(styled.features[0].properties.style.fillColor).toBe("#ff0000");
   });
 
+  test("a partial feature style overrides only what it names", () => {
+    const layer = layerWith([rule()]);
+    const styled = applyDynamicStyleToGeoJSON(
+      layer,
+      collectionOf(featuresOf(0, 10)[0], {
+        properties: { value: 10, style: { radius: 12 } },
+      }),
+    );
+    expect(styled.features[1].properties.style).toEqual({
+      fillColor: "#ffffff",
+      radius: 12,
+    });
+  });
+
   test("uses the resolver 2D compiled, so the views agree", () => {
     const layer = layerWith([rule()]);
     // 2D measured 0..100; the globe is handed only part of that.

@@ -411,13 +411,30 @@
                   {
                     "field": "property",
                     "name": "Property",
-                    "description": "The feature property whose value decides the style, e.g. 'depth' or 'meta.reading.value'. The listed properties are the layer's own; a nested path can be typed.",
+                    "description": "The feature property whose value decides the style, e.g. 'depth' or 'meta.reading.value'. A viewer may only re-aim the layer at a property that has a rule, so what is listed here is what they can choose between. The options are the layer's own properties; a nested path can be typed.",
                     "type": "searchdropdown",
                     "optionsFrom": "layerProperties",
                     "freeSolo": true,
                     "options": [],
                     "noOptionsText": "No properties found - type one",
+                    "width": 4
+                  },
+                  {
+                    "field": "type",
+                    "name": "Values Are",
+                    "description": "'numeric' stretches a ramp or a range over the property's numbers. 'categorical' matches its values against the mappings below.",
+                    "type": "dropdown",
+                    "options": [
+                      "numeric",
+                      "categorical"
+                    ],
                     "width": 3
+                  },
+                  {
+                    "name": "Defaults",
+                    "description": "How a value becomes a look. These are what a viewer starts with, and what they may change for their own session when 'Is User Settable' is on.",
+                    "type": "subheading",
+                    "width": 12
                   },
                   {
                     "field": "attribute",
@@ -432,18 +449,7 @@
                       "weight",
                       "radius"
                     ],
-                    "width": 2
-                  },
-                  {
-                    "field": "type",
-                    "name": "Values Are",
-                    "description": "'numeric' stretches a ramp or a range over the property's numbers. 'categorical' matches its values against the mappings below.",
-                    "type": "dropdown",
-                    "options": [
-                      "numeric",
-                      "categorical"
-                    ],
-                    "width": 2
+                    "width": 3
                   },
                   {
                     "field": "ramp",
@@ -476,23 +482,74 @@
                       "tab20",
                       "Paired"
                     ],
-                    "width": 3
+                    "width": 4,
+                    "showIf": [
+                      {
+                        "field": "attribute",
+                        "in": [
+                          null,
+                          "fillColor",
+                          "color"
+                        ]
+                      },
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      }
+                    ]
                   },
                   {
                     "field": "reverse",
                     "name": "Reverse Ramp",
                     "description": "Runs the color ramp from high to low.",
                     "type": "checkbox",
-                    "width": 1,
-                    "defaultChecked": false
+                    "width": 2,
+                    "defaultChecked": false,
+                    "showIf": [
+                      {
+                        "field": "attribute",
+                        "in": [
+                          null,
+                          "fillColor",
+                          "color"
+                        ]
+                      },
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      }
+                    ]
                   },
                   {
                     "field": "discrete",
                     "name": "Discrete",
                     "description": "Divides the domain into flat bins instead of a smooth gradient.",
                     "type": "checkbox",
-                    "width": 1,
-                    "defaultChecked": false
+                    "width": 2,
+                    "defaultChecked": false,
+                    "showIf": [
+                      {
+                        "field": "attribute",
+                        "in": [
+                          null,
+                          "fillColor",
+                          "color"
+                        ]
+                      },
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      }
+                    ]
                   },
                   {
                     "field": "bins",
@@ -501,7 +558,91 @@
                     "type": "number",
                     "min": 1,
                     "step": 1,
-                    "width": 1
+                    "width": 1,
+                    "showIf": [
+                      {
+                        "field": "attribute",
+                        "in": [
+                          null,
+                          "fillColor",
+                          "color"
+                        ]
+                      },
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      },
+                      {
+                        "field": "discrete",
+                        "truthy": true
+                      }
+                    ]
+                  },
+                  {
+                    "field": "range.0",
+                    "name": "Style Min",
+                    "description": "For the numeric attributes (fillOpacity, opacity, weight, radius): the value the low end of the domain maps to.",
+                    "type": "number",
+                    "width": 2,
+                    "showIf": [
+                      {
+                        "field": "attribute",
+                        "in": [
+                          "fillOpacity",
+                          "opacity",
+                          "weight",
+                          "radius"
+                        ]
+                      },
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "field": "range.1",
+                    "name": "Style Max",
+                    "description": "For the numeric attributes: the value the high end of the domain maps to.",
+                    "type": "number",
+                    "width": 2,
+                    "showIf": [
+                      {
+                        "field": "attribute",
+                        "in": [
+                          "fillOpacity",
+                          "opacity",
+                          "weight",
+                          "radius"
+                        ]
+                      },
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "Scale",
+                    "description": "The span of data the styles above are stretched over.",
+                    "type": "subheading",
+                    "width": 12,
+                    "showIf": {
+                      "field": "type",
+                      "in": [
+                        "numeric",
+                        null
+                      ]
+                    }
                   },
                   {
                     "field": "domain.source",
@@ -515,58 +656,110 @@
                       "stddev",
                       "literal"
                     ],
-                    "width": 2
-                  },
-                  {
-                    "field": "domain.min",
-                    "name": "Domain Min",
-                    "description": "The low end of the scale. Set either end to pin it and let the other be discovered.",
-                    "type": "number",
-                    "width": 2
-                  },
-                  {
-                    "field": "domain.max",
-                    "name": "Domain Max",
-                    "description": "The high end of the scale.",
-                    "type": "number",
-                    "width": 2
+                    "width": 4,
+                    "showIf": {
+                      "field": "type",
+                      "in": [
+                        "numeric",
+                        null
+                      ]
+                    }
                   },
                   {
                     "field": "domain.sigma",
                     "name": "Sigma",
-                    "description": "How many standard deviations a 'stddev' domain spans either side of the average. Defaults to 2.",
+                    "description": "How many standard deviations the scale spans either side of the average. Defaults to 2 - which keeps one wild outlier from flattening the ramp for everything else.",
                     "type": "number",
                     "min": 0,
                     "step": 0.5,
-                    "width": 2
+                    "width": 2,
+                    "showIf": [
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      },
+                      {
+                        "field": "domain.source",
+                        "equals": "stddev"
+                      }
+                    ]
                   },
                   {
-                    "field": "range.0",
-                    "name": "Range Low",
-                    "description": "For the numeric attributes (fillOpacity, opacity, weight, radius): the value the low end of the domain maps to.",
+                    "field": "domain.min",
+                    "name": "Data Min",
+                    "description": "The low end of the scale. Set either end to pin it and let the other be discovered.",
                     "type": "number",
-                    "width": 2
+                    "width": 3,
+                    "showIf": [
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      },
+                      {
+                        "field": "domain.source",
+                        "equals": "literal"
+                      }
+                    ]
                   },
                   {
-                    "field": "range.1",
-                    "name": "Range High",
-                    "description": "For the numeric attributes: the value the high end of the domain maps to.",
+                    "field": "domain.max",
+                    "name": "Data Max",
+                    "description": "The high end of the scale.",
                     "type": "number",
-                    "width": 2
+                    "width": 3,
+                    "showIf": [
+                      {
+                        "field": "type",
+                        "in": [
+                          "numeric",
+                          null
+                        ]
+                      },
+                      {
+                        "field": "domain.source",
+                        "equals": "literal"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "No Data",
+                    "description": "What a feature looks like when the rule has nothing to say about it.",
+                    "type": "subheading",
+                    "width": 12
                   },
                   {
                     "field": "nullValue",
                     "name": "No Data Value",
                     "description": "The style value for a feature whose property is missing or isn't a number. Left empty, such a feature keeps the layer's ordinary style.",
                     "type": "text",
-                    "width": 2
+                    "width": 4
                   },
                   {
                     "field": "fallbackValue",
                     "name": "Unmatched Value",
                     "description": "The style value for a categorical feature whose value matches no mapping. Left empty, it keeps the layer's ordinary style.",
                     "type": "text",
-                    "width": 2
+                    "width": 4,
+                    "showIf": {
+                      "field": "type",
+                      "equals": "categorical"
+                    }
+                  },
+                  {
+                    "name": "Categorical Mappings",
+                    "description": "What each value of the property looks like.",
+                    "type": "subheading",
+                    "width": 12,
+                    "showIf": {
+                      "field": "type",
+                      "equals": "categorical"
+                    }
                   },
                   {
                     "field": "mappings",
@@ -603,7 +796,11 @@
                         "type": "number",
                         "width": 3
                       }
-                    ]
+                    ],
+                    "showIf": {
+                      "field": "type",
+                      "equals": "categorical"
+                    }
                   }
                 ]
               }

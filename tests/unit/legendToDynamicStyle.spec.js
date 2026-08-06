@@ -4,6 +4,7 @@ import {
     stylingEntries,
 } from '../../configure/src/core/legendToDynamicStyle.js'
 import { compileDynamicStyle } from '../../src/essence/Basics/Layers_/render/dynamicStyle.js'
+import { rgbToHex } from '../../src/essence/Basics/Layers_/render/gradientUtils.js'
 
 /**
  * legendToDynamicStyle unit tests — a converted configuration must colour the
@@ -66,7 +67,10 @@ test.describe('legendToDynamicStyle', () => {
             property: 'depth',
             attribute: 'fillColor',
             type: 'numeric',
-            ramp: ['#000000', '#ffffff'],
+            ramp: [
+                { position: 0, color: '#000000' },
+                { position: 1, color: '#ffffff' },
+            ],
             domain: { source: 'literal', min: 0, max: 100 },
         })
 
@@ -74,6 +78,75 @@ test.describe('legendToDynamicStyle', () => {
         const resolve = compileDynamicStyle(converted)
         expect(resolve({ depth: 0 }).fillColor).toBe('#000000')
         expect(resolve({ depth: 100 }).fillColor).toBe('#ffffff')
+    })
+
+    test('unevenly spaced colours stay at the values they were drawn at', () => {
+        const converted = legendToDynamicStyle([
+            {
+                styleMatching: true,
+                shape: 'continuous',
+                propertyName: 'depth',
+                propertyValue: '0',
+                color: '#000000',
+            },
+            {
+                styleMatching: true,
+                shape: 'continuous',
+                propertyName: 'depth',
+                propertyValue: '10',
+                color: '#ff0000',
+            },
+            {
+                styleMatching: true,
+                shape: 'continuous',
+                propertyName: 'depth',
+                propertyValue: '100',
+                color: '#ffffff',
+            },
+        ])
+        const rule = converted.rules[0]
+        expect(rule.ramp).toEqual([
+            { position: 0, color: '#000000' },
+            { position: 0.1, color: '#ff0000' },
+            { position: 1, color: '#ffffff' },
+        ])
+
+        // The middle colour belongs to 10, not to the midpoint of the scale.
+        const resolve = compileDynamicStyle(converted)
+        expect(rgbToHex(resolve({ depth: 10 }).fillColor)).toBe('#ff0000')
+        expect(rgbToHex(resolve({ depth: 50 }).fillColor)).not.toBe('#ff0000')
+    })
+
+    test('a colourless entry moves neither end of the domain', () => {
+        const converted = legendToDynamicStyle([
+            {
+                styleMatching: true,
+                shape: 'continuous',
+                propertyName: 'depth',
+                propertyValue: '0',
+                color: '#000000',
+            },
+            {
+                styleMatching: true,
+                shape: 'continuous',
+                propertyName: 'depth',
+                propertyValue: '100',
+                color: '#ffffff',
+            },
+            {
+                styleMatching: true,
+                shape: 'continuous',
+                propertyName: 'depth',
+                propertyValue: '500',
+                strokecolor: '#00ff00',
+            },
+        ])
+        const fill = converted.rules.find((r) => r.attribute === 'fillColor')
+        expect(fill.domain).toMatchObject({ min: 0, max: 100 })
+
+        // The stroke rule did get a colour at 500, so its scale runs that far.
+        const stroke = converted.rules.find((r) => r.attribute === 'color')
+        expect(stroke.domain).toMatchObject({ min: 0, max: 500 })
     })
 
     test('exact-match entries become a categorical rule, labelled as they were', () => {

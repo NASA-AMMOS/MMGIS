@@ -90,15 +90,39 @@ export function readProperty(properties, property) {
 }
 
 /**
- * A rule's ramp as `{ position, color }` stops: either the colours it lists, or
- * a named matplotlib colormap sampled evenly.
+ * A rule's ramp as `{ position, color }` stops: a named matplotlib colormap
+ * sampled evenly, a list of colours spaced evenly, or a list of stops that say
+ * where they sit - which is how a converted legend keeps colours pinned to the
+ * values they were drawn at.
  *
- * @param {string|string[]} ramp
+ * @param {string|string[]|Array<{position: number, color: string}>} ramp
  * @param {boolean} [reverse]
  * @returns {Array<{position: number, color: string}>}
  */
 export function rampStops(ramp, reverse) {
     if (Array.isArray(ramp)) {
+        const placed = ramp
+            .filter(
+                (stop) =>
+                    stop != null &&
+                    typeof stop === 'object' &&
+                    typeof stop.color === 'string' &&
+                    stop.color !== '' &&
+                    asNumber(stop.position) != null
+            )
+            .map((stop) => ({
+                position: Math.min(1, Math.max(0, asNumber(stop.position))),
+                color: stop.color,
+            }))
+        if (placed.length > 0) {
+            const stops = reverse
+                ? placed.map((stop) => ({
+                      position: 1 - stop.position,
+                      color: stop.color,
+                  }))
+                : placed
+            return stops.sort((a, b) => a.position - b.position)
+        }
         const colors = ramp.filter((c) => typeof c === 'string' && c !== '')
         if (colors.length === 0) return []
         return buildColorStops(reverse ? [...colors].reverse() : colors)

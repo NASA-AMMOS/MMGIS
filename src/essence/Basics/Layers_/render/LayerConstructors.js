@@ -114,12 +114,22 @@ export const constructVectorLayer = (
                         : rad
             }
 
+            // Styling from data: wins over the configured style and the
+            // `*Prop` fields below, loses key by key to a feature's own style -
+            // the same order the globe applies them in.
+            const dynamicStyleResolver = getLayerDynamicStyleResolver(layerObj)
+            const dynamicStyle =
+                dynamicStyleResolver != null
+                    ? dynamicStyleResolver(feature.properties)
+                    : null
+
             if (feature.properties.hasOwnProperty('style')) {
                 let className = layerObj.uuid
                 let layerName = layerObj.style.layerName
                 layerObj.style = Object.assign({}, layerObj.style)
                 layerObj.style = {
                     ...layerObj.style,
+                    ...dynamicStyle,
                     ...JSON.parse(JSON.stringify(feature.properties.style)),
                 }
 
@@ -190,13 +200,8 @@ export const constructVectorLayer = (
 
                 layerObj.style.radius = finalRad || 8
 
-                // Styling from data: wins over the configured style and the
-                // `*Prop` fields above, loses to feature.properties.style.
-                const dynamicStyle = getLayerDynamicStyleResolver(layerObj)
-                if (dynamicStyle != null) {
-                    const dynamic = dynamicStyle(feature.properties)
-                    if (dynamic != null) Object.assign(layerObj.style, dynamic)
-                }
+                if (dynamicStyle != null)
+                    Object.assign(layerObj.style, dynamicStyle)
             }
             if (
                 noPointerEventsClass != null &&
