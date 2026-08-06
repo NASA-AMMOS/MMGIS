@@ -223,7 +223,7 @@ export function applyDynamicStyleToGeoJSON(layerObj, geojson) {
         if (dynamic == null) return feature
         return Object.assign({}, feature, {
             properties: Object.assign({}, properties, {
-                style: Object.assign({}, dynamic, properties.style),
+                style: Object.assign({}, dynamic, properties?.style),
             }),
         })
     })

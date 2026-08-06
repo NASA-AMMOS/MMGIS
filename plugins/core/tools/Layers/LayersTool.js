@@ -3053,26 +3053,21 @@ function interfaceWithMMGIS(fromInit) {
     }
 
     /**
-     * The properties a layer's features have, for the dynamic style's property
-     * switcher: a geodataset's stored statistics name them all, and anything
-     * else is asked of the features in hand.
+     * The properties a viewer may aim a layer's dynamic style at: the ones its
+     * rules were written for, and only those. An admin widens the choice by
+     * writing another rule, which is also how they say a property is fit to
+     * style by - a domain and a null value have been thought about for it.
      */
     function getStyleableProperties(layerName) {
         const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
-        const names = new Set(Object.keys(layerObj?._fieldStats || {}))
-        const leafletLayer = L_.layers.layer[layerName]
-        if (names.size === 0 && leafletLayer?.eachLayer) {
-            let sampled = 0
-            leafletLayer.eachLayer((sublayer) => {
-                if (sampled >= 50 || sublayer?.feature?.properties == null)
-                    return
-                sampled++
-                Object.keys(sublayer.feature.properties).forEach((key) => {
-                    if (key !== 'style' && key !== '_') names.add(key)
-                })
-            })
-        }
-        return [...names].sort()
+        const rules = layerObj?.variables?.dynamicStyle?.rules
+        if (!Array.isArray(rules)) return []
+        const names = new Set()
+        rules.forEach((rule) => {
+            if (typeof rule?.property === 'string' && rule.property !== '')
+                names.add(rule.property)
+        })
+        return [...names]
     }
 
     /**
@@ -3095,7 +3090,10 @@ function interfaceWithMMGIS(fromInit) {
 
         // prettier-ignore
         return [
-            '<div class="sublayerHeading dynamicStyleRow">Dynamic Style</div>',
+            '<div class="sublayerHeading dynamicStyleRow dynamicStyleHeading">',
+                '<div>Dynamic Style</div>',
+                `<div class="dynamicStyleReset mmgisHoverBlue" layername="${layerName}" title="Style this layer the way it was configured again, undoing the changes made here.">Reset</div>`,
+            '</div>',
             '<div class="sublayer dynamicStyleRow">',
                 '<div title="Whether the colour scale is stretched over the whole dataset - so a feature\'s colour means the same wherever you are - or over just what is currently in view, which re-stretches the ramp as you pan.">Domain</div>',
                 '<div style="display: flex;">',
@@ -3107,7 +3105,7 @@ function interfaceWithMMGIS(fromInit) {
             '</div>',
             properties.length > 0 ? [
             '<div class="sublayer dynamicStyleRow">',
-                '<div title="The feature property the layer is coloured by.">Property</div>',
+                '<div title="The feature property the layer is coloured by. The choices are the properties this layer has rules for.">Property</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleProperty" layername="${layerName}">`,
                         properties.map((p) =>
@@ -3365,6 +3363,16 @@ function interfaceWithMMGIS(fromInit) {
             restyleFrom(this, { domain: $(this).val() })
         })
 
+        $('.dynamicStyleReset').off('click')
+        $('.dynamicStyleReset').on('click', function () {
+            const layerName = $(this).attr('layername')
+            // Null rather than the configured values: an override that isn't
+            // there is the only thing that can't drift from the config.
+            overrideDynamicStyle(layerName, null)
+            LegendTool.refreshLegends()
+            refreshDynamicStyleSettings(layerName)
+        })
+
         $('.dynamicStyleProperty').off('change')
         $('.dynamicStyleProperty').on('change', function () {
             restyleFrom(this, { property: $(this).val() })
@@ -3374,16 +3382,19 @@ function interfaceWithMMGIS(fromInit) {
         $('.dynamicStyleAttribute').on('change', function () {
             const layerName = $(this).attr('layername')
             const attribute = $(this).val()
-            const rule = getDynamicStyle(
-                L_.layers.data[L_.asLayerUUID(layerName)]
-            )?.rules?.[0]
+            // The configured rule rather than the overridden one: a range a
+            // previous switch installed is this session's, not the admin's,
+            // and reading it back would leave weight's span sizing radii.
+            const configured =
+                L_.layers.data[L_.asLayerUUID(layerName)]?.variables
+                    ?.dynamicStyle?.rules?.[0]
             restyleFrom(this, {
                 attribute: attribute,
                 // A numeric attribute maps through a range rather than a ramp,
                 // and a rule written for a colour has none to map through.
                 range:
                     COLOR_ATTRIBUTES.includes(attribute) ||
-                    Array.isArray(rule?.range)
+                    Array.isArray(configured?.range)
                         ? undefined
                         : DEFAULT_RANGES[attribute],
             })

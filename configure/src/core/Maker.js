@@ -200,8 +200,10 @@ const useStyles = makeStyles((theme) => ({
   },
   colorRampBar: {
     height: "14px",
-    minWidth: "90px",
-    flex: 1,
+    // Fixed, so every ramp is drawn at the same width and they read as a
+    // column rather than each one sized by the length of its name.
+    width: "120px",
+    flexShrink: 0,
     borderRadius: "2px",
   },
   dropdown: {
@@ -379,6 +381,15 @@ const ColormapHelper = ({ colormapName }) => {
  * rather than by its name. A name ending '_r' is the reversed map.
  */
 const rampGradient = (name) => {
+  // A converted legend brings its own colours rather than a colormap's name,
+  // and those are the exact colours the layer was drawn with.
+  if (Array.isArray(name)) {
+    if (name.length < 2) return null;
+    const stops = name.map(
+      (color, i) => `${color} ${((i / (name.length - 1)) * 100).toFixed(1)}%`
+    );
+    return `linear-gradient(to right, ${stops.join(", ")})`;
+  }
   if (typeof name !== "string") return null;
   const reverse = name.toLowerCase().endsWith("_r");
   const base = reverse ? name.substring(0, name.length - 2) : name;
@@ -412,9 +423,10 @@ const rampGradient = (name) => {
 /** A ramp's name with its colours beside it. */
 const ColorRampOption = ({ name, c }) => {
   const gradient = rampGradient(name);
+  const label = Array.isArray(name) ? `Custom (${name.length} colors)` : name;
   return (
     <div className={c.colorRampOption}>
-      <div>{name}</div>
+      <div>{label}</div>
       {gradient && (
         <div className={c.colorRampBar} style={{ background: gradient }} />
       )}
@@ -1494,7 +1506,7 @@ const getComponent = (
             }}
           >
             {ramp_options.map((o) => (
-              <MenuItem value={o} key={o}>
+              <MenuItem value={o} key={Array.isArray(o) ? "custom" : o}>
                 <ColorRampOption name={o} c={c} />
               </MenuItem>
             ))}

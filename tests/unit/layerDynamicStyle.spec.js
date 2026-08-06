@@ -176,6 +176,17 @@ test.describe("layerDynamicStyle - applyDynamicStyleToGeoJSON", () => {
     expect(styled.features[2].properties.style).toBeUndefined();
   });
 
+  test("a feature with no properties at all doesn't stop the layer drawing", () => {
+    const layer = layerWith([rule({ nullValue: "#666666" })]);
+    const styled = applyDynamicStyleToGeoJSON(
+      layer,
+      collectionOf(...featuresOf(0, 10), { type: "Feature" }),
+    );
+    expect(styled.features[2].properties.style).toEqual({
+      fillColor: "#666666",
+    });
+  });
+
   test("a layer 2D never drew measures the geojson it is handed", () => {
     const layer = layerWith([rule()]);
     const styled = applyDynamicStyleToGeoJSON(
