@@ -9,7 +9,7 @@ import LayerAttachmentRegistry from '../registry/LayerAttachmentRegistry'
 import LayerInterface from '../interface/LayerInterface'
 import refreshLayer from '../lifecycle/refresh'
 import acquire from '../lifecycle/acquire'
-import { interpolateMultipleColors } from './gradientUtils'
+import { compileLayerDynamicStyle } from './layerDynamicStyle'
 
 let L = window.L
 
@@ -71,6 +71,10 @@ export const constructVectorLayer = (
     // Snapshot the original style so it can be restored on every feature call
     const _originalStyle = layerObj.style
 
+    // Compiled once here rather than per feature: a rule's ramp and domain are
+    // the same for every feature of the layer.
+    const dynamicStyle = compileLayerDynamicStyle(layerObj, geojson?.features)
+
     let leafletLayerObject = {
         style: function (feature, preferredStyle) {
             // Restore to original before applying per-feature overrides so
@@ -98,171 +102,6 @@ export const constructVectorLayer = (
                     preferredStyle.radius != null
                         ? String(preferredStyle.radius)
                         : rad
-            }
-
-            // Check for legend-based property styling (takes priority over configured styles but not over feature.properties.style)
-            const legendData = L_.layers.data[layerObj.name]?._legend
-            if (legendData && Array.isArray(legendData)) {
-                // Group legend entries by property name for gradient interpolation
-                const propertyGroups = {}
-                for (let legendEntry of legendData) {
-                    if (
-                        legendEntry.styleMatching &&
-                        legendEntry.propertyName &&
-                        legendEntry.propertyValue !== undefined
-                    ) {
-                        if (!propertyGroups[legendEntry.propertyName]) {
-                            propertyGroups[legendEntry.propertyName] = []
-                        }
-                        propertyGroups[legendEntry.propertyName].push(
-                            legendEntry
-                        )
-                    }
-                }
-
-                // Process each property group
-                for (let propertyName in propertyGroups) {
-                    const featureValue = feature.properties[propertyName]
-                    const entries = propertyGroups[propertyName]
-
-                    // Check if this should use continuous interpolation
-                    const isNumericValue = typeof featureValue === 'number'
-
-                    // Only get entries that are marked as continuous
-                    const continuousEntries = entries.filter(
-                        (entry) => entry.shape === 'continuous'
-                    )
-
-                    const numericEntries = continuousEntries
-                        .map((entry) => ({
-                            ...entry,
-                            numericValue: parseFloat(entry.propertyValue),
-                        }))
-                        .filter((entry) => !isNaN(entry.numericValue))
-                        .sort((a, b) => a.numericValue - b.numericValue)
-
-                    const shouldUseContinuous =
-                        isNumericValue && numericEntries.length >= 2
-
-                    if (shouldUseContinuous) {
-                        // Use gradient interpolation for continuous numeric values
-                        // Find min and max values for normalization
-                        const minValue = numericEntries[0].numericValue
-                        const maxValue =
-                            numericEntries[numericEntries.length - 1]
-                                .numericValue
-
-                        // Create color stops for fill colors
-                        const fillColorStops = numericEntries
-                            .filter((entry) => entry.color)
-                            .map((entry) => ({
-                                position:
-                                    maxValue === minValue
-                                        ? 0
-                                        : (entry.numericValue - minValue) /
-                                          (maxValue - minValue),
-                                color: entry.color,
-                            }))
-
-                        // Create color stops for stroke colors
-                        const strokeColorStops = numericEntries
-                            .filter((entry) => entry.strokecolor || entry.color)
-                            .map((entry) => ({
-                                position:
-                                    maxValue === minValue
-                                        ? 0
-                                        : (entry.numericValue - minValue) /
-                                          (maxValue - minValue),
-                                color: entry.strokecolor || entry.color,
-                            }))
-
-                        // Interpolate colors using the enhanced multi-color function
-                        if (fillColorStops.length >= 1) {
-                            const interpolatedFillColor =
-                                fillColorStops.length === 1
-                                    ? fillColorStops[0].color
-                                    : interpolateMultipleColors(
-                                          fillColorStops,
-                                          featureValue,
-                                          minValue,
-                                          maxValue
-                                      )
-
-                            if (interpolatedFillColor) {
-                                fiC = interpolatedFillColor
-                            }
-                        }
-
-                        if (strokeColorStops.length >= 1) {
-                            const interpolatedStrokeColor =
-                                strokeColorStops.length === 1
-                                    ? strokeColorStops[0].color
-                                    : interpolateMultipleColors(
-                                          strokeColorStops,
-                                          featureValue,
-                                          minValue,
-                                          maxValue
-                                      )
-
-                            if (interpolatedStrokeColor) {
-                                col = interpolatedStrokeColor
-                            }
-                        }
-
-                        break // Found styling, stop processing other properties
-                    } else {
-                        // Use exact matching for discrete values (strings, booleans, or entries not marked as continuous)
-                        let exactMatch = null
-                        // Only check entries that are not marked as continuous
-                        const discreteEntries = entries.filter(
-                            (entry) => entry.shape !== 'continuous'
-                        )
-
-                        for (let entry of discreteEntries) {
-                            let matches = false
-                            if (
-                                typeof featureValue === 'string' &&
-                                typeof entry.propertyValue === 'string'
-                            ) {
-                                matches = featureValue === entry.propertyValue
-                            } else if (
-                                typeof featureValue === 'number' &&
-                                !isNaN(parseFloat(entry.propertyValue))
-                            ) {
-                                matches =
-                                    featureValue ===
-                                    parseFloat(entry.propertyValue)
-                            } else if (typeof featureValue === 'boolean') {
-                                matches =
-                                    featureValue ===
-                                    (entry.propertyValue === 'true' ||
-                                        entry.propertyValue === true)
-                            } else {
-                                matches =
-                                    String(featureValue) ===
-                                    String(entry.propertyValue)
-                            }
-
-                            if (matches) {
-                                exactMatch = entry
-                                break
-                            }
-                        }
-
-                        if (exactMatch) {
-                            if (exactMatch.color) {
-                                fiC = exactMatch.color
-                            }
-                            if (exactMatch.strokecolor) {
-                                col = exactMatch.strokecolor
-                            }
-                            if (exactMatch.color && !exactMatch.strokecolor) {
-                                col = exactMatch.color
-                            }
-                            break // Found styling, stop processing other properties
-                        }
-                    }
-                }
             }
 
             if (feature.properties.hasOwnProperty('style')) {
@@ -340,6 +179,13 @@ export const constructVectorLayer = (
                     finalFiO === 'undefined' ? '1' : finalFiO
 
                 layerObj.style.radius = finalRad || 8
+
+                // Styling from data: wins over the configured style and the
+                // `*Prop` fields above, loses to feature.properties.style.
+                if (dynamicStyle != null) {
+                    const dynamic = dynamicStyle(feature.properties)
+                    if (dynamic != null) Object.assign(layerObj.style, dynamic)
+                }
             }
             if (
                 noPointerEventsClass != null &&

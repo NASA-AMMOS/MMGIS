@@ -378,7 +378,7 @@ function contextFor(rule, context) {
     return { fieldStats: context.fieldStats, values: values[rule.property] }
 }
 
-export default {
+const DynamicStyle = {
     COLOR_ATTRIBUTES,
     NUMERIC_ATTRIBUTES,
     STYLE_ATTRIBUTES,
@@ -391,3 +391,5 @@ export default {
     readProperty,
     resolveDomain,
 }
+
+export default DynamicStyle

@@ -345,7 +345,7 @@ not of writing a renderer. In precedence order:
 | what | where | notes |
 |---|---|---|
 | a per-feature override | `feature.properties.style` | a Leaflet path-options object (`color`, `weight`, `fillColor`, `fillOpacity`, `radius`, `dashArray`, and `minZoom`/`maxZoom` to hide the feature outside a zoom range). It **replaces** the configured style for that feature, and it is the only styling that wins over everything below |
-| a legend the layer derived | `layerObj._legend` entries with `styleMatching` | colours a feature by matching one of its properties; see the `legend` surface below |
+| a dynamic style | `variables.dynamicStyle` in the layer config | Configure's Style tab → Dynamic Style: maps a feature property through a colour ramp, a numeric range or a value table. Works on any vector feature, so a plain GeoJSON needs no help from the type |
 | the layer's configured style | `style` in the layer config | Configure's per-layer colour/weight/radius. A value of `prop-<name>` means "read this from the feature's property `<name>`", so `"color": "prop-magnitude"` colours from data with no per-feature style at all |
 
 So the cheapest way to style live data is to compute the property you want to
@@ -382,16 +382,18 @@ nothing to derive after all.
 | `value` | the label beside it (and its tooltip) |
 | `shape` | `circle`, `square`, `rect`, `line`, `discreet` or `continuous`. Consecutive `discreet`/`continuous` entries are gathered into one scale bar, so a ramp is a run of them |
 | `shapeIcon` / `shapeImage` | an MDI icon name, or an image url, instead of a shape |
-| `hideFromLegend` | `true` to keep the entry out of the LegendTool while still using it to style |
-| `styleMatching` | `true` makes the entry *style features* as well as label them, which is how a derived legend colours a vector layer with no configured style |
-| `propertyName`, `propertyValue` | with `styleMatching`: the feature property to read and the value this entry matches. Numeric `propertyValue`s across `continuous` entries interpolate, so two entries make a gradient |
+| `hideFromLegend` | `true` to keep the entry out of the LegendTool |
 
 ```js
 layerObj._legend = [
-    { shape: 'continuous', color: '#2c7bb6', value: '0', styleMatching: true, propertyName: 'magnitude', propertyValue: 0 },
-    { shape: 'continuous', color: '#d7191c', value: '8', styleMatching: true, propertyName: 'magnitude', propertyValue: 8 },
+    { shape: 'continuous', color: '#2c7bb6', value: '0' },
+    { shape: 'continuous', color: '#d7191c', value: '8' },
 ]
 ```
+
+A legend only *describes*; it never styles. To colour features from their data,
+configure `variables.dynamicStyle` — the LegendTool reads it and draws the same
+scale the features are coloured by.
 
 ### `time` — what a time change means to this type
 
