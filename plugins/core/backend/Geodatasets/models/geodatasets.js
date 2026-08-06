@@ -568,21 +568,36 @@ const up = async () => {
  */
 async function updateGeodatasetFieldStats(name, fieldStats, action) {
   try {
-    let nextStats = fieldStats || {};
-    if (action === "append") {
-      const existing = await Geodatasets.findOne({ where: { name: name } });
+    const written = fieldStats || {};
+    if (action !== "append") {
+      await Geodatasets.update(
+        { field_stats: written },
+        { where: { name: name }, silent: true }
+      );
+      return written;
+    }
+
+    // Merging reads what is stored, so hold the row for the write — otherwise
+    // concurrent appends both merge into the same value and one is lost.
+    return await sequelize.transaction(async (t) => {
+      const existing = await Geodatasets.findOne({
+        where: { name: name },
+        lock: t.LOCK.UPDATE,
+        transaction: t,
+      });
       const stored = existing ? existing.dataValues.field_stats : null;
       // Absent statistics mean the features already in the table were never
       // summarized (written before field_stats existed); the appended features
       // alone would misreport the domain, so leave it absent until a recreate.
       if (stored == null) return null;
-      nextStats = mergeFieldStats(stored, nextStats);
-    }
-    await Geodatasets.update(
-      { field_stats: nextStats },
-      { where: { name: name }, silent: true }
-    );
-    return nextStats;
+
+      const nextStats = mergeFieldStats(stored, written);
+      await Geodatasets.update(
+        { field_stats: nextStats },
+        { where: { name: name }, silent: true, transaction: t }
+      );
+      return nextStats;
+    });
   } catch (err) {
     logger(
       "error",

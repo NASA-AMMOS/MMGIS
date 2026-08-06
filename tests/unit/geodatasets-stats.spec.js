@@ -125,6 +125,19 @@ test.describe('buildStatsSelect', () => {
         ].forEach((v) => expect(re.test(v), `${v} should not be numeric`).toBe(false));
     });
 
+    test('measures as NUMERIC first, so an out-of-range value cannot abort the query', () => {
+        const { text, replacements } = buildStatsSelect(['elev'], 'group_id');
+        // '1e999'::FLOAT8 raises "out of range"; ABS(...::NUMERIC) <= 1e308 keeps
+        // that value out of the cast, leaving it NULL like any other unusable one.
+        expect(text).toContain('::NUMERIC');
+        expect(text).toContain('<= 1e308');
+        expect(text.indexOf('::NUMERIC')).toBeLessThan(text.indexOf('::FLOAT8'));
+        // An exponent NUMERIC itself could not hold is not even measured.
+        const re = new RegExp(replacements.stats_numeric_regex);
+        expect(re.test('1e999')).toBe(true);
+        expect(re.test('1e999999')).toBe(false);
+    });
+
     test('statAlias matches the emitted aliases', () => {
         expect(statAlias('min', 3)).toBe('stat_min_3');
     });
@@ -210,7 +223,7 @@ test.describe('collectFieldStats', () => {
 
     test('accepts the same values the query-time SQL guard accepts', () => {
         const re = new RegExp(buildStatsSelect(['x'], null).replacements.stats_numeric_regex);
-        ['1', '-1', '+1', '.5', '1e5', ' 42 ', '2024-01-15', '1.2.3', '12abc'].forEach(
+        ['1', '-1', '+1', '.5', '1e5', ' 42 ', '2024-01-15', '1.2.3', '12abc', '1e999999'].forEach(
             (value) => {
                 const summarized =
                     collectFieldStats([{ properties: { x: value } }]).x != null;

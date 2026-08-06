@@ -56,7 +56,7 @@ test.describe.serial('Geodatasets statistics', () => {
               feature({ track: 'A', elev: 1, meta: { depth: 5 } }),
               feature({ track: 'A', elev: 2, meta: { depth: 7 } }),
               feature({ track: 'A', elev: '3', when: '2024-01-15' }),
-              feature({ track: 'B', elev: 10 }),
+              feature({ track: 'B', elev: 10, huge: '1e999' }),
               feature({ track: 'B', elev: 'not_a_number' }),
               feature({ track: 'B' }),
             ],
@@ -226,6 +226,27 @@ test.describe.serial('Geodatasets statistics', () => {
     // Text is not summarized — including text that merely starts with digits.
     expect(data.field_stats[layerName][GROUP_ID_PROP]).toBeUndefined();
     expect(data.field_stats[layerName].when).toBeUndefined();
+    // Nor is a value no float can hold.
+    expect(data.field_stats[layerName].huge).toBeUndefined();
+  });
+
+  test('a value too large for a float is ignored, not fatal', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    // Casting "1e999" to FLOAT8 raises "out of range", taking the whole query
+    // with it; it must be ignored like any other unusable value.
+    const response = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=huge`
+    );
+    const data = await response.json();
+    expect(data.features.length).toBe(6);
+    data.features.forEach((f) =>
+      expect(f.properties._.stats.huge).toEqual({
+        min: null,
+        max: null,
+        avg: null,
+      })
+    );
   });
 
   test('an append widens field_stats rather than replacing it', async () => {
@@ -293,5 +314,29 @@ test.describe.serial('Geodatasets statistics', () => {
     });
 
     await api.delete(`/api/geodatasets/remove/${newLayer}`).catch(() => {});
+  });
+
+  test('concurrent appends both reach field_stats', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    // Merging reads then writes, so without a row lock one of these is lost.
+    const append = (elev) =>
+      api.post(
+        `/api/geodatasets/append/${layerName}?group_id_prop=${GROUP_ID_PROP}`,
+        {
+          data: {
+            type: 'FeatureCollection',
+            features: [feature({ track: 'A', elev })],
+          },
+        }
+      );
+    await Promise.all([append(4), append(6)]);
+
+    const schema = await api.get(`/api/geodatasets/schema?layers=${layerName}`);
+    // On top of the previous test's {sum 116, count 5}.
+    expect((await schema.json()).field_stats[layerName].elev).toMatchObject({
+      sum: 126,
+      count: 7,
+    });
   });
 });

@@ -19,10 +19,16 @@ const { jsonbAccessor } = require("./jsonb");
 
 // One number grammar for both halves of the feature: it guards the Postgres
 // cast out of JSONB, and is what JS calls numeric text. A grammar rather than a
-// character class, so "2024-01-15" and "1.2.3" are text, not numbers.
+// character class, so "2024-01-15" and "1.2.3" are text, not numbers. The
+// exponent is bounded so the intermediate NUMERIC below cannot overflow either.
 const SQL_NUMERIC_REGEX =
-  "^\\s*[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?\\s*$";
+  "^\\s*[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]{1,5})?\\s*$";
 const NUMERIC_TEXT_REGEX = new RegExp(SQL_NUMERIC_REGEX);
+
+// Largest magnitude a FLOAT8 holds. Casting text straight to FLOAT8 raises
+// "out of range" and would abort the query, so values are measured as NUMERIC
+// first and skipped — as Number.isFinite() skips them on the JS side.
+const FLOAT8_MAX = "1e308";
 
 // Statistics computed per group at query time.
 const STAT_AGGREGATES = ["min", "max", "avg"];
@@ -76,9 +82,13 @@ function buildStatsSelect(fields, partitionBy) {
   fields.forEach((field, i) => {
     const accessor = jsonbAccessor(field, `stat_field_${i}`);
     Object.assign(replacements, accessor.replacements);
-    // Non-numeric and missing values become NULL and are ignored by the
-    // aggregates; a group with no numeric values at all yields NULL.
-    const numeric = `(CASE WHEN ${accessor.text} ~ :stats_numeric_regex THEN (${accessor.text})::FLOAT8 END)`;
+    // Non-numeric, missing and unrepresentable values become NULL and are
+    // ignored by the aggregates; a group with no numeric values yields NULL.
+    // Nested CASEs so the cast is only reached once the value is known good.
+    const numeric =
+      `(CASE WHEN ${accessor.text} ~ :stats_numeric_regex THEN ` +
+      `(CASE WHEN ABS((${accessor.text})::NUMERIC) <= ${FLOAT8_MAX} ` +
+      `THEN ((${accessor.text})::NUMERIC)::FLOAT8 END) END)`;
     STAT_AGGREGATES.forEach((agg) => {
       selects.push(
         `${agg.toUpperCase()}(${numeric}) ${over} AS ${statAlias(agg, i)}`
