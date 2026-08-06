@@ -913,6 +913,7 @@ value→colour mappings, say).
 | `dropdown` | select over `options` |
 | `searchdropdown` | the same with a filter box, for long lists; `freeSolo` also lets a value be typed |
 | `colordropdown` | select over `options` with a colour swatch per entry |
+| `colorramp` | select over colormap names, each drawn as its own gradient |
 | `colorpicker` | full colour picker |
 | `textarray` | comma-separated text stored as an array |
 | `objectarray` | a repeatable group of fields, each item shaped by `object` |

@@ -1,5 +1,8 @@
+/* Left edge and control width match .sublayer above, so the ramp and its bins
+   line up with the dropdowns rather than sitting proud of them. */
 .dynamicStyleRampControls {
-    padding: 0 12px 8px 20px;
+    width: 100%;
+    padding: 0 0 8px 20px;
 }
 
 .dynamicStyleRampRow {
@@ -18,13 +21,21 @@
 }
 
 .dynamicStyleRampRow > input.dynamicStyleBins {
-    width: 76px;
+    width: 120px;
+    height: 28px;
+    margin: 1px 0px;
+    padding: 0px 2px;
+    border: none;
+    background-color: #222;
+    color: var(--color-f);
+    font-size: 14px;
 }
 
+/* Room on the right for the reset, which hangs outside the bar. */
 .dynamicStyleStopBar {
     position: relative;
     height: 16px;
-    margin: 2px 0 6px 0;
+    margin: 2px 20px 6px 0;
 }
 
 .dynamicStyleStopGradient {

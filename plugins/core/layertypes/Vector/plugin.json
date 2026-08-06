@@ -385,9 +385,17 @@
                 "field": "variables.dynamicStyle.enabled",
                 "name": "Enable Dynamic Style",
                 "description": "Turns the rules below on. Off, the layer is styled by the fields above alone.",
-                "type": "checkbox",
-                "width": 12,
+                "type": "switch",
+                "width": 6,
                 "defaultChecked": false
+              },
+              {
+                "field": "variables.dynamicStyle.userSettable",
+                "name": "Is User Settable",
+                "description": "Lets a viewer re-aim the style from the Layers Tool - a different property, ramp, domain or bins - for their session only. Off, the layer is coloured as configured and there are no controls to change it.",
+                "type": "checkbox",
+                "width": 6,
+                "defaultChecked": true
               }
             ]
           },
@@ -440,8 +448,8 @@
                   {
                     "field": "ramp",
                     "name": "Color Ramp",
-                    "description": "The colormap a numeric rule colours with, for the 'fillColor' and 'color' attributes. Any matplotlib colormap name works. Defaults to viridis.",
-                    "type": "searchdropdown",
+                    "description": "The colormap a numeric rule colours with, for the 'fillColor' and 'color' attributes. Defaults to viridis.",
+                    "type": "colorramp",
                     "options": [
                       "viridis",
                       "plasma",
@@ -468,8 +476,7 @@
                       "tab20",
                       "Paired"
                     ],
-                    "freeSolo": true,
-                    "width": 2
+                    "width": 3
                   },
                   {
                     "field": "reverse",

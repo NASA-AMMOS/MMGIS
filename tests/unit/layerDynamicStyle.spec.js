@@ -265,6 +265,17 @@ test.describe("layerDynamicStyle - session overrides", () => {
     expect(getDomainMode(layer)).toBe("dataset");
   });
 
+  test("a viewer can aim the first rule at another style attribute", () => {
+    const layer = layerWith([rule({ domain: { min: 0, max: 100 } })]);
+    setDynamicStyleOverride(layer, {
+      attribute: "weight",
+      range: [1, 9],
+    });
+    const resolve = compileLayerDynamicStyle(layer, []);
+    expect(resolve({ value: 0 })).toEqual({ weight: 1 });
+    expect(resolve({ value: 100 })).toEqual({ weight: 9 });
+  });
+
   test("binning it discretely gives a value one of that many colours", () => {
     const layer = layerWith([rule({ domain: { min: 0, max: 100 } })]);
     setDynamicStyleOverride(layer, { discrete: true, bins: 2 });

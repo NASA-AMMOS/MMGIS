@@ -237,7 +237,8 @@ const LayerModal = (props) => {
                     setIn(completedLayer, ["kind"], "none", true);
                 } else if (
                   c.type === "dropdown" ||
-                  c.type === "colordropdown"
+                  c.type === "colordropdown" ||
+                  c.type === "colorramp"
                 ) {
                   const currentValue = getIn(l, c.field);
                   if (currentValue == null) {

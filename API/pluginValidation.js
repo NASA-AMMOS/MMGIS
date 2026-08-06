@@ -291,6 +291,7 @@ const METACONFIG_COMPONENT_TYPES = new Set([
   "dropdown",
   "searchdropdown",
   "colordropdown",
+  "colorramp",
   "colorpicker",
   "layerMultiSelect",
   "objectarray",
@@ -316,6 +317,7 @@ const METACONFIG_OPTION_TYPES = new Set([
   "dropdown",
   "searchdropdown",
   "colordropdown",
+  "colorramp",
 ]);
 
 /**

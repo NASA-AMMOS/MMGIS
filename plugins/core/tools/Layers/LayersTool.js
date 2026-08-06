@@ -7,6 +7,11 @@ import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 import LayerAttachmentRegistry from '@basics/Layers_/registry/LayerAttachmentRegistry'
 import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
 import {
+    COLOR_ATTRIBUTES,
+    DEFAULT_ATTRIBUTE,
+    STYLE_ATTRIBUTES,
+} from '@basics/Layers_/render/dynamicStyle'
+import {
     getDomainMode,
     getDynamicStyle,
 } from '@basics/Layers_/render/layerDynamicStyle'
@@ -156,6 +161,25 @@ const TILE_DEFAULT_COLOR_RAMP = 'viridis'
 // The default color ramp used for velocity layer types
 const VELOCITY_DEFAULT_COLOR_RAMP = 'rdylbu_r'
 
+// How a dynamic style's attributes read in the Layers Tool's attribute picker
+const ATTRIBUTE_LABELS = {
+    fillColor: 'Fill Color',
+    color: 'Outline Color',
+    fillOpacity: 'Fill Opacity',
+    opacity: 'Outline Opacity',
+    weight: 'Outline Weight',
+    radius: 'Radius',
+}
+
+// What a numeric attribute spans when a viewer aims a rule at one that was
+// written for a colour, and so has no range of its own
+const DEFAULT_RANGES = {
+    fillOpacity: [0.1, 1],
+    opacity: [0.1, 1],
+    weight: [1, 8],
+    radius: [3, 12],
+}
+
 var LayersTool = {
     height: 0,
     width: 350,
@@ -214,8 +238,8 @@ var LayersTool = {
         this.MMGISInterface = new interfaceWithMMGIS(fromInit)
     },
     destroy: function () {
-        Object.values(LayersTool._dynamicStyleRoots).forEach((root) =>
-            root.unmount()
+        Object.values(LayersTool._dynamicStyleRoots).forEach((cached) =>
+            cached.root.unmount()
         )
         LayersTool._dynamicStyleRoots = {}
         this.MMGISInterface.separateFromMMGIS()
@@ -1582,6 +1606,9 @@ function interfaceWithMMGIS(fromInit) {
                     if (mainSettings) {
                         mainSettings.html(getVectorLayerSettings(layerName))
                         setSublayerEvents()
+                        // The markup is new, so the ramp editor's React root
+                        // is now pointing at a node that has been thrown away.
+                        mountDynamicStyleRamp(layerName)
                     }
                 }
             }
@@ -3031,7 +3058,7 @@ function interfaceWithMMGIS(fromInit) {
      * else is asked of the features in hand.
      */
     function getStyleableProperties(layerName) {
-        const layerObj = L_.layers.data[layerName]
+        const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
         const names = new Set(Object.keys(layerObj?._fieldStats || {}))
         const leafletLayer = L_.layers.layer[layerName]
         if (names.size === 0 && leafletLayer?.eachLayer) {
@@ -3054,9 +3081,11 @@ function interfaceWithMMGIS(fromInit) {
      * session. Only shown for a layer that has a dynamic style to change.
      */
     function getDynamicStyleSettings(layerName) {
-        const layerObj = L_.layers.data[layerName]
+        const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
         const dynamicStyle = getDynamicStyle(layerObj)
         if (dynamicStyle == null) return ''
+        // Only where an admin left the style open to being re-aimed.
+        if (layerObj?.variables?.dynamicStyle?.userSettable === false) return ''
 
         const rule = dynamicStyle.rules[0] || {}
         const mode = getDomainMode(layerObj)
@@ -3087,10 +3116,20 @@ function interfaceWithMMGIS(fromInit) {
                     '</select>',
                 '</div>',
             '</div>'].join('\n') : '',
+            '<div class="sublayer dynamicStyleRow">',
+                '<div title="The style attribute the property drives. Colours take a ramp; the others take a range of numbers.">Styles</div>',
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleAttribute" layername="${layerName}">`,
+                        STYLE_ATTRIBUTES.map((a) =>
+                            `<option value="${a}"${a === (rule.attribute || DEFAULT_ATTRIBUTE) ? ' selected' : ''}>${ATTRIBUTE_LABELS[a] || a}</option>`
+                        ).join('\n'),
+                    '</select>',
+                '</div>',
+            '</div>',
             // The ramp is picked from its colours rather than its name, and
             // its bins are draggable, so this part is React - mounted into
             // here by mountDynamicStyleRamp once the markup is in the page.
-            rule.type === 'categorical' ? '' :
+            rule.type === 'categorical' || !COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' :
             `<div class="dynamicStyleRow dynamicStyleRampMount" layername="${layerName}"></div>`,
         ].join('\n')
     }
@@ -3112,8 +3151,15 @@ function interfaceWithMMGIS(fromInit) {
         const rule = getDynamicStyle(layerObj)?.rules?.[0]
         if (rule == null) return
 
-        const root = LayersTool._dynamicStyleRoots[uuid] || createRoot(mount)
-        LayersTool._dynamicStyleRoots[uuid] = root
+        // The settings markup is regenerated whenever the layer is toggled, so
+        // a cached root can be pointing at a node no longer in the page.
+        let cached = LayersTool._dynamicStyleRoots[uuid]
+        if (cached != null && cached.mount !== mount) {
+            cached.root.unmount()
+            cached = null
+        }
+        const root = cached?.root || createRoot(mount)
+        LayersTool._dynamicStyleRoots[uuid] = { root: root, mount: mount }
         root.render(
             <DynamicStyleRamp
                 ramp={rule.ramp || 'viridis'}
@@ -3139,13 +3185,13 @@ function interfaceWithMMGIS(fromInit) {
         )
         const opacity = settings.find('.transparencyslider').parent()
         if (opacity.length === 0) return
-        const root = LayersTool._dynamicStyleRoots[uuid]
-        if (root != null) {
-            root.unmount()
+        const cached = LayersTool._dynamicStyleRoots[uuid]
+        if (cached != null) {
+            cached.root.unmount()
             delete LayersTool._dynamicStyleRoots[uuid]
         }
         settings.find('.dynamicStyleRow').remove()
-        opacity.after(getDynamicStyleSettings(uuid))
+        opacity.after(getDynamicStyleSettings(layerName))
         setSublayerEvents()
         mountDynamicStyleRamp(layerName)
     }
@@ -3322,6 +3368,28 @@ function interfaceWithMMGIS(fromInit) {
         $('.dynamicStyleProperty').off('change')
         $('.dynamicStyleProperty').on('change', function () {
             restyleFrom(this, { property: $(this).val() })
+        })
+
+        $('.dynamicStyleAttribute').off('change')
+        $('.dynamicStyleAttribute').on('change', function () {
+            const layerName = $(this).attr('layername')
+            const attribute = $(this).val()
+            const rule = getDynamicStyle(
+                L_.layers.data[L_.asLayerUUID(layerName)]
+            )?.rules?.[0]
+            restyleFrom(this, {
+                attribute: attribute,
+                // A numeric attribute maps through a range rather than a ramp,
+                // and a rule written for a colour has none to map through.
+                range:
+                    COLOR_ATTRIBUTES.includes(attribute) ||
+                    Array.isArray(rule?.range)
+                        ? undefined
+                        : DEFAULT_RANGES[attribute],
+            })
+            // The ramp only belongs to a colour, so the controls themselves
+            // change shape.
+            refreshDynamicStyleSettings(layerName)
         })
 
         $(

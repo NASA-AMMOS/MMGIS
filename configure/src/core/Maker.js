@@ -191,6 +191,19 @@ const useStyles = makeStyles((theme) => ({
     margin: "0px",
     borderRadius: "4px",
   },
+  colorRampOption: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: "12px",
+  },
+  colorRampBar: {
+    height: "14px",
+    minWidth: "90px",
+    flex: 1,
+    borderRadius: "2px",
+  },
   dropdown: {
     width: "100%",
   },
@@ -360,6 +373,54 @@ const ColormapHelper = ({ colormapName }) => {
   }
   return colormap_html;
 }
+
+/**
+ * A colormap as a CSS gradient, so a ramp can be recognised by its colours
+ * rather than by its name. A name ending '_r' is the reversed map.
+ */
+const rampGradient = (name) => {
+  if (typeof name !== "string") return null;
+  const reverse = name.toLowerCase().endsWith("_r");
+  const base = reverse ? name.substring(0, name.length - 2) : name;
+  const match = Object.keys(colormapData).find(
+    (v) => v.toLowerCase() === base.toLowerCase()
+  );
+  if (match == null) return null;
+
+  const colors = colormapData[match].colors;
+  const step = Math.max(1, Math.floor(colors.length / 32));
+  const sampled = colors.filter(
+    (_, i) => i % step === 0 || i === colors.length - 1
+  );
+  if (reverse) sampled.reverse();
+
+  const css = (rgb) => `rgb(${rgb.map((v) => Math.floor(v * 255)).join(",")})`;
+  // A qualitative map's colours don't blend into each other, so it is drawn
+  // as the bands it actually is.
+  const stops = colormapData[match].interpolate
+    ? sampled.map(
+        (rgb, i) =>
+          `${css(rgb)} ${((i / (sampled.length - 1)) * 100).toFixed(1)}%`
+      )
+    : sampled.flatMap((rgb, i) => [
+        `${css(rgb)} ${((i / sampled.length) * 100).toFixed(1)}%`,
+        `${css(rgb)} ${(((i + 1) / sampled.length) * 100).toFixed(1)}%`,
+      ]);
+  return `linear-gradient(to right, ${stops.join(", ")})`;
+};
+
+/** A ramp's name with its colours beside it. */
+const ColorRampOption = ({ name, c }) => {
+  const gradient = rampGradient(name);
+  return (
+    <div className={c.colorRampOption}>
+      <div>{name}</div>
+      {gradient && (
+        <div className={c.colorRampBar} style={{ background: gradient }} />
+      )}
+    </div>
+  );
+};
 
 const DrawColormap = ({ src, colormapName }) => {
   const [error, setError] = useState(false);
@@ -1410,6 +1471,53 @@ const getComponent = (
           )}
         </div>
       );
+    case "colorramp": {
+      // Like a dropdown, but each option wears its own colours - a ramp is
+      // hard to recognise by name alone.
+      const ramp_value = value || getIn(directConf, com.field, com.options?.[0]);
+      const ramp_options = com.options?.includes(ramp_value)
+        ? com.options
+        : [ramp_value, ...(com.options || [])];
+      inner = (
+        <FormControl className={c.dropdown} variant="filled" size="small">
+          <InputLabel>{com.name}</InputLabel>
+          <Select
+            disabled={disabled}
+            value={ramp_value}
+            renderValue={(v) => <ColorRampOption name={v} c={c} />}
+            onChange={(e) => {
+              updateConfiguration(
+                forceField || com.field,
+                e.target.value,
+                layer
+              );
+            }}
+          >
+            {ramp_options.map((o) => (
+              <MenuItem value={o} key={o}>
+                <ColorRampOption name={o} c={c} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    }
     case "colordropdown":
       let dropdown_value =
         value || getIn(directConf, com.field, com.options?.[0]);

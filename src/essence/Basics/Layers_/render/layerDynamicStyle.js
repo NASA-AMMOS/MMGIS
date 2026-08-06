@@ -25,8 +25,9 @@ import {
  * written anywhere: it is a way of looking at the data, not a configuration of
  * it, and it is gone on reload.
  *
- * `property`, `ramp`, `discrete`, `bins` and `stops` apply to the first rule,
- * which is the one the LayersTool panel shows; `domain` applies to all, since
+ * `property`, `attribute`, `range`, `ramp`, `discrete`, `bins` and `stops`
+ * apply to the first rule, which is the one the LayersTool panel shows;
+ * `domain` applies to all, since
  * "stretch this layer over what I'm looking at" is about the layer.
  *
  * @param {object} layerObj
@@ -77,6 +78,8 @@ function withOverride(dynamicStyle, override) {
         const next = Object.assign({}, rule)
         if (index === 0) {
             if (override.property) next.property = override.property
+            if (override.attribute) next.attribute = override.attribute
+            if (override.range) next.range = override.range
             if (override.ramp) next.ramp = override.ramp
             if (override.discrete != null) next.discrete = override.discrete
             if (override.bins != null) next.bins = override.bins
