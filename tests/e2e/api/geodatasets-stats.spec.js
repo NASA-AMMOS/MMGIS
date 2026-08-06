@@ -184,6 +184,16 @@ test.describe.serial('Geodatasets statistics', () => {
       max: 3,
       avg: 2,
     });
+
+    // Collapsing duplicates can't collapse away the one feature asked for.
+    const deduped = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=elev&noDuplicates=true&id=${first.properties._.idx}`
+    );
+    const dedupedData = await deduped.json();
+    expect(dedupedData.features).toHaveLength(1);
+    expect(dedupedData.features[0].properties._.idx).toBe(
+      first.properties._.idx
+    );
   });
 
   test('an unknown field and hostile input are answered, not errored', async () => {

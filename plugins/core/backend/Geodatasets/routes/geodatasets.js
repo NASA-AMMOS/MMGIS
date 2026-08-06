@@ -166,9 +166,20 @@ function get(reqtype, req, res, next, options) {
             ) AS properties`;
           }
 
+          // Per-group statistics. Grouping matches noDuplicates' notion of a
+          // group (group_id when the geodataset has one, else identical geom)
+          // whether or not noDuplicates is on.
+          const groupField =
+            result.dataValues.group_id_field != null ? "group_id" : "geom";
+          const statsSelect = buildStatsSelect(stats, groupField);
+          // A single feature's statistics still describe its group, so the
+          // query aggregates the group and picks the feature out afterwards.
+          // One row comes back either way, so there's nothing to deduplicate.
+          const statsOuterId = statsSelect.text !== "" && get_id != null && get_group_id == null;
+
           let distinct = "";
           let distinctField = null;
-          if (noDuplicates === true) {
+          if (noDuplicates === true && !statsOuterId) {
             if (result.dataValues.group_id_field != null) {
               distinct = ` DISTINCT ON (group_id)`;
               distinctField = "group_id";
@@ -183,15 +194,6 @@ function get(reqtype, req, res, next, options) {
           if (result.dataValues.feature_id_field != null)
             cols.push("feature_id");
           cols = cols.join(", ");
-
-          // Per-group statistics. Grouping matches noDuplicates' notion of a
-          // group (group_id when the geodataset has one, else identical geom)
-          // whether or not noDuplicates is on.
-          let statsOuterId = false;
-          const statsSelect = buildStatsSelect(
-            stats,
-            result.dataValues.group_id_field != null ? "group_id" : "geom"
-          );
 
           let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols}, start_time, end_time${
             statsSelect.text
@@ -287,14 +289,15 @@ function get(reqtype, req, res, next, options) {
               q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
             }group_id = :get_group_id`;
           } else if (get_id != null) {
-            // A single feature's statistics still describe its group, so the
-            // restriction to it waits outside the window the group is
-            // aggregated over.
-            if (statsSelect.text === "")
-              q += `${
-                q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
-              }id = :get_id`;
-            else statsOuterId = true;
+            q += `${q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "}${
+              statsOuterId
+                ? // Its group rather than the feature itself: the aggregates
+                  // are windows over what the WHERE clause leaves.
+                  `${groupField} = (SELECT ${groupField} FROM ${Utils.forceAlphaNumUnder(
+                    table
+                  )} WHERE id = :get_id)`
+                : `id = :get_id`
+            }`;
           }
 
           const replacements = {
@@ -495,15 +498,8 @@ function get(reqtype, req, res, next, options) {
               ))`;
           }
 
-          if (statsOuterId) {
-            // DISTINCT ON leaves an arbitrary row of each group otherwise.
-            if (distinctField != null) {
-              q += ` ORDER BY ${distinctField}, id DESC`;
-              // Deduplicated already, and geom isn't a column out here.
-              distinctField = null;
-            }
+          if (statsOuterId)
             q = `SELECT * FROM (${q}) AS grouped WHERE id = :get_id`;
-          }
 
           if (req.query?.limited) {
             q += ` ORDER BY id DESC LIMIT 3;`;

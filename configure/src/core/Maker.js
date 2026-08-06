@@ -565,6 +565,11 @@ const getComponent = (
 ) => {
   const directConf =
     layer == null ? (tool == null ? (component == null ? configuration : component) : tool) : layer;
+
+  // An objectarray item's field is relative to its item, so a like-named key
+  // of what's being configured must not stand in for an unset one.
+  const configured = (fallback) =>
+    forceField != null ? fallback : getIn(directConf, com.field, fallback);
   
   // Check if this is a planetary projection component and if TiTiler is available
   const isPlanetaryProjectionComponent = 
@@ -596,7 +601,7 @@ const getComponent = (
     disabled = disabled || ewfVal !== com.enableWhenField.value;
   }
   const isRequired = isFieldRequired(com, layer, configuration);
-  const fieldValue = value != null ? value : getIn(directConf, com.field, "");
+  const fieldValue = value != null ? value : configured("");
   const hasError = isRequired && (fieldValue === "" || fieldValue == null);
   
   switch (com.type) {
@@ -1047,7 +1052,7 @@ const getComponent = (
         </div>
       );
     case "textarray":
-      let text_array_f = getIn(directConf, com.field, []);
+      let text_array_f = configured([]);
       if (text_array_f != null && typeof text_array_f.join === "function")
         text_array_f = text_array_f.join(",");
 
@@ -1111,7 +1116,7 @@ const getComponent = (
         </div>
       );
     case "markdown":
-      let markdown_f = value || getIn(directConf, com.field, "");
+      let markdown_f = value || configured("");
       return (
         <div className="container">
           <MDEditor
@@ -1124,7 +1129,7 @@ const getComponent = (
         </div>
       );
     case "json":
-      let json_f = value || getIn(directConf, com.field, {});
+      let json_f = value || configured({});
       try {
         if (typeof json_f === "string") json_f = JSON.parse(json_f);
       } catch (err) {}
@@ -1150,7 +1155,7 @@ const getComponent = (
         </div>
       );
     case "number":
-      const numberValue = value != null ? value : getIn(directConf, com.field, "");
+      const numberValue = value != null ? value : configured("");
       const numberHasError = isRequired && (numberValue === "" || numberValue == null || isNaN(numberValue));
       inner = (
         <TextField
@@ -1208,9 +1213,7 @@ const getComponent = (
             control={
               <Checkbox
                 disabled={disabled}
-                checked={
-                  value || getIn(directConf, com.field, com.defaultChecked)
-                }
+                checked={value || configured(com.defaultChecked)}
                 onChange={(e) => {
                   updateConfiguration(
                     forceField || com.field,
@@ -1248,7 +1251,7 @@ const getComponent = (
               {`${com.name} (${
                 value != null
                   ? value
-                  : getIn(directConf, com.field, com.default || "")
+                  : configured(com.default || "")
               })`}
             </Typography>
             <Grid item xs style={{ margin: "0px 10px" }}>
@@ -1257,7 +1260,7 @@ const getComponent = (
                 value={
                   value != null
                     ? value
-                    : getIn(directConf, com.field, com.default || "")
+                    : configured(com.default || "")
                 }
                 onChange={(e) => {
                   let v = e.target.value;
@@ -1299,9 +1302,7 @@ const getComponent = (
             control={
               <Switch
                 disabled={disabled}
-                checked={
-                  value || getIn(directConf, com.field, com.defaultChecked)
-                }
+                checked={value || configured(com.defaultChecked)}
                 onChange={(e) => {
                   updateConfiguration(
                     forceField || com.field,
@@ -1367,7 +1368,7 @@ const getComponent = (
           <InputLabel>{com.name}</InputLabel>
           <Select
             disabled={disabled || isDisabled}
-            value={value || getIn(directConf, com.field, firstOptionValue)}
+            value={value || configured(firstOptionValue)}
             onChange={(e) => {
               if (!isDisabled) {
                 updateConfiguration(
@@ -1543,7 +1544,7 @@ const getComponent = (
     case "colorramp": {
       // Like a dropdown, but each option wears its own colours - a ramp is
       // hard to recognise by name alone.
-      const ramp_value = value || getIn(directConf, com.field, com.options?.[0]);
+      const ramp_value = value || configured(com.options?.[0]);
       const ramp_options = com.options?.includes(ramp_value)
         ? com.options
         : [ramp_value, ...(com.options || [])];
@@ -1588,8 +1589,7 @@ const getComponent = (
       );
     }
     case "colordropdown":
-      let dropdown_value =
-        value || getIn(directConf, com.field, com.options?.[0]);
+      let dropdown_value = value || configured(com.options?.[0]);
       inner = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>
@@ -1653,9 +1653,7 @@ const getComponent = (
           hex: com.default || "#FFFFFF",
         });
       else
-        color = getIn(directConf, com.field.split("."), {
-          hex: com.default || "#FFFFFF",
-        });
+        color = configured({ hex: com.default || "#FFFFFF" });
 
       inner = (
         <ColorButton
@@ -2032,7 +2030,7 @@ const getComponent = (
           <InputLabel>{com.name}</InputLabel>
           <Select
             disabled={disabled || isDisabled}
-            value={value || getIn(directConf, com.field, tools[0])}
+            value={value || configured(tools[0])}
             onChange={(e) => {
               if (!isDisabled) {
                 updateConfiguration(

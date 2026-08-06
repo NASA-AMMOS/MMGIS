@@ -420,17 +420,6 @@
                     "width": 4
                   },
                   {
-                    "field": "type",
-                    "name": "Values Are",
-                    "description": "'numeric' stretches a ramp or a range over the property's numbers. 'categorical' matches its values against the mappings below.",
-                    "type": "dropdown",
-                    "options": [
-                      "numeric",
-                      "categorical"
-                    ],
-                    "width": 3
-                  },
-                  {
                     "name": "Defaults",
                     "description": "How a value becomes a look. These are what a viewer starts with, and what they may change for their own session when 'Is User Settable' is on.",
                     "type": "subheading",
@@ -750,6 +739,17 @@
                       "field": "type",
                       "equals": "categorical"
                     }
+                  },
+                  {
+                    "field": "type",
+                    "name": "Values Are",
+                    "description": "'numeric' stretches a ramp or a range over the property's numbers. 'categorical' matches its values against the mappings below.",
+                    "type": "dropdown",
+                    "options": [
+                      "numeric",
+                      "categorical"
+                    ],
+                    "width": 12
                   },
                   {
                     "name": "Categorical Mappings",
