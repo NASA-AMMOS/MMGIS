@@ -3013,6 +3013,19 @@ function interfaceWithMMGIS(fromInit) {
     // Sublayer things
 
     /**
+     * Text safe to put in markup. Feature property names come from whatever
+     * GeoJSON was uploaded, so they are not ours to trust.
+     */
+    function escapeHTML(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+    }
+
+    /**
      * The properties a layer's features have, for the dynamic style's property
      * switcher: a geodataset's stored statistics name them all, and anything
      * else is asked of the features in hand.
@@ -3069,7 +3082,7 @@ function interfaceWithMMGIS(fromInit) {
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleProperty" layername="${layerName}">`,
                         properties.map((p) =>
-                            `<option value="${p}"${p === rule.property ? ' selected' : ''}>${p}</option>`
+                            `<option value="${escapeHTML(p)}"${p === rule.property ? ' selected' : ''}>${escapeHTML(p)}</option>`
                         ).join('\n'),
                     '</select>',
                 '</div>',

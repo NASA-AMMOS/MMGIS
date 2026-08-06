@@ -10,12 +10,8 @@
  * @module dynamicStyleLegend
  */
 
-import { COLOR_ATTRIBUTES, binEdges } from './dynamicStyle'
-import {
-    compileLayerDynamicStyle,
-    getDynamicStyle,
-    getLayerDynamicStyleRules,
-} from './layerDynamicStyle'
+import { COLOR_ATTRIBUTES, binEdges, compileRules } from './dynamicStyle'
+import { getDynamicStyle, getLayerDynamicStyleRules } from './layerDynamicStyle'
 
 // Swatches sampled across a continuous ramp. Enough to look smooth; the
 // LegendTool thins the labels to what fits.
@@ -110,9 +106,11 @@ export function dynamicStyleLegendEntries(layerObj) {
     let rules = getLayerDynamicStyleRules(layerObj)
     if (rules.length === 0) {
         // The layer hasn't been drawn yet (or is off): describe it from the
-        // configuration alone, which is all the domain it can have anyway.
-        compileLayerDynamicStyle(layerObj, [])
-        rules = getLayerDynamicStyleRules(layerObj)
+        // configuration alone, into a local the renderers never read.
+        rules = compileRules(getDynamicStyle(layerObj), {
+            fieldStats: layerObj._fieldStats,
+            values: {},
+        })
     }
 
     const entries = []

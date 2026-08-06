@@ -170,8 +170,13 @@ export function restyleViewFollowingLayers() {
     layersFollowingTheView().forEach(restyleLayerWhenSettled)
 }
 
-/** Geodataset layers whose statistics have been asked for, name → true. */
+/** Geodataset layers whose statistics are being or have been fetched. */
 const askedForFieldStats = {}
+
+/** Forget which layers have been asked, so a remade layer asks again. */
+export function forgetFieldStatsRequests() {
+    for (const name in askedForFieldStats) delete askedForFieldStats[name]
+}
 
 /**
  * A geodataset knows the min, max and spread of every numeric field over all
@@ -198,11 +203,19 @@ export function ensureFieldStats(layerObj) {
         { layers: geodataset },
         (data) => {
             const stats = data?.field_stats?.[geodataset]
-            if (stats == null) return
+            // Nothing stored for it: asking again on a remake is the only way
+            // it can pick up statistics written after this page was loaded.
+            if (stats == null) {
+                delete askedForFieldStats[layerObj.name]
+                return
+            }
             layerObj._fieldStats = stats
             restyleLayerDynamically(layerObj)
         },
         (err) => {
+            // A layer that failed to ask keeps colouring itself over what it
+            // holds; it may ask again when it is next made.
+            delete askedForFieldStats[layerObj.name]
             console.warn(
                 `Dynamic style: '${layerObj.name}' has no dataset-wide statistics to stretch its scale over.`,
                 err?.message
@@ -232,6 +245,7 @@ export function overrideDynamicStyle(layer, override) {
 const DynamicStyleRuntime = {
     domainFeatures,
     ensureFieldStats,
+    forgetFieldStatsRequests,
     layersFollowingTheView,
     overrideDynamicStyle,
     restyleLayerDynamically,
