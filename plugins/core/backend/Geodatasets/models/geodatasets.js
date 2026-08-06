@@ -559,7 +559,7 @@ const up = async () => {
  * geodataset with stale or missing `field_stats` still works.
  *
  * @param {string} name geodataset name
- * @param {Object} fieldStats freshly computed statistics
+ * @param {Object} fieldStats statistics of the features just written
  * @param {string|null} action "append" to merge, else replace
  */
 async function updateGeodatasetFieldStats(name, fieldStats, action) {
@@ -567,10 +567,12 @@ async function updateGeodatasetFieldStats(name, fieldStats, action) {
     let nextStats = fieldStats || {};
     if (action === "append") {
       const existing = await Geodatasets.findOne({ where: { name: name } });
-      nextStats = mergeFieldStats(
-        existing ? existing.dataValues.field_stats : null,
-        nextStats
-      );
+      const stored = existing ? existing.dataValues.field_stats : null;
+      // Absent statistics mean the features already in the table were never
+      // summarized (written before field_stats existed); the appended features
+      // alone would misreport the domain, so leave it absent until a recreate.
+      if (stored == null) return null;
+      nextStats = mergeFieldStats(stored, nextStats);
     }
     await Geodatasets.update(
       { field_stats: nextStats },

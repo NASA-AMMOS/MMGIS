@@ -3646,7 +3646,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns the combined schema across all requested layers, plus per-layer dataset-wide statistics of every numeric field ('field_stats'). Unlike 'schema', which is sampled, 'field_stats' covers every feature. It is empty for geodatasets that have not been written since statistics were introduced.",
+            "description": "Returns the combined schema across all requested layers, plus per-layer dataset-wide statistics of every numeric field ('field_stats'). Unlike 'schema', which is sampled, 'field_stats' covers every feature: it is computed when a geodataset is created or recreated and widened by each append. It is empty for geodatasets that have not been created or recreated since statistics were introduced, and appending to such a geodataset leaves it empty rather than reporting only the appended features.",
             "content": {
               "application/json": {
                 "examples": {

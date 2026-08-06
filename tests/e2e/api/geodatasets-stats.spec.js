@@ -45,25 +45,34 @@ test.describe.serial('Geodatasets statistics', () => {
       })
       .catch(() => {});
 
-    const createRes = await api.post('/api/geodatasets/recreate', {
-      data: {
-        name: layerName,
-        groupIdProp: GROUP_ID_PROP,
-        geojson: JSON.stringify({
-          type: 'FeatureCollection',
-          features: [
-            feature({ track: 'A', elev: 1, meta: { depth: 5 } }),
-            feature({ track: 'A', elev: 2, meta: { depth: 7 } }),
-            feature({ track: 'A', elev: '3' }),
-            feature({ track: 'B', elev: 10 }),
-            feature({ track: 'B', elev: 'not_a_number' }),
-            feature({ track: 'B' }),
-          ],
-        }),
-      },
-    });
-    const createData = await createRes.json().catch(() => null);
-    adminReady = !!createData && createData.status === 'success';
+    const create = () =>
+      api.post('/api/geodatasets/recreate', {
+        data: {
+          name: layerName,
+          groupIdProp: GROUP_ID_PROP,
+          geojson: JSON.stringify({
+            type: 'FeatureCollection',
+            features: [
+              feature({ track: 'A', elev: 1, meta: { depth: 5 } }),
+              feature({ track: 'A', elev: 2, meta: { depth: 7 } }),
+              feature({ track: 'A', elev: '3', when: '2024-01-15' }),
+              feature({ track: 'B', elev: 10 }),
+              feature({ track: 'B', elev: 'not_a_number' }),
+              feature({ track: 'B' }),
+            ],
+          }),
+        },
+      });
+
+    // Creating a geodataset derives its table name from MAX(id), so two suites
+    // creating one at the same moment (parallel workers) collide and one fails.
+    for (let attempt = 0; attempt < 3 && !adminReady; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 500 * attempt));
+      const createData = await create()
+        .then((res) => res.json())
+        .catch(() => null);
+      adminReady = !!createData && createData.status === 'success';
+    }
   });
 
   test.afterAll(async () => {
@@ -214,8 +223,9 @@ test.describe.serial('Geodatasets statistics', () => {
       count: 2,
       avg: 6,
     });
-    // Strings are not summarized.
+    // Text is not summarized — including text that merely starts with digits.
     expect(data.field_stats[layerName][GROUP_ID_PROP]).toBeUndefined();
+    expect(data.field_stats[layerName].when).toBeUndefined();
   });
 
   test('an append widens field_stats rather than replacing it', async () => {

@@ -17,10 +17,12 @@
 const Utils = require("../../../../../API/utils.js");
 const { jsonbAccessor } = require("./jsonb");
 
-// A value is usable as a number if it looks like one to both Postgres and JS.
-// Postgres-side guard for casting text out of JSONB, e.g.
-//   (CASE WHEN properties->>'a' ~ '<this>' THEN (properties->>'a')::FLOAT8 END)
-const SQL_NUMERIC_REGEX = "^\\s*-?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?\\s*$";
+// One number grammar for both halves of the feature: it guards the Postgres
+// cast out of JSONB, and is what JS calls numeric text. A grammar rather than a
+// character class, so "2024-01-15" and "1.2.3" are text, not numbers.
+const SQL_NUMERIC_REGEX =
+  "^\\s*[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]+)?\\s*$";
+const NUMERIC_TEXT_REGEX = new RegExp(SQL_NUMERIC_REGEX);
 
 // Statistics computed per group at query time.
 const STAT_AGGREGATES = ["min", "max", "avg"];
@@ -149,12 +151,12 @@ function accumulateProperties(stats, obj, prefix) {
       continue;
     }
     if (typeof value === "boolean") continue;
+    // Numeric text counts, but only when the whole value is a number — the same
+    // grammar the query-time SQL casts by, so both halves agree on what a
+    // numeric field is ("12abc", "2024-01-15" and "1.2.3" are all text).
+    if (typeof value === "string" && !NUMERIC_TEXT_REGEX.test(value)) continue;
     const num = typeof value === "number" ? value : parseFloat(value);
-    // Match /schema's notion of "number": parseable, and not a string with
-    // trailing junk ("12abc" is a string).
     if (!Number.isFinite(num)) continue;
-    if (typeof value === "string" && !/^\s*[-+]?[0-9.eE+-]+\s*$/.test(value))
-      continue;
 
     let stat = stats[fullKey];
     if (stat == null) {

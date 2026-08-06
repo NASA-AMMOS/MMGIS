@@ -106,12 +106,23 @@ test.describe('buildStatsSelect', () => {
         // reject anything else — it is the only thing standing between the cast
         // and a query-aborting error.
         const re = new RegExp(replacements.stats_numeric_regex);
-        ['1', '-1', '0.5', '-0.5', '.5', '1e5', '-1.5E-3', ' 42 '].forEach((v) =>
+        ['1', '-1', '+1', '0.5', '-0.5', '.5', '1e5', '-1.5E-3', ' 42 '].forEach((v) =>
             expect(re.test(v), `${v} should be numeric`).toBe(true)
         );
-        ['', 'abc', '12abc', 'NaN', '1,000', '--1', '1.2.3'].forEach((v) =>
-            expect(re.test(v), `${v} should not be numeric`).toBe(false)
-        );
+        // A number grammar, not a character class: text that merely starts with
+        // digits must not be treated as a number.
+        [
+            '',
+            'abc',
+            '12abc',
+            'NaN',
+            'Infinity',
+            '1,000',
+            '--1',
+            '1.2.3',
+            '2024-01-15',
+            '1-2',
+        ].forEach((v) => expect(re.test(v), `${v} should not be numeric`).toBe(false));
     });
 
     test('statAlias matches the emitted aliases', () => {
@@ -184,6 +195,30 @@ test.describe('collectFieldStats', () => {
         expect(stats.b).toBe(undefined);
         expect(stats.c).toBe(undefined);
         expect(stats.d).toBe(undefined);
+    });
+
+    test('date-like and version-like text is not summarized as a number', () => {
+        // parseFloat() would happily return 2024 and 1.2 here, fabricating a
+        // numeric domain for a text field the query-time SQL treats as text.
+        const stats = collectFieldStats([
+            { properties: { when: '2024-01-15', version: '1.2.3', range: '1-2' } },
+        ]);
+        expect(stats.when).toBe(undefined);
+        expect(stats.version).toBe(undefined);
+        expect(stats.range).toBe(undefined);
+    });
+
+    test('accepts the same values the query-time SQL guard accepts', () => {
+        const re = new RegExp(buildStatsSelect(['x'], null).replacements.stats_numeric_regex);
+        ['1', '-1', '+1', '.5', '1e5', ' 42 ', '2024-01-15', '1.2.3', '12abc'].forEach(
+            (value) => {
+                const summarized =
+                    collectFieldStats([{ properties: { x: value } }]).x != null;
+                expect(summarized, `${value} should agree with the SQL guard`).toBe(
+                    re.test(value)
+                );
+            }
+        );
     });
 
     test('a field that is numeric in only some features counts only those', () => {
