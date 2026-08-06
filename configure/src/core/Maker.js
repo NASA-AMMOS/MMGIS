@@ -1801,12 +1801,15 @@ const getComponent = (
       // Items whose fields are themselves paths ("domain.source") are read the
       // same way they're written.
       const itemValue = (item, field) => {
+        // A subheading and the like edit nothing, so they have no field to read.
+        if (typeof field !== "string") return undefined;
         const read = getIn(item, field.split("."), undefined);
         return read === null ? undefined : read;
       };
       const newItem = () => {
         const next = {};
         com.object.forEach((obj) => {
+          if (typeof obj.field !== "string") return;
           // A path can't be a key; it's written when the field is first edited.
           if (obj.field.indexOf(".") === -1) next[obj.field] = null;
         });
