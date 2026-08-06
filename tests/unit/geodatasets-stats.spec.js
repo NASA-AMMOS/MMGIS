@@ -182,13 +182,20 @@ test.describe('readRowStats', () => {
 });
 
 test.describe('collectFieldStats', () => {
-    test('accumulates min/max/sum/count per numeric field', () => {
+    test('accumulates min/max/sum/sumsq/count per numeric field', () => {
         const stats = collectFieldStats([
             { properties: { elev: 10, name: 'a' } },
             { properties: { elev: -2, name: 'b' } },
             { properties: { elev: 4 } },
         ]);
-        expect(stats.elev).toEqual({ type: 'number', min: -2, max: 10, sum: 12, count: 3 });
+        expect(stats.elev).toEqual({
+            type: 'number',
+            min: -2,
+            max: 10,
+            sum: 12,
+            sumsq: 120,
+            count: 3,
+        });
         expect(stats.name).toBe(undefined);
     });
 
@@ -204,7 +211,7 @@ test.describe('collectFieldStats', () => {
         const stats = collectFieldStats([
             { properties: { a: '2.5', b: '12abc', c: true, d: null } },
         ]);
-        expect(stats.a).toEqual({ type: 'number', min: 2.5, max: 2.5, sum: 2.5, count: 1 });
+        expect(stats.a).toMatchObject({ type: 'number', min: 2.5, max: 2.5, sum: 2.5, count: 1 });
         expect(stats.b).toBe(undefined);
         expect(stats.c).toBe(undefined);
         expect(stats.d).toBe(undefined);
@@ -256,17 +263,52 @@ test.describe('collectFieldStats', () => {
     test('accumulates into an existing object when given one', () => {
         const acc = collectFieldStats([{ properties: { elev: 1 } }]);
         collectFieldStats([{ properties: { elev: 3 } }], acc);
-        expect(acc.elev).toEqual({ type: 'number', min: 1, max: 3, sum: 4, count: 2 });
+        expect(acc.elev).toEqual({
+            type: 'number',
+            min: 1,
+            max: 3,
+            sum: 4,
+            sumsq: 10,
+            count: 2,
+        });
     });
 });
 
 test.describe('mergeFieldStats (the append case)', () => {
     test('widens extrema and adds sums and counts', () => {
         const merged = mergeFieldStats(
-            { elev: { type: 'number', min: 0, max: 10, sum: 10, count: 2 } },
-            { elev: { type: 'number', min: -5, max: 5, sum: 0, count: 2 } }
+            { elev: { type: 'number', min: 0, max: 10, sum: 10, sumsq: 100, count: 2 } },
+            { elev: { type: 'number', min: -5, max: 5, sum: 0, sumsq: 50, count: 2 } }
         );
-        expect(merged.elev).toEqual({ type: 'number', min: -5, max: 10, sum: 10, count: 4 });
+        expect(merged.elev).toEqual({
+            type: 'number',
+            min: -5,
+            max: 10,
+            sum: 10,
+            sumsq: 150,
+            count: 4,
+        });
+    });
+
+    test('keeps an exact standard deviation across appends', () => {
+        const chunk = (values) =>
+            collectFieldStats(values.map((v) => ({ properties: { elev: v } })));
+        const values = [2, 4, 4, 4, 5, 5, 7, 9];
+        const merged = mergeFieldStats(chunk(values.slice(0, 3)), chunk(values.slice(3)));
+        // Same population deviation as summarizing all eight at once
+        expect(withAverages(merged).elev.stddev).toBeCloseTo(2, 10);
+        expect(withAverages(chunk(values)).elev.stddev).toBeCloseTo(2, 10);
+    });
+
+    test('drops sumsq rather than understating it', () => {
+        // Statistics stored before sumsq was kept have nothing to add
+        const merged = mergeFieldStats(
+            { elev: { type: 'number', min: 0, max: 10, sum: 10, count: 2 } },
+            { elev: { type: 'number', min: 1, max: 1, sum: 1, sumsq: 1, count: 1 } }
+        );
+        expect(merged.elev.sumsq).toBe(undefined);
+        expect(merged.elev.count).toBe(3);
+        expect(withAverages(merged).elev.stddev).toBe(null);
     });
 
     test('keeps an exact average across appends', () => {
@@ -302,22 +344,51 @@ test.describe('mergeFieldStats (the append case)', () => {
 });
 
 test.describe('withAverages', () => {
-    test('derives avg without changing the stored shape', () => {
-        const stored = { elev: { type: 'number', min: 0, max: 10, sum: 20, count: 4 } };
-        expect(withAverages(stored).elev).toEqual({
+    test('derives avg and stddev without changing the stored shape', () => {
+        const stored = {
+            elev: { type: 'number', min: 0, max: 10, sum: 20, sumsq: 200, count: 4 },
+        };
+        expect(withAverages(stored, 5).elev).toEqual({
             type: 'number',
             min: 0,
             max: 10,
             sum: 20,
+            sumsq: 200,
             count: 4,
+            nullCount: 1,
             avg: 5,
+            stddev: 5,
         });
         expect(stored.elev.avg).toBe(undefined);
+        expect(stored.elev.stddev).toBe(undefined);
+    });
+
+    test('nullCount is the features the field held no number for', () => {
+        const stored = collectFieldStats([
+            { properties: { elev: 1 } },
+            { properties: { elev: null } },
+            { properties: { elev: 'unknown' } },
+        ]);
+        expect(withAverages(stored, 3).elev.nullCount).toBe(2);
+        // Without the geodataset's feature count there is nothing to subtract from
+        expect(withAverages(stored).elev.nullCount).toBe(null);
+    });
+
+    test('an all-identical field deviates by zero, never by NaN', () => {
+        const stats = collectFieldStats(
+            [0.1, 0.1, 0.1].map((v) => ({ properties: { elev: v } }))
+        );
+        expect(withAverages(stats).elev.stddev).toBe(0);
     });
 
     test('a countless field averages to null rather than NaN', () => {
-        const out = withAverages({ elev: { type: 'number', min: 0, max: 0, sum: 0, count: 0 } });
+        const out = withAverages({
+            elev: { type: 'number', min: 0, max: 0, sum: 0, sumsq: 0, count: 0 },
+        });
         expect(out.elev.avg).toBe(null);
+        expect(out.elev.stddev).toBe(null);
+        expect(withAverages({ elev: { type: 'number', min: 0, max: 0, sum: 0, count: 1 } }).elev
+            .stddev).toBe(null);
     });
 
     test('null in, null out; malformed entries are dropped', () => {

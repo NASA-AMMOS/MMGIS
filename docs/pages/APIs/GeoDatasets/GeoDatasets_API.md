@@ -212,15 +212,20 @@ Returns field names, types, and source layers for one or more geodataset layers 
                 "min": 0.1,
                 "max": 9.8,
                 "sum": 420,
+                "sumsq": 2100,
                 "count": 100,
-                "avg": 4.2
+                "nullCount": 4,
+                "avg": 4.2,
+                "stddev": 2.32
             }
         }
     }
 }
 ```
 
-`field_stats` covers **every** feature of every numeric field, unlike `schema`, which is inferred from a sample. It is computed when a geodataset is created or recreated, and widened by each append — `sum` and `count` are stored (rather than only `avg`) so an append can update it exactly without re-reading the table.
+`field_stats` covers **every** feature of every numeric field, unlike `schema`, which is inferred from a sample. It is computed when a geodataset is created or recreated, and widened by each append — `sum`, `sumsq` and `count` are stored (rather than only `avg` and `stddev`) so an append can update it exactly without re-reading the table.
+
+`count` is how many features held a number for the field and `nullCount` how many did not, whether the property was absent, null or non-numeric. `avg`, the population `stddev` and `nullCount` are derived on read; only `min`, `max`, `sum`, `sumsq` and `count` are stored.
 
 It is absent for geodatasets that have not been created or recreated since MMGIS added it. Appending to such a geodataset leaves it absent rather than reporting only the appended features; recreate the geodataset to compute it. (An append that *creates* the geodataset does compute it, since those features are all of them.) A field is only summarized where its value is a whole number, so text that merely starts with digits (`"2024-01-15"`, `"1.2.3"`) is not.
 
@@ -248,8 +253,11 @@ Lists out available geodatasets and their last updated dates
                         "min": 0.1,
                         "max": 9.8,
                         "sum": 420,
+                        "sumsq": 2100,
                         "count": 100,
-                        "avg": 4.2
+                        "nullCount": 4,
+                        "avg": 4.2,
+                        "stddev": 2.32
                     }
                 }
             },

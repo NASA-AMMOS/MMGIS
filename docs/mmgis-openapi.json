@@ -3209,8 +3209,11 @@
                                 "min": 0.1,
                                 "max": 9.8,
                                 "sum": 420,
+                                "sumsq": 2100,
                                 "count": 100,
-                                "avg": 4.2
+                                "nullCount": 4,
+                                "avg": 4.2,
+                                "stddev": 2.32
                               }
                             },
                             "occurrences": {
@@ -3646,7 +3649,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns the combined schema across all requested layers, plus per-layer dataset-wide statistics of every numeric field ('field_stats'). Unlike 'schema', which is sampled, 'field_stats' covers every feature: it is computed when a geodataset is created or recreated and widened by each append. It is empty for geodatasets that have not been created or recreated since statistics were introduced, and appending to such a geodataset leaves it empty rather than reporting only the appended features.",
+            "description": "Returns the combined schema across all requested layers, plus per-layer dataset-wide statistics of every numeric field ('field_stats'). Unlike 'schema', which is sampled, 'field_stats' covers every feature: it is computed when a geodataset is created or recreated and widened by each append ('sum', 'sumsq' and 'count' are stored so 'avg' and the population 'stddev' stay exact across appends; 'nullCount', how many features held no number for the field, is derived from the geodataset's feature count). It is empty for geodatasets that have not been created or recreated since statistics were introduced, and appending to such a geodataset leaves it empty rather than reporting only the appended features.",
             "content": {
               "application/json": {
                 "examples": {
@@ -3675,8 +3678,11 @@
                             "min": 0.1,
                             "max": 9.8,
                             "sum": 420,
+                            "sumsq": 2100,
                             "count": 100,
-                            "avg": 4.2
+                            "nullCount": 4,
+                            "avg": 4.2,
+                            "stddev": 2.32
                           }
                         }
                       }

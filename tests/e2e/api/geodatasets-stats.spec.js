@@ -206,22 +206,29 @@ test.describe.serial('Geodatasets statistics', () => {
     expect(data.status).toBe('success');
 
     // 1 + 2 + "3" + 10 — the numeric string counts, "not_a_number" does not.
-    expect(data.field_stats[layerName].elev).toEqual({
+    // Of 6 features, 2 held no number for elev.
+    expect(data.field_stats[layerName].elev).toMatchObject({
       type: 'number',
       min: 1,
       max: 10,
       sum: 16,
+      sumsq: 114,
       count: 4,
+      nullCount: 2,
       avg: 4,
     });
+    expect(data.field_stats[layerName].elev.stddev).toBeCloseTo(Math.sqrt(12.5), 10);
     // Nested properties are flattened to dotted paths.
     expect(data.field_stats[layerName]['meta.depth']).toEqual({
       type: 'number',
       min: 5,
       max: 7,
       sum: 12,
+      sumsq: 74,
       count: 2,
+      nullCount: 4,
       avg: 6,
+      stddev: 1,
     });
     // Text is not summarized — including text that merely starts with digits.
     expect(data.field_stats[layerName][GROUP_ID_PROP]).toBeUndefined();
@@ -267,12 +274,14 @@ test.describe.serial('Geodatasets statistics', () => {
     const field_stats = (await schema.json()).field_stats[layerName];
     // Extrema widen and sum/count add, so the average stays exact without
     // re-reading the table: (16 + 100) / 5.
-    expect(field_stats.elev).toEqual({
+    expect(field_stats.elev).toMatchObject({
       type: 'number',
       min: 1,
       max: 100,
       sum: 116,
+      sumsq: 10114,
       count: 5,
+      nullCount: 2,
       avg: 23.2,
     });
     // A field absent from the appended features is carried over untouched.
@@ -309,8 +318,11 @@ test.describe.serial('Geodatasets statistics', () => {
       min: 7,
       max: 9,
       sum: 16,
+      sumsq: 130,
       count: 2,
+      nullCount: 0,
       avg: 8,
+      stddev: 1,
     });
 
     await api.delete(`/api/geodatasets/remove/${newLayer}`).catch(() => {});

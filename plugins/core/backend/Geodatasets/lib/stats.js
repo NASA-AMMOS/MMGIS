@@ -133,12 +133,14 @@ function toNumberOrNull(value) {
  * /aggregations and /schema discover fields, so `field_stats` keys line up with
  * what those endpoints report.
  *
- * `sum` and `count` are stored (rather than an average) so appends can merge
- * without re-reading the table and still report an exact mean.
+ * `sum`, `sumsq` and `count` are stored (rather than an average and a deviation)
+ * so appends can merge without re-reading the table and still report both
+ * exactly.
  *
  * @param {Array} features GeoJSON features
  * @param {Object} [into] existing accumulator to add to
- * @returns {Object} { "path.to.field": { type: "number", min, max, sum, count } }
+ * @returns {Object} { "path.to.field": { type: "number", min, max, sum, sumsq,
+ *   count } }
  */
 function collectFieldStats(features, into) {
   const stats = into || {};
@@ -175,12 +177,14 @@ function accumulateProperties(stats, obj, prefix) {
         min: num,
         max: num,
         sum: 0,
+        sumsq: 0,
         count: 0,
       };
     }
     if (num < stat.min) stat.min = num;
     if (num > stat.max) stat.max = num;
     stat.sum += num;
+    stat.sumsq += num * num;
     stat.count += 1;
   }
 }
@@ -212,11 +216,22 @@ function mergeFieldStats(previous, next) {
       min: Math.min(existing.min, stat.min),
       max: Math.max(existing.max, stat.max),
       sum: existing.sum + stat.sum,
+      sumsq: addOrDrop(existing.sumsq, stat.sumsq),
       count: existing.count + stat.count,
     };
+    if (merged[key].sumsq == null) delete merged[key].sumsq;
   });
 
   return merged;
+}
+
+/**
+ * Add two optional accumulators. Statistics stored before `sumsq` was kept have
+ * no value to add, so the sum is dropped rather than silently understated.
+ */
+function addOrDrop(a, b) {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return a + b;
 }
 
 function isFieldStat(stat) {
@@ -231,20 +246,37 @@ function isFieldStat(stat) {
 }
 
 /**
- * Add the derived `avg` to stored field statistics for API responses.
- * Stored form stays sum/count so it can keep merging.
+ * Add the derived `avg`, `stddev` and `nullCount` to stored field statistics for
+ * API responses. Stored form stays sum/sumsq/count so it can keep merging.
+ * `stddev` is the population deviation, null for statistics stored before
+ * `sumsq` was kept. `nullCount` — how many features held no number for the
+ * field — needs the geodataset's feature count and is null without it.
+ *
+ * @param {Object} fieldStats stored statistics
+ * @param {number} [numFeatures] the geodataset's total feature count
  */
-function withAverages(fieldStats) {
+function withAverages(fieldStats, numFeatures) {
   if (fieldStats == null || typeof fieldStats !== "object") return null;
+  const total = Number.isFinite(numFeatures) ? numFeatures : null;
   const out = {};
   Object.keys(fieldStats).forEach((key) => {
     const stat = fieldStats[key];
     if (!isFieldStat(stat)) return;
+    const avg = stat.count > 0 ? stat.sum / stat.count : null;
     out[key] = Object.assign({}, stat, {
-      avg: stat.count > 0 ? stat.sum / stat.count : null,
+      avg: avg,
+      stddev: standardDeviation(stat, avg),
+      nullCount: total == null ? null : Math.max(0, total - stat.count),
     });
   });
   return out;
+}
+
+function standardDeviation(stat, avg) {
+  if (avg == null || !Number.isFinite(stat.sumsq)) return null;
+  // Floating point can make an all-identical field's variance a hair negative.
+  const variance = Math.max(0, stat.sumsq / stat.count - avg * avg);
+  return Math.sqrt(variance);
 }
 
 module.exports = {

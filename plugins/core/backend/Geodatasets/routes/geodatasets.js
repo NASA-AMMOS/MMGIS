@@ -1092,11 +1092,15 @@ router.get("/schema", function (req, res, next) {
 
       // schema: { fieldName: { type, layers: [{ name, displayName }] } }
       const schema = {};
-      // field_stats: { layerName: { fieldName: { type, min, max, sum, count, avg } } }
+      // field_stats: { layerName: { fieldName: { type, min, max, sum, sumsq,
+      // count, nullCount, avg, stddev } } }
       // Dataset-wide, so unlike `schema` (sampled) it covers every feature.
       const field_stats = {};
       results.forEach((result) => {
-        const stats = withAverages(result.dataValues.field_stats);
+        const stats = withAverages(
+          result.dataValues.field_stats,
+          result.dataValues.num_features
+        );
         if (stats != null && Object.keys(stats).length > 0)
           field_stats[result.dataValues.name] = stats;
       });
@@ -1323,7 +1327,7 @@ router.post("/entries", function (req, res, next) {
             end_time_field: sets[i].end_time_field,
             group_id_field: sets[i].group_id_field,
             feature_id_field: sets[i].feature_id_field,
-            field_stats: withAverages(sets[i].field_stats),
+            field_stats: withAverages(sets[i].field_stats, sets[i].num_features),
           });
         }
         // For each entry, list all occurrences in latest configuration objects
