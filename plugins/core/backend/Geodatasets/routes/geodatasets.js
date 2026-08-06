@@ -12,51 +12,16 @@ const Utils = require("../../../../../API/utils.js");
 const geodatasets = require("../models/geodatasets");
 const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
+const updateGeodatasetFieldStats = geodatasets.updateGeodatasetFieldStats;
 
-// Build a PostgreSQL JSONB accessor for a possibly nested key.
-// For a flat key like "name", returns { text: "properties->>:placeholder", replacements: { placeholder: "name" } }
-// For a dotted key like "metadata.author", returns:
-//   { text: "properties->'metadata'->>'author'", replacements: {} }
-// (nested keys are single-quoted inline since parameterized -> chains are awkward)
-function jsonbAccessor(key, placeholder) {
-  const parts = key.split(".");
-  // Cap nesting depth to prevent excessively long SQL expressions
-  if (parts.length > 10) {
-    return {
-      text: `properties->>:${placeholder}`,
-      replacements: { [placeholder]: key },
-    };
-  }
-  if (parts.length === 1) {
-    return {
-      text: `properties->>:${placeholder}`,
-      replacements: { [placeholder]: key },
-    };
-  }
-  // Validate each part: only allow alphanumeric, underscores, hyphens, spaces
-  for (const p of parts) {
-    if (!/^[\w\s\-]+$/.test(p)) {
-      return {
-        text: `properties->>:${placeholder}`,
-        replacements: { [placeholder]: key },
-      };
-    }
-  }
-  // Nested: properties->'a'->'b'->>'c'
-  const path = parts
-    .map((p, i) => {
-      const safeP = p.replace(/'/g, "''");
-      return i < parts.length - 1 ? `->'${safeP}'` : `->>'${safeP}'`;
-    })
-    .join("");
-  return { text: `properties${path}`, replacements: {} };
-}
-
-// Same as jsonbAccessor but returns the JSONB form (-> not ->>) for casting.
-// e.g., for numeric comparisons: (properties->'a'->>'b')::FLOAT
-function jsonbAccessorText(key, placeholder) {
-  return jsonbAccessor(key, placeholder);
-}
+const { jsonbAccessor, jsonbAccessorText } = require("../lib/jsonb");
+const {
+  sanitizeStatFields,
+  buildStatsSelect,
+  readRowStats,
+  collectFieldStats,
+  withAverages,
+} = require("../lib/stats");
 
 //Returns a geodataset table as a geojson
 router.get("/get/:layer", function (req, res, next) {
@@ -71,6 +36,7 @@ function get(reqtype, req, res, next, options) {
   let type = "geojson";
   let xyz = {};
   let _source = null; // Works just like ES _source
+  let stats = null; // Fields to compute per-group numeric statistics for
   let noDuplicates = false;
   let get_group_id = null;
   let get_id = null;
@@ -84,6 +50,10 @@ function get(reqtype, req, res, next, options) {
     type = req.body.type || type;
     if (req.body._source && Array.isArray(req.body._source))
       _source = req.body._source;
+
+    if (req.body.stats && Array.isArray(req.body.stats)) stats = req.body.stats;
+    else if (req.body.stats && typeof req.body.stats === "string")
+      stats = req.body.stats.split(",");
 
     if (req.body.noDuplicates === true || req.body.noDuplicates === "true")
       noDuplicates = true;
@@ -109,6 +79,11 @@ function get(reqtype, req, res, next, options) {
       _source = req.query._source.split(",");
     else if (req.query._source && Array.isArray(req.query._source))
       _source = req.query._source;
+
+    if (req.query.stats && typeof req.query.stats === "string")
+      stats = req.query.stats.split(",");
+    else if (req.query.stats && Array.isArray(req.query.stats))
+      stats = req.query.stats;
 
     if (req.query.noDuplicates === true || req.query.noDuplicates === "true")
       noDuplicates = true;
@@ -163,6 +138,9 @@ function get(reqtype, req, res, next, options) {
     if (_source.length === 0) _source = null;
   }
 
+  // Sanitized the same way as _source. Only geojson responses carry stats.
+  stats = sanitizeStatFields(stats);
+
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
     .then(async (result) => {
@@ -206,9 +184,17 @@ function get(reqtype, req, res, next, options) {
             cols.push("feature_id");
           cols = cols.join(", ");
 
-          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols}, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
-            table
-          )}`;
+          // Per-group statistics. Grouping matches noDuplicates' notion of a
+          // group (group_id when the geodataset has one, else identical geom)
+          // whether or not noDuplicates is on.
+          const statsSelect = buildStatsSelect(
+            stats,
+            result.dataValues.group_id_field != null ? "group_id" : "geom"
+          );
+
+          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols}, start_time, end_time${
+            statsSelect.text
+          } FROM ${Utils.forceAlphaNumUnder(table)}`;
 
           let hasBounds = false;
           let minx = req.query?.minx;
@@ -310,6 +296,7 @@ function get(reqtype, req, res, next, options) {
             end_time: end_time,
             get_group_id: get_group_id,
             get_id: get_id,
+            ...statsSelect.replacements,
           };
 
           if (Array.isArray(_source)) {
@@ -538,6 +525,10 @@ function get(reqtype, req, res, next, options) {
                 let properties = results[i].properties;
                 properties._ = properties._ || {};
                 properties._.idx = results[i].id;
+                if (stats != null) {
+                  const rowStats = readRowStats(results[i], stats);
+                  if (rowStats != null) properties._.stats = rowStats;
+                }
                 if (results[i].start_time != null)
                   properties._.start_time = results[i].start_time;
                 if (results[i].end_time != null)
@@ -1095,12 +1086,20 @@ router.get("/schema", function (req, res, next) {
   Geodatasets.findAll({ where: { name: { [Op.in]: cappedLayerNames } } })
     .then(async (results) => {
       if (!results || results.length === 0) {
-        res.send({ status: "success", schema: {} });
+        res.send({ status: "success", schema: {}, field_stats: {} });
         return;
       }
 
       // schema: { fieldName: { type, layers: [{ name, displayName }] } }
       const schema = {};
+      // field_stats: { layerName: { fieldName: { type, min, max, sum, count, avg } } }
+      // Dataset-wide, so unlike `schema` (sampled) it covers every feature.
+      const field_stats = {};
+      results.forEach((result) => {
+        const stats = withAverages(result.dataValues.field_stats);
+        if (stats != null && Object.keys(stats).length > 0)
+          field_stats[result.dataValues.name] = stats;
+      });
       const promises = results.map((result) => {
         const table = result.dataValues.table;
         const layerName = result.dataValues.name;
@@ -1159,7 +1158,7 @@ router.get("/schema", function (req, res, next) {
       await Promise.all(promises);
 
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.send({ status: "success", schema: schema });
+      res.send({ status: "success", schema: schema, field_stats: field_stats });
       return null;
     })
     .catch((err) => {
@@ -1324,6 +1323,7 @@ router.post("/entries", function (req, res, next) {
             end_time_field: sets[i].end_time_field,
             group_id_field: sets[i].group_id_field,
             feature_id_field: sets[i].feature_id_field,
+            field_stats: withAverages(sets[i].field_stats),
           });
         }
         // For each entry, list all occurrences in latest configuration objects
@@ -1781,7 +1781,8 @@ function recreate(req, res, next) {
                 message: "",
                 body: {},
               });
-            }
+            },
+            { name: result.name, action: req?.body?.action || null }
           );
 
           return null;
@@ -1804,7 +1805,8 @@ function populateGeodatasetTable(
   endProp,
   groupIdProp,
   featureIdProp,
-  cb
+  cb,
+  options
 ) {
   let rows = [];
 
@@ -1878,7 +1880,26 @@ function populateGeodatasetTable(
         .query(`VACUUM ANALYZE ${Utils.forceAlphaNumUnder(Table.tableName)};`, {
           replacements: {},
         })
-        .then(() => {
+        .then(async () => {
+          // Dataset-wide statistics of every numeric property. Metadata only:
+          // a failure here does not fail the write.
+          if (options && options.name) {
+            try {
+              await updateGeodatasetFieldStats(
+                options.name,
+                collectFieldStats(features),
+                options.action
+              );
+            } catch (statsErr) {
+              logger(
+                "error",
+                "Geodatasets: Failed to compute field statistics.",
+                null,
+                null,
+                statsErr
+              );
+            }
+          }
           cb(true);
           return null;
         })

@@ -5,6 +5,7 @@ const Sequelize = require("sequelize");
 const { sequelize } = require("../../../../../API/connection");
 const logger = require("../../../../../API/logger");
 const Utils = require("../../../../../API/utils.js");
+const { mergeFieldStats } = require("../lib/stats");
 
 const attributes = {
   name: {
@@ -45,6 +46,13 @@ const attributes = {
     type: Sequelize.STRING,
     unique: true,
     allowNull: false,
+  },
+  // Dataset-wide statistics per numeric property, as
+  // { "path.to.field": { type: "number", min, max, sum, count } }.
+  // Written when the geodataset is (re)created or appended to.
+  field_stats: {
+    type: Sequelize.JSON,
+    allowNull: true,
   },
 };
 
@@ -521,11 +529,70 @@ const up = async () => {
       );
       return null;
     });
+
+  // field_stats column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS field_stats JSON NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.field_stats column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
 };
+
+/**
+ * Persist dataset-wide field statistics for a geodataset.
+ * An append merges with what is stored (extrema widen, sums and counts add);
+ * anything else replaces it.
+ *
+ * Never fails the write it accompanies — statistics are metadata, and a
+ * geodataset with stale or missing `field_stats` still works.
+ *
+ * @param {string} name geodataset name
+ * @param {Object} fieldStats freshly computed statistics
+ * @param {string|null} action "append" to merge, else replace
+ */
+async function updateGeodatasetFieldStats(name, fieldStats, action) {
+  try {
+    let nextStats = fieldStats || {};
+    if (action === "append") {
+      const existing = await Geodatasets.findOne({ where: { name: name } });
+      nextStats = mergeFieldStats(
+        existing ? existing.dataValues.field_stats : null,
+        nextStats
+      );
+    }
+    await Geodatasets.update(
+      { field_stats: nextStats },
+      { where: { name: name }, silent: true }
+    );
+    return nextStats;
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to update geodataset field statistics.",
+      "geodatasets",
+      null,
+      err
+    );
+    return null;
+  }
+}
 
 // export User model for use in other files.
 module.exports = {
   Geodatasets: Geodatasets,
   makeNewGeodatasetTable: makeNewGeodatasetTable,
+  updateGeodatasetFieldStats,
   up,
 };
