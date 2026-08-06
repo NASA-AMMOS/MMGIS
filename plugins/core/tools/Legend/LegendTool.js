@@ -8,6 +8,7 @@ import {
     derivesLegend,
 } from '@basics/Layers_/legend/LayerLegend'
 import { dynamicStyleLegendEntries } from '@basics/Layers_/render/dynamicStyleLegend'
+import { RESTYLED_EVENT } from '@basics/Layers_/render/dynamicStyleRuntime'
 import { getDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
@@ -51,6 +52,11 @@ var LegendTool = {
             this.MMWebGISInterface = new interfaceWithMMWebGIS()
         })
 
+        // A dynamic style also changes without anyone asking - a pan re-measures
+        // a current-view domain, and a geodataset's statistics arrive late.
+        this._onRestyled = () => refreshLegends()
+        document.addEventListener(RESTYLED_EVENT, this._onRestyled)
+
         this.made = true
 
         let _event = new CustomEvent('madeLegendTool', {
@@ -64,6 +70,7 @@ var LegendTool = {
         this.MMWebGISInterface.separateFromMMWebGIS()
         this.targetId = null
         L_.unsubscribeOnLayerToggle('LegendTool')
+        document.removeEventListener(RESTYLED_EVENT, this._onRestyled)
         this.made = false
     },
     refreshLegends: refreshLegends,

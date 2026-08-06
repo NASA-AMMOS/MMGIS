@@ -1591,10 +1591,13 @@ function interfaceWithMMGIS(fromInit) {
                 if (
                     L_.layers.attachments[layerName] &&
                     Object.keys(L_.layers.attachments[layerName]).length > 0 &&
+                    // The dynamic style has a heading of its own that is drawn
+                    // before the layer is on, and it isn't the one being
+                    // looked for - the Composite Layers heading is.
                     !$(
                         `#LayersTool${F_.getSafeName(
                             layerName
-                        )} .sublayerHeading`
+                        )} .sublayerHeading:not(.dynamicStyleHeading)`
                     ).length
                 ) {
                     // refresh settings
@@ -3088,16 +3091,18 @@ function interfaceWithMMGIS(fromInit) {
         if (properties.indexOf(rule.property) === -1 && rule.property != null)
             properties.unshift(rule.property)
 
+        const name = escapeHTML(layerName)
+
         // prettier-ignore
         return [
             '<div class="sublayerHeading dynamicStyleRow dynamicStyleHeading">',
                 '<div>Dynamic Style</div>',
-                `<div class="dynamicStyleReset mmgisHoverBlue" layername="${layerName}" title="Style this layer the way it was configured again, undoing the changes made here.">Reset</div>`,
+                `<div class="dynamicStyleReset mmgisHoverBlue" layername="${name}" title="Style this layer the way it was configured again, undoing the changes made here.">Reset</div>`,
             '</div>',
             '<div class="sublayer dynamicStyleRow">',
                 '<div title="Whether the colour scale is stretched over the whole dataset - so a feature\'s colour means the same wherever you are - or over just what is currently in view, which re-stretches the ramp as you pan.">Domain</div>',
                 '<div style="display: flex;">',
-                    `<select class="dropdown dynamicStyleDomain" layername="${layerName}">`,
+                    `<select class="dropdown dynamicStyleDomain" layername="${name}">`,
                         `<option value="dataset"${mode === 'dataset' ? ' selected' : ''}>Whole dataset</option>`,
                         `<option value="view"${mode === 'view' ? ' selected' : ''}>Current view</option>`,
                     '</select>',
@@ -3107,7 +3112,7 @@ function interfaceWithMMGIS(fromInit) {
             '<div class="sublayer dynamicStyleRow">',
                 '<div title="The feature property the layer is coloured by. The choices are the properties this layer has rules for.">Property</div>',
                 '<div style="display: flex;">',
-                    `<select class="dropdown dynamicStyleProperty" layername="${layerName}">`,
+                    `<select class="dropdown dynamicStyleProperty" layername="${name}">`,
                         properties.map((p) =>
                             `<option value="${escapeHTML(p)}"${p === rule.property ? ' selected' : ''}>${escapeHTML(p)}</option>`
                         ).join('\n'),
@@ -3117,7 +3122,7 @@ function interfaceWithMMGIS(fromInit) {
             '<div class="sublayer dynamicStyleRow">',
                 '<div title="The style attribute the property drives. Colours take a ramp; the others take a range of numbers.">Styles</div>',
                 '<div style="display: flex;">',
-                    `<select class="dropdown dynamicStyleAttribute" layername="${layerName}">`,
+                    `<select class="dropdown dynamicStyleAttribute" layername="${name}">`,
                         STYLE_ATTRIBUTES.map((a) =>
                             `<option value="${a}"${a === (rule.attribute || DEFAULT_ATTRIBUTE) ? ' selected' : ''}>${ATTRIBUTE_LABELS[a] || a}</option>`
                         ).join('\n'),
@@ -3128,7 +3133,7 @@ function interfaceWithMMGIS(fromInit) {
             // its bins are draggable, so this part is React - mounted into
             // here by mountDynamicStyleRamp once the markup is in the page.
             rule.type === 'categorical' || !COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' :
-            `<div class="dynamicStyleRow dynamicStyleRampMount" layername="${layerName}"></div>`,
+            `<div class="dynamicStyleRow dynamicStyleRampMount" layername="${name}"></div>`,
         ].join('\n')
     }
 
@@ -3165,7 +3170,6 @@ function interfaceWithMMGIS(fromInit) {
                 stops={rule.stops}
                 onChange={(override) => {
                     overrideDynamicStyle(uuid, override)
-                    LegendTool.refreshLegends()
                     mountDynamicStyleRamp(layerName)
                 }}
             />
@@ -3352,10 +3356,9 @@ function interfaceWithMMGIS(fromInit) {
         // The dynamic style's runtime controls. Each one only changes how the
         // layer is looked at for this session, so it restyles what's drawn
         // rather than writing anything or re-fetching the data.
+        // The legend follows the restyle itself, so it isn't refreshed here.
         const restyleFrom = (el, override) => {
-            const layerName = $(el).attr('layername')
-            overrideDynamicStyle(layerName, override)
-            LegendTool.refreshLegends()
+            overrideDynamicStyle($(el).attr('layername'), override)
         }
 
         $('.dynamicStyleDomain').off('change')
@@ -3369,7 +3372,6 @@ function interfaceWithMMGIS(fromInit) {
             // Null rather than the configured values: an override that isn't
             // there is the only thing that can't drift from the config.
             overrideDynamicStyle(layerName, null)
-            LegendTool.refreshLegends()
             refreshDynamicStyleSettings(layerName)
         })
 

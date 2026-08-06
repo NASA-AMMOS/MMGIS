@@ -22,6 +22,9 @@ import {
 /** How long the map has to be still before a current-view domain re-measures. */
 const SETTLE_MS = 250
 
+/** Fired when a layer's dynamic style has been recompiled and repainted. */
+export const RESTYLED_EVENT = 'mmgis-dynamic-style-restyled'
+
 /** Layers whose restyle is waiting for the map to settle, name → timeout id. */
 const pending = {}
 
@@ -102,6 +105,11 @@ export function restyleLayerDynamically(layer) {
     }
 
     restyleGlobe(layerObj)
+    // The legend describes the resolver that just changed, and a pan or a late
+    // arrival of statistics changes it with nobody having asked.
+    document.dispatchEvent(
+        new CustomEvent(RESTYLED_EVENT, { detail: { layer: layerObj.name } })
+    )
     return true
 }
 
@@ -243,6 +251,7 @@ export function overrideDynamicStyle(layer, override) {
 }
 
 const DynamicStyleRuntime = {
+    RESTYLED_EVENT,
     domainFeatures,
     ensureFieldStats,
     forgetFieldStatsRequests,
