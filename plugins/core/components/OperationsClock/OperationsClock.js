@@ -390,7 +390,12 @@ const OperationsClock = {
     updateDateDisplay: function () {
         const dateDiv = document.querySelector('.clock-today-date')
         const todayBtn = document.querySelector('.clock-btn-today span')
+        const todayLabel = document.querySelector('.clock-today-label')
         if (!dateDiv) return
+
+        const isMobile = L_?.UserInterface_?.isMobile === true
+        const useDropdown = isMobile && true
+        const isOffsetActive = this.state.activeOffset !== 0
 
         const displayDate = this.getSelectedToday()
         const isUsingEffectiveToday = this.state.effectiveToday && !this.state.selectedToday
@@ -401,6 +406,10 @@ const OperationsClock = {
             if (todayBtn) {
                 todayBtn.textContent = this.formatDateForDisplay(displayDate)
             }
+            // User selected date in the section label for mobile mode
+            if (todayLabel) {
+                todayLabel.textContent = this.formatDateForDisplay(displayDate)
+            }
 
             dateDiv.textContent = 'Back to Today'
             dateDiv.classList.add('custom-date')
@@ -409,10 +418,25 @@ const OperationsClock = {
             dateDiv.title = this.state.effectiveToday
                 ? 'Click to return to Initial Start Time'
                 : 'Click to return to current date'
+        } else if (useDropdown && isOffsetActive) {
+            // When a past/future offset is selected (base date is still today)
+            if (todayLabel) {
+                todayLabel.textContent = 'Today'
+            }
+
+            // Button to jump back to today
+            dateDiv.textContent = 'Back to Today'
+            dateDiv.classList.add('custom-date')
+            dateDiv.style.display = 'block'
+            dateDiv.style.cursor = 'pointer'
+            dateDiv.title = 'Click to return to today'
         } else if (isUsingEffectiveToday) {
             // Using Initial Start Time as today - hide the date display
             if (todayBtn) {
                 todayBtn.textContent = this.formatDateForDisplay(displayDate)
+            }
+            if (todayLabel) {
+                todayLabel.textContent = this.formatDateForDisplay(displayDate)
             }
 
             // Hide the date display element when using effective today
@@ -422,6 +446,9 @@ const OperationsClock = {
             // Normal state: using actual current date
             if (todayBtn) {
                 todayBtn.textContent = 'today'
+            }
+            if (todayLabel) {
+                todayLabel.textContent = 'Today'
             }
 
             dateDiv.textContent = this.formatDateForDisplay(displayDate)
@@ -581,7 +608,11 @@ const OperationsClock = {
         const pastUnitLabel = this.config.pastUnit || 'day'
         const forecastUnitLabel = this.config.futureUnit || 'day'
 
+        // Placeholder shown on the inactive dropdown
+        const placeholderOption = '<option value="none" hidden>—</option>'
+
         // Past options (0 to -N)
+        pastOptions.push(placeholderOption)
         pastOptions.push('<option value="0">Today</option>')
         for (let i = 1; i <= this.config.pastInterval; i++) {
             const label = i === 1 ? `1 ${pastUnitLabel} ago` : `${i} days ago`
@@ -589,6 +620,7 @@ const OperationsClock = {
         }
 
         // Future options (0 to +N)
+        futureOptions.push(placeholderOption)
         futureOptions.push('<option value="0">Today</option>')
         for (let i = 1; i <= this.config.futureInterval; i++) {
             const label =
@@ -648,9 +680,14 @@ const OperationsClock = {
         // Add "back to today" click handler
         const dateDisplay = document.querySelector('.clock-today-date')
         if (dateDisplay) {
-            dateDisplay.addEventListener('click', () => {
-                // Only reset if custom date is selected
-                if (this.state.selectedToday) {
+            dateDisplay.addEventListener('click', (e) => {
+                // Reset when away from today: either a custom date is picked or a
+                // past/future offset is active (mobile shows "Back to Today" for both)
+                if (this.state.selectedToday || this.state.activeOffset !== 0) {
+                    // In mobile the date sits inside .clock-today-section; stop the
+                    // click from bubbling to the section handler, which would
+                    // reopen the date picker right after resetting
+                    e.stopPropagation()
                     this.resetToToday()
                 }
             })
@@ -772,12 +809,18 @@ const OperationsClock = {
             const pastSelect = clockDiv.querySelector('.clock-select-past')
             const futureSelect = clockDiv.querySelector('.clock-select-future')
 
-            if (offset <= 0 && pastSelect) {
-                pastSelect.value = offset
-                if (futureSelect) futureSelect.value = 0
-            } else if (offset > 0 && futureSelect) {
-                futureSelect.value = offset
-                if (pastSelect) pastSelect.value = 0
+            // Keep the two dropdowns in sync: the active direction shows the
+            // offset, the opposite direction shows a neutral placeholder (not
+            // "Today"). Both read "Today" only when the offset is 0
+            if (offset === 0) {
+                if (pastSelect) pastSelect.value = '0'
+                if (futureSelect) futureSelect.value = '0'
+            } else if (offset < 0) {
+                if (pastSelect) pastSelect.value = offset
+                if (futureSelect) futureSelect.value = 'none'
+            } else {
+                if (futureSelect) futureSelect.value = offset
+                if (pastSelect) pastSelect.value = 'none'
             }
         } else {
             // Remove active from all buttons
@@ -865,8 +908,12 @@ const OperationsClock = {
      * Create and initialize date picker for TODAY button
      */
     createDatePicker: function () {
-        const todayBtn = document.querySelector('.clock-btn-today')
-        if (!todayBtn) return
+        const isMobile = L_?.UserInterface_?.isMobile === true
+        const useDropdown = isMobile && true
+        const anchor = useDropdown
+            ? document.querySelector('.clock-today-section')
+            : document.querySelector('.clock-btn-today')
+        if (!anchor) return
 
         // Create hidden input for TempusDominus
         // Note: Input must be clickable and properly sized for TempusDominus to work
@@ -883,8 +930,8 @@ const OperationsClock = {
         input.style.cursor = 'pointer'
         input.style.border = 'none'
         input.style.background = 'transparent'
-        todayBtn.style.position = 'relative' // Ensure button is positioned for absolute child
-        todayBtn.appendChild(input)
+        anchor.style.position = 'relative' // Ensure anchor is positioned for absolute child
+        anchor.appendChild(input)
 
         const options = {
             display: {
@@ -934,6 +981,9 @@ const OperationsClock = {
                 !widget.classList.contains('operations-clock-picker')
             ) {
                 widget.classList.add('operations-clock-picker')
+                if (useDropdown) {
+                    widget.classList.add('operations-clock-picker-mobile')
+                }
             }
 
             // If using effective today (Initial Start Time), open calendar to that date
@@ -997,14 +1047,12 @@ const OperationsClock = {
             this.state.datePickerInstance.viewDate = new DateTime(resetDate)
         }
 
+        // Return to today's single-day range, clearing any past/future offset
+        this.setDayOffset(0)
+
         // Update UI
         this.updateDateDisplay()
         this.updateTooltips()
-
-        // Refresh the time range if currently viewing today
-        if (this.state.activeOffset === 0) {
-            this.setDayOffset(0)
-        }
     },
 
 

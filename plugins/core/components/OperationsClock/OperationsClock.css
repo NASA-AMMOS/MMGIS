@@ -215,6 +215,11 @@
     border-color: var(--color-a1);
 }
 
+.operationsClockComponent .clock-select option {
+    background: var(--color-k);
+    color: var(--color-a6);
+}
+
 .operationsClockComponent .clock-today-section {
     padding: 8px;
     background: var(--color-a);
@@ -225,6 +230,29 @@
 
 .operationsClockComponent .clock-today-section:hover {
     background: var(--color-a1);
+}
+
+.operationsClockComponent .clock-mobile-group .clock-today-section > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.operationsClockComponent .clock-mobile-group .clock-today-date.custom-date {
+    position: relative;
+    z-index: 2;
+    pointer-events: auto;
+}
+
+.operationsClockComponent .clock-mobile-group .clock-today-date {
+    position: static;
+    bottom: auto;
+    width: auto;
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+    text-align: left;
+    font-size: 13px;
 }
 
 .operationsClockComponent .clock-icon-large {
@@ -266,4 +294,8 @@
 /* Custom positioning for OperationsClock date picker */
 .tempus-dominus-widget.operations-clock-picker {
     margin-left: -100px !important;
+}
+
+.tempus-dominus-widget.operations-clock-picker.operations-clock-picker-mobile {
+    margin-left: -25px !important;
 }
