@@ -161,6 +161,31 @@ test.describe.serial('Geodatasets statistics', () => {
     expect(Object.keys(properties).sort()).toEqual(['_', GROUP_ID_PROP]);
   });
 
+  test('asking for one feature still reports its whole group', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    const all = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=elev`
+    );
+    const first = (await all.json()).features.find(
+      (f) => f.properties[GROUP_ID_PROP] === 'A'
+    );
+
+    const response = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=elev&id=${first.properties._.idx}`
+    );
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+
+    // The single row asked for; the statistics behind it are track A's three.
+    expect(data.features).toHaveLength(1);
+    expect(data.features[0].properties._.stats.elev).toEqual({
+      min: 1,
+      max: 3,
+      avg: 2,
+    });
+  });
+
   test('an unknown field and hostile input are answered, not errored', async () => {
     test.skip(!adminReady, 'SKIP: admin access unavailable');
 
