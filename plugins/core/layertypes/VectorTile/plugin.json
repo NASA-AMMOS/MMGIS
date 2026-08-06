@@ -662,8 +662,8 @@
                   },
                   {
                     "field": "styleMatching",
-                    "name": "Style Matching",
-                    "description": "If true, the feature will use this legend entry for its style. If false, the default style will be applied to the feature.",
+                    "name": "Style Matching (deprecated)",
+                    "description": "Deprecated and no longer applied: legend entries describe the legend, they don't style features.",
                     "type": "checkbox",
                     "width": 2,
                     "defaultChecked": false

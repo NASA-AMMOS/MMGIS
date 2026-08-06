@@ -59,6 +59,7 @@ import { data as colormapData } from "../external/js-colormaps.js";
 
 import { calls } from "./calls";
 import { parseTileMatrixSetCRS } from "./crsUtils";
+import { legendToDynamicStyle } from "./legendToDynamicStyle";
 import Autocomplete from "@mui/material/Autocomplete";
 import Chip from "@mui/material/Chip";
 
@@ -644,7 +645,27 @@ const getComponent = (
           disabled={disabled}
           onClick={() => {
             if (isDisabled) return;
-            if (com.action === "tile-populate-from-x") {
+            if (com.action === "legend-to-dynamic-style") {
+              const dynamicStyle = legendToDynamicStyle(
+                getIn(layer, ["variables", "legend"], [])
+              );
+              if (dynamicStyle == null) {
+                dispatch(
+                  setSnackBarText({
+                    text: "No legend entries have 'Style Matching' on - there is nothing to convert.",
+                    severity: "warning",
+                  })
+                );
+                return;
+              }
+              updateConfiguration("variables.dynamicStyle", dynamicStyle, layer);
+              dispatch(
+                setSnackBarText({
+                  text: `Converted ${dynamicStyle.rules.length} rule(s) into the Style tab's Dynamic Style. The legend entries now only describe the legend.`,
+                  severity: "success",
+                })
+              );
+            } else if (com.action === "tile-populate-from-x") {
               tilePopulateFromX(
                 layer.type,
                 layer.url,
@@ -1307,18 +1328,35 @@ const getComponent = (
         searchOptions = com.options || [];
       }
 
-      const currentValue = value || getIn(directConf, com.field, com.options?.[0] || "");
+      // An empty ordinary searchdropdown shows its first option; an empty
+      // freeSolo one shows nothing, since it has no answer yet.
+      const currentValue =
+        value ||
+        getIn(
+          directConf,
+          com.field,
+          (com.freeSolo === true ? "" : com.options?.[0]) || ""
+        );
 
+      // `freeSolo` lets a field suggest what it knows without refusing what it
+      // doesn't — a property list can only offer top-level names, but a nested
+      // one ("meta.reading.value") is just as valid.
       inner = (
         <Autocomplete
           className={c.autocomplete}
           disabled={isDisabled}
+          freeSolo={com.freeSolo === true}
           options={searchOptions}
           value={currentValue}
           onChange={(event, newValue) => {
             if (!isDisabled && newValue !== null) {
               updateConfiguration(forceField || com.field, newValue, layer);
             }
+          }}
+          onInputChange={(event, newInput, reason) => {
+            if (com.freeSolo !== true || isDisabled) return;
+            if (reason === "reset") return;
+            updateConfiguration(forceField || com.field, newInput, layer);
           }}
           renderInput={(params) => (
             <TextField
@@ -1339,7 +1377,7 @@ const getComponent = (
               option.toLowerCase().includes(inputValue.toLowerCase())
             );
           }}
-          noOptionsText="No matching tilematrixsets"
+          noOptionsText={com.noOptionsText || "No matching tilematrixsets"}
           clearOnBlur={false}
           selectOnFocus
           handleHomeEndKeys
@@ -1572,12 +1610,31 @@ const getComponent = (
     }
     case "objectarray":
       const section = [];
+      // An objectarray nested inside another one is reached by the path its
+      // parent handed down, not by the field it declares (which is relative to
+      // its item), so the outer path wins when there is one.
+      const arrayField = forceField || com.field;
       let items;
-      if (tool) items = getIn(tool, com.field.split("."), []);
-      else if (component) items = getIn(component, com.field.split("."), []);
-      else if (layer) items = getIn(layer, com.field.split("."), []);
-      else items = getIn(configuration, com.field.split("."), []);
+      if (tool) items = getIn(tool, arrayField.split("."), []);
+      else if (component) items = getIn(component, arrayField.split("."), []);
+      else if (layer) items = getIn(layer, arrayField.split("."), []);
+      else items = getIn(configuration, arrayField.split("."), []);
       if (typeof items.push !== "function") items = [];
+
+      // Items whose fields are themselves paths ("domain.source") are read the
+      // same way they're written.
+      const itemValue = (item, field) => {
+        const read = getIn(item, field.split("."), undefined);
+        return read === null ? undefined : read;
+      };
+      const newItem = () => {
+        const next = {};
+        com.object.forEach((obj) => {
+          // A path can't be a key; it's written when the field is first edited.
+          if (obj.field.indexOf(".") === -1) next[obj.field] = null;
+        });
+        return next;
+      };
 
       items.forEach((item, idx) => {
         section.push(
@@ -1613,8 +1670,8 @@ const getComponent = (
                           updateConfiguration,
                           c,
                           inlineHelp,
-                          item[icom.field],
-                          `${com.field}.${idx}.${icom.field}`
+                          itemValue(item, icom.field),
+                          `${arrayField}.${idx}.${icom.field}`
                         )
                       : getComponent(
                           icom,
@@ -1625,8 +1682,8 @@ const getComponent = (
                           updateConfiguration,
                           c,
                           inlineHelp,
-                          item[icom.field],
-                          `${com.field}.${idx}.${icom.field}`
+                          itemValue(item, icom.field),
+                          `${arrayField}.${idx}.${icom.field}`
                         )}
                   </Grid>
                 );
@@ -1640,39 +1697,39 @@ const getComponent = (
                       tool.name,
                       configuration
                     );
-                    let next = getIn(t, com.field.split("."), []);
+                    let next = getIn(t, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
 
                     next.splice(idx, 1);
 
-                    updateConfiguration(com.field, next, configuration);
+                    updateConfiguration(arrayField, next, configuration);
                   } else if (component) {
                     const comp = getComponentFromConfiguration(component.name, configuration);
-                    let next = getIn(comp, com.field.split("."), []);
+                    let next = getIn(comp, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
 
                     next.splice(idx, 1);
 
-                    updateConfiguration(com.field, next);
+                    updateConfiguration(arrayField, next);
                   } else if (layer) {
                     const l = getLayerByUUID(configuration.layers, layer.uuid);
-                    let next = getIn(l, com.field.split("."), []);
+                    let next = getIn(l, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
 
                     next.splice(idx, 1);
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   } else {
-                    let next = getIn(configuration, com.field.split("."), []);
+                    let next = getIn(configuration, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
 
                     next.splice(idx, 1);
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   }
                 }}
               >
@@ -1698,51 +1755,35 @@ const getComponent = (
                       tool.name,
                       configuration
                     );
-                    let next = getIn(t, com.field.split("."), []);
+                    let next = getIn(t, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+                    next.push(newItem());
 
-                    updateConfiguration(com.field, next, configuration);
+                    updateConfiguration(arrayField, next, configuration);
                   } else if (component) {
                     const comp = getComponentFromConfiguration(component.name, configuration);
-                    let next = getIn(comp, com.field.split("."), []);
+                    let next = getIn(comp, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+                    next.push(newItem());
 
-                    updateConfiguration(com.field, next);
+                    updateConfiguration(arrayField, next);
                   } else if (layer) {
                     const l = getLayerByUUID(configuration.layers, layer.uuid);
-                    let next = getIn(l, com.field.split("."), []);
+                    let next = getIn(l, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+                    next.push(newItem());
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   } else {
-                    let next = getIn(configuration, com.field.split("."), []);
+                    let next = getIn(configuration, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+                    next.push(newItem());
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   }
                 }}
               >

@@ -378,6 +378,231 @@
             ]
           },
           {
+            "subname": "Dynamic Style",
+            "subdescription": "Styles each feature from one of its properties - colour by depth, widen by confidence - instead of giving every feature the same look. Rules are applied over the styles above, and a feature's own 'style' property still wins over both. The Legend Tool displays whatever scale these rules describe; it does not assign anything.",
+            "components": [
+              {
+                "field": "variables.dynamicStyle.enabled",
+                "name": "Enable Dynamic Style",
+                "description": "Turns the rules below on. Off, the layer is styled by the fields above alone.",
+                "type": "checkbox",
+                "width": 12,
+                "defaultChecked": false
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "variables.dynamicStyle.rules",
+                "name": "Dynamic Style Rules",
+                "description": "Each rule maps one property to one style attribute. A rule missing what it needs is ignored rather than breaking the layer.",
+                "type": "objectarray",
+                "width": 12,
+                "object": [
+                  {
+                    "field": "property",
+                    "name": "Property",
+                    "description": "The feature property whose value decides the style, e.g. 'depth' or 'meta.reading.value'. The listed properties are the layer's own; a nested path can be typed.",
+                    "type": "searchdropdown",
+                    "optionsFrom": "layerProperties",
+                    "freeSolo": true,
+                    "options": [],
+                    "noOptionsText": "No properties found - type one",
+                    "width": 3
+                  },
+                  {
+                    "field": "attribute",
+                    "name": "Styles",
+                    "description": "The style attribute this rule sets. Each rule sets one, so colouring by depth and widening by confidence are two rules.",
+                    "type": "dropdown",
+                    "options": [
+                      "fillColor",
+                      "color",
+                      "fillOpacity",
+                      "opacity",
+                      "weight",
+                      "radius"
+                    ],
+                    "width": 2
+                  },
+                  {
+                    "field": "type",
+                    "name": "Values Are",
+                    "description": "'numeric' stretches a ramp or a range over the property's numbers. 'categorical' matches its values against the mappings below.",
+                    "type": "dropdown",
+                    "options": [
+                      "numeric",
+                      "categorical"
+                    ],
+                    "width": 2
+                  },
+                  {
+                    "field": "ramp",
+                    "name": "Color Ramp",
+                    "description": "The colormap a numeric rule colours with, for the 'fillColor' and 'color' attributes. Any matplotlib colormap name works. Defaults to viridis.",
+                    "type": "searchdropdown",
+                    "options": [
+                      "viridis",
+                      "plasma",
+                      "inferno",
+                      "magma",
+                      "cividis",
+                      "turbo",
+                      "jet",
+                      "rainbow",
+                      "coolwarm",
+                      "Spectral",
+                      "RdYlBu",
+                      "RdYlGn",
+                      "Blues",
+                      "Greens",
+                      "Reds",
+                      "Greys",
+                      "YlOrRd",
+                      "BrBG",
+                      "terrain",
+                      "gist_earth",
+                      "Set1",
+                      "tab10",
+                      "tab20",
+                      "Paired"
+                    ],
+                    "freeSolo": true,
+                    "width": 2
+                  },
+                  {
+                    "field": "reverse",
+                    "name": "Reverse Ramp",
+                    "description": "Runs the color ramp from high to low.",
+                    "type": "checkbox",
+                    "width": 1,
+                    "defaultChecked": false
+                  },
+                  {
+                    "field": "discrete",
+                    "name": "Discrete",
+                    "description": "Divides the domain into flat bins instead of a smooth gradient.",
+                    "type": "checkbox",
+                    "width": 1,
+                    "defaultChecked": false
+                  },
+                  {
+                    "field": "bins",
+                    "name": "Bins",
+                    "description": "How many bins a discrete rule divides its domain into. Defaults to 5.",
+                    "type": "number",
+                    "min": 1,
+                    "step": 1,
+                    "width": 1
+                  },
+                  {
+                    "field": "domain.source",
+                    "name": "Domain",
+                    "description": "Where the low and high ends of the scale come from. 'auto' uses a geodataset's dataset-wide statistics when it has them and the loaded features otherwise. 'fieldStats' is the whole dataset, 'loaded' only what has been fetched, 'stddev' is the average plus or minus a few standard deviations (so one wild outlier doesn't flatten the ramp), and 'literal' is the Domain Min and Max below.",
+                    "type": "dropdown",
+                    "options": [
+                      "auto",
+                      "fieldStats",
+                      "loaded",
+                      "stddev",
+                      "literal"
+                    ],
+                    "width": 2
+                  },
+                  {
+                    "field": "domain.min",
+                    "name": "Domain Min",
+                    "description": "The low end of the scale. Set either end to pin it and let the other be discovered.",
+                    "type": "number",
+                    "width": 2
+                  },
+                  {
+                    "field": "domain.max",
+                    "name": "Domain Max",
+                    "description": "The high end of the scale.",
+                    "type": "number",
+                    "width": 2
+                  },
+                  {
+                    "field": "domain.sigma",
+                    "name": "Sigma",
+                    "description": "How many standard deviations a 'stddev' domain spans either side of the average. Defaults to 2.",
+                    "type": "number",
+                    "min": 0,
+                    "step": 0.5,
+                    "width": 2
+                  },
+                  {
+                    "field": "range.0",
+                    "name": "Range Low",
+                    "description": "For the numeric attributes (fillOpacity, opacity, weight, radius): the value the low end of the domain maps to.",
+                    "type": "number",
+                    "width": 2
+                  },
+                  {
+                    "field": "range.1",
+                    "name": "Range High",
+                    "description": "For the numeric attributes: the value the high end of the domain maps to.",
+                    "type": "number",
+                    "width": 2
+                  },
+                  {
+                    "field": "nullValue",
+                    "name": "No Data Value",
+                    "description": "The style value for a feature whose property is missing or isn't a number. Left empty, such a feature keeps the layer's ordinary style.",
+                    "type": "text",
+                    "width": 2
+                  },
+                  {
+                    "field": "fallbackValue",
+                    "name": "Unmatched Value",
+                    "description": "The style value for a categorical feature whose value matches no mapping. Left empty, it keeps the layer's ordinary style.",
+                    "type": "text",
+                    "width": 2
+                  },
+                  {
+                    "field": "mappings",
+                    "name": "Categorical Mappings",
+                    "description": "For a categorical rule: what each value of the property looks like.",
+                    "type": "objectarray",
+                    "width": 12,
+                    "object": [
+                      {
+                        "field": "value",
+                        "name": "Property Value",
+                        "description": "The value to match, compared as text.",
+                        "type": "text",
+                        "width": 3
+                      },
+                      {
+                        "field": "label",
+                        "name": "Label",
+                        "description": "How the legend labels this value. Defaults to the value itself.",
+                        "type": "text",
+                        "width": 3
+                      },
+                      {
+                        "field": "color",
+                        "name": "Color",
+                        "description": "The colour for this value, when the rule styles a colour attribute.",
+                        "type": "colorpicker",
+                        "width": 3
+                      },
+                      {
+                        "field": "to",
+                        "name": "Number",
+                        "description": "The value for this mapping, when the rule styles a numeric attribute.",
+                        "type": "number",
+                        "width": 3
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "subname": "Marker Icons",
             "subdescription": "Uses an icon image instead of an svg for all of the layer's point markers. If you're using this as a bearing marker, make sure the base icon is pointing north.",
             "components": [
@@ -615,9 +840,20 @@
           {
             "components": [
               {
+                "name": "Convert to Dynamic Style",
+                "description": "Legend entries no longer style features. This turns any entry with 'Style Matching' on into the equivalent Dynamic Style rules in the Style tab, where styling now lives - and where it also reaches the globe, and can drive weight and opacity. The entries themselves are left alone; they still draw the legend.",
+                "type": "button",
+                "action": "legend-to-dynamic-style",
+                "width": 12
+              }
+            ]
+          },
+          {
+            "components": [
+              {
                 "field": "variables.legend",
                 "name": "Legend",
-                "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on.",
+                "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on. A layer with a Dynamic Style also has that style's scale drawn, after these entries.",
                 "type": "objectarray",
                 "width": 12,
                 "object": [
@@ -687,8 +923,8 @@
                   },
                   {
                     "field": "styleMatching",
-                    "name": "Style Matching",
-                    "description": "If true, the feature will use this legend entry for its style. If false, the default style will be applied to the feature.",
+                    "name": "Style Matching (deprecated)",
+                    "description": "Deprecated and no longer applied: legend entries describe the legend, they don't style features. Use Dynamic Style in the Style tab instead - the 'Convert to Dynamic Style' button above migrates these entries for you.",
                     "type": "checkbox",
                     "width": 2,
                     "defaultChecked": false

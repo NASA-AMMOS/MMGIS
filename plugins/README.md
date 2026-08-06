@@ -845,6 +845,7 @@ path it names.
 | `default` | the value shown before the mission has one. It is a **form** default, not a runtime one: nothing is written until an admin touches the field, so the plugin still receives a partial (or absent) config and defaults its own values — `const { hz = 440 } = ctx.config \|\| {}`. `checkbox`/`switch` read `defaultChecked` instead |
 | `options` | required by the dropdown types; an array, or a string Maker parses |
 | `optionsFrom` | `dropdown`/`searchdropdown` only: the name of a provider Maker asks for the options instead (below), for a list a manifest can't know |
+| `freeSolo` | `searchdropdown` only: the options are suggestions rather than the only answers, so a value none of them covers can still be typed — a `layerProperties` list, for one, can only offer top-level names while `meta.reading.value` is just as valid |
 | `disableSwitch` | a config path to a boolean: the control is greyed out until that field is on — how a settings block hangs off its own `enabled` switch |
 | `enableWhenField` | an **object**, `{ "field": "…", "value": "…" }` (plus an optional `default` for when the field is unset): the control is greyed out until that field equals that value |
 | `object` | `objectarray` only: the components one item is made of (below) |
@@ -896,6 +897,11 @@ The plugin then reads `ctx.config.rings` as
 `[{ radius: 500, color: '#f00' }, …]`. Because item fields are relative, they are the
 only `field`s exempt from the "must sit inside `configPath`" rule.
 
+An item field may itself be a path (`"field": "domain.min"`, `"field": "range.0"`),
+which nests inside the item — a numeric last step makes an array. An item component
+may also be another `objectarray`, for a list of lists (a styling rule's
+value→colour mappings, say).
+
 | `type` | control |
 |---|---|
 | `text` | single-line text, trimmed on blur |
@@ -905,7 +911,7 @@ only `field`s exempt from the "must sit inside `configPath`" rule.
 | `checkbox`, `switch` | boolean |
 | `slider` | bounded number with `min`/`max`/`step` |
 | `dropdown` | select over `options` |
-| `searchdropdown` | the same with a filter box, for long lists |
+| `searchdropdown` | the same with a filter box, for long lists; `freeSolo` also lets a value be typed |
 | `colordropdown` | select over `options` with a colour swatch per entry |
 | `colorpicker` | full colour picker |
 | `textarray` | comma-separated text stored as an array |

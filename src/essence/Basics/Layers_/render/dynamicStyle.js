@@ -32,6 +32,23 @@ export const NUMERIC_ATTRIBUTES = ['fillOpacity', 'opacity', 'weight', 'radius']
 /** Every attribute a rule may drive. */
 export const STYLE_ATTRIBUTES = [...COLOR_ATTRIBUTES, ...NUMERIC_ATTRIBUTES]
 
+/** What a rule drives, and with what, when it doesn't say. */
+export const DEFAULT_ATTRIBUTE = 'fillColor'
+export const DEFAULT_RAMP = 'viridis'
+
+/**
+ * The attribute a rule drives. A rule that names none colours the fill, which
+ * is what "style by this property" almost always means and what the
+ * configuration form offers first.
+ *
+ * @param {object} rule
+ * @returns {string}
+ */
+export function attributeOf(rule) {
+    const attribute = rule == null ? null : rule.attribute
+    return attribute == null || attribute === '' ? DEFAULT_ATTRIBUTE : attribute
+}
+
 /** How many points a named colormap is sampled at to become colour stops. */
 const RAMP_SAMPLES = 16
 
@@ -262,7 +279,7 @@ export function binEdges(domain, bins) {
 export function isUsableRule(rule) {
     if (rule == null || typeof rule !== 'object') return false
     if (typeof rule.property !== 'string' || rule.property === '') return false
-    if (!STYLE_ATTRIBUTES.includes(rule.attribute)) return false
+    if (!STYLE_ATTRIBUTES.includes(attributeOf(rule))) return false
     if (rule.type === 'categorical') return Array.isArray(rule.mappings)
     return true
 }
@@ -276,7 +293,7 @@ function mappedValue(mapping, isColor) {
  * anything (an unusable rule, or a numeric rule with no resolvable domain).
  */
 function compileRule(rule, context) {
-    const isColor = COLOR_ATTRIBUTES.includes(rule.attribute)
+    const isColor = COLOR_ATTRIBUTES.includes(attributeOf(rule))
     const fallback = isColor ? rule.fallbackValue : asNumber(rule.fallbackValue)
     const nullValue = isColor ? rule.nullValue : asNumber(rule.nullValue)
 
@@ -303,7 +320,7 @@ function compileRule(rule, context) {
         : 0
 
     if (isColor) {
-        const stops = rampStops(rule.ramp, rule.reverse)
+        const stops = rampStops(rule.ramp || DEFAULT_RAMP, rule.reverse)
         if (stops.length === 0) return null
         return (raw) => {
             const num = asNumber(raw)
@@ -349,7 +366,7 @@ export function compileRules(dynamicStyle, context) {
         if (resolve == null) continue
         compiled.push({
             rule,
-            attribute: rule.attribute,
+            attribute: attributeOf(rule),
             property: rule.property,
             domain:
                 rule.type === 'categorical'
@@ -416,6 +433,7 @@ const DynamicStyle = {
     NUMERIC_ATTRIBUTES,
     STYLE_ATTRIBUTES,
     asNumber,
+    attributeOf,
     binEdges,
     collectValues,
     compileDynamicStyle,
