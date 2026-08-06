@@ -1,236 +1,260 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, request as apiRequest } from '@playwright/test';
 
 /**
- * E2E tests for geodataset statistics:
- *   - GET|POST /api/geodatasets/get  `stats` — per-group numeric statistics
- *   - GET      /api/geodatasets/schema `field_stats` — dataset-wide statistics
+ * E2E tests for geodataset statistics.
  *
- * Requires a geodataset with at least one numeric field in the test database.
- * Tests skip themselves when none is available.
+ * Backend routes: plugins/core/backend/Geodatasets/routes/geodatasets.js
+ *   GET|POST /api/geodatasets/get   ?stats=f1,f2   — per-group min/max/avg
+ *   GET      /api/geodatasets/schema               — dataset-wide field_stats
+ *
+ * A purpose-built geodataset is created with known values so the arithmetic can
+ * be asserted exactly, including the awkward cases: a numeric string, a
+ * non-numeric string, a missing value and a nested property.
+ *
+ *   track A: elev 1, 2, "3"              meta.depth 5, 7
+ *   track B: elev 10, "not_a_number", -  meta.depth -
+ *
+ * Creating / appending / removing a geodataset requires an admin session
+ * (ensureAdmin middleware). global-setup creates `test_admin` when AUTH=local;
+ * when admin access is unavailable (e.g. AUTH=off) the suite skips gracefully.
  */
 
-/** Safely parse JSON; returns null when the response is HTML (e.g. login page). */
-async function safeJson(response) {
-  const ct = response.headers()['content-type'] || '';
-  if (ct.includes('text/html')) return null;
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
-test.describe('Geodatasets statistics', () => {
+test.describe.serial('Geodatasets statistics', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
+  const layerName = `test_stats_${Date.now()}`;
+  const GROUP_ID_PROP = 'track';
 
-  let geodatasetName;
-  let numericField;
+  /** Shared authenticated request context (cookies persist across tests). */
+  let api;
+  /** True only when the geodataset was successfully created (admin available). */
+  let adminReady = false;
 
-  test.beforeAll(async ({ request }) => {
-    const entriesRes = await request.post(`${baseURL}/api/geodatasets/entries`, {
-      data: {},
+  const feature = (properties) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [-122.42, 37.78] },
+    properties: properties,
+  });
+
+  test.beforeAll(async () => {
+    api = await apiRequest.newContext({ baseURL });
+
+    // Admin login — succeeds under AUTH=local (test_admin created by global-setup).
+    await api
+      .post('/api/users/login', {
+        data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      })
+      .catch(() => {});
+
+    const createRes = await api.post('/api/geodatasets/recreate', {
+      data: {
+        name: layerName,
+        groupIdProp: GROUP_ID_PROP,
+        geojson: JSON.stringify({
+          type: 'FeatureCollection',
+          features: [
+            feature({ track: 'A', elev: 1, meta: { depth: 5 } }),
+            feature({ track: 'A', elev: 2, meta: { depth: 7 } }),
+            feature({ track: 'A', elev: '3' }),
+            feature({ track: 'B', elev: 10 }),
+            feature({ track: 'B', elev: 'not_a_number' }),
+            feature({ track: 'B' }),
+          ],
+        }),
+      },
     });
-    const entries = await safeJson(entriesRes);
-    const list = entries?.body?.entries;
-    if (!Array.isArray(list) || list.length === 0) return;
-
-    // Find the first geodataset that has a numeric field to summarize
-    for (const entry of list) {
-      const schemaRes = await request.get(
-        `${baseURL}/api/geodatasets/schema?layers=${encodeURIComponent(entry.name)}`
-      );
-      const schema = await safeJson(schemaRes);
-      if (schema?.status !== 'success') continue;
-      const field = Object.keys(schema.schema || {}).find(
-        (key) => schema.schema[key].type === 'number'
-      );
-      if (field) {
-        geodatasetName = entry.name;
-        numericField = field;
-        break;
-      }
-    }
+    const createData = await createRes.json().catch(() => null);
+    adminReady = !!createData && createData.status === 'success';
   });
 
-  test('stats= annotates features with min/max/avg of their group', async ({ request }) => {
-    if (!numericField) {
-      test.skip(true, 'SKIP: no geodataset with a numeric field available');
-      return;
+  test.afterAll(async () => {
+    if (adminReady) {
+      await api.delete(`/api/geodatasets/remove/${layerName}`).catch(() => {});
     }
-
-    const response = await request.get(
-      `${baseURL}/api/geodatasets/get/${encodeURIComponent(
-        geodatasetName
-      )}?stats=${encodeURIComponent(numericField)}`
-    );
-    expect(response.status()).toBeLessThan(500);
-
-    const data = await safeJson(response);
-    if (!data) {
-      test.skip(true, 'SKIP: HTML response (login page in AUTH=local)');
-      return;
-    }
-    expect(data.status).not.toBe('failure');
-    if (!Array.isArray(data.features) || data.features.length === 0) {
-      test.skip(true, 'SKIP: geodataset has no features');
-      return;
-    }
-
-    const stats = data.features[0].properties?._?.stats;
-    expect(stats).toBeDefined();
-    expect(stats[numericField]).toBeDefined();
-    expect(stats[numericField]).toHaveProperty('min');
-    expect(stats[numericField]).toHaveProperty('max');
-    expect(stats[numericField]).toHaveProperty('avg');
-
-    const { min, max, avg } = stats[numericField];
-    if (min !== null) {
-      expect(typeof min).toBe('number');
-      expect(max).toBeGreaterThanOrEqual(min);
-      expect(avg).toBeGreaterThanOrEqual(min);
-      expect(avg).toBeLessThanOrEqual(max);
-    }
+    if (api) await api.dispose();
   });
 
-  test('stats= composes with noDuplicates', async ({ request }) => {
-    if (!numericField) {
-      test.skip(true, 'SKIP: no geodataset with a numeric field available');
-      return;
-    }
-
-    const plainRes = await request.get(
-      `${baseURL}/api/geodatasets/get/${encodeURIComponent(
-        geodatasetName
-      )}?stats=${encodeURIComponent(numericField)}`
-    );
-    const dedupedRes = await request.get(
-      `${baseURL}/api/geodatasets/get/${encodeURIComponent(
-        geodatasetName
-      )}?stats=${encodeURIComponent(numericField)}&noDuplicates=true`
-    );
-    expect(dedupedRes.status()).toBeLessThan(500);
-
-    const plain = await safeJson(plainRes);
-    const deduped = await safeJson(dedupedRes);
-    if (!plain || !deduped) {
-      test.skip(true, 'SKIP: HTML response');
-      return;
-    }
-    expect(deduped.status).not.toBe('failure');
-    if (!Array.isArray(deduped.features) || deduped.features.length === 0) {
-      test.skip(true, 'SKIP: geodataset has no features');
-      return;
-    }
-
-    // Deduplicating keeps one feature per group, and each survivor still
-    // carries its whole group's statistics.
-    expect(deduped.features.length).toBeLessThanOrEqual(plain.features.length);
-    expect(deduped.features[0].properties?._?.stats?.[numericField]).toBeDefined();
-  });
-
-  test('stats= is accepted by the POST variant', async ({ request }) => {
-    if (!numericField) {
-      test.skip(true, 'SKIP: no geodataset with a numeric field available');
-      return;
-    }
-
-    const response = await request.post(`${baseURL}/api/geodatasets/get`, {
-      data: { layer: geodatasetName, stats: [numericField] },
+  /** Statistics of the group each returned feature belongs to, keyed by track. */
+  function statsByTrack(features, field) {
+    const byTrack = {};
+    features.forEach((f) => {
+      byTrack[f.properties[GROUP_ID_PROP]] = f.properties._.stats[field];
     });
-    expect(response.status()).toBeLessThan(500);
+    return byTrack;
+  }
 
-    const data = await safeJson(response);
-    if (!data) {
-      test.skip(true, 'SKIP: HTML response');
-      return;
-    }
-    expect(data.status).not.toBe('failure');
-    const features = data.body?.features;
-    if (!Array.isArray(features) || features.length === 0) {
-      test.skip(true, 'SKIP: geodataset has no features');
-      return;
-    }
-    expect(features[0].properties?._?.stats?.[numericField]).toBeDefined();
-  });
+  test('stats= annotates every feature with its own group\'s min/max/avg', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
 
-  test('stats= for a nonexistent or non-numeric field yields nulls, not an error', async ({
-    request,
-  }) => {
-    if (!geodatasetName) {
-      test.skip(true, 'SKIP: no geodatasets available in test database');
-      return;
-    }
-
-    const response = await request.get(
-      `${baseURL}/api/geodatasets/get/${encodeURIComponent(
-        geodatasetName
-      )}?stats=definitely_not_a_field`
+    const response = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=elev`
     );
-    expect(response.status()).toBeLessThan(500);
+    expect(response.status()).toBe(200);
+    const data = await response.json();
 
-    const data = await safeJson(response);
-    if (!data) {
-      test.skip(true, 'SKIP: HTML response');
-      return;
-    }
-    expect(data.status).not.toBe('failure');
-    if (!Array.isArray(data.features) || data.features.length === 0) return;
-    expect(data.features[0].properties._.stats.definitely_not_a_field).toEqual({
-      min: null,
-      max: null,
-      avg: null,
+    expect(data.features).toHaveLength(6);
+    // Non-numeric and missing values are ignored, not fatal: track B sees only 10.
+    expect(statsByTrack(data.features, 'elev')).toEqual({
+      A: { min: 1, max: 3, avg: 2 },
+      B: { min: 10, max: 10, avg: 10 },
     });
   });
 
-  test('malformed stats values do not error the query', async ({ request }) => {
-    if (!geodatasetName) {
-      test.skip(true, 'SKIP: no geodatasets available in test database');
-      return;
-    }
+  test('stats= reads nested properties and reports nulls for a numberless group', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    const response = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=meta.depth`
+    );
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+
+    expect(statsByTrack(data.features, 'meta.depth')).toEqual({
+      A: { min: 5, max: 7, avg: 6 },
+      B: { min: null, max: null, avg: null },
+    });
+  });
+
+  test('stats= covers the whole group even when noDuplicates collapses it', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    const response = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=elev&noDuplicates=true`
+    );
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+
+    // One feature per group survives, still carrying the whole group's statistics.
+    expect(data.features).toHaveLength(2);
+    expect(statsByTrack(data.features, 'elev')).toEqual({
+      A: { min: 1, max: 3, avg: 2 },
+      B: { min: 10, max: 10, avg: 10 },
+    });
+  });
+
+  test('stats= is unaffected by limit and survives an _source projection', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    const response = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=elev&_source=${GROUP_ID_PROP}&limit=1`
+    );
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+
+    expect(data.features).toHaveLength(1);
+    // Paging narrows the returned features, not the statistics behind them.
+    const properties = data.features[0].properties;
+    expect(properties._.stats.elev).toEqual(
+      properties[GROUP_ID_PROP] === 'A'
+        ? { min: 1, max: 3, avg: 2 }
+        : { min: 10, max: 10, avg: 10 }
+    );
+    // _source kept only the requested field (plus the server-added metadata).
+    expect(Object.keys(properties).sort()).toEqual(['_', GROUP_ID_PROP]);
+  });
+
+  test('an unknown field and hostile input are answered, not errored', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    const unknown = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=definitely_not_a_field`
+    );
+    expect(unknown.status()).toBe(200);
+    const unknownData = await unknown.json();
+    expect(unknownData.features[0].properties._.stats).toEqual({
+      definitely_not_a_field: { min: null, max: null, avg: null },
+    });
 
     for (const value of [
       `elev'; DROP TABLE geodatasets; --`,
+      `elev') OR 1=1--`,
       ',,,',
       Array.from({ length: 50 }, (_, i) => `f${i}`).join(','),
     ]) {
-      const response = await request.get(
-        `${baseURL}/api/geodatasets/get/${encodeURIComponent(
-          geodatasetName
-        )}?stats=${encodeURIComponent(value)}`
+      const response = await api.get(
+        `/api/geodatasets/get/${layerName}?type=geojson&stats=${encodeURIComponent(
+          value
+        )}`
       );
-      expect(response.status()).toBeLessThan(500);
-      const data = await safeJson(response);
-      if (data) expect(data.status).not.toBe('failure');
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+      expect(data.status).not.toBe('failure');
+      expect(data.features).toHaveLength(6);
     }
+
+    // The geodataset (and its table) survived the injection attempts.
+    const stillThere = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson`
+    );
+    expect((await stillThere.json()).features).toHaveLength(6);
   });
 
-  test('GET /schema reports dataset-wide field_stats', async ({ request }) => {
-    if (!geodatasetName) {
-      test.skip(true, 'SKIP: no geodatasets available in test database');
-      return;
-    }
+  test('GET /schema reports dataset-wide field_stats over every feature', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
 
-    const response = await request.get(
-      `${baseURL}/api/geodatasets/schema?layers=${encodeURIComponent(geodatasetName)}`
-    );
-    expect(response.status()).toBeLessThan(500);
-
-    const data = await safeJson(response);
-    if (!data) {
-      test.skip(true, 'SKIP: HTML response');
-      return;
-    }
+    const response = await api.get(`/api/geodatasets/schema?layers=${layerName}`);
+    expect(response.status()).toBe(200);
+    const data = await response.json();
     expect(data.status).toBe('success');
-    // Always present, but only populated for geodatasets written since the
-    // field_stats column was added.
-    expect(data).toHaveProperty('field_stats');
-    const stats = data.field_stats[geodatasetName];
-    if (stats == null) return;
-    Object.values(stats).forEach((stat) => {
-      expect(stat.type).toBe('number');
-      expect(stat.max).toBeGreaterThanOrEqual(stat.min);
-      expect(stat.count).toBeGreaterThan(0);
-      expect(stat.avg).toBeCloseTo(stat.sum / stat.count, 6);
+
+    // 1 + 2 + "3" + 10 — the numeric string counts, "not_a_number" does not.
+    expect(data.field_stats[layerName].elev).toEqual({
+      type: 'number',
+      min: 1,
+      max: 10,
+      sum: 16,
+      count: 4,
+      avg: 4,
+    });
+    // Nested properties are flattened to dotted paths.
+    expect(data.field_stats[layerName]['meta.depth']).toEqual({
+      type: 'number',
+      min: 5,
+      max: 7,
+      sum: 12,
+      count: 2,
+      avg: 6,
+    });
+    // Strings are not summarized.
+    expect(data.field_stats[layerName][GROUP_ID_PROP]).toBeUndefined();
+  });
+
+  test('an append widens field_stats rather than replacing it', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    const appendRes = await api.post(
+      `/api/geodatasets/append/${layerName}?group_id_prop=${GROUP_ID_PROP}`,
+      {
+        data: {
+          type: 'FeatureCollection',
+          features: [feature({ track: 'A', elev: 100 })],
+        },
+      }
+    );
+    expect((await appendRes.json()).status).toBe('success');
+
+    const schema = await api.get(`/api/geodatasets/schema?layers=${layerName}`);
+    const field_stats = (await schema.json()).field_stats[layerName];
+    // Extrema widen and sum/count add, so the average stays exact without
+    // re-reading the table: (16 + 100) / 5.
+    expect(field_stats.elev).toEqual({
+      type: 'number',
+      min: 1,
+      max: 100,
+      sum: 116,
+      count: 5,
+      avg: 23.2,
+    });
+    // A field absent from the appended features is carried over untouched.
+    expect(field_stats['meta.depth'].count).toBe(2);
+
+    // The appended feature also joins track A's query-time statistics.
+    const response = await api.get(
+      `/api/geodatasets/get/${layerName}?type=geojson&stats=elev&noDuplicates=true`
+    );
+    expect(statsByTrack((await response.json()).features, 'elev').A).toEqual({
+      min: 1,
+      max: 100,
+      avg: 26.5,
     });
   });
 });
