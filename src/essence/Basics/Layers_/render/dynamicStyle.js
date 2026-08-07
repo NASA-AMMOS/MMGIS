@@ -36,6 +36,58 @@ export const STYLE_ATTRIBUTES = [...COLOR_ATTRIBUTES, ...NUMERIC_ATTRIBUTES]
 export const DEFAULT_ATTRIBUTE = 'fillColor'
 export const DEFAULT_RAMP = 'viridis'
 
+/** The statistics a geodataset reports for each group of features. */
+export const GROUP_STATS = ['min', 'max', 'avg']
+export const DEFAULT_GROUP_STAT = 'avg'
+
+/**
+ * Where a rule reads its value from: the feature's own property, or the
+ * statistics of the group the feature belongs to.
+ *
+ * @param {object} rule
+ * @returns {'properties'|'stats'}
+ */
+export function propertyTypeOf(rule) {
+    return rule?.propertyType === 'stats' ? 'stats' : 'properties'
+}
+
+/**
+ * The path a rule reads. A rule styling by a group statistic is written as a
+ * field and a statistic rather than as the path they make, so a viewer can
+ * swap the average for the maximum without retyping anything.
+ *
+ * @param {object} rule
+ * @returns {string} a property name or dotted path.
+ */
+export function rulePropertyPath(rule) {
+    const property = rule?.property
+    if (typeof property !== 'string' || property === '') return ''
+    if (propertyTypeOf(rule) !== 'stats') return property
+    return `_.stats.${property}.${ruleStatOf(rule)}`
+}
+
+/**
+ * The statistic a group-statistic rule styles by.
+ *
+ * @param {object} rule
+ * @returns {string}
+ */
+export function ruleStatOf(rule) {
+    const stat = rule?.stat
+    return GROUP_STATS.includes(stat) ? stat : DEFAULT_GROUP_STAT
+}
+
+/**
+ * What to call the thing a rule styles by, for a legend or a settings panel.
+ *
+ * @param {object} rule
+ * @returns {string}
+ */
+export function rulePropertyLabel(rule) {
+    if (propertyTypeOf(rule) !== 'stats') return rule?.property || ''
+    return `${rule.property} (group ${ruleStatOf(rule)})`
+}
+
 /**
  * The attribute a rule drives. A rule that names none colours the fill, which
  * is what "style by this property" almost always means and what the
@@ -449,7 +501,8 @@ export function compileRules(dynamicStyle, context) {
         compiled.push({
             rule,
             attribute: attributeOf(rule),
-            property: rule.property,
+            property: rulePropertyPath(rule),
+            label: rulePropertyLabel(rule),
             domain:
                 rule.type === 'categorical'
                     ? null
@@ -507,15 +560,23 @@ function contextFor(rule, context) {
     if (context == null) return context
     const values = context.values
     if (values == null || Array.isArray(values)) return context
-    return { fieldStats: context.fieldStats, values: values[rule.property] }
+    return {
+        fieldStats: context.fieldStats,
+        values: values[rulePropertyPath(rule)],
+    }
 }
 
 const DynamicStyle = {
     COLOR_ATTRIBUTES,
+    GROUP_STATS,
     NUMERIC_ATTRIBUTES,
     STYLE_ATTRIBUTES,
     asNumber,
     attributeOf,
+    propertyTypeOf,
+    rulePropertyLabel,
+    rulePropertyPath,
+    ruleStatOf,
     binEdges,
     collectValues,
     compileDynamicStyle,

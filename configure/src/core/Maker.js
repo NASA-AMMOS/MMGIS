@@ -1655,16 +1655,11 @@ const getComponent = (
       );
     case "colorpicker":
       let color;
-      if (tool)
-        color = getIn(tool, com.field.split("."), {
-          hex: com.default || "#FFFFFF",
-        });
-      else if (layer)
-        color = getIn(layer, com.field.split("."), {
-          hex: com.default || "#FFFFFF",
-        });
-      else
-        color = configured({ hex: com.default || "#FFFFFF" });
+      const colorDefault = { hex: com.default || "#FFFFFF" };
+      if (forceField != null) color = colorDefault;
+      else if (tool) color = getIn(tool, com.field.split("."), colorDefault);
+      else if (layer) color = getIn(layer, com.field.split("."), colorDefault);
+      else color = configured(colorDefault);
 
       inner = (
         <ColorButton

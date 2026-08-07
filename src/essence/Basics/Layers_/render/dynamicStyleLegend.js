@@ -225,8 +225,8 @@ export function dynamicStyleLegendEntries(layerObj) {
         // Two rules on the same property are two different scales, so the
         // attribute is named as well as the property.
         ruleEntries[0].scaleTitle = isColor
-            ? compiledRule.property
-            : `${compiledRule.property} (${
+            ? compiledRule.label || compiledRule.property
+            : `${compiledRule.label || compiledRule.property} (${
                   NUMERIC_SWATCHES_BY_ATTRIBUTE[compiledRule.attribute].label
               })`
         entries.push(...ruleEntries)

@@ -15,7 +15,9 @@ import {
     collectValues,
     compileRules,
     isUsableRule,
+    propertyTypeOf,
     resolverOf,
+    rulePropertyPath,
 } from './dynamicStyle'
 
 /**
@@ -82,6 +84,8 @@ function overriddenRules(rules, override) {
         if (index !== 0) return rule
         const next = Object.assign({}, rule)
         if (override.property) next.property = override.property
+        if (override.propertyType) next.propertyType = override.propertyType
+        if (override.stat) next.stat = override.stat
         if (override.attribute) next.attribute = override.attribute
         if (override.range) next.range = override.range
         if (override.ramp) next.ramp = override.ramp
@@ -204,14 +208,20 @@ export function removeDynamicStyleRule(layerObj, index) {
 export function getDynamicStyleProps(layerObj) {
     const dynamicStyle = getDynamicStyle(layerObj)
     if (dynamicStyle == null) return []
-    return dynamicStyle.rules.filter(isUsableRule).map((rule) => rule.property)
+    // A rule styling by group statistics wants none of them: that value is
+    // summarized by the endpoint rather than carried on the feature.
+    return dynamicStyle.rules
+        .filter(
+            (rule) => isUsableRule(rule) && propertyTypeOf(rule) !== 'stats'
+        )
+        .map((rule) => rule.property)
 }
 
 /**
  * The geodataset fields a layer wants per-group statistics for: the ones an
- * admin named, plus the ones its rules style by — a rule aimed at
- * `_.stats.depth_m.avg` is asking for `depth_m`'s statistics, so it asks for
- * them itself rather than needing the field listed twice.
+ * admin named, plus the ones its rules style by — a rule set to style by a
+ * field's group statistics asks for them itself rather than needing the field
+ * listed twice.
  *
  * @param {object} layerObj
  * @returns {string[]}
@@ -232,9 +242,18 @@ export function getStatsFields(layerObj) {
     }
 
     for (const rule of getViewedRules(layerObj)) {
-        const match = /^_\.stats\.([^.]+)\./.exec(rule?.property || '')
-        if (match != null && fields.indexOf(match[1]) === -1)
-            fields.push(match[1])
+        // Either written as a rule that styles by statistics, or typed as the
+        // path one reads - both ask for the same field.
+        const field =
+            propertyTypeOf(rule) === 'stats'
+                ? rule.property
+                : (/^_\.stats\.([^.]+)\./.exec(rule?.property || '') || [])[1]
+        if (
+            typeof field === 'string' &&
+            field !== '' &&
+            fields.indexOf(field) === -1
+        )
+            fields.push(field)
     }
     return fields
 }
@@ -262,8 +281,9 @@ export function compileLayerDynamicStyle(layerObj, features) {
 
     const values = {}
     dynamicStyle.rules.filter(isUsableRule).forEach((rule) => {
-        if (values[rule.property] === undefined)
-            values[rule.property] = collectValues(features, rule.property)
+        const path = rulePropertyPath(rule)
+        if (values[path] === undefined)
+            values[path] = collectValues(features, path)
     })
 
     const compiled = compileRules(dynamicStyle, {

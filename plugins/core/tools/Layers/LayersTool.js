@@ -9,6 +9,9 @@ import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
 import {
     COLOR_ATTRIBUTES,
     DEFAULT_ATTRIBUTE,
+    GROUP_STATS,
+    propertyTypeOf,
+    ruleStatOf,
     styleableAttributes,
 } from '@basics/Layers_/render/dynamicStyle'
 import {
@@ -176,6 +179,13 @@ const ATTRIBUTE_LABELS = {
     opacity: 'Outline Opacity',
     weight: 'Outline Weight',
     radius: 'Radius',
+}
+
+// How a group's statistics read in the Layers Tool
+const STAT_LABELS = {
+    min: 'Minimum',
+    max: 'Maximum',
+    avg: 'Average',
 }
 
 // What a numeric attribute spans when a viewer aims a rule at one that was
@@ -3071,13 +3081,17 @@ function interfaceWithMMGIS(fromInit) {
      * rules were written for, and only those. An admin widens the choice by
      * writing another rule, which is also how they say a property is fit to
      * style by - a domain and a null value have been thought about for it.
+     *
+     * A field summarized per group is not a property a feature has, so the two
+     * kinds of rule are offered their own kind only.
      */
-    function getStyleableProperties(layerName) {
+    function getStyleableProperties(layerName, propertyType) {
         const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
         const rules = layerObj?.variables?.dynamicStyle?.rules
         if (!Array.isArray(rules)) return []
         const names = new Set()
         rules.forEach((rule) => {
+            if (propertyTypeOf(rule) !== propertyType) return
             if (typeof rule?.property === 'string' && rule.property !== '')
                 names.add(rule.property)
         })
@@ -3131,7 +3145,11 @@ function interfaceWithMMGIS(fromInit) {
      */
     function getDynamicStyleRuleSettings(layerName, rule, index, count) {
         const name = escapeHTML(layerName)
-        const properties = getStyleableProperties(layerName)
+        const isStats = propertyTypeOf(rule) === 'stats'
+        const properties = getStyleableProperties(
+            layerName,
+            isStats ? 'stats' : 'properties'
+        )
         if (properties.indexOf(rule.property) === -1 && rule.property != null)
             properties.unshift(rule.property)
 
@@ -3144,7 +3162,7 @@ function interfaceWithMMGIS(fromInit) {
             '</div>'].join('\n') : '',
             properties.length > 0 ? [
             '<div class="sublayer dynamicStyleRow">',
-                '<div title="The feature property the layer is coloured by. The choices are the properties this layer has rules for.">Property</div>',
+                `<div title="${isStats ? 'The field whose per-group statistics the layer is coloured by, so a feature is coloured by its group rather than by itself.' : 'The feature property the layer is coloured by. The choices are the properties this layer has rules for.'}">${isStats ? 'Stats Field' : 'Property'}</div>`,
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleProperty" layername="${name}" ruleindex="${index}">`,
                         properties.map((p) =>
@@ -3153,6 +3171,17 @@ function interfaceWithMMGIS(fromInit) {
                     '</select>',
                 '</div>',
             '</div>'].join('\n') : '',
+            !isStats ? '' : [
+            '<div class="sublayer dynamicStyleRow">',
+                '<div title="Which of the group\'s statistics decides the style.">Stat</div>',
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleStat" layername="${name}" ruleindex="${index}">`,
+                        GROUP_STATS.map((s) =>
+                            `<option value="${s}"${s === ruleStatOf(rule) ? ' selected' : ''}>${STAT_LABELS[s]}</option>`
+                        ).join('\n'),
+                    '</select>',
+                '</div>',
+            '</div>'].join('\n'),
             '<div class="sublayer dynamicStyleRow">',
                 '<div title="The style attribute the property drives. Colours take a ramp; the others take a range of numbers.">Styles</div>',
                 '<div style="display: flex;">',
@@ -3507,6 +3536,15 @@ function interfaceWithMMGIS(fromInit) {
             )
             // Another property may have statistics of its own to report.
             refreshDynamicStyleSettings($(this).attr('layername'))
+        })
+
+        $('.dynamicStyleStat').off('change')
+        $('.dynamicStyleStat').on('change', function () {
+            overrideDynamicStyleRuleOf(
+                $(this).attr('layername'),
+                ruleIndexOf(this),
+                { stat: $(this).val() }
+            )
         })
 
         $('.dynamicStyleAttribute').off('change')

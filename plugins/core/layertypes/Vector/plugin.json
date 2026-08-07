@@ -409,15 +409,46 @@
                 "width": 12,
                 "object": [
                   {
+                    "field": "propertyType",
+                    "name": "Property Type",
+                    "description": "Whether the value styling a feature is the feature's own property, or a statistic of the geodataset group it belongs to - so a feature can be coloured by how its group compares rather than by itself. Group statistics need a 'Group Id' and are requested automatically.",
+                    "type": "dropdown",
+                    "options": [
+                      "properties",
+                      "stats"
+                    ],
+                    "width": 3
+                  },
+                  {
                     "field": "property",
                     "name": "Property",
-                    "description": "The feature property whose value decides the style, e.g. 'depth' or 'meta.reading.value'. A viewer may only re-aim the layer at a property that has a rule, so what is listed here is what they can choose between. The options are the layer's own properties; a nested path can be typed.",
+                    "description": "The feature property whose value decides the style, e.g. 'depth' or 'meta.reading.value'. For a Stats rule it is the numeric field to summarize per group instead. A viewer may only re-aim the layer at a property that has a rule, so what is listed here is what they can choose between. The options are the layer's own properties; a nested path can be typed.",
                     "type": "searchdropdown",
                     "optionsFrom": "layerProperties",
                     "freeSolo": true,
                     "options": [],
                     "noOptionsText": "No properties found - type one",
-                    "width": 4
+                    "width": 3
+                  },
+                  {
+                    "field": "stat",
+                    "name": "Stat",
+                    "description": "Which of the group's statistics to style by. A viewer may switch between them without the rule being rewritten.",
+                    "type": "dropdown",
+                    "options": [
+                      "min",
+                      "max",
+                      "avg"
+                    ],
+                    "width": 2,
+                    "showIf": [
+                      {
+                        "field": "propertyType",
+                        "in": [
+                          "stats"
+                        ]
+                      }
+                    ]
                   },
                   {
                     "name": "Defaults",

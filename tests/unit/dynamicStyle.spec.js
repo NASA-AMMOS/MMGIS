@@ -9,6 +9,8 @@ import {
     rampStops,
     readProperty,
     resolveDomain,
+    rulePropertyLabel,
+    rulePropertyPath,
     styleableAttributes,
 } from '../../src/essence/Basics/Layers_/render/dynamicStyle.js'
 
@@ -610,6 +612,26 @@ test.describe('dynamicStyle - compileDynamicStyle, whole configurations', () => 
             fillColor: '#ffffff',
             weight: 5,
         })
+    })
+
+    test('a stats rule reads the group statistic it names', () => {
+        const rule = numericRule({
+            propertyType: 'stats',
+            property: 'depth_m',
+            stat: 'max',
+        })
+        expect(rulePropertyPath(rule)).toBe('_.stats.depth_m.max')
+        expect(rulePropertyLabel(rule)).toBe('depth_m (group max)')
+        const resolve = compileDynamicStyle({ enabled: true, rules: [rule] })
+        expect(
+            resolve({ depth_m: 0, _: { stats: { depth_m: { max: 100 } } } })
+        ).toEqual({ fillColor: '#ffffff' })
+    })
+
+    test('a stats rule averages by default', () => {
+        expect(
+            rulePropertyPath({ propertyType: 'stats', property: 'depth_m' })
+        ).toBe('_.stats.depth_m.avg')
     })
 
     test('unusable rules are skipped, not fatal', () => {

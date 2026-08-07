@@ -410,6 +410,16 @@ test.describe("layerDynamicStyle - getStatsFields", () => {
     expect(getStatsFields(layer)).toEqual(["depth_m"]);
   });
 
+  test("asks for the field a stats rule names", () => {
+    const layer = layerWith([
+      rule({ propertyType: "stats", property: "depth_m", stat: "max" }),
+    ]);
+    expect(getStatsFields(layer)).toEqual(["depth_m"]);
+    // The field itself is summarized by the endpoint, so it isn't a property
+    // the layer has to ask each feature for.
+    expect(getDynamicStyleProps(layer)).toEqual([]);
+  });
+
   test("asks for what an admin listed too, without asking twice", () => {
     const layer = layerWith([rule({ property: "_.stats.depth_m.avg" })], {
       variables: {
