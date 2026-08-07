@@ -1836,10 +1836,14 @@ const getComponent = (
               alignItems="left"
             >
               {com.object
-                .filter((icom) =>
+                .map((icom, idx2) => [icom, idx2])
+                .filter(([icom]) =>
                   passesShowIf(icom, (field) => itemValue(item, field))
                 )
-                .map((icom, idx2) => {
+                // Keyed by where a component is declared, not where it ended
+                // up, so showing one doesn't hand another's half-typed text to
+                // the field after it.
+                .map(([icom, idx2]) => {
                 return (
                   <Grid
                     item
