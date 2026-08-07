@@ -1608,13 +1608,13 @@ function interfaceWithMMGIS(fromInit) {
                 if (
                     L_.layers.attachments[layerName] &&
                     Object.keys(L_.layers.attachments[layerName]).length > 0 &&
-                    // The dynamic style has a heading of its own that is drawn
-                    // before the layer is on, and it isn't the one being
-                    // looked for - the Composite Layers heading is.
+                    // The dynamic style and its stats have headings of their
+                    // own, drawn before the layer is on; neither is the one
+                    // being looked for - the Composite Layers heading is.
                     !$(
                         `#LayersTool${F_.getSafeName(
                             layerName
-                        )} .sublayerHeading:not(.dynamicStyleHeading)`
+                        )} .sublayerHeading:not(.dynamicStyleHeading):not(.statsRow)`
                     ).length
                 ) {
                     // refresh settings
