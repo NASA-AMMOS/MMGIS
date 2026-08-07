@@ -60,12 +60,16 @@ export function domainFeatures(layerObj) {
         inViewOnly && Layers.Map_?.map ? Layers.Map_.map.getBounds() : null
 
     const features = []
+    const all = []
     leafletLayer.eachLayer((sublayer) => {
         if (sublayer?.feature == null) return
+        all.push(sublayer.feature)
         if (bounds != null && !intersects(bounds, sublayer)) return
         features.push(sublayer.feature)
     })
-    return features
+    // A domain measured over nothing is no styling at all, so a layer panned
+    // entirely off screen falls back to everything it holds.
+    return features.length === 0 ? all : features
 }
 
 function intersects(bounds, sublayer) {
