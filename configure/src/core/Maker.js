@@ -254,9 +254,24 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     margin: "0px 10px 10px 10px",
     background: theme.palette.swatches.grey[1000],
-    padding: "10px 44px 10px 10px",
+    padding: "10px 44px 10px 28px",
     boxShadow: "0px 2px 2px 0px rgba(0, 0, 0, 0.1)",
     position: "relative",
+  },
+  // Items look alike, so each is numbered to show where one ends and the
+  // next begins.
+  objectArrayIndex: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    minWidth: "20px",
+    padding: "1px 4px",
+    background: theme.palette.accent.main,
+    color: theme.palette.swatches.grey[1000],
+    fontSize: "11px",
+    fontWeight: 600,
+    lineHeight: "16px",
+    textAlign: "center",
   },
   object: {
     border: `2px solid ${theme.palette.swatches.grey[900]}`,
@@ -1463,11 +1478,7 @@ const getComponent = (
       // freeSolo one shows nothing, since it has no answer yet.
       const currentValue =
         value ||
-        getIn(
-          directConf,
-          com.field,
-          (com.freeSolo === true ? "" : com.options?.[0]) || ""
-        );
+        configured((com.freeSolo === true ? "" : com.options?.[0]) || "");
 
       // `freeSolo` lets a field suggest what it knows without refusing what it
       // doesn't — a property list can only offer top-level names, but a nested
@@ -1821,6 +1832,7 @@ const getComponent = (
             className={clsx(c.row, c.objectArrayBox)}
             key={idx}
           >
+            <div className={c.objectArrayIndex}>{idx + 1}</div>
             <Grid
               container
               spacing={4}

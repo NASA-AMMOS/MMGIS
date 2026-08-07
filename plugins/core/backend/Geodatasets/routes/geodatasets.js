@@ -292,8 +292,10 @@ function get(reqtype, req, res, next, options) {
             q += `${q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "}${
               statsOuterId
                 ? // Its group rather than the feature itself: the aggregates
-                  // are windows over what the WHERE clause leaves.
-                  `${groupField} = (SELECT ${groupField} FROM ${Utils.forceAlphaNumUnder(
+                  // are windows over what the WHERE clause leaves. Null groups
+                  // are one group here as they are to PARTITION BY, so the
+                  // comparison has to be the null-safe one.
+                  `${groupField} IS NOT DISTINCT FROM (SELECT ${groupField} FROM ${Utils.forceAlphaNumUnder(
                     table
                   )} WHERE id = :get_id)`
                 : `id = :get_id`

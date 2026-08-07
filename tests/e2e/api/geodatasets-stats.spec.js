@@ -196,6 +196,55 @@ test.describe.serial('Geodatasets statistics', () => {
     );
   });
 
+  test('asking for one groupless feature reports the groupless ones', async () => {
+    test.skip(!adminReady, 'SKIP: admin access unavailable');
+
+    const groupless = `${layerName}_ng`;
+    const created = await api
+      .post('/api/geodatasets/recreate', {
+        data: {
+          name: groupless,
+          groupIdProp: GROUP_ID_PROP,
+          geojson: JSON.stringify({
+            type: 'FeatureCollection',
+            features: [
+              feature({ elev: 4 }),
+              feature({ elev: 6 }),
+              feature({ track: 'A', elev: 100 }),
+            ],
+          }),
+        },
+      })
+      .then((res) => res.json())
+      .catch(() => null);
+    test.skip(created?.status !== 'success', 'SKIP: geodataset unavailable');
+
+    try {
+      const all = await api.get(
+        `/api/geodatasets/get/${groupless}?type=geojson&stats=elev`
+      );
+      const first = (await all.json()).features.find(
+        (f) => f.properties[GROUP_ID_PROP] == null
+      );
+
+      const response = await api.get(
+        `/api/geodatasets/get/${groupless}?type=geojson&stats=elev&id=${first.properties._.idx}`
+      );
+      const data = await response.json();
+
+      // A feature with no group belongs to the group of those without one,
+      // rather than to no group at all and so to nothing returned.
+      expect(data.features).toHaveLength(1);
+      expect(data.features[0].properties._.stats.elev).toEqual({
+        min: 4,
+        max: 6,
+        avg: 5,
+      });
+    } finally {
+      await api.delete(`/api/geodatasets/remove/${groupless}`).catch(() => {});
+    }
+  });
+
   test('an unknown field and hostile input are answered, not errored', async () => {
     test.skip(!adminReady, 'SKIP: admin access unavailable');
 
