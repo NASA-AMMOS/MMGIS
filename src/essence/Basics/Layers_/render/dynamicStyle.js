@@ -37,7 +37,7 @@ export const DEFAULT_ATTRIBUTE = 'fillColor'
 export const DEFAULT_RAMP = 'viridis'
 
 /** The statistics a geodataset reports for each group of features. */
-export const GROUP_STATS = ['min', 'max', 'avg']
+export const GROUP_STATS = ['avg', 'min', 'max']
 export const DEFAULT_GROUP_STAT = 'avg'
 
 /**

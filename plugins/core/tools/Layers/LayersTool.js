@@ -255,8 +255,8 @@ var LayersTool = {
         this.MMGISInterface = new interfaceWithMMGIS(fromInit)
     },
     destroy: function () {
-        Object.values(LayersTool._dynamicStyleRoots).forEach((cached) =>
-            cached.root.unmount()
+        Object.values(LayersTool._dynamicStyleRoots).forEach((byIndex) =>
+            Object.values(byIndex).forEach((cached) => cached.root.unmount())
         )
         LayersTool._dynamicStyleRoots = {}
         this.MMGISInterface.separateFromMMGIS()
@@ -3281,16 +3281,17 @@ function interfaceWithMMGIS(fromInit) {
             const index = parseInt($(this).attr('ruleindex'), 10)
             const rule = rules[index]
             if (rule == null) return
-            const key = `${uuid}_${index}`
-            kept[key] = true
-            const cached = LayersTool._dynamicStyleRoots[key]
+            kept[index] = true
+            const byIndex = LayersTool._dynamicStyleRoots[uuid] || {}
+            LayersTool._dynamicStyleRoots[uuid] = byIndex
+            const cached = byIndex[index]
             let root = cached?.root
             if (cached != null && cached.mount !== this) {
                 cached.root.unmount()
                 root = null
             }
             if (root == null) root = createRoot(this)
-            LayersTool._dynamicStyleRoots[key] = { root: root, mount: this }
+            byIndex[index] = { root: root, mount: this }
             root.render(
                 <DynamicStyleRamp
                     ramp={rule.ramp || 'viridis'}
@@ -3308,12 +3309,15 @@ function interfaceWithMMGIS(fromInit) {
 
     /** Drop the roots of this layer's ramps that are no longer in the page. */
     function unmountDynamicStyleRamps(uuid, kept) {
-        Object.keys(LayersTool._dynamicStyleRoots).forEach((key) => {
-            if (key.indexOf(`${uuid}_`) !== 0) return
-            if (kept != null && kept[key]) return
-            LayersTool._dynamicStyleRoots[key].root.unmount()
-            delete LayersTool._dynamicStyleRoots[key]
+        const byIndex = LayersTool._dynamicStyleRoots[uuid]
+        if (byIndex == null) return
+        Object.keys(byIndex).forEach((index) => {
+            if (kept != null && kept[index]) return
+            byIndex[index].root.unmount()
+            delete byIndex[index]
         })
+        if (Object.keys(byIndex).length === 0)
+            delete LayersTool._dynamicStyleRoots[uuid]
     }
 
     /**

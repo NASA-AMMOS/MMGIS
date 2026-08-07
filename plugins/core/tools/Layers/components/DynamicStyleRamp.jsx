@@ -1,6 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import ColorRampPicker from "@design/components/ColorRampPicker/ColorRampPicker";
+import { rampStops } from "@basics/Layers_/render/dynamicStyle";
+import {
+  hexToRgb,
+  interpolateMultipleColors,
+  parseRgb,
+} from "@basics/Layers_/render/gradientUtils";
 import {
   data as colormapData,
   evaluate_cmap,
@@ -51,17 +57,43 @@ function rampColors(name) {
   return colors;
 }
 
+/** The name given to a ramp that carries its own colours rather than a name. */
+export const CUSTOM_RAMP = "custom";
+
+/** A converted legend's own colours, sampled the way a colormap's are. */
+function customRampColors(ramp) {
+  const stops = rampStops(ramp, false);
+  if (stops.length === 0) return null;
+  const colors = [];
+  for (let i = 0; i < SWATCH_SAMPLES; i++) {
+    const color = interpolateMultipleColors(
+      stops,
+      i / (SWATCH_SAMPLES - 1),
+      0,
+      1,
+    );
+    const rgb = hexToRgb(color) || parseRgb(color);
+    if (rgb == null) return null;
+    colors.push([rgb.r / 255, rgb.g / 255, rgb.b / 255]);
+  }
+  return colors;
+}
+
 /**
  * The ramps to show, with the layer's current one included even when it isn't
- * one we suggest.
+ * one we suggest - including a converted legend's own list of colours, which
+ * has no name to look up.
  */
 function rampsFor(current) {
+  const custom = Array.isArray(current) ? customRampColors(current) : null;
   const names = RUNTIME_RAMPS.includes(current)
     ? RUNTIME_RAMPS
     : [current, ...RUNTIME_RAMPS];
-  return names
+  const ramps = names
     .map((name) => ({ name, label: name, colors: rampColors(name) }))
     .filter((ramp) => ramp.colors != null);
+  if (custom == null) return ramps;
+  return [{ name: CUSTOM_RAMP, label: "Custom", colors: custom }, ...ramps];
 }
 
 /** The even split - what bin boundaries are before anyone moves them. */
@@ -102,7 +134,8 @@ export default function DynamicStyleRamp({ ramp, bins, stops, onChange }) {
   const [live, setLive] = useState(null);
 
   const ramps = rampsFor(ramp);
-  const colors = (ramps.find((r) => r.name === ramp) || ramps[0])?.colors;
+  const selected = Array.isArray(ramp) ? CUSTOM_RAMP : ramp;
+  const colors = (ramps.find((r) => r.name === selected) || ramps[0])?.colors;
   const current = live || (bins > 1 ? stops || evenStops(bins) : []);
 
   const gradient = buildGradient(colors, bins, current);
@@ -157,11 +190,13 @@ export default function DynamicStyleRamp({ ramp, bins, stops, onChange }) {
         <div title="The colour ramp the property is mapped through.">Ramp</div>
         <div className="dynamicStyleRampPicker">
           <ColorRampPicker
-            value={ramp}
+            value={selected}
             ramps={ramps}
             // The layer's settings pane clips what overflows it.
             portal
-            onValueChange={(name) => onChange({ ramp: name })}
+            onValueChange={(name) =>
+              onChange({ ramp: name === CUSTOM_RAMP ? ramp : name })
+            }
           />
         </div>
       </div>

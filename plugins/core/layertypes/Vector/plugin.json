@@ -436,9 +436,9 @@
                     "description": "Which of the group's statistics to style by. A viewer may switch between them without the rule being rewritten.",
                     "type": "dropdown",
                     "options": [
+                      "avg",
                       "min",
-                      "max",
-                      "avg"
+                      "max"
                     ],
                     "width": 2,
                     "showIf": [
