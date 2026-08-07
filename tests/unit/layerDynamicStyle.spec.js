@@ -354,6 +354,19 @@ test.describe("layerDynamicStyle - session rules", () => {
     ).toEqual(["value", "confidence"]);
   });
 
+  test("re-aiming a rule at another style keeps the span it maps through", () => {
+    const layer = layerWith([
+      rule({
+        attribute: "weight",
+        range: [1, 6],
+        domain: { min: 0, max: 100 },
+      }),
+    ]);
+    overrideDynamicStyleRule(layer, 0, { attribute: "radius" });
+    const resolve = compileLayerDynamicStyle(layer, []);
+    expect(resolve({ value: 100 })).toEqual({ radius: 6 });
+  });
+
   test("a viewer can add a rule and remove one, for the session only", () => {
     const layer = layerWith([rule({ domain: { min: 0, max: 100 } })]);
     addDynamicStyleRule(layer, { attribute: "weight", range: [1, 9] });

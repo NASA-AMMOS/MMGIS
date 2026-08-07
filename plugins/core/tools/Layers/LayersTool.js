@@ -3520,16 +3520,16 @@ function interfaceWithMMGIS(fromInit) {
             const configured =
                 L_.layers.data[L_.asLayerUUID(layerName)]?.variables
                     ?.dynamicStyle?.rules?.[index]
-            overrideDynamicStyleRuleOf(layerName, index, {
-                attribute: attribute,
-                // A numeric attribute maps through a range rather than a ramp,
-                // and a rule written for a colour has none to map through.
-                range:
-                    COLOR_ATTRIBUTES.includes(attribute) ||
-                    Array.isArray(configured?.range)
-                        ? undefined
-                        : DEFAULT_RANGES[attribute],
-            })
+            // A numeric attribute maps through a range; a rule written for a
+            // colour has none, and one that has a range keeps it - patching it
+            // away would compile the rule to nothing.
+            const patch = { attribute: attribute }
+            if (
+                !COLOR_ATTRIBUTES.includes(attribute) &&
+                !Array.isArray(configured?.range)
+            )
+                patch.range = DEFAULT_RANGES[attribute]
+            overrideDynamicStyleRuleOf(layerName, index, patch)
             // The ramp only belongs to a colour, so the controls themselves
             // change shape.
             refreshDynamicStyleSettings(layerName)
