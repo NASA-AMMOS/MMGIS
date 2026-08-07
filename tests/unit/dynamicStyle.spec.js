@@ -238,6 +238,19 @@ test.describe('dynamicStyle - resolveDomain', () => {
         expect(resolveDomain(rule, { values: ['a', 'b'] })).toBeNull()
     })
 
+    test('a group statistic is measured over the groups, not the features', () => {
+        // The field's own extent is 10-90; its groups' averages are not.
+        const rule = numericRule({
+            propertyType: 'stats',
+            property: 'value',
+            stat: 'avg',
+            domain: { source: 'auto' },
+        })
+        expect(
+            resolveDomain(rule, { fieldStats: stats, values: [30, 40] })
+        ).toEqual({ min: 30, max: 40 })
+    })
+
     test('ignores field stats belonging to another property', () => {
         const rule = numericRule({
             property: 'depth',
