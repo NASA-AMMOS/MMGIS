@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import ColorRampPicker from "@design/components/ColorRampPicker/ColorRampPicker";
-import { rampStops } from "@basics/Layers_/render/dynamicStyle";
+import {
+  normalizeStops,
+  rampStops,
+} from "@basics/Layers_/render/dynamicStyle";
 import {
   hexToRgb,
   interpolateMultipleColors,
@@ -136,7 +139,11 @@ export default function DynamicStyleRamp({ ramp, bins, stops, onChange }) {
   const ramps = rampsFor(ramp);
   const selected = Array.isArray(ramp) ? CUSTOM_RAMP : ramp;
   const colors = (ramps.find((r) => r.name === selected) || ramps[0])?.colors;
-  const current = live || (bins > 1 ? stops || evenStops(bins) : []);
+  // Boundaries that don't describe this many bins are the ones the renderer
+  // refuses, so the editor shows the even split it falls back to.
+  const applied =
+    bins > 1 ? normalizeStops(stops, bins) || evenStops(bins) : [];
+  const current = live || applied;
 
   const gradient = buildGradient(colors, bins, current);
 
