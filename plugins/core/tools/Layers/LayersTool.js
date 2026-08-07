@@ -3149,20 +3149,21 @@ function interfaceWithMMGIS(fromInit) {
                 layerName
             )} > .settingsmainvector .dynamicStyleRampMount`
         )[0]
-        if (mount == null) return
 
         const uuid = L_.asLayerUUID(layerName)
         const layerObj = L_.layers.data[uuid]
         const rule = getDynamicStyle(layerObj)?.rules?.[0]
-        if (rule == null) return
 
-        // The settings markup is regenerated whenever the layer is toggled, so
-        // a cached root can be pointing at a node no longer in the page.
+        // The settings markup is regenerated whenever the layer is toggled, and
+        // a rule that stops wanting a ramp leaves no mount at all, so a cached
+        // root can be pointing at a node no longer in the page.
         let cached = LayersTool._dynamicStyleRoots[uuid]
         if (cached != null && cached.mount !== mount) {
             cached.root.unmount()
+            delete LayersTool._dynamicStyleRoots[uuid]
             cached = null
         }
+        if (mount == null || rule == null) return
         const root = cached?.root || createRoot(mount)
         LayersTool._dynamicStyleRoots[uuid] = { root: root, mount: mount }
         root.render(

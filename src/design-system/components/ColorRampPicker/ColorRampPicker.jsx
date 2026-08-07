@@ -1,4 +1,11 @@
-import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react'
+import React, {
+    forwardRef,
+    useCallback,
+    useMemo,
+    useRef,
+    useState,
+    useEffect,
+} from 'react'
 import { createPortal } from 'react-dom'
 import styles from './ColorRampPicker.module.css'
 
@@ -65,15 +72,27 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
         return () => document.removeEventListener('mousedown', handleClick)
     }, [open])
 
-    function toggle() {
-        if (!open && portal && containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect()
-            setAnchor({
-                top: rect.bottom + 4,
-                left: rect.left,
-                width: rect.width,
-            })
+    const measure = useCallback(() => {
+        if (containerRef.current == null) return
+        const rect = containerRef.current.getBoundingClientRect()
+        setAnchor({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+    }, [])
+
+    // A portalled list is placed against the viewport, so it has to be placed
+    // again whenever the picker moves under it.
+    useEffect(() => {
+        if (!open || !portal) return
+        const onMove = () => measure()
+        window.addEventListener('scroll', onMove, true)
+        window.addEventListener('resize', onMove)
+        return () => {
+            window.removeEventListener('scroll', onMove, true)
+            window.removeEventListener('resize', onMove)
         }
+    }, [open, portal, measure])
+
+    function toggle() {
+        if (!open && portal) measure()
         setOpen(!open)
     }
 
