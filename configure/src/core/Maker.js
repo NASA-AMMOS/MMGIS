@@ -2202,7 +2202,8 @@ const makeConfig = (
                 style={row.forceHeight ? { height: row.forceHeight } : null}
               >
                 {row.components
-                  .filter((com) =>
+                  .map((com, idx2) => [com, idx2])
+                  .filter(([com]) =>
                     passesShowIf(com, (field) =>
                       getIn(
                         layer == null
@@ -2217,7 +2218,9 @@ const makeConfig = (
                       )
                     )
                   )
-                  .map((com, idx2) => {
+                  // Keyed by where a component is declared, as in an
+                  // objectarray's items.
+                  .map(([com, idx2]) => {
               return (
                 <Grid
                   item
