@@ -74,6 +74,16 @@ test.describe('dynamicStyle - readProperty', () => {
         ).toBe(7)
     })
 
+    test('reads a key that has a dot in it', () => {
+        // A geodataset files a nested field's group stats under the whole name.
+        expect(
+            readProperty(
+                { _: { stats: { 'meta.depth': { avg: 4 } } } },
+                '_.stats.meta.depth.avg'
+            )
+        ).toBe(4)
+    })
+
     test('returns null for a missing property or path', () => {
         expect(readProperty({ a: 1 }, 'b')).toBeNull()
         expect(readProperty({ a: 1 }, 'a.b.c')).toBeNull()

@@ -20,7 +20,6 @@ import {
     evaluate_cmap,
 } from '@external/js-colormaps/js-colormaps.js'
 
-import F_ from '../../Formulae_/Formulae_'
 import { buildColorStops, interpolateMultipleColors } from './gradientUtils'
 
 /** Attributes whose value is a colour. */
@@ -127,6 +126,10 @@ export function asNumber(value) {
 /**
  * Read a possibly nested property, e.g. 'meta.reading.value'.
  *
+ * A dot is both a step down and a legal character in a key - a geodataset files
+ * a nested field's group statistics under the whole name, `_.stats['meta.depth']`
+ * - so each step takes the longest key that is actually there.
+ *
  * @param {object} properties  A feature's properties.
  * @param {string} property    A property name or dotted path.
  * @returns {*} the value, or null.
@@ -138,7 +141,19 @@ export function readProperty(properties, property) {
         const value = properties[property]
         return value === undefined ? null : value
     }
-    return F_.getIn(properties, property.split('.'), null)
+    return descend(properties, property.split('.'))
+}
+
+function descend(value, segments) {
+    if (segments.length === 0) return value === undefined ? null : value
+    if (value == null || typeof value !== 'object') return null
+    for (let take = segments.length; take >= 1; take--) {
+        const key = segments.slice(0, take).join('.')
+        if (!Object.prototype.hasOwnProperty.call(value, key)) continue
+        const read = descend(value[key], segments.slice(take))
+        if (read !== null) return read
+    }
+    return null
 }
 
 /**
