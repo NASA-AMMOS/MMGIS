@@ -108,17 +108,50 @@
 
 #layersTool .dynamicStyleHeading {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding-right: 2px;
 }
 
-#layersTool .dynamicStyleReset {
+#layersTool .dynamicStyleHeadingActions {
+    display: flex;
+    align-items: center;
+    margin-left: 6px;
+}
+
+#layersTool .dynamicStyleReset,
+#layersTool .dynamicStyleAdd,
+#layersTool .dynamicStyleRemove {
     cursor: pointer;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
     color: var(--color-a4);
+}
+
+/* Rules look alike, so each is numbered to show where one ends and the next
+   begins - and only when there is more than one to tell apart. */
+#layersTool .dynamicStyleRuleHeading {
+    color: var(--color-a5);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    border-top: 1px solid var(--color-a1);
+    padding-top: 4px;
+}
+
+#layersTool .statsProperty {
+    color: white;
+}
+
+#layersTool .statsProperty > div:last-child {
+    color: var(--color-a4);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+}
+
+#layersTool .statsValue {
+    color: var(--color-a5);
+    font-variant-numeric: tabular-nums;
 }
 
 #layersTool #searchLayers > div {

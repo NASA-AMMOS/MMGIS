@@ -1618,6 +1618,13 @@
                 "type": "checkbox",
                 "width": 4,
                 "defaultChecked": false
+              },
+              {
+                "field": "variables.statsFields",
+                "name": "Group Statistics Fields",
+                "description": "Comma-separated numeric field names to summarize per 'Group Id' group. Each feature comes back with '_.stats.<field>' holding the group's 'min', 'max' and 'avg' - so a feature can be styled or labelled by its group rather than only by itself, e.g. by the property '_.stats.depth_m.avg'. Fields named by a Dynamic Style rule are requested automatically.",
+                "type": "text",
+                "width": 4
               }
             ]
           },

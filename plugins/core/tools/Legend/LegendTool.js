@@ -484,15 +484,26 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 shape == 'square' ||
                 shape == 'rect'
             ) {
+                // A dynamic style may drive a weight, a radius or an opacity,
+                // in which case the swatch shows that rather than a colour.
+                const swatchOpacity =
+                    _legend[d].swatchOpacity != null
+                        ? _legend[d].swatchOpacity * opacity
+                        : opacity
+                const swatchSize =
+                    _legend[d].swatchSize != null
+                        ? `${_legend[d].swatchSize}px`
+                        : '18px'
                 switch (shape) {
                     case 'circle':
                         const circleShape = $('<div>')
                             .attr('class', layerUUID + '_legendshape')
                             .css({
-                                'width': '18px',
-                                'height': '18px',
+                                'width': swatchSize,
+                                'height': swatchSize,
+                                'margin': `${(18 - parseFloat(swatchSize)) / 2}px 0px`,
                                 'background': _legend[d].color,
-                                'opacity': opacity,
+                                'opacity': swatchOpacity,
                                 'border': `1px solid ${_legend[d].strokecolor}`,
                                 'border-radius': '50%',
                                 'position': 'relative',
@@ -508,7 +519,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                                 'width': '18px',
                                 'height': '18px',
                                 'background': _legend[d].color,
-                                'opacity': opacity,
+                                'opacity': swatchOpacity,
                                 'border': `1px solid ${_legend[d].strokecolor}`,
                                 'position': 'relative',
                                 'cursor': 'crosshair'
@@ -517,14 +528,19 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                         r.append(squareShape)
                         break
                     case 'rect':
+                        // A weight rule's swatch is a line of that weight.
+                        const rectHeight =
+                            _legend[d].swatchHeight != null
+                                ? _legend[d].swatchHeight
+                                : 8
                         const rectShape = $('<div>')
                             .attr('class', layerUUID + '_legendshape')
                             .css({
                                 'width': '18px',
-                                'height': '8px',
-                                'margin': '5px 0px 5px 0px',
+                                'height': `${rectHeight}px`,
+                                'margin': `${(18 - rectHeight) / 2}px 0px`,
                                 'background': _legend[d].color,
-                                'opacity': opacity,
+                                'opacity': swatchOpacity,
                                 'border': `1px solid ${_legend[d].strokecolor}`,
                                 'position': 'relative',
                                 'cursor': 'crosshair'

@@ -25,10 +25,11 @@ import {
  * written anywhere: it is a way of looking at the data, not a configuration of
  * it, and it is gone on reload.
  *
- * `property`, `attribute`, `range`, `ramp`, `discrete`, `bins` and `stops`
- * apply to the first rule, which is the one the LayersTool panel shows;
- * `domain` applies to all, since
- * "stretch this layer over what I'm looking at" is about the layer.
+ * `rules` replaces the configured rules outright - it is what the LayersTool
+ * writes once a viewer edits, adds or removes one. `property`, `attribute`,
+ * `range`, `ramp`, `discrete`, `bins` and `stops` are a shorthand for the same
+ * thing on the first rule. `domain` applies to all, since "stretch this layer
+ * over what I'm looking at" is about the layer.
  *
  * @param {object} layerObj
  * @param {object|null} override  Merged into any existing one; null clears it.
@@ -71,22 +72,33 @@ export function getDomainMode(layerObj) {
     return source === 'loaded' ? 'view' : 'dataset'
 }
 
+/** The rules a viewer is looking at, before the domain toggle is applied. */
+function overriddenRules(rules, override) {
+    if (override == null) return rules
+    if (Array.isArray(override.rules)) return override.rules
+    // The shorthand: the first rule, as the panel wrote it before rules could
+    // be added or removed.
+    return rules.map((rule, index) => {
+        if (index !== 0) return rule
+        const next = Object.assign({}, rule)
+        if (override.property) next.property = override.property
+        if (override.attribute) next.attribute = override.attribute
+        if (override.range) next.range = override.range
+        if (override.ramp) next.ramp = override.ramp
+        if (override.discrete != null) next.discrete = override.discrete
+        if (override.bins != null) next.bins = override.bins
+        // Boundaries belong to a bin count: dropping them when it changes is
+        // what makes an even split the thing you fall back to.
+        if (override.stops !== undefined) next.stops = override.stops
+        return next
+    })
+}
+
 function withOverride(dynamicStyle, override) {
     if (override == null) return dynamicStyle
 
-    const rules = dynamicStyle.rules.map((rule, index) => {
+    const rules = overriddenRules(dynamicStyle.rules, override).map((rule) => {
         const next = Object.assign({}, rule)
-        if (index === 0) {
-            if (override.property) next.property = override.property
-            if (override.attribute) next.attribute = override.attribute
-            if (override.range) next.range = override.range
-            if (override.ramp) next.ramp = override.ramp
-            if (override.discrete != null) next.discrete = override.discrete
-            if (override.bins != null) next.bins = override.bins
-            // Boundaries belong to a bin count: dropping them when it changes
-            // is what makes an even split the thing you fall back to.
-            if (override.stops !== undefined) next.stops = override.stops
-        }
         // A domain pinned to literal numbers stays pinned; the toggle is about
         // where an unpinned one is measured. Only 'view' is a source of its
         // own — back at 'dataset' the rule is measured however it was written,
@@ -123,6 +135,65 @@ export function getDynamicStyle(layerObj) {
 }
 
 /**
+ * The rules a layer is being viewed with: the configured ones, or the session
+ * ones once a viewer has changed them. What the LayersTool draws its controls
+ * from and writes back to.
+ *
+ * @param {object} layerObj
+ * @returns {Array<object>}
+ */
+export function getViewedRules(layerObj) {
+    const configured = layerObj?.variables?.dynamicStyle?.rules
+    if (!Array.isArray(configured)) return []
+    return overriddenRules(configured, getDynamicStyleOverride(layerObj))
+}
+
+/**
+ * Change one of a layer's rules for this session, by index.
+ *
+ * The whole set is written rather than a patch of the one: a viewer who adds
+ * or removes a rule has a set that no longer lines up with the configured one,
+ * so an index into the configuration would mean the wrong rule.
+ *
+ * @param {object} layerObj
+ * @param {number} index
+ * @param {object} patch
+ * @returns {object|null} the override now in effect.
+ */
+export function overrideDynamicStyleRule(layerObj, index, patch) {
+    const rules = getViewedRules(layerObj).map((rule, i) =>
+        i === index ? Object.assign({}, rule, patch) : rule
+    )
+    return setDynamicStyleOverride(layerObj, { rules })
+}
+
+/**
+ * Add a rule for this session, copying the first configured one so the new one
+ * arrives styling something rather than empty.
+ *
+ * @param {object} layerObj
+ * @param {object} [rule]  Merged over the copy.
+ * @returns {object|null}
+ */
+export function addDynamicStyleRule(layerObj, rule) {
+    const rules = getViewedRules(layerObj)
+    const added = Object.assign({}, rules[0], rule)
+    return setDynamicStyleOverride(layerObj, { rules: [...rules, added] })
+}
+
+/**
+ * Drop a rule for this session.
+ *
+ * @param {object} layerObj
+ * @param {number} index
+ * @returns {object|null}
+ */
+export function removeDynamicStyleRule(layerObj, index) {
+    const rules = getViewedRules(layerObj).filter((rule, i) => i !== index)
+    return setDynamicStyleOverride(layerObj, { rules })
+}
+
+/**
  * The properties a layer's rules style by — the fields it can't be styled
  * without, so a layer that only requests some of its properties knows to ask
  * for these too.
@@ -134,6 +205,38 @@ export function getDynamicStyleProps(layerObj) {
     const dynamicStyle = getDynamicStyle(layerObj)
     if (dynamicStyle == null) return []
     return dynamicStyle.rules.filter(isUsableRule).map((rule) => rule.property)
+}
+
+/**
+ * The geodataset fields a layer wants per-group statistics for: the ones an
+ * admin named, plus the ones its rules style by — a rule aimed at
+ * `_.stats.depth_m.avg` is asking for `depth_m`'s statistics, so it asks for
+ * them itself rather than needing the field listed twice.
+ *
+ * @param {object} layerObj
+ * @returns {string[]}
+ */
+export function getStatsFields(layerObj) {
+    const fields = []
+    const configured = layerObj?.variables?.statsFields
+    const listed =
+        typeof configured === 'string'
+            ? configured.split(',')
+            : Array.isArray(configured)
+            ? configured
+            : []
+    for (const field of listed) {
+        const trimmed = String(field).trim()
+        if (trimmed !== '' && fields.indexOf(trimmed) === -1)
+            fields.push(trimmed)
+    }
+
+    for (const rule of getViewedRules(layerObj)) {
+        const match = /^_\.stats\.([^.]+)\./.exec(rule?.property || '')
+        if (match != null && fields.indexOf(match[1]) === -1)
+            fields.push(match[1])
+    }
+    return fields
 }
 
 /**
@@ -231,6 +334,7 @@ export function applyDynamicStyleToGeoJSON(layerObj, geojson) {
 }
 
 const LayerDynamicStyle = {
+    addDynamicStyleRule,
     applyDynamicStyleToGeoJSON,
     compileLayerDynamicStyle,
     getDomainMode,
@@ -239,6 +343,10 @@ const LayerDynamicStyle = {
     getDynamicStyleProps,
     getLayerDynamicStyleResolver,
     getLayerDynamicStyleRules,
+    getStatsFields,
+    getViewedRules,
+    overrideDynamicStyleRule,
+    removeDynamicStyleRule,
     setDynamicStyleOverride,
 }
 

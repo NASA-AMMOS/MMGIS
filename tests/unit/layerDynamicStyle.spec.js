@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
+  addDynamicStyleRule,
   applyDynamicStyleToGeoJSON,
   compileLayerDynamicStyle,
   getDynamicStyle,
@@ -7,6 +8,10 @@ import {
   getDynamicStyleOverride,
   getDynamicStyleProps,
   getLayerDynamicStyleResolver,
+  getStatsFields,
+  getViewedRules,
+  overrideDynamicStyleRule,
+  removeDynamicStyleRule,
   setDynamicStyleOverride,
 } from "../../src/essence/Basics/Layers_/render/layerDynamicStyle.js";
 
@@ -330,5 +335,83 @@ test.describe("layerDynamicStyle - session overrides", () => {
     expect(resolve({ value: 60 }).fillColor).not.toBe(
       resolve({ value: 10 }).fillColor,
     );
+  });
+});
+
+test.describe("layerDynamicStyle - session rules", () => {
+  test("a rule other than the first can be re-aimed", () => {
+    const layer = layerWith([
+      rule(),
+      rule({ property: "confidence", attribute: "weight", range: [1, 8] }),
+    ]);
+    overrideDynamicStyleRule(layer, 1, { property: "depth" });
+    expect(getDynamicStyle(layer).rules.map((r) => r.property)).toEqual([
+      "value",
+      "depth",
+    ]);
+    expect(
+      layer.variables.dynamicStyle.rules.map((r) => r.property),
+    ).toEqual(["value", "confidence"]);
+  });
+
+  test("a viewer can add a rule and remove one, for the session only", () => {
+    const layer = layerWith([rule({ domain: { min: 0, max: 100 } })]);
+    addDynamicStyleRule(layer, { attribute: "weight", range: [1, 9] });
+    let resolve = compileLayerDynamicStyle(layer, []);
+    expect(resolve({ value: 100 })).toEqual({
+      fillColor: "#ffffff",
+      weight: 9,
+    });
+
+    removeDynamicStyleRule(layer, 0);
+    resolve = compileLayerDynamicStyle(layer, []);
+    expect(resolve({ value: 100 })).toEqual({ weight: 9 });
+    expect(layer.variables.dynamicStyle.rules).toHaveLength(1);
+
+    setDynamicStyleOverride(layer, null);
+    expect(getViewedRules(layer)).toHaveLength(1);
+    expect(getViewedRules(layer)[0].attribute).toBe("fillColor");
+  });
+
+  test("the domain toggle still moves every rule, added ones included", () => {
+    const layer = layerWith([rule({ domain: { source: "stddev", sigma: 2 } })]);
+    addDynamicStyleRule(layer, { attribute: "weight", range: [1, 9] });
+    setDynamicStyleOverride(layer, { domain: "view" });
+    expect(getDynamicStyle(layer).rules.map((r) => r.domain.source)).toEqual([
+      "loaded",
+      "loaded",
+    ]);
+
+    // And back: a rule is measured however it was written again.
+    setDynamicStyleOverride(layer, { domain: "dataset" });
+    expect(getDynamicStyle(layer).rules.map((r) => r.domain.source)).toEqual([
+      "stddev",
+      "stddev",
+    ]);
+  });
+});
+
+test.describe("layerDynamicStyle - getStatsFields", () => {
+  test("asks for the group statistics a rule is aimed at", () => {
+    const layer = layerWith([rule({ property: "_.stats.depth_m.avg" })]);
+    expect(getStatsFields(layer)).toEqual(["depth_m"]);
+  });
+
+  test("asks for what an admin listed too, without asking twice", () => {
+    const layer = layerWith([rule({ property: "_.stats.depth_m.avg" })], {
+      variables: {
+        statsFields: "depth_m, temp_c",
+        dynamicStyle: {
+          enabled: true,
+          rules: [rule({ property: "_.stats.depth_m.avg" })],
+        },
+      },
+    });
+    expect(getStatsFields(layer)).toEqual(["depth_m", "temp_c"]);
+  });
+
+  test("asks for nothing when no rule and no admin wants statistics", () => {
+    expect(getStatsFields(layerWith([rule()]))).toEqual([]);
+    expect(getStatsFields({})).toEqual([]);
   });
 });

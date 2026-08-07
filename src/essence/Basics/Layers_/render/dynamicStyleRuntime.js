@@ -12,10 +12,14 @@
  */
 
 import calls from '../../../../pre/calls'
+import { asNumber, readProperty } from './dynamicStyle'
 import {
+    addDynamicStyleRule,
     compileLayerDynamicStyle,
     getDomainMode,
     getDynamicStyle,
+    overrideDynamicStyleRule,
+    removeDynamicStyleRule,
     setDynamicStyleOverride,
 } from './layerDynamicStyle'
 
@@ -250,9 +254,131 @@ export function overrideDynamicStyle(layer, override) {
     return restyleLayerDynamically(layerObj)
 }
 
+/**
+ * What a layer knows about the numbers a property takes: a geodataset's stored
+ * statistics over every feature it has, or a measure of the features in hand
+ * for anything else.
+ *
+ * @param {object} layerObj
+ * @param {string} property
+ * @returns {?{min: number, max: number, avg: number, stddev: number,
+ *             count: number, nullCount: number, wholeDataset: boolean}}
+ */
+export function propertyStats(layerObj, property) {
+    const stored = layerObj?._fieldStats?.[property]
+    if (stored != null && asNumber(stored.min) != null)
+        return {
+            min: asNumber(stored.min),
+            max: asNumber(stored.max),
+            avg: asNumber(stored.avg),
+            stddev: asNumber(stored.stddev),
+            count: asNumber(stored.count),
+            nullCount: asNumber(stored.nullCount),
+            wholeDataset: true,
+        }
+
+    const features = loadedFeatures(layerObj)
+    if (features.length === 0) return null
+
+    let min = Infinity
+    let max = -Infinity
+    let sum = 0
+    let sumsq = 0
+    let count = 0
+    for (const feature of features) {
+        const value = asNumber(readProperty(feature?.properties, property))
+        if (value == null) continue
+        if (value < min) min = value
+        if (value > max) max = value
+        sum += value
+        sumsq += value * value
+        count += 1
+    }
+    if (count === 0) return null
+
+    const avg = sum / count
+    return {
+        min,
+        max,
+        avg,
+        stddev: Math.sqrt(Math.max(0, sumsq / count - avg * avg)),
+        count,
+        nullCount: features.length - count,
+        wholeDataset: false,
+    }
+}
+
+/** Every feature a layer holds, whatever its domain is measured over. */
+function loadedFeatures(layerObj) {
+    const Layers = L_()
+    const leafletLayer = Layers.layers.layer[layerObj?.name]
+    if (leafletLayer == null || typeof leafletLayer.eachLayer !== 'function')
+        return []
+    const features = []
+    leafletLayer.eachLayer((sublayer) => {
+        if (sublayer?.feature != null) features.push(sublayer.feature)
+    })
+    return features
+}
+
+/**
+ * Change one of a layer's rules for this session and repaint it.
+ *
+ * @param {string|object} layer
+ * @param {number} index
+ * @param {object} patch
+ * @returns {boolean}
+ */
+export function overrideDynamicStyleRuleOf(layer, index, patch) {
+    return withLayer(layer, (layerObj) => {
+        overrideDynamicStyleRule(layerObj, index, patch)
+    })
+}
+
+/**
+ * Add a session rule to a layer and repaint it.
+ *
+ * @param {string|object} layer
+ * @param {object} [rule]
+ * @returns {boolean}
+ */
+export function addDynamicStyleRuleTo(layer, rule) {
+    return withLayer(layer, (layerObj) => {
+        addDynamicStyleRule(layerObj, rule)
+    })
+}
+
+/**
+ * Drop one of a layer's session rules and repaint it.
+ *
+ * @param {string|object} layer
+ * @param {number} index
+ * @returns {boolean}
+ */
+export function removeDynamicStyleRuleFrom(layer, index) {
+    return withLayer(layer, (layerObj) => {
+        removeDynamicStyleRule(layerObj, index)
+    })
+}
+
+function withLayer(layer, change) {
+    const Layers = L_()
+    const layerObj =
+        typeof layer === 'string'
+            ? Layers.layers.data[Layers.asLayerUUID(layer)]
+            : layer
+    if (layerObj == null) return false
+    change(layerObj)
+    return restyleLayerDynamically(layerObj)
+}
+
 const DynamicStyleRuntime = {
     RESTYLED_EVENT,
+    addDynamicStyleRuleTo,
     domainFeatures,
+    overrideDynamicStyleRuleOf,
+    propertyStats,
+    removeDynamicStyleRuleFrom,
     ensureFieldStats,
     forgetFieldStatsRequests,
     layersFollowingTheView,

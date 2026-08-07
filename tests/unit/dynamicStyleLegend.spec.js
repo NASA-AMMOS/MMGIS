@@ -120,15 +120,59 @@ test.describe("dynamicStyleLegend - dynamicStyleLegendEntries", () => {
     expect(layer._dynamicStyleResolver).toBe(resolver);
   });
 
-  test("rules that drive no colour have nothing to draw", () => {
+  test("a weight rule is drawn as lines of that weight, titled by attribute", () => {
+    const entries = dynamicStyleLegendEntries(
+      layerWith([numericRule({ attribute: "weight", range: [1, 5] })]),
+    );
+    expect(entries.length).toBe(5);
+    expect(entries.every((e) => e.shape === "rect")).toBe(true);
+    // Highest value first, as a colour scale is.
+    expect(entries.map((e) => [e.value, e.swatchHeight])).toEqual([
+      ["100", 5],
+      ["75", 4],
+      ["50", 3],
+      ["25", 2],
+      ["0", 1],
+    ]);
+    expect(entries[0].scaleTitle).toBe("value (Weight)");
+  });
+
+  test("an opacity rule fades its swatches instead of colouring them", () => {
+    const entries = dynamicStyleLegendEntries(
+      layerWith([numericRule({ attribute: "fillOpacity", range: [0, 1] })]),
+    );
+    expect(entries.every((e) => e.shape === "square")).toBe(true);
+    expect(entries.map((e) => e.swatchOpacity)).toEqual([1, 0.75, 0.5, 0.25, 0]);
+    expect(entries[0].scaleTitle).toBe("value (Fill Opacity)");
+  });
+
+  test("a discrete radius rule keeps its bin labels", () => {
+    const entries = dynamicStyleLegendEntries(
+      layerWith([
+        numericRule({
+          attribute: "radius",
+          range: [2, 8],
+          discrete: true,
+          bins: 2,
+        }),
+      ]),
+    );
+    expect(entries.map((e) => [e.value, e.shape, e.swatchSize])).toEqual([
+      ["50 – 100", "circle", 13],
+      ["0 – 50", "circle", 7],
+    ]);
+  });
+
+  test("a colour rule and a weight rule are two scales, not one", () => {
     const entries = dynamicStyleLegendEntries(
       layerWith([
         numericRule({ attribute: "weight", range: [1, 5] }),
         numericRule(),
       ]),
     );
-    expect(entries.length).toBe(9);
-    expect(entries[0].scaleTitle).toBe("value");
+    expect(entries.length).toBe(14);
+    expect(entries[0].scaleTitle).toBe("value (Weight)");
+    expect(entries[5].scaleTitle).toBe("value");
   });
 
   test("two colour rules each get their own titled scale", () => {

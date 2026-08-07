@@ -8,6 +8,7 @@ import TimeControl from '../../TimeControl_/TimeControl'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 import LayerInterface from '../interface/LayerInterface'
 import { acceptsDynamicResult, sourceCtx } from './dynamicExtent'
+import { getStatsFields } from '../render/layerDynamicStyle'
 
 function isKmlUrl(url) {
     try {
@@ -489,6 +490,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     : null,
                         }
 
+                        // Per-group statistics, so a feature can be styled or
+                        // labelled by its group rather than only by itself.
+                        const statsFields = getStatsFields(layerData)
+                        if (statsFields.length > 0)
+                            body.stats = statsFields.join(',')
+
                         if (
                             layerData.time?.enabled === true &&
                             layerData.time?.type === 'requery'
@@ -832,6 +839,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end
                 }
+                const statsFields = getStatsFields(layerData)
+                if (statsFields.length > 0) body.stats = statsFields.join(',')
                 body.noDuplicates = layerData?.variables?.noDuplicates === true
                 body._source =
                     layerData?.variables?.getFeaturePropertiesOnClick === true
