@@ -247,7 +247,8 @@ export function getStatsFields(layerObj) {
         const field =
             propertyTypeOf(rule) === 'stats'
                 ? rule.property
-                : (/^_\.stats\.([^.]+)\./.exec(rule?.property || '') || [])[1]
+                : (/^_\.stats\.(.+)\.[^.]+$/.exec(rule?.property || '') ||
+                      [])[1]
         if (
             typeof field === 'string' &&
             field !== '' &&

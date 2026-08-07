@@ -410,6 +410,11 @@ test.describe("layerDynamicStyle - getStatsFields", () => {
     expect(getStatsFields(layer)).toEqual(["depth_m"]);
   });
 
+  test("asks for a nested field by its whole name", () => {
+    const layer = layerWith([rule({ property: "_.stats.meta.depth.avg" })]);
+    expect(getStatsFields(layer)).toEqual(["meta.depth"]);
+  });
+
   test("asks for the field a stats rule names", () => {
     const layer = layerWith([
       rule({ propertyType: "stats", property: "depth_m", stat: "max" }),
