@@ -181,6 +181,11 @@ const ATTRIBUTE_LABELS = {
     radius: 'Radius',
 }
 
+// Per-group and dataset-wide statistics are easy to confuse, so the Stat row
+// says which it is. Free of markup characters: it is interpolated as a title.
+const STAT_HELP =
+    'Measured over the features that share a group, so Std Dev is how much values vary within the group rather than how unusual one feature is. To colour by distance from the average, keep Average and set the rule Domain to mean \u00b1 \u03c3.'
+
 // How a group's statistics read in the Layers Tool
 const STAT_LABELS = {
     min: 'Minimum',
@@ -3175,7 +3180,10 @@ function interfaceWithMMGIS(fromInit) {
             '</div>'].join('\n') : '',
             !isStats ? '' : [
             '<div class="sublayer dynamicStyleRow">',
-                '<div title="Which of the group\'s statistics decides the style.">Stat</div>',
+                '<div class="dynamicStyleLabelInfo">',
+                    'Stat',
+                    `<i class="mdi mdi-information-outline mdi-18px" title="${STAT_HELP}"></i>`,
+                '</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleStat" layername="${name}" ruleindex="${index}">`,
                         GROUP_STATS.map((s) =>

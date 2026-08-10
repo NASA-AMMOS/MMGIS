@@ -10,6 +10,7 @@ import {
 import { dynamicStyleLegendEntries } from '@basics/Layers_/render/dynamicStyleLegend'
 import { RESTYLED_EVENT } from '@basics/Layers_/render/dynamicStyleRuntime'
 import { getDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
+import { extractUnits, splitValueUnits } from './legendValueUnits'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
@@ -813,34 +814,6 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             }
         }
 
-        // Helper function to detect and extract units from legend values
-        const extractUnits = (values) => {
-            if (!values || values.length === 0) return { number: '', units: '' }
-            
-            const firstValue = String(values[0]).trim()
-            
-            // Find where non-numeric characters start
-            const match = firstValue.match(/^([0-9.,\-\s]+)(.*)$/)
-            if (match) {
-                const number = match[1].trim()
-                const units = match[2].trim()
-                
-                // Verify this pattern works for all values
-                const allValuesMatch = values.every(v => {
-                    const str = String(v).trim()
-                    const valMatch = str.match(/^([0-9.,\-\s]+)(.*)$/)
-                    return valMatch && valMatch[2].trim() === units
-                })
-                
-                if (allValuesMatch) {
-                    return { number, units }
-                }
-            }
-            
-            // No common units found
-            return { number: firstValue, units: '' }
-        }
-
         // Add tick marks only for continuous legends
         if (legendEntries.length > 0 && legendEntries[0].shape === 'continuous') {
             for (let i = 0; i < visibleLabels.length; i++) {
@@ -940,20 +913,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             // Determine if this is first or last label
             const isFirstOrLast = i === 0 || i === visibleLabels.length - 1
             
-            // Extract number and units from the value
-            const str = String(visibleLabels[i].value).trim()
-            
-            // Find where non-numeric characters start
-            const match = str.match(/^([0-9.,\-\s]+)(.*)$/)
-            let number, units
-            if (match) {
-                number = match[1].trim()
-                units = match[2].trim()
-            } else {
-                // Fallback: no units found
-                number = str
-                units = ''
-            }
+            const { number } = splitValueUnits(visibleLabels[i].value)
             
             // For horizontal legends, show only numbers (units are displayed separately above)
             let displayText

@@ -128,6 +128,22 @@
   color: var(--color-a4);
 }
 
+/* A label with an explanation beside it, the icon sized to sit on the text. */
+#layersTool .dynamicStyleLabelInfo {
+  display: flex;
+  align-items: center;
+}
+
+#layersTool .dynamicStyleLabelInfo > i {
+  color: var(--color-a4);
+  cursor: help;
+  margin-left: 4px;
+  font-size: 14px;
+  line-height: 14px;
+  width: 14px;
+  height: 14px;
+}
+
 /* Rules look alike, so each is numbered to show where one ends and the next
    begins - and only when there is more than one to tell apart. */
 #layersTool .dynamicStyleRuleHeading {
