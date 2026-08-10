@@ -419,6 +419,9 @@ export default function GeoDatasets() {
           severity: res?.status === "success" ? "success" : "error",
         })
       );
+      // The entries hold each geodataset's statistics, so a rescan makes the
+      // ones in hand stale.
+      if (res?.status === "success") queryGeoDatasets();
     };
     calls.api(
       "geodatasets_recompute_stats",
