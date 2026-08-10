@@ -107,16 +107,46 @@
   color: white;
 }
 
-#layersTool .dynamicStyleHeading {
+/* The section headings inside a layer's settings, sitting at the same left edge
+   as the panel's own "Layer Settings" title. */
+#layersTool .dynamicStyleHeading,
+#layersTool .statsRow.sublayerHeading {
   display: flex;
   align-items: center;
-  padding-right: 2px;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 2px 0 0;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* The dynamic style's own controls end where the statistics describing them
+   begin. */
+#layersTool .statsRow.sublayerHeading {
+  margin: 4px -6px 0 -12px;
+  padding: 0 8px 0 12px;
+  border-top: 1px solid var(--color-a);
+}
+
+#layersTool .dynamicStyleHeadingTitle {
+  display: flex;
+  align-items: center;
+}
+
+#layersTool .dynamicStyleHeadingTitle > .dynamicStyleReset {
+  margin-left: 4px;
 }
 
 #layersTool .dynamicStyleHeadingActions {
   display: flex;
   align-items: center;
   margin-left: 6px;
+}
+
+#layersTool .dynamicStyleAdd > div {
+  font-size: 11px;
+  letter-spacing: 0.5px;
 }
 
 #layersTool .dynamicStyleReset,
@@ -145,14 +175,27 @@
 }
 
 /* Rules look alike, so each is numbered to show where one ends and the next
-   begins - and only when there is more than one to tell apart. */
-#layersTool .dynamicStyleRuleHeading {
-  color: var(--color-a5);
-  text-transform: uppercase;
+   begins - and only when there is more than one to tell apart. What belongs to
+   a rule is indented under it. */
+#layersTool .dynamicStyleRuleHeading,
+#layersTool .statsProperty {
+  align-items: center;
+  height: 24px;
+  margin-top: 4px;
+  padding-right: 2px;
+  color: var(--color-a6);
   font-size: 11px;
   letter-spacing: 0.5px;
-  border-top: 1px solid var(--color-a1);
-  padding-top: 4px;
+}
+
+#layersTool .dynamicStyleRuleHeading {
+  text-transform: uppercase;
+}
+
+#layersTool .sublayer.dynamicStyleRuleRow,
+#layersTool .sublayer.statsValueRow,
+#layersTool .dynamicStyleRuleRow {
+  padding-left: 32px;
 }
 
 /* The two numbers a weight, radius or opacity rule spans, sized to line up
@@ -181,14 +224,14 @@
 }
 
 #layersTool .statsProperty {
-  color: white;
+  cursor: help;
+  font-size: 12px;
 }
 
 #layersTool .statsProperty > div:last-child {
   color: var(--color-a4);
-  text-transform: uppercase;
   font-size: 10px;
-  letter-spacing: 0.5px;
+  padding-right: 4px;
 }
 
 #layersTool .statsValue {
@@ -760,6 +803,10 @@
   padding: 0px 6px 0px 4px;
   color: rgba(255, 255, 255, 0.5);
   transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+#layersTool .dynamicStyleRow select.dropdown {
+  width: 177px;
 }
 
 #layersTool .dropdown {

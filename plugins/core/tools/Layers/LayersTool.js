@@ -1636,6 +1636,7 @@ function interfaceWithMMGIS(fromInit) {
                         // The markup is new, so the ramp editor's React root
                         // is now pointing at a node that has been thrown away.
                         mountDynamicStyleRamps(layerName)
+                        mountDynamicStyleTips(layerName)
                     }
                 }
             }
@@ -3124,10 +3125,12 @@ function interfaceWithMMGIS(fromInit) {
         // prettier-ignore
         return [
             '<div class="sublayerHeading dynamicStyleRow dynamicStyleHeading">',
-                '<div>Dynamic Style</div>',
-                '<div class="dynamicStyleHeadingActions">',
+                '<div class="dynamicStyleHeadingTitle">',
+                    '<div>Dynamic Style</div>',
                     `<div class="dynamicStyleReset mmgisHoverBlue" layername="${name}" title="Style this layer the way it was configured again, undoing the changes made here."><i class="mdi mdi-restore mdi-18px"></i></div>`,
-                    `<div class="dynamicStyleAdd mmgisHoverBlue" layername="${name}" title="Style by another property as well. The new rule starts as a copy of the first."><i class="mdi mdi-plus mdi-18px"></i></div>`,
+                '</div>',
+                '<div class="dynamicStyleHeadingActions">',
+                    `<div class="dynamicStyleAdd mmgisHoverBlue" layername="${name}" title="Style by another property as well. The new rule starts as a copy of the first."><div>Add</div><i class="mdi mdi-plus mdi-18px"></i></div>`,
                 '</div>',
             '</div>',
             '<div class="sublayer dynamicStyleRow">',
@@ -3168,7 +3171,7 @@ function interfaceWithMMGIS(fromInit) {
                 `<div class="dynamicStyleRemove mmgisHoverBlue" layername="${name}" ruleindex="${index}" title="Stop styling by this rule for this session."><i class="mdi mdi-close mdi-18px"></i></div>`,
             '</div>'].join('\n') : '',
             properties.length > 0 ? [
-            '<div class="sublayer dynamicStyleRow">',
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
                 `<div title="${isStats ? 'The field whose per-group statistics the layer is coloured by, so a feature is coloured by its group rather than by itself.' : 'The feature property the layer is coloured by. The choices are the properties this layer has rules for.'}">${isStats ? 'Stats Field' : 'Property'}</div>`,
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleProperty" layername="${name}" ruleindex="${index}">`,
@@ -3179,10 +3182,10 @@ function interfaceWithMMGIS(fromInit) {
                 '</div>',
             '</div>'].join('\n') : '',
             !isStats ? '' : [
-            '<div class="sublayer dynamicStyleRow">',
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
                 '<div class="dynamicStyleLabelInfo">',
                     'Stat',
-                    `<i class="mdi mdi-information-outline mdi-18px" title="${STAT_HELP}"></i>`,
+                    '<i class="mdi mdi-information-outline mdi-18px dynamicStyleStatInfo"></i>',
                 '</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleStat" layername="${name}" ruleindex="${index}">`,
@@ -3192,7 +3195,7 @@ function interfaceWithMMGIS(fromInit) {
                     '</select>',
                 '</div>',
             '</div>'].join('\n'),
-            '<div class="sublayer dynamicStyleRow">',
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
                 '<div title="The style attribute the property drives. Colours take a ramp; the others take a range of numbers.">Styles</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleAttribute" layername="${name}" ruleindex="${index}">`,
@@ -3207,7 +3210,7 @@ function interfaceWithMMGIS(fromInit) {
             // A numeric attribute spans two numbers rather than a ramp, so
             // those are what there is to aim.
             rule.type === 'categorical' || COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' : [
-            '<div class="sublayer dynamicStyleRow dynamicStyleRangeRow">',
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow dynamicStyleRangeRow">',
                 `<div title="What the property's lowest and highest values come out as. A lower 'to' than 'from' reverses the scale.">${ATTRIBUTE_LABELS[rule.attribute] || 'Style'}</div>`,
                 '<div class="dynamicStyleRangeInputs">',
                     `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="low" type="number" step="any" value="${escapeHTML(rangeOf(rule)[0])}" title="What the lowest value looks like.">`,
@@ -3219,7 +3222,7 @@ function interfaceWithMMGIS(fromInit) {
             // its bins are draggable, so this part is React - mounted into
             // here by mountDynamicStyleRamps once the markup is in the page.
             rule.type === 'categorical' || !COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' :
-            `<div class="dynamicStyleRow dynamicStyleRampMount" layername="${name}" ruleindex="${index}"></div>`,
+            `<div class="dynamicStyleRow dynamicStyleRuleRow dynamicStyleRampMount" layername="${name}" ruleindex="${index}"></div>`,
         ].join('\n')
     }
 
@@ -3257,7 +3260,7 @@ function interfaceWithMMGIS(fromInit) {
                 : 'the features this layer has loaded'
             // prettier-ignore
             rows.push([
-                `<div class="sublayer statsRow statsProperty" title="Measured over ${over}.">`,
+                `<div class="sublayer statsRow statsProperty" data-tippy-content="Measured over ${over}.">`,
                     `<div>${escapeHTML(property)}</div>`,
                     `<div>${stats.wholeDataset ? 'dataset' : 'loaded'}</div>`,
                 '</div>',
@@ -3284,7 +3287,7 @@ function interfaceWithMMGIS(fromInit) {
                 ? String(Math.round(value))
                 : String(parseFloat(value.toPrecision(6)))
         return [
-            '<div class="sublayer statsRow">',
+            '<div class="sublayer statsRow statsValueRow">',
             `<div>${label}</div>`,
             `<div class="statsValue">${shown}</div>`,
             '</div>',
@@ -3339,6 +3342,26 @@ function interfaceWithMMGIS(fromInit) {
         unmountDynamicStyleRamps(uuid, kept)
     }
 
+    /**
+     * Give the dynamic style and stats markup its tooltips. Fresh markup means
+     * fresh elements, so any tippy on the old ones went with them.
+     */
+    function mountDynamicStyleTips(layerName) {
+        const settings = `#LayersTool${F_.getSafeName(
+            layerName
+        )} > .settingsmainvector`
+        tippy(`${settings} .dynamicStyleStatInfo`, {
+            content: STAT_HELP,
+            placement: 'left',
+            theme: 'blue',
+            maxWidth: 260,
+        })
+        tippy(`${settings} .statsProperty`, {
+            placement: 'left',
+            theme: 'blue',
+        })
+    }
+
     /** Drop the roots of this layer's ramps that are no longer in the page. */
     function unmountDynamicStyleRamps(uuid, kept) {
         const byIndex = LayersTool._dynamicStyleRoots[uuid]
@@ -3385,6 +3408,7 @@ function interfaceWithMMGIS(fromInit) {
         )
         setSublayerEvents()
         mountDynamicStyleRamps(layerName)
+        mountDynamicStyleTips(layerName)
     }
 
     function getVectorLayerSettings(layerName) {

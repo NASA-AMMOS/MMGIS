@@ -1,8 +1,8 @@
-/* Left edge and control width match .sublayer above, so the ramp and its bins
-   line up with the dropdowns rather than sitting proud of them. */
+/* The mount is indented with the rest of the rule's rows, so these sit flush
+   inside it and line up with the dropdowns above. */
 .dynamicStyleRampControls {
     width: 100%;
-    padding: 0 0 8px 20px;
+    padding: 0 0 8px 0;
 }
 
 .dynamicStyleRampRow {
@@ -17,11 +17,11 @@
 }
 
 .dynamicStyleRampPicker {
-    width: 120px;
+    width: 177px;
 }
 
 .dynamicStyleRampRow > input.dynamicStyleBins {
-    width: 120px;
+    width: 177px;
     height: 28px;
     margin: 1px 0px;
     padding: 0px 2px;
