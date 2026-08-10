@@ -233,8 +233,8 @@ export function getStatsFields(layerObj) {
         typeof configured === 'string'
             ? configured.split(',')
             : Array.isArray(configured)
-            ? configured
-            : []
+              ? configured
+              : []
     for (const field of listed) {
         const trimmed = String(field).trim()
         if (trimmed !== '' && fields.indexOf(trimmed) === -1)
@@ -292,6 +292,20 @@ export function compileLayerDynamicStyle(layerObj, features) {
         values: values,
     })
     const resolver = resolverOf(compiled)
+    // Silently losing every style is the hardest thing to diagnose about a rule,
+    // so a rule that was configured but produced nothing says which one it was.
+    dynamicStyle.rules
+        .filter(
+            (rule) =>
+                isUsableRule(rule) && !compiled.some((c) => c.rule === rule)
+        )
+        .forEach((rule) =>
+            console.warn(
+                `Dynamic style: '${layerObj.name}' has no values for '${rulePropertyPath(
+                    rule
+                )}', so that rule styles nothing.`
+            )
+        )
     layerObj._dynamicStyleRules = resolver == null ? null : compiled
     layerObj._dynamicStyleResolver = resolver
     return resolver

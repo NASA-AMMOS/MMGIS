@@ -226,13 +226,11 @@ export function resolveDomain(rule, context) {
     if (min != null && max != null) return min > max ? null : { min, max }
 
     const ctx = context || {}
+    const fieldStat = ctx.fieldStats ? ctx.fieldStats[rule.property] : null
     // A field's statistics describe its individual values, not the spread of
     // its groups' averages, so a rule styling by a group statistic is stretched
     // over the group values themselves.
-    const stat =
-        ctx.fieldStats && propertyTypeOf(rule) !== 'stats'
-            ? ctx.fieldStats[rule.property]
-            : null
+    const stat = propertyTypeOf(rule) === 'stats' ? null : fieldStat
     const source = configured.source || 'auto'
 
     let resolved = null
@@ -242,6 +240,9 @@ export function resolveDomain(rule, context) {
     else if (source === 'loaded') resolved = valuesDomain(ctx.values)
     else resolved = statsDomain(stat) || valuesDomain(ctx.values)
 
+    // Nothing measured is no styling at all, so a group rule with no group
+    // values in hand yet borrows its field's own extent rather than vanishing.
+    if (resolved == null) resolved = statsDomain(fieldStat)
     if (resolved == null) return null
     // A half-configured domain pins one end and lets the other be discovered.
     return {
