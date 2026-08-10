@@ -3429,6 +3429,29 @@ function interfaceWithMMGIS(fromInit) {
         mountDynamicStyleTips(layerName)
     }
 
+    /**
+     * Redraw only the statistics a layer reports — a restyle changes what they
+     * are measured over, not the controls above them, which may be being typed
+     * into.
+     */
+    function refreshStatsSettings(layerName) {
+        const settings = $(
+            `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
+        )
+        const rows = settings.find('.statsRow')
+        // The section only exists once there is something to report, so
+        // bringing it back means rebuilding the block.
+        if (rows.length === 0) {
+            if (settings.find('.dynamicStyleRow').length > 0)
+                refreshDynamicStyleSettings(layerName)
+            return
+        }
+        const markup = getStatsSettings(layerName)
+        rows.slice(1).remove()
+        rows.first().replaceWith(markup)
+        if (markup !== '') mountDynamicStyleTips(layerName)
+    }
+
     function getVectorLayerSettings(layerName) {
         let currentOpacity = L_.getLayerOpacity(layerName)
         if (currentOpacity == null)
@@ -3598,7 +3621,7 @@ function interfaceWithMMGIS(fromInit) {
             restyleFrom(this, { domain: $(this).val() })
             // The stats describe the same features the domain does, so they are
             // measured over a different set now.
-            refreshDynamicStyleSettings($(this).attr('layername'))
+            refreshStatsSettings($(this).attr('layername'))
         })
 
         $('.dynamicStyleReset').off('click')
@@ -3744,7 +3767,7 @@ function interfaceWithMMGIS(fromInit) {
         // display name when layers are addressed by uuid.
         $('#layersToolList li[name]').each(function () {
             const name = $(this).attr('name')
-            if (L_.asLayerUUID(name) === uuid) refreshDynamicStyleSettings(name)
+            if (L_.asLayerUUID(name) === uuid) refreshStatsSettings(name)
         })
     }
     document.addEventListener(RESTYLED_EVENT, handleRestyled)
