@@ -20,6 +20,8 @@ const {
   buildStatsSelect,
   readRowStats,
   collectFieldStats,
+  buildFieldStatsScan,
+  readFieldStatsScan,
   withAverages,
 } = require("../lib/stats");
 
@@ -1071,6 +1073,61 @@ router.get("/aggregations", function (req, res, next) {
     .catch((err) => {
       logger("error", "Failure finding geodataset.", req.originalUrl, req, err);
       res.send({ status: "failure", message: "Failure finding geodataset." });
+    });
+});
+
+// Recomputes a geodataset's dataset-wide field statistics from the rows it
+// already holds — what a geodataset ingested before `field_stats` existed needs,
+// since an append only merges the features it appends.
+router.post("/recompute_stats/:name", function (req, res, next) {
+  Geodatasets.findOne({ where: { name: req.params.name } })
+    .then(async (result) => {
+      if (result == null) {
+        res.send({
+          status: "failure",
+          message: `Geodataset '${req.params.name}' not found.`,
+        });
+        return null;
+      }
+      const scan = buildFieldStatsScan(
+        Utils.forceAlphaNumUnder(result.dataValues.table)
+      );
+      const [rows] = await sequelize.query(scan.text, {
+        replacements: scan.replacements,
+      });
+      const field_stats = readFieldStatsScan(rows);
+      // A rescan has seen every feature, so it replaces rather than merges.
+      await updateGeodatasetFieldStats(
+        result.dataValues.name,
+        field_stats,
+        "recreate"
+      );
+      logger(
+        "info",
+        `Recomputed field statistics for geodataset '${result.dataValues.name}'.`
+      );
+      res.send({
+        status: "success",
+        message: `Recomputed statistics for ${
+          Object.keys(field_stats).length
+        } numeric field(s).`,
+        field_stats: withAverages(field_stats, result.dataValues.num_features),
+      });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to recompute field statistics for '${req.params.name}'.`,
+        "geodatasets",
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to recompute field statistics.",
+      });
+      return null;
     });
 });
 

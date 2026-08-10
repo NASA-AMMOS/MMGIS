@@ -198,6 +198,82 @@ function accumulateProperties(stats, obj, prefix) {
   }
 }
 
+// How deep a rescan descends, matching what the accessors can read back.
+const MAX_SCAN_DEPTH = 10;
+
+/**
+ * Build the query that recomputes a geodataset's whole `field_stats` from the
+ * rows already in its table, aggregating in Postgres rather than reading every
+ * feature into node. Nested properties flatten to the dotted paths
+ * `collectFieldStats` produces, over the same numeric guard, so a rescan agrees
+ * with what ingest would have stored.
+ *
+ * @param {string} table already-sanitized table name
+ * @returns {{ text: string, replacements: Object }}
+ */
+function buildFieldStatsScan(table) {
+  // Sums are NUMERIC so a large field's squares cannot overflow mid-aggregate,
+  // and come back as text for node to parse rather than as a float.
+  const text = `
+    WITH RECURSIVE flat(path, value, depth) AS (
+      SELECT kv.key, kv.value, 1
+      FROM ${table}, jsonb_each(properties::JSONB) kv
+      WHERE jsonb_typeof(properties::JSONB) = 'object'
+      UNION ALL
+      SELECT flat.path || '.' || kv.key, kv.value, flat.depth + 1
+      FROM flat, jsonb_each(flat.value) kv
+      WHERE jsonb_typeof(flat.value) = 'object' AND flat.depth < ${MAX_SCAN_DEPTH}
+    ),
+    numbers AS (
+      SELECT path,
+        -- Nested so the cast is only ever reached by text the guard matched.
+        CASE WHEN jsonb_typeof(value) IN ('number', 'string')
+          AND (value #>> '{}') ~ :stats_numeric_regex
+        THEN CASE WHEN ABS((value #>> '{}')::NUMERIC) <= ${FLOAT8_MAX}
+          THEN (value #>> '{}')::NUMERIC END
+        END AS num
+      FROM flat
+    )
+    SELECT path,
+      MIN(num)::TEXT AS min,
+      MAX(num)::TEXT AS max,
+      SUM(num)::TEXT AS sum,
+      SUM(num * num)::TEXT AS sumsq,
+      COUNT(num)::TEXT AS count
+    FROM numbers
+    WHERE num IS NOT NULL
+    GROUP BY path`;
+  return {
+    text: text,
+    replacements: { stats_numeric_regex: SQL_NUMERIC_REGEX },
+  };
+}
+
+/**
+ * Turn {@link buildFieldStatsScan}'s rows into stored `field_stats`. A field
+ * whose squares outgrew a float keeps its other numbers and loses `sumsq`, the
+ * same shape statistics stored before `sumsq` existed have.
+ */
+function readFieldStatsScan(rows) {
+  const stats = {};
+  if (!Array.isArray(rows)) return stats;
+  rows.forEach((row) => {
+    const path = row ? row.path : null;
+    if (typeof path !== "string" || path === "") return;
+    const stat = {
+      type: "number",
+      min: toNumberOrNull(row.min),
+      max: toNumberOrNull(row.max),
+      sum: toNumberOrNull(row.sum),
+      sumsq: toNumberOrNull(row.sumsq),
+      count: toNumberOrNull(row.count),
+    };
+    if (stat.sumsq == null) delete stat.sumsq;
+    if (isFieldStat(stat)) stats[path] = stat;
+  });
+  return stats;
+}
+
 /**
  * Merge freshly computed field statistics into previously stored ones — the
  * append case. Extrema take the outer bound; sums and counts add.
@@ -297,6 +373,8 @@ module.exports = {
   statAlias,
   readRowStats,
   collectFieldStats,
+  buildFieldStatsScan,
+  readFieldStatsScan,
   mergeFieldStats,
   withAverages,
 };

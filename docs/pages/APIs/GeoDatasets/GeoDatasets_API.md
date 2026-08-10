@@ -28,6 +28,7 @@ Enables programmatic control over GeoDataset layers. GeoDatasets are GeoJSON fil
   - [POST /recreate](#post-recreate)
   - [POST /recreate/:name](#post-recreatename)
   - [POST /recreate/:name/:start_end_prop](#post-recreatenamestart_end_prop)
+  - [POST /recompute_stats/:name](#post-recompute_statsname)
   - [DELETE /remove/:name](#delete-removename)
 
 ---
@@ -381,6 +382,16 @@ See [POST /recreate](#post-recreate). `name` is part of url and the POST body is
 #### Example
 
 `curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" --data-binary "@my_geodataset.json" http://localhost:8888/api/geodatasets/recreate/my_geodataset/start_time,end_time`
+
+---
+
+### POST /recompute_stats/:name
+
+Recomputes a geodataset's dataset-wide `field_stats` from the features already in it, in one pass over its table. Needed only for a geodataset written before those statistics were kept, since an append summarizes just the features it appends. See [GET /schema](#get-schema) for what is returned per field.
+
+#### Example
+
+`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8888/api/geodatasets/recompute_stats/my_geodataset`
 
 ---
 

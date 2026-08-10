@@ -475,4 +475,54 @@ test.describe.serial("Geodatasets statistics", () => {
       count: 7,
     });
   });
+
+  test("a rescan reproduces what was accumulated as it was written", async () => {
+    test.skip(!adminReady, "SKIP: admin access unavailable");
+
+    // The point of the rescan is a geodataset written before field_stats
+    // existed, which no API can produce here - so what is asserted is the
+    // property that makes it usable: one pass over the table agrees with what
+    // ingesting and appending accumulated.
+    const before = await api.get(`/api/geodatasets/schema?layers=${layerName}`);
+    const accumulated = (await before.json()).field_stats[layerName];
+
+    const recompute = await api.post(
+      `/api/geodatasets/recompute_stats/${layerName}`,
+    );
+    const result = await recompute.json();
+    expect(result.status).toBe("success");
+
+    const after = await api.get(`/api/geodatasets/schema?layers=${layerName}`);
+    const rescanned = (await after.json()).field_stats[layerName];
+
+    expect(Object.keys(rescanned).sort()).toEqual(
+      Object.keys(accumulated).sort(),
+    );
+    Object.keys(accumulated).forEach((field) => {
+      // Floating point addition is order dependent, so the numbers are equal
+      // rather than identical.
+      ["min", "max", "count"].forEach((key) =>
+        expect(rescanned[field][key]).toBe(accumulated[field][key]),
+      );
+      ["sum", "sumsq", "avg", "stddev"].forEach((key) =>
+        expect(rescanned[field][key]).toBeCloseTo(accumulated[field][key], 6),
+      );
+    });
+    // A value too large for a float is no more a number to the rescan than it
+    // was to ingest.
+    expect(rescanned.huge).toBe(undefined);
+    // Nested properties keep the dotted paths a Stats rule reads them by.
+    expect(rescanned["meta.depth"]).toMatchObject({ min: 5, max: 7, count: 2 });
+  });
+
+  test("a rescan of an unknown geodataset fails rather than creating one", async () => {
+    test.skip(!adminReady, "SKIP: admin access unavailable");
+
+    const response = await api.post(
+      "/api/geodatasets/recompute_stats/no_such_geodataset",
+    );
+    const data = await response.json();
+    expect(data.status).toBe("failure");
+    expect(data.message).toContain("not found");
+  });
 });

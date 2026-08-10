@@ -3202,9 +3202,9 @@ function interfaceWithMMGIS(fromInit) {
             '<div class="sublayer dynamicStyleRow dynamicStyleRangeRow">',
                 `<div title="What the property's lowest and highest values come out as. A lower 'to' than 'from' reverses the scale.">${ATTRIBUTE_LABELS[rule.attribute] || 'Style'}</div>`,
                 '<div class="dynamicStyleRangeInputs">',
-                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="low" type="number" step="any" value="${rangeOf(rule)[0]}" title="What the lowest value looks like.">`,
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="low" type="number" step="any" value="${escapeHTML(rangeOf(rule)[0])}" title="What the lowest value looks like.">`,
                     '<div>to</div>',
-                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="high" type="number" step="any" value="${rangeOf(rule)[1]}" title="What the highest value looks like.">`,
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="high" type="number" step="any" value="${escapeHTML(rangeOf(rule)[1])}" title="What the highest value looks like.">`,
                 '</div>',
             '</div>'].join('\n'),
             // The ramp is picked from its colours rather than its name, and
@@ -3580,20 +3580,11 @@ function interfaceWithMMGIS(fromInit) {
             const layerName = $(this).attr('layername')
             const attribute = $(this).val()
             const index = ruleIndexOf(this)
-            // The configured rule rather than the overridden one: a range a
-            // previous switch installed is this session's, not the admin's,
-            // and reading it back would leave weight's span sizing radii.
-            const configured =
-                L_.layers.data[L_.asLayerUUID(layerName)]?.variables
-                    ?.dynamicStyle?.rules?.[index]
-            // A numeric attribute maps through a range; a rule written for a
-            // colour has none, and one that has a range keeps it - patching it
-            // away would compile the rule to nothing.
+            // A numeric attribute maps through a range, and a range belongs to
+            // the attribute it was aimed at - keeping weight's span would have
+            // it sizing radii - so switching starts from the new one's.
             const patch = { attribute: attribute }
-            if (
-                !COLOR_ATTRIBUTES.includes(attribute) &&
-                !Array.isArray(configured?.range)
-            )
+            if (!COLOR_ATTRIBUTES.includes(attribute))
                 patch.range = DEFAULT_RANGES[attribute]
             overrideDynamicStyleRuleOf(layerName, index, patch)
             // The ramp only belongs to a colour, so the controls themselves

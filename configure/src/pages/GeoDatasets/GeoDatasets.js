@@ -39,6 +39,7 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
+import QueryStatsIcon from "@mui/icons-material/QueryStats";
 
 import NewGeoDatasetModal from "./Modals/NewGeoDatasetModal/NewGeoDatasetModal";
 import DeleteGeoDatasetModal from "./Modals/DeleteGeoDatasetModal/DeleteGeoDatasetModal";
@@ -133,6 +134,10 @@ const useStyles = makeStyles((theme) => ({
     height: "40px !important",
   },
   renameIcon: {
+    width: "40px !important",
+    height: "40px !important",
+  },
+  statsIcon: {
     width: "40px !important",
     height: "40px !important",
   },
@@ -329,6 +334,8 @@ export default function GeoDatasets() {
   const [orderBy, setOrderBy] = React.useState("name");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  // Which geodataset is being rescanned, if any - a whole-table pass.
+  const [recomputing, setRecomputing] = React.useState(null);
 
   const c = useStyles();
 
@@ -398,6 +405,28 @@ export default function GeoDatasets() {
       ),
     [order, orderBy, page, rowsPerPage, geodatasets]
   );
+
+  // Recompute a geodataset's dataset-wide statistics from the features it
+  // already holds - what one written before they were kept needs, since an
+  // append only summarizes what it appends.
+  const recomputeStats = (name) => {
+    setRecomputing(name);
+    const done = (res) => {
+      setRecomputing(null);
+      dispatch(
+        setSnackBarText({
+          text: res?.message || "Failed to recompute statistics.",
+          severity: res?.status === "success" ? "success" : "error",
+        })
+      );
+    };
+    calls.api(
+      "geodatasets_recompute_stats",
+      { urlReplacements: { name: name } },
+      done,
+      done
+    );
+  };
 
   const LIMIT_COL_TO_N_CHARS = 37;
 
@@ -614,6 +643,26 @@ export default function GeoDatasets() {
                               }}
                             >
                               <UploadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Divider orientation="vertical" flexItem />
+                          <Tooltip
+                            title={
+                              "Recompute Statistics - only needed for a geodataset uploaded before they were kept."
+                            }
+                            placement="top"
+                            arrow
+                          >
+                            <IconButton
+                              className={c.statsIcon}
+                              title="Recompute Statistics"
+                              aria-label="recompute statistics"
+                              disabled={recomputing != null}
+                              onClick={() => {
+                                if (row.name) recomputeStats(row.name);
+                              }}
+                            >
+                              <QueryStatsIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Divider orientation="vertical" flexItem />

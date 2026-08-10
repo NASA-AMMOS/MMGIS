@@ -4248,6 +4248,68 @@
         }
       }
     },
+    "/api/geodatasets/recompute_stats/{name}": {
+      "post": {
+        "summary": "Recompute a geodataset's dataset-wide field statistics",
+        "description": "Recomputes `field_stats` from the features already in the geodataset, in one pass over its table. Needed only for a geodataset written before those statistics were kept, since an append summarizes just the features it appends.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recompute response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Recomputed statistics for 2 numeric field(s).",
+                      "field_stats": {
+                        "elev": {
+                          "type": "number",
+                          "min": 1,
+                          "max": 9,
+                          "sum": 10,
+                          "sumsq": 82,
+                          "count": 2,
+                          "nullCount": 0,
+                          "avg": 5,
+                          "stddev": 4
+                        }
+                      }
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Geodataset 'example_name' not found."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to recompute field statistics."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/geodatasets/remove/{name}": {
       "delete": {
         "summary": "Remove a geodataset",

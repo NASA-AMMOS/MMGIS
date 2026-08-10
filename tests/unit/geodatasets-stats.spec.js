@@ -17,6 +17,8 @@ const {
   statAlias,
   readRowStats,
   collectFieldStats,
+  buildFieldStatsScan,
+  readFieldStatsScan,
   mergeFieldStats,
   withAverages,
   MAX_STAT_FIELDS,
@@ -476,5 +478,93 @@ test.describe("withAverages", () => {
   test("null in, null out; malformed entries are dropped", () => {
     expect(withAverages(null)).toBe(null);
     expect(withAverages({ bad: { min: "x" } })).toEqual({});
+  });
+});
+
+test.describe("buildFieldStatsScan (rescanning an existing table)", () => {
+  test("aggregates in postgres over the table it is given", () => {
+    const scan = buildFieldStatsScan("geodatasets_old");
+    expect(scan.text).toContain(
+      "FROM geodatasets_old, jsonb_each(properties::JSONB)",
+    );
+    // One pass, grouped by field, rather than reading features into node.
+    expect(scan.text).toContain("GROUP BY path");
+    [
+      "MIN(num)",
+      "MAX(num)",
+      "SUM(num)",
+      "SUM(num * num)",
+      "COUNT(num)",
+    ].forEach((agg) => expect(scan.text).toContain(agg));
+  });
+
+  test("flattens nested properties to the dotted paths ingest stores", () => {
+    const scan = buildFieldStatsScan("t");
+    expect(scan.text).toContain("WITH RECURSIVE");
+    expect(scan.text).toContain("flat.path || '.' || kv.key");
+    // Bounded, as the accessors that read these paths back are.
+    expect(scan.text).toContain("flat.depth < 10");
+  });
+
+  test("counts only what the query-time half counts as a number", () => {
+    const scan = buildFieldStatsScan("t");
+    // The same grammar, parameterized rather than inlined, so "12abc" and
+    // "2024-01-15" are text here too.
+    expect(scan.replacements.stats_numeric_regex).toBe(
+      require("../../plugins/core/backend/Geodatasets/lib/stats")
+        .SQL_NUMERIC_REGEX,
+    );
+    expect(scan.text).toContain("~ :stats_numeric_regex");
+    expect(scan.text).toContain("jsonb_typeof(value) IN ('number', 'string')");
+    // A value no float can hold is left out rather than aborting the scan.
+    expect(scan.text).toContain("<= 1e308");
+  });
+});
+
+test.describe("readFieldStatsScan", () => {
+  test("reads the scan's text numbers into storable statistics", () => {
+    expect(
+      readFieldStatsScan([
+        {
+          path: "elev",
+          min: "1",
+          max: "9",
+          sum: "10",
+          sumsq: "82",
+          count: "2",
+        },
+      ]),
+    ).toEqual({
+      elev: { type: "number", min: 1, max: 9, sum: 10, sumsq: 82, count: 2 },
+    });
+  });
+
+  test("a field whose squares outgrew a float keeps its other numbers", () => {
+    const stats = readFieldStatsScan([
+      {
+        path: "huge",
+        min: "1e300",
+        max: "1e300",
+        sum: "1e300",
+        sumsq: "1e600",
+        count: "1",
+      },
+    ]);
+    // No sumsq means no deviation, exactly as statistics stored before it was
+    // kept report.
+    expect(stats.huge.sumsq).toBe(undefined);
+    expect(withAverages(stats).huge.stddev).toBe(null);
+    expect(withAverages(stats).huge.avg).toBe(1e300);
+  });
+
+  test("unusable rows are skipped and bad input is tolerated", () => {
+    expect(
+      readFieldStatsScan([
+        { path: "", min: "1", max: "1", sum: "1", count: "1" },
+        { path: "bad", min: null, max: null, sum: null, count: "0" },
+        null,
+      ]),
+    ).toEqual({});
+    expect(readFieldStatsScan(null)).toEqual({});
   });
 });
