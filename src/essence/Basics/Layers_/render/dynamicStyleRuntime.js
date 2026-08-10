@@ -95,7 +95,12 @@ export function restyleLayerDynamically(layer) {
             : layer
     if (layerObj == null || getDynamicStyle(layerObj) == null) return false
 
-    compileLayerDynamicStyle(layerObj, domainFeatures(layerObj))
+    // Nothing drawn is nothing to measure, and compiling over it would drop
+    // the styling the layer already has.
+    const features = domainFeatures(layerObj)
+    if (features.length === 0) return false
+
+    compileLayerDynamicStyle(layerObj, features)
 
     // The style function reads the resolver off the layer, so resetting each
     // feature to it is the whole repaint.
@@ -184,6 +189,20 @@ export function layersFollowingTheView() {
 /** Restyle everything stretched over the current view, once the map settles. */
 export function restyleViewFollowingLayers() {
     layersFollowingTheView().forEach(restyleLayerWhenSettled)
+}
+
+/**
+ * Restyle a layer just built, if its domain is the current view: it was
+ * compiled over everything it holds, there being no drawn layer to measure in
+ * view until now.
+ *
+ * @param {object} layerObj
+ * @returns {boolean} whether it was restyled.
+ */
+export function restyleIfFollowingTheView(layerObj) {
+    if (layerObj == null || getDynamicStyle(layerObj) == null) return false
+    if (getDomainMode(layerObj) !== 'view') return false
+    return restyleLayerDynamically(layerObj)
 }
 
 /** Geodataset layers whose statistics are being or have been fetched. */
