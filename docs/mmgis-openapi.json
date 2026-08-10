@@ -2731,7 +2731,7 @@
           {
             "name": "stats",
             "in": "query",
-            "description": "In the case of type=geojson, also return min/max/avg of these numeric feature properties fields for each feature's group, at properties._.stats. Grouping matches noDuplicates' (the group_id field if set, else the geometry) whether or not noDuplicates is used, and covers the whole filtered set regardless of limit/offset. Non-numeric and missing values are ignored; a group with no numeric values reports nulls.",
+            "description": "In the case of type=geojson, also return min/max/avg/sum/stddev of these numeric feature properties fields for each feature's group, at properties._.stats. Grouping matches noDuplicates' (the group_id field if set, else the geometry) whether or not noDuplicates is used, and covers the whole filtered set regardless of limit/offset. Non-numeric and missing values are ignored; a group with no numeric values reports nulls.",
             "example": "prop1,prop2",
             "required": false,
             "schema": {
@@ -3035,7 +3035,7 @@
           {
             "name": "stats",
             "in": "query",
-            "description": "In the case of type=geojson, also return min/max/avg of these numeric feature properties fields for each feature's group, at properties._.stats. Grouping matches noDuplicates' (the group_id field if set, else the geometry) whether or not noDuplicates is used, and covers the whole filtered set regardless of limit/offset. Non-numeric and missing values are ignored; a group with no numeric values reports nulls.",
+            "description": "In the case of type=geojson, also return min/max/avg/sum/stddev of these numeric feature properties fields for each feature's group, at properties._.stats. Grouping matches noDuplicates' (the group_id field if set, else the geometry) whether or not noDuplicates is used, and covers the whole filtered set regardless of limit/offset. Non-numeric and missing values are ignored; a group with no numeric values reports nulls.",
             "example": "prop1,prop2",
             "required": false,
             "schema": {

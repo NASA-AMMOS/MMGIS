@@ -30,8 +30,16 @@ const NUMERIC_TEXT_REGEX = new RegExp(SQL_NUMERIC_REGEX);
 // first and skipped — as Number.isFinite() skips them on the JS side.
 const FLOAT8_MAX = "1e308";
 
-// Statistics computed per group at query time.
-const STAT_AGGREGATES = ["min", "max", "avg"];
+// Statistics computed per group at query time. `stddev` is the population
+// deviation, as the derived one on `field_stats` is.
+const STAT_AGGREGATES = ["min", "max", "avg", "sum", "stddev"];
+const STAT_SQL = {
+  min: "MIN",
+  max: "MAX",
+  avg: "AVG",
+  sum: "SUM",
+  stddev: "STDDEV_POP",
+};
 
 // Bound the number of fields a single request may ask for, so `stats` cannot be
 // used to build an arbitrarily large query.
@@ -91,7 +99,7 @@ function buildStatsSelect(fields, partitionBy) {
       `THEN ((${accessor.text})::NUMERIC)::FLOAT8 END) END)`;
     STAT_AGGREGATES.forEach((agg) => {
       selects.push(
-        `${agg.toUpperCase()}(${numeric}) ${over} AS ${statAlias(agg, i)}`
+        `${STAT_SQL[agg]}(${numeric}) ${over} AS ${statAlias(agg, i)}`,
       );
     });
   });
@@ -106,7 +114,8 @@ function statAlias(agg, i) {
 
 /**
  * Reassemble a queried row's stat columns into
- * `{ "field": { min, max, avg } }`. Aggregates with no numeric input are null.
+ * `{ "field": { min, max, avg, sum, stddev } }`. Aggregates with no numeric
+ * input are null.
  */
 function readRowStats(row, fields) {
   if (!row || !Array.isArray(fields) || fields.length === 0) return null;

@@ -79,7 +79,7 @@ Queries and geodataset and returns geojson or vectortiles.
 
 #### Statistics
 
-`stats` adds `min`, `max` and `avg` of the requested numeric fields to every returned feature, under `properties._.stats`:
+`stats` adds `min`, `max`, `avg`, `sum` and `stddev` (population) of the requested numeric fields to every returned feature, under `properties._.stats`:
 
 ```javascript
 => {
@@ -93,7 +93,7 @@ Queries and geodataset and returns geojson or vectortiles.
                 "_": {
                     "idx": 1234,
                     "stats": {
-                        "elevation": { "min": 0.1, "max": 9.8, "avg": 4.2 }
+                        "elevation": { "min": 0.1, "max": 9.8, "avg": 4.2, "sum": 21, "stddev": 3.4 }
                     }
                 }
             }
