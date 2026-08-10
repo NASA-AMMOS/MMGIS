@@ -396,6 +396,21 @@
                 "type": "checkbox",
                 "width": 6,
                 "defaultChecked": true
+              },
+              {
+                "field": "variables.dynamicStyle.properties",
+                "name": "Selectable Properties",
+                "description": "Comma-separated properties a viewer may aim the style at, on top of the ones the rules below already use. Leave empty to allow only what a rule was written for.",
+                "type": "textarray",
+                "width": 12,
+                "showIf": [
+                  {
+                    "field": "variables.dynamicStyle.userSettable",
+                    "notIn": [
+                      false
+                    ]
+                  }
+                ]
               }
             ]
           },

@@ -118,12 +118,22 @@ export function restyleLayerDynamically(layer) {
     }
 
     restyleGlobe(layerObj)
-    // The legend describes the resolver that just changed, and a pan or a late
-    // arrival of statistics changes it with nobody having asked.
+    announceRestyle(layerObj)
+    return true
+}
+
+/**
+ * Say that a layer's dynamic style is not what it was. The legend describes the
+ * resolver that changed, and a pan, a time change or a late arrival of
+ * statistics changes it with nobody having asked.
+ *
+ * @param {object} layerObj
+ */
+export function announceRestyle(layerObj) {
+    if (layerObj?.name == null) return
     document.dispatchEvent(
         new CustomEvent(RESTYLED_EVENT, { detail: { layer: layerObj.name } })
     )
-    return true
 }
 
 /**
@@ -198,12 +208,19 @@ export function restyleViewFollowingLayers() {
  * compiled over everything it holds, there being no drawn layer to measure in
  * view until now.
  *
+ * Every other layer was compiled over the features it was built with, so it is
+ * already styled correctly — but those features are new (a time change, a
+ * refresh), so its scale is announced as changed.
+ *
  * @param {object} layerObj
  * @returns {boolean} whether it was restyled.
  */
 export function restyleIfFollowingTheView(layerObj) {
     if (layerObj == null || getDynamicStyle(layerObj) == null) return false
-    if (getDomainMode(layerObj) !== 'view') return false
+    if (getDomainMode(layerObj) !== 'view') {
+        announceRestyle(layerObj)
+        return false
+    }
     return restyleLayerDynamically(layerObj)
 }
 
@@ -280,17 +297,20 @@ export function overrideDynamicStyle(layer, override) {
 }
 
 /**
- * What a layer knows about the numbers a property takes: a geodataset's stored
- * statistics over every feature it has, or a measure of the features in hand
- * for anything else.
+ * What a layer knows about the numbers a property takes, over whatever its
+ * domain is measured on: a geodataset's stored statistics for the whole
+ * dataset, the features in view, or the features in hand.
  *
  * @param {object} layerObj
  * @param {string} property
  * @returns {?{min: number, max: number, avg: number, stddev: number,
- *             count: number, nullCount: number, wholeDataset: boolean}}
+ *             count: number, nullCount: number, scope: string}}
  */
 export function propertyStats(layerObj, property) {
-    const stored = layerObj?._fieldStats?.[property]
+    // Following the view means these numbers move with it, so they are measured
+    // over the same features the scale is rather than the whole dataset.
+    const inView = getDomainMode(layerObj) === 'view'
+    const stored = inView ? null : layerObj?._fieldStats?.[property]
     if (stored != null && asNumber(stored.min) != null)
         return {
             min: asNumber(stored.min),
@@ -299,11 +319,27 @@ export function propertyStats(layerObj, property) {
             stddev: asNumber(stored.stddev),
             count: asNumber(stored.count),
             nullCount: asNumber(stored.nullCount),
-            wholeDataset: true,
+            scope: 'dataset',
         }
 
-    const features = loadedFeatures(layerObj)
-    if (features.length === 0) return null
+    const summary = summarizeProperty(
+        inView ? domainFeatures(layerObj) : loadedFeatures(layerObj),
+        property
+    )
+    if (summary == null) return null
+    return Object.assign(summary, { scope: inView ? 'view' : 'loaded' })
+}
+
+/**
+ * Measure a property over features in hand.
+ *
+ * @param {Array<object>} features
+ * @param {string} property
+ * @returns {?{min: number, max: number, avg: number, stddev: number,
+ *             count: number, nullCount: number}}
+ */
+export function summarizeProperty(features, property) {
+    if (!Array.isArray(features) || features.length === 0) return null
 
     let min = Infinity
     let max = -Infinity
@@ -329,7 +365,6 @@ export function propertyStats(layerObj, property) {
         stddev: Math.sqrt(Math.max(0, sumsq / count - avg * avg)),
         count,
         nullCount: features.length - count,
-        wholeDataset: false,
     }
 }
 
@@ -400,9 +435,11 @@ function withLayer(layer, change) {
 const DynamicStyleRuntime = {
     RESTYLED_EVENT,
     addDynamicStyleRuleTo,
+    announceRestyle,
     domainFeatures,
     overrideDynamicStyleRuleOf,
     propertyStats,
+    summarizeProperty,
     removeDynamicStyleRuleFrom,
     ensureFieldStats,
     forgetFieldStatsRequests,

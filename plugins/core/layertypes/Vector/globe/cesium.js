@@ -36,6 +36,27 @@ function make(layerObj, gctx) {
     })
 }
 
+/**
+ * Draw a draped polygon's edge as a clamped polyline.
+ *
+ * Cesium refuses outlines on geometry that follows terrain, so a polygon whose
+ * fill is transparent — the usual way to configure an outline-only polygon —
+ * would show nothing on the globe while 2D draws its stroke.
+ */
+function outlineOnTerrain(entity, loadOptions) {
+    const hierarchy = entity.polygon.hierarchy?.getValue(
+        Cesium.JulianDate.now()
+    )
+    const positions = hierarchy?.positions
+    if (positions == null || positions.length < 2) return
+    entity.polyline = new Cesium.PolylineGraphics({
+        positions: positions.concat([positions[0]]),
+        width: loadOptions.strokeWidth,
+        material: loadOptions.stroke,
+        clampToGround: true,
+    })
+}
+
 // Add an already-built globe layer config (engine-facing entry point).
 function render(layerConfig, gctx) {
     const { name } = layerConfig
@@ -131,7 +152,9 @@ function render(layerConfig, gctx) {
 
             ds.entities.values.forEach((entity) => {
                 if (entity.polygon) {
-                    entity.polygon.outline = true
+                    const draped = type === 'clamped'
+                    entity.polygon.outline = !draped
+                    if (draped) outlineOnTerrain(entity, loadOptions)
                 }
                 // Render points as circular dots instead of Cesium's default
                 // teardrop pin billboards.

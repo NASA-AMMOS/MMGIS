@@ -17,9 +17,12 @@ import {
 import {
     getDomainMode,
     getDynamicStyle,
+    getStatsFields,
     getViewedRules,
 } from '@basics/Layers_/render/layerDynamicStyle'
+import refreshLayer from '@basics/Layers_/lifecycle/refresh'
 import {
+    RESTYLED_EVENT,
     addDynamicStyleRuleTo,
     overrideDynamicStyle,
     overrideDynamicStyleRuleOf,
@@ -3086,23 +3089,30 @@ function interfaceWithMMGIS(fromInit) {
 
     /**
      * The properties a viewer may aim a layer's dynamic style at: the ones its
-     * rules were written for, and only those. An admin widens the choice by
-     * writing another rule, which is also how they say a property is fit to
-     * style by - a domain and a null value have been thought about for it.
+     * rules were written for, plus any an admin listed as selectable.
      *
-     * A field summarized per group is not a property a feature has, so the two
-     * kinds of rule are offered their own kind only.
+     * A field summarized per group is not a property a feature has, so a rule's
+     * property is only offered to its own kind; a listed property is fit for
+     * either, an admin having vouched for it rather than a rule.
      */
     function getStyleableProperties(layerName, propertyType) {
         const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
-        const rules = layerObj?.variables?.dynamicStyle?.rules
-        if (!Array.isArray(rules)) return []
+        const dynamicStyle = layerObj?.variables?.dynamicStyle
+        const rules = dynamicStyle?.rules
         const names = new Set()
-        rules.forEach((rule) => {
-            if (propertyTypeOf(rule) !== propertyType) return
-            if (typeof rule?.property === 'string' && rule.property !== '')
-                names.add(rule.property)
-        })
+        if (Array.isArray(rules))
+            rules.forEach((rule) => {
+                if (propertyTypeOf(rule) !== propertyType) return
+                if (typeof rule?.property === 'string' && rule.property !== '')
+                    names.add(rule.property)
+            })
+        const listed = dynamicStyle?.properties
+        if (Array.isArray(listed))
+            listed.forEach((property) => {
+                if (typeof property !== 'string') return
+                const trimmed = property.trim()
+                if (trimmed !== '') names.add(trimmed)
+            })
         return [...names]
     }
 
@@ -3255,9 +3265,11 @@ function interfaceWithMMGIS(fromInit) {
             seen.add(property)
             const stats = propertyStats(layerObj, property)
             if (stats == null) return
-            const over = stats.wholeDataset
-                ? 'every feature of the dataset, loaded or not'
-                : 'the features this layer has loaded'
+            const over = {
+                dataset: 'every feature of the dataset, loaded or not',
+                view: 'the features currently in view',
+                loaded: 'the features this layer has loaded',
+            }[stats.scope]
             // A Stats rule colours by each group's own summary, so these are
             // the field's individual values rather than the rule's scale.
             const values =
@@ -3268,7 +3280,7 @@ function interfaceWithMMGIS(fromInit) {
             rows.push([
                 `<div class="sublayer statsRow statsProperty" data-tippy-content="Measured over ${over}.${values}">`,
                     `<div>${escapeHTML(property)}</div>`,
-                    `<div>${stats.wholeDataset ? 'dataset' : 'loaded'}</div>`,
+                    `<div>${stats.scope}</div>`,
                 '</div>',
                 statRow('Min', stats.min),
                 statRow('Max', stats.max),
@@ -3584,6 +3596,9 @@ function interfaceWithMMGIS(fromInit) {
         $('.dynamicStyleDomain').off('change')
         $('.dynamicStyleDomain').on('change', function () {
             restyleFrom(this, { domain: $(this).val() })
+            // The stats describe the same features the domain does, so they are
+            // measured over a different set now.
+            refreshDynamicStyleSettings($(this).attr('layername'))
         })
 
         $('.dynamicStyleReset').off('click')
@@ -3595,13 +3610,18 @@ function interfaceWithMMGIS(fromInit) {
 
         $('.dynamicStyleProperty').off('change')
         $('.dynamicStyleProperty').on('change', function () {
-            overrideDynamicStyleRuleOf(
-                $(this).attr('layername'),
-                ruleIndexOf(this),
-                { property: $(this).val() }
-            )
+            const layerName = $(this).attr('layername')
+            const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
+            const asked = getStatsFields(layerObj)
+            overrideDynamicStyleRuleOf(layerName, ruleIndexOf(this), {
+                property: $(this).val(),
+            })
+            // A field the layer never asked to have summarized isn't in the
+            // features it holds, so they are fetched again to carry it.
+            if (getStatsFields(layerObj).some((f) => !asked.includes(f)))
+                refreshLayer(layerObj)
             // Another property may have statistics of its own to report.
-            refreshDynamicStyleSettings($(this).attr('layername'))
+            refreshDynamicStyleSettings(layerName)
         })
 
         $('.dynamicStyleStat').off('change')
@@ -3714,6 +3734,21 @@ function interfaceWithMMGIS(fromInit) {
         handleRefreshStatusChange
     )
 
+    // A pan, a time change or late statistics restretch a scale without anyone
+    // asking, and the stats readout describes it.
+    const handleRestyled = (event) => {
+        const restyled = event?.detail?.layer
+        if (restyled == null) return
+        const uuid = L_.asLayerUUID(restyled)
+        // The panel is keyed by the name in the layer tree, which is the
+        // display name when layers are addressed by uuid.
+        $('#layersToolList li[name]').each(function () {
+            const name = $(this).attr('name')
+            if (L_.asLayerUUID(name) === uuid) refreshDynamicStyleSettings(name)
+        })
+    }
+    document.addEventListener(RESTYLED_EVENT, handleRestyled)
+
     // Sync checkbox UI when a layer is toggled externally (e.g., by Search)
     L_.subscribeOnLayerToggle('LayersTool', function (layerName, isNowOn) {
         const safeName = F_.getSafeName(layerName)
@@ -3733,6 +3768,7 @@ function interfaceWithMMGIS(fromInit) {
             'layerRefreshStatusChanged',
             handleRefreshStatusChange
         )
+        document.removeEventListener(RESTYLED_EVENT, handleRestyled)
         L_.unsubscribeOnLayerToggle('LayersTool')
     }
 }
