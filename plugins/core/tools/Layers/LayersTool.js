@@ -314,6 +314,9 @@ var LayersTool = {
         if (
             layer.type !== 'data' &&
             layer.cogTransform !== true &&
+            // A custom GDAL color table colors raw pixel values without the
+            // COG transform, so it still yields a legend
+            layer.cogColormapJson == null &&
             (layerUrl.startsWith('stac-collection:') ||
                 layerUrl.startsWith('COG:') ||
                 layer.type === 'image')
@@ -336,6 +339,21 @@ var LayersTool = {
             units = layer.variables?.shader?.units ?? ''
         } else {
             units = layer.cogUnits
+        }
+
+        // A custom GDAL color table yields a discrete class legend instead
+        // of a gradient sampled between the rescale min/max (which TiTiler
+        // doesn't apply when a custom color table is set)
+        const colortableLegend = LayersTool.cogColormapJsonToLegend(
+            layer.cogColormapJson,
+            units
+        )
+        if (colortableLegend != null) {
+            L_.layers.data[layer.name]._legend = colortableLegend
+            // The rescale gradation labels don't apply to a color table
+            for (let i = 1; i < 8; i++) $(`[id=tileCogLegend_${i}]`).text('')
+            $('#tileCogColormapMapLines').empty()
+            return
         }
 
         let dynamicLegendConf = []
@@ -509,6 +527,102 @@ var LayersTool = {
             colormap = Object.keys(colormapData)[index]
         }
         return { reverse, colormap }
+    },
+    // Builds a discrete legend (one entry per class or interval) from a
+    // custom GDAL color table (the same JSON sent to TiTiler's `colormap`
+    // param), for use as a layer's `_legend`. Fully-transparent entries
+    // (e.g. nodata/fill values) are skipped. Returns null if there's no
+    // usable color table.
+    cogColormapJsonToLegend: function (cogColormapJson, units) {
+        if (cogColormapJson == null) return null
+        let table = cogColormapJson
+        if (typeof table === 'string') {
+            try {
+                table = JSON.parse(table)
+            } catch (e) {
+                return null
+            }
+        }
+
+        let entries = []
+        if (Array.isArray(table)) {
+            // Intervals: [[[min, max], [r, g, b, a]], ...]
+            entries = table
+                .filter((e) => Array.isArray(e) && Array.isArray(e[1]))
+                .map((e) => ({
+                    color: e[1],
+                    value: Array.isArray(e[0])
+                        ? `${e[0][0]} – ${e[0][1]}${units || ''}`
+                        : '',
+                }))
+        } else if (typeof table === 'object') {
+            // Discrete: { "value": [r, g, b, a], ... }
+            entries = Object.keys(table)
+                .filter((k) => Array.isArray(table[k]))
+                .sort((a, b) => parseFloat(a) - parseFloat(b))
+                .map((k) => ({
+                    color: table[k],
+                    value: `${k}${units || ''}`,
+                }))
+        }
+
+        const legendConf = entries
+            .filter((e) => (e.color[3] == null ? 255 : e.color[3]) > 0)
+            .map((e) => {
+                const a = e.color[3] != null ? e.color[3] / 255 : 1
+                return {
+                    color: `rgba(${e.color[0] || 0},${e.color[1] || 0},${
+                        e.color[2] || 0
+                    },${a})`,
+                    strokecolor: null,
+                    shape: 'square',
+                    value: e.value,
+                }
+            })
+        return legendConf.length > 0 ? legendConf : null
+    },
+    // Renders a custom GDAL color table (the same JSON sent to TiTiler's
+    // `colormap` param) as a horizontal swatch strip for the layer legend.
+    // Accepts a discrete value->RGBA map or a list of [[min,max],RGBA]
+    // intervals. Returns null if there's no usable color table.
+    cogColormapJsonToSwatches: function (cogColormapJson) {
+        if (cogColormapJson == null) return null
+        let table = cogColormapJson
+        if (typeof table === 'string') {
+            try {
+                table = JSON.parse(table)
+            } catch (e) {
+                return null
+            }
+        }
+
+        let colors = []
+        if (Array.isArray(table)) {
+            // Intervals: [[[min, max], [r, g, b, a]], ...]
+            colors = table
+                .map((entry) => (Array.isArray(entry) ? entry[1] : null))
+                .filter((c) => Array.isArray(c))
+        } else if (typeof table === 'object') {
+            // Discrete: { "value": [r, g, b, a], ... }
+            colors = Object.keys(table)
+                .sort((a, b) => parseFloat(a) - parseFloat(b))
+                .map((k) => table[k])
+                .filter((c) => Array.isArray(c))
+        }
+        if (colors.length === 0) return null
+
+        const swatches = colors.map((c) => {
+            const a = c[3] != null ? c[3] / 255 : 1
+            return `<div style="background: rgba(${c[0] || 0},${c[1] || 0},${
+                c[2] || 0
+            },${a}); height: 100%; margin: 0px; flex-grow: 1;"></div>`
+        })
+
+        return [
+            '<div id="titlerCogColormapCSS">',
+            swatches.join('\n'),
+            '</div>',
+        ].join('\n')
     },
     traverseHeaderLayersExpandedState: function (node, parent, depth) {
         for (var i = 0; i < node.length; i++) {
@@ -877,12 +991,21 @@ function interfaceWithMMGIS(fromInit) {
                     }
 
                     if (node[i].cogTransform === true && supportsExpressions) {
-                        let { colormap, reverse } = LayersTool.findJSColormap(
-                            node[i],
-                            node[i].cogColormap
-                        )
+                        let { colormap, reverse } =
+                            LayersTool.findJSColormap(
+                                node[i],
+                                node[i].cogColormap
+                            )
 
-                        if (window.mmgisglobal.WITH_TITILER === 'true') {
+                        const cogColortableSwatches =
+                            LayersTool.cogColormapJsonToSwatches(
+                                node[i].cogColormapJson
+                            )
+
+                        if (cogColortableSwatches != null) {
+                            // A custom GDAL color table supersedes the named colormap
+                            additionalSettings = cogColortableSwatches
+                        } else if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
@@ -1163,12 +1286,22 @@ function interfaceWithMMGIS(fromInit) {
                         L_.layers.layer[node[i].name].georasters[0]
                             .numberOfRasters === 1
                     ) {
-                        let { colormap, reverse } = LayersTool.findJSColormap(
-                            node[i],
-                            node[i].cogColormap
-                        )
 
-                        if (window.mmgisglobal.WITH_TITILER === 'true') {
+                        let { colormap, reverse } =
+                            LayersTool.findJSColormap(
+                                node[i],
+                                node[i].cogColormap
+                            )
+
+                        const cogColortableSwatches =
+                            LayersTool.cogColormapJsonToSwatches(
+                                node[i].cogColormapJson
+                            )
+
+                        if (cogColortableSwatches != null) {
+                            // A custom GDAL color table supersedes the named colormap
+                            additionalSettings = cogColortableSwatches
+                        } else if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(

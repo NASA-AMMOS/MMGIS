@@ -419,6 +419,22 @@ const getComponent = (
     const ewfVal = getIn(configuration, com.enableWhenField.field, com.enableWhenField.default || "");
     disabled = disabled || ewfVal !== com.enableWhenField.value;
   }
+  if (com.disableWhen) {
+    // Disables the component when ALL conditions match. Each condition
+    // references a sibling field: {field, notEmpty: true} or {field, equals: <value>}
+    const conditions = Array.isArray(com.disableWhen)
+      ? com.disableWhen
+      : [com.disableWhen];
+    const allMet = conditions.every((cond) => {
+      const condVal = getIn(directConf, cond.field, null);
+      if (cond.notEmpty === true)
+        return condVal != null && String(condVal).trim() !== "";
+      if (Object.prototype.hasOwnProperty.call(cond, "equals"))
+        return condVal === cond.equals;
+      return false;
+    });
+    disabled = disabled || allMet;
+  }
   const isRequired = isFieldRequired(com, layer, configuration);
   const fieldValue = value != null ? value : getIn(directConf, com.field, "");
   const hasError = isRequired && (fieldValue === "" || fieldValue == null);
@@ -1274,7 +1290,15 @@ const getComponent = (
               </Typography>
             </>
           ) : (
-            <Tooltip title={com.description || ""} placement="top" arrow>
+            <Tooltip
+              title={
+                disabled
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`.trim()
+                  : com.description || ""
+              }
+              placement="top"
+              arrow
+            >
               {inner}
             </Tooltip>
           )}

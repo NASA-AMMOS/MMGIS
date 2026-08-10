@@ -297,7 +297,24 @@
               "description": "",
               "type": "colordropdown",
               "width": 3,
-              "options": "{{COLORMAP_NAMES}}"
+              "options": "{{COLORMAP_NAMES}}",
+              "disableWhen": [
+                { "field": "cogColormapJson", "notEmpty": true },
+                { "field": "cogTransform", "equals": true }
+              ],
+              "disabledMessage": "A Custom Color Table (GDAL) is set below and supersedes this colormap. Clear the custom color table to use a named colormap."
+            }
+          ]
+        },
+        {
+          "name": "Custom Color Table (GDAL)",
+          "components": [
+            {
+              "field": "cogColormapJson",
+              "name": "Color Table",
+              "description": "A custom GDAL color table sent to TiTiler's 'colormap' parameter, mapping raw pixel values to colors. Provide JSON as either a discrete value-to-RGBA map (e.g. {\"0\":[0,0,0,255],\"255\":[255,255,255,255]}) or a list of interval-to-RGBA entries (e.g. [[[0,100],[0,0,0,255]],[[100,200],[255,255,255,255]]]). When set, this supersedes the named Colormap of the Single Data Band COG Transformation, no rescaling is applied, and a discrete legend is generated automatically.",
+              "type": "textnotrim",
+              "width": 12
             }
           ]
         }
