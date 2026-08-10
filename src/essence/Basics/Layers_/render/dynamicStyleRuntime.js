@@ -136,7 +136,9 @@ function restyleGlobe(layerObj) {
     const globe = Layers.Globe_?.litho
     if (globe == null || typeof globe.hasLayer !== 'function') return
     if (!globe.hasLayer(layerObj.name)) return
-    globe.removeLayer(layerObj.name)
+    // Adding a layer again reloads it in place under Cesium, so it is not
+    // removed first - a rebuild that failed would leave the globe without it.
+    if (globe.rendererType === 'lithosphere') globe.removeLayer(layerObj.name)
     const added = globe.addLayerFor(layerObj)
     if (added && typeof added.catch === 'function')
         added.catch((err) =>
