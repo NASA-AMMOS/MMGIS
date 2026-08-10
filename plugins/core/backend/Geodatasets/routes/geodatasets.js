@@ -1076,6 +1076,15 @@ router.get("/aggregations", function (req, res, next) {
     });
 });
 
+/** A geodataset table's feature count, or null if it could not be read. */
+async function countRows(table) {
+  const [rows] = await sequelize.query(
+    `SELECT COUNT(*)::TEXT AS count FROM ${Utils.forceAlphaNumUnder(table)}`
+  );
+  const count = parseInt(rows?.[0]?.count, 10);
+  return Number.isFinite(count) ? count : null;
+}
+
 // Recomputes a geodataset's dataset-wide field statistics from the rows it
 // already holds — what a geodataset ingested before `field_stats` existed needs,
 // since an append only merges the features it appends.
@@ -1102,6 +1111,15 @@ router.post("/recompute_stats/:name", function (req, res, next) {
         field_stats,
         "recreate"
       );
+      // How many features held no number is the feature count minus what each
+      // field counted, so a stored count from before the column existed (or one
+      // that has drifted) would report nulls that aren't there.
+      const numFeatures = await countRows(result.dataValues.table);
+      if (numFeatures != null && numFeatures !== result.dataValues.num_features)
+        await Geodatasets.update(
+          { num_features: numFeatures },
+          { where: { name: result.dataValues.name }, silent: true }
+        );
       logger(
         "info",
         `Recomputed field statistics for geodataset '${result.dataValues.name}'.`
@@ -1111,7 +1129,10 @@ router.post("/recompute_stats/:name", function (req, res, next) {
         message: `Recomputed statistics for ${
           Object.keys(field_stats).length
         } numeric field(s).`,
-        field_stats: withAverages(field_stats, result.dataValues.num_features),
+        field_stats: withAverages(
+          field_stats,
+          numFeatures != null ? numFeatures : result.dataValues.num_features
+        ),
       });
       return null;
     })

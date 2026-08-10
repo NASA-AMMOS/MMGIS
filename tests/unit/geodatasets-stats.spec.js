@@ -239,6 +239,18 @@ test.describe("collectFieldStats", () => {
     expect(stats.name).toBe(undefined);
   });
 
+  test("a field named like a prototype member stays a field", () => {
+    // JSON.parse makes __proto__ an ordinary own key, so an uploaded feature
+    // can carry one; accumulating it must not reach Object.prototype.
+    const stats = collectFieldStats([
+      { properties: JSON.parse('{"__proto__": 5, "constructor": 7}') },
+    ]);
+    expect({}.sum).toBe(undefined);
+    expect({}.count).toBe(undefined);
+    expect(stats["__proto__"]).toMatchObject({ min: 5, max: 5, count: 1 });
+    expect(stats["constructor"]).toMatchObject({ min: 7, max: 7, count: 1 });
+  });
+
   test("flattens nested properties to dotted paths", () => {
     const stats = collectFieldStats([
       { properties: { depth: { m: 1 }, meta: { deep: { n: 2 } } } },

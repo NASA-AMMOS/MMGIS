@@ -119,7 +119,7 @@ function statAlias(agg, i) {
  */
 function readRowStats(row, fields) {
   if (!row || !Array.isArray(fields) || fields.length === 0) return null;
-  const stats = {};
+  const stats = Object.create(null);
   fields.forEach((field, i) => {
     const stat = {};
     STAT_AGGREGATES.forEach((agg) => {
@@ -152,7 +152,9 @@ function toNumberOrNull(value) {
  *   count } }
  */
 function collectFieldStats(features, into) {
-  const stats = into || {};
+  // Prototype-less: an uploaded property named __proto__ would otherwise
+  // accumulate onto Object.prototype instead of into the statistics.
+  const stats = into || Object.create(null);
   if (!Array.isArray(features)) return stats;
   features.forEach((feature) => {
     if (feature && feature.properties)
@@ -162,7 +164,7 @@ function collectFieldStats(features, into) {
 }
 
 function accumulateProperties(stats, obj, prefix) {
-  for (const key in obj) {
+  for (const key of Object.keys(obj)) {
     const value = obj[key];
     const fullKey = prefix ? `${prefix}.${key}` : key;
     if (value == null) continue;
@@ -179,7 +181,7 @@ function accumulateProperties(stats, obj, prefix) {
     const num = typeof value === "number" ? value : parseFloat(value);
     if (!Number.isFinite(num)) continue;
 
-    let stat = stats[fullKey];
+    let stat = own(stats, fullKey) ? stats[fullKey] : null;
     if (stat == null) {
       stat = stats[fullKey] = {
         type: "number",
@@ -267,7 +269,7 @@ function buildFieldStatsScan(table) {
  * same shape statistics stored before `sumsq` existed have.
  */
 function readFieldStatsScan(rows) {
-  const stats = {};
+  const stats = Object.create(null);
   if (!Array.isArray(rows)) return stats;
   rows.forEach((row) => {
     const path = row ? row.path : null;
@@ -292,7 +294,7 @@ function readFieldStatsScan(rows) {
  * Recreate overwrites instead of merging, so it does not call this.
  */
 function mergeFieldStats(previous, next) {
-  const merged = {};
+  const merged = Object.create(null);
   const prev = previous && typeof previous === "object" ? previous : {};
   const incoming = next && typeof next === "object" ? next : {};
 
@@ -303,7 +305,7 @@ function mergeFieldStats(previous, next) {
   Object.keys(incoming).forEach((key) => {
     const stat = incoming[key];
     if (!isFieldStat(stat)) return;
-    const existing = merged[key];
+    const existing = own(merged, key) ? merged[key] : null;
     if (existing == null) {
       merged[key] = Object.assign({}, stat);
       return;
@@ -331,6 +333,11 @@ function addOrDrop(a, b) {
   return a + b;
 }
 
+/** A field named like a prototype member is a key here, never a lookup on one. */
+function own(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
 function isFieldStat(stat) {
   return (
     stat != null &&
@@ -355,7 +362,7 @@ function isFieldStat(stat) {
 function withAverages(fieldStats, numFeatures) {
   if (fieldStats == null || typeof fieldStats !== "object") return null;
   const total = Number.isFinite(numFeatures) ? numFeatures : null;
-  const out = {};
+  const out = Object.create(null);
   Object.keys(fieldStats).forEach((key) => {
     const stat = fieldStats[key];
     if (!isFieldStat(stat)) return;

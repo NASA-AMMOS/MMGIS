@@ -221,8 +221,13 @@ export function rampStops(ramp, reverse) {
 export function resolveDomain(rule, context) {
     if (rule == null) return null
     const configured = rule.domain || {}
-    const min = asNumber(configured.min)
-    const max = asNumber(configured.max)
+    const source = configured.source || 'auto'
+    // Only a literal domain is bounded by what was typed; a rule switched to
+    // another source keeps those numbers in its config, and honouring them
+    // would pin a scale the form no longer shows.
+    const literal = source === 'literal' || configured.source == null
+    const min = literal ? asNumber(configured.min) : null
+    const max = literal ? asNumber(configured.max) : null
     if (min != null && max != null) return min > max ? null : { min, max }
 
     const ctx = context || {}
@@ -231,7 +236,6 @@ export function resolveDomain(rule, context) {
     // its groups' averages, so a rule styling by a group statistic is stretched
     // over the group values themselves.
     const stat = propertyTypeOf(rule) === 'stats' ? null : fieldStat
-    const source = configured.source || 'auto'
 
     let resolved = null
     if (source === 'stddev') resolved = sigmaDomain(rule, stat, ctx.values)

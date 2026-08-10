@@ -157,9 +157,9 @@ test.describe("dynamicStyle - rampStops", () => {
 test.describe("dynamicStyle - resolveDomain", () => {
   const stats = { value: { min: 10, max: 90, avg: 20, stddev: 5 } };
 
-  test("a configured min/max always wins", () => {
+  test("a literal min/max is the domain", () => {
     const rule = numericRule({
-      domain: { source: "fieldStats", min: 1, max: 2 },
+      domain: { source: "literal", min: 1, max: 2 },
     });
     expect(resolveDomain(rule, { fieldStats: stats })).toEqual({
       min: 1,
@@ -167,12 +167,24 @@ test.describe("dynamicStyle - resolveDomain", () => {
     });
   });
 
-  test("one configured end pins that end only", () => {
+  test("one literal end pins that end only", () => {
     const rule = numericRule({
-      domain: { source: "fieldStats", min: 0, max: null },
+      domain: { source: "literal", min: 0, max: null },
     });
     expect(resolveDomain(rule, { fieldStats: stats })).toEqual({
       min: 0,
+      max: 90,
+    });
+  });
+
+  test("bounds left behind by another source are ignored", () => {
+    // Configure only shows Data Min/Max for a literal domain, so numbers typed
+    // before the source was changed must not pin a scale nobody can see.
+    const rule = numericRule({
+      domain: { source: "fieldStats", min: 1, max: 2 },
+    });
+    expect(resolveDomain(rule, { fieldStats: stats })).toEqual({
+      min: 10,
       max: 90,
     });
   });

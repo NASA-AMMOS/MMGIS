@@ -661,14 +661,6 @@
                     "width": 4
                   },
                   {
-                    "field": "styleMatching",
-                    "name": "Style Matching (deprecated)",
-                    "description": "Deprecated and no longer applied: legend entries describe the legend, they don't style features.",
-                    "type": "checkbox",
-                    "width": 2,
-                    "defaultChecked": false
-                  },
-                  {
                     "field": "hideFromLegend",
                     "name": "Hide From Legend",
                     "description": "If true, this legend entry will be hidden from the legend.",

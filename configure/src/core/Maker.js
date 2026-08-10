@@ -59,7 +59,6 @@ import { data as colormapData } from "../external/js-colormaps.js";
 
 import { calls } from "./calls";
 import { parseTileMatrixSetCRS } from "./crsUtils";
-import { legendToDynamicStyle } from "./legendToDynamicStyle";
 import Autocomplete from "@mui/material/Autocomplete";
 import Chip from "@mui/material/Chip";
 
@@ -795,27 +794,7 @@ const getComponent = (
           disabled={disabled}
           onClick={() => {
             if (isDisabled) return;
-            if (com.action === "legend-to-dynamic-style") {
-              const dynamicStyle = legendToDynamicStyle(
-                getIn(layer, ["variables", "legend"], [])
-              );
-              if (dynamicStyle == null) {
-                dispatch(
-                  setSnackBarText({
-                    text: "No legend entries have 'Style Matching' on - there is nothing to convert.",
-                    severity: "warning",
-                  })
-                );
-                return;
-              }
-              updateConfiguration("variables.dynamicStyle", dynamicStyle, layer);
-              dispatch(
-                setSnackBarText({
-                  text: `Converted ${dynamicStyle.rules.length} rule(s) into the Style tab's Dynamic Style. The legend entries now only describe the legend.`,
-                  severity: "success",
-                })
-              );
-            } else if (com.action === "tile-populate-from-x") {
+            if (com.action === "tile-populate-from-x") {
               tilePopulateFromX(
                 layer.type,
                 layer.url,

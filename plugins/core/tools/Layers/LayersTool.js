@@ -3258,9 +3258,15 @@ function interfaceWithMMGIS(fromInit) {
             const over = stats.wholeDataset
                 ? 'every feature of the dataset, loaded or not'
                 : 'the features this layer has loaded'
+            // A Stats rule colours by each group's own summary, so these are
+            // the field's individual values rather than the rule's scale.
+            const values =
+                rule.propertyType === 'stats'
+                    ? " These are the field's own values, not the group statistics the rule colours by."
+                    : ''
             // prettier-ignore
             rows.push([
-                `<div class="sublayer statsRow statsProperty" data-tippy-content="Measured over ${over}.">`,
+                `<div class="sublayer statsRow statsProperty" data-tippy-content="Measured over ${over}.${values}">`,
                     `<div>${escapeHTML(property)}</div>`,
                     `<div>${stats.wholeDataset ? 'dataset' : 'loaded'}</div>`,
                 '</div>',

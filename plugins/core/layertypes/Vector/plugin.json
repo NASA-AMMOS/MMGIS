@@ -1077,17 +1077,6 @@
           {
             "components": [
               {
-                "name": "Convert to Dynamic Style",
-                "description": "Legend entries no longer style features. This turns any entry with 'Style Matching' on into the equivalent Dynamic Style rules in the Style tab, where styling now lives - and where it also reaches the globe, and can drive weight and opacity. The entries themselves are left alone; they still draw the legend.",
-                "type": "button",
-                "action": "legend-to-dynamic-style",
-                "width": 12
-              }
-            ]
-          },
-          {
-            "components": [
-              {
                 "field": "variables.legend",
                 "name": "Legend",
                 "description": "Configures a legend for the layer. The Legend Tool renders symbologies and gradient scales for any properly configured layer that is on. A layer with a Dynamic Style also has that style's scale drawn, after these entries.",
@@ -1157,14 +1146,6 @@
                     "description": "The value of the property to match for this legend entry.",
                     "type": "text",
                     "width": 4
-                  },
-                  {
-                    "field": "styleMatching",
-                    "name": "Style Matching (deprecated)",
-                    "description": "Deprecated and no longer applied: legend entries describe the legend, they don't style features. Use Dynamic Style in the Style tab instead - the 'Convert to Dynamic Style' button above migrates these entries for you.",
-                    "type": "checkbox",
-                    "width": 2,
-                    "defaultChecked": false
                   },
                   {
                     "field": "hideFromLegend",
