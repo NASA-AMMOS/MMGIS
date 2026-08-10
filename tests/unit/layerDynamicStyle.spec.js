@@ -14,6 +14,11 @@ import {
   removeDynamicStyleRule,
   setDynamicStyleOverride,
 } from "../../src/essence/Basics/Layers_/render/layerDynamicStyle.js";
+import {
+  GROUP_STATS,
+  NUMERIC_ATTRIBUTES,
+  STYLE_ATTRIBUTES,
+} from "../../src/essence/Basics/Layers_/render/dynamicStyle.js";
 
 /**
  * layerDynamicStyle unit tests — gathering a layer's config, features and
@@ -455,5 +460,43 @@ test.describe("layerDynamicStyle - getStatsFields", () => {
   test("asks for nothing when no rule and no admin wants statistics", () => {
     expect(getStatsFields(layerWith([rule()]))).toEqual([]);
     expect(getStatsFields({})).toEqual([]);
+  });
+});
+
+test.describe("layerDynamicStyle - the Layers Tool's labels", () => {
+  // The panel's option lists are built by mapping over these constants, so a
+  // choice with no label reads as "undefined". LayersTool pulls in jQuery and
+  // cannot be imported here, so its tables are read from the source.
+  const LAYERS_TOOL = require("fs").readFileSync(
+    require("path").resolve(
+      __dirname,
+      "../../plugins/core/tools/Layers/LayersTool.js",
+    ),
+    "utf8",
+  );
+
+  const labelled = (table) =>
+    (new RegExp(`const ${table} = \\{([^}]*)\\}`).exec(LAYERS_TOOL) || [])[1] ||
+    "";
+
+  test("every statistic a rule may carry has one", () => {
+    const labels = labelled("STAT_LABELS");
+    GROUP_STATS.forEach((stat) =>
+      expect(labels, `${stat} has no label`).toContain(`${stat}:`),
+    );
+  });
+
+  test("every attribute a rule may drive has one", () => {
+    const labels = labelled("ATTRIBUTE_LABELS");
+    STYLE_ATTRIBUTES.forEach((attribute) =>
+      expect(labels, `${attribute} has no label`).toContain(`${attribute}:`),
+    );
+  });
+
+  test("every numeric attribute has a range to fall back on", () => {
+    const ranges = labelled("DEFAULT_RANGES");
+    NUMERIC_ATTRIBUTES.forEach((attribute) =>
+      expect(ranges, `${attribute} has no range`).toContain(`${attribute}:`),
+    );
   });
 });

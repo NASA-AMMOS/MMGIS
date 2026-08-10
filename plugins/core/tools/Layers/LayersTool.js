@@ -186,6 +186,8 @@ const STAT_LABELS = {
     min: 'Minimum',
     max: 'Maximum',
     avg: 'Average',
+    sum: 'Sum',
+    stddev: 'Std Dev',
 }
 
 // What a numeric attribute spans when a viewer aims a rule at one that was
@@ -3194,12 +3196,34 @@ function interfaceWithMMGIS(fromInit) {
                     '</select>',
                 '</div>',
             '</div>',
+            // A numeric attribute spans two numbers rather than a ramp, so
+            // those are what there is to aim.
+            rule.type === 'categorical' || COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' : [
+            '<div class="sublayer dynamicStyleRow dynamicStyleRangeRow">',
+                `<div title="What the property's lowest and highest values come out as. A lower 'to' than 'from' reverses the scale.">${ATTRIBUTE_LABELS[rule.attribute] || 'Style'}</div>`,
+                '<div class="dynamicStyleRangeInputs">',
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="low" type="number" step="any" value="${rangeOf(rule)[0]}" title="What the lowest value looks like.">`,
+                    '<div>to</div>',
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="high" type="number" step="any" value="${rangeOf(rule)[1]}" title="What the highest value looks like.">`,
+                '</div>',
+            '</div>'].join('\n'),
             // The ramp is picked from its colours rather than its name, and
             // its bins are draggable, so this part is React - mounted into
             // here by mountDynamicStyleRamps once the markup is in the page.
             rule.type === 'categorical' || !COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' :
             `<div class="dynamicStyleRow dynamicStyleRampMount" layername="${name}" ruleindex="${index}"></div>`,
         ].join('\n')
+    }
+
+    /** The two numbers a numeric rule spans, falling back to the attribute's. */
+    function rangeOf(rule) {
+        const range = Array.isArray(rule?.range) ? rule.range : []
+        const fallback =
+            DEFAULT_RANGES[rule?.attribute || DEFAULT_ATTRIBUTE] || [0, 1]
+        return [
+            Number.isFinite(parseFloat(range[0])) ? range[0] : fallback[0],
+            Number.isFinite(parseFloat(range[1])) ? range[1] : fallback[1],
+        ]
     }
 
     /**
@@ -3575,6 +3599,24 @@ function interfaceWithMMGIS(fromInit) {
             // The ramp only belongs to a colour, so the controls themselves
             // change shape.
             refreshDynamicStyleSettings(layerName)
+        })
+
+        $('.dynamicStyleRange').off('change')
+        $('.dynamicStyleRange').on('change', function () {
+            const layerName = $(this).attr('layername')
+            const index = ruleIndexOf(this)
+            const value = parseFloat($(this).val())
+            if (!Number.isFinite(value)) {
+                // An empty or unreadable box means the rule keeps what it had.
+                refreshDynamicStyleSettings(layerName)
+                return
+            }
+            const rules = getViewedRules(
+                L_.layers.data[L_.asLayerUUID(layerName)]
+            )
+            const range = rangeOf(rules[index]).map((v) => parseFloat(v))
+            range[$(this).attr('bound') === 'low' ? 0 : 1] = value
+            overrideDynamicStyleRuleOf(layerName, index, { range: range })
         })
 
         $('.dynamicStyleAdd').off('click')
