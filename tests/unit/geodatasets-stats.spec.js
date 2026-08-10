@@ -489,6 +489,8 @@ test.describe("buildFieldStatsScan (rescanning an existing table)", () => {
     );
     // One pass, grouped by field, rather than reading features into node.
     expect(scan.text).toContain("GROUP BY path");
+    // A field with nothing numeric in it is no field at all.
+    expect(scan.text).toContain("HAVING COUNT(num) > 0");
     [
       "MIN(num)",
       "MAX(num)",
@@ -501,9 +503,9 @@ test.describe("buildFieldStatsScan (rescanning an existing table)", () => {
   test("flattens nested properties to the dotted paths ingest stores", () => {
     const scan = buildFieldStatsScan("t");
     expect(scan.text).toContain("WITH RECURSIVE");
-    expect(scan.text).toContain("flat.path || '.' || kv.key");
+    expect(scan.text).toContain("nested.path || '.' || kv.key");
     // Bounded, as the accessors that read these paths back are.
-    expect(scan.text).toContain("flat.depth < 10");
+    expect(scan.text).toContain("nested.depth < 10");
   });
 
   test("counts only what the query-time half counts as a number", () => {
@@ -514,8 +516,8 @@ test.describe("buildFieldStatsScan (rescanning an existing table)", () => {
       require("../../plugins/core/backend/Geodatasets/lib/stats")
         .SQL_NUMERIC_REGEX,
     );
-    expect(scan.text).toContain("~ :stats_numeric_regex");
-    expect(scan.text).toContain("jsonb_typeof(value) IN ('number', 'string')");
+    expect(scan.text).toContain("txt ~ :stats_numeric_regex");
+    expect(scan.text).toContain("ty = 'number'");
     // A value no float can hold is left out rather than aborting the scan.
     expect(scan.text).toContain("<= 1e308");
   });

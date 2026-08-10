@@ -212,27 +212,20 @@ const MAX_SCAN_DEPTH = 10;
  * @returns {{ text: string, replacements: Object }}
  */
 function buildFieldStatsScan(table) {
-  // Sums are NUMERIC so a large field's squares cannot overflow mid-aggregate,
-  // and come back as text for node to parse rather than as a float.
+  // Only nesting takes the recursive walk, so a flat property streams out of
+  // jsonb_each. Sums are NUMERIC so squares cannot overflow mid-aggregate, and
+  // come back as text for node to parse rather than as a float.
   const text = `
-    WITH RECURSIVE flat(path, value, depth) AS (
+    WITH RECURSIVE nested(path, value, depth) AS (
       SELECT kv.key, kv.value, 1
       FROM ${table}, jsonb_each(properties::JSONB) kv
       WHERE jsonb_typeof(properties::JSONB) = 'object'
+        AND jsonb_typeof(kv.value) = 'object'
       UNION ALL
-      SELECT flat.path || '.' || kv.key, kv.value, flat.depth + 1
-      FROM flat, jsonb_each(flat.value) kv
-      WHERE jsonb_typeof(flat.value) = 'object' AND flat.depth < ${MAX_SCAN_DEPTH}
-    ),
-    numbers AS (
-      SELECT path,
-        -- Nested so the cast is only ever reached by text the guard matched.
-        CASE WHEN jsonb_typeof(value) IN ('number', 'string')
-          AND (value #>> '{}') ~ :stats_numeric_regex
-        THEN CASE WHEN ABS((value #>> '{}')::NUMERIC) <= ${FLOAT8_MAX}
-          THEN (value #>> '{}')::NUMERIC END
-        END AS num
-      FROM flat
+      SELECT nested.path || '.' || kv.key, kv.value, nested.depth + 1
+      FROM nested, jsonb_each(nested.value) kv
+      WHERE jsonb_typeof(nested.value) = 'object'
+        AND nested.depth < ${MAX_SCAN_DEPTH}
     )
     SELECT path,
       MIN(num)::TEXT AS min,
@@ -240,9 +233,28 @@ function buildFieldStatsScan(table) {
       SUM(num)::TEXT AS sum,
       SUM(num * num)::TEXT AS sumsq,
       COUNT(num)::TEXT AS count
-    FROM numbers
-    WHERE num IS NOT NULL
-    GROUP BY path`;
+    FROM (
+      SELECT path,
+        -- Nested so the cast is only ever reached by text the guard matched.
+        CASE WHEN ty = 'number' OR (ty = 'string' AND txt ~ :stats_numeric_regex)
+          THEN CASE WHEN ABS(txt::NUMERIC) <= ${FLOAT8_MAX}
+            THEN txt::NUMERIC END
+        END AS num
+      FROM (
+        SELECT kv.key AS path,
+          jsonb_typeof(kv.value) AS ty,
+          kv.value #>> '{}' AS txt
+        FROM ${table}, jsonb_each(properties::JSONB) kv
+        WHERE jsonb_typeof(properties::JSONB) = 'object'
+          AND jsonb_typeof(kv.value) <> 'object'
+        UNION ALL
+        SELECT path, jsonb_typeof(value), value #>> '{}'
+        FROM nested
+        WHERE jsonb_typeof(value) <> 'object'
+      ) leaves
+    ) numbers
+    GROUP BY path
+    HAVING COUNT(num) > 0`;
   return {
     text: text,
     replacements: { stats_numeric_regex: SQL_NUMERIC_REGEX },

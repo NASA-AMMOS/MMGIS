@@ -1067,7 +1067,7 @@ const getComponent = (
         </div>
       );
     case "textarray":
-      let text_array_f = configured([]);
+      let text_array_f = value != null ? value : configured([]);
       if (text_array_f != null && typeof text_array_f.join === "function")
         text_array_f = text_array_f.join(",");
 
