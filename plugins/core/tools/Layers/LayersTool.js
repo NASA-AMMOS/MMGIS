@@ -3439,14 +3439,14 @@ function interfaceWithMMGIS(fromInit) {
             `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
         )
         const rows = settings.find('.statsRow')
-        // The section only exists once there is something to report, so
-        // bringing it back means rebuilding the block.
+        const markup = getStatsSettings(layerName)
         if (rows.length === 0) {
-            if (settings.find('.dynamicStyleRow').length > 0)
+            // The section has no place to go until the block is rebuilt, and
+            // rebuilding it for nothing would disturb the controls above.
+            if (markup !== '' && settings.find('.dynamicStyleRow').length > 0)
                 refreshDynamicStyleSettings(layerName)
             return
         }
-        const markup = getStatsSettings(layerName)
         rows.slice(1).remove()
         rows.first().replaceWith(markup)
         if (markup !== '') mountDynamicStyleTips(layerName)
