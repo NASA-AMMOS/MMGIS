@@ -349,9 +349,10 @@ test.describe("layerDynamicStyle - session rules", () => {
       "value",
       "depth",
     ]);
-    expect(
-      layer.variables.dynamicStyle.rules.map((r) => r.property),
-    ).toEqual(["value", "confidence"]);
+    expect(layer.variables.dynamicStyle.rules.map((r) => r.property)).toEqual([
+      "value",
+      "confidence",
+    ]);
   });
 
   test("re-aiming a rule at another style keeps the span it maps through", () => {
@@ -436,6 +437,19 @@ test.describe("layerDynamicStyle - getStatsFields", () => {
       },
     });
     expect(getStatsFields(layer)).toEqual(["depth_m", "temp_c"]);
+  });
+
+  test("a switched-off dynamic style asks for nothing its rules named", () => {
+    const layer = {
+      variables: {
+        statsFields: "temp_c",
+        dynamicStyle: {
+          enabled: false,
+          rules: [rule({ propertyType: "stats", property: "depth_m" })],
+        },
+      },
+    };
+    expect(getStatsFields(layer)).toEqual(["temp_c"]);
   });
 
   test("asks for nothing when no rule and no admin wants statistics", () => {

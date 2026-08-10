@@ -241,7 +241,11 @@ export function getStatsFields(layerObj) {
             fields.push(trimmed)
     }
 
-    for (const rule of getViewedRules(layerObj)) {
+    // Rules of a switched-off dynamic style summarize nothing: only the fields
+    // an admin listed outright are wanted then.
+    const rules =
+        getDynamicStyle(layerObj) == null ? [] : getViewedRules(layerObj)
+    for (const rule of rules) {
         // Either written as a rule that styles by statistics, or typed as the
         // path one reads - both ask for the same field.
         const field =
