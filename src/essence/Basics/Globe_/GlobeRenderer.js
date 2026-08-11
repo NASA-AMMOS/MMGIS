@@ -1324,6 +1324,43 @@ class GlobeRenderer {
     }
 
     /**
+     * The extent the camera actually sees, in degrees, when the renderer can
+     * say so itself. Cesium computes it from the frustum, which a Leaflet
+     * zoom-to-degrees model cannot: at low zoom a perspective camera sees far
+     * less ground than the flat-Mercator equivalent.
+     *
+     * @returns {?{minx: number, miny: number, maxx: number, maxy: number}}
+     */
+    getViewRectangle() {
+        if (this.rendererType === 'lithosphere') return null
+        try {
+            const rect = this.renderer.camera.computeViewRectangle(
+                this.renderer.scene.globe.ellipsoid
+            )
+            if (rect == null) return null
+            const west = Cesium.Math.toDegrees(rect.west)
+            const east = Cesium.Math.toDegrees(rect.east)
+            const box = {
+                minx: west,
+                miny: Cesium.Math.toDegrees(rect.south),
+                maxx: east,
+                maxy: Cesium.Math.toDegrees(rect.north),
+            }
+            for (const v of Object.values(box))
+                if (!Number.isFinite(v)) return null
+            // A rectangle across the antimeridian: the caller's bbox cannot
+            // wrap, so let it cover the longitudes it must.
+            if (west > east) {
+                box.minx = -180
+                box.maxx = 180
+            }
+            return box
+        } catch (e) {
+            return null
+        }
+    }
+
+    /**
      * How much the camera is looking across the surface rather than straight
      * down, as a fraction: 0 = nadir (top-down), 1 = looking parallel to the
      * ground (toward the horizon). Used to widen the dynamic-extent bbox so
