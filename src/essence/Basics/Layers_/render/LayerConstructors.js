@@ -312,16 +312,15 @@ export const constructVectorLayer = (
             if (decoration?.shape) layerObj.shape = decoration.shape
 
             // Use style.shapeProp
-            let finalShape =
-                layerObj.style.shapeIcon || layerObj.shape || 'none'
+            let finalShape = featureStyle.shapeIcon || layerObj.shape || 'none'
 
             if (
-                layerObj.style.shapeProp != null &&
-                layerObj.style.shapeProp != ''
+                featureStyle.shapeProp != null &&
+                featureStyle.shapeProp != ''
             ) {
                 const candidateShape = F_.getIn(
                     feature.properties,
-                    layerObj.style.shapeProp,
+                    featureStyle.shapeProp,
                     null
                 )
                 if (candidateShape) finalShape = candidateShape
@@ -472,10 +471,10 @@ export const constructVectorLayer = (
                 // Determine animation class
                 let animationClass = ''
                 if (
-                    layerObj.style.animation &&
-                    layerObj.style.animation !== 'none'
+                    featureStyle.animation &&
+                    featureStyle.animation !== 'none'
                 ) {
-                    animationClass = ' mmgis-vector-' + layerObj.style.animation
+                    animationClass = ' mmgis-vector-' + featureStyle.animation
                 }
 
                 layer = L.marker(latlong, {
