@@ -25,6 +25,7 @@ import {
 import refreshLayer from '@basics/Layers_/lifecycle/refresh'
 import {
     RESTYLED_EVENT,
+    geodatasetOf,
     overrideDynamicStyle,
     overrideDynamicStyleRuleOf,
     propertyStats,
@@ -3110,8 +3111,7 @@ function interfaceWithMMGIS(fromInit) {
         // without stored statistics is only over what is loaded. A group
         // statistic is always of the query and a categorical rule spans no
         // range, so neither is missing anything.
-        const partiallyLoaded =
-            (layerObj?.url || '').split(':')[0] === 'geodatasets'
+        const partiallyLoaded = geodatasetOf(layerObj) != null
         const unmeasured =
             mode !== 'dataset' || !partiallyLoaded
                 ? []

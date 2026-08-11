@@ -229,6 +229,19 @@ export function restyleIfFollowingTheView(layerObj) {
 /** Geodataset layers whose statistics are being or have been fetched. */
 const askedForFieldStats = {}
 
+/**
+ * The geodataset a layer draws, if it draws one. The scheme is written however
+ * an admin typed it, as it is everywhere else it is read.
+ *
+ * @param {object} layerObj
+ * @returns {string|null}
+ */
+export function geodatasetOf(layerObj) {
+    const parts = (layerObj?.url || '').split(':')
+    if ((parts[0] || '').toLowerCase() !== 'geodatasets') return null
+    return parts[1] || null
+}
+
 /** Forget which layers have been asked, so a remade layer asks again. */
 export function forgetFieldStatsRequests() {
     for (const name in askedForFieldStats) delete askedForFieldStats[name]
@@ -248,9 +261,7 @@ export function forgetFieldStatsRequests() {
 export function ensureFieldStats(layerObj) {
     if (layerObj == null || getDynamicStyle(layerObj) == null) return
     if (askedForFieldStats[layerObj.name]) return
-    const url = layerObj.url || ''
-    if (url.split(':')[0] !== 'geodatasets') return
-    const geodataset = url.split(':')[1]
+    const geodataset = geodatasetOf(layerObj)
     if (!geodataset) return
 
     askedForFieldStats[layerObj.name] = true
