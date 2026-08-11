@@ -3106,15 +3106,22 @@ function interfaceWithMMGIS(fromInit) {
         const rules = getViewedRules(layerObj)
         const mode = getDomainMode(layerObj)
         const name = escapeHTML(layerName)
-        // A geodataset holds back most of its features, so without stored
-        // statistics its whole-dataset scale is only over what is loaded.
+        // A geodataset holds back most of its features, so a numeric scale
+        // without stored statistics is only over what is loaded. A group
+        // statistic is always of the query and a categorical rule spans no
+        // range, so neither is missing anything.
         const partiallyLoaded =
             (layerObj?.url || '').split(':')[0] === 'geodatasets'
         const unmeasured =
             mode !== 'dataset' || !partiallyLoaded
                 ? []
                 : rules
-                      .filter((rule) => rule?.enabled !== false)
+                      .filter(
+                          (rule) =>
+                              rule?.enabled !== false &&
+                              propertyTypeOf(rule) !== 'stats' &&
+                              !isCategoricalNow(layerName, rule)
+                      )
                       .filter(
                           (rule) =>
                               propertyStats(layerObj, rulePropertyPath(rule))
@@ -3140,7 +3147,7 @@ function interfaceWithMMGIS(fromInit) {
                 '</div>',
             '</div>',
             unmeasured.length === 0 ? '' : [
-            `<div class="sublayer dynamicStyleRow dynamicStyleNote" data-tippy-content="A geodataset is measured over every feature it has at ingest; Recompute Statistics in Configure measures one that predates them. A group statistic has no dataset-wide measure at all.">`,
+            `<div class="sublayer dynamicStyleRow dynamicStyleNote" data-tippy-content="A geodataset is measured over every feature it has at ingest, and Recompute Statistics in Configure measures one that predates that - for its numeric fields. Reload the page for a recompute to reach it.">`,
                 `<div>No dataset-wide numbers for ${escapeHTML(unmeasured.join(', '))} - scaled over what is loaded.</div>`,
             '</div>'].join('\n'),
             rules.map((rule, index) =>
