@@ -29,6 +29,15 @@ test.describe("splitValueUnits", () => {
     });
   });
 
+  test("a bin's range is one label, not a number with units", () => {
+    // Taking "– 80" for units labelled the 60-80 bin "60".
+    expect(splitValueUnits("60 – 80")).toEqual({
+      number: "60 – 80",
+      units: "",
+    });
+    expect(extractUnits(["60 – 80", "80 – 100"]).units).toBe("");
+  });
+
   test("a label that is not a number keeps all of itself", () => {
     expect(splitValueUnits("Basalt")).toEqual({ number: "Basalt", units: "" });
     expect(splitValueUnits("")).toEqual({ number: "", units: "" });

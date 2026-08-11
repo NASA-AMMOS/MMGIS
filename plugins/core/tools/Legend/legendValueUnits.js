@@ -19,7 +19,11 @@ export function splitValueUnits(value) {
     const text = String(value == null ? '' : value).trim()
     const match = text.match(NUMBER_THEN_UNITS)
     if (!match) return { number: text, units: '' }
-    return { number: match[1].trim(), units: match[2].trim() }
+    const units = match[2].trim()
+    // A second number is not a unit: a bin's `60 - 80` is a whole label, and
+    // shortening it to its lower edge would say something else.
+    if (/[0-9]/.test(units)) return { number: text, units: '' }
+    return { number: match[1].trim(), units: units }
 }
 
 /**
