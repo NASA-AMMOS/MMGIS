@@ -11,6 +11,8 @@ import {
     DEFAULT_ATTRIBUTE,
     GROUP_STATS,
     propertyTypeOf,
+    rulePropertyLabel,
+    rulePropertyPath,
     ruleStatOf,
     styleableAttributes,
 } from '@basics/Layers_/render/dynamicStyle'
@@ -3281,26 +3283,22 @@ function interfaceWithMMGIS(fromInit) {
         const rows = []
         const seen = new Set()
         getViewedRules(layerObj).forEach((rule) => {
-            const property = rule?.property
-            if (typeof property !== 'string' || seen.has(property)) return
-            seen.add(property)
-            const stats = propertyStats(layerObj, property)
+            // Each rule is measured over what it actually colours by, so a
+            // Stats rule reports the group summaries rather than the field.
+            const path = rulePropertyPath(rule)
+            if (path === '' || seen.has(path)) return
+            seen.add(path)
+            const stats = propertyStats(layerObj, path)
             if (stats == null) return
             const over = {
                 dataset: 'every feature of the dataset, loaded or not',
                 view: 'the features currently in view',
                 loaded: 'the features this layer has loaded',
             }[stats.scope]
-            // A Stats rule colours by each group's own summary, so these are
-            // the field's individual values rather than the rule's scale.
-            const values =
-                rule.propertyType === 'stats'
-                    ? " These are the field's own values, not the group statistics the rule colours by."
-                    : ''
             // prettier-ignore
             rows.push([
-                `<div class="sublayer statsRow statsProperty" data-tippy-content="Measured over ${over}.${values}">`,
-                    `<div>${escapeHTML(property)}</div>`,
+                `<div class="sublayer statsRow statsProperty" data-tippy-content="Measured over ${over}.">`,
+                    `<div>${escapeHTML(rulePropertyLabel(rule))}</div>`,
                     `<div>${stats.scope}</div>`,
                 '</div>',
                 statRow('Min', stats.min),

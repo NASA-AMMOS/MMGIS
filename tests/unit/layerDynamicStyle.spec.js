@@ -233,6 +233,14 @@ test.describe("layerDynamicStyle - session overrides", () => {
     ).toBe("view");
   });
 
+  test("rules that disagree are not all on the current view", () => {
+    const layer = layerWith([
+      rule({ domain: { source: "loaded" } }),
+      rule({ attribute: "weight", domain: { source: "auto" } }),
+    ]);
+    expect(getDomainMode(layer)).toBe("dataset");
+  });
+
   test("the domain toggle wins over the configuration, and moves every rule", () => {
     const layer = layerWith([
       rule(),

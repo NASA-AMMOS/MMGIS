@@ -61,8 +61,9 @@ export function getDynamicStyleOverride(layerObj) {
 
 /**
  * Which end of the Whole dataset / Current view toggle a layer is at. Without
- * an override it's whatever its first rule was configured with: only 'loaded'
- * means "what's in hand", every other source describes the whole dataset.
+ * an override it's what its rules were configured with: only 'loaded' means
+ * "what's in hand", so the toggle reads as the current view only when every
+ * rule is measured that way - rules that disagree are not all in view.
  *
  * @param {object} layerObj
  * @returns {'dataset'|'view'}
@@ -70,8 +71,11 @@ export function getDynamicStyleOverride(layerObj) {
 export function getDomainMode(layerObj) {
     const override = getDynamicStyleOverride(layerObj)
     if (override && override.domain) return override.domain
-    const source = layerObj?.variables?.dynamicStyle?.rules?.[0]?.domain?.source
-    return source === 'loaded' ? 'view' : 'dataset'
+    const rules = layerObj?.variables?.dynamicStyle?.rules
+    if (!Array.isArray(rules) || rules.length === 0) return 'dataset'
+    return rules.every((rule) => rule?.domain?.source === 'loaded')
+        ? 'view'
+        : 'dataset'
 }
 
 /** The rules a viewer is looking at, before the domain toggle is applied. */
