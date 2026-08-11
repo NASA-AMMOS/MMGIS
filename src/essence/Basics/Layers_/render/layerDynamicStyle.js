@@ -12,6 +12,7 @@
  */
 
 import {
+    collectCategories,
     collectValues,
     compileRules,
     isUsableRule,
@@ -99,13 +100,21 @@ function overriddenRules(rules, override) {
     })
 }
 
+/** A scale whose ends were typed rather than measured. */
+function isPinnedDomain(domain) {
+    return domain?.source === 'literal'
+}
+
 function withOverride(dynamicStyle, override, mode) {
     const rules = overriddenRules(dynamicStyle.rules, override).map((rule) => {
         const next = Object.assign({}, rule)
+        // A scale pinned to typed numbers is not measured over anything, so
+        // the toggle leaves it alone.
+        if (isPinnedDomain(next.domain)) return next
         // The layer's toggle says where an unpinned scale is measured, so a
-        // rule follows it; a domain pinned to literal numbers stays pinned.
-        // 'loaded' is the toggle's own source: a rule that carries it from an
-        // older configuration is measured over the whole dataset instead.
+        // rule follows it. 'loaded' is the toggle's own source: a rule that
+        // carries it from an older configuration is measured over the whole
+        // dataset instead.
         if (mode === 'view')
             next.domain = Object.assign({}, next.domain, { source: 'loaded' })
         else if (next.domain?.source === 'loaded')
@@ -169,32 +178,6 @@ export function overrideDynamicStyleRule(layerObj, index, patch) {
 }
 
 /**
- * Add a rule for this session, copying the first configured one so the new one
- * arrives styling something rather than empty.
- *
- * @param {object} layerObj
- * @param {object} [rule]  Merged over the copy.
- * @returns {object|null}
- */
-export function addDynamicStyleRule(layerObj, rule) {
-    const rules = getViewedRules(layerObj)
-    const added = Object.assign({}, rules[0], rule)
-    return setDynamicStyleOverride(layerObj, { rules: [...rules, added] })
-}
-
-/**
- * Drop a rule for this session.
- *
- * @param {object} layerObj
- * @param {number} index
- * @returns {object|null}
- */
-export function removeDynamicStyleRule(layerObj, index) {
-    const rules = getViewedRules(layerObj).filter((rule, i) => i !== index)
-    return setDynamicStyleOverride(layerObj, { rules })
-}
-
-/**
  * The properties a layer's rules style by — the fields it can't be styled
  * without, so a layer that only requests some of its properties knows to ask
  * for these too.
@@ -241,7 +224,9 @@ export function getStatsFields(layerObj) {
     // Rules of a switched-off dynamic style summarize nothing: only the fields
     // an admin listed outright are wanted then.
     const rules =
-        getDynamicStyle(layerObj) == null ? [] : getViewedRules(layerObj)
+        getDynamicStyle(layerObj) == null
+            ? []
+            : getViewedRules(layerObj).filter((rule) => rule?.enabled !== false)
     for (const rule of rules) {
         // Either written as a rule that styles by statistics, or typed as the
         // path one reads - both ask for the same field.
@@ -282,15 +267,21 @@ export function compileLayerDynamicStyle(layerObj, features) {
     }
 
     const values = {}
+    const categories = {}
     dynamicStyle.rules.filter(isUsableRule).forEach((rule) => {
         const path = rulePropertyPath(rule)
-        if (values[path] === undefined)
-            values[path] = collectValues(features, path)
+        if (values[path] !== undefined) return
+        values[path] = collectValues(features, path)
+        // A property with no numbers in it is styled value by value, so its
+        // distinct values are what a mapping is derived from.
+        categories[path] =
+            values[path].length === 0 ? collectCategories(features, path) : []
     })
 
     const compiled = compileRules(dynamicStyle, {
         fieldStats: layerObj._fieldStats,
         values: values,
+        categories: categories,
     })
     const resolver = resolverOf(compiled)
     // Silently losing every style is the hardest thing to diagnose about a rule,
@@ -370,7 +361,6 @@ export function applyDynamicStyleToGeoJSON(layerObj, geojson) {
 }
 
 const LayerDynamicStyle = {
-    addDynamicStyleRule,
     applyDynamicStyleToGeoJSON,
     compileLayerDynamicStyle,
     getDomainMode,
@@ -382,7 +372,6 @@ const LayerDynamicStyle = {
     getStatsFields,
     getViewedRules,
     overrideDynamicStyleRule,
-    removeDynamicStyleRule,
     setDynamicStyleOverride,
 }
 

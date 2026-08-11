@@ -138,20 +138,7 @@
   margin-left: 4px;
 }
 
-#layersTool .dynamicStyleHeadingActions {
-  display: flex;
-  align-items: center;
-  margin-left: 6px;
-}
-
-#layersTool .dynamicStyleAdd > div {
-  font-size: 11px;
-  letter-spacing: 0.5px;
-}
-
-#layersTool .dynamicStyleReset,
-#layersTool .dynamicStyleAdd,
-#layersTool .dynamicStyleRemove {
+#layersTool .dynamicStyleReset {
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -174,9 +161,8 @@
   height: 14px;
 }
 
-/* Rules look alike, so each is numbered to show where one ends and the next
-   begins - and only when there is more than one to tell apart. What belongs to
-   a rule is indented under it. */
+/* Each rule is headed by what it styles by, with the switch that turns it on.
+   What belongs to a rule is indented under it. */
 #layersTool .dynamicStyleRuleHeading,
 #layersTool .statsProperty {
   align-items: center;
@@ -188,8 +174,9 @@
   letter-spacing: 0.5px;
 }
 
-#layersTool .dynamicStyleRuleHeading {
-  text-transform: uppercase;
+#layersTool .dynamicStyleRuleHeading > .checkboxcont {
+  display: flex;
+  align-items: center;
 }
 
 #layersTool .sublayer.dynamicStyleRuleRow,

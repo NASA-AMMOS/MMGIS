@@ -14,12 +14,10 @@
 import calls from '../../../../pre/calls'
 import { asNumber, readProperty } from './dynamicStyle'
 import {
-    addDynamicStyleRule,
     compileLayerDynamicStyle,
     getDomainMode,
     getDynamicStyle,
     overrideDynamicStyleRule,
-    removeDynamicStyleRule,
     setDynamicStyleOverride,
 } from './layerDynamicStyle'
 
@@ -395,32 +393,6 @@ export function overrideDynamicStyleRuleOf(layer, index, patch) {
     })
 }
 
-/**
- * Add a session rule to a layer and repaint it.
- *
- * @param {string|object} layer
- * @param {object} [rule]
- * @returns {boolean}
- */
-export function addDynamicStyleRuleTo(layer, rule) {
-    return withLayer(layer, (layerObj) => {
-        addDynamicStyleRule(layerObj, rule)
-    })
-}
-
-/**
- * Drop one of a layer's session rules and repaint it.
- *
- * @param {string|object} layer
- * @param {number} index
- * @returns {boolean}
- */
-export function removeDynamicStyleRuleFrom(layer, index) {
-    return withLayer(layer, (layerObj) => {
-        removeDynamicStyleRule(layerObj, index)
-    })
-}
-
 function withLayer(layer, change) {
     const Layers = L_()
     const layerObj =
@@ -434,13 +406,11 @@ function withLayer(layer, change) {
 
 const DynamicStyleRuntime = {
     RESTYLED_EVENT,
-    addDynamicStyleRuleTo,
     announceRestyle,
     domainFeatures,
     overrideDynamicStyleRuleOf,
     propertyStats,
     summarizeProperty,
-    removeDynamicStyleRuleFrom,
     ensureFieldStats,
     forgetFieldStatsRequests,
     layersFollowingTheView,

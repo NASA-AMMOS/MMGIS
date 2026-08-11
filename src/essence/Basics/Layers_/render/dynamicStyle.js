@@ -339,6 +339,96 @@ export function collectValues(features, property) {
 }
 
 /**
+ * More distinct values than a legend can say anything with: past this a field
+ * is an identifier rather than a category, and deriving a mapping for it would
+ * paint noise.
+ */
+const MAX_DERIVED_CATEGORIES = 24
+
+/**
+ * The distinct values a non-numeric property takes across some features — what
+ * a categorical mapping is derived from when a rule was aimed at a text field
+ * without one being written.
+ *
+ * @param {Array<object>} features  GeoJSON features.
+ * @param {string} property
+ * @returns {string[]} sorted, or empty if there are too many to be categories.
+ */
+export function collectCategories(features, property) {
+    if (!Array.isArray(features)) return []
+    const values = new Set()
+    for (const feature of features) {
+        const raw = readProperty(feature?.properties, property)
+        if (raw == null || typeof raw === 'object') continue
+        const value = String(raw)
+        if (value === '') continue
+        values.add(value)
+        if (values.size > MAX_DERIVED_CATEGORIES) return []
+    }
+    return [...values].sort()
+}
+
+/**
+ * Whether a rule maps values one by one rather than stretching a scale over
+ * them: written as categorical, or aimed at a property whose values aren't
+ * numbers.
+ *
+ * @param {object} rule
+ * @param {object} [context]  A single rule's context.
+ * @returns {boolean}
+ */
+export function isCategoricalRule(rule, context) {
+    if (rule?.type === 'categorical') return true
+    if (context == null) return false
+    const values = context.values
+    if (Array.isArray(values) && values.length > 0) return false
+    return Array.isArray(context.categories) && context.categories.length > 0
+}
+
+/**
+ * A mapping for each value in hand, spread evenly across the rule's ramp or
+ * range — what a rule aimed at a text field styles by until one is written.
+ */
+function derivedMappings(rule, categories, isColor) {
+    if (!Array.isArray(categories) || categories.length === 0) return null
+    const at = (i) =>
+        categories.length === 1 ? 0 : i / (categories.length - 1)
+
+    if (isColor) {
+        const stops = rampStops(rule.ramp || DEFAULT_RAMP, rule.reverse)
+        if (stops.length === 0) return null
+        return categories.map((value, i) => ({
+            value,
+            color: interpolateMultipleColors(stops, at(i), 0, 1),
+        }))
+    }
+
+    const range = Array.isArray(rule.range) ? rule.range : []
+    const low = asNumber(range[0])
+    const high = asNumber(range[1])
+    if (low == null || high == null) return null
+    return categories.map((value, i) => ({
+        value,
+        to: low + at(i) * (high - low),
+    }))
+}
+
+/**
+ * The mappings a categorical rule styles by: the written ones, or ones derived
+ * from the values in hand.
+ *
+ * @param {object} rule
+ * @param {object} [context]
+ * @returns {Array<object>}
+ */
+export function ruleMappings(rule, context) {
+    const written = Array.isArray(rule?.mappings) ? rule.mappings : []
+    if (written.length > 0) return written
+    const isColor = COLOR_ATTRIBUTES.includes(attributeOf(rule))
+    return derivedMappings(rule, context?.categories, isColor) || []
+}
+
+/**
  * A discrete rule's bin boundaries as fractions of the domain, or null for the
  * even split. A rule may move them - "most of my readings are shallow, so give
  * the first bin a tenth of the scale" - and anything that doesn't describe
@@ -419,9 +509,10 @@ export function binEdges(domain, bins, stops) {
  */
 export function isUsableRule(rule) {
     if (rule == null || typeof rule !== 'object') return false
+    // A rule switched off is configuration, not styling.
+    if (rule.enabled === false) return false
     if (typeof rule.property !== 'string' || rule.property === '') return false
     if (!STYLE_ATTRIBUTES.includes(attributeOf(rule))) return false
-    if (rule.type === 'categorical') return Array.isArray(rule.mappings)
     return true
 }
 
@@ -457,9 +548,9 @@ function compileRule(rule, context) {
     const fallback = isColor ? rule.fallbackValue : asNumber(rule.fallbackValue)
     const nullValue = isColor ? rule.nullValue : asNumber(rule.nullValue)
 
-    if (rule.type === 'categorical') {
+    if (isCategoricalRule(rule, context)) {
         const table = new Map()
-        for (const mapping of rule.mappings) {
+        for (const mapping of ruleMappings(rule, context)) {
             if (mapping == null || mapping.value === undefined) continue
             const value = mappedValue(mapping, isColor)
             if (value == null || value === '') continue
@@ -530,10 +621,11 @@ export function compileRules(dynamicStyle, context) {
             attribute: attributeOf(rule),
             property: rulePropertyPath(rule),
             label: rulePropertyLabel(rule),
-            domain:
-                rule.type === 'categorical'
-                    ? null
-                    : resolveDomain(rule, ruleContext),
+            categorical: isCategoricalRule(rule, ruleContext),
+            mappings: ruleMappings(rule, ruleContext),
+            domain: isCategoricalRule(rule, ruleContext)
+                ? null
+                : resolveDomain(rule, ruleContext),
             resolve,
         })
     }
@@ -587,9 +679,14 @@ function contextFor(rule, context) {
     if (context == null) return context
     const values = context.values
     if (values == null || Array.isArray(values)) return context
+    const categories = context.categories
     return {
         fieldStats: context.fieldStats,
         values: values[rulePropertyPath(rule)],
+        categories:
+            categories == null || Array.isArray(categories)
+                ? categories
+                : categories[rulePropertyPath(rule)],
     }
 }
 
@@ -605,11 +702,14 @@ const DynamicStyle = {
     rulePropertyPath,
     ruleStatOf,
     binEdges,
+    collectCategories,
     collectValues,
     compileDynamicStyle,
     compileRules,
     resolverOf,
+    isCategoricalRule,
     isUsableRule,
+    ruleMappings,
     normalizeStops,
     rampStops,
     readProperty,

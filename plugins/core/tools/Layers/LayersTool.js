@@ -19,18 +19,15 @@ import {
 import {
     getDomainMode,
     getDynamicStyle,
-    getDynamicStyleProps,
     getStatsFields,
     getViewedRules,
 } from '@basics/Layers_/render/layerDynamicStyle'
 import refreshLayer from '@basics/Layers_/lifecycle/refresh'
 import {
     RESTYLED_EVENT,
-    addDynamicStyleRuleTo,
     overrideDynamicStyle,
     overrideDynamicStyleRuleOf,
     propertyStats,
-    removeDynamicStyleRuleFrom,
 } from '@basics/Layers_/render/dynamicStyleRuntime'
 
 import React from 'react'
@@ -3091,46 +3088,20 @@ function interfaceWithMMGIS(fromInit) {
     }
 
     /**
-     * The properties a viewer may aim a layer's dynamic style at: the ones its
-     * rules were written for, plus any an admin listed as selectable. A field
-     * summarized per group is not a property a feature has, so each kind is
-     * listed on its own.
-     */
-    function getStyleableProperties(layerName, propertyType) {
-        const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
-        const dynamicStyle = layerObj?.variables?.dynamicStyle
-        const rules = dynamicStyle?.rules
-        const names = new Set()
-        if (Array.isArray(rules))
-            rules.forEach((rule) => {
-                if (propertyTypeOf(rule) !== propertyType) return
-                if (typeof rule?.property === 'string' && rule.property !== '')
-                    names.add(rule.property)
-            })
-        const listed =
-            propertyType === 'stats'
-                ? dynamicStyle?.statsProperties
-                : dynamicStyle?.properties
-        if (Array.isArray(listed))
-            listed.forEach((property) => {
-                if (typeof property !== 'string') return
-                const trimmed = property.trim()
-                if (trimmed !== '') names.add(trimmed)
-            })
-        return [...names]
-    }
-
-    /**
      * The dynamic style's runtime controls: what a viewer may change about how
      * a layer is coloured without being an admin, and without it outliving the
      * session. Only shown for a layer that has a dynamic style to change.
      */
     function getDynamicStyleSettings(layerName) {
         const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
-        const dynamicStyle = getDynamicStyle(layerObj)
-        if (dynamicStyle == null) return ''
+        const dynamicStyle = layerObj?.variables?.dynamicStyle
+        if (
+            !Array.isArray(dynamicStyle?.rules) ||
+            dynamicStyle.enabled !== true
+        )
+            return ''
         // Only where an admin left the style open to being re-aimed.
-        if (layerObj?.variables?.dynamicStyle?.userSettable === false) return ''
+        if (dynamicStyle.userSettable === false) return ''
 
         const rules = getViewedRules(layerObj)
         const mode = getDomainMode(layerObj)
@@ -3143,9 +3114,6 @@ function interfaceWithMMGIS(fromInit) {
                     '<div>Dynamic Style</div>',
                     `<div class="dynamicStyleReset mmgisHoverBlue" layername="${name}" title="Style this layer the way it was configured again, undoing the changes made here."><i class="mdi mdi-restore mdi-18px"></i></div>`,
                 '</div>',
-                '<div class="dynamicStyleHeadingActions">',
-                    `<div class="dynamicStyleAdd mmgisHoverBlue" layername="${name}" title="Style by another property as well. The new rule starts as a copy of the first."><div>Add</div><i class="mdi mdi-plus mdi-18px"></i></div>`,
-                '</div>',
             '</div>',
             '<div class="sublayer dynamicStyleRow">',
                 '<div title="Whether the colour scale is stretched over the whole dataset - so a feature\'s colour means the same wherever you are - or over just what is currently in view, which re-stretches the ramp as you pan.">Domain</div>',
@@ -3157,64 +3125,31 @@ function interfaceWithMMGIS(fromInit) {
                 '</div>',
             '</div>',
             rules.map((rule, index) =>
-                getDynamicStyleRuleSettings(layerName, rule, index, rules.length)
+                getDynamicStyleRuleSettings(layerName, rule, index)
             ).join('\n'),
         ].join('\n')
     }
 
     /**
-     * One rule's controls. Rules are numbered only when there is more than one
-     * to tell apart, and only then can one be removed - a layer with no rules
-     * left has no dynamic style to add another from.
+     * One rule's controls, under a heading naming what it styles by and a
+     * switch for whether it styles at all. An admin writes the rules; a viewer
+     * chooses which of them to look through and adjusts those.
      */
-    function getDynamicStyleRuleSettings(layerName, rule, index, count) {
+    function getDynamicStyleRuleSettings(layerName, rule, index) {
         const name = escapeHTML(layerName)
         const isStats = propertyTypeOf(rule) === 'stats'
-        const properties = getStyleableProperties(layerName, 'properties')
-        const statsFields = getStyleableProperties(layerName, 'stats')
-        const own = isStats ? statsFields : properties
-        if (own.indexOf(rule.property) === -1 && rule.property != null)
-            own.unshift(rule.property)
-        const chosen = `${isStats ? 'stats' : 'properties'}:${rule.property}`
-        // Which box a name was listed in is how the rule knows whether it is a
-        // property of a feature or a field summarized per group.
-        const options = (kind, label, names) =>
-            names.length === 0
-                ? ''
-                : [
-                      `<optgroup label="${label}">`,
-                      names
-                          .map(
-                              (p) =>
-                                  `<option value="${escapeHTML(
-                                      `${kind}:${p}`
-                                  )}"${
-                                      `${kind}:${p}` === chosen
-                                          ? ' selected'
-                                          : ''
-                                  }>${escapeHTML(p)}</option>`
-                          )
-                          .join('\n'),
-                      '</optgroup>',
-                  ].join('\n')
+        const on = rule?.enabled !== false
+        const byValue = isCategoricalNow(layerName, rule)
 
         // prettier-ignore
         return [
-            count > 1 ? [
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleHeading">',
-                `<div>Rule ${index + 1}</div>`,
-                `<div class="dynamicStyleRemove mmgisHoverBlue" layername="${name}" ruleindex="${index}" title="Stop styling by this rule for this session."><i class="mdi mdi-close mdi-18px"></i></div>`,
-            '</div>'].join('\n') : '',
-            properties.length + statsFields.length > 0 ? [
-            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
-                '<div title="What the layer is coloured by: a property of the feature itself, or a field summarized over the features sharing its group.">Property</div>',
-                '<div style="display: flex;">',
-                    `<select class="dropdown dynamicStyleProperty" layername="${name}" ruleindex="${index}">`,
-                        options('properties', 'Properties', properties),
-                        options('stats', 'Stats Fields', statsFields),
-                    '</select>',
+                `<div title="Styles ${escapeHTML(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || 'the fill')} by ${escapeHTML(rulePropertyLabel(rule))}.">${escapeHTML(rulePropertyLabel(rule))}</div>`,
+                '<div class="checkboxcont">',
+                    `<div class="checkbox small dynamicStyleRuleEnabled ${on ? 'on' : 'off'}" layername="${name}" ruleindex="${index}" title="Whether this rule styles the layer."></div>`,
                 '</div>',
-            '</div>'].join('\n') : '',
+            '</div>',
+            !on ? '' : [
             !isStats ? '' : [
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
                 '<div class="dynamicStyleLabelInfo">',
@@ -3231,6 +3166,7 @@ function interfaceWithMMGIS(fromInit) {
             '</div>'].join('\n'),
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
                 '<div title="The style attribute the property drives. Colours take a ramp; the others take a range of numbers.">Styles</div>',
+
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleAttribute" layername="${name}" ruleindex="${index}">`,
                         // Only what this rule can still produce: a value table
@@ -3243,7 +3179,7 @@ function interfaceWithMMGIS(fromInit) {
             '</div>',
             // A numeric attribute spans two numbers rather than a ramp, so
             // those are what there is to aim.
-            rule.type === 'categorical' || COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' : [
+            byValue || COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' : [
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow dynamicStyleRangeRow">',
                 `<div title="What the property's lowest and highest values come out as. A lower 'to' than 'from' reverses the scale.">${ATTRIBUTE_LABELS[rule.attribute] || 'Style'}</div>`,
                 '<div class="dynamicStyleRangeInputs">',
@@ -3255,16 +3191,31 @@ function interfaceWithMMGIS(fromInit) {
             // The ramp is picked from its colours rather than its name, and
             // its bins are draggable, so this part is React - mounted into
             // here by mountDynamicStyleRamps once the markup is in the page.
-            rule.type === 'categorical' || !COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' :
+            byValue || !COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' :
             `<div class="dynamicStyleRow dynamicStyleRuleRow dynamicStyleRampMount" layername="${name}" ruleindex="${index}"></div>`,
+            ].join('\n'),
         ].join('\n')
+    }
+
+    /**
+     * Whether a rule maps values one by one rather than over a scale - written
+     * as categorical, or aimed at a text property and mapped from its values.
+     */
+    function isCategoricalNow(layerName, rule) {
+        if (rule?.type === 'categorical') return true
+        const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
+        const path = rulePropertyPath(rule)
+        return (layerObj?._dynamicStyleRules || []).some(
+            (compiled) => compiled.property === path && compiled.categorical
+        )
     }
 
     /** The two numbers a numeric rule spans, falling back to the attribute's. */
     function rangeOf(rule) {
         const range = Array.isArray(rule?.range) ? rule.range : []
-        const fallback =
-            DEFAULT_RANGES[rule?.attribute || DEFAULT_ATTRIBUTE] || [0, 1]
+        const fallback = DEFAULT_RANGES[
+            rule?.attribute || DEFAULT_ATTRIBUTE
+        ] || [0, 1]
         return [
             Number.isFinite(parseFloat(range[0])) ? range[0] : fallback[0],
             Number.isFinite(parseFloat(range[1])) ? range[1] : fallback[1],
@@ -3651,38 +3602,18 @@ function interfaceWithMMGIS(fromInit) {
 
         const ruleIndexOf = (el) => parseInt($(el).attr('ruleindex'), 10)
 
-        $('.dynamicStyleProperty').off('change')
-        $('.dynamicStyleProperty').on('change', function () {
+        $('.dynamicStyleRuleEnabled').off('click')
+        $('.dynamicStyleRuleEnabled').on('click', function () {
             const layerName = $(this).attr('layername')
             const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
-            // A layer that only fetches the properties it styles by has to
-            // fetch again for a property it wasn't styling by.
-            const restricted =
-                layerObj?.variables?.getFeaturePropertiesOnClick === true
-            const asked = getStatsFields(layerObj).concat(
-                restricted ? getDynamicStyleProps(layerObj) : []
-            )
-            const index = ruleIndexOf(this)
-            // The option's value carries which box its name was listed in.
-            const chosen = String($(this).val())
-            const split = chosen.indexOf(':')
-            const propertyType =
-                split === -1 ? 'properties' : chosen.slice(0, split)
-            const patch = {
-                property: chosen.slice(split + 1),
-                propertyType: propertyType,
-            }
-            // A field aimed at for the first time is summarized as an average.
-            if (propertyType === 'stats')
-                patch.stat = ruleStatOf(getViewedRules(layerObj)[index])
-            overrideDynamicStyleRuleOf(layerName, index, patch)
-            // A field the layer never asked for isn't in the features it
-            // holds, so they are fetched again to carry it.
-            const wanted = getStatsFields(layerObj).concat(
-                restricted ? getDynamicStyleProps(layerObj) : []
-            )
-            if (wanted.some((f) => !asked.includes(f))) refreshLayer(layerObj)
-            // Another property may have statistics of its own to report.
+            const asked = getStatsFields(layerObj)
+            overrideDynamicStyleRuleOf(layerName, ruleIndexOf(this), {
+                enabled: $(this).hasClass('off'),
+            })
+            // A rule switched on may style by a group statistic the layer
+            // never asked the server for.
+            if (getStatsFields(layerObj).some((f) => !asked.includes(f)))
+                refreshLayer(layerObj)
             refreshDynamicStyleSettings(layerName)
         })
 
@@ -3691,7 +3622,9 @@ function interfaceWithMMGIS(fromInit) {
             overrideDynamicStyleRuleOf(
                 $(this).attr('layername'),
                 ruleIndexOf(this),
-                { stat: $(this).val() }
+                {
+                    stat: $(this).val(),
+                }
             )
         })
 
@@ -3730,20 +3663,6 @@ function interfaceWithMMGIS(fromInit) {
             overrideDynamicStyleRuleOf(layerName, index, { range: range })
         })
 
-        $('.dynamicStyleAdd').off('click')
-        $('.dynamicStyleAdd').on('click', function () {
-            const layerName = $(this).attr('layername')
-            addDynamicStyleRuleTo(layerName)
-            refreshDynamicStyleSettings(layerName)
-        })
-
-        $('.dynamicStyleRemove').off('click')
-        $('.dynamicStyleRemove').on('click', function () {
-            const layerName = $(this).attr('layername')
-            removeDynamicStyleRuleFrom(layerName, ruleIndexOf(this))
-            refreshDynamicStyleSettings(layerName)
-        })
-
         $(
             '#layersToolList > li > .settings .sublayer .sublayeropacityslider'
         ).off('input')
@@ -3756,25 +3675,28 @@ function interfaceWithMMGIS(fromInit) {
             L_.setSublayerOpacity(layerName, sublayerName, opacity)
         })
         //Makes sublayers clickable on and off
-        $('#layersToolList > li > .settings .sublayer .checkbox').off('click')
-        $('#layersToolList > li > .settings .sublayer .checkbox').on(
-            'click',
-            async function () {
-                const layerName = $(this).attr('layername')
-                const sublayerName = $(this).attr('sublayername')
+        // Only a sublayer's own box: a dynamic style rule's switch is a
+        // checkbox in a .sublayer row too, and has its own handler.
+        $(
+            '#layersToolList > li > .settings .sublayer .checkbox[sublayername]'
+        ).off('click')
+        $(
+            '#layersToolList > li > .settings .sublayer .checkbox[sublayername]'
+        ).on('click', async function () {
+            const layerName = $(this).attr('layername')
+            const sublayerName = $(this).attr('sublayername')
 
-                await L_.toggleSublayer(layerName, sublayerName)
+            await L_.toggleSublayer(layerName, sublayerName)
 
-                if (
-                    L_.layers.attachments[layerName] &&
-                    L_.layers.attachments[layerName][sublayerName]
-                ) {
-                    if (L_.layers.attachments[layerName][sublayerName].on)
-                        $(this).addClass('on')
-                    else $(this).removeClass('on')
-                }
+            if (
+                L_.layers.attachments[layerName] &&
+                L_.layers.attachments[layerName][sublayerName]
+            ) {
+                if (L_.layers.attachments[layerName][sublayerName].on)
+                    $(this).addClass('on')
+                else $(this).removeClass('on')
             }
-        )
+        })
     }
 
     // Listen for layer refresh status changes

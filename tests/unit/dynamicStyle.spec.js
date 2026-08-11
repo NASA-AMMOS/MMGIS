@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import {
   asNumber,
   binEdges,
+  collectCategories,
   collectValues,
   compileDynamicStyle,
   isUsableRule,
@@ -358,22 +359,21 @@ test.describe("dynamicStyle - isUsableRule", () => {
     expect(isUsableRule(null)).toBe(false);
   });
 
-  test("a categorical rule needs mappings", () => {
+  test("a categorical rule with no mappings still counts - they may be derived", () => {
     expect(
       isUsableRule({
         property: "k",
         attribute: "color",
         type: "categorical",
-      }),
-    ).toBe(false);
-    expect(
-      isUsableRule({
-        property: "k",
-        attribute: "color",
-        type: "categorical",
-        mappings: [],
       }),
     ).toBe(true);
+  });
+
+  test("a rule switched off is not styled by", () => {
+    expect(isUsableRule(numericRule({ enabled: false }))).toBe(false);
+    expect(isUsableRule(numericRule({ enabled: true }))).toBe(true);
+    // Rules written before there was a switch are on.
+    expect(isUsableRule(numericRule())).toBe(true);
   });
 });
 
@@ -608,6 +608,78 @@ test.describe("dynamicStyle - compileDynamicStyle, categorical", () => {
       mappings: [{ color: "#fff" }],
     });
     expect(compileDynamicStyle({ enabled: true, rules: [rule] })).toBeNull();
+  });
+});
+
+test.describe("dynamicStyle - derived categories", () => {
+  const features = [
+    { properties: { kind: "trail" } },
+    { properties: { kind: "road" } },
+    { properties: { kind: "trail" } },
+  ];
+
+  test("names the distinct values a property takes", () => {
+    expect(collectCategories(features, "kind")).toEqual(["road", "trail"]);
+  });
+
+  test("names none for a field with more values than categories", () => {
+    const many = [];
+    for (let i = 0; i < 30; i++) many.push({ properties: { kind: `k${i}` } });
+    expect(collectCategories(many, "kind")).toEqual([]);
+  });
+
+  test("a rule aimed at a text field maps its values across the ramp", () => {
+    const resolve = compileDynamicStyle(
+      {
+        enabled: true,
+        rules: [numericRule({ property: "kind" })],
+      },
+      { values: [], categories: collectCategories(features, "kind") },
+    );
+    expect(resolve({ kind: "road" }).fillColor).toBe("#000000");
+    expect(resolve({ kind: "trail" }).fillColor).toBe("#ffffff");
+    expect(resolve({ kind: "river" })).toBeNull();
+  });
+
+  test("a numeric attribute spreads its range over them instead", () => {
+    const resolve = compileDynamicStyle(
+      {
+        enabled: true,
+        rules: [
+          numericRule({
+            property: "kind",
+            attribute: "weight",
+            range: [1, 5],
+          }),
+        ],
+      },
+      { values: [], categories: collectCategories(features, "kind") },
+    );
+    expect(resolve({ kind: "road" }).weight).toBe(1);
+    expect(resolve({ kind: "trail" }).weight).toBe(5);
+  });
+
+  test("written mappings are kept over derived ones", () => {
+    const written = {
+      property: "kind",
+      attribute: "color",
+      type: "categorical",
+      mappings: [{ value: "trail", color: "#33cc33" }],
+    };
+    const resolve = compileDynamicStyle(
+      { enabled: true, rules: [written] },
+      { values: [], categories: ["trail", "road", "river"] },
+    );
+    expect(resolve({ kind: "trail" }).color).toBe("#33cc33");
+    expect(resolve({ kind: "river" })).toBeNull();
+  });
+
+  test("a property whose values are numbers is still a scale", () => {
+    const resolve = compileDynamicStyle(
+      { enabled: true, rules: [numericRule()] },
+      { values: [0, 100], categories: ["0", "100"] },
+    );
+    expect(resolve({ value: 50 }).fillColor).toBe("rgb(128, 128, 128)");
   });
 });
 

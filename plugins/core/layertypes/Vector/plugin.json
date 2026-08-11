@@ -403,40 +403,10 @@
               {
                 "field": "variables.dynamicStyle.userSettable",
                 "name": "Is User Settable",
-                "description": "Lets a viewer re-aim the style from the Layers Tool - a different property, ramp, domain or bins - for their session only. Off, the layer is coloured as configured and there are no controls to change it.",
+                "description": "Lets a viewer turn the rules below on and off and adjust them from the Layers Tool - a different ramp, statistic, scale or bins - for their session only. Off, the layer is coloured as configured and there are no controls to change it.",
                 "type": "checkbox",
                 "width": 4,
                 "defaultChecked": true
-              },
-              {
-                "field": "variables.dynamicStyle.properties",
-                "name": "Selectable Properties",
-                "description": "Comma-separated feature properties a viewer may aim the style at, on top of the ones the rules below already use. Leave empty to allow only what a rule was written for.",
-                "type": "textarray",
-                "width": 12,
-                "showIf": [
-                  {
-                    "field": "variables.dynamicStyle.userSettable",
-                    "notIn": [
-                      false
-                    ]
-                  }
-                ]
-              },
-              {
-                "field": "variables.dynamicStyle.statsProperties",
-                "name": "Selectable Stats Fields",
-                "description": "Comma-separated geodataset fields a viewer may aim a Stats rule at. Picking one summarizes it per group as an average until another statistic is chosen.",
-                "type": "textarray",
-                "width": 12,
-                "showIf": [
-                  {
-                    "field": "variables.dynamicStyle.userSettable",
-                    "notIn": [
-                      false
-                    ]
-                  }
-                ]
               }
             ]
           },
@@ -445,10 +415,18 @@
               {
                 "field": "variables.dynamicStyle.rules",
                 "name": "Dynamic Style Rules",
-                "description": "Each rule maps one property to one style attribute. A rule missing what it needs is ignored rather than breaking the layer.",
+                "description": "Each rule maps one property to one style attribute. A rule missing what it needs is ignored rather than breaking the layer. Write as many as the layer is worth looking at in different ways, and leave the ones a viewer should start without switched off.",
                 "type": "objectarray",
                 "width": 12,
                 "object": [
+                  {
+                    "field": "enabled",
+                    "name": "On",
+                    "description": "Whether this rule styles the layer to begin with. A viewer may switch it on or off for their session.",
+                    "type": "checkbox",
+                    "width": 2,
+                    "defaultChecked": true
+                  },
                   {
                     "field": "propertyType",
                     "name": "Property Type",
@@ -463,13 +441,13 @@
                   {
                     "field": "property",
                     "name": "Property",
-                    "description": "The feature property whose value decides the style, e.g. 'depth' or 'meta.reading.value' - or, for a Stats rule, the numeric field to summarize per group. A viewer may only re-aim the layer at a property that has a rule, so what is listed here is what they can choose between. The options are the layer's own properties; a nested path can be typed.",
+                    "description": "The feature property whose value decides the style, e.g. 'depth' or 'meta.reading.value' - or, for a Stats rule, the numeric field to summarize per group. A text property with no mappings written for it is mapped value by value from what the layer holds. The options are the layer's own properties; a nested path can be typed.",
                     "type": "searchdropdown",
                     "optionsFrom": "layerProperties",
                     "freeSolo": true,
                     "options": [],
                     "noOptionsText": "No properties found - type one",
-                    "width": 7
+                    "width": 5
                   },
                   {
                     "field": "stat",

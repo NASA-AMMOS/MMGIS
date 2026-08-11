@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import {
-  addDynamicStyleRule,
   applyDynamicStyleToGeoJSON,
   compileLayerDynamicStyle,
   getDynamicStyle,
@@ -11,7 +10,6 @@ import {
   getStatsFields,
   getViewedRules,
   overrideDynamicStyleRule,
-  removeDynamicStyleRule,
   setDynamicStyleOverride,
 } from "../../src/essence/Basics/Layers_/render/layerDynamicStyle.js";
 import {
@@ -113,6 +111,18 @@ test.describe("layerDynamicStyle - compileLayerDynamicStyle", () => {
       fillColor: "#ffffff",
       weight: 5,
     });
+  });
+
+  test("a rule aimed at a text property maps the values the layer holds", () => {
+    const layer = layerWith([
+      rule({ property: "kind", ramp: ["#000000", "#ffffff"] }),
+    ]);
+    const features = ["road", "trail", "road"].map((kind) => ({
+      properties: { kind },
+    }));
+    const resolve = compileLayerDynamicStyle(layer, features);
+    expect(resolve({ kind: "road" }).fillColor).toBe("#000000");
+    expect(resolve({ kind: "trail" }).fillColor).toBe("#ffffff");
   });
 
   test("caches the resolver on the layer, and clears it when unconfigured", () => {
@@ -389,28 +399,54 @@ test.describe("layerDynamicStyle - session rules", () => {
     expect(resolve({ value: 100 })).toEqual({ radius: 6 });
   });
 
-  test("a viewer can add a rule and remove one, for the session only", () => {
-    const layer = layerWith([rule({ domain: { min: 0, max: 100 } })]);
-    addDynamicStyleRule(layer, { attribute: "weight", range: [1, 9] });
+  test("a viewer can switch a rule off and back on, for the session only", () => {
+    const layer = layerWith([
+      rule({ domain: { min: 0, max: 100 } }),
+      rule({
+        attribute: "weight",
+        range: [1, 9],
+        domain: { min: 0, max: 100 },
+      }),
+    ]);
+    overrideDynamicStyleRule(layer, 0, { enabled: false });
     let resolve = compileLayerDynamicStyle(layer, []);
+    expect(resolve({ value: 100 })).toEqual({ weight: 9 });
+    expect(layer.variables.dynamicStyle.rules[0].enabled).toBeUndefined();
+
+    overrideDynamicStyleRule(layer, 0, { enabled: true });
+    resolve = compileLayerDynamicStyle(layer, []);
     expect(resolve({ value: 100 })).toEqual({
       fillColor: "#ffffff",
       weight: 9,
     });
 
-    removeDynamicStyleRule(layer, 0);
-    resolve = compileLayerDynamicStyle(layer, []);
-    expect(resolve({ value: 100 })).toEqual({ weight: 9 });
-    expect(layer.variables.dynamicStyle.rules).toHaveLength(1);
-
     setDynamicStyleOverride(layer, null);
-    expect(getViewedRules(layer)).toHaveLength(1);
-    expect(getViewedRules(layer)[0].attribute).toBe("fillColor");
+    expect(getViewedRules(layer)).toHaveLength(2);
   });
 
-  test("the domain toggle still moves every rule, added ones included", () => {
-    const layer = layerWith([rule({ domain: { source: "stddev", sigma: 2 } })]);
-    addDynamicStyleRule(layer, { attribute: "weight", range: [1, 9] });
+  test("a rule an admin left switched off is not styled by", () => {
+    const layer = layerWith([
+      rule({ enabled: false, domain: { min: 0, max: 100 } }),
+      rule({
+        attribute: "weight",
+        range: [1, 9],
+        domain: { min: 0, max: 100 },
+      }),
+    ]);
+    const resolve = compileLayerDynamicStyle(layer, []);
+    expect(resolve({ value: 100 })).toEqual({ weight: 9 });
+  });
+
+  test("a layer whose every rule is off has no dynamic style", () => {
+    const layer = layerWith([rule({ enabled: false })]);
+    expect(getDynamicStyle(layer)).toBeNull();
+  });
+
+  test("the domain toggle moves every rule", () => {
+    const layer = layerWith([
+      rule({ domain: { source: "stddev", sigma: 2 } }),
+      rule({ attribute: "weight", range: [1, 9], domain: { source: "auto" } }),
+    ]);
     setDynamicStyleOverride(layer, { domain: "view" });
     expect(getDynamicStyle(layer).rules.map((r) => r.domain.source)).toEqual([
       "loaded",
@@ -421,8 +457,25 @@ test.describe("layerDynamicStyle - session rules", () => {
     setDynamicStyleOverride(layer, { domain: "dataset" });
     expect(getDynamicStyle(layer).rules.map((r) => r.domain.source)).toEqual([
       "stddev",
-      "stddev",
+      "auto",
     ]);
+  });
+
+  test("a scale pinned to typed numbers ignores the toggle", () => {
+    const layer = layerWith([
+      rule({ domain: { source: "literal", min: 0, max: 100 } }),
+    ]);
+    setDynamicStyleOverride(layer, { domain: "view" });
+    expect(getDynamicStyle(layer).rules[0].domain).toEqual({
+      source: "literal",
+      min: 0,
+      max: 100,
+    });
+    // The features in view say 0 to 10; the typed scale still says 0 to 100.
+    const resolve = compileLayerDynamicStyle(layer, featuresOf(0, 10));
+    expect(resolve({ value: 50 })).toEqual({
+      fillColor: "rgb(128, 128, 128)",
+    });
   });
 });
 

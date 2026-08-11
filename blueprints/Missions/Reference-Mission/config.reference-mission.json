@@ -440,7 +440,7 @@
                     "fillOpacity": 0.9,
                     "radius": 8
                   },
-                  "description": "Coloured by its data rather than a fixed colour: fillColor ramps over depth_m and weight over confidence. Flat GeoJSON, no geodataset. Its LayersTool settings switch the property, ramp and bins, and whether the scale covers the whole file or just what is in view.",
+                  "description": "Coloured by its data rather than a fixed colour: fillColor ramps over depth_m and weight over confidence. Flat GeoJSON, no geodataset. A third rule, off to begin with, colours the stroke by the text field reading_type - its categories are taken from the file. Its LayersTool settings switch rules on and off, change the ramp and bins, and set whether the scale covers the whole file or just what is in view.",
                   "demparser": "",
                   "controlled": false,
                   "uuid": "ed61f202-38a3-41e7-ae83-20dec262f884",
@@ -467,6 +467,15 @@
                             1,
                             6
                           ],
+                          "domain": {
+                            "source": "auto"
+                          }
+                        },
+                        {
+                          "enabled": false,
+                          "property": "reading_type",
+                          "attribute": "color",
+                          "ramp": "tab10",
                           "domain": {
                             "source": "auto"
                           }

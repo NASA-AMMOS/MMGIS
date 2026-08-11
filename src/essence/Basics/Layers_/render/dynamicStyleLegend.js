@@ -59,11 +59,12 @@ function numericSwatch(attribute, value, color) {
  * bin edges the colour case uses; only what a swatch varies differs.
  */
 function entriesForNumericAttributeRule(compiledRule, baseColor) {
-    const { rule, attribute, domain, resolve } = compiledRule
+    const { rule, attribute, categorical, mappings, domain, resolve } =
+        compiledRule
 
-    if (rule.type === 'categorical') {
+    if (categorical) {
         const byValue = new Map()
-        for (const mapping of rule.mappings) {
+        for (const mapping of mappings) {
             if (mapping == null || mapping.value === undefined) continue
             const value = resolve(mapping.value)
             if (value == null) continue
@@ -163,11 +164,11 @@ function entriesForNumericRule(compiledRule) {
 }
 
 function entriesForCategoricalRule(compiledRule) {
-    const { rule, resolve } = compiledRule
+    const { mappings, resolve } = compiledRule
     // Two mappings of the same value: the resolver keeps the later one, so the
     // legend labels the later one too.
     const byValue = new Map()
-    for (const mapping of rule.mappings) {
+    for (const mapping of mappings) {
         if (mapping == null || mapping.value === undefined) continue
         const key = String(mapping.value)
         const color = resolve(mapping.value)
@@ -218,9 +219,9 @@ export function dynamicStyleLegendEntries(layerObj) {
             continue
         const ruleEntries = !isColor
             ? entriesForNumericAttributeRule(compiledRule, baseColor)
-            : compiledRule.rule.type === 'categorical'
-            ? entriesForCategoricalRule(compiledRule)
-            : entriesForNumericRule(compiledRule)
+            : compiledRule.categorical
+              ? entriesForCategoricalRule(compiledRule)
+              : entriesForNumericRule(compiledRule)
         if (ruleEntries.length === 0) continue
         // Two rules on the same property are two different scales, so the
         // attribute is named as well as the property.
