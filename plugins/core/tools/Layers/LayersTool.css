@@ -184,16 +184,23 @@
   letter-spacing: 0.5px;
 }
 
+#layersTool .dynamicStyleRuleHeading {
+  padding-right: 0;
+}
+
 #layersTool .dynamicStyleRuleHeading > .checkboxcont {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   width: 20px;
+  height: 20px;
 }
 
-/* Flush right, so the switch lines up with the dropdowns beneath it. */
+/* Flush right so it lines up with the dropdowns beneath, and square whatever
+   the row would otherwise squeeze it into. */
 #layersTool .dynamicStyleRuleHeading .checkbox {
-  margin-right: 0;
+  flex: 0 0 20px;
+  margin: 0;
 }
 
 #layersTool .sublayer.dynamicStyleRuleRow,
@@ -228,7 +235,6 @@
 }
 
 #layersTool .statsProperty {
-  cursor: help;
   font-size: 12px;
 }
 

@@ -3273,16 +3273,17 @@ function interfaceWithMMGIS(fromInit) {
             seen.add(path)
             const stats = propertyStats(layerObj, path)
             if (stats == null) return
+            // What the numbers were measured over, in the Domain's own words.
             const over = {
-                dataset: 'every feature of the dataset, loaded or not',
-                view: 'the features currently in view',
-                loaded: 'the features this layer has loaded',
+                dataset: 'Whole dataset',
+                view: 'Current view',
+                loaded: 'Loaded',
             }[stats.scope]
             // prettier-ignore
             rows.push([
-                `<div class="sublayer statsRow statsProperty" data-tippy-content="Measured over ${over}.">`,
+                '<div class="sublayer statsRow statsProperty">',
                     `<div>${escapeHTML(rulePropertyLabel(rule))}</div>`,
-                    `<div>${stats.scope}</div>`,
+                    `<div>${over}</div>`,
                 '</div>',
                 statRow('Min', stats.min),
                 statRow('Max', stats.max),
@@ -3390,10 +3391,6 @@ function interfaceWithMMGIS(fromInit) {
             placement: 'left',
             theme: 'blue',
             maxWidth: 260,
-        })
-        tippy(`${settings} .statsProperty`, {
-            placement: 'left',
-            theme: 'blue',
         })
         tippy(`${settings} .dynamicStyleNote`, {
             placement: 'left',
