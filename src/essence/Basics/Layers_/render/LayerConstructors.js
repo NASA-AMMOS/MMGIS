@@ -259,7 +259,11 @@ export const constructVectorLayer = (
                 // Clear fillPattern if feature doesn't have a geologic pattern
                 layerObj.style.fillPattern = null
             }
-            return layerObj.style
+            // The layer keeps the style it was configured with; leaving this
+            // feature's on it would make it the base of every later one.
+            const featureStyle = layerObj.style
+            layerObj.style = _originalStyle
+            return featureStyle
         },
         onEachFeature: (function (layerObjName) {
             return onEachFeatureDefault
@@ -417,22 +421,24 @@ export const constructVectorLayer = (
                     layer = L.circleMarker(
                         latlong,
                         circleMarkerStyle
-                    ).setRadius(layerObj.style.radius || layerObj.radius || 8)
+                    ).setRadius(
+                        circleMarkerStyle.radius || layerObj.radius || 8
+                    )
                     break
                 default:
                     svg = [
                         `<div style="color: ${
                             featureStyle.fillColor
                         }; transform: scale(${
-                            ((layerObj.style.radius || layerObj.radius || 8) *
+                            ((featureStyle.radius || layerObj.radius || 8) *
                                 2) /
                             24
                         }) rotate(${
-                            (layerObj.style.shapeRotationOffset != null
-                                ? parseFloat(layerObj.style.shapeRotationOffset)
+                            (featureStyle.shapeRotationOffset != null
+                                ? parseFloat(featureStyle.shapeRotationOffset)
                                 : 0) + (yaw || 0)
                         }deg); ${
-                            layerObj.style.weight != 0
+                            featureStyle.weight != 0
                                 ? `text-shadow:  
                             1px 1px 0px ${featureStyle.color}, 
                             -1px -1px 0px ${featureStyle.color}, 

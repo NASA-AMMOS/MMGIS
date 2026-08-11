@@ -3106,6 +3106,21 @@ function interfaceWithMMGIS(fromInit) {
         const rules = getViewedRules(layerObj)
         const mode = getDomainMode(layerObj)
         const name = escapeHTML(layerName)
+        // A geodataset holds back most of its features, so without stored
+        // statistics its whole-dataset scale is only over what is loaded.
+        const partiallyLoaded =
+            (layerObj?.url || '').split(':')[0] === 'geodatasets'
+        const unmeasured =
+            mode !== 'dataset' || !partiallyLoaded
+                ? []
+                : rules
+                      .filter((rule) => rule?.enabled !== false)
+                      .filter(
+                          (rule) =>
+                              propertyStats(layerObj, rulePropertyPath(rule))
+                                  ?.scope !== 'dataset'
+                      )
+                      .map((rule) => rulePropertyLabel(rule))
 
         // prettier-ignore
         return [
@@ -3124,6 +3139,10 @@ function interfaceWithMMGIS(fromInit) {
                     '</select>',
                 '</div>',
             '</div>',
+            unmeasured.length === 0 ? '' : [
+            `<div class="sublayer dynamicStyleRow dynamicStyleNote" data-tippy-content="A geodataset is measured over every feature it has at ingest; Recompute Statistics in Configure measures one that predates them. A group statistic has no dataset-wide measure at all.">`,
+                `<div>No dataset-wide numbers for ${escapeHTML(unmeasured.join(', '))} - scaled over what is loaded.</div>`,
+            '</div>'].join('\n'),
             rules.map((rule, index) =>
                 getDynamicStyleRuleSettings(layerName, rule, index)
             ).join('\n'),
@@ -3348,6 +3367,11 @@ function interfaceWithMMGIS(fromInit) {
         tippy(`${settings} .statsProperty`, {
             placement: 'left',
             theme: 'blue',
+        })
+        tippy(`${settings} .dynamicStyleNote`, {
+            placement: 'left',
+            theme: 'blue',
+            maxWidth: 260,
         })
     }
 

@@ -91,12 +91,16 @@ export function restyleLayerDynamically(layer) {
         typeof layer === 'string'
             ? Layers.layers.data[Layers.asLayerUUID(layer)]
             : layer
-    if (layerObj == null || getDynamicStyle(layerObj) == null) return false
+    if (layerObj == null) return false
+    // Switching the last rule off leaves nothing to compile, and that is
+    // exactly when the layer has to be repainted - without a style now.
+    const styled = getDynamicStyle(layerObj) != null
+    if (!styled && layerObj._dynamicStyleResolver == null) return false
 
     // Nothing drawn is nothing to measure, and compiling over it would drop
     // the styling the layer already has.
     const features = domainFeatures(layerObj)
-    if (features.length === 0) return false
+    if (styled && features.length === 0) return false
 
     compileLayerDynamicStyle(layerObj, features)
 

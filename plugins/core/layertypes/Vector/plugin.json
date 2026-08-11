@@ -423,7 +423,7 @@
                     "field": "enabled",
                     "name": "On",
                     "description": "Whether this rule styles the layer to begin with. A viewer may switch it on or off for their session.",
-                    "type": "checkbox",
+                    "type": "switch",
                     "width": 2,
                     "defaultChecked": true
                   },

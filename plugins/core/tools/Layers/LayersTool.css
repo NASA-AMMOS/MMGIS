@@ -145,6 +145,16 @@
   color: var(--color-a4);
 }
 
+/* What the Domain choice can't do here, said where the choice is made. */
+#layersTool .dynamicStyleNote {
+  height: auto;
+  padding: 2px 2px 2px 0;
+  color: var(--color-a4);
+  font-size: 10px;
+  line-height: 13px;
+  cursor: help;
+}
+
 /* A label with an explanation beside it, the icon sized to sit on the text. */
 #layersTool .dynamicStyleLabelInfo {
   display: flex;
