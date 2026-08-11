@@ -10,6 +10,7 @@ import {
     COLOR_ATTRIBUTES,
     DEFAULT_ATTRIBUTE,
     GROUP_STATS,
+    attributeOf,
     groupStatDomain,
     propertyTypeOf,
     rulePropertyLabel,
@@ -20,6 +21,7 @@ import {
 import {
     getDomainMode,
     getDynamicStyle,
+    getLayerDynamicStyleRules,
     getStatsFields,
     getViewedRules,
 } from '@basics/Layers_/render/layerDynamicStyle'
@@ -3313,6 +3315,20 @@ function interfaceWithMMGIS(fromInit) {
     }
 
     /**
+     * The min/max a rule's scale resolved to, so its bin boundaries can be
+     * labelled with data values rather than fractions.
+     */
+    function compiledDomainOf(layerObj, rule) {
+        const path = rulePropertyPath(rule)
+        const attribute = attributeOf(rule)
+        return (
+            getLayerDynamicStyleRules(layerObj).find(
+                (c) => c.property === path && c.attribute === attribute
+            )?.domain || null
+        )
+    }
+
+    /**
      * Draw the ramp picker and bin editor into the mount point the settings
      * markup left for them, replacing any previous one.
      */
@@ -3350,6 +3366,7 @@ function interfaceWithMMGIS(fromInit) {
                     ramp={rule.ramp || 'viridis'}
                     bins={rule.discrete ? rule.bins || 5 : 0}
                     stops={rule.stops}
+                    domain={compiledDomainOf(layerObj, rule)}
                     onChange={(patch) => {
                         overrideDynamicStyleRuleOf(uuid, index, patch)
                         mountDynamicStyleRamps(layerName)

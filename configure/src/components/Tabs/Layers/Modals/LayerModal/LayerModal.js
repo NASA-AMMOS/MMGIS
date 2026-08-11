@@ -287,7 +287,9 @@ const LayerModal = (props) => {
           // Filter empty strings from any indexed text array fields
           const filterEmptyStrings = (obj) => {
             Object.keys(obj).forEach((key) => {
-              if (key === "interactions") return;
+              // `range` is positional (a rule's style min then max), so a
+              // filled-in max must not slide into the min's slot.
+              if (key === "interactions" || key === "range") return;
               const val = obj[key];
               if (Array.isArray(val)) {
                 obj[key] = val.filter((v) => v != null && v !== "");

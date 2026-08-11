@@ -31,11 +31,12 @@
     font-size: 14px;
 }
 
-/* Room on the right for the reset, which hangs outside the bar. */
+/* Room on the right for the reset, which hangs outside the bar, and below it
+   for the value each boundary falls at. */
 .dynamicStyleStopBar {
     position: relative;
     height: 16px;
-    margin: 2px 20px 6px 0;
+    margin: 2px 20px 20px 0;
 }
 
 .dynamicStyleStopGradient {
@@ -67,6 +68,40 @@
 .dynamicStyleStop:hover::after,
 .dynamicStyleStop.dragging::after {
     background: var(--color-mmgis);
+}
+
+/* The data value a boundary sits at, centered under it. Unclickable so it
+   never gets in the way of grabbing a neighbouring stop. */
+.dynamicStyleStopValue {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    line-height: 12px;
+    white-space: nowrap;
+    color: var(--color-a4);
+    pointer-events: none;
+}
+
+.dynamicStyleStop:hover .dynamicStyleStopValue,
+.dynamicStyleStop.dragging .dynamicStyleStopValue {
+    color: var(--color-mmgis);
+}
+
+/* The ends of the scale, pinned inside the bar rather than centered. */
+.dynamicStyleStopValue.end {
+    top: 18px;
+    transform: none;
+}
+
+.dynamicStyleStopValue.end.low {
+    left: 0;
+}
+
+.dynamicStyleStopValue.end.high {
+    left: unset;
+    right: 0;
 }
 
 .dynamicStyleStopReset {

@@ -5,6 +5,7 @@ import {
   normalizeStops,
   rampStops,
 } from "@basics/Layers_/render/dynamicStyle";
+import { formatValue } from "@basics/Layers_/render/dynamicStyleLegend";
 import {
   hexToRgb,
   interpolateMultipleColors,
@@ -128,9 +129,16 @@ function isEven(stops, bins) {
  * @param {string} props.ramp
  * @param {number} props.bins       0 for a smooth gradient.
  * @param {number[]} [props.stops]  Bin boundaries as fractions of the domain.
+ * @param {object} [props.domain]   {min, max} the fractions are read against.
  * @param {function} props.onChange Called with an override, e.g. `{ramp}`.
  */
-export default function DynamicStyleRamp({ ramp, bins, stops, onChange }) {
+export default function DynamicStyleRamp({
+  ramp,
+  bins,
+  stops,
+  domain,
+  onChange,
+}) {
   const barRef = useRef(null);
   const draggedRef = useRef(null);
   const [dragging, setDragging] = useState(null);
@@ -146,6 +154,9 @@ export default function DynamicStyleRamp({ ramp, bins, stops, onChange }) {
   const current = live || applied;
 
   const gradient = buildGradient(colors, bins, current);
+  // A fraction of the scale means little on its own, so each boundary is
+  // labelled with the value it falls at.
+  const at = valueAt(domain);
 
   const onGrab = useCallback(
     (e, index) => {
@@ -245,8 +256,18 @@ export default function DynamicStyleRamp({ ramp, bins, stops, onChange }) {
               style={{ left: `${stop * 100}%` }}
               onMouseDown={(e) => onGrab(e, index)}
               title="Drag to move where this bin ends."
-            />
+            >
+              {at != null && (
+                <div className="dynamicStyleStopValue">{at(stop)}</div>
+              )}
+            </div>
           ))}
+          {at != null && (
+            <>
+              <div className="dynamicStyleStopValue end low">{at(0)}</div>
+              <div className="dynamicStyleStopValue end high">{at(1)}</div>
+            </>
+          )}
           {!isEven(current, bins) && (
             <div
               className="dynamicStyleStopReset"
@@ -260,6 +281,18 @@ export default function DynamicStyleRamp({ ramp, bins, stops, onChange }) {
       )}
     </div>
   );
+}
+
+/**
+ * Reads a fraction of the scale as the value it sits at, or null when the rule
+ * has no numeric domain to read against (a categorical one, or one whose
+ * domain hasn't resolved yet).
+ */
+function valueAt(domain) {
+  const min = Number(domain?.min);
+  const max = Number(domain?.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return null;
+  return (fraction) => formatValue(min + (max - min) * fraction);
 }
 
 /**
