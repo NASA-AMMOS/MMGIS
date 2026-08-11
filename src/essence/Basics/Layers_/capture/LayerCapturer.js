@@ -68,15 +68,36 @@ const _isMap2DUsable = () => {
     }
 }
 
+// Whether the Globe panel is on screen; a globe extent from a hidden panel is
+// whatever the camera was left at.
+const _isGlobeUsable = () => {
+    try {
+        const el = document.getElementById(L_.Globe_.id)
+        return !!el && el.clientWidth > 1 && el.clientHeight > 1
+    } catch (e) {
+        return false
+    }
+}
+
+// Which engine the user last moved, so a requery that isn't itself a move (a
+// time change) is measured over the view they are actually looking at.
+let _lastMovedEngine = 'map'
+
 // Resolves which view (extent + zoom + center) a dynamic-extent query should
-// use. Defaults to the 2D Leaflet map. When the callback was triggered by a
-// globe move (e.fromGlobe === true) or the 2D map is not usable (its panel is
-// closed), the Globe's visible extent is used instead. This lets dynamic
-// extent layers populate from the Globe's own viewport — including when the
-// Map panel is closed — rather than being tied solely to the 2D map.
+// use. A globe move (e.fromGlobe === true) uses the Globe's extent and a 2D
+// `moveend` the map's; anything else - a time change, a layer being toggled on
+// - follows whichever of them moved last. The Globe is also used whenever the
+// 2D map is unusable (its panel is closed), which would otherwise query a
+// degenerate extent.
 const _resolveDynamicView = (e) => {
+    const fromGlobe = e && typeof e === 'object' && e.fromGlobe === true
+    if (fromGlobe) _lastMovedEngine = 'globe'
+    else if (e && typeof e === 'object' && e.type === 'moveend')
+        _lastMovedEngine = 'map'
+
     const wantGlobe =
-        (e && typeof e === 'object' && e.fromGlobe === true) ||
+        fromGlobe ||
+        (_lastMovedEngine === 'globe' && _isGlobeUsable()) ||
         !_isMap2DUsable()
 
     if (wantGlobe && L_.Globe_ && typeof L_.Globe_.getExtent === 'function') {
