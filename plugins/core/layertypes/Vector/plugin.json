@@ -595,9 +595,10 @@
                   {
                     "field": "bins",
                     "name": "Bins",
-                    "description": "How many bins a discrete rule divides its domain into. Defaults to 5.",
+                    "description": "How many bins a discrete rule divides its domain into. Defaults to 5, 20 at most.",
                     "type": "number",
                     "min": 1,
+                    "max": 20,
                     "step": 1,
                     "width": 1,
                     "showIf": [

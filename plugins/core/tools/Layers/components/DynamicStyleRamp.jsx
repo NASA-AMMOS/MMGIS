@@ -1,10 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import ColorRampPicker from "@design/components/ColorRampPicker/ColorRampPicker";
-import {
-  normalizeStops,
-  rampStops,
-} from "@basics/Layers_/render/dynamicStyle";
+import { normalizeStops, rampStops } from "@basics/Layers_/render/dynamicStyle";
 import { formatValue } from "@basics/Layers_/render/dynamicStyleLegend";
 import {
   hexToRgb,
@@ -47,6 +44,12 @@ export const RUNTIME_RAMPS = [
   "Spectral",
   "Greys",
 ];
+
+/** Beyond this the bins are narrower than the boundaries drawn between them. */
+const MAX_BINS = 20;
+
+/** Beyond this many bins the values would be labelling each other over. */
+const MAX_LABELLED_BINS = 8;
 
 /** How many points a named colormap is sampled at to draw its swatch. */
 const SWATCH_SAMPLES = 16;
@@ -219,18 +222,22 @@ export default function DynamicStyleRamp({
         </div>
       </div>
       <div className="dynamicStyleRampRow">
-        <div title="Divides the scale into flat bins instead of a smooth gradient. 0 for a gradient.">
+        <div
+          title={`Divides the scale into flat bins instead of a smooth gradient. 0 for a gradient, ${MAX_BINS} at most.`}
+        >
           Bins
         </div>
         <input
           className="dynamicStyleBins"
           type="number"
           min="0"
+          max={MAX_BINS}
           step="1"
           value={bins}
           onChange={(e) => {
             const next = parseInt(e.target.value, 10);
-            const count = Number.isFinite(next) && next > 0 ? next : 0;
+            const count =
+              Number.isFinite(next) && next > 0 ? Math.min(next, MAX_BINS) : 0;
             onChange({
               discrete: count > 0,
               bins: count > 0 ? count : null,
@@ -257,9 +264,10 @@ export default function DynamicStyleRamp({
               onMouseDown={(e) => onGrab(e, index)}
               title="Drag to move where this bin ends."
             >
-              {at != null && (
-                <div className="dynamicStyleStopValue">{at(stop)}</div>
-              )}
+              {at != null &&
+                (bins <= MAX_LABELLED_BINS || dragging === index) && (
+                  <div className="dynamicStyleStopValue">{at(stop)}</div>
+                )}
             </div>
           ))}
           {at != null && (

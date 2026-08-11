@@ -36,7 +36,7 @@
 .dynamicStyleStopBar {
     position: relative;
     height: 16px;
-    margin: 8px 20px 22px 0;
+    margin: 8px 16px 22px 0;
 }
 
 .dynamicStyleStopGradient {
@@ -108,13 +108,13 @@
 .dynamicStyleStopReset {
     position: absolute;
     top: 0px;
-    right: -20px;
+    right: -16px;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 16px;
     height: 16px;
-    border-radius: 2px;
+    border-radius: 0 2px 2px 0;
     background: #222;
     cursor: pointer;
     color: var(--color-a4);
