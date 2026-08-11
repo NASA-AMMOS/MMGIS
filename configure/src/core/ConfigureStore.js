@@ -34,6 +34,7 @@ export const ConfigureStore = createSlice({
       layersUsedByGeoDataset: false,
       previewGeoDataset: false,
       appendGeoDataset: false,
+      geoDatasetFieldStats: false,
       updateGeoDataset: false,
       newDataset: false,
       layersUsedByDataset: false,
