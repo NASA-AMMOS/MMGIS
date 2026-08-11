@@ -1207,7 +1207,7 @@ const getComponent = (
             control={
               <Checkbox
                 disabled={disabled}
-                checked={value || configured(com.defaultChecked)}
+                checked={value != null ? value : configured(com.defaultChecked)}
                 onChange={(e) => {
                   updateConfiguration(
                     forceField || com.field,
@@ -1296,7 +1296,7 @@ const getComponent = (
             control={
               <Switch
                 disabled={disabled}
-                checked={value || configured(com.defaultChecked)}
+                checked={value != null ? value : configured(com.defaultChecked)}
                 onChange={(e) => {
                   updateConfiguration(
                     forceField || com.field,
