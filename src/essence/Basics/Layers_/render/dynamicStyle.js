@@ -232,27 +232,50 @@ export function resolveDomain(rule, context) {
 
     const ctx = context || {}
     const fieldStat = ctx.fieldStats ? ctx.fieldStats[rule.property] : null
-    // A field's statistics describe its individual values, not the spread of
-    // its groups' averages, so a rule styling by a group statistic is stretched
-    // over the group values themselves.
-    const stat = propertyTypeOf(rule) === 'stats' ? null : fieldStat
+    // A field's statistics describe its individual values; a group statistic
+    // is a different number, bounded by them rather than equal to them.
+    const isGroupStat = propertyTypeOf(rule) === 'stats'
+    const dataset = isGroupStat
+        ? groupStatDomain(fieldStat, ruleStatOf(rule))
+        : statsDomain(fieldStat)
+    // A mean-centered window needs the field's own moments, which say nothing
+    // about how its groups are spread.
+    const stat = isGroupStat ? null : fieldStat
 
     let resolved = null
     if (source === 'stddev') resolved = sigmaDomain(rule, stat, ctx.values)
     else if (source === 'fieldStats')
-        resolved = statsDomain(stat) || valuesDomain(ctx.values)
+        resolved = dataset || valuesDomain(ctx.values)
     else if (source === 'loaded') resolved = valuesDomain(ctx.values)
-    else resolved = statsDomain(stat) || valuesDomain(ctx.values)
+    else resolved = dataset || valuesDomain(ctx.values)
 
-    // Nothing measured is no styling at all, so a group rule with no group
-    // values in hand yet borrows its field's own extent rather than vanishing.
-    if (resolved == null) resolved = statsDomain(fieldStat)
+    // Nothing measured is no styling at all, so a rule with nothing in hand
+    // yet borrows its field's own extent rather than vanishing.
+    if (resolved == null) resolved = dataset || statsDomain(fieldStat)
     if (resolved == null) return null
     // A half-configured domain pins one end and lets the other be discovered.
     return {
         min: min != null ? min : resolved.min,
         max: max != null ? max : resolved.max,
     }
+}
+
+/**
+ * What a group statistic can be over a whole dataset: an average, min or max
+ * lies inside the field's own extent, a spread is at widest half of it, and a
+ * sum is bounded by nothing knowable here.
+ *
+ * @param {?object} stat  A field's stored statistics.
+ * @param {string} groupStat
+ * @returns {{min: number, max: number}|null}
+ */
+export function groupStatDomain(stat, groupStat) {
+    const extent = statsDomain(stat)
+    if (extent == null) return null
+    if (groupStat === 'sum') return null
+    if (groupStat === 'stddev')
+        return { min: 0, max: (extent.max - extent.min) / 2 }
+    return extent
 }
 
 function statsDomain(stat) {

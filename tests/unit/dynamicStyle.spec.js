@@ -256,13 +256,51 @@ test.describe("dynamicStyle - resolveDomain", () => {
     expect(resolveDomain(rule, { values: ["a", "b"] })).toBeNull();
   });
 
-  test("a group statistic is measured over the groups, not the features", () => {
-    // The field's own extent is 10-90; its groups' averages are not.
+  test("a group average is bounded by the field's whole-dataset extent", () => {
+    // Its groups' averages in hand are 30-40, but an average anywhere in the
+    // dataset lies within the field's own 10-90 - a scale that doesn't move.
     const rule = numericRule({
       propertyType: "stats",
       property: "value",
       stat: "avg",
       domain: { source: "auto" },
+    });
+    expect(
+      resolveDomain(rule, { fieldStats: stats, values: [30, 40] }),
+    ).toEqual({ min: 10, max: 90 });
+  });
+
+  test("a group spread is at widest half the field's extent", () => {
+    const rule = numericRule({
+      propertyType: "stats",
+      property: "value",
+      stat: "stddev",
+      domain: { source: "auto" },
+    });
+    expect(resolveDomain(rule, { fieldStats: stats, values: [3, 4] })).toEqual({
+      min: 0,
+      max: 40,
+    });
+  });
+
+  test("nothing stored bounds a group sum, so it is measured over the groups", () => {
+    const rule = numericRule({
+      propertyType: "stats",
+      property: "value",
+      stat: "sum",
+      domain: { source: "auto" },
+    });
+    expect(
+      resolveDomain(rule, { fieldStats: stats, values: [300, 400] }),
+    ).toEqual({ min: 300, max: 400 });
+  });
+
+  test("following the view measures a group statistic over the groups in it", () => {
+    const rule = numericRule({
+      propertyType: "stats",
+      property: "value",
+      stat: "avg",
+      domain: { source: "loaded" },
     });
     expect(
       resolveDomain(rule, { fieldStats: stats, values: [30, 40] }),

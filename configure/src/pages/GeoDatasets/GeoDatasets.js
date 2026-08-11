@@ -40,10 +40,12 @@ import AddIcon from "@mui/icons-material/Add";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
+import TableChartIcon from "@mui/icons-material/TableChart";
 
 import NewGeoDatasetModal from "./Modals/NewGeoDatasetModal/NewGeoDatasetModal";
 import DeleteGeoDatasetModal from "./Modals/DeleteGeoDatasetModal/DeleteGeoDatasetModal";
 import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
+import FieldStatsModal from "./Modals/FieldStatsModal/FieldStatsModal";
 import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
 import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
 import UpdateGeoDatasetModal from "./Modals/UpdateGeoDatasetModal/UpdateGeoDatasetModal";
@@ -353,15 +355,15 @@ export default function GeoDatasets() {
               res.body.entries.map((en, idx) => {
                 en.id = idx;
                 return en;
-              })
-            )
+              }),
+            ),
           );
         else
           dispatch(
             setSnackBarText({
               text: res?.message || "Failed to get geodatasets.",
               severity: "error",
-            })
+            }),
           );
       },
       (res) => {
@@ -369,9 +371,9 @@ export default function GeoDatasets() {
           setSnackBarText({
             text: res?.message || "Failed to get geodatasets.",
             severity: "error",
-          })
+          }),
         );
-      }
+      },
     );
   };
   useEffect(() => {
@@ -401,9 +403,9 @@ export default function GeoDatasets() {
     () =>
       stableSort(geodatasets, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
-        page * rowsPerPage + rowsPerPage
+        page * rowsPerPage + rowsPerPage,
       ),
-    [order, orderBy, page, rowsPerPage, geodatasets]
+    [order, orderBy, page, rowsPerPage, geodatasets],
   );
 
   // Recompute a geodataset's dataset-wide statistics from the features it
@@ -417,7 +419,7 @@ export default function GeoDatasets() {
         setSnackBarText({
           text: res?.message || "Failed to recompute statistics.",
           severity: res?.status === "success" ? "success" : "error",
-        })
+        }),
       );
       // The entries hold each geodataset's statistics, so a rescan makes the
       // ones in hand stale.
@@ -427,7 +429,7 @@ export default function GeoDatasets() {
       "geodatasets_recompute_stats",
       { urlReplacements: { name: name } },
       done,
-      done
+      done,
     );
   };
 
@@ -480,7 +482,7 @@ export default function GeoDatasets() {
                             setSnackBarText({
                               text: "Copied to Clipboard!",
                               severity: "success",
-                            })
+                            }),
                           );
                         }}
                       >
@@ -501,7 +503,7 @@ export default function GeoDatasets() {
                             setSnackBarText({
                               text: "Copied to Clipboard!",
                               severity: "success",
-                            })
+                            }),
                           );
                         }}
                       >
@@ -528,7 +530,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "layersUsedByGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -551,7 +553,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "previewGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -574,7 +576,7 @@ export default function GeoDatasets() {
                                       downloadObject(
                                         res,
                                         `${row.name}-geodataset`,
-                                        ".geojson"
+                                        ".geojson",
                                       );
                                       dispatch(
                                         setSnackBarText({
@@ -582,7 +584,7 @@ export default function GeoDatasets() {
                                             res?.message ||
                                             "Successfully downloaded GeoDataset.",
                                           severity: "success",
-                                        })
+                                        }),
                                       );
                                     },
                                     (res) => {
@@ -592,9 +594,9 @@ export default function GeoDatasets() {
                                             res?.message ||
                                             "Failed to download GeoDataset.",
                                           severity: "error",
-                                        })
+                                        }),
                                       );
-                                    }
+                                    },
                                   );
                               }}
                             >
@@ -612,7 +614,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "appendGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -641,7 +643,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "updateGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -649,6 +651,27 @@ export default function GeoDatasets() {
                             </IconButton>
                           </Tooltip>
                           <Divider orientation="vertical" flexItem />
+                          <Tooltip
+                            title={"Field Statistics"}
+                            placement="top"
+                            arrow
+                          >
+                            <IconButton
+                              className={c.statsIcon}
+                              title="Field Statistics"
+                              aria-label="field statistics"
+                              onClick={() => {
+                                dispatch(
+                                  setModal({
+                                    name: "geoDatasetFieldStats",
+                                    geoDataset: row,
+                                  }),
+                                );
+                              }}
+                            >
+                              <TableChartIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip
                             title={
                               "Recompute Statistics - only needed for a geodataset uploaded before they were kept."
@@ -680,7 +703,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "deleteGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -719,6 +742,7 @@ export default function GeoDatasets() {
       <NewGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <DeleteGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <LayersUsedByModal />
+      <FieldStatsModal />
       <PreviewGeoDatasetModal />
       <AppendGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <UpdateGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />

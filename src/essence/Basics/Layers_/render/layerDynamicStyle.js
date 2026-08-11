@@ -12,6 +12,7 @@
  */
 
 import {
+    asNumber,
     collectCategories,
     collectValues,
     compileRules,
@@ -102,7 +103,15 @@ function overriddenRules(rules, override) {
 
 /** A scale whose ends were typed rather than measured. */
 function isPinnedDomain(domain) {
-    return domain?.source === 'literal'
+    if (domain == null) return false
+    if (domain.source === 'literal') return true
+    // An older configuration named no source and typed both ends, which is
+    // the same thing said differently.
+    return (
+        domain.source == null &&
+        asNumber(domain.min) != null &&
+        asNumber(domain.max) != null
+    )
 }
 
 function withOverride(dynamicStyle, override, mode) {

@@ -10,6 +10,7 @@ import {
     COLOR_ATTRIBUTES,
     DEFAULT_ATTRIBUTE,
     GROUP_STATS,
+    groupStatDomain,
     propertyTypeOf,
     rulePropertyLabel,
     rulePropertyPath,
@@ -1630,9 +1631,7 @@ function interfaceWithMMGIS(fromInit) {
                 ) {
                     // refresh settings
                     const mainSettings = $(
-                        `#LayersTool${F_.getSafeName(
-                            layerName
-                        )} > .settingsmainvector`
+                        `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
                     )
                     if (mainSettings) {
                         mainSettings.html(getVectorLayerSettings(layerName))
@@ -1749,9 +1748,7 @@ function interfaceWithMMGIS(fromInit) {
                 LayersTool._header_states[name].forEach((layerName) => {
                     toggleLayer(
                         $(
-                            `#LayersTool${F_.getSafeName(
-                                layerName
-                            )} .title .checkbox`
+                            `#LayersTool${F_.getSafeName(layerName)} .title .checkbox`
                         )
                     )
                 })
@@ -2998,9 +2995,7 @@ function interfaceWithMMGIS(fromInit) {
                     $(item)
                         .find('.title')
                         .css({
-                            'border-left': `${
-                                depth * DEPTH_SIZE
-                            }px solid ${INDENT_COLOR}`,
+                            'border-left': `${depth * DEPTH_SIZE}px solid ${INDENT_COLOR}`,
                         })
                     curItem = item
                 })
@@ -3107,11 +3102,24 @@ function interfaceWithMMGIS(fromInit) {
         const rules = getViewedRules(layerObj)
         const mode = getDomainMode(layerObj)
         const name = escapeHTML(layerName)
-        // A geodataset holds back most of its features, so a numeric scale
-        // without stored statistics is only over what is loaded. A group
-        // statistic is always of the query and a categorical rule spans no
-        // range, so neither is missing anything.
+        // A geodataset holds back most of its features, so a scale without
+        // stored statistics is only over what is loaded. A categorical rule
+        // spans no range, and a group statistic is bounded by its field's
+        // numbers - except a sum, which nothing stored bounds.
         const partiallyLoaded = geodatasetOf(layerObj) != null
+        const missesDatasetNumbers = (rule) => {
+            if (propertyTypeOf(rule) === 'stats')
+                return (
+                    groupStatDomain(
+                        layerObj?._fieldStats?.[rule.property],
+                        ruleStatOf(rule)
+                    ) == null
+                )
+            return (
+                propertyStats(layerObj, rulePropertyPath(rule))?.scope !==
+                'dataset'
+            )
+        }
         const unmeasured =
             mode !== 'dataset' || !partiallyLoaded
                 ? []
@@ -3119,14 +3127,9 @@ function interfaceWithMMGIS(fromInit) {
                       .filter(
                           (rule) =>
                               rule?.enabled !== false &&
-                              propertyTypeOf(rule) !== 'stats' &&
                               !isCategoricalNow(layerName, rule)
                       )
-                      .filter(
-                          (rule) =>
-                              propertyStats(layerObj, rulePropertyPath(rule))
-                                  ?.scope !== 'dataset'
-                      )
+                      .filter(missesDatasetNumbers)
                       .map((rule) => rulePropertyLabel(rule))
 
         // prettier-ignore

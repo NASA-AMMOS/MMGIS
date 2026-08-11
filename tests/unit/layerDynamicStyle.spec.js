@@ -477,6 +477,27 @@ test.describe("layerDynamicStyle - session rules", () => {
       fillColor: "rgb(128, 128, 128)",
     });
   });
+
+  test("typed ends with no source named are pinned just the same", () => {
+    const layer = layerWith([rule({ domain: { min: 0, max: 100 } })]);
+    setDynamicStyleOverride(layer, { domain: "view" });
+    expect(getDynamicStyle(layer).rules[0].domain).toEqual({
+      min: 0,
+      max: 100,
+    });
+    const resolve = compileLayerDynamicStyle(layer, featuresOf(0, 10));
+    expect(resolve({ value: 50 })).toEqual({
+      fillColor: "rgb(128, 128, 128)",
+    });
+  });
+
+  test("a rule with no domain at all still follows the toggle", () => {
+    const layer = layerWith([rule({})]);
+    setDynamicStyleOverride(layer, { domain: "view" });
+    expect(getDynamicStyle(layer).rules[0].domain).toEqual({
+      source: "loaded",
+    });
+  });
 });
 
 test.describe("layerDynamicStyle - getStatsFields", () => {
