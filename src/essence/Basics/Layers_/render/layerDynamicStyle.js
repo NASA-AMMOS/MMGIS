@@ -60,10 +60,9 @@ export function getDynamicStyleOverride(layerObj) {
 }
 
 /**
- * Which end of the Whole dataset / Current view toggle a layer is at. Without
- * an override it's what its rules were configured with: only 'loaded' means
- * "what's in hand", so the toggle reads as the current view only when every
- * rule is measured that way - rules that disagree are not all in view.
+ * Which end of the Whole dataset / Current view toggle a layer is at. One
+ * setting for the whole layer - what it was configured with, or what a viewer
+ * has since chosen. Its rules follow it rather than the other way around.
  *
  * @param {object} layerObj
  * @returns {'dataset'|'view'}
@@ -71,9 +70,7 @@ export function getDynamicStyleOverride(layerObj) {
 export function getDomainMode(layerObj) {
     const override = getDynamicStyleOverride(layerObj)
     if (override && override.domain) return override.domain
-    const rules = layerObj?.variables?.dynamicStyle?.rules
-    if (!Array.isArray(rules) || rules.length === 0) return 'dataset'
-    return rules.every((rule) => rule?.domain?.source === 'loaded')
+    return layerObj?.variables?.dynamicStyle?.domain === 'view'
         ? 'view'
         : 'dataset'
 }
@@ -102,21 +99,16 @@ function overriddenRules(rules, override) {
     })
 }
 
-function withOverride(dynamicStyle, override) {
-    if (override == null) return dynamicStyle
-
+function withOverride(dynamicStyle, override, mode) {
     const rules = overriddenRules(dynamicStyle.rules, override).map((rule) => {
         const next = Object.assign({}, rule)
-        // A domain pinned to literal numbers stays pinned; the toggle is about
-        // where an unpinned one is measured. Only 'view' is a source of its
-        // own — back at 'dataset' the rule is measured however it was written,
-        // which keeps an avg ± σ scale from decaying into a min/max one.
-        if (override.domain === 'view')
+        // The layer's toggle says where an unpinned scale is measured, so a
+        // rule follows it; a domain pinned to literal numbers stays pinned.
+        // 'loaded' is the toggle's own source: a rule that carries it from an
+        // older configuration is measured over the whole dataset instead.
+        if (mode === 'view')
             next.domain = Object.assign({}, next.domain, { source: 'loaded' })
-        else if (
-            override.domain === 'dataset' &&
-            next.domain?.source === 'loaded'
-        )
+        else if (next.domain?.source === 'loaded')
             next.domain = Object.assign({}, next.domain, { source: 'auto' })
         return next
     })
@@ -137,7 +129,8 @@ export function getDynamicStyle(layerObj) {
     if (!Array.isArray(dynamicStyle.rules)) return null
     const overridden = withOverride(
         dynamicStyle,
-        getDynamicStyleOverride(layerObj)
+        getDynamicStyleOverride(layerObj),
+        getDomainMode(layerObj)
     )
     return overridden.rules.some(isUsableRule) ? overridden : null
 }

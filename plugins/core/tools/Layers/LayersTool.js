@@ -19,6 +19,7 @@ import {
 import {
     getDomainMode,
     getDynamicStyle,
+    getDynamicStyleProps,
     getStatsFields,
     getViewedRules,
 } from '@basics/Layers_/render/layerDynamicStyle'
@@ -3654,7 +3655,13 @@ function interfaceWithMMGIS(fromInit) {
         $('.dynamicStyleProperty').on('change', function () {
             const layerName = $(this).attr('layername')
             const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
-            const asked = getStatsFields(layerObj)
+            // A layer that only fetches the properties it styles by has to
+            // fetch again for a property it wasn't styling by.
+            const restricted =
+                layerObj?.variables?.getFeaturePropertiesOnClick === true
+            const asked = getStatsFields(layerObj).concat(
+                restricted ? getDynamicStyleProps(layerObj) : []
+            )
             const index = ruleIndexOf(this)
             // The option's value carries which box its name was listed in.
             const chosen = String($(this).val())
@@ -3669,10 +3676,12 @@ function interfaceWithMMGIS(fromInit) {
             if (propertyType === 'stats')
                 patch.stat = ruleStatOf(getViewedRules(layerObj)[index])
             overrideDynamicStyleRuleOf(layerName, index, patch)
-            // A field the layer never asked to have summarized isn't in the
-            // features it holds, so they are fetched again to carry it.
-            if (getStatsFields(layerObj).some((f) => !asked.includes(f)))
-                refreshLayer(layerObj)
+            // A field the layer never asked for isn't in the features it
+            // holds, so they are fetched again to carry it.
+            const wanted = getStatsFields(layerObj).concat(
+                restricted ? getDynamicStyleProps(layerObj) : []
+            )
+            if (wanted.some((f) => !asked.includes(f))) refreshLayer(layerObj)
             // Another property may have statistics of its own to report.
             refreshDynamicStyleSettings(layerName)
         })

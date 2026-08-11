@@ -386,15 +386,26 @@
                 "name": "Enable Dynamic Style",
                 "description": "Turns the rules below on. Off, the layer is styled by the fields above alone.",
                 "type": "switch",
-                "width": 6,
+                "width": 4,
                 "defaultChecked": false
+              },
+              {
+                "field": "variables.dynamicStyle.domain",
+                "name": "Scale Over",
+                "description": "Whether every rule's scale spans the whole dataset or only what's in view, which a viewer can then switch for their session.",
+                "type": "dropdown",
+                "options": [
+                  "dataset",
+                  "view"
+                ],
+                "width": 4
               },
               {
                 "field": "variables.dynamicStyle.userSettable",
                 "name": "Is User Settable",
                 "description": "Lets a viewer re-aim the style from the Layers Tool - a different property, ramp, domain or bins - for their session only. Off, the layer is coloured as configured and there are no controls to change it.",
                 "type": "checkbox",
-                "width": 6,
+                "width": 4,
                 "defaultChecked": true
               },
               {
@@ -699,12 +710,11 @@
                   {
                     "field": "domain.source",
                     "name": "Domain",
-                    "description": "Where the low and high ends of the scale come from. 'auto' prefers a geodataset's dataset-wide statistics and falls back to the loaded features, 'fieldStats' is the whole dataset, 'loaded' only what has been fetched, 'stddev' is the average plus or minus a few standard deviations, and 'literal' is the Domain Min and Max below.",
+                    "description": "Where the low and high ends of the scale come from. 'auto' prefers a geodataset's dataset-wide statistics and falls back to the loaded features, 'fieldStats' is the whole dataset, 'stddev' is the average plus or minus a few standard deviations, and 'literal' is the Domain Min and Max below. Scale Over decides whether this is measured over the dataset or the current view.",
                     "type": "dropdown",
                     "options": [
                       "auto",
                       "fieldStats",
-                      "loaded",
                       "stddev",
                       "literal"
                     ],

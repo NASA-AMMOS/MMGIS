@@ -468,7 +468,7 @@
                             6
                           ],
                           "domain": {
-                            "source": "loaded"
+                            "source": "auto"
                           }
                         }
                       ]

@@ -227,18 +227,26 @@ test.describe("layerDynamicStyle - session overrides", () => {
     expect(getDomainMode(layerWith([rule()]))).toBe("dataset");
   });
 
-  test("a rule configured to measure what's loaded starts on the current view", () => {
-    expect(
-      getDomainMode(layerWith([rule({ domain: { source: "loaded" } })])),
-    ).toBe("view");
+  test("a layer configured to scale over the view starts there, rules and all", () => {
+    const layer = layerWith([rule(), rule({ attribute: "weight" })]);
+    layer.variables.dynamicStyle.domain = "view";
+    expect(getDomainMode(layer)).toBe("view");
+    expect(getDynamicStyle(layer).rules.map((r) => r.domain.source)).toEqual([
+      "loaded",
+      "loaded",
+    ]);
   });
 
-  test("rules that disagree are not all on the current view", () => {
+  test("the toggle is the layer's, so a rule cannot put it on the view", () => {
     const layer = layerWith([
       rule({ domain: { source: "loaded" } }),
       rule({ attribute: "weight", domain: { source: "auto" } }),
     ]);
     expect(getDomainMode(layer)).toBe("dataset");
+    expect(getDynamicStyle(layer).rules.map((r) => r.domain.source)).toEqual([
+      "auto",
+      "auto",
+    ]);
   });
 
   test("the domain toggle wins over the configuration, and moves every rule", () => {
@@ -254,7 +262,7 @@ test.describe("layerDynamicStyle - session overrides", () => {
     ]);
   });
 
-  test("back at the whole dataset, a rule is measured however it was written", () => {
+  test("back at the whole dataset, a rule keeps how its own scale is drawn", () => {
     const layer = layerWith([
       rule({ domain: { source: "stddev", sigma: 2 } }),
       rule({ attribute: "weight", domain: { source: "loaded" } }),
