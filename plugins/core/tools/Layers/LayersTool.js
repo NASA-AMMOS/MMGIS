@@ -3177,7 +3177,7 @@ function interfaceWithMMGIS(fromInit) {
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleHeading">',
                 `<div title="Styles ${escapeHTML(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || 'the fill')} by ${escapeHTML(rulePropertyLabel(rule))}.">${escapeHTML(rulePropertyLabel(rule))}</div>`,
                 '<div class="checkboxcont">',
-                    `<div class="checkbox small dynamicStyleRuleEnabled ${on ? 'on' : 'off'}" layername="${name}" ruleindex="${index}" title="Whether this rule styles the layer."></div>`,
+                    `<div class="checkbox dynamicStyleRuleEnabled ${on ? 'on' : 'off'}" layername="${name}" ruleindex="${index}" title="Whether this rule styles the layer."></div>`,
                 '</div>',
             '</div>',
             !on ? '' : [

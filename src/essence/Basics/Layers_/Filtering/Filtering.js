@@ -116,10 +116,23 @@ const Filtering = {
             type: layerObj.type,
         }
 
-        const aggs = await Filtering.getAggregations(layerName)
+        let aggs = await Filtering.getAggregations(layerName)
         // null == the type has a filtering strategy but could not answer (a
         // vector layer with no readable GeoJSON); there is nothing to show.
         if (aggs === null) return
+        // A layer with nothing loaded yet offers only its geometry, and that
+        // answer is cached, so ask again from the features it has by now -
+        // unless a filter is active, whose cache is the unfiltered data.
+        if (
+            aggs !== undefined &&
+            Object.keys(aggs).length <= 1 &&
+            (Filtering.filters[layerName].values || []).length === 0
+        ) {
+            const refreshed = await Filtering.getAggregations(layerName, {
+                refresh: true,
+            })
+            if (refreshed != null) aggs = refreshed
+        }
         if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
         const spatialActive =
             Filtering.filters[layerName].spatial?.center != null
@@ -773,6 +786,19 @@ const Filtering = {
             onEnd: () => {},
         })
     },
+    /**
+     * Re-offer the layer's properties to a row that was built before the
+     * layer had them.
+     */
+    updateKeysAutoComplete: function (id, layerName) {
+        const elmId = `#layersTool_filtering_value_key_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        const keys = Object.keys(Filtering.filters[layerName]?.aggs || {}).sort(
+            (a, b) => b.localeCompare(a)
+        )
+        $(elmId).autocomplete('setOptions', { lookup: keys })
+    },
     updateValuesAutoComplete: function (id, layerName) {
         let elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
             layerName
@@ -871,7 +897,8 @@ const Filtering = {
 
             if (Filtering.filters[layerName]?.values) {
                 Filtering.filters[layerName]?.values.forEach((v, idx) => {
-                    // Value AutoComplete
+                    // Property and Value AutoComplete
+                    Filtering.updateKeysAutoComplete(idx, layerName)
                     Filtering.updateValuesAutoComplete(idx, layerName)
                 })
             }

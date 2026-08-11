@@ -187,6 +187,13 @@
 #layersTool .dynamicStyleRuleHeading > .checkboxcont {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  width: 20px;
+}
+
+/* Flush right, so the switch lines up with the dropdowns beneath it. */
+#layersTool .dynamicStyleRuleHeading .checkbox {
+  margin-right: 0;
 }
 
 #layersTool .sublayer.dynamicStyleRuleRow,
@@ -231,8 +238,14 @@
   padding-right: 4px;
 }
 
+/* Quieter than the property they belong to, so the headings read first. */
+#layersTool .sublayer.statsValueRow {
+  height: 22px;
+  color: var(--color-a4);
+}
+
 #layersTool .statsValue {
-  color: var(--color-a5);
+  color: var(--color-a4);
   font-variant-numeric: tabular-nums;
 }
 
