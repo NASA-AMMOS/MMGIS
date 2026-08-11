@@ -1593,8 +1593,13 @@ class GlobeRenderer {
                         layerInfo.kind === 'entities' &&
                         layerInfo.dataSource
                     ) {
-                        // Check if this dataSource contains the clicked entity
-                        if (layerInfo.dataSource.entities.contains(entity)) {
+                        // Match by the id injected per feature: a reloaded
+                        // layer can hold entities its recorded data source no
+                        // longer contains.
+                        if (
+                            layerInfo.dataSource.entities.contains(entity) ||
+                            layerInfo.featureMap?.[entity.id] != null
+                        ) {
                             // Found the layer - call its onClick callback
                             if (layerInfo.onClick && layerInfo.featureMap) {
                                 // Get original feature using entity.id (instant O(1) lookup)

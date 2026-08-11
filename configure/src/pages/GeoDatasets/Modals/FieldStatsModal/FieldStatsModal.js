@@ -32,6 +32,7 @@ const useStyles = makeStyles((theme) => ({
     },
     "& .MuiDialog-container": {
       height: "unset !important",
+      width: "100%",
       transform: "translateX(-50%) translateY(-50%)",
       left: "50%",
       top: "50%",
@@ -41,8 +42,9 @@ const useStyles = makeStyles((theme) => ({
   contents: {
     background: theme.palette.primary.main,
     height: "100%",
-    width: "760px",
-    maxWidth: "unset",
+    width: "100%",
+    maxWidth: "80% !important",
+    maxHeight: "calc(100% - 32px) !important",
   },
   heading: {
     height: theme.headHeights[2],

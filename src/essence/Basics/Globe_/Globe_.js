@@ -304,9 +304,6 @@ let Globe_ = {
             }
         }
     },
-    // Below this zoom the globe view spans (nearly) the whole body, so
-    // dynamic-extent queries just request the full extent.
-    GLOBE_FULL_EXTENT_MAX_ZOOM: 4,
     // The globe bbox is padded beyond the strict top-down footprint so tilted
     // views (looking across the terrain toward the horizon) still query the
     // features that are visible but outside the nadir box. The pad scales with
@@ -336,19 +333,6 @@ let Globe_ = {
 
             const centerLng = center.lng
             const centerLat = center.lat
-
-            if (zoom < this.GLOBE_FULL_EXTENT_MAX_ZOOM) {
-                return {
-                    zoom: zoom,
-                    tilt: 0,
-                    minx: -180,
-                    miny: -90,
-                    maxx: 180,
-                    maxy: 90,
-                    centerLng: centerLng,
-                    centerLat: centerLat,
-                }
-            }
 
             // Widen the box with camera tilt so a view looking across the
             // terrain still captures features toward the horizon.

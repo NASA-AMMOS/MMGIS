@@ -27,6 +27,16 @@ import { isClamped, toGlobeConfig } from './layerConfig'
 
 const CESIUM_POINT_PIXEL_SCALE = 2
 
+// Cesium drops fully transparent geometry from the pick pass, so a polygon
+// with no fill would be unclickable on the globe though 2D still selects it.
+const MIN_PICKABLE_ALPHA = 0.004
+
+/** A fill colour that keeps its polygon pickable however invisible it is. */
+function pickableAlpha(color, opacity) {
+    const alpha = isNaN(opacity) ? 0.5 : opacity
+    return color.withAlpha(Math.max(alpha, MIN_PICKABLE_ALPHA))
+}
+
 function make(layerObj, gctx) {
     const layerConfig = toGlobeConfig(layerObj)
     if (layerConfig == null) return
@@ -112,9 +122,7 @@ function render(layerConfig, gctx) {
         Cesium.Color.fromCssColorString(defaultStyle.fillColor || '#ffffff') ||
         Cesium.Color.WHITE
     const fillOpacity = parseFloat(defaultStyle.fillOpacity)
-    const fillWithAlpha = isNaN(fillOpacity)
-        ? fillColor.withAlpha(0.5)
-        : fillColor.withAlpha(fillOpacity)
+    const fillWithAlpha = pickableAlpha(fillColor, fillOpacity)
 
     const loadOptions = {
         clampToGround: type === 'clamped',
@@ -197,14 +205,15 @@ function render(layerConfig, gctx) {
                                     Cesium.Color.fromCssColorString(
                                         featureStyle.fillColor
                                     ) || Cesium.Color.WHITE
-                                const polygonOpacity =
-                                    parseFloat(featureStyle.fillOpacity) != null
-                                        ? parseFloat(featureStyle.fillOpacity)
-                                        : parseFloat(
-                                              defaultStyle.fillOpacity
-                                          ) || 0.5
-                                entity.polygon.material =
-                                    polygonFillColor.withAlpha(polygonOpacity)
+                                const polygonOpacity = parseFloat(
+                                    featureStyle.fillOpacity != null
+                                        ? featureStyle.fillOpacity
+                                        : defaultStyle.fillOpacity
+                                )
+                                entity.polygon.material = pickableAlpha(
+                                    polygonFillColor,
+                                    polygonOpacity
+                                )
                             }
                             if (featureStyle.color) {
                                 const outlineColor =
