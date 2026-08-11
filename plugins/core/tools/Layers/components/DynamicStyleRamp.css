@@ -36,7 +36,7 @@
 .dynamicStyleStopBar {
     position: relative;
     height: 16px;
-    margin: 2px 20px 22px 0;
+    margin: 8px 20px 22px 0;
 }
 
 .dynamicStyleStopGradient {
@@ -104,12 +104,25 @@
     right: 0;
 }
 
+/* Always there, so the bar doesn't shift when bins stop being even. */
 .dynamicStyleStopReset {
     position: absolute;
     top: 0px;
-    right: -18px;
+    right: -20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    background: #222;
     cursor: pointer;
     color: var(--color-a4);
+}
+
+/* Nothing to undo, but still shown where it will be. */
+.dynamicStyleStopReset.even {
+    color: var(--color-a3);
 }
 
 .dynamicStyleStopReset:hover {

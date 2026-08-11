@@ -268,15 +268,15 @@ export default function DynamicStyleRamp({
               <div className="dynamicStyleStopValue end high">{at(1)}</div>
             </>
           )}
-          {!isEven(current, bins) && (
-            <div
-              className="dynamicStyleStopReset"
-              title="Even bins"
-              onClick={() => onChange({ stops: null })}
-            >
-              <i className="mdi mdi-backup-restore mdi-14px" />
-            </div>
-          )}
+          <div
+            className={`dynamicStyleStopReset${
+              isEven(current, bins) ? " even" : ""
+            }`}
+            title="Even bins"
+            onClick={() => onChange({ stops: null })}
+          >
+            <i className="mdi mdi-backup-restore mdi-14px" />
+          </div>
         </div>
       )}
     </div>
