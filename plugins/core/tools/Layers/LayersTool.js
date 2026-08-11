@@ -3089,11 +3089,9 @@ function interfaceWithMMGIS(fromInit) {
 
     /**
      * The properties a viewer may aim a layer's dynamic style at: the ones its
-     * rules were written for, plus any an admin listed as selectable.
-     *
-     * A field summarized per group is not a property a feature has, so a rule's
-     * property is only offered to its own kind; a listed property is fit for
-     * either, an admin having vouched for it rather than a rule.
+     * rules were written for, plus any an admin listed as selectable. A field
+     * summarized per group is not a property a feature has, so each kind is
+     * listed on its own.
      */
     function getStyleableProperties(layerName, propertyType) {
         const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
@@ -3106,7 +3104,10 @@ function interfaceWithMMGIS(fromInit) {
                 if (typeof rule?.property === 'string' && rule.property !== '')
                     names.add(rule.property)
             })
-        const listed = dynamicStyle?.properties
+        const listed =
+            propertyType === 'stats'
+                ? dynamicStyle?.statsProperties
+                : dynamicStyle?.properties
         if (Array.isArray(listed))
             listed.forEach((property) => {
                 if (typeof property !== 'string') return
@@ -3166,12 +3167,33 @@ function interfaceWithMMGIS(fromInit) {
     function getDynamicStyleRuleSettings(layerName, rule, index, count) {
         const name = escapeHTML(layerName)
         const isStats = propertyTypeOf(rule) === 'stats'
-        const properties = getStyleableProperties(
-            layerName,
-            isStats ? 'stats' : 'properties'
-        )
-        if (properties.indexOf(rule.property) === -1 && rule.property != null)
-            properties.unshift(rule.property)
+        const properties = getStyleableProperties(layerName, 'properties')
+        const statsFields = getStyleableProperties(layerName, 'stats')
+        const own = isStats ? statsFields : properties
+        if (own.indexOf(rule.property) === -1 && rule.property != null)
+            own.unshift(rule.property)
+        const chosen = `${isStats ? 'stats' : 'properties'}:${rule.property}`
+        // Which box a name was listed in is how the rule knows whether it is a
+        // property of a feature or a field summarized per group.
+        const options = (kind, label, names) =>
+            names.length === 0
+                ? ''
+                : [
+                      `<optgroup label="${label}">`,
+                      names
+                          .map(
+                              (p) =>
+                                  `<option value="${escapeHTML(
+                                      `${kind}:${p}`
+                                  )}"${
+                                      `${kind}:${p}` === chosen
+                                          ? ' selected'
+                                          : ''
+                                  }>${escapeHTML(p)}</option>`
+                          )
+                          .join('\n'),
+                      '</optgroup>',
+                  ].join('\n')
 
         // prettier-ignore
         return [
@@ -3180,14 +3202,13 @@ function interfaceWithMMGIS(fromInit) {
                 `<div>Rule ${index + 1}</div>`,
                 `<div class="dynamicStyleRemove mmgisHoverBlue" layername="${name}" ruleindex="${index}" title="Stop styling by this rule for this session."><i class="mdi mdi-close mdi-18px"></i></div>`,
             '</div>'].join('\n') : '',
-            properties.length > 0 ? [
+            properties.length + statsFields.length > 0 ? [
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
-                `<div title="${isStats ? 'The field whose per-group statistics the layer is coloured by, so a feature is coloured by its group rather than by itself.' : 'The feature property the layer is coloured by. The choices are the properties this layer has rules for.'}">${isStats ? 'Stats Field' : 'Property'}</div>`,
+                '<div title="What the layer is coloured by: a property of the feature itself, or a field summarized over the features sharing its group.">Property</div>',
                 '<div style="display: flex;">',
                     `<select class="dropdown dynamicStyleProperty" layername="${name}" ruleindex="${index}">`,
-                        properties.map((p) =>
-                            `<option value="${escapeHTML(p)}"${p === rule.property ? ' selected' : ''}>${escapeHTML(p)}</option>`
-                        ).join('\n'),
+                        options('properties', 'Properties', properties),
+                        options('stats', 'Stats Fields', statsFields),
                     '</select>',
                 '</div>',
             '</div>'].join('\n') : '',
@@ -3636,9 +3657,20 @@ function interfaceWithMMGIS(fromInit) {
             const layerName = $(this).attr('layername')
             const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
             const asked = getStatsFields(layerObj)
-            overrideDynamicStyleRuleOf(layerName, ruleIndexOf(this), {
-                property: $(this).val(),
-            })
+            const index = ruleIndexOf(this)
+            // The option's value carries which box its name was listed in.
+            const chosen = String($(this).val())
+            const split = chosen.indexOf(':')
+            const propertyType =
+                split === -1 ? 'properties' : chosen.slice(0, split)
+            const patch = {
+                property: chosen.slice(split + 1),
+                propertyType: propertyType,
+            }
+            // A field aimed at for the first time is summarized as an average.
+            if (propertyType === 'stats')
+                patch.stat = ruleStatOf(getViewedRules(layerObj)[index])
+            overrideDynamicStyleRuleOf(layerName, index, patch)
             // A field the layer never asked to have summarized isn't in the
             // features it holds, so they are fetched again to carry it.
             if (getStatsFields(layerObj).some((f) => !asked.includes(f)))

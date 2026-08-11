@@ -400,7 +400,22 @@
               {
                 "field": "variables.dynamicStyle.properties",
                 "name": "Selectable Properties",
-                "description": "Comma-separated properties a viewer may aim the style at, on top of the ones the rules below already use. Leave empty to allow only what a rule was written for.",
+                "description": "Comma-separated feature properties a viewer may aim the style at, on top of the ones the rules below already use. Leave empty to allow only what a rule was written for.",
+                "type": "textarray",
+                "width": 12,
+                "showIf": [
+                  {
+                    "field": "variables.dynamicStyle.userSettable",
+                    "notIn": [
+                      false
+                    ]
+                  }
+                ]
+              },
+              {
+                "field": "variables.dynamicStyle.statsProperties",
+                "name": "Selectable Stats Fields",
+                "description": "Comma-separated geodataset fields a viewer may aim a Stats rule at. Picking one summarizes it per group as an average until another statistic is chosen.",
                 "type": "textarray",
                 "width": 12,
                 "showIf": [
