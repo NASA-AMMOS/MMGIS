@@ -30,6 +30,10 @@ const NUMERIC_TEXT_REGEX = new RegExp(SQL_NUMERIC_REGEX);
 // first and skipped — as Number.isFinite() skips them on the JS side.
 const FLOAT8_MAX = "1e308";
 
+// How many path segments deep either half of `field_stats` follows nesting:
+// what a rescan's recursive walk can reach, and so what ingest records.
+const MAX_SCAN_DEPTH = 10;
+
 // Statistics computed per group at query time. `stddev` is the population
 // deviation, as the derived one on `field_stats` is.
 const STAT_AGGREGATES = ["min", "max", "avg", "sum", "stddev"];
@@ -146,6 +150,9 @@ function toNumberOrNull(value) {
  * so appends can merge without re-reading the table and still report both
  * exactly.
  *
+ * Nesting is followed only as deep as a rescan of the table can follow it, so
+ * the two ways of producing `field_stats` describe the same set of fields.
+ *
  * @param {Array} features GeoJSON features
  * @param {Object} [into] existing accumulator to add to
  * @returns {Object} { "path.to.field": { type: "number", min, max, sum, sumsq,
@@ -158,19 +165,20 @@ function collectFieldStats(features, into) {
   if (!Array.isArray(features)) return stats;
   features.forEach((feature) => {
     if (feature && feature.properties)
-      accumulateProperties(stats, feature.properties, "");
+      accumulateProperties(stats, feature.properties, "", 0);
   });
   return stats;
 }
 
-function accumulateProperties(stats, obj, prefix) {
+function accumulateProperties(stats, obj, prefix, depth) {
   for (const key of Object.keys(obj)) {
     const value = obj[key];
     const fullKey = prefix ? `${prefix}.${key}` : key;
     if (value == null) continue;
     if (typeof value === "object") {
       // Arrays have no meaningful single numeric domain
-      if (!Array.isArray(value)) accumulateProperties(stats, value, fullKey);
+      if (!Array.isArray(value) && depth < MAX_SCAN_DEPTH)
+        accumulateProperties(stats, value, fullKey, depth + 1);
       continue;
     }
     if (typeof value === "boolean") continue;
@@ -199,9 +207,6 @@ function accumulateProperties(stats, obj, prefix) {
     stat.count += 1;
   }
 }
-
-// How deep a rescan descends, matching what the accessors can read back.
-const MAX_SCAN_DEPTH = 10;
 
 /**
  * Build the query that recomputes a geodataset's whole `field_stats` from the
