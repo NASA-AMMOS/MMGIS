@@ -1,19 +1,37 @@
 /**
- * What names a feature across the map, the globe and a search result.
+ * The ids a feature carries, by kind.
  *
  * A geodataset's GET endpoint writes the row id to `properties._.idx` and only
  * writes `properties.feature_id` when the layer asks for that column, so the
- * two are separate numberings: the kind is part of the identity, and an id of
- * one kind never matches an id of the other.
+ * two are separate numberings.
  *
  * @param {object} [properties]
- * @returns {string|null} null when the feature carries no id
+ * @returns {Array<string>} ids as `kind:value`, empty when it carries none
  */
+export function featureIdentities(properties) {
+    if (properties == null) return []
+    const ids = []
+    if (properties.feature_id != null) ids.push(`f:${properties.feature_id}`)
+    if (properties._?.idx != null) ids.push(`i:${properties._.idx}`)
+    return ids
+}
+
+/**
+ * Whether two features are the same one: an id of a kind they both carry
+ * agrees. An id of one kind never matches an id of the other.
+ *
+ * @param {object} [a]
+ * @param {object} [b]
+ * @returns {boolean} false when they share no kind of id
+ */
+export function sameFeature(a, b) {
+    const bIds = featureIdentities(b)
+    return featureIdentities(a).some((id) => bIds.includes(id))
+}
+
+/** One name for a feature, preferring its `feature_id`. */
 export function featureIdentity(properties) {
-    if (properties == null) return null
-    if (properties.feature_id != null) return `f:${properties.feature_id}`
-    if (properties._?.idx != null) return `i:${properties._.idx}`
-    return null
+    return featureIdentities(properties)[0] ?? null
 }
 
 export default featureIdentity

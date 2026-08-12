@@ -61,16 +61,16 @@ test("an id of one kind never matches an id of the other", () => {
   // properties.feature_id when the layer asks for that column: matching one
   // against the other names a different feature.
   const {
-    featureIdentity,
+    sameFeature,
   } = require("../../src/essence/Basics/Layers_/features/identity.js");
-  expect(featureIdentity({ feature_id: 7 })).toBe(
-    featureIdentity({ feature_id: "7" }),
+  expect(sameFeature({ feature_id: 7 }, { feature_id: "7" })).toBe(true);
+  expect(sameFeature({ _: { idx: 7 } }, { feature_id: 7 })).toBe(false);
+  // A kind they both carry decides it, whatever else either one has.
+  expect(sameFeature({ feature_id: 3, _: { idx: 7 } }, { _: { idx: 7 } })).toBe(
+    true,
   );
-  expect(featureIdentity({ _: { idx: 7 } })).not.toBe(
-    featureIdentity({ feature_id: 7 }),
-  );
-  expect(featureIdentity({ name: "no id" })).toBe(null);
-  expect(featureIdentity(null)).toBe(null);
+  expect(sameFeature({ name: "no id" }, { name: "no id" })).toBe(false);
+  expect(sameFeature(null, { feature_id: 1 })).toBe(false);
 });
 
 test("a resolved style is not part of a feature's identity in either direction", () => {

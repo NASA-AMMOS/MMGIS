@@ -11,7 +11,10 @@ import {
 } from '../Layers_/render/gradientUtils'
 import { getCoordProperties } from '../Layers_/render/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
-import { featureIdentity } from '../Layers_/features/identity'
+import {
+    featureIdentities,
+    sameFeature,
+} from '../Layers_/features/identity'
 
 // How near an outline a click counts as aimed at it.
 const OUTLINE_PICK_PIXELS = 12
@@ -2333,7 +2336,12 @@ class GlobeRenderer {
             for (const [id, storedFeature] of Object.entries(
                 layerInfo.featureMap
             )) {
-                if (this._featureIdOf(storedFeature) === fid) {
+                if (
+                    sameFeature(
+                        storedFeature?.properties,
+                        feature?.properties
+                    )
+                ) {
                     internalId = id
                     break
                 }
@@ -2378,7 +2386,7 @@ class GlobeRenderer {
      * A feature's own id, however the endpoint it came from spells it.
      */
     _featureIdOf(feature) {
-        return featureIdentity(feature?.properties)
+        return featureIdentities(feature?.properties)[0] ?? null
     }
 
     /**

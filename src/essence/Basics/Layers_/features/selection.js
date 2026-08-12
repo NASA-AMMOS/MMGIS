@@ -2,7 +2,7 @@ import F_ from '../../Formulae_/Formulae_'
 import Description from '../../UserInterface_/components/Description/Description'
 import ToolController_ from '../../ToolController_/ToolController_'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
-import { featureIdentity } from './identity'
+import { sameFeature } from './identity'
 
 import $ from 'jquery'
 
@@ -237,13 +237,7 @@ export function selectFeature(L_, layerName, feature, relation, field) {
             // The search API stores the id in properties._.idx while the GET
             // endpoint stores it in properties.feature_id - two different
             // numberings, so a match across them would name another feature.
-            const layerFid = featureIdentity(layerFeature.properties)
-            const inputFid = featureIdentity(f.properties)
-            if (
-                layerFid != null &&
-                inputFid != null &&
-                layerFid === inputFid
-            ) {
+            if (sameFeature(layerFeature.properties, f.properties)) {
                 if (layers[layerKeys[i + (relation || 0)]] != null) {
                     if (
                         L_.Globe_ &&
