@@ -3098,10 +3098,13 @@ function interfaceWithMMGIS(fromInit) {
             dynamicStyle.enabled !== true
         )
             return ''
-        // Only where an admin left the style open to being re-aimed.
-        if (dynamicStyle.userSettable === false) return ''
-
         const rules = getViewedRules(layerObj)
+        // Where an admin didn't leave the style open to being re-aimed, the
+        // section says what the layer is styled by without offering to change
+        // it.
+        if (dynamicStyle.userSettable === false)
+            return getDynamicStyleListing(rules)
+
         const mode = getDomainMode(layerObj)
         const name = escapeHTML(layerName)
         // A geodataset holds back most of its features, so a scale without
@@ -3157,6 +3160,31 @@ function interfaceWithMMGIS(fromInit) {
             '</div>'].join('\n'),
             rules.map((rule, index) =>
                 getDynamicStyleRuleSettings(layerName, rule, index)
+            ).join('\n'),
+        ].join('\n')
+    }
+
+    /**
+     * The rules as a list: what each styles by and the attribute it drives.
+     * What a viewer sees of a style they can't change.
+     */
+    function getDynamicStyleListing(rules) {
+        const listed = rules.filter((rule) => rule?.enabled !== false)
+        if (listed.length === 0) return ''
+        // prettier-ignore
+        return [
+            '<div class="sublayerHeading dynamicStyleRow dynamicStyleHeading">',
+                '<div class="dynamicStyleHeadingTitle">',
+                    '<div>Dynamic Style</div>',
+                '</div>',
+            '</div>',
+            listed.map((rule) =>
+                [
+                '<div class="sublayer dynamicStyleRow dynamicStyleRuleListed">',
+                    `<div>${escapeHTML(rulePropertyLabel(rule))}</div>`,
+                    `<div>${escapeHTML(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || rule.attribute)}</div>`,
+                '</div>',
+                ].join('\n')
             ).join('\n'),
         ].join('\n')
     }

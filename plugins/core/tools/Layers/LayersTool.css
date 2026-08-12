@@ -203,6 +203,18 @@
   margin: 0;
 }
 
+/* A style a viewer can't change is just named: what it styles by, and what of. */
+#layersTool .sublayer.dynamicStyleRuleListed {
+  align-items: center;
+  height: 22px;
+  padding-right: 2px;
+  font-size: 11px;
+}
+
+#layersTool .sublayer.dynamicStyleRuleListed > div:last-child {
+  color: var(--color-a4);
+}
+
 #layersTool .sublayer.dynamicStyleRuleRow,
 #layersTool .sublayer.statsValueRow,
 #layersTool .dynamicStyleRuleRow {
