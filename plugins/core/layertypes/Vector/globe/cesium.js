@@ -113,12 +113,17 @@ function render(layerConfig, gctx) {
     const letPropertiesOverride =
         layerConfig.style?.letPropertiesStyleOverride || false
 
-    // Clone GeoJSON and inject internal IDs (layerName_index) for fast lookups.
+    // Clone GeoJSON and inject internal IDs (layerName_load_index) for fast
+    // lookups. The load is part of the id because a reload loads into the same
+    // entity collection with its events suspended, and an entity re-added there
+    // under an id that was just removed reads as no change at all — Cesium goes
+    // on drawing the entity it already had, so a restyle or new features would
+    // never reach the screen.
     const geojsonWithIds = JSON.parse(JSON.stringify(layerConfig.geojson))
     const featureMap = {}
     if (geojsonWithIds.features && Array.isArray(geojsonWithIds.features)) {
         geojsonWithIds.features.forEach((feature, index) => {
-            const internalId = `${name}_${index}`
+            const internalId = `${name}_${loadToken}_${index}`
             featureMap[internalId] = layerConfig.geojson.features[index]
             feature.id = internalId
         })
