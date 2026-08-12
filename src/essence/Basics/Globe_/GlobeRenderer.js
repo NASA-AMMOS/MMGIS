@@ -1204,8 +1204,8 @@ class GlobeRenderer {
 
     /**
      * Defer removal of a Cesium vector data source by one frame so a reload that
-     * follows immediately can adopt it (keeping its features visible). If nothing
-     * adopts it, the data source is removed once the frame elapses.
+     * follows immediately can keep it up until its own features are drawn. If no
+     * reload follows, the data source is removed once the frame elapses.
      * @param {string} name - Layer name
      * @param {Object} dataSource - Cesium data source to remove
      */

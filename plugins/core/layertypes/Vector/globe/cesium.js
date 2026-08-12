@@ -76,24 +76,37 @@ function outlineOnTerrain(entity, loadOptions) {
     })
 }
 
+// How long a replaced data source stays on the globe while its replacement
+// builds. Draped geometry is batched asynchronously, so it isn't drawn the
+// frame it is added.
+const RETIRE_MS = 500
+
+/** Take the data sources a load replaced off the globe, once it is drawn. */
+function retire(gctx, outgoing, ds) {
+    const stale = outgoing.filter((s) => s != null && s !== ds)
+    if (stale.length === 0) return
+    setTimeout(() => {
+        stale.forEach((s) => gctx.renderer.dataSources.remove(s))
+        gctx.requestRender()
+    }, RETIRE_MS)
+}
+
 // Add an already-built globe layer config (engine-facing entry point).
 function render(layerConfig, gctx) {
     const { name } = layerConfig
     const type = gctx.clampToGround ? 'clamped' : 'vector'
 
-    // Serialize reloads per layer. The layer reuses one data source and loads
-    // new GeoJSON into it in place; starting a second load on that same source
-    // while one is in flight would race, because Cesium resolves loads in
-    // completion order (not call order). Queue this as the latest pending reload
-    // and run it once the in-flight load settles.
+    // Serialize reloads per layer: Cesium resolves loads in completion order,
+    // not call order, so a second load started mid-flight could finish first and
+    // leave the older one on screen. Queue this as the latest pending reload.
     if (gctx.loadingLayers[name]) {
         gctx.pendingVectorReload[name] = { type, layerConfig }
         return
     }
 
-    // A reload reuses this layer's data source rather than removing/recreating
-    // it (no flash). If removeLayer deferred a removal, cancel it so the data
-    // source survives to be reused.
+    // A reload draws into a new data source and retires the old one once the
+    // new is up, so the layer is never off the globe. If removeLayer deferred a
+    // removal, cancel it and let this load retire that source instead.
     const pendingRemoval = gctx.pendingVectorRemoval[name]
     if (pendingRemoval) {
         if (pendingRemoval.frameHandle != null) {
@@ -114,11 +127,8 @@ function render(layerConfig, gctx) {
         layerConfig.style?.letPropertiesStyleOverride || false
 
     // Clone GeoJSON and inject internal IDs (layerName_load_index) for fast
-    // lookups. The load is part of the id because a reload loads into the same
-    // entity collection with its events suspended, and an entity re-added there
-    // under an id that was just removed reads as no change at all — Cesium goes
-    // on drawing the entity it already had, so a restyle or new features would
-    // never reach the screen.
+    // lookups. The load is part of the id so the ids of one load never stand in
+    // for another's.
     const geojsonWithIds = JSON.parse(JSON.stringify(layerConfig.geojson))
     const featureMap = {}
     if (geojsonWithIds.features && Array.isArray(geojsonWithIds.features)) {
@@ -147,14 +157,18 @@ function render(layerConfig, gctx) {
         markerColor: fillColor,
     }
 
-    // Reuse the layer's existing data source when reloading and load the new
-    // GeoJSON into it in place — removing/re-adding a data source forces Cesium
-    // to rebuild its batched primitives, momentarily blanking them (the flash).
-    const reuseDataSource = gctx.displayedVectorDataSource[name] || null
+    // What this load replaces: kept on the globe until the new features are
+    // drawn. Loading into the source already on screen would blank it while
+    // Cesium rebuilt its batched primitives — the flash.
+    const outgoing = [
+        gctx.displayedVectorDataSource[name],
+        pendingRemoval?.dataSource,
+    ]
 
-    const loadPromise = reuseDataSource
-        ? reuseDataSource.load(geojsonWithIds, loadOptions)
-        : Cesium.GeoJsonDataSource.load(geojsonWithIds, loadOptions)
+    const loadPromise = Cesium.GeoJsonDataSource.load(
+        geojsonWithIds,
+        loadOptions
+    )
 
     loadPromise
         .then((ds) => {
@@ -166,9 +180,6 @@ function render(layerConfig, gctx) {
                 return
             }
 
-            // A freshly created data source must be added, and a reused one that
-            // a removal took off the scene has to go back on it — loading into a
-            // detached source draws nothing.
             if (!gctx.renderer.dataSources.contains(ds)) {
                 gctx.renderer.dataSources.add(ds)
             }
@@ -275,6 +286,7 @@ function render(layerConfig, gctx) {
 
             gctx.requestRender()
 
+            retire(gctx, outgoing, ds)
             gctx.runPendingVectorReload(name)
         })
         .catch((err) => {
