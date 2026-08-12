@@ -188,6 +188,18 @@ function refreshLegends() {
                     // domain actually in use rather than the configured one.
                     const dynamicEntries = dynamicStyleLegendEntries(L_.layers.data[l])
                     const configured = L_.layers.data[l]?._legend
+                    // An image legend can't be concatenated, so it's drawn on
+                    // its own above the scale rather than replaced by it.
+                    if (typeof configured === 'string' && dynamicEntries.length > 0) {
+                        drawLegends(
+                            LegendTool.tools,
+                            configured,
+                            l,
+                            L_.layers.data[l].display_name,
+                            L_.layers.opacity[l],
+                            shift
+                        )
+                    }
                     const entries = Array.isArray(configured)
                         ? configured.concat(dynamicEntries)
                         : dynamicEntries.length > 0

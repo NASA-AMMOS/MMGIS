@@ -196,3 +196,20 @@ test.describe("dynamicStyleLegend - dynamicStyleLegendEntries", () => {
     ).toEqual([]);
   });
 });
+
+test.describe("a configured legend beside a dynamic one", () => {
+  const fs = require("fs");
+  const path = require("path");
+  const SRC = fs.readFileSync(
+    path.resolve(__dirname, "../../plugins/core/tools/Legend/LegendTool.js"),
+    "utf8",
+  );
+
+  test("an image legend is still drawn when the layer also has a scale", () => {
+    // A string _legend is an image the admin configured; the scale is drawn
+    // as well as it, never instead of it.
+    expect(SRC).toContain(
+      "if (typeof configured === 'string' && dynamicEntries.length > 0) {",
+    );
+  });
+});
