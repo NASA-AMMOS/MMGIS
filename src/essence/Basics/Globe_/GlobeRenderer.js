@@ -150,6 +150,8 @@ class GlobeRenderer {
         // Track highlighted entity for selection sync
         this._highlightedEntity = null
         this._originalEntityStyle = null
+        this._highlightDataSource = null
+        this._highlightOutline = null
 
         // Set up initial view if no camera specified
         if (!this.config.initialCamera && this.config.initialView) {
@@ -1150,6 +1152,15 @@ class GlobeRenderer {
                     // replacement is ready. If no reload adopts it, it's removed.
                     this._scheduleVectorRemoval(name, layerInfo.dataSource)
                 }
+                // A highlight outline would otherwise outlive the feature it
+                // traces (dynamic-extent reload, layer off).
+                if (
+                    this._highlightedEntity &&
+                    layerInfo.dataSource?.entities?.contains?.(
+                        this._highlightedEntity
+                    )
+                )
+                    this.clearHighlight()
                 // Clean up feature mapping
                 if (layerInfo.featureMap) {
                     delete layerInfo.featureMap
@@ -2415,11 +2426,15 @@ class GlobeRenderer {
         delete cleanProps1._dataset
         delete cleanProps1._geodataset
         delete cleanProps1.feature_id
+        // The globe's copy carries a resolved dynamic style the 2D feature
+        // doesn't; how it looks isn't what it is.
+        delete cleanProps1.style
 
         delete cleanProps2._
         delete cleanProps2._dataset
         delete cleanProps2._geodataset
         delete cleanProps2.feature_id
+        delete cleanProps2.style
 
         // Simple JSON stringify comparison
         return JSON.stringify(cleanProps1) === JSON.stringify(cleanProps2)
@@ -2444,7 +2459,8 @@ class GlobeRenderer {
                 key !== '_geodataset' &&
                 key !== 'feature_id' &&
                 key !== '_active' &&
-                key !== '_highlighted'
+                key !== '_highlighted' &&
+                key !== 'style'
             )
         }
 
@@ -2483,7 +2499,8 @@ class GlobeRenderer {
                 propName === '_' ||
                 propName === '_dataset' ||
                 propName === '_geodataset' ||
-                propName === 'feature_id'
+                propName === 'feature_id' ||
+                propName === 'style'
             ) {
                 continue
             }
@@ -2508,6 +2525,56 @@ class GlobeRenderer {
     }
 
     /**
+     * The data source the highlight outline is drawn into.
+     */
+    _highlightSource() {
+        if (this._highlightDataSource == null) {
+            this._highlightDataSource = new Cesium.CustomDataSource(
+                'mmgis_highlight'
+            )
+            this.renderer.dataSources.add(this._highlightDataSource)
+        }
+        return this._highlightDataSource
+    }
+
+    /**
+     * A red outline tracing an entity, or null if it has no line to trace.
+     *
+     * Drawn as its own entity because Cesium batches draped geometry and
+     * ignores a colour or width changed on one of those entities after load.
+     */
+    _outlineHighlightFor(entity) {
+        const now = Cesium.JulianDate.now()
+
+        const line = entity.polyline
+        if (line) {
+            const positions = line.positions?.getValue(now)
+            if (positions == null || positions.length < 2) return null
+            return {
+                polyline: {
+                    positions,
+                    width: (line.width?.getValue(now) || 2) + 4,
+                    material: Cesium.Color.RED,
+                    clampToGround:
+                        line.clampToGround?.getValue(now) === true,
+                },
+            }
+        }
+
+        const hierarchy = entity.polygon?.hierarchy?.getValue(now)
+        const positions = hierarchy?.positions
+        if (positions == null || positions.length < 2) return null
+        return {
+            polyline: {
+                positions: positions.concat([positions[0]]),
+                width: 5,
+                material: Cesium.Color.RED,
+                clampToGround: false,
+            },
+        }
+    }
+
+    /**
      * Apply red highlight to a Cesium entity
      */
     _highlightEntity(entity) {
@@ -2515,26 +2582,11 @@ class GlobeRenderer {
         this._highlightedEntity = entity
         this._originalEntityStyle = {}
 
-        // Apply red highlight based on entity type
-        if (entity.polygon) {
-            // Store original style
-            this._originalEntityStyle.outlineColor = entity.polygon.outlineColor
-            this._originalEntityStyle.outlineWidth = entity.polygon.outlineWidth
-
-            // Apply red outline
-            entity.polygon.outlineColor = Cesium.Color.RED
-            entity.polygon.outlineWidth = 3
-        }
-
-        if (entity.polyline) {
-            // Store original style
-            this._originalEntityStyle.material = entity.polyline.material
-            this._originalEntityStyle.width = entity.polyline.width
-
-            // Apply red color
-            entity.polyline.material = Cesium.Color.RED
-            entity.polyline.width = 3
-        }
+        const outline = this._outlineHighlightFor(entity)
+        if (outline)
+            this._highlightOutline = this._highlightSource().entities.add(
+                outline
+            )
 
         if (entity.point) {
             // Store original style
@@ -2610,15 +2662,9 @@ class GlobeRenderer {
 
         const entity = this._highlightedEntity
 
-        // Restore original styles
-        if (entity.polygon && this._originalEntityStyle.outlineColor) {
-            entity.polygon.outlineColor = this._originalEntityStyle.outlineColor
-            entity.polygon.outlineWidth = this._originalEntityStyle.outlineWidth
-        }
-
-        if (entity.polyline && this._originalEntityStyle.material) {
-            entity.polyline.material = this._originalEntityStyle.material
-            entity.polyline.width = this._originalEntityStyle.width
+        if (this._highlightOutline) {
+            this._highlightDataSource.entities.remove(this._highlightOutline)
+            this._highlightOutline = null
         }
 
         if (entity.point && this._originalEntityStyle.color) {

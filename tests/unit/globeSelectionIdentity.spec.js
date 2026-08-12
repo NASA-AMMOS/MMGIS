@@ -27,6 +27,26 @@ test("selectFeature ignores properties.style on both sides of the match", () => 
   expect(src).toContain("delete lfeatureWithout_.properties.style");
 });
 
+const RENDERER = path.resolve(
+  __dirname,
+  "../../src/essence/Basics/Globe_/GlobeRenderer.js",
+);
+
+test("the globe's own feature lookup ignores a resolved style too", () => {
+  // Highlighting matches the clicked feature against featureMap the same way.
+  const src = fs.readFileSync(RENDERER, "utf8");
+  expect(src).toContain("delete cleanProps1.style");
+  expect(src).toContain("delete cleanProps2.style");
+});
+
+test("a highlight is drawn as its own outline, not painted onto the entity", () => {
+  // Cesium batches draped geometry and ignores a colour changed after load.
+  const src = fs.readFileSync(RENDERER, "utf8");
+  expect(src).toContain("_outlineHighlightFor(entity)");
+  expect(src).not.toContain("entity.polyline.material = Cesium.Color.RED");
+  expect(src).not.toContain("entity.polygon.outlineColor = Cesium.Color.RED");
+});
+
 test("a resolved style is not part of a feature's identity in either direction", () => {
   const src = fs.readFileSync(SELECTION, "utf8");
   // Both stripped before F_.isEqual compares them.
