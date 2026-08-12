@@ -535,7 +535,7 @@ class OffscreenMapManager {
                     if (!layerConfig._transformedUrl &&
                         baseUrl &&
                         baseUrl.toLowerCase().startsWith('stac-collection:')) {
-                        baseUrl = L_.transformStacUrl(baseUrl, layerConfig, 'tile', window.location)
+                        baseUrl = L_.transformStacUrl(baseUrl, layerConfig, 'tiles', window.location)
                         // Cache for next time
                         layerConfig._transformedUrl = baseUrl
                     }
@@ -575,7 +575,7 @@ class OffscreenMapManager {
                     // Transform STAC URLs to HTTP before time token replacement
                     let baseUrl = updatedConfig.url
                     if (baseUrl && baseUrl.toLowerCase().startsWith('stac-collection:')) {
-                        baseUrl = transformStacUrl(baseUrl, updatedConfig, 'tile', window.location)
+                        baseUrl = transformStacUrl(baseUrl, updatedConfig, 'tiles', window.location)
                     }
 
                     updatedConfig.url = this._replaceTimeTokens(

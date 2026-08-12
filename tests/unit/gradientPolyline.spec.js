@@ -6,7 +6,7 @@ import {
     parseRgb,
     buildColorStops,
     rgbToHex,
-} from '../../src/essence/Basics/Layers_/gradientUtils.js'
+} from '../../src/essence/Basics/Layers_/render/gradientUtils.js'
 
 /**
  * Gradient Polyline Unit Tests

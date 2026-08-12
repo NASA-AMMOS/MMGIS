@@ -175,7 +175,7 @@ let DataShaders = {
                     return
                 }
 
-                if (e.type === 'tileload') {
+                if (e.type === 'tileload' || e.type === 'load') {
                     DataShaders.colorize.sourceTargets[name] = e.sourceTarget
                 }
                 if (DataShaders.colorize.sourceTargets[name] == null) return
@@ -264,6 +264,10 @@ let DataShaders = {
             Map_.map.on('moveend', getMinMax)
             Map_.map.on('zoomend', getMinMax)
             L_.layers.layer[name].on('tileload', getMinMax)
+            // Per-tile 'tileload' can fire before every visible tile is fetched,
+            // leaving the legend at NaN until a pan/zoom. 'load' fires once all
+            // visible tiles have settled, so recompute the full min/max then.
+            L_.layers.layer[name].on('load', getMinMax)
         },
         lastMinMax: { min: null, max: null },
         intervalMinMax: null,

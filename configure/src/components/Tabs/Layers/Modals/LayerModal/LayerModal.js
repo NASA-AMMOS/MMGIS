@@ -16,6 +16,11 @@ import {
 } from "../../../../../core/ConfigureStore";
 
 import { inject } from "../../../../../core/injectables";
+import {
+  attachmentTabsFor,
+  attachmentConfigPaths,
+} from "../../../../../core/layerAttachmentTabs";
+import { interactionConfigPaths } from "../../Interactions/interactionUtils";
 
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -36,18 +41,6 @@ import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 import Maker from "../../../../../core/Maker";
-
-import threedtilesConfig from "../../../../../metaconfigs/layer-3dtiles-config.json";
-import dataConfig from "../../../../../metaconfigs/layer-data-config.json";
-import headerConfig from "../../../../../metaconfigs/layer-header-config.json";
-import modelConfig from "../../../../../metaconfigs/layer-model-config.json";
-import queryConfig from "../../../../../metaconfigs/layer-query-config.json";
-import tileConfig from "../../../../../metaconfigs/layer-tile-config.json";
-import vectorConfig from "../../../../../metaconfigs/layer-vector-config.json";
-import vectortileConfig from "../../../../../metaconfigs/layer-vectortile-config.json";
-import velocityConfig from "../../../../../metaconfigs/layer-velocity-config.json";
-import imageConfig from "../../../../../metaconfigs/layer-image-config.json";
-import videoConfig from "../../../../../metaconfigs/layer-video-config.json";
 
 const useStyles = makeStyles((theme) => ({
   Modal: {
@@ -148,6 +141,12 @@ const useStyles = makeStyles((theme) => ({
     border: "none !important",
     width: "100px",
   },
+  unavailable: {
+    padding: theme.spacing(4),
+    color: theme.palette.swatches.grey[400],
+    fontSize: "14px",
+    lineHeight: 1.5,
+  },
 }));
 
 const MODAL_NAME = "layer";
@@ -156,6 +155,15 @@ const LayerModal = (props) => {
 
   const modal = useSelector((state) => state.core.modal[MODAL_NAME]);
   const configuration = useSelector((state) => state.core.configuration);
+  const layerTypeConfiguration = useSelector(
+    (state) => state.core.layerTypeConfiguration,
+  );
+  const interactionConfiguration = useSelector(
+    (state) => state.core.interactionConfiguration,
+  );
+  const layerAttachmentConfiguration = useSelector(
+    (state) => state.core.layerAttachmentConfiguration,
+  );
 
   const layerUUID = modal && modal.layerUUID ? modal.layerUUID : null;
   const layer = getLayerByUUID(configuration.layers, layerUUID) || {};
@@ -165,60 +173,31 @@ const LayerModal = (props) => {
 
   const dispatch = useDispatch();
 
-  let config = {};
-  switch (layer.type) {
-    case "3dtiles":
-      config = threedtilesConfig;
-      break;
+  let config = layerTypeConfiguration?.[layer.type]?.config || {};
 
-    case "data":
-      config = dataConfig;
-      break;
+  // Built-in types always have a config in the registry, so an empty config
+  // for a real layer means the async registry hasn't loaded (or failed) yet —
+  // render a notice and block editing instead of a silent, no-op blank form.
+  const registryUnavailable =
+    layer.type != null && !Array.isArray(config?.tabs);
 
-    case "header":
-      config = headerConfig;
-      break;
-
-    case "model":
-      config = modelConfig;
-      break;
-
-    case "query":
-      config = queryConfig;
-      break;
-
-    case "tile":
-      config = tileConfig;
-      break;
-
-    case "vector":
-      config = vectorConfig;
-      break;
-
-    case "vectortile":
-      config = vectortileConfig;
-      break;
-
-    case "velocity":
-      config = velocityConfig;
-      break;
-
-    case "image":
-      config = imageConfig;
-      break;
-
-    case "video":
-      config = videoConfig;
-      break;
-
-    default:
-      break;
+  // A layer type's own settings, then whatever its attachments add.
+  if (Array.isArray(config?.tabs)) {
+    const attachmentTabs = attachmentTabsFor(
+      layerAttachmentConfiguration,
+      layerTypeConfiguration,
+      layer.type,
+    );
+    if (attachmentTabs.length > 0)
+      config = { ...config, tabs: [...config.tabs, ...attachmentTabs] };
   }
 
   config = inject(config);
 
   const handleClose = (skipSetConfiguration) => {
-    if (skipSetConfiguration !== true) {
+    // config (from the async layer-type registry) may be {} — no fields were
+    // rendered, so skip the repopulation pass (which would throw on config.tabs).
+    if (skipSetConfiguration !== true && Array.isArray(config?.tabs)) {
       const nextConfiguration = JSON.parse(JSON.stringify(configuration));
       traverseLayers(nextConfiguration.layers, (l, path, index) => {
         if (layer.uuid === l.uuid) {
@@ -228,6 +207,20 @@ const LayerModal = (props) => {
             uuid: l.uuid,
             sublayers: l.sublayers || [],
           };
+
+          // Settings that belong to an attachment this layer type doesn't
+          // show are still the attachment's, not junk: keep them rather than
+          // trimming them away because no tab rendered them.
+          // The same holds for an interaction's settings, which its manifest
+          // declares rather than the layer type's tabs.
+          [
+            ...attachmentConfigPaths(layerAttachmentConfiguration),
+            ...interactionConfigPaths(interactionConfiguration),
+          ].forEach((configPath) => {
+            const existing = getIn(l, configPath.split("."), null);
+            if (existing != null)
+              setIn(completedLayer, configPath.split("."), existing, true);
+          });
           config.tabs.forEach((t) => {
             t.rows.forEach((r) => {
               r.components.forEach((c) => {
@@ -252,7 +245,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.options[0],
-                      true
+                      true,
                     );
                   }
                 } else if (c.type === "checkbox" || c.type === "switch") {
@@ -262,7 +255,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.defaultChecked,
-                      true
+                      true,
                     );
                   }
                 } else if (c.type === "slider") {
@@ -272,7 +265,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.default || c.min || 0,
-                      true
+                      true,
                     );
                   }
                 } else if (c.type === "colorpicker") {
@@ -282,7 +275,7 @@ const LayerModal = (props) => {
                       completedLayer,
                       c.field.split("."),
                       c.default || "#FFFFFF",
-                      true
+                      true,
                     );
                   }
                 }
@@ -351,7 +344,13 @@ const LayerModal = (props) => {
         </div>
       </DialogTitle>
       <DialogContent className={c.content}>
-        <Maker config={config} layer={layer} inlineHelp={true} />
+        {registryUnavailable ? (
+          <div className={c.unavailable}>
+            {`Layer type configurations aren't available yet, so this layer can't be edited. Wait for them to load or reload the page; if this persists the layer type registry failed to load.`}
+          </div>
+        ) : (
+          <Maker config={config} layer={layer} inlineHelp={true} />
+        )}
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <div>
@@ -361,7 +360,7 @@ const LayerModal = (props) => {
             startIcon={<DeleteForeverIcon size="small" />}
             onClick={() => {
               const nextConfiguration = JSON.parse(
-                JSON.stringify(configuration)
+                JSON.stringify(configuration),
               );
               traverseLayers(nextConfiguration.layers, (l, path, index) => {
                 if (layer.uuid === l.uuid) {
@@ -373,7 +372,7 @@ const LayerModal = (props) => {
                 setSnackBarText({
                   text: `Removed '${layer.name}'.`,
                   severity: "success",
-                })
+                }),
               );
               handleClose(true);
             }}
@@ -392,7 +391,7 @@ const LayerModal = (props) => {
               className={c.cloneButton}
               onClick={() => {
                 const nextConfiguration = JSON.parse(
-                  JSON.stringify(configuration)
+                  JSON.stringify(configuration),
                 );
                 const clonedLayer = JSON.parse(JSON.stringify(layer));
                 window.newUUIDCount++;
@@ -402,14 +401,14 @@ const LayerModal = (props) => {
                 insertLayerAfterUUID(
                   nextConfiguration.layers,
                   clonedLayer,
-                  layer.uuid
+                  layer.uuid,
                 );
                 dispatch(setConfiguration(nextConfiguration));
                 dispatch(
                   setSnackBarText({
                     text: `Cloned '${layer.name}'.`,
                     severity: "success",
-                  })
+                  }),
                 );
               }}
             >
@@ -421,6 +420,7 @@ const LayerModal = (props) => {
 
           <Button
             className={c.doneButton}
+            disabled={registryUnavailable}
             onClick={() => {
               handleClose();
             }}

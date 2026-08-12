@@ -104,7 +104,7 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         expect(cfg).toHaveProperty('Select');
     });
 
-    test('duplicate interaction IDs stop generation', () => {
+    test('duplicate interaction IDs leave out the claimants, not the registry', () => {
         installFixturePlugin({
             pluginType: 'interaction',
             containerName: INTERACTION_CONTAINER,
@@ -118,9 +118,15 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
             fixturesDir: path.join(repoRoot, 'tests', 'fixtures', 'test-plugin-interactions'),
         });
 
-        expect(() => updateInteractions()).toThrow(
-            "Duplicate interactionId 'test:interaction'"
-        );
+        // Aborting would keep the *previous* generation of every registry on
+        // disk, so the app runs the last good build of plugins the author has
+        // since changed. Both claimants are dropped; everyone else regenerates.
+        updateInteractions();
+
+        const cfg = JSON.parse(fs.readFileSync(INTERACTION_CONFIGS_PATH, 'utf8'));
+        expect(cfg).not.toHaveProperty('TestInteraction');
+        expect(cfg).not.toHaveProperty('DuplicateInteraction');
+        expect(cfg).toHaveProperty('Select');
     });
 
     test('invalid interaction is skipped, valid ones still registered', () => {
@@ -160,6 +166,26 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         // Also verify it's not in the generated JS
         const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
         expect(contents).not.toContain('dep:missing');
+    });
+
+    test('a dependency on another family is satisfiable', () => {
+        // The idiom for a feature spanning families: the interaction depends on
+        // the layer type it is written for. Resolving deps against only some
+        // families dropped it with a warning nobody reads.
+        installFixturePlugin({
+            pluginType: 'interaction',
+            containerName: INTERACTION_CONTAINER,
+            fixtureName: 'DepCrossFamilyInteraction',
+            fixturesDir: path.join(repoRoot, 'tests', 'fixtures', 'test-plugin-interactions'),
+        });
+
+        updateInteractions();
+
+        const cfg = JSON.parse(fs.readFileSync(INTERACTION_CONFIGS_PATH, 'utf8'));
+        expect(cfg).toHaveProperty('DepCrossFamilyInteraction');
+        expect(fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8')).toContain(
+            'dep:crossfamily'
+        );
     });
 
     test('interactions.js does not contain dynamic import patterns', () => {
@@ -243,5 +269,21 @@ test.describe('updateInteractions - plugin discovery and generation', () => {
         const mouseoutMatch = contents.match(/export const MOUSEOUT_DEFAULTS = (\[.*?\])/);
         expect(mouseoutMatch).not.toBeNull();
         expect(JSON.parse(mouseoutMatch[1])).toContain('cursor:hide');
+    });
+
+    test('generated interactions.js exports APPLICABLE_LAYER_TYPES', () => {
+        updateInteractions();
+
+        const contents = fs.readFileSync(INTERACTIONS_JS_PATH, 'utf8');
+        const match = contents.match(
+            /export const APPLICABLE_LAYER_TYPES = ({.*?})\n/
+        );
+        expect(match).not.toBeNull();
+        const applicable = JSON.parse(match[1]);
+        expect(applicable['info:open']).toContain('vector');
+        // Declaring nothing is an absent entry, not an empty list — the runner
+        // reads absence as "applies to any layer type".
+        for (const ids of Object.values(applicable))
+            expect(ids.length).toBeGreaterThan(0);
     });
 });

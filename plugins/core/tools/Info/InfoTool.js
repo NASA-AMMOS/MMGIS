@@ -8,7 +8,7 @@ import {
 } from '@basics/InteractionRunner/InteractionRunner'
 import Dropy from '@external/Dropy/dropy'
 
-import MetadataCapturer from '@basics/Layers_/MetadataCapturer'
+import MetadataCapturer from '@basics/Layers_/capture/MetadataCapturer'
 import Help from '@basics/UserInterface_/components/Help/Help'
 import ConfirmationModal from '@basics/UserInterface_/components/ConfirmationModal/ConfirmationModal'
 
@@ -79,7 +79,7 @@ var markup = [
             "<div id='infoToolNoneSelected'>No feature selected</div>",
         "</div>",
     "</div>"
-].join('\n');
+].join('\n')
 
 var InfoTool = {
     height: 0,
@@ -100,7 +100,9 @@ var InfoTool = {
     MMGISInterface: null,
     initialize: function () {
         if (L_.UserInterface_.isMobile === true) {
-            const mapRect = document.getElementById('map').getBoundingClientRect()
+            const mapRect = document
+                .getElementById('map')
+                .getBoundingClientRect()
             this.width = 'full'
             this.height = this.height = Math.round(mapRect.height * 0.5)
         }
@@ -169,7 +171,8 @@ var InfoTool = {
 
         if (open != true) return
 
-        const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
+        const divID =
+            L_.UserInterface_.isMobile === true ? '#tools' : '#toolPanel'
 
         // MMGIS should always have a div with id 'tools'
         const toolsContainer = $(divID)
@@ -241,12 +244,10 @@ var InfoTool = {
                 ? this.variables.useKeyAsName || 'name'
                 : 'name'
 
-            if (
-                !(
-                    typeof this.info[i].properties[key] === 'string' ||
-                    typeof this.info[i].properties[key] === 'number'
-                )
-            ) {
+            if (!(
+                typeof this.info[i].properties[key] === 'string' ||
+                typeof this.info[i].properties[key] === 'number'
+            )) {
                 const propKeys = Object.keys(this.info[i].properties)
                 for (let j = 0; j < propKeys.length; j++) {
                     if (
@@ -692,15 +693,12 @@ var InfoTool = {
                     layerData.interactions?.click ||
                     kindToInteractions(layerData.kind || 'none').click
 
-                Map_.rmNotNull(Map_.tempOverlayImage)
-                L_.Globe_.litho.removeLayer('markerAttachmentTempModel')
+                L_.clearFeatureAttachments()
 
                 const ctx = {
                     Map_,
                     feature: InfoTool.info[idx],
-                    layer:
-                        InfoTool.featureLayers[idx] ||
-                        InfoTool.currentLayer,
+                    layer: InfoTool.featureLayers[idx] || InfoTool.currentLayer,
                     layerName,
                     layerData,
                     layerVar: layerData.variables || {},
@@ -710,10 +708,9 @@ var InfoTool = {
                     stop: false,
                     state: {
                         preFeatures: InfoTool.info,
-                        lastFeatureLayers:
-                            InfoTool.featureLayers[idx]
-                                ? InfoTool.featureLayers
-                                : null,
+                        lastFeatureLayers: InfoTool.featureLayers[idx]
+                            ? InfoTool.featureLayers
+                            : null,
                     },
                 }
 

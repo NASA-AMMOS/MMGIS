@@ -1,5 +1,5 @@
 /**
- * E2E tests for plugin-cli.js commands that modify state:
+ * E2E tests for plugin-cli/cli.js commands that modify state:
  * install, uninstall, enable, disable, create, destroy, activate.
  *
  * Uses the fixture repo at tests/fixtures/test-plugin-repo/ which has
@@ -17,28 +17,37 @@ test.describe.configure({ mode: 'serial' });
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 
-const CLI_PATH = path.resolve(__dirname, '../../plugins/plugin-cli.js');
+const { withRegistryLock } = require('../helpers/registry-lock');
+
+const CLI_PATH = path.resolve(__dirname, '../../plugin-cli/cli.js');
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const PLUGINS_ROOT = path.resolve(REPO_ROOT, 'plugins');
 const FIXTURE_REPO = path.resolve(__dirname, '../fixtures/test-plugin-repo');
 const STATE_PATH = path.join(PLUGINS_ROOT, 'plugin-state.json');
 const TOOLS_JS = path.resolve(REPO_ROOT, 'src', 'pre', 'tools.js');
 
+// Most commands regenerate the shared registries, so hold the lock for the
+// duration of the call (see helpers/registry-lock).
 function runCli(args, opts = {}) {
     const cmd = `node "${CLI_PATH}" ${args}`;
-    try {
-        const output = execSync(cmd, {
+    return withRegistryLock(() => {
+        // stderr is captured rather than inherited so a successful run's
+        // warnings are assertable (and don't pollute the test output).
+        const run = spawnSync(cmd, {
             cwd: REPO_ROOT,
             encoding: 'utf8',
             timeout: 15000,
+            shell: true,
             ...opts,
         });
-        return { stdout: output, exitCode: 0 };
-    } catch (err) {
-        return { stdout: err.stdout || '', stderr: err.stderr || '', exitCode: err.status };
-    }
+        return {
+            stdout: run.stdout || '',
+            stderr: run.stderr || '',
+            exitCode: run.status,
+        };
+    });
 }
 
 function readState() {
@@ -214,29 +223,29 @@ test.describe('CLI create and destroy', () => {
     test.afterAll(() => {
         cleanupContainer(CONTAINER);
         fs.rmSync(CORE_INTERACTION_DIR, { recursive: true, force: true });
-        cleanupState([`${CONTAINER}/tools/E2eTool`]);
+        cleanupState([`${CONTAINER}/tools/E2e`]);
         runCli('activate');
     });
 
     test('create tool scaffolds correct structure', () => {
-        const { stdout, exitCode } = runCli(`create tool E2eTool --container ${CONTAINER}`);
+        const { stdout, exitCode } = runCli(`create tool E2e --container ${CONTAINER}`);
         expect(exitCode).toBe(0);
 
-        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eTool');
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2e');
         expect(fs.existsSync(pluginDir)).toBe(true);
 
         // plugin.json exists and is valid
         const manifest = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf8'));
-        expect(manifest.name).toBe('E2eTool');
+        expect(manifest.name).toBe('E2e');
         expect(manifest.type).toBe('tool');
         expect(manifest.paths).toBeDefined();
         expect(manifest.defaultIcon).toBe('puzzle-outline');
 
-        // Entry point exists
-        expect(fs.existsSync(path.join(pluginDir, 'E2eToolTool.js'))).toBe(true);
+        // Entry point exists — the scaffold adds the Tool suffix
+        expect(fs.existsSync(path.join(pluginDir, 'E2eTool.js'))).toBe(true);
 
         // CSS exists
-        expect(fs.existsSync(path.join(pluginDir, 'E2eToolTool.css'))).toBe(true);
+        expect(fs.existsSync(path.join(pluginDir, 'E2eTool.css'))).toBe(true);
 
         // Test spec exists
         const testDir = path.join(pluginDir, 'tests');
@@ -244,18 +253,33 @@ test.describe('CLI create and destroy', () => {
 
         // tools.js should include the new tool
         const toolsJs = fs.readFileSync(TOOLS_JS, 'utf8');
-        expect(toolsJs).toContain('E2eTool');
+        expect(toolsJs).toContain('E2e');
+    });
+
+    test('create tool trims a Tool suffix rather than doubling it', () => {
+        // The scaffold appends `Tool` to the directory, component and toolbar
+        // key, so `create tool E2eSuffixTool` would produce E2eSuffixToolTool.
+        runCli(`create tool E2eSuffixTool --container ${CONTAINER}`);
+        expect(
+            fs.existsSync(path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eSuffix'))
+        ).toBe(true);
+        expect(
+            fs.existsSync(
+                path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eSuffix', 'E2eSuffixTool.js')
+            )
+        ).toBe(true);
+        runCli(`destroy ${CONTAINER}/tools/E2eSuffix --force`);
     });
 
     test('create --json returns structured output', () => {
         // Destroy first, then re-create with --json
-        runCli(`destroy ${CONTAINER}/tools/E2eTool --force`);
-        const { stdout, exitCode } = runCli(`create tool E2eTool --container ${CONTAINER} --json`);
+        runCli(`destroy ${CONTAINER}/tools/E2e --force`);
+        const { stdout, exitCode } = runCli(`create tool E2e --container ${CONTAINER} --json`);
         expect(exitCode).toBe(0);
 
         const result = JSON.parse(stdout);
         expect(result.command).toBe('create');
-        expect(result.name).toBe('E2eTool');
+        expect(result.name).toBe('E2e');
         expect(result.type).toBe('tool');
     });
 
@@ -312,16 +336,81 @@ test.describe('CLI create and destroy', () => {
         expect(manifest.paths).toBeDefined();
     });
 
-    test('destroy with --force removes plugin', () => {
-        const { stdout, exitCode } = runCli(`destroy ${CONTAINER}/tools/E2eTool --force`);
+    test('create layertype scaffolds a contract-valid plugin', () => {
+        const { exitCode } = runCli(`create layertype E2eLayer --container ${CONTAINER}`);
         expect(exitCode).toBe(0);
 
-        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2eTool');
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eLayer');
+        expect(fs.existsSync(pluginDir)).toBe(true);
+
+        const manifest = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf8'));
+        expect(manifest.name).toBe('E2eLayer');
+        expect(manifest.type).toBe('layertype');
+        expect(manifest.typeId).toBe('e2elayer');
+        // Declared map renderer must ship a matching module path.
+        expect(manifest.capabilities.renderers.map).toBeTruthy();
+        expect(manifest.modules.map).toBe('./map');
+
+        // Scaffolded files exist.
+        expect(fs.existsSync(path.join(pluginDir, 'map.js'))).toBe(true);
+        expect(manifest.config?.tabs).toBeDefined();
+
+        // Manifest passes the layertype contract validator with no errors.
+        const { validatePluginConfig, validateLayerTypeModuleShape } = require('../../API/pluginValidation.js');
+        expect(validatePluginConfig(manifest, 'E2eLayer', 'layertype')).toEqual([]);
+
+        // Renderer module exports a valid make/destroy contract.
+        const moduleSrc = fs.readFileSync(path.join(pluginDir, 'map.js'), 'utf8');
+        expect(validateLayerTypeModuleShape(moduleSrc, 'E2eLayer')).toEqual([]);
+
+        // A layer type is a plugin like any other: it is discovered, listed and
+        // destroyable (core's are only undisableable because of overridable).
+        expect(runCli(`destroy ${CONTAINER}/layertypes/E2eLayer --force`).exitCode).toBe(0);
+        expect(fs.existsSync(pluginDir)).toBe(false);
+    });
+
+    test('create layerattachment scaffolds a contract-valid plugin', () => {
+        const { exitCode } = runCli(`create layerattachment E2eHalos --container ${CONTAINER}`);
+        expect(exitCode).toBe(0);
+
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'layerattachments', 'E2eHalos');
+        const manifest = JSON.parse(fs.readFileSync(path.join(pluginDir, 'plugin.json'), 'utf8'));
+        expect(manifest.type).toBe('layerattachment');
+        expect(manifest.attachmentId).toBe('e2e_halos');
+        expect(manifest.module).toBe('./e2eHalos');
+        expect(fs.existsSync(path.join(pluginDir, 'e2eHalos.js'))).toBe(true);
+
+        // Every form field must land under the configPath core resolves to
+        // ctx.config; a field anywhere else writes settings nothing reads.
+        for (const row of manifest.config.rows)
+            for (const component of row.components)
+                expect(component.field.startsWith(manifest.configPath)).toBe(true);
+
+        const {
+            validatePluginConfig,
+            validateLayerTypeModuleShape,
+        } = require('../../API/pluginValidation.js');
+        expect(validatePluginConfig(manifest, 'E2eHalos', 'layerattachment')).toEqual([]);
+
+        // Checked against the attachment vocabulary, not the renderer one.
+        const moduleSrc = fs.readFileSync(path.join(pluginDir, 'e2eHalos.js'), 'utf8');
+        expect(
+            validateLayerTypeModuleShape(moduleSrc, 'E2eHalos', 'attachment')
+        ).toEqual([]);
+
+        expect(runCli(`destroy ${CONTAINER}/layerattachments/E2eHalos --force`).exitCode).toBe(0);
+    });
+
+    test('destroy with --force removes plugin', () => {
+        const { stdout, exitCode } = runCli(`destroy ${CONTAINER}/tools/E2e --force`);
+        expect(exitCode).toBe(0);
+
+        const pluginDir = path.join(PLUGINS_ROOT, CONTAINER, 'tools', 'E2e');
         expect(fs.existsSync(pluginDir)).toBe(false);
 
         // tools.js should no longer include it
         const toolsJs = fs.readFileSync(TOOLS_JS, 'utf8');
-        expect(toolsJs).not.toContain('E2eTool');
+        expect(toolsJs).not.toContain('E2e');
     });
 
     test('destroy nonexistent plugin fails', () => {
@@ -339,7 +428,7 @@ test.describe('CLI create and destroy', () => {
 
 test.describe('CLI registry', () => {
 
-    const REGISTRIES_PATH = path.join(PLUGINS_ROOT, 'plugin-registries.json');
+    const REGISTRIES_PATH = path.join(REPO_ROOT, 'plugin-cli', 'registries.json');
     let savedRegistries;
 
     test.beforeAll(() => {
@@ -519,8 +608,15 @@ test.describe('CLI --json output quality', () => {
         expect(plugins.length).toBeGreaterThan(0);
 
         for (const p of plugins) {
-            // Type should be singular (tool, backend, component, interaction) — never plural
-            expect(['tool', 'backend', 'component', 'interaction']).toContain(p.type);
+            // Type should be singular — never the plural directory name.
+            expect([
+                'tool',
+                'backend',
+                'component',
+                'interaction',
+                'layertype',
+                'layerattachment',
+            ]).toContain(p.type);
             expect(p).toHaveProperty('required');
             expect(p).toHaveProperty('path');
             // description may be null but key must exist
@@ -643,5 +739,268 @@ test.describe('CLI enable-all / disable-all', () => {
         expect(dis.exitCode).toBe(0);
         const result = JSON.parse(dis.stdout);
         expect(result.skippedRequired).toBe(0); // fixture plugins aren't required
+    });
+});
+
+// ─── stale registries ────────────────────────────────────────────────────────
+
+test.describe('CLI validate reports stale registries', () => {
+    // The fixture's manifests spell out their own container, so it has to keep
+    // its name for the generated import paths to match.
+    const CONTAINER = 'test-plugin-repo';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        cleanupState([`${CONTAINER}/tools/TestPlugin`, `${CONTAINER}/tools/SecondPlugin`]);
+        runCli('activate');
+    });
+
+    test('a plugin copied in without activate is reported, and cleared by activate', () => {
+        const dest = path.join(PLUGINS_ROOT, CONTAINER);
+        fs.cpSync(FIXTURE_REPO, dest, { recursive: true });
+
+        const stale = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            stale.staleMessages.some((m) => m.includes(`${CONTAINER}/tools/TestPlugin`))
+        ).toBe(true);
+
+        runCli('activate');
+        const fresh = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            fresh.staleMessages.some((m) => m.includes(CONTAINER))
+        ).toBe(false);
+    });
+
+    test('a registered plugin whose directory is gone is reported', () => {
+        runCli('activate');
+        cleanupContainer(CONTAINER);
+
+        const gone = JSON.parse(runCli('validate --json').stdout);
+        expect(gone.staleMessages.some((m) => m.includes(CONTAINER))).toBe(true);
+    });
+
+    test('a registered module the plugin no longer has is reported', () => {
+        // Switching a layer type to `extends` deletes its renderer while the
+        // registry still imports it — a webpack build error validate used to
+        // miss, because the plugin's directory was still there.
+        const created = runCli(`create layertype E2eStale --container ${CONTAINER} --json`);
+        expect(created.exitCode).toBe(0);
+        runCli('activate');
+        fs.rmSync(path.join(PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eStale', 'map.js'));
+
+        const stale = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            stale.staleMessages.some((m) => m.includes('E2eStale/map') && m.includes('no longer exists'))
+        ).toBe(true);
+    });
+});
+
+// ─── cross-family references ─────────────────────────────────────────────────
+
+test.describe('CLI validate rejects a duplicate stable id', () => {
+    const CONTAINER = 'e2e-duplicate-id';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        runCli('activate');
+    });
+
+    // Registry generation refuses two owners of one id outright, so a green
+    // `validate` followed by a failed `activate` leaves the *previous*
+    // generation of every registry in place — an app running last build's
+    // plugins with no error to chase.
+    for (const [family, idKey] of [
+        ['layertype', 'typeId'],
+        ['layerattachment', 'attachmentId'],
+    ]) {
+        test(`two ${family}s claiming one ${idKey} fail validate`, () => {
+            const names = [`E2eDupA${idKey}`, `E2eDupB${idKey}`];
+            const paths = names.map((name) => {
+                expect(
+                    runCli(`create ${family} ${name} --container ${CONTAINER} --json`).exitCode
+                ).toBe(0);
+                return path.join(
+                    PLUGINS_ROOT, CONTAINER, `${family}s`, name, 'plugin.json'
+                );
+            });
+
+            const first = JSON.parse(fs.readFileSync(paths[0], 'utf8'));
+            const second = JSON.parse(fs.readFileSync(paths[1], 'utf8'));
+            second[idKey] = first[idKey];
+            fs.writeFileSync(paths[1], JSON.stringify(second, null, 4));
+
+            const run = runCli('validate --json');
+            expect(run.exitCode).toBe(1);
+            const out = JSON.parse(run.stdout);
+            const offenders = out.results.filter(
+                (r) => !r.valid && r.errors.some((e) => e.includes(`Duplicate ${idKey}`))
+            );
+            expect(offenders.length).toBe(2);
+
+            paths.forEach((p) => fs.rmSync(path.dirname(p), { recursive: true, force: true }));
+        });
+    }
+});
+
+test.describe('CLI activate leaves out only the offender', () => {
+    const CONTAINER = 'e2e-activate-skip';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        runCli('activate');
+    });
+
+    // Aborting the whole regeneration keeps the *previous* generation of every
+    // registry on disk, so the app silently runs the last good build.
+    test('a layer type extending a type nobody provides is dropped, and the rest regenerate', () => {
+        expect(
+            runCli(`create layertype E2eDangling --container ${CONTAINER} --json`).exitCode
+        ).toBe(0);
+        const manifestPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eDangling', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest.extends = 'nosuchparent';
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
+
+        const run = runCli('activate');
+        expect(run.exitCode).toBe(0);
+        expect(`${run.stdout}${run.stderr || ''}`).toContain('left out of the registry');
+
+        const registry = fs.readFileSync(
+            path.resolve(REPO_ROOT, 'src', 'pre', 'layertypes.js'), 'utf8'
+        );
+        expect(registry).not.toContain(manifest.typeId);
+        // Every built-in still made it: the offender did not take them with it.
+        expect(registry).toContain("'vector'");
+    });
+});
+
+test.describe('CLI validate cross-checks ids between families', () => {
+    const CONTAINER = 'e2e-cross-family';
+
+    test.afterAll(() => {
+        cleanupContainer(CONTAINER);
+        runCli('activate');
+    });
+
+    test('an attachment applying to a layer type nobody provides is reported', () => {
+        expect(runCli(`create layerattachment E2eOrphan --container ${CONTAINER} --json`).exitCode).toBe(0);
+        const manifestPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layerattachments', 'E2eOrphan', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest.applicableLayerTypes = ['nosuchlayertype'];
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some((m) => m.includes('nosuchlayertype'))
+        ).toBe(true);
+    });
+
+    test('a layer type declaring an attachment nobody provides is reported', () => {
+        expect(runCli(`create layertype E2eFeature --container ${CONTAINER} --json`).exitCode).toBe(0);
+        const manifestPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest.capabilities.defaultAttachments = { nosuchattachment: {} };
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) => m.includes('default attachment') && m.includes('nosuchattachment')
+            )
+        ).toBe(true);
+    });
+
+    test('a declared attachment that refuses this type as a host is reported', () => {
+        // The default is well-formed and the attachment exists, so nothing else
+        // complains — but `applicableLayerTypes` filters the attachment out of
+        // this type's hosts, so the type ships an attachment that never appears.
+        const attachmentPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layerattachments', 'E2eOrphan', 'plugin.json'
+        );
+        const attachment = JSON.parse(fs.readFileSync(attachmentPath, 'utf8'));
+        attachment.applicableLayerTypes = ['vector'];
+        fs.writeFileSync(attachmentPath, JSON.stringify(attachment, null, 4));
+
+        const typePath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(typePath, 'utf8'));
+        manifest.capabilities.defaultAttachments = {
+            [attachment.attachmentId]: {},
+        };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) =>
+                    m.includes(attachment.attachmentId) &&
+                    m.includes('never applies')
+            )
+        ).toBe(true);
+    });
+
+    test('an unknown default interaction is reported in either declaration form', () => {
+        const typePath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(typePath, 'utf8'));
+        delete manifest.capabilities.defaultAttachments;
+
+        // The settings form has to be cross-checked like the list form, or a
+        // typo means settings nothing ever reads.
+        manifest.capabilities.defaultInteractions = {
+            click: { 'nosuch:interaction': { speedProp: 'windSpeed' } },
+        };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+        let out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) => m.includes('default interaction') && m.includes('nosuch:interaction')
+            )
+        ).toBe(true);
+
+        manifest.capabilities.defaultInteractions = { click: ['nosuch:interaction'] };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+        out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) => m.includes('default interaction') && m.includes('nosuch:interaction')
+            )
+        ).toBe(true);
+    });
+
+    test('a declared default interaction that refuses this type is reported', () => {
+        expect(runCli(`create interaction E2eNarrow --container ${CONTAINER} --json`).exitCode).toBe(0);
+        const interactionPath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'interactions', 'E2eNarrow', 'plugin.json'
+        );
+        const interaction = JSON.parse(fs.readFileSync(interactionPath, 'utf8'));
+        interaction.applicableLayerTypes = ['vector'];
+        fs.writeFileSync(interactionPath, JSON.stringify(interaction, null, 4));
+
+        const typePath = path.join(
+            PLUGINS_ROOT, CONTAINER, 'layertypes', 'E2eFeature', 'plugin.json'
+        );
+        const manifest = JSON.parse(fs.readFileSync(typePath, 'utf8'));
+        manifest.capabilities.defaultInteractions = {
+            click: { [interaction.interactionId]: { speedProp: 'windSpeed' } },
+        };
+        fs.writeFileSync(typePath, JSON.stringify(manifest, null, 4));
+
+        const out = JSON.parse(runCli('validate --json').stdout);
+        expect(
+            out.crossFamilyWarningMessages.some(
+                (m) =>
+                    m.includes(interaction.interactionId) &&
+                    m.includes('never applies')
+            )
+        ).toBe(true);
     });
 });

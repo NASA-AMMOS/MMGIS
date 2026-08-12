@@ -3,7 +3,10 @@
 import $ from 'jquery'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
-import ToolController_ from '@basics/ToolController_/ToolController_'
+import {
+    deriveLegend,
+    derivesLegend,
+} from '@basics/Layers_/legend/LayerLegend'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
@@ -114,12 +117,10 @@ function refreshLegends() {
             let l = node[i].name
             if (L_.layers.on[l] == true) {
                 if (L_.layers.data[l].type != 'header') {
-                    if (L_.layers.data[l]?._legend === undefined
-                            && ((['image', 'tile'].includes(L_.layers.data[l].type) && L_.layers.data[l].cogTransform)
-                            || L_.layers.data[l].type === 'velocity')) {
-                        const layersTool = ToolController_.getTool('LayersTool')
-                        layersTool.populateCogScale(L_.layers.data[l].name)
-                    }
+                    // No legend yet: a type that derives one from how it is
+                    // rendered (a COG's scale) gets asked for it.
+                    if (L_.layers.data[l]?._legend === undefined)
+                        deriveLegend(L_.layers.data[l])
 
                     // Check if there's a legend URL that points to an image
                     const legendURL = L_.layers.data[l]?.legend
@@ -188,8 +189,7 @@ function refreshLegends() {
                             .filter(i => {
                                 return ((L_.layers.data[i]._legend?.length > 0
                                     || (L_.layers.data[i]?._legend === undefined
-                                        && ((['image', 'tile'].includes(L_.layers.data[i].type) && L_.layers.data[i].cogTransform)
-                                        || L_.layers.data[i].type === 'velocity'))) && L_.layers.on[i])
+                                        && derivesLegend(L_.layers.data[i]))) && L_.layers.on[i])
                             })
 
                         if (haveLegends.length > 0) {

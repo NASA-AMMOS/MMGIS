@@ -8,9 +8,13 @@
 
 import { test, expect } from '@playwright/test';
 
-const { validatePluginConfig, validateDependencies } = require(
-    '../../API/pluginValidation'
-);
+const {
+    validatePluginConfig,
+    validateDependencies,
+    validateLayerTypeModuleShape,
+    validateLayerCapabilities,
+    validateMetaconfig,
+} = require('../../API/pluginValidation');
 
 test.describe('validatePluginConfig - tool plugins', () => {
     test('valid minimal tool config returns no errors', () => {
@@ -347,5 +351,457 @@ test.describe('validatePluginConfig - interaction manifest fields', () => {
         };
         const errors = validatePluginConfig(config, 'Minimal', 'interaction');
         expect(errors).toEqual([]);
+    });
+});
+
+test.describe('validatePluginConfig - layertype renderer contract', () => {
+    const base = (extra) => ({
+        name: 'Tile',
+        typeId: 'tile',
+        ...extra,
+    });
+
+    test('declared map renderer without a map module is rejected', () => {
+        const config = base({
+            capabilities: { renderers: { map: { engines: ['leaflet'] } } },
+            modules: { globe: { cesium: './globe/cesium' } },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes("no 'modules.map'"))).toBe(true);
+    });
+
+    test('map module without a declared map renderer is rejected', () => {
+        const config = base({
+            capabilities: { renderers: { map: false, globe: false } },
+            modules: { map: './map' },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes("does not declare a 'map' renderer"))).toBe(true);
+    });
+
+    test('declared globe engine without a matching module is rejected', () => {
+        const config = base({
+            capabilities: { renderers: { globe: { engines: ['cesium'] } } },
+            modules: { globe: { lithosphere: './globe/lithosphere' } },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes("no 'modules.globe.cesium'"))).toBe(true);
+        expect(errors.some((e) => e.includes("does not declare globe engine 'lithosphere'"))).toBe(true);
+    });
+
+    test('matching renderers and modules produce no cross-check errors', () => {
+        const config = base({
+            capabilities: {
+                renderers: {
+                    map: { engines: ['leaflet'] },
+                    globe: { engines: ['cesium', 'lithosphere'] },
+                },
+            },
+            modules: {
+                map: './map',
+                globe: {
+                    cesium: './globe/cesium',
+                    lithosphere: './globe/lithosphere',
+                },
+            },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors).toEqual([]);
+    });
+
+    test('defaultInteractions must map events to string arrays', () => {
+        const config = base({
+            capabilities: { defaultInteractions: { click: 'identifyPopup' } },
+        });
+        const errors = validatePluginConfig(config, 'Tile', 'layertype');
+        expect(errors.some((e) => e.includes('defaultInteractions.click'))).toBe(true);
+    });
+});
+
+test.describe('validateLayerCapabilities - classification contract', () => {
+    // Capabilities are what core reads while partitioning every layer, so
+    // getting one wrong mis-orders or un-picks a layer with no runtime error.
+    // These are the errors that replace that silence.
+    const caps = (capabilities, type = 'layertype') =>
+        validateLayerCapabilities(capabilities, 'X', type);
+
+    test('the full built-in vocabulary passes', () => {
+        expect(
+            caps({
+                renderers: { map: { engines: ['leaflet'] }, globe: false },
+                structural: false,
+                map: {
+                    stacking: 'raster',
+                    redrawOnReorder: true,
+                    tracksLoad: false,
+                    refreshByRemake: true,
+                    stacEndpoint: 'tiles',
+                    picking: true,
+                    styling: false,
+                },
+                time: { enabled: true, histogram: true },
+            })
+        ).toEqual([]);
+    });
+
+    test('time may be a plain boolean', () => {
+        expect(caps({ time: true })).toEqual([]);
+        expect(caps({ time: 'yes' }).length).toBe(1);
+    });
+
+    test('a wrong leaf type is an error, naming its full path', () => {
+        const errors = caps({ map: { picking: 'true' } });
+        expect(errors.some((e) => e.includes("'capabilities.map.picking'"))).toBe(true);
+    });
+
+    test('a value outside an enum is an error', () => {
+        expect(caps({ map: { stacking: 'top' } }).length).toBe(1);
+        expect(caps({ map: { stacking: false } })).toEqual([]);
+        expect(caps({ map: { stacEndpoint: 'elevation' } }).length).toBe(1);
+    });
+
+    test('an unknown capability warns rather than failing', () => {
+        // Forward compatibility: a capability this MMGIS doesn't know may be
+        // read by a newer one, so a typo is a warning, not a build break.
+        expect(caps({ retainOnHide: true })).toEqual([]);
+        expect(caps({ map: { stackign: 'raster' } })).toEqual([]);
+    });
+
+    test('attachment host capabilities are checked against their own schema', () => {
+        expect(
+            caps(
+                {
+                    renderers: { map: { engines: ['leaflet'] } },
+                    host: {
+                        order: 3,
+                        sublayerKey: 'models',
+                        buildsAfterSiblings: true,
+                        decoratesHost: false,
+                    },
+                    globe: { suppressesHost: true },
+                },
+                'layerattachment'
+            )
+        ).toEqual([]);
+        expect(
+            caps({ host: { order: 'first' } }, 'layerattachment').length
+        ).toBe(1);
+        // A layertype has no host, and an attachment no map stacking.
+        expect(caps({ host: { order: 3 } })).toEqual([]);
+    });
+
+    test('every core layertype and attachment manifest validates', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const root = path.resolve(__dirname, '../../plugins/core');
+        for (const [dir, type] of [
+            ['layertypes', 'layertype'],
+            ['layerattachments', 'layerattachment'],
+        ]) {
+            for (const name of fs.readdirSync(path.join(root, dir))) {
+                const manifestPath = path.join(root, dir, name, 'plugin.json');
+                if (!fs.existsSync(manifestPath)) continue;
+                const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                expect(
+                    validateLayerCapabilities(manifest.capabilities, name, type)
+                ).toEqual([]);
+            }
+        }
+    });
+});
+
+test.describe('validateLayerTypeModuleShape - renderer module contract', () => {
+    test('valid nested + shorthand module passes', () => {
+        const src = `
+            import x from '@basics/x'
+            export default {
+                make: { async main(o, c) {}, after(o) {}, afterCommit(o) {} },
+                destroy: (o, c) => {},
+                setStyle: fn,
+            }`;
+        expect(validateLayerTypeModuleShape(src, 'x')).toEqual([]);
+    });
+
+    test('shorthand property list passes', () => {
+        const src = `export default { make, destroy, setOpacity, timeChange }`;
+        expect(validateLayerTypeModuleShape(src, 'x')).toEqual([]);
+    });
+
+    test('missing make is rejected', () => {
+        const src = `export default { destroy(o, c) {} }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("missing required 'make'"))).toBe(true);
+    });
+
+    test('typo operation name is rejected', () => {
+        const src = `export default { make(o) {}, destory(o) {} }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown operation 'destory'"))).toBe(true);
+    });
+
+    test('unknown phase is rejected', () => {
+        const src = `export default { make: { main() {}, sideways() {} } }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown phase 'sideways'"))).toBe(true);
+    });
+
+    test('afterCommit outside make is rejected', () => {
+        const src = `export default { make() {}, setStyle: { afterCommit() {} } }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown phase 'afterCommit' in 'setStyle'"))).toBe(true);
+    });
+
+    test('missing export default is reported', () => {
+        const src = `const foo = {}; module.exports = foo`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes('no'))).toBe(true);
+    });
+
+    test('regex literal with brackets/quotes does not hide a later typo', () => {
+        const src = `export default {
+            make: {
+                main(o, c) {
+                    const s = o.url.replace(/["'\\]{}()]/g, '');
+                    return s;
+                },
+            },
+            destory(o) {},
+        }`;
+        const errs = validateLayerTypeModuleShape(src, 'x');
+        expect(errs.some((e) => e.includes("unknown operation 'destory'"))).toBe(true);
+    });
+});
+
+test.describe('validateMetaconfig - the Configure form a manifest declares', () => {
+    const rows = (components) => ({ rows: [{ subname: 'X', components }] });
+
+    test('a valid form returns no errors', () => {
+        const errs = validateMetaconfig(
+            rows([
+                { field: 'a.b', name: 'B', type: 'text', width: 6 },
+                { field: 'a.c', name: 'C', type: 'dropdown', options: ['x'] },
+                { type: 'gap', description: 'spacer' },
+            ]),
+            'P',
+            'tool'
+        );
+        expect(errs).toEqual([]);
+    });
+
+    test('an unrenderable component type is an error', () => {
+        const errs = validateMetaconfig(
+            rows([{ field: 'a.b', type: 'textfield' }]),
+            'P',
+            'tool'
+        );
+        expect(errs.length).toBe(1);
+        expect(errs[0]).toContain("is 'textfield'");
+    });
+
+    test('a control with no field is an error, but a display component is fine', () => {
+        expect(
+            validateMetaconfig(rows([{ type: 'switch' }]), 'P', 'tool').length
+        ).toBe(1);
+        expect(
+            validateMetaconfig(rows([{ type: 'themepreview' }]), 'P', 'tool')
+        ).toEqual([]);
+    });
+
+    test('a dropdown with no options and an objectarray with no object are errors', () => {
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'dropdown' }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'objectarray' }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+    });
+
+    test('enableWhenField names a field and the value that enables the control', () => {
+        // Given a bare path, Configure greys the control out for good, so the
+        // form renders and nothing in it can be edited.
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'text',
+                        enableWhenField: 'variables.b',
+                    },
+                ]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain('enableWhenField');
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'text',
+                        enableWhenField: { field: 'variables.b' },
+                    },
+                ]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'text',
+                        enableWhenField: { field: 'variables.b', value: 'on' },
+                    },
+                ]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+    });
+
+    test('an objectarray item field is relative, so it is not under configPath', () => {
+        // Maker writes `${field}.${index}.${inner}`, so an item's field is not
+        // a config path and must not be judged as one.
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'variables.layerAttachments.rings.rings',
+                        type: 'objectarray',
+                        object: [
+                            { field: 'radius', type: 'number' },
+                            { field: 'color', type: 'colorpicker' },
+                        ],
+                    },
+                ]),
+                'P',
+                'layerattachment',
+                'variables.layerAttachments.rings'
+            )
+        ).toEqual([]);
+    });
+
+    test("rows sizes a textarea and means nothing anywhere else", () => {
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'textarea', rows: 8 }]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'text', rows: 8 }]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain("only applies to type 'textarea'");
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'textarea', rows: 0 }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+    });
+
+    test('optionsFrom stands in for options, on dropdowns only', () => {
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'dropdown',
+                        optionsFrom: 'layerProperties',
+                    },
+                ]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+        // A provider Configure doesn't have resolves to an empty list at
+        // runtime, i.e. a dropdown with nothing in it and no error.
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'dropdown', optionsFrom: 'nope' }]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain('Configure provides none such');
+        expect(
+            validateMetaconfig(
+                rows([
+                    { field: 'a', type: 'text', optionsFrom: 'layerProperties' },
+                ]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain("only applies to types 'dropdown' and 'searchdropdown'");
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'dropdown' }]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain("is required for type 'dropdown'");
+    });
+
+    test('width must fit the 12-column grid', () => {
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'text', width: 13 }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+    });
+
+    test("an attachment field outside its configPath is an error", () => {
+        const errs = validateMetaconfig(
+            rows([{ field: 'variables.other.enabled', type: 'switch' }]),
+            'P',
+            'layerattachment',
+            'variables.layerAttachments.p'
+        );
+        expect(errs.length).toBe(1);
+        expect(errs[0]).toContain('outside');
+
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'variables.layerAttachments.p.enabled',
+                        type: 'switch',
+                    },
+                ]),
+                'P',
+                'layerattachment',
+                'variables.layerAttachments.p'
+            )
+        ).toEqual([]);
+    });
+
+    test('a row that renders nothing is an error', () => {
+        const errs = validateMetaconfig({ rows: [{}] }, 'P', 'tool');
+        expect(errs.length).toBe(1);
+        expect(errs[0]).toContain('renders as nothing');
+    });
+
+    test('tabs are validated like rows, and need a name', () => {
+        const errs = validateMetaconfig(
+            { tabs: [{ rows: [{ components: [{ type: 'nope' }] }] }] },
+            'P',
+            'layertype'
+        );
+        expect(errs.length).toBe(2);
     });
 });

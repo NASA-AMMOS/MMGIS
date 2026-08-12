@@ -1,5 +1,31 @@
 // Validation functions that mirror backend validation rules
 
+// The layer types these functions know how to check field-by-field. Any other
+// type is legitimate as long as a layer-type plugin provides it — what such a
+// type requires is its own manifest's business — so those layers are checked
+// for a name and nothing else.
+const CHECKED_LAYER_TYPES = [
+  "header",
+  "tile",
+  "vectortile",
+  "3dtiles",
+  "data",
+  "query",
+  "vector",
+  "velocity",
+  "model",
+  "image",
+  "video",
+];
+
+// Which set of per-type checks a layer is held to. `null` means the type is
+// provided by nothing — genuinely unknown — and `""` means a plugin type with
+// no built-in checks of its own.
+const checkedTypeOf = (type, layerTypeConfiguration) => {
+  if (CHECKED_LAYER_TYPES.includes(type)) return type;
+  return layerTypeConfiguration?.[type] == null ? null : "";
+};
+
 export const validateConfiguration = (configuration) => {
   const errors = [];
   
@@ -39,7 +65,7 @@ export const validateConfiguration = (configuration) => {
   return errors;
 };
 
-export const validateLayer = (layer) => {
+export const validateLayer = (layer, layerTypeConfiguration) => {
   const errors = [];
   
   if (!layer) {
@@ -52,8 +78,14 @@ export const validateLayer = (layer) => {
     errors.push({ field: "name", message: "Layer name is required" });
   }
   
+  const checkedType = checkedTypeOf(layer.type, layerTypeConfiguration);
+  if (checkedType === null && layer.type) {
+    errors.push({ field: "type", message: `Unknown layer type: ${layer.type}` });
+    return errors;
+  }
+  
   // Check by layer type
-  switch (layer.type) {
+  switch (checkedType) {
     case "tile":
     case "image":
       if (!layer.url || layer.url === "" || layer.url === "undefined") {
@@ -175,9 +207,8 @@ export const validateLayer = (layer) => {
       break;
 
     default:
-      if (layer.type) {
-        errors.push({ field: "type", message: `Unknown layer type: ${layer.type}` });
-      }
+      // A plugin-provided type: its own manifest is what validates it.
+      break;
   }
   
   return errors;
@@ -202,7 +233,7 @@ export const isFieldRequired = (component, layer, configuration) => {
 };
 
 // Get all validation errors for current configuration
-export const getAllValidationErrors = (configuration) => {
+export const getAllValidationErrors = (configuration, layerTypeConfiguration) => {
   const errors = [];
   
   // Validate top-level configuration
@@ -214,7 +245,7 @@ export const getAllValidationErrors = (configuration) => {
     const traverseLayers = (layers, path = []) => {
       layers.forEach((layer, index) => {
         const layerPath = [...path, index];
-        const layerErrors = validateLayer(layer);
+        const layerErrors = validateLayer(layer, layerTypeConfiguration);
         
         // Add layer path to errors
         layerErrors.forEach(error => {

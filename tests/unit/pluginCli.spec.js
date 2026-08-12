@@ -1,5 +1,5 @@
 /**
- * Unit tests for plugin-cli.js commands and plugin-state.json integration
+ * Unit tests for plugin-cli/cli.js commands and plugin-state.json integration
  * with discoverPlugins().
  *
  * Tests build temporary directory trees to simulate plugin containers,
@@ -14,8 +14,9 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const { discoverPlugins } = require('../../API/pluginDiscovery');
+const { withRegistryLock } = require('../helpers/registry-lock');
 
-const CLI_PATH = path.resolve(__dirname, '../../plugins/plugin-cli.js');
+const CLI_PATH = path.resolve(__dirname, '../../plugin-cli/cli.js');
 const REPO_ROOT = path.resolve(__dirname, '../..');
 
 function makeTmpDir() {
@@ -35,19 +36,23 @@ function writeFile(filePath, contents) {
     fs.writeFileSync(filePath, contents);
 }
 
+// Most commands regenerate the shared registries, so hold the lock for the
+// duration of the call (see helpers/registry-lock).
 function runCli(args, opts = {}) {
     const cmd = `node "${CLI_PATH}" ${args}`;
-    try {
-        const output = execSync(cmd, {
-            cwd: REPO_ROOT,
-            encoding: 'utf8',
-            timeout: 10000,
-            ...opts,
-        });
-        return { stdout: output, exitCode: 0 };
-    } catch (err) {
-        return { stdout: err.stdout || '', stderr: err.stderr || '', exitCode: err.status };
-    }
+    return withRegistryLock(() => {
+        try {
+            const output = execSync(cmd, {
+                cwd: REPO_ROOT,
+                encoding: 'utf8',
+                timeout: 10000,
+                ...opts,
+            });
+            return { stdout: output, exitCode: 0 };
+        } catch (err) {
+            return { stdout: err.stdout || '', stderr: err.stderr || '', exitCode: err.status };
+        }
+    });
 }
 
 // ─── CLI command tests ──────────────────────────────────────────────────────
@@ -120,7 +125,7 @@ test.describe('plugin-cli', () => {
     });
 
     test('registry list shows empty when no registries', () => {
-        const regPath = path.join(REPO_ROOT, 'plugins', 'plugin-registries.json');
+        const regPath = path.join(REPO_ROOT, 'plugin-cli', 'registries.json');
         const saved = fs.readFileSync(regPath, 'utf8');
         fs.writeFileSync(regPath, JSON.stringify({ registries: [] }, null, 4));
         try {
@@ -407,6 +412,149 @@ test.describe('plugin-cli interaction support', () => {
             if (fs.existsSync(containerDir)) {
                 fs.rmSync(containerDir, { recursive: true, force: true });
             }
+        }
+    });
+});
+
+// ─── scaffolds ───────────────────────────────────────────────────────────────
+
+test.describe('scaffold templates', () => {
+    // Scaffolds are real files under plugin-cli/scaffolds/, so a broken one
+    // fails here rather than in someone's first plugin. Materialized through the
+    // loader rather than `create` so nothing touches the shared plugins tree.
+    const { scaffold } = require('../../plugin-cli/lib/scaffolds');
+    const { validatePluginConfig, validateLayerTypeModuleShape } = require('../../API/pluginValidation.js');
+
+    const TYPES = [
+        'tool',
+        'backend',
+        'component',
+        'interaction',
+        'layertype',
+        'layerattachment',
+    ];
+
+    for (const type of TYPES) {
+        test(`the ${type} scaffold is a valid plugin`, () => {
+            const name = 'MyGriddedThing';
+            const files = scaffold(type, name);
+
+            expect(Object.keys(files)).toContain('plugin.json');
+            for (const [relPath, contents] of Object.entries(files)) {
+                // Every token was substituted, in paths as well as contents.
+                expect(relPath).not.toMatch(/__[A-Za-z_]+__/);
+                expect(contents).not.toMatch(/__[A-Za-z_]+__/);
+            }
+
+            const manifest = JSON.parse(files['plugin.json']);
+            expect(manifest.name).toBe(name);
+            expect(manifest.type).toBe(type);
+            expect(validatePluginConfig(manifest, name, type)).toEqual([]);
+        });
+    }
+
+    test('name variants reach the ids each family keys on', () => {
+        expect(JSON.parse(scaffold('layertype', 'MyGriddedThing')['plugin.json']).typeId)
+            .toBe('mygriddedthing');
+
+        const attachment = JSON.parse(scaffold('layerattachment', 'MyGriddedThing')['plugin.json']);
+        expect(attachment.attachmentId).toBe('my_gridded_thing');
+        expect(attachment.module).toBe('./myGriddedThing');
+        // The form must write where core resolves this attachment's settings.
+        for (const row of attachment.config.rows)
+            for (const component of row.components)
+                expect(component.field.startsWith(attachment.configPath)).toBe(true);
+
+        expect(JSON.parse(scaffold('interaction', 'MyGriddedThing')['plugin.json']).interactionId)
+            .toBe('my:gridded:thing');
+    });
+
+    test('an acronym in a name is one word', () => {
+        // Otherwise `FOVWedges` becomes `f_ovwedges` / `fOVWedges`, which is
+        // both wrong and inconsistent between the id and the module.
+        const attachment = JSON.parse(scaffold('layerattachment', 'FOVWedges')['plugin.json']);
+        expect(attachment.attachmentId).toBe('fov_wedges');
+        expect(attachment.module).toBe('./fovWedges');
+        expect(attachment.configPath).toBe('variables.layerAttachments.fovWedges');
+
+        expect(JSON.parse(scaffold('interaction', 'FOVWedges')['plugin.json']).interactionId)
+            .toBe('fov:wedges');
+        expect(JSON.parse(scaffold('layertype', 'FOVWedges')['plugin.json']).typeId)
+            .toBe('fovwedges');
+
+        // A digit belongs to the word it is written in.
+        expect(JSON.parse(scaffold('layerattachment', 'HTML5Parser')['plugin.json']).attachmentId)
+            .toBe('html5_parser');
+        expect(JSON.parse(scaffold('layerattachment', 'E2eHalos')['plugin.json']).attachmentId)
+            .toBe('e2e_halos');
+    });
+
+    test('the attachment scaffold joins an existing Configure tab', () => {
+        // A tab name of its own becomes a one-row tab no admin opens, which is
+        // the failure mode the family docs warn about.
+        const attachment = JSON.parse(scaffold('layerattachment', 'MyGriddedThing')['plugin.json']);
+        expect(attachment.config.tab).not.toContain('MyGriddedThing');
+        const coreTabs = fs
+            .readdirSync(path.join(REPO_ROOT, 'plugins', 'core', 'layerattachments'))
+            .map((dir) => path.join(REPO_ROOT, 'plugins', 'core', 'layerattachments', dir, 'plugin.json'))
+            .filter((file) => fs.existsSync(file))
+            .map((file) => JSON.parse(fs.readFileSync(file, 'utf8')))
+            .map((manifest) => manifest.config && manifest.config.tab);
+        expect(coreTabs).toContain(attachment.config.tab);
+    });
+
+    test('--extends scaffolds surfaces instead of a renderer', () => {
+        // The standalone `map.js` scaffold is the wrong start for a type that
+        // only differs in where its data comes from, which is most of them.
+        const files = scaffold('layertype', 'MyGriddedThing', { extendsType: 'vector' });
+        expect(Object.keys(files)).not.toContain('map.js');
+
+        const manifest = JSON.parse(files['plugin.json']);
+        expect(manifest.extends).toBe('vector');
+        expect(manifest.module).toBe('./myGriddedThing');
+        expect(manifest.modules).toBeUndefined();
+        expect(validatePluginConfig(manifest, 'MyGriddedThing', 'layertype')).toEqual([]);
+
+        // A single module's keys are surfaces, so the op-shape validator does
+        // not apply to it — what must hold is that it declares one.
+        expect(files['myGriddedThing.js']).toContain('source: { fetch }');
+    });
+
+    test('a module may be default-exported by name, and comments are not code', () => {
+        // eslint's import/no-anonymous-default-export asks for the named form,
+        // so rejecting it left an author unable to satisfy both tools. And the
+        // scanner used to match the first textual `export default {`, so a doc
+        // comment containing one made a valid module fail.
+        const named = `
+/**
+ * A worked example:
+ *   export default { notAnOperation }
+ */
+const MyType = {
+    make(layerObj, mctx) {},
+}
+
+export default MyType
+`;
+        expect(validateLayerTypeModuleShape(named, 'x', 'map')).toEqual([]);
+
+        const missing = `const MyType = { destroy() {} }\nexport default MyType\n`;
+        expect(validateLayerTypeModuleShape(missing, 'x', 'map')).toEqual([
+            "x: missing required 'make' operation",
+        ]);
+    });
+
+    test('the layer scaffolds implement only what core has no default for', () => {
+        // Over-implementation is the failure mode here: an empty setOpacity
+        // silently replaces a working core default, so the stubs stay commented.
+        const layertype = scaffold('layertype', 'MyGriddedThing')['map.js'];
+        expect(validateLayerTypeModuleShape(layertype, 'x', 'map')).toEqual([]);
+        expect(layertype).toContain('make');
+
+        const attachment = scaffold('layerattachment', 'MyGriddedThing')['myGriddedThing.js'];
+        expect(validateLayerTypeModuleShape(attachment, 'x', 'attachment')).toEqual([]);
+        for (const op of ['setOpacity', 'setVisibility', 'syncData']) {
+            expect(attachment).not.toMatch(new RegExp(`^\\s*${op}[,(]`, 'm'));
         }
     });
 });

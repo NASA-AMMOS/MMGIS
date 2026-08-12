@@ -7,7 +7,13 @@ import Main from "../components/Main/Main";
 import Panel from "../components/Panel/Panel";
 
 import { calls } from "../core/calls";
-import { setMissions, setSnackBarText } from "./ConfigureStore";
+import {
+  setMissions,
+  setLayerTypeConfiguration,
+  setLayerAttachmentConfiguration,
+  setInteractionConfiguration,
+  setSnackBarText,
+} from "./ConfigureStore";
 import Websocket from "./Websocket";
 import { getInjectables } from "./injectables";
 
@@ -38,7 +44,9 @@ export default function Configure() {
       (res) => {
         const missions = (res?.missions || [])
           .slice()
-          .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+          .sort((a, b) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" }),
+          );
         dispatch(setMissions(missions));
       },
       (res) => {
@@ -46,9 +54,54 @@ export default function Configure() {
           setSnackBarText({
             text: res?.message || "Failed to get available missions.",
             severity: "error",
-          })
+          }),
         );
-      }
+      },
+    );
+
+    calls.api(
+      "getLayerTypeConfig",
+      null,
+      (res) => {
+        dispatch(setLayerTypeConfiguration(res || {}));
+      },
+      (res) => {
+        dispatch(setLayerTypeConfiguration({}));
+        dispatch(
+          setSnackBarText({
+            text:
+              res?.message ||
+              "Failed to load layer type configurations. Layer editing will be unavailable.",
+            severity: "error",
+          }),
+        );
+      },
+    );
+
+    // Attachments are configured on their host layer, so their settings UI
+    // comes from the attachment plugins rather than from each layer type.
+    calls.api(
+      "getLayerAttachmentConfig",
+      null,
+      (res) => {
+        dispatch(setLayerAttachmentConfiguration(res || {}));
+      },
+      () => {
+        dispatch(setLayerAttachmentConfiguration({}));
+      },
+    );
+
+    // An interaction's settings are configured on the layers that run it, so
+    // the layer modal needs to know which config paths interactions own.
+    calls.api(
+      "getInteractionConfig",
+      null,
+      (res) => {
+        dispatch(setInteractionConfiguration(res || {}));
+      },
+      () => {
+        dispatch(setInteractionConfiguration({}));
+      },
     );
 
     getInjectables();

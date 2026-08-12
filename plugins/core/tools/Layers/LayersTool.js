@@ -3,6 +3,9 @@ import Sortable from 'sortablejs'
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
+import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '@basics/Layers_/registry/LayerAttachmentRegistry'
+import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
 
 import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
@@ -25,10 +28,22 @@ import {
     data as colormapData,
 } from '@external/js-colormaps/js-colormaps.js'
 
-import { isKmlUrl, fetchKmlAsGeoJSON } from '@basics/Layers_/LayerCapturer'
+import {
+    isKmlUrl,
+    fetchKmlAsGeoJSON,
+} from '@basics/Layers_/capture/LayerCapturer'
 import './LayersTool.css'
 
 const helpKey = 'LayersTool'
+
+// Neutral fallback when a layer type declares no manifest color.
+const DEFAULT_LAYER_TYPE_COLOR = 'var(--color-a4)'
+
+// Layer type indicator color, sourced from the plugin.json manifest (registry)
+// rather than a hardcoded CSS var, so new/external types are colored too.
+function getLayerTypeColor(type) {
+    return LayerTypeRegistry.getConfig(type)?.color || DEFAULT_LAYER_TYPE_COLOR
+}
 
 /**
  * Generate the tool markup dynamically based on available layer types
@@ -75,7 +90,7 @@ function generateMarkup() {
     let filterIconsHtml = ''
     filterIcons.forEach((filter) => {
         if (availableTypes.has(filter.type)) {
-            filterIconsHtml += `<div class="${filter.type}" type="${filter.type}" title="${filter.title}"><i class="mdi ${filter.icon} mdi-18px"></i></div>`
+            filterIconsHtml += `<div class="${filter.type}" type="${filter.type}" title="${filter.title}" style="--lt-color:${getLayerTypeColor(filter.type)};"><i class="mdi ${filter.icon} mdi-18px"></i></div>`
         }
     })
 
@@ -389,9 +404,10 @@ var LayersTool = {
 
             let color
             if (layer.type === 'data' && layer.variables?.shader?.ramps) {
-                const ramp = layer.variables.shader.ramps[
-                    L_.layers.layer[layer.name]?.rampIdx || 0
-                ] || layer.variables.shader.ramps[0]
+                const ramp =
+                    layer.variables.shader.ramps[
+                        L_.layers.layer[layer.name]?.rampIdx || 0
+                    ] || layer.variables.shader.ramps[0]
                 const t = i / 8
                 const rampPos = t * (ramp.length - 1)
                 const lo = Math.floor(rampPos)
@@ -1369,7 +1385,7 @@ function interfaceWithMMGIS(fromInit) {
                         [
                             `<li class="layersToolHeader" id="header_${node[i].name}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
                                 `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
-                                    '<div class="layersToolColor ' + node[i].type + '">',
+                                    '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
                                     '<div>',
@@ -1398,7 +1414,7 @@ function interfaceWithMMGIS(fromInit) {
                         [
                             '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layers.layer[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '"  style="margin-bottom: 1px;">',
                                 `<div class="title" id="layerstart${F_.getSafeName(node[i].name)}" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
-                                    '<div class="layersToolColor ' + node[i].type + '">',
+                                    '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
                                     '<div class="checkboxcont">',
@@ -1465,16 +1481,9 @@ function interfaceWithMMGIS(fromInit) {
                             )
                     }
 
-                    // Populate the legends for tile (COG), image, velocity, and data layers
-                    if (
-                        (['image', 'tile'].includes(node[i].type) &&
-                            node[i].cogTransform) ||
-                        node[i].type === 'velocity' ||
-                        (node[i].type === 'data' &&
-                            F_.getIn(node[i], 'variables.shader.type') === 'colorize')
-                    ) {
-                        LayersTool.populateCogScale(node[i].name)
-                    }
+                    // Types whose legend comes from how they're rendered
+                    // (a COG's scale, a shader's ramp) derive it themselves.
+                    deriveLegend(node[i])
 
                     break
             }
@@ -1942,7 +1951,10 @@ function interfaceWithMMGIS(fromInit) {
                                 })
                         },
                         function (err) {
-                            Toast.warning(`Failed to generate shapefile's .prj.`, 6000)
+                            Toast.warning(
+                                `Failed to generate shapefile's .prj.`,
+                                6000
+                            )
                         }
                     )
                     break
@@ -1965,7 +1977,10 @@ function interfaceWithMMGIS(fromInit) {
                         download(data.body)
                     },
                     (data) => {
-                        Toast.error(`Failed to download ${layerDisplayName}.`, 6000)
+                        Toast.error(
+                            `Failed to download ${layerDisplayName}.`,
+                            6000
+                        )
                         console.warn(
                             'ERROR: ' +
                                 data.status +
@@ -2993,7 +3008,7 @@ function interfaceWithMMGIS(fromInit) {
                             L_.layers.attachments[layerName] ? Object.keys(L_.layers.attachments[layerName]).map(function(s) {
                                 return L_.layers.attachments[layerName][s] === false ? '' : [
                                     '<div class="sublayer">',
-                                        `<div title="${L_.layers.attachments[layerName][s].title || ''}">${F_.prettifyName(s)}</div>`,
+                                        `<div title="${L_.layers.attachments[layerName][s].title || LayerAttachmentRegistry.describe(LayerAttachmentRegistry.idForSublayerKey(s)).description}">${F_.prettifyName(s)}</div>`,
                                         '<div style="display: flex;">',
                                             L_.layers.attachments[layerName][s].layer?.dropdown ? [
                                                 `<select class="dropdown sublayerDropdown" layername="${layerName}" sublayername="${s}">`,
@@ -3225,7 +3240,8 @@ function layerHasActiveFilter(layerName) {
     // Local vector filter via Filtering module
     const f = Filtering.filters[layerName]
     if (f) {
-        if (f.values && f.values.some((v) => v && !v.isGroup && v.type != null)) return true
+        if (f.values && f.values.some((v) => v && !v.isGroup && v.type != null))
+            return true
         if (f.spatial && f.spatial.center != null) return true
     }
 
