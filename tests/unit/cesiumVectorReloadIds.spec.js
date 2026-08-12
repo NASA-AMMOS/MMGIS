@@ -28,10 +28,10 @@ test("a reload's entities are ids of their own, not the last load's", () => {
 
 test("what a load replaces stays up until the new features are drawn", () => {
   const src = fs.readFileSync(CESIUM_VECTOR, "utf8");
-  expect(src).toContain("retire(gctx, outgoing, ds)");
+  expect(src).toContain("            retire(gctx, outgoing, ds)");
   // Retired after the new source is on the scene, never before.
   expect(src.indexOf("gctx.renderer.dataSources.add(ds)")).toBeLessThan(
-    src.indexOf("retire(gctx, outgoing, ds)"),
+    src.indexOf("            retire(gctx, outgoing, ds)"),
   );
 });
 
