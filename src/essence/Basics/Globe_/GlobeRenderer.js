@@ -1140,6 +1140,10 @@ class GlobeRenderer {
                     this._removeCesiumGradientPolyline(name)
                     return
                 } else if (layerInfo.kind === 'entities') {
+                    // A load still in flight would register this layer again
+                    // once it lands, putting back what was just removed.
+                    this._vectorLoadToken[name] =
+                        (this._vectorLoadToken[name] || 0) + 1
                     // Defer the removal by a frame so a reload that follows
                     // immediately (dynamic-extent requery, filter/time change)
                     // can adopt these features and keep them on screen until its

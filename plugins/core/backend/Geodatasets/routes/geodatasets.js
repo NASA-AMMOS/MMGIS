@@ -1160,8 +1160,11 @@ async function propertiesTypes(tables) {
   const named = (tables || []).filter(Boolean);
   if (named.length === 0) return {};
   const [rows] = await sequelize.query(
+    // Schema-qualified: a same-named table in another schema would otherwise
+    // decide the answer.
     `SELECT table_name, data_type FROM information_schema.columns
-      WHERE column_name = 'properties' AND table_name IN (:tables)`,
+      WHERE column_name = 'properties' AND table_schema = current_schema()
+        AND table_name IN (:tables)`,
     { replacements: { tables: named } }
   );
   const types = {};

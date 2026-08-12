@@ -1,0 +1,39 @@
+/**
+ * Guard for what makes a globe click find its 2D feature.
+ *
+ * selectFeature matches the feature a Cesium entity came from against the
+ * Leaflet layer's features by comparing properties. The globe is handed a copy
+ * with a dynamic style resolved onto `properties.style` (layerConfig.geojson),
+ * which the 2D feature never carries — so a layer with dynamic styling on
+ * became unclickable in 3D until that key was left out of the comparison.
+ *
+ * selection.js pulls in Description and ToolController_, which the unit runner
+ * can't load, so this asserts the invariant at the source level.
+ */
+
+import { test, expect } from "@playwright/test";
+
+const fs = require("fs");
+const path = require("path");
+
+const SELECTION = path.resolve(
+  __dirname,
+  "../../src/essence/Basics/Layers_/features/selection.js",
+);
+
+test("selectFeature ignores properties.style on both sides of the match", () => {
+  const src = fs.readFileSync(SELECTION, "utf8");
+  expect(src).toContain("delete featureWithout_.properties.style");
+  expect(src).toContain("delete lfeatureWithout_.properties.style");
+});
+
+test("a resolved style is not part of a feature's identity in either direction", () => {
+  const src = fs.readFileSync(SELECTION, "utf8");
+  // Both stripped before F_.isEqual compares them.
+  const compareAt = src.indexOf("const propertiesMatch");
+  expect(compareAt).toBeGreaterThan(-1);
+  const before = src.slice(0, compareAt);
+  expect(
+    (before.match(/properties\.style/g) || []).length,
+  ).toBeGreaterThanOrEqual(2);
+});

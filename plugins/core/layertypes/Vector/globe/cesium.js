@@ -37,6 +37,15 @@ function pickableAlpha(color, opacity) {
     return color.withAlpha(Math.max(alpha, MIN_PICKABLE_ALPHA))
 }
 
+/** A CSS colour at an opacity, or null when the colour is unusable. */
+function colorAt(css, opacity) {
+    if (css == null) return null
+    const color = Cesium.Color.fromCssColorString(css)
+    if (color == null) return null
+    const alpha = parseFloat(opacity)
+    return isNaN(alpha) ? color : color.withAlpha(alpha)
+}
+
 function make(layerObj, gctx) {
     const layerConfig = toGlobeConfig(layerObj)
     if (layerConfig == null) return
@@ -152,9 +161,10 @@ function render(layerConfig, gctx) {
                 return
             }
 
-            // A freshly created data source must be added; a reused one is
-            // already present.
-            if (!reuseDataSource) {
+            // A freshly created data source must be added, and a reused one that
+            // a removal took off the scene has to go back on it — loading into a
+            // detached source draws nothing.
+            if (!gctx.renderer.dataSources.contains(ds)) {
                 gctx.renderer.dataSources.add(ds)
             }
 
@@ -199,81 +209,61 @@ function render(layerConfig, gctx) {
                     }
 
                     if (featureStyle) {
+                        // Merged with the layer's own style so a rule on one key
+                        // alone — an opacity, a fill opacity — still repaints,
+                        // and every key it doesn't set keeps the configured one.
+                        const st = { ...defaultStyle, ...featureStyle }
+
                         if (entity.polygon) {
-                            if (featureStyle.fillColor) {
-                                const polygonFillColor =
-                                    Cesium.Color.fromCssColorString(
-                                        featureStyle.fillColor
-                                    ) || Cesium.Color.WHITE
-                                const polygonOpacity = parseFloat(
-                                    featureStyle.fillOpacity != null
-                                        ? featureStyle.fillOpacity
-                                        : defaultStyle.fillOpacity
-                                )
-                                entity.polygon.material = pickableAlpha(
-                                    polygonFillColor,
-                                    polygonOpacity
-                                )
-                            }
-                            if (featureStyle.color) {
-                                const outlineColor =
-                                    Cesium.Color.fromCssColorString(
-                                        featureStyle.color
-                                    )
-                                if (outlineColor) {
-                                    entity.polygon.outlineColor = outlineColor
-                                }
-                            }
-                            if (featureStyle.weight != null) {
+                            entity.polygon.material = pickableAlpha(
+                                colorAt(st.fillColor) || fillColor,
+                                parseFloat(st.fillOpacity)
+                            )
+                            const outline = colorAt(st.color, st.opacity)
+                            if (outline) entity.polygon.outlineColor = outline
+                            if (st.weight != null)
                                 entity.polygon.outlineWidth = parseFloat(
-                                    featureStyle.weight
+                                    st.weight
                                 )
-                            }
                         }
 
                         if (entity.polyline) {
-                            if (featureStyle.color) {
-                                const polylineColor =
-                                    Cesium.Color.fromCssColorString(
-                                        featureStyle.color
-                                    )
-                                if (polylineColor) {
-                                    entity.polyline.material = polylineColor
-                                }
-                            }
-                            if (featureStyle.weight != null) {
-                                entity.polyline.width = parseFloat(
-                                    featureStyle.weight
-                                )
-                            }
+                            const line = colorAt(st.color, st.opacity)
+                            if (line) entity.polyline.material = line
+                            if (st.weight != null)
+                                entity.polyline.width = parseFloat(st.weight)
                         }
 
                         if (entity.point) {
-                            if (featureStyle.radius != null) {
+                            if (st.radius != null)
                                 entity.point.pixelSize =
-                                    parseFloat(featureStyle.radius) *
+                                    parseFloat(st.radius) *
                                     CESIUM_POINT_PIXEL_SCALE
-                            }
-                            if (featureStyle.fillColor) {
-                                const pointColor =
-                                    Cesium.Color.fromCssColorString(
-                                        featureStyle.fillColor
-                                    )
-                                if (pointColor) {
-                                    entity.point.color = pointColor
-                                }
-                            }
+                            entity.point.color = pickableAlpha(
+                                colorAt(st.fillColor) || fillColor,
+                                parseFloat(st.fillOpacity)
+                            )
+                            const ring = colorAt(st.color, st.opacity)
+                            if (ring) entity.point.outlineColor = ring
+                            if (st.weight != null)
+                                entity.point.outlineWidth = parseFloat(st.weight)
                         }
                     }
                 })
             }
+
+            // A reused source keeps the `show` it was left with, so a layer
+            // hidden (zoom cutoff, opacity) before this reload would come back
+            // invisible while the registry called it visible.
+            const visible = gctx.layers[name]?.visible ?? layerConfig.on !== false
+            ds.show = visible
 
             gctx.displayedVectorDataSource[name] = ds
             gctx.layers[name] = {
                 type: 'vector',
                 kind: 'entities',
                 dataSource: ds,
-                visible: true,
+                visible: visible,
                 onClick: layerConfig.onClick,
                 featureMap: featureMap,
             }

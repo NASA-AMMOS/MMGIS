@@ -220,6 +220,11 @@ export function selectFeature(L_, layerName, feature, relation, field) {
             delete featureWithout_.properties._geodataset
         if (featureWithout_.properties?.feature_id != null)
             delete featureWithout_.properties.feature_id
+        // How a feature looks is not what it is: the globe is handed a copy with
+        // a dynamic style resolved onto properties.style, which the 2D feature
+        // it came from doesn't carry.
+        if (featureWithout_.properties?.style != null)
+            delete featureWithout_.properties.style
 
         for (let i = 0; i < layerKeys.length; i++) {
             const l = layerKeys[i]
@@ -276,6 +281,8 @@ export function selectFeature(L_, layerName, feature, relation, field) {
                 delete lfeatureWithout_.properties._geodataset
             if (lfeatureWithout_.properties?.feature_id != null)
                 delete lfeatureWithout_.properties.feature_id
+            if (lfeatureWithout_.properties?.style != null)
+                delete lfeatureWithout_.properties.style
 
             // Round both geometries to GEOJSON_PRECISION before comparing
             // This accounts for precision differences between Cesium (which receives
