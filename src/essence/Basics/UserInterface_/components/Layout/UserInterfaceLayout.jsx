@@ -114,7 +114,7 @@ function UserInterfaceLayout() {
                 filter: !visible ? 'blur(5px)' : modalBlurCount > 0 ? `blur(${3 * modalBlurCount}px)` : 'none',
                 transition: visible ? 'opacity 1s, filter 0.3s ease-in-out' : 'none',
                 width: '100%',
-                height: '100vh',
+                height: '100dvh',
                 overflow: 'hidden',
                 position: 'relative',
             }}
