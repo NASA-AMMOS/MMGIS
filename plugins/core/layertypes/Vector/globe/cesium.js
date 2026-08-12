@@ -90,7 +90,12 @@ function retire(gctx, outgoing, ds) {
     const stale = outgoing.filter((s) => s != null && s !== ds)
     if (stale.length === 0) return
     setTimeout(() => {
-        stale.forEach((s) => gctx.renderer.dataSources.remove(s, true))
+        stale.forEach((s) => {
+            // The reload's entities are new ones, so a selection outline
+            // tracing an old one would be left over the globe.
+            gctx.clearHighlightIn?.(s)
+            gctx.renderer.dataSources.remove(s, true)
+        })
         gctx.requestRender()
     }, RETIRE_MS)
 }

@@ -672,6 +672,16 @@ class GlobeRenderer {
                 displayedVectorDataSource: this._displayedVectorDataSource,
                 runPendingVectorReload: (name) =>
                     this._runPendingVectorReload(name),
+                // Drop a selection outline whose feature is going away.
+                clearHighlightIn: (dataSource) => {
+                    if (
+                        this._highlightedEntity &&
+                        dataSource?.entities?.contains?.(
+                            this._highlightedEntity
+                        )
+                    )
+                        this.clearHighlight()
+                },
                 utils: {
                     calculateImageryIndex: (name, ordered) =>
                         this._calculateTileLayerIndex(name, ordered),
