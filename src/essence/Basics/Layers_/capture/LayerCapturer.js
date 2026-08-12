@@ -55,6 +55,20 @@ const _geodatasetRequestLastLoc = {}
 const _layerRequestLastTimestamp = {}
 const _layerRequestLastLoc = {}
 
+// A dynamic-extent requery never goes through the layer's make, so it has to
+// raise the toolbar's loading spinner itself.
+let _requeryCount = 0
+const _requeryLoading = (layerObj) => {
+    const id = `requery_${layerObj.name}_${++_requeryCount}`
+    L_.setGlobalLoading(id)
+    let done = false
+    return () => {
+        if (done) return
+        done = true
+        L_.setGlobalLoaded(id)
+    }
+}
+
 // Returns true when the 2D Leaflet map is actually visible and has a
 // non-degenerate size. When the Map panel is closed the map collapses to
 // 0x0 and getBounds() returns a degenerate (zero-area) extent, which would
@@ -312,10 +326,12 @@ const _captureFromSource = (
             _commitDynamicGeoJSON(layerObj, layerData, F_.parseIntoGeoJSON(data))
         }
 
+        const loaded = _requeryLoading(layerObj)
         Promise.resolve(
             LayerInterface.run(sourceModule, 'fetch', [layerObj, ctx])
         )
             .then((data) => {
+                loaded()
                 if (data == null) return
                 const accepted = painted
                     ? isCurrent()
@@ -335,6 +351,7 @@ const _captureFromSource = (
                     )
             })
             .catch((err) => {
+                loaded()
                 if (err?.name === 'AbortError') return
                 console.warn(
                     `ERROR! source.fetch of layer type '${layerData?.type}' failed for ${layerObj.name} /// ${err?.message || err}`
@@ -552,10 +569,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
 
                         layerData._lastGeodatasetRequestBody = body
 
+                        const loaded = _requeryLoading(layerObj)
                         calls.api(
                             'geodatasets_get',
                             body,
                             (data) => {
+                                loaded()
                                 const lastLoc =
                                     _geodatasetRequestLastLoc[layerObj.name]
                                 const nowLoc = {
@@ -626,6 +645,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 }
                             },
                             (data) => {
+                                loaded()
                                 console.warn(
                                     'ERROR: ' +
                                         data?.status +
@@ -744,7 +764,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         if (!F_.isUrlAbsolute(dynamicLayerUrl))
                             dynamicLayerUrl = L_.missionPath + dynamicLayerUrl
 
+                        const loaded = _requeryLoading(layerObj)
                         const _dynamicDefaultSuccess = function (data) {
+                            loaded()
                             if (data.hasOwnProperty('Features')) {
                                 data.features = data.Features
                                 delete data.Features
@@ -818,6 +840,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             textStatus,
                             errorThrown
                         ) {
+                            loaded()
                             console.warn(
                                 'ERROR! ' +
                                     textStatus +

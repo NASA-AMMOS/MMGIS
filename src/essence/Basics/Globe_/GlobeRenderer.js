@@ -2237,25 +2237,43 @@ class GlobeRenderer {
 
         // Find the internal ID for this feature (deep comparison - matches Layers_.js)
         let internalId = null
-        for (const [id, storedFeature] of Object.entries(
-            layerInfo.featureMap
-        )) {
-            // Compare geometry (handles deep cloned features)
-            const geometryMatch = this._compareGeometry(
-                storedFeature.geometry,
-                feature.geometry
-            )
 
-            if (geometryMatch) {
-                // Also compare properties to ensure correct match
-                const propsMatch = this._compareFeatureProps(
-                    storedFeature.properties,
-                    feature.properties
-                )
-
-                if (propsMatch) {
+        // Fast path: an id says which feature it is. Deduped group_id
+        // geodatasets can hold siblings whose geometry and properties compare
+        // equal, and the deep search below would settle on the first of them.
+        const fid = this._featureIdOf(feature)
+        if (fid != null) {
+            for (const [id, storedFeature] of Object.entries(
+                layerInfo.featureMap
+            )) {
+                if (this._featureIdOf(storedFeature) === fid) {
                     internalId = id
                     break
+                }
+            }
+        }
+
+        if (internalId == null) {
+            for (const [id, storedFeature] of Object.entries(
+                layerInfo.featureMap
+            )) {
+                // Compare geometry (handles deep cloned features)
+                const geometryMatch = this._compareGeometry(
+                    storedFeature.geometry,
+                    feature.geometry
+                )
+
+                if (geometryMatch) {
+                    // Also compare properties to ensure correct match
+                    const propsMatch = this._compareFeatureProps(
+                        storedFeature.properties,
+                        feature.properties
+                    )
+
+                    if (propsMatch) {
+                        internalId = id
+                        break
+                    }
                 }
             }
         }
@@ -2267,6 +2285,16 @@ class GlobeRenderer {
                 this._highlightEntity(entity)
             }
         }
+    }
+
+    /**
+     * A feature's own id, however the endpoint it came from spells it.
+     */
+    _featureIdOf(feature) {
+        const props = feature?.properties
+        if (props == null) return null
+        const id = props.feature_id ?? props._?.idx
+        return id == null ? null : String(id)
     }
 
     /**

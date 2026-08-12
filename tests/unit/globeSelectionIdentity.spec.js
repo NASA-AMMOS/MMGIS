@@ -39,6 +39,15 @@ test("the globe's own feature lookup ignores a resolved style too", () => {
   expect(src).toContain("delete cleanProps2.style");
 });
 
+test("an id decides which entity is highlighted before any deep compare", () => {
+  // Deduped group_id siblings can compare equal on geometry and properties.
+  const src = fs.readFileSync(RENDERER, "utf8");
+  const fidAt = src.indexOf("const fid = this._featureIdOf(feature)");
+  const deepAt = src.indexOf("const geometryMatch = this._compareGeometry");
+  expect(fidAt).toBeGreaterThan(-1);
+  expect(deepAt).toBeGreaterThan(fidAt);
+});
+
 test("a highlight is drawn as its own outline, not painted onto the entity", () => {
   // Cesium batches draped geometry and ignores a colour changed after load.
   const src = fs.readFileSync(RENDERER, "utf8");
