@@ -346,8 +346,11 @@ export default function GeoDatasets() {
   const [recomputing, setRecomputing] = React.useState(null);
   // Which geodataset's properties are being rewritten, if any.
   const [converting, setConverting] = React.useState(null);
-  // The row whose kebab menu is open, as { anchor, row }.
+  // The row whose kebab menu is open, as { anchor, row, open }. The row is
+  // kept through the closing transition, which the items are still drawn in.
   const [rowMenu, setRowMenu] = React.useState(null);
+  const closeRowMenu = () =>
+    setRowMenu((menu) => (menu ? { ...menu, open: false } : null));
 
   const c = useStyles();
 
@@ -710,6 +713,7 @@ export default function GeoDatasets() {
                                 setRowMenu({
                                   anchor: e.currentTarget,
                                   row: row,
+                                  open: true,
                                 });
                               }}
                             >
@@ -754,8 +758,9 @@ export default function GeoDatasets() {
       <UpdateGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <Menu
         anchorEl={rowMenu?.anchor}
-        open={rowMenu != null}
-        onClose={() => setRowMenu(null)}
+        open={rowMenu?.open === true}
+        onClose={closeRowMenu}
+        TransitionProps={{ onExited: () => setRowMenu(null) }}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
@@ -767,7 +772,7 @@ export default function GeoDatasets() {
                 geoDataset: rowMenu.row,
               }),
             );
-            setRowMenu(null);
+            closeRowMenu();
           }}
         >
           <ListItemIcon>
@@ -779,7 +784,7 @@ export default function GeoDatasets() {
           disabled={recomputing != null}
           onClick={() => {
             if (rowMenu.row.name) recomputeStats(rowMenu.row.name);
-            setRowMenu(null);
+            closeRowMenu();
           }}
         >
           <ListItemIcon>
@@ -798,7 +803,7 @@ export default function GeoDatasets() {
           }
           onClick={() => {
             if (rowMenu.row.name) convertProperties(rowMenu.row.name);
-            setRowMenu(null);
+            closeRowMenu();
           }}
         >
           <ListItemIcon>
