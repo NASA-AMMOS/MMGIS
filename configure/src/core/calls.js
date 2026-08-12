@@ -94,6 +94,10 @@ const c = {
     type: "POST",
     url: "api/geodatasets/recompute_stats/:name",
   },
+  geodatasets_convert_properties: {
+    type: "POST",
+    url: "api/geodatasets/convert_properties/:name",
+  },
   geodatasets_remove: {
     type: "DELETE",
     url: "api/geodatasets/remove/:name",

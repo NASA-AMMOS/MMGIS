@@ -80,8 +80,11 @@ function makeNewGeodatasetTable(
   name = name.replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "");
 
   const attributes = {
+    // JSONB rather than JSON: stored parsed, so a property read is a lookup
+    // instead of reparsing the whole document. Tables made before this keep
+    // JSON until converted from Configure.
     properties: {
-      type: Sequelize.JSON,
+      type: Sequelize.JSONB,
       allowNull: true,
       defaultValue: {},
     },

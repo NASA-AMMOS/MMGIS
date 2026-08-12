@@ -4310,6 +4310,55 @@
         }
       }
     },
+    "/api/geodatasets/convert_properties/{name}": {
+      "post": {
+        "summary": "Convert a geodataset's properties column to jsonb",
+        "description": "Converts a geodataset's `properties` column from `json` to `jsonb`. `json` is stored as text and reparsed on every property read; `jsonb` is stored parsed, which is several times faster for `stats=` and every other property read. Geodatasets created since this was added are already `jsonb`. The table is rewritten under an exclusive lock, so it is unavailable while the conversion runs.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversion response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Converted 'my_geodataset' properties to jsonb.",
+                      "properties_type": "jsonb"
+                    }
+                  },
+                  "already": {
+                    "summary": "Already jsonb",
+                    "value": {
+                      "status": "success",
+                      "message": "'my_geodataset' already stores its properties as jsonb.",
+                      "properties_type": "jsonb"
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Geodataset 'my_geodataset' not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/geodatasets/remove/{name}": {
       "delete": {
         "summary": "Remove a geodataset",

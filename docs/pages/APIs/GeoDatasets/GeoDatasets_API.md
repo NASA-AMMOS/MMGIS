@@ -29,6 +29,7 @@ Enables programmatic control over GeoDataset layers. GeoDatasets are GeoJSON fil
   - [POST /recreate/:name](#post-recreatename)
   - [POST /recreate/:name/:start_end_prop](#post-recreatenamestart_end_prop)
   - [POST /recompute_stats/:name](#post-recompute_statsname)
+  - [POST /convert_properties/:name](#post-convert_propertiesname)
   - [DELETE /remove/:name](#delete-removename)
 
 ---
@@ -234,7 +235,7 @@ It is absent for geodatasets that have not been created or recreated since MMGIS
 
 ### POST /entries
 
-Lists out available geodatasets and their last updated dates
+Lists out available geodatasets and their last updated dates. `properties_type` is how each one stores its feature properties, `json` or `jsonb` — see [POST /convert_properties/:name](#post-convert_propertiesname).
 
 #### Example
 
@@ -248,6 +249,7 @@ Lists out available geodatasets and their last updated dates
             {
                 "name": "terrain",
                 "updated": "2022-05-23T17:49:09.097Z",
+                "properties_type": "jsonb",
                 "field_stats": {
                     "elevation": {
                         "type": "number",
@@ -392,6 +394,18 @@ Recomputes a geodataset's dataset-wide `field_stats` from the features already i
 #### Example
 
 `curl -X POST -H "Authorization:Bearer <token>" http://localhost:8888/api/geodatasets/recompute_stats/my_geodataset`
+
+---
+
+### POST /convert_properties/:name
+
+Converts a geodataset's `properties` column from `json` to `jsonb`. `json` is stored as text and reparsed on every property read; `jsonb` is stored parsed, which is several times faster for `stats=` and for every other property read. Geodatasets created since this was added are already `jsonb` — [POST /entries](#post-entries) reports each one's `properties_type`.
+
+The table is rewritten under an exclusive lock, so it is unavailable while the conversion runs (about 25 seconds for 200,000 features) and needs free disk space of roughly the table's size until the old rows are vacuumed.
+
+#### Example
+
+`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8888/api/geodatasets/convert_properties/my_geodataset`
 
 ---
 

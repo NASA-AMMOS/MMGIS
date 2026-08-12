@@ -525,4 +525,42 @@ test.describe.serial("Geodatasets statistics", () => {
     expect(data.status).toBe("failure");
     expect(data.message).toContain("not found");
   });
+
+  test("entries report how each geodataset stores its properties", async () => {
+    test.skip(!adminReady, "SKIP: admin access unavailable");
+
+    const entries = await api
+      .post("/api/geodatasets/entries")
+      .then((res) => res.json());
+    const entry = entries.body.entries.find((e) => e.name === layerName);
+    // Newly created geodatasets store their properties parsed.
+    expect(entry.properties_type).toBe("jsonb");
+  });
+
+  test("converting properties is idempotent and leaves them readable", async () => {
+    test.skip(!adminReady, "SKIP: admin access unavailable");
+
+    const converted = await api
+      .post(`/api/geodatasets/convert_properties/${layerName}`)
+      .then((res) => res.json());
+    expect(converted.status).toBe("success");
+    expect(converted.properties_type).toBe("jsonb");
+
+    const features = await api
+      .get(`/api/geodatasets/get?layer=${layerName}&type=geojson`)
+      .then((res) => res.json())
+      .then((json) => json.features);
+    expect(features.length).toBeGreaterThanOrEqual(6);
+    expect(features.some((f) => f.properties.elev === 1)).toBe(true);
+  });
+
+  test("converting an unknown geodataset fails", async () => {
+    test.skip(!adminReady, "SKIP: admin access unavailable");
+
+    const data = await api
+      .post("/api/geodatasets/convert_properties/no_such_geodataset")
+      .then((res) => res.json());
+    expect(data.status).toBe("failure");
+    expect(data.message).toContain("not found");
+  });
 });

@@ -1152,6 +1152,85 @@ router.post("/recompute_stats/:name", function (req, res, next) {
     });
 });
 
+/**
+ * Storage type of the `properties` column of each named table, as
+ * { table: "json" | "jsonb" }. Tables without the column are left out.
+ */
+async function propertiesTypes(tables) {
+  const named = (tables || []).filter(Boolean);
+  if (named.length === 0) return {};
+  const [rows] = await sequelize.query(
+    `SELECT table_name, data_type FROM information_schema.columns
+      WHERE column_name = 'properties' AND table_name IN (:tables)`,
+    { replacements: { tables: named } }
+  );
+  const types = {};
+  rows.forEach((r) => (types[r.table_name] = r.data_type));
+  return types;
+}
+
+// Converts a geodataset's `properties` column from `json` to `jsonb`. `json` is
+// text that every property read reparses; `jsonb` is stored parsed, which is
+// several times faster for the per-group statistics and every other read.
+// The table is rewritten under an exclusive lock, so this is an explicit
+// administrator action rather than something that happens on its own.
+router.post("/convert_properties/:name", function (req, res, next) {
+  Geodatasets.findOne({ where: { name: req.params.name } })
+    .then(async (result) => {
+      if (result == null) {
+        res.send({
+          status: "failure",
+          message: `Geodataset '${req.params.name}' not found.`,
+        });
+        return null;
+      }
+      const table = Utils.forceAlphaNumUnder(result.dataValues.table);
+      const types = await propertiesTypes([table]);
+      if (types[table] == null) {
+        res.send({
+          status: "failure",
+          message: `Geodataset '${result.dataValues.name}' has no properties column.`,
+        });
+        return null;
+      }
+      if (types[table] === "jsonb") {
+        res.send({
+          status: "success",
+          message: `'${result.dataValues.name}' already stores its properties as jsonb.`,
+          properties_type: "jsonb",
+        });
+        return null;
+      }
+      await sequelize.query(
+        `ALTER TABLE ${table} ALTER COLUMN properties TYPE jsonb USING properties::jsonb`
+      );
+      logger(
+        "info",
+        `Converted properties of geodataset '${result.dataValues.name}' to jsonb.`
+      );
+      res.send({
+        status: "success",
+        message: `Converted '${result.dataValues.name}' properties to jsonb.`,
+        properties_type: "jsonb",
+      });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to convert properties of '${req.params.name}' to jsonb.`,
+        "geodatasets",
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to convert properties to jsonb.",
+      });
+      return null;
+    });
+});
+
 // Bulk schema endpoint — returns field names, types and source layers for
 // multiple geodataset layers in a single call.
 // GET /api/geodatasets/schema?layers=layer1,layer2,...
@@ -1406,11 +1485,13 @@ router.get("/bulk_aggregations", function (req, res, next) {
 //Returns a list of entries in the geodatasets table
 router.post("/entries", function (req, res, next) {
   Geodatasets.findAll()
-    .then((sets) => {
+    .then(async (sets) => {
       if (sets && sets.length > 0) {
+        const types = await propertiesTypes(sets.map((s) => s.table));
         let entries = [];
         for (let i = 0; i < sets.length; i++) {
           entries.push({
+            properties_type: types[sets[i].table],
             name: sets[i].name,
             updated: sets[i].updatedAt,
             filename: sets[i].filename,

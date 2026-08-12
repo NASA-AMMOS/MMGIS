@@ -26,6 +26,10 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
 import Badge from "@mui/material/Badge";
@@ -41,6 +45,8 @@ import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
 import TableChartIcon from "@mui/icons-material/TableChart";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import BoltIcon from "@mui/icons-material/Bolt";
 
 import NewGeoDatasetModal from "./Modals/NewGeoDatasetModal/NewGeoDatasetModal";
 import DeleteGeoDatasetModal from "./Modals/DeleteGeoDatasetModal/DeleteGeoDatasetModal";
@@ -338,6 +344,10 @@ export default function GeoDatasets() {
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
   // Which geodataset is being rescanned, if any - a whole-table pass.
   const [recomputing, setRecomputing] = React.useState(null);
+  // Which geodataset's properties are being rewritten, if any.
+  const [converting, setConverting] = React.useState(null);
+  // The row whose kebab menu is open, as { anchor, row }.
+  const [rowMenu, setRowMenu] = React.useState(null);
 
   const c = useStyles();
 
@@ -427,6 +437,28 @@ export default function GeoDatasets() {
     };
     calls.api(
       "geodatasets_recompute_stats",
+      { urlReplacements: { name: name } },
+      done,
+      done,
+    );
+  };
+
+  // Rewrite a geodataset's properties column as jsonb - stored parsed, so
+  // property reads stop reparsing the whole document.
+  const convertProperties = (name) => {
+    setConverting(name);
+    const done = (res) => {
+      setConverting(null);
+      dispatch(
+        setSnackBarText({
+          text: res?.message || "Failed to convert properties to jsonb.",
+          severity: res?.status === "success" ? "success" : "error",
+        }),
+      );
+      if (res?.status === "success") queryGeoDatasets();
+    };
+    calls.api(
+      "geodatasets_convert_properties",
       { urlReplacements: { name: name } },
       done,
       done,
@@ -651,47 +683,6 @@ export default function GeoDatasets() {
                             </IconButton>
                           </Tooltip>
                           <Divider orientation="vertical" flexItem />
-                          <Tooltip
-                            title={"Field Statistics"}
-                            placement="top"
-                            arrow
-                          >
-                            <IconButton
-                              className={c.statsIcon}
-                              title="Field Statistics"
-                              aria-label="field statistics"
-                              onClick={() => {
-                                dispatch(
-                                  setModal({
-                                    name: "geoDatasetFieldStats",
-                                    geoDataset: row,
-                                  }),
-                                );
-                              }}
-                            >
-                              <TableChartIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip
-                            title={
-                              "Recompute Statistics - only needed for a geodataset uploaded before they were kept."
-                            }
-                            placement="top"
-                            arrow
-                          >
-                            <IconButton
-                              className={c.statsIcon}
-                              title="Recompute Statistics"
-                              aria-label="recompute statistics"
-                              disabled={recomputing != null}
-                              onClick={() => {
-                                if (row.name) recomputeStats(row.name);
-                              }}
-                            >
-                              <QueryStatsIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Divider orientation="vertical" flexItem />
 
                           <Tooltip title={"Delete"} placement="top" arrow>
                             <IconButton
@@ -708,6 +699,21 @@ export default function GeoDatasets() {
                               }}
                             >
                               <DeleteForeverIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={"More"} placement="top" arrow>
+                            <IconButton
+                              className={c.inIcon}
+                              title="More"
+                              aria-label="more"
+                              onClick={(e) => {
+                                setRowMenu({
+                                  anchor: e.currentTarget,
+                                  row: row,
+                                });
+                              }}
+                            >
+                              <MoreVertIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </div>
@@ -746,6 +752,70 @@ export default function GeoDatasets() {
       <PreviewGeoDatasetModal />
       <AppendGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <UpdateGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
+      <Menu
+        anchorEl={rowMenu?.anchor}
+        open={rowMenu != null}
+        onClose={() => setRowMenu(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem
+          onClick={() => {
+            dispatch(
+              setModal({
+                name: "geoDatasetFieldStats",
+                geoDataset: rowMenu.row,
+              }),
+            );
+            setRowMenu(null);
+          }}
+        >
+          <ListItemIcon>
+            <TableChartIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Field Statistics</ListItemText>
+        </MenuItem>
+        <MenuItem
+          disabled={recomputing != null}
+          onClick={() => {
+            if (rowMenu.row.name) recomputeStats(rowMenu.row.name);
+            setRowMenu(null);
+          }}
+        >
+          <ListItemIcon>
+            <QueryStatsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            secondary="Rescan every feature. Only needed for a geodataset uploaded before statistics were kept."
+            secondaryTypographyProps={{ style: { whiteSpace: "normal" } }}
+          >
+            Recompute Statistics
+          </ListItemText>
+        </MenuItem>
+        <MenuItem
+          disabled={
+            converting != null || rowMenu?.row?.properties_type === "jsonb"
+          }
+          onClick={() => {
+            if (rowMenu.row.name) convertProperties(rowMenu.row.name);
+            setRowMenu(null);
+          }}
+        >
+          <ListItemIcon>
+            <BoltIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            secondary={
+              rowMenu?.row?.properties_type === "jsonb"
+                ? "Already jsonb."
+                : "Faster property reads. Rewrites the table and locks it while it runs."
+            }
+            secondaryTypographyProps={{ style: { whiteSpace: "normal" } }}
+          >
+            Convert Properties to jsonb
+          </ListItemText>
+        </MenuItem>
+      </Menu>
     </>
   );
 }
