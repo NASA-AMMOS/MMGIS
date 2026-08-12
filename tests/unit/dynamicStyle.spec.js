@@ -195,6 +195,14 @@ test.describe("dynamicStyle - resolveDomain", () => {
     expect(resolveDomain(rule, {})).toBeNull();
   });
 
+  test("a pinned end past the discovered one is refused too", () => {
+    // Half-typed: 200 is above every value the field has.
+    const low = numericRule({ domain: { source: "literal", min: 200 } });
+    expect(resolveDomain(low, { fieldStats: stats })).toBeNull();
+    const high = numericRule({ domain: { source: "literal", max: 1 } });
+    expect(resolveDomain(high, { fieldStats: stats })).toBeNull();
+  });
+
   test("fieldStats reads the stored dataset-wide extent", () => {
     const rule = numericRule({ domain: { source: "fieldStats" } });
     expect(resolveDomain(rule, { fieldStats: stats })).toEqual({

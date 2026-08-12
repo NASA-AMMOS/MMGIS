@@ -254,10 +254,13 @@ export function resolveDomain(rule, context) {
     if (resolved == null) resolved = dataset || statsDomain(fieldStat)
     if (resolved == null) return null
     // A half-configured domain pins one end and lets the other be discovered.
-    return {
+    const domain = {
         min: min != null ? min : resolved.min,
         max: max != null ? max : resolved.max,
     }
+    // A pinned end past the discovered one describes no scale, as a typed pair
+    // the wrong way round doesn't.
+    return domain.min > domain.max ? null : domain
 }
 
 /**
