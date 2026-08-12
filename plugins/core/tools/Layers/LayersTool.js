@@ -3181,7 +3181,7 @@ function interfaceWithMMGIS(fromInit) {
             listed.map((rule) =>
                 [
                 '<div class="sublayer dynamicStyleRow dynamicStyleRuleListed">',
-                    `<div>${escapeHTML(rulePropertyLabel(rule))}</div>`,
+                    `<div title="${escapeHTML(rulePropertyLabel(rule))}">${escapeHTML(rulePropertyLabel(rule))}</div>`,
                     `<div>${escapeHTML(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || rule.attribute)}</div>`,
                 '</div>',
                 ].join('\n')
@@ -3290,6 +3290,8 @@ function interfaceWithMMGIS(fromInit) {
     function getStatsSettings(layerName) {
         const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
         if (getDynamicStyle(layerObj) == null) return ''
+        // An admin may decide the numbers are more than a viewer needs.
+        if (layerObj?.variables?.dynamicStyle?.showStats === false) return ''
 
         const rows = []
         const seen = new Set()

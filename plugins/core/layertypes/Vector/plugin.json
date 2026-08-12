@@ -386,7 +386,7 @@
                 "name": "Enable Dynamic Style",
                 "description": "Turns the rules below on. Off, the layer is styled by the fields above alone.",
                 "type": "switch",
-                "width": 4,
+                "width": 3,
                 "defaultChecked": false
               },
               {
@@ -398,14 +398,22 @@
                   "dataset",
                   "view"
                 ],
-                "width": 4
+                "width": 3
               },
               {
                 "field": "variables.dynamicStyle.userSettable",
                 "name": "Is User Settable",
                 "description": "Lets a viewer turn the rules below on and off and adjust them from the Layers Tool - a different ramp, statistic, scale or bins - for their session only. Off, the layer is coloured as configured and there are no controls to change it.",
                 "type": "checkbox",
-                "width": 4,
+                "width": 3,
+                "defaultChecked": true
+              },
+              {
+                "field": "variables.dynamicStyle.showStats",
+                "name": "Show Stats",
+                "description": "Shows the numbers behind the styling - each styled property's min, max, average, standard deviation, count and nulls - under the rules in the Layers Tool.",
+                "type": "checkbox",
+                "width": 3,
                 "defaultChecked": true
               }
             ]
