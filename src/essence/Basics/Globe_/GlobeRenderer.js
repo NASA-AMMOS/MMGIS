@@ -1654,15 +1654,18 @@ class GlobeRenderer {
      */
     _screenDistanceToOutline(entity, position) {
         const now = Cesium.JulianDate.now()
+        const line = entity.polyline?.positions?.getValue(now)
+        // A ring's last edge closes it; a line has no such edge, and measuring
+        // one would let a click far from the line count as a click on it.
         const positions =
-            entity.polyline?.positions?.getValue(now) ||
-            entity.polygon?.hierarchy?.getValue(now)?.positions
+            line || entity.polygon?.hierarchy?.getValue(now)?.positions
         if (positions == null || positions.length < 2) return null
+        const last = line ? positions.length - 1 : positions.length
 
         const scene = this.renderer.scene
         let best = null
         let previous = null
-        for (let i = 0; i <= positions.length; i++) {
+        for (let i = 0; i <= last; i++) {
             const point = Cesium.SceneTransforms.worldToWindowCoordinates(
                 scene,
                 positions[i % positions.length]

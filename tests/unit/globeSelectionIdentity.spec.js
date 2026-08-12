@@ -56,6 +56,15 @@ test("a highlight is drawn as its own outline, not painted onto the entity", () 
   expect(src).not.toContain("entity.polygon.outlineColor = Cesium.Color.RED");
 });
 
+test("only a ring is measured as closed when picking by outline", () => {
+  // A polyline is an open path: an edge from its last vertex back to its first
+  // is never drawn, and measuring one would pick it from far away.
+  const src = fs.readFileSync(RENDERER, "utf8");
+  expect(src).toContain(
+    "const last = line ? positions.length - 1 : positions.length",
+  );
+});
+
 test("an id of one kind never matches an id of the other", () => {
   // A geodataset writes its row id to properties._.idx and only writes
   // properties.feature_id when the layer asks for that column: matching one
