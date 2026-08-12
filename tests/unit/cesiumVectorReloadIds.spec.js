@@ -35,6 +35,17 @@ test("what a load replaces stays up until the new features are drawn", () => {
   );
 });
 
+test("what a load replaces is freed, not just detached", () => {
+  // A dynamic-extent layer reloads on every pan.
+  const src = fs.readFileSync(CESIUM_VECTOR, "utf8");
+  expect(src).toContain("gctx.renderer.dataSources.remove(s, true)");
+  const renderer = fs.readFileSync(
+    path.resolve(__dirname, "../../src/essence/Basics/Globe_/GlobeRenderer.js"),
+    "utf8",
+  );
+  expect(renderer).not.toMatch(/dataSources\.remove\([^,)]+\)/);
+});
+
 test("a multipart entity still finds its feature", () => {
   // Cesium suffixes the parts of a multi-geometry (`..._2`), which the base id
   // the featureMap is keyed by doesn't have.

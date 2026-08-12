@@ -81,12 +81,16 @@ function outlineOnTerrain(entity, loadOptions) {
 // frame it is added.
 const RETIRE_MS = 500
 
-/** Take the data sources a load replaced off the globe, once it is drawn. */
+/**
+ * Take the data sources a load replaced off the globe, once it is drawn, and
+ * free them — a reload happens on every pan of a dynamic-extent layer, so
+ * merely detaching them would grow with the session.
+ */
 function retire(gctx, outgoing, ds) {
     const stale = outgoing.filter((s) => s != null && s !== ds)
     if (stale.length === 0) return
     setTimeout(() => {
-        stale.forEach((s) => gctx.renderer.dataSources.remove(s))
+        stale.forEach((s) => gctx.renderer.dataSources.remove(s, true))
         gctx.requestRender()
     }, RETIRE_MS)
 }

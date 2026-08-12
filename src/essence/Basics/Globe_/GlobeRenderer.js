@@ -1217,7 +1217,7 @@ class GlobeRenderer {
             if (existing.frameHandle != null) {
                 cancelAnimationFrame(existing.frameHandle)
             }
-            this.renderer.dataSources.remove(existing.dataSource)
+            this.renderer.dataSources.remove(existing.dataSource, true)
             if (this._displayedVectorDataSource[name] === existing.dataSource) {
                 delete this._displayedVectorDataSource[name]
             }
@@ -1226,7 +1226,9 @@ class GlobeRenderer {
         const handle = requestAnimationFrame(() => {
             const pending = this._pendingVectorRemoval[name]
             if (!pending || pending.dataSource !== dataSource) return
-            this.renderer.dataSources.remove(dataSource)
+            // Freed, not just detached: nothing reads a removed source, and a
+            // dynamic-extent layer removes one on every pan.
+            this.renderer.dataSources.remove(dataSource, true)
             delete this._pendingVectorRemoval[name]
             if (this._displayedVectorDataSource[name] === dataSource) {
                 delete this._displayedVectorDataSource[name]
