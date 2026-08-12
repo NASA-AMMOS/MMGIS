@@ -664,6 +664,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                 cb({ type: 'FeatureCollection', features: [] }, true)
                 break
             case 'api':
+                // An api url has no dynamic-extent query; answer anyway so the
+                // layer settles rather than waiting on a load that never comes.
+                cb({ type: 'FeatureCollection', features: [] }, true)
                 break
             default:
                 // Return .on('moveend zoomend') event

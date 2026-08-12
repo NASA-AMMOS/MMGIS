@@ -56,6 +56,23 @@ test("a highlight is drawn as its own outline, not painted onto the entity", () 
   expect(src).not.toContain("entity.polygon.outlineColor = Cesium.Color.RED");
 });
 
+test("an id of one kind never matches an id of the other", () => {
+  // A geodataset writes its row id to properties._.idx and only writes
+  // properties.feature_id when the layer asks for that column: matching one
+  // against the other names a different feature.
+  const {
+    featureIdentity,
+  } = require("../../src/essence/Basics/Layers_/features/identity.js");
+  expect(featureIdentity({ feature_id: 7 })).toBe(
+    featureIdentity({ feature_id: "7" }),
+  );
+  expect(featureIdentity({ _: { idx: 7 } })).not.toBe(
+    featureIdentity({ feature_id: 7 }),
+  );
+  expect(featureIdentity({ name: "no id" })).toBe(null);
+  expect(featureIdentity(null)).toBe(null);
+});
+
 test("a resolved style is not part of a feature's identity in either direction", () => {
   const src = fs.readFileSync(SELECTION, "utf8");
   // Both stripped before F_.isEqual compares them.

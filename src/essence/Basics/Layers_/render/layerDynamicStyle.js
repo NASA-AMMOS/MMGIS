@@ -295,10 +295,16 @@ export function compileLayerDynamicStyle(layerObj, features) {
     const resolver = resolverOf(compiled)
     // Silently losing every style is the hardest thing to diagnose about a rule,
     // so a rule that was configured but produced nothing says which one it was.
+    // A layer with nothing loaded yet - a dynamic-extent layer before its
+    // first query answers - has no values by definition, and saying so says
+    // nothing about the rule.
+    const loaded = Array.isArray(features) && features.length > 0
     dynamicStyle.rules
         .filter(
             (rule) =>
-                isUsableRule(rule) && !compiled.some((c) => c.rule === rule)
+                loaded &&
+                isUsableRule(rule) &&
+                !compiled.some((c) => c.rule === rule)
         )
         .forEach((rule) =>
             console.warn(

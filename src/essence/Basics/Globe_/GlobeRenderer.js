@@ -11,6 +11,34 @@ import {
 } from '../Layers_/render/gradientUtils'
 import { getCoordProperties } from '../Layers_/render/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
+import { featureIdentity } from '../Layers_/features/identity'
+
+// How near an outline a click counts as aimed at it.
+const OUTLINE_PICK_PIXELS = 12
+
+// The feature an entity came from. Cesium suffixes the parts of a multi-part
+// geometry after the first (`id_2`), which the feature map is not keyed by.
+function _featureFor(featureMap, entity) {
+    if (featureMap == null || entity?.id == null) return null
+    return (
+        featureMap[entity.id] ??
+        featureMap[String(entity.id).replace(/_\d+$/, '')] ??
+        null
+    )
+}
+
+// Distance from p to the segment ab, all in window coordinates.
+function _distanceToSegment(p, a, b) {
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const lengthSquared = dx * dx + dy * dy
+    let t =
+        lengthSquared === 0
+            ? 0
+            : ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared
+    t = Math.max(0, Math.min(1, t))
+    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+}
 
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
@@ -1618,6 +1646,64 @@ class GlobeRenderer {
     }
 
     /**
+     * Screen-space distance from a point to an entity's outline, or null when
+     * the entity has no outline in view.
+     */
+    _screenDistanceToOutline(entity, position) {
+        const now = Cesium.JulianDate.now()
+        const positions =
+            entity.polyline?.positions?.getValue(now) ||
+            entity.polygon?.hierarchy?.getValue(now)?.positions
+        if (positions == null || positions.length < 2) return null
+
+        const scene = this.renderer.scene
+        let best = null
+        let previous = null
+        for (let i = 0; i <= positions.length; i++) {
+            const point = Cesium.SceneTransforms.worldToWindowCoordinates(
+                scene,
+                positions[i % positions.length]
+            )
+            if (point == null) {
+                previous = null
+                continue
+            }
+            if (previous != null) {
+                const d = _distanceToSegment(position, previous, point)
+                if (best == null || d < best) best = d
+            }
+            previous = point
+        }
+        return best
+    }
+
+    /**
+     * The entity a click means. Overlapping fills pick topmost-first, which on
+     * an outline-only layer isn't the footprint the user aimed at, so an
+     * outline under the cursor wins over a fill it happens to sit on.
+     */
+    _pickEntityAt(position) {
+        const scene = this.renderer.scene
+        const picks = scene.drillPick(position, 8) || []
+        const entities = []
+        for (const p of picks)
+            if (
+                Cesium.defined(p) &&
+                p.id?.id != null &&
+                !entities.includes(p.id)
+            )
+                entities.push(p.id)
+        if (entities.length < 2) return entities[0] || null
+
+        // Topmost first, so overlapping outlines resolve the way fills do.
+        for (const entity of entities) {
+            const d = this._screenDistanceToOutline(entity, position)
+            if (d != null && d < OUTLINE_PICK_PIXELS) return entity
+        }
+        return entities[0]
+    }
+
+    /**
      * Setup global click handler for Cesium (single handler for all layers)
      */
     _setupGlobalClickHandler() {
@@ -1633,9 +1719,8 @@ class GlobeRenderer {
                 return
             }
 
-            const pickedObject = this.renderer.scene.pick(click.position)
-            if (Cesium.defined(pickedObject) && pickedObject.id) {
-                const entity = pickedObject.id
+            const entity = this._pickEntityAt(click.position)
+            if (entity) {
 
                 // Find which layer this entity belongs to
                 for (const layerName of Object.keys(this._layers)) {
@@ -1650,13 +1735,15 @@ class GlobeRenderer {
                         // longer contains.
                         if (
                             layerInfo.dataSource.entities.contains(entity) ||
-                            layerInfo.featureMap?.[entity.id] != null
+                            _featureFor(layerInfo.featureMap, entity) != null
                         ) {
                             // Found the layer - call its onClick callback
                             if (layerInfo.onClick && layerInfo.featureMap) {
                                 // Get original feature using entity.id (instant O(1) lookup)
-                                const originalFeature =
-                                    layerInfo.featureMap[entity.id]
+                                const originalFeature = _featureFor(
+                                    layerInfo.featureMap,
+                                    entity
+                                )
 
                                 if (originalFeature) {
                                     // Get lng/lat from entity based on geometry type
@@ -2291,10 +2378,7 @@ class GlobeRenderer {
      * A feature's own id, however the endpoint it came from spells it.
      */
     _featureIdOf(feature) {
-        const props = feature?.properties
-        if (props == null) return null
-        const id = props.feature_id ?? props._?.idx
-        return id == null ? null : String(id)
+        return featureIdentity(feature?.properties)
     }
 
     /**

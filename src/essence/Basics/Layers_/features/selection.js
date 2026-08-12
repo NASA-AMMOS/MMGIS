@@ -2,6 +2,7 @@ import F_ from '../../Formulae_/Formulae_'
 import Description from '../../UserInterface_/components/Description/Description'
 import ToolController_ from '../../ToolController_/ToolController_'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
+import { featureIdentity } from './identity'
 
 import $ from 'jquery'
 
@@ -230,18 +231,18 @@ export function selectFeature(L_, layerName, feature, relation, field) {
             const l = layerKeys[i]
             const layerFeature = layers[l].feature
 
-            // Fast path: match by feature_id when both features have it.
-            // Geodataset layers with _source have reduced properties that
-            // won't match the full search result via JSON.stringify.
-            // The search API stores the id in properties._.idx while the
-            // GET endpoint stores it in properties.feature_id.
-            const layerFid = layerFeature.properties?.feature_id
-            const inputFid =
-                f.properties?.feature_id ?? f.properties?._?.idx
+            // Fast path: match by id when both features have one of the same
+            // kind. Geodataset layers with _source have reduced properties
+            // that won't match the full search result via JSON.stringify.
+            // The search API stores the id in properties._.idx while the GET
+            // endpoint stores it in properties.feature_id - two different
+            // numberings, so a match across them would name another feature.
+            const layerFid = featureIdentity(layerFeature.properties)
+            const inputFid = featureIdentity(f.properties)
             if (
                 layerFid != null &&
                 inputFid != null &&
-                String(layerFid) === String(inputFid)
+                layerFid === inputFid
             ) {
                 if (layers[layerKeys[i + (relation || 0)]] != null) {
                     if (
