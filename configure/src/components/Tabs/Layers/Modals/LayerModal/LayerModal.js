@@ -294,6 +294,12 @@ const LayerModal = (props) => {
               if (Array.isArray(val)) {
                 obj[key] = val.filter((v) => v != null && v !== "");
                 if (obj[key].length === 0) delete obj[key];
+                // An objectarray item's own settings want the same cleanup.
+                else
+                  obj[key].forEach((v) => {
+                    if (v != null && typeof v === "object")
+                      filterEmptyStrings(v);
+                  });
               } else if (val != null && typeof val === "object") {
                 filterEmptyStrings(val);
               }
