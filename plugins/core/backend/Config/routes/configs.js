@@ -7,6 +7,7 @@ const express = require("express");
 const router = express.Router();
 const execFile = require("child_process").execFile;
 const Sequelize = require("sequelize");
+const crypto = require("crypto");
 const { sequelize } = require("../../../../../API/connection");
 
 const logger = require("../../../../../API/logger");
@@ -894,7 +895,247 @@ if (fullAccess)
     }, { full: true, mission: req.body.existingMission });
   });
 
-if (fullAccess) router.post("/rename", function (req, res, next) {});
+// pg_advisory_xact_lock takes two 32 bit keys. Derive them from the target
+// name so concurrent renames into the same name serialize on the same lock.
+const renameLockKeys = (name) => {
+  const digest = crypto
+    .createHash("sha1")
+    .update("mission_rename:" + name)
+    .digest();
+  return [digest.readInt32BE(0), digest.readInt32BE(4)];
+};
+
+if (fullAccess)
+  router.post("/rename", checkMissionPermission, function (req, res, next) {
+    const missionName = req.body.mission;
+    const newName = req.body.newName;
+
+    const nameRegex = /^[A-Za-z0-9_ -]+$/;
+    if (
+      !missionName ||
+      !nameRegex.test(missionName) ||
+      !newName ||
+      !nameRegex.test(newName)
+    ) {
+      logger("error", "Invalid mission name in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+    // Rename must be at least as strict as /add: a name you cannot create
+    // should not be reachable by renaming into it.
+    if (
+      newName !== newName.trim() ||
+      newName.trim().length === 0 ||
+      !isNaN(newName[0])
+    ) {
+      logger("error", "Bad new mission name in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Bad mission name." });
+      return;
+    }
+    if (missionName === newName) {
+      res.send({
+        status: "failure",
+        message: "New mission name must differ from the current name.",
+      });
+      return;
+    }
+    const missionsBase = path.resolve("./Missions");
+    const resolvedSrc = path.resolve("./Missions/" + missionName);
+    const resolvedDest = path.resolve("./Missions/" + newName);
+    if (
+      (!resolvedSrc.startsWith(missionsBase + path.sep) &&
+        resolvedSrc !== missionsBase) ||
+      (!resolvedDest.startsWith(missionsBase + path.sep) &&
+        resolvedDest !== missionsBase)
+    ) {
+      logger("error", "Path traversal attempt in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+
+    Config.findAll({ where: { mission: newName } })
+      .then((existing) => {
+        if ((existing && existing.length > 0) || fs.existsSync(resolvedDest)) {
+          res.send({
+            status: "failure",
+            message: "A mission named " + newName + " already exists.",
+          });
+          return null;
+        }
+        return Config.findAll({ where: { mission: missionName } }).then(
+          (rows) => {
+            if (!rows || rows.length === 0) {
+              res.send({
+                status: "failure",
+                message: "Mission " + missionName + " not found.",
+              });
+              return null;
+            }
+
+            // The folder name is intentionally separable from the mission name.
+            // Only follow the rename when the mission currently points at its
+            // own folder; if it points elsewhere, leave the folder alone.
+            const latest = rows.reduce((a, b) =>
+              (b.version || 0) > (a.version || 0) ? b : a
+            );
+            const latestFolder =
+              latest.config && latest.config.msv
+                ? latest.config.msv.missionFolderName
+                : undefined;
+            const followFolder =
+              !latestFolder ||
+              latestFolder === "" ||
+              latestFolder === missionName;
+
+            const lockKeys = renameLockKeys(newName);
+            return sequelize
+              .transaction(async (t) => {
+                // The check above is outside the transaction, so two callers
+                // can both see the name as free. A row lock cannot close that
+                // window because there are no rows to lock when the name is
+                // absent. Take a transaction scoped advisory lock on the target
+                // name instead, then re-check inside the transaction.
+                await sequelize.query(
+                  "SELECT pg_advisory_xact_lock($1, $2)",
+                  { bind: lockKeys, transaction: t }
+                );
+                const taken = await Config.findAll({
+                  where: { mission: newName },
+                  transaction: t,
+                });
+                if (taken && taken.length > 0) {
+                  const collision = new Error("mission name taken");
+                  collision.missionNameTaken = true;
+                  throw collision;
+                }
+                const configUpdates = rows.map((row) => {
+                  // Deep copy so Sequelize detects the JSON change
+                  const cfg = JSON.parse(JSON.stringify(row.config || {}));
+                  if (cfg.msv) {
+                    cfg.msv.mission = newName;
+                    if (followFolder) {
+                      cfg.msv.missionFolderName = newName;
+                    }
+                  }
+                  return row.update(
+                    { mission: newName, config: cfg },
+                    { transaction: t }
+                  );
+                });
+
+                // Mission-manager permissions are stored as mission names, so
+                // they must follow the rename or the manager loses access.
+                const permissionUpdate = User.findAll({
+                  transaction: t,
+                }).then((users) => {
+                  const affected = (users || []).filter(
+                    (u) =>
+                      Array.isArray(u.missions_managing) &&
+                      u.missions_managing.includes(missionName)
+                  );
+                  return Promise.all(
+                    affected.map((u) =>
+                      u.update(
+                        {
+                          missions_managing: u.missions_managing.map((m) =>
+                            m === missionName ? newName : m
+                          ),
+                        },
+                        { transaction: t }
+                      )
+                    )
+                  );
+                });
+
+                return Promise.all([...configUpdates, permissionUpdate]);
+              })
+              .then(() => {
+                logger(
+                  "info",
+                  "Renamed Mission: " + missionName + " to " + newName,
+                  req.originalUrl,
+                  req
+                );
+
+                // Other missions may embed ../OldName/ relative paths (written
+                // by clone/relativizePaths). Those silently break, so report them.
+                return Config.findAll().then((allRows) => {
+                  const needle = "../" + missionName + "/";
+                  const warnings = [];
+                  (allRows || []).forEach((row) => {
+                    if (row.mission === newName) {
+                      return;
+                    }
+                    try {
+                      if (JSON.stringify(row.config || {}).indexOf(needle) !== -1) {
+                        if (warnings.indexOf(row.mission) === -1) {
+                          warnings.push(row.mission);
+                        }
+                      }
+                    } catch (e) {
+                      // ignore unparsable configs
+                    }
+                  });
+
+                  const respond = (message) => {
+                    const payload = { status: "success", message: message };
+                    if (warnings.length > 0) {
+                      payload.warnings = [
+                        "These missions contain relative paths to " +
+                          missionName +
+                          " that will need updating: " +
+                          warnings.join(", "),
+                      ];
+                    }
+                    res.send(payload);
+                  };
+
+                  const srcDir = "./Missions/" + missionName;
+                  const destDir = "./Missions/" + newName;
+                  if (followFolder && fs.existsSync(srcDir)) {
+                    fs.rename(srcDir, destDir, (err) => {
+                      if (err) {
+                        respond(
+                          "Successfully renamed mission to " +
+                            newName +
+                            " but couldn't rename its Missions directory."
+                        );
+                      } else {
+                        respond("Successfully renamed mission to " + newName);
+                      }
+                    });
+                  } else {
+                    respond("Successfully renamed mission to " + newName);
+                  }
+                  return null;
+                });
+              });
+          }
+        );
+      })
+      .catch((err) => {
+        if (err && err.missionNameTaken) {
+          res.send({
+            status: "failure",
+            message: "A mission named " + newName + " already exists.",
+          });
+          return null;
+        }
+        logger(
+          "error",
+          "Failed to rename mission: " + missionName,
+          req.originalUrl,
+          req,
+          err
+        );
+        res.send({
+          status: "failure",
+          message: "Failed to rename mission " + missionName + ".",
+        });
+        return null;
+      });
+    return null;
+  });
 
 if (fullAccess)
   router.post("/destroy", checkMissionPermission, function (req, res, next) {
