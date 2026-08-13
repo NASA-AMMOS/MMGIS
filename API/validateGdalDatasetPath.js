@@ -51,11 +51,8 @@ function isRemote(datasetPath) {
   return remotePrefixOf(datasetPath) != null;
 }
 
-/**
- * An allowlist entry has to name a host or bucket. "/vsicurl/", "https://" or
- * "/vsicurl/https://" on their own would let any caller reach anything the
- * server can, so they are rejected as too broad.
- */
+// An entry has to name a host or bucket: "/vsicurl/" or "https://" alone would
+// let a caller reach anything the server can.
 function namesAHost(prefix) {
   let rest = prefix.slice(remotePrefixOf(prefix).length);
   const nestedScheme = REMOTE_PREFIXES.find(
@@ -65,12 +62,7 @@ function namesAHost(prefix) {
   return rest.split("/")[0].length > 0;
 }
 
-/**
- * Prefixes an operator has opted into via GDAL_ALLOWED_REMOTE_PREFIXES.
- * Entries that are not network-backed, or too broad to name a host, are dropped
- * so that a typo cannot re-open local file access or turn the server into an
- * open proxy.
- */
+// Prefixes an operator opted into via GDAL_ALLOWED_REMOTE_PREFIXES.
 function allowedRemotePrefixes() {
   return String(process.env.GDAL_ALLOWED_REMOTE_PREFIXES || "")
     .split(",")
@@ -105,9 +97,8 @@ function allowedRemotePrefixes() {
  * operator allowlisted their prefix in GDAL_ALLOWED_REMOTE_PREFIXES, since the
  * server fetches them itself and returns their bytes as pixel values.
  *
- * A remote dataset is handed to GDAL exactly as the caller wrote it — decoding
- * a url would change which object it addresses — so both the raw and the fully
- * decoded form have to satisfy the checks.
+ * Remote datasets reach GDAL exactly as written (decoding would change which
+ * object they address), so raw and decoded forms must both pass the checks.
  *
  * @param {string} rawPath - The raw path string from the request.
  * @returns {{ error: string }|{ decoded: string, resolved: string }}
