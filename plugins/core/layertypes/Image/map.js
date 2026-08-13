@@ -31,6 +31,9 @@ function make(layerObj, ctx = {}) {
     const L = mctx.raw
 
     let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
+    // The server reads the raster off its own disk, so it needs the mission path,
+    // not the browser-facing absolute url.
+    const layerDatasetPath = layerUrl
     if (!F_.isUrlAbsolute(layerUrl)) {
         layerUrl = `${window.location.origin}${(
             window.location.pathname || ''
@@ -88,7 +91,8 @@ function make(layerObj, ctx = {}) {
                         url: calls.getminmax.url,
                         data: {
                             type: 'minmax',
-                            path: calls.getprofile.pathprefix + layerUrl,
+                            path:
+                                calls.getprofile.pathprefix + layerDatasetPath,
                             bands: '[1]', // Assume the geotiff images only have a single band
                         },
                         async: false,
