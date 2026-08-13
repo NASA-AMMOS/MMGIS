@@ -43,14 +43,33 @@ const FORBIDDEN_TOKENS = [
   "<",
 ];
 
+function remotePrefixOf(datasetPath) {
+  return REMOTE_PREFIXES.find((prefix) => datasetPath.startsWith(prefix));
+}
+
 function isRemote(datasetPath) {
-  return REMOTE_PREFIXES.some((prefix) => datasetPath.startsWith(prefix));
+  return remotePrefixOf(datasetPath) != null;
+}
+
+/**
+ * An allowlist entry has to name a host or bucket. "/vsicurl/", "https://" or
+ * "/vsicurl/https://" on their own would let any caller reach anything the
+ * server can, so they are rejected as too broad.
+ */
+function namesAHost(prefix) {
+  let rest = prefix.slice(remotePrefixOf(prefix).length);
+  const nestedScheme = REMOTE_PREFIXES.find(
+    (candidate) => candidate.includes("://") && rest.startsWith(candidate)
+  );
+  if (nestedScheme) rest = rest.slice(nestedScheme.length);
+  return rest.split("/")[0].length > 0;
 }
 
 /**
  * Prefixes an operator has opted into via GDAL_ALLOWED_REMOTE_PREFIXES.
- * Entries that are not themselves network-backed are dropped, so a typo or an
- * over-broad entry cannot re-open local file access.
+ * Entries that are not network-backed, or too broad to name a host, are dropped
+ * so that a typo cannot re-open local file access or turn the server into an
+ * open proxy.
  */
 function allowedRemotePrefixes() {
   return String(process.env.GDAL_ALLOWED_REMOTE_PREFIXES || "")
@@ -58,14 +77,23 @@ function allowedRemotePrefixes() {
     .map((prefix) => prefix.trim())
     .filter((prefix) => {
       if (prefix.length === 0) return false;
-      if (isRemote(prefix)) return true;
-      logger(
-        "warn",
-        `Ignoring GDAL_ALLOWED_REMOTE_PREFIXES entry "${prefix}": not a remote GDAL prefix (expected one of ${REMOTE_PREFIXES.join(
-          ", "
-        )}).`
-      );
-      return false;
+      if (!isRemote(prefix)) {
+        logger(
+          "warn",
+          `Ignoring GDAL_ALLOWED_REMOTE_PREFIXES entry "${prefix}": not a remote GDAL prefix (expected one of ${REMOTE_PREFIXES.join(
+            ", "
+          )}).`
+        );
+        return false;
+      }
+      if (!namesAHost(prefix)) {
+        logger(
+          "warn",
+          `Ignoring GDAL_ALLOWED_REMOTE_PREFIXES entry "${prefix}": it allows any host. Include the host or bucket, e.g. "/vsis3/my-bucket/".`
+        );
+        return false;
+      }
+      return true;
     });
 }
 
@@ -77,27 +105,39 @@ function allowedRemotePrefixes() {
  * operator allowlisted their prefix in GDAL_ALLOWED_REMOTE_PREFIXES, since the
  * server fetches them itself and returns their bytes as pixel values.
  *
+ * A remote dataset is handed to GDAL exactly as the caller wrote it — decoding
+ * a url would change which object it addresses — so both the raw and the fully
+ * decoded form have to satisfy the checks.
+ *
  * @param {string} rawPath - The raw path string from the request.
  * @returns {{ error: string }|{ decoded: string, resolved: string }}
  */
 function validateGdalDatasetPath(rawPath) {
-  const decodeResult = fullyDecodePath(rawPath);
+  const raw = String(rawPath);
+  const decodeResult = fullyDecodePath(raw);
   if (decodeResult.error) return decodeResult;
   const decoded = decodeResult.decoded;
 
   if (!isRemote(decoded)) return validateMissionsPath(rawPath);
 
-  const lowered = decoded.toLowerCase();
-  if (FORBIDDEN_TOKENS.some((token) => lowered.includes(token))) {
+  const forbidden = (value) => {
+    const lowered = value.toLowerCase();
+    return FORBIDDEN_TOKENS.some((token) => lowered.includes(token));
+  };
+  if (forbidden(raw) || forbidden(decoded)) {
     return { error: "Invalid path: access denied." };
   }
-  if (!allowedRemotePrefixes().some((prefix) => decoded.startsWith(prefix))) {
+
+  const allowed = allowedRemotePrefixes();
+  const permitted = (value) =>
+    allowed.some((prefix) => value.startsWith(prefix));
+  if (!permitted(raw) || !permitted(decoded)) {
     return {
       error:
         "Remote dataset paths are not allowed. Ask a site administrator to allowlist the prefix via GDAL_ALLOWED_REMOTE_PREFIXES.",
     };
   }
-  return { decoded, resolved: decoded };
+  return { decoded, resolved: raw };
 }
 
 module.exports = validateGdalDatasetPath;

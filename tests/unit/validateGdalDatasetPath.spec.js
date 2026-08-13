@@ -55,6 +55,32 @@ test.describe('validateGdalDatasetPath', () => {
     });
   });
 
+  test('hands GDAL the url as written, percent-escapes intact', () => {
+    withAllowedPrefixes('https://cdn.example.gov/dems/', () => {
+      const url = 'https://cdn.example.gov/dems/site%20a%2520b.tif';
+      const result = validateGdalDatasetPath(url);
+      expect(result.error).toBeUndefined();
+      expect(result.resolved).toBe(url);
+    });
+  });
+
+  test('ignores allowlist entries that do not name a host', () => {
+    for (const allowlist of [
+      '/vsicurl/',
+      'https://',
+      '/vsicurl/https://',
+      '/vsis3/',
+    ]) {
+      withAllowedPrefixes(allowlist, () => {
+        expect(
+          validateGdalDatasetPath('/vsicurl/http://169.254.169.254/').error
+        ).toBeTruthy();
+        expect(validateGdalDatasetPath('https://evil.example.com/dem.tif').error).toBeTruthy();
+        expect(validateGdalDatasetPath('/vsis3/any-bucket/dem.tif').error).toBeTruthy();
+      });
+    }
+  });
+
   test('rejects remote datasets outside the allowlisted prefix', () => {
     withAllowedPrefixes('/vsis3/my-bucket/,https://cdn.example.gov/dems/', () => {
       for (const p of [
@@ -75,16 +101,21 @@ test.describe('validateGdalDatasetPath', () => {
     });
   });
 
-  test('never allows local virtual file systems or inline VRT behind a remote prefix', () => {
-    withAllowedPrefixes('/vsicurl/,/vsis3/,https://', () => {
-      for (const p of [
-        '/vsicurl//vsizip//etc/passwd',
-        '/vsis3/my-bucket/../../vsisubfile/0_100,/etc/passwd',
-        '/vsicurl/http://example.gov/<VRTDataset>',
-      ]) {
-        expect(validateGdalDatasetPath(p).error).toBeTruthy();
+  test('never allows local virtual file systems or inline VRT behind an allowlisted prefix', () => {
+    withAllowedPrefixes(
+      '/vsicurl/http://example.gov/,/vsis3/my-bucket/,https://example.gov/',
+      () => {
+        for (const p of [
+          '/vsicurl/http://example.gov//vsizip//etc/passwd',
+          '/vsis3/my-bucket/../../vsisubfile/0_100,/etc/passwd',
+          '/vsicurl/http://example.gov/<VRTDataset>',
+          // Encoded so that only the decoded form reveals the local wrapper.
+          '/vsicurl/http://example.gov/%2Fvsizip%2F%2Fetc%2Fpasswd',
+        ]) {
+          expect(validateGdalDatasetPath(p).error).toBeTruthy();
+        }
       }
-    });
+    );
   });
 
   test('rejects missing paths and invalid encodings', () => {
