@@ -760,7 +760,10 @@ export default function GeoDatasets() {
         anchorEl={rowMenu?.anchor}
         open={rowMenu?.open === true}
         onClose={closeRowMenu}
-        TransitionProps={{ onExited: () => setRowMenu(null) }}
+        TransitionProps={{
+          // Not a menu that has been opened again since the close began.
+          onExited: () => setRowMenu((menu) => (menu?.open ? menu : null)),
+        }}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
       >
