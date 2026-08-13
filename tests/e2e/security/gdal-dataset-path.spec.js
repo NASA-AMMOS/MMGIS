@@ -41,6 +41,8 @@ test.describe('GDAL dataset path validation', () => {
     ['traversal out of Missions', '/Missions/../../../etc/passwd'],
     ['encoded traversal out of Missions', '/Missions/%2e%2e/%2e%2e/etc/passwd'],
     ['vsicurl remote dataset', '/vsicurl/http://169.254.169.254/latest/meta-data/'],
+    ['bare http url', 'http://169.254.169.254/latest/meta-data/'],
+    ['vsizip local wrapper', '/vsizip//etc/passwd'],
   ];
 
   const endpoints = [

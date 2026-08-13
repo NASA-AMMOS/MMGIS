@@ -14,6 +14,7 @@ const { sequelizeSTAC } = require("../../../../../API/connection");
 const logger = require("../../../../../API/logger");
 const { computeLimiter } = require("../../../../../scripts/rateLimiters");
 const validateMissionsPath = require("../../../../../API/validateMissionsPath");
+const validateGdalDatasetPath = require("../../../../../API/validateGdalDatasetPath");
 
 const rootDir = `${__dirname}/../../../../..`;
 
@@ -249,7 +250,7 @@ router.get("/healthcheck", function (req, res) {
 
 //utils getprofile
 router.post("/getprofile", computeLimiter, function (req, res) {
-  const pathResult = validateMissionsPath(req.body.path);
+  const pathResult = validateGdalDatasetPath(req.body.path);
   if (pathResult.error) {
     return res.status(400).json({ error: true, message: pathResult.error });
   }
@@ -287,7 +288,7 @@ router.post("/getprofile", computeLimiter, function (req, res) {
 
 //utils getbands
 router.post("/getbands", computeLimiter, function (req, res) {
-  const pathResult = validateMissionsPath(req.body.path);
+  const pathResult = validateGdalDatasetPath(req.body.path);
   if (pathResult.error) {
     return res.status(400).json({ error: true, message: pathResult.error });
   }
@@ -313,7 +314,7 @@ router.post("/getbands", computeLimiter, function (req, res) {
 
 //utils getminmax
 router.post("/getminmax", computeLimiter, function (req, res) {
-  const pathResult = validateMissionsPath(req.body.path);
+  const pathResult = validateGdalDatasetPath(req.body.path);
   if (pathResult.error) {
     return res.status(400).json({ error: true, message: pathResult.error });
   }

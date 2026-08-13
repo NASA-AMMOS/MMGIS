@@ -12,7 +12,7 @@ const rootDir = `${__dirname}/..`;
  *   On failure: `{ error }` with a user-facing message.
  *   On success: `{ decoded, resolved }` — the fully decoded path and its absolute resolved form.
  */
-function validateMissionsPath(rawPath) {
+function fullyDecodePath(rawPath) {
   let decoded = String(rawPath);
   let prev = '';
   while (decoded !== prev) {
@@ -23,6 +23,13 @@ function validateMissionsPath(rawPath) {
       return { error: 'Invalid URL encoding in path.' };
     }
   }
+  return { decoded };
+}
+
+function validateMissionsPath(rawPath) {
+  const decodeResult = fullyDecodePath(rawPath);
+  if (decodeResult.error) return decodeResult;
+  let decoded = decodeResult.decoded;
   // Normalise: accept both "Missions/…" and "/Missions/…"
   if (!decoded.startsWith('/')) decoded = '/' + decoded;
   if (!decoded.startsWith('/Missions')) {
@@ -39,3 +46,4 @@ function validateMissionsPath(rawPath) {
 }
 
 module.exports = validateMissionsPath;
+module.exports.fullyDecodePath = fullyDecodePath;
