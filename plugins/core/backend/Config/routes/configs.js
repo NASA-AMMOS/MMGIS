@@ -7,6 +7,7 @@ const express = require("express");
 const router = express.Router();
 const execFile = require("child_process").execFile;
 const Sequelize = require("sequelize");
+const crypto = require("crypto");
 const { sequelize } = require("../../../../../API/connection");
 
 const logger = require("../../../../../API/logger");
@@ -894,6 +895,16 @@ if (fullAccess)
     }, { full: true, mission: req.body.existingMission });
   });
 
+// pg_advisory_xact_lock takes two 32 bit keys. Derive them from the target
+// name so concurrent renames into the same name serialize on the same lock.
+const renameLockKeys = (name) => {
+  const digest = crypto
+    .createHash("sha1")
+    .update("mission_rename:" + name)
+    .digest();
+  return [digest.readInt32BE(0), digest.readInt32BE(4)];
+};
+
 if (fullAccess)
   router.post("/rename", checkMissionPermission, function (req, res, next) {
     const missionName = req.body.mission;
@@ -908,6 +919,17 @@ if (fullAccess)
     ) {
       logger("error", "Invalid mission name in rename request.", req.originalUrl, req);
       res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+    // Rename must be at least as strict as /add: a name you cannot create
+    // should not be reachable by renaming into it.
+    if (
+      newName !== newName.trim() ||
+      newName.trim().length === 0 ||
+      !isNaN(newName[0])
+    ) {
+      logger("error", "Bad new mission name in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Bad mission name." });
       return;
     }
     if (missionName === newName) {
@@ -965,8 +987,27 @@ if (fullAccess)
               latestFolder === "" ||
               latestFolder === missionName;
 
+            const lockKeys = renameLockKeys(newName);
             return sequelize
-              .transaction((t) => {
+              .transaction(async (t) => {
+                // The check above is outside the transaction, so two callers
+                // can both see the name as free. A row lock cannot close that
+                // window because there are no rows to lock when the name is
+                // absent. Take a transaction scoped advisory lock on the target
+                // name instead, then re-check inside the transaction.
+                await sequelize.query(
+                  "SELECT pg_advisory_xact_lock($1, $2)",
+                  { bind: lockKeys, transaction: t }
+                );
+                const taken = await Config.findAll({
+                  where: { mission: newName },
+                  transaction: t,
+                });
+                if (taken && taken.length > 0) {
+                  const collision = new Error("mission name taken");
+                  collision.missionNameTaken = true;
+                  throw collision;
+                }
                 const configUpdates = rows.map((row) => {
                   // Deep copy so Sequelize detects the JSON change
                   const cfg = JSON.parse(JSON.stringify(row.config || {}));
@@ -1073,6 +1114,13 @@ if (fullAccess)
         );
       })
       .catch((err) => {
+        if (err && err.missionNameTaken) {
+          res.send({
+            status: "failure",
+            message: "A mission named " + newName + " already exists.",
+          });
+          return null;
+        }
         logger(
           "error",
           "Failed to rename mission: " + missionName,

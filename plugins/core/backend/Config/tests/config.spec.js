@@ -262,6 +262,81 @@ test.describe('Config API', () => {
     expect(renameBody.message).toMatch(/already exists/i);
   });
 
+  // POST /api/configure/rename — rejects names that /add would refuse
+  test('POST /api/configure/rename rejects names /add refuses', async ({ request }) => {
+    const mission = `RenameStrict-${Date.now()}`;
+
+    const add = await request.post(`${baseURL}/api/configure/add`, {
+      data: { mission: mission },
+    });
+    const addBody = await add.json();
+    if (addBody.status !== 'success') {
+      test.skip(true, 'Config add requires SuperAdmin — skipping strict name test');
+      return;
+    }
+    testMissionsCreated.push(mission);
+
+    // All whitespace, leading whitespace and a leading digit are rejected by
+    // /add, so renaming into them must be rejected too.
+    for (const badName of ['   ', ' Padded ', '9lives']) {
+      const response = await request.post(`${baseURL}/api/configure/rename`, {
+        data: { mission: mission, newName: badName },
+      });
+      expect(response.status()).toBeLessThan(500);
+      const body = await response.json();
+      expect(body.status).toBe('failure');
+      expect(body.message).toMatch(/bad mission name/i);
+    }
+  });
+
+  // POST /api/configure/rename — concurrent renames into one name, only one wins
+  test('POST /api/configure/rename serializes concurrent renames', async ({ request }) => {
+    const stamp = Date.now();
+    const missionA = `RaceSrcA-${stamp}`;
+    const missionB = `RaceSrcB-${stamp}`;
+    const target = `RaceTarget-${stamp}`;
+
+    const addA = await request.post(`${baseURL}/api/configure/add`, {
+      data: { mission: missionA },
+    });
+    const addABody = await addA.json();
+    if (addABody.status !== 'success') {
+      test.skip(true, 'Config add requires SuperAdmin — skipping concurrency test');
+      return;
+    }
+    testMissionsCreated.push(missionA);
+
+    const addB = await request.post(`${baseURL}/api/configure/add`, {
+      data: { mission: missionB },
+    });
+    expect((await addB.json()).status).toBe('success');
+    testMissionsCreated.push(missionB);
+    testMissionsCreated.push(target);
+
+    const [resA, resB] = await Promise.all([
+      request.post(`${baseURL}/api/configure/rename`, {
+        data: { mission: missionA, newName: target },
+      }),
+      request.post(`${baseURL}/api/configure/rename`, {
+        data: { mission: missionB, newName: target },
+      }),
+    ]);
+
+    const bodies = [await resA.json(), await resB.json()];
+    const succeeded = bodies.filter((b) => b.status === 'success');
+    const failed = bodies.filter((b) => b.status === 'failure');
+    expect(succeeded).toHaveLength(1);
+    expect(failed).toHaveLength(1);
+    expect(failed[0].message).toMatch(/already exists/i);
+
+    // The loser must be untouched rather than merged into the target.
+    const list = await request.get(`${baseURL}/api/configure/missions`);
+    const missions = (await list.json()).missions || [];
+    expect(missions).toContain(target);
+    const survivors = [missionA, missionB].filter((m) => missions.includes(m));
+    expect(survivors).toHaveLength(1);
+  });
+
   // POST /api/configure/rename — rejects renaming a mission that does not exist
   test('POST /api/configure/rename rejects an unknown mission', async ({ request }) => {
     const response = await request.post(`${baseURL}/api/configure/rename`, {
