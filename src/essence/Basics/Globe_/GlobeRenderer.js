@@ -673,15 +673,8 @@ class GlobeRenderer {
                 runPendingVectorReload: (name) =>
                     this._runPendingVectorReload(name),
                 // Drop a selection outline whose feature is going away.
-                clearHighlightIn: (dataSource) => {
-                    if (
-                        this._highlightedEntity &&
-                        dataSource?.entities?.contains?.(
-                            this._highlightedEntity
-                        )
-                    )
-                        this.clearHighlight()
-                },
+                clearHighlightIn: (dataSource) =>
+                    this._clearHighlightIn(dataSource),
                 utils: {
                     calculateImageryIndex: (name, ordered) =>
                         this._calculateTileLayerIndex(name, ordered),
@@ -1195,13 +1188,7 @@ class GlobeRenderer {
                 }
                 // A highlight outline would otherwise outlive the feature it
                 // traces (dynamic-extent reload, layer off).
-                if (
-                    this._highlightedEntity &&
-                    layerInfo.dataSource?.entities?.contains?.(
-                        this._highlightedEntity
-                    )
-                )
-                    this.clearHighlight()
+                this._clearHighlightIn(layerInfo.dataSource)
                 // Clean up feature mapping
                 if (layerInfo.featureMap) {
                     delete layerInfo.featureMap
@@ -2744,6 +2731,15 @@ class GlobeRenderer {
         }
 
         this._requestRender()
+    }
+
+    /** Clear the highlight when the entity it traces belongs to `dataSource`. */
+    _clearHighlightIn(dataSource) {
+        if (
+            this._highlightedEntity &&
+            dataSource?.entities?.contains?.(this._highlightedEntity)
+        )
+            this.clearHighlight()
     }
 
     /**

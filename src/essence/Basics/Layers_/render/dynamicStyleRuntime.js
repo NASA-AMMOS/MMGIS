@@ -49,25 +49,18 @@ function L_() {
  */
 export function domainFeatures(layerObj) {
     const Layers = L_()
-    const leafletLayer = Layers.layers.layer[layerObj?.name]
-    if (leafletLayer == null || typeof leafletLayer.eachLayer !== 'function')
-        return []
-
+    const sublayers = loadedSublayers(layerObj)
     const inViewOnly = getDomainMode(layerObj) === 'view'
     const bounds =
         inViewOnly && Layers.Map_?.map ? Layers.Map_.map.getBounds() : null
+    if (bounds == null) return sublayers.map((s) => s.feature)
 
-    const features = []
-    const all = []
-    leafletLayer.eachLayer((sublayer) => {
-        if (sublayer?.feature == null) return
-        all.push(sublayer.feature)
-        if (bounds != null && !intersects(bounds, sublayer)) return
-        features.push(sublayer.feature)
-    })
+    const features = sublayers
+        .filter((s) => intersects(bounds, s))
+        .map((s) => s.feature)
     // A domain measured over nothing is no styling at all, so a layer panned
     // entirely off screen falls back to everything it holds.
-    return features.length === 0 ? all : features
+    return features.length === 0 ? sublayers.map((s) => s.feature) : features
 }
 
 function intersects(bounds, sublayer) {
@@ -383,15 +376,19 @@ export function summarizeProperty(features, property) {
 
 /** Every feature a layer holds, whatever its domain is measured over. */
 function loadedFeatures(layerObj) {
-    const Layers = L_()
-    const leafletLayer = Layers.layers.layer[layerObj?.name]
+    return loadedSublayers(layerObj).map((sublayer) => sublayer.feature)
+}
+
+/** The layer's drawn sublayers that carry a feature. */
+function loadedSublayers(layerObj) {
+    const leafletLayer = L_().layers.layer[layerObj?.name]
     if (leafletLayer == null || typeof leafletLayer.eachLayer !== 'function')
         return []
-    const features = []
+    const sublayers = []
     leafletLayer.eachLayer((sublayer) => {
-        if (sublayer?.feature != null) features.push(sublayer.feature)
+        if (sublayer?.feature != null) sublayers.push(sublayer)
     })
-    return features
+    return sublayers
 }
 
 /**

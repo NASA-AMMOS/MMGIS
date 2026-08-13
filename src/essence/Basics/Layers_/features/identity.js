@@ -28,10 +28,3 @@ export function sameFeature(a, b) {
     const bIds = featureIdentities(b)
     return featureIdentities(a).some((id) => bIds.includes(id))
 }
-
-/** One name for a feature, preferring its `feature_id`. */
-export function featureIdentity(properties) {
-    return featureIdentities(properties)[0] ?? null
-}
-
-export default featureIdentity

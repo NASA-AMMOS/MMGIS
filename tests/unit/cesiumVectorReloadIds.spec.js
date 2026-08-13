@@ -46,7 +46,7 @@ test("what a load replaces is freed, not just detached", () => {
   expect(renderer).not.toMatch(/dataSources\.remove\([^,)]+\)/);
   // A selection outline would otherwise trace an entity that no longer exists.
   expect(src).toContain("gctx.clearHighlightIn?.(s)");
-  expect(renderer).toContain("clearHighlightIn: (dataSource) => {");
+  expect(renderer).toContain("_clearHighlightIn(dataSource) {");
 });
 
 test("a multipart entity still finds its feature", () => {

@@ -14,7 +14,7 @@ const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
 const updateGeodatasetFieldStats = geodatasets.updateGeodatasetFieldStats;
 
-const { jsonbAccessor, jsonbAccessorText } = require("../lib/jsonb");
+const { jsonbAccessor } = require("../lib/jsonb");
 const {
   sanitizeStatFields,
   buildStatsSelect,

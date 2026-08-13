@@ -44,10 +44,4 @@ function jsonbAccessor(key, placeholder) {
   return { text: `properties${path}`, replacements: {} };
 }
 
-// Same as jsonbAccessor but returns the JSONB form (-> not ->>) for casting.
-// e.g., for numeric comparisons: (properties->'a'->>'b')::FLOAT
-function jsonbAccessorText(key, placeholder) {
-  return jsonbAccessor(key, placeholder);
-}
-
-module.exports = { jsonbAccessor, jsonbAccessorText };
+module.exports = { jsonbAccessor };

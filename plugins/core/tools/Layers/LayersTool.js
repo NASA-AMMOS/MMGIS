@@ -25,6 +25,7 @@ import {
     getStatsFields,
     getViewedRules,
 } from '@basics/Layers_/render/layerDynamicStyle'
+import { escapeHtml } from '@basics/Layers_/render/gradientUtils'
 import refreshLayer from '@basics/Layers_/lifecycle/refresh'
 import {
     RESTYLED_EVENT,
@@ -3073,19 +3074,6 @@ function interfaceWithMMGIS(fromInit) {
     // Sublayer things
 
     /**
-     * Text safe to put in markup. Feature property names come from whatever
-     * GeoJSON was uploaded, so they are not ours to trust.
-     */
-    function escapeHTML(text) {
-        return String(text)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;')
-    }
-
-    /**
      * The dynamic style's runtime controls: what a viewer may change about how
      * a layer is coloured without being an admin, and without it outliving the
      * session. Only shown for a layer that has a dynamic style to change.
@@ -3106,7 +3094,7 @@ function interfaceWithMMGIS(fromInit) {
             return getDynamicStyleListing(rules)
 
         const mode = getDomainMode(layerObj)
-        const name = escapeHTML(layerName)
+        const name = escapeHtml(layerName)
         // A geodataset holds back most of its features, so a scale without
         // stored statistics is only over what is loaded. A categorical rule
         // spans no range, and a group statistic is bounded by its field's
@@ -3156,7 +3144,7 @@ function interfaceWithMMGIS(fromInit) {
             '</div>',
             unmeasured.length === 0 ? '' : [
             `<div class="sublayer dynamicStyleRow dynamicStyleNote" data-tippy-content="A geodataset is measured over every feature it has at ingest, and Recompute Statistics in Configure measures one that predates that - for its numeric fields. Reload the page for a recompute to reach it.">`,
-                `<div>No dataset-wide numbers for ${escapeHTML(unmeasured.join(', '))} - scaled over what is loaded.</div>`,
+                `<div>No dataset-wide numbers for ${escapeHtml(unmeasured.join(', '))} - scaled over what is loaded.</div>`,
             '</div>'].join('\n'),
             rules.map((rule, index) =>
                 getDynamicStyleRuleSettings(layerName, rule, index)
@@ -3181,8 +3169,8 @@ function interfaceWithMMGIS(fromInit) {
             listed.map((rule) =>
                 [
                 '<div class="sublayer dynamicStyleRow dynamicStyleRuleListed">',
-                    `<div title="${escapeHTML(rulePropertyLabel(rule))}">${escapeHTML(rulePropertyLabel(rule))}</div>`,
-                    `<div>${escapeHTML(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || rule.attribute)}</div>`,
+                    `<div title="${escapeHtml(rulePropertyLabel(rule))}">${escapeHtml(rulePropertyLabel(rule))}</div>`,
+                    `<div>${escapeHtml(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || rule.attribute)}</div>`,
                 '</div>',
                 ].join('\n')
             ).join('\n'),
@@ -3195,7 +3183,7 @@ function interfaceWithMMGIS(fromInit) {
      * chooses which of them to look through and adjusts those.
      */
     function getDynamicStyleRuleSettings(layerName, rule, index) {
-        const name = escapeHTML(layerName)
+        const name = escapeHtml(layerName)
         const isStats = propertyTypeOf(rule) === 'stats'
         const on = rule?.enabled !== false
         const byValue = isCategoricalNow(layerName, rule)
@@ -3203,7 +3191,7 @@ function interfaceWithMMGIS(fromInit) {
         // prettier-ignore
         return [
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleHeading">',
-                `<div title="Styles ${escapeHTML(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || 'the fill')} by ${escapeHTML(rulePropertyLabel(rule))}.">${escapeHTML(rulePropertyLabel(rule))}</div>`,
+                `<div title="Styles ${escapeHtml(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || 'the fill')} by ${escapeHtml(rulePropertyLabel(rule))}.">${escapeHtml(rulePropertyLabel(rule))}</div>`,
                 '<div class="checkboxcont">',
                     `<div class="checkbox dynamicStyleRuleEnabled ${on ? 'on' : 'off'}" layername="${name}" ruleindex="${index}" title="Whether this rule styles the layer."></div>`,
                 '</div>',
@@ -3242,9 +3230,9 @@ function interfaceWithMMGIS(fromInit) {
             '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow dynamicStyleRangeRow">',
                 `<div title="What the property's lowest and highest values come out as. A lower 'to' than 'from' reverses the scale.">${ATTRIBUTE_LABELS[rule.attribute] || 'Style'}</div>`,
                 '<div class="dynamicStyleRangeInputs">',
-                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="low" type="number" step="any" value="${escapeHTML(rangeOf(rule)[0])}" title="What the lowest value looks like.">`,
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="low" type="number" step="any" value="${escapeHtml(rangeOf(rule)[0])}" title="What the lowest value looks like.">`,
                     '<div>to</div>',
-                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="high" type="number" step="any" value="${escapeHTML(rangeOf(rule)[1])}" title="What the highest value looks like.">`,
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="high" type="number" step="any" value="${escapeHtml(rangeOf(rule)[1])}" title="What the highest value looks like.">`,
                 '</div>',
             '</div>'].join('\n'),
             // The ramp is picked from its colours rather than its name, and
@@ -3264,7 +3252,7 @@ function interfaceWithMMGIS(fromInit) {
         if (rule?.type === 'categorical') return true
         const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
         const path = rulePropertyPath(rule)
-        return (layerObj?._dynamicStyleRules || []).some(
+        return getLayerDynamicStyleRules(layerObj).some(
             (compiled) => compiled.property === path && compiled.categorical
         )
     }
@@ -3312,7 +3300,7 @@ function interfaceWithMMGIS(fromInit) {
             // prettier-ignore
             rows.push([
                 '<div class="sublayer statsRow statsProperty">',
-                    `<div>${escapeHTML(rulePropertyLabel(rule))}</div>`,
+                    `<div>${escapeHtml(rulePropertyLabel(rule))}</div>`,
                     `<div>${over}</div>`,
                 '</div>',
                 statRow('Min', stats.min),
