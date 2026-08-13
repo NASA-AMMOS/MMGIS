@@ -222,6 +222,10 @@ If true, then also triggers the kernel download when MMGIS starts | boolean | de
 
 A cron schedule expression for use in the [node-schedule npm library](https://www.npmjs.com/package/node-schedule) | string | default `"0 0 */2 * *"` (every other day)
 
+#### `GDAL_ALLOWED_REMOTE_PREFIXES=`
+
+Comma-separated list of remote GDAL dataset prefixes that `/api/utils/getprofile`, `/api/utils/getbands` and `/api/utils/getminmax` are allowed to open — for instance `/vsis3/my-bucket/,https://my-cdn.example.gov/dems/`. Recognized prefixes are the network-backed GDAL virtual file systems (`/vsicurl/`, `/vsis3/`, `/vsigs/`, `/vsiaz/`, `/vsiadls/`, `/vsioss/`, `/vsiswift/`, `/vsihdfs/`, `/vsiwebhdfs/`, including their `_streaming` variants) plus `http://`, `https://` and `ftp://` urls; entries that are not one of these, or that name no host or bucket (`/vsicurl/`, `https://`), are ignored. When empty, those endpoints only accept rasters under `/Missions`. MMGIS' server fetches these datasets itself and returns their contents as pixel values, so only list locations you trust — a broad entry lets any user of the site read from hosts the server can reach. Local virtual file systems such as `/vsizip/` and `/vsisubfile/` are always rejected. | string | default `""` (no remote datasets)
+
 #### `COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS=`
 
 When using composited time tiles, MMGIS queries the tileset's folder for existing time folders. It caches the results of the these folder listings every COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS milliseconds. Defaults to requerying every 30 minutes. If 0, no caching. If null or NaN, uses default. | number | default `1800000`
