@@ -82,6 +82,16 @@ Note: for directly accessing cloud-optimized GeoTIFFs, the XML description file 
 
 See GDAL documentation for more information about virtual file systems: https://gdal.org/user/virtual_file_systems.html#network-based-file-systems
 
+## Allowlisting Remote Prefixes
+
+Remote datasets are opened by MMGIS' server, not by the browser, so they are disabled by default. A site administrator must list the prefixes to trust in the [`GDAL_ALLOWED_REMOTE_PREFIXES`](/MMGIS/setup/envs) environment variable, for example:
+
+```
+GDAL_ALLOWED_REMOTE_PREFIXES=/vsicurl/http://localhost/,/vsis3/my-bucket/
+```
+
+Paths that do not match an allowlisted prefix are rejected with an error instead of being queried.
+
 ## More Information
 
 For more details about the XML description file, see the official GDAL documentation here: https://gdal.org/drivers/raster/wms.html#xml-description-file

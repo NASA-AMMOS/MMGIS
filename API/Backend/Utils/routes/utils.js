@@ -6,12 +6,15 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 const path = require("path");
-const exec = require("child_process").exec;
 const execFile = require("child_process").execFile;
+const spawn = require("child_process").spawn;
 
 const Sequelize = require("sequelize");
 const { sequelizeSTAC } = require("../../../connection");
 const logger = require("../../../logger");
+const { computeLimiter } = require("../../../../scripts/rateLimiters");
+const validateMissionsPath = require("../../../validateMissionsPath");
+const validateGdalDatasetPath = require("../../../validateGdalDatasetPath");
 
 const rootDir = `${__dirname}/../../../..`;
 
@@ -46,41 +49,15 @@ function getDirsInRange(prepath, starttime, endtime) {
   }
 */
 function queryTilesetTimesDir(req, res) {
-  const originalUrl = req.query.path;
-
-  // Security: Decode URL encoding to catch encoded path traversal attempts
-  // Handle multiple levels of encoding
-  let decodedUrl = originalUrl;
-  let previousUrl = '';
-  while (decodedUrl !== previousUrl) {
-    previousUrl = decodedUrl;
-    try {
-      decodedUrl = decodeURIComponent(decodedUrl);
-    } catch (e) {
-      // Invalid URL encoding, reject
-      res.send({
-        status: "failure",
-        message: "Invalid URL encoding in path.",
-      });
-      return;
-    }
-  }
-
-  if (!decodedUrl.startsWith("/Missions")) {
-    res.send({
-      status: "failure",
-      message: "Only paths beginning with '/Missions' are supported.",
-    });
+  const pathResult = validateMissionsPath(req.query.path);
+  if (pathResult.error) {
+    res.send({ status: "failure", message: pathResult.error });
     return;
   }
-  // Security: Block path traversal sequences (after decoding)
-  if (decodedUrl.includes('..')) {
-    res.send({
-      status: "failure",
-      message: "Invalid path: traversal sequences not allowed.",
-    });
-    return;
-  }
+  const decodedUrl = pathResult.decoded;
+  const resolvedPath = pathResult.resolved;
+  const allowedBase = path.resolve(rootDir, 'Missions');
+
   if (
     req.query.starttime == null ||
     req.query.endtime == null ||
@@ -96,26 +73,11 @@ function queryTilesetTimesDir(req, res) {
 
   const relUrl = decodedUrl.replace("/Missions", "");
 
-  // Security: Validate resolved path stays within allowed directory
-  // This prevents path traversal via URL encoding or other techniques
-  const targetPath = path.join(rootDir, decodedUrl);
-  const resolvedPath = path.resolve(targetPath);
-  const allowedBase = path.resolve(rootDir, 'Missions');
-
-  // Normalize paths for comparison (handle Windows/Unix differences)
-  const normalizedResolved = resolvedPath.replace(/\\/g, '/');
-  const normalizedBase = allowedBase.replace(/\\/g, '/');
-
-  if (!normalizedResolved.startsWith(normalizedBase)) {
-    res.send({
-      status: "failure",
-      message: "Invalid path: access denied.",
-    });
-    return;
-  }
-
   if (decodedUrl.indexOf("_time_") > -1) {
-    const urlSplit = decodedUrl.split("_time_");
+    // Find _time_ marker only after the allowedBase prefix, so any
+    // _time_ substring inside the installation directory is ignored.
+    const timeMarkerIndex = resolvedPath.indexOf("_time_", allowedBase.length);
+    const resolvedDir = resolvedPath.substring(0, timeMarkerIndex);
     const relUrlSplit = relUrl.split("_time_");
 
     if (dirStore[relUrlSplit[0]] == null) {
@@ -126,7 +88,7 @@ function queryTilesetTimesDir(req, res) {
     }
     if (Date.now() - dirStore[relUrlSplit[0]].lastUpdated > DIR_STORE_MAX_AGE) {
       fs.readdir(
-        path.join(rootDir, urlSplit[0]),
+        resolvedDir,
         { withFileTypes: true },
         (error, files) => {
           if (!error) {
@@ -287,8 +249,12 @@ router.get("/healthcheck", function (req, res) {
 // TODO: Remove or move to Setup structure. Some are definitely still used.
 
 //utils getprofile
-router.post("/getprofile", function (req, res) {
-  const path = encodeURIComponent(req.body.path);
+router.post("/getprofile", computeLimiter, function (req, res) {
+  const pathResult = validateGdalDatasetPath(req.body.path);
+  if (pathResult.error) {
+    return res.status(400).json({ error: true, message: pathResult.error });
+  }
+  const rasterPath = encodeURIComponent(pathResult.resolved);
   const lat1 = encodeURIComponent(req.body.lat1);
   const lon1 = encodeURIComponent(req.body.lon1);
   const lat2 = encodeURIComponent(req.body.lat2);
@@ -300,7 +266,7 @@ router.post("/getprofile", function (req, res) {
     "python",
     [
       "private/api/2ptsToProfile.py",
-      path,
+      rasterPath,
       lat1,
       lon1,
       lat2,
@@ -321,8 +287,12 @@ router.post("/getprofile", function (req, res) {
 });
 
 //utils getbands
-router.post("/getbands", function (req, res) {
-  const path = encodeURIComponent(req.body.path);
+router.post("/getbands", computeLimiter, function (req, res) {
+  const pathResult = validateGdalDatasetPath(req.body.path);
+  if (pathResult.error) {
+    return res.status(400).json({ error: true, message: pathResult.error });
+  }
+  const rasterPath = encodeURIComponent(pathResult.resolved);
   const x = encodeURIComponent(req.body.x);
   const y = encodeURIComponent(req.body.y);
   const xyorll = encodeURIComponent(req.body.xyorll);
@@ -330,7 +300,7 @@ router.post("/getbands", function (req, res) {
 
   execFile(
     "python",
-    ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
+    ["private/api/BandsToProfile.py", rasterPath, x, y, xyorll, bands],
     function (error, stdout, stderr) {
       if (error) {
         logger("warn", error);
@@ -343,13 +313,17 @@ router.post("/getbands", function (req, res) {
 });
 
 //utils getminmax
-router.post("/getminmax", function (req, res) {
-  const path = encodeURIComponent(req.body.path);
+router.post("/getminmax", computeLimiter, function (req, res) {
+  const pathResult = validateGdalDatasetPath(req.body.path);
+  if (pathResult.error) {
+    return res.status(400).json({ error: true, message: pathResult.error });
+  }
+  const rasterPath = encodeURIComponent(pathResult.resolved);
   const bands = encodeURIComponent(req.body.bands);
 
   execFile(
     "python",
-    ["private/api/gdalinfoMinMax.py", path, bands],
+    ["private/api/gdalinfoMinMax.py", rasterPath, bands],
     function (error, stdout, stderr) {
       if (error) {
         logger("warn", error);
@@ -362,7 +336,7 @@ router.post("/getminmax", function (req, res) {
 });
 
 //utils ll2aerll
-router.post("/ll2aerll", function (req, res) {
+router.post("/ll2aerll", computeLimiter, function (req, res) {
   const lng = encodeURIComponent(req.body.lng);
   const lat = encodeURIComponent(req.body.lat);
   const height = encodeURIComponent(req.body.height);
@@ -404,8 +378,69 @@ router.post("/ll2aerll", function (req, res) {
   );
 });
 
+
+//utils ll2aerll_bulk (batch time queries, kernels loaded once)
+router.post("/ll2aerll_bulk", computeLimiter, function (req, res) {
+  const MAX_TIMES = 1000;
+  if (!Array.isArray(req.body.times) || req.body.times.length === 0) {
+    return res.status(400).json({ error: true, message: "times must be a non-empty array" });
+  }
+  if (req.body.times.length > MAX_TIMES) {
+    return res.status(400).json({ error: true, message: "times array exceeds maximum of " + MAX_TIMES + " entries" });
+  }
+  if (req.body.lng == null || req.body.lat == null || req.body.height == null || !req.body.target) {
+    return res.status(400).json({ error: true, message: "lng, lat, height, and target are required" });
+  }
+  // Validate string fields used in filesystem path construction in Python.
+  // Only allow alphanumeric, underscore, hyphen (SPICE body/frame names).
+  const SAFE_NAME_RE = /^[A-Za-z0-9_-]+$/;
+  const target = String(req.body.target);
+  const obsRefFrame = String(req.body.obsRefFrame || "IAU_MARS");
+  const obsBody = String(req.body.obsBody || "MARS");
+  if (!SAFE_NAME_RE.test(target) || !SAFE_NAME_RE.test(obsRefFrame) || !SAFE_NAME_RE.test(obsBody)) {
+    return res.status(400).json({ error: true, message: "target, obsRefFrame, and obsBody must contain only alphanumeric, underscore, or hyphen characters" });
+  }
+  const inputData = {
+    lng: req.body.lng,
+    lat: req.body.lat,
+    height: req.body.height,
+    target: target,
+    times: req.body.times,
+    obsRefFrame: obsRefFrame,
+    obsBody: obsBody,
+    includeSunEarth: String(req.body.includeSunEarth || "false"),
+    isCustom: String(req.body.isCustom || "false"),
+    customAz: req.body.customAz || 0,
+    customEl: req.body.customEl || 0,
+    customRange: req.body.customRange || 0,
+  };
+
+  const child = spawn("python", ["private/api/ll2aerll.py", "--bulk"]);
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (data) => { stdout += data.toString(); });
+  child.stderr.on("data", (data) => { stderr += data.toString(); });
+  child.on("error", (err) => {
+    logger("error", "ll2aerll_bulk spawn failure:", "server", null, err);
+    if (!res.headersSent) res.status(500).json({ error: true, message: "Failed to start Python process" });
+  });
+  child.on("close", (code) => {
+    if (code !== 0) {
+      logger("error", "ll2aerll_bulk failure:", "server", null, stderr || stdout);
+      if (!res.headersSent) res.status(500).json({ error: true, message: "Python process exited with code " + code });
+      return;
+    }
+    if (!res.headersSent) res.send(stdout);
+  });
+  child.stdin.on("error", (err) => {
+    logger("error", "ll2aerll_bulk stdin error:", "server", null, err);
+  });
+  child.stdin.write(JSON.stringify(inputData));
+  child.stdin.end();
+});
+
 //utils chronos (spice time converter)
-router.post("/chronice", function (req, res) {
+router.post("/chronice", computeLimiter, function (req, res) {
   const body = encodeURIComponent(req.body.body);
   const target = encodeURIComponent(req.body.target);
   const fromFormat = encodeURIComponent(req.body.from);
@@ -413,9 +448,14 @@ router.post("/chronice", function (req, res) {
     .replace(/%20/g, " ")
     .replace(/%3A/g, ":");
 
+  const args = ["private/api/chronice.py", body, target, fromFormat, time];
+  if (req.body.lng != null) {
+    args.push(encodeURIComponent(String(req.body.lng)));
+  }
+
   execFile(
     "python",
-    ["private/api/chronice.py", body, target, fromFormat, time],
+    args,
     function (error, stdout, stderr) {
       if (error) logger("error", "chronice failure:", "server", null, error);
       res.send(stdout);
@@ -424,7 +464,7 @@ router.post("/chronice", function (req, res) {
 });
 
 //utils chronos (spice time converter)
-router.get("/proj42wkt", function (req, res) {
+router.get("/proj42wkt", computeLimiter, function (req, res) {
   const proj4 = encodeURIComponent(req.query.proj4);
 
   execFile(
@@ -436,5 +476,8 @@ router.get("/proj42wkt", function (req, res) {
     }
   );
 });
+
+
+
 
 module.exports = router;
