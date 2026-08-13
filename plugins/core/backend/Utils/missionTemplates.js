@@ -254,7 +254,7 @@ async function setupReferenceGeodatasets(missionName, blueprintSourcePath) {
                     (success) => success
                         ? resolve()
                         : reject(new Error('populateGeodatasetTable failed')),
-                    { name: geodatasetName, action: null }
+                    { name: tableResult.name, action: null }
                 );
             });
 
