@@ -249,7 +249,11 @@ router.get("/healthcheck", function (req, res) {
 
 //utils getprofile
 router.post("/getprofile", computeLimiter, function (req, res) {
-  const path = encodeURIComponent(req.body.path);
+  const pathResult = validateMissionsPath(req.body.path);
+  if (pathResult.error) {
+    return res.status(400).json({ error: true, message: pathResult.error });
+  }
+  const rasterPath = encodeURIComponent(pathResult.resolved);
   const lat1 = encodeURIComponent(req.body.lat1);
   const lon1 = encodeURIComponent(req.body.lon1);
   const lat2 = encodeURIComponent(req.body.lat2);
@@ -261,7 +265,7 @@ router.post("/getprofile", computeLimiter, function (req, res) {
     "python",
     [
       "private/api/2ptsToProfile.py",
-      path,
+      rasterPath,
       lat1,
       lon1,
       lat2,
@@ -283,7 +287,11 @@ router.post("/getprofile", computeLimiter, function (req, res) {
 
 //utils getbands
 router.post("/getbands", computeLimiter, function (req, res) {
-  const path = encodeURIComponent(req.body.path);
+  const pathResult = validateMissionsPath(req.body.path);
+  if (pathResult.error) {
+    return res.status(400).json({ error: true, message: pathResult.error });
+  }
+  const rasterPath = encodeURIComponent(pathResult.resolved);
   const x = encodeURIComponent(req.body.x);
   const y = encodeURIComponent(req.body.y);
   const xyorll = encodeURIComponent(req.body.xyorll);
@@ -291,7 +299,7 @@ router.post("/getbands", computeLimiter, function (req, res) {
 
   execFile(
     "python",
-    ["private/api/BandsToProfile.py", path, x, y, xyorll, bands],
+    ["private/api/BandsToProfile.py", rasterPath, x, y, xyorll, bands],
     function (error, stdout, stderr) {
       if (error) {
         logger("warn", error);
@@ -305,12 +313,16 @@ router.post("/getbands", computeLimiter, function (req, res) {
 
 //utils getminmax
 router.post("/getminmax", computeLimiter, function (req, res) {
-  const path = encodeURIComponent(req.body.path);
+  const pathResult = validateMissionsPath(req.body.path);
+  if (pathResult.error) {
+    return res.status(400).json({ error: true, message: pathResult.error });
+  }
+  const rasterPath = encodeURIComponent(pathResult.resolved);
   const bands = encodeURIComponent(req.body.bands);
 
   execFile(
     "python",
-    ["private/api/gdalinfoMinMax.py", path, bands],
+    ["private/api/gdalinfoMinMax.py", rasterPath, bands],
     function (error, stdout, stderr) {
       if (error) {
         logger("warn", error);
