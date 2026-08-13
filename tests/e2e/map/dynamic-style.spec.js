@@ -16,6 +16,10 @@ const LAYER = 'Dynamic Style';
  * features are actually drawn with.
  */
 test.describe('Dynamic vector styling', () => {
+  // The layer's settings pane is long, and a short viewport puts its ramp
+  // controls under the time bar.
+  test.use({ viewport: { width: 1280, height: 1000 } });
+
   let missionPage;
   let layersPanel;
 
@@ -92,10 +96,11 @@ test.describe('Dynamic vector styling', () => {
 
     // The ramp is chosen from rendered gradients, so there is nothing to type:
     // open the picker and take a different swatch.
-    const picker = page.locator('.dynamicStyleRampMount button');
-    await picker.first().click();
-    await page.waitForTimeout(200);
-    await picker.nth(3).click();
+    await page.locator('.dynamicStyleRampMount button').first().click();
+    // The list is portalled out of the pane, so it isn't under the mount.
+    const options = page.locator('[class*="ColorRampPicker"][class*="popup"] button');
+    await options.first().waitFor();
+    await options.nth(3).click();
     await page.waitForTimeout(500);
 
     const after = await fills(page);
@@ -128,6 +133,7 @@ test.describe('Dynamic vector styling', () => {
 
     const bar = page.locator('.dynamicStyleStopBar');
     const stop = page.locator('.dynamicStyleStop').first();
+    await bar.scrollIntoViewIfNeeded();
     const box = await bar.boundingBox();
     const stopBox = await stop.boundingBox();
     await page.mouse.move(stopBox.x + stopBox.width / 2, stopBox.y + stopBox.height / 2);
