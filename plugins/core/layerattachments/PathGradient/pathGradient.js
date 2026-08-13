@@ -9,10 +9,7 @@
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import { getCoordProperties } from '@basics/Layers_/render/ExtendedGeoJSON'
-import {
-    escapeHtml,
-    closestPointOnSegment,
-} from '@basics/Layers_/render/gradientUtils'
+import { closestPointOnSegment } from '@basics/Layers_/render/gradientUtils'
 
 const L = window.L
 
@@ -410,12 +407,12 @@ const pathGradient = (geojson, layerObj, leafletLayerObject, config) => {
                             const val = props
                                 ? F_.getIn(props, prop, '—')
                                 : fallbackVal
-                            const label = escapeHtml(
+                            const label = F_.escapeHtml(
                                 prop
                                     .replace(/_/g, ' ')
                                     .replace(/\b\w/g, (c) => c.toUpperCase())
                             )
-                            html += `<tr><td class="gk">${label}</td><td class="gv">${escapeHtml(val)}</td></tr>`
+                            html += `<tr><td class="gk">${label}</td><td class="gv">${F_.escapeHtml(val)}</td></tr>`
                         })
                         html += '</table>'
                         tooltip.setLatLng(e.latlng).setContent(html)

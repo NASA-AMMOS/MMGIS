@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import ColorRampPicker from "@design/components/ColorRampPicker/ColorRampPicker";
 import { normalizeStops, rampStops } from "@basics/Layers_/render/dynamicStyle";
-import { formatValue } from "@basics/Layers_/render/dynamicStyleLegend";
+import { formatValue } from "@basics/Layers_/render/dynamicStyle";
 import {
   hexToRgb,
   interpolateMultipleColors,

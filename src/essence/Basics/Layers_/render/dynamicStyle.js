@@ -124,6 +124,23 @@ export function asNumber(value) {
 }
 
 /**
+ * A number short enough to label a swatch or a bin edge: significant digits
+ * rather than fixed decimals, so 0.0021 and 21000 are both readable.
+ *
+ * @param {number} value
+ * @returns {string}
+ */
+export function formatValue(value) {
+    if (!Number.isFinite(value)) return ''
+    if (value === 0) return '0'
+    const magnitude = Math.abs(value)
+    if (magnitude >= 1e6 || magnitude < 1e-3)
+        return value.toExponential(1).replace('e+', 'e')
+    const decimals = magnitude >= 100 ? 0 : magnitude >= 1 ? 1 : 3
+    return String(parseFloat(value.toFixed(decimals)))
+}
+
+/**
  * Read a possibly nested property, e.g. 'meta.reading.value'.
  *
  * A dot is both a step down and a legal character in a key - a geodataset files
@@ -732,6 +749,7 @@ const DynamicStyle = {
     collectValues,
     compileDynamicStyle,
     compileRules,
+    formatValue,
     resolverOf,
     isCategoricalRule,
     isUsableRule,

@@ -165,19 +165,6 @@ export function buildColorStops(colorRamp) {
 }
 
 /**
- * Escape a string for safe inclusion in HTML (prevents XSS from GeoJSON values).
- */
-export function escapeHtml(str) {
-    if (str == null) return ''
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-}
-
-/**
  * Find the closest point on line segment [a→b] to point p.
  * Coordinates are treated as flat (lng/lat in degrees) — accurate enough for hover.
  *

@@ -7,7 +7,7 @@ import {
     deriveLegend,
     derivesLegend,
 } from '@basics/Layers_/legend/LayerLegend'
-import { dynamicStyleLegendEntries } from '@basics/Layers_/render/dynamicStyleLegend'
+import { dynamicStyleLegendEntries } from '@basics/Layers_/legend/dynamicStyleLegend'
 import { RESTYLED_EVENT } from '@basics/Layers_/render/dynamicStyleRuntime'
 import { getDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
 import { extractUnits, splitValueUnits } from './legendValueUnits'

@@ -1,8 +1,6 @@
 import { test, expect } from "@playwright/test";
-import {
-  dynamicStyleLegendEntries,
-  formatValue,
-} from "../../src/essence/Basics/Layers_/render/dynamicStyleLegend.js";
+import { dynamicStyleLegendEntries } from "../../src/essence/Basics/Layers_/legend/dynamicStyleLegend.js";
+import { formatValue } from "../../src/essence/Basics/Layers_/render/dynamicStyle.js";
 import { compileLayerDynamicStyle } from "../../src/essence/Basics/Layers_/render/layerDynamicStyle.js";
 
 /**
@@ -26,7 +24,7 @@ const layerWith = (rules) => ({
   variables: { dynamicStyle: { enabled: true, rules } },
 });
 
-test.describe("dynamicStyleLegend - formatValue", () => {
+test.describe("dynamicStyle - formatValue", () => {
   test("keeps numbers short enough to sit beside a swatch", () => {
     expect(formatValue(0)).toBe("0");
     expect(formatValue(1013.2)).toBe("1013");

@@ -10,8 +10,16 @@
  * @module dynamicStyleLegend
  */
 
-import { COLOR_ATTRIBUTES, binEdges, compileRules } from './dynamicStyle'
-import { getDynamicStyle, getLayerDynamicStyleRules } from './layerDynamicStyle'
+import {
+    COLOR_ATTRIBUTES,
+    binEdges,
+    compileRules,
+    formatValue,
+} from '../render/dynamicStyle'
+import {
+    getDynamicStyle,
+    getLayerDynamicStyleRules,
+} from '../render/layerDynamicStyle'
 
 // Swatches sampled across a continuous ramp. Enough to look smooth; the
 // LegendTool thins the labels to what fits.
@@ -109,23 +117,6 @@ function entriesForNumericAttributeRule(compiledRule, baseColor) {
         )
     }
     return entries.reverse()
-}
-
-/**
- * A number short enough to sit beside a swatch: significant digits rather than
- * fixed decimals, so 0.0021 and 21000 are both readable.
- *
- * @param {number} value
- * @returns {string}
- */
-export function formatValue(value) {
-    if (!Number.isFinite(value)) return ''
-    if (value === 0) return '0'
-    const magnitude = Math.abs(value)
-    if (magnitude >= 1e6 || magnitude < 1e-3)
-        return value.toExponential(1).replace('e+', 'e')
-    const decimals = magnitude >= 100 ? 0 : magnitude >= 1 ? 1 : 3
-    return String(parseFloat(value.toFixed(decimals)))
 }
 
 function entriesForNumericRule(compiledRule) {
@@ -235,9 +226,6 @@ export function dynamicStyleLegendEntries(layerObj) {
     return entries
 }
 
-const DynamicStyleLegend = {
-    dynamicStyleLegendEntries,
-    formatValue,
-}
+const DynamicStyleLegend = { dynamicStyleLegendEntries }
 
 export default DynamicStyleLegend
