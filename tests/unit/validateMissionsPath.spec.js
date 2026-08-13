@@ -40,6 +40,22 @@ test.describe('validateMissionsPath', () => {
     }
   });
 
+  test('keeps file names containing a percent sign intact', () => {
+    // Consumers decode once, so only one layer may be peeled off here.
+    expect(validateMissionsPath('/Missions/M20/Data/50%25_dem.tif').resolved).toBe(
+      path.join(missionsDir, 'M20/Data/50%_dem.tif')
+    );
+    expect(validateMissionsPath('/Missions/M20/Data/a%2520b.tif').resolved).toBe(
+      path.join(missionsDir, 'M20/Data/a%20b.tif')
+    );
+  });
+
+  test('rejects double-encoded traversal out of Missions', () => {
+    expect(
+      validateMissionsPath('/Missions/%252e%252e/%252e%252e/etc/passwd').error
+    ).toBeTruthy();
+  });
+
   test('rejects absolute paths outside Missions', () => {
     expect(validateMissionsPath('/etc/passwd').error).toBeTruthy();
     expect(validateMissionsPath('/../package.json').error).toBeTruthy();

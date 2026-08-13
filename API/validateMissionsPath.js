@@ -2,16 +2,16 @@ const path = require("path");
 
 const rootDir = `${__dirname}/..`;
 
-/**
- * Validate and decode a path intended to access files under /Missions/.
- * Handles multiple levels of URL encoding, verifies the resolved path
- * stays within the Missions directory (cross-mission ../ is allowed).
- *
- * @param {string} rawPath - The raw path string from the request.
- * @returns {{ error: string }|{ decoded: string, resolved: string }}
- *   On failure: `{ error }` with a user-facing message.
- *   On success: `{ decoded, resolved }` — the fully decoded path and its absolute resolved form.
- */
+function decodePathOnce(rawPath) {
+  try {
+    return { decoded: decodeURIComponent(String(rawPath)) };
+  } catch (e) {
+    return { error: 'Invalid URL encoding in path.' };
+  }
+}
+
+// Best-effort repeated decode, only used to spot traversal hidden behind several
+// layers of encoding. Stops at the first step that will not decode.
 function fullyDecodePath(rawPath) {
   let decoded = String(rawPath);
   let prev = '';
@@ -20,18 +20,15 @@ function fullyDecodePath(rawPath) {
     try {
       decoded = decodeURIComponent(decoded);
     } catch (e) {
-      return { error: 'Invalid URL encoding in path.' };
+      return { decoded: prev };
     }
   }
   return { decoded };
 }
 
-function validateMissionsPath(rawPath) {
-  const decodeResult = fullyDecodePath(rawPath);
-  if (decodeResult.error) return decodeResult;
-  let decoded = decodeResult.decoded;
+function resolveInMissions(rawDecoded) {
   // Normalise: accept both "Missions/…" and "/Missions/…"
-  if (!decoded.startsWith('/')) decoded = '/' + decoded;
+  const decoded = rawDecoded.startsWith('/') ? rawDecoded : '/' + rawDecoded;
   if (!decoded.startsWith('/Missions')) {
     return { error: "Only paths beginning with '/Missions' are supported." };
   }
@@ -45,5 +42,25 @@ function validateMissionsPath(rawPath) {
   return { decoded, resolved };
 }
 
+/**
+ * Validate and decode a path intended to access files under /Missions/.
+ * Verifies the resolved path stays within the Missions directory (cross-mission
+ * ../ is allowed) both once decoded — the form its consumers see — and fully
+ * decoded, so traversal cannot hide behind extra layers of encoding.
+ *
+ * @param {string} rawPath - The raw path string from the request.
+ * @returns {{ error: string }|{ decoded: string, resolved: string }}
+ *   On failure: `{ error }` with a user-facing message.
+ *   On success: `{ decoded, resolved }` — the decoded path and its absolute resolved form.
+ */
+function validateMissionsPath(rawPath) {
+  const once = decodePathOnce(rawPath);
+  if (once.error) return once;
+  const deep = resolveInMissions(fullyDecodePath(rawPath).decoded);
+  if (deep.error) return deep;
+  return resolveInMissions(once.decoded);
+}
+
 module.exports = validateMissionsPath;
 module.exports.fullyDecodePath = fullyDecodePath;
+module.exports.decodePathOnce = decodePathOnce;

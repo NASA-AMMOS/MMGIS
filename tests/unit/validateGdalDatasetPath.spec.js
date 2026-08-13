@@ -81,6 +81,31 @@ test.describe('validateGdalDatasetPath', () => {
     }
   });
 
+  test('matches allowlisted prefixes only on a path boundary', () => {
+    withAllowedPrefixes('https://cdn.example.gov,/vsis3/my-bucket', () => {
+      expect(
+        validateGdalDatasetPath('https://cdn.example.gov/dems/site.tif').error
+      ).toBeUndefined();
+      for (const p of [
+        'https://cdn.example.gov.evil.com/dems/site.tif',
+        '/vsis3/my-bucket-evil/site.tif',
+      ]) {
+        expect(validateGdalDatasetPath(p).error).toBeTruthy();
+      }
+    });
+  });
+
+  test('rejects .. inside an allowlisted remote path', () => {
+    withAllowedPrefixes('https://cdn.example.gov/dems/', () => {
+      for (const p of [
+        'https://cdn.example.gov/dems/../../internal/secret',
+        'https://cdn.example.gov/dems/%2e%2e/%2e%2e/internal/secret',
+      ]) {
+        expect(validateGdalDatasetPath(p).error).toBeTruthy();
+      }
+    });
+  });
+
   test('rejects remote datasets outside the allowlisted prefix', () => {
     withAllowedPrefixes('/vsis3/my-bucket/,https://cdn.example.gov/dems/', () => {
       for (const p of [

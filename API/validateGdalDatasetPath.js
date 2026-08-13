@@ -1,5 +1,5 @@
 const validateMissionsPath = require("./validateMissionsPath");
-const { fullyDecodePath } = validateMissionsPath;
+const { fullyDecodePath, decodePathOnce } = validateMissionsPath;
 const logger = require("./logger");
 
 // Network-backed GDAL dataset prefixes. Local /vsi* wrappers (/vsizip/, /vsitar/,
@@ -41,6 +41,8 @@ const FORBIDDEN_TOKENS = [
   "/vsisparse",
   "/vsicrypt",
   "<",
+  // A remote path has no legitimate need to walk out of its allowlisted scope.
+  "..",
 ];
 
 function remotePrefixOf(datasetPath) {
@@ -60,6 +62,14 @@ function namesAHost(prefix) {
   );
   if (nestedScheme) rest = rest.slice(nestedScheme.length);
   return rest.split("/")[0].length > 0;
+}
+
+// Match on a path boundary so "https://cdn.example.gov" cannot also allow
+// "https://cdn.example.gov.evil.com/".
+function matchesPrefix(datasetPath, prefix) {
+  if (!datasetPath.startsWith(prefix)) return false;
+  const rest = datasetPath.slice(prefix.length);
+  return prefix.endsWith("/") || rest.length === 0 || rest.startsWith("/");
 }
 
 // Prefixes an operator opted into via GDAL_ALLOWED_REMOTE_PREFIXES.
@@ -105,24 +115,25 @@ function allowedRemotePrefixes() {
  */
 function validateGdalDatasetPath(rawPath) {
   const raw = String(rawPath);
-  const decodeResult = fullyDecodePath(raw);
+  const decodeResult = decodePathOnce(raw);
   if (decodeResult.error) return decodeResult;
   const decoded = decodeResult.decoded;
 
-  if (!isRemote(decoded)) return validateMissionsPath(rawPath);
+  if (!isRemote(decoded) && !isRemote(raw)) return validateMissionsPath(rawPath);
 
+  const forms = [raw, decoded, fullyDecodePath(raw).decoded];
   const forbidden = (value) => {
     const lowered = value.toLowerCase();
     return FORBIDDEN_TOKENS.some((token) => lowered.includes(token));
   };
-  if (forbidden(raw) || forbidden(decoded)) {
+  if (forms.some(forbidden)) {
     return { error: "Invalid path: access denied." };
   }
 
   const allowed = allowedRemotePrefixes();
   const permitted = (value) =>
-    allowed.some((prefix) => value.startsWith(prefix));
-  if (!permitted(raw) || !permitted(decoded)) {
+    allowed.some((prefix) => matchesPrefix(value, prefix));
+  if (!forms.every(permitted)) {
     return {
       error:
         "Remote dataset paths are not allowed. Ask a site administrator to allowlist the prefix via GDAL_ALLOWED_REMOTE_PREFIXES.",
