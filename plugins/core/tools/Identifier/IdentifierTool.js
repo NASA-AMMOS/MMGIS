@@ -830,7 +830,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
     } else if (url.startsWith('/vsicurl/') || url.startsWith('Missions/')) {
         dataPath = url
     } else {
-        dataPath = 'Missions/' + L_.mission + '/' + url
+        dataPath = L_.missionPath + url
     }
 
     dataPath = IdentifierTool.fillURLParameters(dataPath, layerUUID)
