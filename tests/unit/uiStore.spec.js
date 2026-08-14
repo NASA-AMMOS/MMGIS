@@ -7,6 +7,8 @@ import {
     computeGlobeSplitMoveResult,
     computeToolsSplitMoveResult,
     computeWindowResize,
+    computeDetentPx,
+    nearestDetentIndex,
 } from '../../src/essence/Basics/UserInterface_/store/uiStoreMath.js'
 
 /**
@@ -359,6 +361,63 @@ test.describe('computeToolsSplitMoveResult', () => {
 
         const result = computeToolsSplitMoveResult(state, -100)
         expect(result).toBe(800 - (10 + 40))
+    })
+})
+
+test.describe('computeDetentPx', () => {
+    test('maps fractions to clamped pixel heights', () => {
+        const state = makeState({
+            mainHeight: 800,
+            splitterSize: 10,
+            toolHeightReserve: 40,
+            toolDetentFractions: [0.25, 0.5, 0.85],
+        })
+        // available = 800 - 10 - 40 = 750
+        expect(computeDetentPx(state)).toEqual([
+            Math.round(0.25 * 750),
+            Math.round(0.5 * 750),
+            Math.round(0.85 * 750),
+        ])
+    })
+
+    test('returns empty array when no detents', () => {
+        const state = makeState({ mainHeight: 800 })
+        expect(computeDetentPx(state)).toEqual([])
+    })
+})
+
+test.describe('nearestDetentIndex', () => {
+    test('picks the closest detent', () => {
+        const state = makeState({
+            mainHeight: 800,
+            splitterSize: 10,
+            toolHeightReserve: 40,
+            toolDetentFractions: [0.25, 0.5, 0.85],
+        })
+        // detents are approximately [188, 375, 638]
+        expect(nearestDetentIndex(state, 180)).toBe(0)
+        expect(nearestDetentIndex(state, 400)).toBe(1)
+        expect(nearestDetentIndex(state, 700)).toBe(2)
+    })
+
+    test('returns -1 when no detents', () => {
+        const state = makeState({ mainHeight: 800 })
+        expect(nearestDetentIndex(state, 300)).toBe(-1)
+    })
+})
+
+test.describe('computeToolsSplitMoveResult with detents', () => {
+    test('allows shrinking to the smallest detent', () => {
+        const state = makeState({
+            mainHeight: 800,
+            splitterSize: 10,
+            toolHeightReserve: 40,
+            toolNativeHeight: 600, // old floor would block shrinking below this
+            toolDetentFractions: [0.25, 0.5, 0.85],
+        })
+        // Dragged to bottom, clamps to smallest detent (~188), not 600
+        const result = computeToolsSplitMoveResult(state, 900)
+        expect(result).toBe(Math.round(0.25 * 750))
     })
 })
 
