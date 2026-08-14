@@ -48,6 +48,7 @@ export const ConfigureStore = createSlice({
       importStacItems: false,
       uploadConfig: false,
       cloneConfig: false,
+      renameConfig: false,
       deleteConfig: false,
       updateUser: false,
       deleteUser: false,
