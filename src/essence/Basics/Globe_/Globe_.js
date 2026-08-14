@@ -267,6 +267,12 @@ let Globe_ = {
             addLayer: function () {
                 return Promise.resolve()
             },
+             // Mirror GlobeRenderer.addLayerFor's async contract so callers that
+            // chain .then()/.catch() work when there is no globe panel.
+            addLayerFor: function () {
+                return Promise.resolve()
+            },
+            onLayerToggle: function () {},
             toggleLayer: function () {},
             hasLayer: function () {},
             getCenter: function () {},
