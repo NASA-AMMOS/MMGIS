@@ -207,7 +207,7 @@ export default [
     {
         library: 'Leaflet',
         librarylink: 'https://leafletjs.com/',
-        version: '1.5.1',
+        version: '1.9.4',
         author: 'Vladimir Agafonkin',
         authorlink: 'https://agafonkin.com/',
         license: 'BSD-2-Clause',
@@ -252,7 +252,7 @@ export default [
     {
         library: 'Leaflet.GeometryUtil',
         librarylink: 'https://github.com/makinacorpus/Leaflet.GeometryUtil',
-        version: '0',
+        version: '0.9.1',
         author: 'Makina Corpus',
         authorlink: 'https://github.com/makinacorpus',
         license: 'BSD-3-Clause',
