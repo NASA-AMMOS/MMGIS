@@ -273,18 +273,6 @@ export default [
         githublink: 'https://github.com/iosphere/Leaflet.hotline',
     },
     {
-        library: 'Leaflet.ImageOverlay.Rotated',
-        librarylink:
-            'https://github.com/IvanSanchez/Leaflet.ImageOverlay.Rotated',
-        version: '0.1.3',
-        author: 'IvanSanchez',
-        authorlink: 'https://github.com/IvanSanchez',
-        license: 'Beerware',
-        licenselink: 'https://en.wikipedia.org/wiki/Beerware',
-        githublink:
-            'https://github.com/IvanSanchez/Leaflet.ImageOverlay.Rotated',
-    },
-    {
         library: 'Leaflet.imageTransform',
         librarylink: 'https://github.com/ScanEx/Leaflet.imageTransform',
         version: '0',

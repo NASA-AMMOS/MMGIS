@@ -41,12 +41,6 @@ If you update one of these files, update its row here as well.
 | `leaflet.scalefactor.min.js` | Pre-minified `L.Control.ScaleFactor`; upstream revision not identified | No npm release found; kept as-is. |
 | `shaders/` (`vertex.glsl`, `fragment.glsl`) | MMGIS-authored | Used by `leaflet.tilelayer.gl.js`. |
 
-## Not imported anywhere
-
-| File | Status |
-| --- | --- |
-| `leaflet-imageoverlay-rotated.js` | Byte-identical to `leaflet-imageoverlay-rotated@0.1.0` after formatting normalization, but not imported by `src/index.js` or any plugin. Kept only because `ATTRIBUTIONS.md` still lists the library; safe to delete together with that entry. |
-
 ## Moved to npm (no vendored copy left)
 
 | Was | Now |
