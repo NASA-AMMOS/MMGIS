@@ -49,3 +49,15 @@ If you update one of these files, update its row here as well.
 | `leaflet.geometryutil.js` | `leaflet-geometryutil@0.9.1` (vendored copy differed only in the UMD wrapper) |
 | `leaflet.polylineDecorator.js` | `leaflet-polylinedecorator@1.6.0` (vendored copy differed only in the UMD wrapper and an `L` → `L$1` rename) |
 | `proj4.js` (proj4 2.6.2) | `proj4` (already a dependency); `src/pre/proj4Global.js` sets `window.proj4` |
+
+### Local patches that were in the deleted vendored copies
+
+- `leaflet1.5.1.js` / `leaflet1.5.1_DEBUG.js`: none. Ignoring formatting, the unminified copy differed
+  from upstream `leaflet-src.js` only in the build banner and `version` string (`1.5.1+build.2e3e0ffb`).
+- `leaflet1.5.1.css`: three `background-image: url(images/...)` rules
+  (`.leaflet-control-layers-toggle`, its retina variant, and `.leaflet-default-icon-path`) were commented
+  out, because the vendored copy shipped without Leaflet's `images/` folder for webpack to resolve.
+  `leaflet/dist/leaflet.css` restores them; they are inert here since MMGIS uses neither
+  `L.Control.Layers` nor `L.Icon.Default` (every `L.marker` call passes an explicit icon).
+- `proj4.js`: the UMD wrapper was replaced with an unconditional `window.proj4 = ...`, which is what
+  `src/pre/proj4Global.js` now reproduces.
