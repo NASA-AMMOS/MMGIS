@@ -277,6 +277,7 @@ const CONSEQUENTIAL_OMISSIONS = {
  */
 const METACONFIG_COMPONENT_TYPES = new Set([
   "gap",
+  "subheading",
   "text",
   "textnotrim",
   "textarea",
@@ -291,6 +292,7 @@ const METACONFIG_COMPONENT_TYPES = new Set([
   "dropdown",
   "searchdropdown",
   "colordropdown",
+  "colorramp",
   "colorpicker",
   "layerMultiSelect",
   "objectarray",
@@ -304,6 +306,7 @@ const METACONFIG_COMPONENT_TYPES = new Set([
 /** Component types that display something rather than edit a field. */
 const METACONFIG_FIELDLESS_TYPES = new Set([
   "gap",
+  "subheading",
   "button",
   "interactions",
   "map",
@@ -316,6 +319,7 @@ const METACONFIG_OPTION_TYPES = new Set([
   "dropdown",
   "searchdropdown",
   "colordropdown",
+  "colorramp",
 ]);
 
 /**
@@ -429,6 +433,33 @@ function validateMetaconfig(
           errors.push(
             `${where}: '${comLabel}.object' must be an array describing each item's fields`
           );
+        // A malformed condition is worse than none: Maker reads it as "no test
+        // to fail" and draws a control that was meant to stay hidden.
+        if (com.showIf !== undefined) {
+          const tests = Array.isArray(com.showIf) ? com.showIf : [com.showIf];
+          tests.forEach((test) => {
+            if (
+              test == null ||
+              typeof test !== "object" ||
+              Array.isArray(test) ||
+              typeof test.field !== "string" ||
+              test.field.length === 0
+            )
+              errors.push(
+                `${where}: '${comLabel}.showIf' must be a condition, or an array of them, each with the 'field' it reads`
+              );
+            else if (
+              test.equals === undefined &&
+              test.not === undefined &&
+              test.truthy === undefined &&
+              !Array.isArray(test.in) &&
+              !Array.isArray(test.notIn)
+            )
+              errors.push(
+                `${where}: '${comLabel}.showIf' on '${test.field}' needs one of 'equals', 'not', 'truthy', 'in' or 'notIn'`
+              );
+          });
+        }
         // Given a bare path instead of `{ field, value }`, Configure compares
         // undefined to undefined-the-value and greys the control out forever.
         if (

@@ -1,402 +1,577 @@
 #layersTool {
-    overflow: hidden;
-    overflow-y: auto;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-flow: column;
-    background: var(--color-k);
-    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  overflow-y: auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: column;
+  background: var(--color-k);
+  box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
 }
 
 #layersToolHeader {
-    width: 100%;
+  width: 100%;
 }
 
 #layersTool #layersToolHeader .mmgisHelpButton {
-    margin: 0px 4px;
+  margin: 0px 4px;
 }
 
 #layersTool #searchLayers {
-    display: flex;
-    height: 36px;
-    line-height: 33px;
-    border-top: 1px solid var(--color-a-5);
-    border-bottom: 1px solid var(--color-a-5);
-    background: var(--color-a1);
+  display: flex;
+  height: 36px;
+  line-height: 33px;
+  border-top: 1px solid var(--color-a-5);
+  border-bottom: 1px solid var(--color-a-5);
+  background: var(--color-a1);
 }
 
 #layersTool #filterLayers {
-    display: flex;
-    height: 40px;
-    line-height: 40px;
-    color: #ccc;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--color-a1);
+  display: flex;
+  height: 40px;
+  line-height: 40px;
+  color: #ccc;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-a1);
 }
 #layersTool #filterLayers #title {
-    height: 40px;
-    line-height: 40px;
-    font-size: 16px;
-    padding-left: 6px;
-    font-family: 'lato-light';
-    text-transform: uppercase;
-    color: var(--color-l);
+  height: 40px;
+  line-height: 40px;
+  font-size: 16px;
+  padding-left: 6px;
+  font-family: "lato-light";
+  text-transform: uppercase;
+  color: var(--color-l);
 }
 #layersTool #filterLayers > div {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 #layersTool #filterLayers > .right {
-    margin-right: 30px;
-    gap: 2px;
+  margin-right: 30px;
+  gap: 2px;
 }
 #layersTool #filterLayers > .right > div {
-    width: 24px;
-    height: unset;
-    padding: 2px;
-    margin: 0px 3px;
-    text-align: center;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-        border 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95),
-        color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+  width: 24px;
+  height: unset;
+  padding: 2px;
+  margin: 0px 3px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    border 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #layersTool #filterLayers .right > div {
-    color: #999;
+  color: #999;
 }
 #layersTool #filterLayers .right > div.on {
-    color: #ccc;
+  color: #ccc;
 }
 /* Layer-type filter icons take their underline from the per-icon --lt-color
    (set inline from the layertype manifest). visible/filtered below have their
    own higher-specificity rules and are unaffected. */
 #layersTool #filterLayers div.on {
-    border-bottom: 4px solid var(--lt-color);
+  border-bottom: 4px solid var(--lt-color);
 }
 #layersTool #filterLayers div.visible.on {
-    border-bottom: 4px solid rgba(255, 255, 255, 1);
+  border-bottom: 4px solid rgba(255, 255, 255, 1);
 }
 #layersTool #filterLayers div.filtered.on {
-    border-bottom: 4px solid #4a9eda;
+  border-bottom: 4px solid #4a9eda;
 }
 #layersTool #searchLayers input {
-    background: var(--color-a1);
-    flex: 1;
-    margin-right: 62px;
-    color: #ccc;
-    padding-left: 28px;
-    border: none;
-    border-right: 1px solid var(--color-a-5);
+  background: var(--color-a1);
+  flex: 1;
+  margin-right: 62px;
+  color: #ccc;
+  padding-left: 28px;
+  border: none;
+  border-right: 1px solid var(--color-a-5);
 }
 #layersTool #searchLayers input::placeholder {
-    color: var(--color-a4);
+  color: var(--color-a4);
 }
 #layersTool #searchLayers .mdi-magnify {
-    position: absolute;
-    left: 6px;
-    color: #999;
-    line-height: 35px;
-    pointer-events: none;
+  position: absolute;
+  left: 6px;
+  color: #999;
+  line-height: 35px;
+  pointer-events: none;
 }
 
 #layersTool .sublayerHeading {
-    color: white;
+  color: white;
+}
+
+/* The section headings inside a layer's settings, sitting at the same left edge
+   as the panel's own "Layer Settings" title. */
+#layersTool .dynamicStyleHeading,
+#layersTool .statsRow.sublayerHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 2px 0 0;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* The dynamic style's own controls end where the statistics describing them
+   begin. */
+#layersTool .statsRow.sublayerHeading {
+  margin: 4px -6px 0 -12px;
+  padding: 0 8px 0 12px;
+  border-top: 1px solid var(--color-a);
+}
+
+#layersTool .dynamicStyleHeadingTitle {
+  display: flex;
+  align-items: center;
+}
+
+#layersTool .dynamicStyleHeadingTitle > .dynamicStyleReset {
+  margin-left: 4px;
+}
+
+#layersTool .dynamicStyleReset {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: var(--color-a4);
+}
+
+/* What the Domain choice can't do here, said where the choice is made. */
+#layersTool .dynamicStyleNote {
+  height: auto;
+  padding: 2px 2px 2px 0;
+  color: var(--color-a4);
+  font-size: 10px;
+  line-height: 13px;
+  cursor: help;
+}
+
+/* A label with an explanation beside it, the icon sized to sit on the text. */
+#layersTool .dynamicStyleLabelInfo {
+  display: flex;
+  align-items: center;
+}
+
+#layersTool .dynamicStyleLabelInfo > i {
+  color: var(--color-a4);
+  cursor: help;
+  margin-left: 4px;
+  font-size: 14px;
+  line-height: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+/* Each rule is headed by what it styles by, with the switch that turns it on.
+   What belongs to a rule is indented under it. */
+#layersTool .dynamicStyleRuleHeading,
+#layersTool .statsProperty {
+  align-items: center;
+  height: 24px;
+  margin-top: 4px;
+  padding-right: 2px;
+  color: var(--color-a6);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+#layersTool .dynamicStyleRuleHeading {
+  padding-right: 0;
+}
+
+#layersTool .dynamicStyleRuleHeading > .checkboxcont {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 20px;
+  height: 20px;
+}
+
+/* Flush right so it lines up with the dropdowns beneath, and square whatever
+   the row would otherwise squeeze it into. */
+#layersTool .dynamicStyleRuleHeading .checkbox {
+  flex: 0 0 20px;
+  margin: 0;
+}
+
+/* A style a viewer can't change is just named: what it styles by, and what of.
+   A property name can be long, so it takes the room and gives way to an
+   ellipsis rather than running under the attribute beside it. */
+#layersTool .sublayer.dynamicStyleRuleListed {
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  padding-right: 4px;
+}
+
+#layersTool .sublayer.dynamicStyleRuleListed > div:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+#layersTool .sublayer.dynamicStyleRuleListed > div:last-child {
+  flex: 0 0 auto;
+  color: var(--color-a4);
+  font-size: 10px;
+}
+
+#layersTool .sublayer.dynamicStyleRuleRow,
+#layersTool .sublayer.statsValueRow,
+#layersTool .dynamicStyleRuleRow {
+  padding-left: 32px;
+}
+
+/* The two numbers a weight, radius or opacity rule spans, sized to line up
+   with the dropdowns above them. */
+#layersTool .dynamicStyleRangeInputs {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+#layersTool .dynamicStyleRangeInputs > div {
+  color: var(--color-a4);
+  padding: 0 4px;
+  font-size: 11px;
+}
+
+#layersTool input.dynamicStyleRange {
+  width: 56px;
+  border: none;
+  height: 24px;
+  background: var(--color-a1);
+  color: var(--color-a7);
+  text-align: right;
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+#layersTool .statsProperty {
+  font-size: 12px;
+}
+
+#layersTool .statsProperty > div:last-child {
+  color: var(--color-a4);
+  font-size: 10px;
+  padding-right: 4px;
+}
+
+/* Quieter than the property they belong to, so the headings read first. */
+#layersTool .sublayer.statsValueRow {
+  height: 22px;
+  color: var(--color-a4);
+}
+
+#layersTool .statsValue {
+  color: var(--color-a4);
+  font-variant-numeric: tabular-nums;
 }
 
 #layersTool #searchLayers > div {
-    cursor: pointer;
-    color: #999;
-    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-        opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    width: 30px;
-    text-align: center;
+  cursor: pointer;
+  color: #999;
+  transition:
+    color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+  width: 30px;
+  text-align: center;
 }
 #layersTool #searchLayers > div:hover {
-    color: #fff;
+  color: #fff;
 }
 #layersTool #searchLayers > div#clear {
-    position: absolute;
-    right: 62px;
-    padding-top: 1px;
-    height: 34px;
-    opacity: 0;
+  position: absolute;
+  right: 62px;
+  padding-top: 1px;
+  height: 34px;
+  opacity: 0;
 }
 #layersTool #searchLayers > div#clear.shown {
-    opacity: 1;
+  opacity: 1;
 }
-#layersTool #searchLayers > div#restore{
-    position: absolute;
-    right: 60px;
-    background: var(--color-a1);
-    padding-top: 1px;
-    height: 34px;
+#layersTool #searchLayers > div#restore {
+  position: absolute;
+  right: 60px;
+  background: var(--color-a1);
+  padding-top: 1px;
+  height: 34px;
 }
 #layersTool #searchLayers > div#expand {
-    position: absolute;
-    right: 30px;
-    background: var(--color-a1);
-    padding-top: 1px;
-    height: 34px;
+  position: absolute;
+  right: 30px;
+  background: var(--color-a1);
+  padding-top: 1px;
+  height: 34px;
 }
 #layersTool #searchLayers > div#collapse {
-    position: absolute;
-    right: 0;
-    background: var(--color-a1);
-    padding-top: 1px;
-    height: 34px;
+  position: absolute;
+  right: 0;
+  background: var(--color-a1);
+  padding-top: 1px;
+  height: 34px;
 }
 
 #layersTool #layersToolList {
-    list-style-type: none;
-    padding: 0;
-    margin: 0px 0px 0px 6px;
+  list-style-type: none;
+  padding: 0;
+  margin: 0px 0px 0px 6px;
 }
 
 #layersToolList > li {
-    height: 30px;
-    overflow-x: hidden;
-    overflow-y: hidden;
-    display: flex;
-    flex-flow: column;
-    font-size: 14px;
-    color: var(--color-f);
+  height: 30px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  display: flex;
+  flex-flow: column;
+  font-size: 14px;
+  color: var(--color-f);
 }
 #layersToolList > li.forceOff {
-    height: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    overflow: hidden;
+  height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: hidden;
 }
 #layersToolList > li.forceOff3 {
-    height: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    overflow: hidden;
+  height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: hidden;
 }
 #layersToolList > li.forceOff2 {
-    height: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    overflow: hidden;
+  height: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  overflow: hidden;
 }
 #layersTool #layersToolList > li:first-child {
-    margin-top: 0px !important;
+  margin-top: 0px !important;
 }
 
 #layersToolList .title {
-    height: 30px;
-    line-height: 30px;
-    justify-content: space-between;
-    display: flex;
-    width: 100%;
-    background: var(--color-a1-5);
+  height: 30px;
+  line-height: 30px;
+  justify-content: space-between;
+  display: flex;
+  width: 100%;
+  background: var(--color-a1-5);
 }
 
 #layersTool .layerExport,
 #layersTool .settings {
-    height: 0px;
-    opacity: 0;
-    overflow: hidden;
-    color: #ccc;
+  height: 0px;
+  opacity: 0;
+  overflow: hidden;
+  color: #ccc;
 }
 #layersTool .layerExport {
-    padding: 0 !important;
+  padding: 0 !important;
 }
 #layersTool .layerExport ul,
 #layersTool .settings ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
 }
 #layersTool .settings .layerTimeTitle {
-    display: flex;
-    height: 30px;
-    line-height: 30px;
+  display: flex;
+  height: 30px;
+  line-height: 30px;
 }
 #layersTool .settings .layerTimeTitle > div:first-child {
-    color: var(--color-h);
-    text-transform: uppercase;
-    font-size: 12px;
+  color: var(--color-h);
+  text-transform: uppercase;
+  font-size: 12px;
 }
 
 #layersTool .settings .layerSettingsTitle {
-    display: flex;
-    height: 30px;
-    line-height: 30px;
+  display: flex;
+  height: 30px;
+  line-height: 30px;
 }
 #layersTool .settings .layerSettingsTitle > div:first-child {
-    color: var(--color-h);
-    text-transform: uppercase;
-    font-size: 12px;
+  color: var(--color-h);
+  text-transform: uppercase;
+  font-size: 12px;
 }
 #layersTool .settings .layerSettingsTitle > div:last-child {
 }
 #layersTool .settings ul > li {
-    line-height: 30px;
+  line-height: 30px;
 }
 #layersTool .settings ul > li > div {
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
 }
 
 #layersTool .layerExport li {
-    height: 28px;
-    line-height: 26px;
-    padding: 2px 6px 2px 12px;
-    cursor: pointer;
-    color: #ddd;
-    border-bottom: 1px solid var(--color-a-5);
-    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+  height: 28px;
+  line-height: 26px;
+  padding: 2px 6px 2px 12px;
+  cursor: pointer;
+  color: #ddd;
+  border-bottom: 1px solid var(--color-a-5);
+  transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #layersTool .layerExport li:hover {
-    background: var(--color-a1);
+  background: var(--color-a1);
 }
 
 #layersTool .layerExport ul > li > div:hover {
-    color: white;
+  color: white;
 }
 #layersTool .settings ul > li > div > div {
-    font-size: 14px;
-    color: white;
+  font-size: 14px;
+  color: white;
 }
 #layersTool .settings ul > li .right {
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
 }
 
-#layersTool .settings ul > li input[type='number'] {
-    background: #222;
-    width: 80px;
-    color: #ccc;
-    text-align: right;
-    padding: 0px 3px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+#layersTool .settings ul > li input[type="number"] {
+  background: #222;
+  width: 80px;
+  color: #ccc;
+  text-align: right;
+  padding: 0px 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
-#layersTool .settings ul > li input[type='range'] {
-    width: 120px;
-    margin: 6px 0px;
-}
-#layersTool .settings span {
-    font-size: 12px;
-    padding-left: 4px;
+#layersTool .settings ul > li input[type="range"] {
+  width: 120px;
+  margin: 6px 0px;
 }
 #layersTool .settings span {
-    font-size: 12px;
-    padding-left: 4px;
+  font-size: 12px;
+  padding-left: 4px;
+}
+#layersTool .settings span {
+  font-size: 12px;
+  padding-left: 4px;
 }
 #layersTool .settings .dataShader .dropy__title > span {
-    width: calc(100% - 19px);
+  width: calc(100% - 19px);
 }
 #layersTool .settings .dataShader .dropy__title > i {
-    line-height: 13px;
-    right: 0;
-    line-height: 22px;
-    background: var(--color-a1-5);
-    height: 22px;
-    top: -9px;
+  line-height: 13px;
+  right: 0;
+  line-height: 22px;
+  background: var(--color-a1-5);
+  height: 22px;
+  top: -9px;
 }
 
 #layersTool .tileCogMin,
 #layersTool .tileCogMax {
-    margin-right: 34px;
-    z-index: 1;
-    position: relative;
+  margin-right: 34px;
+  z-index: 1;
+  position: relative;
 }
 
 #layersTool .tileCogMin > div:first-child > div:nth-child(2),
 #layersTool .tileCogMax > div:first-child > div:nth-child(2) {
-    display: flex;
+  display: flex;
 }
 #layersTool .tileCogUnits {
-    background: #222;
-    padding: 0px 2px 0px 2px;
-    height: 28px;
-    margin-top: 1px;
-    color: #ccc;
-    font-size: 12px;
-    border-left: 1px solid #575d60;
+  background: #222;
+  padding: 0px 2px 0px 2px;
+  height: 28px;
+  margin-top: 1px;
+  color: #ccc;
+  font-size: 12px;
+  border-left: 1px solid #575d60;
 }
 
 #layersTool .tileCogColor {
-    position: relative;
-    top: -269px;
-    margin-bottom: -235px;
+  position: relative;
+  top: -269px;
+  margin-bottom: -235px;
 }
 #layersTool .tileCogColormap {
-    display: flex;
+  display: flex;
 }
 #layersTool .tileCogLegend {
-    line-height: 28px !important;
-    display: flex;
-    justify-content: flex-end;
-    margin-right: 38px;
-    font-size: 13px;
-    color: white;
+  line-height: 28px !important;
+  display: flex;
+  justify-content: flex-end;
+  margin-right: 38px;
+  font-size: 13px;
+  color: white;
 }
 #layersTool .tileCogColormapMap {
-    width: 100%;
-    height: 266px;
-    margin-bottom: -29px;
+  width: 100%;
+  height: 266px;
+  margin-bottom: -29px;
 }
 #layersTool #tileCogColormapMapLines {
-    height: 254px;
-    margin-left: 280px;
-    margin-top: -7px;
-    position: relative;
+  height: 254px;
+  margin-left: 280px;
+  margin-top: -7px;
+  position: relative;
 }
 #layersTool #tileCogColormapMapLines li {
-    width: 28px;
-    border-top: 2px solid var(--color-a2);
-    float: right;
+  width: 28px;
+  border-top: 2px solid var(--color-a2);
+  float: right;
 }
 #layersTool .tileCogColormap > div {
-    position: relative;
-    margin-top: 2px;
+  position: relative;
+  margin-top: 2px;
 }
 #layersTool .tileCogColormap > div > div:first-child {
-    position: absolute;
-    left: 0;
-    mix-blend-mode: difference;
+  position: absolute;
+  left: 0;
+  mix-blend-mode: difference;
 }
 #layersTool .tileCogColormap > div > div:nth-child(2) {
-    position: absolute;
-    right: 5px;
-    letter-spacing: 1px;
-    text-transform: capitalize;
-    mix-blend-mode: difference;
+  position: absolute;
+  right: 5px;
+  letter-spacing: 1px;
+  text-transform: capitalize;
+  mix-blend-mode: difference;
 }
 #layersTool .tileCogColormap img,
 #layersTool .tileCogColormap #titlerCogColormapCSS {
-    width: 254px;
-    height: 28px;
-    transform: rotateZ(-90deg) translateX(-125px) translateY(177px);
-    border-left: 14px solid #222;
-    border-right: 14px solid #222;
+  width: 254px;
+  height: 28px;
+  transform: rotateZ(-90deg) translateX(-125px) translateY(177px);
+  border-left: 14px solid #222;
+  border-right: 14px solid #222;
 }
 #layersTool .tileCogColormap #titlerCogColormapCSS {
-    display: flex;
-    mix-blend-mode: normal;
+  display: flex;
+  mix-blend-mode: normal;
 }
 #layersTool .tileCogColormap #titlerCogColormapCSS + #tileCogColormapMapLines {
-    margin-top: -2px;
+  margin-top: -2px;
 }
 #layersTool #layersToolList > li.download_on,
 #layersTool #layersToolList > li.gears_on {
-    height: auto;
-    color: white;
-    background: var(--color-a2);
+  height: auto;
+  color: white;
+  background: var(--color-a2);
 }
 #layersToolList > li.gears_on {
-    overflow: visible;
+  overflow: visible;
 }
 #layersTool #layersToolList > li.download_on .layerExport,
 #layersTool #layersToolList > li.gears_on .settings {
-    height: auto;
-    opacity: 1;
-    padding: 2px 6px 2px 12px;
+  height: auto;
+  opacity: 1;
+  padding: 2px 6px 2px 12px;
 }
 
 #layersTool .reload,
@@ -410,55 +585,60 @@
 #layersTool .locate,
 #layersTool .LayersToolInfo,
 #layersTool .time {
-    width: 30px;
-    height: 100%;
-    text-align: center;
-    line-height: 30px;
-    cursor: pointer;
-    color: #ccc;
-    flex-shrink: 0;
-    transition: color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
-        background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+  width: 30px;
+  height: 100%;
+  text-align: center;
+  line-height: 30px;
+  cursor: pointer;
+  color: #ccc;
+  flex-shrink: 0;
+  transition:
+    color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
+    background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 #layersTool .reload,
 #layersTool .layerDownload,
 #layersTool .gears,
 #layersTool .locate,
 #layersTool .LayersToolInfo {
-    color: transparent;
+  color: transparent;
 }
 #layersTool .refreshWarning {
-    color: var(--color-h);
-    display: none;
-    align-items: center;
-    justify-content: center;
+  color: var(--color-h);
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
 #layersTool .reload:hover,
 #layersTool .layerDownload:hover,
 #layersTool .gears:hover,
 #layersTool .locate:hover,
 #layersTool .LayersToolInfo:hover {
-    background: var(--color-k);
+  background: var(--color-k);
 }
 
 #layersTool .setGlobalTimeFromExtent:hover,
 #layersTool .reset:hover,
 #layersTool .resetCog:hover,
 #layersTool .layerSettingsTitle .tileexpressionreset:hover {
-    color: white;
+  color: white;
 }
 
 #layersTool .setGlobalTimeFromExtent,
 #layersTool .reset,
 #layersTool .resetCog,
 #layersTool .layerSettingsTitle .tileexpressionreset {
-    display: none;
+  display: none;
 }
 #layersTool #layersToolList > li.gears_on .setGlobalTimeFromExtent,
 #layersTool #layersToolList > li.gears_on .reset,
 #layersTool #layersToolList > li.gears_on .resetCog,
-#layersTool #layersToolList > li.gears_on .layerSettingsTitle .tileexpressionreset {
-    display: block;
+#layersTool
+  #layersToolList
+  > li.gears_on
+  .layerSettingsTitle
+  .tileexpressionreset {
+  display: block;
 }
 
 #layersTool .headercollapse:hover,
@@ -469,526 +649,532 @@
 #layersTool li:hover .gears,
 #layersTool li:hover .locate,
 #layersTool li:hover .LayersToolInfo {
-    color: #fff;
+  color: #fff;
 }
 
 #layersToolContent {
-    flex: 1;
-    overflow-y: scroll;
+  flex: 1;
+  overflow-y: scroll;
 }
 #layersToolContent #layersToolList {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
 }
 
 #layersTool .layerName {
-    cursor: pointer;
-    line-height: 31px;
-    height: 100%;
-    flex: 1;
-    min-width: 0;
-    user-select: none;
-    white-space: nowrap;
+  cursor: pointer;
+  line-height: 31px;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+  user-select: none;
+  white-space: nowrap;
 }
 #layersTool li:hover .layerName {
-    text-overflow: ellipsis;
-    overflow: hidden;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 #layersTool .layerCount {
-    display: none;
-    background: var(--color-a1);
-    font-size: 11px;
-    border-radius: 3px;
-    width: 18px;
-    height: 18px;
-    margin: 6px 0px 6px 6px;
-    color: #ccc;
-    text-align: center;
-    line-height: 19px;
+  display: none;
+  background: var(--color-a1);
+  font-size: 11px;
+  border-radius: 3px;
+  width: 18px;
+  height: 18px;
+  margin: 6px 0px 6px 6px;
+  color: #ccc;
+  text-align: center;
+  line-height: 19px;
 }
 #layersTool .headerChevron {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .layersToolColorOFF {
-    width: 10px;
-    height: 100%;
+  width: 10px;
+  height: 100%;
 }
 .layersToolColor {
-    width: 12px;
-    height: 100%;
-    cursor: ns-resize;
-    color: rgba(255, 255, 255, 0.6);
-    border-right: 1px solid var(--color-a);
-    box-sizing: unset;
-    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-    /* Background is set inline from the layertype manifest color. */
-    background: var(--lt-color);
+  width: 12px;
+  height: 100%;
+  cursor: ns-resize;
+  color: rgba(255, 255, 255, 0.6);
+  border-right: 1px solid var(--color-a);
+  box-sizing: unset;
+  transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+  /* Background is set inline from the layertype manifest color. */
+  background: var(--lt-color);
 }
 .layersToolColor > i.mdi:before {
-    font-size: 14px;
-    margin-left: -1px;
+  font-size: 14px;
+  margin-left: -1px;
 }
 .layersToolColor:hover {
-    color: white;
+  color: white;
 }
 
 #LayersToolLayer.model {
-    height: 33px;
-    padding: 5px;
-    max-width: 100%;
-    display: flex;
-    border-top: 3px solid black;
-    background: #552f89;
-    user-select: none;
+  height: 33px;
+  padding: 5px;
+  max-width: 100%;
+  display: flex;
+  border-top: 3px solid black;
+  background: #552f89;
+  user-select: none;
 }
 
 #layersTool .checkboxcont {
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
 }
 #layersTool .checkbox {
-    margin: 5px;
-    width: 20px;
-    height: 20px;
-    border: 1px solid var(--color-a3);
-    border-radius: 2px;
-    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-        border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
-        border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
+  margin: 5px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--color-a3);
+  border-radius: 2px;
+  transition:
+    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
+    border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 #layersTool .settings .checkbox {
-    border: 1px solid var(--color-a4);
+  border: 1px solid var(--color-a4);
 }
 
 #layersTool .checkbox.on {
-    background: var(--color-a7);
-    border: 0px solid #777;
+  background: var(--color-a7);
+  border: 0px solid #777;
 }
 #layersTool .checkbox.small.on {
-    background: var(--color-a7);
+  background: var(--color-a7);
 }
 #layersTool .checkbox:not(.on):hover {
-    background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 #layersTool .checkbox.loading {
-    background: transparent;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: layerLoadingSpin 1s ease-in-out infinite;
+  background: transparent;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: layerLoadingSpin 1s ease-in-out infinite;
 }
 #layersTool .checkbox.small {
-    width: 16px;
-    height: 16px;
-    margin: 7px;
+  width: 16px;
+  height: 16px;
+  margin: 7px;
 }
 #layersTool .checkbox.smaller {
-    width: 12px;
-    height: 12px;
-    margin: 9px;
+  width: 12px;
+  height: 12px;
+  margin: 9px;
 }
 #layersTool .checkboxSmall {
-    margin: 3px;
-    width: 12px;
-    height: 13px;
-    border: 2px solid #777;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-        border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+  margin: 3px;
+  width: 12px;
+  height: 13px;
+  border: 2px solid #777;
+  border-radius: 3px;
+  cursor: pointer;
+  transition:
+    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
+    border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 #layersTool .checkboxSmall.on {
-    background: white;
-    border: 0px solid #777;
+  background: white;
+  border: 0px solid #777;
 }
 
 #layersettings {
-    height: 33px;
-    padding: 5px;
-    border-top: 3px solid black;
+  height: 33px;
+  padding: 5px;
+  border-top: 3px solid black;
 }
 
 #dropmenu {
-    max-width: 100%;
+  max-width: 100%;
 }
 
 #LayersTooltileLayer:hover {
-    font-weight: bolder;
-    color: white;
+  font-weight: bolder;
+  color: white;
 }
 
 #LayersToolvectorLayer:hover {
-    font-weight: bolder;
-    color: #ffffff;
+  font-weight: bolder;
+  color: #ffffff;
 }
 
 #LayersToolmodelLayer:hover {
-    font-weight: bolder;
-    color: white;
+  font-weight: bolder;
+  color: white;
 }
 
 #layersettings div.off {
-    font-weight: normal;
-    color: white;
-    background: black;
+  font-weight: normal;
+  color: white;
+  background: black;
 }
 
 #LayersToolopacitySlider {
-    background-color: '#333';
-    height: 100%;
-    padding: 0px;
-    margin: 0px;
+  background-color: "#333";
+  height: 100%;
+  padding: 0px;
+  margin: 0px;
 }
 
 #LayersToolNav {
-    padding: 0px 10px;
-    text-align: left;
-    background: var(--color-mmgis);
-    box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
+  padding: 0px 10px;
+  text-align: left;
+  background: var(--color-mmgis);
+  box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
 }
 
 #LayersToolNav .LayersToolNavButton {
-    transition: background 0.2s ease-out;
-    height: 30px;
-    display: inline-flex;
-    text-align: center;
-    line-height: 30px;
-    border-radius: 1px;
-    vertical-align: middle;
-    cursor: pointer;
-    padding: 0px 6px 0px 4px;
-    color: rgba(255, 255, 255, 0.5);
-    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+  transition: background 0.2s ease-out;
+  height: 30px;
+  display: inline-flex;
+  text-align: center;
+  line-height: 30px;
+  border-radius: 1px;
+  vertical-align: middle;
+  cursor: pointer;
+  padding: 0px 6px 0px 4px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+}
+
+#layersTool .dynamicStyleRow select.dropdown {
+  width: 177px;
 }
 
 #layersTool .dropdown {
-    background-color: #222;
-    border: none;
-    margin: 1px 0px;
-    width: 120px;
-    height: 28px;
-    font-size: 14px;
-    color: var(--color-f);
-    padding: 0px 2px;
+  background-color: #222;
+  border: none;
+  margin: 1px 0px;
+  width: 120px;
+  height: 28px;
+  font-size: 14px;
+  color: var(--color-f);
+  padding: 0px 2px;
 }
 #layersTool .dropdown2 {
-    background-color: #222;
-    border: none;
-    height: 30px;
-    font-size: 14px;
-    color: var(--color-f);
-    padding-left: 10px;
+  background-color: #222;
+  border: none;
+  height: 30px;
+  font-size: 14px;
+  color: var(--color-f);
+  padding-left: 10px;
 }
 #layersTool .sublayerDropdown {
-    width: unset;
-    height: 20px;
-    margin-top: 5px;
-    padding: 0px 2px 1px 2px;
-    line-height: 10px;
-    font-size: 13px;
+  width: unset;
+  height: 20px;
+  margin-top: 5px;
+  padding: 0px 2px 1px 2px;
+  line-height: 10px;
+  font-size: 13px;
 }
 
 #layersTool .sublayer {
-    display: flex;
-    justify-content: space-between;
-    height: 30px;
-    padding-left: 20px;
+  display: flex;
+  justify-content: space-between;
+  height: 30px;
+  padding-left: 20px;
 }
 
 #layersTool .sublayer > div:first-child {
-    font-size: 13px;
+  font-size: 13px;
 }
 
 #layersTool .layernotfound {
-    cursor: not-allowed;
+  cursor: not-allowed;
 }
 #layersTool .layernotfound > div {
-    pointer-events: none;
-    background: #541d1d;
+  pointer-events: none;
+  background: #541d1d;
 }
 
 #layersTool .layernotfound .checkboxcont .checkbox {
-    background: transparent !important;
-    border: 2px solid #777 !important;
+  background: transparent !important;
+  border: 2px solid #777 !important;
 }
 
 #layersTool .headerPowerState {
-    color: var(--color-h);
-    padding: 0px 6px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+  color: var(--color-h);
+  padding: 0px 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
 }
 #layersTool .headerPowerState:hover {
-    color: var(--color-h);
+  color: var(--color-h);
 }
 #layersTool .headerPowerState.on {
-    color: var(--color-a2);
+  color: var(--color-a2);
 }
 #layersTool .headerPowerState.on:hover {
-    color: var(--color-a7);
+  color: var(--color-a7);
 }
 
 @keyframes layerLoadingSpin {
-    to {
-        transform: rotate(360deg);
-    }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .layersToolExport {
-    cursor: default;
-    height: unset !important;
+  cursor: default;
+  height: unset !important;
 }
 .layersToolExport > div {
-    display: flex;
-    margin-bottom: 0px;
+  display: flex;
+  margin-bottom: 0px;
 }
 .layersToolExport > div:first-child {
-    margin-bottom: 0px;
-    color: #fff;
+  margin-bottom: 0px;
+  color: #fff;
 }
 .layersToolExport > div:not(:first-child) {
-    justify-content: space-between;
-    line-height: 27px;
+  justify-content: space-between;
+  line-height: 27px;
 }
 .layersToolExport > div:first-child > div {
-    padding-left: 4px;
-    color: #eee;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-size: 12px;
+  padding-left: 4px;
+  color: #eee;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 12px;
 }
 .layersToolExport:hover {
-    background: var(--color-a2) !important;
+  background: var(--color-a2) !important;
 }
 .layersToolExport > div > div:first-child {
-    padding-left: 28px;
-    line-height: 29px;
+  padding-left: 28px;
+  line-height: 29px;
 }
 #layersTool .layersToolExport > div > select.dropdown {
-    background-color: var(--color-a1);
-    color: #ededed;
-    border: none;
-    width: 220px;
-    height: 27px;
-    font-size: 14px;
-    padding: 0px 3px;
-    border-left: 1px solid var(--color-a1-5);
+  background-color: var(--color-a1);
+  color: #ededed;
+  border: none;
+  width: 220px;
+  height: 27px;
+  font-size: 14px;
+  padding: 0px 3px;
+  border-left: 1px solid var(--color-a1-5);
 }
 .layersToolExportGo {
-    display: block;
-    width: 100%;
-    margin-left: 28px;
-    padding-left: 0px !important;
-    height: 27px;
-    line-height: 27px;
-    margin-top: 2px;
-    margin-bottom: 1px;
-    background-color: var(--color-a);
+  display: block;
+  width: 100%;
+  margin-left: 28px;
+  padding-left: 0px !important;
+  height: 27px;
+  line-height: 27px;
+  margin-top: 2px;
+  margin-bottom: 1px;
+  background-color: var(--color-a);
 }
 .layersToolExportGo:hover {
-    background-color: var(--color-a1-5);
+  background-color: var(--color-a1-5);
 }
 
 #layersTool .videoControls {
-    margin: 8px 0;
+  margin: 8px 0;
 }
 
 #layersTool .videoControlButtons {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 #layersTool .videoControlButtons button {
-    min-width: 30px;
-    height: 30px;
-    padding: 0px 6px;
-    border: 1px solid var(--color-a2);
-    background: var(--color-a1);
-    color: var(--color-l);
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background 0.2s;
+  min-width: 30px;
+  height: 30px;
+  padding: 0px 6px;
+  border: 1px solid var(--color-a2);
+  background: var(--color-a1);
+  color: var(--color-l);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 #layersTool .videoControlButtons button:hover {
-    background: var(--color-a1-5);
+  background: var(--color-a1-5);
 }
 
 #layersTool .videoControlButtons button:active {
-    background: var(--color-a);
+  background: var(--color-a);
 }
 
 #layersTool .videoControlButtons button.playing {
-    background: var(--color-p4);
-    color: white;
+  background: var(--color-p4);
+  color: white;
 }
 
 #layersTool .videoControlButtons button.unmuted {
-    background: var(--color-c2);
-    color: white;
+  background: var(--color-c2);
+  color: white;
 }
 
 #layersTool .videoScrubBar {
-    margin-top: 12px;
-    display: flex;
-    justify-content: center;
-    flex-flow: column;
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  flex-flow: column;
 }
 
 #layersTool .videoScrubContainer {
-    position: relative;
-    width: 100%;
-    height: 20px;
-    display: flex;
-    align-items: center;
+  position: relative;
+  width: 100%;
+  height: 20px;
+  display: flex;
+  align-items: center;
 }
 
 #layersTool .videoScrubTrack {
-    position: relative;
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--color-a-5);
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-a-5);
 }
 
 #layersTool .videoScrubProgress {
-    position: absolute;
-    top: 1px;
-    left: 1px;
-    height: 4px;
-    background: var(--color-p4);
-    border-radius: 3px;
-    width: 0%;
-    transition: width 0.1s ease-out;
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  height: 4px;
+  background: var(--color-p4);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.1s ease-out;
 }
 
 #layersTool .videoScrubSlider {
-    position: absolute;
-    top: -13px;
-    left: 0;
-    width: 100% !important;
-    height: 20px;
-    background: transparent;
-    outline: none;
-    transition: opacity 0.2s;
-    cursor: pointer;
-    -webkit-appearance: none;
-    appearance: none;
+  position: absolute;
+  top: -13px;
+  left: 0;
+  width: 100% !important;
+  height: 20px;
+  background: transparent;
+  outline: none;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 #layersTool .videoScrubSlider:hover {
-    opacity: 1;
+  opacity: 1;
 }
 
 #layersTool .videoScrubSlider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--color-p4);
-    cursor: pointer;
-    border: 2px solid var(--color-a-5);
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-p4);
+  cursor: pointer;
+  border: 2px solid var(--color-a-5);
 }
 
 #layersTool .videoScrubSlider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--color-p4);
-    cursor: pointer;
-    border: 2px solid var(--color-a-5);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-p4);
+  cursor: pointer;
+  border: 2px solid var(--color-a-5);
 }
 
 #layersTool .videoTimeDisplay {
-    display: flex;
-    justify-content: center;
-    font-size: 12px;
-    color: var(--color-a4);
-    font-family: monospace;
+  display: flex;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--color-a4);
+  font-family: monospace;
 }
 
 /* Band Math Expression Editor */
 #layersTool .tileCogExpression {
-    padding: 8px 0;
+  padding: 8px 0;
 }
 
 #layersTool .tileCogExpression > div:last-child {
-    display: block !important;
+  display: block !important;
 }
 
 #layersTool .tileCogExpressionl {
-    font-size: 12px;
-    margin-bottom: 4px;
+  font-size: 12px;
+  margin-bottom: 4px;
 }
 
 #layersTool .tileexpression {
-    width: 100%;
-    border: none;
-    background: #222;
-    color: #ddd;
-    height: 30px;
-    padding: 4px 8px;
-    font-family: monospace;
+  width: 100%;
+  border: none;
+  background: #222;
+  color: #ddd;
+  height: 30px;
+  padding: 4px 8px;
+  font-family: monospace;
 }
 
 #layersTool .tileexpression:focus {
-    outline: none;
-    border-color: var(--color-p4);
+  outline: none;
+  border-color: var(--color-p4);
 }
 
 #layersTool .expression-helper-text {
-    font-size: 13px !important;
-    color: var(--color-a6) !important;
-    margin-top: 6px;
-    font-style: italic;
-    line-height: 18px;
+  font-size: 13px !important;
+  color: var(--color-a6) !important;
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 18px;
 }
 
 #layersTool .expression-stac-info {
-    font-size: 12px;
-    color: var(--color-a6);
-    margin-top: 6px;
-    line-height: 16px;
-    display: none;
+  font-size: 12px;
+  color: var(--color-a6);
+  margin-top: 6px;
+  line-height: 16px;
+  display: none;
 }
 
 #layersTool .stac-header {
-    color: var(--color-a7);
-    font-weight: 500;
-    margin-bottom: 4px;
+  color: var(--color-a7);
+  font-weight: 500;
+  margin-bottom: 4px;
 }
 
 #layersTool .stac-band-item {
-    margin-left: 12px;
-    line-height: 18px;
+  margin-left: 12px;
+  line-height: 18px;
 }
 
 #layersTool .expression-buttons {
-    height: 30px;
-    display: flex;
+  height: 30px;
+  display: flex;
 }
 
 #layersTool .tileexpressionapply {
-    border: none;
-    padding: 4px 12px;
-    cursor: pointer;
-    font-size: 12px;
-    background: #3b8dd8;
-    color: white;
+  border: none;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  background: #3b8dd8;
+  color: white;
 }
 
 #layersTool .tileexpressionapply:hover {
-    background: #2a7fc7;
+  background: #2a7fc7;
 }
 
 #layersTool .layerDataExtentTitle {
-    display: flex;
+  display: flex;
 }
 #layersTool .setGlobalTimeFromExtent {
-    text-align: center;
+  text-align: center;
 }

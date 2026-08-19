@@ -17,6 +17,8 @@ import MapRenderer from '@basics/Map_/MapRenderer'
 import { captureVector } from '@basics/Layers_/capture/LayerCapturer'
 import gjv from 'geojson-validation'
 
+let captureCount = 0
+
 export function makeVectorMap(layerObj, ctx = {}, opts = {}) {
     const {
         evenIfOff,
@@ -29,9 +31,16 @@ export function makeVectorMap(layerObj, ctx = {}, opts = {}) {
     const mctx = MapRenderer.context(mapContext)
     const registry = mctx.layerRegistry
 
+    // Unique per capture so overlapping requeries (pan, time change) each keep
+    // the spinner up until their own response lands.
+    const loadingId = forceGeoJSON
+        ? null
+        : `vector_${layerObj.name}_${++captureCount}`
+
     return new Promise((resolve) => {
         if (forceGeoJSON) add(forceGeoJSON)
-        else
+        else {
+            L_.setGlobalLoading(loadingId)
             captureVector(
                 layerObj,
                 {
@@ -61,8 +70,10 @@ export function makeVectorMap(layerObj, ctx = {}, opts = {}) {
                     )
                 }
             )
+        }
 
         function add(data, allowInvalid) {
+            if (loadingId) L_.setGlobalLoaded(loadingId)
             data = F_.parseIntoGeoJSON(data)
 
             let invalidGeoJSONTrace = gjv.valid(data, true)

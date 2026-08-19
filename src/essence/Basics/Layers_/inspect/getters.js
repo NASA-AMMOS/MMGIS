@@ -3,6 +3,7 @@ import F_ from '../../Formulae_/Formulae_'
 import { transformStacUrl } from '../LayerUtils'
 import LayerInterface from '../interface/LayerInterface'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
+import { getDynamicStyleProps } from '../render/layerDynamicStyle'
 
 /**
  * Resolve a layer's url. Core owns the parts that are true of every layer —
@@ -92,10 +93,10 @@ export function getDynamicProps(L_, layerData) {
     let dynamicProps = []
     if (layerData?.style) {
         Object.keys(layerData.style).forEach((key) => {
-            if (key.endsWith('Prop'))
-                dynamicProps.push(layerData.style[key])
+            if (key.endsWith('Prop')) dynamicProps.push(layerData.style[key])
         })
     }
+    dynamicProps = dynamicProps.concat(getDynamicStyleProps(layerData))
     if (layerData?.variables?.useKeyAsName) {
         const keyNames = (
             typeof layerData.variables.useKeyAsName === 'string'
@@ -132,9 +133,7 @@ export function getLayersChosenNamePropVal(L_, feature, layer) {
             propertyNames = l.variables['useKeyAsName']
             if (typeof propertyNames === 'string')
                 propertyNames = [propertyNames]
-            propertyNames = propertyNames.filter(
-                (k) => k != null && k !== ''
-            )
+            propertyNames = propertyNames.filter((k) => k != null && k !== '')
             propertyValues = Array(propertyNames.length).fill(null)
             propertyNames.forEach((propertyName, idx) => {
                 if (
@@ -192,9 +191,8 @@ export function propertiesToImages(L_, props, baseUrl) {
                         texture: props.images[i].texture,
                         name:
                             (props.images[i].name ||
-                                props.images[i].url.match(
-                                    /([^\/]*)\/*$/
-                                )[1]) + ' [Model]',
+                                props.images[i].url.match(/([^\/]*)\/*$/)[1]) +
+                            ' [Model]',
                         type: 'model',
                         isPanoramic: false,
                         isModel: true,
@@ -227,9 +225,7 @@ export function propertiesToImages(L_, props, baseUrl) {
                         url: url,
                         name:
                             (props.images[i].name ||
-                                props.images[i].url.match(
-                                    /([^\/]*)\/*$/
-                                )[1]) +
+                                props.images[i].url.match(/([^\/]*)\/*$/)[1]) +
                             (isVideo ? ' [Video]' : '') +
                             (isGif ? ' [GIF]' : ''),
                         type:
@@ -251,8 +247,7 @@ export function propertiesToImages(L_, props, baseUrl) {
     for (let p in props) {
         if (
             typeof props[p] === 'string' &&
-            props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) !=
-                null
+            props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) != null
         ) {
             let url = props[p]
             const isGif = url.toLowerCase().match(/\.gif$/) != null

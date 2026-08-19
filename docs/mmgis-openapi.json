@@ -2789,6 +2789,16 @@
             }
           },
           {
+            "name": "stats",
+            "in": "query",
+            "description": "In the case of type=geojson, also return min/max/avg/sum/stddev of these numeric feature properties fields for each feature's group, at properties._.stats. Grouping matches noDuplicates' (the group_id field if set, else the geometry) whether or not noDuplicates is used, and covers the whole filtered set regardless of limit/offset. Non-numeric and missing values are ignored; a group with no numeric values reports nulls.",
+            "example": "prop1,prop2",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "filters",
             "in": "query",
             "description": "Filter based on feature properties. The input is of the form: key+op+type+value,key+op+type+value,... 'key' is a properties field key. 'op' is '>', '<', '=', or 'in'. If 'op' is 'in', 'value' is a list separated by dollar signs. 'type' is either 'string' or 'number'.",
@@ -3083,6 +3093,16 @@
             }
           },
           {
+            "name": "stats",
+            "in": "query",
+            "description": "In the case of type=geojson, also return min/max/avg/sum/stddev of these numeric feature properties fields for each feature's group, at properties._.stats. Grouping matches noDuplicates' (the group_id field if set, else the geometry) whether or not noDuplicates is used, and covers the whole filtered set regardless of limit/offset. Non-numeric and missing values are ignored; a group with no numeric values reports nulls.",
+            "example": "prop1,prop2",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "filters",
             "in": "query",
             "description": "Filter based on feature properties. The input is of the form: key+op+type+value,key+op+type+value,... 'key' is a properties field key. 'op' is '>', '<', '=', or 'in'. If 'op' is 'in', 'value' is a list separated by dollar-signs. 'type' is either 'string' or 'number'.",
@@ -3243,6 +3263,19 @@
                             "num_features": 100,
                             "start_time_field": "start_time",
                             "end_time_field": "end_time",
+                            "field_stats": {
+                              "elevation": {
+                                "type": "number",
+                                "min": 0.1,
+                                "max": 9.8,
+                                "sum": 420,
+                                "sumsq": 2100,
+                                "count": 100,
+                                "nullCount": 4,
+                                "avg": 4.2,
+                                "stddev": 2.32
+                              }
+                            },
                             "occurrences": {
                               "example_mission": [
                                 {
@@ -3676,7 +3709,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns the combined schema across all requested layers.",
+            "description": "Returns the combined schema across all requested layers, plus per-layer dataset-wide statistics of every numeric field ('field_stats'). Unlike 'schema', which is sampled, 'field_stats' covers every feature: it is computed when a geodataset is created or recreated and widened by each append ('sum', 'sumsq' and 'count' are stored so 'avg' and the population 'stddev' stay exact across appends; 'nullCount', how many features held no number for the field, is derived from the geodataset's feature count). It is empty for geodatasets that have not been created or recreated since statistics were introduced, and appending to such a geodataset leaves it empty rather than reporting only the appended features.",
             "content": {
               "application/json": {
                 "examples": {
@@ -3696,6 +3729,21 @@
                         "elevation": {
                           "type": "number",
                           "layers": ["reference_mission_basic"]
+                        }
+                      },
+                      "field_stats": {
+                        "reference_mission_basic": {
+                          "elevation": {
+                            "type": "number",
+                            "min": 0.1,
+                            "max": 9.8,
+                            "sum": 420,
+                            "sumsq": 2100,
+                            "count": 100,
+                            "nullCount": 4,
+                            "avg": 4.2,
+                            "stddev": 2.32
+                          }
                         }
                       }
                     }
@@ -4251,6 +4299,117 @@
                       "status": "failure",
                       "message": "Failure: Malformed file.",
                       "body": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/recompute_stats/{name}": {
+      "post": {
+        "summary": "Recompute a geodataset's dataset-wide field statistics",
+        "description": "Recomputes `field_stats` from the features already in the geodataset, in one pass over its table. Needed only for a geodataset written before those statistics were kept, since an append summarizes just the features it appends.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recompute response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Recomputed statistics for 2 numeric field(s).",
+                      "field_stats": {
+                        "elev": {
+                          "type": "number",
+                          "min": 1,
+                          "max": 9,
+                          "sum": 10,
+                          "sumsq": 82,
+                          "count": 2,
+                          "nullCount": 0,
+                          "avg": 5,
+                          "stddev": 4
+                        }
+                      }
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Geodataset 'example_name' not found."
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to recompute field statistics."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/geodatasets/convert_properties/{name}": {
+      "post": {
+        "summary": "Convert a geodataset's properties column to jsonb",
+        "description": "Converts a geodataset's `properties` column from `json` to `jsonb`. `json` is stored as text and reparsed on every property read; `jsonb` is stored parsed, which is several times faster for `stats=` and every other property read. Geodatasets created since this was added are already `jsonb`. The table is rewritten under an exclusive lock, so it is unavailable while the conversion runs.",
+        "tags": ["GeoDatasets"],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversion response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Converted 'my_geodataset' properties to jsonb.",
+                      "properties_type": "jsonb"
+                    }
+                  },
+                  "already": {
+                    "summary": "Already jsonb",
+                    "value": {
+                      "status": "success",
+                      "message": "'my_geodataset' already stores its properties as jsonb.",
+                      "properties_type": "jsonb"
+                    }
+                  },
+                  "not_found": {
+                    "summary": "Not Found",
+                    "value": {
+                      "status": "failure",
+                      "message": "Geodataset 'my_geodataset' not found."
                     }
                   }
                 }

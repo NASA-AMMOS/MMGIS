@@ -1,0 +1,130 @@
+/* The mount is indented with the rest of the rule's rows, so these sit flush
+   inside it and line up with the dropdowns above. */
+.dynamicStyleRampControls {
+    width: 100%;
+    padding: 0 0 8px 0;
+}
+
+.dynamicStyleRampRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 30px;
+}
+
+.dynamicStyleRampRow > div:first-child {
+    font-size: 13px;
+}
+
+.dynamicStyleRampPicker {
+    width: 177px;
+}
+
+.dynamicStyleRampRow > input.dynamicStyleBins {
+    width: 177px;
+    height: 28px;
+    margin: 1px 0px;
+    padding: 0px 2px;
+    border: none;
+    background-color: #222;
+    color: var(--color-f);
+    font-size: 14px;
+}
+
+/* Room on the right for the reset, which hangs outside the bar, and below it
+   for the value each boundary falls at. */
+.dynamicStyleStopBar {
+    position: relative;
+    height: 16px;
+    margin: 8px 16px 22px 0;
+}
+
+.dynamicStyleStopGradient {
+    height: 100%;
+    border-radius: 2px;
+}
+
+/* Wider than it looks, so the 3px line is still easy to grab. */
+.dynamicStyleStop {
+    position: absolute;
+    top: -2px;
+    width: 11px;
+    height: 20px;
+    margin-left: -5px;
+    cursor: ew-resize;
+}
+
+.dynamicStyleStop::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    width: 3px;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--color-a5);
+    box-shadow: 0 0 3px var(--color-shadow);
+}
+
+.dynamicStyleStop:hover::after,
+.dynamicStyleStop.dragging::after {
+    background: var(--color-mmgis);
+}
+
+/* The data value a boundary sits at, centered under it. Unclickable so it
+   never gets in the way of grabbing a neighbouring stop. */
+.dynamicStyleStopValue {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    line-height: 14px;
+    white-space: nowrap;
+    color: var(--color-a7);
+    pointer-events: none;
+}
+
+.dynamicStyleStop:hover .dynamicStyleStopValue,
+.dynamicStyleStop.dragging .dynamicStyleStopValue {
+    color: var(--color-mmgis);
+}
+
+/* The ends of the scale, pinned inside the bar rather than centered. */
+.dynamicStyleStopValue.end {
+    top: 18px;
+    transform: none;
+}
+
+.dynamicStyleStopValue.end.low {
+    left: 0;
+}
+
+.dynamicStyleStopValue.end.high {
+    left: unset;
+    right: 0;
+}
+
+/* Always there, so the bar doesn't shift when bins stop being even. */
+.dynamicStyleStopReset {
+    position: absolute;
+    top: 0px;
+    right: -16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 0 2px 2px 0;
+    background: #222;
+    cursor: pointer;
+    color: var(--color-a4);
+}
+
+/* Nothing to undo, but still shown where it will be. */
+.dynamicStyleStopReset.even {
+    color: var(--color-a3);
+}
+
+.dynamicStyleStopReset:hover {
+    color: var(--color-mmgis);
+}

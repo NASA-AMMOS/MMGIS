@@ -6,8 +6,39 @@ import Map_ from '@basics/Map_/Map_'
 import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 import LayerAttachmentRegistry from '@basics/Layers_/registry/LayerAttachmentRegistry'
 import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
+import {
+    COLOR_ATTRIBUTES,
+    DEFAULT_ATTRIBUTE,
+    GROUP_STATS,
+    attributeOf,
+    groupStatDomain,
+    propertyTypeOf,
+    rulePropertyLabel,
+    rulePropertyPath,
+    ruleStatOf,
+    styleableAttributes,
+} from '@basics/Layers_/render/dynamicStyle'
+import {
+    getDomainMode,
+    getDynamicStyle,
+    getLayerDynamicStyleRules,
+    getStatsFields,
+    getViewedRules,
+} from '@basics/Layers_/render/layerDynamicStyle'
+import refreshLayer from '@basics/Layers_/lifecycle/refresh'
+import {
+    RESTYLED_EVENT,
+    geodatasetOf,
+    overrideDynamicStyle,
+    overrideDynamicStyleRuleOf,
+    propertyStats,
+} from '@basics/Layers_/render/dynamicStyleRuntime'
+
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 
 import DataShaders from '@essence/services/DataShaders'
+import DynamicStyleRamp from './components/DynamicStyleRamp'
 import LayerInfoModal from './LayerInfoModal/LayerInfoModal'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
 import Help from '@basics/UserInterface_/components/Help/Help'
@@ -147,6 +178,39 @@ const TILE_DEFAULT_COLOR_RAMP = 'viridis'
 // The default color ramp used for velocity layer types
 const VELOCITY_DEFAULT_COLOR_RAMP = 'rdylbu_r'
 
+// How a dynamic style's attributes read in the Layers Tool's attribute picker
+const ATTRIBUTE_LABELS = {
+    fillColor: 'Fill Color',
+    color: 'Outline Color',
+    fillOpacity: 'Fill Opacity',
+    opacity: 'Outline Opacity',
+    weight: 'Outline Weight',
+    radius: 'Radius',
+}
+
+// Per-group and dataset-wide statistics are easy to confuse, so the Stat row
+// says which it is. Free of markup characters: it is interpolated as a title.
+const STAT_HELP =
+    'Measured over the features that share a group, so Std Dev is how much values vary within the group rather than how unusual one feature is. To colour by distance from the average, keep Average and set the rule Domain to mean \u00b1 \u03c3.'
+
+// How a group's statistics read in the Layers Tool
+const STAT_LABELS = {
+    min: 'Minimum',
+    max: 'Maximum',
+    avg: 'Average',
+    sum: 'Sum',
+    stddev: 'Std Dev',
+}
+
+// What a numeric attribute spans when a viewer aims a rule at one that was
+// written for a colour, and so has no range of its own
+const DEFAULT_RANGES = {
+    fillOpacity: [0.1, 1],
+    opacity: [0.1, 1],
+    weight: [1, 8],
+    radius: [3, 12],
+}
+
 var LayersTool = {
     height: 0,
     width: 350,
@@ -154,6 +218,9 @@ var LayersTool = {
     MMGISInterface: null,
     orderingHistory: [],
     _maxDepth: 0,
+    // React roots for the dynamic style's ramp editors, by layer, so opening a
+    // layer's settings twice doesn't leave one mounted over another.
+    _dynamicStyleRoots: {},
     initialize: function () {
         //Get tool variables
         this.vars = L_.getToolVars('layers')
@@ -202,6 +269,10 @@ var LayersTool = {
         this.MMGISInterface = new interfaceWithMMGIS(fromInit)
     },
     destroy: function () {
+        Object.values(LayersTool._dynamicStyleRoots).forEach((byIndex) =>
+            Object.values(byIndex).forEach((cached) => cached.root.unmount())
+        )
+        LayersTool._dynamicStyleRoots = {}
         this.MMGISInterface.separateFromMMGIS()
     },
     getUrlString: function () {
@@ -1551,21 +1622,26 @@ function interfaceWithMMGIS(fromInit) {
                 if (
                     L_.layers.attachments[layerName] &&
                     Object.keys(L_.layers.attachments[layerName]).length > 0 &&
+                    // The dynamic style and its stats have headings of their
+                    // own, drawn before the layer is on; neither is the one
+                    // being looked for - the Composite Layers heading is.
                     !$(
                         `#LayersTool${F_.getSafeName(
                             layerName
-                        )} .sublayerHeading`
+                        )} .sublayerHeading:not(.dynamicStyleHeading):not(.statsRow)`
                     ).length
                 ) {
                     // refresh settings
                     const mainSettings = $(
-                        `#LayersTool${F_.getSafeName(
-                            layerName
-                        )} > .settingsmainvector`
+                        `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
                     )
                     if (mainSettings) {
                         mainSettings.html(getVectorLayerSettings(layerName))
                         setSublayerEvents()
+                        // The markup is new, so the ramp editor's React root
+                        // is now pointing at a node that has been thrown away.
+                        mountDynamicStyleRamps(layerName)
+                        mountDynamicStyleTips(layerName)
                     }
                 }
             }
@@ -1674,9 +1750,7 @@ function interfaceWithMMGIS(fromInit) {
                 LayersTool._header_states[name].forEach((layerName) => {
                     toggleLayer(
                         $(
-                            `#LayersTool${F_.getSafeName(
-                                layerName
-                            )} .title .checkbox`
+                            `#LayersTool${F_.getSafeName(layerName)} .title .checkbox`
                         )
                     )
                 })
@@ -1709,6 +1783,11 @@ function interfaceWithMMGIS(fromInit) {
         $('.layerDownload').parent().parent().removeClass('download_on')
         $('.gears').parent().parent().removeClass('gears_on')
         if (!wasOn) li.addClass('gears_on')
+
+        // The dynamic style's controls describe the features the layer holds
+        // now - which properties it has, what it's currently coloured by - so
+        // they're built when the panel is opened rather than with the list.
+        if (!wasOn) refreshDynamicStyleSettings(layerName)
 
         // Fetch STAC asset/band info if applicable
         if (!wasOn && type === 'tile') {
@@ -2108,6 +2187,10 @@ function interfaceWithMMGIS(fromInit) {
             li.find('.tileblender').attr('defaultBlend') || 'unset'
         if (defaultBlend == 'none') defaultBlend = 'unset'
         li.find('.tileblender').val(defaultBlend)
+
+        // Settings includes how the layer is coloured, so this undoes the
+        // dynamic style panel too.
+        resetDynamicStyle(li.attr('name'))
     })
 
     $('.resetCog').on('click', function () {
@@ -2914,9 +2997,7 @@ function interfaceWithMMGIS(fromInit) {
                     $(item)
                         .find('.title')
                         .css({
-                            'border-left': `${
-                                depth * DEPTH_SIZE
-                            }px solid ${INDENT_COLOR}`,
+                            'border-left': `${depth * DEPTH_SIZE}px solid ${INDENT_COLOR}`,
                         })
                     curItem = item
                 })
@@ -2991,6 +3072,422 @@ function interfaceWithMMGIS(fromInit) {
 
     // Sublayer things
 
+    /**
+     * The dynamic style's runtime controls: what a viewer may change about how
+     * a layer is coloured without being an admin, and without it outliving the
+     * session. Only shown for a layer that has a dynamic style to change.
+     */
+    function getDynamicStyleSettings(layerName) {
+        const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
+        const dynamicStyle = layerObj?.variables?.dynamicStyle
+        if (
+            !Array.isArray(dynamicStyle?.rules) ||
+            dynamicStyle.enabled !== true
+        )
+            return ''
+        const rules = getViewedRules(layerObj)
+        // Where an admin didn't leave the style open to being re-aimed, the
+        // section says what the layer is styled by without offering to change
+        // it.
+        if (dynamicStyle.userSettable === false)
+            return getDynamicStyleListing(rules)
+
+        const mode = getDomainMode(layerObj)
+        const name = F_.escapeHtml(layerName)
+        // A geodataset holds back most of its features, so a scale without
+        // stored statistics is only over what is loaded. A categorical rule
+        // spans no range, and a group statistic is bounded by its field's
+        // numbers - except a sum, which nothing stored bounds.
+        const partiallyLoaded = geodatasetOf(layerObj) != null
+        const missesDatasetNumbers = (rule) => {
+            if (propertyTypeOf(rule) === 'stats')
+                return (
+                    groupStatDomain(
+                        layerObj?._fieldStats?.[rule.property],
+                        ruleStatOf(rule)
+                    ) == null
+                )
+            return (
+                propertyStats(layerObj, rulePropertyPath(rule))?.scope !==
+                'dataset'
+            )
+        }
+        const unmeasured =
+            mode !== 'dataset' || !partiallyLoaded
+                ? []
+                : rules
+                      .filter(
+                          (rule) =>
+                              rule?.enabled !== false &&
+                              !isCategoricalNow(layerName, rule)
+                      )
+                      .filter(missesDatasetNumbers)
+                      .map((rule) => rulePropertyLabel(rule))
+
+        // prettier-ignore
+        return [
+            '<div class="sublayerHeading dynamicStyleRow dynamicStyleHeading">',
+                '<div class="dynamicStyleHeadingTitle">',
+                    '<div>Dynamic Style</div>',
+                    `<div class="dynamicStyleReset mmgisHoverBlue" layername="${name}" title="Style this layer the way it was configured again, undoing the changes made here."><i class="mdi mdi-restore mdi-18px"></i></div>`,
+                '</div>',
+            '</div>',
+            '<div class="sublayer dynamicStyleRow">',
+                '<div title="Whether the colour scale is stretched over the whole dataset - so a feature\'s colour means the same wherever you are - or over just what is currently in view, which re-stretches the ramp as you pan.">Domain</div>',
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleDomain" layername="${name}">`,
+                        `<option value="dataset"${mode === 'dataset' ? ' selected' : ''}>Whole dataset</option>`,
+                        `<option value="view"${mode === 'view' ? ' selected' : ''}>Current view</option>`,
+                    '</select>',
+                '</div>',
+            '</div>',
+            unmeasured.length === 0 ? '' : [
+            `<div class="sublayer dynamicStyleRow dynamicStyleNote" data-tippy-content="A geodataset is measured over every feature it has at ingest, and Recompute Statistics in Configure measures one that predates that - for its numeric fields. Reload the page for a recompute to reach it.">`,
+                `<div>No dataset-wide numbers for ${F_.escapeHtml(unmeasured.join(', '))} - scaled over what is loaded.</div>`,
+            '</div>'].join('\n'),
+            rules.map((rule, index) =>
+                getDynamicStyleRuleSettings(layerName, rule, index)
+            ).join('\n'),
+        ].join('\n')
+    }
+
+    /**
+     * The rules as a list: what each styles by and the attribute it drives.
+     * What a viewer sees of a style they can't change.
+     */
+    function getDynamicStyleListing(rules) {
+        const listed = rules.filter((rule) => rule?.enabled !== false)
+        if (listed.length === 0) return ''
+        // prettier-ignore
+        return [
+            '<div class="sublayerHeading dynamicStyleRow dynamicStyleHeading">',
+                '<div class="dynamicStyleHeadingTitle">',
+                    '<div>Dynamic Style</div>',
+                '</div>',
+            '</div>',
+            listed.map((rule) =>
+                [
+                '<div class="sublayer dynamicStyleRow dynamicStyleRuleListed">',
+                    `<div title="${F_.escapeHtml(rulePropertyLabel(rule))}">${F_.escapeHtml(rulePropertyLabel(rule))}</div>`,
+                    `<div>${F_.escapeHtml(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || rule.attribute)}</div>`,
+                '</div>',
+                ].join('\n')
+            ).join('\n'),
+        ].join('\n')
+    }
+
+    /**
+     * One rule's controls, under a heading naming what it styles by and a
+     * switch for whether it styles at all. An admin writes the rules; a viewer
+     * chooses which of them to look through and adjusts those.
+     */
+    function getDynamicStyleRuleSettings(layerName, rule, index) {
+        const name = F_.escapeHtml(layerName)
+        const isStats = propertyTypeOf(rule) === 'stats'
+        const on = rule?.enabled !== false
+        const byValue = isCategoricalNow(layerName, rule)
+
+        // prettier-ignore
+        return [
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleHeading">',
+                `<div title="Styles ${F_.escapeHtml(ATTRIBUTE_LABELS[rule.attribute || DEFAULT_ATTRIBUTE] || 'the fill')} by ${F_.escapeHtml(rulePropertyLabel(rule))}.">${F_.escapeHtml(rulePropertyLabel(rule))}</div>`,
+                '<div class="checkboxcont">',
+                    `<div class="checkbox dynamicStyleRuleEnabled ${on ? 'on' : 'off'}" layername="${name}" ruleindex="${index}" title="Whether this rule styles the layer."></div>`,
+                '</div>',
+            '</div>',
+            !on ? '' : [
+            !isStats ? '' : [
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
+                '<div class="dynamicStyleLabelInfo">',
+                    'Stat',
+                    '<i class="mdi mdi-information-outline mdi-18px dynamicStyleStatInfo"></i>',
+                '</div>',
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleStat" layername="${name}" ruleindex="${index}">`,
+                        GROUP_STATS.map((s) =>
+                            `<option value="${s}"${s === ruleStatOf(rule) ? ' selected' : ''}>${STAT_LABELS[s]}</option>`
+                        ).join('\n'),
+                    '</select>',
+                '</div>',
+            '</div>'].join('\n'),
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow">',
+                '<div title="The style attribute the property drives. Colours take a ramp; the others take a range of numbers.">Styles</div>',
+
+                '<div style="display: flex;">',
+                    `<select class="dropdown dynamicStyleAttribute" layername="${name}" ruleindex="${index}">`,
+                        // Only what this rule can still produce: a value table
+                        // of colours has no weight to give.
+                        styleableAttributes(rule).map((a) =>
+                            `<option value="${a}"${a === (rule.attribute || DEFAULT_ATTRIBUTE) ? ' selected' : ''}>${ATTRIBUTE_LABELS[a] || a}</option>`
+                        ).join('\n'),
+                    '</select>',
+                '</div>',
+            '</div>',
+            // A numeric attribute spans two numbers rather than a ramp, so
+            // those are what there is to aim.
+            byValue || COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' : [
+            '<div class="sublayer dynamicStyleRow dynamicStyleRuleRow dynamicStyleRangeRow">',
+                `<div title="What the property's lowest and highest values come out as. A lower 'to' than 'from' reverses the scale.">${ATTRIBUTE_LABELS[rule.attribute] || 'Style'}</div>`,
+                '<div class="dynamicStyleRangeInputs">',
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="low" type="number" step="any" value="${F_.escapeHtml(rangeOf(rule)[0])}" title="What the lowest value looks like.">`,
+                    '<div>to</div>',
+                    `<input class="dynamicStyleRange" layername="${name}" ruleindex="${index}" bound="high" type="number" step="any" value="${F_.escapeHtml(rangeOf(rule)[1])}" title="What the highest value looks like.">`,
+                '</div>',
+            '</div>'].join('\n'),
+            // The ramp is picked from its colours rather than its name, and
+            // its bins are draggable, so this part is React - mounted into
+            // here by mountDynamicStyleRamps once the markup is in the page.
+            byValue || !COLOR_ATTRIBUTES.includes(rule.attribute || DEFAULT_ATTRIBUTE) ? '' :
+            `<div class="dynamicStyleRow dynamicStyleRuleRow dynamicStyleRampMount" layername="${name}" ruleindex="${index}"></div>`,
+            ].join('\n'),
+        ].join('\n')
+    }
+
+    /**
+     * Whether a rule maps values one by one rather than over a scale - written
+     * as categorical, or aimed at a text property and mapped from its values.
+     */
+    function isCategoricalNow(layerName, rule) {
+        if (rule?.type === 'categorical') return true
+        const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
+        const path = rulePropertyPath(rule)
+        return getLayerDynamicStyleRules(layerObj).some(
+            (compiled) => compiled.property === path && compiled.categorical
+        )
+    }
+
+    /** The two numbers a numeric rule spans, falling back to the attribute's. */
+    function rangeOf(rule) {
+        const range = Array.isArray(rule?.range) ? rule.range : []
+        const fallback = DEFAULT_RANGES[
+            rule?.attribute || DEFAULT_ATTRIBUTE
+        ] || [0, 1]
+        return [
+            Number.isFinite(parseFloat(range[0])) ? range[0] : fallback[0],
+            Number.isFinite(parseFloat(range[1])) ? range[1] : fallback[1],
+        ]
+    }
+
+    /**
+     * What the layer knows about the numbers behind its styling: a geodataset's
+     * statistics over every feature it has, or a measure of the features in
+     * hand for anything else. Shown for the properties the layer styles by,
+     * which are the ones a viewer is being asked to reason about.
+     */
+    function getStatsSettings(layerName) {
+        const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
+        if (getDynamicStyle(layerObj) == null) return ''
+        // An admin may decide the numbers are more than a viewer needs.
+        if (layerObj?.variables?.dynamicStyle?.showStats === false) return ''
+
+        const rows = []
+        const seen = new Set()
+        getViewedRules(layerObj).forEach((rule) => {
+            // Each rule is measured over what it actually colours by, so a
+            // Stats rule reports the group summaries rather than the field.
+            const path = rulePropertyPath(rule)
+            if (path === '' || seen.has(path)) return
+            seen.add(path)
+            const stats = propertyStats(layerObj, path)
+            if (stats == null) return
+            // What the numbers were measured over, in the Domain's own words.
+            const over = {
+                dataset: 'Whole dataset',
+                view: 'Current view',
+                loaded: 'Loaded',
+            }[stats.scope]
+            // prettier-ignore
+            rows.push([
+                '<div class="sublayer statsRow statsProperty">',
+                    `<div>${F_.escapeHtml(rulePropertyLabel(rule))}</div>`,
+                    `<div>${over}</div>`,
+                '</div>',
+                statRow('Min', stats.min),
+                statRow('Max', stats.max),
+                statRow('Average', stats.avg),
+                statRow('Std Dev', stats.stddev),
+                statRow('Count', stats.count, 0),
+                statRow('Nulls', stats.nullCount, 0),
+            ].join('\n'))
+        })
+        if (rows.length === 0) return ''
+
+        return [
+            '<div class="sublayerHeading statsRow">Stats</div>',
+            rows.join('\n'),
+        ].join('\n')
+    }
+
+    function statRow(label, value, decimals) {
+        if (value == null || !Number.isFinite(value)) return ''
+        const shown =
+            decimals === 0
+                ? String(Math.round(value))
+                : String(parseFloat(value.toPrecision(6)))
+        return [
+            '<div class="sublayer statsRow statsValueRow">',
+            `<div>${label}</div>`,
+            `<div class="statsValue">${shown}</div>`,
+            '</div>',
+        ].join('\n')
+    }
+
+    /**
+     * The min/max a rule's scale resolved to, so its bin boundaries can be
+     * labelled with data values rather than fractions.
+     */
+    function compiledDomainOf(layerObj, rule) {
+        const path = rulePropertyPath(rule)
+        const attribute = attributeOf(rule)
+        return (
+            getLayerDynamicStyleRules(layerObj).find(
+                (c) => c.property === path && c.attribute === attribute
+            )?.domain || null
+        )
+    }
+
+    /**
+     * Draw the ramp picker and bin editor into the mount point the settings
+     * markup left for them, replacing any previous one.
+     */
+    function mountDynamicStyleRamps(layerName) {
+        const uuid = L_.asLayerUUID(layerName)
+        const layerObj = L_.layers.data[uuid]
+        const rules = getViewedRules(layerObj)
+        const mounts = $(
+            `#LayersTool${F_.getSafeName(
+                layerName
+            )} > .settingsmainvector .dynamicStyleRampMount`
+        )
+
+        // The settings markup is regenerated whenever the layer is toggled, and
+        // a rule that stops wanting a ramp leaves no mount at all, so a cached
+        // root can be pointing at a node no longer in the page.
+        const kept = {}
+        mounts.each(function () {
+            const index = parseInt($(this).attr('ruleindex'), 10)
+            const rule = rules[index]
+            if (rule == null) return
+            kept[index] = true
+            const byIndex = LayersTool._dynamicStyleRoots[uuid] || {}
+            LayersTool._dynamicStyleRoots[uuid] = byIndex
+            const cached = byIndex[index]
+            let root = cached?.root
+            if (cached != null && cached.mount !== this) {
+                cached.root.unmount()
+                root = null
+            }
+            if (root == null) root = createRoot(this)
+            byIndex[index] = { root: root, mount: this }
+            root.render(
+                <DynamicStyleRamp
+                    ramp={rule.ramp || 'viridis'}
+                    bins={rule.discrete ? rule.bins || 5 : 0}
+                    stops={rule.stops}
+                    domain={compiledDomainOf(layerObj, rule)}
+                    onChange={(patch) => {
+                        overrideDynamicStyleRuleOf(uuid, index, patch)
+                        mountDynamicStyleRamps(layerName)
+                    }}
+                />
+            )
+        })
+        unmountDynamicStyleRamps(uuid, kept)
+    }
+
+    /**
+     * Give the dynamic style and stats markup its tooltips. Fresh markup means
+     * fresh elements, so any tippy on the old ones went with them.
+     */
+    function mountDynamicStyleTips(layerName) {
+        const settings = `#LayersTool${F_.getSafeName(
+            layerName
+        )} > .settingsmainvector`
+        tippy(`${settings} .dynamicStyleStatInfo`, {
+            content: STAT_HELP,
+            placement: 'left',
+            theme: 'blue',
+            maxWidth: 260,
+        })
+        tippy(`${settings} .dynamicStyleNote`, {
+            placement: 'left',
+            theme: 'blue',
+            maxWidth: 260,
+        })
+    }
+
+    /** Drop the roots of this layer's ramps that are no longer in the page. */
+    function unmountDynamicStyleRamps(uuid, kept) {
+        const byIndex = LayersTool._dynamicStyleRoots[uuid]
+        if (byIndex == null) return
+        Object.keys(byIndex).forEach((index) => {
+            if (kept != null && kept[index]) return
+            byIndex[index].root.unmount()
+            delete byIndex[index]
+        })
+        if (Object.keys(byIndex).length === 0)
+            delete LayersTool._dynamicStyleRoots[uuid]
+    }
+
+    /**
+     * Style a layer the way it was configured again. Null rather than the
+     * configured values: an override that isn't there is the only thing that
+     * can't drift from the config.
+     */
+    function resetDynamicStyle(layerName) {
+        if (layerName == null) return
+        overrideDynamicStyle(layerName, null)
+        refreshDynamicStyleSettings(layerName)
+    }
+
+    /**
+     * Rebuild a layer's dynamic style controls in place, against the features
+     * it holds now.
+     */
+    function refreshDynamicStyleSettings(layerName) {
+        const uuid = L_.asLayerUUID(layerName)
+        const settings = $(
+            `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
+        )
+        const opacity = settings.find('.transparencyslider').parent()
+        if (opacity.length === 0) return
+        unmountDynamicStyleRamps(uuid, null)
+        settings.find('.statsRow').remove()
+        settings.find('.dynamicStyleRow').remove()
+        opacity.after(
+            [
+                getDynamicStyleSettings(layerName),
+                getStatsSettings(layerName),
+            ].join('\n')
+        )
+        setSublayerEvents()
+        mountDynamicStyleRamps(layerName)
+        mountDynamicStyleTips(layerName)
+    }
+
+    /**
+     * Redraw only the statistics a layer reports — a restyle changes what they
+     * are measured over, not the controls above them, which may be being typed
+     * into.
+     */
+    function refreshStatsSettings(layerName) {
+        const settings = $(
+            `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
+        )
+        const rows = settings.find('.statsRow')
+        const markup = getStatsSettings(layerName)
+        if (rows.length === 0) {
+            // The section has no place to go until the block is rebuilt, and
+            // rebuilding it for nothing would disturb the controls above.
+            if (markup !== '' && settings.find('.dynamicStyleRow').length > 0)
+                refreshDynamicStyleSettings(layerName)
+            return
+        }
+        rows.slice(1).remove()
+        rows.first().replaceWith(markup)
+        if (markup !== '') mountDynamicStyleTips(layerName)
+    }
+
     function getVectorLayerSettings(layerName) {
         let currentOpacity = L_.getLayerOpacity(layerName)
         if (currentOpacity == null)
@@ -3004,6 +3501,8 @@ function interfaceWithMMGIS(fromInit) {
                             '<div>Opacity</div>',
                                 '<input class="transparencyslider slider2" layername="' + layerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[layerName] + '">',
                             '</div>',
+                            getDynamicStyleSettings(layerName),
+                            getStatsSettings(layerName),
                             L_.layers.attachments[layerName] ? `<div class="sublayerHeading">Composite Layers</div>` : null,
                             L_.layers.attachments[layerName] ? Object.keys(L_.layers.attachments[layerName]).map(function(s) {
                                 return L_.layers.attachments[layerName][s] === false ? '' : [
@@ -3145,6 +3644,90 @@ function interfaceWithMMGIS(fromInit) {
             }
         )
 
+        // The dynamic style's runtime controls. Each one only changes how the
+        // layer is looked at for this session, so it restyles what's drawn
+        // rather than writing anything or re-fetching the data.
+        // The legend follows the restyle itself, so it isn't refreshed here.
+        const restyleFrom = (el, override) => {
+            overrideDynamicStyle($(el).attr('layername'), override)
+        }
+
+        $('.dynamicStyleDomain').off('change')
+        $('.dynamicStyleDomain').on('change', function () {
+            restyleFrom(this, { domain: $(this).val() })
+            // The stats describe the same features the domain does, so they are
+            // measured over a different set now.
+            refreshStatsSettings($(this).attr('layername'))
+        })
+
+        $('.dynamicStyleReset').off('click')
+        $('.dynamicStyleReset').on('click', function () {
+            resetDynamicStyle($(this).attr('layername'))
+        })
+
+        const ruleIndexOf = (el) => parseInt($(el).attr('ruleindex'), 10)
+
+        $('.dynamicStyleRuleEnabled').off('click')
+        $('.dynamicStyleRuleEnabled').on('click', function () {
+            const layerName = $(this).attr('layername')
+            const layerObj = L_.layers.data[L_.asLayerUUID(layerName)]
+            const asked = getStatsFields(layerObj)
+            overrideDynamicStyleRuleOf(layerName, ruleIndexOf(this), {
+                enabled: $(this).hasClass('off'),
+            })
+            // A rule switched on may style by a group statistic the layer
+            // never asked the server for.
+            if (getStatsFields(layerObj).some((f) => !asked.includes(f)))
+                refreshLayer(layerObj)
+            refreshDynamicStyleSettings(layerName)
+        })
+
+        $('.dynamicStyleStat').off('change')
+        $('.dynamicStyleStat').on('change', function () {
+            overrideDynamicStyleRuleOf(
+                $(this).attr('layername'),
+                ruleIndexOf(this),
+                {
+                    stat: $(this).val(),
+                }
+            )
+        })
+
+        $('.dynamicStyleAttribute').off('change')
+        $('.dynamicStyleAttribute').on('change', function () {
+            const layerName = $(this).attr('layername')
+            const attribute = $(this).val()
+            const index = ruleIndexOf(this)
+            // A numeric attribute maps through a range, and a range belongs to
+            // the attribute it was aimed at - keeping weight's span would have
+            // it sizing radii - so switching starts from the new one's.
+            const patch = { attribute: attribute }
+            if (!COLOR_ATTRIBUTES.includes(attribute))
+                patch.range = DEFAULT_RANGES[attribute]
+            overrideDynamicStyleRuleOf(layerName, index, patch)
+            // The ramp only belongs to a colour, so the controls themselves
+            // change shape.
+            refreshDynamicStyleSettings(layerName)
+        })
+
+        $('.dynamicStyleRange').off('change')
+        $('.dynamicStyleRange').on('change', function () {
+            const layerName = $(this).attr('layername')
+            const index = ruleIndexOf(this)
+            const value = parseFloat($(this).val())
+            if (!Number.isFinite(value)) {
+                // An empty or unreadable box means the rule keeps what it had.
+                refreshDynamicStyleSettings(layerName)
+                return
+            }
+            const rules = getViewedRules(
+                L_.layers.data[L_.asLayerUUID(layerName)]
+            )
+            const range = rangeOf(rules[index]).map((v) => parseFloat(v))
+            range[$(this).attr('bound') === 'low' ? 0 : 1] = value
+            overrideDynamicStyleRuleOf(layerName, index, { range: range })
+        })
+
         $(
             '#layersToolList > li > .settings .sublayer .sublayeropacityslider'
         ).off('input')
@@ -3157,25 +3740,28 @@ function interfaceWithMMGIS(fromInit) {
             L_.setSublayerOpacity(layerName, sublayerName, opacity)
         })
         //Makes sublayers clickable on and off
-        $('#layersToolList > li > .settings .sublayer .checkbox').off('click')
-        $('#layersToolList > li > .settings .sublayer .checkbox').on(
-            'click',
-            async function () {
-                const layerName = $(this).attr('layername')
-                const sublayerName = $(this).attr('sublayername')
+        // Only a sublayer's own box: a dynamic style rule's switch is a
+        // checkbox in a .sublayer row too, and has its own handler.
+        $(
+            '#layersToolList > li > .settings .sublayer .checkbox[sublayername]'
+        ).off('click')
+        $(
+            '#layersToolList > li > .settings .sublayer .checkbox[sublayername]'
+        ).on('click', async function () {
+            const layerName = $(this).attr('layername')
+            const sublayerName = $(this).attr('sublayername')
 
-                await L_.toggleSublayer(layerName, sublayerName)
+            await L_.toggleSublayer(layerName, sublayerName)
 
-                if (
-                    L_.layers.attachments[layerName] &&
-                    L_.layers.attachments[layerName][sublayerName]
-                ) {
-                    if (L_.layers.attachments[layerName][sublayerName].on)
-                        $(this).addClass('on')
-                    else $(this).removeClass('on')
-                }
+            if (
+                L_.layers.attachments[layerName] &&
+                L_.layers.attachments[layerName][sublayerName]
+            ) {
+                if (L_.layers.attachments[layerName][sublayerName].on)
+                    $(this).addClass('on')
+                else $(this).removeClass('on')
             }
-        )
+        })
     }
 
     // Listen for layer refresh status changes
@@ -3197,6 +3783,21 @@ function interfaceWithMMGIS(fromInit) {
         handleRefreshStatusChange
     )
 
+    // A pan, a time change or late statistics restretch a scale without anyone
+    // asking, and the stats readout describes it.
+    const handleRestyled = (event) => {
+        const restyled = event?.detail?.layer
+        if (restyled == null) return
+        const uuid = L_.asLayerUUID(restyled)
+        // The panel is keyed by the name in the layer tree, which is the
+        // display name when layers are addressed by uuid.
+        $('#layersToolList li[name]').each(function () {
+            const name = $(this).attr('name')
+            if (L_.asLayerUUID(name) === uuid) refreshStatsSettings(name)
+        })
+    }
+    document.addEventListener(RESTYLED_EVENT, handleRestyled)
+
     // Sync checkbox UI when a layer is toggled externally (e.g., by Search)
     L_.subscribeOnLayerToggle('LayersTool', function (layerName, isNowOn) {
         const safeName = F_.getSafeName(layerName)
@@ -3216,6 +3817,7 @@ function interfaceWithMMGIS(fromInit) {
             'layerRefreshStatusChanged',
             handleRefreshStatusChange
         )
+        document.removeEventListener(RESTYLED_EVENT, handleRestyled)
         L_.unsubscribeOnLayerToggle('LayersTool')
     }
 }
