@@ -18,11 +18,13 @@ import BrowserUpdatedIcon from "@mui/icons-material/BrowserUpdated";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import UploadIcon from "@mui/icons-material/Upload";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import SaveIcon from "@mui/icons-material/Save";
 
 import config from "../../../metaconfigs/tab-home-config.json";
 import UploadConfigModal from "./Modals/UploadConfigModal/UploadConfigModal";
 import CloneConfigModal from "./Modals/CloneConfigModal/CloneConfigModal";
+import RenameConfigModal from "./Modals/RenameConfigModal/RenameConfigModal";
 import DeleteConfigModal from "./Modals/DeleteConfigModal/DeleteConfigModal";
 
 const REFERENCE_MISSION_NAMES = new Set([
@@ -154,6 +156,13 @@ export default function Home() {
       }),
     );
   };
+  const handleRename = () => {
+    dispatch(
+      setModal({
+        name: "renameConfig",
+      }),
+    );
+  };
   const handleDelete = () => {
     dispatch(
       setModal({
@@ -225,6 +234,16 @@ export default function Home() {
                 <ContentCopyIcon fontSize="medium" />
               </IconButton>
             </Tooltip>
+            <Tooltip title={"Rename Mission"} placement="bottom" arrow>
+              <IconButton
+                className={c.renameIcon}
+                title="Rename"
+                aria-label="rename"
+                onClick={handleRename}
+              >
+                <DriveFileRenameOutlineIcon fontSize="medium" />
+              </IconButton>
+            </Tooltip>
             <Tooltip title={"Delete Mission"} placement="bottom" arrow>
               <IconButton
                 className={c.deleteIcon}
@@ -262,6 +281,7 @@ export default function Home() {
       </div>
       <UploadConfigModal queryVersions={queryVersions} />
       <CloneConfigModal />
+      <RenameConfigModal />
       <DeleteConfigModal />
     </>
   );

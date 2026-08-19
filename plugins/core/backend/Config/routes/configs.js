@@ -982,10 +982,15 @@ if (fullAccess)
               latest.config && latest.config.msv
                 ? latest.config.msv.missionFolderName
                 : undefined;
-            const followFolder =
+            // The folder can only follow when it currently matches the mission
+            // name. Within that, the caller may opt out by sending followFolder
+            // false. Omitting the field keeps the previous behaviour.
+            const canFollowFolder =
               !latestFolder ||
               latestFolder === "" ||
               latestFolder === missionName;
+            const followFolder =
+              canFollowFolder && req.body.followFolder !== false;
 
             const lockKeys = renameLockKeys(newName);
             return sequelize
