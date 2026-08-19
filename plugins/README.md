@@ -13,13 +13,14 @@ MMGIS uses a plugin-based architecture for tools, backend modules, and component
 7. [Creating Plugins](#creating-plugins)
 8. [`plugin.json` Reference](#pluginjson-reference)
 9. [Time](#time)
-10. [Discovery & State](#discovery--state)
-11. [Webpack Aliases](#webpack-aliases)
-12. [Validation](#validation)
-13. [Registries](#registries)
-14. [Testing Plugins](#testing-plugins)
-15. [Migrating from Legacy Formats](#migrating-from-legacy-formats)
-16. [AI Agent Notes](#ai-agent-notes)
+10. [Copilot Actions](#copilot-actions)
+11. [Discovery & State](#discovery--state)
+12. [Webpack Aliases](#webpack-aliases)
+13. [Validation](#validation)
+14. [Registries](#registries)
+15. [Testing Plugins](#testing-plugins)
+16. [Migrating from Legacy Formats](#migrating-from-legacy-formats)
+17. [AI Agent Notes](#ai-agent-notes)
 
 ---
 
@@ -1063,6 +1064,158 @@ reach for a `_`-prefixed field of core's; those are caches, and they move.
 A layer *type* that needs to re-request or re-stamp its data when time changes
 declares the [`time` surface](./core/layertypes/README.md) instead of
 subscribing — core dispatches it for every layer of that type.
+
+---
+
+## Copilot Actions
+
+Frontend plugins can optionally advertise a small, structured capability to a
+Copilot client through `window.mmgisAPI`. The registry is a narrow allowlist:
+only explicitly registered handlers can execute. It does not expose arbitrary
+`window` functions, plugin internals, or DOM selectors, and a plugin that never
+uses this API behaves as it did before.
+
+Bundled client actions that change layer opacity use the companion
+`window.mmgisAPI.setLayerOpacity(layerName, opacity)` facade. It resolves a
+configured name/UUID, accepts only finite values from 0 through 1, applies the
+normal layer-type pipeline, and returns the UUID plus observed opacity.
+
+```js
+const plugin = 'my-container/tools/Spectral'
+const registration = window.mmgisAPI.registerCopilotAction(
+    {
+        name: 'summarize_layer',
+        plugin,
+        category: 'analytics',
+        description: 'Calculate scalar summary statistics for one layer.',
+        parameters: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['layer'],
+            properties: {
+                layer: { type: 'string', minLength: 1, maxLength: 128 },
+                statistic: {
+                    type: 'string',
+                    enum: ['mean', 'minimum', 'maximum'],
+                },
+            },
+        },
+        analytics: {
+            operations: ['statistics', 'mean', 'min', 'max'],
+            dataKinds: ['scalar-raster'],
+            requiresScalar: true,
+        },
+    },
+    async ({ layer, statistic }, context, { signal }) => ({
+        ok: true,
+        message: `Calculated ${statistic} for ${layer}.`,
+        data: await calculateStatistic(layer, statistic, { context, signal }),
+    }),
+    () => ({
+        available: hasScalarSource(),
+        reason: 'No scalar data source is configured.',
+    }),
+    // Recommended for tools that can be recreated by hot module replacement.
+    { returnHandle: true, replaceExisting: true }
+)
+
+// In destroy/unmount. A stale handle cannot remove a newer replacement.
+window.mmgisAPI.unregisterCopilotAction(registration)
+```
+
+Feature-detect `registerCopilotAction` before using it when a plugin also
+supports older MMGIS hosts. Registration normally returns the portable action
+id string, preserving the simple lifecycle:
+
+```js
+const actionId = window.mmgisAPI.registerCopilotAction(descriptor, handler)
+window.mmgisAPI.unregisterCopilotAction(actionId, descriptor.plugin)
+```
+
+For hot-reloaded plugins, pass `{ returnHandle: true }` and retain the returned
+opaque handle. `{ replaceExisting: true }` atomically replaces an action owned
+by the same plugin; it cannot replace an id owned by another plugin. Teardown by
+handle is generation-aware, so teardown from the old module returns `false`
+instead of deleting the replacement. The id-plus-plugin form remains available
+for compatibility, but plugin ids are an ownership convention within the
+trusted frontend runtime, not a browser security boundary.
+
+### Descriptor and schema contract
+
+`name`, `plugin`, `category`, `description`, and `parameters` are required.
+Names are converted to a collision-checked, OpenAI-compatible id of at most 64
+characters. `parameters` must have `type: 'object'`; arguments are validated
+against it immediately before the handler runs. Discovery returns deeply frozen
+plain data and never includes the handler or availability function.
+
+The enforced JSON Schema subset is deliberately small:
+
+- types: `object`, `array`, `string`, `number`, `integer`, `boolean`, and `null`;
+- values: `enum` and `const` (primitive values only);
+- objects: `properties`, `required`, `additionalProperties`, `minProperties`,
+  and `maxProperties`;
+- arrays: `items`, `minItems`, `maxItems`, and `uniqueItems`;
+- strings: `minLength` and `maxLength`;
+- numbers: `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, and
+  `multipleOf`;
+- annotations: `$schema`, `$comment`, `title`, `description`, `default`, and
+  `examples`.
+
+Unsupported keywords such as `$ref`, `pattern`, `format`, and composition
+keywords are rejected at registration rather than advertised without
+enforcement. Schemas and values must be plain JSON: functions, accessors,
+cycles, non-finite numbers, class instances, and prototype-sensitive keys are
+rejected.
+
+`analytics` is optional applicability metadata. `operations` and `dataKinds`
+are deduplicated arrays of at most 32 safe strings (64 characters each), and
+`requiresScalar` is boolean. It is descriptive only; handlers must still check
+the live data they receive.
+
+### Discovery, execution, and limits
+
+```js
+const actions = await window.mmgisAPI.listCopilotActions({
+    availableOnly: true,
+    category: 'analytics',
+    context,
+})
+const result = await window.mmgisAPI.executeCopilotAction(
+    actions[0].id,
+    { layer: 'Temperature', statistic: 'mean' },
+    context
+)
+```
+
+Availability may be a boolean or a sync/async function. The function receives
+`{ args, context, descriptor, signal }`; handlers receive
+`(args, context, { signal, descriptor })`. The abort signal is set when a time
+limit is reached. Timeouts cannot preempt a function that blocks the JavaScript
+thread, so handlers should remain asynchronous and honor the signal for
+cancellable work.
+
+The public result is always `{ ok, message, data, error }`. A thrown exception
+is logged for operators, while callers receive only a stable error code and a
+generic message. For an expected failure, return a concise user-facing
+`message`, `ok: false`, and an error code, for example
+`{ ok: false, message: 'Layer unavailable.', error: { code: 'LAYER_UNAVAILABLE' } }`.
+When `ok` is omitted, a non-null `error` also implies failure; an explicit `ok`
+value takes precedence. Other error fields are redacted. Argument values and
+all normalized success and failure results are copied and bounded before
+crossing the registry boundary.
+
+| Boundary | Limit |
+|---|---:|
+| Registered actions | 128 |
+| All serialized descriptors | 512 KiB |
+| One parameter schema | 32 KiB, depth 12, 2,048 values |
+| Execution arguments | 64 KiB, depth 16, 4,096 values |
+| Normalized result | 256 KiB, depth 16, 8,192 values |
+| Availability check | 2 seconds |
+| Handler | 30 seconds |
+
+An unavailable action is never invoked. Availability is checked during both
+discovery and execution, and `availableOnly: true` omits unavailable entries.
 
 ---
 

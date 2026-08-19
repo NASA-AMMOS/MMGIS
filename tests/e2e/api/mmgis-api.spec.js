@@ -214,4 +214,137 @@ test.describe('mmgisAPI Client-Side API', () => {
     expect(info.hasReloadLayers).toBe(true);
     expect(info.reloadLayersIsFn).toBe(true);
   });
+
+  test('mmgisAPI.setLayerOpacity rejects coercible non-number values', async ({ page, request }) => {
+    await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
+
+    await page.goto(MISSION_URL);
+    await waitForMapReady(page, { timeout: 60000 });
+
+    const result = await page.evaluate(() => {
+      const api = window.mmgisAPI;
+      const layerConfigs = api.getLayerConfigs?.() || {};
+      const layerId =
+        Object.keys(layerConfigs).find(
+          (name) => layerConfigs[name]?.type !== 'header',
+        ) || null;
+      if (!layerId) return { layerId, error: null };
+      try {
+        api.setLayerOpacity(layerId, '0.5');
+        return { layerId, error: null };
+      } catch (error) {
+        return {
+          layerId,
+          error: { name: error?.name, message: error?.message },
+        };
+      }
+    });
+
+    expect(result.layerId).not.toBeNull();
+    expect(result.error).toEqual({
+      name: 'TypeError',
+      message: 'Layer opacity must be a number from 0 to 1.',
+    });
+  });
+
+  test('mmgisAPI wires the Copilot capability lifecycle through the public facade', async ({ page, request }) => {
+    await ensurePrerequisites(request, test);
+    await loginIfRequired(page);
+
+    await page.goto(MISSION_URL);
+    await waitForMapReady(page, { timeout: 60000 });
+
+    const result = await page.evaluate(async () => {
+      const api = window.mmgisAPI;
+      const methodTypes = {
+        register: typeof api.registerCopilotAction,
+        unregister: typeof api.unregisterCopilotAction,
+        list: typeof api.listCopilotActions,
+        execute: typeof api.executeCopilotAction,
+        setLayerOpacity: typeof api.setLayerOpacity,
+      };
+      const plugin = 'test/e2e/mmgis-api';
+      const id = api.registerCopilotAction(
+        {
+          name: 'facade_probe',
+          plugin,
+          category: 'testing',
+          description: 'Exercise the public capability facade wiring.',
+          parameters: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['value'],
+            properties: { value: { type: 'integer', minimum: 1 } },
+          },
+        },
+        (args) => ({
+          message: 'Facade action completed.',
+          data: { doubled: args.value * 2 },
+        }),
+      );
+
+      try {
+        const listed = (await api.listCopilotActions()).find(
+          (action) => action.id === id,
+        );
+        const invalid = await api.executeCopilotAction(id, { value: 0 });
+        const executed = await api.executeCopilotAction(id, { value: 4 });
+        const layerName = Object.keys(window.L_?.layers?.data || {}).find(
+          (name) => window.L_.layers.data[name]?.type !== 'header',
+        );
+        let opacityProbe = null;
+        if (layerName) {
+          const previous = window.L_.layers.opacity[layerName] ?? 1;
+          try {
+            const changed = api.setLayerOpacity(layerName, 0.37);
+            opacityProbe = {
+              changed,
+              observed: window.L_.layers.opacity[layerName],
+            };
+          } finally {
+            api.setLayerOpacity(layerName, previous);
+          }
+        }
+        return {
+          methodTypes,
+          id,
+          listed,
+          invalid,
+          executed,
+          opacityProbe,
+          removed: api.unregisterCopilotAction(id, plugin),
+        };
+      } finally {
+        api.unregisterCopilotAction(id, plugin);
+      }
+    });
+
+    expect(result.methodTypes).toEqual({
+      register: 'function',
+      unregister: 'function',
+      list: 'function',
+      execute: 'function',
+      setLayerOpacity: 'function',
+    });
+    expect(result.listed).toMatchObject({
+      id: result.id,
+      plugin: 'test/e2e/mmgis-api',
+      name: 'facade_probe',
+      available: true,
+    });
+    expect(result.listed.handler).toBeUndefined();
+    expect(result.invalid.error.code).toBe('INVALID_ACTION_ARGUMENTS');
+    expect(result.executed).toEqual({
+      ok: true,
+      message: 'Facade action completed.',
+      data: { doubled: 8 },
+      error: null,
+    });
+    expect(result.removed).toBe(true);
+    expect(result.opacityProbe).not.toBeNull();
+    expect(result.opacityProbe.changed).toMatchObject({ opacity: 0.37 });
+    expect(result.opacityProbe.changed.layer).toBeTruthy();
+    expect(result.opacityProbe.observed).toBe(0.37);
+  });
 });

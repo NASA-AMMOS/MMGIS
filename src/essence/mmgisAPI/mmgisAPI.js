@@ -5,6 +5,7 @@ import QueryURL from '../services/QueryURL'
 import TimeControl from '../Basics/TimeControl_/TimeControl'
 import Login from '../Basics/UserInterface_/components/Login/Login'
 import LegendTool from '../../../plugins/core/tools/Legend/LegendTool.js'
+import { copilotActionRegistry } from './CopilotActionRegistry'
 
 import $ from 'jquery'
 
@@ -464,6 +465,25 @@ var mmgisAPI_ = {
             return
         }
     },
+    setLayerOpacity: function (layerName, opacity) {
+        const layerUUID = L_.asLayerUUID(layerName)
+        if (layerUUID == null)
+            throw new Error(`Unable to find layer "${layerName}".`)
+
+        if (
+            typeof opacity !== 'number' ||
+            !Number.isFinite(opacity) ||
+            opacity < 0 ||
+            opacity > 1
+        )
+            throw new TypeError('Layer opacity must be a number from 0 to 1.')
+
+        L_.setLayerOpacity(layerUUID, opacity)
+        return {
+            layer: layerUUID,
+            opacity: L_.layers.opacity[layerUUID],
+        }
+    },
 }
 
 var mmgisAPI = {
@@ -778,6 +798,21 @@ var mmgisAPI = {
      * @param {boolean} - on - (optional) Set true if the visibility should be on or false if visibility should be off. If not set, the current visibility state will switch to the opposite state.
      */
     toggleLayer: mmgisAPI_.toggleLayer,
+
+    /** Set a configured layer's opacity to a finite value from 0 through 1. */
+    setLayerOpacity: mmgisAPI_.setLayerOpacity,
+
+    /** Register a namespaced, model-discoverable plugin capability. */
+    registerCopilotAction: copilotActionRegistry.register,
+
+    /** Remove a capability by registration handle or by action id and owner. */
+    unregisterCopilotAction: copilotActionRegistry.unregister,
+
+    /** List immutable, serializable capability descriptors and availability. */
+    listCopilotActions: copilotActionRegistry.list,
+
+    /** Execute a registered capability with validated, bounded arguments. */
+    executeCopilotAction: copilotActionRegistry.execute,
 
     /**
      * setLayerAttachmentConfig - retunes one of a layer's attachments (labels,
