@@ -53,6 +53,9 @@ let Map_ = {
         essenceFina = essenceFinal
 
         //Repair Leaflet and plugin incongruities
+        // Leaflet 1.9 removed DomEvent.fakeStop; renderer containers now carry
+        // _leaflet_disable_events, so callers only need it to exist.
+        if (L.DomEvent.fakeStop == null) L.DomEvent.fakeStop = function () {}
         L.DomEvent._fakeStop = L.DomEvent.fakeStop
 
         //var fakeStop = L.DomEvent.fakeStop || L.DomEvent._fakeStop || stop;?
