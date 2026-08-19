@@ -668,6 +668,52 @@ test.describe('validateMetaconfig - the Configure form a manifest declares', () 
         ).toEqual([]);
     });
 
+    test('showIf names the field it reads and what it tests for', () => {
+        // Maker reads a malformed condition as "no test to fail" and draws a
+        // control that was meant to stay hidden, which is worse than none.
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'text', showIf: 'variables.b' }]),
+                'P',
+                'tool'
+            )[0]
+        ).toContain('showIf');
+        expect(
+            validateMetaconfig(
+                rows([{ field: 'a', type: 'text', showIf: { field: 'b' } }]),
+                'P',
+                'tool'
+            ).length
+        ).toBe(1);
+        expect(
+            validateMetaconfig(
+                rows([
+                    {
+                        field: 'a',
+                        type: 'text',
+                        showIf: [
+                            { field: 'b', equals: 'stddev' },
+                            { field: 'c', in: [null, 'fillColor'] },
+                            { field: 'd', truthy: true },
+                        ],
+                    },
+                ]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+    });
+
+    test('a subheading has no field of its own', () => {
+        expect(
+            validateMetaconfig(
+                rows([{ type: 'subheading', name: 'Defaults' }]),
+                'P',
+                'tool'
+            )
+        ).toEqual([]);
+    });
+
     test('an objectarray item field is relative, so it is not under configPath', () => {
         // Maker writes `${field}.${index}.${inner}`, so an item's field is not
         // a config path and must not be judged as one.

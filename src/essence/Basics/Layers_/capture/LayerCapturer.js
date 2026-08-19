@@ -8,6 +8,7 @@ import TimeControl from '../../TimeControl_/TimeControl'
 import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 import LayerInterface from '../interface/LayerInterface'
 import { acceptsDynamicResult, sourceCtx } from './dynamicExtent'
+import { getStatsFields } from '../render/layerDynamicStyle'
 
 function isKmlUrl(url) {
     try {
@@ -54,6 +55,20 @@ const _geodatasetRequestLastLoc = {}
 const _layerRequestLastTimestamp = {}
 const _layerRequestLastLoc = {}
 
+// A dynamic-extent requery never goes through the layer's make, so it has to
+// raise the toolbar's loading spinner itself.
+let _requeryCount = 0
+const _requeryLoading = (layerObj) => {
+    const id = `requery_${layerObj.name}_${++_requeryCount}`
+    L_.setGlobalLoading(id)
+    let done = false
+    return () => {
+        if (done) return
+        done = true
+        L_.setGlobalLoaded(id)
+    }
+}
+
 // Returns true when the 2D Leaflet map is actually visible and has a
 // non-degenerate size. When the Map panel is closed the map collapses to
 // 0x0 and getBounds() returns a degenerate (zero-area) extent, which would
@@ -67,15 +82,36 @@ const _isMap2DUsable = () => {
     }
 }
 
+// Whether the Globe panel is on screen; a globe extent from a hidden panel is
+// whatever the camera was left at.
+const _isGlobeUsable = () => {
+    try {
+        const el = document.getElementById(L_.Globe_.id)
+        return !!el && el.clientWidth > 1 && el.clientHeight > 1
+    } catch (e) {
+        return false
+    }
+}
+
+// Which engine the user last moved, so a requery that isn't itself a move (a
+// time change) is measured over the view they are actually looking at.
+let _lastMovedEngine = 'map'
+
 // Resolves which view (extent + zoom + center) a dynamic-extent query should
-// use. Defaults to the 2D Leaflet map. When the callback was triggered by a
-// globe move (e.fromGlobe === true) or the 2D map is not usable (its panel is
-// closed), the Globe's visible extent is used instead. This lets dynamic
-// extent layers populate from the Globe's own viewport — including when the
-// Map panel is closed — rather than being tied solely to the 2D map.
+// use. A globe move (e.fromGlobe === true) uses the Globe's extent and a 2D
+// `moveend` the map's; anything else - a time change, a layer being toggled on
+// - follows whichever of them moved last. The Globe is also used whenever the
+// 2D map is unusable (its panel is closed), which would otherwise query a
+// degenerate extent.
 const _resolveDynamicView = (e) => {
+    const fromGlobe = e && typeof e === 'object' && e.fromGlobe === true
+    if (fromGlobe) _lastMovedEngine = 'globe'
+    else if (e && typeof e === 'object' && e.type === 'moveend')
+        _lastMovedEngine = 'map'
+
     const wantGlobe =
-        (e && typeof e === 'object' && e.fromGlobe === true) ||
+        fromGlobe ||
+        (_lastMovedEngine === 'globe' && _isGlobeUsable()) ||
         !_isMap2DUsable()
 
     if (wantGlobe && L_.Globe_ && typeof L_.Globe_.getExtent === 'function') {
@@ -290,10 +326,12 @@ const _captureFromSource = (
             _commitDynamicGeoJSON(layerObj, layerData, F_.parseIntoGeoJSON(data))
         }
 
+        const loaded = _requeryLoading(layerObj)
         Promise.resolve(
             LayerInterface.run(sourceModule, 'fetch', [layerObj, ctx])
         )
             .then((data) => {
+                loaded()
                 if (data == null) return
                 const accepted = painted
                     ? isCurrent()
@@ -313,6 +351,7 @@ const _captureFromSource = (
                     )
             })
             .catch((err) => {
+                loaded()
                 if (err?.name === 'AbortError') return
                 console.warn(
                     `ERROR! source.fetch of layer type '${layerData?.type}' failed for ${layerObj.name} /// ${err?.message || err}`
@@ -489,6 +528,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                     : null,
                         }
 
+                        // Per-group statistics, so a feature can be styled or
+                        // labelled by its group rather than only by itself.
+                        const statsFields = getStatsFields(layerData)
+                        if (statsFields.length > 0)
+                            body.stats = statsFields.join(',')
+
                         if (
                             layerData.time?.enabled === true &&
                             layerData.time?.type === 'requery'
@@ -524,10 +569,12 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
 
                         layerData._lastGeodatasetRequestBody = body
 
+                        const loaded = _requeryLoading(layerObj)
                         calls.api(
                             'geodatasets_get',
                             body,
                             (data) => {
+                                loaded()
                                 const lastLoc =
                                     _geodatasetRequestLastLoc[layerObj.name]
                                 const nowLoc = {
@@ -598,6 +645,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                                 }
                             },
                             (data) => {
+                                loaded()
                                 console.warn(
                                     'ERROR: ' +
                                         data?.status +
@@ -616,6 +664,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                 cb({ type: 'FeatureCollection', features: [] }, true)
                 break
             case 'api':
+                // An api url has no dynamic-extent query; answer anyway so the
+                // layer settles rather than waiting on a load that never comes.
+                cb({ type: 'FeatureCollection', features: [] }, true)
                 break
             default:
                 // Return .on('moveend zoomend') event
@@ -716,7 +767,9 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                         if (!F_.isUrlAbsolute(dynamicLayerUrl))
                             dynamicLayerUrl = L_.missionPath + dynamicLayerUrl
 
+                        const loaded = _requeryLoading(layerObj)
                         const _dynamicDefaultSuccess = function (data) {
+                            loaded()
                             if (data.hasOwnProperty('Features')) {
                                 data.features = data.Features
                                 delete data.Features
@@ -790,6 +843,7 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                             textStatus,
                             errorThrown
                         ) {
+                            loaded()
                             console.warn(
                                 'ERROR! ' +
                                     textStatus +
@@ -832,6 +886,8 @@ export const captureVector = (layerObj, options, cb, dynamicCb) => {
                     body.starttime = layerData.time.start
                     body.endtime = layerData.time.end
                 }
+                const statsFields = getStatsFields(layerData)
+                if (statsFields.length > 0) body.stats = statsFields.join(',')
                 body.noDuplicates = layerData?.variables?.noDuplicates === true
                 body._source =
                     layerData?.variables?.getFeaturePropertiesOnClick === true

@@ -310,9 +310,6 @@ let Globe_ = {
             }
         }
     },
-    // Below this zoom the globe view spans (nearly) the whole body, so
-    // dynamic-extent queries just request the full extent.
-    GLOBE_FULL_EXTENT_MAX_ZOOM: 4,
     // The globe bbox is padded beyond the strict top-down footprint so tilted
     // views (looking across the terrain toward the horizon) still query the
     // features that are visible but outside the nadir box. The pad scales with
@@ -320,11 +317,19 @@ let Globe_ = {
     // when looking parallel to the ground (e.g. 1x -> 3x extent at full tilt).
     GLOBE_EXTENT_PAD_MIN: 1.5,
     GLOBE_EXTENT_PAD_MAX: 3,
+    // The zoom by which the pad above applies in full. A wider view than this
+    // needs little: a perspective camera hides far less beyond the edges of a
+    // continent-sized box than of a city-sized one, and padding a wide box
+    // runs it into the poles and the antimeridian.
+    GLOBE_EXTENT_PAD_FULL_ZOOM: 6,
+    // How much a renderer-reported view rectangle is grown, so features right
+    // at the edge of the view are still queried.
+    GLOBE_EXTENT_RECT_PAD: 1.1,
     // Computes the Globe's current visible extent as a lat/lng bbox
-    // (EPSG:4326, what the geodatasets endpoint filters on). Derived from the
-    // globe center + zoom + panel pixel size. The box is clamped to the poles
-    // and to [-180, 180] and never wraps. Works for both the LithoSphere and
-    // Cesium renderers via GlobeRenderer.getExtentCenter().
+    // (EPSG:4326, what the geodatasets endpoint filters on). Taken from the
+    // renderer's own view rectangle where it has one, otherwise derived from
+    // the globe center + zoom + panel pixel size. The box is clamped to the
+    // poles and to [-180, 180] and never wraps.
     getExtent: function () {
         try {
             if (!this.litho || typeof this.litho.getCenter !== 'function')
@@ -343,19 +348,6 @@ let Globe_ = {
             const centerLng = center.lng
             const centerLat = center.lat
 
-            if (zoom < this.GLOBE_FULL_EXTENT_MAX_ZOOM) {
-                return {
-                    zoom: zoom,
-                    tilt: 0,
-                    minx: -180,
-                    miny: -90,
-                    maxx: 180,
-                    maxy: 90,
-                    centerLng: centerLng,
-                    centerLat: centerLat,
-                }
-            }
-
             // Widen the box with camera tilt so a view looking across the
             // terrain still captures features toward the horizon.
             let tiltFraction = 0
@@ -366,16 +358,52 @@ let Globe_ = {
                 (this.GLOBE_EXTENT_PAD_MAX - this.GLOBE_EXTENT_PAD_MIN) *
                     tiltFraction
 
+            // A renderer that knows its own frustum knows this better than any
+            // zoom model can, and has already accounted for the tilt.
+            const rect =
+                typeof this.litho.getViewRectangle === 'function'
+                    ? this.litho.getViewRectangle()
+                    : null
+            if (rect != null) {
+                const grow = this.GLOBE_EXTENT_RECT_PAD
+                const halfLng = ((rect.maxx - rect.minx) / 2) * grow
+                const halfLat = ((rect.maxy - rect.miny) / 2) * grow
+                const midLng = (rect.minx + rect.maxx) / 2
+                const midLat = (rect.miny + rect.maxy) / 2
+                return Object.assign(
+                    {
+                        zoom: zoom,
+                        tilt: Math.round(tiltFraction * 10),
+                        centerLng: centerLng,
+                        centerLat: centerLat,
+                    },
+                    this.clampExtent(
+                        midLng - halfLng,
+                        midLat - halfLat,
+                        midLng + halfLng,
+                        midLat + halfLat
+                    )
+                )
+            }
+
             const el = document.getElementById(this.id)
             const widthPx = (el && el.clientWidth) || 1024
             const heightPx = (el && el.clientHeight) || 768
+
+            // Taper the pad off as the view widens, so a low zoom is not
+            // padded into covering the whole body.
+            const padScale = Math.max(
+                0,
+                Math.min(1, zoom / this.GLOBE_EXTENT_PAD_FULL_ZOOM)
+            )
+            const padded = 1 + (pad - 1) * padScale
 
             // Leaflet-style zoom: the full 360deg of longitude spans
             // 256 * 2^zoom pixels.
             const worldPx = 256 * Math.pow(2, zoom)
             const degPerPxLng = 360 / worldPx
 
-            const halfWidthDeg = (widthPx / 2) * degPerPxLng * pad
+            const halfWidthDeg = (widthPx / 2) * degPerPxLng * padded
             // Widen the latitude span toward the poles (Mercator stretch) so
             // the box over-approximates rather than clipping edge features.
             const cosLat = Math.max(
@@ -383,39 +411,43 @@ let Globe_ = {
                 Math.cos((centerLat * Math.PI) / 180)
             )
             const halfHeightDeg =
-                (((heightPx / 2) * degPerPxLng) / cosLat) * pad
+                (((heightPx / 2) * degPerPxLng) / cosLat) * padded
 
-            let minx = centerLng - halfWidthDeg
-            let maxx = centerLng + halfWidthDeg
-            let miny = centerLat - halfHeightDeg
-            let maxy = centerLat + halfHeightDeg
-
-            // Never wrap. Full-world horizontally -> full longitude range;
-            // otherwise clamp to [-180, 180].
-            if (halfWidthDeg * 2 >= 360) {
-                minx = -180
-                maxx = 180
-            } else {
-                if (minx < -180) minx = -180
-                if (maxx > 180) maxx = 180
-            }
-            if (miny < -90) miny = -90
-            if (maxy > 90) maxy = 90
-
-            return {
-                zoom: zoom,
-                // Bucketed so small tilt jitter doesn't spam re-queries but a
-                // meaningful tilt change still retriggers one.
-                tilt: Math.round(tiltFraction * 10),
-                minx: minx,
-                miny: miny,
-                maxx: maxx,
-                maxy: maxy,
-                centerLng: centerLng,
-                centerLat: centerLat,
-            }
+            return Object.assign(
+                {
+                    zoom: zoom,
+                    // Bucketed so small tilt jitter doesn't spam re-queries but
+                    // a meaningful tilt change still retriggers one.
+                    tilt: Math.round(tiltFraction * 10),
+                    centerLng: centerLng,
+                    centerLat: centerLat,
+                },
+                this.clampExtent(
+                    centerLng - halfWidthDeg,
+                    centerLat - halfHeightDeg,
+                    centerLng + halfWidthDeg,
+                    centerLat + halfHeightDeg
+                )
+            )
         } catch (e) {
             return null
+        }
+    },
+    // Never wrap: a box spanning the world takes the full longitude range,
+    // anything else is clamped to the body.
+    clampExtent: function (minx, miny, maxx, maxy) {
+        if (maxx - minx >= 360) {
+            minx = -180
+            maxx = 180
+        } else {
+            if (minx < -180) minx = -180
+            if (maxx > 180) maxx = 180
+        }
+        return {
+            minx: minx,
+            miny: Math.max(-90, miny),
+            maxx: maxx,
+            maxy: Math.min(90, maxy),
         }
     },
     _dynamicExtentWatcher: null,

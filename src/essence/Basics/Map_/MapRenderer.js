@@ -29,6 +29,7 @@ import L_ from '@basics/Layers_/Layers_'
 import { constructVectorLayer } from '@basics/Layers_/render/LayerConstructors'
 import LayerInterface from '@basics/Layers_/interface/LayerInterface'
 import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
+import { restyleIfFollowingTheView } from '@basics/Layers_/render/dynamicStyleRuntime'
 
 const L = window.L
 
@@ -163,6 +164,11 @@ function addVector(layerObj, spec, mctx) {
     if (vl.layer && mctx.default != true) {
         vl.layer.addTo(mctx.map)
     }
+
+    // Only now is there a drawn layer to measure what is in view over, so a
+    // layer coloured over the current view is compiled again. The main map's
+    // registry is the one a restyle reads.
+    if (registry === L_.layers) restyleIfFollowingTheView(registry.data[name])
 
     // Clear refresh-failed status on successful load/refresh.
     if (registry.refreshFailed && registry.refreshFailed[name]) {

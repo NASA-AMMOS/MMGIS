@@ -661,14 +661,6 @@
                     "width": 4
                   },
                   {
-                    "field": "styleMatching",
-                    "name": "Style Matching",
-                    "description": "If true, the feature will use this legend entry for its style. If false, the default style will be applied to the feature.",
-                    "type": "checkbox",
-                    "width": 2,
-                    "defaultChecked": false
-                  },
-                  {
                     "field": "hideFromLegend",
                     "name": "Hide From Legend",
                     "description": "If true, this legend entry will be hidden from the legend.",

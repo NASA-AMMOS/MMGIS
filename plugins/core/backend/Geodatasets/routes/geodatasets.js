@@ -12,51 +12,18 @@ const Utils = require("../../../../../API/utils.js");
 const geodatasets = require("../models/geodatasets");
 const Geodatasets = geodatasets.Geodatasets;
 const makeNewGeodatasetTable = geodatasets.makeNewGeodatasetTable;
+const updateGeodatasetFieldStats = geodatasets.updateGeodatasetFieldStats;
 
-// Build a PostgreSQL JSONB accessor for a possibly nested key.
-// For a flat key like "name", returns { text: "properties->>:placeholder", replacements: { placeholder: "name" } }
-// For a dotted key like "metadata.author", returns:
-//   { text: "properties->'metadata'->>'author'", replacements: {} }
-// (nested keys are single-quoted inline since parameterized -> chains are awkward)
-function jsonbAccessor(key, placeholder) {
-  const parts = key.split(".");
-  // Cap nesting depth to prevent excessively long SQL expressions
-  if (parts.length > 10) {
-    return {
-      text: `properties->>:${placeholder}`,
-      replacements: { [placeholder]: key },
-    };
-  }
-  if (parts.length === 1) {
-    return {
-      text: `properties->>:${placeholder}`,
-      replacements: { [placeholder]: key },
-    };
-  }
-  // Validate each part: only allow alphanumeric, underscores, hyphens, spaces
-  for (const p of parts) {
-    if (!/^[\w\s\-]+$/.test(p)) {
-      return {
-        text: `properties->>:${placeholder}`,
-        replacements: { [placeholder]: key },
-      };
-    }
-  }
-  // Nested: properties->'a'->'b'->>'c'
-  const path = parts
-    .map((p, i) => {
-      const safeP = p.replace(/'/g, "''");
-      return i < parts.length - 1 ? `->'${safeP}'` : `->>'${safeP}'`;
-    })
-    .join("");
-  return { text: `properties${path}`, replacements: {} };
-}
-
-// Same as jsonbAccessor but returns the JSONB form (-> not ->>) for casting.
-// e.g., for numeric comparisons: (properties->'a'->>'b')::FLOAT
-function jsonbAccessorText(key, placeholder) {
-  return jsonbAccessor(key, placeholder);
-}
+const { jsonbAccessor } = require("../lib/jsonb");
+const {
+  sanitizeStatFields,
+  buildStatsSelect,
+  readRowStats,
+  collectFieldStats,
+  buildFieldStatsScan,
+  readFieldStatsScan,
+  withAverages,
+} = require("../lib/stats");
 
 //Returns a geodataset table as a geojson
 router.get("/get/:layer", function (req, res, next) {
@@ -71,6 +38,7 @@ function get(reqtype, req, res, next, options) {
   let type = "geojson";
   let xyz = {};
   let _source = null; // Works just like ES _source
+  let stats = null; // Fields to compute per-group numeric statistics for
   let noDuplicates = false;
   let get_group_id = null;
   let get_id = null;
@@ -84,6 +52,10 @@ function get(reqtype, req, res, next, options) {
     type = req.body.type || type;
     if (req.body._source && Array.isArray(req.body._source))
       _source = req.body._source;
+
+    if (req.body.stats && Array.isArray(req.body.stats)) stats = req.body.stats;
+    else if (req.body.stats && typeof req.body.stats === "string")
+      stats = req.body.stats.split(",");
 
     if (req.body.noDuplicates === true || req.body.noDuplicates === "true")
       noDuplicates = true;
@@ -109,6 +81,11 @@ function get(reqtype, req, res, next, options) {
       _source = req.query._source.split(",");
     else if (req.query._source && Array.isArray(req.query._source))
       _source = req.query._source;
+
+    if (req.query.stats && typeof req.query.stats === "string")
+      stats = req.query.stats.split(",");
+    else if (req.query.stats && Array.isArray(req.query.stats))
+      stats = req.query.stats;
 
     if (req.query.noDuplicates === true || req.query.noDuplicates === "true")
       noDuplicates = true;
@@ -163,6 +140,9 @@ function get(reqtype, req, res, next, options) {
     if (_source.length === 0) _source = null;
   }
 
+  // Sanitized the same way as _source. Only geojson responses carry stats.
+  stats = sanitizeStatFields(stats);
+
   //First Find the table name
   Geodatasets.findOne({ where: { name: layer } })
     .then(async (result) => {
@@ -188,9 +168,20 @@ function get(reqtype, req, res, next, options) {
             ) AS properties`;
           }
 
+          // Per-group statistics. Grouping matches noDuplicates' notion of a
+          // group (group_id when the geodataset has one, else identical geom)
+          // whether or not noDuplicates is on.
+          const groupField =
+            result.dataValues.group_id_field != null ? "group_id" : "geom";
+          const statsSelect = buildStatsSelect(stats, groupField);
+          // A single feature's statistics still describe its group, so the
+          // query aggregates the group and picks the feature out afterwards.
+          // One row comes back either way, so there's nothing to deduplicate.
+          const statsOuterId = statsSelect.text !== "" && get_id != null && get_group_id == null;
+
           let distinct = "";
           let distinctField = null;
-          if (noDuplicates === true) {
+          if (noDuplicates === true && !statsOuterId) {
             if (result.dataValues.group_id_field != null) {
               distinct = ` DISTINCT ON (group_id)`;
               distinctField = "group_id";
@@ -206,9 +197,9 @@ function get(reqtype, req, res, next, options) {
             cols.push("feature_id");
           cols = cols.join(", ");
 
-          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols}, start_time, end_time FROM ${Utils.forceAlphaNumUnder(
-            table
-          )}`;
+          let q = `SELECT${distinct} ${properties}, ST_AsGeoJSON(geom), ${cols}, start_time, end_time${
+            statsSelect.text
+          } FROM ${Utils.forceAlphaNumUnder(table)}`;
 
           let hasBounds = false;
           let minx = req.query?.minx;
@@ -300,9 +291,17 @@ function get(reqtype, req, res, next, options) {
               q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
             }group_id = :get_group_id`;
           } else if (get_id != null) {
-            q += `${
-              q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "
-            }id = :get_id`;
+            q += `${q.indexOf(" WHERE ") === -1 ? " WHERE " : " AND "}${
+              statsOuterId
+                ? // Its group rather than the feature itself: the aggregates
+                  // are windows over what the WHERE clause leaves. Null groups
+                  // are one group here as they are to PARTITION BY, so the
+                  // comparison has to be the null-safe one.
+                  `${groupField} IS NOT DISTINCT FROM (SELECT ${groupField} FROM ${Utils.forceAlphaNumUnder(
+                    table
+                  )} WHERE id = :get_id)`
+                : `id = :get_id`
+            }`;
           }
 
           const replacements = {
@@ -310,6 +309,7 @@ function get(reqtype, req, res, next, options) {
             end_time: end_time,
             get_group_id: get_group_id,
             get_id: get_id,
+            ...statsSelect.replacements,
           };
 
           if (Array.isArray(_source)) {
@@ -502,6 +502,9 @@ function get(reqtype, req, res, next, options) {
               ))`;
           }
 
+          if (statsOuterId)
+            q = `SELECT * FROM (${q}) AS grouped WHERE id = :get_id`;
+
           if (req.query?.limited) {
             q += ` ORDER BY id DESC LIMIT 3;`;
           } else if (distinctField != null) {
@@ -538,6 +541,10 @@ function get(reqtype, req, res, next, options) {
                 let properties = results[i].properties;
                 properties._ = properties._ || {};
                 properties._.idx = results[i].id;
+                if (stats != null) {
+                  const rowStats = readRowStats(results[i], stats);
+                  if (rowStats != null) properties._.stats = rowStats;
+                }
                 if (results[i].start_time != null)
                   properties._.start_time = results[i].start_time;
                 if (results[i].end_time != null)
@@ -1069,6 +1076,164 @@ router.get("/aggregations", function (req, res, next) {
     });
 });
 
+/** A geodataset table's feature count, or null if it could not be read. */
+async function countRows(table) {
+  const [rows] = await sequelize.query(
+    `SELECT COUNT(*)::TEXT AS count FROM ${Utils.forceAlphaNumUnder(table)}`
+  );
+  const count = parseInt(rows?.[0]?.count, 10);
+  return Number.isFinite(count) ? count : null;
+}
+
+// Recomputes a geodataset's dataset-wide field statistics from the rows it
+// already holds — what a geodataset ingested before `field_stats` existed needs,
+// since an append only merges the features it appends.
+router.post("/recompute_stats/:name", function (req, res, next) {
+  Geodatasets.findOne({ where: { name: req.params.name } })
+    .then(async (result) => {
+      if (result == null) {
+        res.send({
+          status: "failure",
+          message: `Geodataset '${req.params.name}' not found.`,
+        });
+        return null;
+      }
+      const scan = buildFieldStatsScan(
+        Utils.forceAlphaNumUnder(result.dataValues.table)
+      );
+      const [rows] = await sequelize.query(scan.text, {
+        replacements: scan.replacements,
+      });
+      const field_stats = readFieldStatsScan(rows);
+      // A rescan has seen every feature, so it replaces rather than merges.
+      await updateGeodatasetFieldStats(
+        result.dataValues.name,
+        field_stats,
+        "recreate"
+      );
+      // How many features held no number is the feature count minus what each
+      // field counted, so a stored count from before the column existed (or one
+      // that has drifted) would report nulls that aren't there.
+      const numFeatures = await countRows(result.dataValues.table);
+      if (numFeatures != null && numFeatures !== result.dataValues.num_features)
+        await Geodatasets.update(
+          { num_features: numFeatures },
+          { where: { name: result.dataValues.name }, silent: true }
+        );
+      logger(
+        "info",
+        `Recomputed field statistics for geodataset '${result.dataValues.name}'.`
+      );
+      res.send({
+        status: "success",
+        message: `Recomputed statistics for ${
+          Object.keys(field_stats).length
+        } numeric field(s).`,
+        field_stats: withAverages(
+          field_stats,
+          numFeatures != null ? numFeatures : result.dataValues.num_features
+        ),
+      });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to recompute field statistics for '${req.params.name}'.`,
+        "geodatasets",
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to recompute field statistics.",
+      });
+      return null;
+    });
+});
+
+/**
+ * Storage type of the `properties` column of each named table, as
+ * { table: "json" | "jsonb" }. Tables without the column are left out.
+ */
+async function propertiesTypes(tables) {
+  const named = (tables || []).filter(Boolean);
+  if (named.length === 0) return {};
+  const [rows] = await sequelize.query(
+    // Schema-qualified: a same-named table in another schema would otherwise
+    // decide the answer.
+    `SELECT table_name, data_type FROM information_schema.columns
+      WHERE column_name = 'properties' AND table_schema = current_schema()
+        AND table_name IN (:tables)`,
+    { replacements: { tables: named } }
+  );
+  const types = {};
+  rows.forEach((r) => (types[r.table_name] = r.data_type));
+  return types;
+}
+
+// Converts a geodataset's `properties` column from `json` to `jsonb`. `json` is
+// text that every property read reparses; `jsonb` is stored parsed, which is
+// several times faster for the per-group statistics and every other read.
+// The table is rewritten under an exclusive lock, so this is an explicit
+// administrator action rather than something that happens on its own.
+router.post("/convert_properties/:name", function (req, res, next) {
+  Geodatasets.findOne({ where: { name: req.params.name } })
+    .then(async (result) => {
+      if (result == null) {
+        res.send({
+          status: "failure",
+          message: `Geodataset '${req.params.name}' not found.`,
+        });
+        return null;
+      }
+      const table = Utils.forceAlphaNumUnder(result.dataValues.table);
+      const types = await propertiesTypes([table]);
+      if (types[table] == null) {
+        res.send({
+          status: "failure",
+          message: `Geodataset '${result.dataValues.name}' has no properties column.`,
+        });
+        return null;
+      }
+      if (types[table] === "jsonb") {
+        res.send({
+          status: "success",
+          message: `'${result.dataValues.name}' already stores its properties as jsonb.`,
+          properties_type: "jsonb",
+        });
+        return null;
+      }
+      await sequelize.query(
+        `ALTER TABLE ${table} ALTER COLUMN properties TYPE jsonb USING properties::jsonb`
+      );
+      logger(
+        "info",
+        `Converted properties of geodataset '${result.dataValues.name}' to jsonb.`
+      );
+      res.send({
+        status: "success",
+        message: `Converted '${result.dataValues.name}' properties to jsonb.`,
+        properties_type: "jsonb",
+      });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to convert properties of '${req.params.name}' to jsonb.`,
+        "geodatasets",
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to convert properties to jsonb.",
+      });
+      return null;
+    });
+});
+
 // Bulk schema endpoint — returns field names, types and source layers for
 // multiple geodataset layers in a single call.
 // GET /api/geodatasets/schema?layers=layer1,layer2,...
@@ -1095,12 +1260,24 @@ router.get("/schema", function (req, res, next) {
   Geodatasets.findAll({ where: { name: { [Op.in]: cappedLayerNames } } })
     .then(async (results) => {
       if (!results || results.length === 0) {
-        res.send({ status: "success", schema: {} });
+        res.send({ status: "success", schema: {}, field_stats: {} });
         return;
       }
 
       // schema: { fieldName: { type, layers: [{ name, displayName }] } }
       const schema = {};
+      // field_stats: { layerName: { fieldName: { type, min, max, sum, sumsq,
+      // count, nullCount, avg, stddev } } }
+      // Dataset-wide, so unlike `schema` (sampled) it covers every feature.
+      const field_stats = {};
+      results.forEach((result) => {
+        const stats = withAverages(
+          result.dataValues.field_stats,
+          result.dataValues.num_features
+        );
+        if (stats != null && Object.keys(stats).length > 0)
+          field_stats[result.dataValues.name] = stats;
+      });
       const promises = results.map((result) => {
         const table = result.dataValues.table;
         const layerName = result.dataValues.name;
@@ -1159,7 +1336,7 @@ router.get("/schema", function (req, res, next) {
       await Promise.all(promises);
 
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.send({ status: "success", schema: schema });
+      res.send({ status: "success", schema: schema, field_stats: field_stats });
       return null;
     })
     .catch((err) => {
@@ -1311,11 +1488,13 @@ router.get("/bulk_aggregations", function (req, res, next) {
 //Returns a list of entries in the geodatasets table
 router.post("/entries", function (req, res, next) {
   Geodatasets.findAll()
-    .then((sets) => {
+    .then(async (sets) => {
       if (sets && sets.length > 0) {
+        const types = await propertiesTypes(sets.map((s) => s.table));
         let entries = [];
         for (let i = 0; i < sets.length; i++) {
           entries.push({
+            properties_type: types[sets[i].table],
             name: sets[i].name,
             updated: sets[i].updatedAt,
             filename: sets[i].filename,
@@ -1324,6 +1503,7 @@ router.post("/entries", function (req, res, next) {
             end_time_field: sets[i].end_time_field,
             group_id_field: sets[i].group_id_field,
             feature_id_field: sets[i].feature_id_field,
+            field_stats: withAverages(sets[i].field_stats, sets[i].num_features),
           });
         }
         // For each entry, list all occurrences in latest configuration objects
@@ -1781,6 +1961,12 @@ function recreate(req, res, next) {
                 message: "",
                 body: {},
               });
+            },
+            {
+              name: result.name,
+              // An append that created the geodataset holds all of its
+              // features, so its statistics replace rather than merge.
+              action: result.existed ? req?.body?.action || null : null,
             }
           );
 
@@ -1804,7 +1990,8 @@ function populateGeodatasetTable(
   endProp,
   groupIdProp,
   featureIdProp,
-  cb
+  cb,
+  options
 ) {
   let rows = [];
 
@@ -1878,7 +2065,26 @@ function populateGeodatasetTable(
         .query(`VACUUM ANALYZE ${Utils.forceAlphaNumUnder(Table.tableName)};`, {
           replacements: {},
         })
-        .then(() => {
+        .then(async () => {
+          // Dataset-wide statistics of every numeric property. Metadata only:
+          // a failure here does not fail the write.
+          if (options && options.name) {
+            try {
+              await updateGeodatasetFieldStats(
+                options.name,
+                collectFieldStats(features),
+                options.action
+              );
+            } catch (statsErr) {
+              logger(
+                "error",
+                "Geodatasets: Failed to compute field statistics.",
+                null,
+                null,
+                statsErr
+              );
+            }
+          }
           cb(true);
           return null;
         })

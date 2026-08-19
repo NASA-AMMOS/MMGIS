@@ -11,6 +11,7 @@ import CursorInfo from '../UserInterface_/components/CursorInfo/CursorInfo'
 import Description from '../UserInterface_/components/Description/Description'
 import QueryURL from '../../services/QueryURL'
 import MetadataCapturer from '../Layers_/capture/MetadataCapturer.js'
+import { restyleViewFollowingLayers } from '../Layers_/render/dynamicStyleRuntime'
 import {
     runInteractions,
     resolveLayerInteractions,
@@ -301,6 +302,13 @@ let Map_ = {
 
             // Set all zoom elements
             $('.map-autoset-zoom').text(Map_.map.getZoom())
+        })
+
+        // A layer whose colour scale is stretched over the current view has a
+        // new scale as soon as the view is new. Coalesced into one restyle per
+        // movement rather than one per event.
+        this.map.on('moveend', () => {
+            restyleViewFollowingLayers()
         })
 
         if (Globe_.controls.link) {
