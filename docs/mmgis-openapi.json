@@ -559,6 +559,66 @@
         }
       }
     },
+    "/api/configure/rename": {
+      "post": {
+        "summary": "Rename a mission configuration",
+        "tags": ["Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string"
+                  },
+                  "newName": {
+                    "type": "string"
+                  }
+                },
+                "required": ["mission", "newName"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rename mission config response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully renamed mission to example_mission_renamed"
+                    }
+                  },
+                  "successWithWarnings": {
+                    "summary": "Success with warnings",
+                    "value": {
+                      "status": "success",
+                      "message": "Successfully renamed mission to example_mission_renamed",
+                      "warnings": [
+                        "These missions contain relative paths to example_mission that will need updating: other_mission"
+                      ]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "A mission named example_mission_renamed already exists."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/configure/validate": {
       "post": {
         "summary": "Validate a mission configuration",
