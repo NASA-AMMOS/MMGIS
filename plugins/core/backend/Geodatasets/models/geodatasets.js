@@ -122,15 +122,26 @@ function makeNewGeodatasetTable(
   Geodatasets.findOne({ where: { name: name } })
     .then((result) => {
       if (result) {
-        // Ignore some columns if they're unused/nonexistent
-        if (result.dataValues.start_time_field == null)
-          delete attributes.start_time;
-        if (result.dataValues.end_time_field == null)
-          delete attributes.end_time;
-        if (result.dataValues.group_id_field == null)
-          delete attributes.group_id;
-        if (result.dataValues.feature_id_field == null)
-          delete attributes.feature_id;
+        // Appends keep the stored field mappings; anything else redefines them
+        const fields =
+          action === "append"
+            ? {
+                start_time: result.dataValues.start_time_field,
+                end_time: result.dataValues.end_time_field,
+                group_id: result.dataValues.group_id_field,
+                feature_id: result.dataValues.feature_id_field,
+              }
+            : {
+                start_time: startProp,
+                end_time: endProp,
+                group_id: groupIdProp,
+                feature_id: featureIdProp,
+              };
+        // Ignore some columns if they're unused
+        if (fields.start_time == null) delete attributes.start_time;
+        if (fields.end_time == null) delete attributes.end_time;
+        if (fields.group_id == null) delete attributes.group_id;
+        if (fields.feature_id == null) delete attributes.feature_id;
 
         let GeodatasetTable = sequelize.define(
           result.dataValues.table,
@@ -154,7 +165,12 @@ function makeNewGeodatasetTable(
           .then((r) => {
             sequelize
               .query(
-                `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                // Tables from before temporal/group/feature support may lack
+                // columns the query routes select unconditionally
+                `ALTER TABLE ${Utils.forceAlphaNumUnder(
+                  result.dataValues.table
+                )} ADD COLUMN IF NOT EXISTS start_time BIGINT, ADD COLUMN IF NOT EXISTS end_time BIGINT, ADD COLUMN IF NOT EXISTS group_id varchar(255), ADD COLUMN IF NOT EXISTS feature_id varchar(255);
+                CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
                   `${result.dataValues.table}_geom_idx`
                 )} on ${Utils.forceAlphaNumUnder(
                   result.dataValues.table
@@ -555,6 +571,38 @@ const up = async () => {
       );
       return null;
     });
+
+  // Geodataset tables from before temporal/group/feature support lack
+  // columns the query routes select unconditionally — add them everywhere
+  try {
+    const [tables] = await sequelize.query(`SELECT "table" FROM geodatasets;`);
+    for (const row of tables) {
+      await sequelize
+        .query(
+          `ALTER TABLE ${Utils.forceAlphaNumUnder(
+            row.table
+          )} ADD COLUMN IF NOT EXISTS start_time BIGINT, ADD COLUMN IF NOT EXISTS end_time BIGINT, ADD COLUMN IF NOT EXISTS group_id varchar(255), ADD COLUMN IF NOT EXISTS feature_id varchar(255);`
+        )
+        .catch((err) => {
+          logger(
+            "error",
+            `Failed to add temporal columns to geodataset table ${row.table}. DB tables may be out of sync!`,
+            "geodatasets",
+            null,
+            err
+          );
+          return null;
+        });
+    }
+  } catch (err) {
+    logger(
+      "error",
+      `Failed to list geodataset tables for temporal column migration.`,
+      "geodatasets",
+      null,
+      err
+    );
+  }
 };
 
 /**
