@@ -846,6 +846,24 @@ async function makeLayer(
             // release hold on layer (use same registry as above)
             lockRegistry[layerName] = false
 
+            const pendingTimeFilter = L_._pendingTimeFilters?.[layerName]
+            if (pendingTimeFilter) {
+                delete L_._pendingTimeFilters[layerName]
+                try {
+                    L_.timeFilterVectorLayer(
+                        layerName,
+                        pendingTimeFilter.start,
+                        pendingTimeFilter.end
+                    )
+                } catch (timeFilterErr) {
+                    console.warn(
+                        'WARNING - pending time filter failed for',
+                        layerObj.name,
+                        timeFilterErr
+                    )
+                }
+            }
+
             // Trigger filter AFTER releasing the lock — triggerFilter may call
             // LocalFilterer.filter which does clearVectorLayer + updateVectorLayer.
             // updateVectorLayer checks _layersBeingMade and bails if the lock is
