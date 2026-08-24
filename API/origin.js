@@ -9,6 +9,16 @@ function getAllowedOrigins(value = process.env.CORS_ORIGINS) {
     .filter((origin) => origin.length > 0);
 }
 
+function getRequestHostname(requestHost) {
+  if (typeof requestHost !== "string") return "";
+
+  try {
+    return new URL(`http://${requestHost}`).hostname.toLowerCase();
+  } catch (err) {
+    return "";
+  }
+}
+
 function isOriginAllowed(origin, requestHost, allowedOrigins = getAllowedOrigins()) {
   if (!origin) return true;
 
@@ -22,6 +32,13 @@ function isOriginAllowed(origin, requestHost, allowedOrigins = getAllowedOrigins
   if (
     typeof requestHost === "string" &&
     parsedOrigin.host.toLowerCase() === requestHost.toLowerCase()
+  ) {
+    return true;
+  }
+
+  if (
+    process.env.NODE_ENV === "development" &&
+    parsedOrigin.hostname.toLowerCase() === getRequestHostname(requestHost)
   ) {
     return true;
   }
