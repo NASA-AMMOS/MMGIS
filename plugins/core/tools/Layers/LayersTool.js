@@ -658,9 +658,6 @@ function interfaceWithMMGIS(fromInit) {
         LayersTool._maxDepth = Math.max(LayersTool._maxDepth, depth)
         for (var i = 0; i < node.length; i++) {
             const escapedLayerName = F_.escapeHtml(node[i].name)
-            const escapedSafeName = F_.escapeHtml(
-                F_.getSafeName(node[i].name)
-            )
             const escapedParentName = F_.escapeHtml(parent.name)
             const escapedDisplayName = F_.escapeHtml(node[i].display_name)
             let currentOpacity
@@ -978,7 +975,7 @@ function interfaceWithMMGIS(fromInit) {
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
-                                `<img id="titlerCogColormapImage_${escapedSafeName}" src="${window.location.origin}${(
+                                `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || TILE_DEFAULT_COLOR_RAMP}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
@@ -1174,7 +1171,7 @@ function interfaceWithMMGIS(fromInit) {
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
-                                `<img id="titlerCogColormapImage_${escapedSafeName}" src="${window.location.origin}${(
+                                `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables?.streamlines?.colorScale?.toLowerCase() || VELOCITY_DEFAULT_COLOR_RAMP}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
@@ -1264,7 +1261,7 @@ function interfaceWithMMGIS(fromInit) {
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
-                                `<img id="titlerCogColormapImage_${escapedSafeName}" src="${window.location.origin}${(
+                                `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || IMAGE_DEFAULT_COLOR_RAMP}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
@@ -1347,7 +1344,7 @@ function interfaceWithMMGIS(fromInit) {
                                             '<div>',
                                                 '<div v="' + (min || "0") + "," + (max || "255") + '" pick="imagerangepick" class="picker imagerange stylevalue" style="float: right;">' + (min || "0") + " ➝ " + (max || "255") + '</div>',
                                                 '<div class="picking imagerangepick small visibilityRangePicker" style="display: true">',
-                                                    '<div id="image-slider-range-' + escapedSafeName + '" class="svelteSlider" style="width: 130px; overflow: hidden; margin-right: -5px; height: 100%;"></div>',
+                                                    '<div id="image-slider-range-' + escapedLayerName + '" class="svelteSlider" style="width: 130px; overflow: hidden; margin-right: -5px; height: 100%;"></div>',
                                                 '</div>',
                                             '</div>',
                                         '</div>',
