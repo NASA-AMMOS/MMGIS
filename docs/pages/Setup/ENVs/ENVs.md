@@ -137,6 +137,14 @@ Sets the `Content-Security-Policy: frame-src` header to allow the embedding ifra
 
 Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local as an iframe within a cross-origin page. | boolean | default `false`
 
+#### `CORS_ORIGINS=`
+
+Comma-separated origins allowed for cross-origin HTTP requests and websockets. When unset, only same-origin requests are allowed. | comma-separated origins | default `""`
+
+#### `SESSION_COOKIE_SECURE=`
+
+Controls the session cookie `Secure` flag. Set to `true` or `false`; when unset, it defaults to `true` if `HTTPS=true` or `THIRD_PARTY_COOKIES=true`. `THIRD_PARTY_COOKIES=true` requires this to remain enabled. | boolean | default `HTTPS=true || THIRD_PARTY_COOKIES=true`
+
 #### `ROOT_PATH=`
 
 Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. Should always begin with a `/`. If no subpath, leave blank. | string | default `""`

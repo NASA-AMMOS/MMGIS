@@ -7,13 +7,11 @@
  *   Help.finalize(helpKey)     → binds the click handler
  */
 import React, { useState, useEffect } from 'react'
-import DOMPurify from 'dompurify'
+import { marked } from 'marked'
+import { safeHTML } from '@essence/services/Sanitize'
 import Modal from '../Modal/Modal'
-import showdown from 'showdown'
 
 import styles from './Help.module.css'
-
-showdown.setFlavor('github')
 
 function HelpContent({ helpKey }) {
     const [html, setHtml] = useState(null)
@@ -30,8 +28,7 @@ function HelpContent({ helpKey }) {
                 return res.text()
             })
             .then((doc) => {
-                const converter = new showdown.Converter()
-                setHtml(DOMPurify.sanitize(converter.makeHtml(doc)))
+                setHtml(safeHTML(marked.parse(doc)))
                 setLoading(false)
             })
             .catch(() => setLoading(false))
