@@ -658,6 +658,7 @@ app.use(cssoHandler);
 const largeBodyLimit = "500mb";
 for (const route of [
   `${ROOT_PATH}/api/configure`,
+  `${ROOT_PATH}/api/datasets`,
   `${ROOT_PATH}/api/files`,
   `${ROOT_PATH}/api/geodatasets`,
 ]) {
