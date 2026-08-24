@@ -15,6 +15,7 @@ const logger = require("../../../../../API/logger");
 const { computeLimiter } = require("../../../../../scripts/rateLimiters");
 const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 const validateGdalDatasetPath = require("../../../../../API/validateGdalDatasetPath");
+const { parseTilesetTimeDir } = require("./timeTiles");
 
 const rootDir = `${__dirname}/../../../../..`;
 
@@ -100,12 +101,8 @@ function queryTilesetTimesDir(req, res) {
             dirs.sort();
             dirStore[relUrlSplit[0]].dirs = [];
             dirs.forEach((name) => {
-              const split = name.split("Z-");
-              let t = split.shift();
-              const n = split.join("");
-              t = t.replace(/_/g, ":");
-              if (t[t.length - 1] !== "Z") t += "Z";
-              dirStore[relUrlSplit[0]].dirs.push({ t: t, n: n });
+              const parsed = parseTilesetTimeDir(name);
+              if (parsed) dirStore[relUrlSplit[0]].dirs.push(parsed);
             });
 
             const inRange = getDirsInRange(

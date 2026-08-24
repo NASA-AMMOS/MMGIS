@@ -55,6 +55,7 @@ class GlobeRenderer {
         this.containerId = containerId
         this.config = config
         this.renderer = null
+        this._layers = {}
         // Earth's circumference in meters (Web Mercator standard)
         this.EARTH_CIRCUMFERENCE = 40075017
 
@@ -156,9 +157,6 @@ class GlobeRenderer {
             requestRenderMode: true,
             maximumRenderTimeChange: Infinity,
         })
-
-        // Store layer references
-        this._layers = {}
 
         // Track in-progress layer loads to prevent duplicates
         this._loadingLayers = {}
@@ -625,7 +623,7 @@ class GlobeRenderer {
     // declares the operation is the one that must run it, and one that doesn't
     // falls through to the engine as before.
     _runEngineLayerOp(name, op, extraArgs = []) {
-        const type = this._layers[name]?.type
+        const type = this._layers?.[name]?.type
         if (type == null) return false
         const globeModule = this._globeModuleFor(type)
         if (!LayerInterface.hasOp(globeModule, op)) return false
