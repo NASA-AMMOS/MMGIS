@@ -49,6 +49,12 @@ const WebSocket = require("isomorphic-ws");
 const chalk = require("chalk");
 
 const middleware = require("./middleware").middleware;
+const {
+  createEnsureUserForApi,
+  createLongTermTokenResolver,
+  hydrateRequestFromLongTermToken,
+  isLongTermTokenRecordValid,
+} = require("./apiAuthentication");
 
 const isDevEnv = process.env.NODE_ENV === "development";
 
@@ -374,17 +380,14 @@ function ensureAdmin(
       validateLongTermToken(
         req.headers.authorization,
         (tokenData) => {
-          req.isLongTermToken = true;
-          req.tokenUserPermission = tokenData.permission;
-          req.tokenUserMissions = tokenData.missions_managing;
-          req.user = tokenData.username;
+          hydrateRequestFromLongTermToken(req, tokenData);
           next();
         },
         () => {
           res.send({ status: "failure", message: "Unauthorized Token!" });
           logger(
             "warn",
-            `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
+            `Unauthorized token call made and rejected (from ${remoteAddress})`,
             req.originalUrl,
             req,
           );
@@ -404,10 +407,15 @@ function ensureAdmin(
   };
 }
 
-function validateLongTermToken(token, successCallback, failureCallback) {
+function validateLongTermToken(
+  token,
+  successCallback,
+  failureCallback,
+  errorCallback = failureCallback,
+) {
   token = token.replace(/Bearer:?\s+/g, "");
 
-  sequelize
+  return sequelize
     .query(
       'SELECT lt.*, u.permission, u.missions_managing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
       {
@@ -416,27 +424,28 @@ function validateLongTermToken(token, successCallback, failureCallback) {
         },
       },
     )
-    .then((result) => {
-      try {
-        result = result[0][0];
-      } catch (err) {
-        failureCallback();
-      }
+    .then(
+      (result) => {
+        result = result?.[0]?.[0];
 
-      if (
-        result &&
-        result.token == token &&
-        result.created_by_user_id != null && // Block tokens without creator ID (legacy tokens)
-        (result.period == "never" ||
-          Date.now() - new Date(result.createdAt).getTime() <
-            parseInt(result.period))
-      ) {
-        successCallback(result);
-      } else {
-        failureCallback();
-      }
-    });
+        if (isLongTermTokenRecordValid(result, token)) {
+          successCallback(result);
+        } else {
+          failureCallback();
+        }
+      },
+      (error) => errorCallback(error),
+    );
 }
+
+const resolveLongTermTokenForApi =
+  createLongTermTokenResolver(validateLongTermToken);
+
+const ensureUserForApi = createEnsureUserForApi({
+  getAuthMode: () => process.env.AUTH,
+  resolveLongTermToken: resolveLongTermTokenForApi,
+  guestUsername,
+});
 
 function ensureUser() {
   return (req, res, next) => {
@@ -466,17 +475,14 @@ function ensureUser() {
         validateLongTermToken(
           req.headers.authorization,
           (tokenData) => {
-            req.isLongTermToken = true;
-            req.tokenUserPermission = tokenData.permission;
-            req.tokenUserMissions = tokenData.missions_managing;
-            req.user = tokenData.username;
+            hydrateRequestFromLongTermToken(req, tokenData);
             next();
           },
           () => {
             res.send({ status: "failure", message: "Unauthorized Token!" });
             logger(
               "warn",
-              `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
+              `Unauthorized token call made and rejected (from ${remoteAddress})`,
               req.originalUrl,
               req,
             );
@@ -552,6 +558,7 @@ let s = {
   ensureGroup,
   ensureAdmin,
   ensureUser,
+  ensureUserForApi,
   ensureUserForAdjacentServers,
   swaggerUi,
   useSwaggerSchema,

@@ -59,6 +59,7 @@ The same `s` is passed to every hook of every plugin.
 | `ROOT_PATH` | the subpath MMGIS is served under. **Always** prefix your mount with it — `s.ROOT_PATH + '/api/mything'` — or your plugin breaks on any non-root deployment |
 | `ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, allowPosts, disallow)` | admin-only gate (see below) |
 | `ensureUser()` | any logged-in user; the usual gate for user-facing data |
+| `ensureUserForApi(options)` | session/long-term-token gate for machine-consumed APIs; typed HTTP errors and public `off`/`none` behavior (see below) |
 | `ensureUserForAdjacentServers()` | the adjacent-server variant: `GET` is open when `AUTH` is `off`/`none`, everything else needs admin |
 | `ensureGroup(...groups)` | membership in a CSSO group |
 | `stopGuests` | rejects guest sessions — put it *after* an `ensure*`, and mount it on the write route rather than the whole mount (see below) |
@@ -127,11 +128,48 @@ Four things surprise people:
    instance to answer, put it on the write handlers instead
    (`router.post('/save', s.stopGuests, handler)`).
 
-4. **A rejection is an HTTP 200 with a failure body.** `stopGuests` and most core
-   handlers answer `{ status: 'failure', message: … }` with a 200 status, so a
-   frontend `if (!res.ok)` sees success. Check `body.status !== 'failure'`, and
-   have your own handlers keep the same shape — `{ status: 'success', body }` —
-   since that is what every existing client expects.
+4. **Legacy gates reject with an HTTP 200 failure body.** `stopGuests` and most
+   existing core handlers answer `{ status: 'failure', message: … }` with a 200,
+   so clients of those routes must check `body.status !== 'failure'`.
+
+   Machine-consumed endpoints that need HTTP authentication semantics should use
+   the additive typed gate instead. Its failure codes/messages are per-mount:
+
+   ```js
+   s.app.use(
+       s.ROOT_PATH + '/api/mything',
+       s.ensureUserForApi({
+           code: 'MyThingAuthenticationRequired',
+           message: 'Sign in to use MyThing.',
+           unavailableCode: 'MyThingAuthenticationUnavailable',
+           unavailableMessage: 'Authentication is temporarily unavailable.',
+       }),
+       s.checkHeadersCodeInjection,
+       s.setContentType,
+       router
+   )
+   ```
+
+   In protected modes it accepts an authenticated local/CSSO request or a valid
+   long-term token in exactly `Authorization: Bearer <token>` or the documented
+   legacy `Authorization: Bearer: <token>` form. Missing, malformed, invalid,
+   expired and guest credentials return HTTP 401 JSON as
+   `{ error: message, code }`; a token-store failure returns typed HTTP 503 JSON.
+   A valid token preserves the same `req.user`, `req.isLongTermToken`,
+   `req.tokenUserPermission` and `req.tokenUserMissions` hydration as
+   `ensureUser()`. Typed token requests also receive a stable internal
+   `req.apiAuthIdentity` in the form `long-term-token:sha256:<hex>`, derived from
+   the strictly parsed token so stateless requests can be correlated without
+   retaining or logging the raw credential. Session requests continue to use
+   `req.sessionID`. In public `AUTH=off`/`AUTH=none` modes, the gate hashes the
+   available session ID into `session:sha256:<hex>`, assigns it to
+   `req.apiAuthIdentity`, and persists the same nonsecret value in `req.session`.
+   This initializes an otherwise fresh `saveUninitialized:false` session so the
+   browser receives a cookie for a later continuation request; the raw session
+   ID is never used as the API identity. Public mounts remain permissive even if
+   an unrelated or malformed `Authorization` header is present. Blank or
+   unrecognized `AUTH` values fail closed and do not inherit CSSO session
+   semantics.
 
 `ensureAdmin` parameters, in order: `toLoginPage` (render the admin login page
 instead of rejecting), `denyLongTermTokens` (refuse `Authorization`-header
