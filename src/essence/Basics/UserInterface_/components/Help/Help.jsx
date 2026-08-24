@@ -7,7 +7,7 @@
  *   Help.finalize(helpKey)     → binds the click handler
  */
 import React, { useState, useEffect } from 'react'
-import { marked } from 'marked'
+import marked from '@essence/services/Markdown'
 import { safeHTML } from '@essence/services/Sanitize'
 import Modal from '../Modal/Modal'
 

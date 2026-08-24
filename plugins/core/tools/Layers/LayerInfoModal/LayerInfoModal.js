@@ -1,7 +1,7 @@
 import $ from 'jquery'
 import L_ from '@basics/Layers_/Layers_'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
-import { marked } from 'marked'
+import marked from '@essence/services/Markdown'
 import { safeHTML } from '@essence/services/Sanitize'
 import F_ from '@basics/Formulae_/Formulae_'
 

@@ -1,6 +1,6 @@
 import $ from 'jquery'
 import hotkeys from 'hotkeys-js'
-import { marked } from 'marked'
+import marked from '../../services/Markdown'
 import { safeHTML } from '../../services/Sanitize'
 
 import F_ from '../Formulae_/Formulae_'
