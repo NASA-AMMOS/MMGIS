@@ -51,6 +51,7 @@ export function clear(L_) {
     L_._layersLoaded = []
     L_._layersParent = {}
     L_._localTimeFilterCache = {}
+    L_._pendingTimeFilters = {}
     L_.FUTURES = {
         site: null,
         mapView: null,
