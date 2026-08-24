@@ -26,7 +26,7 @@ const testEnv = require("../API/testEnv");
 const utils = require("../API/utils");
 
 const { sequelize } = require("../API/connection");
-const { isOriginAllowed } = require("../API/origin");
+const { getRequestHost, isOriginAllowed } = require("../API/origin");
 
 const setups = require("../API/setups");
 
@@ -260,7 +260,7 @@ function checkHeadersCodeInjection(req, res, next) {
     res.end();
   } else {
     const origin = req.get("Origin");
-    if (origin && isOriginAllowed(origin, req.get("Host"))) {
+    if (origin && isOriginAllowed(origin, getRequestHost(req))) {
       res.setHeader("Access-Control-Allow-Origin", origin);
       res.setHeader("Access-Control-Allow-Methods", "GET, POST");
       res.setHeader(
@@ -667,6 +667,14 @@ for (const route of [
     bodyParser.urlencoded({ limit: largeBodyLimit, extended: true }),
   );
 }
+const mediumBodyLimit = "50mb";
+for (const route of [`${ROOT_PATH}/api/draw`, `${ROOT_PATH}/api/utils`]) {
+  app.use(route, bodyParser.json({ limit: mediumBodyLimit }));
+  app.use(
+    route,
+    bodyParser.urlencoded({ limit: mediumBodyLimit, extended: true }),
+  );
+}
 app.use(bodyParser.json({ limit: "10mb" })); // support json encoded bodies
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true })); // support encoded bodies
 
@@ -685,7 +693,7 @@ app.use((req, res, next) => {
   cors({
     credentials: true,
     origin: (origin, callback) => {
-      callback(null, isOriginAllowed(origin, req.get("Host")));
+      callback(null, isOriginAllowed(origin, getRequestHost(req)));
     },
   })(req, res, next);
 });
@@ -911,7 +919,8 @@ setups.getBackendSetups(function (setups) {
       if (res.headersSent) {
         return next(err);
       }
-      res.status(500).send({
+      const status = err.statusCode || err.status;
+      res.status(status >= 400 && status < 500 ? status : 500).send({
         status: "error",
         message: "Internal server error.",
       });

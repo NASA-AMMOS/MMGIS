@@ -9,6 +9,24 @@ function getAllowedOrigins(value = process.env.CORS_ORIGINS) {
     .filter((origin) => origin.length > 0);
 }
 
+function getFirstHeaderValue(value) {
+  if (Array.isArray(value)) value = value[0];
+  if (typeof value !== "string") return "";
+  return value.split(",")[0].trim();
+}
+
+function getRequestHost(request) {
+  if (typeof request === "string") return getFirstHeaderValue(request);
+
+  const headers = request && request.headers;
+  if (!headers) return "";
+
+  return (
+    getFirstHeaderValue(headers["x-forwarded-host"]) ||
+    getFirstHeaderValue(headers.host)
+  );
+}
+
 function getRequestHostname(requestHost) {
   if (typeof requestHost !== "string") return "";
 
@@ -52,4 +70,4 @@ function isOriginAllowed(origin, requestHost, allowedOrigins = getAllowedOrigins
   });
 }
 
-module.exports = { getAllowedOrigins, isOriginAllowed };
+module.exports = { getAllowedOrigins, getRequestHost, isOriginAllowed };

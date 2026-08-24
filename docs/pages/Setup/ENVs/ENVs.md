@@ -141,9 +141,13 @@ Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local a
 
 Comma-separated origins allowed for cross-origin HTTP requests and websockets. When unset, only same-origin requests are allowed. | comma-separated origins | default `""`
 
+**Upgrade note:** Cross-origin browser clients that previously relied on wildcard CORS must set this to a comma-separated list of their allowed origins.
+
 #### `SESSION_COOKIE_SECURE=`
 
 Controls the session cookie `Secure` flag. Set to `true` or `false`; when unset, it defaults to `true` if `HTTPS=true` or `THIRD_PARTY_COOKIES=true`. `THIRD_PARTY_COOKIES=true` requires this to remain enabled. | boolean | default `HTTPS=true || THIRD_PARTY_COOKIES=true`
+
+**Upgrade note:** Deployments with `HTTPS=true` now receive `Secure` session cookies by default. Set `SESSION_COOKIE_SECURE=false` only when TLS is intentionally not used.
 
 #### `ROOT_PATH=`
 

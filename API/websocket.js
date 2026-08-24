@@ -35,7 +35,7 @@ const websocket = {
 
     const wss = new WebSocket.Server({ noServer: true, maxPayload: 64 * 1024 });
     websocket.wss = wss;
-    const { isOriginAllowed } = require("./origin");
+    const { getRequestHost, isOriginAllowed } = require("./origin");
 
     // Broadcast to all clients
     wss.broadcast = function broadcast(data, isBinary) {
@@ -88,7 +88,7 @@ const websocket = {
           reject("missing origin");
           return;
         }
-        if (!isOriginAllowed(origin, request.headers.host)) {
+        if (!isOriginAllowed(origin, getRequestHost(request))) {
           reject("origin not allowed");
           return;
         }
