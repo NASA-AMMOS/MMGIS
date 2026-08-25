@@ -1,0 +1,85 @@
+{
+  "uuid": "0696377e-3b86-40b5-80e6-e0e1691b81e1",
+  "id": "core-layerattachment-thumbnail",
+  "name": "Thumbnail",
+  "type": "layerattachment",
+  "attachmentId": "thumbnail",
+  "configPath": "variables.markerAttachments.thumbnail",
+  "version": "core",
+  "tier": "core",
+  "overridable": false,
+  "description": "Draws each point marker as the feature's own image, taken from a URL on the feature. Field photos, sample close-ups and site pictures become recognisable on the map instead of identical dots. It decorates its host instead of drawing a sublayer, so it never appears in the layer's Composite Layers list.",
+  "capabilities": {
+    "renderers": {
+      "map": {
+        "engines": ["leaflet"]
+      }
+    },
+    "host": {
+      "decoratesHost": true
+    }
+  },
+  "config": {
+    "tab": "Attachment - Markers",
+    "tabOrder": 12,
+    "order": 1,
+    "rows": [
+      {
+        "name": "Attachment - Markers",
+        "subname": "Thumbnails",
+        "components": [
+          {
+            "field": "variables.markerAttachments.thumbnail.enabled",
+            "name": "Enabled",
+            "description": "Draws this layer's point markers as the image found at 'Image Property' on each feature. Features without that property keep the layer's normal marker.",
+            "type": "switch",
+            "width": 3,
+            "defaultChecked": false
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.markerAttachments.thumbnail.pathProp",
+            "name": "Image Property",
+            "description": "The dot.notated path to the feature property holding the image URL. Ex. thumbnail, or images.0.url.",
+            "type": "text",
+            "width": 4
+          },
+          {
+            "field": "variables.markerAttachments.thumbnail.sizePixels",
+            "name": "Size",
+            "description": "Width and height of the thumbnail marker in pixels.",
+            "type": "number",
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.thumbnail.shape",
+            "name": "Shape",
+            "description": "Whether the thumbnail is clipped to a circle or left square.",
+            "type": "dropdown",
+            "width": 2,
+            "options": ["circle", "square"]
+          },
+          {
+            "field": "variables.markerAttachments.thumbnail.borderColor",
+            "name": "Border Color",
+            "description": "Color of the ring drawn around the thumbnail.",
+            "type": "colorpicker",
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.thumbnail.borderWidth",
+            "name": "Border Width",
+            "description": "Thickness in pixels of the ring drawn around the thumbnail. 0 for no ring.",
+            "type": "number",
+            "width": 2
+          }
+        ]
+      }
+    ]
+  },
+  "module": "./thumbnail",
+  "applicableLayerTypes": ["vector", "query"]
+}

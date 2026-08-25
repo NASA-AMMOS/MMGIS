@@ -311,6 +311,21 @@ export const constructVectorLayer = (
             const yaw = decoration?.yaw || 0
             if (decoration?.shape) layerObj.shape = decoration.shape
 
+            // An attachment may go further and draw the marker's contents
+            // itself (a thumbnail attachment replaces the glyph with the
+            // feature's own image). It supplies the html, so the shape switch
+            // below has nothing left to decide.
+            //
+            // As a function it is handed the merged yaw, which lets an
+            // attachment that draws its own markup still turn part of it to a
+            // heading another attachment worked out — upright photo, rotating
+            // arrow. It is undefined when nothing contributed a bearing, so
+            // "no heading" stays distinguishable from "due north".
+            const decorationHtml =
+                typeof decoration?.html === 'function'
+                    ? decoration.html(decoration.yaw)
+                    : decoration?.html
+
             // Use style.shapeProp
             let finalShape = featureStyle.shapeIcon || layerObj.shape || 'none'
 
@@ -459,7 +474,28 @@ export const constructVectorLayer = (
                     ]
             }
 
-            if (markerIcon) {
+            if (decorationHtml != null) {
+                const size = decoration.iconSize || [
+                    (featureStyle.radius + pixelBuffer) * 2,
+                    (featureStyle.radius + pixelBuffer) * 2,
+                ]
+                layer = L.marker(latlong, {
+                    icon: L.divIcon({
+                        className: `leafletMarkerShape leafletMarkerShape_${F_.getSafeName(
+                            layerObj.name
+                        )} ${F_.getSafeName(layerObj.name)} leafletDivIcon${
+                            decoration.className ? ' ' + decoration.className : ''
+                        }`,
+                        iconSize: size,
+                        iconAnchor: decoration.iconAnchor || [
+                            size[0] / 2,
+                            size[1] / 2,
+                        ],
+                        html: decorationHtml,
+                    }),
+                    bubblingMouseEvents: true,
+                })
+            } else if (markerIcon) {
                 const markerOptions = {
                     icon: markerIcon,
                 }
