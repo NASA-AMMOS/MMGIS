@@ -113,11 +113,16 @@ export function transformStacUrl(
         const splitParams = afterColon.split('?')
         collectionName = splitParams[0]
 
-        // Use provided location, window.__mmgisLocation (for embedded/proxy
-        // environments where window.location is file://), or window.location
-        const loc = location
-            || (typeof window !== 'undefined' && window.__mmgisLocation ? window.__mmgisLocation : null)
-            || (typeof window !== 'undefined' ? window.location : null)
+        // Prefer window.__mmgisLocation for embedded/proxy environments where
+        // window.location is file:// (origin === "null"). Fall back to the
+        // explicitly passed location or window.location.
+        const mmgisLoc = typeof window !== 'undefined' && window.__mmgisLocation
+            ? window.__mmgisLocation
+            : null
+        const loc = mmgisLoc
+            || (location && location.origin !== 'null' ? location : null)
+            || (typeof window !== 'undefined' && window.location.origin !== 'null' ? window.location : null)
+            || mmgisLoc || location
         if (!loc) {
             console.error('Cannot build local STAC URL: location not available')
             return url

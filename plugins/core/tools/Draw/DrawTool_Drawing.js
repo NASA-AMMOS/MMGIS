@@ -262,7 +262,12 @@ var Drawing = {
         DrawTool.drawing.point.end()
         DrawTool.drawing.annotation.end()
         DrawTool.drawing.arrow.end()
-        DrawTool.drawing.trackme.end()
+        // NOT trackme. Track Me is a background recorder, not a click-to-draw
+        // mode: endDrawing() fires when the tool is closed
+        // (separateFromMMGIS) and on every switch to the Shapes/History tabs,
+        // so ending it here silently discarded a track the moment the user
+        // moved the panel out of the way. It stops only via stop() — the
+        // Track Me button, or the recording indicator.
     },
     setDrawingType: function (type) {
         switch (type) {
@@ -1688,6 +1693,13 @@ var drawing = {
         style: {},
         tempLine: null,
         active: false,
+        // The file the track records into, captured at begin(). Closing and
+        // reopening the Draw tool nulls DrawTool.currentFileId (DrawTool.make),
+        // so reading it at stop() time would fail with "No file chosen" and
+        // throw the track away.
+        fileId: null,
+        startedAt: null,
+        recTimer: null,
 
         begin: function (intent) {
             var d = DrawTool.drawing.trackme
@@ -1719,7 +1731,16 @@ var drawing = {
                 return
             }
 
+            // Bind the destination file up front — the track outlives the panel.
+            if (DrawTool.currentFileId == null) {
+                Toast.warning('No file chosen. Please select or make a file for drawings.', 6000)
+                return
+            }
+            d.fileId = DrawTool.currentFileId
+
             d.active = true
+            d.startedAt = Date.now()
+            d.showRecording()
 
             // Visual feedback: pulse the button
             var btn = document.querySelector('.drawToolDrawingTypeTrackMe')
@@ -1729,6 +1750,7 @@ var drawing = {
                 function (pos) {
                     var latlng = [pos.coords.latitude, pos.coords.longitude]
                     d.coords.push(latlng)
+                    d.updateRecording()
 
                     // Center map on first fix
                     if (d.coords.length === 1 && Map_ && Map_.map) {
@@ -1763,6 +1785,7 @@ var drawing = {
                 d.watchId = null
             }
             d.active = false
+            d.hideRecording()
             var btn = document.querySelector('.drawToolDrawingTypeTrackMe')
             if (btn) btn.classList.remove('tracking')
             if (d.tempLine && Map_ && Map_.map) {
@@ -1789,20 +1812,82 @@ var drawing = {
                 name: n.val() || n.attr('placeholder') || 'GPS Track ' + new Date().toLocaleString(),
             }
 
+            var fileId = d.fileId != null ? d.fileId : DrawTool.currentFileId
+            d.fileId = null
+
             DrawTool.addDrawing(
                 {
-                    file_id: DrawTool.currentFileId,
+                    file_id: fileId,
                     intent: d.intent,
                     properties: JSON.stringify(properties),
                     geometry: JSON.stringify(geometry),
                 },
                 function () {
-                    DrawTool.refreshFile(DrawTool.currentFileId, null, true, null, false, null, null, null, true)
+                    DrawTool.refreshFile(fileId, null, true, null, false, null, null, null, true)
                 },
                 function () {
                     Toast.error('Failed to save GPS track.', 4000)
                 }
             )
+        },
+
+        /**
+         * The recording indicator. Appended to <body> rather than into the Draw
+         * panel so it stays visible — and tappable — while the tool is closed,
+         * which is the whole point: you record with the map full-screen.
+         */
+        showRecording: function () {
+            var d = DrawTool.drawing.trackme
+            var el = document.getElementById('drawToolTrackMeRec')
+            if (!el) {
+                el = document.createElement('div')
+                el.id = 'drawToolTrackMeRec'
+                el.title = 'Recording a GPS track — tap to stop and save'
+                el.addEventListener('click', function () {
+                    DrawTool.drawing.trackme.stop()
+                })
+                document.body.appendChild(el)
+            }
+            d.updateRecording()
+            if (d.recTimer == null) {
+                d.recTimer = setInterval(function () {
+                    DrawTool.drawing.trackme.updateRecording()
+                }, 1000)
+            }
+        },
+
+        updateRecording: function () {
+            var d = DrawTool.drawing.trackme
+            var el = document.getElementById('drawToolTrackMeRec')
+            if (!el) return
+            var secs = Math.max(
+                0,
+                Math.round((Date.now() - (d.startedAt || Date.now())) / 1000)
+            )
+            var mins = Math.floor(secs / 60)
+            var rem = secs % 60
+            var pts = d.coords.length
+            el.innerHTML = [
+                "<div class='drawToolTrackMeRecDot'></div>",
+                "<div class='drawToolTrackMeRecText'>REC ",
+                mins,
+                ':',
+                rem < 10 ? '0' + rem : rem,
+                ' &middot; ',
+                pts,
+                pts === 1 ? ' pt' : ' pts',
+                '</div>',
+            ].join('')
+        },
+
+        hideRecording: function () {
+            var d = DrawTool.drawing.trackme
+            if (d.recTimer != null) {
+                clearInterval(d.recTimer)
+                d.recTimer = null
+            }
+            var el = document.getElementById('drawToolTrackMeRec')
+            if (el && el.parentNode) el.parentNode.removeChild(el)
         },
     },
 }

@@ -2631,3 +2631,68 @@ line-height: 20px;
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
 }
+
+/* Track Me recording indicator.
+   Lives on <body>, outside the Draw panel, so recording stays visible and
+   stoppable with the tool closed and the map full-screen. */
+#drawToolTrackMeRec {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Clear of the bottom bar AND the scale bar stacked above it — at 64px the
+       pill landed right on the scale's tick labels. */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 108px);
+    display: flex;
+    align-items: center;
+    padding: 9px 18px;
+    border-radius: 999px;
+    background: #ff6400;
+    color: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    z-index: 4000;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.drawToolTrackMeRecDot {
+    width: 10px;
+    height: 10px;
+    margin-right: 9px;
+    border-radius: 50%;
+    background: #fff;
+    animation: trackme-pulse 1.5s ease-in-out infinite;
+}
+
+/* Mobile: the feature-properties panel is a 340px block anchored to the right
+   edge of the tool panel, which on a phone puts part of it past the viewport —
+   the title truncates and the color swatches are clipped off-screen. Span the
+   viewport instead. */
+@media (max-width: 600px) {
+    .drawToolContextMenu {
+        /* Stays `absolute` so it fills the tool panel. `fixed` does NOT escape
+           to the viewport here — the tool panel's backdrop-filter makes it the
+           containing block for fixed descendants (the same trap fixed upstream
+           in #1004), so a fixed panel merely re-anchors to the panel box while
+           losing its vertical bounds and sliding under the top/bottom bars. */
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        box-sizing: border-box;
+        /* Clear the floating bottom bar so the delete/Reset/Save row isn't
+           covered by the map's layer/basemap/info icons. */
+        padding-bottom: 44px;
+    }
+    .drawToolContextMenuHeaderName {
+        max-width: calc(100% - 44px);
+        font-size: 20px;
+    }
+    .drawToolContextMenuHeaderFile span {
+        max-width: 40vw;
+    }
+}
