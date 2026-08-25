@@ -1,7 +1,7 @@
 import $ from 'jquery'
 import hotkeys from 'hotkeys-js'
-import showdown from 'showdown'
-import DOMPurify from 'dompurify'
+import marked from '../../services/Markdown'
+import { safeHTML } from '../../services/Sanitize'
 
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
@@ -12,10 +12,8 @@ import Modal from './components/Modal/Modal'
 import HTML2Canvas from 'html2canvas'
 import useUIStore from './store/uiStore'
 
-showdown.setFlavor('github')
-
 let BottomBar = {
-    mdConverter: new showdown.Converter(),
+    mdConverter: marked,
     UI_: null,
     settings: {},
 
@@ -66,7 +64,7 @@ let BottomBar = {
                         `<div class='mainInfoModalSubtitle'>Multi-Mission Geographic Information System</div>`,
                         logoUrl ? `<img class='mainInfoModalMissionLogo' src='${logoUrl}' alt='Mission Logo' />` : '',
                     `</div>`,
-                    aboutContent ? `<div class='mainInfoModalCustom'>${DOMPurify.sanitize(BottomBar.mdConverter.makeHtml(aboutContent))}</div>` : '',
+                    aboutContent ? `<div class='mainInfoModalCustom'>${safeHTML(BottomBar.mdConverter.parse(aboutContent))}</div>` : '',
                     `<div class='mainInfoModalMeta'>`,
                         mission ? `<div class='mainInfoModalMetaItem'><span class='mainInfoModalMetaLabel'>Mission</span><span class='mainInfoModalMetaValue'>${mission}</span></div>` : '',
                         version ? `<div class='mainInfoModalMetaItem'><span class='mainInfoModalMetaLabel'>Version</span><span class='mainInfoModalMetaValue'>${version}</span></div>` : '',
