@@ -59,6 +59,7 @@ import { data as colormapData } from "../external/js-colormaps.js";
 
 import { calls } from "./calls";
 import { parseTileMatrixSetCRS } from "./crsUtils";
+import { safeHTML } from "./Sanitize";
 import Autocomplete from "@mui/material/Autocomplete";
 import Chip from "@mui/material/Chip";
 
@@ -675,8 +676,8 @@ const getComponent = (
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ 
                   __html: isDisabled 
-                    ? `${com.description || ""}<br/><strong>Note:</strong> ${disabledMessage}`
-                    : com.description || "" 
+                    ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                    : safeHTML(com.description || "")
                 }}
               ></div>
             </>
@@ -725,7 +726,7 @@ const getComponent = (
               {inner}
               <div
                 className={c.subtitle2}
-                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+                dangerouslySetInnerHTML={{ __html: safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -774,7 +775,7 @@ const getComponent = (
               {inner}
               <div
                 className={c.subtitle2}
-                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+                dangerouslySetInnerHTML={{ __html: safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -1026,8 +1027,8 @@ const getComponent = (
               <div
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ __html: isDisabled 
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || "" }}
+                  ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                  : safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -1393,8 +1394,8 @@ const getComponent = (
               <div
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ __html: isDisabled 
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || "" }}
+                  ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                  : safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -1512,8 +1513,8 @@ const getComponent = (
               <div
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ __html: isDisabled 
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || "" }}
+                  ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                  : safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -1757,7 +1758,7 @@ const getComponent = (
               {inner}
               <div
                 className={c.subtitle2}
-                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+                dangerouslySetInnerHTML={{ __html: safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -2050,8 +2051,8 @@ const getComponent = (
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{
                   __html: isDisabled
-                    ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                    : com.description || "",
+                    ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                    : safeHTML(com.description || ""),
                 }}
               ></div>
             </>
@@ -2129,7 +2130,7 @@ const makeConfig = (
           <div
             className={clsx(c.rowDescription)}
             key={`${idx}_desc`}
-            dangerouslySetInnerHTML={{ __html: row.description || "" }}
+            dangerouslySetInnerHTML={{ __html: safeHTML(row.description || "") }}
           ></div>
         );
       }
@@ -2148,7 +2149,7 @@ const makeConfig = (
           <div
             className={clsx(c.rowDescription)}
             key={`${idx}_desc`}
-            dangerouslySetInnerHTML={{ __html: row.subdescription || "" }}
+            dangerouslySetInnerHTML={{ __html: safeHTML(row.subdescription || "") }}
           ></div>
         );
       }
