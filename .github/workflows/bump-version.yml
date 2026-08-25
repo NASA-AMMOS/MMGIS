@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.head_ref }} # Check out the PR branch, not merge commit
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Check if version needs bumping
         id: check
@@ -150,11 +150,13 @@ jobs:
 
       - name: Push to PR branch
         if: steps.check.outputs.needs_bump == 'true'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           # Push to the PR branch (head_ref is the source branch of the PR)
-          git push origin HEAD:${{ github.head_ref }}
+          git push origin "HEAD:$HEAD_REF"
 
-          echo "✓ Pushed version bump to PR branch: ${{ github.head_ref }}"
+          echo "✓ Pushed version bump to PR branch: $HEAD_REF"
 
       - name: Comment on PR - Version Auto-Bumped
         if: steps.check.outputs.needs_bump == 'true'
