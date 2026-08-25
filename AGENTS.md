@@ -1,7 +1,7 @@
 # MMGIS - AI Agent Context
 
 **Project**: MMGIS (Multi-Mission Geographic Information System)
-**Version**: 4.3.0
+**Version**: 5.3.14
 **Last Updated**: 2026-05-01
 
 > **New to this repo?** See [.knowledge/AI-GETTING-STARTED.md](./.knowledge/AI-GETTING-STARTED.md) for setup guide, port map, and common pitfalls.
