@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import useUIStore from '../../store/uiStore'
+import { stackedBottom } from '../../store/uiStoreMath'
 
 function MapPanel() {
     const pxIsMap = useUIStore((s) => s.pxIsMap)
@@ -9,6 +10,7 @@ function MapPanel() {
     const topSize = useUIStore((s) => s.topSize)
     const isMobile = useUIStore((s) => s.isMobile)
     const pxIsTools = useUIStore((s) => s.pxIsTools)
+    const stackedBottomPx = useUIStore(stackedBottom)
     const mainWidth = useUIStore((s) => s.mainWidth)
     const hasViewer = useUIStore((s) => s.hasViewer)
     const hasGlobe = useUIStore((s) => s.hasGlobe)
@@ -37,9 +39,11 @@ function MapPanel() {
                           position: 'absolute',
                           width: mainWidth + 'px',
                           // The viewer takes the bottom; the map keeps the rest
-                          // above it, minus the tools dock.
+                          // above it. Through stackedBottom rather than the old
+                          // `- pxIsTools`, which counted only the tool panel and
+                          // missed the 40px mobile toolbar sitting under it.
                           height:
-                              mainHeight - pxIsViewer - splitterSize - pxIsTools + 'px',
+                              stackedBottomPx - pxIsViewer - splitterSize + 'px',
                           transition: 'height 0.4s ease-out',
                           top: '0px',
                           left: '0px',

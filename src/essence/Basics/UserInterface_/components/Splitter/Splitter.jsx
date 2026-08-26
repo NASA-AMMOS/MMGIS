@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from 'react'
 import useUIStore from '../../store/uiStore'
+import { stackedBottom } from '../../store/uiStoreMath'
 import splitterStyles from './Splitter.module.css'
 
 const DRAG_THRESHOLD = 1
@@ -19,6 +20,7 @@ function Splitter({ type, orientation }) {
     // Stacked (mobile): viewer under the map, so this splitter is a horizontal
     // bar the user drags up and down rather than a vertical one.
     const stacked = isMobile && hasViewer && !hasGlobe
+    const stackedBottomPx = useUIStore(stackedBottom)
 
     const dragCount = useRef(0)
     const mouseIsDown = useRef(false)
@@ -118,7 +120,10 @@ function Splitter({ type, orientation }) {
                         width: mainWidth + 'px',
                         height: barHeight + 'px',
                         left: '0px',
-                        top: mainHeight - pxIsViewer - barHeight + 'px',
+                        // Through stackedBottom so this cannot drift from
+                        // ViewerPanel — a splitter drawn where the panel is not
+                        // jumps out from under the finger on the first drag.
+                        top: stackedBottomPx - pxIsViewer - barHeight + 'px',
                         zIndex: 3,
                         cursor: 'row-resize',
                         touchAction: 'none',

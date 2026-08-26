@@ -53,10 +53,55 @@ export function isStacked(state) {
  * Drag math for the stacked splitter, which runs horizontally along the top
  * edge of the viewer. Dragging up grows the viewer.
  */
+/** The mobile toolbar's height, matching `#toolbar` in Toolbar.jsx. */
+export const MOBILE_TOOLBAR_HEIGHT = 40
+
+/**
+ * The y the stacked arrangement is anchored to — the bottom of #splitscreens,
+ * less whatever is floating over the bottom of it.
+ *
+ * Two separate things land there on a phone, and neither is subtracted from
+ * `mainHeight`:
+ *
+ *   - **The mobile toolbar.** `#toolbar` is a *sibling* of `#splitscreens`,
+ *     absolutely positioned at `bottom: pxIsTools` and 40px tall, so it covers
+ *     the bottom `pxIsTools + 40` of the panel area. On desktop the same
+ *     toolbar is a left column and `SplitScreens` does subtract its width —
+ *     the vertical case was simply never the same shape.
+ *   - **The bottom floating bar.** A *child* of `#splitscreens`, so it cannot
+ *     be subtracted from the container's height without chasing its own tail;
+ *     the panels stop above it instead. `pxBottomBar` is measured from the bar
+ *     rather than derived from `pxIsTools`, because a live time bar shows it
+ *     with no horizontal tool open, and it carries padding and a 12px margin
+ *     that `pxIsTools` knows nothing about.
+ *
+ * `max`, not a sum: the toolbar's `bottom: pxIsTools` offset and the bar's
+ * `#toolsWrapper` describe the same strip of screen, so adding them would
+ * reserve it twice and leave a gap.
+ *
+ * Floating over a *map* is fine and deliberate — occluding a corner of a map
+ * costs nothing. Floating over the viewer is not: its controls live on its
+ * edges, and its image is the thing being looked at.
+ *
+ * Every stacked anchor goes through here — ViewerPanel, Splitter, MapPanel and
+ * the drag math below. They are only consistent while they share one
+ * definition; two of them disagreeing shows up as a splitter that jumps out
+ * from under the finger.
+ */
+export function stackedBottom(state) {
+    const floatingBar = state.pxBottomBar || 0
+    const toolbar =
+        state.isMobile === true && state.toolbarVisible !== false
+            ? (state.pxIsTools || 0) + MOBILE_TOOLBAR_HEIGHT
+            : 0
+    return state.mainHeight - Math.max(floatingBar, toolbar)
+}
+
 export function computeStackedSplitMove(state, y) {
-    let pxIsViewer = state.mainHeight - y - state.splitterSize / 2
+    const bottom = stackedBottom(state)
+    let pxIsViewer = bottom - y - state.splitterSize / 2
     if (pxIsViewer < 0) pxIsViewer = 0
-    const max = state.mainHeight - state.splitterSize * 2
+    const max = bottom - state.splitterSize * 2
     if (pxIsViewer > max) pxIsViewer = max
     return {
         pxIsViewer,

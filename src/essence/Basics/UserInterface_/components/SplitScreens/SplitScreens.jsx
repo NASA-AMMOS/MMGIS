@@ -96,6 +96,9 @@ function SplitScreens() {
     )
 }
 
+/** Matches `bottom: 12px` on .bottomFloatingBar in SplitScreens.module.css. */
+const BAR_MARGIN = 12
+
 /**
  * BottomFloatingBar — wraps horizontal tool content + TimeUI dock.
  * Matches PR #47's bottomFloatingBar: floats inside #splitscreens with
@@ -108,9 +111,28 @@ function BottomFloatingBar() {
     const timeUIExpanded = useUIStore((s) => s.timeUIExpanded)
     const isDragging = useUIStore((s) => s.isDraggingSplitter)
     const timeUIDockRef = useRef(null)
+    const barRef = useRef(null)
 
     const hasToolContent = pxIsTools > 0
     const isVisible = timeUIActive || hasToolContent
+
+    // Publish how much room the bar takes at the bottom, so the stacked mobile
+    // layout can stop the viewer above it rather than running underneath.
+    // Measured, not derived from pxIsTools: the bar is also visible with a live
+    // time bar and no horizontal tool, and it carries padding and a 12px margin
+    // that pxIsTools does not account for. See stackedBottom() in uiStoreMath.
+    useEffect(() => {
+        const el = barRef.current
+        const publish = () => {
+            const h = !isVisible || !el ? 0 : el.offsetHeight + BAR_MARGIN
+            useUIStore.getState().setPxBottomBar(h)
+        }
+        publish()
+        if (!el || typeof ResizeObserver !== 'function') return undefined
+        const observer = new ResizeObserver(publish)
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [isVisible])
 
     // Reparent #timeUI into our timeUIDock when it appears in the DOM (desktop only).
     // On mobile, MobileTimeUIToggle manages #timeUI placement into #tools.
@@ -151,6 +173,7 @@ function BottomFloatingBar() {
         <div
             id="bottomFloatingBar"
             className={`${styles.bottomFloatingBar} ${!isVisible ? styles.bottomFloatingBarHidden : ''}`}
+            ref={barRef}
             style={{
                 zIndex: 1500,
                 maxHeight: 'calc(100% - 24px)',

@@ -176,6 +176,23 @@ function saveState(data) {
 }
 
 /**
+ * True for a directory, and for a symlink that points at one.
+ *
+ * Mirrors `isDirLike` in API/pluginDiscovery.js, and exists for the same
+ * reason: `Dirent.isDirectory()` is false for a symlink, so `install --link`
+ * would otherwise produce a container this CLI cannot list, enable or activate.
+ */
+function isDirLike(parentPath, dirent) {
+    try {
+        if (dirent.isDirectory()) return true;
+        if (!dirent.isSymbolicLink()) return false;
+        return fs.statSync(path.join(parentPath, dirent.name)).isDirectory();
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Recursively copy a directory. Works cross-platform (no shell deps).
  *
  * `.git` is left behind: copying it makes the installed container an embedded
@@ -518,7 +535,7 @@ function discoverAll() {
     const sorted = containers
         .filter((d) => {
             try {
-                return d.isDirectory() && d.name[0] !== "_" && d.name[0] !== ".";
+                return isDirLike(PLUGINS_ROOT, d) && d.name[0] !== "_" && d.name[0] !== ".";
             } catch {
                 return false;
             }
@@ -540,13 +557,8 @@ function discoverAll() {
             }
 
             for (const entry of entries) {
-                let isDir = false;
-                try {
-                    isDir = entry.isDirectory();
-                } catch {
-                    continue;
-                }
-                if (!isDir || entry.name[0] === "_" || entry.name[0] === ".") continue;
+                if (!isDirLike(typePath, entry)) continue;
+                if (entry.name[0] === "_" || entry.name[0] === ".") continue;
 
                 const pluginPath = path.join(typePath, entry.name);
                 const manifestPath = path.join(pluginPath, "plugin.json");

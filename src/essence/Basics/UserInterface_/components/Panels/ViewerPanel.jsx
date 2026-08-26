@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import useUIStore from '../../store/uiStore'
+import { stackedBottom } from '../../store/uiStoreMath'
 import splitStyles from '../SplitScreens/SplitScreens.module.css'
 import Description from '../Description/Description'
 
@@ -13,6 +14,13 @@ function ViewerPanel() {
     // Stacked: the viewer sits under the map instead of beside it, so its
     // panel size is a height. Side-by-side leaves a phone almost no map.
     const stacked = isMobile && hasViewer && !hasGlobe
+    // Stop short of whatever floats over the bottom of #splitscreens — the
+    // mobile toolbar and the bottom floating bar. That is fine over the map and
+    // not over a panel whose own controls sit on its edges: it is where the
+    // delete button, the OpenSeadragon thumbnail and its zoom controls were
+    // disappearing to. Derived through the selector so a toolbar appearing or a
+    // tool panel opening moves the panel with it.
+    const bottom = useUIStore(stackedBottom)
 
     // Grey the stepping controls out at the ends of the list, so "next" never
     // looks available when it is not. Recomputed whenever the active feature
@@ -58,7 +66,7 @@ function ViewerPanel() {
                           position: 'absolute',
                           width: mainWidth + 'px',
                           height: pxIsViewer + 'px',
-                          top: mainHeight - pxIsViewer + 'px',
+                          top: bottom - pxIsViewer + 'px',
                           overflow: 'hidden',
                           left: '0px',
                           borderTop: '1px solid var(--color-a1)',

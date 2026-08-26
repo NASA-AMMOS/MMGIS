@@ -33,6 +33,10 @@ const useUIStore = create((set, get) => ({
     pxIsGlobe: 0,
     pxIsTools: 0,
     pxIsToolsInit: 0,
+    // Vertical space the bottom floating bar occupies, measured from the bar,
+    // 0 when it is hidden. Read by every stacked-layout anchor via
+    // stackedBottom() in uiStoreMath.
+    pxBottomBar: 0,
     toolNativeHeight: 0,
 
     // Container dimensions
@@ -149,6 +153,8 @@ const useUIStore = create((set, get) => ({
         set({ mainWidth: width, mainHeight: height }),
 
     setPxIsTools: (val) => set({ pxIsTools: val }),
+    setPxBottomBar: (val) =>
+        set((s) => (s.pxBottomBar === val ? s : { pxBottomBar: val })),
 
     setToolPanelWidth: (width) => set({ toolPanelWidth: width }),
     setToolPanelDragVisible: (val) => set({ toolPanelDragVisible: val }),

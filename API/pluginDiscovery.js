@@ -27,6 +27,25 @@ const PLUGIN_TYPES = [
 ];
 
 /**
+ * True for a directory, and for a symlink that points at one.
+ *
+ * `Dirent.isDirectory()` is false for a symlink — `isSymbolicLink()` is what is
+ * true — so filtering on it alone silently drops every container installed with
+ * `plugins install <path> --link`. The CLI offers that flag, so discovery has to
+ * honour what it produces; without this a linked plugin installs cleanly, lists
+ * as absent, and never reaches a build, with no error anywhere.
+ */
+function isDirLike(parentPath, dirent) {
+    try {
+        if (dirent.isDirectory()) return true;
+        if (!dirent.isSymbolicLink()) return false;
+        return fs.statSync(path.join(parentPath, dirent.name)).isDirectory();
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Three-level plugin discovery for the `/plugins/` directory.
  *
  * Directory layout:
@@ -97,7 +116,7 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
     const sorted = repoDirs
         .filter((d) => {
             try {
-                return d.isDirectory() && d.name[0] !== "_" && d.name[0] !== ".";
+                return isDirLike(pluginsRoot, d) && d.name[0] !== "_" && d.name[0] !== ".";
             } catch {
                 return false;
             }
@@ -120,13 +139,7 @@ function discoverPlugins(pluginsRoot, type, configFile = "plugin.json", opts = {
         }
 
         for (const pluginEntry of pluginEntries) {
-            let pIsDir = false;
-            try {
-                pIsDir = pluginEntry.isDirectory();
-            } catch {
-                continue;
-            }
-            if (!pIsDir) continue;
+            if (!isDirLike(typePath, pluginEntry)) continue;
             if (pluginEntry.name[0] === "_" || pluginEntry.name[0] === ".") continue;
 
             const pluginPath = path.join(typePath, pluginEntry.name);
