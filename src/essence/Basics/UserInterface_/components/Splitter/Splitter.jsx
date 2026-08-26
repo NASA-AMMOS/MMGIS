@@ -14,6 +14,11 @@ function Splitter({ type, orientation }) {
     const topSize = useUIStore((s) => s.topSize)
     const hasViewer = useUIStore((s) => s.hasViewer)
     const hasGlobe = useUIStore((s) => s.hasGlobe)
+    const mainWidth = useUIStore((s) => s.mainWidth)
+    const isMobile = useUIStore((s) => s.isMobile)
+    // Stacked (mobile): viewer under the map, so this splitter is a horizontal
+    // bar the user drags up and down rather than a vertical one.
+    const stacked = isMobile && hasViewer && !hasGlobe
 
     const dragCount = useRef(0)
     const mouseIsDown = useRef(false)
@@ -37,7 +42,7 @@ function Splitter({ type, orientation }) {
                 if (type === 'map') {
                     useUIStore
                         .getState()
-                        .computeMapSplitMove(ev.clientX)
+                        .computeMapSplitMove(ev.clientX, ev.clientY)
                 } else if (type === 'globe') {
                     useUIStore
                         .getState()
@@ -101,6 +106,41 @@ function Splitter({ type, orientation }) {
     if (type === 'map') {
         // Hide map splitter when viewer is disabled (matches clearUnwantedPanels)
         if (!hasViewer) return null
+        if (stacked) {
+            // A full-width grab bar sitting on the viewer's top edge. Kept
+            // deliberately tall: this is a touch target, not a mouse one.
+            const barHeight = 14
+            return (
+                <div
+                    id="mapSplit"
+                    style={{
+                        position: 'absolute',
+                        width: mainWidth + 'px',
+                        height: barHeight + 'px',
+                        left: '0px',
+                        top: mainHeight - pxIsViewer - barHeight + 'px',
+                        zIndex: 3,
+                        cursor: 'row-resize',
+                        touchAction: 'none',
+                        background: 'var(--color-a)',
+                        borderTop: '1px solid var(--color-a1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                    onPointerDown={handlePointerDown}
+                >
+                    <div
+                        style={{
+                            width: '36px',
+                            height: '4px',
+                            borderRadius: '2px',
+                            background: 'var(--color-a3)',
+                        }}
+                    />
+                </div>
+            )
+        }
         return (
             <div
                 className={`${splitterStyles.splitterV} ${splitterStyles.splitterVGradient}`}

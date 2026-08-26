@@ -12,8 +12,11 @@
   "capabilities": {
     "renderers": {
       "map": {
-        "engines": ["leaflet"]
-      }
+        "engines": [
+          "leaflet"
+        ]
+      },
+      "globe": false
     },
     "host": {
       "decoratesHost": true
@@ -60,7 +63,10 @@
             "description": "Whether the thumbnail is clipped to a circle or left square.",
             "type": "dropdown",
             "width": 2,
-            "options": ["circle", "square"]
+            "options": [
+              "circle",
+              "square"
+            ]
           },
           {
             "field": "variables.markerAttachments.thumbnail.borderColor",
@@ -75,11 +81,21 @@
             "description": "Thickness in pixels of the ring drawn around the thumbnail. 0 for no ring.",
             "type": "number",
             "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.thumbnail.emptyIcon",
+            "name": "Fallback Icon",
+            "description": "Material Design Icon name drawn when a feature has no image (for example 'note-text' for a written observation). Leave blank to fall back to the layer's ordinary marker instead.",
+            "type": "text",
+            "width": 3
           }
         ]
       }
     ]
   },
   "module": "./thumbnail",
-  "applicableLayerTypes": ["vector", "query"]
+  "applicableLayerTypes": [
+    "vector",
+    "query"
+  ]
 }

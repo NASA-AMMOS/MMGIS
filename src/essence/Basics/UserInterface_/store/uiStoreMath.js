@@ -28,12 +28,41 @@ export function computePanelPixelsFromPercents(state, viewerPercent, mapPercent,
     if (!state.hasGlobe && globePercent !== 0) return null
     if (Math.abs(viewerPercent + mapPercent + globePercent - 100) > 0.001) return null
 
-    const pxIsViewer =
-        state.mainWidth * (viewerPercent / 100) - state.splitterSize / 2
-    const pxIsGlobe = state.mainWidth * (globePercent / 100)
-    const pxIsMap = state.mainWidth - pxIsViewer - pxIsGlobe
+    // Stacked (mobile) puts the viewer under the map instead of beside it, so
+    // the panel sizes are heights and divide mainHeight rather than mainWidth.
+    const total = isStacked(state) ? state.mainHeight : state.mainWidth
+    const pxIsViewer = total * (viewerPercent / 100) - state.splitterSize / 2
+    const pxIsGlobe = total * (globePercent / 100)
+    const pxIsMap = total - pxIsViewer - pxIsGlobe
 
     return { pxIsViewer, pxIsMap, pxIsGlobe }
+}
+
+/**
+ * Whether the viewer stacks under the map rather than sitting beside it.
+ *
+ * A side-by-side split is unusable on a phone: the viewer takes most of the
+ * width and leaves the map a strip. Stacking is mobile-only, and only when
+ * there is no globe — a three-way stack has the same problem vertically.
+ */
+export function isStacked(state) {
+    return state.isMobile === true && state.hasViewer === true && state.hasGlobe !== true
+}
+
+/**
+ * Drag math for the stacked splitter, which runs horizontally along the top
+ * edge of the viewer. Dragging up grows the viewer.
+ */
+export function computeStackedSplitMove(state, y) {
+    let pxIsViewer = state.mainHeight - y - state.splitterSize / 2
+    if (pxIsViewer < 0) pxIsViewer = 0
+    const max = state.mainHeight - state.splitterSize * 2
+    if (pxIsViewer > max) pxIsViewer = max
+    return {
+        pxIsViewer,
+        pxIsMap: state.mainHeight - pxIsViewer,
+        pxIsGlobe: 0,
+    }
 }
 
 /**

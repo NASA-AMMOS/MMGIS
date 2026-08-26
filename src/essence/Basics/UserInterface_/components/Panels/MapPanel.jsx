@@ -9,6 +9,10 @@ function MapPanel() {
     const topSize = useUIStore((s) => s.topSize)
     const isMobile = useUIStore((s) => s.isMobile)
     const pxIsTools = useUIStore((s) => s.pxIsTools)
+    const mainWidth = useUIStore((s) => s.mainWidth)
+    const hasViewer = useUIStore((s) => s.hasViewer)
+    const hasGlobe = useUIStore((s) => s.hasGlobe)
+    const stacked = isMobile && hasViewer && !hasGlobe
     const mapRef = useRef(null)
 
     // ResizeObserver on #map calls invalidateSize before the browser paints,
@@ -27,15 +31,29 @@ function MapPanel() {
     return (
         <div
             id="mapScreen"
-            style={{
-                position: 'absolute',
-                width: pxIsMap - splitterSize * 2 + 'px',
-                height: (isMobile ? mainHeight - pxIsTools : mainHeight) + 'px',
-                transition: isMobile ? 'height 0.4s ease-out' : undefined,
-                top: '0px',
-                left: pxIsViewer + splitterSize + 'px',
-                borderLeft: '1px solid var(--color-a1)',
-            }}
+            style={
+                stacked
+                    ? {
+                          position: 'absolute',
+                          width: mainWidth + 'px',
+                          // The viewer takes the bottom; the map keeps the rest
+                          // above it, minus the tools dock.
+                          height:
+                              mainHeight - pxIsViewer - splitterSize - pxIsTools + 'px',
+                          transition: 'height 0.4s ease-out',
+                          top: '0px',
+                          left: '0px',
+                      }
+                    : {
+                          position: 'absolute',
+                          width: pxIsMap - splitterSize * 2 + 'px',
+                          height: (isMobile ? mainHeight - pxIsTools : mainHeight) + 'px',
+                          transition: isMobile ? 'height 0.4s ease-out' : undefined,
+                          top: '0px',
+                          left: pxIsViewer + splitterSize + 'px',
+                          borderLeft: '1px solid var(--color-a1)',
+                      }
+            }
         >
             <div
                 id="map"

@@ -182,6 +182,20 @@ export function propertiesToImages(L_, props, baseUrl) {
     //Use "images" key first
     if (props.hasOwnProperty('images')) {
         for (var i = 0; i < props.images.length; i++) {
+            // A note carries text rather than a url — it is a viewer entry
+            // without a file behind it.
+            if (props.images[i].type === 'note') {
+                images.push({
+                    type: 'note',
+                    text: props.images[i].text || '',
+                    name: props.images[i].name || 'Note',
+                    url: null,
+                    isPanoramic: false,
+                    isModel: false,
+                    values: props.images[i].values || {},
+                })
+                continue
+            }
             if (props.images[i].url) {
                 var url = baseUrl + props.images[i].url
                 if (!F_.isUrlAbsolute(url)) url = L_.missionPath + url
@@ -245,6 +259,12 @@ export function propertiesToImages(L_, props, baseUrl) {
     //Now search all string valued props for image urls
 
     for (let p in props) {
+        // An underscore prefix means "internal, not for display" — the same
+        // convention the feature-navigation field dropdown already uses. Without
+        // it, ANY string property ending in an image extension becomes a viewer
+        // entry, so a layer that stores a marker thumbnail alongside its full
+        // image shows the thumbnail as a second, pointless entry.
+        if (p[0] === '_') continue
         if (
             typeof props[p] === 'string' &&
             props[p].toLowerCase().match(/\.(jpeg|jpg|gif|png|xml)$/) != null

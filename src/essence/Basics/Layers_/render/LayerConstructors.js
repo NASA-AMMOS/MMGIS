@@ -304,10 +304,26 @@ export const constructVectorLayer = (
             // An attachment may draw nothing of its own and instead change how
             // its host draws this marker (a bearing turns it to face a
             // heading). Core asks and applies what comes back.
-            const decoration = L_.decorateFeature(layerObj, feature, {
-                latlong,
-                featureStyle,
-            })
+            // Attachments are third-party code running once per feature. A
+            // decoration that fails must cost its decoration, not the layer:
+            // an escaping error unwinds the whole L.geoJson construction, the
+            // layer never reports loaded, and MMGIS sits on the loading screen
+            // forever with nothing on screen to say why.
+            let decoration = null
+            try {
+                decoration = L_.decorateFeature(layerObj, feature, {
+                    latlong,
+                    featureStyle,
+                })
+            } catch (e) {
+                if (!layerObj._decorationWarned) {
+                    layerObj._decorationWarned = true
+                    console.error(
+                        `Layer '${layerObj.name}': a marker attachment threw while decorating a feature; falling back to the layer's own marker.`,
+                        e
+                    )
+                }
+            }
             const yaw = decoration?.yaw || 0
             if (decoration?.shape) layerObj.shape = decoration.shape
 
@@ -321,10 +337,28 @@ export const constructVectorLayer = (
             // heading another attachment worked out — upright photo, rotating
             // arrow. It is undefined when nothing contributed a bearing, so
             // "no heading" stays distinguishable from "due north".
-            const decorationHtml =
-                typeof decoration?.html === 'function'
-                    ? decoration.html(decoration.yaw)
-                    : decoration?.html
+            // An attachment building its own markup is the one part of this
+            // that runs third-party code per feature. If it throws, the whole
+            // L.geoJson construction unwinds, the layer never reports loaded,
+            // and MMGIS sits on the loading screen forever — a decoration
+            // failing must cost its decoration, not the map. Fall back to the
+            // layer's ordinary marker and say what happened, once.
+            let decorationHtml
+            try {
+                decorationHtml =
+                    typeof decoration?.html === 'function'
+                        ? decoration.html(decoration.yaw)
+                        : decoration?.html
+            } catch (e) {
+                decorationHtml = null
+                if (!layerObj._decorationHtmlWarned) {
+                    layerObj._decorationHtmlWarned = true
+                    console.warn(
+                        `Layer '${layerObj.name}': a marker decoration failed to render; falling back to the layer's own marker.`,
+                        e
+                    )
+                }
+            }
 
             // Use style.shapeProp
             let finalShape = featureStyle.shapeIcon || layerObj.shape || 'none'

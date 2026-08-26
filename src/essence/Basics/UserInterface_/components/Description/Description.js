@@ -12,6 +12,64 @@ import tippy from 'tippy.js'
 import './Description.css'
 
 const NAV_DEFAULT_FIELD = '(Default) Feature Order'
+/**
+ * Sort features by where they are rather than by a property.
+ *
+ * Offered as a pseudo-field so it reuses the whole navigation machinery —
+ * extent/time/geometry filters, first/previous/next/last — instead of being a
+ * parallel mechanism. For features that are photographs or observations there
+ * is often no property worth ordering by, and "the next one along" is what a
+ * person actually means by next.
+ */
+const NAV_SPATIAL_FIELD = '(Spatial) West-East, South-North'
+/** How many raster rows to divide the visible latitude span into. */
+const NAV_SPATIAL_ROWS = 10
+
+/** A representative lat/lng for any geometry: points as-is, others bbox-centre. */
+function navPoint(feature) {
+    const g = feature && feature.geometry
+    if (!g || !g.coordinates) return null
+    if (g.type === 'Point') {
+        const c = g.coordinates
+        return typeof c[0] === 'number' ? { lng: c[0], lat: c[1] } : null
+    }
+    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity
+    const walk = (c) => {
+        if (typeof c[0] === 'number' && typeof c[1] === 'number') {
+            if (c[0] < minLng) minLng = c[0]
+            if (c[0] > maxLng) maxLng = c[0]
+            if (c[1] < minLat) minLat = c[1]
+            if (c[1] > maxLat) maxLat = c[1]
+            return
+        }
+        for (let i = 0; i < c.length; i++) if (c[i]) walk(c[i])
+    }
+    try { walk(g.coordinates) } catch (e) { return null }
+    if (minLng === Infinity) return null
+    return { lng: (minLng + maxLng) / 2, lat: (minLat + maxLat) / 2 }
+}
+
+/**
+ * Raster-scan comparator: rows south to north, west to east within a row.
+ *
+ * Latitudes are banded into rows because GPS positions are never exactly equal
+ * — without banding every feature is its own row and the scan collapses into a
+ * plain latitude sort, which zig-zags across the map and does not read as
+ * "next along". `rowHeight` comes from the visible span, so the banding tracks
+ * zoom instead of being a magic constant.
+ */
+function navSpatialCompare(a, b, rowHeight) {
+    const pa = navPoint(a)
+    const pb = navPoint(b)
+    if (!pa && !pb) return 0
+    if (!pa) return 1
+    if (!pb) return -1
+    const h = rowHeight > 0 ? rowHeight : Number.MIN_VALUE
+    const rowA = Math.floor(pa.lat / h)
+    const rowB = Math.floor(pb.lat / h)
+    if (rowA !== rowB) return rowA - rowB
+    return pa.lng - pb.lng
+}
 
 const Description = {
     inited: false,
@@ -25,6 +83,8 @@ const Description = {
     tippyNext: null,
     L_: null,
     navPopoverField: NAV_DEFAULT_FIELD,
+    /** Layer whose featureNav defaults have been applied. */
+    _navDefaultsFor: null,
     _popoverOpen: false,
     _infoAlreadyGone: false,
     init: function (mission, site, Map_, L_) {
@@ -232,12 +292,53 @@ const Description = {
             $(`#mainDescPointLinks_global`).empty()
         })
     },
+    /**
+     * Apply a layer's `variables.featureNav` defaults, once per layer.
+     *
+     * A layer can say how stepping through it should behave — a layer of
+     * photographs wants "the next one along, in view", where a layer of named
+     * sites wants its own ordering. These are DEFAULTS: applied when the
+     * active layer changes, and never re-applied over a choice the operator
+     * then makes in the popover.
+     *
+     *   variables.featureNav.scope  'layer' | 'view'       (default 'layer')
+     *   variables.featureNav.order  'default' | 'spatial'  (default 'default')
+     *
+     * Called from the navigation entry points rather than only when the
+     * settings popover is opened: that popover lives in the top bar, which is
+     * 40px on mobile and effectively unreachable, so defaults declared by a
+     * layer would never have been applied there at all.
+     */
+    _applyNavDefaults(layerName) {
+        if (Description._navDefaultsFor === layerName) return
+        Description._navDefaultsFor = layerName
+        const cfg = F_.getIn(
+            Description.L_.layers.data,
+            `${layerName}.variables.featureNav`,
+            null
+        )
+        if (!cfg) return
+        if (cfg.order === 'spatial') Description.navPopoverField = NAV_SPATIAL_FIELD
+        let extentApplied = 'n/a'
+        if (cfg.scope === 'view') {
+            const el = $('#mainDescNavPopoverExtent input')
+            if (!el.length) extentApplied = 'checkbox missing'
+            else {
+                el.prop('checked', true)
+                extentApplied = el.is(':checked') ? 'checked' : 'would not check'
+            }
+        }
+        console.warn(
+            `[nav-defaults] ${layerName} scope=${cfg.scope} order=${cfg.order} extent=${extentApplied}`
+        )
+    },
     _updatePopoverDropy() {
         // Populate Fields dropdown
+        Description._applyNavDefaults(Description.L_.activeFeature.layerName)
         const geojson = Description.L_.layers.layer[
             Description.L_.activeFeature.layerName
         ].toGeoJSON(Description.L_.GEOJSON_PRECISION)
-        const properties = [NAV_DEFAULT_FIELD]
+        const properties = [NAV_DEFAULT_FIELD, NAV_SPATIAL_FIELD]
         geojson.features.forEach((feature, idx) => {
             const flatProps = flat.flatten(feature.properties)
 
@@ -269,6 +370,15 @@ const Description = {
         Description._updateFieldValueText()
     },
     _updateFieldValueText() {
+        if (Description.navPopoverField === NAV_SPATIAL_FIELD) {
+            const p = navPoint(
+                F_.getIn(Description.L_, 'activeFeature.feature', null)
+            )
+            $('#mainDescNavPopoverFieldValue').text(
+                p ? `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}` : '--'
+            )
+            return
+        }
         $('#mainDescNavPopoverFieldValue').text(
             Description.navPopoverField === NAV_DEFAULT_FIELD
                 ? F_.getIn(
@@ -291,8 +401,57 @@ const Description = {
         else if (Description.Map_.activeLayer._latlng)
             Description.Map_.map.panTo(Description.Map_.activeLayer._latlng)
     },
+    /**
+     * Whether stepping is possible in each direction from the active feature.
+     *
+     * `getFeatureDistance` already resolves 0 when the active feature is at a
+     * limit of the (filtered, sorted) list — that is how the navigation stops
+     * itself walking off the end. Reusing it means the answer can never
+     * disagree with what the buttons actually do, which a separate calculation
+     * would eventually manage.
+     *
+     * It recomputes the candidate list per call, so this is two list builds per
+     * selection. Fine for a view-scoped list; revisit if it is ever used
+     * against an unfiltered layer of thousands.
+     */
+    navAvailability: async () => {
+        try {
+            const active = F_.getIn(Description, 'L_.activeFeature', null)
+            if (!active) return { previous: false, next: false }
+            Description._applyNavDefaults(
+                Description.L_.asLayerUUID(active.layerName)
+            )
+            const [p, n] = await Promise.all([
+                Description.getFeatureDistance(
+                    active,
+                    Description.navPopoverField,
+                    'previous'
+                ),
+                Description.getFeatureDistance(
+                    active,
+                    Description.navPopoverField,
+                    'next'
+                ),
+            ])
+            const extentOn = $('#mainDescNavPopoverExtent input').is(':checked')
+            console.warn(
+                `[nav-avail] field=${Description.navPopoverField} extent=${extentOn} prev=${p} next=${n}`
+            )
+            return { previous: p !== 0, next: n !== 0 }
+        } catch (e) {
+            // Never leave the controls dead because the check failed — but say
+            // so, or a broken check is indistinguishable from a working one.
+            console.warn(`[nav-avail] failed: ${e && e.message}`)
+            return { previous: true, next: true }
+        }
+    },
     navPrevious: async () => {
         if (Description.L_.activeFeature) {
+            Description._applyNavDefaults(
+                Description.L_.asLayerUUID(
+                    Description.L_.activeFeature.layerName
+                )
+            )
             Description.L_.selectFeature(
                 Description.L_.activeFeature.layerName,
                 Description.L_.activeFeature.feature,
@@ -307,6 +466,11 @@ const Description = {
     },
     navNext: async () => {
         if (Description.L_.activeFeature) {
+            Description._applyNavDefaults(
+                Description.L_.asLayerUUID(
+                    Description.L_.activeFeature.layerName
+                )
+            )
             Description.L_.selectFeature(
                 Description.L_.activeFeature.layerName,
                 Description.L_.activeFeature.feature,
@@ -746,7 +910,24 @@ const Description = {
                     }
 
                     if (passThrough === true) {
-                        if (field != null && field != NAV_DEFAULT_FIELD) {
+                        if (field === NAV_SPATIAL_FIELD) {
+                            // Row height from the visible span so the banding
+                            // tracks zoom rather than being a fixed constant.
+                            const sb = Description.Map_.map.getBounds()
+                            const span = Math.abs(
+                                sb._northEast.lat - sb._southWest.lat
+                            )
+                            const rowHeight = span / NAV_SPATIAL_ROWS
+                            features.sort((a, b) => {
+                                const sign =
+                                    direction === 'previous' ||
+                                    direction === 'first'
+                                        ? -1
+                                        : 1
+                                return navSpatialCompare(a, b, rowHeight) * sign
+                            })
+                            sortedFields = true
+                        } else if (field != null && field != NAV_DEFAULT_FIELD) {
                             features.sort((a, b) => {
                                 let sign = 1
                                 if (

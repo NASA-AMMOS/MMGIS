@@ -116,7 +116,12 @@ function TopBar({ userInterface }) {
     const hasStatus = useUIStore((s) => !!s.statusIndicator)
     const hasViewer = useUIStore((s) => s.hasViewer)
     const hasGlobe = useUIStore((s) => s.hasGlobe)
-    const showPanelToggles = hasViewer || hasGlobe
+    // Stacked (mobile) viewer: no panel toggles. The viewer opens by tapping a
+    // feature that has imagery and closes by dragging its bar down, so a
+    // persistent VIEWER/MAP switch is chrome a phone cannot spare — and it
+    // implies a side-by-side split that no longer exists in this layout.
+    const stackedViewer = isMobile && hasViewer && !hasGlobe
+    const showPanelToggles = (hasViewer || hasGlobe) && !stackedViewer
 
     const [viewerOpen, setViewerOpen] = useState(false)
     const [mapOpen, setMapOpen] = useState(true)

@@ -100,9 +100,68 @@ export function highlight(L_, layer, forceColor) {
         if (layer._icon)
             layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
     }
+    raiseSelected(layer, color)
+}
+
+/**
+ * The layer currently raised above its siblings, so it can be put back.
+ */
+let _raisedLayer = null
+
+/**
+ * Bring the selected feature to the front of its layer.
+ *
+ * Selection is drawn as an outline, which is invisible when another feature
+ * overlaps and covers it — two photo markers a few metres apart will happily
+ * hide the one you just picked. `bringToFront()` (long commented out here) is a
+ * path/vector method and does nothing for a marker; markers order by
+ * `zIndexOffset`.
+ *
+ * The offset deliberately sits BELOW the you-are-here marker's 1000: knowing
+ * where you are outranks seeing which feature is selected.
+ */
+const SELECTED_Z_OFFSET = 500
+
+/**
+ * Marks the selected marker's own element, so custom marker markup can restyle
+ * itself when selected.
+ *
+ * Raising the z-index is invisible on a marker that nothing else overlaps.
+ * Attachments that draw their own markup (Thumbnail's heading tail, for one)
+ * need a CSS hook to show selection at all, and re-rendering every marker on
+ * each selection change to pass a flag through would be far more expensive
+ * than a class toggle.
+ */
+export const SELECTED_MARKER_CLASS = 'mmgisSelectedMarker'
+
+function markSelectedElement(layer, on) {
+    const el = layer && layer._icon
+    if (el && el.classList)
+        el.classList[on ? 'add' : 'remove'](SELECTED_MARKER_CLASS)
+}
+
+export function raiseSelected(layer) {
     try {
-        //layer.bringToFront()
-    } catch (err) {}
+        if (_raisedLayer && _raisedLayer !== layer) {
+            if (typeof _raisedLayer.setZIndexOffset === 'function')
+                _raisedLayer.setZIndexOffset(0)
+            else if (typeof _raisedLayer.bringToBack === 'function')
+                _raisedLayer.bringToBack()
+            markSelectedElement(_raisedLayer, false)
+        }
+        _raisedLayer = null
+        if (!layer) return
+        if (typeof layer.setZIndexOffset === 'function') {
+            layer.setZIndexOffset(SELECTED_Z_OFFSET)
+            _raisedLayer = layer
+        } else if (typeof layer.bringToFront === 'function') {
+            layer.bringToFront()
+            _raisedLayer = layer
+        }
+        markSelectedElement(layer, true)
+    } catch (err) {
+        /* a layer not on the map yet — nothing to raise */
+    }
 }
 
 export function getFirstCoordinate(L_, geometry) {

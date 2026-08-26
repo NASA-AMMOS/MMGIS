@@ -7,6 +7,8 @@ import {
     computeGlobeSplitMoveResult,
     computeToolsSplitMoveResult,
     computeWindowResize,
+    computeStackedSplitMove,
+    isStacked,
 } from './uiStoreMath'
 import { applyTheme } from '../../../../design-system/applyTheme'
 
@@ -266,9 +268,16 @@ const useUIStore = create((set, get) => ({
 
     // Splitter drag math: map splitter
     // invalidateSize handled by ResizeObservers on panel components
-    computeMapSplitMove: (clientX) => {
-        set(computeMapSplitMoveResult(get(), clientX))
+    computeMapSplitMove: (clientX, clientY) => {
+        const state = get()
+        // Stacked (mobile) drags vertically — the splitter is a horizontal bar
+        // along the top of the viewer, so the pointer's Y is what matters.
+        if (isStacked(state)) set(computeStackedSplitMove(state, clientY))
+        else set(computeMapSplitMoveResult(state, clientX))
     },
+
+    /** True when the viewer is stacked under the map (mobile). */
+    isStackedLayout: () => isStacked(get()),
 
     // Splitter drag math: globe splitter
     computeGlobeSplitMove: (clientX) => {

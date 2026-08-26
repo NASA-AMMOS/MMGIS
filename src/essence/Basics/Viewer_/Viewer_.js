@@ -162,6 +162,42 @@ var Viewer_ = {
             })
         this.imageGif.append(gifImage)
 
+        // A pane for readable text, so a feature can carry a written observation
+        // as well as imagery. The dispatcher below chooses panes by file
+        // extension; a note has no file, so it is selected by an explicit
+        // `type: 'note'` on the images entry — the `type` field that
+        // `propertiesToImages` already carries but nothing consumed.
+        this.imageNote = $('<div>')
+            .attr('id', 'imageNote')
+            .css({
+                'position': 'absolute',
+                'width': '100%',
+                'height': '100%',
+                'display': 'none',
+                'overflow-y': 'auto',
+                // The top band is reserved, not decorative: the stacked
+                // viewer floats its prev/next and close controls over the
+                // top-left and top-right of this same box, and a note starting
+                // at 16px begins underneath them. Everything else the viewer
+                // shows is an image that pans under those controls quite
+                // happily — text cannot.
+                'padding': '48px 16px 16px 16px',
+                'box-sizing': 'border-box',
+                'background': 'var(--color-a)'
+            })
+        $('#viewer').append(this.imageNote)
+
+        this.imageNoteText = $('<div>')
+            .attr('id', 'imageNoteText')
+            .css({
+                'white-space': 'pre-wrap',
+                'word-break': 'break-word',
+                'font-size': '15px',
+                'line-height': '1.45',
+                'color': 'var(--color-f)'
+            })
+        this.imageNote.append(this.imageNoteText)
+
         this.imageIntro = $('<div>')
             .attr('id', 'imageViewerIntro')
             .css({
@@ -201,7 +237,11 @@ var Viewer_ = {
             navigatorLeft: '12px',
             navigatorHeight: '128px',
             navigatorWidth: '128px',
-            minZoomLevel: 0.5,
+            // Low enough to fit a tall portrait photo into a short, wide panel.
+            // At 0.5 a phone-camera image (e.g. 884x1920) in the stacked mobile
+            // viewer needs ~0.2 to fit and gets clamped instead, so it renders
+            // about 2.4x oversized and reads as stretched/cropped.
+            minZoomLevel: 0.05,
             maxZoomLevel: 12,
             ajaxWithCredentials: true,
             //zoomPerClick: 1, //disables click to zoom for tools...
@@ -220,6 +260,7 @@ var Viewer_ = {
         this.imagePDF.css('display', 'none')
         this.imageVideo.css('display', 'none')
         this.imageGif.css('display', 'none')
+        this.imageNote.css('display', 'none')
         this.baseToolbar.css('display', 'none')
         this.imageIntro.css('display', 'block')
     },
@@ -284,10 +325,32 @@ var Viewer_ = {
             this.imageViewer.css('display', 'none')
             this.imageVideo.css('display', 'none')
             this.imageGif.css('display', 'none')
+            this.imageNote.css('display', 'none')
             this.baseToolbar.css('display', 'none')
             this.imageIntro.css('display', 'block')
             return
         }
+
+        // A note has text instead of a url, so it must be handled before the
+        // extension-based dispatch below — `F_.getExtension(undefined)` is not
+        // a question worth asking.
+        if (o.type === 'note') {
+            this.imageModel.css('display', 'none')
+            this.imagePDF.css('display', 'none')
+            this.imagePanorama.css('display', 'none')
+            this.imageViewer.css('display', 'none')
+            this.imageVideo.css('display', 'none')
+            this.imageGif.css('display', 'none')
+            this.imageIntro.css('display', 'none')
+            this.baseToolbar.css('display', 'none')
+            // .text(), never .html(): this is operator-entered content and must
+            // not be able to inject markup into the page.
+            this.imageNoteText.text(o.text || '')
+            this.imageNote.css('display', 'block')
+            Viewer_.toolBarLoading.css('opacity', '0')
+            return
+        }
+        this.imageNote.css('display', 'none')
 
         //Make sure dropdown matches image
 
@@ -661,7 +724,11 @@ function buildToolBar() {
                         "<i class='mdi mdi-refresh mdi-18px'></i>",
                     '</div>',
                     "<div id='Viewer_SettingsSettingsPanel' style='display: none; position: absolute; top: 100%; right: 0; background: var(--color-a); width: 42px;'>",
-                        '<ul style="position: absolute; left: 0; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; background: var(--color-a);">',
+                        // Anchored right, not left. Its parent is a 42px box pinned to the toolbar's
+// right edge, so a 220px list opening leftwards from that box's LEFT edge runs
+// off the screen — most of the sliders were unreachable on a phone. Opening
+// from the right edge keeps it on screen at any viewer width.
+'<ul style="position: absolute; right: 0; list-style-type: none; margin: 0; padding: 8px 8px 5px 8px; border-radius: 3px; width: 220px; max-width: 90vw; box-sizing: border-box; background: var(--color-a); z-index: 6;">',
                             '<li style="height: 19px; line-height: 19px;">',
                                 '<div style="display: flex; justify-content: space-between;">',
                                     '<div style="font-size: 13px;">Rotation</div>',
