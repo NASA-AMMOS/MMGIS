@@ -128,13 +128,31 @@ var InfoTool = {
         additional,
         featureLayers
     ) {
-        let toolActive = $('#toolButtonInfo').hasClass('toolButtonActive')
+        // Ask ToolController_ whether Info is open, rather than reading the
+        // highlight class off #toolButtonInfo.
+        //
+        // `toolButtonActive` is React's, derived from the store's
+        // activeToolName (Toolbar.jsx). Reading it back made the DOM the source
+        // of truth for state React owns, and the two disagree for a whole
+        // animation frame on open and for the 420ms deferred close that
+        // horizontal tools take on mobile. Inside that window this read said
+        // "not active", so the branch below re-opened a tool that was midway
+        // through closing — leaving the button highlighted with no panel under
+        // it, and no way to clear it but opening and closing Info again.
+        //
+        // It also silently did nothing wherever the button does not exist: a
+        // mission whose toolbar omits Info, or a mobile toolbar built from the
+        // mobileTools allowlist. The panel simply never opened.
+        let toolActive = TC_.activeToolName === 'InfoTool'
 
         if (!open && toolActive) open = true
 
         //In the very least, update the info
         if (open && !toolActive) {
-            $('#toolButtonInfo').click()
+            // openTool() is the same path the button's click handler takes —
+            // makeTool, then setActiveToolName, then the toolChange event — so
+            // the highlight follows the tool instead of driving it.
+            TC_.openTool('Info')
         }
 
         if (additional && additional.idx) activeI = additional.idx

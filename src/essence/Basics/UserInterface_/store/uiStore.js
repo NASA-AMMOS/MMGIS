@@ -8,6 +8,8 @@ import {
     computeToolsSplitMoveResult,
     computeWindowResize,
     computeStackedSplitMove,
+    computeStackedReflow,
+    computeToolViewerExclusion,
     isStacked,
 } from './uiStoreMath'
 import { applyTheme } from '../../../../design-system/applyTheme'
@@ -38,6 +40,10 @@ const useUIStore = create((set, get) => ({
     // stackedBottom() in uiStoreMath.
     pxBottomBar: 0,
     toolNativeHeight: 0,
+    // The viewer percent a horizontal tool displaced, so closing the tool can
+    // put it back. 0 when the viewer was not open. See
+    // computeToolViewerExclusion.
+    stackedViewerRestore: 0,
 
     // Container dimensions
     mainWidth: 0,
@@ -154,7 +160,15 @@ const useUIStore = create((set, get) => ({
 
     setPxIsTools: (val) => set({ pxIsTools: val }),
     setPxBottomBar: (val) =>
-        set((s) => (s.pxBottomBar === val ? s : { pxBottomBar: val })),
+        set((s) => {
+            if (s.pxBottomBar === val) return s
+            // Moves stackedBottom without going through setToolHeight (a live
+            // time bar shows the floating bar with no tool open), so the viewer
+            // has to be re-measured against the new extent here too.
+            const next = { ...s, pxBottomBar: val }
+            const reflow = computeStackedReflow(s, next)
+            return reflow ? { pxBottomBar: val, ...reflow } : { pxBottomBar: val }
+        }),
 
     setToolPanelWidth: (width) => set({ toolPanelWidth: width }),
     setToolPanelDragVisible: (val) => set({ toolPanelDragVisible: val }),
@@ -184,7 +198,34 @@ const useUIStore = create((set, get) => ({
     },
 
     setPanelPercents: (viewerPercent, mapPercent, globePercent) => {
-        const state = get()
+        let state = get()
+
+        // The other half of the tool/viewer exclusion (setToolHeight has the
+        // first). Tapping a feature with imagery fires InfoOpen and
+        // viewer:open_panel in the same main phase, so without this the viewer
+        // opens UNDER a tool panel that is painting over it. Closing the tool
+        // first also frees the height the viewer is about to be measured
+        // against, which is why the state is re-read afterwards.
+        if (
+            isStacked(state) &&
+            parseFloat(viewerPercent) > 0 &&
+            state.pxIsTools > 0
+        ) {
+            // Lazily required: ToolController_ imports this store, so a
+            // top-level import would be a cycle. Same pattern as Toolbar.jsx.
+            const ToolController_ =
+                require('../../ToolController_/ToolController_').default
+            ToolController_.closeActiveTool()
+            state = get()
+            // closeActiveTool remembers the viewer it thinks it displaced; this
+            // open supersedes that, and leaving it set would have the NEXT tool
+            // close restore a stale size over what the user just chose.
+            if (state.stackedViewerRestore !== 0) {
+                set({ stackedViewerRestore: 0 })
+                state = get()
+            }
+        }
+
         const result = computePanelPixelsFromPercents(state, viewerPercent, mapPercent, globePercent)
         if (!result) return
 
@@ -235,9 +276,25 @@ const useUIStore = create((set, get) => ({
     },
 
     setToolHeight: (pxHeight, shouldntAnimate) => {
-        const h = computeToolHeight(get(), pxHeight)
+        const state = get()
+        const h = computeToolHeight(state, pxHeight)
         const nativeH = typeof pxHeight === 'number' ? pxHeight : h
-        set({ pxIsTools: h, toolNativeHeight: nativeH })
+
+        // Stacked, a horizontal tool and the viewer are mutually exclusive —
+        // they are both bottom-anchored and both want half the screen. Computed
+        // from the PRE-change state (it needs the viewer size the tool is about
+        // to displace), applied together with it.
+        const exclusion = computeToolViewerExclusion(state, h)
+
+        set({ pxIsTools: h, toolNativeHeight: nativeH, ...(exclusion || {}) })
+
+        // The tool just moved stackedBottom, so any viewer still open was sized
+        // against an extent that no longer exists. Skipped when the exclusion
+        // above already set the viewer, which is the common case.
+        if (!exclusion) {
+            const reflow = computeStackedReflow(state, get())
+            if (reflow) set(reflow)
+        }
     },
 
     openToolPanel: (width) => {
