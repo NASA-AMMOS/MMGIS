@@ -60,7 +60,7 @@
           {
             "field": "variables.markerAttachments.thumbnail.shape",
             "name": "Shape",
-            "description": "Whether the thumbnail is clipped to a circle or left square.",
+            "description": "Whether the thumbnail is clipped to a circle or left as a rounded square.",
             "type": "dropdown",
             "width": 2,
             "options": [
@@ -88,6 +88,20 @@
             "description": "Material Design Icon name drawn when a feature has no image (for example 'note-text' for a written observation). Leave blank to fall back to the layer's ordinary marker instead.",
             "type": "text",
             "width": 3
+          },
+          {
+            "field": "variables.markerAttachments.thumbnail.tailLengthPixels",
+            "name": "Heading Tail Length",
+            "description": "How far the heading tail stands off the thumbnail, in pixels. Only drawn when a Bearing attachment gives the feature a heading.",
+            "type": "number",
+            "width": 2
+          },
+          {
+            "field": "variables.markerAttachments.thumbnail.tailHalfBasePixels",
+            "name": "Heading Tail Width",
+            "description": "Half the width of the heading tail where it meets the thumbnail, in pixels. Smaller is a finer pointer.",
+            "type": "number",
+            "width": 2
           }
         ]
       }

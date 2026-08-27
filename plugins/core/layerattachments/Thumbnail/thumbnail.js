@@ -15,6 +15,18 @@
  * overlap has to be hidden by paint order, and the result reads as two things
  * that happen to touch rather than one object. A single filled path with the
  * tail blended into the frame by tangent-continuous curves has no seam to hide.
+ *
+ * The tail is placed by ANGLE about the marker's centre, never by picking one
+ * of the outline's four sides. An earlier version chose a side from the heading
+ * and slid the base along it, which had to clamp the base to keep it on a flat
+ * run while the apex went on following the true heading. The two decoupled off
+ * axis: on a 56px marker the base ended up as much as 13px away from the
+ * heading ray, the tip swung between 38 and 50px from the centre, and the tail
+ * snapped to a new side four times per revolution. The marker read as pointing
+ * AT something rather than showing which way the camera faced. Putting both
+ * roots of the base on the outline at a fixed offset either side of the heading
+ * ray, and the apex on a circle, makes every heading the same shape in a
+ * different orientation — 0px skew, 0% tip-radius spread, no snap.
  */
 
 import F_ from '@basics/Formulae_/Formulae_'
@@ -22,7 +34,12 @@ import F_ from '@basics/Formulae_/Formulae_'
 const DEFAULT_SIZE = 56
 const DEFAULT_BORDER_WIDTH = 2
 const DEFAULT_BORDER_COLOR = '#ffffff'
-const DEFAULT_RING = 14
+const DEFAULT_TAIL_LENGTH = 10
+const DEFAULT_TAIL_HALF_BASE = 6
+/** Corner radius for `shape: 'square'`. A circle is the size's half-width. */
+const SQUARE_CORNER_RADIUS = 4
+/** Room around the outline for the drop shadow, so the box never clips it. */
+const SHADOW_PADDING = 4
 
 /** Distinct clip-path ids per marker; two markers must not share one. */
 let uid = 0
@@ -99,120 +116,255 @@ const unit = (a, b) => {
 }
 
 /**
- * The marker's outline: a rounded square, plus a tail when the feature has a
- * heading, as a single continuous path.
+ * The marker's outline as a closed curve: four straight runs and four corner
+ * arcs, walked clockwise and parameterised by arc length.
  *
- * The square NEVER rotates — a photo turned to match its own heading is a photo
- * you cannot read. Instead the tail's attachment point travels around the
- * perimeter, exactly as a speech bubble stays upright while its tail moves to
- * point at whoever is speaking. `yaw` is whatever the Bearing attachment worked
- * out for this feature, already corrected for the angle between north and
- * screen-up; this attachment neither repeats that math nor needs to know how it
- * was done.
+ * Every question the tail asks is answered by root-finding on this one
+ * function, which is why a square, a rounded square and a circle are the same
+ * code path instead of three cases with three sets of edge conditions. A
+ * `cornerRadius` of half the size gives a true circle; zero gives a square.
  *
- * The tail is much wider at the base than it is long. An equilateral triangle
- * reads as ambiguous — with all three sides equal there is no strong cue as to
- * which vertex is the point, so at a glance two markers with different headings
- * can look like they aim the same way. When the base is far wider than the tail
- * is long, only one end can possibly be the tip.
+ * Clockwise here means clockwise ON SCREEN: y grows downward, so an arc's angle
+ * increasing is a clockwise turn, and the tangent below is the direction of
+ * travel rather than the mathematical one.
  */
-function bubbleOutline(box, size, cornerRadius, tailLength, halfBase, yaw) {
-    const x0 = (box - size) / 2
-    const y0 = x0
-    const x1 = x0 + size
-    const y1 = y0 + size
-    const c = box / 2
+function outlineOf(size, cornerRadius) {
+    const h = size / 2
+    // No cap beyond the marker itself. The previous version also capped the
+    // radius to leave a flat run for the tail's base, which silently rendered
+    // `shape: 'circle'` as a squircle — the corner radius the config asked for
+    // was never the one drawn.
+    const rr = Math.max(0, Math.min(cornerRadius, h))
+    const k = h - rr
+    const flat = 2 * k
+    const quarter = (Math.PI / 2) * rr
 
-    // The tail's base has to sit on a FLAT run of the outline, so the corner
-    // radius is capped to leave one. Applied whether or not this particular
-    // feature has a heading, so every marker in a layer is the same shape: a
-    // radius that changed with the presence of a compass reading would look
-    // like two different layers.
-    const rr = Math.max(
-        0,
-        Math.min(cornerRadius, size / 2 - halfBase - 2, size / 2)
-    )
+    const line = (a, b) => ({
+        line: true,
+        a,
+        b,
+        len: Math.hypot(b[0] - a[0], b[1] - a[1]),
+    })
+    const arc = (cx, cy, a0) => ({
+        line: false,
+        c: [cx, cy],
+        r: rr,
+        a0,
+        len: quarter,
+    })
 
-    // Clockwise from the top-left corner. `t` is the direction of travel.
-    const edges = [
-        { S: [x0 + rr, y0], E: [x1 - rr, y0], t: [1, 0] },
-        { S: [x1, y0 + rr], E: [x1, y1 - rr], t: [0, 1] },
-        { S: [x1 - rr, y1], E: [x0 + rr, y1], t: [-1, 0] },
-        { S: [x0, y1 - rr], E: [x0, y0 + rr], t: [0, -1] },
-    ]
+    const segs = []
+    if (flat > 0) segs.push(line([-k, -h], [k, -h]))
+    if (rr > 0) segs.push(arc(k, -k, -Math.PI / 2))
+    if (flat > 0) segs.push(line([h, -k], [h, k]))
+    if (rr > 0) segs.push(arc(k, k, 0))
+    if (flat > 0) segs.push(line([k, h], [-k, h]))
+    if (rr > 0) segs.push(arc(-k, k, Math.PI / 2))
+    if (flat > 0) segs.push(line([-h, k], [-h, -k]))
+    if (rr > 0) segs.push(arc(-k, -k, Math.PI))
 
-    let tail = null
-    if (typeof yaw === 'number' && isFinite(yaw)) {
-        const th = (yaw * Math.PI) / 180
-        // Screen coordinates: yaw 0 is up, and y grows downward.
-        const dir = [Math.sin(th), -Math.cos(th)]
-        const h = size / 2
-        const tx = Math.abs(dir[0]) > 1e-9 ? h / Math.abs(dir[0]) : Infinity
-        const ty = Math.abs(dir[1]) > 1e-9 ? h / Math.abs(dir[1]) : Infinity
-        const hit = Math.min(tx, ty)
+    let total = 0
+    for (const seg of segs) {
+        seg.s0 = total
+        total += seg.len
+    }
+    return { segs, total, rr, maxR: Math.hypot(k, k) + rr }
+}
 
-        const idx = ty <= tx ? (dir[1] < 0 ? 0 : 2) : dir[0] > 0 ? 1 : 3
-        const e = edges[idx]
-        const len = Math.hypot(e.E[0] - e.S[0], e.E[1] - e.S[1])
-        const hb = Math.max(2, Math.min(halfBase, len / 2 - 1))
+/** Index of the segment containing arc length `s`. */
+function segmentAt(o, s) {
+    let lo = 0
+    let hi = o.segs.length - 1
+    while (lo < hi) {
+        const mid = (lo + hi + 1) >> 1
+        if (o.segs[mid].s0 <= s) lo = mid
+        else hi = mid - 1
+    }
+    return lo
+}
 
-        // Where the heading ray leaves the square, as a distance along that
-        // edge, clamped so the whole base stays on the flat run.
-        const exit = [c + dir[0] * hit, c + dir[1] * hit]
-        let u = (exit[0] - e.S[0]) * e.t[0] + (exit[1] - e.S[1]) * e.t[1]
-        u = Math.max(hb, Math.min(len - hb, u))
+/** Position and clockwise unit tangent at arc length `s`. */
+function outlineAt(o, s) {
+    s = ((s % o.total) + o.total) % o.total
+    const seg = o.segs[segmentAt(o, s)]
+    const u = s - seg.s0
+    if (seg.line) {
+        const t = unit(seg.a, seg.b)
+        return { p: [seg.a[0] + t[0] * u, seg.a[1] + t[1] * u], t }
+    }
+    const a = seg.a0 + u / seg.r
+    return {
+        p: [seg.c[0] + seg.r * Math.cos(a), seg.c[1] + seg.r * Math.sin(a)],
+        t: [-Math.sin(a), Math.cos(a)],
+    }
+}
 
-        tail = {
-            idx,
-            t: e.t,
-            hb,
-            B1: [e.S[0] + e.t[0] * (u - hb), e.S[1] + e.t[1] * (u - hb)],
-            B2: [e.S[0] + e.t[0] * (u + hb), e.S[1] + e.t[1] * (u + hb)],
-            // The apex follows the true heading, not the edge normal, so a
-            // marker facing north-east leans its tail into the corner rather
-            // than pointing squarely off one side.
-            apex: [
-                c + dir[0] * (hit + tailLength),
-                c + dir[1] * (hit + tailLength),
-            ],
+/**
+ * Where the outline crosses the line `P·n = offset`, taking the crossing that
+ * lies furthest along `dir`.
+ *
+ * The outline is convex, so the line meets it exactly twice and the forward one
+ * is the root wanted. Bracketing on a coarse sample and then bisecting keeps
+ * this free of per-shape algebra: the corner radius can be anything from a
+ * square to a circle without a special case appearing here.
+ */
+function forwardCrossing(o, n, offset, dir) {
+    const STEPS = 180
+    const at = (s) => {
+        const p = outlineAt(o, s).p
+        return p[0] * n[0] + p[1] * n[1] - offset
+    }
+    const crosses = (a, b) => (a <= 0 && b > 0) || (a >= 0 && b < 0)
+
+    let best = null
+    let bestAhead = -Infinity
+    let sPrev = 0
+    let gPrev = at(0)
+    for (let i = 1; i <= STEPS; i++) {
+        const s = (i / STEPS) * o.total
+        const g = at(s)
+        if (crosses(gPrev, g)) {
+            let lo = sPrev
+            let hi = s
+            let gLo = gPrev
+            for (let j = 0; j < 24; j++) {
+                const mid = (lo + hi) / 2
+                const gMid = at(mid)
+                if (crosses(gLo, gMid)) hi = mid
+                else {
+                    lo = mid
+                    gLo = gMid
+                }
+            }
+            const root = (lo + hi) / 2
+            const p = outlineAt(o, root).p
+            const ahead = p[0] * dir[0] + p[1] * dir[1]
+            if (ahead > bestAhead) {
+                bestAhead = ahead
+                best = root
+            }
         }
+        sPrev = s
+        gPrev = g
     }
+    return best
+}
 
-    const tailPath = (tl) => {
-        const { B1, B2, apex, t, hb } = tl
-        const l1 = Math.hypot(apex[0] - B1[0], apex[1] - B1[1])
-        const l2 = Math.hypot(B2[0] - apex[0], B2[1] - apex[1])
-        // Leaving B1 and arriving at B2 along the edge direction makes the
-        // outline tangent-continuous there: the tail flares out of the frame
-        // instead of meeting it at a visible corner. This is the join that
-        // stacking two shapes can never produce.
-        const k = Math.min(hb * 0.6, l1 * 0.5, l2 * 0.5)
-        const a1 = unit(apex, B1)
-        const a2 = unit(apex, B2)
-        // The two curves meet AT the apex with no rounding between them, so the
-        // tip is a true corner. Their control points lie on the straight lines
-        // back from the apex, which keeps each curve arriving dead straight and
-        // makes the corner as sharp as the two edge directions allow.
-        return [
-            `L${pt(B1)}`,
-            `C${pt([B1[0] + t[0] * k, B1[1] + t[1] * k])} ` +
-                `${pt([apex[0] + a1[0] * l1 * 0.35, apex[1] + a1[1] * l1 * 0.35])} ` +
-                `${pt(apex)}`,
-            `C${pt([apex[0] + a2[0] * l2 * 0.35, apex[1] + a2[1] * l2 * 0.35])} ` +
-                `${pt([B2[0] - t[0] * k, B2[1] - t[1] * k])} ` +
-                `${pt(B2)}`,
-        ].join('')
+/**
+ * Walk the outline clockwise from `sFrom` to `sTo`, emitting real lines and
+ * arcs. `sTo === sFrom` means the whole way round.
+ *
+ * Stepping by segment index rather than re-locating the segment from a running
+ * arc length is deliberate: the accumulated float lands a hair short of the
+ * next boundary, which yields zero-length steps and — once the loop guard trips
+ * — an outline that silently stops part way round. What that looks like is a
+ * marker with a bite taken out of it, or no marker at all.
+ */
+function walkOutline(o, sFrom, sTo, project) {
+    let left = (((sTo - sFrom) % o.total) + o.total) % o.total
+    if (left <= 1e-9) left = o.total
+    let s = ((sFrom % o.total) + o.total) % o.total
+    let i = segmentAt(o, s)
+
+    const out = []
+    for (let guard = 0; left > 1e-7 && guard < o.segs.length + 2; guard++) {
+        const seg = o.segs[i]
+        const step = Math.min(left, seg.s0 + seg.len - s)
+        if (step > 1e-9) {
+            const end = outlineAt(o, s + step).p
+            out.push(
+                seg.line
+                    ? `L${project(end)}`
+                    : `A${round2(seg.r)},${round2(seg.r)} 0 0 1 ${project(end)}`
+            )
+            left -= step
+        }
+        i = (i + 1) % o.segs.length
+        s = o.segs[i].s0
     }
+    return out.join('')
+}
 
-    const d = [`M${pt(edges[0].S)}`]
-    for (let i = 0; i < 4; i++) {
-        if (tail && tail.idx === i) d.push(tailPath(tail))
-        d.push(`L${pt(edges[i].E)}`)
-        if (rr > 0) d.push(`A${round2(rr)},${round2(rr)} 0 0 1 ${pt(edges[(i + 1) % 4].S)}`)
+/**
+ * The marker's path: the outline, plus a tail when the feature has a heading,
+ * as one continuous shape.
+ *
+ * The frame NEVER rotates — a photo turned to match its own heading is a photo
+ * you cannot read. Instead the tail travels around the perimeter, exactly as a
+ * speech bubble stays upright while its tail moves to point at whoever is
+ * speaking. `yaw` is whatever the Bearing attachment worked out for this
+ * feature, already corrected for the angle between north and screen-up; this
+ * attachment neither repeats that math nor needs to know how it was done.
+ *
+ * Both roots of the tail sit exactly `halfBase` either side of the heading ray,
+ * and the apex sits on a circle of fixed radius about the centre. The tail is
+ * therefore symmetric about the direction it claims to point at EVERY heading,
+ * and the tip traces a circle as the heading turns rather than swelling towards
+ * the corners. Where the frame is not itself a circle the two roots sit at
+ * different distances along the ray — that is the tail hugging the frame, and
+ * it is the only asymmetry left.
+ */
+function bubbleOutline(o, box, size, tailLength, halfBase, apexRadius, yaw) {
+    const c = box / 2
+    const x0 = (box - size) / 2
+    // Geometry is worked out about the origin and moved into the box only as it
+    // is written out, so none of the math above has to carry the offset around.
+    const project = (p) => pt([p[0] + c, p[1] + c])
+    const plain = () => ({
+        d: `M${project(outlineAt(o, 0).p)}${walkOutline(o, 0, 0, project)}Z`,
+        x0,
+        y0: x0,
+        rr: o.rr,
+    })
+
+    if (typeof yaw !== 'number' || !isFinite(yaw)) return plain()
+
+    const th = (yaw * Math.PI) / 180
+    // Screen coordinates: yaw 0 is up, and y grows downward.
+    const dir = [Math.sin(th), -Math.cos(th)]
+    // Clockwise-positive perpendicular, so the root at -hb is the one reached
+    // first travelling clockwise and the walk back closes the shape correctly.
+    const nrm = [-dir[1], dir[0]]
+
+    const hb = Math.max(1, Math.min(halfBase, o.maxR - 0.5))
+    const sStart = forwardCrossing(o, nrm, -hb, dir)
+    const sEnd = forwardCrossing(o, nrm, hb, dir)
+    if (sStart == null || sEnd == null) return plain()
+
+    const A = outlineAt(o, sStart)
+    const B = outlineAt(o, sEnd)
+    const apex = [dir[0] * apexRadius, dir[1] * apexRadius]
+
+    const l1 = Math.hypot(apex[0] - A.p[0], apex[1] - A.p[1])
+    const l2 = Math.hypot(B.p[0] - apex[0], B.p[1] - apex[1])
+    // Leaving A and arriving at B along the OUTLINE's own tangent there makes
+    // the path tangent-continuous at both roots: the tail flares out of the
+    // frame instead of meeting it at a visible corner, on a flat run and around
+    // a corner alike. This is the join that stacking two shapes cannot produce.
+    const k = Math.min(hb * 0.6, l1 * 0.5, l2 * 0.5)
+    const a1 = unit(apex, A.p)
+    const a2 = unit(apex, B.p)
+
+    // The two curves meet AT the apex with no rounding between them, so the tip
+    // is a true corner. Their control points lie on the straight lines back
+    // from the apex, which keeps each curve arriving dead straight and makes
+    // the corner as sharp as the two directions allow.
+    return {
+        d: [
+            `M${project(A.p)}`,
+            `C${project([A.p[0] + A.t[0] * k, A.p[1] + A.t[1] * k])} ` +
+                `${project([apex[0] + a1[0] * l1 * 0.35, apex[1] + a1[1] * l1 * 0.35])} ` +
+                `${project(apex)}`,
+            `C${project([apex[0] + a2[0] * l2 * 0.35, apex[1] + a2[1] * l2 * 0.35])} ` +
+                `${project([B.p[0] - B.t[0] * k, B.p[1] - B.t[1] * k])} ` +
+                `${project(B.p)}`,
+            walkOutline(o, sEnd, sStart, project),
+            'Z',
+        ].join(''),
+        x0,
+        y0: x0,
+        rr: o.rr,
     }
-    d.push('Z')
-
-    return { d: d.join(''), x0, y0, rr }
 }
 
 function decorateFeature(ctx = {}) {
@@ -253,22 +405,39 @@ function decorateFeature(ctx = {}) {
     )
     const fillColor = F_.escapeHtml(ctx.featureStyle?.fillColor || '#ff6400')
 
+    const tailLength = Math.max(
+        2,
+        parseFloat(config.tailLengthPixels) || DEFAULT_TAIL_LENGTH
+    )
+    const halfBase = Math.max(
+        1,
+        parseFloat(config.tailHalfBasePixels) || DEFAULT_TAIL_HALF_BASE
+    )
+    const cornerRadius =
+        config.shape === 'square' ? SQUARE_CORNER_RADIUS : size / 2
+
+    // Worked out once per layer, not once per feature: the outline depends only
+    // on the config, and every marker in a layer is the same shape in a
+    // different orientation.
+    const geom = outlineOf(size, cornerRadius)
+    const apexRadius = geom.maxR + tailLength
+
     // The tail needs room outside the image, so the marker box is larger than
-    // the picture it shows.
-    const ring = parseInt(config.arrowRingPixels, 10) || DEFAULT_RING
-    const box = size + ring * 2
-    const tailLength = Math.max(6, ring - 2)
-    const halfBase = Math.max(6, Math.min(size * 0.22, size * 0.35))
-    const cornerRadius = config.shape === 'square' ? 4 : size / 2
+    // the picture it shows. Derived from the geometry rather than configured:
+    // a hand-set ring could only ever be too small (a clipped tail) or too
+    // large (markers that crowd each other for no reason), and too small shows
+    // up as a tail with its tip sliced off at one heading and not others.
+    const box = Math.ceil(apexRadius + SHADOW_PADDING) * 2
     const builtin = BUILTIN_GLYPHS[glyph] || null
 
     const html = (yaw) => {
         const { d, x0, y0, rr } = bubbleOutline(
+            geom,
             box,
             size,
-            cornerRadius,
             tailLength,
             halfBase,
+            apexRadius,
             typeof yaw === 'number' && isFinite(yaw) ? yaw : null
         )
 
