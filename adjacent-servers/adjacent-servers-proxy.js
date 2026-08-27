@@ -25,6 +25,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: (proxyReq, req, res) => {
+            proxyReq.setHeader("X-Forwarded-Host", req.get("host"));
+            proxyReq.setHeader("X-Forwarded-Proto", req.headers["x-forwarded-proto"] || req.protocol);
+          },
           proxyRes: createSwaggerInterceptor("stac", stacTarget),
         },
       })
@@ -47,6 +51,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: (proxyReq, req, res) => {
+            proxyReq.setHeader("X-Forwarded-Host", req.get("host"));
+            proxyReq.setHeader("X-Forwarded-Proto", req.headers["x-forwarded-proto"] || req.protocol);
+          },
           proxyRes: createSwaggerInterceptor("tipg", tipgTarget),
         },
       })
@@ -85,6 +93,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: (proxyReq, req, res) => {
+            proxyReq.setHeader("X-Forwarded-Host", req.get("host"));
+            proxyReq.setHeader("X-Forwarded-Proto", req.headers["x-forwarded-proto"] || req.protocol);
+          },
           proxyRes: createSwaggerInterceptor("titiler", titilerTarget),
         },
       })
@@ -109,6 +121,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: (proxyReq, req, res) => {
+            proxyReq.setHeader("X-Forwarded-Host", req.get("host"));
+            proxyReq.setHeader("X-Forwarded-Proto", req.headers["x-forwarded-proto"] || req.protocol);
+          },
           proxyRes: createSwaggerInterceptor(
             "titilerpgstac",
             titilerpgstacTarget
@@ -272,10 +288,17 @@ const createSwaggerInterceptor = (path, target) => {
         res.get("Content-Type").includes("html"))
     ) {
       newResponse = newResponse || responseBuffer.toString("utf8");
-      newResponse = newResponse.replaceAll(
-        target,
-        `${req.protocol}://${req.get("host")}/${path}`
-      );
+      const { hostname: serviceHost, port: servicePort } = new URL(target);
+      const publicBase = `${req.protocol}://${req.get("host")}/${path}`;
+      // Replace port-qualified variants first to avoid partial matches on bare hostname
+      if (servicePort) {
+        newResponse = newResponse.replaceAll(`https://${serviceHost}:${servicePort}/`, `${publicBase}/`);
+        newResponse = newResponse.replaceAll(`https://${serviceHost}:${servicePort}`, publicBase);
+      }
+      newResponse = newResponse.replaceAll(`https://${serviceHost}/`, `${publicBase}/`);
+      newResponse = newResponse.replaceAll(`https://${serviceHost}`, publicBase);
+      newResponse = newResponse.replaceAll(`http://${serviceHost}/`, `${publicBase}/`);
+      newResponse = newResponse.replaceAll(target, publicBase);
     }
 
     return newResponse || finalReturn;
