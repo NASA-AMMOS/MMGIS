@@ -376,3 +376,35 @@
 #mmgisTimeUIMain {
     justify-content: center !important;
 }
+
+/* The viewer's Photo/Note selector has to read as one control.
+ *
+ * `#viewer_dropdownselector` is forced to `min-width: 270px` (Viewer_.css) and
+ * sits in a `align-items: flex-end` column, so the box is right-aligned and its
+ * label starts 270px in from the right edge. Dropy then pins the chevron
+ * `position: absolute; right: 6px` — the far side of that box. On a desktop
+ * viewer pane the two still read as one widget; on a phone header there is a
+ * wide strip of empty bar between the word and its caret, and the caret ends up
+ * beside the close button instead.
+ *
+ * WHAT IT LOOKS LIKE: "Note" appears to be a plain title, and nobody discovers
+ * that the photo and the note are two entries of a dropdown. It is worse for a
+ * note than a photo only because a note hides `baseToolbar` (Viewer_.js:337),
+ * removing the other caret that made that corner look interactive.
+ *
+ * Put the chevron back in normal flow immediately after the label. The box
+ * keeps its 270px, so the open list stays readable and nothing else moves.
+ */
+#viewer_dropdownselector .dropy__title {
+    justify-content: flex-start;
+    align-items: center;
+}
+#viewer_dropdownselector .dropy__title span {
+    /* 1.875em of right padding was reserving room for the absolute chevron. */
+    padding-right: 0.25em;
+}
+#viewer_dropdownselector .dropy__title > i {
+    position: static;
+    transform: none;
+    right: auto;
+}
