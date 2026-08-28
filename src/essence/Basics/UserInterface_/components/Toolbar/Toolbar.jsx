@@ -239,8 +239,75 @@ function MobileTimeUIToggle() {
 }
 
 /**
- * MobileExtraButtons — conditionally renders time and coordinate toggle
- * buttons in the mobile toolbar.
+ * MobileViewerToggle — opens and closes the viewer from the mobile toolbar.
+ *
+ * The viewer is a PANEL, not a tool: a peer of the map and the globe inside
+ * SplitScreens, sized by pxIsViewer and split by a Splitter. Toolbar buttons
+ * open tools, so the viewer had no button anywhere and, stacked on a phone,
+ * only appeared as a side effect of tapping a feature that happened to carry
+ * imagery — and could only be dismissed through the small X drawn inside it.
+ * This is a panel toggle wearing a toolbar button's clothes: it sits with the
+ * tool buttons and reads as one, but it drives setPanelPercents, not
+ * ToolController_.
+ *
+ * Opening the viewer while a horizontal tool is up closes that tool, stacked —
+ * setPanelPercents owns that exclusion, so it happens here for free and the
+ * tool button unhighlights on its own.
+ *
+ * WHAT IT LOOKS LIKE IF hasViewer GOES STALE: a button that opens a zero-height
+ * panel, or no button on a mission that has imagery. hasViewer is set from the
+ * mission config on load (UserInterfaceBridge), so it is only wrong if that is.
+ */
+function MobileViewerToggle() {
+    const hasViewer = useUIStore((s) => s.hasViewer)
+    const pxIsViewer = useUIStore((s) => s.pxIsViewer)
+    const isOpen = pxIsViewer > 0
+
+    const handleClick = useCallback(() => {
+        if (isOpen) {
+            useUIStore.getState().setPanelPercents(0, 100, 0)
+        } else {
+            // Go through the bridge rather than a literal 50/50: it splits
+            // whatever the map and globe currently hold, which is the same
+            // arithmetic the viewer:open_panel interaction uses.
+            const L_ = require('../../../Layers_/Layers_').default
+            L_.UserInterface_.openViewerPanel()
+        }
+    }, [isOpen])
+
+    if (!hasViewer) return null
+
+    return (
+        <div
+            id="toolButtonViewer"
+            className={'toolButton' + (isOpen ? ' toolButtonActive' : '')}
+            style={{
+                position: 'relative',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+            }}
+            onClick={handleClick}
+            title={isOpen ? 'Close Viewer' : 'Open Viewer'}
+            role="button"
+            aria-label={isOpen ? 'Close viewer' : 'Open viewer'}
+            aria-pressed={isOpen}
+        >
+            <i
+                className="mdi mdi-image-outline mdi-18px"
+                style={{ cursor: 'pointer', lineHeight: '40px' }}
+            />
+        </div>
+    )
+}
+
+/**
+ * MobileExtraButtons — conditionally renders the viewer, time and coordinate
+ * toggle buttons in the mobile toolbar.
  */
 function MobileExtraButtons() {
     const [configChecked, setConfigChecked] = useState(false)
@@ -266,6 +333,7 @@ function MobileExtraButtons() {
 
     return (
         <>
+            <MobileViewerToggle />
             {showCoords && <MobileCoordButton />}
             <MobileTimeUIToggle />
         </>

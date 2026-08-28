@@ -244,6 +244,31 @@ let ToolController_ = {
                     }
 
                     this.activeTool = tool
+                    // Claim the name BEFORE make(), not after it returns.
+                    //
+                    // A tool's make() can call back into ToolController_ and
+                    // ask whether it is open. InfoTool does: make() builds
+                    // interfaceWithMMGIS(), which calls InfoTool.use(), whose
+                    // first act is `TC_.activeToolName === 'InfoTool'`. Set
+                    // after make() returned, that read was false for the whole
+                    // time the tool was being built — so use() took its "not
+                    // open yet" branch and called TC_.openTool('Info'), which
+                    // re-entered makeTool, which re-entered make(), for as long
+                    // as the stack lasted.
+                    //
+                    // WHAT IT LOOKS LIKE: the Info panel opens at the right
+                    // height and stays empty, for every feature — areas
+                    // included — and the toolbar button is not highlighted,
+                    // because the assignment below the make() call was never
+                    // reached. Nothing is logged: featureDefaultClick runs the
+                    // interaction pipeline from an un-awaited async callback,
+                    // so the RangeError becomes an unhandled rejection.
+                    //
+                    // activeTool is already switched before make() on the line
+                    // above; this only makes the two fields agree. The mobile
+                    // Coordinates and TimeUI buttons, which drive the same
+                    // state by hand, have always set the name before make().
+                    this.activeToolName = name
                     tool.make(this)
 
                     // Inject close X button into the tool's content area
@@ -255,8 +280,8 @@ let ToolController_ = {
                             ' does not have a make or destroy function.' +
                             " All tools require a 'make' and a 'destroy' function."
                     )
+                    this.activeToolName = name
                 }
-                this.activeToolName = name
             } else {
                 // Toggle drag handle via store (React is single source of truth)
                 useUIStore.getState().setToolPanelDragVisible(false)
