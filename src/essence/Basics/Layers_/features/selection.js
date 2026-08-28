@@ -48,6 +48,15 @@ export function setActiveFeature(L_, layer) {
 }
 
 export function highlight(L_, layer, forceColor) {
+    // Put the previously raised marker back BEFORE the null guard.
+    //
+    // Deselection arrives here as a null layer and returns on the next line,
+    // so this is the only point on that path where a raise can be undone.
+    // Called at the end instead, it was never reached on deselect: the last
+    // selected marker kept its z-offset and its mmgisSelectedMarker class
+    // until some other feature happened to be selected, so a deselected
+    // marker went on being drawn above its siblings and styled as selected.
+    raiseSelected(layer)
     if (layer == null) return
     const color =
         forceColor ||
@@ -100,7 +109,6 @@ export function highlight(L_, layer, forceColor) {
         if (layer._icon)
             layer._icon.style.filter = `drop-shadow(${color}  2px 0px 0px) drop-shadow(${color}  -2px 0px 0px) drop-shadow(${color}  0px 2px 0px) drop-shadow(${color} 0px -2px 0px)`
     }
-    raiseSelected(layer, color)
 }
 
 /**

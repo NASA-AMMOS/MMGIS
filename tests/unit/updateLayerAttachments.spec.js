@@ -39,7 +39,7 @@ const BUILT_IN_SUBLAYER_ATTACHMENTS = [
 
 // Attachments that draw nothing of their own and instead change how their host
 // draws itself.
-const BUILT_IN_DECORATION_ATTACHMENTS = ['bearing']
+const BUILT_IN_DECORATION_ATTACHMENTS = ['bearing', 'thumbnail']
 
 const BUILT_IN_ATTACHMENTS = [
     ...BUILT_IN_SUBLAYER_ATTACHMENTS,
