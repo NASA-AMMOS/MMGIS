@@ -70,3 +70,30 @@ export function appliesTo(t, properties) {
     const props = properties || {}
     return passesShowIf(t, (field) => props[field])
 }
+
+/**
+ * Resolve a dynamic default token.
+ *
+ * `date` already has `NOW` / `STARTTIME` / `ENDTIME`; this is the same idea for
+ * the other types. `$USER` fills in whoever the deployment says is logged in.
+ *
+ * WHY IT IS WORTH HAVING: a field named "Observer", "Collected by" or "Reviewed
+ * by" is on almost every prescribed form, the answer is the same for every
+ * record that person creates, and typing it each time is both tedious and how
+ * the same person ends up in the data under three spellings. A template can now
+ * say who filled it in without asking.
+ *
+ * The user is PASSED IN rather than read from `mmgisglobal` here, so this stays
+ * a pure function and so a caller with no user is an ordinary case rather than a
+ * crash. An unknown user resolves to an empty string — an empty Observer is
+ * obviously unanswered, where the literal text "$USER" would be stored, exported
+ * and eventually analysed.
+ */
+export function resolveDynamicDefault(value, ctx) {
+    if (typeof value !== 'string') return value
+    if (value === '$USER') {
+        const u = ctx && ctx.user
+        return typeof u === 'string' ? u : ''
+    }
+    return value
+}

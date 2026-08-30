@@ -20,7 +20,12 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { appliesTo, labelOf, passesShowIf } from '../../plugins/core/tools/Draw/templateLogic.js'
+import {
+    appliesTo,
+    labelOf,
+    passesShowIf,
+    resolveDynamicDefault,
+} from '../../plugins/core/tools/Draw/templateLogic.js'
 
 /** Read answers out of a plain object, the way a saved feature carries them. */
 const from = (props) => (field) => props[field]
@@ -143,5 +148,37 @@ test.describe('appliesTo', () => {
         // object at all.
         expect(appliesTo({ type: 'text', field: 'a' }, undefined)).toBe(true)
         expect(appliesTo(null, {})).toBe(false)
+    })
+})
+
+test.describe('resolveDynamicDefault', () => {
+    test('$USER becomes whoever is collecting', () => {
+        // The point: a form can say who filled it in without asking. An Observer
+        // field is on almost every prescribed form and its answer is the same
+        // for every record that person creates.
+        expect(resolveDynamicDefault('$USER', { user: 'Jane Doe' })).toBe('Jane Doe')
+    })
+
+    test('an unknown user becomes empty, never the token', () => {
+        // An empty Observer is obviously unanswered. The literal "$USER" would
+        // be stored, exported, published and eventually analysed.
+        expect(resolveDynamicDefault('$USER', {})).toBe('')
+        expect(resolveDynamicDefault('$USER', null)).toBe('')
+        expect(resolveDynamicDefault('$USER', { user: 42 })).toBe('')
+    })
+
+    test('leaves every other default alone', () => {
+        expect(resolveDynamicDefault('VP-#', { user: 'Jane' })).toBe('VP-#')
+        expect(resolveDynamicDefault('NOW', { user: 'Jane' })).toBe('NOW')
+        expect(resolveDynamicDefault('', { user: 'Jane' })).toBe('')
+    })
+
+    test('passes non-strings through untouched', () => {
+        // checkbox defaults are booleans, slider defaults numbers, point
+        // defaults arrays.
+        expect(resolveDynamicDefault(false, { user: 'Jane' })).toBe(false)
+        expect(resolveDynamicDefault(0, { user: 'Jane' })).toBe(0)
+        expect(resolveDynamicDefault(null, { user: 'Jane' })).toBe(null)
+        expect(resolveDynamicDefault(undefined, { user: 'Jane' })).toBe(undefined)
     })
 })

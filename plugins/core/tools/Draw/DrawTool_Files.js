@@ -2199,10 +2199,28 @@ var Files = {
                     }
                 }
 
-                // If feature not found (panned out of extent), deselect it
-                if (!featureFound) {
-                    if (DrawTool.contextMenuLayer?.feature?.properties?._
-                        && DrawTool.contextMenuLayer.feature.properties._.id === selectedId) {
+                // If feature not found (panned out of extent), deselect it —
+                // but ONLY from the file that actually holds it.
+                //
+                // This runs once per refreshed file, and a pan refreshes every
+                // file that is on. With more than one, the first file that does
+                // not contain the selected feature reached here, found "not
+                // found", and deselected it — tearing down the edit panel of a
+                // feature living in a completely different file.
+                //
+                // WHAT IT LOOKED LIKE: fill in half a form, drag the map, and
+                // the form scrolls to the top and empties. The owning file
+                // re-selects the feature a moment later and rebuilds the panel
+                // from STORED properties, so everything typed and not yet saved
+                // is gone with nothing to say so. It needs two files on to
+                // happen at all, which is why it survived single-file use.
+                const selectedMeta = DrawTool.contextMenuLayer?.feature?.properties?._
+                const ownedByThisFile =
+                    selectedMeta != null &&
+                    selectedMeta.file_id != null &&
+                    layerId === 'DrawTool_' + selectedMeta.file_id
+                if (!featureFound && ownedByThisFile) {
+                    if (selectedMeta.id === selectedId) {
                         DrawTool.contextMenuLayer = null
                         DrawTool.isEditing = false
                         L_.resetLayerFills()

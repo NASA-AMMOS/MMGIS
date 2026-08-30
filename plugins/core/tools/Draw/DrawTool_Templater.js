@@ -15,7 +15,7 @@ import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 import tippy from 'tippy.js'
 import Sortable from 'sortablejs'
 
-import { appliesTo, labelOf, passesShowIf } from './templateLogic'
+import { appliesTo, labelOf, passesShowIf, resolveDynamicDefault } from './templateLogic'
 
 import './DrawTool_Templater.css'
 
@@ -24,6 +24,14 @@ const DrawTool_Templater = {
         if (templateObj == null) return null
         properties = properties || {}
         const template = JSON.parse(JSON.stringify(templateObj.template))
+
+        // Resolve dynamic defaults once, up front, so every type sees a real
+        // value rather than a token. Done on the CLONE, so the stored template
+        // is never rewritten with one user's name.
+        const dynamicCtx = { user: window.mmgisglobal ? window.mmgisglobal.user : null }
+        template.forEach(function (t) {
+            t.default = resolveDynamicDefault(t.default, dynamicCtx)
+        })
 
         let hasStartTime, hasEndTime
         // prettier-ignore
@@ -2674,7 +2682,13 @@ const DrawTool_Templater = {
                     defaultHasBeenSet === false
                 ) {
                     let f = t.field
-                    let v = t.default
+                    // Also resolved here, not only at render: `addDrawing` stamps
+                    // template defaults onto a feature as it is created, so
+                    // without this a feature made before its panel is ever
+                    // opened stores the literal "$USER".
+                    let v = resolveDynamicDefault(t.default, {
+                        user: window.mmgisglobal ? window.mmgisglobal.user : null,
+                    })
                     let overrideRecomputeOnlyHere = false
                     switch (t.type) {
                         case 'incrementer':

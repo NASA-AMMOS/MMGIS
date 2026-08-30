@@ -819,31 +819,51 @@ var Shapes = {
             selectedFeatureIds != null &&
             !(selectedFeatureIds.length == 1 && selectedFeatureIds[0] == null)
         ) {
+            /*
+             * `ctrlDown` says "add to the selection" for the second and later
+             * ids. It is set FROM THIS LOOP'S OWN INDEX immediately before each
+             * click, and restored in a finally.
+             *
+             * It used to be set to true at the END of every iteration and reset
+             * only after the loop. That leaks: a pan refreshes every file that
+             * is on, each one runs this restore, and the passes interleave
+             * through their ajax callbacks — so one file could leave `ctrlDown`
+             * true while another file's restore fired its click. A ctrl-click on
+             * an already-selected feature DESELECTS it, which tore down the edit
+             * panel and took a half-filled form with it.
+             *
+             * The finally matters as much as the rest: `fireEvent('click')` runs
+             * arbitrary handlers, and one of them throwing used to leave the
+             * whole application in a permanent ctrl-is-held state.
+             */
             mmgisglobal.ctrlDown = false
-            for (var i = 0; i < selectedFeatureIds.length; i++) {
-                var item = $(
-                    '.drawToolShapeLi[file_id="' +
-                        fileId +
-                        '"][shape_id="' +
-                        selectedFeatureIds[i] +
-                        '"] > div'
-                )
-                if (item.length > 0) {
-                    var shape =
-                        L_.layers.layer[item.attr('layer')][item.attr('index')]
-                    if (shape.hasOwnProperty('_layers'))
-                        shape._layers[Object.keys(shape._layers)[0]].fireEvent(
-                            'click'
-                        )
-                    else shape.fireEvent('click')
-                } else {
-                    console.warn(
-                        '[DrawTool Shapes] Auto-select: Item not found in list'
+            try {
+                for (var i = 0; i < selectedFeatureIds.length; i++) {
+                    var item = $(
+                        '.drawToolShapeLi[file_id="' +
+                            fileId +
+                            '"][shape_id="' +
+                            selectedFeatureIds[i] +
+                            '"] > div'
                     )
+                    mmgisglobal.ctrlDown = i > 0
+                    if (item.length > 0) {
+                        var shape =
+                            L_.layers.layer[item.attr('layer')][item.attr('index')]
+                        if (shape.hasOwnProperty('_layers'))
+                            shape._layers[Object.keys(shape._layers)[0]].fireEvent(
+                                'click'
+                            )
+                        else shape.fireEvent('click')
+                    } else {
+                        console.warn(
+                            '[DrawTool Shapes] Auto-select: Item not found in list'
+                        )
+                    }
                 }
-                mmgisglobal.ctrlDown = true
+            } finally {
+                mmgisglobal.ctrlDown = false
             }
-            mmgisglobal.ctrlDown = false
         }
 
         // Restore selection if one was stored (add checked class)
