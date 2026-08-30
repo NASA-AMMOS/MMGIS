@@ -15,6 +15,8 @@ import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 import tippy from 'tippy.js'
 import Sortable from 'sortablejs'
 
+import { appliesTo, labelOf, passesShowIf } from './templateLogic'
+
 import './DrawTool_Templater.css'
 
 const DrawTool_Templater = {
@@ -42,14 +44,14 @@ const DrawTool_Templater = {
                     case 'checkbox':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<div class="mmgis-checkbox small"><input type="checkbox" ${t.default === true ? 'checked ' : ''}id="templater-checkbox-${idx}"/><label for="templater-checkbox-${idx}"></label></div>`,
                             `</li>`
                         ].join('\n')
                     case 'number':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<input type='number' placeholder="Enter Number" autocomplete="off"
                                     ${t.default != null && typeof t.default === 'number' ? ` value='${t.default}'` : ''}
                                     ${t.min != null && typeof t.min === 'number' ? ` min='${t.min}'` : ''}
@@ -61,7 +63,7 @@ const DrawTool_Templater = {
                     case 'text':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<input type='text' placeholder="Enter Text" autocomplete="off"
                                     ${t.default != null ? ` value='${t.default}'` : ''}
                                     ${t.minLength != null && typeof t.min === 'number' ? ` minLength='${t.minLength}'` : ''}
@@ -72,7 +74,7 @@ const DrawTool_Templater = {
                     case 'textarea':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<textarea>${t.default != null ? t.default : ''}</textarea>`,
                             `</li>`
                         ].join('\n')
@@ -80,7 +82,7 @@ const DrawTool_Templater = {
                     case 'slider':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplaterrange'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<span>${t.default != null && typeof t.default === 'number' ? t.default : 'N/A'}</span>`,
                                 `<input type='range' class='slider2'
                                     ${t.default != null && typeof t.default === 'number' ? ` value='${t.default}'` : ''}
@@ -93,21 +95,21 @@ const DrawTool_Templater = {
                     case 'dropdown':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<div id='drawToolFileModalTemplateDropdown_${idx}' class='ui dropdown short'></div>`,
                             `</li>`
                         ].join('\n')
                     case 'date':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<input id='drawToolFileModalTemplateDate_${idx}' placeholder='${t.format || 'YYYY-MM-DDTHH:mm:ss'}' autocomplete='off'></input>`,
                             `</li>`
                         ].join('\n')
                     case 'incrementer':
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplater${t.type}'>`,
-                                `<div title='${t.field}'>${t.field}:</div>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                 `<input type='text' placeholder="${t.default != null ? ` value='${t.default}'` : ''}" autocomplete="off"
                                     ${t.default != null ? ` value='${t.default}'` : ''}
                                     />`,
@@ -117,7 +119,7 @@ const DrawTool_Templater = {
                         return [
                             `<li id='drawToolTemplater_${idx}' class='drawToolTemplaterpoint'>`,
                                 `<div class='drawToolTemplaterpointHeaderWrapper'>`,    
-                                    `<div title='${t.field}'>${t.field}:</div>`,
+                                    `<div title='${t.field}'>${labelOf(t)}:</div>`,
                                     `<button class='drawToolTemplaterPointAddBtn' data-field-idx='${idx}'>`,
                                         `<i class='mdi mdi-map-marker-plus mdi-14px'></i> Add Point`,
                                     `</button>`,
@@ -127,8 +129,39 @@ const DrawTool_Templater = {
                                 `</div>`,
                             `</li>`
                         ].join('\n')
+                    case 'header':
+                        // A section title. Collects nothing and validates
+                        // nothing — it exists because a thirty-field template
+                        // is one undifferentiated list on a phone, and the
+                        // person filling it in the field is the one who pays
+                        // for that.
+                        return [
+                            `<li id='drawToolTemplater_${idx}' class='drawToolTemplaterheader'>`,
+                                `<div>${labelOf(t)}</div>`,
+                            `</li>`
+                        ].join('\n')
                     default:
-                        return null
+                        // A type this build does not have. Registered types get
+                        // their markup here; anything else says so.
+                        //
+                        // Upstream returned null, which renders NOTHING: a
+                        // question defined on the server was simply absent from
+                        // the form, with no console line and no gap. A form
+                        // that quietly asks fewer questions than it was written
+                        // to ask is worse than one that admits it, because the
+                        // answers still look complete.
+                        const custom = DrawTool_Templater.customTypes[t.type]
+                        if (custom && typeof custom.markup === 'function')
+                            return custom.markup(t, idx, labelOf(t))
+                        console.warn(
+                            `DrawTool_Templater: no renderer for template type '${t.type}' (field '${t.field}')`
+                        )
+                        return [
+                            `<li id='drawToolTemplater_${idx}' class='drawToolTemplaterunsupported'>`,
+                                `<div title='${t.field}'>${labelOf(t)}:</div>`,
+                                `<div class='drawToolTemplaterUnsupported'>Unsupported field type '${t.type}'</div>`,
+                            `</li>`
+                        ].join('\n')
                 }
             }).join('\n'),
             hasStartTime || hasEndTime ? [
@@ -165,7 +198,7 @@ const DrawTool_Templater = {
                     $(`#drawToolFileModalTemplateDropdown_${idx}`).html(
                         Dropy.construct(
                             t.items || [],
-                            t.field,
+                            labelOf(t),
                             helperStates[idx],
                             {
                                 openUp: false,
@@ -177,6 +210,13 @@ const DrawTool_Templater = {
                         $(`#drawToolFileModalTemplateDropdown_${idx}`),
                         function (idx2) {
                             helperStates[idx] = idx2
+                            // Re-evaluate here as well as on the delegated
+                            // handler. A dropdown's answer lives ONLY in
+                            // helperStates, and Dropy rebuilds its own markup on
+                            // selection — so the bubbled click can arrive
+                            // against a detached element and miss.
+                            if (DrawTool_Templater._applyVisibility)
+                                DrawTool_Templater._applyVisibility()
                         }
                     )
                     break
@@ -302,9 +342,79 @@ const DrawTool_Templater = {
                     })
                     break
                 default:
+                    const customAttach = DrawTool_Templater.customTypes[t.type]
+                    if (customAttach && typeof customAttach.attach === 'function')
+                        customAttach.attach(t, idx, helperStates, properties)
                     break
             }
         })
+
+        /*
+         * Show and hide fields as their predicates change.
+         *
+         * Toggling classes on an already-rendered `<li>` rather than
+         * re-rendering the form: a re-render would destroy every unsaved answer
+         * above the field that changed, and would have to rebuild the Dropy and
+         * TempusDominus widgets, which own state this function cannot see.
+         *
+         * `currentValue` reads `helperStates` FIRST and the DOM second, because
+         * a dropdown's answer exists only as an index in `helperStates` — it is
+         * not in the markup in any queryable form.
+         *
+         * A hidden field keeps its DOM and its value. `getValues` is what
+         * decides not to save it; nothing here erases anything, so switching a
+         * checkbox off and back on again returns the answers that were already
+         * typed rather than blanking them.
+         */
+        const currentValue = function (field) {
+            const idx = template.findIndex((x) => x.field === field)
+            if (idx === -1) return null
+            const t = template[idx]
+            switch (t.type) {
+                case 'checkbox':
+                    return $(`#${containerId} #drawToolTemplater_${idx} input`).prop('checked')
+                case 'dropdown':
+                    return (t.items || [])[helperStates[idx]]
+                case 'number':
+                case 'range':
+                case 'slider': {
+                    const n = parseFloat(
+                        $(`#${containerId} #drawToolTemplater_${idx} input`).val()
+                    )
+                    return isNaN(n) ? null : n
+                }
+                case 'textarea':
+                    return $(`#${containerId} #drawToolTemplater_${idx} textarea`).val()
+                default: {
+                    const custom = DrawTool_Templater.customTypes[t.type]
+                    if (custom && typeof custom.read === 'function')
+                        return custom.read(t, idx, helperStates, containerId)
+                    if (helperStates[idx] !== undefined) return helperStates[idx]
+                    return $(`#${containerId} #drawToolTemplater_${idx} input`).val()
+                }
+            }
+        }
+
+        const applyVisibility = function () {
+            template.forEach((t, idx) => {
+                if (t.showIf == null) return
+                const show = passesShowIf(t, currentValue)
+                $(`#${containerId} #drawToolTemplater_${idx}`).toggleClass(
+                    'drawToolTemplaterHidden',
+                    !show
+                )
+            })
+        }
+        DrawTool_Templater._applyVisibility = applyVisibility
+
+        // Delegated, and bound to the container rather than to each input, so
+        // it survives a widget replacing its own markup — Dropy rebuilds its
+        // list on every selection.
+        $(`#${containerId}`).on(
+            'change.drawToolTemplaterShowIf input.drawToolTemplaterShowIf click.drawToolTemplaterShowIf',
+            applyVisibility
+        )
+        applyVisibility()
 
         $(`#drawToolTemplater_setTimeStart`).on('click', () => {
             // Force UTC by adding 'Z' if not present
@@ -391,6 +501,27 @@ const DrawTool_Templater = {
                 const invalids = {}
 
                 template.forEach((t, idx) => {
+                    // A header asks nothing, so it stores nothing. Without this
+                    // it would write `undefined` to a property named after a
+                    // section heading.
+                    if (t.type === 'header') return
+
+                    /*
+                     * A field the predicate is currently hiding is NOT SAVED,
+                     * and is not validated either.
+                     *
+                     * Both halves matter. Saving it would write a canopy height
+                     * onto a plot that has no canopy — an answer nobody gave,
+                     * indistinguishable later from one they did. Validating it
+                     * would refuse to save the feature over a `required` field
+                     * that is not on screen, which is unfixable from the UI: the
+                     * toast names a field the user cannot see.
+                     *
+                     * The value stays in the DOM, so turning the parent back on
+                     * returns what was typed rather than a blank.
+                     */
+                    if (!passesShowIf(t, currentValue)) return
+
                     switch (t.type) {
                         case 'checkbox':
                             values[t.field] = $(
@@ -530,8 +661,16 @@ const DrawTool_Templater = {
                         case 'point':
                             values[t.field] = helperStates[idx] || []
                             break
-                        default:
+                        default: {
+                            const custom = DrawTool_Templater.customTypes[t.type]
+                            if (custom && typeof custom.read === 'function')
+                                values[t.field] = custom.read(t, idx, helperStates, containerId)
+                            if (custom && typeof custom.validate === 'function') {
+                                const problem = custom.validate(t, values[t.field])
+                                if (problem) invalids[t.field] = problem
+                            }
                             break
+                        }
                     }
 
                     if (
@@ -1282,10 +1421,58 @@ const DrawTool_Templater = {
     },
     _templateInDesignIdx: 0,
     _templateInDesign: {},
+    /**
+     * Field types contributed at runtime, by name.
+     *
+     * WHY A REGISTRY AND NOT A TENTH CASE: adding a built-in type means editing
+     * six separate `switch` statements in this file — render, attach, read, and
+     * three more in the designer — and missing one of them fails silently and
+     * differently each time (a field that renders but never saves, or saves but
+     * never reloads). Spec 010 had to do exactly that to add `point`.
+     *
+     * An entry may supply any of:
+     *
+     *   markup(t, idx, label)        -> an `<li id='drawToolTemplater_<idx>'>` string
+     *   attach(t, idx, helperStates, properties)   bind events, seed state
+     *   read(t, idx, helperStates, containerId)    -> the value to store
+     *   validate(t, value)           -> an error string, or null
+     *   associatedMarkers(t, value, feature)       -> Leaflet layers for the map
+     *
+     * Omit any of them and that half is skipped rather than guessed at.
+     *
+     * Registration is a plain assignment, so a plugin does it at init:
+     *   DrawTool.Templater.customTypes.myType = { ... }
+     *
+     * These are RENDERERS ONLY. The definitions stay wherever templates come
+     * from — a mission's config, or the file's own `template` column — so a
+     * server remains the single place a form is authored, and a build without a
+     * given plugin renders that field as unsupported rather than dropping the
+     * question.
+     */
+    customTypes: {},
+    /**
+     * Does this entry apply to a feature with these properties?
+     *
+     * The predicate as everything OUTSIDE the rendered form must ask it —
+     * `enforceTemplate` filling defaults, `getTemplateDefaults` computing them —
+     * where there is no DOM and no `helperStates`, only stored properties.
+     *
+     * A `header` never applies: it asks nothing, so nothing should be stored
+     * under its name.
+     */
+    appliesTo: appliesTo,
+    /**
+     * The types the DESIGNER offers. Built-ins plus whatever is registered.
+     *
+     * `header` is here; the registered types join it at runtime. Read through
+     * `templateTypes()` rather than directly, or a plugin's type is offered
+     * only if it happened to load before this array was read.
+     */
     _TEMPLATE_TYPES: [
         'checkbox',
         'date',
         'dropdown',
+        'header',
         'incrementer',
         'number',
         'point',
@@ -1293,6 +1480,13 @@ const DrawTool_Templater = {
         'text',
         'textarea',
     ],
+    templateTypes: function () {
+        return DrawTool_Templater._TEMPLATE_TYPES.concat(
+            Object.keys(DrawTool_Templater.customTypes).filter(
+                (k) => DrawTool_Templater._TEMPLATE_TYPES.indexOf(k) === -1
+            )
+        )
+    },
     _DATE_FORMATS: [
         'YYYY-MM-DDTHH:mm:ss',
         'MMMM Do YYYY',
@@ -1389,7 +1583,7 @@ const DrawTool_Templater = {
             DrawTool_Templater._templateInDesign[idx] = {}
             // prettier-ignore
             const liMarkup = [
-                `<li class='drawToolTemplaterLi' id='drawToolTemplaterLi_${idx}'>`,
+                `<li class='drawToolTemplaterLi' id='drawToolTemplaterLi_${idx}' data-carry='${encodeURIComponent(JSON.stringify({ label: options.label, showIf: options.showIf }))}'>`,
                     "<div class='drawToolTemplaterLiHead'>",
                         "<div class='drawToolTemplaterLiField'>",
                             `<div class='drawToolTemplaterLiIdx'><i class="mdi mdi-drag-vertical mdi-18px"></i></div>`,
@@ -1420,7 +1614,7 @@ const DrawTool_Templater = {
             const setType = (idx2, opts) => {
                 opts = opts || {}
                 DrawTool_Templater._templateInDesign[idx].type =
-                    DrawTool_Templater._TEMPLATE_TYPES[idx2]
+                    DrawTool_Templater.templateTypes()[idx2]
 
                 const type = DrawTool_Templater._templateInDesign[idx].type
                 let typeMarkup = []
@@ -1801,10 +1995,10 @@ const DrawTool_Templater = {
             if (initialType === 'range') initialType = 'slider'
 
             let initialTypeIdx =
-                DrawTool_Templater._TEMPLATE_TYPES.indexOf(initialType)
+                DrawTool_Templater.templateTypes().indexOf(initialType)
             $(`#drawToolTemplaterLiTypeDropdown_${idx}`).html(
                 Dropy.construct(
-                    DrawTool_Templater._TEMPLATE_TYPES,
+                    DrawTool_Templater.templateTypes(),
                     'Types',
                     initialTypeIdx,
                     {
@@ -1868,6 +2062,27 @@ const DrawTool_Templater = {
         $(`#${containerId} #drawToolTemplaterDesignContent > li`).each(
             function () {
                 const item = {}
+                /*
+                 * Keys the designer has no UI for are CARRIED, not dropped.
+                 *
+                 * `getDesignedTemplate` rebuilds each entry from the form
+                 * controls, so anything without a control vanishes on save.
+                 * `label` and `showIf` have none — forms are authored on the
+                 * server, and this designer is hidden in the field app — so
+                 * opening a server-authored template here and pressing save
+                 * would silently strip every question's wording and every
+                 * branch, leaving a form that still looks complete and asks
+                 * everything unconditionally.
+                 */
+                let carried = {}
+                try {
+                    carried = JSON.parse(decodeURIComponent($(this).attr('data-carry') || '%7B%7D'))
+                } catch (err) {
+                    carried = {}
+                }
+                if (carried.label != null) item.label = carried.label
+                if (carried.showIf != null) item.showIf = carried.showIf
+
                 item.field = $(this)
                     .find('.drawToolTemplaterLiField > input')
                     .val()
@@ -2290,6 +2505,17 @@ const DrawTool_Templater = {
             const defaultProps = {}
             for (let i = 0; i < template.length; i++) {
                 let t = template[i]
+                // A header asks nothing, and a branch that is not taken should
+                // not have a default written for it. Properties already on the
+                // feature decide which branch that is — the form is not
+                // necessarily on screen when this runs (it is called from
+                // `DrawTool.addDrawing`, before any panel exists).
+                if (!DrawTool_Templater.appliesTo(t, toAdd?.properties
+                    ? (typeof toAdd.properties === 'string'
+                        ? JSON.parse(toAdd.properties)
+                        : toAdd.properties)
+                    : {}))
+                    continue
                 defaultHasBeenSet = false
                 if (
                     t.field != null &&

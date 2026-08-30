@@ -295,6 +295,9 @@ var Drawing = {
             case 'trackme':
                 DrawTool.drawing.trackme.begin(type)
                 break
+            case 'markme':
+                DrawTool.drawing.markme.begin(type)
+                break
             default:
                 break
         }
@@ -1685,6 +1688,141 @@ var drawing = {
         shape: {},
         arrowTimeout: null,
         arrowHeads: [],
+    },
+    /**
+     * Drop a point where the user is standing, and open its properties.
+     *
+     * The sibling of Track Me: that records where you WENT, this records where
+     * you ARE. It is a button rather than a draw mode on purpose — there is
+     * nothing to aim at and nothing to click on the map, so arming a mode and
+     * waiting for a tap would be a step that exists only to be dismissed.
+     *
+     * WHY IT MATTERS ON A PHONE: the alternative is centre the map on yourself,
+     * pick the point tool, tap the blue dot, then tap the resulting feature to
+     * get its form. Four steps, three of which are only there because the UI
+     * assumes a mouse and a map you can aim at. Standing in a quadrat you want
+     * one.
+     *
+     * Uses the SELECTED file, like every other button in this row. Its template,
+     * its incrementer, its history entry — all of it comes through
+     * `addDrawing`, so nothing here is a second way of writing a feature.
+     */
+    markme: {
+        busy: false,
+
+        begin: function (intent) {
+            var d = DrawTool.drawing.markme
+            // console.warn is forwarded to proxy-debug.log in the field app, and
+            // that log is the only diagnostic readable off a device. Every
+            // branch below that gives up says so by name: a button that "does
+            // nothing" has half a dozen indistinguishable causes otherwise.
+            console.warn('[markme] begin')
+
+            /*
+             * Other drawing modes are LEFT RUNNING, unlike trackme.
+             *
+             * Track Me ends them because it takes over the map for minutes.
+             * This does not take over anything: it drops one point and is
+             * finished. Ending a mode here would mean marking a position
+             * silently cancelled the polygon you were part-way through, which
+             * is a worse surprise than any it could prevent — and dropping a
+             * point through `addDrawing` does not touch the Leaflet draw
+             * handler, so there is nothing to conflict with.
+             */
+
+            // A fix takes a moment and the button stays tappable. Without this a
+            // double-tap drops two points a metre apart, which is indisputably
+            // wrong and very hard to notice afterwards.
+            if (d.busy) {
+                console.warn('[markme] still waiting on the previous fix')
+                return
+            }
+
+            if (!navigator.geolocation) {
+                console.warn('[markme] no navigator.geolocation')
+                Toast.error('Geolocation is not supported by this browser.', 4000)
+                return
+            }
+            if (DrawTool.currentFileId == null) {
+                console.warn('[markme] no file selected')
+                Toast.warning('No file chosen. Please select or make a file for drawings.', 6000)
+                return
+            }
+
+            var fileId = DrawTool.currentFileId
+            var btn = document.querySelector('.drawToolDrawingTypeMarkMe')
+            d.busy = true
+            if (btn) btn.classList.add('working')
+
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    d.busy = false
+                    if (btn) btn.classList.remove('working')
+                    console.warn('[markme] fix ' + pos.coords.latitude + ',' + pos.coords.longitude)
+
+                    var n = $('#drawToolDrawFeaturesNewName')
+                    var properties = {
+                        style:
+                            DrawTool.categoryStyles && DrawTool.categoryStyles['point']
+                                ? DrawTool.categoryStyles['point']
+                                : { color: '#ff6400', fillColor: '#ff6400', radius: 6 },
+                        name: n.val() || n.attr('placeholder') || 'Mark ' + new Date().toLocaleString(),
+                    }
+
+                    // Bring the map to the mark.
+                    //
+                    // It is dropped at the user's position, which is very often
+                    // not what the map is showing — they have panned to look at
+                    // something. Leaving it off screen makes a successful drop
+                    // indistinguishable from a failed one, and the form that
+                    // opens is then about a point they cannot see.
+                    if (Map_ && Map_.map) {
+                        var here = [pos.coords.latitude, pos.coords.longitude]
+                        Map_.map.setView(here, Map_.map.getZoom() < 17 ? 18 : Map_.map.getZoom())
+                    }
+
+                    DrawTool.addDrawing(
+                        {
+                            file_id: fileId,
+                            intent: 'point',
+                            properties: JSON.stringify(properties),
+                            geometry: JSON.stringify({
+                                type: 'Point',
+                                coordinates: [pos.coords.longitude, pos.coords.latitude],
+                            }),
+                        },
+                        function () {
+                            /*
+                             * The point is saved and the map has moved to it.
+                             * That is the whole action.
+                             *
+                             * It used to open the feature's properties as well,
+                             * and that was wrong: no other draw type does, so
+                             * marking a position behaved unlike everything
+                             * beside it, and it took over the screen at the
+                             * moment someone may simply want to mark a second
+                             * point. Tapping the marker opens the form, exactly
+                             * as it does for every other feature.
+                             */
+                            DrawTool.refreshFile(fileId, null, true, null, false, null, null, null, true)
+                        },
+                        function () {
+                            console.warn('[markme] addDrawing failed')
+                            Toast.error('Failed to save the mark.', 4000)
+                        }
+                    )
+                },
+                function (err) {
+                    d.busy = false
+                    if (btn) btn.classList.remove('working')
+                    console.warn('[markme] GPS error: ' + err.message)
+                    Toast.error('GPS error: ' + err.message, 4000)
+                },
+                { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 }
+            )
+        },
+
+        end: function () {},
     },
     trackme: {
         watchId: null,

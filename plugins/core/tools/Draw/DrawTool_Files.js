@@ -150,20 +150,39 @@ var Files = {
                         drawType === 'circle' ||
                         drawType === 'rectangle'))
             ) {
-                $('#drawToolDrawingTypeDiv > div').removeClass('active')
-                $('#drawToolDrawingTypeDiv > div').css('border-radius', 0)
-                $('#drawToolDrawingTypeDiv > div').css(
-                    'background',
-                    'var(--color-a2)'
-                )
-                $(this).addClass('active')
-                $(this).css(
-                    'background',
-                    $('#drawToolDrawingTypeDiv').css('background')
-                )
+                /*
+                 * A MOMENTARY button does its work and leaves the toolbar alone.
+                 *
+                 * Every other type here is a MODE: you arm it, complete it with
+                 * a gesture on the map, and the highlight is what tells you the
+                 * map is armed. Mark My Position has no second half - there is
+                 * nothing to aim at - so it is not a mode and must not look like
+                 * one.
+                 *
+                 * That means it does not take the highlight AND does not clear
+                 * anybody else's. Marking a point while drawing polygons should
+                 * leave you drawing polygons; clearing the row instead left the
+                 * toolbar with nothing selected, which reads as the mark having
+                 * cancelled the tool you were using.
+                 */
+                if ($(this).attr('momentary') == null) {
+                    $('#drawToolDrawingTypeDiv > div').removeClass('active')
+                    $('#drawToolDrawingTypeDiv > div').css('border-radius', 0)
+                    $('#drawToolDrawingTypeDiv > div').css(
+                        'background',
+                        'var(--color-a2)'
+                    )
+                    $(this).addClass('active')
+                    $(this).css(
+                        'background',
+                        $('#drawToolDrawingTypeDiv').css('background')
+                    )
+                }
 
+                console.warn('[drawtype] ' + drawType)
                 DrawTool.setDrawingType(drawType)
             } else {
+                console.warn('[drawtype] ' + drawType + ' refused by intent ' + DrawTool.intentType)
                 Toast.info(`Please select a file from the list below (by clicking on its name). If none exist, make one with the create button below.`, 6000)
             }
         })
@@ -990,9 +1009,12 @@ var Files = {
                             "<div>Modified:</div>",
                             `<div>${file.updated_on.split('.')[0].replace('T', ' ')}</div>`,
                         "</div>",
-                        "<div class='drawToolFileTemplate' id='drawToolFileTemplateEdit'>",
+                        // Locked deployments SHOW which template a file carries
+                        // but drop the pencil: knowing the form is useful,
+                        // rewriting it is the thing being prevented.
+                        `<div class='drawToolFileTemplate' ${DrawTool.vars.templatesLocked === true ? '' : "id='drawToolFileTemplateEdit'"}>`,
                             "<div>Template:</div>",
-                            `<div><div>${file.template?.name || 'NONE'}</div><i class='mdi mdi-pencil mdi-14px'></i></div>`,
+                            `<div><div>${file.template?.name || 'NONE'}</div>${DrawTool.vars.templatesLocked === true ? '' : "<i class='mdi mdi-pencil mdi-14px'></i>"}</div>`,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1786,9 +1808,21 @@ var Files = {
 
         const template = file.template.template
 
-        // Find all point type fields in the template
-        const pointFields = template.filter((t) => t.type === 'point')
-        if (pointFields.length === 0) return
+        // Which fields put something on the map.
+        //
+        // `point` is built in; anything else has to say so by registering an
+        // `associatedMarkers` renderer. Both kinds are collected here so a
+        // registered type gets the same treatment as `point` — markers pushed
+        // onto the PARENT FILE'S layer array, which is what makes them appear
+        // and disappear with the file and hide while the feature is edited.
+        // Reimplementing that in a plugin would mean a second set of markers
+        // that ignore the layer toggle.
+        const markerFields = template.filter(
+            (t) =>
+                t.type === 'point' ||
+                typeof DrawTool_Templater.customTypes[t.type]?.associatedMarkers === 'function'
+        )
+        if (markerFields.length === 0) return
 
         // Remove any existing associated points for this feature first
         if (feature.properties && feature.properties._) {
@@ -1801,10 +1835,22 @@ var Files = {
             Map_.map.getPane('drawToolPoints').style.zIndex = 650
         }
 
-        // Render points for each point field
-        pointFields.forEach((pointField) => {
+        // Render markers for each field that contributes them
+        markerFields.forEach((pointField) => {
             const points = feature.properties[pointField.field]
             if (!points || !Array.isArray(points) || points.length === 0) return
+
+            const custom = DrawTool_Templater.customTypes[pointField.type]
+            if (pointField.type !== 'point' && custom?.associatedMarkers) {
+                const markers = custom.associatedMarkers(pointField, points, feature) || []
+                markers.forEach((marker) => {
+                    marker._isAssociatedPoint = true
+                    marker._parentFeatureId = feature.properties._.id
+                    marker.addTo(Map_.map)
+                    L_.layers.layer[layerId].push(marker)
+                })
+                return
+            }
 
             points.forEach((point) => {
                 // Create permanent circle marker

@@ -1,20 +1,39 @@
 #drawToolTemplater {
 }
 
+/*
+ * A row grows to fit its question instead of clipping it.
+ *
+ * This was `height: 30px` with a 150px label column set to `overflow: hidden`.
+ * The `text-overflow: ellipsis` beside it never did anything - that property
+ * needs `white-space: nowrap`, which was not set - so a label longer than the
+ * column wrapped INSIDE a 30px box with the overflow hidden, and the second
+ * line was simply invisible. You did not get "Hours since last rain...", you
+ * got "Hours since", with nothing to indicate the rest existed.
+ *
+ * It stayed hidden for as long as a field's label was its property key, because
+ * those are short and terse by nature. Adding `label` is what made questions
+ * read like questions, and immediately made them too long for the box.
+ *
+ * `min-height` rather than `height` so nothing moves for the short labels that
+ * already fit; only a row that needs a second line takes one.
+ */
 #drawToolTemplater > li {
     list-style-type: none;
     display: flex;
     justify-content: space-between;
-    height: 30px;
+    align-items: center;
+    min-height: 30px;
     margin-bottom: 8px;
 }
 
 #drawToolTemplater > li > div:first-child {
-    line-height: 30px;
+    line-height: 1.25;
     padding-right: 10px;
-    width: 150px;
-    text-overflow: ellipsis;
-    overflow: hidden;
+    /* Fixed basis, but allowed to shrink: on a phone the panel is ~300px wide
+       and a rigid 150px label leaves the control beside it unusable. */
+    flex: 0 1 150px;
+    overflow-wrap: break-word;
 }
 #drawToolTemplater > li input {
     text-align: right;
@@ -681,4 +700,57 @@
     border-color: white;
     opacity: 1;
     box-shadow: 0 0 0 1px var(--color-a), 0 0 6px rgba(255, 255, 255, 0.5);
+}
+
+/*
+ * A field whose `showIf` predicate is not currently satisfied.
+ *
+ * `display: none` and not a removal: the element keeps its value, so switching
+ * the controlling answer off and back on returns what was already typed instead
+ * of a blank. `getValues` is what decides not to SAVE a hidden field; nothing
+ * about hiding one erases it.
+ */
+#drawToolTemplater li.drawToolTemplaterHidden {
+    display: none;
+}
+
+/*
+ * A section heading. Collects nothing.
+ *
+ * It exists because a thirty-field template is one undifferentiated list on a
+ * phone, and the person filling it in the field is the one who pays for that.
+ */
+#drawToolTemplater li.drawToolTemplaterheader {
+    /* Block, and free to be as tall as its text.
+     *
+     * Without `height: auto` it inherits the row height above, its second line
+     * overflows the box, and it lands ON TOP of the first question underneath —
+     * "OBSERVING / CONDITIONS:" printed over "Sky condition:". */
+    display: block;
+    height: auto;
+    margin: 12px 0 2px 0;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #ffffff22;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    opacity: 0.75;
+}
+#drawToolTemplater li.drawToolTemplaterheader:first-child {
+    margin-top: 0;
+}
+
+/*
+ * A field type this build cannot render — a definition naming a type whose
+ * renderer was never registered.
+ *
+ * Visible ON PURPOSE. This used to render as nothing at all, so a question
+ * defined on the server was simply absent from the form with no gap and no
+ * console line, and the answers still looked complete.
+ */
+#drawToolTemplater li.drawToolTemplaterunsupported .drawToolTemplaterUnsupported {
+    font-size: 12px;
+    font-style: italic;
+    color: #d98c8c;
 }

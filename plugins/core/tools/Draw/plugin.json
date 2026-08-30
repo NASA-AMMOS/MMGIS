@@ -243,6 +243,14 @@
                 "name": "Default Templates",
                 "components": [
                     {
+          "field": "variables.templatesLocked",
+          "name": "Lock templates (read-only)",
+          "description": "Templates may be chosen and filled in, but not created or edited from the map. Hides the NEW template button, the per-file template pencil, and the designer the New File dialog otherwise renders when a template is picked. Use this wherever the promoted templates below are meant to be the same form for everyone.",
+          "type": "checkbox",
+          "width": 12,
+          "defaultChecked": false
+        },
+                    {
                         "field": "variables.templates",
                         "name": "Default File Property Templates",
                         "description": "Templates create forms for feature properties. For instance, all features in a given draw file could, in the feature's edit panel, have the field 'Reviewed' be togglable via a checkbox. Users may make their own templates too but the ones configured here are promoted and cannot be delete.",

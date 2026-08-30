@@ -86,6 +86,11 @@ var markup = [
     "<div class='drawToolDrawingTypeText' draw='text' title='Text'><i class='mdi mdi-format-text mdi-18px'></i></div>",
     "<div class='drawToolDrawingTypeArrow' draw='arrow' title='Arrow'><i class='mdi mdi-arrow-top-right mdi-18px'></i></div>",
     "<div class='drawToolDrawingTypeTrackMe' draw='trackme' title='Track Me (GPS)'><i class='mdi mdi-crosshairs-gps mdi-18px'></i></div>",
+    // Sibling of Track Me, and the same idea one step smaller: Track Me records
+    // where you WENT, this records where you ARE. Both belong here rather than
+    // anywhere else in the UI because both put a feature into the selected file,
+    // which is what every other button in this row does.
+    "<div class='drawToolDrawingTypeMarkMe' draw='markme' momentary title='Mark My Position (GPS)'><i class='mdi mdi-map-marker-plus mdi-18px'></i></div>",
     '</div>',
     "<div id='drawToolDrawingSettingsToggle' title='Draw Settings'><i class='mdi mdi-cog mdi-18px'></i></div>",
     '</div>',
@@ -324,6 +329,15 @@ var DrawTool = {
     width: 260,
     vars: {},
     plugins: {},
+    /**
+     * The Templater, reachable from outside this module.
+     *
+     * `ToolController_.toolModules.DrawTool` is the only handle anything
+     * outside `plugins/core/tools/Draw/` has — there is no `window.DrawTool` —
+     * and the Templater was not on it, so a plugin could not register a field
+     * type no matter how it was loaded. This is the whole of that fix.
+     */
+    Templater: DrawTool_Templater,
     //host: window.location.hostname,
     open: true,
     userGroups: [],
@@ -1507,10 +1521,26 @@ var DrawTool = {
         const templateEnforcedFeatures = []
         geojson.features.forEach((f) => {
             const newF = JSON.parse(JSON.stringify(f))
+            /*
+             * Which entries this feature should carry a default for.
+             *
+             * Not every template entry is a question. A `header` stores nothing,
+             * and a field behind a `showIf` that this feature's own properties
+             * do not satisfy stores nothing either — writing its default would
+             * put a canopy height on a plot with no canopy, indistinguishable
+             * afterwards from an answer somebody gave.
+             *
+             * Evaluated against the feature being enforced, so copying features
+             * between files gives each one the branch its own answers imply
+             * rather than the branch the first one happened to take.
+             */
+            const applicable = templateObj.template.filter((t) =>
+                DrawTool_Templater.appliesTo(t, newF.properties || {})
+            )
             if (force) {
                 newF.properties = newF.properties || {}
                 const forcedTemplateProperties = {}
-                templateObj.template.forEach((t) => {
+                applicable.forEach((t) => {
                     if (!newF.properties.hasOwnProperty([t.field]))
                         forcedTemplateProperties[t.field] = t.default
                     else
@@ -1520,7 +1550,7 @@ var DrawTool = {
                 newF.properties = forcedTemplateProperties
             } else {
                 newF.properties = newF.properties || {}
-                templateObj.template.forEach((t) => {
+                applicable.forEach((t) => {
                     if (!newF.properties.hasOwnProperty([t.field]))
                         newF.properties[t.field] = t.default
                 })

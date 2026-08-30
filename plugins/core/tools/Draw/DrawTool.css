@@ -2632,6 +2632,15 @@ line-height: 20px;
     50% { opacity: 0.6; }
 }
 
+/* Mark My Position - waiting on a GPS fix.
+   The button stays visible but stops looking tappable, because a fix can take a
+   few seconds and a second tap in that window drops two points a metre apart -
+   indisputably wrong, and very hard to notice afterwards. */
+.drawToolDrawingTypeMarkMe.working {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 /* Track Me recording indicator.
    Lives on <body>, outside the Draw panel, so recording stays visible and
    stoppable with the tool closed and the map full-screen. */

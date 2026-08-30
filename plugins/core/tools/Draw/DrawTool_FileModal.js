@@ -17,6 +17,21 @@ const DrawTool_FileModal = {
     newFileModalTemplateIndex: 0,
     newFileModal: function (DrawTool, cb) {
         // prettier-ignore
+        /*
+         * `variables.templatesLocked` — the deployment says templates are
+         * read-only here.
+         *
+         * The point of a promoted template is that it is the SAME form
+         * everywhere; a deployment that hands one out generally does not want it
+         * edited on the way in. Until now there was no way to say so: the
+         * designer was reachable from the New File modal, from the file-info
+         * pencil, and implicitly from the submit path, and every one of them
+         * could quietly produce a file whose form had drifted from the config's.
+         *
+         * Locked hides all three. Templates can still be CHOSEN and filled in —
+         * only authoring goes away.
+         */
+        const templatesLocked = DrawTool.vars.templatesLocked === true
         const modalContent = [
             "<div class='drawToolFileModal'>",
                 "<div id='drawToolFileModalHeading'>",
@@ -44,7 +59,7 @@ const DrawTool_FileModal = {
                             "<div>",
                                 "<div id='drawToolFileModalTemplateDropdown' class='ui dropdown short'></div>",
                                 "<span>or</span>",
-                                "<div id='drawToolFileModalTemplateNew' class='drawToolButton1'>NEW</div>",
+                                templatesLocked ? "" : "<div id='drawToolFileModalTemplateNew' class='drawToolButton1'>NEW</div>",
                             "</div>",
                         "</div>",
                     "</div>",
@@ -72,9 +87,23 @@ const DrawTool_FileModal = {
             })
         }
 
+        /*
+         * One entry per template NAME.
+         *
+         * The list is the configured templates plus every template already in
+         * use by a file, and those two sets overlap the moment anybody creates a
+         * file from a configured template — which is the normal case, not an
+         * edge one. Without the filter the promoted template appears twice, the
+         * two entries are indistinguishable, and picking either resolves through
+         * `templates[name]` anyway, so one of them is dead.
+         */
         const templateItems = ['NONE']
             .concat(Object.keys(templates))
-            .concat(Object.keys(allTemplates).sort())
+            .concat(
+                Object.keys(allTemplates)
+                    .filter((name) => !Object.prototype.hasOwnProperty.call(templates, name))
+                    .sort()
+            )
 
         allTemplates = {
             ...allTemplates,
@@ -325,6 +354,12 @@ const DrawTool_FileModal = {
             Dropy.init($('#drawToolFileModalTemplateDropdown'), function (idx) {
                 DrawTool_FileModal.newFileModalTemplateIndex = idx
 
+                // Choosing a template is a CHOICE, not an edit. Rendering the
+                // designer here as a "preview" is what put a per-field editor on
+                // screen for every question, and what left it in the DOM for the
+                // submit path to read back.
+                if (templatesLocked) return
+
                 DrawTool_Templater.renderDesignTemplate(
                     'drawToolFileModalTemplateContainer',
                     {
@@ -376,10 +411,18 @@ const DrawTool_FileModal = {
                         template: chosenTemplate,
                     }
 
-                const designedTemplate = DrawTool_Templater.getDesignedTemplate(
-                    'drawToolFileModalTemplateContainer',
-                    allTemplates
-                )
+                // Nothing was designed, so nothing is read back. Skipping this
+                // is not an optimisation: `getDesignedTemplate` RECONSTRUCTS a
+                // template from the designer's DOM, and the reconstruction is
+                // not byte-identical to the configured one — so a locked
+                // deployment that still ran it refused to create the file at
+                // all, with "a template by the name '...' already exists".
+                const designedTemplate = templatesLocked
+                    ? true
+                    : DrawTool_Templater.getDesignedTemplate(
+                          'drawToolFileModalTemplateContainer',
+                          allTemplates
+                      )
                 if (designedTemplate === true) {
                     // Do nothing and continue; user was not designing a new template
                 } else if (designedTemplate === false) {
