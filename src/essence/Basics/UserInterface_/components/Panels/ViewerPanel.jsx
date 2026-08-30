@@ -25,14 +25,41 @@ function ViewerPanel() {
     // Grey the stepping controls out at the ends of the list, so "next" never
     // looks available when it is not. Recomputed whenever the active feature
     // changes — `newActiveFeature` is dispatched by Map_ for every selection,
-    // including the ones these buttons cause.
+    // including the ones these buttons cause — and whenever the map moves,
+    // because a layer navigated in view scope has a candidate list that IS the
+    // map extent: pan to another cluster of photographs and both the list and
+    // its limits are different ones. Without the move listener the arrows kept
+    // the state they were given at selection, so stepping into a freshly
+    // panned-to group looked unavailable.
+    //
+    // `_Map` is null until Map_.init runs (the React layout mounts first), and
+    // it lands as a store update, which re-runs this effect. Map_.init also
+    // REPLACES the Leaflet map on a mission swap without changing that module
+    // reference, so the instance is re-checked on every refresh rather than
+    // bound once — a listener left on a removed map is silent, and the arrows
+    // would simply stop tracking the view.
+    const _Map = useUIStore((s) => s._Map)
     const [navAvail, setNavAvail] = useState({ previous: true, next: true })
     useEffect(() => {
         if (!stacked) return undefined
         let alive = true
+        // Moves outpace the two list builds an availability check costs, so
+        // only the newest answer is allowed to land.
+        let token = 0
+        // Leaflet fires moveend at the end of a zoom too.
+        let bound = null
+        const bindMap = () => {
+            const map = (_Map && _Map.map) || null
+            if (map === bound) return
+            if (bound) bound.off('moveend', refresh)
+            bound = map
+            if (bound) bound.on('moveend', refresh)
+        }
         const refresh = () => {
+            bindMap()
+            const mine = ++token
             void Description.navAvailability().then((a) => {
-                if (alive) setNavAvail(a)
+                if (alive && mine === token) setNavAvail(a)
             })
         }
         refresh()
@@ -40,8 +67,9 @@ function ViewerPanel() {
         return () => {
             alive = false
             document.removeEventListener('newActiveFeature', refresh)
+            if (bound) bound.off('moveend', refresh)
         }
-    }, [stacked])
+    }, [stacked, _Map])
     const viewerRef = useRef(null)
 
     // ResizeObserver calls invalidateSize before paint — no visible jerk

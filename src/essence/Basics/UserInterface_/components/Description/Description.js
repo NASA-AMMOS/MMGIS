@@ -9,6 +9,13 @@ import TimeControl from '../../../TimeControl_/TimeControl'
 
 import tippy from 'tippy.js'
 
+import {
+    navAnchorInList,
+    navEntryFeature,
+    navPoint,
+    navSpatialCompare,
+} from './navList'
+
 import './Description.css'
 
 const NAV_DEFAULT_FIELD = '(Default) Feature Order'
@@ -25,52 +32,6 @@ const NAV_SPATIAL_FIELD = '(Spatial) West-East, South-North'
 /** How many raster rows to divide the visible latitude span into. */
 const NAV_SPATIAL_ROWS = 10
 
-/** A representative lat/lng for any geometry: points as-is, others bbox-centre. */
-function navPoint(feature) {
-    const g = feature && feature.geometry
-    if (!g || !g.coordinates) return null
-    if (g.type === 'Point') {
-        const c = g.coordinates
-        return typeof c[0] === 'number' ? { lng: c[0], lat: c[1] } : null
-    }
-    let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity
-    const walk = (c) => {
-        if (typeof c[0] === 'number' && typeof c[1] === 'number') {
-            if (c[0] < minLng) minLng = c[0]
-            if (c[0] > maxLng) maxLng = c[0]
-            if (c[1] < minLat) minLat = c[1]
-            if (c[1] > maxLat) maxLat = c[1]
-            return
-        }
-        for (let i = 0; i < c.length; i++) if (c[i]) walk(c[i])
-    }
-    try { walk(g.coordinates) } catch (e) { return null }
-    if (minLng === Infinity) return null
-    return { lng: (minLng + maxLng) / 2, lat: (minLat + maxLat) / 2 }
-}
-
-/**
- * Raster-scan comparator: rows south to north, west to east within a row.
- *
- * Latitudes are banded into rows because GPS positions are never exactly equal
- * — without banding every feature is its own row and the scan collapses into a
- * plain latitude sort, which zig-zags across the map and does not read as
- * "next along". `rowHeight` comes from the visible span, so the banding tracks
- * zoom instead of being a magic constant.
- */
-function navSpatialCompare(a, b, rowHeight) {
-    const pa = navPoint(a)
-    const pb = navPoint(b)
-    if (!pa && !pb) return 0
-    if (!pa) return 1
-    if (!pb) return -1
-    const h = rowHeight > 0 ? rowHeight : Number.MIN_VALUE
-    const rowA = Math.floor(pa.lat / h)
-    const rowB = Math.floor(pb.lat / h)
-    if (rowA !== rowB) return rowA - rowB
-    return pa.lng - pb.lng
-}
-
 const Description = {
     inited: false,
     waitingOnUpdate: false,
@@ -85,6 +46,8 @@ const Description = {
     navPopoverField: NAV_DEFAULT_FIELD,
     /** Layer whose featureNav defaults have been applied. */
     _navDefaultsFor: null,
+    /** Last `[nav-avail]` line logged, so repeats are dropped. */
+    _lastNavAvailLog: null,
     _popoverOpen: false,
     _infoAlreadyGone: false,
     init: function (mission, site, Map_, L_) {
@@ -434,9 +397,13 @@ const Description = {
                 ),
             ])
             const extentOn = $('#mainDescNavPopoverExtent input').is(':checked')
-            console.warn(
-                `[nav-avail] field=${Description.navPopoverField} extent=${extentOn} prev=${p} next=${n}`
-            )
+            // Logged only on change: this now runs on every map move, and a
+            // line per pan frame buries the selections in the field log.
+            const line = `[nav-avail] field=${Description.navPopoverField} extent=${extentOn} prev=${p} next=${n}`
+            if (line !== Description._lastNavAvailLog) {
+                Description._lastNavAvailLog = line
+                console.warn(line)
+            }
             return { previous: p !== 0, next: n !== 0 }
         } catch (e) {
             // Never leave the controls dead because the check failed — but say
@@ -910,6 +877,14 @@ const Description = {
                     }
 
                     if (passThrough === true) {
+                        // Nothing of the layer is in view. Resolving a step
+                        // here would index off the end of an empty list and
+                        // reject the promise, which reads as arrows that do
+                        // nothing rather than arrows that are at a limit.
+                        if (hasBounds && features.length === 0) {
+                            resolve(0)
+                            return
+                        }
                         if (field === NAV_SPATIAL_FIELD) {
                             // Row height from the visible span so the banding
                             // tracks zoom rather than being a fixed constant.
@@ -964,6 +939,25 @@ const Description = {
                                     features[features.length - 1].properties._
                                         .id
                             }
+                        }
+
+                        // Panning away from the selected feature drops it
+                        // out of its own view-scoped list, and the index walk
+                        // below has nothing to step from. Enter the list at the
+                        // end you are travelling from instead — see
+                        // `navEntryFeature`.
+                        if (
+                            hasBounds &&
+                            (direction === 'previous' || direction === 'next') &&
+                            !navAnchorInList(features, currentIdx)
+                        ) {
+                            const entry = navEntryFeature(
+                                features,
+                                direction,
+                                sortedFields
+                            )
+                            resolve(entry.properties._.id - currentIdx)
+                            return
                         }
 
                         if (
