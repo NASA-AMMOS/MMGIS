@@ -711,7 +711,18 @@
  * about hiding one erases it.
  */
 #drawToolTemplater li.drawToolTemplaterHidden {
-    display: none;
+    /*
+     * `!important` because hidden must outrank every type's own layout rule,
+     * and a type that sets its own `display` is EXACTLY as specific as this.
+     *
+     * One id, one class, one element on both sides — the child combinator adds
+     * nothing — so the winner was decided by stylesheet order, and a field type
+     * contributed by a plugin loads after this file. Its `display: block` won,
+     * and a photo, tally or track field behind a `showIf` stayed on screen
+     * however the predicate evaluated. The branch logic was right and the CSS
+     * quietly overruled it.
+     */
+    display: none !important;
 }
 
 /*
