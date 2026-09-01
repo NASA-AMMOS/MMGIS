@@ -161,7 +161,6 @@
 
 /* Custom date indicator - shows "back to today" when custom date is active */
 .operationsClockComponent .clock-today-date.custom-date {
-    background: var(--color-a1-5) !important;
     color: white;
     font-weight: 600;
     cursor: pointer;
@@ -176,38 +175,34 @@
 /* Mobile dropdown layout */
 .operationsClockComponent .clock-mobile-group {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 6px;
     background: var(--color-k);
     border: 1px solid rgba(0, 0, 0, 0.12);
     border-radius: 4px;
     box-shadow: 0px 2px 4px 0px rgba(0,0,0,0.1);
-    min-width: 280px;
-}
-
-.operationsClockComponent .clock-mobile-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.operationsClockComponent .clock-mobile-row label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--color-a4);
-    min-width: 80px;
+    max-width: calc(100vw - 16px);
+    box-sizing: border-box;
 }
 
 .operationsClockComponent .clock-select {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 120px;
     padding: 6px 8px;
     background: var(--color-k);
     border: 1px solid var(--color-a2);
     border-radius: 4px;
-    color: var(--color-a6);
+    color: var(--color-a4);
     font-size: 13px;
     cursor: pointer;
+}
+
+.operationsClockComponent .clock-select.active {
+    color: var(--color-a6);
+    border-color: var(--color-a1);
 }
 
 .operationsClockComponent .clock-select:focus {
@@ -215,22 +210,83 @@
     border-color: var(--color-a1);
 }
 
+.operationsClockComponent .clock-select option {
+    background: var(--color-k);
+    color: var(--color-a6);
+}
+
 .operationsClockComponent .clock-today-section {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 8px;
-    background: var(--color-a);
     border-radius: 4px;
-    cursor: pointer;
     transition: background 0.2s;
 }
 
-.operationsClockComponent .clock-today-section:hover {
-    background: var(--color-a1);
+.operationsClockComponent .clock-today-clickable {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    flex: 1;
+}
+
+@media (hover: hover) {
+    .operationsClockComponent .clock-today-section:hover {
+    }
+}
+
+.operationsClockComponent .clock-mobile-group .clock-today-section > div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.operationsClockComponent .clock-mobile-group .clock-today-date.custom-date {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.operationsClockComponent .clock-mobile-group .clock-today-date {
+    position: static;
+    bottom: auto;
+    width: auto;
+    padding: 0;
+    box-shadow: none;
+    background: transparent;
+    text-align: left;
+    font-size: 13px;
+    color: var(--color-a6);
+    pointer-events: none;
+}
+
+.operationsClockComponent .clock-mobile-group .clock-today-date.offset-active {
+    color: var(--color-a4);
 }
 
 .operationsClockComponent .clock-icon-large {
     width: 24px;
     height: 24px;
     color: var(--color-a6);
+}
+
+.operationsClockComponent .clock-refresh-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--color-a6);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 0.2s;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+}
+
+.operationsClockComponent .clock-refresh-icon:hover {
+    color: var(--color-a);
 }
 
 .operationsClockComponent .clock-today-label {
@@ -266,4 +322,8 @@
 /* Custom positioning for OperationsClock date picker */
 .tempus-dominus-widget.operations-clock-picker {
     margin-left: -100px !important;
+}
+
+.tempus-dominus-widget.operations-clock-picker.operations-clock-picker-mobile {
+    margin-left: -25px !important;
 }

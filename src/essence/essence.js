@@ -417,7 +417,7 @@ var essence = {
                 window.location.protocol.indexOf('https') !== -1 ? 'wss' : 'ws'
             const path =
                 window.mmgisglobal.NODE_ENV === 'development'
-                    ? `${protocol}://localhost:${port}${
+                    ? `${protocol}://${window.location.hostname}:${port}${
                           window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
                           window.mmgisglobal.ROOT_PATH ||
                           ''

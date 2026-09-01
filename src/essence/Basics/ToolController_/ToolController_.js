@@ -1,7 +1,7 @@
 import $ from 'jquery'
 import L_ from '../Layers_/Layers_'
 import { toolModules, toolConfigs } from '../../../pre/tools'
-import useUIStore from '../UserInterface_/store/uiStore'
+import useUIStore, { readSavedDetentIndex } from '../UserInterface_/store/uiStore'
 import { getSeparatedMode, resolveToolJs } from './toolControllerHelpers'
 
 // Once per name: a miss is usually in a click handler, so warning every time
@@ -215,7 +215,37 @@ let ToolController_ = {
                     // Cancel any pending horizontal-tool close cleanup
                     ++this._closeSeq
 
-                    this.setToolHeight(tool.height)
+                    // Register the tool's detent fractions so the drag
+                    // splitter can snap between hardstops
+                    const detents = Array.isArray(tool.heightDetents)
+                        ? tool.heightDetents
+                        : []
+                    useUIStore.getState().setToolDetents(detents)
+
+                    // Open at a detent index (default = middle) using the same
+                    // height basis as the snap math, so the initial height lines
+                    // up with a hardstop. Restore the user's last-used detent if
+                    // one was saved and fall back to tool.height when no detents
+                    let openedFromDetent = false
+                    if (detents.length > 0 && tool.height !== 0) {
+                        const savedIdx = readSavedDetentIndex(name)
+                        const middleIdx = Math.floor(detents.length / 2)
+                        const useIdx =
+                            savedIdx != null &&
+                            savedIdx >= 0 &&
+                            savedIdx < detents.length
+                                ? savedIdx
+                                : middleIdx
+                        openedFromDetent = useUIStore
+                            .getState()
+                            .setToolHeightToDetent(useIdx)
+                    }
+                    if (!openedFromDetent) {
+                        this.setToolHeight(tool.height)
+                    } else {
+                        // keep prevHeight in sync so a later setToolHeight(0) closes
+                        this.prevHeight = useUIStore.getState().pxIsTools
+                    }
                     this.setToolWidth(tool.width)
                     if (tool.height == 0) {
                         this.UserInterface.openToolPanel(tool.width)
@@ -341,6 +371,7 @@ let ToolController_ = {
         // Sync to store so React re-renders button states
         useUIStore.getState().setActiveToolName(null)
         useUIStore.getState().setToolPanelDragVisible(false)
+        useUIStore.getState().setToolDetents([])
         this.prevHeight = 0
     },
     injectCloseButton: function () {

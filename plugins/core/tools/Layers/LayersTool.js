@@ -235,7 +235,10 @@ var LayersTool = {
                 .getElementById('map')
                 .getBoundingClientRect()
             this.width = 'full'
-            this.height = Math.round(mapRect.height * 0.7)
+            // Mobile bottom-sheet detents (fractions of map height), from small to large
+            // Middle detent is the default open height
+            this.heightDetents = [0.4, 0.7, 0.9]
+            this.height = Math.round(mapRect.height * this.heightDetents[1])
         }
     },
     finalize: function () {
@@ -657,6 +660,9 @@ function interfaceWithMMGIS(fromInit) {
     function depthTraversal(node, parent, depth) {
         LayersTool._maxDepth = Math.max(LayersTool._maxDepth, depth)
         for (var i = 0; i < node.length; i++) {
+            const escapedLayerName = F_.escapeHtml(node[i].name)
+            const escapedParentName = F_.escapeHtml(parent.name)
+            const escapedDisplayName = F_.escapeHtml(node[i].display_name)
             let currentOpacity
             let currentBrightness
             let currentContrast
@@ -944,20 +950,20 @@ function interfaceWithMMGIS(fromInit) {
                         expressionSettings = [
                             '<div class="layerSettingsTitle">',
                                 '<div>Band Math Expression</div>',
-                                `<div class="tileexpressionreset" title="Reset Expression to Default" layername="${node[i].name}">`,
+                                `<div class="tileexpressionreset" title="Reset Expression to Default" layername="${escapedLayerName}">`,
                                     '<i class="mdi mdi-restore mdi-18px"></i>',
                                 '</div>',
                             '</div>',
                             `<li class="tileCogExpression">`,
                                 '<div>',
-                                    `<input class="tileexpression" layername="${node[i].name}" type="text" value="${currentExpression}" placeholder="e.g., b1*2 or asset_b1*2">`,
+                                    `<input class="tileexpression" layername="${escapedLayerName}" type="text" value="${F_.escapeHtml(currentExpression)}" placeholder="e.g., b1*2 or asset_b1*2">`,
                                     '<div class="expression-buttons">',
-                                        `<button class="tileexpressionapply" layername="${node[i].name}">Apply</button>`,
+                                        `<button class="tileexpressionapply" layername="${escapedLayerName}">Apply</button>`,
                                     '</div>',
                                 '</div>',
                                 '<div>',
                                     '<div class="expression-helper-text">Use asset_bX for bands (e.g., asset_b1, asset_b2). Supports math operators: +, -, *, /, () for grouping. For RGB output: asset_b1;asset_b2;asset_b3. Shorthand bX will auto-prefix to asset_bX.</div>',
-                                    `<div class="expression-stac-info" data-layername="${node[i].name}"></div>`,
+                                    `<div class="expression-stac-info" data-layername="${escapedLayerName}"></div>`,
                                 '</div>',
                             '</li>',
                         ].join('\n')
@@ -972,7 +978,7 @@ function interfaceWithMMGIS(fromInit) {
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
-                                `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
+                                `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || TILE_DEFAULT_COLOR_RAMP}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
@@ -989,7 +995,7 @@ function interfaceWithMMGIS(fromInit) {
                         additionalSettings = [
                             '<div class="layerSettingsTitle">',
                                 '<div>COG Settings</div>',
-                                `<div class="resetCog" title="Reset COG Settings" layername="${node[i].name}">`,
+                                `<div class="resetCog" title="Reset COG Settings" layername="${escapedLayerName}">`,
                                     '<i class="mdi mdi-restore mdi-18px"></i>',
                                 '</div>',
                             '</div>',
@@ -997,8 +1003,8 @@ function interfaceWithMMGIS(fromInit) {
                                 '<div>',
                                     '<div>Rescale Max Value</div>',
                                     '<div>',
-                                        `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax}" default="255">`,
-                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
+                                        `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${escapedLayerName}" parameter="max" type="number" value="${F_.escapeHtml(node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax)}" default="255">`,
+                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${F_.escapeHtml(node[i].cogUnits)}</div>`: '',
                                     '</div>',
                                 '</div>',
                             '</li>',
@@ -1013,8 +1019,8 @@ function interfaceWithMMGIS(fromInit) {
                                 '<div>',
                                     '<div>Rescale Min Value</div>',
                                     '<div>',
-                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
-                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
+                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${escapedLayerName}" parameter="min" type="number" value="${F_.escapeHtml(node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin)}" default="0">`,
+                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${F_.escapeHtml(node[i].cogUnits)}</div>`: '',
                                     '</div>',
                                 '</div>',
                             '</li>',
@@ -1038,31 +1044,31 @@ function interfaceWithMMGIS(fromInit) {
                             '<li>',
                                 '<div>',
                                     '<div>Opacity</div>',
-                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                    '<input class="transparencyslider slider2" layername="' + escapedLayerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Brightness</div>',
-                                        '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + node[i].name + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="' + defaultBrightness + '">',
+                                    '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + escapedLayerName + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="' + defaultBrightness + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Contrast</div>',
-                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="' + defaultContrast + '">',
+                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + escapedLayerName + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="' + defaultContrast + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Saturation</div>',
-                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="' + defaultSaturation + '">',
+                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + escapedLayerName + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="' + defaultSaturation + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Blend</div>',
-                                    '<select class="tileblender dropdown" layername="' + node[i].name + '" defaultBlend="' + defaultBlend + '">',
+                                    '<select class="tileblender dropdown" layername="' + escapedLayerName + '" defaultBlend="' + defaultBlend + '">',
                                         '<option value="unset"' + (currentBlend == 'none' ? ' selected' : '') + '>None</option>',
                                         '<option value="color"' + (currentBlend == 'color' ? ' selected' : '') + '>Color</option>',
                                         //'<option value="color-burn">Color Burn</option>',
@@ -1087,13 +1093,13 @@ function interfaceWithMMGIS(fromInit) {
                             '<li>',
                                 '<div>',
                                     '<div>Hue</div>',
-                                    '<input class="tilefilterslider slider2" filter="hue-rotate"  unit="deg" layername="' + node[i].name + '" type="range" min="0" max="3.60" step="0.1" value="0" default="0">',
+                                    '<input class="tilefilterslider slider2" filter="hue-rotate"  unit="deg" layername="' + escapedLayerName + '" type="range" min="0" max="3.60" step="0.1" value="0" default="0">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Invert</div>',
-                                    '<input class="tilefilterslider slider2" filter="invert"  unit="%" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.05" value="0" default="0">',
+                                    '<input class="tilefilterslider slider2" filter="invert"  unit="%" layername="' + escapedLayerName + '" type="range" min="0" max="1" step="0.05" value="0" default="0">',
                                 '</div>',
                             '</li>',
                             */
@@ -1135,13 +1141,13 @@ function interfaceWithMMGIS(fromInit) {
                             '<li>',
                                 '<div>',
                                     '<div>Opacity</div>',
-                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                    '<input class="transparencyslider slider2" layername="' + escapedLayerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Blend</div>',
-                                    '<select class="tileblender dropdown" layername="' + node[i].name + '">',
+                                    '<select class="tileblender dropdown" layername="' + escapedLayerName + '">',
                                         '<option value="unset"' + (currentBlend == 'none' ? ' selected' : '') + '>None</option>',
                                         '<option value="color"' + (currentBlend == 'color' ? ' selected' : '') + '>Color</option>',
                                         '<option value="overlay"' + (currentBlend == 'overlay' ? ' selected' : '') + '>Overlay</option>',
@@ -1168,7 +1174,7 @@ function interfaceWithMMGIS(fromInit) {
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
-                                `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
+                                `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables?.streamlines?.colorScale?.toLowerCase() || VELOCITY_DEFAULT_COLOR_RAMP}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
@@ -1185,7 +1191,7 @@ function interfaceWithMMGIS(fromInit) {
                         additionalSettings = [
                             '<div class="layerSettingsTitle">',
                                 '<div>Color Settings</div>',
-                                `<div class="resetCog" title="Reset Color Settings" layername="${node[i].name}">`,
+                                `<div class="resetCog" title="Reset Color Settings" layername="${escapedLayerName}">`,
                                     '<i class="mdi mdi-restore mdi-18px"></i>',
                                 '</div>',
                             '</div>',
@@ -1193,7 +1199,7 @@ function interfaceWithMMGIS(fromInit) {
                                 '<div>',
                                     '<div>Rescale Max Value</div>',
                                     '<div>',
-                                        `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].variables?.streamlines?.maxVelocity}" default="255">`,
+                                        `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${escapedLayerName}" parameter="max" type="number" value="${F_.escapeHtml(node[i].currentCogMin != null ? node[i].currentCogMax : node[i].variables?.streamlines?.maxVelocity)}" default="255">`,
                                         node[i].variables?.streamlines?.units != null ? `<div class='tileCogUnits'>${node[i].variables?.streamlines?.units}</div>`: '',
                                     '</div>',
                                 '</div>',
@@ -1209,7 +1215,7 @@ function interfaceWithMMGIS(fromInit) {
                                 '<div>',
                                     '<div>Rescale Min Value</div>',
                                     '<div>',
-                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].variables?.streamlines?.minVelocity}" default="0">`,
+                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${escapedLayerName}" parameter="min" type="number" value="${F_.escapeHtml(node[i].currentCogMin != null ? node[i].currentCogMin : node[i].variables?.streamlines?.minVelocity)}" default="0">`,
                                         node[i].variables?.streamlines?.units != null ? `<div class='tileCogUnits'>${node[i].variables?.streamlines?.units}</div>`: '',
                                     '</div>',
                                 '</div>',
@@ -1231,7 +1237,7 @@ function interfaceWithMMGIS(fromInit) {
                             '<li>',
                                 '<div>',
                                     '<div>Opacity</div>',
-                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                    '<input class="transparencyslider slider2" layername="' + escapedLayerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
                                 '</div>',
                             '</li>',
                             additionalSettings,
@@ -1258,7 +1264,7 @@ function interfaceWithMMGIS(fromInit) {
                         if (window.mmgisglobal.WITH_TITILER === 'true') {
                             // prettier-ignore
                             additionalSettings = [
-                                `<img id="titlerCogColormapImage_${node[i].name}" src="${window.location.origin}${(
+                                `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
                                         ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || IMAGE_DEFAULT_COLOR_RAMP}?format=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
@@ -1275,7 +1281,7 @@ function interfaceWithMMGIS(fromInit) {
                         additionalSettings = [
                             '<div class="layerSettingsTitle">',
                                 '<div>COG Settings</div>',
-                                `<div class="resetCog" title="Reset COG Settings" layername="${node[i].name}">`,
+                                `<div class="resetCog" title="Reset COG Settings" layername="${escapedLayerName}">`,
                                     '<i class="mdi mdi-restore mdi-18px"></i>',
                                 '</div>',
                             '</div>',
@@ -1283,8 +1289,8 @@ function interfaceWithMMGIS(fromInit) {
                                 '<div>',
                                     '<div>Rescale Max Value</div>',
                                     '<div>',
-                                        `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="max" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax}" default="255">`,
-                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
+                                        `<input class='tilerescalecogmax' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${escapedLayerName}" parameter="max" type="number" value="${F_.escapeHtml(node[i].currentCogMin != null ? node[i].currentCogMax : node[i].cogMax)}" default="255">`,
+                                        node[i].cogUnits != null ? `<div class='tileCogUnits'>${F_.escapeHtml(node[i].cogUnits)}</div>`: '',
                                     '</div>',
                                 '</div>',
                             '</li>',
@@ -1299,7 +1305,7 @@ function interfaceWithMMGIS(fromInit) {
                                 '<div>',
                                     '<div>Rescale Min Value</div>',
                                     '<div>',
-                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${node[i].name}" parameter="min" type="number" value="${node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin}" default="0">`,
+                                        `<input class='tilerescalecogmin' style="width: 120px; border: none; height: 28px; margin: 1px 0px;" layername="${escapedLayerName}" parameter="min" type="number" value="${F_.escapeHtml(node[i].currentCogMin != null ? node[i].currentCogMin : node[i].cogMin)}" default="0">`,
                                         node[i].cogUnits != null ? `<div class='tileCogUnits'>${node[i].cogUnits}</div>`: '',
                                     '</div>',
                                 '</div>',
@@ -1321,7 +1327,7 @@ function interfaceWithMMGIS(fromInit) {
                             '<li>',
                                 '<div>',
                                     '<div>Opacity</div>',
-                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                    '<input class="transparencyslider slider2" layername="' + escapedLayerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
                                 '</div>',
                             '</li>',
                             additionalSettings,
@@ -1341,7 +1347,7 @@ function interfaceWithMMGIS(fromInit) {
                                             '<div>',
                                                 '<div v="' + (min || "0") + "," + (max || "255") + '" pick="imagerangepick" class="picker imagerange stylevalue" style="float: right;">' + (min || "0") + " ➝ " + (max || "255") + '</div>',
                                                 '<div class="picking imagerangepick small visibilityRangePicker" style="display: true">',
-                                                    '<div id="image-slider-range-' + node[i].name + '" class="svelteSlider" style="width: 130px; overflow: hidden; margin-right: -5px; height: 100%;"></div>',
+                                                    '<div id="image-slider-range-' + escapedLayerName + '" class="svelteSlider" style="width: 130px; overflow: hidden; margin-right: -5px; height: 100%;"></div>',
                                                 '</div>',
                                             '</div>',
                                         '</div>',
@@ -1397,28 +1403,28 @@ function interfaceWithMMGIS(fromInit) {
                             '<li>',
                                 '<div>',
                                     '<div>Opacity</div>',
-                                    '<input class="transparencyslider slider2" layername="' + node[i].name + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
+                                    '<input class="transparencyslider slider2" layername="' + escapedLayerName + '" type="range" min="0" max="1" step="0.01" value="' + currentOpacity + '" default="' + L_.layers.opacity[node[i].name] + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Brightness</div>',
-                                        '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + node[i].name + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="' + defaultBrightness + '">',
+                                        '<input class="tilefilterslider slider2" filter="brightness" unit="%" layername="' + escapedLayerName + '" type="range" min="0" max="3" step="0.05" value="' + currentBrightness + '" default="' + defaultBrightness + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Contrast</div>',
-                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="' + defaultContrast + '">',
+                                    '<input class="tilefilterslider slider2" filter="contrast" unit="%" layername="' + escapedLayerName + '" type="range" min="0" max="4" step="0.05" value="' + currentContrast + '" default="' + defaultContrast + '">',
                                 '</div>',
                             '</li>',
                             '<li>',
                                 '<div>',
                                     '<div>Saturation</div>',
-                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + node[i].name + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="' + defaultSaturation + '">',
+                                    '<input class="tilefilterslider slider2" filter="saturate" unit="%" layername="' + escapedLayerName + '" type="range" min="0" max="4" step="0.05" value="' + currentSaturation + '" default="' + defaultSaturation + '">',
                                 '</div>',
                             '</li>',
-                            '<li class="videoControls" data-layername="' + node[i].name + '">',
+                            '<li class="videoControls" data-layername="' + escapedLayerName + '">',
                                 '<div>',
                                     '<div>Video Controls</div>',
                                     '<div class="videoControlButtons">',
@@ -1428,7 +1434,7 @@ function interfaceWithMMGIS(fromInit) {
                                     '</div>',
                                 '</div>',
                             '</li>',
-                            '<li class="videoControls" data-layername="' + node[i].name + '">',
+                            '<li class="videoControls" data-layername="' + escapedLayerName + '">',
                                 '<div class="videoScrubBar">',
                                     '<div class="videoScrubContainer">',
                                         '<div class="videoScrubTrack">',
@@ -1454,7 +1460,7 @@ function interfaceWithMMGIS(fromInit) {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            `<li class="layersToolHeader" id="header_${node[i].name}" name="${node[i].name}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
+                            `<li class="layersToolHeader" id="header_${escapedLayerName}" name="${escapedLayerName}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
                                 `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
                                     '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
@@ -1462,13 +1468,13 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div>',
                                         '<i class="headerChevron mdi mdi-chevron-down mdi-24px"></i>',
                                     '</div>',
-                                    `<div class="layerName" title="${node[i].display_name}">`,
-                                        node[i].display_name,
+                                    `<div class="layerName" title="${escapedDisplayName}">`,
+                                        escapedDisplayName,
                                     '</div>',
                                     '<div class="layerCount">',
                                         (node[i].sublayers ? node[i].sublayers.length : '0'),
                                     '</div>',
-                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
                                     `<div class="headerPowerState ${'on'}" title="Toggle all on inner-layers on or off.">`,
@@ -1483,7 +1489,7 @@ function interfaceWithMMGIS(fromInit) {
                     // prettier-ignore
                     $('#layersToolList').append(
                         [
-                            '<li id="LayersTool' + F_.getSafeName(node[i].name) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layers.layer[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + node[i].name + '" parent="' + parent.name + '"  style="margin-bottom: 1px;">',
+                            '<li id="LayersTool' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layers.layer[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + escapedLayerName + '" parent="' + escapedParentName + '"  style="margin-bottom: 1px;">',
                                 `<div class="title" id="layerstart${F_.getSafeName(node[i].name)}" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
                                     '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
@@ -1491,8 +1497,8 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div class="checkboxcont">',
                                         '<div class="checkbox ' + (L_.layers.on[node[i].name] ? 'on' : 'off') + '"></div>',
                                     '</div>',
-                                    `<div class="layerName" title="${node[i].display_name}">`,
-                                        node[i].display_name,
+                                    `<div class="layerName" title="${escapedDisplayName}">`,
+                                        escapedDisplayName,
                                     '</div>',
                                     '<div class="refreshWarning" title="Layer refresh failed. Using cached data." style="display: none;">',
                                         '<i class="mdi mdi-alert mdi-18px"></i>',
@@ -1502,19 +1508,19 @@ function interfaceWithMMGIS(fromInit) {
                                         '<i class="mdi mdi-refresh mdi-18px"></i>',
                                     '</div>'].join('\n')
                                     : null,
-                                    (layerExport != '') ? ['<div title="Download" class="layerDownload" id="layerexport' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    (layerExport != '') ? ['<div title="Download" class="layerDownload" id="layerexport' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-download mdi-18px" name="layerexport"></i>',
                                     '</div>'].join('\n') : '',
-                                    '<div title="Settings" class="gears" id="layersettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    '<div title="Settings" class="gears" id="layersettings' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-tune mdi-18px" name="layersettings"></i>',
                                     '</div>',
-                                    '<div title="Locate" class="locate" id="layerlocate' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    '<div title="Locate" class="locate" id="layerlocate' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-crosshairs-gps mdi-18px" name="layerlocate"></i>',
                                     '</div>',
-                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
-                                    (timeDisplay != '') ? ['<div class="time" id="timesettings' + F_.getSafeName(node[i].name) + '" stype="' + node[i].type + '" layername="' + node[i].name + '">',
+                                    (timeDisplay != '') ? ['<div class="time" id="timesettings' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-clock mdi-18px" name="timesettings" style="color:' + node[i].time.status + '"></i>',
                                     '</div>'].join('\n') : '',
                                 '</div>',
