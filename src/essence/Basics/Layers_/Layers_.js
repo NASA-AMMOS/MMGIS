@@ -51,6 +51,7 @@ const L_ = {
     _layersParent: {}, // 5 uses
     //
     _localTimeFilterCache: {},
+    _pendingTimeFilters: {},
     //FUTURES
     FUTURES: {
         site: null,
