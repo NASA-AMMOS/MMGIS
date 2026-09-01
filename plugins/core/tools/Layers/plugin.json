@@ -16,7 +16,7 @@
     "hasVars": true,
     "name": "Layers",
     "toolbarPriority": 1,
-    "mobileTool": true,
+    "worksOnMobile": true,
     "paths": {
         "LayersTool": "./LayersTool"
     },

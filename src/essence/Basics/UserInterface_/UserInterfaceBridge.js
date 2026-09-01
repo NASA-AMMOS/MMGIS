@@ -348,7 +348,7 @@ const UserInterfaceBridge = {
         if (this.isMobile) {
             // Build list of mobile enabled plugins
             const mobileTools = Object.keys(toolConfigs).filter(
-                (name) => toolConfigs[name].mobileTool === true
+                (name) => toolConfigs[name].worksOnMobile === true
             )
 
             // Keep mapToolBar and compass in default desktop position (bottom-left)

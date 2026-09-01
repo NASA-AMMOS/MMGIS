@@ -16,7 +16,7 @@
     "hasVars": true,
     "name": "Info",
     "toolbarPriority": 3,
-    "mobileTool": true,
+    "worksOnMobile": true,
     "paths": {
         "InfoTool": "./InfoTool"
     },

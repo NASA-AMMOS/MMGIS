@@ -635,7 +635,7 @@ const KNOWN_FIELDS = {
     "toolbarPriority",
     "expandable",
     "separatedTool",
-    "mobileTool",
+    "worksOnMobile",
     "config",
     "providesInteractions",
   ]),
