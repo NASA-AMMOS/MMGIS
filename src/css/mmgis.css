@@ -296,9 +296,11 @@ body {
 .toolButton {
     color: var(--color-f);
 }
-.toolButton:hover {
-    background: var(--color-a1-5) !important;
-    color: var(--color-c) !important;
+@media (hover: hover) {
+    .toolButton:hover {
+        background: var(--color-a1-5) !important;
+        color: var(--color-c) !important;
+    }
 }
 .toolButton.toolButtonActive,
 .toolButton.toolButtonActive:hover {
@@ -597,8 +599,10 @@ body {
 #toolcontroller_incdiv > div {
     color: #bbb;
 }
-#toolcontroller_incdiv > div:hover {
-    color: white;
+@media (hover: hover) {
+    #toolcontroller_incdiv > div:hover {
+        color: white;
+    }
 }
 
 .ui-menu .ui-menu-item {
