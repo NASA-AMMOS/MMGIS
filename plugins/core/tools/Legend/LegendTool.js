@@ -33,7 +33,10 @@ var LegendTool = {
         if (L_.UserInterface_.isMobile === true) {
             const mapRect = document.getElementById('map').getBoundingClientRect()
             this.width = 'full'
-            this.height = Math.round(mapRect.height * 0.25)
+            // Mobile bottom-sheet detents (fractions of map height), from small to large
+            // Middle detent is the default open height
+            this.heightDetents = [0.15, 0.25, 0.55]
+            this.height = Math.round(mapRect.height * this.heightDetents[1])
         } else if (vars['width'] != null && !isNaN(parseInt(vars['width']))) {
             this.width = Math.max(100, parseInt(vars['width']))
         }
