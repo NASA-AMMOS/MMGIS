@@ -1,5 +1,6 @@
 import useUIStore from './store/uiStore'
 import BottomBar from './BottomBar'
+import { toolConfigs } from '../../../pre/tools'
 // LayerUpdatedControl is no longer used as a Leaflet control;
 // status indicators now render in the TopBar via uiStore.statusIndicator
 import { applyTheme } from '../../../design-system/applyTheme'
@@ -345,7 +346,10 @@ const UserInterfaceBridge = {
 
         // Mobile-specific fina behavior
         if (this.isMobile) {
-            const mobileTools = ['Layers', 'Legend', 'Info', 'Analysis']
+            // Build list of mobile enabled plugins
+            const mobileTools = Object.keys(toolConfigs).filter(
+                (name) => toolConfigs[name].mobileTool === true
+            )
 
             // Keep mapToolBar and compass in default desktop position (bottom-left)
 
