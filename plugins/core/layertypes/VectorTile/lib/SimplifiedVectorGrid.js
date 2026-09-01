@@ -54,8 +54,7 @@
  * When `simplifyTolerance` is 0 or unset, the subclass falls through to the
  * stock L.VectorGrid.Protobuf behavior — no simplification, no overhead.
  */
-// Leaflet is loaded globally via src/external/Leaflet/leaflet1.5.1 in src/index.js.
-// Use window.L instead of importing from 'leaflet' (not an npm dep here).
+// Leaflet is loaded globally in src/index.js; plugins read it off window.
 const L = window.L
 
 /**

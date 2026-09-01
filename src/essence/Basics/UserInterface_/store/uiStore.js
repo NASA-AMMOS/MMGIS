@@ -218,17 +218,30 @@ const useUIStore = create((set, get) => ({
         // fire after layout but before paint, eliminating the visible "jerk"
         // that the previous setTimeout(0) approach caused.
 
-        // Sync Globe to Map on first open
+        const wasMapOpen = state.pxIsMap > 0
+
+        // The globe opens onto what the map is showing: it can't have been
+        // moved while it was closed, so the map is where the user was looking.
         if (wasGlobeClosed && isGlobeOpening) {
             setTimeout(() => {
                 const current = get()
-                if (current._Globe && !current._Globe.hasBeenOpened) {
-                    current._Globe.hasBeenOpened = true
-                    current._Globe.init()
-                    if (current._L && current._L.FUTURES.globeView == null) {
-                        setTimeout(() => {
-                            current._Globe.syncToMapCenter()
-                        }, 100)
+                if (current._Globe) {
+                    const first = !current._Globe.hasBeenOpened
+                    if (first) {
+                        current._Globe.hasBeenOpened = true
+                        current._Globe.init()
+                    }
+                    // Not when a link asked for a particular globe view, nor
+                    // from a layout whose map was closed and so is stale.
+                    if (
+                        wasMapOpen &&
+                        current._L &&
+                        current._L.FUTURES.globeView == null
+                    ) {
+                        setTimeout(
+                            () => current._Globe.syncToMapCenter(),
+                            first ? 100 : 0
+                        )
                     }
                 }
                 // Always invalidateSize when globe opens, even if already initialized

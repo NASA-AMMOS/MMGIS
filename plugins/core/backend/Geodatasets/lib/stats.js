@@ -1,0 +1,404 @@
+/**
+ * Geodataset statistics helpers.
+ *
+ * Two independent features live here:
+ *
+ *  1. Query-time, per-group statistics (`stats=` on /get). Numeric aggregates of
+ *     a feature's *group* (the same grouping `noDuplicates` uses) computed as
+ *     window functions so full feature rows can still be selected.
+ *
+ *  2. Dataset-wide, per-field statistics (`field_stats` on the geodatasets
+ *     metadata row) accumulated while a geodataset is written, so a consumer
+ *     knows a field's full domain without querying every feature.
+ *
+ * Kept free of express/sequelize so both are unit testable.
+ */
+
+const Utils = require("../../../../../API/utils.js");
+const { jsonbAccessor } = require("./jsonb");
+
+// One number grammar for both halves of the feature: it guards the Postgres
+// cast out of JSONB, and is what JS calls numeric text. A grammar rather than a
+// character class, so "2024-01-15" and "1.2.3" are text, not numbers. The
+// exponent is bounded so the intermediate NUMERIC below cannot overflow either.
+const SQL_NUMERIC_REGEX =
+  "^\\s*[-+]?([0-9]+\\.?[0-9]*|\\.[0-9]+)([eE][-+]?[0-9]{1,5})?\\s*$";
+const NUMERIC_TEXT_REGEX = new RegExp(SQL_NUMERIC_REGEX);
+
+// Largest magnitude a FLOAT8 holds. Casting text straight to FLOAT8 raises
+// "out of range" and would abort the query, so values are measured as NUMERIC
+// first and skipped — as Number.isFinite() skips them on the JS side.
+const FLOAT8_MAX = "1e308";
+
+// How many path segments deep either half of `field_stats` follows nesting:
+// what a rescan's recursive walk can reach, and so what ingest records.
+const MAX_SCAN_DEPTH = 10;
+
+// Statistics computed per group at query time. `stddev` is the population
+// deviation, as the derived one on `field_stats` is.
+const STAT_AGGREGATES = ["min", "max", "avg", "sum", "stddev"];
+const STAT_SQL = {
+  min: "MIN",
+  max: "MAX",
+  avg: "AVG",
+  sum: "SUM",
+  stddev: "STDDEV_POP",
+};
+
+// Bound the number of fields a single request may ask for, so `stats` cannot be
+// used to build an arbitrarily large query.
+const MAX_STAT_FIELDS = 20;
+
+/**
+ * Sanitize a requested `stats` list exactly like `_source`: alphanumerics,
+ * underscores, dots (nested path separator) and hyphens only.
+ * @returns {string[]|null} deduped field list, or null when nothing is usable
+ */
+function sanitizeStatFields(stats) {
+  if (!Array.isArray(stats)) return null;
+  const cleaned = [];
+  stats.forEach((s) => {
+    if (typeof s !== "string") return;
+    const safe = Utils.forceAlphaNumUnder(s, [".", "-"]);
+    if (safe && cleaned.indexOf(safe) === -1) cleaned.push(safe);
+  });
+  if (cleaned.length === 0) return null;
+  return cleaned.slice(0, MAX_STAT_FIELDS);
+}
+
+/**
+ * Build the SELECT fragment that computes per-group statistics.
+ *
+ * Window aggregates (not GROUP BY) because the surrounding query selects whole
+ * feature rows: `MIN(x) OVER (PARTITION BY group_id)` annotates every row with
+ * its group's value and collapses nothing, so this composes with `noDuplicates`,
+ * filters and pagination.
+ *
+ * Column aliases are index-based (`stat_min_0`) — a requested field name is
+ * never used as an SQL identifier.
+ *
+ * @param {string[]} fields sanitized field list
+ * @param {string|null} partitionBy grouping expression, e.g. "group_id" or "geom".
+ *   Null/empty partitions over the whole filtered set.
+ * @returns {{ text: string, replacements: Object }} `text` is "" when there is
+ *   nothing to add, else a fragment beginning with ", ".
+ */
+function buildStatsSelect(fields, partitionBy) {
+  if (!Array.isArray(fields) || fields.length === 0)
+    return { text: "", replacements: {} };
+
+  const over = `OVER (${partitionBy ? `PARTITION BY ${partitionBy}` : ""})`;
+  const replacements = { stats_numeric_regex: SQL_NUMERIC_REGEX };
+  const selects = [];
+
+  fields.forEach((field, i) => {
+    const accessor = jsonbAccessor(field, `stat_field_${i}`);
+    Object.assign(replacements, accessor.replacements);
+    // Non-numeric, missing and unrepresentable values become NULL and are
+    // ignored by the aggregates; a group with no numeric values yields NULL.
+    // Nested CASEs so the cast is only reached once the value is known good.
+    const numeric =
+      `(CASE WHEN ${accessor.text} ~ :stats_numeric_regex THEN ` +
+      `(CASE WHEN ABS((${accessor.text})::NUMERIC) <= ${FLOAT8_MAX} ` +
+      `THEN ((${accessor.text})::NUMERIC)::FLOAT8 END) END)`;
+    STAT_AGGREGATES.forEach((agg) => {
+      selects.push(
+        `${STAT_SQL[agg]}(${numeric}) ${over} AS ${statAlias(agg, i)}`,
+      );
+    });
+  });
+
+  return { text: `, ${selects.join(", ")}`, replacements };
+}
+
+/** Column alias for a given aggregate of the i-th requested field. */
+function statAlias(agg, i) {
+  return `stat_${agg}_${i}`;
+}
+
+/**
+ * Reassemble a queried row's stat columns into
+ * `{ "field": { min, max, avg, sum, stddev } }`. Aggregates with no numeric
+ * input are null.
+ */
+function readRowStats(row, fields) {
+  if (!row || !Array.isArray(fields) || fields.length === 0) return null;
+  const stats = Object.create(null);
+  fields.forEach((field, i) => {
+    const stat = {};
+    STAT_AGGREGATES.forEach((agg) => {
+      stat[agg] = toNumberOrNull(row[statAlias(agg, i)]);
+    });
+    stats[field] = stat;
+  });
+  return stats;
+}
+
+function toNumberOrNull(value) {
+  if (value == null || value === "") return null;
+  const num = typeof value === "number" ? value : parseFloat(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+/**
+ * Accumulate dataset-wide statistics for every numeric property of a feature
+ * collection. Nested properties are flattened to dotted paths the same way
+ * /aggregations and /schema discover fields, so `field_stats` keys line up with
+ * what those endpoints report.
+ *
+ * `sum`, `sumsq` and `count` are stored (rather than an average and a deviation)
+ * so appends can merge without re-reading the table and still report both
+ * exactly.
+ *
+ * Nesting is followed only as deep as a rescan of the table can follow it, so
+ * the two ways of producing `field_stats` describe the same set of fields.
+ *
+ * @param {Array} features GeoJSON features
+ * @param {Object} [into] existing accumulator to add to
+ * @returns {Object} { "path.to.field": { type: "number", min, max, sum, sumsq,
+ *   count } }
+ */
+function collectFieldStats(features, into) {
+  // Prototype-less: an uploaded property named __proto__ would otherwise
+  // accumulate onto Object.prototype instead of into the statistics.
+  const stats = into || Object.create(null);
+  if (!Array.isArray(features)) return stats;
+  features.forEach((feature) => {
+    if (feature && feature.properties)
+      accumulateProperties(stats, feature.properties, "", 0);
+  });
+  return stats;
+}
+
+function accumulateProperties(stats, obj, prefix, depth) {
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value == null) continue;
+    if (typeof value === "object") {
+      // Arrays have no meaningful single numeric domain
+      if (!Array.isArray(value) && depth < MAX_SCAN_DEPTH)
+        accumulateProperties(stats, value, fullKey, depth + 1);
+      continue;
+    }
+    if (typeof value === "boolean") continue;
+    // Numeric text counts, but only when the whole value is a number — the same
+    // grammar the query-time SQL casts by, so both halves agree on what a
+    // numeric field is ("12abc", "2024-01-15" and "1.2.3" are all text).
+    if (typeof value === "string" && !NUMERIC_TEXT_REGEX.test(value)) continue;
+    const num = typeof value === "number" ? value : parseFloat(value);
+    if (!Number.isFinite(num)) continue;
+
+    let stat = own(stats, fullKey) ? stats[fullKey] : null;
+    if (stat == null) {
+      stat = stats[fullKey] = {
+        type: "number",
+        min: num,
+        max: num,
+        sum: 0,
+        sumsq: 0,
+        count: 0,
+      };
+    }
+    if (num < stat.min) stat.min = num;
+    if (num > stat.max) stat.max = num;
+    stat.sum += num;
+    stat.sumsq += num * num;
+    stat.count += 1;
+  }
+}
+
+/**
+ * Build the query that recomputes a geodataset's whole `field_stats` from the
+ * rows already in its table, aggregating in Postgres rather than reading every
+ * feature into node. Nested properties flatten to the dotted paths
+ * `collectFieldStats` produces, over the same numeric guard, so a rescan agrees
+ * with what ingest would have stored.
+ *
+ * @param {string} table already-sanitized table name
+ * @returns {{ text: string, replacements: Object }}
+ */
+function buildFieldStatsScan(table) {
+  // Only nesting takes the recursive walk, so a flat property streams out of
+  // jsonb_each. Sums are NUMERIC so squares cannot overflow mid-aggregate, and
+  // come back as text for node to parse rather than as a float.
+  const text = `
+    WITH RECURSIVE nested(path, value, depth) AS (
+      SELECT kv.key, kv.value, 1
+      FROM ${table}, jsonb_each(properties::JSONB) kv
+      WHERE jsonb_typeof(properties::JSONB) = 'object'
+        AND jsonb_typeof(kv.value) = 'object'
+      UNION ALL
+      SELECT nested.path || '.' || kv.key, kv.value, nested.depth + 1
+      FROM nested, jsonb_each(nested.value) kv
+      WHERE jsonb_typeof(nested.value) = 'object'
+        AND nested.depth < ${MAX_SCAN_DEPTH}
+    )
+    SELECT path,
+      MIN(num)::TEXT AS min,
+      MAX(num)::TEXT AS max,
+      SUM(num)::TEXT AS sum,
+      SUM(num * num)::TEXT AS sumsq,
+      COUNT(num)::TEXT AS count
+    FROM (
+      SELECT path,
+        -- Nested so the cast is only ever reached by text the guard matched.
+        CASE WHEN ty = 'number' OR (ty = 'string' AND txt ~ :stats_numeric_regex)
+          THEN CASE WHEN ABS(txt::NUMERIC) <= ${FLOAT8_MAX}
+            THEN txt::NUMERIC END
+        END AS num
+      FROM (
+        SELECT kv.key AS path,
+          jsonb_typeof(kv.value) AS ty,
+          kv.value #>> '{}' AS txt
+        FROM ${table}, jsonb_each(properties::JSONB) kv
+        WHERE jsonb_typeof(properties::JSONB) = 'object'
+          AND jsonb_typeof(kv.value) <> 'object'
+        UNION ALL
+        SELECT path, jsonb_typeof(value), value #>> '{}'
+        FROM nested
+        WHERE jsonb_typeof(value) <> 'object'
+      ) leaves
+    ) numbers
+    GROUP BY path
+    HAVING COUNT(num) > 0`;
+  return {
+    text: text,
+    replacements: { stats_numeric_regex: SQL_NUMERIC_REGEX },
+  };
+}
+
+/**
+ * Turn {@link buildFieldStatsScan}'s rows into stored `field_stats`. A field
+ * whose squares outgrew a float keeps its other numbers and loses `sumsq`, the
+ * same shape statistics stored before `sumsq` existed have.
+ */
+function readFieldStatsScan(rows) {
+  const stats = Object.create(null);
+  if (!Array.isArray(rows)) return stats;
+  rows.forEach((row) => {
+    const path = row ? row.path : null;
+    if (typeof path !== "string" || path === "") return;
+    const stat = {
+      type: "number",
+      min: toNumberOrNull(row.min),
+      max: toNumberOrNull(row.max),
+      sum: toNumberOrNull(row.sum),
+      sumsq: toNumberOrNull(row.sumsq),
+      count: toNumberOrNull(row.count),
+    };
+    if (stat.sumsq == null) delete stat.sumsq;
+    if (isFieldStat(stat)) stats[path] = stat;
+  });
+  return stats;
+}
+
+/**
+ * Merge freshly computed field statistics into previously stored ones — the
+ * append case. Extrema take the outer bound; sums and counts add.
+ * Recreate overwrites instead of merging, so it does not call this.
+ */
+function mergeFieldStats(previous, next) {
+  const merged = Object.create(null);
+  const prev = previous && typeof previous === "object" ? previous : {};
+  const incoming = next && typeof next === "object" ? next : {};
+
+  Object.keys(prev).forEach((key) => {
+    if (isFieldStat(prev[key])) merged[key] = Object.assign({}, prev[key]);
+  });
+
+  Object.keys(incoming).forEach((key) => {
+    const stat = incoming[key];
+    if (!isFieldStat(stat)) return;
+    const existing = own(merged, key) ? merged[key] : null;
+    if (existing == null) {
+      merged[key] = Object.assign({}, stat);
+      return;
+    }
+    merged[key] = {
+      type: "number",
+      min: Math.min(existing.min, stat.min),
+      max: Math.max(existing.max, stat.max),
+      sum: existing.sum + stat.sum,
+      sumsq: addOrDrop(existing.sumsq, stat.sumsq),
+      count: existing.count + stat.count,
+    };
+    if (merged[key].sumsq == null) delete merged[key].sumsq;
+  });
+
+  return merged;
+}
+
+/**
+ * Add two optional accumulators. Statistics stored before `sumsq` was kept have
+ * no value to add, so the sum is dropped rather than silently understated.
+ */
+function addOrDrop(a, b) {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  return a + b;
+}
+
+/** A field named like a prototype member is a key here, never a lookup on one. */
+function own(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+function isFieldStat(stat) {
+  return (
+    stat != null &&
+    typeof stat === "object" &&
+    Number.isFinite(stat.min) &&
+    Number.isFinite(stat.max) &&
+    Number.isFinite(stat.sum) &&
+    Number.isFinite(stat.count)
+  );
+}
+
+/**
+ * Add the derived `avg`, `stddev` and `nullCount` to stored field statistics for
+ * API responses. Stored form stays sum/sumsq/count so it can keep merging.
+ * `stddev` is the population deviation, null for statistics stored before
+ * `sumsq` was kept. `nullCount` — how many features held no number for the
+ * field — needs the geodataset's feature count and is null without it.
+ *
+ * @param {Object} fieldStats stored statistics
+ * @param {number} [numFeatures] the geodataset's total feature count
+ */
+function withAverages(fieldStats, numFeatures) {
+  if (fieldStats == null || typeof fieldStats !== "object") return null;
+  const total = Number.isFinite(numFeatures) ? numFeatures : null;
+  const out = Object.create(null);
+  Object.keys(fieldStats).forEach((key) => {
+    const stat = fieldStats[key];
+    if (!isFieldStat(stat)) return;
+    const avg = stat.count > 0 ? stat.sum / stat.count : null;
+    out[key] = Object.assign({}, stat, {
+      avg: avg,
+      stddev: standardDeviation(stat, avg),
+      nullCount: total == null ? null : Math.max(0, total - stat.count),
+    });
+  });
+  return out;
+}
+
+function standardDeviation(stat, avg) {
+  if (avg == null || !Number.isFinite(stat.sumsq)) return null;
+  // Floating point can make an all-identical field's variance a hair negative.
+  const variance = Math.max(0, stat.sumsq / stat.count - avg * avg);
+  return Math.sqrt(variance);
+}
+
+module.exports = {
+  SQL_NUMERIC_REGEX,
+  STAT_AGGREGATES,
+  MAX_STAT_FIELDS,
+  sanitizeStatFields,
+  buildStatsSelect,
+  statAlias,
+  readRowStats,
+  collectFieldStats,
+  buildFieldStatsScan,
+  readFieldStatsScan,
+  mergeFieldStats,
+  withAverages,
+};

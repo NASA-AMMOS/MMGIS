@@ -5,6 +5,7 @@ const Sequelize = require("sequelize");
 const { sequelize } = require("../../../../../API/connection");
 const logger = require("../../../../../API/logger");
 const Utils = require("../../../../../API/utils.js");
+const { mergeFieldStats } = require("../lib/stats");
 
 const attributes = {
   name: {
@@ -46,6 +47,13 @@ const attributes = {
     unique: true,
     allowNull: false,
   },
+  // Dataset-wide statistics per numeric property, as
+  // { "path.to.field": { type: "number", min, max, sum, count } }.
+  // Written when the geodataset is (re)created or appended to.
+  field_stats: {
+    type: Sequelize.JSON,
+    allowNull: true,
+  },
 };
 
 const options = {
@@ -55,6 +63,8 @@ const options = {
 // setup User model and its fields.
 var Geodatasets = sequelize.define("geodatasets", attributes, options);
 
+// success() receives { name, table, tableObj, existed } — `existed` false when
+// this call created the geodataset (an append to an unknown name does that).
 function makeNewGeodatasetTable(
   name,
   filename,
@@ -70,8 +80,11 @@ function makeNewGeodatasetTable(
   name = name.replace(/[`~!@#$%^&*()|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, "");
 
   const attributes = {
+    // JSONB rather than JSON: stored parsed, so a property read is a lookup
+    // instead of reparsing the whole document. Tables made before this keep
+    // JSON until converted from Configure.
     properties: {
-      type: Sequelize.JSON,
+      type: Sequelize.JSONB,
       allowNull: true,
       defaultValue: {},
     },
@@ -109,15 +122,26 @@ function makeNewGeodatasetTable(
   Geodatasets.findOne({ where: { name: name } })
     .then((result) => {
       if (result) {
-        // Ignore some columns if they're unused/nonexistent
-        if (result.dataValues.start_time_field == null)
-          delete attributes.start_time;
-        if (result.dataValues.end_time_field == null)
-          delete attributes.end_time;
-        if (result.dataValues.group_id_field == null)
-          delete attributes.group_id;
-        if (result.dataValues.feature_id_field == null)
-          delete attributes.feature_id;
+        // Appends keep the stored field mappings; anything else redefines them
+        const fields =
+          action === "append"
+            ? {
+                start_time: result.dataValues.start_time_field,
+                end_time: result.dataValues.end_time_field,
+                group_id: result.dataValues.group_id_field,
+                feature_id: result.dataValues.feature_id_field,
+              }
+            : {
+                start_time: startProp,
+                end_time: endProp,
+                group_id: groupIdProp,
+                feature_id: featureIdProp,
+              };
+        // Ignore some columns if they're unused
+        if (fields.start_time == null) delete attributes.start_time;
+        if (fields.end_time == null) delete attributes.end_time;
+        if (fields.group_id == null) delete attributes.group_id;
+        if (fields.feature_id == null) delete attributes.feature_id;
 
         let GeodatasetTable = sequelize.define(
           result.dataValues.table,
@@ -141,7 +165,12 @@ function makeNewGeodatasetTable(
           .then((r) => {
             sequelize
               .query(
-                `CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
+                // Tables from before temporal/group/feature support may lack
+                // columns the query routes select unconditionally
+                `ALTER TABLE ${Utils.forceAlphaNumUnder(
+                  result.dataValues.table
+                )} ADD COLUMN IF NOT EXISTS start_time BIGINT, ADD COLUMN IF NOT EXISTS end_time BIGINT, ADD COLUMN IF NOT EXISTS group_id varchar(255), ADD COLUMN IF NOT EXISTS feature_id varchar(255);
+                CREATE INDEX IF NOT EXISTS ${Utils.forceAlphaNumUnder(
                   `${result.dataValues.table}_geom_idx`
                 )} on ${Utils.forceAlphaNumUnder(
                   result.dataValues.table
@@ -208,6 +237,7 @@ function makeNewGeodatasetTable(
                       name: result.dataValues.name,
                       table: result.dataValues.table,
                       tableObj: GeodatasetTable,
+                      existed: true,
                     });
 
                     return null;
@@ -310,6 +340,7 @@ function makeNewGeodatasetTable(
                               name: name,
                               table: newTable,
                               tableObj: GeodatasetTable,
+                              existed: false,
                             });
                             return null;
                           })
@@ -521,11 +552,119 @@ const up = async () => {
       );
       return null;
     });
+
+  // field_stats column
+  await sequelize
+    .query(
+      `ALTER TABLE geodatasets ADD COLUMN IF NOT EXISTS field_stats JSON NULL;`
+    )
+    .then(() => {
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        `Failed to add geodatasets.field_stats column. DB tables may be out of sync!`,
+        "geodatasets",
+        null,
+        err
+      );
+      return null;
+    });
+
+  // Geodataset tables from before temporal/group/feature support lack
+  // columns the query routes select unconditionally — add them everywhere
+  try {
+    const [tables] = await sequelize.query(`SELECT "table" FROM geodatasets;`);
+    for (const row of tables) {
+      await sequelize
+        .query(
+          `ALTER TABLE ${Utils.forceAlphaNumUnder(
+            row.table
+          )} ADD COLUMN IF NOT EXISTS start_time BIGINT, ADD COLUMN IF NOT EXISTS end_time BIGINT, ADD COLUMN IF NOT EXISTS group_id varchar(255), ADD COLUMN IF NOT EXISTS feature_id varchar(255);`
+        )
+        .catch((err) => {
+          logger(
+            "error",
+            `Failed to add temporal columns to geodataset table ${row.table}. DB tables may be out of sync!`,
+            "geodatasets",
+            null,
+            err
+          );
+          return null;
+        });
+    }
+  } catch (err) {
+    logger(
+      "error",
+      `Failed to list geodataset tables for temporal column migration.`,
+      "geodatasets",
+      null,
+      err
+    );
+  }
 };
+
+/**
+ * Persist dataset-wide field statistics for a geodataset.
+ * An append merges with what is stored (extrema widen, sums and counts add);
+ * anything else replaces it.
+ *
+ * Never fails the write it accompanies — statistics are metadata, and a
+ * geodataset with stale or missing `field_stats` still works.
+ *
+ * @param {string} name geodataset name
+ * @param {Object} fieldStats statistics of the features just written
+ * @param {string|null} action "append" to merge, else replace
+ */
+async function updateGeodatasetFieldStats(name, fieldStats, action) {
+  try {
+    const written = fieldStats || {};
+    if (action !== "append") {
+      await Geodatasets.update(
+        { field_stats: written },
+        { where: { name: name }, silent: true }
+      );
+      return written;
+    }
+
+    // Merging reads what is stored, so hold the row for the write — otherwise
+    // concurrent appends both merge into the same value and one is lost.
+    return await sequelize.transaction(async (t) => {
+      const existing = await Geodatasets.findOne({
+        where: { name: name },
+        lock: t.LOCK.UPDATE,
+        transaction: t,
+      });
+      const stored = existing ? existing.dataValues.field_stats : null;
+      // Absent statistics mean the features already in the table were never
+      // summarized (written before field_stats existed); the appended features
+      // alone would misreport the domain, so leave it absent until a recreate.
+      if (stored == null) return null;
+
+      const nextStats = mergeFieldStats(stored, written);
+      await Geodatasets.update(
+        { field_stats: nextStats },
+        { where: { name: name }, silent: true, transaction: t }
+      );
+      return nextStats;
+    });
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to update geodataset field statistics.",
+      "geodatasets",
+      null,
+      err
+    );
+    return null;
+  }
+}
 
 // export User model for use in other files.
 module.exports = {
   Geodatasets: Geodatasets,
   makeNewGeodatasetTable: makeNewGeodatasetTable,
+  updateGeodatasetFieldStats,
   up,
 };

@@ -237,7 +237,8 @@ const LayerModal = (props) => {
                     setIn(completedLayer, ["kind"], "none", true);
                 } else if (
                   c.type === "dropdown" ||
-                  c.type === "colordropdown"
+                  c.type === "colordropdown" ||
+                  c.type === "colorramp"
                 ) {
                   const currentValue = getIn(l, c.field);
                   if (currentValue == null) {
@@ -286,11 +287,19 @@ const LayerModal = (props) => {
           // Filter empty strings from any indexed text array fields
           const filterEmptyStrings = (obj) => {
             Object.keys(obj).forEach((key) => {
-              if (key === "interactions") return;
+              // `range` is positional (a rule's style min then max), so a
+              // filled-in max must not slide into the min's slot.
+              if (key === "interactions" || key === "range") return;
               const val = obj[key];
               if (Array.isArray(val)) {
                 obj[key] = val.filter((v) => v != null && v !== "");
                 if (obj[key].length === 0) delete obj[key];
+                // An objectarray item's own settings want the same cleanup.
+                else
+                  obj[key].forEach((v) => {
+                    if (v != null && typeof v === "object")
+                      filterEmptyStrings(v);
+                  });
               } else if (val != null && typeof val === "object") {
                 filterEmptyStrings(val);
               }

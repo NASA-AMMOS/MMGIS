@@ -16,6 +16,8 @@ This release overhauls the plugin ecosystem into a unified, manifest-driven `/pl
 - **JavaScript API (`window.mmgisAPI`): Fully backward compatible.** No migration needed.
 - **End users: No breaking changes.** The ShadeTool is now named the Sightline Tool.
 - **Deployments:** Docker users should redeploy with the updated `Dockerfile` and `docker-compose` (the `plugins/` copy and the PostgreSQL 18 volume path fixes) — an existing install on the old db volume path can crash-loop on a fresh install.
+- **CORS:** Cross-origin browser clients must set `CORS_ORIGINS` to a comma-separated list of allowed origins; unset, MMGIS now allows same-origin requests only.
+- **Session cookies:** When `HTTPS=true`, session cookies now default to `Secure`; set `SESSION_COOKIE_SECURE=false` only for intentionally non-TLS deployments.
 
 ### Migration Guide (Plugin Developers Only)
 

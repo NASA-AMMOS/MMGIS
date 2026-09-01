@@ -45,7 +45,6 @@ const populateUUIDs = require("../uuids");
 const Utils = require("../../../../../API/utils.js");
 
 const websocket = require("../../../../../API/websocket.js");
-const WebSocket = require("isomorphic-ws");
 
 const fs = require("fs");
 const path = require("path");
@@ -982,10 +981,15 @@ if (fullAccess)
               latest.config && latest.config.msv
                 ? latest.config.msv.missionFolderName
                 : undefined;
-            const followFolder =
+            // The folder can only follow when it currently matches the mission
+            // name. Within that, the caller may opt out by sending followFolder
+            // false. Omitting the field keeps the previous behaviour.
+            const canFollowFolder =
               !latestFolder ||
               latestFolder === "" ||
               latestFolder === missionName;
+            const followFolder =
+              canFollowFolder && req.body.followFolder !== false;
 
             const lockKeys = renameLockKeys(newName);
             return sequelize
@@ -1244,25 +1248,12 @@ function openWebSocket(body, response, info, forceClientUpdate) {
     return;
   }
 
-  const port = parseInt(process.env.PORT || "8888", 10);
-  const path = `${
-    process.env.HTTPS == "true" ? "wss" : "ws"
-  }://localhost:${port}${
-    process.env.WEBSOCKET_ROOT_PATH || process.env.ROOT_PATH || ""
-  }/`;
-  try {
-    const ws = new WebSocket(path);
-    ws.onopen = function () {
-      const data = {
-        info,
-        body,
-        forceClientUpdate,
-      };
-      ws.send(JSON.stringify(data));
-    };
-  } catch (err) {
-    console.log(err);
-  }
+  const data = {
+    info,
+    body,
+    forceClientUpdate,
+  };
+  websocket.websocket.broadcast(JSON.stringify(data));
 }
 
 // === Quick API Functions ===

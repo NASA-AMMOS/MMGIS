@@ -7,6 +7,10 @@ import {
     deriveLegend,
     derivesLegend,
 } from '@basics/Layers_/legend/LayerLegend'
+import { dynamicStyleLegendEntries } from '@basics/Layers_/legend/dynamicStyleLegend'
+import { RESTYLED_EVENT } from '@basics/Layers_/render/dynamicStyleRuntime'
+import { getDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
+import { extractUnits, splitValueUnits } from './legendValueUnits'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
@@ -52,6 +56,11 @@ var LegendTool = {
             this.MMWebGISInterface = new interfaceWithMMWebGIS()
         })
 
+        // A dynamic style also changes without anyone asking - a pan re-measures
+        // a current-view domain, and a geodataset's statistics arrive late.
+        this._onRestyled = () => refreshLegends()
+        document.addEventListener(RESTYLED_EVENT, this._onRestyled)
+
         this.made = true
 
         let _event = new CustomEvent('madeLegendTool', {
@@ -65,6 +74,7 @@ var LegendTool = {
         this.MMWebGISInterface.separateFromMMWebGIS()
         this.targetId = null
         L_.unsubscribeOnLayerToggle('LegendTool')
+        document.removeEventListener(RESTYLED_EVENT, this._onRestyled)
         this.made = false
     },
     refreshLegends: refreshLegends,
@@ -176,10 +186,33 @@ function refreshLegends() {
                         }
                     }
 
-                    if (L_.layers.data[l]?._legend != undefined) {
+                    // A dynamic style is drawn from the same compiled rules
+                    // the features are coloured by, so the legend shows the
+                    // domain actually in use rather than the configured one.
+                    const dynamicEntries = dynamicStyleLegendEntries(L_.layers.data[l])
+                    const configured = L_.layers.data[l]?._legend
+                    // An image legend can't be concatenated, so it's drawn on
+                    // its own above the scale rather than replaced by it.
+                    if (typeof configured === 'string' && dynamicEntries.length > 0) {
                         drawLegends(
                             LegendTool.tools,
-                            L_.layers.data[l]?._legend,
+                            configured,
+                            l,
+                            L_.layers.data[l].display_name,
+                            L_.layers.opacity[l],
+                            shift
+                        )
+                    }
+                    const entries = Array.isArray(configured)
+                        ? configured.concat(dynamicEntries)
+                        : dynamicEntries.length > 0
+                        ? dynamicEntries
+                        : configured
+
+                    if (entries != undefined) {
+                        drawLegends(
+                            LegendTool.tools,
+                            entries,
                             l,
                             L_.layers.data[l].display_name,
                             L_.layers.opacity[l],
@@ -191,6 +224,7 @@ function refreshLegends() {
                             .map(i => i.name)
                             .filter(i => {
                                 return ((L_.layers.data[i]._legend?.length > 0
+                                    || getDynamicStyle(L_.layers.data[i]) != null
                                     || (L_.layers.data[i]?._legend === undefined
                                         && derivesLegend(L_.layers.data[i]))) && L_.layers.on[i])
                             })
@@ -430,12 +464,13 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             ? _legend[d].shapeImage : _legend[d].shapeIcon && _legend[d].shapeIcon.trim()
             ? _legend[d].shapeIcon : _legend[d].shape
         if (shape == 'continuous' || shape == 'discreet') {
-            if (lastShape != shape) {
+            if (lastShape != shape || _legend[d].scaleTitle) {
                 if (legendEntries.length > 0) {
                     pushScale(legendEntries)
                     legendEntries = []
                 }
             }
+            drawScaleTitle(_legend[d].scaleTitle)
             legendEntries.push({
                 color: _legend[d].color,
                 shape: shape,
@@ -450,6 +485,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 pushScale(legendEntries)
                 legendEntries = []
             }
+            drawScaleTitle(_legend[d].scaleTitle)
             var r = $('<div>')
                 .attr('class', 'row')
                 .css({
@@ -464,15 +500,26 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 shape == 'square' ||
                 shape == 'rect'
             ) {
+                // A dynamic style may drive a weight, a radius or an opacity,
+                // in which case the swatch shows that rather than a colour.
+                const swatchOpacity =
+                    _legend[d].swatchOpacity != null
+                        ? _legend[d].swatchOpacity * opacity
+                        : opacity
+                const swatchSize =
+                    _legend[d].swatchSize != null
+                        ? `${_legend[d].swatchSize}px`
+                        : '18px'
                 switch (shape) {
                     case 'circle':
                         const circleShape = $('<div>')
                             .attr('class', layerUUID + '_legendshape')
                             .css({
-                                'width': '18px',
-                                'height': '18px',
+                                'width': swatchSize,
+                                'height': swatchSize,
+                                'margin': `${(18 - parseFloat(swatchSize)) / 2}px 0px`,
                                 'background': _legend[d].color,
-                                'opacity': opacity,
+                                'opacity': swatchOpacity,
                                 'border': `1px solid ${_legend[d].strokecolor}`,
                                 'border-radius': '50%',
                                 'position': 'relative',
@@ -488,7 +535,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                                 'width': '18px',
                                 'height': '18px',
                                 'background': _legend[d].color,
-                                'opacity': opacity,
+                                'opacity': swatchOpacity,
                                 'border': `1px solid ${_legend[d].strokecolor}`,
                                 'position': 'relative',
                                 'cursor': 'crosshair'
@@ -497,14 +544,19 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                         r.append(squareShape)
                         break
                     case 'rect':
+                        // A weight rule's swatch is a line of that weight.
+                        const rectHeight =
+                            _legend[d].swatchHeight != null
+                                ? _legend[d].swatchHeight
+                                : 8
                         const rectShape = $('<div>')
                             .attr('class', layerUUID + '_legendshape')
                             .css({
                                 'width': '18px',
-                                'height': '8px',
-                                'margin': '5px 0px 5px 0px',
+                                'height': `${rectHeight}px`,
+                                'margin': `${(18 - rectHeight) / 2}px 0px`,
                                 'background': _legend[d].color,
-                                'opacity': opacity,
+                                'opacity': swatchOpacity,
                                 'border': `1px solid ${_legend[d].strokecolor}`,
                                 'position': 'relative',
                                 'cursor': 'crosshair'
@@ -574,6 +626,27 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
     if (legendEntries.length > 0) {
         pushScale(legendEntries)
         legendEntries = []
+    }
+
+    // The property a dynamic style's scale describes — the layer's title says
+    // which layer, this says what its colours mean.
+    function drawScaleTitle(scaleTitle) {
+        if (!scaleTitle) return
+        c.append(
+            $('<div>')
+                .attr('class', 'row')
+                .css({
+                    'font-size': '12px',
+                    'color': 'var(--color-a4)',
+                    'padding-left': '9px',
+                    'margin-bottom': '3px',
+                    'overflow': 'hidden',
+                    'white-space': 'nowrap',
+                    'text-overflow': 'ellipsis'
+                })
+                .attr('title', scaleTitle)
+                .text(scaleTitle)
+        )
     }
 
     function pushScale(legendEntries) {
@@ -756,34 +829,6 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             }
         }
 
-        // Helper function to detect and extract units from legend values
-        const extractUnits = (values) => {
-            if (!values || values.length === 0) return { number: '', units: '' }
-            
-            const firstValue = String(values[0]).trim()
-            
-            // Find where non-numeric characters start
-            const match = firstValue.match(/^([0-9.,\-\s]+)(.*)$/)
-            if (match) {
-                const number = match[1].trim()
-                const units = match[2].trim()
-                
-                // Verify this pattern works for all values
-                const allValuesMatch = values.every(v => {
-                    const str = String(v).trim()
-                    const valMatch = str.match(/^([0-9.,\-\s]+)(.*)$/)
-                    return valMatch && valMatch[2].trim() === units
-                })
-                
-                if (allValuesMatch) {
-                    return { number, units }
-                }
-            }
-            
-            // No common units found
-            return { number: firstValue, units: '' }
-        }
-
         // Add tick marks only for continuous legends
         if (legendEntries.length > 0 && legendEntries[0].shape === 'continuous') {
             for (let i = 0; i < visibleLabels.length; i++) {
@@ -883,20 +928,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             // Determine if this is first or last label
             const isFirstOrLast = i === 0 || i === visibleLabels.length - 1
             
-            // Extract number and units from the value
-            const str = String(visibleLabels[i].value).trim()
-            
-            // Find where non-numeric characters start
-            const match = str.match(/^([0-9.,\-\s]+)(.*)$/)
-            let number, units
-            if (match) {
-                number = match[1].trim()
-                units = match[2].trim()
-            } else {
-                // Fallback: no units found
-                number = str
-                units = ''
-            }
+            const { number } = splitValueUnits(visibleLabels[i].value)
             
             // For horizontal legends, show only numbers (units are displayed separately above)
             let displayText

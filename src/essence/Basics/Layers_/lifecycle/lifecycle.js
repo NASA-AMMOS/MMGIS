@@ -3,6 +3,7 @@ import Description from '../../UserInterface_/components/Description/Description
 import $ from 'jquery'
 
 import { parseConfig } from './config'
+import { forgetFieldStatsRequests } from '../render/dynamicStyleRuntime'
 
 export async function init(L_, configData, missionsList, urlOnLayers) {
     await parseConfig(L_, configData, urlOnLayers)
@@ -23,6 +24,7 @@ export function loaded(L_) {
 }
 
 export function clear(L_) {
+    forgetFieldStatsRequests()
     L_.mission = null
     L_.missionPath = null
     L_.missionsList = []
@@ -49,6 +51,7 @@ export function clear(L_) {
     L_._layersLoaded = []
     L_._layersParent = {}
     L_._localTimeFilterCache = {}
+    L_._pendingTimeFilters = {}
     L_.FUTURES = {
         site: null,
         mapView: null,

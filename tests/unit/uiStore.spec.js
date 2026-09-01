@@ -466,3 +466,33 @@ test.describe('computeWindowResize', () => {
         expect(result.pxIsGlobe).toBeCloseTo(500, 0)
     })
 })
+
+/**
+ * The globe opens onto the map's view. The store isn't loadable here (it pulls
+ * in the map, globe and viewer singletons), so this asserts at the source level
+ * that the sync isn't limited to the globe's first open.
+ */
+test.describe('opening the globe follows the map', () => {
+    const fs = require('fs')
+    const path = require('path')
+    const SRC = fs.readFileSync(
+        path.resolve(
+            __dirname,
+            '../../src/essence/Basics/UserInterface_/store/uiStore.js'
+        ),
+        'utf8'
+    )
+
+    test('every open syncs, not just the first', () => {
+        expect(SRC).toContain('const first = !current._Globe.hasBeenOpened')
+        const syncAt = SRC.indexOf('current._Globe.syncToMapCenter()')
+        expect(syncAt).toBeGreaterThan(-1)
+        // Not nested inside the first-open branch.
+        expect(SRC.slice(SRC.indexOf('if (first) {'), syncAt)).toContain('}')
+    })
+
+    test('a stale map or a linked globe view is left alone', () => {
+        expect(SRC).toContain('const wasMapOpen = state.pxIsMap > 0')
+        expect(SRC).toContain('current._L.FUTURES.globeView == null')
+    })
+})

@@ -11,6 +11,7 @@ import CursorInfo from '../UserInterface_/components/CursorInfo/CursorInfo'
 import Description from '../UserInterface_/components/Description/Description'
 import QueryURL from '../../services/QueryURL'
 import MetadataCapturer from '../Layers_/capture/MetadataCapturer.js'
+import { restyleViewFollowingLayers } from '../Layers_/render/dynamicStyleRuntime'
 import {
     runInteractions,
     resolveLayerInteractions,
@@ -53,6 +54,9 @@ let Map_ = {
         essenceFina = essenceFinal
 
         //Repair Leaflet and plugin incongruities
+        // Leaflet 1.9 removed DomEvent.fakeStop; renderer containers now carry
+        // _leaflet_disable_events, so callers only need it to exist.
+        if (L.DomEvent.fakeStop == null) L.DomEvent.fakeStop = function () {}
         L.DomEvent._fakeStop = L.DomEvent.fakeStop
 
         //var fakeStop = L.DomEvent.fakeStop || L.DomEvent._fakeStop || stop;?
@@ -298,6 +302,13 @@ let Map_ = {
 
             // Set all zoom elements
             $('.map-autoset-zoom').text(Map_.map.getZoom())
+        })
+
+        // A layer whose colour scale is stretched over the current view has a
+        // new scale as soon as the view is new. Coalesced into one restyle per
+        // movement rather than one per event.
+        this.map.on('moveend', () => {
+            restyleViewFollowingLayers()
         })
 
         if (Globe_.controls.link) {
@@ -834,6 +845,24 @@ async function makeLayer(
         } finally {
             // release hold on layer (use same registry as above)
             lockRegistry[layerName] = false
+
+            const pendingTimeFilter = L_._pendingTimeFilters?.[layerName]
+            if (pendingTimeFilter) {
+                delete L_._pendingTimeFilters[layerName]
+                try {
+                    L_.timeFilterVectorLayer(
+                        layerName,
+                        pendingTimeFilter.start,
+                        pendingTimeFilter.end
+                    )
+                } catch (timeFilterErr) {
+                    console.warn(
+                        'WARNING - pending time filter failed for',
+                        layerObj.name,
+                        timeFilterErr
+                    )
+                }
+            }
 
             // Trigger filter AFTER releasing the lock — triggerFilter may call
             // LocalFilterer.filter which does clearVectorLayer + updateVectorLayer.

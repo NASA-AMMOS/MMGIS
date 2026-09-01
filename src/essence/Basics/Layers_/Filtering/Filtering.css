@@ -15,6 +15,14 @@
 }
 #layersTool_filtering_title_left {
     display: flex;
+    align-items: center;
+}
+/* The shared help button is a 30px-tall button nudged down by its own margin,
+   which in this 30px header left it sitting low. */
+#layersTool_filtering_title_left > .mmgisHelpButton {
+    height: 18px;
+    line-height: 18px;
+    margin: 0 4px;
 }
 #layersTool_filtering_title {
     font-size: 16px;

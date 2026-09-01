@@ -758,6 +758,12 @@ export function clearVectorLayerInfo(L_) {
 export function timeFilterVectorLayer(L_, layerName, start, end) {
     layerName = L_.asLayerUUID(layerName)
 
+    if (L_._layersBeingMade?.[layerName] === true) {
+        L_._pendingTimeFilters = L_._pendingTimeFilters || {}
+        L_._pendingTimeFilters[layerName] = { start, end }
+        return
+    }
+
     let reset = false
     if (start === false) reset = true
 

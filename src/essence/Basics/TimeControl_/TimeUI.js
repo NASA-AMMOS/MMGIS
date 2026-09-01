@@ -1690,7 +1690,7 @@ const TimeUI = {
         TimeUI._drawTimeLine(nextStart, nextEnd)
 
         clearTimeout(TimeUI._panHistoTimeout)
-        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._clearHistogram()
         TimeUI._makeHistogram()
     },
     quickSelectPeriod(idx) {
@@ -2887,10 +2887,15 @@ const TimeUI = {
     },
     _refreshHistogramDebounced(delay = 3000) {
         clearTimeout(TimeUI._histogramRefreshTimeout)
-        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._clearHistogram()
         TimeUI._histogramRefreshTimeout = setTimeout(() => {
             TimeUI._makeHistogram()
         }, delay)
+    },
+    _clearHistogram() {
+        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI.lastHistoStartTimestamp = null
+        TimeUI.lastHistoEndTimestamp = null
     },
     _makeHistogram() {
         // Histogram is drawn inside the timeline slider which doesn't exist on mobile
@@ -2946,8 +2951,10 @@ const TimeUI = {
                 return
             }
 
-            asked.push(
-                Promise.resolve(
+            asked.push({
+                name,
+                type: layerObj.type,
+                promise: Promise.resolve(
                     LayerInterface.run(timeModule, 'availability', [
                         layerObj,
                         ctx,
@@ -2960,17 +2967,28 @@ const TimeUI = {
                     )
                     return null
                 })
-            )
+            })
         })
 
-        Promise.all(asked).then((results) => {
-            results.forEach((times) => {
+        Promise.all(asked.map((request) => request.promise)).then((results) => {
+            const warnedInvalidTimes = new Set()
+            results.forEach((times, index) => {
                 if (!Array.isArray(times)) return
+                const request = asked[index]
                 times.forEach((entry) => {
                     const at = TimeUI.removeOffset(
                         new Date(entry?.t).getTime()
                     )
-                    if (isNaN(at)) return
+                    if (isNaN(at)) {
+                        const warningKey = `${request.type}/${request.name}`
+                        if (!warnedInvalidTimes.has(warningKey)) {
+                            warnedInvalidTimes.add(warningKey)
+                            console.warn(
+                                `Invalid time.availability value '${entry?.t}' for layer type '${request.type}' layer '${request.name}'.`
+                            )
+                        }
+                        return
+                    }
                     const total =
                         entry.total == null ? 1 : parseInt(entry.total)
                     if (isNaN(total)) return

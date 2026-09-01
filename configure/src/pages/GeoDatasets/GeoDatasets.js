@@ -26,6 +26,10 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
 import Badge from "@mui/material/Badge";
@@ -39,10 +43,15 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
+import QueryStatsIcon from "@mui/icons-material/QueryStats";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import BoltIcon from "@mui/icons-material/Bolt";
 
 import NewGeoDatasetModal from "./Modals/NewGeoDatasetModal/NewGeoDatasetModal";
 import DeleteGeoDatasetModal from "./Modals/DeleteGeoDatasetModal/DeleteGeoDatasetModal";
 import LayersUsedByModal from "./Modals/LayersUsedByModal/LayersUsedByModal";
+import FieldStatsModal from "./Modals/FieldStatsModal/FieldStatsModal";
 import PreviewGeoDatasetModal from "./Modals/PreviewGeoDatasetModal/PreviewGeoDatasetModal";
 import AppendGeoDatasetModal from "./Modals/AppendGeoDatasetModal/AppendGeoDatasetModal";
 import UpdateGeoDatasetModal from "./Modals/UpdateGeoDatasetModal/UpdateGeoDatasetModal";
@@ -133,6 +142,10 @@ const useStyles = makeStyles((theme) => ({
     height: "40px !important",
   },
   renameIcon: {
+    width: "40px !important",
+    height: "40px !important",
+  },
+  statsIcon: {
     width: "40px !important",
     height: "40px !important",
   },
@@ -329,6 +342,15 @@ export default function GeoDatasets() {
   const [orderBy, setOrderBy] = React.useState("name");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
+  // Which geodataset is being rescanned, if any - a whole-table pass.
+  const [recomputing, setRecomputing] = React.useState(null);
+  // Which geodataset's properties are being rewritten, if any.
+  const [converting, setConverting] = React.useState(null);
+  // The row whose kebab menu is open, as { anchor, row, open }. The row is
+  // kept through the closing transition, which the items are still drawn in.
+  const [rowMenu, setRowMenu] = React.useState(null);
+  const closeRowMenu = () =>
+    setRowMenu((menu) => (menu ? { ...menu, open: false } : null));
 
   const c = useStyles();
 
@@ -346,15 +368,15 @@ export default function GeoDatasets() {
               res.body.entries.map((en, idx) => {
                 en.id = idx;
                 return en;
-              })
-            )
+              }),
+            ),
           );
         else
           dispatch(
             setSnackBarText({
               text: res?.message || "Failed to get geodatasets.",
               severity: "error",
-            })
+            }),
           );
       },
       (res) => {
@@ -362,9 +384,9 @@ export default function GeoDatasets() {
           setSnackBarText({
             text: res?.message || "Failed to get geodatasets.",
             severity: "error",
-          })
+          }),
         );
-      }
+      },
     );
   };
   useEffect(() => {
@@ -394,10 +416,57 @@ export default function GeoDatasets() {
     () =>
       stableSort(geodatasets, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
-        page * rowsPerPage + rowsPerPage
+        page * rowsPerPage + rowsPerPage,
       ),
-    [order, orderBy, page, rowsPerPage, geodatasets]
+    [order, orderBy, page, rowsPerPage, geodatasets],
   );
+
+  // Recompute a geodataset's dataset-wide statistics from the features it
+  // already holds - what one written before they were kept needs, since an
+  // append only summarizes what it appends.
+  const recomputeStats = (name) => {
+    setRecomputing(name);
+    const done = (res) => {
+      setRecomputing(null);
+      dispatch(
+        setSnackBarText({
+          text: res?.message || "Failed to recompute statistics.",
+          severity: res?.status === "success" ? "success" : "error",
+        }),
+      );
+      // The entries hold each geodataset's statistics, so a rescan makes the
+      // ones in hand stale.
+      if (res?.status === "success") queryGeoDatasets();
+    };
+    calls.api(
+      "geodatasets_recompute_stats",
+      { urlReplacements: { name: name } },
+      done,
+      done,
+    );
+  };
+
+  // Rewrite a geodataset's properties column as jsonb - stored parsed, so
+  // property reads stop reparsing the whole document.
+  const convertProperties = (name) => {
+    setConverting(name);
+    const done = (res) => {
+      setConverting(null);
+      dispatch(
+        setSnackBarText({
+          text: res?.message || "Failed to convert properties to jsonb.",
+          severity: res?.status === "success" ? "success" : "error",
+        }),
+      );
+      if (res?.status === "success") queryGeoDatasets();
+    };
+    calls.api(
+      "geodatasets_convert_properties",
+      { urlReplacements: { name: name } },
+      done,
+      done,
+    );
+  };
 
   const LIMIT_COL_TO_N_CHARS = 37;
 
@@ -448,7 +517,7 @@ export default function GeoDatasets() {
                             setSnackBarText({
                               text: "Copied to Clipboard!",
                               severity: "success",
-                            })
+                            }),
                           );
                         }}
                       >
@@ -469,7 +538,7 @@ export default function GeoDatasets() {
                             setSnackBarText({
                               text: "Copied to Clipboard!",
                               severity: "success",
-                            })
+                            }),
                           );
                         }}
                       >
@@ -496,7 +565,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "layersUsedByGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -519,7 +588,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "previewGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -542,7 +611,7 @@ export default function GeoDatasets() {
                                       downloadObject(
                                         res,
                                         `${row.name}-geodataset`,
-                                        ".geojson"
+                                        ".geojson",
                                       );
                                       dispatch(
                                         setSnackBarText({
@@ -550,7 +619,7 @@ export default function GeoDatasets() {
                                             res?.message ||
                                             "Successfully downloaded GeoDataset.",
                                           severity: "success",
-                                        })
+                                        }),
                                       );
                                     },
                                     (res) => {
@@ -560,9 +629,9 @@ export default function GeoDatasets() {
                                             res?.message ||
                                             "Failed to download GeoDataset.",
                                           severity: "error",
-                                        })
+                                        }),
                                       );
-                                    }
+                                    },
                                   );
                               }}
                             >
@@ -580,7 +649,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "appendGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -609,7 +678,7 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "updateGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -628,11 +697,27 @@ export default function GeoDatasets() {
                                   setModal({
                                     name: "deleteGeoDataset",
                                     geoDataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
                               <DeleteForeverIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title={"More"} placement="top" arrow>
+                            <IconButton
+                              className={c.inIcon}
+                              title="More"
+                              aria-label="more"
+                              onClick={(e) => {
+                                setRowMenu({
+                                  anchor: e.currentTarget,
+                                  row: row,
+                                  open: true,
+                                });
+                              }}
+                            >
+                              <MoreVertIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </div>
@@ -667,9 +752,78 @@ export default function GeoDatasets() {
       <NewGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <DeleteGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <LayersUsedByModal />
+      <FieldStatsModal />
       <PreviewGeoDatasetModal />
       <AppendGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
       <UpdateGeoDatasetModal queryGeoDatasets={queryGeoDatasets} />
+      <Menu
+        anchorEl={rowMenu?.anchor}
+        open={rowMenu?.open === true}
+        onClose={closeRowMenu}
+        TransitionProps={{
+          // Not a menu that has been opened again since the close began.
+          onExited: () => setRowMenu((menu) => (menu?.open ? menu : null)),
+        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <MenuItem
+          onClick={() => {
+            dispatch(
+              setModal({
+                name: "geoDatasetFieldStats",
+                geoDataset: rowMenu.row,
+              }),
+            );
+            closeRowMenu();
+          }}
+        >
+          <ListItemIcon>
+            <TableChartIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Field Statistics</ListItemText>
+        </MenuItem>
+        <MenuItem
+          disabled={recomputing != null}
+          onClick={() => {
+            if (rowMenu.row.name) recomputeStats(rowMenu.row.name);
+            closeRowMenu();
+          }}
+        >
+          <ListItemIcon>
+            <QueryStatsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            secondary="Rescan every feature. Only needed for a geodataset uploaded before statistics were kept."
+            secondaryTypographyProps={{ style: { whiteSpace: "normal" } }}
+          >
+            Recompute Statistics
+          </ListItemText>
+        </MenuItem>
+        <MenuItem
+          disabled={
+            converting != null || rowMenu?.row?.properties_type === "jsonb"
+          }
+          onClick={() => {
+            if (rowMenu.row.name) convertProperties(rowMenu.row.name);
+            closeRowMenu();
+          }}
+        >
+          <ListItemIcon>
+            <BoltIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            secondary={
+              rowMenu?.row?.properties_type === "jsonb"
+                ? "Already jsonb."
+                : "Faster property reads. Rewrites the table and locks it while it runs."
+            }
+            secondaryTypographyProps={{ style: { whiteSpace: "normal" } }}
+          >
+            Convert Properties to jsonb
+          </ListItemText>
+        </MenuItem>
+      </Menu>
     </>
   );
 }

@@ -11,6 +11,37 @@ import {
 } from '../Layers_/render/gradientUtils'
 import { getCoordProperties } from '../Layers_/render/ExtendedGeoJSON'
 import F_ from '../Formulae_/Formulae_'
+import {
+    featureIdentities,
+    sameFeature,
+} from '../Layers_/features/identity'
+
+// How near an outline a click counts as aimed at it.
+const OUTLINE_PICK_PIXELS = 12
+
+// The feature an entity came from. Cesium suffixes the parts of a multi-part
+// geometry after the first (`id_2`), which the feature map is not keyed by.
+function _featureFor(featureMap, entity) {
+    if (featureMap == null || entity?.id == null) return null
+    return (
+        featureMap[entity.id] ??
+        featureMap[String(entity.id).replace(/_\d+$/, '')] ??
+        null
+    )
+}
+
+// Distance from p to the segment ab, all in window coordinates.
+function _distanceToSegment(p, a, b) {
+    const dx = b.x - a.x
+    const dy = b.y - a.y
+    const lengthSquared = dx * dx + dy * dy
+    let t =
+        lengthSquared === 0
+            ? 0
+            : ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared
+    t = Math.max(0, Math.min(1, t))
+    return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
+}
 
 /**
  * GlobeRenderer - Abstraction wrapper for 3D globe rendering engines
@@ -24,6 +55,7 @@ class GlobeRenderer {
         this.containerId = containerId
         this.config = config
         this.renderer = null
+        this._layers = {}
         // Earth's circumference in meters (Web Mercator standard)
         this.EARTH_CIRCUMFERENCE = 40075017
 
@@ -126,9 +158,6 @@ class GlobeRenderer {
             maximumRenderTimeChange: Infinity,
         })
 
-        // Store layer references
-        this._layers = {}
-
         // Track in-progress layer loads to prevent duplicates
         this._loadingLayers = {}
 
@@ -150,6 +179,8 @@ class GlobeRenderer {
         // Track highlighted entity for selection sync
         this._highlightedEntity = null
         this._originalEntityStyle = null
+        this._highlightDataSource = null
+        this._highlightOutline = null
 
         // Set up initial view if no camera specified
         if (!this.config.initialCamera && this.config.initialView) {
@@ -592,7 +623,7 @@ class GlobeRenderer {
     // declares the operation is the one that must run it, and one that doesn't
     // falls through to the engine as before.
     _runEngineLayerOp(name, op, extraArgs = []) {
-        const type = this._layers[name]?.type
+        const type = this._layers?.[name]?.type
         if (type == null) return false
         const globeModule = this._globeModuleFor(type)
         if (!LayerInterface.hasOp(globeModule, op)) return false
@@ -639,6 +670,9 @@ class GlobeRenderer {
                 displayedVectorDataSource: this._displayedVectorDataSource,
                 runPendingVectorReload: (name) =>
                     this._runPendingVectorReload(name),
+                // Drop a selection outline whose feature is going away.
+                clearHighlightIn: (dataSource) =>
+                    this._clearHighlightIn(dataSource),
                 utils: {
                     calculateImageryIndex: (name, ordered) =>
                         this._calculateTileLayerIndex(name, ordered),
@@ -1140,12 +1174,19 @@ class GlobeRenderer {
                     this._removeCesiumGradientPolyline(name)
                     return
                 } else if (layerInfo.kind === 'entities') {
+                    // A load still in flight would register this layer again
+                    // once it lands, putting back what was just removed.
+                    this._vectorLoadToken[name] =
+                        (this._vectorLoadToken[name] || 0) + 1
                     // Defer the removal by a frame so a reload that follows
                     // immediately (dynamic-extent requery, filter/time change)
                     // can adopt these features and keep them on screen until its
                     // replacement is ready. If no reload adopts it, it's removed.
                     this._scheduleVectorRemoval(name, layerInfo.dataSource)
                 }
+                // A highlight outline would otherwise outlive the feature it
+                // traces (dynamic-extent reload, layer off).
+                this._clearHighlightIn(layerInfo.dataSource)
                 // Clean up feature mapping
                 if (layerInfo.featureMap) {
                     delete layerInfo.featureMap
@@ -1158,8 +1199,8 @@ class GlobeRenderer {
 
     /**
      * Defer removal of a Cesium vector data source by one frame so a reload that
-     * follows immediately can adopt it (keeping its features visible). If nothing
-     * adopts it, the data source is removed once the frame elapses.
+     * follows immediately can keep it up until its own features are drawn. If no
+     * reload follows, the data source is removed once the frame elapses.
      * @param {string} name - Layer name
      * @param {Object} dataSource - Cesium data source to remove
      */
@@ -1171,7 +1212,7 @@ class GlobeRenderer {
             if (existing.frameHandle != null) {
                 cancelAnimationFrame(existing.frameHandle)
             }
-            this.renderer.dataSources.remove(existing.dataSource)
+            this.renderer.dataSources.remove(existing.dataSource, true)
             if (this._displayedVectorDataSource[name] === existing.dataSource) {
                 delete this._displayedVectorDataSource[name]
             }
@@ -1180,7 +1221,9 @@ class GlobeRenderer {
         const handle = requestAnimationFrame(() => {
             const pending = this._pendingVectorRemoval[name]
             if (!pending || pending.dataSource !== dataSource) return
-            this.renderer.dataSources.remove(dataSource)
+            // Freed, not just detached: nothing reads a removed source, and a
+            // dynamic-extent layer removes one on every pan.
+            this.renderer.dataSources.remove(dataSource, true)
             delete this._pendingVectorRemoval[name]
             if (this._displayedVectorDataSource[name] === dataSource) {
                 delete this._displayedVectorDataSource[name]
@@ -1320,6 +1363,43 @@ class GlobeRenderer {
             }
         } catch (e) {
             return this.getCenter()
+        }
+    }
+
+    /**
+     * The extent the camera actually sees, in degrees, when the renderer can
+     * say so itself. Cesium computes it from the frustum, which a Leaflet
+     * zoom-to-degrees model cannot: at low zoom a perspective camera sees far
+     * less ground than the flat-Mercator equivalent.
+     *
+     * @returns {?{minx: number, miny: number, maxx: number, maxy: number}}
+     */
+    getViewRectangle() {
+        if (this.rendererType === 'lithosphere') return null
+        try {
+            const rect = this.renderer.camera.computeViewRectangle(
+                this.renderer.scene.globe.ellipsoid
+            )
+            if (rect == null) return null
+            const west = Cesium.Math.toDegrees(rect.west)
+            const east = Cesium.Math.toDegrees(rect.east)
+            const box = {
+                minx: west,
+                miny: Cesium.Math.toDegrees(rect.south),
+                maxx: east,
+                maxy: Cesium.Math.toDegrees(rect.north),
+            }
+            for (const v of Object.values(box))
+                if (!Number.isFinite(v)) return null
+            // A rectangle across the antimeridian: the caller's bbox cannot
+            // wrap, so let it cover the longitudes it must.
+            if (west > east) {
+                box.minx = -180
+                box.maxx = 180
+            }
+            return box
+        } catch (e) {
+            return null
         }
     }
 
@@ -1566,6 +1646,67 @@ class GlobeRenderer {
     }
 
     /**
+     * Screen-space distance from a point to an entity's outline, or null when
+     * the entity has no outline in view.
+     */
+    _screenDistanceToOutline(entity, position) {
+        const now = Cesium.JulianDate.now()
+        const line = entity.polyline?.positions?.getValue(now)
+        // A ring's last edge closes it; a line has no such edge, and measuring
+        // one would let a click far from the line count as a click on it.
+        const positions =
+            line || entity.polygon?.hierarchy?.getValue(now)?.positions
+        if (positions == null || positions.length < 2) return null
+        const last = line ? positions.length - 1 : positions.length
+
+        const scene = this.renderer.scene
+        let best = null
+        let previous = null
+        for (let i = 0; i <= last; i++) {
+            const point = Cesium.SceneTransforms.worldToWindowCoordinates(
+                scene,
+                positions[i % positions.length]
+            )
+            if (point == null) {
+                previous = null
+                continue
+            }
+            if (previous != null) {
+                const d = _distanceToSegment(position, previous, point)
+                if (best == null || d < best) best = d
+            }
+            previous = point
+        }
+        return best
+    }
+
+    /**
+     * The entity a click means. Overlapping fills pick topmost-first, which on
+     * an outline-only layer isn't the footprint the user aimed at, so an
+     * outline under the cursor wins over a fill it happens to sit on.
+     */
+    _pickEntityAt(position) {
+        const scene = this.renderer.scene
+        const picks = scene.drillPick(position, 8) || []
+        const entities = []
+        for (const p of picks)
+            if (
+                Cesium.defined(p) &&
+                p.id?.id != null &&
+                !entities.includes(p.id)
+            )
+                entities.push(p.id)
+        if (entities.length < 2) return entities[0] || null
+
+        // Topmost first, so overlapping outlines resolve the way fills do.
+        for (const entity of entities) {
+            const d = this._screenDistanceToOutline(entity, position)
+            if (d != null && d < OUTLINE_PICK_PIXELS) return entity
+        }
+        return entities[0]
+    }
+
+    /**
      * Setup global click handler for Cesium (single handler for all layers)
      */
     _setupGlobalClickHandler() {
@@ -1581,9 +1722,8 @@ class GlobeRenderer {
                 return
             }
 
-            const pickedObject = this.renderer.scene.pick(click.position)
-            if (Cesium.defined(pickedObject) && pickedObject.id) {
-                const entity = pickedObject.id
+            const entity = this._pickEntityAt(click.position)
+            if (entity) {
 
                 // Find which layer this entity belongs to
                 for (const layerName of Object.keys(this._layers)) {
@@ -1593,13 +1733,20 @@ class GlobeRenderer {
                         layerInfo.kind === 'entities' &&
                         layerInfo.dataSource
                     ) {
-                        // Check if this dataSource contains the clicked entity
-                        if (layerInfo.dataSource.entities.contains(entity)) {
+                        // Match by the id injected per feature: a reloaded
+                        // layer can hold entities its recorded data source no
+                        // longer contains.
+                        if (
+                            layerInfo.dataSource.entities.contains(entity) ||
+                            _featureFor(layerInfo.featureMap, entity) != null
+                        ) {
                             // Found the layer - call its onClick callback
                             if (layerInfo.onClick && layerInfo.featureMap) {
                                 // Get original feature using entity.id (instant O(1) lookup)
-                                const originalFeature =
-                                    layerInfo.featureMap[entity.id]
+                                const originalFeature = _featureFor(
+                                    layerInfo.featureMap,
+                                    entity
+                                )
 
                                 if (originalFeature) {
                                     // Get lng/lat from entity based on geometry type
@@ -2180,25 +2327,48 @@ class GlobeRenderer {
 
         // Find the internal ID for this feature (deep comparison - matches Layers_.js)
         let internalId = null
-        for (const [id, storedFeature] of Object.entries(
-            layerInfo.featureMap
-        )) {
-            // Compare geometry (handles deep cloned features)
-            const geometryMatch = this._compareGeometry(
-                storedFeature.geometry,
-                feature.geometry
-            )
 
-            if (geometryMatch) {
-                // Also compare properties to ensure correct match
-                const propsMatch = this._compareFeatureProps(
-                    storedFeature.properties,
-                    feature.properties
-                )
-
-                if (propsMatch) {
+        // Fast path: an id says which feature it is. Deduped group_id
+        // geodatasets can hold siblings whose geometry and properties compare
+        // equal, and the deep search below would settle on the first of them.
+        const fid = this._featureIdOf(feature)
+        if (fid != null) {
+            for (const [id, storedFeature] of Object.entries(
+                layerInfo.featureMap
+            )) {
+                if (
+                    sameFeature(
+                        storedFeature?.properties,
+                        feature?.properties
+                    )
+                ) {
                     internalId = id
                     break
+                }
+            }
+        }
+
+        if (internalId == null) {
+            for (const [id, storedFeature] of Object.entries(
+                layerInfo.featureMap
+            )) {
+                // Compare geometry (handles deep cloned features)
+                const geometryMatch = this._compareGeometry(
+                    storedFeature.geometry,
+                    feature.geometry
+                )
+
+                if (geometryMatch) {
+                    // Also compare properties to ensure correct match
+                    const propsMatch = this._compareFeatureProps(
+                        storedFeature.properties,
+                        feature.properties
+                    )
+
+                    if (propsMatch) {
+                        internalId = id
+                        break
+                    }
                 }
             }
         }
@@ -2210,6 +2380,13 @@ class GlobeRenderer {
                 this._highlightEntity(entity)
             }
         }
+    }
+
+    /**
+     * A feature's own id, however the endpoint it came from spells it.
+     */
+    _featureIdOf(feature) {
+        return featureIdentities(feature?.properties)[0] ?? null
     }
 
     /**
@@ -2369,11 +2546,15 @@ class GlobeRenderer {
         delete cleanProps1._dataset
         delete cleanProps1._geodataset
         delete cleanProps1.feature_id
+        // The globe's copy carries a resolved dynamic style the 2D feature
+        // doesn't; how it looks isn't what it is.
+        delete cleanProps1.style
 
         delete cleanProps2._
         delete cleanProps2._dataset
         delete cleanProps2._geodataset
         delete cleanProps2.feature_id
+        delete cleanProps2.style
 
         // Simple JSON stringify comparison
         return JSON.stringify(cleanProps1) === JSON.stringify(cleanProps2)
@@ -2398,7 +2579,8 @@ class GlobeRenderer {
                 key !== '_geodataset' &&
                 key !== 'feature_id' &&
                 key !== '_active' &&
-                key !== '_highlighted'
+                key !== '_highlighted' &&
+                key !== 'style'
             )
         }
 
@@ -2437,7 +2619,8 @@ class GlobeRenderer {
                 propName === '_' ||
                 propName === '_dataset' ||
                 propName === '_geodataset' ||
-                propName === 'feature_id'
+                propName === 'feature_id' ||
+                propName === 'style'
             ) {
                 continue
             }
@@ -2462,6 +2645,56 @@ class GlobeRenderer {
     }
 
     /**
+     * The data source the highlight outline is drawn into.
+     */
+    _highlightSource() {
+        if (this._highlightDataSource == null) {
+            this._highlightDataSource = new Cesium.CustomDataSource(
+                'mmgis_highlight'
+            )
+            this.renderer.dataSources.add(this._highlightDataSource)
+        }
+        return this._highlightDataSource
+    }
+
+    /**
+     * A red outline tracing an entity, or null if it has no line to trace.
+     *
+     * Drawn as its own entity because Cesium batches draped geometry and
+     * ignores a colour or width changed on one of those entities after load.
+     */
+    _outlineHighlightFor(entity) {
+        const now = Cesium.JulianDate.now()
+
+        const line = entity.polyline
+        if (line) {
+            const positions = line.positions?.getValue(now)
+            if (positions == null || positions.length < 2) return null
+            return {
+                polyline: {
+                    positions,
+                    width: (line.width?.getValue(now) || 2) + 4,
+                    material: Cesium.Color.RED,
+                    clampToGround:
+                        line.clampToGround?.getValue(now) === true,
+                },
+            }
+        }
+
+        const hierarchy = entity.polygon?.hierarchy?.getValue(now)
+        const positions = hierarchy?.positions
+        if (positions == null || positions.length < 2) return null
+        return {
+            polyline: {
+                positions: positions.concat([positions[0]]),
+                width: 5,
+                material: Cesium.Color.RED,
+                clampToGround: false,
+            },
+        }
+    }
+
+    /**
      * Apply red highlight to a Cesium entity
      */
     _highlightEntity(entity) {
@@ -2469,26 +2702,11 @@ class GlobeRenderer {
         this._highlightedEntity = entity
         this._originalEntityStyle = {}
 
-        // Apply red highlight based on entity type
-        if (entity.polygon) {
-            // Store original style
-            this._originalEntityStyle.outlineColor = entity.polygon.outlineColor
-            this._originalEntityStyle.outlineWidth = entity.polygon.outlineWidth
-
-            // Apply red outline
-            entity.polygon.outlineColor = Cesium.Color.RED
-            entity.polygon.outlineWidth = 3
-        }
-
-        if (entity.polyline) {
-            // Store original style
-            this._originalEntityStyle.material = entity.polyline.material
-            this._originalEntityStyle.width = entity.polyline.width
-
-            // Apply red color
-            entity.polyline.material = Cesium.Color.RED
-            entity.polyline.width = 3
-        }
+        const outline = this._outlineHighlightFor(entity)
+        if (outline)
+            this._highlightOutline = this._highlightSource().entities.add(
+                outline
+            )
 
         if (entity.point) {
             // Store original style
@@ -2511,6 +2729,15 @@ class GlobeRenderer {
         }
 
         this._requestRender()
+    }
+
+    /** Clear the highlight when the entity it traces belongs to `dataSource`. */
+    _clearHighlightIn(dataSource) {
+        if (
+            this._highlightedEntity &&
+            dataSource?.entities?.contains?.(this._highlightedEntity)
+        )
+            this.clearHighlight()
     }
 
     /**
@@ -2564,15 +2791,9 @@ class GlobeRenderer {
 
         const entity = this._highlightedEntity
 
-        // Restore original styles
-        if (entity.polygon && this._originalEntityStyle.outlineColor) {
-            entity.polygon.outlineColor = this._originalEntityStyle.outlineColor
-            entity.polygon.outlineWidth = this._originalEntityStyle.outlineWidth
-        }
-
-        if (entity.polyline && this._originalEntityStyle.material) {
-            entity.polyline.material = this._originalEntityStyle.material
-            entity.polyline.width = this._originalEntityStyle.width
+        if (this._highlightOutline) {
+            this._highlightDataSource.entities.remove(this._highlightOutline)
+            this._highlightOutline = null
         }
 
         if (entity.point && this._originalEntityStyle.color) {
