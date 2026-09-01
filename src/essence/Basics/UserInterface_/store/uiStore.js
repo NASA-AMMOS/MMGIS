@@ -7,8 +7,34 @@ import {
     computeGlobeSplitMoveResult,
     computeToolsSplitMoveResult,
     computeWindowResize,
+    computeDetentPx,
+    nearestDetentIndex,
+    clampToolsPx,
 } from './uiStoreMath'
 import { applyTheme } from '../../../../design-system/applyTheme'
+
+const DETENT_LS_PREFIX = 'MMGIS_mobileToolHeight_'
+
+export function readSavedDetentIndex(toolName) {
+    if (!toolName) return null
+    try {
+        const raw = window.localStorage.getItem(DETENT_LS_PREFIX + toolName)
+        if (raw == null) return null
+        const idx = parseInt(raw, 10)
+        return isNaN(idx) ? null : idx
+    } catch (e) {
+        return null
+    }
+}
+
+function writeSavedDetentIndex(toolName, idx) {
+    if (!toolName) return
+    try {
+        window.localStorage.setItem(DETENT_LS_PREFIX + toolName, String(idx))
+    } catch (e) {
+        // localStorage unavailable (private mode / quota) - ignore
+    }
+}
 
 const useUIStore = create((set, get) => ({
     // Theme
@@ -32,6 +58,8 @@ const useUIStore = create((set, get) => ({
     pxIsTools: 0,
     pxIsToolsInit: 0,
     toolNativeHeight: 0,
+    // Detent fractions (from small to large) for the active mobile tool
+    toolDetentFractions: [],
 
     // Container dimensions
     mainWidth: 0,
@@ -232,6 +260,37 @@ const useUIStore = create((set, get) => ({
         set({ pxIsTools: h, toolNativeHeight: nativeH })
     },
 
+    // Set the active mobile tool's detent fractions (from small to large)
+    // Pass [] to clear (e.g. desktop / tools without detents)
+    setToolDetents: (fractions) => {
+        set({
+            toolDetentFractions: Array.isArray(fractions) ? fractions : [],
+        })
+    },
+
+    // Open the tool panel at a specific detent index, using the same
+    // available-height basis as the drag/snap math so the initial height
+    // aligns with the detent it will snap to
+    setToolHeightToDetent: (index) => {
+        const state = get()
+        const detentPx = computeDetentPx(state)
+        if (detentPx.length === 0 || index < 0 || index >= detentPx.length)
+            return false
+        set({ pxIsTools: detentPx[index], toolNativeHeight: detentPx[index] })
+        return true
+    },
+
+    // Snap the tool panel to the nearest detent (called on drag release)
+    // and persist the chosen detent index per tool to localStorage
+    snapToNearestDetent: () => {
+        const state = get()
+        const idx = nearestDetentIndex(state, state.pxIsTools)
+        if (idx < 0) return
+        const detentPx = computeDetentPx(state)
+        set({ pxIsTools: detentPx[idx] })
+        writeSavedDetentIndex(state.activeToolName, idx)
+    },
+
     openToolPanel: (width) => {
         set({ toolPanelWidth: width })
     },
@@ -275,9 +334,16 @@ const useUIStore = create((set, get) => ({
         set(computeGlobeSplitMoveResult(get(), clientX))
     },
 
-    // Splitter drag math: tools splitter
+    // Splitter drag math: tools splitter (absolute pointer Y)
     computeToolsSplitMove: (clientY) => {
         set({ pxIsTools: computeToolsSplitMoveResult(get(), clientY) })
+    },
+
+    // Set panel height from a start height plus the vertical drag offset
+    // (dragging up grows). Position-independent, so the grab handle can live
+    // anywhere (e.g. above the mobile toolbar)
+    setToolDragPx: (startPx, dyUp) => {
+        set({ pxIsTools: clampToolsPx(get(), startPx + dyUp) })
     },
 
     // Window resize handler
