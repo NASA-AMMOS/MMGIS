@@ -90,12 +90,6 @@ _type:_ number
 _default:_ 60
 If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds.
 
-#### Refresh Via Broadcast
-
-_type:_ boolean
-_default:_ false
-If 'Time Enabled' and 'Refresh Interval Enabled', disables the timed polling and instead refreshes/requeries this layer only when the server pushes a notification. Admins trigger this with `POST /api/broadcast/layerUpdate` `{ "mission": "<db mission name>", "layerName": "<layer name or uuid>" | [...] }`. Requires `ENABLE_MMGIS_WEBSOCKETS=true`.
-
 #### Stroke Color
 
 _type:_ CSS color string or a prop _optional_  

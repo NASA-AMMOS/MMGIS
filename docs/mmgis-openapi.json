@@ -6166,7 +6166,7 @@
     "/api/broadcast/layerUpdate": {
       "post": {
         "summary": "Broadcast a layer refresh notification",
-        "description": "Notify-only. Pushes `{ info: { type: 'refreshLayer', layerName }, body: { mission } }` over the websocket to every connected client so that clients viewing `mission` re-query the named layer(s) on demand instead of waiting on a polling timer. No layer data or config is sent. Requires admin (Admins must manage the mission). If ENABLE_MMGIS_WEBSOCKETS is not 'true', responds with success and `broadcasted: false`.",
+        "description": "Notify-only. Pushes `{ info: { type: 'refreshLayer', layerName }, body: { mission } }` over the websocket to every connected client so that clients viewing `mission` re-query the named layer(s) immediately (any configured refresh interval polling continues unchanged). No layer data or config is sent. Requires admin (Admins must manage the mission). If ENABLE_MMGIS_WEBSOCKETS is not 'true', responds with success and `broadcasted: false`.",
         "tags": ["Broadcast"],
         "requestBody": {
           "required": true,

@@ -484,18 +484,10 @@
               {
                 "field": "time.refreshIntervalAmount",
                 "name": "Refresh Every N Seconds",
-                "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds. If null or 0, defaults to 60. Ignored if 'Refresh Via Broadcast' is enabled.",
+                "description": "If 'Time Enabled' and 'Refresh Interval Enabled', this layer will automatically refresh/requery its data every n seconds. If null or 0, defaults to 60.",
                 "type": "number",
                 "min": 1,
                 "width": 3
-              },
-              {
-                "field": "time.refreshViaBroadcast",
-                "name": "Refresh Via Broadcast",
-                "description": "If 'Time Enabled' and 'Refresh Interval Enabled', disables the timed polling and instead refreshes/requeries this layer only when the server pushes a notification (POST /api/broadcast/layerUpdate). Requires ENABLE_MMGIS_WEBSOCKETS=true.",
-                "type": "switch",
-                "width": 4,
-                "defaultChecked": false
               }
             ]
           },

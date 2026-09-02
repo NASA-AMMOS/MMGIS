@@ -136,14 +136,9 @@ export async function parseConfig(L_, configData, urlOnLayers) {
                 d[i].time.enabled === true &&
                 d[i].time.refreshIntervalEnabled === true
             ) {
-                if (L_.layers.refreshIntervals[d[i].name]) {
+                if (L_.layers.refreshIntervals[d[i].name])
                     clearInterval(L_.layers.refreshIntervals[d[i].name])
-                    delete L_.layers.refreshIntervals[d[i].name]
-                }
-                // Push-managed layers (refreshViaBroadcast) are refreshed by
-                // POST /api/broadcast/layerUpdate websocket messages instead of polling
-                if (d[i].time.refreshViaBroadcast !== true)
-                    L_.layers.refreshIntervals[d[i].name] = setInterval(
+                L_.layers.refreshIntervals[d[i].name] = setInterval(
                     async () => {
                         if (L_.layers.on[d[i].name] === true) {
                             let savedActiveFeature
