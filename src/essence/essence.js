@@ -323,9 +323,10 @@ var essence = {
     },
     // Same reload/reselect behavior as the polling loop in Layers_/lifecycle/config.js
     refreshLayersFromBroadcast: async function (layerNames) {
-        const names = layerNames.filter(
-            (name) => L_.layers.data[name] && L_.layers.on[name] === true
-        )
+        // Accept display names or UUIDs; L_.layers.* are keyed by UUID
+        const names = [
+            ...new Set(layerNames.map((name) => L_.asLayerUUID(name))),
+        ].filter((name) => L_.layers.data[name] && L_.layers.on[name] === true)
         if (names.length === 0) return
 
         let savedActiveFeature
@@ -337,9 +338,18 @@ var essence = {
         }
 
         await Promise.allSettled(
-            names.map((name) =>
-                L_.TimeControl_.reloadLayer(name, false, false, true, true)
-            )
+            names.map((name) => {
+                const layer = L_.layers.data[name]
+                if (layer.time && layer.time.enabled === true)
+                    return L_.TimeControl_.reloadLayer(
+                        name,
+                        false,
+                        false,
+                        true,
+                        true
+                    )
+                return Map_.refreshLayer(layer, undefined, true)
+            })
         )
 
         if (savedActiveFeature) {

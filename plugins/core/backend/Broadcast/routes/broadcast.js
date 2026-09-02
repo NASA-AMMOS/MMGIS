@@ -39,9 +39,17 @@ router.post("/layerUpdate", checkMissionPermission, function (req, res, next) {
   }
 
   try {
-    websocket.websocket.broadcast(
+    const sent = websocket.websocket.broadcast(
       JSON.stringify(buildRefreshLayerEnvelope(mission, layerName))
     );
+    if (!sent) {
+      res.send({
+        status: "success",
+        message: "Websocket server is not running. No clients notified.",
+        broadcasted: false,
+      });
+      return;
+    }
     logger(
       "info",
       `Broadcasted refreshLayer for mission '${mission}'.`,
