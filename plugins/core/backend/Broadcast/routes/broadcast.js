@@ -9,13 +9,11 @@ const router = express.Router();
 const logger = require("../../../../../API/logger");
 const websocket = require("../../../../../API/websocket.js");
 const { checkMissionPermission } = require("../../Config/routes/configs");
-
-function websocketsEnabled() {
-  return (
-    process.env.hasOwnProperty("ENABLE_MMGIS_WEBSOCKETS") &&
-    process.env.ENABLE_MMGIS_WEBSOCKETS == "true"
-  );
-}
+const {
+  websocketsEnabled,
+  validateLayerUpdateBody,
+  buildRefreshLayerEnvelope,
+} = require("./broadcastutils");
 
 /**
  * POST /api/broadcast/layerUpdate
@@ -23,32 +21,12 @@ function websocketsEnabled() {
  * body: { mission: string, layerName: string | string[] }
  */
 router.post("/layerUpdate", checkMissionPermission, function (req, res, next) {
-  const mission = req.body.mission;
-  const layerName = req.body.layerName;
-
-  if (typeof mission !== "string" || mission.length === 0) {
-    res.send({
-      status: "failure",
-      message: "Missing or invalid 'mission'.",
-    });
+  const validationError = validateLayerUpdateBody(req.body);
+  if (validationError) {
+    res.send({ status: "failure", message: validationError });
     return;
   }
-
-  const isValidName = (n) => typeof n === "string" && n.length > 0;
-  if (
-    !(
-      isValidName(layerName) ||
-      (Array.isArray(layerName) &&
-        layerName.length > 0 &&
-        layerName.every(isValidName))
-    )
-  ) {
-    res.send({
-      status: "failure",
-      message: "'layerName' must be a non-empty string or array of strings.",
-    });
-    return;
-  }
+  const { mission, layerName } = req.body;
 
   if (!websocketsEnabled()) {
     res.send({
@@ -60,13 +38,10 @@ router.post("/layerUpdate", checkMissionPermission, function (req, res, next) {
     return;
   }
 
-  const data = {
-    info: { type: "refreshLayer", layerName },
-    body: { mission },
-  };
-
   try {
-    websocket.websocket.broadcast(JSON.stringify(data));
+    websocket.websocket.broadcast(
+      JSON.stringify(buildRefreshLayerEnvelope(mission, layerName))
+    );
     logger(
       "info",
       `Broadcasted refreshLayer for mission '${mission}'.`,
