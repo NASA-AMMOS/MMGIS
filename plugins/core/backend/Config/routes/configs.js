@@ -1981,3 +1981,4 @@ router.post("/reference-mission/save-to-base", checkMissionPermission, function 
 });
 
 module.exports = router;
+module.exports.checkMissionPermission = checkMissionPermission;

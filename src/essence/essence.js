@@ -279,6 +279,12 @@ var essence = {
                                     )
                                 }
                             )
+                        } else if (type === 'refreshLayer') {
+                            // Notify-only: re-query the named layer(s) without refetching the config
+                            const names = Array.isArray(layerName)
+                                ? layerName
+                                : [layerName]
+                            essence.refreshLayersFromBroadcast(names)
                         } else {
                             if (parsed.body && parsed.body.config) {
                                 UserInterface_.updateLayerUpdateButton('RELOAD')
@@ -313,6 +319,34 @@ var essence = {
         essence.ws.onclose = function () {
             console.log('Closed websocket connection...', new Date())
             UserInterface_.updateLayerUpdateButton('DISCONNECTED')
+        }
+    },
+    // Same reload/reselect behavior as the polling loop in Layers_/lifecycle/config.js
+    refreshLayersFromBroadcast: async function (layerNames) {
+        const names = layerNames.filter(
+            (name) => L_.layers.data[name] && L_.layers.on[name] === true
+        )
+        if (names.length === 0) return
+
+        let savedActiveFeature
+        if (L_.activeFeature && names.includes(L_.activeFeature.layerName)) {
+            savedActiveFeature = {
+                layerName: L_.activeFeature.layerName,
+                feature: JSON.parse(JSON.stringify(L_.activeFeature.feature)),
+            }
+        }
+
+        await Promise.allSettled(
+            names.map((name) =>
+                L_.TimeControl_.reloadLayer(name, false, false, true, true)
+            )
+        )
+
+        if (savedActiveFeature) {
+            L_.selectFeature(
+                savedActiveFeature.layerName,
+                savedActiveFeature.feature
+            )
         }
     },
     init: async function (config, missionsList, swapping) {

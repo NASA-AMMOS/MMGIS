@@ -1,0 +1,20 @@
+{
+  "uuid": "78dc91a4-49f5-4407-8479-5a46d72586c8",
+  "id": "core-broadcast",
+  "name": "Broadcast",
+  "display_name": "Websocket Broadcast",
+  "aliases": [
+    "broadcast"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/broadcast",
+    "auth": "admin"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

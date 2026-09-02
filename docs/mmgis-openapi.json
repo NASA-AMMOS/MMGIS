@@ -6163,6 +6163,71 @@
         }
       }
     },
+    "/api/broadcast/layerUpdate": {
+      "post": {
+        "summary": "Broadcast a layer refresh notification",
+        "description": "Notify-only. Pushes `{ info: { type: 'refreshLayer', layerName }, body: { mission } }` over the websocket to every connected client so that clients viewing `mission` re-query the named layer(s) on demand instead of waiting on a polling timer. No layer data or config is sent. Requires admin (Admins must manage the mission). If ENABLE_MMGIS_WEBSOCKETS is not 'true', responds with success and `broadcasted: false`.",
+        "tags": ["Broadcast"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mission": {
+                    "type": "string",
+                    "description": "Database mission name (matches the client's L_.mission)."
+                  },
+                  "layerName": {
+                    "description": "Layer name/UUID or an array of them.",
+                    "oneOf": [
+                      { "type": "string" },
+                      { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                    ]
+                  }
+                },
+                "required": ["mission", "layerName"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Broadcast layer refresh response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "message": "Layer refresh broadcasted.",
+                      "broadcasted": true
+                    }
+                  },
+                  "disabled": {
+                    "summary": "Websockets disabled",
+                    "value": {
+                      "status": "success",
+                      "message": "Websockets are disabled (ENABLE_MMGIS_WEBSOCKETS != 'true'). No clients notified.",
+                      "broadcasted": false
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "'layerName' must be a non-empty string or array of strings."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/webhooks/save": {
       "post": {
         "summary": "Save webhooks config",
