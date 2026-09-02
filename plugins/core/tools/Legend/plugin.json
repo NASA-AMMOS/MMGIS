@@ -17,6 +17,7 @@
     "name": "Legend",
     "toolbarPriority": 2,
     "separatedTool": true,
+    "worksOnMobile": true,
     "paths": {
         "LegendTool": "./LegendTool"
     },

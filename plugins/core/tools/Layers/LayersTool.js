@@ -235,7 +235,10 @@ var LayersTool = {
                 .getElementById('map')
                 .getBoundingClientRect()
             this.width = 'full'
-            this.height = Math.round(mapRect.height * 0.7)
+            // Mobile bottom-sheet detents (fractions of map height), from small to large
+            // Middle detent is the default open height
+            this.heightDetents = [0.4, 0.7, 0.9]
+            this.height = Math.round(mapRect.height * this.heightDetents[1])
         }
     },
     finalize: function () {
