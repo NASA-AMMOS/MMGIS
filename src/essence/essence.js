@@ -168,6 +168,16 @@ var essence = {
     initWebSocket: function (path) {
         essence.ws = new WebSocket(path)
 
+        // Layers that were off (or not yet made) when a refreshLayer broadcast
+        // arrived re-query on their next turn-on instead of showing cached data
+        essence.staleFromBroadcast = essence.staleFromBroadcast || new Set()
+        L_.subscribeOnLayerToggle('BroadcastRefresh', (layerName, isNowOn) => {
+            if (isNowOn && essence.staleFromBroadcast.has(layerName)) {
+                essence.staleFromBroadcast.delete(layerName)
+                essence.refreshLayersFromBroadcast([layerName])
+            }
+        })
+
         essence.ws.onerror = function (e) {
             console.log(`Unable to connect to WebSocket at ${path}`)
 
@@ -324,9 +334,16 @@ var essence = {
     // Same reload/reselect behavior as the polling loop in Layers_/lifecycle/config.js
     refreshLayersFromBroadcast: async function (layerNames) {
         // Accept display names or UUIDs; L_.layers.* are keyed by UUID
-        const names = [
+        const uuids = [
             ...new Set(layerNames.map((name) => L_.asLayerUUID(name))),
-        ].filter((name) => L_.layers.data[name] && L_.layers.on[name] === true)
+        ].filter((name) => L_.layers.data[name])
+        const names = uuids.filter((name) => L_.layers.on[name] === true)
+        uuids
+            .filter(
+                (name) =>
+                    L_.layers.on[name] !== true && L_.layers.layer[name] !== false
+            )
+            .forEach((name) => essence.staleFromBroadcast.add(name))
         if (names.length === 0) return
 
         let savedActiveFeature
