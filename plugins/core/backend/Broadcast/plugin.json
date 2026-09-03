@@ -9,7 +9,7 @@
   "version": "core",
   "type": "backend",
   "tier": "core",
-  "overridable": true,
+  "overridable": false,
   "routes": {
     "prefix": "/api/broadcast",
     "auth": "admin"
