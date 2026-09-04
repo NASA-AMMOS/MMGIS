@@ -18,8 +18,6 @@
 */
 
 import $ from 'jquery'
-import WebSocket from 'isomorphic-ws'
-import Toast from '../design-system/components/Toast/Toast'
 import F_ from './Basics/Formulae_/Formulae_'
 import L_ from './Basics/Layers_/Layers_'
 import Viewer_ from './Basics/Viewer_/Viewer_'
@@ -38,6 +36,7 @@ import Compass from './Basics/UserInterface_/components/Compass/Compass'
 import MapLogo from './Basics/UserInterface_/components/MapLogo/MapLogo'
 import Attributions from './Basics/UserInterface_/components/Attributions/Attributions'
 import QueryURL from './services/QueryURL'
+import WebSocketService from './services/WebSocketService'
 import TimeControl from './Basics/TimeControl_/TimeControl'
 import calls from '../pre/calls'
 import { mmgisAPI_, mmgisAPI } from './mmgisAPI/mmgisAPI'
@@ -117,10 +116,6 @@ $(document).keyup(function (e) {
 var essence = {
     configData: null,
     hasSwapped: false,
-    ws: null,
-    initialWebSocketRetryInterval: 60000, // 1 minute
-    webSocketRetryInterval: 60000, // Start with this time and double if disconnected
-    webSocketPingInterval: null,
     // Wait for the React layout to mount and set layoutReady in the store
     waitForLayoutReady: function () {
         return new Promise((resolve) => {
@@ -140,180 +135,6 @@ var essence = {
                 })
             })
         })
-    },
-    connectWebSocket: function (path, initial) {
-        // https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
-        if (
-            essence.ws === undefined ||
-            essence.ws === null ||
-            (essence.ws && essence.ws.readyState === 3)
-        ) {
-            essence.initWebSocket(path)
-
-            // If we're trying to start the WebSocket for the first time, we know we're not connected already
-            // so  we don't need to retry to connect yet
-            if (!initial) {
-                clearInterval(essence.webSocketPingInterval)
-                essence.webSocketRetryInterval =
-                    essence.webSocketRetryInterval * 2
-                essence.webSocketPingInterval = setInterval(
-                    essence.connectWebSocket,
-                    essence.webSocketRetryInterval,
-                    path,
-                    false
-                ) // 10 seconds
-            }
-        }
-    },
-    initWebSocket: function (path) {
-        essence.ws = new WebSocket(path)
-
-        essence.ws.onerror = function (e) {
-            console.log(`Unable to connect to WebSocket at ${path}`)
-
-            Toast.dismissAll()
-
-            const asMinutes = essence.webSocketRetryInterval / 60000 || ''
-            Toast.error(
-                `Not connected to WebSocket. Retrying in ${
-                    asMinutes >= 1 ? parseInt(asMinutes) : asMinutes.toFixed(2)
-                } minute${asMinutes > 1 ? 's' : ''}...`,
-                10000
-            )
-        }
-
-        essence.ws.onopen = function () {
-            console.log('Websocket connection opened...')
-
-            UserInterface_.removeLayerUpdateButton()
-
-            Toast.dismissAll()
-
-            if (
-                essence.webSocketRetryInterval >
-                essence.initialWebSocketRetryInterval
-            ) {
-                /*
-                Toast.info('Successfully connected to WebSocket', 1600)
-                */
-
-                essence.webSocketRetryInterval =
-                    essence.initialWebSocketRetryInterval
-                clearInterval(essence.webSocketPingInterval)
-                essence.webSocketPingInterval = setInterval(
-                    essence.connectWebSocket,
-                    essence.webSocketRetryInterval,
-                    path,
-                    false
-                ) // 1 minute
-            }
-        }
-
-        essence.ws.onmessage = function (data) {
-            if (data.data) {
-                try {
-                    const parsed = JSON.parse(data.data)
-                    // Use DB mission name for comparison (L_.mission now contains DB name)
-                    const mission = L_.mission || essence.configData.msv.mission
-
-                    if (
-                        !parsed.body.mission ||
-                        parsed.body.mission !== mission
-                    ) {
-                        return
-                    }
-
-                    if ('info' in parsed) {
-                        const { type, layerName } = parsed.info
-
-                        if (
-                            type === 'addLayer' ||
-                            type === 'updateLayer' ||
-                            type === 'removeLayer'
-                        ) {
-                            calls.api(
-                                'get',
-                                {
-                                    mission,
-                                    full: true,
-                                },
-                                async function (response) {
-                                    // Extract DB mission name and attach to config
-                                    const data = response.config || response
-                                    if (response.mission) {
-                                        data._dbMissionName = response.mission
-                                    }
-
-                                    if (Array.isArray(layerName)) {
-                                        // If we're adding an array of new layers, add each layer to the queue individually
-                                        for (let layer in layerName) {
-                                            L_.addLayerQueue.push({
-                                                newLayerName: layerName[layer],
-                                                data,
-                                                type,
-                                            })
-                                        }
-                                    } else {
-                                        // Otherwise only a single new layer was added
-                                        L_.addLayerQueue.push({
-                                            newLayerName: layerName,
-                                            data,
-                                            type,
-                                        })
-                                    }
-
-                                    if (parsed.forceClientUpdate) {
-                                        // Force update the client side
-                                        await L_.updateQueueLayers()
-                                    } else {
-                                        UserInterface_.updateLayerUpdateButton(
-                                            'ADD_LAYER'
-                                        )
-                                    }
-                                },
-                                function (e) {
-                                    console.warn(
-                                        "Warning: Couldn't load: " +
-                                            mission +
-                                            ' configuration.'
-                                    )
-                                }
-                            )
-                        } else {
-                            if (parsed.body && parsed.body.config) {
-                                UserInterface_.updateLayerUpdateButton('RELOAD')
-                            }
-                        }
-                    } else {
-                        if (parsed.body && parsed.body.config) {
-                            UserInterface_.updateLayerUpdateButton('RELOAD')
-                        }
-                    }
-
-                    // Dispatch `websocketChange` event
-                    let _event = new CustomEvent('websocketChange', {
-                        detail: {
-                            layer:
-                                typeof layerName !== 'undefined'
-                                    ? layerName
-                                    : null,
-                            type: typeof type !== 'undefined' ? type : null,
-                            data: parsed,
-                        },
-                    })
-                    document.dispatchEvent(_event)
-                } catch (e) {
-                    console.warn(
-                        `Error parsing data from MMGIS websocket: ${e}`
-                    )
-                }
-            }
-        }
-
-        essence.ws.onclose = function () {
-            console.log('Closed websocket connection...', new Date())
-            UserInterface_.updateLayerUpdateButton('DISCONNECTED')
-        }
     },
     init: async function (config, missionsList, swapping) {
         //Save the config data
@@ -408,34 +229,9 @@ var essence = {
         //Swap.make(this)
 
         // Enable MMGIS backend websockets
-        if (
-            window.mmgisglobal.PORT &&
-            window.mmgisglobal.ENABLE_MMGIS_WEBSOCKETS === 'true'
-        ) {
-            const port = parseInt(window.mmgisglobal.PORT || '8888', 10)
-            const protocol =
-                window.location.protocol.indexOf('https') !== -1 ? 'wss' : 'ws'
-            const path =
-                window.mmgisglobal.NODE_ENV === 'development'
-                    ? `${protocol}://${window.location.hostname}:${port}${
-                          window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
-                          window.mmgisglobal.ROOT_PATH ||
-                          ''
-                      }/`
-                    : `${protocol}://${window.location.host}${
-                          window.mmgisglobal.WEBSOCKET_ROOT_PATH ||
-                          window.mmgisglobal.ROOT_PATH ||
-                          ''
-                      }/`
-
-            essence.connectWebSocket(path, true)
-            essence.webSocketPingInterval = setInterval(
-                essence.connectWebSocket,
-                essence.webSocketRetryInterval,
-                path,
-                false
-            ) // 10 seconds
-        }
+        WebSocketService.start(
+            () => L_.mission || essence.configData.msv.mission
+        )
     },
     swapMission(to) {
         //console.log( to );
