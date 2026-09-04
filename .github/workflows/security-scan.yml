@@ -1,10 +1,24 @@
 name: Security-Scan
+
+# Scanning setup follows the AMMOS guide:
+#   "Code Vulnerability Scanning Set Up for AMMOS Open Source Software"
+#   https://wiki.jpl.nasa.gov/pages/viewpage.action?pageId=1029935039
+#
+# Pipeline: CodeQL scans -> fix_sarif_paths.py prepares the SARIF for
+# SonarQube Cloud ingest -> sonarqube-scan-action imports it. This departs
+# from the guide's nasa-scrub step; the Post-Process Output step below and the
+# script's docstring record why.
+#
+# Validate changes to the scan pipeline by dispatching this workflow manually
+# against a feature branch first -- workflow_dispatch checks out the ref you
+# select, so it scans that branch rather than the default one.
 on:
   workflow_dispatch:
   push:
     branches:
       - development
       - sonarcloud_action
+
 permissions:
   contents: read
   security-events: write
@@ -16,22 +30,39 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
       - name: Extract version from package.json
         id: package_version
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Extracted version: $VERSION"
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
         with:
           config-file: ./.github/codeql/codeql-config.yml
+
       - name: CodeQL Scan
         uses: github/codeql-action/analyze@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
-      - name: Prepare SARIF Files
+
+      # Prepare the CodeQL SARIF for SonarQube import.
+      #
+      # The AMMOS guide routes this through nasa-scrub's translate_results. We
+      # deliberately do not: measured against a real CodeQL report from this
+      # repo, scrub turned CodeQL's already-relative URIs into absolute ones,
+      # rebuilt driver.rules as id-only stubs (losing every severity, so all
+      # findings imported as MEDIUM), and dropped all relatedLocations.
+      #
+      # fix_sarif_paths.py instead lifts CodeQL's rule metadata out of
+      # tool.extensions[] onto tool.driver.rules -- the only place SonarQube
+      # looks -- keeping descriptions, severities, code flows and related
+      # locations intact. See the script docstring for the measurements.
+      - name: Post-Process Output
         run: |
           results_dir=`realpath ${{ github.workspace }}/../results`
+          sarif_files=`find $results_dir -name '*.sarif'`
           workspace_path="${{ github.workspace }}"
 
           echo "SARIF files directory: $results_dir"
@@ -39,23 +70,15 @@ jobs:
           echo "Available SARIF files:"
           ls -lh $results_dir/*.sarif
 
-          # Fix file paths in SARIF files to be relative to workspace
-          # This is necessary for SonarQube to correctly map issues to files
-          for sarif_file in $results_dir/*.sarif; do
-            if [ -f "$sarif_file" ]; then
-              output_file="${sarif_file%.sarif}_processed.sarif"
-              echo "Processing: $(basename $sarif_file)"
+          for sarif_file in $sarif_files
+          do
+            processed_file="$results_dir/$(basename $sarif_file .sarif)_processed.sarif"
+            echo "Processing: $(basename $sarif_file)"
 
-              python3 .github/scripts/fix_sarif_paths.py "$sarif_file" "$output_file" "$workspace_path"
-
-              if [ $? -ne 0 ]; then
-                echo "ERROR: Failed to process $sarif_file, using original"
-                cp "$sarif_file" "$output_file"
-              fi
-            fi
+            python3 .github/scripts/fix_sarif_paths.py \
+              "$sarif_file" "$processed_file" "$workspace_path"
           done
 
-          # Use processed SARIF files for SonarQube
           sarif_list=$(find $results_dir -name '*_processed.sarif' | tr '\n' ',' | sed 's/,$//')
 
           echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
@@ -64,6 +87,27 @@ jobs:
           echo ""
           echo "SARIF files for SonarQube:"
           echo "$sarif_list"
+
+      # This step makes the analysis artifacts available for download.
+      # This can be helpful for debugging and archive purposes.
+      - name: Upload Artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: codeql-artifacts
+          path: ${{ env.RESULTS_DIR }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      # sonar.branch.name is set explicitly because the scanner did not derive
+      # it on its own: dispatching this workflow from a feature branch
+      # published straight over the development analysis, stamping the main
+      # branch with the feature branch's commit (runs 33824590350 onwards).
+      #
+      # github.ref_name is the branch being analyzed. On a push to development
+      # that is "development", which is the project's main branch in SonarQube,
+      # so the behaviour there is unchanged. Any other ref now lands in its own
+      # branch analysis instead of overwriting development's.
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:
@@ -73,3 +117,4 @@ jobs:
           args: >
             -Dsonar.sarifReportPaths=${{ env.SARIF_FILES }}
             -Dsonar.projectVersion=${{ env.VERSION }}
+            -Dsonar.branch.name=${{ github.ref_name }}
