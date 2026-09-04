@@ -12,15 +12,26 @@ Two responsibilities:
 2. Attribution hardening: SonarQube's SARIF importer reads the tool name from
    ``runs[].tool.driver.name`` (mandatory) and rule metadata from
    ``runs[].tool.driver.rules[]``. Anything placed under ``runs[].tool.rules``
-   (a known nasa/scrub output bug, fixed upstream in PR #121 but unreleased)
-   is ignored on import, which silently strips rule attribution. To avoid
-   depending on an unreleased scrub, this script normalizes the report itself:
-   it moves misplaced ``tool.rules`` under ``tool.driver.rules``, ensures a
+   (a known nasa/scrub output bug) is ignored on import, which silently strips
+   rule attribution. This script normalizes the report itself: it moves
+   misplaced ``tool.rules`` under ``tool.driver.rules``, ensures a
    ``driver.name`` exists, and corrects the broken ``$schema`` URL.
 
    For native CodeQL SARIF -- which already has rich rules under
    ``tool.driver`` and a valid schema -- every hardening step is a no-op, so
    CodeQL's rule names, descriptions, and severities are preserved intact.
+
+Why this still runs after nasa-scrub
+------------------------------------
+nasa-scrub 3.0.1 fixed the misplaced-rules bug upstream (nasa/scrub PR #119),
+so responsibility 2 is now largely defensive. Responsibility 1 is not: scrub's
+``translate_results`` resolves every primary result location to an *absolute*
+path (``parse_sarif`` joins relative URIs onto the source root, and the 2.1.0
+writer emits ``str(warning['file'])`` verbatim -- only code-flow locations get
+``relative_to(source_root)``). It also writes that absolute source root into
+``uriBaseId``, where SARIF expects a symbolic name that keys into
+``originalUriBaseIds``. Both defeat SonarQube's file mapping, so the scrub
+output is passed through this script before import.
 """
 import json
 import sys
@@ -78,6 +89,21 @@ def harden_attribution(sarif):
     return modified
 
 
+def strip_absolute_uri_base_id(artifact_loc):
+    """Drop a ``uriBaseId`` that holds a filesystem path rather than a symbolic name.
+
+    SARIF 2.1.0 defines ``uriBaseId`` as a key into ``run.originalUriBaseIds``
+    (e.g. ``%SRCROOT%``). nasa-scrub instead writes the absolute source root,
+    which SonarQube can prepend to an already-relative ``uri``. Symbolic ids are
+    left untouched. Returns True if the key was removed.
+    """
+    base_id = artifact_loc.get('uriBaseId')
+    if isinstance(base_id, str) and (base_id.startswith('/') or base_id.startswith('file://')):
+        del artifact_loc['uriBaseId']
+        return True
+    return False
+
+
 def fix_sarif_paths(sarif_file, output_file, workspace_path):
     """
     Convert absolute file paths in SARIF to relative paths and harden the
@@ -128,6 +154,12 @@ def fix_sarif_paths(sarif_file, output_file, workspace_path):
                                 uri = uri[len(workspace_path) + 1:]
                                 artifact_loc['uri'] = uri
                                 modified = True
+                        # SARIF expects uriBaseId to be a symbolic name that keys
+                        # into originalUriBaseIds, not a filesystem path. scrub
+                        # writes the absolute source root here, which SonarQube
+                        # may prepend to an already-relative uri. Drop it.
+                        if strip_absolute_uri_base_id(artifact_loc):
+                            modified = True
 
         # Write the modified SARIF file
         with open(output_file, 'w', encoding='utf-8') as f:
