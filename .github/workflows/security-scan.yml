@@ -1,10 +1,22 @@
 name: Security-Scan
+
+# Scanning setup follows the AMMOS guide:
+#   "Code Vulnerability Scanning Set Up for AMMOS Open Source Software"
+#   https://wiki.jpl.nasa.gov/pages/viewpage.action?pageId=1029935039
+#
+# Pipeline: CodeQL scans -> nasa-scrub reformats the SARIF for SonarQube
+# Cloud ingest -> sonarqube-scan-action imports it.
+#
+# Validate changes to the scan pipeline by dispatching this workflow manually
+# against a feature branch first -- workflow_dispatch checks out the ref you
+# select, so it scans that branch rather than the default one.
 on:
   workflow_dispatch:
   push:
     branches:
       - development
       - sonarcloud_action
+
 permissions:
   contents: read
   security-events: write
@@ -16,22 +28,45 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
       - name: Extract version from package.json
         id: package_version
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Extracted version: $VERSION"
+
+      # Pinned interpreter so `pip install nasa-scrub` lands in a clean,
+      # non-externally-managed environment on the runner.
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
         with:
           config-file: ./.github/codeql/codeql-config.yml
+
       - name: CodeQL Scan
         uses: github/codeql-action/analyze@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
-      - name: Prepare SARIF Files
+
+      # This step is required to remove malformed data from the CodeQL output.
+      # nasa-scrub >= 3.0.1 emits rules under runs[].tool.driver.rules (nasa/scrub
+      # PR #119), which is what SonarQube Cloud reads -- without it the imported
+      # findings are not attributed to a rule and the import warns in the web UI.
+      #
+      # scrub does NOT relativize primary result locations: it resolves them to
+      # absolute paths and writes the absolute source root into uriBaseId. Both
+      # break SonarQube's file mapping, so each translated report is then passed
+      # through fix_sarif_paths.py to make paths workspace-relative.
+      - name: Post-Process Output
         run: |
+          python3 -m pip install --disable-pip-version-check nasa-scrub==3.0.2
+
           results_dir=`realpath ${{ github.workspace }}/../results`
+          sarif_files=`find $results_dir -name '*.sarif'`
           workspace_path="${{ github.workspace }}"
 
           echo "SARIF files directory: $results_dir"
@@ -39,24 +74,19 @@ jobs:
           echo "Available SARIF files:"
           ls -lh $results_dir/*.sarif
 
-          # Fix file paths in SARIF files to be relative to workspace
-          # This is necessary for SonarQube to correctly map issues to files
-          for sarif_file in $results_dir/*.sarif; do
-            if [ -f "$sarif_file" ]; then
-              output_file="${sarif_file%.sarif}_processed.sarif"
-              echo "Processing: $(basename $sarif_file)"
+          for sarif_file in $sarif_files
+          do
+            stripped_file="$results_dir/$(basename $sarif_file .sarif)_stripped.sarif"
+            echo "Processing: $(basename $sarif_file)"
 
-              python3 .github/scripts/fix_sarif_paths.py "$sarif_file" "$output_file" "$workspace_path"
+            python3 -m scrub.tools.parsers.translate_results \
+              "$sarif_file" "$stripped_file" "$workspace_path" sarifv2.1.0
 
-              if [ $? -ne 0 ]; then
-                echo "ERROR: Failed to process $sarif_file, using original"
-                cp "$sarif_file" "$output_file"
-              fi
-            fi
+            python3 .github/scripts/fix_sarif_paths.py \
+              "$stripped_file" "$stripped_file" "$workspace_path"
           done
 
-          # Use processed SARIF files for SonarQube
-          sarif_list=$(find $results_dir -name '*_processed.sarif' | tr '\n' ',' | sed 's/,$//')
+          sarif_list=$(find $results_dir -name '*_stripped.sarif' | tr '\n' ',' | sed 's/,$//')
 
           echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
           echo "SARIF_FILES=$sarif_list" >> $GITHUB_ENV
@@ -64,16 +94,18 @@ jobs:
           echo ""
           echo "SARIF files for SonarQube:"
           echo "$sarif_list"
-      # Make the raw + processed SARIF available for download so attribution
-      # issues can be inspected offline (per the AMMOS scanning setup guide).
-      - name: Upload SARIF Artifacts
+
+      # This step makes the analysis artifacts available for download.
+      # This can be helpful for debugging and archive purposes.
+      - name: Upload Artifacts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: codeql-sarif
-          path: ${{ env.RESULTS_DIR }}/*.sarif
+          name: codeql-artifacts
+          path: ${{ env.RESULTS_DIR }}
           if-no-files-found: warn
           retention-days: 14
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f # v8.2.1
         env:

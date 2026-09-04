@@ -113,6 +113,58 @@ class TestPathRelativization(unittest.TestCase):
         )
 
 
+class TestUriBaseId(unittest.TestCase):
+    """nasa-scrub writes the absolute source root into uriBaseId, where SARIF
+    expects a symbolic name. It must be dropped; symbolic ids must survive."""
+
+    @staticmethod
+    def _sarif(ws, uri, base_id):
+        return {
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {"driver": {"name": "CodeQL", "rules": []}},
+                    "results": [
+                        {
+                            "ruleId": "js/xss",
+                            "message": {"text": "x"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {
+                                            "uri": uri,
+                                            "uriBaseId": base_id,
+                                        },
+                                        "region": {"startLine": 1},
+                                    }
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+
+    def _artifact_loc(self, out):
+        return out["runs"][0]["results"][0]["locations"][0][
+            "physicalLocation"
+        ]["artifactLocation"]
+
+    def test_scrub_style_absolute_uri_base_id_dropped(self):
+        ws = "/home/runner/work/MMGIS/MMGIS"
+        out = _run_file(self._sarif(ws, ws + "/src/essence/foo.js", ws), ws)
+        loc = self._artifact_loc(out)
+        self.assertEqual(loc["uri"], "src/essence/foo.js")
+        self.assertNotIn("uriBaseId", loc)
+
+    def test_symbolic_uri_base_id_preserved(self):
+        ws = "/home/runner/work/MMGIS/MMGIS"
+        out = _run_file(self._sarif(ws, "src/essence/foo.js", "%SRCROOT%"), ws)
+        loc = self._artifact_loc(out)
+        self.assertEqual(loc["uri"], "src/essence/foo.js")
+        self.assertEqual(loc.get("uriBaseId"), "%SRCROOT%")
+
+
 class TestAttributionHardening(unittest.TestCase):
     def test_misplaced_rules_moved_under_driver(self):
         """scrub pre-#121 shape: rules under tool, not tool.driver.
