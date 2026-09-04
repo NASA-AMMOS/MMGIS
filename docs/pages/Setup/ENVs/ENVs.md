@@ -199,7 +199,7 @@ LDAP group of leads (users with elevated permissions) | string | default `''`
 
 #### `ENABLE_MMGIS_WEBSOCKETS=`
 
-If true, enables the backend MMGIS websockets to tell clients to update layers | boolean | default `false`
+If true, enables the backend MMGIS websockets to tell clients to update layers. Also enables `POST /api/broadcast/layerUpdate`, which lets an admin push a re-query of specific layers to connected clients (time-enabled layers and non-time vector layers only). | boolean | default `false`
 
 #### `ENABLE_CONFIG_WEBSOCKETS=`
 
