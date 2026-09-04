@@ -4,8 +4,10 @@ name: Security-Scan
 #   "Code Vulnerability Scanning Set Up for AMMOS Open Source Software"
 #   https://wiki.jpl.nasa.gov/pages/viewpage.action?pageId=1029935039
 #
-# Pipeline: CodeQL scans -> nasa-scrub reformats the SARIF for SonarQube
-# Cloud ingest -> sonarqube-scan-action imports it.
+# Pipeline: CodeQL scans -> fix_sarif_paths.py prepares the SARIF for
+# SonarQube Cloud ingest -> sonarqube-scan-action imports it. This departs
+# from the guide's nasa-scrub step; the Post-Process Output step below and the
+# script's docstring record why.
 #
 # Validate changes to the scan pipeline by dispatching this workflow manually
 # against a feature branch first -- workflow_dispatch checks out the ref you
@@ -37,13 +39,6 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "Extracted version: $VERSION"
 
-      # Pinned interpreter so `pip install nasa-scrub` lands in a clean,
-      # non-externally-managed environment on the runner.
-      - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
-        with:
-          python-version: '3.12'
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
         with:
@@ -52,19 +47,20 @@ jobs:
       - name: CodeQL Scan
         uses: github/codeql-action/analyze@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
 
-      # This step is required to remove malformed data from the CodeQL output.
-      # nasa-scrub >= 3.0.1 emits rules under runs[].tool.driver.rules (nasa/scrub
-      # PR #119), which is what SonarQube Cloud reads -- without it the imported
-      # findings are not attributed to a rule and the import warns in the web UI.
+      # Prepare the CodeQL SARIF for SonarQube import.
       #
-      # scrub does NOT relativize primary result locations: it resolves them to
-      # absolute paths and writes the absolute source root into uriBaseId. Both
-      # break SonarQube's file mapping, so each translated report is then passed
-      # through fix_sarif_paths.py to make paths workspace-relative.
+      # The AMMOS guide routes this through nasa-scrub's translate_results. We
+      # deliberately do not: measured against a real CodeQL report from this
+      # repo, scrub turned CodeQL's already-relative URIs into absolute ones,
+      # rebuilt driver.rules as id-only stubs (losing every severity, so all
+      # findings imported as MEDIUM), and dropped all relatedLocations.
+      #
+      # fix_sarif_paths.py instead lifts CodeQL's rule metadata out of
+      # tool.extensions[] onto tool.driver.rules -- the only place SonarQube
+      # looks -- keeping descriptions, severities, code flows and related
+      # locations intact. See the script docstring for the measurements.
       - name: Post-Process Output
         run: |
-          python3 -m pip install --disable-pip-version-check nasa-scrub==3.0.2
-
           results_dir=`realpath ${{ github.workspace }}/../results`
           sarif_files=`find $results_dir -name '*.sarif'`
           workspace_path="${{ github.workspace }}"
@@ -76,17 +72,14 @@ jobs:
 
           for sarif_file in $sarif_files
           do
-            stripped_file="$results_dir/$(basename $sarif_file .sarif)_stripped.sarif"
+            processed_file="$results_dir/$(basename $sarif_file .sarif)_processed.sarif"
             echo "Processing: $(basename $sarif_file)"
 
-            python3 -m scrub.tools.parsers.translate_results \
-              "$sarif_file" "$stripped_file" "$workspace_path" sarifv2.1.0
-
             python3 .github/scripts/fix_sarif_paths.py \
-              "$stripped_file" "$stripped_file" "$workspace_path"
+              "$sarif_file" "$processed_file" "$workspace_path"
           done
 
-          sarif_list=$(find $results_dir -name '*_stripped.sarif' | tr '\n' ',' | sed 's/,$//')
+          sarif_list=$(find $results_dir -name '*_processed.sarif' | tr '\n' ',' | sed 's/,$//')
 
           echo "RESULTS_DIR=$results_dir" >> $GITHUB_ENV
           echo "SARIF_FILES=$sarif_list" >> $GITHUB_ENV

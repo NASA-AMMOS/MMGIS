@@ -113,6 +113,102 @@ class TestPathRelativization(unittest.TestCase):
         )
 
 
+class TestExtensionRulePromotion(unittest.TestCase):
+    """github/codeql-action puts rules in tool.extensions[]; SonarQube reads
+    only tool.driver.rules. They must be lifted across with metadata intact."""
+
+    @staticmethod
+    def _codeql_sarif():
+        return {
+            "version": "2.1.0",
+            "runs": [
+                {
+                    "tool": {
+                        "driver": {"name": "CodeQL", "rules": []},
+                        "extensions": [
+                            {
+                                "name": "codeql/javascript-queries",
+                                "rules": [
+                                    {
+                                        "id": "js/redos",
+                                        "name": "js/redos",
+                                        "shortDescription": {
+                                            "text": "Inefficient regular expression"
+                                        },
+                                        "fullDescription": {"text": "long text"},
+                                        "defaultConfiguration": {
+                                            "enabled": True,
+                                            "level": "error",
+                                        },
+                                        "properties": {"security-severity": "7.5"},
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                    "results": [
+                        {
+                            "ruleId": "js/redos",
+                            "rule": {
+                                "id": "js/redos",
+                                "index": 0,
+                                "toolComponent": {"index": 0},
+                            },
+                            "message": {"text": "x"},
+                            "locations": [
+                                {
+                                    "physicalLocation": {
+                                        "artifactLocation": {
+                                            "uri": "src/a.js",
+                                            "uriBaseId": "%SRCROOT%",
+                                        },
+                                        "region": {"startLine": 1},
+                                    }
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+
+    def test_rules_promoted_with_metadata(self):
+        out = _run_file(self._codeql_sarif(), "/work/MMGIS")
+        driver = out["runs"][0]["tool"]["driver"]
+        self.assertEqual(len(driver["rules"]), 1)
+        rule = driver["rules"][0]
+        self.assertEqual(rule["id"], "js/redos")
+        self.assertEqual(
+            rule["shortDescription"]["text"], "Inefficient regular expression"
+        )
+        self.assertEqual(rule["defaultConfiguration"]["level"], "error")
+        self.assertEqual(rule["properties"]["security-severity"], "7.5")
+
+    def test_result_repointed_at_driver_and_level_made_explicit(self):
+        out = _run_file(self._codeql_sarif(), "/work/MMGIS")
+        result = out["runs"][0]["results"][0]
+        self.assertEqual(result["ruleIndex"], 0)
+        self.assertEqual(result["rule"], {"id": "js/redos", "index": 0})
+        self.assertNotIn("toolComponent", result["rule"])
+        # level was absent; it must be taken from the rule's defaultConfiguration
+        self.assertEqual(result["level"], "error")
+
+    def test_existing_driver_rules_not_clobbered(self):
+        sarif = self._codeql_sarif()
+        sarif["runs"][0]["tool"]["driver"]["rules"] = [
+            {"id": "kept/rule", "shortDescription": {"text": "kept"}}
+        ]
+        out = _run_file(sarif, "/work/MMGIS")
+        ids = [r["id"] for r in out["runs"][0]["tool"]["driver"]["rules"]]
+        self.assertEqual(ids, ["kept/rule"])
+
+    def test_explicit_result_level_preserved(self):
+        sarif = self._codeql_sarif()
+        sarif["runs"][0]["results"][0]["level"] = "note"
+        out = _run_file(sarif, "/work/MMGIS")
+        self.assertEqual(out["runs"][0]["results"][0]["level"], "note")
+
+
 class TestUriBaseId(unittest.TestCase):
     """nasa-scrub writes the absolute source root into uriBaseId, where SARIF
     expects a symbolic name. It must be dropped; symbolic ids must survive."""

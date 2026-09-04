@@ -21,17 +21,32 @@ Two responsibilities:
    ``tool.driver`` and a valid schema -- every hardening step is a no-op, so
    CodeQL's rule names, descriptions, and severities are preserved intact.
 
-Why this still runs after nasa-scrub
-------------------------------------
-nasa-scrub 3.0.1 fixed the misplaced-rules bug upstream (nasa/scrub PR #119),
-so responsibility 2 is now largely defensive. Responsibility 1 is not: scrub's
-``translate_results`` resolves every primary result location to an *absolute*
-path (``parse_sarif`` joins relative URIs onto the source root, and the 2.1.0
-writer emits ``str(warning['file'])`` verbatim -- only code-flow locations get
-``relative_to(source_root)``). It also writes that absolute source root into
-``uriBaseId``, where SARIF expects a symbolic name that keys into
-``originalUriBaseIds``. Both defeat SonarQube's file mapping, so the scrub
-output is passed through this script before import.
+3. Rule promotion: github/codeql-action puts its query metadata under
+   ``runs[].tool.extensions[].rules``, leaving ``tool.driver.rules`` empty.
+   SonarQube reads only the driver, so it sees no rule metadata at all and
+   defaults every imported issue to MEDIUM. ``promote_extension_rules`` lifts
+   those rules onto the driver with their severities intact.
+
+Why this replaced nasa-scrub in the workflow
+--------------------------------------------
+The AMMOS scanning guide routes CodeQL output through
+``scrub.tools.parsers.translate_results`` before import. Measured against a
+real CodeQL report from this repo (run 33824590350), that step made the result
+strictly worse:
+
+- CodeQL already emits workspace-relative URIs with a symbolic
+  ``uriBaseId`` of ``%SRCROOT%``. scrub resolves them to absolute paths and
+  writes the absolute source root into ``uriBaseId``, so the relativization
+  above existed only to undo scrub's own damage.
+- scrub rebuilds ``driver.rules`` as id-only stubs
+  (``{"id": "js/redos", "shortDescription": {"text": "js/redos"}}``),
+  discarding ``defaultConfiguration.level`` and ``security-severity``. All 67
+  findings imported as MEDIUM; ``js/redos`` is really 7.5/error.
+- scrub dropped every ``relatedLocations`` entry (61 -> 0).
+
+Feeding CodeQL's own SARIF through this script instead preserves rule
+descriptions, severities, code flows and related locations, and needs no
+third-party dependency.
 """
 import json
 import sys
@@ -47,6 +62,67 @@ BAD_SCHEMA_URLS = (
     'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/'
     'Schemata/sarif-schema-2.1.0.json',
 )
+
+
+def promote_extension_rules(run):
+    """Copy CodeQL's rule metadata from tool.extensions[] into tool.driver.rules.
+
+    github/codeql-action emits query metadata under
+    ``runs[].tool.extensions[].rules`` -- one tool component per query pack --
+    and has each result reference it indirectly through
+    ``result.rule.toolComponent.index``. ``tool.driver.rules`` is left empty.
+
+    SonarQube's SARIF importer only reads ``runs[].tool.driver.rules``, so the
+    rules are invisible to it: every issue imports with no description and no
+    severity, and the importer falls back to MEDIUM for all of them. Flattening
+    the extension rules into the driver preserves CodeQL's real
+    ``shortDescription``, ``fullDescription``, ``help``,
+    ``defaultConfiguration.level`` and ``properties.security-severity``.
+
+    Returns True if any change was made. No-op when the driver already carries
+    its own rules, so a report that is already well-formed is left alone.
+    """
+    tool = run.get('tool')
+    if not isinstance(tool, dict):
+        return False
+    driver = tool.setdefault('driver', {})
+    if not isinstance(driver, dict) or driver.get('rules'):
+        return False
+
+    promoted = []
+    index_of = {}
+    for extension in tool.get('extensions', []):
+        for rule in extension.get('rules', []) or []:
+            rule_id = rule.get('id')
+            if rule_id is None or rule_id in index_of:
+                continue
+            index_of[rule_id] = len(promoted)
+            promoted.append(rule)
+
+    if not promoted:
+        return False
+
+    driver['rules'] = promoted
+
+    # Re-point results at the driver's rule array. The original
+    # rule.toolComponent index refers to an extension and is meaningless once
+    # the rules live on the driver.
+    for result in run.get('results', []):
+        rule_id = result.get('ruleId') or (result.get('rule') or {}).get('id')
+        index = index_of.get(rule_id)
+        if index is None:
+            continue
+        result['ruleId'] = rule_id
+        result['ruleIndex'] = index
+        result['rule'] = {'id': rule_id, 'index': index}
+        # SARIF derives an absent result.level from the rule's
+        # defaultConfiguration; make it explicit so the importer cannot miss it.
+        if 'level' not in result:
+            level = promoted[index].get('defaultConfiguration', {}).get('level')
+            if level:
+                result['level'] = level
+
+    return True
 
 
 def harden_attribution(sarif):
@@ -119,6 +195,12 @@ def fix_sarif_paths(sarif_file, output_file, workspace_path):
             sarif = json.load(f)
 
         modified = False
+
+        # Lift CodeQL's rule metadata out of tool.extensions[] first, so the
+        # hardening below sees a driver that already has its real rules.
+        for run in sarif.get('runs', []):
+            if promote_extension_rules(run):
+                modified = True
 
         # Normalize tool/driver/rules and schema for reliable attribution.
         if harden_attribution(sarif):
