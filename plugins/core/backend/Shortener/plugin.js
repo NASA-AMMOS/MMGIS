@@ -5,7 +5,8 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/shortener",
-      s.ensureUser(),
+      // Link sharing remains available on explicitly public deployments.
+      s.ensureUserForApi({ allowPublic: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
       router
