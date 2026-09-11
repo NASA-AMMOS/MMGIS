@@ -54,12 +54,12 @@ jobs:
           echo "Extracted version: $VERSION"
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
         with:
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: CodeQL Scan
-        uses: github/codeql-action/analyze@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4
 
       # Prepare the CodeQL SARIF for SonarQube import.
       #
@@ -106,7 +106,7 @@ jobs:
       # This can be helpful for debugging and archive purposes.
       - name: Upload Artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: codeql-artifacts
           path: ${{ env.RESULTS_DIR }}
