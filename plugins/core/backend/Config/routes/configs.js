@@ -15,6 +15,7 @@ const Config = require("../models/config");
 const config_template = require("../../../../../API/templates/config_template");
 const userModel = require("../../Users/models/user");
 const User = userModel.User;
+const { UserDefaults } = require("../../Users/models/userdefaults");
 const missionTemplates = require("../../Utils/missionTemplates");
 
 // Sanitize user input to prevent XSS in error messages
@@ -1206,8 +1207,27 @@ if (fullAccess)
                   });
                   return Promise.all(updates);
                 });
+                const defaultsUpdate = UserDefaults.findOne({
+                  where: { id: 1 },
+                  transaction: t,
+                }).then((d) => {
+                  if (
+                    d &&
+                    Array.isArray(d.missions_viewing) &&
+                    d.missions_viewing.includes(missionName)
+                  )
+                    return d.update(
+                      { missions_viewing: renameIn(d.missions_viewing) },
+                      { transaction: t }
+                    );
+                  return null;
+                });
 
-                return Promise.all([...configUpdates, permissionUpdate]);
+                return Promise.all([
+                  ...configUpdates,
+                  permissionUpdate,
+                  defaultsUpdate,
+                ]);
               })
               .then(() => {
                 logger(

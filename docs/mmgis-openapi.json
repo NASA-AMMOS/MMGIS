@@ -5427,6 +5427,80 @@
         }
       }
     },
+    "/api/accounts/defaults": {
+      "get": {
+        "summary": "Get the site-wide default missions_viewing applied to newly created accounts. Stored in every AUTH mode but only enforced when AUTH=local. null = unrestricted, [] = no missions. Requires administrator permissions.",
+        "tags": ["Accounts"],
+        "responses": {
+          "200": {
+            "description": "Account defaults response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": { "missions_viewing": ["MissionA"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/updateDefaults": {
+      "post": {
+        "summary": "Set the site-wide default missions_viewing applied to newly created accounts. Requires SuperAdmin permissions.",
+        "tags": ["Accounts"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "missions_viewing": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "nullable": true,
+                    "description": "null = new accounts see all missions, [] = new accounts see no missions"
+                  }
+                },
+                "required": ["missions_viewing"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update account defaults response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": { "missions_viewing": ["MissionA"] }
+                    }
+                  },
+                  "forbidden": {
+                    "summary": "Not a SuperAdmin",
+                    "value": {
+                      "status": "failure",
+                      "message": "Only SuperAdmins may update account defaults."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/accounts/generateResetPasswordLink": {
       "post": {
         "summary": "Generate a password reset link for a user. Requires administrator permissions.",

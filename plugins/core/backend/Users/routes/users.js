@@ -12,6 +12,7 @@ const logger = require("../../../../../API/logger");
 const { authLimiter } = require("../../../../../scripts/rateLimiters");
 const userModel = require("../models/user");
 const User = userModel.User;
+const { getDefaultMissionsViewing } = require("../models/userdefaults");
 
 function isStrongPassword(password) {
   const minLength = 8;
@@ -133,8 +134,21 @@ router.post("/signup", function (req, res, next) {
       username: newUser.username,
     },
   })
-    .then((user) => {
+    .then(async (user) => {
       if (user == null) {
+        // Stamped in every AUTH mode so a later switch to AUTH=local stays restricted
+        newUser.missions_viewing = await getDefaultMissionsViewing().catch(
+          (err) => {
+            logger(
+              "error",
+              "Failed to read default missions_viewing for new account.",
+              req.originalUrl,
+              req,
+              err
+            );
+            return null;
+          }
+        );
         User.create(newUser)
           .then((created) => {
             // Just make the account -- don't also login

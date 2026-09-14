@@ -315,6 +315,137 @@ test.describe.serial("missions_viewing permissions", () => {
       });
     }
   });
+
+  test("default missions_viewing is stamped onto new accounts", async () => {
+    const setDefaults = async (ctx, missions_viewing) =>
+      json(
+        await ctx.post("/api/accounts/updateDefaults", {
+          data: { missions_viewing },
+        }),
+      );
+    const getDefaults = async () =>
+      (await json(await superadmin.get("/api/accounts/defaults")))?.body
+        ?.missions_viewing;
+    const signup = async (name) => {
+      const body = await json(
+        await superadmin.post("/api/users/signup", {
+          data: {
+            username: name,
+            password: PASSWORD,
+            email: `${name}@test.com`,
+            skipLogin: true,
+          },
+        }),
+      );
+      expect(body?.status).toBe("success");
+      const entries = await json(await superadmin.get("/api/accounts/entries"));
+      const e = entries.body.entries.find((x) => x.username === name);
+      userIds[name] = e.id;
+      return e;
+    };
+
+    // Admins (110) may not change the defaults
+    expect((await setDefaults(admin, []))?.status).toBe("failure");
+
+    const original = await getDefaults();
+    try {
+      expect((await setDefaults(superadmin, [missionA]))?.status).toBe(
+        "success",
+      );
+      expect(await getDefaults()).toEqual([missionA]);
+      const u1 = await signup(`${userName}_d1`);
+      expect(u1.missions_viewing).toEqual([missionA]);
+      const ctx1 = await loginAs(u1.username);
+      expect(await listMissions(ctx1)).toEqual([missionA]);
+      await ctx1.dispose();
+
+      expect((await setDefaults(superadmin, []))?.status).toBe("success");
+      const u2 = await signup(`${userName}_d2`);
+      expect(u2.missions_viewing).toEqual([]);
+
+      expect((await setDefaults(superadmin, null))?.status).toBe("success");
+      expect(await getDefaults()).toBe(null);
+      const u3 = await signup(`${userName}_d3`);
+      expect(u3.missions_viewing).toBe(null);
+
+      // Defaults follow mission renames like per-user grants do
+      await setDefaults(superadmin, [missionB]);
+      const renamed = `${missionB}_renamed`;
+      await superadmin.post("/api/configure/rename", {
+        data: { mission: missionB, newName: renamed },
+      });
+      try {
+        expect(await getDefaults()).toEqual([renamed]);
+      } finally {
+        await superadmin.post("/api/configure/rename", {
+          data: { mission: renamed, newName: missionB },
+        });
+      }
+    } finally {
+      await setDefaults(superadmin, original ?? null);
+    }
+  });
+});
+
+test.describe("default missions_viewing is stored in every AUTH mode", () => {
+  test.skip(isLocal, "Non-local AUTH only");
+
+  test("new accounts receive the default even though it is not enforced", async () => {
+    const superadmin = await apiRequest.newContext({ baseURL });
+    const login = await superadmin
+      .post("/api/users/login", { data: ADMIN })
+      .then((r) => r.json());
+    test.skip(login?.status !== "success", "Requires the test admin account");
+
+    const name = `${userName}_nonlocal`;
+    const original = (
+      await superadmin.get("/api/accounts/defaults").then((r) => r.json())
+    )?.body?.missions_viewing;
+    let id;
+    try {
+      const set = await superadmin
+        .post("/api/accounts/updateDefaults", {
+          data: { missions_viewing: [] },
+        })
+        .then((r) => r.json());
+      expect(set.status).toBe("success");
+
+      const signup = await superadmin
+        .post("/api/users/signup", {
+          data: {
+            username: name,
+            password: PASSWORD,
+            email: `${name}@test.com`,
+            skipLogin: true,
+          },
+        })
+        .then((r) => r.json());
+      expect(signup.status).toBe("success");
+
+      const entries = await superadmin
+        .get("/api/accounts/entries")
+        .then((r) => r.json());
+      const e = entries.body.entries.find((x) => x.username === name);
+      id = e.id;
+      expect(e.missions_viewing).toEqual([]);
+
+      // Not enforced outside AUTH=local: the new user still lists every mission
+      const ctx = await apiRequest.newContext({ baseURL });
+      await ctx.post("/api/users/login", {
+        data: { username: name, password: PASSWORD },
+      });
+      const body = await ctx.get("/api/configure/missions").then((r) => r.json());
+      expect(body.status).toBe("success");
+      expect(Array.isArray(body.missions)).toBe(true);
+      await ctx.dispose();
+    } finally {
+      if (id) await superadmin.delete(`/api/accounts/remove/${id}`);
+      await superadmin.post("/api/accounts/updateDefaults", {
+        data: { missions_viewing: original ?? null },
+      });
+      await superadmin.dispose();
+    }
+  });
 });
 
 test.describe("missions_viewing is ignored when AUTH is not local", () => {
