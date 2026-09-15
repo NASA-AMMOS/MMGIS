@@ -237,6 +237,83 @@ test.describe.serial("missions_viewing permissions", () => {
     expect(denied.headers()["content-type"]).toContain("text/html");
   });
 
+  test("guests (not logged in) see no missions and cannot load configs", async () => {
+    const anon = await apiRequest.newContext({ baseURL });
+    expect(await listMissions(anon)).toEqual([]);
+    const full = await json(await anon.get("/api/configure/missions?full=true"));
+    expect(
+      (full?.missions || []).filter((m) => m.mission === missionA),
+    ).toEqual([]);
+    const denied = await getConfig(anon, missionA);
+    expect(denied?.status).toBe("failure");
+    expect(denied?.message).toContain("Unauthorized");
+    // Garbage bearer tokens grant nothing
+    expect(
+      (
+        await getConfig(
+          await apiRequest.newContext({
+            baseURL,
+            extraHTTPHeaders: { Authorization: "Bearer not-a-real-token" },
+          }),
+          missionA,
+        )
+      )?.status,
+    ).toBe("failure");
+    await anon.dispose();
+  });
+
+  test("long-term tokens inherit their creator's viewing scope", async () => {
+    const tokenIds = [];
+    const mint = async (ctx) => {
+      const body = await json(
+        await ctx.post("/api/longtermtoken/generate", {
+          data: { name: `view${stamp}`, period: "never" },
+        }),
+      );
+      expect(body?.status).toBe("success");
+      const list = await json(await ctx.get("/api/longtermtoken/get"));
+      const row = list.tokens.find((t) => t.token === body.body.token);
+      tokenIds.push(row.id);
+      return apiRequest.newContext({
+        baseURL,
+        extraHTTPHeaders: { Authorization: `Bearer ${body.body.token}` },
+      });
+    };
+    try {
+      await setViewing(userIds[adminName], [missionA], {
+        permission: "110",
+        missions_managing: [missionC],
+      });
+      const adminTok = await mint(admin);
+      expect((await listMissions(adminTok)).sort()).toEqual(
+        [missionA, missionC].sort(),
+      );
+      expect((await getConfig(adminTok, missionB))?.status).toBe("failure");
+      expect((await getConfig(adminTok, missionA))?.status).not.toBe("failure");
+      expect(
+        (await adminTok.get(`/Missions/${missionB}/${assetRel}`)).status(),
+      ).toBe(403);
+      expect(
+        (await adminTok.get(`/Missions/${missionA}/${assetRel}`)).status(),
+      ).toBe(200);
+
+      const superTok = await mint(superadmin);
+      expect((await listMissions(superTok)).length).toBe(3);
+      expect((await getConfig(superTok, missionB))?.status).not.toBe("failure");
+      await adminTok.dispose();
+      await superTok.dispose();
+    } finally {
+      for (const id of tokenIds)
+        await superadmin
+          .post("/api/longtermtoken/clear", { data: { id } })
+          .catch(() => {});
+      await setViewing(userIds[adminName], null, {
+        permission: "110",
+        missions_managing: [missionC],
+      });
+    }
+  });
+
   test("static files honor msv.missionFolderName", async () => {
     const folder = `test_view_folder_${stamp}`;
     fs.mkdirSync(path.join(missionsDir, folder, "Data"), { recursive: true });

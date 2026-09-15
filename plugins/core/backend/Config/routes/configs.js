@@ -152,27 +152,64 @@ function checkMissionPermission(req, res, next) {
 
 // Resolves the set of missions the current session may view under AUTH=local.
 // Resolves to null when unrestricted (all missions), otherwise an array of names.
+function viewableFromUser(user) {
+  if (!user || user.permission === "111") return null;
+  // null missions_viewing = legacy/unrestricted
+  if (user.missions_viewing == null) return null;
+
+  const viewable = new Set(user.missions_viewing);
+  if (user.permission === "110")
+    (user.missions_managing || []).forEach((m) => viewable.add(m));
+  return Array.from(viewable);
+}
+
+// Long-term tokens inherit their creator's viewing scope
+function viewableFromToken(req) {
+  if (req.isLongTermToken)
+    return Promise.resolve(
+      viewableFromUser({
+        permission: req.tokenUserPermission,
+        missions_managing: req.tokenUserMissions,
+        missions_viewing: req.tokenUserMissionsViewing,
+      })
+    );
+  // Whitelisted routes skip token validation upstream; resolve the creator here
+  const token = String(req.headers.authorization).replace(/Bearer:?\s+/g, "");
+  return sequelize
+    .query(
+      'SELECT lt.period, lt."createdAt", u.permission, u.missions_managing, u.missions_viewing FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
+      { replacements: { token } }
+    )
+    .then(([rows]) => {
+      const r = rows && rows[0];
+      if (
+        !r ||
+        !(
+          r.period == "never" ||
+          Date.now() - new Date(r.createdAt).getTime() < parseInt(r.period)
+        )
+      )
+        return [];
+      return viewableFromUser(r);
+    });
+}
+
 function getViewableMissions(req) {
   if (process.env.AUTH !== "local") return Promise.resolve(null);
-  if (req.isLongTermToken || req.session == null) return Promise.resolve(null);
-
-  const permission = req.session.permission;
-  const uid = req.session.uid;
-  if (permission === "111" || uid == null) return Promise.resolve(null);
+  const permission = req.session ? req.session.permission : null;
+  const uid = req.session ? req.session.uid : null;
+  if (permission === "111") return Promise.resolve(null);
+  if (uid == null) {
+    if (req.isLongTermToken || req.headers.authorization)
+      return viewableFromToken(req);
+    // Guests (not logged in) may view nothing under AUTH=local
+    return Promise.resolve([]);
+  }
 
   return User.findOne({
     where: { id: uid },
     attributes: ["permission", "missions_managing", "missions_viewing"],
-  }).then((user) => {
-    if (!user || user.permission === "111") return null;
-    // null missions_viewing = legacy/unrestricted
-    if (user.missions_viewing == null) return null;
-
-    const viewable = new Set(user.missions_viewing);
-    if (user.permission === "110")
-      (user.missions_managing || []).forEach((m) => viewable.add(m));
-    return Array.from(viewable);
-  });
+  }).then((user) => (user ? viewableFromUser(user) : []));
 }
 
 // Middleware guarding config loads by missions_viewing under AUTH=local
