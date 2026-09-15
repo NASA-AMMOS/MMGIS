@@ -17,6 +17,7 @@ const published = require("../models/published");
 const Published = published.Published;
 const PublishedTEST = published.PublishedTEST;
 const PublishedStore = require("../models/publishedstore");
+const Config = require("../../Config/models/config");
 
 const draw = require("./draw");
 const filesutils = require("./filesutils");
@@ -43,20 +44,60 @@ router.post("/", function (req, res, next) {
   res.send("test files");
 });
 
+// Resolves to the mission's latest DrawTool `variables` ({} if the tool has
+// none) or null if the mission does not exist.
+function getDrawToolVars(mission) {
+  if (mission == null) return Promise.resolve(null);
+  return Config.findOne({
+    where: { mission },
+    order: [["version", "DESC"]],
+  }).then((row) => {
+    if (!row) return null;
+    const tools = (row.config && row.config.tools) || [];
+    const draw = tools.find(
+      (t) => t && typeof t.name === "string" && t.name.toLowerCase() === "draw"
+    );
+    return (draw && draw.variables) || {};
+  });
+}
+
 /**
  * Gets all owned or public files
  * {
- *  mission: <string> (optional) only return files of this mission (plus NULL-mission/master files per flags)
- *  showNullMissionFiles: <bool> (optional, default true) also include files with no mission
- *  showMasterFiles: <bool> (optional, default true) also include master files
+ *  mission: <string> (optional) only return files of this mission. Whether
+ *    NULL-mission and master files are also returned is read server-side from
+ *    the mission's DrawTool variables (showNullMissionFiles, showMasterFiles).
  * }
  */
-router.post("/getfiles", function (req, res, next) {
+router.post("/getfiles", async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
-  const isFalse = (v) => v === false || v === "false";
-  const showNullMissionFiles = !isFalse(req.body.showNullMissionFiles);
-  const showMasterFiles = !isFalse(req.body.showMasterFiles);
+  let showNullMissionFiles = true;
+  let showMasterFiles = true;
+  if (req.body.mission != null) {
+    let vars;
+    try {
+      vars = await getDrawToolVars(req.body.mission);
+    } catch (err) {
+      logger("error", "Failed to get files.", req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+        message: "Failed to get files.",
+        body: {},
+      });
+      return;
+    }
+    if (vars == null) {
+      res.send({
+        status: "failure",
+        message: "Failed to get files. Unknown mission.",
+        body: {},
+      });
+      return;
+    }
+    showNullMissionFiles = vars.showNullMissionFiles !== false;
+    showMasterFiles = vars.showMasterFiles !== false;
+  }
 
   const orWhere = [
     {
@@ -131,11 +172,28 @@ router.post("/getfile", getfile);
  * 	file_description: <string> (optional)
  *  intent: <string> (optional)
  *  geojson: <object> (optional) -- geojson to initialize file from
- *  mission: <string> (optional) -- mission this file belongs to
+ *  mission: <string> (optional) -- mission this file belongs to (must exist)
  * }
  */
-router.post("/make", function (req, res, next) {
+router.post("/make", async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
+
+  if (req.body.mission != null) {
+    let vars = null;
+    try {
+      vars = await getDrawToolVars(req.body.mission);
+    } catch (err) {
+      logger("error", "Failed to make a new file.", req.originalUrl, req, err);
+    }
+    if (vars == null) {
+      res.send({
+        status: "failure",
+        message: "Failed to make a new file. Unknown mission.",
+        body: {},
+      });
+      return;
+    }
+  }
 
   //group is a reserved keyword
   if (req.user === "group") {

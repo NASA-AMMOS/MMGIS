@@ -1258,9 +1258,6 @@ var DrawTool = {
             'files_getfiles',
             {
                 mission: L_.mission,
-                showNullMissionFiles:
-                    DrawTool.vars.showNullMissionFiles !== false,
-                showMasterFiles: DrawTool.vars.showMasterFiles !== false,
             },
             function (data) {
                 if (data && data.body) {
