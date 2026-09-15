@@ -79,6 +79,8 @@ var LegendTool = {
     },
     refreshLegends: refreshLegends,
     overwriteLegends: overwriteLegends,
+    highlightEntries: highlightEntries,
+    clearHighlightedEntries: clearHighlightedEntries,
 }
 
 //
@@ -293,6 +295,146 @@ function overwriteLegends(legends) {
     }
 }
 
+// The styles a highlighted entry takes on, and the values that put it back.
+// Legend rows are styled inline rather than from a stylesheet, so a highlight
+// is applied and reverted the same way.
+const HIGHLIGHT_CSS = {
+    'background': 'var(--color-a1)',
+    'box-shadow': 'inset 3px 0px 0px 0px var(--color-mmgis)',
+    'border-radius': '2px',
+}
+const UNHIGHLIGHT_CSS = {
+    'background': '',
+    'box-shadow': '',
+    'border-radius': '',
+}
+
+// A legend label carries its units ("233.58m"), and what the Identifier
+// resolves may be a bare number, so a match is made on the number itself.
+function toNumber(value) {
+    if (typeof value === 'number') return isFinite(value) ? value : null
+    if (value == null) return null
+    const n = parseFloat(splitValueUnits(String(value)).number.replace(/,/g, ''))
+    return isFinite(n) ? n : null
+}
+
+// Which of `values` the hovered value belongs to: the label itself when it is
+// one of them, otherwise the nearest number. A continuous scale is labelled by
+// band ("0m", "100", ...) and a queried pixel almost never lands exactly on
+// one, so nearest is what makes a reading locatable on the ramp.
+function resolveIndex(values, value) {
+    const exact = values.indexOf(String(value))
+    if (exact >= 0) return exact
+
+    const target = toNumber(value)
+    if (target == null) return -1
+
+    let best = -1
+    let bestDistance = Infinity
+    values.forEach((v, i) => {
+        const n = toNumber(v)
+        if (n == null) return
+        const distance = Math.abs(n - target)
+        if (distance < bestDistance) {
+            bestDistance = distance
+            best = i
+        }
+    })
+    return best
+}
+
+// Call out the legend entries that a hovered map pixel resolved to.
+//
+// `matches` is an array of { layerUUID, value } — the shape the Identifier
+// tool reports. `value` is either a legend entry's own label or the numeric
+// value read from the layer, which is matched to its nearest band. Entries not
+// named by `matches` are returned to their normal styling, so a single call
+// fully describes what should be lit up. Passing an empty array (or nothing)
+// clears the legend.
+function highlightEntries(matches) {
+    const panel = $(`#${LegendTool.targetId} #LegendTool`)
+    if (panel.length === 0) return
+
+    const wantedByLayer = new Map()
+    if (Array.isArray(matches)) {
+        matches.forEach((m) => {
+            if (m == null || m.layerUUID == null) return
+            if (m.value == null || m.value === '') return
+            if (!wantedByLayer.has(m.layerUUID)) {
+                wantedByLayer.set(m.layerUUID, m.value)
+            }
+        })
+    }
+
+    // Discrete entries: one row per value, so the resolved one is lit and the
+    // rest of that layer's rows are put back.
+    const rowsByLayer = new Map()
+    panel.find('.legendEntry').each(function () {
+        const row = $(this)
+        const uuid = row.attr('data-legend-layer-uuid')
+        if (!rowsByLayer.has(uuid)) rowsByLayer.set(uuid, [])
+        rowsByLayer.get(uuid).push(row)
+    })
+
+    rowsByLayer.forEach((rows, uuid) => {
+        const values = rows.map((row) => row.attr('data-legend-value'))
+        const index = wantedByLayer.has(uuid)
+            ? resolveIndex(values, wantedByLayer.get(uuid))
+            : -1
+        rows.forEach((row, i) => {
+            row.css(i === index ? HIGHLIGHT_CSS : UNHIGHLIGHT_CSS)
+        })
+    })
+
+    // Continuous scales: no row to light up, so the band is marked on the ramp.
+    panel.find('.legendScale').each(function () {
+        const scale = $(this)
+        const uuid = scale.attr('data-legend-layer-uuid')
+        let values = []
+        try {
+            values = JSON.parse(scale.attr('data-legend-values') || '[]')
+        } catch (e) {
+            values = []
+        }
+
+        const index = wantedByLayer.has(uuid)
+            ? resolveIndex(values, wantedByLayer.get(uuid))
+            : -1
+        let marker = scale.children('.legendScaleMarker')
+        if (index < 0 || values.length === 0) {
+            marker.remove()
+            return
+        }
+
+        if (marker.length === 0) {
+            marker = $('<div>').attr('class', 'legendScaleMarker').appendTo(scale)
+        }
+
+        // The band's midpoint, so the mark sits on the colour it matched
+        // rather than on the seam between two of them.
+        const along = `${((index + 0.5) / values.length) * 100}%`
+        const across = scale.attr('data-legend-orientation') === 'horizontal'
+            ? { 'top': '0px', 'bottom': '0px', 'width': '3px', 'left': along, 'height': 'auto' }
+            : { 'left': '0px', 'right': '0px', 'height': '3px', 'top': along, 'width': 'auto' }
+
+        marker.css({
+            'position': 'absolute',
+            'background': 'var(--color-mmgis)',
+            // An outline keeps the mark legible wherever it lands on the ramp.
+            'box-shadow': '0px 0px 0px 1px var(--color-k)',
+            'pointer-events': 'none',
+            // A cursor crossing the map steps through neighbouring bands, so
+            // the mark slides between them rather than jumping.
+            'transition': 'top 120ms ease-out, left 120ms ease-out',
+            ...across,
+        })
+    })
+}
+
+function clearHighlightedEntries() {
+    highlightEntries([])
+}
+
 function drawLegendHeader() {
     //MMWebGIS should always have a div with id 'tools'
     let divID = '#toolPanel'
@@ -487,7 +629,12 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             }
             drawScaleTitle(_legend[d].scaleTitle)
             var r = $('<div>')
-                .attr('class', 'row')
+                .attr('class', 'row legendEntry')
+                // Keyed so another tool can find this entry again — the
+                // Identifier reports what a hovered pixel resolved to as a
+                // layer plus a value, which is exactly this pair.
+                .attr('data-legend-layer-uuid', layerUUID)
+                .attr('data-legend-value', _legend[d].value == null ? '' : String(_legend[d].value))
                 .css({
                     'display': 'flex',
                     'margin': orientation === 'horizontal' ? '0px 8px 8px 0px' : '0px 0px 8px 9px',
@@ -694,6 +841,22 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
         if (orientation === 'horizontal') {
             legendEntries = [...legendEntries].reverse()
         }
+
+        // A scale has no per-entry row to light up, so it records the values in
+        // the order they are painted. Entry i covers the band from i/n to
+        // (i+1)/n, which is what lets a match be marked at the right spot.
+        gradient
+            .addClass('legendScale')
+            .attr('data-legend-layer-uuid', layerUUID)
+            .attr('data-legend-orientation', orientation)
+            .attr(
+                'data-legend-values',
+                JSON.stringify(
+                    legendEntries.map((entry) =>
+                        entry.value == null ? '' : String(entry.value)
+                    )
+                )
+            )
 
         // Start with all legend entries, reduce labels if needed for horizontal legends
         let visibleLabels = legendEntries

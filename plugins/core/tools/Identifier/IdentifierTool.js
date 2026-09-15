@@ -6,6 +6,7 @@ import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
 import Globe_ from '@basics/Globe_/Globe_'
+import ToolController_ from '@basics/ToolController_/ToolController_'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '@pre/calls'
 import { parseExternalStacUrl } from '@basics/Layers_/LayerUtils'
@@ -99,6 +100,9 @@ var IdentifierTool = {
         this.targetId = null
         L_.unsubscribeOnLayerToggle('IdentifierTool')
         delete L_._toolCopyables.IdentifierTool
+        // Turning the Identifier off shouldn't leave the legend lit up.
+        IdentifierTool.legendMatches = {}
+        this.highlightInLegend()
         this.made = false
     },
     fillURLParameters: function (url, layerUUID) {
@@ -169,11 +173,30 @@ var IdentifierTool = {
         clearTimeout(IdentifierTool.mousemoveTimeout)
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
         CursorInfo.hide()
+        IdentifierTool.legendMatches = {}
+        IdentifierTool.highlightInLegend()
+    },
+    // Mirror what the cursor resolved onto the Legend tool, when the mission
+    // has one. The Legend tool is not a dependency: a mission is free to
+    // enable either tool without the other, so a missing tool - or an older
+    // one without the entry point - leaves this a no-op.
+    highlightInLegend: function () {
+        const matches = Object.keys(IdentifierTool.legendMatches || {}).map(
+            (layerUUID) => ({
+                layerUUID: layerUUID,
+                value: IdentifierTool.legendMatches[layerUUID],
+            })
+        )
+        ToolController_.getTool('LegendTool').highlightEntries?.(matches)
     },
     //lnglatzoom is [lng,lat,zoom]
     //if trueValue is true, query the data layer for the value, else us the legend if possible
     idPixel: function (e, lnglatzoom, trueValue, selfish) {
         trueValue = trueValue || false
+        // A COG/STAC layer flips trueValue on below, so remember what this
+        // call started as: that, not the flipped flag, says whether a new
+        // hover begins here or an in-flight one is being refined.
+        const startsNewHover = trueValue === false
         clearTimeout(IdentifierTool.mousemoveTimeout)
 
         //Find out the urls of the active tile layers
@@ -302,6 +325,18 @@ var IdentifierTool = {
         var liEls = []
         var colorString
         let copyableValues = {}
+        // What each layer's hovered pixel resolved to, for the Legend tool to
+        // call out alongside the cursor readout. Keyed by layer because the
+        // true-value reads below land asynchronously and independently.
+        //
+        // Only a new hover starts a new set. The true-value pass that follows
+        // refines these in place: clearing them there would blank the legend
+        // for as long as the value query is in flight, which reads as a blink.
+        if (startsNewHover) IdentifierTool.legendMatches = {}
+        // Value reads still in flight for this pass. While any are, the legend
+        // keeps showing what it has: publishing the empty set here and filling
+        // it in when the reads land is what makes the mark blink.
+        let pendingValueReads = 0
         for (var i = 0; i < IdentifierTool.imageData.length; i++) {
             colorString = 'transparent'
             value = ''
@@ -354,6 +389,7 @@ var IdentifierTool = {
                     const d = data.data[j]
                     if (pxRGBA) {
                         if (trueValue) {
+                            pendingValueReads++
                             queryDataValue(
                                 d.url,
                                 lnglatzoom[0],
@@ -440,6 +476,30 @@ var IdentifierTool = {
                                             `#identifierToolIdPixelCursorInfo_${i}_${j}`
                                         ).html(htmlValues)
 
+                                        pendingValueReads--
+
+                                        // A queried value is a number the
+                                        // legend labels by band, not one of
+                                        // its labels; the Legend tool maps it.
+                                        if (cnt > 0 && value[0] != null) {
+                                            const numeric = parseFloat(
+                                                parseValue(
+                                                    value[0][1],
+                                                    d2.sigfigs,
+                                                    d2.scalefactor
+                                                )
+                                            )
+                                            if (!isNaN(numeric)) {
+                                                IdentifierTool.legendMatches[
+                                                    IdentifierTool
+                                                        .activeLayerNames[i]
+                                                ] = numeric
+                                            }
+                                        }
+                                        if (pendingValueReads <= 0) {
+                                            IdentifierTool.highlightInLegend()
+                                        }
+
                                         $('#cursorInfo ul').css({
                                             width: '',
                                             height: '',
@@ -459,6 +519,11 @@ var IdentifierTool = {
                                         IdentifierTool.activeLayerNames[i]
                                     ]._legend
                                 )
+                                if (value != null && value !== '') {
+                                    IdentifierTool.legendMatches[
+                                        IdentifierTool.activeLayerNames[i]
+                                    ] = value
+                                }
                             }
                         }
                         colorString =
@@ -518,6 +583,8 @@ var IdentifierTool = {
             null,
             true
         )
+
+        if (pendingValueReads <= 0) IdentifierTool.highlightInLegend()
 
         if (!trueValue && !selfish) {
             IdentifierTool.mousemoveTimeout = setTimeout(function () {
