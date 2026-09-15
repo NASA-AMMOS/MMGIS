@@ -959,6 +959,10 @@ var Files = {
                 )
                 .join('\n')
 
+            const missionMarkup = isLead && !file.is_master
+                ? `<select id='drawToolFileEditOnMissionDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'><option value='${safeHTML(file.mission || '')}'>${safeHTML(file.mission || 'NONE')}</option></select>`
+                : `<div>${safeHTML(file.mission || 'NONE')}</div>`
+
             // prettier-ignore
             const modalContentEditable = [
                 "<div class='drawToolFileEditOn' file_id='" + fileId + "'  file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
@@ -1000,7 +1004,7 @@ var Files = {
                     "<div class='drawToolFileEditOnDates drawToolFileEditOnMission'>",
                         "<div>",
                             "<div>Mission:</div>",
-                            "__MISSION__",
+                            missionMarkup,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1041,10 +1045,6 @@ var Files = {
 
             let template = file.template || null
 
-            const missionMarkup = isLead && !file.is_master
-                ? `<select id='drawToolFileEditOnMissionDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'><option value='${safeHTML(file.mission || '')}'>${safeHTML(file.mission || 'NONE')}</option></select>`
-                : `<div>${safeHTML(file.mission || 'NONE')}</div>`
-
             // prettier-ignore
             const modalContent = [
                 "<div class='drawToolFileEditOn' file_id='" + fileId + "' file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
@@ -1076,7 +1076,7 @@ var Files = {
                     "<div class='drawToolFileEditOnDates drawToolFileEditOnMission'>",
                         "<div>",
                             "<div>Mission:</div>",
-                            "__MISSION__",
+                            missionMarkup,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1107,12 +1107,11 @@ var Files = {
                 ].join('\n')
 
             Modal.set(
-                (ownedByUser ||
+                ownedByUser ||
                     (DrawTool.userGroups.indexOf('mmgis-group') != -1 &&
                         DrawTool.vars.leadsCanEditFileInfo)
                     ? modalContentEditable
-                    : modalContent
-                ).replace('__MISSION__', missionMarkup),
+                    : modalContent,
                 function () {
                     if (isLead) {
                         calls.api(
