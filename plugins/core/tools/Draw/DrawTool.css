@@ -1246,6 +1246,15 @@
 .drawToolFileEditOnDates > div > div:last-child {
     padding: 0px 4px;
 }
+.drawToolFileEditOnMission {
+    padding: 4px 10px;
+}
+.drawToolFileEditOnMission > div {
+    align-items: center;
+}
+#drawToolFileEditOnMissionDropdown {
+    min-width: 160px;
+}
 .drawToolFileEditOnC {
     display: flex;
     justify-content: space-between;

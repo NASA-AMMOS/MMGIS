@@ -1136,6 +1136,7 @@ var Files = {
                                     missionRoot.render(
                                         <Select
                                             value={selectedMission}
+                                            placeholder='NONE'
                                             options={options}
                                             onValueChange={(v) => {
                                                 selectedMission = v
