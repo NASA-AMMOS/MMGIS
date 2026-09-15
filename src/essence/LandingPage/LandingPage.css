@@ -104,6 +104,14 @@
     margin-top: 0px;
 }
 
+#landingNoMissions {
+    color: #aaa;
+    font-family: 'roboto';
+    list-style-type: none;
+    font-size: 16px;
+    line-height: 22px;
+}
+
 #configIcon {
     position: absolute;
     bottom: 30px;

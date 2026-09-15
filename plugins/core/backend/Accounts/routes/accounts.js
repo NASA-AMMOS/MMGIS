@@ -8,7 +8,12 @@ const crypto = require("crypto");
 
 const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
+const { clearViewableFoldersCache } = require("../../Config/routes/configs");
 const User = userModel.User;
+const {
+  UserDefaults,
+  getDefaultMissionsViewing,
+} = require("../../Users/models/userdefaults");
 
 router.get("/entries", function (req, res) {
   User.findAll({
@@ -18,6 +23,7 @@ router.get("/entries", function (req, res) {
       "email",
       "permission",
       "missions_managing",
+      "missions_viewing",
       "createdAt",
       "updatedAt",
     ],
@@ -142,6 +148,18 @@ router.post("/update", function (req, res, next) {
   if (req.body.permission === "001") {
     toUpdateTo.missions_managing = null;
   }
+  // Only SuperAdmins may change what a user can view
+  if (
+    req.session.permission === "111" &&
+    req.body.hasOwnProperty("missions_viewing") &&
+    (req.body.missions_viewing === null ||
+      Array.isArray(req.body.missions_viewing))
+  ) {
+    toUpdateTo.missions_viewing =
+      req.body.missions_viewing == null
+        ? null
+        : req.body.missions_viewing.filter((m) => typeof m === "string");
+  }
   
   // Don't allow changing the main admin account's permissions
   if (id === 1) {
@@ -156,6 +174,7 @@ router.post("/update", function (req, res, next) {
 
   User.update(toUpdateTo, updateObj)
     .then(() => {
+      clearViewableFoldersCache(id);
       res.send({
         status: "success",
         message: `Successfully updated user with id: '${id}'.`,
@@ -177,6 +196,64 @@ router.post("/update", function (req, res, next) {
         status: "failure",
         message: `Failed updated user with id: '${id}'. Email may already exist.`,
         body: {},
+      });
+    });
+});
+
+// Site-wide default missions_viewing stamped onto new accounts (enforced only under AUTH=local)
+router.get("/defaults", function (req, res) {
+  getDefaultMissionsViewing()
+    .then((missions_viewing) => {
+      res.send({
+        status: "success",
+        body: { missions_viewing },
+      });
+    })
+    .catch((err) => {
+      logger("error", "Failed to get account defaults.", req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+        message: "Failed to get account defaults.",
+      });
+    });
+});
+
+router.post("/updateDefaults", function (req, res) {
+  if (req.session.permission !== "111") {
+    res.send({
+      status: "failure",
+      message: "Only SuperAdmins may update account defaults.",
+    });
+    return;
+  }
+  if (
+    req.body.missions_viewing !== null &&
+    !Array.isArray(req.body.missions_viewing)
+  ) {
+    res.send({
+      status: "failure",
+      message: "missions_viewing must be null or an array of mission names.",
+    });
+    return;
+  }
+  const missions_viewing =
+    req.body.missions_viewing == null
+      ? null
+      : req.body.missions_viewing.filter((m) => typeof m === "string");
+
+  UserDefaults.upsert({ id: 1, missions_viewing })
+    .then(() => {
+      logger("info", "Updated account defaults.", req.originalUrl, req);
+      res.send({
+        status: "success",
+        body: { missions_viewing },
+      });
+    })
+    .catch((err) => {
+      logger("error", "Failed to update account defaults.", req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+        message: "Failed to update account defaults.",
       });
     });
 });

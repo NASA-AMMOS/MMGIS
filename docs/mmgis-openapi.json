@@ -4919,6 +4919,12 @@
                   "skipLogin": {
                     "type": "boolean",
                     "description": "If true, create the account without logging the new user in on this session. Requires an admin session unless AUTH_LOCAL_ALLOW_SIGNUP is enabled."
+                  },
+                  "missions_viewing": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": { "type": "string" },
+                    "description": "SuperAdmin-only override of the site-wide default viewable missions for this new account (null = all, [] = none). Ignored for non-SuperAdmin sessions, which receive the default. Only enforced when AUTH=local."
                   }
                 },
                 "required": ["username", "password"]
@@ -5260,6 +5266,7 @@
                             "email": "my@email.com",
                             "permission": "001",
                             "missions_managing": null,
+                            "missions_viewing": ["mission1"],
                             "createdAt": "2023-02-10T01:48:24.961Z",
                             "updatedAt": "2025-01-14T07:32:30.857Z"
                           },
@@ -5269,6 +5276,7 @@
                             "email": "admin@email.com",
                             "permission": "110",
                             "missions_managing": ["mission1", "mission2"],
+                            "missions_viewing": null,
                             "createdAt": "2023-02-10T01:48:24.961Z",
                             "updatedAt": "2025-01-14T07:32:30.857Z"
                           }
@@ -5373,6 +5381,14 @@
                       "type": "string"
                     },
                     "description": "Array of mission names this admin can manage (only applies when permission is 110)"
+                  },
+                  "missions_viewing": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Array of mission names this user may view when AUTH=local. null means unrestricted (all missions visible); an empty array means no missions."
                   }
                 },
                 "required": ["id"]
@@ -5408,6 +5424,80 @@
                     "value": {
                       "status": "failure",
                       "message": "Failed to update user with id: ."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/defaults": {
+      "get": {
+        "summary": "Get the site-wide default missions_viewing applied to newly created accounts. Stored in every AUTH mode but only enforced when AUTH=local. null = unrestricted, [] = no missions. Requires administrator permissions.",
+        "tags": ["Accounts"],
+        "responses": {
+          "200": {
+            "description": "Account defaults response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": { "missions_viewing": ["MissionA"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/updateDefaults": {
+      "post": {
+        "summary": "Set the site-wide default missions_viewing applied to newly created accounts. Requires SuperAdmin permissions.",
+        "tags": ["Accounts"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "missions_viewing": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "nullable": true,
+                    "description": "null = new accounts see all missions, [] = new accounts see no missions"
+                  }
+                },
+                "required": ["missions_viewing"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update account defaults response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": { "missions_viewing": ["MissionA"] }
+                    }
+                  },
+                  "forbidden": {
+                    "summary": "Not a SuperAdmin",
+                    "value": {
+                      "status": "failure",
+                      "message": "Only SuperAdmins may update account defaults."
                     }
                   }
                 }

@@ -28,6 +28,14 @@ import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
+import Switch from "@mui/material/Switch";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import OutlinedInput from "@mui/material/OutlinedInput";
+import Chip from "@mui/material/Chip";
 import { visuallyHidden } from "@mui/utils";
 
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
@@ -230,7 +238,179 @@ const useStyles = makeStyles((theme) => ({
       lineHeight: "17px",
     },
   },
+  defaults: {
+    margin: "32px 32px 0px 32px",
+    padding: "12px 16px",
+    background: theme.palette.swatches.grey[850],
+    borderRadius: "4px",
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
+  },
+  defaultsTitle: {
+    fontWeight: "bold !important",
+    fontSize: "14px !important",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+    color: theme.palette.swatches.grey[150],
+  },
+  defaultsNote: {
+    fontSize: "13px !important",
+    fontStyle: "italic",
+    color: theme.palette.swatches.grey[300],
+    marginBottom: "8px !important",
+  },
+  defaultsRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    flexWrap: "wrap",
+  },
+  defaultsSelect: {
+    minWidth: "320px",
+    flex: 1,
+  },
 }));
+
+// Site-wide default missions_viewing for new accounts (SuperAdmin-editable)
+function AccountDefaults() {
+  const c = useStyles();
+  const dispatch = useDispatch();
+  const isSuperAdmin = mmgisglobal.permission === "111";
+
+  const [loaded, setLoaded] = React.useState(false);
+  const [restrict, setRestrict] = React.useState(false);
+  const [missions, setMissions] = React.useState([]);
+  const [availableMissions, setAvailableMissions] = React.useState([]);
+  const [dirty, setDirty] = React.useState(false);
+
+  useEffect(() => {
+    calls.api(
+      "account_defaults",
+      {},
+      (res) => {
+        const mv = res?.body?.missions_viewing;
+        setRestrict(mv != null);
+        setMissions(mv || []);
+        setLoaded(true);
+      },
+      (res) => {
+        dispatch(
+          setSnackBarText({
+            text: res?.message || "Failed to get account defaults.",
+            severity: "error",
+          })
+        );
+      }
+    );
+    calls.api("missions", {}, (res) => {
+      if (res?.missions)
+        setAvailableMissions(
+          res.missions
+            .slice()
+            .sort((a, b) =>
+              a.localeCompare(b, undefined, { sensitivity: "base" })
+            )
+        );
+    });
+  }, [dispatch]);
+
+  const save = () => {
+    calls.api(
+      "account_update_defaults",
+      { missions_viewing: restrict ? missions : null },
+      (res) => {
+        if (res?.status === "success") {
+          setDirty(false);
+          dispatch(
+            setSnackBarText({
+              text: "Updated default viewable missions for new accounts.",
+              severity: "success",
+            })
+          );
+        } else
+          dispatch(
+            setSnackBarText({
+              text: res?.message || "Failed to update account defaults.",
+              severity: "error",
+            })
+          );
+      },
+      (res) => {
+        dispatch(
+          setSnackBarText({
+            text: res?.message || "Failed to update account defaults.",
+            severity: "error",
+          })
+        );
+      }
+    );
+  };
+
+  return (
+    <div className={c.defaults}>
+      <Typography className={c.defaultsTitle}>
+        Default Viewable Missions for New Accounts
+      </Typography>
+      <Typography className={c.defaultsNote}>
+        {`Applied to every newly created account in all AUTH modes, but only enforced when AUTH=local. Off = new accounts can view all missions. On with none selected = new accounts can view no missions until a SuperAdmin grants some. Only SuperAdmins can change this.`}
+      </Typography>
+      <div className={c.defaultsRow}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={restrict}
+              disabled={!isSuperAdmin || !loaded}
+              onChange={(e) => {
+                setRestrict(e.target.checked);
+                setDirty(true);
+              }}
+            />
+          }
+          label="Restrict Viewable Missions for New Accounts"
+        />
+        {restrict && (
+          <FormControl className={c.defaultsSelect} size="small">
+            <InputLabel id="default-viewable-missions-label">
+              Default Viewable Missions
+            </InputLabel>
+            <Select
+              labelId="default-viewable-missions-label"
+              multiple
+              value={missions}
+              disabled={!isSuperAdmin}
+              onChange={(e) => {
+                setMissions(
+                  typeof e.target.value === "string"
+                    ? e.target.value.split(",")
+                    : e.target.value
+                );
+                setDirty(true);
+              }}
+              input={<OutlinedInput label="Default Viewable Missions" />}
+              renderValue={(selected) => (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {selected.map((value) => (
+                    <Chip key={value} label={value} size="small" />
+                  ))}
+                </Box>
+              )}
+            >
+              {availableMissions.map((mission) => (
+                <MenuItem key={mission} value={mission}>
+                  {mission}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+        {isSuperAdmin && (
+          <Button variant="contained" disabled={!dirty} onClick={save}>
+            Save Defaults
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const headCells = [
   {
@@ -252,6 +432,10 @@ const headCells = [
   {
     id: "missions_managing",
     label: "Assigned Missions",
+  },
+  {
+    id: "missions_viewing",
+    label: "Viewable Missions",
   },
   {
     id: "createdAt",
@@ -450,6 +634,7 @@ export default function Users() {
               <div>{authDescription}</div>
             </div>
           )}
+          <AccountDefaults />
           <TableContainer className={c.table}>
             <Table
               className={c.tableInner}
@@ -506,6 +691,23 @@ export default function Users() {
                         ) : (
                           <div style={{ fontSize: "12px", fontStyle: "italic", color: "#888" }}>
                             N/A
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        {row.permission === "111" ? (
+                          <div style={{ fontSize: "12px", fontStyle: "italic", color: "#888" }}>
+                            All Missions
+                          </div>
+                        ) : row.missions_viewing != null ? (
+                          <div style={{ fontSize: "12px" }}>
+                            {row.missions_viewing.length > 0
+                              ? row.missions_viewing.join(", ")
+                              : "None"}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: "12px", fontStyle: "italic", color: "#888" }}>
+                            All Missions
                           </div>
                         )}
                       </TableCell>
