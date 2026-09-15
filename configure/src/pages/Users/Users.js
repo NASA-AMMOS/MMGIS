@@ -370,13 +370,12 @@ function AccountDefaults() {
           label="Restrict Viewable Missions for New Accounts"
         />
         {restrict && (
-          <FormControl
-            className={c.defaultsSelect}
-            variant="filled"
-            size="small"
-          >
-            <InputLabel>Default Viewable Missions</InputLabel>
+          <FormControl className={c.defaultsSelect} size="small">
+            <InputLabel id="default-viewable-missions-label">
+              Default Viewable Missions
+            </InputLabel>
             <Select
+              labelId="default-viewable-missions-label"
               multiple
               value={missions}
               disabled={!isSuperAdmin}
@@ -388,7 +387,7 @@ function AccountDefaults() {
                 );
                 setDirty(true);
               }}
-              input={<OutlinedInput />}
+              input={<OutlinedInput label="Default Viewable Missions" />}
               renderValue={(selected) => (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selected.map((value) => (
