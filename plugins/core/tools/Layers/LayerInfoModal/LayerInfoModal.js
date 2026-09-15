@@ -75,7 +75,7 @@ const LayerInfo = {
                             `</div>`,
                         `</div>`,
                         `<div id='LayerInfoModalFooter'>`,
-                            `<div id='LayerInfoModalAttribution'>${attribution ? `(c) ${attribution}` : ''}</div>`,
+                            `<div id='LayerInfoModalAttribution'>${attribution ? `\u00a9 ${attribution}` : ''}</div>`,
                             `<div id='LayerInfoModalInnerUUID'>${layer.uuid}</div>`,
                         `</div>`,
                     `</div>`,

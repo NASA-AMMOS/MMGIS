@@ -93,8 +93,7 @@
 }
 
 #LayerInfoModalDescription {
-    padding: 0px 40px;
-    padding-top: 8px;
+    padding: 8px 40px;
     border-top: 1px solid var(--color-a-5);
 }
 #LayerInfoModalDescriptionTitle {
@@ -121,7 +120,6 @@
     padding: 3px 8px;
     border-radius: 4px;
     background: var(--color-a1);
-    border: 1px solid var(--color-a2);
 }
 #LayerInfoModalAttribution a {
     color: var(--color-a6);
