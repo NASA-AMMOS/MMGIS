@@ -2,7 +2,7 @@ import $ from 'jquery'
 import L_ from '@basics/Layers_/Layers_'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
 import marked from '@essence/services/Markdown'
-import { safeHTML } from '@essence/services/Sanitize'
+import { safeHTML, safeLinkUrl } from '@essence/services/Sanitize'
 import F_ from '@basics/Formulae_/Formulae_'
 
 import './LayerInfoModal.css'
@@ -28,10 +28,10 @@ const LayerInfo = {
         let attribution = ''
         if (layer.attribution != null && layer.attribution !== '') {
             const text = F_.escapeHtml(layer.attribution)
-            attribution =
-                layer.attributionLink && layer.attributionLink.length > 0
-                    ? `<a href='${F_.escapeHtml(layer.attributionLink)}' target='_blank' rel='noopener noreferrer'>${text}</a>`
-                    : text
+            const link = safeLinkUrl(layer.attributionLink)
+            attribution = link
+                ? `<a href='${F_.escapeHtml(link)}' target='_blank' rel='noopener noreferrer'>${text}</a>`
+                : text
         }
 
         // prettier-ignore
@@ -74,14 +74,10 @@ const LayerInfo = {
                                 layer.description ? safeHTML(LayerInfo.converter.parse(layer.description)) : `<div class='LayerInfoModalNone'>No Description</div>`,
                             `</div>`,
                         `</div>`,
-                        attribution ?
-                            [
-                                `<div id='LayerInfoModalAttribution'>`,
-                                    `<div id='LayerInfoModalAttributionTitle'>\u00a9 Attribution</div>`,
-                                    `<div id='LayerInfoModalAttributionContent'>${attribution}</div>`,
-                                `</div>`
-                            ].join('\n') : '',
-                        `<div id='LayerInfoModalInnerUUID'>${layer.uuid}</div>`,
+                        `<div id='LayerInfoModalFooter'>`,
+                            `<div id='LayerInfoModalAttribution'>${attribution ? `(c) ${attribution}` : ''}</div>`,
+                            `<div id='LayerInfoModalInnerUUID'>${layer.uuid}</div>`,
+                        `</div>`,
                     `</div>`,
                 `</div>`
             ].join('\n'),

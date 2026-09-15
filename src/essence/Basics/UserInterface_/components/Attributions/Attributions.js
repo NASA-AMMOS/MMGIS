@@ -4,6 +4,7 @@ import $ from 'jquery'
 import L from 'leaflet'
 import L_ from '../../../Layers_/Layers_'
 import { refreshThemeDOM } from '../../../../../design-system/themeApplier'
+import { safeLinkUrl } from '../../../../services/Sanitize'
 
 import './Attributions.css'
 
@@ -35,14 +36,13 @@ var Attributions = {
                     L_.layers.on[layerName] === true &&
                     layer.attribution != null
                 ) {
-                    const key = `${layer.attribution}|${
-                        layer.attributionLink || ''
-                    }`
+                    const link = safeLinkUrl(layer.attributionLink)
+                    const key = `${layer.attribution}|${link || ''}`
                     if (!seen.has(key)) {
                         seen.add(key)
                         attributions.push({
                             text: layer.attribution,
-                            link: layer.attributionLink || null,
+                            link,
                         })
                     }
                 }
