@@ -1,33 +1,107 @@
-/* Attributions styles */
+/* On-map attributions: collapsed pill left of the home/zoom control */
 #mmgis-attributions {
     position: absolute;
-    bottom: 0px;
-    left: 0px;
-    pointer-events: auto;
-    z-index: 1000;
-    font-size: 12px;
-    color: var(--color-a5);
-    background: var(--color-a);
-    border-left: 1px solid black;
-    padding: 2px 4px 2px 3px;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    letter-spacing: 0.5px;
+    top: 10px;
+    right: 44px;
+    z-index: 1001;
     font-family: 'lato-light';
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: var(--color-f);
+    user-select: none;
+}
+
+#mmgis-attributions-summary {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    max-width: 124px;
+    padding: 0 6px 0 10px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    box-shadow: 0 1px 4px var(--color-shadow);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s ease-in 0s;
+}
+#mmgis-attributions-summary:hover {
+    color: var(--color-mmgis);
+}
+
+#mmgis-attributions .mmgis-attributions-first {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
     text-overflow: ellipsis;
 }
-
-#mmgis-attributions a {
-    color: rgba(255, 255, 255, 0.9);
-    text-decoration: none;
+#mmgis-attributions .mmgis-attributions-more {
+    flex-shrink: 0;
+    margin-left: 8px;
+    color: var(--color-a5);
+}
+#mmgis-attributions .mmgis-attributions-chevron {
+    flex-shrink: 0;
+    margin-left: 4px;
+    font-size: 16px;
+    line-height: 16px;
+    transition: transform 0.2s ease-out;
+}
+#mmgis-attributions.expanded .mmgis-attributions-chevron {
+    transform: rotate(180deg);
 }
 
-#mmgis-attributions a:hover {
-    color: rgba(255, 255, 255, 1);
+#mmgis-attributions-panel {
+    display: none;
+    position: absolute;
+    top: 34px;
+    right: 0;
+    min-width: 260px;
+    max-width: 420px;
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    padding: 8px 12px 10px 12px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a1);
+    box-shadow: 0 2px 8px var(--color-shadow);
+    cursor: default;
+    user-select: text;
+}
+#mmgis-attributions.expanded #mmgis-attributions-panel {
+    display: block;
+}
+
+#mmgis-attributions-label {
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--color-a5);
+    margin-bottom: 6px;
+}
+
+#mmgis-attributions-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+#mmgis-attributions-list li {
+    font-size: 14px;
+    padding: 3px 0;
+    line-height: 1.35;
+    border-top: 1px solid var(--color-a1);
+}
+#mmgis-attributions-list li:first-child {
+    border-top: none;
+}
+#mmgis-attributions-list a {
+    color: var(--color-f);
     text-decoration: underline;
+    text-decoration-color: var(--color-a5);
 }
-
-#mmgis-attributions span {
-    display: inline;
+#mmgis-attributions-list a:hover {
+    color: var(--color-mmgis);
+    text-decoration: underline;
 }
