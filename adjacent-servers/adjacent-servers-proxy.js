@@ -5,6 +5,7 @@ const {
 
 const logger = require("../API/logger");
 const createTitilerUrlValidator = require("./validateTitilerUrl");
+const createTitilerExpressionValidator = require("./validateTitilerExpression");
 
 function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
   ///////////////////////////
@@ -61,6 +62,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
 
     // Create URL validator instance (compiled at startup)
     const validateTitilerUrl = createTitilerUrlValidator();
+    const validateTitilerExpression = createTitilerExpressionValidator();
 
     app.use(
       `${process.env.ROOT_PATH || ""}/titiler`,
@@ -77,6 +79,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         ensureUserForAdjacentServers()(req, res, next);
       },
       validateTitilerUrl, // URL validation middleware (SSRF prevention)
+      validateTitilerExpression, // band-math token allowlist
       createProxyMiddleware({
         target: titilerTarget,
         changeOrigin: true,
@@ -99,6 +102,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     app.use(
       `${process.env.ROOT_PATH || ""}/titilerpgstac`,
       ensureUserForAdjacentServers(),
+      createTitilerExpressionValidator(),
       createProxyMiddleware({
         target: titilerpgstacTarget,
         changeOrigin: true,
