@@ -1041,7 +1041,7 @@ var Files = {
 
             let template = file.template || null
 
-            const missionMarkup = isLead
+            const missionMarkup = isLead && !file.is_master
                 ? `<select id='drawToolFileEditOnMissionDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'><option value='${safeHTML(file.mission || '')}'>${safeHTML(file.mission || 'NONE')}</option></select>`
                 : `<div>${safeHTML(file.mission || 'NONE')}</div>`
 
@@ -1076,7 +1076,7 @@ var Files = {
                     "<div class='drawToolFileEditOnDates drawToolFileEditOnMission'>",
                         "<div>",
                             "<div>Mission:</div>",
-                            `<div>${safeHTML(file.mission || 'NONE')}</div>`,
+                            "__MISSION__",
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1098,17 +1098,21 @@ var Files = {
                     "</div>",
                     "<div id='drawToolFileEditOnActions'>",
                         "<div></div>",
-                        "<div class='drawToolFileCancel drawToolButton1'>Cancel</div>",
+                        "<div class='flexbetween'>",
+                            "<div class='drawToolFileCancel drawToolButton1'>Cancel</div>",
+                            isLead && !file.is_master ? "<div class='drawToolFileSaveMission drawToolButton1'>Save</div>" : "",
+                        "</div>",
                     "</div>",
                 "</div>"
                 ].join('\n')
 
             Modal.set(
-                ownedByUser ||
+                (ownedByUser ||
                     (DrawTool.userGroups.indexOf('mmgis-group') != -1 &&
                         DrawTool.vars.leadsCanEditFileInfo)
-                    ? modalContentEditable.replace('__MISSION__', missionMarkup)
-                    : modalContent,
+                    ? modalContentEditable
+                    : modalContent
+                ).replace('__MISSION__', missionMarkup),
                 function () {
                     if (isLead) {
                         calls.api(
@@ -1399,6 +1403,30 @@ var Files = {
                     //cancel
                     $('.drawToolFileCancel').on('click', function () {
                         Modal.remove()
+                    })
+
+                    // Leads may reassign the mission even when other file info is read-only
+                    $('.drawToolFileSaveMission').on('click', function () {
+                        const mission = $(
+                            '#drawToolFileEditOnMissionDropdown'
+                        ).val()
+                        if (!mission || mission === file.mission) {
+                            Modal.remove()
+                            return
+                        }
+                        DrawTool.changeFile(
+                            { id: fileId, mission: mission },
+                            function () {
+                                Modal.remove()
+                                Toast.success('Successfully changed file mission!', 3500)
+                                DrawTool.getFiles(function () {
+                                    DrawTool.populateFiles()
+                                })
+                            },
+                            function () {
+                                Toast.error('Failed to change file mission!', 3500)
+                            }
+                        )
                     })
 
                     //save
