@@ -1,6 +1,7 @@
 // Attributions collects visible layer attributions for the About modal
 // and, when look.showAttributionsOnMap is set, renders them on the map
 import $ from 'jquery'
+import L from 'leaflet'
 import L_ from '../../../Layers_/Layers_'
 import { refreshThemeDOM } from '../../../../../design-system/themeApplier'
 
@@ -89,6 +90,9 @@ var Attributions = {
                 )
             $('#map').append(container)
 
+            // Behave like a Leaflet control: keep clicks/wheel off the map
+            L.DomEvent.disableClickPropagation(container[0])
+            L.DomEvent.disableScrollPropagation(container[0])
             container.on('click', (e) => {
                 e.stopPropagation()
             })
