@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { transformStacUrl, parseExternalStacUrl } from '../../src/essence/Basics/Layers_/LayerUtils.js';
+import {
+    transformStacUrl,
+    parseExternalStacUrl,
+    formatStacBidx,
+    normalizeTitilerExpression,
+} from '../../src/essence/Basics/Layers_/LayerUtils.js';
 
 /**
  * STAC URL Transformation Unit Tests
@@ -70,7 +75,7 @@ test.describe('STAC URL Transformation Logic', () => {
 
         const result = transformStacUrl(url, layerData, 'tiles', mockLocation);
 
-        expect(result).toContain('?assets=asset&bidx=1&bidx=2&bidx=3');
+        expect(result).toContain('?assets=asset|bidx=1,2,3');
     });
 
     test('transforms STAC URL with resampling for tiles', () => {
@@ -148,7 +153,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, layerData, 'tiles', mockLocation);
 
         expect(result).toContain('/tiles/WorldCRS84Quad/{z}/{x}/{y}');
-        expect(result).toContain('bidx=2&bidx=3&bidx=4');
+        expect(result).toContain('assets=asset|bidx=2,3,4');
         expect(result).toContain('resampling=nearest');
     });
 
@@ -255,9 +260,8 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, layerData, 'tiles', mockLocation);
 
         // Should only add bidx for non-null values
-        expect(result).toContain('bidx=1');
-        expect(result).toContain('bidx=3');
-        expect(result).not.toContain('bidx=null');
+        expect(result).toContain('assets=asset|bidx=1,3');
+        expect(result).not.toContain('null');
     });
 
     test('handles empty expression string', () => {
@@ -272,7 +276,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, layerData, 'tiles', mockLocation);
 
         // Should include bands since expression is empty
-        expect(result).toContain('bidx=1&bidx=2');
+        expect(result).toContain('assets=asset|bidx=1,2');
     });
 
     test('handles whitespace-only expression', () => {
@@ -287,7 +291,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const result = transformStacUrl(url, layerData, 'tiles', mockLocation);
 
         // Should include bands since expression is only whitespace
-        expect(result).toContain('bidx=1&bidx=2');
+        expect(result).toContain('assets=asset|bidx=1,2');
     });
 
     test('transforms external STAC URL with full path', () => {
@@ -308,9 +312,7 @@ test.describe('STAC URL Transformation Logic', () => {
         const url = 'stac-collection:https://example.com/titilerpgstac/collections/test_collection';
         const layerData = { cogBands: [1, 2, 3] };
         const result = transformStacUrl(url, layerData, 'tiles', mockLocation);
-        expect(result).toContain('bidx=1');
-        expect(result).toContain('bidx=2');
-        expect(result).toContain('bidx=3');
+        expect(result).toContain('assets=asset|bidx=1,2,3');
     });
 
     test('applies resampling to external URL', () => {
@@ -382,5 +384,27 @@ test.describe('STAC URL Transformation Logic', () => {
             baseUrl: 'https://example.com/mmgis/titilerpgstac',
             collectionName: 'my_collection'
         });
+    });
+});
+
+test.describe('formatStacBidx', () => {
+    test('joins bands and drops nulls', () => {
+        expect(formatStacBidx([1, null, 3])).toBe('1,3');
+        expect(formatStacBidx([])).toBe('');
+        expect(formatStacBidx(null)).toBe('');
+    });
+});
+
+test.describe('normalizeTitilerExpression', () => {
+    test('maps legacy asset_bX and bare bX/BX to bX', () => {
+        expect(normalizeTitilerExpression('asset_b1*2')).toBe('b1*2');
+        expect(normalizeTitilerExpression('(B1+asset_B2)/2')).toBe('(b1+b2)/2');
+        expect(normalizeTitilerExpression('b1;b2;b3')).toBe('b1;b2;b3');
+    });
+
+    test('leaves other identifiers and empty values untouched', () => {
+        expect(normalizeTitilerExpression('red_b1 + b10')).toBe('red_b1 + b10');
+        expect(normalizeTitilerExpression('')).toBe('');
+        expect(normalizeTitilerExpression(null)).toBe(null);
     });
 });
