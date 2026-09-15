@@ -84,7 +84,7 @@ var Attributions = {
                         .append(
                             $('<div>')
                                 .attr('id', 'mmgis-attributions-label')
-                                .text('Attributions')
+                                .text('\u00a9 Layer Attributions')
                         )
                         .append($('<ul>').attr('id', 'mmgis-attributions-list'))
                 )
