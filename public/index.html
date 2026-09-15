@@ -66,11 +66,12 @@
         z-index: 100;
       }
 
+      /* Same position/size as the landing page nav logo (.landingPage .nav .logo img) */
       .LoadingPage #title {
         position: absolute;
-        top: 45px;
-        left: 35px;
-        padding: 0px 10px;
+        top: 17px;
+        left: 40px;
+        padding: 0;
       }
 
       .LoadingPage #title p {
@@ -79,8 +80,8 @@
       }
 
       .LoadingPage img {
-        position: relative;
-        left: -1px;
+        display: block;
+        height: 26px;
       }
 
       @keyframes rotate {
@@ -239,15 +240,17 @@
       */
       #loading2 {
         position: absolute;
-        top: 85px;
-        left: 51px;
+        top: 47px;
+        left: 44px;
+        width: 120px;
+        display: flex;
+        justify-content: space-between;
+        line-height: 0;
       }
       #loading2 span {
-        display: inline-block;
-        vertical-align: middle;
-        width: 6px;
-        height: 6px;
-        margin: 0px 18.5px 0px 0px;
+        display: block;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         animation: loading2 1.6s infinite alternate;
       }
@@ -297,20 +300,13 @@
         }
       }
 
-      /* Mobile-specific centering for LoadingPage title and loading dots */
+      /* Matches the landing nav's mobile padding */
       @media screen and (max-width: 600px) {
         .LoadingPage #title {
-          left: 50%;
-          transform: translateX(-50%);
-          text-align: center;
+          left: 16px;
         }
         .LoadingPage #loading2 {
-          left: 50%;
-          transform: translateX(-50%);
-          width: 204px;
-        }
-        .LoadingPage #loading2 span {
-          margin: 0px 8px 0px 8px;
+          left: 20px;
         }
       }
     </style>

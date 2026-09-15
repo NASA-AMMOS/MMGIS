@@ -74,23 +74,33 @@ function initApp() {
     } else {
         calls.api(
             'missions',
-            {},
+            { full: true },
             function (s) {
+                // Server returns viewing-filtered {mission, version, config} objects
+                // (or plain name strings on the static path); keep names as `missions`
+                const missionsMeta = {}
                 const missions = (s.missions || [])
-                    .slice()
+                    .map((m) => {
+                        if (m && typeof m === 'object') {
+                            missionsMeta[m.mission] = m
+                            return m.mission
+                        }
+                        return m
+                    })
+                    .filter((m) => typeof m === 'string')
                     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-                continueOn(missions)
+                continueOn(missions, missionsMeta)
             },
             function (e) {
-                continueOn([])
+                continueOn([], {})
             }
         )
 
-        function continueOn(missions) {
+        function continueOn(missions, missionsMeta) {
             const u = window.location.href.split('?s=')
             if (!u[1]) {
                 //Not a shortened URL
-                LandingPage.init(missions)
+                LandingPage.init(missions, false, null, missionsMeta)
             } else {
                 calls.api(
                     'shortener_expand',
@@ -101,10 +111,10 @@ function initApp() {
                         //Set and update the url
                         const url = u[0] + s.body.url
                         window.history.replaceState('', '', url)
-                        LandingPage.init(missions)
+                        LandingPage.init(missions, false, null, missionsMeta)
                     },
                     function (e) {
-                        LandingPage.init(missions, true)
+                        LandingPage.init(missions, true, null, missionsMeta)
                     }
                 )
             }

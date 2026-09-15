@@ -50,6 +50,9 @@ const WebSocket = require("isomorphic-ws");
 const chalk = require("chalk");
 
 const middleware = require("./middleware").middleware;
+const {
+  checkMissionFileViewingPermission,
+} = require("../plugins/core/backend/Config/routes/configs");
 
 const isDevEnv = process.env.NODE_ENV === "development";
 
@@ -464,7 +467,15 @@ function validateLongTermToken(token, successCallback, failureCallback) {
     });
 }
 
-function ensureUser() {
+// 403 for file routes: styled page for browsers, plain status otherwise
+function sendForbidden(req, res) {
+  if (req.accepts(["json", "html"]) === "html")
+    res.status(403).render("forbidden", { HOME: `${ROOT_PATH}/` });
+  else res.sendStatus(403);
+}
+
+// options.forbid: respond 403 instead of rendering the login page (for file routes)
+function ensureUser(options = {}) {
   return (req, res, next) => {
     /* If the request is:
       - Not trying to use an authorization header (longtermtoken)
@@ -508,6 +519,8 @@ function ensureUser() {
             );
           },
         );
+      } else if (options.forbid) {
+        sendForbidden(req, res);
       } else {
         res.render("login", {
           user: req.user,
@@ -732,28 +745,29 @@ setups.getBackendSetups(function (setups) {
 
   app.use(
     `${ROOT_PATH}/build`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/build")),
   );
   app.use(
     `${ROOT_PATH}/docs`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/docs")),
   );
   app.use(
     `${ROOT_PATH}/configure/build`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/configure/build")),
   );
   app.use(
     `${ROOT_PATH}/configure/public`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/configure/public")),
   );
 
   app.use(
     `${ROOT_PATH}/Missions`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
+    checkMissionFileViewingPermission(sendForbidden),
     middleware.missions(ROOT_PATH),
     express.static(path.join(rootDir, "/Missions")),
   );

@@ -18,6 +18,76 @@ import SettingsIcon from "@mui/icons-material/Settings";
 const config = {
   rows: [
     {
+      name: "Landing Page",
+      components: [
+        {
+          field: "temp.generalOptions.landingPage.theme",
+          name: "Theme",
+          description: "Color theme of the mission landing page.",
+          type: "dropdown",
+          options: ["light", "dark"],
+          default: "light",
+          width: 3,
+        },
+        {
+          field: "temp.generalOptions.landingPage.heading",
+          name: "Heading",
+          description:
+            "Main landing page heading. Wrap words in asterisks to highlight them in the accent color, e.g. 'Mapping *Any World*'. Leave blank for the default.",
+          type: "text",
+          width: 4,
+        },
+        {
+          field: "temp.generalOptions.landingPage.subheading",
+          name: "Subheading",
+          description:
+            "Text shown under the heading. Leave blank for the default ('Select a mission to start exploring geospatial data').",
+          type: "text",
+          width: 5,
+        },
+        {
+          field: "temp.generalOptions.landingPage.backgroundImageUrl",
+          name: "Background Image URL",
+          description:
+            "Optional full-screen background image for the landing page. Supports absolute URLs and public assets (e.g., 'public/images/mars.jpg'). Leave blank for the default contour background.",
+          type: "text",
+          width: 6,
+        },
+        {
+          field: "temp.generalOptions.landingPage.hideArchived",
+          name: "Hide Archived Missions",
+          description:
+            "When enabled, missions marked as Archived (Home tab) are omitted from the landing page instead of being listed under 'Archived Missions'.",
+          type: "checkbox",
+          width: 3,
+        },
+        {
+          field: "temp.generalOptions.landingPage.creditText",
+          name: "Footer Credit Text",
+          description:
+            "Credit link text shown in the landing page footer. Defaults to 'NASA-AMMOS'.",
+          type: "text",
+          width: 3,
+        },
+        {
+          field: "temp.generalOptions.landingPage.creditUrl",
+          name: "Footer Credit URL",
+          description:
+            "Where the footer credit links to. Defaults to 'https://github.com/NASA-AMMOS/MMGIS'.",
+          type: "text",
+          width: 4,
+        },
+        {
+          field: "temp.generalOptions.landingPage.hideSearch",
+          name: "Hide Search & Grouping",
+          description:
+            "When enabled, the mission search box and the A–Z / Planet grouping toggle are not shown on the landing page.",
+          type: "checkbox",
+          width: 3,
+        },
+      ],
+    },
+    {
       name: "STAC/TiTiler",
       subname: "COG Mosaicking",
       components: [

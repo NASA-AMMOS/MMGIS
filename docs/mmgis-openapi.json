@@ -5260,6 +5260,7 @@
                             "email": "my@email.com",
                             "permission": "001",
                             "missions_managing": null,
+                            "missions_viewing": ["mission1"],
                             "createdAt": "2023-02-10T01:48:24.961Z",
                             "updatedAt": "2025-01-14T07:32:30.857Z"
                           },
@@ -5269,6 +5270,7 @@
                             "email": "admin@email.com",
                             "permission": "110",
                             "missions_managing": ["mission1", "mission2"],
+                            "missions_viewing": null,
                             "createdAt": "2023-02-10T01:48:24.961Z",
                             "updatedAt": "2025-01-14T07:32:30.857Z"
                           }
@@ -5373,6 +5375,14 @@
                       "type": "string"
                     },
                     "description": "Array of mission names this admin can manage (only applies when permission is 110)"
+                  },
+                  "missions_viewing": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Array of mission names this user may view when AUTH=local. null means unrestricted (all missions visible); an empty array means no missions."
                   }
                 },
                 "required": ["id"]
