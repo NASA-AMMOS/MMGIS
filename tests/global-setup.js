@@ -169,7 +169,6 @@ export default async function globalSetup() {
       'ALTER TABLE IF EXISTS file_histories ADD COLUMN IF NOT EXISTS author varchar(255) NULL',
       // users (Users/models/user.js)
       'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS missions_managing TEXT[] NULL',
-      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS missions_viewing TEXT[] NULL',
       'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS reset_token varchar(2048) NULL',
       'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS reset_token_expiration BIGINT NULL',
       // geodatasets (Geodatasets/models/geodatasets.js)

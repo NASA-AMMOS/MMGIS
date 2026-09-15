@@ -37,9 +37,8 @@ test.describe('Missions Middleware', () => {
 
     test('legitimate mission tile path does not return 500', async ({ request }) => {
       // Even if the tile doesn't exist, should be 404 not 500
-      // (AUTH=local returns 403 for unauthenticated file requests)
       const response = await request.get('/Missions/Reference-Mission/Layers/Tiles/basemap/0/0/0.png');
-      expect([200, 304, 404, 403]).toContain(response.status());
+      expect([200, 304, 404]).toContain(response.status());
     });
 
   });

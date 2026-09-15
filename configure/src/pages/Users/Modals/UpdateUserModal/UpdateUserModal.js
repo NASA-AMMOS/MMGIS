@@ -22,8 +22,6 @@ import MenuItem from "@mui/material/MenuItem";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
 import OutlinedInput from "@mui/material/OutlinedInput";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
@@ -183,8 +181,6 @@ const UpdateUserModal = (props) => {
   const [permissions, setPermissions] = useState(null);
   const [userName, setUserName] = useState(null);
   const [missionsManaging, setMissionsManaging] = useState([]);
-  const [missionsViewing, setMissionsViewing] = useState([]);
-  const [restrictViewing, setRestrictViewing] = useState(false);
   const [availableMissions, setAvailableMissions] = useState([]);
 
   // Fetch available missions when modal opens
@@ -217,8 +213,6 @@ const UpdateUserModal = (props) => {
       } else {
         setMissionsManaging([]);
       }
-      setMissionsViewing(modal?.row?.missions_viewing || []);
-      setRestrictViewing(modal?.row?.missions_viewing != null);
     }
   }, [modal, dispatch]);
 
@@ -227,8 +221,6 @@ const UpdateUserModal = (props) => {
     setPermissions(null);
     setUserName(null);
     setMissionsManaging([]);
-    setMissionsViewing([]);
-    setRestrictViewing(false);
     setAvailableMissions([]);
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
@@ -261,7 +253,6 @@ const UpdateUserModal = (props) => {
         permission: permissions || modal.row.permission,
         email: email || modal.row.email,
         missions_managing: missionsManaging || modal.row.missions_managing,
-        missions_viewing: restrictViewing ? missionsViewing : null,
       },
       (res) => {
         if (res.body?.updated_id === modal.row.id) {
@@ -389,49 +380,6 @@ const UpdateUserModal = (props) => {
               className={c.subtitle2}
             >{`Select which missions this Admin can manage. Leave empty to restrict access to all missions. Only SuperAdmins can change modify this field.`}</Typography>
           </>
-        )}
-        <FormControlLabel
-          control={
-            <Switch
-              checked={restrictViewing}
-              disabled={mmgisglobal.permission !== "111"}
-              onChange={(e) => {
-                setRestrictViewing(e.target.checked);
-              }}
-            />
-          }
-          label="Restrict Viewable Missions"
-        />
-        <Typography
-          className={c.subtitle2}
-        >{`When AUTH=local, restricts which missions this user can see and load. Off = all missions. On with none selected = no missions. Files under /Missions/<mission>/ are also restricted, so a mission that references another mission's files (e.g. ../OtherMission/...) needs that mission granted too.`}</Typography>
-        {restrictViewing && (
-        <FormControl className={c.assignedMissions} variant="filled" size="small">
-          <InputLabel>Viewable Missions</InputLabel>
-          <Select
-            className={c.selectDropdown}
-            multiple
-            value={missionsViewing}
-            disabled={mmgisglobal.permission !== "111"}
-            onChange={(e) => {
-              setMissionsViewing(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value);
-            }}
-            input={<OutlinedInput />}
-            renderValue={(selected) => (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                {selected.map((value) => (
-                  <Chip key={value} label={value} size="small" />
-                ))}
-              </Box>
-            )}
-          >
-            {availableMissions.map((mission) => (
-              <MenuItem key={mission} value={mission}>
-                {mission}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
         )}
         <TextField
           className={c.confirmInput}

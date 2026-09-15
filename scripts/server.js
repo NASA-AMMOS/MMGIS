@@ -50,9 +50,6 @@ const WebSocket = require("isomorphic-ws");
 const chalk = require("chalk");
 
 const middleware = require("./middleware").middleware;
-const {
-  checkMissionFileViewingPermission,
-} = require("../plugins/core/backend/Config/routes/configs");
 
 const isDevEnv = process.env.NODE_ENV === "development";
 
@@ -406,7 +403,6 @@ function ensureAdmin(
           req.isLongTermToken = true;
           req.tokenUserPermission = tokenData.permission;
           req.tokenUserMissions = tokenData.missions_managing;
-          req.tokenUserMissionsViewing = tokenData.missions_viewing;
           req.user = tokenData.username;
           next();
         },
@@ -439,7 +435,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
 
   sequelize
     .query(
-      'SELECT lt.*, u.permission, u.missions_managing, u.missions_viewing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
+      'SELECT lt.*, u.permission, u.missions_managing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
       {
         replacements: {
           token: token,
@@ -468,15 +464,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
     });
 }
 
-// 403 for file routes: styled page for browsers, plain status otherwise
-function sendForbidden(req, res) {
-  if (req.accepts(["json", "html"]) === "html")
-    res.status(403).render("forbidden", { HOME: `${ROOT_PATH}/` });
-  else res.sendStatus(403);
-}
-
-// options.forbid: respond 403 instead of rendering the login page (for file routes)
-function ensureUser(options = {}) {
+function ensureUser() {
   return (req, res, next) => {
     /* If the request is:
       - Not trying to use an authorization header (longtermtoken)
@@ -507,7 +495,6 @@ function ensureUser(options = {}) {
             req.isLongTermToken = true;
             req.tokenUserPermission = tokenData.permission;
             req.tokenUserMissions = tokenData.missions_managing;
-            req.tokenUserMissionsViewing = tokenData.missions_viewing;
             req.user = tokenData.username;
             next();
           },
@@ -521,8 +508,6 @@ function ensureUser(options = {}) {
             );
           },
         );
-      } else if (options.forbid) {
-        sendForbidden(req, res);
       } else {
         res.render("login", {
           user: req.user,
@@ -747,29 +732,28 @@ setups.getBackendSetups(function (setups) {
 
   app.use(
     `${ROOT_PATH}/build`,
-    ensureUser({ forbid: true }),
+    ensureUser(),
     express.static(path.join(rootDir, "/build")),
   );
   app.use(
     `${ROOT_PATH}/docs`,
-    ensureUser({ forbid: true }),
+    ensureUser(),
     express.static(path.join(rootDir, "/docs")),
   );
   app.use(
     `${ROOT_PATH}/configure/build`,
-    ensureUser({ forbid: true }),
+    ensureUser(),
     express.static(path.join(rootDir, "/configure/build")),
   );
   app.use(
     `${ROOT_PATH}/configure/public`,
-    ensureUser({ forbid: true }),
+    ensureUser(),
     express.static(path.join(rootDir, "/configure/public")),
   );
 
   app.use(
     `${ROOT_PATH}/Missions`,
-    ensureUser({ forbid: true }),
-    checkMissionFileViewingPermission(sendForbidden),
+    ensureUser(),
     middleware.missions(ROOT_PATH),
     express.static(path.join(rootDir, "/Missions")),
   );
