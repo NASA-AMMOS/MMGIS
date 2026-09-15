@@ -2,6 +2,46 @@
 
 ---
 
+## 5.4.0
+
+_September 15, 2026_
+
+#### Summary
+
+This release moves the raster stack to TiTiler 2.x / TiTiler-pgSTAC 3.x / rio-tiler 9.x (pinned identically for Docker Compose and non-Docker installs), adds expression parsing on the `/titiler` and `/titilerpgstac` proxies, and runs the MMGIS Docker image as an unprivileged user. Frontend STAC tile and point requests were migrated to the TiTiler 2.x asset/band syntax.
+
+### Compatibility
+
+- **Mission configurations: Backward compatible.** Existing `cogBands`, `cogColormap`, and expression settings continue to work. Legacy `asset_bN` expressions are accepted and mapped to `bN` before requests are sent.
+- **End users: No breaking changes.**
+- **Deployments: Breaking.** See the migration guide below — Docker users must redeploy with the updated `docker-compose` (new image tags and renamed `titiler-pgstac` env vars); non-Docker users must reinstall Python dependencies.
+
+### Migration Guide
+
+- **Breaking (Deployments): TiTiler / TiTiler-pgSTAC / TiPG versions.** `titiler.application` 0.24 → 2.2.0, `titiler-pgstac` 1.9 → 3.1.0, `tipg` 1.3 → 1.6.1, `rio-tiler` 7.x → 9.x. Update both the Compose images (`ghcr.io/developmentseed/titiler:2.2.0`, `ghcr.io/stac-utils/titiler-pgstac:3.1.0`, `ghcr.io/developmentseed/tipg:1.6.1`) and the Python environment (`python-requirements.txt` / `python-environment.yml`). `pypgstac` stays at 0.9.6; no pgSTAC schema migration is required beyond the `pypgstac migrate` MMGIS already runs on startup.
+- **Breaking (Deployments): titiler-pgstac env vars renamed.** `POSTGRES_USER/PASS/HOST/PORT/DBNAME` → `PGUSER/PGPASSWORD/PGHOST/PGPORT/PGDATABASE` for the `titiler-pgstac` service (Compose and `adjacent-servers/titiler-pgstac/.env.example`). The `stac` and `tipg` services keep `POSTGRES_*`. The unused `WORKERS_PER_CORE`/`MAX_WORKERS` entries were removed (the image only honors `WEB_CONCURRENCY`).
+- **Breaking (Deployments): MMGIS container runs as non-root.** The image now runs as user `mmgis` (uid/gid 1000, configurable via `APP_UID`/`APP_GID` build args). Bind-mounted `./Missions` (and `./ssl`) must be writable by that uid.
+- **Breaking (Direct TiTiler API users): TiTiler 2.x request/response changes.** For `/titilerpgstac`: `bidx`/`expression` per asset are now expressed as `assets=asset|bidx=1,2` and `assets=asset&expression=b1*2` (top-level `bidx` is ignored; `asset_b1` syntax, `asset_bidx`, `asset_expression`, `vrt://` assets are removed); `/point` responses return `{coordinates, assets:[{name, values, band_names}]}` instead of top-level `values`. For both services: `@2x`/`tile_scale` URL suffixes are removed in favor of `tilesize=`. MMGIS's own frontend has been updated; external clients calling the proxies directly must update.
+- **Changed: TiTiler `expression` parsing.** The `/titiler` and `/titilerpgstac` proxies now accept only band identifiers, numeric literals, arithmetic/comparison/logical operators, function calls such as `where()`/`sqrt()`, parentheses, commas and `;`. Other content returns `400`.
+
+#### Added
+
+- Expression parsing middleware for the TiTiler and TiTiler-pgSTAC proxies (`adjacent-servers/validateTitilerExpression.js`) with unit tests
+
+#### Changed
+
+- Pinned TiTiler 2.2.0, TiTiler-pgSTAC 3.1.0, TiPG 1.6.1 and rio-tiler 9.x in Docker Compose and Python requirements
+- STAC tile, terrain and point requests use TiTiler 2.x `assets=asset|bidx=` syntax; Identifier tool parses the TiTiler-pgSTAC 3.x `/point` response
+- Expression help text now documents `bN` band syntax (`asset_bN` remains accepted)
+- MMGIS Dockerfile runs as unprivileged `mmgis` user
+
+#### Fixed
+
+- `pypgstac migrate` on startup now inherits `PATH`, so a venv-installed pypgstac is found on non-Docker installs
+- TiTiler colormap legend images requested with `f=png` (previously `format=png`, which returned JSON)
+
+---
+
 ## 5.2.24
 
 _August 3, 2026_
