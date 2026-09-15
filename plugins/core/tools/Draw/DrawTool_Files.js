@@ -7,6 +7,9 @@ import Globe_ from '@basics/Globe_/Globe_'
 import Map_ from '@basics/Map_/Map_'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Toast from '@design/components/Toast/Toast'
+import Select from '@design/components/Select/Select'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
 
 import DrawTool_Templater from './DrawTool_Templater'
@@ -960,8 +963,10 @@ var Files = {
                 .join('\n')
 
             const missionMarkup = isLead && !file.is_master
-                ? `<select id='drawToolFileEditOnMissionDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'><option value='${safeHTML(file.mission || '')}'>${safeHTML(file.mission || 'NONE')}</option></select>`
+                ? `<div id='drawToolFileEditOnMissionDropdown'></div>`
                 : `<div>${safeHTML(file.mission || 'NONE')}</div>`
+            let selectedMission = file.mission || ''
+            let missionRoot = null
 
             // prettier-ignore
             const modalContentEditable = [
@@ -1118,23 +1123,28 @@ var Files = {
                             'missions',
                             {},
                             function (s) {
-                                const dropdown = $(
-                                    '#drawToolFileEditOnMissionDropdown'
+                                const container = document.getElementById(
+                                    'drawToolFileEditOnMissionDropdown'
                                 )
-                                if (dropdown.length === 0) return
-                                dropdown.empty()
+                                if (!container) return
+                                const options = (s.missions || []).map(
+                                    (m) => ({ value: m, label: m })
+                                )
                                 if (!file.mission)
-                                    dropdown.append(
-                                        `<option value='' selected>NONE</option>`
+                                    options.unshift({ value: '', label: 'NONE' })
+                                const render = () =>
+                                    missionRoot.render(
+                                        <Select
+                                            value={selectedMission}
+                                            options={options}
+                                            onValueChange={(v) => {
+                                                selectedMission = v
+                                                render()
+                                            }}
+                                        />
                                     )
-                                ;(s.missions || []).forEach((m) => {
-                                    dropdown.append(
-                                        $('<option>')
-                                            .val(m)
-                                            .text(m)
-                                            .prop('selected', m === file.mission)
-                                    )
-                                })
+                                missionRoot = createRoot(container)
+                                render()
                             },
                             function () {}
                         )
@@ -1406,9 +1416,7 @@ var Files = {
 
                     // Leads may reassign the mission even when other file info is read-only
                     $('.drawToolFileSaveMission').on('click', function () {
-                        const mission = $(
-                            '#drawToolFileEditOnMissionDropdown'
-                        ).val()
+                        const mission = selectedMission
                         if (!mission || mission === file.mission) {
                             Modal.remove()
                             return
@@ -1491,11 +1499,8 @@ var Files = {
                                 .find('#drawToolFileEditListEditors')
                                 .val(),
                         }
-                        const missionDropdown = elm.find(
-                            '#drawToolFileEditOnMissionDropdown'
-                        )
-                        if (missionDropdown.length > 0 && missionDropdown.val())
-                            body.mission = missionDropdown.val()
+                        if (isLead && !file.is_master && selectedMission)
+                            body.mission = selectedMission
 
                         DrawTool.changeFile(
                             body,
@@ -1598,6 +1603,10 @@ var Files = {
                 },
                 function () {
                     // on close
+                    if (missionRoot) {
+                        missionRoot.unmount()
+                        missionRoot = null
+                    }
                     // Just incase this gets stuck
                     $('.autocomplete-suggestions').remove()
                 }
