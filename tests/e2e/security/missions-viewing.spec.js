@@ -326,7 +326,7 @@ test.describe.serial("missions_viewing permissions", () => {
     const getDefaults = async () =>
       (await json(await superadmin.get("/api/accounts/defaults")))?.body
         ?.missions_viewing;
-    const signup = async (name) => {
+    const signup = async (name, extra = {}) => {
       const body = await json(
         await superadmin.post("/api/users/signup", {
           data: {
@@ -334,6 +334,7 @@ test.describe.serial("missions_viewing permissions", () => {
             password: PASSWORD,
             email: `${name}@test.com`,
             skipLogin: true,
+            ...extra,
           },
         }),
       );
@@ -367,6 +368,29 @@ test.describe.serial("missions_viewing permissions", () => {
       expect(await getDefaults()).toBe(null);
       const u3 = await signup(`${userName}_d3`);
       expect(u3.missions_viewing).toBe(null);
+
+      // SuperAdmins may override the default per account at signup
+      const u4 = await signup(`${userName}_d4`, { missions_viewing: [missionC] });
+      expect(u4.missions_viewing).toEqual([missionC]);
+      // Admins (110) cannot; signup is allowed but the default applies
+      const adminSignup = await json(
+        await admin.post("/api/users/signup", {
+          data: {
+            username: `${userName}_d5`,
+            password: PASSWORD,
+            skipLogin: true,
+            missions_viewing: [missionC],
+          },
+        }),
+      );
+      if (adminSignup?.status === "success") {
+        const entries = await json(await superadmin.get("/api/accounts/entries"));
+        const e = entries.body.entries.find(
+          (x) => x.username === `${userName}_d5`,
+        );
+        userIds[e.username] = e.id;
+        expect(e.missions_viewing).toBe(null);
+      }
 
       // Defaults follow mission renames like per-user grants do
       await setDefaults(superadmin, [missionB]);

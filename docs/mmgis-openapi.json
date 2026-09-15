@@ -4919,6 +4919,12 @@
                   "skipLogin": {
                     "type": "boolean",
                     "description": "If true, create the account without logging the new user in on this session. Requires an admin session unless AUTH_LOCAL_ALLOW_SIGNUP is enabled."
+                  },
+                  "missions_viewing": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": { "type": "string" },
+                    "description": "SuperAdmin-only override of the site-wide default viewable missions for this new account (null = all, [] = none). Ignored for non-SuperAdmin sessions, which receive the default. Only enforced when AUTH=local."
                   }
                 },
                 "required": ["username", "password"]

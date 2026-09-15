@@ -136,19 +136,32 @@ router.post("/signup", function (req, res, next) {
   })
     .then(async (user) => {
       if (user == null) {
-        // Stamped in every AUTH mode so a later switch to AUTH=local stays restricted
-        newUser.missions_viewing = await getDefaultMissionsViewing().catch(
-          (err) => {
-            logger(
-              "error",
-              "Failed to read default missions_viewing for new account.",
-              req.originalUrl,
-              req,
-              err
-            );
-            return null;
-          }
-        );
+        // SuperAdmins may override the site default; stamped in every AUTH mode
+        // so a later switch to AUTH=local stays restricted
+        if (
+          req.session.permission === "111" &&
+          req.body.hasOwnProperty("missions_viewing") &&
+          (req.body.missions_viewing === null ||
+            Array.isArray(req.body.missions_viewing))
+        ) {
+          newUser.missions_viewing =
+            req.body.missions_viewing == null
+              ? null
+              : req.body.missions_viewing.filter((m) => typeof m === "string");
+        } else {
+          newUser.missions_viewing = await getDefaultMissionsViewing().catch(
+            (err) => {
+              logger(
+                "error",
+                "Failed to read default missions_viewing for new account.",
+                req.originalUrl,
+                req,
+                err
+              );
+              return null;
+            }
+          );
+        }
         User.create(newUser)
           .then((created) => {
             // Just make the account -- don't also login
