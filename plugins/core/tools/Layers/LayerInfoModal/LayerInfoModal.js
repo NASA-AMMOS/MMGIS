@@ -25,6 +25,15 @@ const LayerInfo = {
         let type = layer.type
         if (type === 'tile') type = 'raster'
 
+        let attribution = ''
+        if (layer.attribution != null && layer.attribution !== '') {
+            const text = F_.escapeHtml(layer.attribution)
+            attribution =
+                layer.attributionLink && layer.attributionLink.length > 0
+                    ? `<a href='${F_.escapeHtml(layer.attributionLink)}' target='_blank' rel='noopener noreferrer'>${text}</a>`
+                    : text
+        }
+
         // prettier-ignore
         Modal.set(
             [
@@ -65,6 +74,13 @@ const LayerInfo = {
                                 layer.description ? safeHTML(LayerInfo.converter.parse(layer.description)) : `<div class='LayerInfoModalNone'>No Description</div>`,
                             `</div>`,
                         `</div>`,
+                        attribution ?
+                            [
+                                `<div id='LayerInfoModalAttribution'>`,
+                                    `<div id='LayerInfoModalAttributionTitle'>\u00a9 Attribution</div>`,
+                                    `<div id='LayerInfoModalAttributionContent'>${attribution}</div>`,
+                                `</div>`
+                            ].join('\n') : '',
                         `<div id='LayerInfoModalInnerUUID'>${layer.uuid}</div>`,
                     `</div>`,
                 `</div>`

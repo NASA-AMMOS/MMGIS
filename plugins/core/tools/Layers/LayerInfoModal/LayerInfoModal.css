@@ -104,6 +104,30 @@
     margin-bottom: 8px;
 }
 
+#LayerInfoModalAttribution {
+    margin-top: 12px;
+    padding: 8px 40px 0px 40px;
+    border-top: 1px solid var(--color-a-5);
+}
+#LayerInfoModalAttributionTitle {
+    text-transform: uppercase;
+    color: var(--color-a3);
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+#LayerInfoModalAttributionContent {
+    font-size: 14px;
+    color: var(--color-a6);
+}
+#LayerInfoModalAttributionContent a {
+    color: var(--color-a6);
+    text-decoration: underline;
+    text-decoration-color: var(--color-a4);
+}
+#LayerInfoModalAttributionContent a:hover {
+    color: var(--color-mmgis);
+}
+
 #LayerInfoModalTags {
     border-top: 1px solid var(--color-a-5);
 }
