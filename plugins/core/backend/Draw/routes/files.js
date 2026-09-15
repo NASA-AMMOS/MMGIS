@@ -496,10 +496,12 @@ router.post("/restore", function (req, res, next) {
  *  template: <json> (optional)
  *  publicity_type: <string> (optional)
  *  public_editors: <string[]> (optional)
+ *  mission: <string> (optional, leads only) move the file to an existing mission
  * }
  */
-router.post("/change", function (req, res, next) {
+router.post("/change", async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
+  const isLead = req.groups && req.groups["mmgis-group"] === true;
 
   //Form update object
   let toUpdateTo = {};
@@ -541,6 +543,23 @@ router.post("/change", function (req, res, next) {
       toUpdateTo.public_editors = public_editors;
     } catch (err) {}
   }
+  if (isLead && req.body.mission != null && req.body.mission !== "") {
+    let vars = null;
+    try {
+      vars = await getDrawToolVars(req.body.mission);
+    } catch (err) {
+      logger("error", "Failed to edit file.", req.originalUrl, req, err);
+    }
+    if (vars == null) {
+      res.send({
+        status: "failure",
+        message: "Failed to edit file. Unknown mission.",
+        body: {},
+      });
+      return;
+    }
+    toUpdateTo.mission = req.body.mission;
+  }
 
   let updateObj = {
     where: {
@@ -551,7 +570,7 @@ router.post("/change", function (req, res, next) {
   };
 
   // Alow leads to edit file info
-  if (req.groups && req.groups["mmgis-group"] === true)
+  if (isLead)
     updateObj = {
       where: {
         id: req.body.id,

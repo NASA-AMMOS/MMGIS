@@ -997,6 +997,12 @@ var Files = {
                             `<div><div>${file.template?.name || 'NONE'}</div><i class='mdi mdi-pencil mdi-14px'></i></div>`,
                         "</div>",
                     "</div>",
+                    "<div class='drawToolFileEditOnDates drawToolFileEditOnMission'>",
+                        "<div>",
+                            "<div>Mission:</div>",
+                            "__MISSION__",
+                        "</div>",
+                    "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
                         "<textarea class='drawToolFileDesc' rows='9' placeholder='Description...'>" + DrawTool.stripTagsFromDescription(file.file_description) + "</textarea>",
                     "</div>",
@@ -1035,6 +1041,10 @@ var Files = {
 
             let template = file.template || null
 
+            const missionMarkup = isLead
+                ? `<select id='drawToolFileEditOnMissionDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'><option value='${safeHTML(file.mission || '')}'>${safeHTML(file.mission || 'NONE')}</option></select>`
+                : `<div>${safeHTML(file.mission || 'NONE')}</div>`
+
             // prettier-ignore
             const modalContent = [
                 "<div class='drawToolFileEditOn' file_id='" + fileId + "' file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
@@ -1061,6 +1071,12 @@ var Files = {
                         "<div class='drawToolFileTemplate'>",
                             "<div>Template:</div>",
                             `<div><div>${template?.name || 'NONE'}</div></div>`,
+                        "</div>",
+                    "</div>",
+                    "<div class='drawToolFileEditOnDates drawToolFileEditOnMission'>",
+                        "<div>",
+                            "<div>Mission:</div>",
+                            `<div>${safeHTML(file.mission || 'NONE')}</div>`,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1091,9 +1107,35 @@ var Files = {
                 ownedByUser ||
                     (DrawTool.userGroups.indexOf('mmgis-group') != -1 &&
                         DrawTool.vars.leadsCanEditFileInfo)
-                    ? modalContentEditable
+                    ? modalContentEditable.replace('__MISSION__', missionMarkup)
                     : modalContent,
                 function () {
+                    if (isLead) {
+                        calls.api(
+                            'missions',
+                            {},
+                            function (s) {
+                                const dropdown = $(
+                                    '#drawToolFileEditOnMissionDropdown'
+                                )
+                                if (dropdown.length === 0) return
+                                dropdown.empty()
+                                if (!file.mission)
+                                    dropdown.append(
+                                        `<option value='' selected>NONE</option>`
+                                    )
+                                ;(s.missions || []).forEach((m) => {
+                                    dropdown.append(
+                                        $('<option>')
+                                            .val(m)
+                                            .text(m)
+                                            .prop('selected', m === file.mission)
+                                    )
+                                })
+                            },
+                            function () {}
+                        )
+                    }
                     //
                     $('#drawToolFileTemplateEdit').on('click', () => {
                         // prettier-ignore
@@ -1422,6 +1464,11 @@ var Files = {
                                 .find('#drawToolFileEditListEditors')
                                 .val(),
                         }
+                        const missionDropdown = elm.find(
+                            '#drawToolFileEditOnMissionDropdown'
+                        )
+                        if (missionDropdown.length > 0 && missionDropdown.val())
+                            body.mission = missionDropdown.val()
 
                         DrawTool.changeFile(
                             body,
