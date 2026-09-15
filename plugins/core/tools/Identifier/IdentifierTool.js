@@ -8,7 +8,11 @@ import Map_ from '@basics/Map_/Map_'
 import Globe_ from '@basics/Globe_/Globe_'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '@pre/calls'
-import { parseExternalStacUrl } from '@basics/Layers_/LayerUtils'
+import {
+    parseExternalStacUrl,
+    formatStacBidx,
+    normalizeTitilerExpression,
+} from '@basics/Layers_/LayerUtils'
 
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
@@ -681,13 +685,7 @@ function parseStacUrl(url) {
 }
 
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
-    // Helper function to add default 'asset_' prefix to bands in expressions if not already prefixed
-    const processExpression = (expression) => {
-        if (!expression || expression.trim() === '') return expression
-        // Replace bX or BX (where X is a number) with asset_bX or asset_BX
-        // Only replace if not already prefixed with an asset name (word_bX pattern)
-        return expression.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
-    }
+    const processExpression = normalizeTitilerExpression
 
     numBands = numBands || 1
     var dataPath
@@ -704,9 +702,9 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         if (L_.layers.data[layerUUID].time?.enabled == true)
             timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
 
-        // Expression or Bands
+        // Expression or Bands (titiler>=2: bands go inline as assets=asset|bidx=1,2)
         let expressionParam = ''
-        let bandsParam = ''
+        let assetsParam = 'assets=asset'
         const layer = L_.layers.data[layerUUID]
 
         // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
@@ -716,17 +714,12 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             const processedExpression = processExpression(expressionToUse)
             expressionParam = `&expression=${encodeURIComponent(processedExpression)}`
         } else {
-            // Fall back to bands if no expression
-            let b = layer.cogBandsQuery
-            if (b != null) {
-                b.forEach((band) => {
-                    if (band != null) bandsParam += `&bidx=${band}`
-                })
-            }
+            const bands = formatStacBidx(layer.cogBandsQuery)
+            if (bands) assetsParam += `|bidx=${bands}`
         }
 
         fetch(
-            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?assets=asset&items_limit=10${timeParam}${expressionParam}${bandsParam}`,
+            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}&items_limit=10${timeParam}${expressionParam}`,
             {
                 method: 'GET',
                 headers: {
@@ -740,14 +733,16 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                 }
             })
             .then((json) => {
-                if (json.values) {
+                // titiler-pgstac>=3: { assets: [{ name: 'collection/item', values, band_names }] }
+                if (json && Array.isArray(json.assets)) {
                     const values = []
-                    json.values.forEach((val, idx) => {
-                        val[2].forEach((val2, idx2) => {
+                    json.assets.forEach((asset) => {
+                        const itemName = (asset.name || '').split('/').pop()
+                        asset.band_names.forEach((bandName, idx) => {
                             values.push([
-                                `${val[0]} - ${val2}`,
-                                [val[1][idx2]],
-                                [val2],
+                                `${itemName} - ${bandName}`,
+                                [asset.values[idx]],
+                                [bandName],
                             ])
                         })
                     })
@@ -800,7 +795,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                     : `${window.location.origin}${(
                           window.location.pathname || ''
                       ).replace(/\/$/g, '')}`
-            }/titiler/cog/point/${lng},${lat}?assets=asset&url=${L_.getUrl(
+            }/titiler/cog/point/${lng},${lat}?url=${L_.getUrl(
                 'tile',
                 url
             )}${timeParam}${expressionParam}${bandsParam}`,

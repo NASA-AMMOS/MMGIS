@@ -171,6 +171,7 @@ async function initializeDatabase() {
             }pypgstac migrate`,
             {
               env: {
+                PATH: process.env.PATH,
                 PYTHONUTF8: 1,
                 PGHOST: process.env.DB_HOST,
                 PGPORT: process.env.DB_PORT,

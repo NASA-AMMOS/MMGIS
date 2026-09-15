@@ -63,7 +63,7 @@ This pattern requires HTTPS and blocks common attack vectors (path traversal, nu
 1. Copy `/adjacent-servers/stac/.env.example` to `/adjacent-servers/stac/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/tipg/.env.example` to `/adjacent-servers/tipg/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/titiler/.env.example` to `/adjacent-servers/titiler/.env`.
-1. Copy `/adjacent-servers/titiler-pgstac/.env.example` to `/adjacent-servers/titiler-pgstac/.env` and fill out the `POSTGRES_*` environment variables.
+1. Copy `/adjacent-servers/titiler-pgstac/.env.example` to `/adjacent-servers/titiler-pgstac/.env` and fill out the `PG*` environment variables (`PGUSER`, `PGPASSWORD`, `PGHOST`, `PGPORT`).
 1. Make sure your system `PROJ_LIB` environment variable is pointed to the installation of proj within the python version in use. For example, my local machine's installation is located at `.../Programs/Python/Python312/Lib/site-packages/pyproj/proj_dir/share/proj`.
 
 ### Setting MMGIS ENVs

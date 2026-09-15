@@ -119,13 +119,22 @@ RUN dnf -y update && \
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
 
+# Unprivileged runtime user
+ARG APP_UID=1000
+ARG APP_GID=1000
+RUN groupadd -g ${APP_GID} mmgis && \
+    useradd -m -u ${APP_UID} -g mmgis -s /bin/bash mmgis
+
 WORKDIR /usr/src/app
 
 # Copy micromamba and Python environment from builder
-COPY --from=builder /opt/micromamba /opt/micromamba
-RUN MAMBA_ROOT_PREFIX="/opt/micromamba"; /opt/micromamba/bin/micromamba shell init -s bash && \
-    echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && \
-    echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
+COPY --from=builder --chown=mmgis:mmgis /opt/micromamba /opt/micromamba
+ENV MAMBA_ROOT_PREFIX=/opt/micromamba
+ENV PATH=/opt/micromamba/bin:$PATH
+RUN /opt/micromamba/bin/micromamba shell init -s bash --root-prefix /opt/micromamba && \
+    su mmgis -c "/opt/micromamba/bin/micromamba shell init -s bash --root-prefix /opt/micromamba" && \
+    echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /home/mmgis/.bashrc && \
+    echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /home/mmgis/.bashrc
 
 # Copy package files for production dependency installation
 COPY --from=builder /usr/src/app/package.json ./package.json
@@ -172,7 +181,11 @@ COPY --from=builder /usr/src/app/private ./private
 COPY --from=builder /usr/src/app/blueprints ./blueprints
 COPY --from=builder /usr/src/app/plugins ./plugins
 
-RUN chmod 755 _docker-entrypoint.sh
+RUN chmod 755 _docker-entrypoint.sh && \
+    mkdir -p Missions ssl && \
+    chown -R mmgis:mmgis /usr/src/app
+
+USER mmgis
 
 EXPOSE 8888
 CMD ["./_docker-entrypoint.sh"]
