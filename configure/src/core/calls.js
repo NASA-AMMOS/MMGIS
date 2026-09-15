@@ -162,14 +162,6 @@ const c = {
     type: "POST",
     url: "api/accounts/update",
   },
-  account_defaults: {
-    type: "GET",
-    url: "api/accounts/defaults",
-  },
-  account_update_defaults: {
-    type: "POST",
-    url: "api/accounts/updateDefaults",
-  },
   account_reset_password_link: {
     type: "POST",
     url: "api/accounts/generateResetPasswordLink",

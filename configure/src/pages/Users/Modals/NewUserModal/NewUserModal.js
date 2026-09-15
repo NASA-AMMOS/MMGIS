@@ -1,5 +1,4 @@
-/* global mmgisglobal */
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
@@ -17,11 +16,6 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
-import OutlinedInput from "@mui/material/OutlinedInput";
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import Switch from "@mui/material/Switch";
-import FormControlLabel from "@mui/material/FormControlLabel";
 
 import CloseSharpIcon from "@mui/icons-material/CloseSharp";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
@@ -153,10 +147,6 @@ const useStyles = makeStyles((theme) => ({
     width: "100%",
     marginTop: "20px",
   },
-  viewableMissions: {
-    width: "100%",
-    margin: "4px 0px 8px 0px !important",
-  },
 }));
 
 const MODAL_NAME = "newUser";
@@ -175,38 +165,12 @@ const NewUserModal = (props) => {
   const [email, setEmail] = useState(null);
   const [password, setPassword] = useState(null);
   const [passwordRetype, setPasswordRetype] = useState(null);
-  const [restrictViewing, setRestrictViewing] = useState(false);
-  const [missionsViewing, setMissionsViewing] = useState([]);
-  const [availableMissions, setAvailableMissions] = useState([]);
-  const isSuperAdmin = mmgisglobal.permission === "111";
-
-  // Pre-fill from the site-wide new-account default
-  useEffect(() => {
-    if (modal === false) return;
-    calls.api("account_defaults", {}, (res) => {
-      const mv = res?.body?.missions_viewing;
-      setRestrictViewing(mv != null);
-      setMissionsViewing(mv || []);
-    });
-    calls.api("missions", {}, (res) => {
-      if (res?.missions)
-        setAvailableMissions(
-          res.missions
-            .slice()
-            .sort((a, b) =>
-              a.localeCompare(b, undefined, { sensitivity: "base" })
-            )
-        );
-    });
-  }, [modal]);
 
   const handleClose = () => {
     setUserName(null);
     setEmail(null);
     setPassword(null);
     setPasswordRetype(null);
-    setRestrictViewing(false);
-    setMissionsViewing([]);
     // close modal
     dispatch(setModal({ name: MODAL_NAME, on: false }));
   };
@@ -243,9 +207,6 @@ const NewUserModal = (props) => {
         email: email,
         password: password,
         skipLogin: true,
-        ...(isSuperAdmin
-          ? { missions_viewing: restrictViewing ? missionsViewing : null }
-          : {}),
       },
       (res) => {
         if (res.status === "success") {
@@ -368,54 +329,6 @@ const NewUserModal = (props) => {
           }}
         />
         <Typography className={c.subtitle2}>{`Retype Password`}</Typography>
-
-        <FormControlLabel
-          control={
-            <Switch
-              checked={restrictViewing}
-              disabled={!isSuperAdmin}
-              onChange={(e) => setRestrictViewing(e.target.checked)}
-            />
-          }
-          label="Restrict Viewable Missions"
-        />
-        <Typography
-          className={c.subtitle2}
-        >{`Pre-filled from the site-wide default for new accounts. Only enforced when AUTH=local. Off = all missions. On with none selected = no missions. Only SuperAdmins can change this.`}</Typography>
-        {restrictViewing && (
-          <FormControl className={c.viewableMissions} size="small">
-            <InputLabel id="new-user-viewable-missions-label">
-              Viewable Missions
-            </InputLabel>
-            <Select
-              labelId="new-user-viewable-missions-label"
-              multiple
-              value={missionsViewing}
-              disabled={!isSuperAdmin}
-              onChange={(e) => {
-                setMissionsViewing(
-                  typeof e.target.value === "string"
-                    ? e.target.value.split(",")
-                    : e.target.value
-                );
-              }}
-              input={<OutlinedInput label="Viewable Missions" />}
-              renderValue={(selected) => (
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {selected.map((value) => (
-                    <Chip key={value} label={value} size="small" />
-                  ))}
-                </Box>
-              )}
-            >
-              {availableMissions.map((mission) => (
-                <MenuItem key={mission} value={mission}>
-                  {mission}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <Button
