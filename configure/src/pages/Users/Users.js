@@ -351,9 +351,7 @@ function AccountDefaults() {
         Default Viewable Missions for New Accounts
       </Typography>
       <Typography className={c.defaultsNote}>
-        {`Applied to every newly created account in all AUTH modes, but only enforced when AUTH=local. Off = new accounts can view all missions. On with none selected = new accounts can view no missions until a SuperAdmin grants some. Current AUTH: ${mmgisglobal.AUTH}${
-          mmgisglobal.AUTH === "local" ? " (enforced)" : " (stored, not enforced)"
-        }. Only SuperAdmins can change this.`}
+        {`Applied to every newly created account in all AUTH modes, but only enforced when AUTH=local. Off = new accounts can view all missions. On with none selected = new accounts can view no missions until a SuperAdmin grants some. Only SuperAdmins can change this.`}
       </Typography>
       <div className={c.defaultsRow}>
         <FormControlLabel
