@@ -1126,7 +1126,7 @@
 }
 
 .drawToolFileEditOn {
-    min-width: 400px;
+    min-width: 420px;
     color: var(--color-f);
     background: var(--color-a);
     box-shadow: 0px 2px 6px 0px rgba(0, 0, 0, 0.5);
@@ -1221,7 +1221,7 @@
     border: none;
     border-top: 1px solid black;
     color: var(--color-f);
-    min-width: 452px;
+    min-width: 472px;
     max-width: 750px;
     min-height: 100px;
     max-height: 400px;
