@@ -19,6 +19,7 @@ var Attributions = {
     remove: function () {
         $('#mmgis-attributions').remove()
         $(document).off('click.mmgisAttributions')
+        Attributions.expanded = false
     },
     update: function () {
         // Collect attributions from all visible layers
