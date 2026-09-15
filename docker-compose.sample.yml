@@ -168,12 +168,8 @@ services:
       # Application
       - HOST=0.0.0.0
       - PORT=8884
-      # https://github.com/tiangolo/uvicorn-gunicorn-docker#web_concurrency
+      # Number of gunicorn/uvicorn workers
       - WEB_CONCURRENCY=1
-      # https://github.com/tiangolo/uvicorn-gunicorn-docker#workers_per_core
-      - WORKERS_PER_CORE=1
-      # https://github.com/tiangolo/uvicorn-gunicorn-docker#max_workers
-      - MAX_WORKERS=10
       # Postgres connection (titiler-pgstac >=2.0 uses PG* names)
       ## UPDATE ME V============================================================================================V UPDATE ME
       - PGUSER=username
