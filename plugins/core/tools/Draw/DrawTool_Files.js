@@ -1427,6 +1427,8 @@ var Files = {
                             function () {
                                 Modal.remove()
                                 Toast.success('Successfully changed file mission!', 3500)
+                                if (DrawTool.filesOn.indexOf(parseInt(fileId)) !== -1)
+                                    DrawTool.toggleFile(parseInt(fileId), 'off', true)
                                 DrawTool.getFiles(function () {
                                     DrawTool.populateFiles()
                                 })
@@ -1517,6 +1519,12 @@ var Files = {
                                 if (files_i !== -1)
                                     DrawTool.files[files_i].file_name = filename
 
+                                if (
+                                    body.mission &&
+                                    body.mission !== file.mission &&
+                                    DrawTool.filesOn.indexOf(parseInt(fileId)) !== -1
+                                )
+                                    DrawTool.toggleFile(parseInt(fileId), 'off', true)
                                 DrawTool.getFiles(function () {
                                     DrawTool.populateFiles()
                                 })

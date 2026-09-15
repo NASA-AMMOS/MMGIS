@@ -1168,11 +1168,16 @@ if (fullAccess)
       return;
     }
 
-    Config.destroy({
-      where: {
-        mission: missionName,
-      },
-    })
+    sequelize
+      .transaction((t) =>
+        Promise.all([
+          Config.destroy({ where: { mission: missionName }, transaction: t }),
+          Userfiles.update(
+            { mission: null },
+            { where: { mission: missionName }, transaction: t }
+          ),
+        ])
+      )
       .then((mission) => {
         logger(
           "info",
