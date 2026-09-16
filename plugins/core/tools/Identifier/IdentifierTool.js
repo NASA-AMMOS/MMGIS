@@ -101,7 +101,7 @@ var IdentifierTool = {
         L_.unsubscribeOnLayerToggle('IdentifierTool')
         delete L_._toolCopyables.IdentifierTool
         // Turning the Identifier off shouldn't leave the legend lit up.
-        IdentifierTool.legendMatches = {}
+        IdentifierTool.resetLegendMatches()
         this.highlightInLegend()
         this.made = false
     },
@@ -173,7 +173,7 @@ var IdentifierTool = {
         clearTimeout(IdentifierTool.mousemoveTimeout)
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
         CursorInfo.hide()
-        IdentifierTool.legendMatches = {}
+        IdentifierTool.resetLegendMatches()
         IdentifierTool.highlightInLegend()
     },
     // Mirror what the cursor resolved onto the Legend tool, when the mission
@@ -181,21 +181,36 @@ var IdentifierTool = {
     // enable either tool without the other, so a missing tool - or an older
     // one without the entry point - leaves this a no-op.
     highlightInLegend: function () {
-        const matches = Object.keys(IdentifierTool.legendMatches || {}).map(
-            (layerUUID) => ({
-                layerUUID: layerUUID,
-                value: IdentifierTool.legendMatches[layerUUID],
-            })
+        const numbers = IdentifierTool.legendMatches || {}
+        const labels = IdentifierTool.legendLabelMatches || {}
+        const layerUUIDs = new Set(
+            Object.keys(numbers).concat(Object.keys(labels))
         )
+        const matches = []
+        layerUUIDs.forEach((layerUUID) => {
+            // The number first, then the colour-matched label: a classified
+            // legend can place the label but not the raw value.
+            const candidates = []
+            if (numbers[layerUUID] != null) candidates.push(numbers[layerUUID])
+            if (labels[layerUUID] != null) candidates.push(labels[layerUUID])
+            if (candidates.length > 0)
+                matches.push({ layerUUID: layerUUID, value: candidates })
+        })
         ToolController_.getTool('LegendTool').highlightEntries?.(matches)
+    },
+    // Bumping the generation makes any read still in flight drop itself.
+    resetLegendMatches: function () {
+        IdentifierTool.legendMatches = {}
+        IdentifierTool.legendLabelMatches = {}
+        IdentifierTool.hoverGeneration =
+            (IdentifierTool.hoverGeneration || 0) + 1
     },
     //lnglatzoom is [lng,lat,zoom]
     //if trueValue is true, query the data layer for the value, else us the legend if possible
     idPixel: function (e, lnglatzoom, trueValue, selfish) {
         trueValue = trueValue || false
-        // A COG/STAC layer flips trueValue on below, so remember what this
-        // call started as: that, not the flipped flag, says whether a new
-        // hover begins here or an in-flight one is being refined.
+        // A COG/STAC layer flips trueValue on below, so the flag cannot say
+        // whether this call starts a hover or refines one.
         const startsNewHover = trueValue === false
         clearTimeout(IdentifierTool.mousemoveTimeout)
 
@@ -325,17 +340,11 @@ var IdentifierTool = {
         var liEls = []
         var colorString
         let copyableValues = {}
-        // What each layer's hovered pixel resolved to, for the Legend tool to
-        // call out alongside the cursor readout. Keyed by layer because the
-        // true-value reads below land asynchronously and independently.
-        //
-        // Only a new hover starts a new set. The true-value pass that follows
-        // refines these in place: clearing them there would blank the legend
-        // for as long as the value query is in flight, which reads as a blink.
-        if (startsNewHover) IdentifierTool.legendMatches = {}
-        // Value reads still in flight for this pass. While any are, the legend
-        // keeps showing what it has: publishing the empty set here and filling
-        // it in when the reads land is what makes the mark blink.
+        // Only a new hover starts a new set; the true-value pass refines it in
+        // place, since clearing there would blink the legend off mid-query.
+        if (startsNewHover) IdentifierTool.resetLegendMatches()
+        const hoverGeneration = IdentifierTool.hoverGeneration
+        // The legend is republished once no read is outstanding.
         let pendingValueReads = 0
         for (var i = 0; i < IdentifierTool.imageData.length; i++) {
             colorString = 'transparent'
@@ -396,14 +405,34 @@ var IdentifierTool = {
                                 lnglatzoom[1],
                                 d.bands,
                                 IdentifierTool.activeLayerNames[i],
-                                (function (pxRGBA, i, j) {
+                                (function (
+                                    pxRGBA,
+                                    i,
+                                    j,
+                                    layerUUID,
+                                    hoverGeneration
+                                ) {
                                     return function (value) {
+                                        // Drop a read that outlived its hover.
+                                        if (
+                                            hoverGeneration !==
+                                            IdentifierTool.hoverGeneration
+                                        )
+                                            return
+
+                                        pendingValueReads--
+
+                                        // A failed read says nothing about the
+                                        // pixel, so leave the readout as drawn.
+                                        if (value == null) {
+                                            if (pendingValueReads <= 0)
+                                                IdentifierTool.highlightInLegend()
+                                            return
+                                        }
+
                                         const d2 =
-                                            IdentifierTool.vars.data[
-                                                IdentifierTool.activeLayerNames[
-                                                    i
-                                                ]
-                                            ].data[j]
+                                            IdentifierTool.vars.data[layerUUID]
+                                                .data[j]
 
                                         let htmlValues = ''
                                         // first empty it
@@ -458,10 +487,8 @@ var IdentifierTool = {
                                         copyableValues[
                                             `${
                                                 d.name ||
-                                                L_.layers.data[
-                                                    IdentifierTool
-                                                        .activeLayerNames[i]
-                                                ].display_name
+                                                L_.layers.data[layerUUID]
+                                                    .display_name
                                             }`
                                         ] = value
                                         L_._toolCopyables.IdentifierTool = {
@@ -476,24 +503,27 @@ var IdentifierTool = {
                                             `#identifierToolIdPixelCursorInfo_${i}_${j}`
                                         ).html(htmlValues)
 
-                                        pendingValueReads--
-
-                                        // A queried value is a number the
-                                        // legend labels by band, not one of
-                                        // its labels; the Legend tool maps it.
                                         if (cnt > 0 && value[0] != null) {
-                                            const numeric = parseFloat(
-                                                parseValue(
-                                                    value[0][1],
-                                                    d2.sigfigs,
-                                                    d2.scalefactor
-                                                )
+                                            // Nodata arrives as [null], which
+                                            // coerces to 0 if left wrapped.
+                                            const raw = Array.isArray(
+                                                value[0][1]
                                             )
-                                            if (!isNaN(numeric)) {
-                                                IdentifierTool.legendMatches[
-                                                    IdentifierTool
-                                                        .activeLayerNames[i]
-                                                ] = numeric
+                                                ? value[0][1][0]
+                                                : value[0][1]
+                                            if (raw != null) {
+                                                const numeric = parseFloat(
+                                                    parseValue(
+                                                        raw,
+                                                        d2.sigfigs,
+                                                        d2.scalefactor
+                                                    )
+                                                )
+                                                if (!isNaN(numeric)) {
+                                                    IdentifierTool.legendMatches[
+                                                        layerUUID
+                                                    ] = numeric
+                                                }
                                             }
                                         }
                                         if (pendingValueReads <= 0) {
@@ -505,7 +535,13 @@ var IdentifierTool = {
                                             height: '',
                                         })
                                     }
-                                })(pxRGBA, i, j)
+                                })(
+                                    pxRGBA,
+                                    i,
+                                    j,
+                                    IdentifierTool.activeLayerNames[i],
+                                    hoverGeneration
+                                )
                             )
                         } else {
                             if (
@@ -520,7 +556,7 @@ var IdentifierTool = {
                                     ]._legend
                                 )
                                 if (value != null && value !== '') {
-                                    IdentifierTool.legendMatches[
+                                    IdentifierTool.legendLabelMatches[
                                         IdentifierTool.activeLayerNames[i]
                                     ] = value
                                 }
@@ -748,6 +784,15 @@ function parseStacUrl(url) {
 }
 
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
+    // Report exactly once on every route out: a value, or null when the query
+    // could not answer. Callers count the reads they are waiting on.
+    let didRespond = false
+    const respond = (values) => {
+        if (didRespond) return
+        didRespond = true
+        if (typeof callback === 'function') callback(values)
+    }
+
     // Helper function to add default 'asset_' prefix to bands in expressions if not already prefixed
     const processExpression = (expression) => {
         if (!expression || expression.trim() === '') return expression
@@ -762,6 +807,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         const parsed = parseStacUrl(url)
         if (!parsed) {
             console.error('Failed to parse STAC URL for Identifier query:', url)
+            respond(null)
             return
         }
 
@@ -807,7 +853,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                 }
             })
             .then((json) => {
-                if (json.values) {
+                if (json?.values) {
                     const values = []
                     json.values.forEach((val, idx) => {
                         val[2].forEach((val2, idx2) => {
@@ -818,10 +864,11 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                             ])
                         })
                     })
-                    if (typeof callback === 'function') callback(values)
-                }
+                    respond(values)
+                } else respond(null)
             })
             .catch((error) => {
+                respond(null)
                 console.error('Error querying STAC point:', error)
                 if (error.message && error.message.toLowerCase().includes('cors')) {
                     console.error(
@@ -884,15 +931,17 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                 }
             })
             .then((json) => {
-                if (json.values) {
+                if (json?.values) {
                     const values = []
                     json.values.forEach((val, idx) => {
                         values.push([json.band_names[idx], [val]])
                     })
-                    if (typeof callback === 'function') callback(values)
-                }
+                    respond(values)
+                } else respond(null)
             })
-            .catch((err) => {})
+            .catch((err) => {
+                respond(null)
+            })
         return
     } else if (url.startsWith('/vsicurl/') || url.startsWith('Missions/')) {
         dataPath = url
@@ -917,17 +966,26 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             if (typeof data === 'string') {
                 data = data.replace(/none/gi, 'null')
                 if (data.length > 2) {
-                    data = JSON.parse(data)
-                    if (typeof callback === 'function') callback(data)
-                }
+                    try {
+                        respond(JSON.parse(data))
+                    } catch (e) {
+                        console.warn(
+                            'IdentifierTool: Could not parse band values.',
+                            e
+                        )
+                        respond(null)
+                    }
+                } else respond(null)
+                return
             }
-            if (typeof data === 'object') {
-                if (data.length > 0) {
-                    if (typeof callback === 'function') callback(data)
-                }
+            if (typeof data === 'object' && data != null && data.length > 0) {
+                respond(data)
+                return
             }
+            respond(null)
         },
         function () {
+            respond(null)
             console.warn('IdentifierTool: Failed to query bands.')
         }
     )
