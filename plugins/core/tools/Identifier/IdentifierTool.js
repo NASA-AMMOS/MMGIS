@@ -6,6 +6,7 @@ import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
 import Globe_ from '@basics/Globe_/Globe_'
+import ToolController_ from '@basics/ToolController_/ToolController_'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '@pre/calls'
 import {
@@ -103,6 +104,9 @@ var IdentifierTool = {
         this.targetId = null
         L_.unsubscribeOnLayerToggle('IdentifierTool')
         delete L_._toolCopyables.IdentifierTool
+        // Turning the Identifier off shouldn't leave the legend lit up.
+        IdentifierTool.resetLegendMatches()
+        this.highlightInLegend()
         this.made = false
     },
     fillURLParameters: function (url, layerUUID) {
@@ -173,11 +177,42 @@ var IdentifierTool = {
         clearTimeout(IdentifierTool.mousemoveTimeout)
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
         CursorInfo.hide()
+        IdentifierTool.resetLegendMatches()
+        IdentifierTool.highlightInLegend()
+    },
+    // Mirror what the cursor resolved onto the Legend tool. Optional call:
+    // a mission may enable either tool without the other.
+    highlightInLegend: function () {
+        const numbers = IdentifierTool.legendMatches || {}
+        const labels = IdentifierTool.legendLabelMatches || {}
+        const layerUUIDs = new Set(
+            Object.keys(numbers).concat(Object.keys(labels))
+        )
+        const matches = []
+        layerUUIDs.forEach((layerUUID) => {
+            // The number first, then the colour-matched label.
+            const candidates = []
+            if (numbers[layerUUID] != null) candidates.push(numbers[layerUUID])
+            if (labels[layerUUID] != null) candidates.push(labels[layerUUID])
+            if (candidates.length > 0)
+                matches.push({ layerUUID: layerUUID, value: candidates })
+        })
+        ToolController_.getTool('LegendTool').highlightEntries?.(matches)
+    },
+    // Bumping the generation makes any read still in flight drop itself.
+    resetLegendMatches: function () {
+        IdentifierTool.legendMatches = {}
+        IdentifierTool.legendLabelMatches = {}
+        IdentifierTool.hoverGeneration =
+            (IdentifierTool.hoverGeneration || 0) + 1
     },
     //lnglatzoom is [lng,lat,zoom]
     //if trueValue is true, query the data layer for the value, else us the legend if possible
     idPixel: function (e, lnglatzoom, trueValue, selfish) {
         trueValue = trueValue || false
+        // A COG/STAC layer flips trueValue on below, so the flag cannot say
+        // whether this call starts a hover or refines one.
+        const startsNewHover = trueValue === false
         clearTimeout(IdentifierTool.mousemoveTimeout)
 
         //Find out the urls of the active tile layers
@@ -306,6 +341,11 @@ var IdentifierTool = {
         var liEls = []
         var colorString
         let copyableValues = {}
+        // Only a new hover starts a new set; the true-value pass refines it.
+        if (startsNewHover) IdentifierTool.resetLegendMatches()
+        const hoverGeneration = IdentifierTool.hoverGeneration
+        // The legend is republished once no read is outstanding.
+        let pendingValueReads = 0
         for (var i = 0; i < IdentifierTool.imageData.length; i++) {
             colorString = 'transparent'
             value = ''
@@ -358,20 +398,41 @@ var IdentifierTool = {
                     const d = data.data[j]
                     if (pxRGBA) {
                         if (trueValue) {
+                            pendingValueReads++
                             queryDataValue(
                                 d.url,
                                 lnglatzoom[0],
                                 lnglatzoom[1],
                                 d.bands,
                                 IdentifierTool.activeLayerNames[i],
-                                (function (pxRGBA, i, j) {
+                                (function (
+                                    pxRGBA,
+                                    i,
+                                    j,
+                                    layerUUID,
+                                    hoverGeneration
+                                ) {
                                     return function (value) {
+                                        // Drop a read that outlived its hover.
+                                        if (
+                                            hoverGeneration !==
+                                            IdentifierTool.hoverGeneration
+                                        )
+                                            return
+
+                                        pendingValueReads--
+
+                                        // A failed read says nothing about the
+                                        // pixel, so leave the readout as drawn.
+                                        if (value == null) {
+                                            if (pendingValueReads <= 0)
+                                                IdentifierTool.highlightInLegend()
+                                            return
+                                        }
+
                                         const d2 =
-                                            IdentifierTool.vars.data[
-                                                IdentifierTool.activeLayerNames[
-                                                    i
-                                                ]
-                                            ].data[j]
+                                            IdentifierTool.vars.data[layerUUID]
+                                                .data[j]
 
                                         let htmlValues = ''
                                         // first empty it
@@ -426,10 +487,8 @@ var IdentifierTool = {
                                         copyableValues[
                                             `${
                                                 d.name ||
-                                                L_.layers.data[
-                                                    IdentifierTool
-                                                        .activeLayerNames[i]
-                                                ].display_name
+                                                L_.layers.data[layerUUID]
+                                                    .display_name
                                             }`
                                         ] = value
                                         L_._toolCopyables.IdentifierTool = {
@@ -444,12 +503,45 @@ var IdentifierTool = {
                                             `#identifierToolIdPixelCursorInfo_${i}_${j}`
                                         ).html(htmlValues)
 
+                                        if (cnt > 0 && value[0] != null) {
+                                            // Nodata arrives as [null], which
+                                            // coerces to 0 if left wrapped.
+                                            const raw = Array.isArray(
+                                                value[0][1]
+                                            )
+                                                ? value[0][1][0]
+                                                : value[0][1]
+                                            if (raw != null) {
+                                                const numeric = parseFloat(
+                                                    parseValue(
+                                                        raw,
+                                                        d2.sigfigs,
+                                                        d2.scalefactor
+                                                    )
+                                                )
+                                                if (!isNaN(numeric)) {
+                                                    IdentifierTool.legendMatches[
+                                                        layerUUID
+                                                    ] = numeric
+                                                }
+                                            }
+                                        }
+                                        if (pendingValueReads <= 0) {
+                                            IdentifierTool.highlightInLegend()
+                                        }
+
                                         $('#cursorInfo ul').css({
                                             width: '',
                                             height: '',
                                         })
                                     }
-                                })(pxRGBA, i, j)
+                                })(
+                                    pxRGBA,
+                                    i,
+                                    j,
+                                    IdentifierTool.activeLayerNames[i],
+                                    hoverGeneration
+                                )
                             )
                         } else {
                             if (
@@ -463,6 +555,11 @@ var IdentifierTool = {
                                         IdentifierTool.activeLayerNames[i]
                                     ]._legend
                                 )
+                                if (value != null && value !== '') {
+                                    IdentifierTool.legendLabelMatches[
+                                        IdentifierTool.activeLayerNames[i]
+                                    ] = value
+                                }
                             }
                         }
                         colorString =
@@ -522,6 +619,8 @@ var IdentifierTool = {
             null,
             true
         )
+
+        if (pendingValueReads <= 0) IdentifierTool.highlightInLegend()
 
         if (!trueValue && !selfish) {
             IdentifierTool.mousemoveTimeout = setTimeout(function () {
@@ -685,6 +784,14 @@ function parseStacUrl(url) {
 }
 
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
+    // Report exactly once on every route out; callers count outstanding reads.
+    let didRespond = false
+    const respond = (values) => {
+        if (didRespond) return
+        didRespond = true
+        if (typeof callback === 'function') callback(values)
+    }
+
     const processExpression = normalizeTitilerExpression
 
     numBands = numBands || 1
@@ -693,6 +800,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         const parsed = parseStacUrl(url)
         if (!parsed) {
             console.error('Failed to parse STAC URL for Identifier query:', url)
+            respond(null)
             return
         }
 
@@ -746,10 +854,11 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                             ])
                         })
                     })
-                    if (typeof callback === 'function') callback(values)
-                }
+                    respond(values)
+                } else respond(null)
             })
             .catch((error) => {
+                respond(null)
                 console.error('Error querying STAC point:', error)
                 if (error.message && error.message.toLowerCase().includes('cors')) {
                     console.error(
@@ -812,15 +921,17 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                 }
             })
             .then((json) => {
-                if (json.values) {
+                if (json?.values) {
                     const values = []
                     json.values.forEach((val, idx) => {
                         values.push([json.band_names[idx], [val]])
                     })
-                    if (typeof callback === 'function') callback(values)
-                }
+                    respond(values)
+                } else respond(null)
             })
-            .catch((err) => {})
+            .catch((err) => {
+                respond(null)
+            })
         return
     } else if (url.startsWith('/vsicurl/') || url.startsWith('Missions/')) {
         dataPath = url
@@ -845,17 +956,26 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             if (typeof data === 'string') {
                 data = data.replace(/none/gi, 'null')
                 if (data.length > 2) {
-                    data = JSON.parse(data)
-                    if (typeof callback === 'function') callback(data)
-                }
+                    try {
+                        respond(JSON.parse(data))
+                    } catch (e) {
+                        console.warn(
+                            'IdentifierTool: Could not parse band values.',
+                            e
+                        )
+                        respond(null)
+                    }
+                } else respond(null)
+                return
             }
-            if (typeof data === 'object') {
-                if (data.length > 0) {
-                    if (typeof callback === 'function') callback(data)
-                }
+            if (typeof data === 'object' && data != null && data.length > 0) {
+                respond(data)
+                return
             }
+            respond(null)
         },
         function () {
+            respond(null)
             console.warn('IdentifierTool: Failed to query bands.')
         }
     )
