@@ -11,7 +11,10 @@ import { dynamicStyleLegendEntries } from '@basics/Layers_/legend/dynamicStyleLe
 import { RESTYLED_EVENT } from '@basics/Layers_/render/dynamicStyleRuntime'
 import { getDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
 import { extractUnits, splitValueUnits } from './legendValueUnits'
-import { resolveCandidateIndex } from './legendHighlight'
+import {
+    resolveCandidateIndex,
+    resolveCandidatePosition,
+} from './legendHighlight'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
@@ -318,9 +321,12 @@ const UNHIGHLIGHT_CSS = {
     'border-radius': '',
 }
 
-// Light the entries a hovered pixel resolved to. `matches` is an array of
-// { layerUUID, value }, where value is a label, a number, or both to try in
-// order. Entries not named are put back; an empty array clears the legend.
+// The arrow's thickness across the ramp, and how far it reaches back from it.
+const MARKER_SIZE = 11
+const MARKER_ARROW = 7
+
+// Light the entries a hovered pixel resolved to, as [{ layerUUID, value }].
+// An empty array clears the legend.
 function highlightEntries(matches) {
     // Kept so a legend redrawn under a resting cursor comes back lit.
     LegendTool._lastMatches = Array.isArray(matches) ? matches : []
@@ -356,8 +362,7 @@ function highlightEntries(matches) {
             label: row.attr('data-legend-value'),
             propertyValue: row.attr('data-legend-property-value'),
         }))
-        // No nearest match: rows are unrelated values, and a legend may hide
-        // some of them, so the closest rendered row is often the wrong one.
+        // Rows require an exact match; nearest would light an unrelated row.
         const index = wantedByLayer.has(uuid)
             ? resolveCandidateIndex(entries, wantedByLayer.get(uuid), false)
             : -1
@@ -386,33 +391,49 @@ function highlightEntries(matches) {
             propertyValue: propertyValues[i],
         }))
 
-        const index = wantedByLayer.has(uuid)
-            ? resolveCandidateIndex(entries, wantedByLayer.get(uuid), true)
-            : -1
+        // Interpolated between stops, not snapped to one, so the mark stays
+        // level with the Identifier's readout.
+        const position = wantedByLayer.has(uuid)
+            ? resolveCandidatePosition(entries, wantedByLayer.get(uuid))
+            : null
         let marker = scale.children('.legendScaleMarker')
-        if (index < 0 || values.length === 0) {
+        if (position == null || values.length === 0) {
             marker.remove()
             return
         }
 
+        const horizontal =
+            scale.attr('data-legend-orientation') === 'horizontal'
         if (marker.length === 0) {
-            marker = $('<div>').attr('class', 'legendScaleMarker').appendTo(scale)
+            marker = $('<div>')
+                .attr('class', 'legendScaleMarker')
+                .css({
+                    'position': 'absolute',
+                    // Inverted against whatever it lands on, so it reads over
+                    // the panel and over the labels it may cross.
+                    'mix-blend-mode': 'difference',
+                    'pointer-events': 'none',
+                    // The labels are painted after the ramp, so the arrow has
+                    // to be lifted over them.
+                    'z-index': '20',
+                })
+                .append($('<div>').attr('class', 'legendScaleMarkerArrow'))
+                .appendTo(scale)
         }
 
-        // The band's midpoint, so the mark sits on the colour it matched.
-        const along = `${((index + 0.5) / values.length) * 100}%`
-        const across = scale.attr('data-legend-orientation') === 'horizontal'
-            ? { 'top': '0px', 'bottom': '0px', 'width': '3px', 'left': along, 'height': 'auto' }
-            : { 'left': '0px', 'right': '0px', 'height': '3px', 'top': along, 'width': 'auto' }
-
-        marker.css({
-            'position': 'absolute',
-            // Inverted against the ramp, so it stays visible on any colour.
-            'background': '#ffffff',
-            'mix-blend-mode': 'difference',
-            'pointer-events': 'none',
-            ...across,
-        })
+        // Points back at the ramp from the labelled side, centred on the value.
+        const along = `${Math.min(Math.max(position, 0), 1) * 100}%`
+        const half = MARKER_SIZE / 2
+        marker.css(
+            horizontal
+                ? { 'top': '100%', 'bottom': 'auto', 'left': along, 'right': 'auto', 'width': `${MARKER_SIZE}px`, 'height': `${MARKER_ARROW}px`, 'margin-left': `${-half}px`, 'margin-top': '0px' }
+                : { 'left': '100%', 'right': 'auto', 'top': along, 'bottom': 'auto', 'height': `${MARKER_SIZE}px`, 'width': `${MARKER_ARROW}px`, 'margin-top': `${-half}px`, 'margin-left': '0px' }
+        )
+        marker.children('.legendScaleMarkerArrow').css(
+            horizontal
+                ? { 'position': 'absolute', 'top': '0px', 'left': '0px', 'width': '0px', 'height': '0px', 'border-left': `${half}px solid transparent`, 'border-right': `${half}px solid transparent`, 'border-bottom': `${MARKER_ARROW}px solid #ffffff`, 'border-top': 'none' }
+                : { 'position': 'absolute', 'left': '0px', 'top': '0px', 'width': '0px', 'height': '0px', 'border-top': `${half}px solid transparent`, 'border-bottom': `${half}px solid transparent`, 'border-right': `${MARKER_ARROW}px solid #ffffff`, 'border-left': 'none' }
+        )
     })
 }
 

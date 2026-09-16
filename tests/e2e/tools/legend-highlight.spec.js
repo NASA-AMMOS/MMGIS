@@ -98,6 +98,9 @@ async function legendScales(page) {
                         el.getAttribute('data-legend-values') || '[]'
                     ),
                     hasMarker: marker != null,
+                    hasArrow:
+                        marker != null &&
+                        marker.querySelector('.legendScaleMarkerArrow') != null,
                     blend: marker ? marker.style.mixBlendMode : null,
                     top: marker ? marker.style.top : null,
                 }
@@ -226,8 +229,9 @@ test.describe('Legend — highlight on identify', () => {
             (s) => s.layerUUID === RAMP_UUID
         )
         expect(marked.hasMarker).toBe(true)
-        // Inverted against the ramp rather than tinted, so it stays visible
-        // where the ramp is itself the marker's colour.
+        // An arrow into the ramp, inverted rather than tinted so it stays
+        // visible where the ramp is itself the marker's colour.
+        expect(marked.hasArrow).toBe(true)
         expect(marked.blend).toBe('difference')
 
         await highlight(page, [])
@@ -235,6 +239,33 @@ test.describe('Legend — highlight on identify', () => {
             (s) => s.layerUUID === RAMP_UUID
         )
         expect(unmarked.hasMarker).toBe(false)
+    })
+
+    test('the mark tracks the reading rather than snapping to a stop', async ({
+        page,
+    }) => {
+        // Both readings are nearest the 100 stop, so a mark snapped to a stop
+        // would put them in the same place.
+        const topFor = async (value) => {
+            await highlight(page, [{ layerUUID: RAMP_UUID, value: value }])
+            const scale = (await legendScales(page)).find(
+                (s) => s.layerUUID === RAMP_UUID
+            )
+            expect(scale.hasMarker).toBe(true)
+            return parseFloat(scale.top)
+        }
+
+        const near100 = await topFor(110)
+        const near140 = await topFor(140)
+        expect(near100).not.toBeCloseTo(near140, 1)
+        // 0 is painted last, so a smaller reading sits further down the ramp.
+        expect(near100).toBeGreaterThan(near140)
+
+        // Stops themselves still land on their own tick.
+        expect(await topFor(100)).toBeCloseTo(66.67, 1)
+        expect(await topFor(200)).toBeCloseTo(33.33, 1)
+
+        await highlight(page, [])
     })
 
     test('a redrawn legend keeps what the cursor is resting on', async ({

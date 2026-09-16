@@ -4,6 +4,8 @@ import {
   parseRange,
   resolveEntryIndex,
   resolveCandidateIndex,
+  resolveScalePosition,
+  resolveCandidatePosition,
 } from "../../plugins/core/tools/Legend/legendHighlight.js";
 
 /**
@@ -153,5 +155,101 @@ test.describe("toNumber", () => {
     expect(toNumber(null)).toBeNull();
     expect(toNumber(NaN)).toBeNull();
     expect(toNumber(Infinity)).toBeNull();
+  });
+});
+
+/**
+ * A ramp ticks each of its n stops, stop i at i / (n - 1), so the ticks span
+ * the whole bar. The DEM legend in the Reference Mission is these nine stops
+ * over a linear 0-800 range, so a reading's tick position is simply how far it
+ * sits between the ends: 73.55m lands at (800 - 73.55) / 800 = 90.81%.
+ */
+const DEM_RAMP = ["800m", "700m", "600m", "500m", "400m", "300m", "200m", "100m", "0m"].map(
+  (label) => ({ label: label, propertyValue: null })
+);
+
+const pct = (position) => Math.round(position * 10000) / 100;
+
+test.describe("resolveScalePosition", () => {
+  test("a stop lands on its own tick", () => {
+    expect(pct(resolveScalePosition(DEM_RAMP, "800m"))).toBe(0);
+    expect(pct(resolveScalePosition(DEM_RAMP, 200))).toBe(75);
+    expect(pct(resolveScalePosition(DEM_RAMP, 100))).toBe(87.5);
+    expect(pct(resolveScalePosition(DEM_RAMP, 0))).toBe(100);
+  });
+
+  test("a reading on a linear ramp lands where its value falls", () => {
+    for (const reading of [73.55, 246.86, 512, 90.23]) {
+      expect(pct(resolveScalePosition(DEM_RAMP, reading))).toBeCloseTo(
+        ((800 - reading) / 800) * 100,
+        1
+      );
+    }
+  });
+
+  test("a reading between stops is interpolated, not snapped", () => {
+    // Both sat on the stop nearest them before, up to half a band away.
+    expect(pct(resolveScalePosition(DEM_RAMP, 73.55))).toBeCloseTo(90.81, 1);
+    expect(pct(resolveScalePosition(DEM_RAMP, 246.86))).toBeCloseTo(69.14, 1);
+  });
+
+  test("two readings in one band do not share a position", () => {
+    const low = resolveScalePosition(DEM_RAMP, 73.55);
+    const high = resolveScalePosition(DEM_RAMP, 130);
+    expect(low).not.toBe(high);
+    expect(high).toBeLessThan(low);
+  });
+
+  test("a reading past the end holds the stop it ran past", () => {
+    expect(pct(resolveScalePosition(DEM_RAMP, 950))).toBe(0);
+    expect(pct(resolveScalePosition(DEM_RAMP, -20))).toBe(100);
+  });
+
+  test("units on the label do not stop it being placed", () => {
+    expect(pct(resolveScalePosition(DEM_RAMP, "73.55m"))).toBeCloseTo(90.81, 1);
+  });
+
+  test("a lone stop takes the middle rather than dividing by zero", () => {
+    expect(pct(resolveScalePosition([{ label: "5", propertyValue: null }], 5))).toBe(50);
+  });
+
+  test("what carries no number has no position", () => {
+    expect(resolveScalePosition(DEM_RAMP, "Basalt")).toBeNull();
+    expect(resolveScalePosition([], 5)).toBeNull();
+    expect(resolveScalePosition(DEM_RAMP, null)).toBeNull();
+  });
+
+  test("an ascending ramp places the same reading the same way", () => {
+    const ascending = [...DEM_RAMP].reverse();
+    expect(pct(resolveScalePosition(ascending, 73.55))).toBeCloseTo(
+      100 - 90.81,
+      1
+    );
+  });
+
+  test("propertyValue is preferred over the label", () => {
+    const styled = [
+      { label: "high", propertyValue: 100 },
+      { label: "low", propertyValue: 0 },
+    ];
+    expect(pct(resolveScalePosition(styled, 50))).toBe(50);
+  });
+});
+
+test.describe("resolveCandidatePosition", () => {
+  test("an exact label wins over interpolation", () => {
+    expect(pct(resolveCandidatePosition(DEM_RAMP, ["200m"]))).toBe(75);
+  });
+
+  test("it falls through to the first candidate it can place", () => {
+    expect(pct(resolveCandidatePosition(DEM_RAMP, ["Basalt", 246.86]))).toBeCloseTo(
+      69.14,
+      1
+    );
+  });
+
+  test("nothing placeable has no position", () => {
+    expect(resolveCandidatePosition(DEM_RAMP, ["Basalt"])).toBeNull();
+    expect(resolveCandidatePosition(DEM_RAMP, [])).toBeNull();
   });
 });

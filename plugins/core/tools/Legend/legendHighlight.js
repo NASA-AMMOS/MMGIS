@@ -51,13 +51,8 @@ function entryNumber(entry) {
 }
 
 /**
- * Which of `entries` the value belongs to, or -1.
- *
- * Tries the label itself, then the bin whose span contains the value. Only a
- * ramp goes on to the nearest band: its labels are sampled points along a
- * continuum, so a reading between two of them still belongs to one. Discrete
- * rows are unrelated values that happen to be numbers, and nearest would light
- * whichever row a reading happened to sit closest to.
+ * Which of `entries` the value belongs to, or -1. Tries the label, then the
+ * bin whose span contains the value, then - for a ramp only - the nearest.
  *
  * @param {Array<{label: string, propertyValue: *}>} entries
  * @param {*} value
@@ -97,9 +92,7 @@ export function resolveEntryIndex(entries, value, allowNearest) {
 }
 
 /**
- * The first of `candidates` this legend can place, or -1. The Identifier
- * reports both the number it read and the label its colour matched, since a
- * legend may only be able to speak to one of them.
+ * The first of `candidates` this legend can place, or -1.
  *
  * @param {Array<{label: string, propertyValue: *}>} entries
  * @param {Array<*>} candidates
@@ -115,11 +108,85 @@ export function resolveCandidateIndex(entries, candidates, allowNearest) {
     return -1
 }
 
+// Where the Legend ticks stop i of n. A lone stop has no scale to sit on, so
+// it takes the middle rather than dividing by zero.
+function tickPosition(count) {
+    return count < 2 ? () => 0.5 : (i) => i / (count - 1)
+}
+
+/**
+ * Where `value` sits along a ramp, as a fraction of its length, or null.
+ *
+ * A ramp ticks each of its `n` stops, stop i at i / (n - 1), so the ticks span
+ * the whole bar. A reading between two stops is placed by interpolating
+ * between their ticks; snapping to the nearest stop moves it by up to half a
+ * band, which is what put the mark beside the Identifier's readout.
+ *
+ * @param {Array<{label: string, propertyValue: *}>} entries - in paint order
+ * @param {*} value
+ * @returns {number|null}
+ */
+export function resolveScalePosition(entries, value) {
+    if (!Array.isArray(entries) || entries.length === 0) return null
+    const target = toNumber(value)
+    if (target == null) return null
+
+    const tick = tickPosition(entries.length)
+    const stops = []
+    entries.forEach((entry, i) => {
+        const n = entryNumber(entry)
+        if (n != null) stops.push({ i: i, value: n })
+    })
+    if (stops.length === 0) return null
+    if (stops.length === 1) return tick(stops[0].i)
+
+    for (let k = 0; k < stops.length - 1; k++) {
+        const a = stops[k]
+        const b = stops[k + 1]
+        if (target < Math.min(a.value, b.value)) continue
+        if (target > Math.max(a.value, b.value)) continue
+        const span = b.value - a.value
+        const fraction = span === 0 ? 0 : (target - a.value) / span
+        return tick(a.i) + fraction * (tick(b.i) - tick(a.i))
+    }
+
+    // Off the end of the ramp: hold the mark on the stop it ran past.
+    const first = stops[0]
+    const last = stops[stops.length - 1]
+    return Math.abs(target - first.value) <= Math.abs(target - last.value)
+        ? tick(first.i)
+        : tick(last.i)
+}
+
+/**
+ * Where the first placeable of `candidates` sits along a ramp, or null. An
+ * exact label wins, so a ramp labelled with text still lands on its band.
+ *
+ * @param {Array<{label: string, propertyValue: *}>} entries - in paint order
+ * @param {Array<*>} candidates
+ * @returns {number|null}
+ */
+export function resolveCandidatePosition(entries, candidates) {
+    if (!Array.isArray(entries) || entries.length === 0) return null
+    if (!Array.isArray(candidates)) return null
+    for (let i = 0; i < candidates.length; i++) {
+        const exact = entries.findIndex(
+            (entry) => entry.label === String(candidates[i])
+        )
+        if (exact >= 0) return tickPosition(entries.length)(exact)
+        const position = resolveScalePosition(entries, candidates[i])
+        if (position != null) return position
+    }
+    return null
+}
+
 const LegendHighlight = {
     toNumber,
     parseRange,
     resolveEntryIndex,
     resolveCandidateIndex,
+    resolveScalePosition,
+    resolveCandidatePosition,
 }
 
 export default LegendHighlight

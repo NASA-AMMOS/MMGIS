@@ -180,10 +180,8 @@ var IdentifierTool = {
         IdentifierTool.resetLegendMatches()
         IdentifierTool.highlightInLegend()
     },
-    // Mirror what the cursor resolved onto the Legend tool, when the mission
-    // has one. The Legend tool is not a dependency: a mission is free to
-    // enable either tool without the other, so a missing tool - or an older
-    // one without the entry point - leaves this a no-op.
+    // Mirror what the cursor resolved onto the Legend tool. Optional call:
+    // a mission may enable either tool without the other.
     highlightInLegend: function () {
         const numbers = IdentifierTool.legendMatches || {}
         const labels = IdentifierTool.legendLabelMatches || {}
@@ -192,8 +190,7 @@ var IdentifierTool = {
         )
         const matches = []
         layerUUIDs.forEach((layerUUID) => {
-            // The number first, then the colour-matched label: a classified
-            // legend can place the label but not the raw value.
+            // The number first, then the colour-matched label.
             const candidates = []
             if (numbers[layerUUID] != null) candidates.push(numbers[layerUUID])
             if (labels[layerUUID] != null) candidates.push(labels[layerUUID])
@@ -344,8 +341,7 @@ var IdentifierTool = {
         var liEls = []
         var colorString
         let copyableValues = {}
-        // Only a new hover starts a new set; the true-value pass refines it in
-        // place, since clearing there would blink the legend off mid-query.
+        // Only a new hover starts a new set; the true-value pass refines it.
         if (startsNewHover) IdentifierTool.resetLegendMatches()
         const hoverGeneration = IdentifierTool.hoverGeneration
         // The legend is republished once no read is outstanding.
@@ -788,8 +784,7 @@ function parseStacUrl(url) {
 }
 
 function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
-    // Report exactly once on every route out: a value, or null when the query
-    // could not answer. Callers count the reads they are waiting on.
+    // Report exactly once on every route out; callers count outstanding reads.
     let didRespond = false
     const respond = (values) => {
         if (didRespond) return
