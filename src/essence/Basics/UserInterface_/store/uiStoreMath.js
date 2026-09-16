@@ -72,6 +72,45 @@ export function computeToolHeight(state, pxHeight) {
 }
 
 /**
+ * Map mobile detent fractions to clamped pixel heights (from small to large).
+ * Uses the same available-height basis as computeToolHeight.
+ */
+export function computeDetentPx(state) {
+    const fractions = state.toolDetentFractions
+    if (!Array.isArray(fractions) || fractions.length === 0) return []
+    const reserve =
+        state.toolHeightReserve != null ? state.toolHeightReserve : state.topSize
+    const available = state.mainHeight - state.splitterSize - reserve
+    const maxPx = state.mainHeight - state.splitterSize
+    const minPx = state.splitterSize / 4
+    return fractions.map((f) => {
+        let px = Math.round(f * available)
+        if (px < minPx) px = minPx
+        if (px > maxPx) px = maxPx
+        return px
+    })
+}
+
+/**
+ * Given the current pxIsTools, find the index of the nearest detent.
+ * Returns -1 when no detents are defined.
+ */
+export function nearestDetentIndex(state, pxIsTools) {
+    const detentPx = computeDetentPx(state)
+    if (detentPx.length === 0) return -1
+    let bestIdx = 0
+    let bestDist = Infinity
+    for (let i = 0; i < detentPx.length; i++) {
+        const dist = Math.abs(detentPx[i] - pxIsTools)
+        if (dist < bestDist) {
+            bestDist = dist
+            bestIdx = i
+        }
+    }
+    return bestIdx
+}
+
+/**
  * Compute map splitter move. Returns new panel pixel sizes.
  */
 export function computeMapSplitMoveResult(state, clientX) {
@@ -147,25 +186,34 @@ export function computeGlobeSplitMoveResult(state, clientX) {
 }
 
 /**
- * Compute tools splitter move. Returns clamped pxIsTools.
+ * Clamp a proposed tool-panel height to the allowed range.
+ * With mobile detents, allows shrinking down to the smallest detent;
+ * otherwise floors at the tool's native height (desktop behavior).
  */
-export function computeToolsSplitMoveResult(state, clientY) {
-    let pxIsTools = state.mainHeight - clientY + state.splitterSize / 4
+export function clampToolsPx(state, pxIsTools) {
     const reserve = state.toolHeightReserve != null ? state.toolHeightReserve : state.topSize
-    const minHeight = Math.max(state.toolNativeHeight || 0, state.splitterSize / 4)
+    const detentPx = computeDetentPx(state)
+    const minHeight =
+        detentPx.length > 0
+            ? Math.max(detentPx[0], state.splitterSize / 4)
+            : Math.max(state.toolNativeHeight || 0, state.splitterSize / 4)
 
     if (pxIsTools < minHeight) {
         pxIsTools = minHeight
     }
-    if (
-        pxIsTools >
-        state.mainHeight - (state.splitterSize + reserve)
-    ) {
-        pxIsTools =
-            state.mainHeight - (state.splitterSize + reserve)
+    if (pxIsTools > state.mainHeight - (state.splitterSize + reserve)) {
+        pxIsTools = state.mainHeight - (state.splitterSize + reserve)
     }
 
     return pxIsTools
+}
+
+/**
+ * Compute tools splitter move from an absolute pointer Y. Returns clamped pxIsTools.
+ */
+export function computeToolsSplitMoveResult(state, clientY) {
+    const pxIsTools = state.mainHeight - clientY + state.splitterSize / 4
+    return clampToolsPx(state, pxIsTools)
 }
 
 /**

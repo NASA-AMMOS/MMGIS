@@ -1,0 +1,48 @@
+{
+    "name": "__Name__",
+    "type": "layerattachment",
+    "attachmentId": "__snake_name__",
+    "version": "1.0.0",
+    "tier": "community",
+    "overridable": true,
+    "configPath": "variables.layerAttachments.__name__",
+    "description": "",
+    "capabilities": {
+        "renderers": {
+            "map": {
+                "engines": [
+                    "leaflet"
+                ]
+            },
+            "globe": false
+        },
+        "host": {
+            "order": 100
+        }
+    },
+    "applicableLayerTypes": [
+        "vector",
+        "query"
+    ],
+    "config": {
+        "tab": "Attachment - Markers",
+        "tabOrder": 100,
+        "order": 0,
+        "rows": [
+            {
+                "subname": "__Name__",
+                "components": [
+                    {
+                        "field": "variables.layerAttachments.__name__.enabled",
+                        "name": "Enabled",
+                        "description": "",
+                        "type": "switch",
+                        "width": 3,
+                        "defaultChecked": false
+                    }
+                ]
+            }
+        ]
+    },
+    "module": "./__name__"
+}

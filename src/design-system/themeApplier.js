@@ -168,9 +168,6 @@ function applyThemeToDOM(themeName) {
     document.querySelectorAll('.mmgisTimeUITimelineLabel, .mmgisTimeUITimelineTick').forEach((el) => {
         el.style.color = t['--color-a3']
     })
-    document.querySelectorAll('#mmgisTimeUITimelineInner').forEach((el) => {
-        el.style.background = t['--color-a-5']
-    })
     // TimeUI controls area
     document.querySelectorAll('#mmgisTimeUIControls').forEach((el) => {
         el.style.background = a('--color-a', 0.92)

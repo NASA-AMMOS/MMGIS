@@ -29,6 +29,7 @@ import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
+import StorageIcon from "@mui/icons-material/Storage";
 import WarningIcon from "@mui/icons-material/Warning";
 
 const useStyles = makeStyles((theme) => ({
@@ -316,6 +317,18 @@ export default function Panel() {
           </ul>
         </div>
         <div className={c.pages}>
+          <Button
+            className={c.pageButton}
+            variant="contained"
+            disableElevation
+            startIcon={<StorageIcon size="small" />}
+            onClick={() => {
+              dispatch(setMission(null));
+              dispatch(setPage({ page: "data_formats" }));
+            }}
+          >
+            Data Formats
+          </Button>
           <Button
             className={c.pageButton}
             variant="contained"

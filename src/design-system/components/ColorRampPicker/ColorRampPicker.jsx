@@ -1,4 +1,12 @@
-import React, { forwardRef, useMemo, useRef, useState, useEffect } from 'react'
+import React, {
+    forwardRef,
+    useCallback,
+    useMemo,
+    useRef,
+    useState,
+    useEffect,
+} from 'react'
+import { createPortal } from 'react-dom'
 import styles from './ColorRampPicker.module.css'
 
 // Build a CSS linear-gradient string from a color ramp.
@@ -38,23 +46,55 @@ const CHECKERBOARD_BG =
     'linear-gradient(45deg, transparent 75%, #555 75%), ' +
     'linear-gradient(45deg, #555 25%, #999 25%)'
 
+/**
+ * @param {object} props
+ * @param {boolean} [props.portal]  Draw the list over the page instead of
+ *   inside the picker - for a picker that sits in a panel that clips what
+ *   overflows it, where the list would otherwise be cut off.
+ */
 const ColorRampPicker = forwardRef(function ColorRampPicker(
-    { value, onValueChange, ramps, className, ...props },
+    { value, onValueChange, ramps, className, portal, ...props },
     ref
 ) {
     const [open, setOpen] = useState(false)
+    const [anchor, setAnchor] = useState(null)
     const containerRef = useRef(null)
+    const popupRef = useRef(null)
 
     useEffect(() => {
         if (!open) return
         function handleClick(e) {
-            if (containerRef.current && !containerRef.current.contains(e.target)) {
-                setOpen(false)
-            }
+            const inPicker = containerRef.current?.contains(e.target)
+            const inPopup = popupRef.current?.contains(e.target)
+            if (!inPicker && !inPopup) setOpen(false)
         }
         document.addEventListener('mousedown', handleClick)
         return () => document.removeEventListener('mousedown', handleClick)
     }, [open])
+
+    const measure = useCallback(() => {
+        if (containerRef.current == null) return
+        const rect = containerRef.current.getBoundingClientRect()
+        setAnchor({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+    }, [])
+
+    // A portalled list is placed against the viewport, so it has to be placed
+    // again whenever the picker moves under it.
+    useEffect(() => {
+        if (!open || !portal) return
+        const onMove = () => measure()
+        window.addEventListener('scroll', onMove, true)
+        window.addEventListener('resize', onMove)
+        return () => {
+            window.removeEventListener('scroll', onMove, true)
+            window.removeEventListener('resize', onMove)
+        }
+    }, [open, portal, measure])
+
+    function toggle() {
+        if (!open && portal) measure()
+        setOpen(!open)
+    }
 
     const rampEntries = useMemo(() => {
         if (!ramps) return []
@@ -71,6 +111,32 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
 
     const selected = rampEntries.find((r) => r.name === value) || rampEntries[0]
 
+    const list = (
+        <div
+            ref={popupRef}
+            className={styles.popup}
+            style={
+                portal && anchor
+                    ? { position: 'fixed', ...anchor, marginTop: 0 }
+                    : undefined
+            }
+        >
+            {rampEntries.map((r) => (
+                <button
+                    key={r.name}
+                    type="button"
+                    className={`${styles.option} ${r.name === value ? styles.selected : ''}`}
+                    onClick={() => {
+                        onValueChange(r.name)
+                        setOpen(false)
+                    }}
+                >
+                    <SwatchBar gradient={r.gradient} hasAlpha={r.hasAlpha} />
+                </button>
+            ))}
+        </div>
+    )
+
     return (
         <div
             ref={(node) => {
@@ -84,28 +150,12 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
             <button
                 type="button"
                 className={styles.trigger}
-                onClick={() => setOpen(!open)}
+                onClick={toggle}
             >
                 <SwatchBar gradient={selected?.gradient} hasAlpha={selected?.hasAlpha} />
                 <i className="mdi mdi-chevron-down mdi-14px" style={{ flexShrink: 0, color: 'var(--color-a3)' }} />
             </button>
-            {open && (
-                <div className={styles.popup}>
-                    {rampEntries.map((r) => (
-                        <button
-                            key={r.name}
-                            type="button"
-                            className={`${styles.option} ${r.name === value ? styles.selected : ''}`}
-                            onClick={() => {
-                                onValueChange(r.name)
-                                setOpen(false)
-                            }}
-                        >
-                            <SwatchBar gradient={r.gradient} hasAlpha={r.hasAlpha} />
-                        </button>
-                    ))}
-                </div>
-            )}
+            {open && (portal ? createPortal(list, document.body) : list)}
         </div>
     )
 })

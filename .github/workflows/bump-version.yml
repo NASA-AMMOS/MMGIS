@@ -21,16 +21,16 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.head_ref }} # Check out the PR branch, not merge commit
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Check if version needs bumping
         id: check
@@ -150,15 +150,17 @@ jobs:
 
       - name: Push to PR branch
         if: steps.check.outputs.needs_bump == 'true'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
           # Push to the PR branch (head_ref is the source branch of the PR)
-          git push origin HEAD:${{ github.head_ref }}
+          git push origin "HEAD:$HEAD_REF"
 
-          echo "✓ Pushed version bump to PR branch: ${{ github.head_ref }}"
+          echo "✓ Pushed version bump to PR branch: $HEAD_REF"
 
       - name: Comment on PR - Version Auto-Bumped
         if: steps.check.outputs.needs_bump == 'true'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const comment = `## 🤖 Version Auto-Bumped
@@ -204,7 +206,7 @@ jobs:
 
       - name: Comment on PR - Version Already Updated
         if: steps.check.outputs.needs_bump == 'false'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const comment = `## ✅ Version Already Updated

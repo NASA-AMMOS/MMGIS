@@ -183,8 +183,7 @@ var Viewer_ = {
             .html('To begin, select any imagery-enabled feature.')
         this.imageIntro.append(introMessage)
 
-        this.lookupPath =
-            'Missions/' + L_.mission + '/' + 'Data/mosaic_parameters.csv'
+        this.lookupPath = L_.missionPath + 'Data/mosaic_parameters.csv'
 
         buildToolBar()
 

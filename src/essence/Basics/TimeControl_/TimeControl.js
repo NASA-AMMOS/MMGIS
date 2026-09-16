@@ -5,9 +5,32 @@ import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
 import Map_ from '../Map_/Map_'
+import LayerInterface from '../Layers_/interface/LayerInterface'
+import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import MapRenderer from '../Map_/MapRenderer'
 import TimeUI from './TimeUI'
 
 import './TimeControl.css'
+
+/**
+ * How a time is written into a layer's url or request is the layer type's
+ * business: a type may ship `time.format` to convert MMGIS' ISO times into
+ * whatever its service expects. Core's default honors `layer.time.format`.
+ */
+function layerTimeFormatter(layer) {
+    const coreFormat =
+        layer?.time?.format == null || layer.time.format === ''
+            ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
+            : utcFormat(layer.time.format)
+
+    return (date) =>
+        LayerInterface.runSync(
+            LayerTypeRegistry.get(layer?.type)?.time,
+            'format',
+            [date, layer],
+            { coreDefault: (d) => coreFormat(d) }
+        )
+}
 
 // Can be either hh:mm:ss or just seconds
 const relativeTimeFormat = new RegExp(
@@ -32,9 +55,7 @@ var TimeControl = {
     init: function () {
         if (L_.configData.time && L_.configData.time.enabled === true) {
             TimeControl.enabled = true
-            TimeControl.globalTimeFormat = utcFormat(
-                L_.configData.time.format
-            )
+            TimeControl.globalTimeFormat = utcFormat(L_.configData.time.format)
         } else {
             return
         }
@@ -50,9 +71,8 @@ var TimeControl = {
         if (TimeControl.enabled === true && TimeControl.timeUI != null)
             TimeControl.timeUI.fina()
     },
-    subscribe: function () {},
-    unsubscribe: function () {},
     _subscriptions: {},
+    /** Run `func` on every time change, until `unsubscribe(fid)`. */
     subscribe: function (fid, func) {
         if (typeof func === 'function') TimeControl._subscriptions[fid] = func
     },
@@ -140,16 +160,10 @@ var TimeControl = {
             layer.time.start = startTime
             layer.time.end = endTime
             layer.time.customTimes = TimeControl.customTimes
-            $('.starttime.' + F_.getSafeName(layer.name)).text(
-                layer.time.start
-            )
-            $('.endtime.' + F_.getSafeName(layer.name)).text(
-                layer.time.end
-            )
+            $('.starttime.' + F_.getSafeName(layer.name)).text(layer.time.start)
+            $('.endtime.' + F_.getSafeName(layer.name)).text(layer.time.end)
 
-            if (layer.type == 'tile') {
-                TimeControl.setLayerWmsParams(layer)
-            }
+            TimeControl.applyTimeParams(layer)
         }
         return true
     },
@@ -193,10 +207,7 @@ var TimeControl = {
 
         if (L_.layers.layer[layer.name] === null) return false
 
-        let layerTimeFormat =
-            layer.time?.format == null || layer.time?.format == ''
-                ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                : utcFormat(layer.time.format)
+        const layerTimeFormat = (date) => layerTimeFormatter(layer)(date)
         layer.time.current = TimeControl.currentTime // keeps track of when layer was refreshed
 
         // Compute the resolved URL locally without mutating layer.url.
@@ -211,33 +222,14 @@ var TimeControl = {
         let changedUrl = null
         if (resolvedUrl !== layer.url) changedUrl = resolvedUrl
 
-        if (layer.type === 'tile') {
-            if (layer.time && layer.time.enabled === true) {
-                TimeControl.setLayerWmsParams(layer)
-            }
-            if (evenIfControlled === true || layer.controlled !== true) {
-                if (L_.layers.on[layer.name] || evenIfOff) {
-                    L_.layers.layer[layer.name].refresh(changedUrl)
-                }
-            }
-        } else if (layer.type == 'velocity') {
-            if (layer.time && layer.time.enabled === true) {
-                TimeControl.setLayerWmsParams(layer)
-                if (['streamlines', 'particles'].includes(layer.kind)) {
-                    const wasOn = L_.layers.on[layer.name]
-                    if (wasOn) {
-                        L_.toggleLayer(
-                            L_.layers.data[layer.name],
-                            skipOrderedBringToFront
-                        ) // turn off if on
-                        L_.toggleLayer(
-                            L_.layers.data[layer.name],
-                            skipOrderedBringToFront
-                        ) // turn back on
-                    }
-                }
-            }
-        } else {
+        // What a time change means to a layer is the type's business, so it is
+        // dispatched through the type's map plugin (`timeChange`). The core
+        // default — stamp the resolved time into the url and reload the layer's
+        // data — is what most types want; a type that can scrub in place (a tile
+        // service taking time parameters) or must cycle its animation
+        // (streamlines) provides its own `timeChange` instead, and may still
+        // call `ctx.reload()` to get the default behavior.
+        const reload = (opts = {}) => {
             // replace start/endtime keywords on the resolved URL (NOT on
             // layer.url) — passed through to refreshLayer below.
             if (layer.time && layer.time.enabled === true) {
@@ -277,55 +269,40 @@ var TimeControl = {
                     }
                 }
             }
-            if (
-                layer.type === 'vector' &&
-                layer.time.type === 'local' &&
-                layer.time.endProp != null &&
-                forceRequery !== true
-            ) {
-                if (evenIfControlled === true || layer.controlled !== true)
-                    L_.timeFilterVectorLayer(
-                        layer.name,
-                        new Date(layer.time.start).getTime(),
-                        new Date(layer.time.end).getTime()
-                    )
-            } else {
-                // refresh map
-                if (evenIfControlled === true || layer.controlled !== true)
-                    if (L_.layers.on[layer.name] || evenIfOff) {
-                        return await Map_.refreshLayer(
-                            layer,
-                            () => {
-                                // if requery was forced, remember to
-                                // timeFilter after load
-                                if (
-                                    layer.time &&
-                                    layer.time.enabled === true &&
-                                    layer.type === 'vector' &&
-                                    layer.time.type === 'local' &&
-                                    layer.time.endProp != null &&
-                                    forceRequery === true
-                                ) {
-                                    if (
-                                        evenIfControlled === true ||
-                                        layer.controlled !== true
-                                    )
-                                        L_.timeFilterVectorLayer(
-                                            layer.name,
-                                            new Date(
-                                                layer.time.start
-                                            ).getTime(),
-                                            new Date(layer.time.end).getTime()
-                                        )
-                                }
-                            },
-                            skipOrderedBringToFront,
-                            undefined,
-                            resolvedUrl
-                        )
-                    }
-            }
+
+            if (evenIfControlled !== true && layer.controlled === true) return
+            if (!L_.layers.on[layer.name] && !evenIfOff) return
+
+            return Map_.refreshLayer(
+                layer,
+                opts.afterLoad,
+                skipOrderedBringToFront,
+                undefined,
+                resolvedUrl
+            )
         }
+
+        await LayerInterface.run(
+            LayerTypeRegistry.get(layer.type)?.map,
+            'timeChange',
+            [
+                layer,
+                {
+                    ...MapRenderer.context(),
+                    name: layer.name,
+                    currentTime: TimeControl.currentTime,
+                    timeFormat: layerTimeFormat,
+                    changedUrl,
+                    evenIfOff,
+                    evenIfControlled,
+                    forceRequery,
+                    skipOrderedBringToFront,
+                    reload,
+                },
+            ],
+            { coreDefault: () => reload() }
+        )
+
         return true
     },
     performTimeUrlReplacements: async function (
@@ -335,10 +312,7 @@ var TimeControl = {
         type
     ) {
         return new Promise(async (resolve, reject) => {
-            let layerTimeFormat =
-                layer.time?.format == null || layer.time?.format == ''
-                    ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                    : utcFormat(layer.time.format)
+            const layerTimeFormat = (date) => layerTimeFormatter(layer)(date)
 
             let nextUrl = url
             if (layer.variables?.urlReplacements) {
@@ -469,15 +443,13 @@ var TimeControl = {
                 savedActiveFeature.feature.geometry.coordinates
             ) {
                 // Fallback to selecting by coordinates
-                const coords =
-                    savedActiveFeature.feature.geometry.coordinates
+                const coords = savedActiveFeature.feature.geometry.coordinates
                 let lat, lon
                 if (savedActiveFeature.feature.geometry.type === 'Point') {
                     lon = coords[0]
                     lat = coords[1]
                 } else if (
-                    savedActiveFeature.feature.geometry.type ===
-                        'LineString' ||
+                    savedActiveFeature.feature.geometry.type === 'LineString' ||
                     savedActiveFeature.feature.geometry.type === 'Polygon'
                 ) {
                     // Get first coordinate or centroid
@@ -517,13 +489,9 @@ var TimeControl = {
                 $('.starttime.' + F_.getSafeName(layer.name)).text(
                     layer.time.start
                 )
-                $('.endtime.' + F_.getSafeName(layer.name)).text(
-                    layer.time.end
-                )
+                $('.endtime.' + F_.getSafeName(layer.name)).text(layer.time.end)
                 updatedLayers.push(layer.name)
-                if (layer.type === 'tile') {
-                    TimeControl.setLayerWmsParams(layer)
-                }
+                TimeControl.applyTimeParams(layer)
             }
         }
         return updatedLayers
@@ -557,18 +525,18 @@ var TimeControl = {
         }
         return updatedLayers
     },
-    setLayerWmsParams: function (layer) {
-        let layerTimeFormat =
-            layer.time?.format == null || layer.time?.format == ''
-                ? utcFormat('%Y-%m-%dT%H:%M:%SZ')
-                : utcFormat(layer.time.format)
-        const l = L_.layers.layer[layer.name]
-
-        if (l != null && layer.type === 'tile') {
-            l.options.time = layerTimeFormat(Date.parse(layer.time.end))
-            l.options.starttime = layerTimeFormat(Date.parse(layer.time.start))
-            l.options.endtime = layerTimeFormat(Date.parse(layer.time.end))
-        }
+    /**
+     * Some layers take the time window as parameters on the live layer rather
+     * than needing a reload; whether that is possible, and what the parameters
+     * are called, is the layer type's business (`time.applyTimeParams`). A type
+     * without one simply has nothing to stamp.
+     */
+    applyTimeParams: function (layer) {
+        LayerInterface.runSync(
+            LayerTypeRegistry.get(layer.type)?.time,
+            'applyTimeParams',
+            [layer, { currentTime: TimeControl.currentTime }]
+        )
     },
 }
 
@@ -598,16 +566,12 @@ function initLayerTimes() {
                 ? L_.FUTURES.endTime.toISOString().split('.')[0] + 'Z'
                 : TimeControl.endTime
             layer.time.customTimes = TimeControl.customTimes
-            $('.starttime.' + F_.getSafeName(layer.name)).text(
-                layer.time.start
-            )
-            $('.endtime.' + F_.getSafeName(layer.name)).text(
-                layer.time.end
-            )
+            $('.starttime.' + F_.getSafeName(layer.name)).text(layer.time.start)
+            $('.endtime.' + F_.getSafeName(layer.name)).text(layer.time.end)
 
-            // Make sure to set the WMS parameters for WMS layers,
-            // otherwise the first load will not have the WMS parameters
-            TimeControl.setLayerWmsParams(layer)
+            // Make sure time-parameterized layers (WMS and friends) carry their
+            // parameters before the first load
+            TimeControl.applyTimeParams(layer)
         }
     }
 }

@@ -137,6 +137,18 @@ Sets the `Content-Security-Policy: frame-src` header to allow the embedding ifra
 
 Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local as an iframe within a cross-origin page. | boolean | default `false`
 
+#### `CORS_ORIGINS=`
+
+Comma-separated origins allowed for cross-origin HTTP requests and websockets. When unset, only same-origin requests are allowed. | comma-separated origins | default `""`
+
+**Upgrade note:** Cross-origin browser clients that previously relied on wildcard CORS must set this to a comma-separated list of their allowed origins.
+
+#### `SESSION_COOKIE_SECURE=`
+
+Controls the session cookie `Secure` flag. Set to `true` or `false`; when unset, it defaults to `true` if `HTTPS=true` or `THIRD_PARTY_COOKIES=true`. `THIRD_PARTY_COOKIES=true` requires this to remain enabled. | boolean | default `HTTPS=true || THIRD_PARTY_COOKIES=true`
+
+**Upgrade note:** Deployments with `HTTPS=true` now receive `Secure` session cookies by default. Set `SESSION_COOKIE_SECURE=false` only when TLS is intentionally not used.
+
 #### `ROOT_PATH=`
 
 Set MMGIS to be deployed under a subpath. For example if serving at the subpath 'https://{domain}/path/where/I/serve/mmgis' is desired, set `ROOT_PATH=/path/where/I/serve/mmgis`. Should always begin with a `/`. If no subpath, leave blank. | string | default `""`
@@ -187,7 +199,7 @@ LDAP group of leads (users with elevated permissions) | string | default `''`
 
 #### `ENABLE_MMGIS_WEBSOCKETS=`
 
-If true, enables the backend MMGIS websockets to tell clients to update layers | boolean | default `false`
+If true, enables the backend MMGIS websockets to tell clients to update layers. Also enables `POST /api/broadcast/layerUpdate`, which lets an admin push a re-query of specific layers to connected clients (time-enabled layers and non-time vector layers only). | boolean | default `false`
 
 #### `ENABLE_CONFIG_WEBSOCKETS=`
 
@@ -221,6 +233,10 @@ If true, then also triggers the kernel download when MMGIS starts | boolean | de
 #### `SPICE_SCHEDULED_KERNEL_CRON_EXPR=`
 
 A cron schedule expression for use in the [node-schedule npm library](https://www.npmjs.com/package/node-schedule) | string | default `"0 0 */2 * *"` (every other day)
+
+#### `GDAL_ALLOWED_REMOTE_PREFIXES=`
+
+Comma-separated list of remote GDAL dataset prefixes that `/api/utils/getprofile`, `/api/utils/getbands` and `/api/utils/getminmax` are allowed to open — for instance `/vsis3/my-bucket/,https://my-cdn.example.gov/dems/`. Recognized prefixes are the network-backed GDAL virtual file systems (`/vsicurl/`, `/vsis3/`, `/vsigs/`, `/vsiaz/`, `/vsiadls/`, `/vsioss/`, `/vsiswift/`, `/vsihdfs/`, `/vsiwebhdfs/`, including their `_streaming` variants) plus `http://`, `https://` and `ftp://` urls; entries that are not one of these, or that name no host or bucket (`/vsicurl/`, `https://`), are ignored. When empty, those endpoints only accept rasters under `/Missions`. MMGIS' server fetches these datasets itself and returns their contents as pixel values, so only list locations you trust — a broad entry lets any user of the site read from hosts the server can reach. Local virtual file systems such as `/vsizip/` and `/vsisubfile/` are always rejected. | string | default `""` (no remote datasets)
 
 #### `COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS=`
 

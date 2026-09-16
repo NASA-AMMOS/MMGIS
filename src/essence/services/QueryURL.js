@@ -2,6 +2,7 @@ import * as moment from 'moment'
 
 import F_ from '../Basics/Formulae_/Formulae_'
 import L_ from '../Basics/Layers_/Layers_'
+import LayerTypeRegistry from '../Basics/Layers_/registry/LayerTypeRegistry'
 import T_ from '../Basics/ToolController_/ToolController_'
 import calls from '../../pre/calls'
 import TimeControl from '../Basics/TimeControl_/TimeControl'
@@ -367,7 +368,10 @@ var QueryURL = {
         //on
         var layersOnString = ''
         for (var l in L_.layers.on) {
-            if (L_.layers.on[l] && L_.layers.data[l].type !== 'header')
+            if (
+                L_.layers.on[l] &&
+                !LayerTypeRegistry.isStructural(L_.layers.data[l].type)
+            )
                 layersOnString +=
                     l + '$' + parseFloat(L_.layers.opacity[l]).toFixed(2) + ','
         }

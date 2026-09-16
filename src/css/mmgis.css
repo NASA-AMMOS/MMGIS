@@ -296,9 +296,11 @@ body {
 .toolButton {
     color: var(--color-f);
 }
-.toolButton:hover {
-    background: var(--color-a1-5) !important;
-    color: var(--color-c) !important;
+@media (hover: hover) {
+    .toolButton:hover {
+        background: var(--color-a1-5) !important;
+        color: var(--color-c) !important;
+    }
 }
 .toolButton.toolButtonActive,
 .toolButton.toolButtonActive:hover {
@@ -368,6 +370,9 @@ body {
 }
 .leaflet-popup-content {
     margin: 1px 7px 1px 7px;
+    /* Leaflet 1.9 sets 13px/1.3 here; keep the pre-1.9 inherited sizing. */
+    font-size: inherit;
+    line-height: 1.4;
 }
 
 .leafletDivIcon > * {
@@ -594,8 +599,10 @@ body {
 #toolcontroller_incdiv > div {
     color: #bbb;
 }
-#toolcontroller_incdiv > div:hover {
-    color: white;
+@media (hover: hover) {
+    #toolcontroller_incdiv > div:hover {
+        color: white;
+    }
 }
 
 .ui-menu .ui-menu-item {

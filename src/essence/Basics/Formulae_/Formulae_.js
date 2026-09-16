@@ -1833,6 +1833,17 @@ var Formulae_ = {
         if (str == null) return ''
         return str.replace(/[<>;{}]/g, '')
     },
+    // Text safe to put in markup. Layer names and feature properties come from
+    // whatever was uploaded, so they are not ours to trust.
+    escapeHtml(str) {
+        if (str == null) return ''
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+    },
     doBoundingBoxesIntersect(a, b) {
         return a[1] <= b[3] && a[3] >= b[1] && a[0] <= b[2] && a[2] >= b[0]
     },

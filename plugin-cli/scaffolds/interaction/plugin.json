@@ -1,0 +1,18 @@
+{
+    "name": "__Name__",
+    "type": "interaction",
+    "interactionId": "__colon_name__",
+    "description": "",
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
+    "phase": "main",
+    "paths": {
+        "__Name__": "./__Name__"
+    }
+}

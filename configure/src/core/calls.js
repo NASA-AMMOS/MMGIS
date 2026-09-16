@@ -18,6 +18,18 @@ const c = {
     type: "GET",
     url: "configure/public/componentConfigs.json",
   },
+  getLayerTypeConfig: {
+    type: "GET",
+    url: "configure/public/layerTypeConfigs.json",
+  },
+  getLayerAttachmentConfig: {
+    type: "GET",
+    url: "configure/public/layerAttachmentConfigs.json",
+  },
+  getInteractionConfig: {
+    type: "GET",
+    url: "configure/public/interactionConfigs.json",
+  },
   get: {
     type: "GET",
     url: "api/configure/get",
@@ -77,6 +89,14 @@ const c = {
   geodatasets_get: {
     type: "GET",
     url: "api/geodatasets/get",
+  },
+  geodatasets_recompute_stats: {
+    type: "POST",
+    url: "api/geodatasets/recompute_stats/:name",
+  },
+  geodatasets_convert_properties: {
+    type: "POST",
+    url: "api/geodatasets/convert_properties/:name",
   },
   geodatasets_remove: {
     type: "DELETE",
@@ -217,10 +237,13 @@ function api(call, data, success, error) {
     delete data.forceParams;
   }
 
-  if (c[call].type === "POST" || c[call].type === "PUT" || c[call].type === "PATCH")
+  if (
+    c[call].type === "POST" ||
+    c[call].type === "PUT" ||
+    c[call].type === "PATCH"
+  )
     options.body = JSON.stringify(data);
-  else if (c[call].type === "GET")
-    options.data = JSON.stringify(data);
+  else if (c[call].type === "GET") options.data = JSON.stringify(data);
 
   fetch(
     `${domain}${url}${
@@ -230,7 +253,7 @@ function api(call, data, success, error) {
           : ""
         : ""
     }`,
-    options
+    options,
   )
     .then((res) => res.json())
     .then((json) => {

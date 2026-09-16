@@ -1,0 +1,10 @@
+{
+    "name": "DepMissingInteraction",
+    "type": "interaction",
+    "interactionId": "dep:missing",
+    "description": "Fixture with an unsatisfiable pluginDependency.",
+    "pluginDependencies": ["nonexistent-container/tools/NonexistentTool"],
+    "paths": {
+        "DepMissingInteraction": "../plugins/mmgis-test/interactions/DepMissingInteraction/DepMissingInteraction"
+    }
+}

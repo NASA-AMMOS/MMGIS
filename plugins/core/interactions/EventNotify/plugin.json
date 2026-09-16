@@ -1,0 +1,26 @@
+{
+    "uuid": "b54b959a-da07-425e-b45a-31d02bece3dd",
+    "id": "core-interaction-event-notify",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": false,
+    "name": "EventNotify",
+    "interactionId": "event:notify",
+    "description": "Dispatches a 'newActiveFeature' CustomEvent on the document.",
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
+    "phase": "postamble",
+    "order": 3,
+    "paths": {
+        "EventNotify": "./EventNotify"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

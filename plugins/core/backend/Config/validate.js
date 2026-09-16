@@ -1,4 +1,71 @@
+const fs = require("fs");
+const path = require("path");
+
 const Utils = require("../../../../API/utils.js");
+
+// The layer types this file knows how to check field-by-field. Any other type
+// is legitimate as long as a layer-type plugin provides it: what a plugin type
+// requires is its own manifest's business (a `source`-backed type may have no
+// url at all), so those layers are only checked structurally.
+const CHECKED_LAYER_TYPES = [
+  "header",
+  "tile",
+  "vectortile",
+  "3dtiles",
+  "data",
+  "query",
+  "vector",
+  "velocity",
+  "model",
+  "image",
+  "video",
+];
+
+const LAYER_TYPE_REGISTRY_PATH = path.join(
+  __dirname,
+  "../../../../configure/public/layerTypeConfigs.json"
+);
+
+let _registry = { mtimeMs: null, types: null };
+
+// The generated layer-type registry, or null when it has not been generated
+// yet (`npm run plugins -- activate` writes it). Cached against its mtime so a
+// newly activated plugin is picked up without a restart.
+const layerTypeRegistry = () => {
+  let mtimeMs;
+  try {
+    mtimeMs = fs.statSync(LAYER_TYPE_REGISTRY_PATH).mtimeMs;
+  } catch (err) {
+    return null;
+  }
+  if (_registry.mtimeMs === mtimeMs) return _registry.types;
+  try {
+    _registry = {
+      mtimeMs,
+      types: JSON.parse(fs.readFileSync(LAYER_TYPE_REGISTRY_PATH, "utf8")),
+    };
+  } catch (err) {
+    return null;
+  }
+  return _registry.types;
+};
+
+// Which set of per-type checks a layer should be held to:
+//   a built-in type      -> its own
+//   another plugin type  -> none (structural checks only)
+//   an unregistered type -> null, i.e. unknown
+const checkedTypeOf = (type, registry = layerTypeRegistry()) => {
+  if (CHECKED_LAYER_TYPES.includes(type)) return type;
+  return registry?.[type] == null ? null : "";
+};
+
+// Defaults, unlike checks, do follow the manifest's one-level `extends`: a type
+// extending `vector` is drawn by vector's renderer and needs the same fields.
+const defaultsTypeOf = (type, registry = layerTypeRegistry()) => {
+  if (CHECKED_LAYER_TYPES.includes(type)) return type;
+  const parent = registry?.[type]?.manifest?.extends;
+  return CHECKED_LAYER_TYPES.includes(parent) ? parent : type;
+};
 
 const validate = (config) => {
   let errs = [];
@@ -50,7 +117,15 @@ const validateLayers = (config) => {
 
     fillInMissingFieldsWithDefaults(layer);
 
-    switch (layer.type) {
+    const checkedType = checkedTypeOf(layer.type);
+    if (checkedType === null) {
+      errs = errs.concat(
+        err(`Unknown layer type: '${layer.type}'`, ["layers[layer].type"])
+      );
+      return;
+    }
+
+    switch (checkedType) {
       case "header":
         break;
       case "tile":
@@ -106,9 +181,9 @@ const validateLayers = (config) => {
         errs = errs.concat(isValidBoundingBox(layer));
         break;
       default:
-        errs = errs.concat(
-          err(`Unknown layer type: '${layer.type}'`, ["layers[layer].type"])
-        );
+        // A plugin-provided type with no built-in ancestor: its own manifest
+        // and modules are what validate it, not this file.
+        break;
     }
 
     if (layer.uuid != null) {
@@ -359,12 +434,13 @@ const hasNonHeaderWithSublayers = (config) => {
 };
 
 const fillInMissingFieldsWithDefaults = (layer) => {
-  if (layer.type != "header") {
+  const type = defaultsTypeOf(layer.type);
+  if (type != "header") {
     layer.initialOpacity =
       layer.initialOpacity == null ? 1 : layer.initialOpacity;
     layer.visibility = layer.visibility == null ? true : layer.visibility;
   }
-  switch (layer.type) {
+  switch (type) {
     case "header":
       break;
     case "tile":
@@ -412,3 +488,7 @@ const err = (reason, invalidFields, onlyAWarning) => {
   };
 };
 module.exports = validate;
+// Which checks a type is held to is the part worth testing without a generated
+// registry on disk, so both resolvers take one.
+module.exports.checkedTypeOf = checkedTypeOf;
+module.exports.defaultsTypeOf = defaultsTypeOf;

@@ -2,7 +2,7 @@
 /* global global */
 /* global proj4 */
 import "regenerator-runtime/runtime.js";
-import * as L from "../Leaflet/leaflet1.5.1.js";
+import * as L from "leaflet";
 import { rawToRgb } from "pixel-utils";
 import densePolygon from "bbox-fns/dense-polygon.js";
 import isUTM from "utm-utils/src/isUTM.js";

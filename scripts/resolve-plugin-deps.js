@@ -174,6 +174,16 @@ function gatherDependencies() {
         PLUGINS_ROOT, "backend", "plugin.json",
         { loggerCategory: "PluginDeps" }
     );
+    // Layer types and layer attachments are plugins like any other and may need
+    // their own libraries (a custom renderer, a projection, a decoder).
+    const allLayerTypes = discoverPlugins(
+        PLUGINS_ROOT, "layertypes", "plugin.json",
+        { loggerCategory: "PluginDeps" }
+    );
+    const allLayerAttachments = discoverPlugins(
+        PLUGINS_ROOT, "layerattachments", "plugin.json",
+        { loggerCategory: "PluginDeps" }
+    );
 
     const pushManifest = (label, plugin, deps) => {
         if (!deps) return;
@@ -201,8 +211,24 @@ function gatherDependencies() {
     for (const p of dedup(allBackends)) {
         pushManifest(`backend:${p.name}`, p, depsForBackend(p));
     }
+    for (const p of dedup(allLayerTypes)) {
+        pushManifest(`layertype:${p.name}`, p, depsFromManifest(p.manifest));
+    }
+    for (const p of dedup(allLayerAttachments)) {
+        pushManifest(
+            `layerattachment:${p.name}`,
+            p,
+            depsFromManifest(p.manifest)
+        );
+    }
 
-    const allPlugins = [...dedup(allTools), ...dedup(allComponents), ...dedup(allBackends)];
+    const allPlugins = [
+        ...dedup(allTools),
+        ...dedup(allComponents),
+        ...dedup(allBackends),
+        ...dedup(allLayerTypes),
+        ...dedup(allLayerAttachments),
+    ];
     return { sources: out, errors, allPlugins };
 }
 

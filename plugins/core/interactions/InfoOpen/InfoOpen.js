@@ -1,0 +1,28 @@
+import TC_ from '@basics/ToolController_/ToolController_'
+import { gatherFeatures } from './FeatureGatherer'
+
+const InfoOpen = {
+    use(ctx) {
+        const { features, featureLayers } = gatherFeatures(ctx)
+
+        let ell = { latlng: null }
+        if (ctx.event.latlng != null)
+            ell.latlng = JSON.parse(JSON.stringify(ctx.event.latlng))
+
+        TC_.getTool('InfoTool').use(
+            ctx.layer,
+            ctx.layerName,
+            features,
+            {
+                useKeyAsName: ctx.layer.useKeyAsName,
+            },
+            null,
+            true,
+            ell,
+            ctx.additional,
+            ctx.state.lastFeatureLayers || featureLayers
+        )
+    },
+}
+
+export default InfoOpen

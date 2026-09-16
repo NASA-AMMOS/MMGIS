@@ -9,17 +9,7 @@ import flat from 'flat'
 import { booleanIntersects, booleanContains } from '@turf/turf'
 
 const GeodatasetFilterer = {
-    make: function (container, layerName) {
-        const layerObj = L_.layers.data[layerName]
-
-        if (layerObj == null) return
-
-        const type = layerObj.type
-
-        if (type === 'vector') {
-        } else if (type === 'query') {
-        }
-    },
+    make: function (container, layerName) {},
     destroy: function (layerName) {},
     getAggregations: function (layerName) {
         return new Promise((resolve, reject) => {

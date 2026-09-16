@@ -207,7 +207,7 @@ export default [
     {
         library: 'Leaflet',
         librarylink: 'https://leafletjs.com/',
-        version: '1.5.1',
+        version: '1.9.4',
         author: 'Vladimir Agafonkin',
         authorlink: 'https://agafonkin.com/',
         license: 'BSD-2-Clause',
@@ -252,7 +252,7 @@ export default [
     {
         library: 'Leaflet.GeometryUtil',
         librarylink: 'https://github.com/makinacorpus/Leaflet.GeometryUtil',
-        version: '0',
+        version: '0.9.1',
         author: 'Makina Corpus',
         authorlink: 'https://github.com/makinacorpus',
         license: 'BSD-3-Clause',
@@ -271,18 +271,6 @@ export default [
         licenselink:
             'https://github.com/iosphere/Leaflet.hotline/blob/master/LICENSE',
         githublink: 'https://github.com/iosphere/Leaflet.hotline',
-    },
-    {
-        library: 'Leaflet.ImageOverlay.Rotated',
-        librarylink:
-            'https://github.com/IvanSanchez/Leaflet.ImageOverlay.Rotated',
-        version: '0.1.3',
-        author: 'IvanSanchez',
-        authorlink: 'https://github.com/IvanSanchez',
-        license: 'Beerware',
-        licenselink: 'https://en.wikipedia.org/wiki/Beerware',
-        githublink:
-            'https://github.com/IvanSanchez/Leaflet.ImageOverlay.Rotated',
     },
     {
         library: 'Leaflet.imageTransform',

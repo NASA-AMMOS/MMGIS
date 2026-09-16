@@ -702,8 +702,10 @@ function changeCoordType(newCoordIndex) {
 
 //Update mouse lat long coordinate display on mouse move
 function mouseLngLatMove(e) {
-    Coordinates.mouseLngLatRaw = [e.latlng.lng, e.latlng.lat]
-    Coordinates.mouseLngLat = [e.latlng.lng, e.latlng.lat]
+    // Normalize coordinates to -180/180 range using Leaflet's built-in method
+    const normalized = Map_.map.wrapLatLng(e.latlng)
+    Coordinates.mouseLngLatRaw = [normalized.lng, normalized.lat]
+    Coordinates.mouseLngLat = [normalized.lng, normalized.lat]
     if (
         L_.configData.coordinates &&
         L_.configData.coordinates.coordelev === true

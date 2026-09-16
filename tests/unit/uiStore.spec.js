@@ -7,6 +7,8 @@ import {
     computeGlobeSplitMoveResult,
     computeToolsSplitMoveResult,
     computeWindowResize,
+    computeDetentPx,
+    nearestDetentIndex,
 } from '../../src/essence/Basics/UserInterface_/store/uiStoreMath.js'
 
 /**
@@ -362,6 +364,63 @@ test.describe('computeToolsSplitMoveResult', () => {
     })
 })
 
+test.describe('computeDetentPx', () => {
+    test('maps fractions to clamped pixel heights', () => {
+        const state = makeState({
+            mainHeight: 800,
+            splitterSize: 10,
+            toolHeightReserve: 40,
+            toolDetentFractions: [0.25, 0.5, 0.85],
+        })
+        // available = 800 - 10 - 40 = 750
+        expect(computeDetentPx(state)).toEqual([
+            Math.round(0.25 * 750),
+            Math.round(0.5 * 750),
+            Math.round(0.85 * 750),
+        ])
+    })
+
+    test('returns empty array when no detents', () => {
+        const state = makeState({ mainHeight: 800 })
+        expect(computeDetentPx(state)).toEqual([])
+    })
+})
+
+test.describe('nearestDetentIndex', () => {
+    test('picks the closest detent', () => {
+        const state = makeState({
+            mainHeight: 800,
+            splitterSize: 10,
+            toolHeightReserve: 40,
+            toolDetentFractions: [0.25, 0.5, 0.85],
+        })
+        // detents are approximately [188, 375, 638]
+        expect(nearestDetentIndex(state, 180)).toBe(0)
+        expect(nearestDetentIndex(state, 400)).toBe(1)
+        expect(nearestDetentIndex(state, 700)).toBe(2)
+    })
+
+    test('returns -1 when no detents', () => {
+        const state = makeState({ mainHeight: 800 })
+        expect(nearestDetentIndex(state, 300)).toBe(-1)
+    })
+})
+
+test.describe('computeToolsSplitMoveResult with detents', () => {
+    test('allows shrinking to the smallest detent', () => {
+        const state = makeState({
+            mainHeight: 800,
+            splitterSize: 10,
+            toolHeightReserve: 40,
+            toolNativeHeight: 600, // old floor would block shrinking below this
+            toolDetentFractions: [0.25, 0.5, 0.85],
+        })
+        // Dragged to bottom, clamps to smallest detent (~188), not 600
+        const result = computeToolsSplitMoveResult(state, 900)
+        expect(result).toBe(Math.round(0.25 * 750))
+    })
+})
+
 test.describe('computeWindowResize', () => {
     test('scales panels proportionally', () => {
         const state = makeState({
@@ -405,5 +464,35 @@ test.describe('computeWindowResize', () => {
 
         expect(result.pxIsViewer).toBeCloseTo(500, 0)
         expect(result.pxIsGlobe).toBeCloseTo(500, 0)
+    })
+})
+
+/**
+ * The globe opens onto the map's view. The store isn't loadable here (it pulls
+ * in the map, globe and viewer singletons), so this asserts at the source level
+ * that the sync isn't limited to the globe's first open.
+ */
+test.describe('opening the globe follows the map', () => {
+    const fs = require('fs')
+    const path = require('path')
+    const SRC = fs.readFileSync(
+        path.resolve(
+            __dirname,
+            '../../src/essence/Basics/UserInterface_/store/uiStore.js'
+        ),
+        'utf8'
+    )
+
+    test('every open syncs, not just the first', () => {
+        expect(SRC).toContain('const first = !current._Globe.hasBeenOpened')
+        const syncAt = SRC.indexOf('current._Globe.syncToMapCenter()')
+        expect(syncAt).toBeGreaterThan(-1)
+        // Not nested inside the first-open branch.
+        expect(SRC.slice(SRC.indexOf('if (first) {'), syncAt)).toContain('}')
+    })
+
+    test('a stale map or a linked globe view is left alone', () => {
+        expect(SRC).toContain('const wasMapOpen = state.pxIsMap > 0')
+        expect(SRC).toContain('current._L.FUTURES.globeView == null')
     })
 })

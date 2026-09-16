@@ -1,0 +1,29 @@
+{
+    "uuid": "e3da6b85-e84c-448c-b3d1-f2d4c942ca68",
+    "id": "core-interaction-info-silent",
+    "version": "core",
+    "type": "interaction",
+    "tier": "core",
+    "overridable": false,
+    "name": "InfoSilent",
+    "interactionId": "info:silent",
+    "description": "Gathers intersecting features and updates InfoTool without opening the panel.",
+    "applicableLayerTypes": [
+        "vector",
+        "vectortile",
+        "query"
+    ],
+    "applicableEvents": [
+        "click"
+    ],
+    "phase": "postamble",
+    "order": 0,
+    "pluginDependencies": [
+        "core/tools/Info"
+    ],
+    "paths": {
+        "InfoSilent": "./InfoSilent"
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0"
+}

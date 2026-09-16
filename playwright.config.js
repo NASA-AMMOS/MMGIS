@@ -20,6 +20,11 @@ export default defineConfig({
     "plugins/**/tests/*.spec.js",
   ],
 
+  // `plugin-cli/scaffolds/**` are templates, not tests: they are the specs a
+  // plugin is *created with*, full of `__name__` placeholders and paths that
+  // only resolve once copied into a plugin directory.
+  testIgnore: ["**/plugin-cli/scaffolds/**"],
+
   // Timeout per test (3 minutes — E2E tests may need extra time on slower machines)
   timeout: 180 * 1000,
 

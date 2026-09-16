@@ -14,6 +14,7 @@ function Splitter({ type, orientation }) {
     const topSize = useUIStore((s) => s.topSize)
     const hasViewer = useUIStore((s) => s.hasViewer)
     const hasGlobe = useUIStore((s) => s.hasGlobe)
+    const isMobile = useUIStore((s) => s.isMobile)
 
     const dragCount = useRef(0)
     const mouseIsDown = useRef(false)
@@ -54,6 +55,11 @@ function Splitter({ type, orientation }) {
                 dragCount.current = 0
                 document.body.style.userSelect = ''
                 useUIStore.setState({ isDraggingSplitter: false })
+                // Snap the tool panel to the nearest mobile detent on release
+                // Does nothing when the active tool has no detents (i.e. desktop mode)
+                if (type === 'tools') {
+                    useUIStore.getState().snapToNearestDetent()
+                }
                 document.removeEventListener('pointermove', handlePointerMove)
                 document.removeEventListener('pointerup', handlePointerUp)
             }
@@ -66,6 +72,9 @@ function Splitter({ type, orientation }) {
 
     if (orientation === 'horizontal' || type === 'tools') {
         // Horizontal splitter (drag handle) for tools area
+        // On mobile the drag handle is rendered above the toolbar by
+        // MobileToolDragHandle, so suppress this one
+        if (isMobile) return null
         const handleHeight = 6
         return (
             <div

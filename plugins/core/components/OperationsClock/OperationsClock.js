@@ -390,7 +390,13 @@ const OperationsClock = {
     updateDateDisplay: function () {
         const dateDiv = document.querySelector('.clock-today-date')
         const todayBtn = document.querySelector('.clock-btn-today span')
+        const todayLabel = document.querySelector('.clock-today-label')
+        const refreshIcon = document.querySelector('.clock-refresh-icon')
         if (!dateDiv) return
+
+        const isMobile = L_?.UserInterface_?.isMobile === true
+        const useDropdown = isMobile && true
+        const isOffsetActive = this.state.activeOffset !== 0
 
         const displayDate = this.getSelectedToday()
         const isUsingEffectiveToday = this.state.effectiveToday && !this.state.selectedToday
@@ -401,34 +407,103 @@ const OperationsClock = {
             if (todayBtn) {
                 todayBtn.textContent = this.formatDateForDisplay(displayDate)
             }
+            // User selected date in the section label for mobile mode
+            if (todayLabel) {
+                todayLabel.textContent = this.formatDateForDisplay(displayDate)
+            }
 
-            dateDiv.textContent = 'Back to Today'
+            // Desktop mode shows "Back to Today" and mobile mode shows the selected date
+            if (useDropdown) {
+                dateDiv.textContent = this.formatDateForDisplay(displayDate)
+            } else {
+                dateDiv.textContent = 'Back to Today'
+            }
+
             dateDiv.classList.add('custom-date')
+
+            // Dim the date if an offset is active
+            if (isOffsetActive) {
+                dateDiv.classList.add('offset-active')
+            } else {
+                dateDiv.classList.remove('offset-active')
+            }
+
             dateDiv.style.display = 'block'
-            dateDiv.style.cursor = 'pointer'
+            dateDiv.style.cursor = useDropdown ? 'default' : 'pointer'
             dateDiv.title = this.state.effectiveToday
                 ? 'Click to return to Initial Start Time'
                 : 'Click to return to current date'
+
+            // Show refresh icon (mobile only)
+            if (refreshIcon) {
+                refreshIcon.style.display = useDropdown ? 'block' : 'none'
+                refreshIcon.title = this.state.effectiveToday
+                    ? 'Click to return to Initial Start Time'
+                    : 'Click to return to current date'
+            }
+        } else if (useDropdown && isOffsetActive) {
+            // When a past/future offset is selected (base date is still today)
+            if (todayLabel) {
+                todayLabel.textContent = 'Today'
+            }
+
+            // Show "Today" text
+            dateDiv.textContent = 'Today'
+            dateDiv.classList.add('custom-date')
+            dateDiv.classList.add('offset-active')
+            dateDiv.style.display = 'block'
+            dateDiv.style.cursor = 'default'
+            dateDiv.title = ''
+
+            // Show refresh icon
+            if (refreshIcon) {
+                refreshIcon.style.display = 'block'
+                refreshIcon.title = 'Click to return to today'
+            }
         } else if (isUsingEffectiveToday) {
             // Using Initial Start Time as today - hide the date display
             if (todayBtn) {
                 todayBtn.textContent = this.formatDateForDisplay(displayDate)
             }
+            if (todayLabel) {
+                todayLabel.textContent = this.formatDateForDisplay(displayDate)
+            }
 
             // Hide the date display element when using effective today
             dateDiv.style.display = 'none'
             dateDiv.classList.remove('custom-date')
+            dateDiv.classList.remove('offset-active')
+
+            // Hide refresh icon
+            if (refreshIcon) {
+                refreshIcon.style.display = 'none'
+            }
         } else {
             // Normal state: using actual current date
             if (todayBtn) {
                 todayBtn.textContent = 'today'
             }
+            if (todayLabel) {
+                todayLabel.textContent = 'Today'
+            }
 
-            dateDiv.textContent = this.formatDateForDisplay(displayDate)
+            // Mobile shows "Today", desktop shows the formatted date
+            if (useDropdown) {
+                dateDiv.textContent = 'Today'
+            } else {
+                dateDiv.textContent = this.formatDateForDisplay(displayDate)
+            }
+
             dateDiv.classList.remove('custom-date')
+            dateDiv.classList.remove('offset-active')
             dateDiv.style.display = 'block'
             dateDiv.style.cursor = 'default'
             dateDiv.title = ''
+
+            // Hide refresh icon
+            if (refreshIcon) {
+                refreshIcon.style.display = 'none'
+            }
         }
     },
 
@@ -581,19 +656,23 @@ const OperationsClock = {
         const pastUnitLabel = this.config.pastUnit || 'day'
         const forecastUnitLabel = this.config.futureUnit || 'day'
 
+        // Placeholder shown on the inactive dropdown
+        const placeholderOption = '<option value="none" hidden>—</option>'
+
         // Past options (0 to -N)
-        pastOptions.push('<option value="0">Today</option>')
+        pastOptions.push(placeholderOption)
+        pastOptions.push('<option value="0">—</option>')
         for (let i = 1; i <= this.config.pastInterval; i++) {
-            const label = i === 1 ? `1 ${pastUnitLabel} ago` : `${i} days ago`
-            pastOptions.push(`<option value="${-i}">-${i} (${label})</option>`)
+            const unit = i === 1 ? pastUnitLabel : `${pastUnitLabel}s`
+            pastOptions.push(`<option value="${-i}">-${i} ${unit}</option>`)
         }
 
         // Future options (0 to +N)
-        futureOptions.push('<option value="0">Today</option>')
+        futureOptions.push(placeholderOption)
+        futureOptions.push('<option value="0">—</option>')
         for (let i = 1; i <= this.config.futureInterval; i++) {
-            const label =
-                i === 1 ? `1 ${forecastUnitLabel} ahead` : `${i} days ahead`
-            futureOptions.push(`<option value="${i}">+${i} (${label})</option>`)
+            const unit = i === 1 ? forecastUnitLabel : `${forecastUnitLabel}s`
+            futureOptions.push(`<option value="${i}">+${i} ${unit}</option>`)
         }
 
         // Calendar icon for today section
@@ -606,35 +685,38 @@ const OperationsClock = {
             </svg>
         `
 
+        // Refresh icon for returning to today
+        const refreshIcon = `
+            <svg class="clock-refresh-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        `
+
         container.innerHTML = `
             <div class="clock-mobile-group">
                 ${
                     this.config.pastInterval > 0
-                        ? `<div class="clock-mobile-row">
-                    <label>Past Days:</label>
-                    <select class="clock-select clock-select-past">
+                        ? `<select class="clock-select clock-select-past">
                         ${pastOptions.join('')}
-                    </select>
-                </div>`
+                    </select>`
                         : ''
                 }
 
-                <div class="clock-mobile-row clock-today-section">
-                    ${calendarIcon}
-                    <div>
-                        <div class="clock-today-label">Today</div>
-                        <div class="clock-today-date">${this.formatDateForDisplay(this.getSelectedToday())}</div>
+                <div class="clock-today-section">
+                    <div class="clock-today-clickable">
+                        ${calendarIcon}
+                        <div>
+                            <div class="clock-today-date">Today</div>
+                        </div>
                     </div>
+                    ${refreshIcon}
                 </div>
 
                 ${
                     this.config.futureInterval > 0
-                        ? `<div class="clock-mobile-row">
-                    <label>Future Days:</label>
-                    <select class="clock-select clock-select-future">
+                        ? `<select class="clock-select clock-select-future">
                         ${futureOptions.join('')}
-                    </select>
-                </div>`
+                    </select>`
                         : ''
                 }
             </div>
@@ -645,12 +727,23 @@ const OperationsClock = {
      * Attach event handlers
      */
     attachEventHandlers: function () {
-        // Add "back to today" click handler
+        // Add refresh icon click handler to return to today in mobile mode
+        const refreshIcon = document.querySelector('.clock-refresh-icon')
+        if (refreshIcon) {
+            refreshIcon.addEventListener('click', (e) => {
+                // Stop propagation to prevent triggering other handlers
+                e.stopPropagation()
+                this.resetToToday()
+            })
+        }
+
+        // Add click handler for date display "Back to Today" in desktop mode
         const dateDisplay = document.querySelector('.clock-today-date')
         if (dateDisplay) {
-            dateDisplay.addEventListener('click', () => {
-                // Only reset if custom date is selected
+            dateDisplay.addEventListener('click', (e) => {
+                // Only handle clicks when showing custom date (desktop mode shows "Back to Today")
                 if (this.state.selectedToday) {
+                    e.stopPropagation()
                     this.resetToToday()
                 }
             })
@@ -663,7 +756,6 @@ const OperationsClock = {
             // Dropdown handlers
             const pastSelect = document.querySelector('.clock-select-past')
             const futureSelect = document.querySelector('.clock-select-future')
-            const todaySection = document.querySelector('.clock-today-section')
 
             if (pastSelect) {
                 pastSelect.addEventListener('change', (e) => {
@@ -674,25 +766,6 @@ const OperationsClock = {
             if (futureSelect) {
                 futureSelect.addEventListener('change', (e) => {
                     this.setDayOffset(parseInt(e.target.value))
-                })
-            }
-
-            if (todaySection) {
-                todaySection.addEventListener('click', (e) => {
-                    // Prevent handling clicks outside the section
-                    if (!todaySection.contains(e.target)) return
-
-                    // If Today is already active, open date picker
-                    // Otherwise, select Today first
-                    if (this.state.activeOffset === 0) {
-                        // Today is active - open date picker using TempusDominus API
-                        if (this.state.datePickerInstance) {
-                            this.state.datePickerInstance.show()
-                        }
-                    } else {
-                        // Another offset is active - select Today
-                        this.setDayOffset(0)
-                    }
                 })
             }
         } else {
@@ -745,6 +818,9 @@ const OperationsClock = {
         // Update active button styling
         this.setActiveButtonOffset(offset)
 
+        // Update date display to show active state
+        this.updateDateDisplay()
+
         // Update TimeControl
         if (TimeControl?.setTime && TimeControl.timeUI) {
             TimeControl.setTime(
@@ -772,12 +848,36 @@ const OperationsClock = {
             const pastSelect = clockDiv.querySelector('.clock-select-past')
             const futureSelect = clockDiv.querySelector('.clock-select-future')
 
-            if (offset <= 0 && pastSelect) {
-                pastSelect.value = offset
-                if (futureSelect) futureSelect.value = 0
-            } else if (offset > 0 && futureSelect) {
-                futureSelect.value = offset
-                if (pastSelect) pastSelect.value = 0
+            // Keep the two dropdowns in sync: the active direction shows the
+            // offset, the opposite direction shows a neutral placeholder (not
+            // "Today"). Both read "Today" only when the offset is 0
+            if (offset === 0) {
+                if (pastSelect) {
+                    pastSelect.value = '0'
+                    pastSelect.classList.remove('active')
+                }
+                if (futureSelect) {
+                    futureSelect.value = '0'
+                    futureSelect.classList.remove('active')
+                }
+            } else if (offset < 0) {
+                if (pastSelect) {
+                    pastSelect.value = offset
+                    pastSelect.classList.add('active')
+                }
+                if (futureSelect) {
+                    futureSelect.value = 'none'
+                    futureSelect.classList.remove('active')
+                }
+            } else {
+                if (futureSelect) {
+                    futureSelect.value = offset
+                    futureSelect.classList.add('active')
+                }
+                if (pastSelect) {
+                    pastSelect.value = 'none'
+                    pastSelect.classList.remove('active')
+                }
             }
         } else {
             // Remove active from all buttons
@@ -865,8 +965,12 @@ const OperationsClock = {
      * Create and initialize date picker for TODAY button
      */
     createDatePicker: function () {
-        const todayBtn = document.querySelector('.clock-btn-today')
-        if (!todayBtn) return
+        const isMobile = L_?.UserInterface_?.isMobile === true
+        const useDropdown = isMobile && true
+        const anchor = useDropdown
+            ? document.querySelector('.clock-today-clickable')
+            : document.querySelector('.clock-btn-today')
+        if (!anchor) return
 
         // Create hidden input for TempusDominus
         // Note: Input must be clickable and properly sized for TempusDominus to work
@@ -883,8 +987,8 @@ const OperationsClock = {
         input.style.cursor = 'pointer'
         input.style.border = 'none'
         input.style.background = 'transparent'
-        todayBtn.style.position = 'relative' // Ensure button is positioned for absolute child
-        todayBtn.appendChild(input)
+        anchor.style.position = 'relative' // Ensure anchor is positioned for absolute child
+        anchor.appendChild(input)
 
         const options = {
             display: {
@@ -934,6 +1038,9 @@ const OperationsClock = {
                 !widget.classList.contains('operations-clock-picker')
             ) {
                 widget.classList.add('operations-clock-picker')
+                if (useDropdown) {
+                    widget.classList.add('operations-clock-picker-mobile')
+                }
             }
 
             // If using effective today (Initial Start Time), open calendar to that date
@@ -951,6 +1058,18 @@ const OperationsClock = {
                 }
             }
         )
+
+        // Add click handler to the input to intercept and handle offsets
+        input.addEventListener('click', (e) => {
+            // If an offset is active (not viewing the base date), reset to offset 0
+            if (this.state.activeOffset !== 0) {
+                e.preventDefault()
+                e.stopPropagation()
+                this.setDayOffset(0)
+                return
+            }
+            // Otherwise let TempusDominus handle the click to open date picker
+        })
     },
 
     /**
@@ -997,14 +1116,12 @@ const OperationsClock = {
             this.state.datePickerInstance.viewDate = new DateTime(resetDate)
         }
 
+        // Return to today's single-day range, clearing any past/future offset
+        this.setDayOffset(0)
+
         // Update UI
         this.updateDateDisplay()
         this.updateTooltips()
-
-        // Refresh the time range if currently viewing today
-        if (this.state.activeOffset === 0) {
-            this.setDayOffset(0)
-        }
     },
 
 

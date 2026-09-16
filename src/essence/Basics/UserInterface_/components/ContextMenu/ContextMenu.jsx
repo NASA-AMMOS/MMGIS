@@ -32,7 +32,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
     // Global context menu actions (no "for" filter)
     contextMenuActions.forEach((a, idx) => {
         if (a.for == null) {
-            actionItems.push({ type: 'action', action: a, idx, idx2: 0, feature: null })
+            actionItems.push({ kind: 'action', action: a, idx, idx2: 0, feature: null })
         }
     })
 
@@ -45,7 +45,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
         const val = pv[key]
 
         actionItems.push({
-            type: 'header',
+            kind: 'header',
             feature: f,
             idx2,
             geomType: f.feature.geometry.type,
@@ -57,7 +57,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
         contextMenuActions.forEach((a, idx) => {
             const forLower = a.for ? a.for.toLowerCase() : null
             if (forLower === 'polygon' && f.feature.geometry.type.toLowerCase() === forLower) {
-                actionItems.push({ type: 'featureAction', action: a, idx, idx2, feature: f })
+                actionItems.push({ kind: 'featureAction', action: a, idx, idx2, feature: f })
             }
         })
     })
@@ -142,7 +142,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
                 })}
 
                 {actionItems.map((item, i) => {
-                    if (item.type === 'action') {
+                    if (item.kind === 'action') {
                         return (
                             <li
                                 key={`action-${item.idx}-${item.idx2}`}
@@ -156,7 +156,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
                             </li>
                         )
                     }
-                    if (item.type === 'header') {
+                    if (item.kind === 'header') {
                         return (
                             <li
                                 key={`header-${item.idx2}`}
@@ -172,7 +172,7 @@ function ContextMenuPopup({ x, y, featuresAtClick, contextMenuActions, onClose }
                             </li>
                         )
                     }
-                    if (item.type === 'featureAction') {
+                    if (item.kind === 'featureAction') {
                         return (
                             <li
                                 key={`featureAction-${item.idx}-${item.idx2}`}

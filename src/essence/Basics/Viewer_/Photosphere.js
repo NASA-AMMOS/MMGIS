@@ -195,144 +195,36 @@ export default function (domEl, lookupPath, options, Map_) {
         makeModifiedTexture(url, azR, elR, xyR, () => {
             const layerName = layer.options.layerName
 
-            if (
-                feature.geometry.type === 'Point' &&
-                L_.layers.on[layerName] &&
-                L_.layers.attachments[layerName] &&
-                L_.layers.attachments[layerName].pairings &&
-                L_.layers.attachments[layerName].pairings.on
-            ) {
-                let sourceCoords = feature.geometry.coordinates
-                let originOffsetOrder =
-                    L_.layers.attachments[layerName].pairings.originOffsetOrder
-                if (originOffsetOrder)
-                    originOffsetOrder = originOffsetOrder.map((o) =>
-                        o.toLowerCase()
+            // Features related to this one in other layers are plotted around
+            // it. What "related" means, and where those features sit, belongs
+            // to the layer's attachments — this just draws what they report.
+            const related =
+                feature.geometry.type === 'Point' && L_.layers.on[layerName]
+                    ? L_.getPeerFeatures(layerName, feature, {
+                          originOffset: imageObj.originOffset,
+                      })
+                    : false
+
+            if (related) {
+                currentImageObj._center = related.origin
+
+                related.layerNames.forEach((name) => {
+                    layers[name] = {}
+                })
+                related.peers.forEach((peer) => {
+                    const peerLayerObj = L_.layers.data[peer.layerName]
+                    addPoint(
+                        peer.layerName,
+                        peer.az,
+                        peer.el,
+                        peerLayerObj.useKeyAsName,
+                        F_.getIn(
+                            peer.feature.properties,
+                            peerLayerObj.useKeyAsName
+                        ),
+                        peerLayerObj.style
                     )
-
-                // Allow sourceCoords offset with originOffset and support configurable axis order
-                // prettier-ignore
-                if( imageObj.originOffset != null ) {
-                    const crs = window.mmgisglobal.customCRS
-                    const scp = crs.project({lng: sourceCoords[0], lat: sourceCoords[1]})
-                    sourceCoords = [scp.x, scp.y, sourceCoords[2]]
-                    if(imageObj.originOffset[0] != null) {
-                        if( originOffsetOrder != null && originOffsetOrder[0] != null) {
-                            const pos = originOffsetOrder[0].includes('z') ? 2 : originOffsetOrder[0].includes('y') ? 1 : 0 
-                            const sign = originOffsetOrder[0].includes('-') ? -1 : 1
-                            sourceCoords[pos] += sign * imageObj.originOffset[0]
-                        }
-                        else
-                            sourceCoords[0] += imageObj.originOffset[0]
-                    }
-                    if(imageObj.originOffset[1] != null) {
-                        if( originOffsetOrder != null && originOffsetOrder[1] != null) {
-                            const pos = originOffsetOrder[1].includes('z') ? 2 : originOffsetOrder[1].includes('y') ? 1 : 0 
-                            const sign = originOffsetOrder[1].includes('-') ? -1 : 1
-                            sourceCoords[pos] += sign * imageObj.originOffset[1]
-                        }
-                        else
-                            sourceCoords[1] += imageObj.originOffset[1]
-                    }
-                    if(imageObj.originOffset[2] != null) {
-                        if( originOffsetOrder != null && originOffsetOrder[2] != null) {
-                            const pos = originOffsetOrder[2].includes('z') ? 2 : originOffsetOrder[2].includes('y') ? 1 : 0 
-                            const sign = originOffsetOrder[2].includes('-') ? -1 : 1
-                            sourceCoords[pos] += sign * imageObj.originOffset[2]
-                        }
-                        else
-                            sourceCoords[2] += imageObj.originOffset[2]
-                    }
-                    const scup = crs.unproject({x: sourceCoords[0], y: sourceCoords[1]})
-                    sourceCoords = [scup.lng, scup.lat, sourceCoords[2]]
-                }
-
-                currentImageObj._center = sourceCoords
-
-                const pairValue = F_.getIn(
-                    feature.properties,
-                    L_.layers.attachments[layerName].pairings.pairProp,
-                    '___null'
-                )
-                L_.layers.attachments[layerName].pairings.pairedLayers.forEach(
-                    (pairedLayerName) => {
-                        if (
-                            L_.layers.layer[pairedLayerName] &&
-                            L_.layers.layer[pairedLayerName]._sourceGeoJSON &&
-                            L_.layers.on[pairedLayerName] === true
-                        ) {
-                            layers[pairedLayerName] = {}
-                            L_.layers.layer[
-                                pairedLayerName
-                            ]._sourceGeoJSON.features.forEach((pairFeature) => {
-                                if (
-                                    pairFeature.geometry.type === 'Point' &&
-                                    F_.getIn(
-                                        pairFeature.properties,
-                                        L_.layers.attachments[layerName]
-                                            .pairings.pairProp,
-                                        null
-                                    ) === pairValue
-                                ) {
-                                    const pairCoords =
-                                        pairFeature.geometry.coordinates
-                                    const azElDist = F_.azElDistBetween(
-                                        {
-                                            lat: sourceCoords[1],
-                                            lng: sourceCoords[0],
-                                            el: sourceCoords[2],
-                                        },
-                                        {
-                                            lat: pairCoords[1],
-                                            lng: pairCoords[0],
-                                            el: pairCoords[2],
-                                        }
-                                    )
-
-                                    // Prefer az/els already provided with the feature (if any and set up)
-                                    if (
-                                        L_.layers.attachments[layerName]
-                                            .pairings.layersAzProp != null
-                                    ) {
-                                        const az = F_.getIn(
-                                            pairFeature.properties,
-                                            L_.layers.attachments[layerName]
-                                                .pairings.layersAzProp,
-                                            null
-                                        )
-                                        if (az != null) azElDist.az = az
-                                    }
-                                    if (
-                                        L_.layers.attachments[layerName]
-                                            .pairings.layersElProp != null
-                                    ) {
-                                        const el = F_.getIn(
-                                            pairFeature.properties,
-                                            L_.layers.attachments[layerName]
-                                                .pairings.layersElProp,
-                                            null
-                                        )
-                                        if (el != null) azElDist.el = el
-                                    }
-
-                                    addPoint(
-                                        pairedLayerName,
-                                        azElDist.az,
-                                        azElDist.el,
-                                        L_.layers.data[pairedLayerName]
-                                            .useKeyAsName,
-                                        F_.getIn(
-                                            pairFeature.properties,
-                                            L_.layers.data[pairedLayerName]
-                                                .useKeyAsName
-                                        ),
-                                        L_.layers.data[pairedLayerName].style
-                                    )
-                                }
-                            })
-                        }
-                    }
-                )
+                })
 
                 render()
             }

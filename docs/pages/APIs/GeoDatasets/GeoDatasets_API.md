@@ -28,6 +28,8 @@ Enables programmatic control over GeoDataset layers. GeoDatasets are GeoJSON fil
   - [POST /recreate](#post-recreate)
   - [POST /recreate/:name](#post-recreatename)
   - [POST /recreate/:name/:start_end_prop](#post-recreatenamestart_end_prop)
+  - [POST /recompute_stats/:name](#post-recompute_statsname)
+  - [POST /convert_properties/:name](#post-convert_propertiesname)
   - [DELETE /remove/:name](#delete-removename)
 
 ---
@@ -66,11 +68,51 @@ Queries and geodataset and returns geojson or vectortiles.
 | **group_id**  | _string_  |  false   |   N/A   |     Return only features with this group_id value          |
 |    **id**     | _integer_ |  false   |   N/A   |  Return only the single feature with this internal row id  |
 |**spatialFilter**| _string_|  false   |   N/A   | Return features intersecting a circle: `lat,lng,radius` (radius in meters) |
+| **noDuplicates**| _boolean_|  false   |  false  | Return only DISTINCT features. Uses the `group_id` field, if set, for distinctness, else the geometry |
+|  **_source**  | _string_  |  false   |   N/A   | Comma-separated list of feature properties fields to return. Defaults to all. Dotted paths supported |
+|   **stats**   | _string_  |  false   |   N/A   | Comma-separated list of numeric feature properties fields to also summarize per group. See [Statistics](#statistics) |
+|  **filters**  | _string_  |  false   |   N/A   | Filter on feature properties: `key+op+type+value,...`. `op` is `>`, `<`, `=` or `in` (with `value` a `$`-separated list); `type` is `string` or `number` |
+|   **limit**   | _integer_ |  false   |   N/A   | Maximum number of features to return (clamped to 1–10000) |
+|  **offset**   | _integer_ |  false   |    0    | Number of features to skip, for use with `limit`           |
+|  **limited**  | _boolean_ |  false   |  false  | If type=geojson, return only the first three features      |
 |     **x**     | _integer_ |  false   |   N/A   |               If type=mvt, x of tile to get                |
 |     **y**     | _integer_ |  false   |   N/A   |               If type=mvt, y of tile to get                |
 |     **z**     | _integer_ |  false   |   N/A   |               If type=mvt, z of tile to get                |
 
+#### Statistics
+
+`stats` adds `min`, `max`, `avg`, `sum` and `stddev` (population) of the requested numeric fields to every returned feature, under `properties._.stats`:
+
+```javascript
+=> {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": { "...": "..." },
+            "properties": {
+                "elevation": 4.5,
+                "_": {
+                    "idx": 1234,
+                    "stats": {
+                        "elevation": { "min": 0.1, "max": 9.8, "avg": 4.2, "sum": 21, "stddev": 3.4 }
+                    }
+                }
+            }
+        }
+    ]
+}
+```
+
+- Statistics describe the feature's **group** — the same grouping `noDuplicates` uses (the geodataset's `group_id` field if it has one, else identical geometry). They are reported whether or not `noDuplicates` is used, so a single request can return one feature per group along with each group's summary.
+- They cover the whole set matched by the query's extent, time, `filters` and `group_id` parameters, **before** `limit`/`offset` — paging does not narrow them.
+- Non-numeric and missing values are ignored. A field that is nowhere numeric reports `null` for each statistic rather than failing.
+- `stats` is ignored for `type=mvt`.
+- For statistics over the whole geodataset rather than a group, see the `field_stats` returned by [GET /schema](#get-schema).
+
 #### Example
+
+`curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/get?layer=my_geodataset&type=geojson&stats=elevation&noDuplicates=true"`
 
 `curl -X GET -H "Authorization:Bearer <token>" http://localhost:8889/api/geodatasets/get?layer=my_geodataset&type=geojson&maxy=45.02695045318546&maxx=-77.23388671875&miny=29.70713934813417&minx=-123.77197265625001&starttime=2022-12-19T03%3A25%3A12.335Z&startProp=start_time&endtime=2024-03-13T21%3A26%3A22.090Z&endProp=end_time`
 
@@ -149,7 +191,7 @@ Like [GET /aggregations](#get-aggregations) but aggregates across multiple layer
 
 ### GET /schema
 
-Returns field names, types, and source layers for one or more geodataset layers in bulk.
+Returns field names, types, and source layers for one or more geodataset layers in bulk, plus each layer's dataset-wide statistics.
 
 | Parameter |   Type   | Required | Default |                 Description                  |
 | :-------: | :------: | :------: | :-----: | :------------------------------------------: |
@@ -159,11 +201,41 @@ Returns field names, types, and source layers for one or more geodataset layers 
 
 `curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/schema?layers=layer_a,layer_b"`
 
+```javascript
+=> {
+    "status": "success",
+    "schema": {
+        "elevation": { "type": "number", "layers": ["layer_a"] }
+    },
+    "field_stats": {
+        "layer_a": {
+            "elevation": {
+                "type": "number",
+                "min": 0.1,
+                "max": 9.8,
+                "sum": 420,
+                "sumsq": 2100,
+                "count": 100,
+                "nullCount": 4,
+                "avg": 4.2,
+                "stddev": 2.32
+            }
+        }
+    }
+}
+```
+
+`field_stats` covers **every** feature of every numeric field, unlike `schema`, which is inferred from a sample. It is computed when a geodataset is created or recreated, and widened by each append — `sum`, `sumsq` and `count` are stored (rather than only `avg` and `stddev`) so an append can update it exactly without re-reading the table.
+
+`count` is how many features held a number for the field and `nullCount` how many did not, whether the property was absent, null or non-numeric. `avg`, the population `stddev` and `nullCount` are derived on read; only `min`, `max`, `sum`, `sumsq` and `count` are stored.
+
+It is absent for geodatasets that have not been created or recreated since MMGIS added it. Appending to such a geodataset leaves it absent rather than reporting only the appended features; recreate the geodataset to compute it. (An append that *creates* the geodataset does compute it, since those features are all of them.) A field is only summarized where its value is a whole number, so text that merely starts with digits (`"2024-01-15"`, `"1.2.3"`) is not.
+
 ---
 
 ### POST /entries
 
-Lists out available geodatasets and their last updated dates
+Lists out available geodatasets and their last updated dates. `properties_type` is how each one stores its feature properties, `json` or `jsonb` — see [POST /convert_properties/:name](#post-convert_propertiesname).
 
 #### Example
 
@@ -176,7 +248,21 @@ Lists out available geodatasets and their last updated dates
         "entries": [
             {
                 "name": "terrain",
-                "updated": "2022-05-23T17:49:09.097Z"
+                "updated": "2022-05-23T17:49:09.097Z",
+                "properties_type": "jsonb",
+                "field_stats": {
+                    "elevation": {
+                        "type": "number",
+                        "min": 0.1,
+                        "max": 9.8,
+                        "sum": 420,
+                        "sumsq": 2100,
+                        "count": 100,
+                        "nullCount": 4,
+                        "avg": 4.2,
+                        "stddev": 2.32
+                    }
+                }
             },
             {
                 "name": "footprints",
@@ -298,6 +384,28 @@ See [POST /recreate](#post-recreate). `name` is part of url and the POST body is
 #### Example
 
 `curl -X POST -H "Authorization:Bearer <token>" -H "Content-Type: application/json" --data-binary "@my_geodataset.json" http://localhost:8888/api/geodatasets/recreate/my_geodataset/start_time,end_time`
+
+---
+
+### POST /recompute_stats/:name
+
+Recomputes a geodataset's dataset-wide `field_stats` from the features already in it, in one pass over its table. Needed only for a geodataset written before those statistics were kept, since an append summarizes just the features it appends. See [GET /schema](#get-schema) for what is returned per field.
+
+#### Example
+
+`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8888/api/geodatasets/recompute_stats/my_geodataset`
+
+---
+
+### POST /convert_properties/:name
+
+Converts a geodataset's `properties` column from `json` to `jsonb`. `json` is stored as text and reparsed on every property read; `jsonb` is stored parsed, which is several times faster for `stats=` and for every other property read. Geodatasets created since this was added are already `jsonb` — [POST /entries](#post-entries) reports each one's `properties_type`.
+
+The table is rewritten under an exclusive lock, so it is unavailable while the conversion runs (about 25 seconds for 200,000 features) and needs free disk space of roughly the table's size until the old rows are vacuumed.
+
+#### Example
+
+`curl -X POST -H "Authorization:Bearer <token>" http://localhost:8888/api/geodatasets/convert_properties/my_geodataset`
 
 ---
 

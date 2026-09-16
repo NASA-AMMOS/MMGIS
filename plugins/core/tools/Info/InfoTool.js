@@ -2,10 +2,13 @@ import $ from 'jquery'
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
-import { Kinds } from '@pre/tools'
+import {
+    runInteractions,
+    kindToInteractions,
+} from '@basics/InteractionRunner/InteractionRunner'
 import Dropy from '@external/Dropy/dropy'
 
-import MetadataCapturer from '@basics/Layers_/MetadataCapturer'
+import MetadataCapturer from '@basics/Layers_/capture/MetadataCapturer'
 import Help from '@basics/UserInterface_/components/Help/Help'
 import ConfirmationModal from '@basics/UserInterface_/components/ConfirmationModal/ConfirmationModal'
 
@@ -76,7 +79,7 @@ var markup = [
             "<div id='infoToolNoneSelected'>No feature selected</div>",
         "</div>",
     "</div>"
-].join('\n');
+].join('\n')
 
 var InfoTool = {
     height: 0,
@@ -97,9 +100,14 @@ var InfoTool = {
     MMGISInterface: null,
     initialize: function () {
         if (L_.UserInterface_.isMobile === true) {
-            const mapRect = document.getElementById('map').getBoundingClientRect()
+            const mapRect = document
+                .getElementById('map')
+                .getBoundingClientRect()
             this.width = 'full'
-            this.height = this.height = Math.round(mapRect.height * 0.5)
+            // Mobile bottom-sheet detents (fractions of map height), from small to large
+            // Middle detent is the default open height
+            this.heightDetents = [0.3, 0.5, 0.85]
+            this.height = Math.round(mapRect.height * this.heightDetents[1])
         }
     },
     make: function () {
@@ -166,7 +174,8 @@ var InfoTool = {
 
         if (open != true) return
 
-        const divID = L_.UserInterface_.isMobile === true ?  '#tools' : '#toolPanel'
+        const divID =
+            L_.UserInterface_.isMobile === true ? '#tools' : '#toolPanel'
 
         // MMGIS should always have a div with id 'tools'
         const toolsContainer = $(divID)
@@ -238,12 +247,10 @@ var InfoTool = {
                 ? this.variables.useKeyAsName || 'name'
                 : 'name'
 
-            if (
-                !(
-                    typeof this.info[i].properties[key] === 'string' ||
-                    typeof this.info[i].properties[key] === 'number'
-                )
-            ) {
+            if (!(
+                typeof this.info[i].properties[key] === 'string' ||
+                typeof this.info[i].properties[key] === 'number'
+            )) {
                 const propKeys = Object.keys(this.info[i].properties)
                 for (let j = 0; j < propKeys.length; j++) {
                     if (
@@ -682,19 +689,35 @@ var InfoTool = {
         let e = JSON.parse(JSON.stringify(InfoTool.initialEvent))
         MetadataCapturer.populateMetadata(
             InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-            () => {
-                Kinds.use(
-                    L_.layers.data[InfoTool.currentLayerName]?.kind || null,
+            async () => {
+                const layerName = InfoTool.currentLayerName
+                const layerData = L_.layers.data[layerName] || {}
+                const pipeline =
+                    layerData.interactions?.click ||
+                    kindToInteractions(layerData.kind || 'none').click
+
+                L_.clearFeatureAttachments()
+
+                const ctx = {
                     Map_,
-                    InfoTool.info[idx],
-                    InfoTool.featureLayers[idx] || InfoTool.currentLayer,
-                    InfoTool.currentLayerName,
-                    null,
-                    e,
-                    { idx: idx },
-                    InfoTool.info,
-                    InfoTool.featureLayers[idx] ? InfoTool.featureLayers : null
-                )
+                    feature: InfoTool.info[idx],
+                    layer: InfoTool.featureLayers[idx] || InfoTool.currentLayer,
+                    layerName,
+                    layerData,
+                    layerVar: layerData.variables || {},
+                    event: e,
+                    eventType: 'click',
+                    additional: { idx: idx },
+                    stop: false,
+                    state: {
+                        preFeatures: InfoTool.info,
+                        lastFeatureLayers: InfoTool.featureLayers[idx]
+                            ? InfoTool.featureLayers
+                            : null,
+                    },
+                }
+
+                await runInteractions(pipeline, ctx)
             }
         )
     },

@@ -26,10 +26,17 @@ const testEnv = require("../API/testEnv");
 const utils = require("../API/utils");
 
 const { sequelize } = require("../API/connection");
+const { getRequestHost, isOriginAllowed } = require("../API/origin");
 
 const setups = require("../API/setups");
 
-const { updateTools, updateComponents } = require("../API/updateTools");
+const {
+  updateTools,
+  updateComponents,
+  updateInteractions,
+  updateLayerTypes,
+  updateLayerAttachments,
+} = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
@@ -77,11 +84,36 @@ permissions.users = process.env.CSSO_GROUPS
 const port = parseInt(process.env.PORT || "8888", 10);
 
 /** set the session for application */
-const cookieOptions = { maxAge: 86400000 };
-if (process.env.THIRD_PARTY_COOKIES === "true") {
-  cookieOptions.sameSite = "None";
-  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+const thirdPartyCookies = process.env.THIRD_PARTY_COOKIES === "true";
+const sessionCookieSecure = process.env.SESSION_COOKIE_SECURE;
+if (
+  sessionCookieSecure &&
+  sessionCookieSecure !== "true" &&
+  sessionCookieSecure !== "false"
+) {
+  logger(
+    "infrastructure_error",
+    "FATAL: SESSION_COOKIE_SECURE must be true, false, or unset.",
+    "server",
+  );
+  process.exit(1);
 }
+if (thirdPartyCookies && sessionCookieSecure === "false") {
+  logger(
+    "infrastructure_error",
+    "FATAL: SESSION_COOKIE_SECURE=false is incompatible with THIRD_PARTY_COOKIES=true.",
+    "server",
+  );
+  process.exit(1);
+}
+const cookieOptions = {
+  maxAge: 86400000,
+  sameSite: thirdPartyCookies ? "None" : "Lax",
+  secure:
+    sessionCookieSecure === "true" ||
+    (sessionCookieSecure !== "false" &&
+      (process.env.HTTPS === "true" || thirdPartyCookies)),
+};
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -136,19 +168,18 @@ if (process.argv.includes("--with_examples"))
     express.static(path.join(rootDir, "/examples")),
   );
 
-app.use(
-  session({
-    secret: sessionSecret,
-    name: "MMGISSession",
-    proxy: true,
-    resave: false,
-    cookie: cookieOptions,
-    saveUninitialized: false,
-    store: new (require("connect-pg-simple")(session))({
-      pool,
-    }),
+const sessionMiddleware = session({
+  secret: sessionSecret,
+  name: "MMGISSession",
+  proxy: true,
+  resave: false,
+  cookie: cookieOptions,
+  saveUninitialized: false,
+  store: new (require("connect-pg-simple")(session))({
+    pool,
   }),
-);
+});
+app.use(sessionMiddleware);
 
 if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
   setSPICEKernelDownloadSchedule(
@@ -228,15 +259,16 @@ function checkHeadersCodeInjection(req, res, next) {
     });
     res.end();
   } else {
-    // Set header parameters for this request
-    // res.setHeader('Access-Control-Allow-Origin', 'http://localhost:80');
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST");
-    // res.setHeader('Content-Type', 'application/json');
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-with, Content-Type, Methods",
-    );
+    const origin = req.get("Origin");
+    if (origin && isOriginAllowed(origin, getRequestHost(req))) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-with, Content-Type, Methods",
+      );
+      res.setHeader("Vary", "Origin");
+    }
     next();
   }
 }
@@ -378,7 +410,7 @@ function ensureAdmin(
           res.send({ status: "failure", message: "Unauthorized Token!" });
           logger(
             "warn",
-            `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
+            `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization.slice(0, 16)}...)`,
             req.originalUrl,
             req,
           );
@@ -470,7 +502,7 @@ function ensureUser() {
             res.send({ status: "failure", message: "Unauthorized Token!" });
             logger(
               "warn",
-              `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
+              `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization.slice(0, 16)}...)`,
               req.originalUrl,
               req,
             );
@@ -623,8 +655,29 @@ app.use(cssoHandler);
 //app.use(logger('dev'));
 //app.use(express.json());
 
-app.use(bodyParser.json({ limit: "500mb" })); // support json encoded bodies
-app.use(bodyParser.urlencoded({ limit: "500mb", extended: true })); // support encoded bodies
+const largeBodyLimit = "500mb";
+for (const route of [
+  `${ROOT_PATH}/api/configure`,
+  `${ROOT_PATH}/api/datasets`,
+  `${ROOT_PATH}/api/files`,
+  `${ROOT_PATH}/api/geodatasets`,
+]) {
+  app.use(route, bodyParser.json({ limit: largeBodyLimit }));
+  app.use(
+    route,
+    bodyParser.urlencoded({ limit: largeBodyLimit, extended: true }),
+  );
+}
+const mediumBodyLimit = "50mb";
+for (const route of [`${ROOT_PATH}/api/draw`, `${ROOT_PATH}/api/utils`]) {
+  app.use(route, bodyParser.json({ limit: mediumBodyLimit }));
+  app.use(
+    route,
+    bodyParser.urlencoded({ limit: mediumBodyLimit, extended: true }),
+  );
+}
+app.use(bodyParser.json({ limit: "10mb" })); // support json encoded bodies
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true })); // support encoded bodies
 
 // Express 5 no longer initializes req.body to {} — it is undefined when no
 // body-parser middleware has matched the Content-Type.  Many route handlers
@@ -637,7 +690,14 @@ app.use((req, res, next) => {
 
 app.use(cookieParser());
 
-app.use(cors());
+app.use((req, res, next) => {
+  cors({
+    credentials: true,
+    origin: (origin, callback) => {
+      callback(null, isOriginAllowed(origin, getRequestHost(req)));
+    },
+  })(req, res, next);
+});
 // app.set('Origin', false);
 
 /*Require all dynamic backend setup scripts
@@ -745,6 +805,15 @@ setups.getBackendSetups(function (setups) {
 
     console.log(chalk.cyan("\nPlugging in Components..."));
     updateComponents();
+
+    console.log(chalk.cyan("\nPlugging in Interactions..."));
+    updateInteractions();
+
+    console.log(chalk.cyan("\nPlugging in Layer Types..."));
+    updateLayerTypes();
+
+    console.log(chalk.cyan("\nPlugging in Layer Attachments..."));
+    updateLayerAttachments();
   }
 
   //////Setups Init//////
@@ -851,7 +920,8 @@ setups.getBackendSetups(function (setups) {
       if (res.headersSent) {
         return next(err);
       }
-      res.status(500).send({
+      const status = err.statusCode || err.status;
+      res.status(status >= 400 && status < 500 ? status : 500).send({
         status: "error",
         message: "Internal server error.",
       });
@@ -865,7 +935,7 @@ setups.getBackendSetups(function (setups) {
 
     if (process.env.ENABLE_MMGIS_WEBSOCKETS) {
       console.log(chalk.cyan("\nStarting websocket..."));
-      websocket.init(httpServer);
+      websocket.init(httpServer, sessionMiddleware);
     }
   });
 });
@@ -882,7 +952,6 @@ function setupDevServer() {
   const HOST = "localhost";
   const config = configFactory("development");
   const protocol = process.env.HTTPS === "true" ? "https" : "http";
-  const isInteractive = process.stdout.isTTY;
   const { URL } = require("url");
   const lanUrl = new URL(`${protocol}://${HOST}:${port}${paths.publicUrlOrPath.slice(0, -1)}`);
   const urls = {
@@ -955,10 +1024,6 @@ function setupDevServer() {
     if (err) {
       return console.log(err);
     }
-    if (isInteractive) {
-      console.clear();
-    }
-
     // We used to support resolving modules according to `NODE_PATH`.
     // This now has been deprecated in favor of jsconfig/tsconfig.json
     // This lets you use absolute paths in imports inside large monorepos:

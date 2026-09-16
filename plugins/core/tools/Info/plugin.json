@@ -16,6 +16,7 @@
     "hasVars": true,
     "name": "Info",
     "toolbarPriority": 3,
+    "worksOnMobile": true,
     "paths": {
         "InfoTool": "./InfoTool"
     },
@@ -38,5 +39,9 @@
     },
     "author": "NASA-AMMOS/MMGIS",
     "license": "Apache-2.0",
-    "repository": "https://github.com/NASA-AMMOS/MMGIS"
+    "repository": "https://github.com/NASA-AMMOS/MMGIS",
+    "providesInteractions": [
+        "core/interactions/InfoOpen",
+        "core/interactions/InfoSilent"
+    ]
 }

@@ -1,0 +1,92 @@
+{
+    "name": "__Name__",
+    "type": "layertype",
+    "typeId": "__flatname__",
+    "version": "1.0.0",
+    "tier": "community",
+    "overridable": true,
+    "color": "#4e9a06",
+    "defaultIcon": "Layers",
+    "description": "",
+    "capabilities": {
+        "renderers": {
+            "map": {
+                "engines": [
+                    "leaflet"
+                ]
+            },
+            "globe": false
+        },
+        "map": {
+            "stacking": "overlay",
+            "picking": true,
+            "styling": true
+        },
+        "time": false
+    },
+    "supportedData": [
+        {
+            "label": "Example format",
+            "category": "vector",
+            "standards": [],
+            "formats": [],
+            "extensions": [],
+            "description": ""
+        }
+    ],
+    "config": {
+        "tabs": [
+            {
+                "name": "Core",
+                "rows": [
+                    {
+                        "forceHeight": "64px",
+                        "components": [
+                            {
+                                "field": "type",
+                                "name": "Layer Type",
+                                "description": "",
+                                "type": "dropdown",
+                                "width": 2,
+                                "options": [
+                                    "__flatname__"
+                                ]
+                            },
+                            {
+                                "field": "name",
+                                "name": "Layer Name",
+                                "description": "",
+                                "type": "textnotrim",
+                                "width": 8,
+                                "required": true
+                            },
+                            {
+                                "field": "visibility",
+                                "name": "Initially On",
+                                "description": "",
+                                "type": "checkbox",
+                                "width": 2,
+                                "defaultChecked": false
+                            }
+                        ]
+                    },
+                    {
+                        "name": "__Name__",
+                        "components": [
+                            {
+                                "field": "url",
+                                "name": "URL",
+                                "description": "",
+                                "type": "text",
+                                "width": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "modules": {
+        "map": "./map"
+    }
+}

@@ -67,21 +67,29 @@ export function parseExternalStacUrl(afterColon) {
  *
  * @param {string} url - The URL to transform (may or may not be a stac-collection: URL)
  * @param {object} layerData - The layer configuration object
- * @param {string} type - The type of endpoint to generate ('tile' or 'image')
+ * @param {string} endpoint - Which TiTiler endpoint to generate: 'tiles' (raster
+ *   tiles), 'terrain' (elevation tiles) or 'preview' (a single image). The layer
+ *   TYPE does not appear here — the caller (a layer type's renderer, or core via
+ *   capabilities.map.stacEndpoint) says which endpoint it wants.
  * @param {object} location - Location object with origin and pathname (defaults to window.location)
  * @returns {string} - The transformed URL or the original URL if not a STAC URL
  *
  * @example
  * // Local STAC URL
- * transformStacUrl('stac-collection:my_collection', { cogBands: [1, 2, 3] }, 'tile')
+ * transformStacUrl('stac-collection:my_collection', { cogBands: [1, 2, 3] }, 'tiles')
  * // => 'http://localhost:8888/MMGIS/titilerpgstac/collections/my_collection/tiles/...'
  *
  * @example
  * // External STAC URL
- * transformStacUrl('stac-collection:https://example.com/titilerpgstac:remote_collection', {}, 'tile')
+ * transformStacUrl('stac-collection:https://example.com/titilerpgstac:remote_collection', {}, 'tiles')
  * // => 'https://example.com/titilerpgstac/collections/remote_collection/tiles/...'
  */
-export function transformStacUrl(url, layerData, type = 'tile', location = null) {
+export function transformStacUrl(
+    url,
+    layerData,
+    endpoint = 'tiles',
+    location = null
+) {
     if (!url || typeof url !== 'string') return url
 
     // Check if this is a STAC collection URL
@@ -117,18 +125,15 @@ export function transformStacUrl(url, layerData, type = 'tile', location = null)
         baseUrl = `${origin}${pathname}/titilerpgstac`
     }
 
-    // Build bands parameter (only if no expression exists)
-    let bandsParam = ''
+    // Band selection (only if no expression exists). titiler>=2 ignores a
+    // top-level bidx for STAC assets; bands go inline as assets=asset|bidx=1,2,3
+    let assetsParam = 'assets=asset'
     if (
         layerData &&
         (!layerData.cogExpression || layerData.cogExpression.trim() === '')
     ) {
-        const bands = layerData.cogBands
-        if (bands != null) {
-            bands.forEach((band) => {
-                if (band != null) bandsParam += `&bidx=${band}`
-            })
-        }
+        const bands = formatStacBidx(layerData.cogBands)
+        if (bands) assetsParam += `|bidx=${bands}`
     }
 
     // Build resampling parameter
@@ -137,36 +142,57 @@ export function transformStacUrl(url, layerData, type = 'tile', location = null)
         resamplingParam = `&resampling=${layerData.cogResampling}`
     }
 
-    // Generate different endpoints based on type
-    if (type === 'tile') {
+    // Generate different endpoints based on the requested endpoint kind
+    if (endpoint === 'tiles') {
         // Tile endpoint for raster tiles
         return `${baseUrl}/collections/${collectionName}/tiles/${
             (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
-        }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
-    } else if (type === 'data') {
+        }/{z}/{x}/{y}?${assetsParam}${resamplingParam}`
+    } else if (endpoint === 'terrain') {
         const tmsId = (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
         const parser = layerData && layerData.demparser
         const tileBase = `${baseUrl}/collections/${collectionName}/tiles/${tmsId}`
         if (parser === 'terrarium') {
-            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrarium&assets=asset${bandsParam}${resamplingParam}`
+            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrarium&${assetsParam}${resamplingParam}`
         } else if (parser === 'terrainrgb') {
-            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrainrgb&assets=asset${bandsParam}${resamplingParam}`
+            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrainrgb&${assetsParam}${resamplingParam}`
         } else {
             // Default: npy — raw float32, no compression, fastest server-side processing
-            return `${tileBase}/{z}/{x}/{y}.npy?assets=asset${bandsParam}${resamplingParam}`
+            return `${tileBase}/{z}/{x}/{y}.npy?${assetsParam}${resamplingParam}`
         }
     } else {
-        // For images, we use preview endpoint
-        // Note: STAC collections are typically designed for tile serving
+        // A single preview image rather than tiles
         if (layerData && layerData.name) {
             console.warn(
-                `STAC layer "${layerData.name}" is configured as an image layer. ` +
-                    `STAC collections work best with tile layer type. ` +
+                `STAC layer "${layerData.name}" requested a 'preview' endpoint. ` +
+                    `STAC collections work best served as tiles. ` +
                     `Attempting to use preview endpoint.`
             )
         }
-        return `${baseUrl}/collections/${collectionName}/preview?assets=asset${bandsParam}${resamplingParam}`
+        return `${baseUrl}/collections/${collectionName}/preview?${assetsParam}${resamplingParam}`
     }
+}
+
+/**
+ * Format a cogBands array as the comma list used in `assets=asset|bidx=1,2,3`
+ * @param {Array} bands
+ * @returns {string} e.g. '1,2,3' or '' when no bands are set
+ */
+export function formatStacBidx(bands) {
+    if (!Array.isArray(bands)) return ''
+    return bands.filter((b) => b != null).join(',')
+}
+
+/**
+ * Normalize a user band-math expression for titiler>=2 / rio-tiler>=9, where bands
+ * of the requested asset(s) are always named b1..bN. Accepts the legacy MMGIS
+ * shorthand `asset_bN` / `asset_BN` and bare `bN` / `BN`, all mapped to `bN`.
+ * @param {string} expression
+ * @returns {string}
+ */
+export function normalizeTitilerExpression(expression) {
+    if (!expression || typeof expression !== 'string') return expression
+    return expression.replace(/(?<!\w)(?:asset_)?[bB](\d+)(?!\w)/g, 'b$1')
 }
 
 /**
@@ -234,10 +260,11 @@ export function buildTiTilerQueryParams(options) {
     // expression parameter
     const expressionToUse = options.currentCogExpression || options.cogExpression
     if (expressionToUse && expressionToUse.trim() !== '') {
-        // Replace bX or BX (where X is a number) with asset_bX or asset_BX
-        // Only replace if not already prefixed with an asset name (word_bX pattern)
-        const processedExpression = expressionToUse.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
-        params.push(`expression=${encodeURIComponent(processedExpression)}`)
+        params.push(
+            `expression=${encodeURIComponent(
+                normalizeTitilerExpression(expressionToUse)
+            )}`
+        )
     }
 
     // STAC mosaic limits from global config
@@ -259,5 +286,7 @@ export function buildTiTilerQueryParams(options) {
 export default {
     parseExternalStacUrl,
     transformStacUrl,
+    formatStacBidx,
+    normalizeTitilerExpression,
     buildTiTilerQueryParams
 }
