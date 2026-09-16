@@ -313,7 +313,7 @@
               {
                 "field": "cogExpression",
                 "name": "Band Math Expression",
-                "description": "TiTiler/rio-tiler band math expression. Uses standard math operators (+-/*) where asset_bX represents band X of an asset (e.g., 'asset_b1*2', '(asset_b1+asset_b2)/2'). For RGB output, use semicolons (e.g., 'asset_b1;asset_b2;asset_b3'). For multiple STAC assets, use different asset names (e.g., 'assetname1_b1 + assetname2_b1'). If you omit the asset prefix (e.g., 'b1'), it will automatically default to 'asset_b1'. When specified, this replaces the 'Tile Bands' parameter.",
+                "description": "TiTiler/rio-tiler band math expression. Uses standard math operators (+-/*) where bX represents band X of the raster/STAC asset (e.g., 'b1*2', '(b1+b2)/2'). For RGB output, use semicolons (e.g., 'b1;b2;b3'). The legacy 'asset_bX' form is accepted and mapped to 'bX'. When specified, this replaces the 'Tile Bands' parameter.",
                 "type": "textnotrim",
                 "width": 9
               },

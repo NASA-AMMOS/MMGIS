@@ -462,13 +462,14 @@ function prepareAdjacentServerEnvFiles(repoRoot) {
     );
 
     // Point adjacent servers at the test STAC database
+    // (POSTGRES_DBNAME for stac/tipg, PGDATABASE for titiler-pgstac)
     contents = contents.replace(
-      /^(POSTGRES_DBNAME\s*=\s*).*$/m,
+      /^((?:POSTGRES_DBNAME|PGDATABASE)\s*=\s*).*$/m,
       `$1${TEST_STAC_DB_NAME}`,
     );
 
     writeFileSync(envFile, contents, 'utf8');
-    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example (POSTGRES_DBNAME=${TEST_STAC_DB_NAME}).`);
+    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example (STAC db=${TEST_STAC_DB_NAME}).`);
   }
 }
 

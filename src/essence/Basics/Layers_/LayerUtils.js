@@ -125,18 +125,15 @@ export function transformStacUrl(
         baseUrl = `${origin}${pathname}/titilerpgstac`
     }
 
-    // Build bands parameter (only if no expression exists)
-    let bandsParam = ''
+    // Band selection (only if no expression exists). titiler>=2 ignores a
+    // top-level bidx for STAC assets; bands go inline as assets=asset|bidx=1,2,3
+    let assetsParam = 'assets=asset'
     if (
         layerData &&
         (!layerData.cogExpression || layerData.cogExpression.trim() === '')
     ) {
-        const bands = layerData.cogBands
-        if (bands != null) {
-            bands.forEach((band) => {
-                if (band != null) bandsParam += `&bidx=${band}`
-            })
-        }
+        const bands = formatStacBidx(layerData.cogBands)
+        if (bands) assetsParam += `|bidx=${bands}`
     }
 
     // Build resampling parameter
@@ -150,18 +147,18 @@ export function transformStacUrl(
         // Tile endpoint for raster tiles
         return `${baseUrl}/collections/${collectionName}/tiles/${
             (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
-        }/{z}/{x}/{y}?assets=asset${bandsParam}${resamplingParam}`
+        }/{z}/{x}/{y}?${assetsParam}${resamplingParam}`
     } else if (endpoint === 'terrain') {
         const tmsId = (layerData && layerData.tileMatrixSet) || 'WebMercatorQuad'
         const parser = layerData && layerData.demparser
         const tileBase = `${baseUrl}/collections/${collectionName}/tiles/${tmsId}`
         if (parser === 'terrarium') {
-            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrarium&assets=asset${bandsParam}${resamplingParam}`
+            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrarium&${assetsParam}${resamplingParam}`
         } else if (parser === 'terrainrgb') {
-            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrainrgb&assets=asset${bandsParam}${resamplingParam}`
+            return `${tileBase}/{z}/{x}/{y}.png?algorithm=terrainrgb&${assetsParam}${resamplingParam}`
         } else {
             // Default: npy — raw float32, no compression, fastest server-side processing
-            return `${tileBase}/{z}/{x}/{y}.npy?assets=asset${bandsParam}${resamplingParam}`
+            return `${tileBase}/{z}/{x}/{y}.npy?${assetsParam}${resamplingParam}`
         }
     } else {
         // A single preview image rather than tiles
@@ -172,8 +169,30 @@ export function transformStacUrl(
                     `Attempting to use preview endpoint.`
             )
         }
-        return `${baseUrl}/collections/${collectionName}/preview?assets=asset${bandsParam}${resamplingParam}`
+        return `${baseUrl}/collections/${collectionName}/preview?${assetsParam}${resamplingParam}`
     }
+}
+
+/**
+ * Format a cogBands array as the comma list used in `assets=asset|bidx=1,2,3`
+ * @param {Array} bands
+ * @returns {string} e.g. '1,2,3' or '' when no bands are set
+ */
+export function formatStacBidx(bands) {
+    if (!Array.isArray(bands)) return ''
+    return bands.filter((b) => b != null).join(',')
+}
+
+/**
+ * Normalize a user band-math expression for titiler>=2 / rio-tiler>=9, where bands
+ * of the requested asset(s) are always named b1..bN. Accepts the legacy MMGIS
+ * shorthand `asset_bN` / `asset_BN` and bare `bN` / `BN`, all mapped to `bN`.
+ * @param {string} expression
+ * @returns {string}
+ */
+export function normalizeTitilerExpression(expression) {
+    if (!expression || typeof expression !== 'string') return expression
+    return expression.replace(/(?<!\w)(?:asset_)?[bB](\d+)(?!\w)/g, 'b$1')
 }
 
 /**
@@ -241,10 +260,11 @@ export function buildTiTilerQueryParams(options) {
     // expression parameter
     const expressionToUse = options.currentCogExpression || options.cogExpression
     if (expressionToUse && expressionToUse.trim() !== '') {
-        // Replace bX or BX (where X is a number) with asset_bX or asset_BX
-        // Only replace if not already prefixed with an asset name (word_bX pattern)
-        const processedExpression = expressionToUse.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
-        params.push(`expression=${encodeURIComponent(processedExpression)}`)
+        params.push(
+            `expression=${encodeURIComponent(
+                normalizeTitilerExpression(expressionToUse)
+            )}`
+        )
     }
 
     // STAC mosaic limits from global config
@@ -266,5 +286,7 @@ export function buildTiTilerQueryParams(options) {
 export default {
     parseExternalStacUrl,
     transformStacUrl,
+    formatStacBidx,
+    normalizeTitilerExpression,
     buildTiTilerQueryParams
 }

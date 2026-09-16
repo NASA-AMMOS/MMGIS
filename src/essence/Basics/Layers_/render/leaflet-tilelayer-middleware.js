@@ -12,6 +12,7 @@
 */
 
 import F_ from '../../../Basics/Formulae_/Formulae_'
+import { normalizeTitilerExpression } from '../LayerUtils'
 
 var colorFilterExtension = {
     intialize: function (url, options) {
@@ -68,14 +69,7 @@ var colorFilterExtension = {
             // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
             const expressionToUse = this.options.currentCogExpression || this.options.cogExpression
             if (expressionToUse && expressionToUse.trim() !== '') {
-                // Process expression to add asset_ prefix if needed
-                const processExpression = (expression) => {
-                    if (!expression || expression.trim() === '') return expression
-                    // Replace bX or BX (where X is a number) with asset_bX or asset_BX
-                    // Only replace if not already prefixed with an asset name (word_bX pattern)
-                    return expression.replace(/(?<!\w)([bB])(\d+)/g, 'asset_$1$2')
-                }
-                const processedExpression = processExpression(expressionToUse)
+                const processedExpression = normalizeTitilerExpression(expressionToUse)
                 url += `${url.indexOf('?') === -1 ? '?' : '&'}expression=${encodeURIComponent(processedExpression)}`
             }
 

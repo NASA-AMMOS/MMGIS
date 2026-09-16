@@ -956,13 +956,13 @@ function interfaceWithMMGIS(fromInit) {
                             '</div>',
                             `<li class="tileCogExpression">`,
                                 '<div>',
-                                    `<input class="tileexpression" layername="${escapedLayerName}" type="text" value="${F_.escapeHtml(currentExpression)}" placeholder="e.g., b1*2 or asset_b1*2">`,
+                                    `<input class="tileexpression" layername="${escapedLayerName}" type="text" value="${F_.escapeHtml(currentExpression)}" placeholder="e.g., b1*2 or (b1+b2)/2">`,
                                     '<div class="expression-buttons">',
                                         `<button class="tileexpressionapply" layername="${escapedLayerName}">Apply</button>`,
                                     '</div>',
                                 '</div>',
                                 '<div>',
-                                    '<div class="expression-helper-text">Use asset_bX for bands (e.g., asset_b1, asset_b2). Supports math operators: +, -, *, /, () for grouping. For RGB output: asset_b1;asset_b2;asset_b3. Shorthand bX will auto-prefix to asset_bX.</div>',
+                                    '<div class="expression-helper-text">Use bX for bands (e.g., b1, b2). Supports math operators: +, -, *, /, () for grouping. For RGB output: b1;b2;b3. Legacy asset_bX is accepted and mapped to bX.</div>',
                                     `<div class="expression-stac-info" data-layername="${escapedLayerName}"></div>`,
                                 '</div>',
                             '</li>',
@@ -980,7 +980,7 @@ function interfaceWithMMGIS(fromInit) {
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || TILE_DEFAULT_COLOR_RAMP}?format=png"
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || TILE_DEFAULT_COLOR_RAMP}?f=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
@@ -1176,7 +1176,7 @@ function interfaceWithMMGIS(fromInit) {
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables?.streamlines?.colorScale?.toLowerCase() || VELOCITY_DEFAULT_COLOR_RAMP}?format=png"
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].variables?.streamlines?.colorScale?.toLowerCase() || VELOCITY_DEFAULT_COLOR_RAMP}?f=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
@@ -1266,7 +1266,7 @@ function interfaceWithMMGIS(fromInit) {
                             additionalSettings = [
                                 `<img id="titlerCogColormapImage_${escapedLayerName}" src="${window.location.origin}${(
                                             window.location.pathname || ''
-                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || IMAGE_DEFAULT_COLOR_RAMP}?format=png"
+                                        ).replace(/\/$/g, '')}/titiler/colorMaps/${node[i].cogColormap?.toLowerCase() || IMAGE_DEFAULT_COLOR_RAMP}?f=png"
                                 data-colormap="${colormap}" data-colormap-reverse="${reverse}"></img>`,
                             ].join('\n')
                         } else {
