@@ -439,8 +439,7 @@
             theme = localStorage.getItem("mmgisLandingTheme");
           } catch (e) {}
         }
-        if (theme === "light" || theme === "dark")
-          mmgisglobal.setLoadingTheme(theme);
+        mmgisglobal.setLoadingTheme(theme === "dark" ? "dark" : "light");
       })();
 
       // React UI is always enabled
