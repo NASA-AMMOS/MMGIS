@@ -423,13 +423,25 @@
       }
       window.mmgisglobal = mmgisglobal;
 
-      // Theme the loading page to match the landing page (General Options -> Landing Page -> Theme).
-      // In production the server injects the saved theme; the client re-applies it once options load.
+      // Loading page theme: server-injected (prod) or last seen (localStorage), re-applied once options load
       mmgisglobal.setLoadingTheme = function (theme) {
+        theme = theme === "dark" ? "dark" : "light";
         var el = document.querySelector(".LoadingPage");
-        if (el) el.classList.toggle("light", theme !== "dark");
+        if (el) el.classList.toggle("light", theme === "light");
+        try {
+          localStorage.setItem("mmgisLandingTheme", theme);
+        } catch (e) {}
       };
-      mmgisglobal.setLoadingTheme(mmgisglobal.LANDING_THEME);
+      (function () {
+        var theme = mmgisglobal.LANDING_THEME;
+        if (theme !== "light" && theme !== "dark") {
+          try {
+            theme = localStorage.getItem("mmgisLandingTheme");
+          } catch (e) {}
+        }
+        if (theme === "light" || theme === "dark")
+          mmgisglobal.setLoadingTheme(theme);
+      })();
 
       // React UI is always enabled
       mmgisglobal.useReactUI = true;
