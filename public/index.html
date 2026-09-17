@@ -85,9 +85,28 @@
         height: 44px;
       }
 
+      /* Soft edge vignette, same as .landingPage::after */
+      .LoadingPage::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(0, 0, 0, 0.35) 100%
+        );
+        pointer-events: none;
+      }
       /* Light variant matches .landingPage (light) so the two crossfade seamlessly */
       .LoadingPage.light {
         background-color: #fafafa;
+      }
+      .LoadingPage.light::after {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(0, 0, 0, 0.06) 100%
+        );
       }
       .LoadingPage.light img {
         filter: invert(1) brightness(0.2);

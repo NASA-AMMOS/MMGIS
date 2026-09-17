@@ -2,9 +2,10 @@
     --lp-bg: #fafafa;
     --lp-text: #1a1a1a;
     --lp-text-2: #666;
-    --lp-text-3: #888;
-    --lp-text-4: #bbb;
+    --lp-text-3: #707070;
+    --lp-text-4: #707070;
     --lp-accent: #0a8a5a;
+    --lp-brand: #0072ae;
     --lp-border: rgba(0, 0, 0, 0.06);
     --lp-border-2: rgba(0, 0, 0, 0.1);
     --lp-hover: rgba(0, 0, 0, 0.04);
@@ -17,6 +18,7 @@
     --lp-topo-opacity: 0.5;
     --lp-logo-filter: invert(1) brightness(0.2);
     --lp-scrim: rgba(250, 250, 250, 0.85);
+    --lp-vignette: rgba(0, 0, 0, 0.06);
     position: absolute;
     top: 0;
     left: 0;
@@ -37,9 +39,10 @@
     --lp-bg: #1d1f20;
     --lp-text: #f2f2f2;
     --lp-text-2: #b5b5b5;
-    --lp-text-3: #8c8c8c;
-    --lp-text-4: #6a6a6a;
+    --lp-text-3: #989898;
+    --lp-text-4: #8a8a8a;
     --lp-accent: #2fbf86;
+    --lp-brand: var(--color-mmgis, #08aeea);
     --lp-border: rgba(255, 255, 255, 0.08);
     --lp-border-2: rgba(255, 255, 255, 0.14);
     --lp-hover: rgba(255, 255, 255, 0.06);
@@ -52,6 +55,20 @@
     --lp-topo-opacity: 0.25;
     --lp-logo-filter: none;
     --lp-scrim: rgba(29, 31, 32, 0.85);
+    --lp-vignette: rgba(0, 0, 0, 0.35);
+}
+/* Soft edge vignette */
+.landingPage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 55%,
+        var(--lp-vignette) 100%
+    );
+    pointer-events: none;
+    z-index: 0;
 }
 .landingPage .bgimage {
     position: absolute;
@@ -285,7 +302,7 @@
     transition: border-color 0.2s;
 }
 .landingPage .main .toolbar .search:focus-within {
-    border-color: var(--color-mmgis, #08aeea);
+    border-color: var(--lp-brand);
 }
 .landingPage .main .toolbar .search input {
     flex: 1;
@@ -317,7 +334,7 @@
     color: var(--lp-text);
 }
 .landingPage .main .toolbar [role='switch'][aria-checked='true'] {
-    color: var(--color-mmgis, #08aeea);
+    color: var(--lp-brand);
     background: var(--lp-hover);
 }
 .landingPage .main h1 {
@@ -329,7 +346,7 @@
     cursor: default;
 }
 .landingPage .main h1 span {
-    color: var(--color-mmgis, #08aeea);
+    color: var(--lp-brand);
 }
 .landingPage .main .sub {
     font-size: 15px;
@@ -479,11 +496,12 @@
     margin: 0 0 14px 0;
     text-align: center;
 }
-.landingPage .section.archived .card {
-    opacity: 0.75;
+.landingPage .section.archived .card .banner {
+    filter: saturate(0.35) brightness(0.9);
+    transition: filter 0.2s;
 }
-.landingPage .section.archived .card:hover {
-    opacity: 1;
+.landingPage .section.archived .card:hover .banner {
+    filter: none;
 }
 
 /* Empty state */
