@@ -216,9 +216,7 @@
     font-weight: 500;
     border: none;
     cursor: pointer;
-    transition:
-        background 0.2s ease-in,
-        color 0.2s ease-in;
+    transition: background 0.2s ease-in, color 0.2s ease-in;
 }
 .landingPage .nav .user .signin {
     background: var(--lp-text);
@@ -357,9 +355,7 @@
     border-radius: 16px;
     border: 1px solid var(--lp-border);
     cursor: pointer;
-    transition:
-        box-shadow 0.2s,
-        transform 0.08s linear;
+    transition: box-shadow 0.2s, transform 0.08s linear;
     outline: none;
     overflow: hidden;
     --rx: 0deg;
@@ -375,9 +371,7 @@
         translateY(-6px) scale(1.03);
 }
 .landingPage .card:not(:hover) {
-    transition:
-        box-shadow 0.2s,
-        transform 0.4s ease;
+    transition: box-shadow 0.2s, transform 0.4s ease;
 }
 .landingPage .card:focus-visible {
     border-color: var(--lp-accent);
@@ -388,8 +382,7 @@
     background-color: var(--lp-banner);
 }
 .landingPage .card .banner.glass {
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
         inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 .landingPage.dark .card .banner.glass {
@@ -465,8 +458,7 @@
         var(--dot) 45%,
         color-mix(in srgb, var(--dot) 55%, #000) 100%
     );
-    box-shadow:
-        0 1px 2px rgba(0, 0, 0, 0.25),
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25),
         inset 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 

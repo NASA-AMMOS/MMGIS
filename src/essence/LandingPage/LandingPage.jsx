@@ -14,8 +14,10 @@ const DEFAULT_CREDIT_URL = 'https://github.com/NASA-AMMOS/MMGIS'
 function Heading({ text }) {
     const parts = text.split(/\*([^*]+)\*/)
     return (
-        <h1 className='unselectable'>
-            {parts.map((p, i) => (i % 2 === 1 ? <span key={i}>{p}</span> : p))}
+        <h1 className="unselectable">
+            {parts.map((p, i) =>
+                i % 2 === 1 ? <span key={i}>{p}</span> : p
+            )}
         </h1>
     )
 }
@@ -40,8 +42,7 @@ export function getCardFields(missionName, missionsMeta) {
     const look = config.look || {}
     const card = look.card || {}
     const str = (v) => (typeof v === 'string' && v.trim() ? v : null)
-    const folder =
-        str(config.msv && config.msv.missionFolderName) || missionName
+    const folder = str(config.msv && config.msv.missionFolderName) || missionName
     return {
         title: str(look.missionname) || missionName,
         color: str(card.color),
@@ -52,9 +53,7 @@ export function getCardFields(missionName, missionsMeta) {
         description: str(card.description),
         body: str(card.body),
         dotColor: DOT_COLORS[card.dotColor] || null,
-        archived:
-            card.status === 'archived' ||
-            (card.status == null && card.archived === true),
+        archived: card.status === 'archived' || (card.status == null && card.archived === true),
         hidden: card.status === 'hidden',
     }
 }
@@ -80,10 +79,7 @@ export function getLandingOptions() {
         (window.mmgisglobal.options &&
             window.mmgisglobal.options.landingPage) ||
         {}
-    const bg =
-        typeof o.backgroundImageUrl === 'string'
-            ? o.backgroundImageUrl.trim()
-            : ''
+    const bg = typeof o.backgroundImageUrl === 'string' ? o.backgroundImageUrl.trim() : ''
     const str = (v, d) => (typeof v === 'string' && v.trim() ? v : d)
     return {
         heading: str(o.heading, DEFAULT_HEADING),
@@ -159,8 +155,7 @@ export function bannerStyleFor(missionName, fields) {
             backgroundImage: gradientForColor(fields.dotColor),
         }
     }
-    const g =
-        DEFAULT_GRADIENTS[hashString(missionName) % DEFAULT_GRADIENTS.length]
+    const g = DEFAULT_GRADIENTS[hashString(missionName) % DEFAULT_GRADIENTS.length]
     return { backgroundColor: g[1], backgroundImage: gradientFor(...g) }
 }
 
@@ -182,28 +177,28 @@ function UserArea() {
     const [user, refresh] = useCurrentUser()
     if (user) {
         return (
-            <div className='user'>
-                <div className='avatar' title={user}>
+            <div className="user">
+                <div className="avatar" title={user}>
                     {user[0]}
                 </div>
-                <div className='username'>{user}</div>
+                <div className="username">{user}</div>
                 <Button
-                    variant='ghost'
-                    className='logout'
-                    title='Logout'
+                    variant="ghost"
+                    className="logout"
+                    title="Logout"
                     onClick={() => Login.logout(refresh)}
                 >
-                    <i className='mdi mdi-logout mdi-18px' />
+                    <i className="mdi mdi-logout mdi-18px" />
                     <span>Logout</span>
                 </Button>
             </div>
         )
     }
     return (
-        <div className='user'>
+        <div className="user">
             <Button
-                variant='primary'
-                className='signin'
+                variant="primary"
+                className="signin"
                 onClick={() => {
                     Login.signUp = false
                     Login.openModal()
@@ -217,11 +212,11 @@ function UserArea() {
 
 function Nav() {
     return (
-        <div className='nav'>
-            <div className='logo'>
-                <img src={MMGIS_LOGO_URL} alt='MMGIS logo' />
+        <div className="nav">
+            <div className="logo">
+                <img src={MMGIS_LOGO_URL} alt="MMGIS logo" />
             </div>
-            <div className='links'>
+            <div className="links">
                 {window.mmgisglobal.AUTH !== 'off' && <UserArea />}
             </div>
         </div>
@@ -249,11 +244,11 @@ function MissionCard({ missionName, fields, onOpen }) {
 
     return (
         <div
-            className='card'
+            className="card"
             data-mission={missionName}
             title={fields.title}
             tabIndex={0}
-            role='button'
+            role="button"
             onMouseMove={tilt}
             onMouseLeave={untilt}
             onClick={() => onOpen(missionName)}
@@ -272,26 +267,28 @@ function MissionCard({ missionName, fields, onOpen }) {
                     <img src={fields.imageurl} alt={fields.title} />
                 )}
             </div>
-            <div className='body'>
-                <div className='titlerow'>
+            <div className="body">
+                <div className="titlerow">
                     <h3>{fields.title}</h3>
                     {(fields.dotColor || fields.body) && (
-                        <div className='meta'>
+                        <div className="meta">
                             {fields.dotColor && (
                                 <span
-                                    className='dot'
+                                    className="dot"
                                     style={{ '--dot': fields.dotColor }}
                                 />
                             )}
                             {fields.body && (
-                                <span className='bodyname'>{fields.body}</span>
+                                <span className="bodyname">
+                                    {fields.body}
+                                </span>
                             )}
                         </div>
                     )}
                 </div>
                 {fields.subtext && <p>{fields.subtext}</p>}
                 {fields.description && (
-                    <p className='description'>{fields.description}</p>
+                    <p className="description">{fields.description}</p>
                 )}
             </div>
         </div>
@@ -315,29 +312,29 @@ function CardGrid({ names, missionsMeta, onOpen }) {
 
 function Toolbar({ query, onQuery, groupBy, onGroupBy }) {
     return (
-        <div className='toolbar'>
-            <div className='search'>
-                <i className='mdi mdi-magnify mdi-18px' />
+        <div className="toolbar">
+            <div className="search">
+                <i className="mdi mdi-magnify mdi-18px" />
                 <input
-                    type='search'
-                    placeholder='Search missions'
-                    aria-label='Search missions'
+                    type="search"
+                    placeholder="Search missions"
+                    aria-label="Search missions"
                     value={query}
                     onChange={(e) => onQuery(e.target.value)}
                 />
             </div>
-            <Toggle.Group aria-label='Group missions'>
+            <Toggle.Group aria-label="Group missions">
                 <Toggle
                     pressed={groupBy === 'alpha'}
                     onPressedChange={() => onGroupBy('alpha')}
-                    title='Alphabetical'
+                    title="Alphabetical"
                 >
                     A–Z
                 </Toggle>
                 <Toggle
                     pressed={groupBy === 'planet'}
                     onPressedChange={() => onGroupBy('planet')}
-                    title='Group by planet / moon'
+                    title="Group by planet / moon"
                 >
                     Planet
                 </Toggle>
@@ -353,20 +350,13 @@ const byTitle = (missionsMeta) => (a, b) =>
         { sensitivity: 'base' }
     )
 
-function Missions({
-    missions,
-    missionsMeta,
-    onOpen,
-    hideArchived,
-    query,
-    groupBy,
-}) {
+function Missions({ missions, missionsMeta, onOpen, hideArchived, query, groupBy }) {
     missions = missions.filter((m) =>
         isListedMission(m, missionsMeta, { hideArchived })
     )
     if (missions.length === 0) {
         return (
-            <div id='landingNoMissions'>
+            <div id="landingNoMissions">
                 {window.mmgisglobal.AUTH === 'local'
                     ? 'You do not have access to any missions. Please contact an administrator.'
                     : 'No missions are available.'}
@@ -382,7 +372,7 @@ function Missions({
         )
         if (missions.length === 0)
             return (
-                <div id='landingNoMissions'>
+                <div id="landingNoMissions">
                     No missions match &ldquo;{query.trim()}&rdquo;.
                 </div>
             )
@@ -412,35 +402,23 @@ function Missions({
         sections = [{ title: 'Active Missions', names: active }]
     } else {
         return (
-            <CardGrid
-                names={missions}
-                missionsMeta={missionsMeta}
-                onOpen={onOpen}
-            />
+            <CardGrid names={missions} missionsMeta={missionsMeta} onOpen={onOpen} />
         )
     }
     return (
-        <div className='sections'>
+        <div className="sections">
             {sections
                 .filter((s) => s.names.length > 0)
                 .map((s) => (
-                    <div className='section' key={s.title}>
+                    <div className="section" key={s.title}>
                         <h2>{s.title}</h2>
-                        <CardGrid
-                            names={s.names}
-                            missionsMeta={missionsMeta}
-                            onOpen={onOpen}
-                        />
+                        <CardGrid names={s.names} missionsMeta={missionsMeta} onOpen={onOpen} />
                     </div>
                 ))}
             {archived.length > 0 && (
-                <div className='section archived'>
+                <div className="section archived">
                     <h2>Archived Missions</h2>
-                    <CardGrid
-                        names={archived}
-                        missionsMeta={missionsMeta}
-                        onOpen={onOpen}
-                    />
+                    <CardGrid names={archived} missionsMeta={missionsMeta} onOpen={onOpen} />
                 </div>
             )}
         </div>
@@ -451,10 +429,10 @@ function Footer({ creditText, creditUrl }) {
     const version = window.mmgisglobal.version
     const clearance = window.mmgisglobal.CLEARANCE_NUMBER
     return (
-        <div className='foot'>
+        <div className="foot">
             <span
-                className='version'
-                title='Release notes'
+                className="version"
+                title="Release notes"
                 onClick={() => {
                     window.location.href = `https://github.com/NASA-AMMOS/MMGIS/releases/tag/${version}`
                 }}
@@ -462,26 +440,22 @@ function Footer({ creditText, creditUrl }) {
                 v{version}
             </span>
             <a
-                className='imagecredit'
-                target='_blank'
-                rel='noreferrer'
+                className="imagecredit"
+                target="_blank"
+                rel="noreferrer"
                 href={creditUrl}
             >
                 {creditText}
             </a>
             {clearance && clearance !== 'undefined' && (
-                <span className='clearance'>{clearance}</span>
+                <span className="clearance">{clearance}</span>
             )}
         </div>
     )
 }
 
 // `onSelectMission(name)` is called after the page has faded out
-export default function LandingPage({
-    missions,
-    missionsMeta,
-    onSelectMission,
-}) {
+export default function LandingPage({ missions, missionsMeta, onSelectMission }) {
     const opts = useMemo(getLandingOptions, [])
     const [visible, setVisible] = useState(false)
     const [settled, setSettled] = useState(false)
@@ -517,18 +491,18 @@ export default function LandingPage({
         <div className={classes.join(' ')}>
             {opts.backgroundImageUrl ? (
                 <div
-                    className='bgimage'
+                    className="bgimage"
                     style={{ backgroundImage: cssUrl(opts.backgroundImageUrl) }}
                 />
             ) : (
-                <div className='topo' />
+                <div className="topo" />
             )}
-            <div className='pg'>
+            <div className="pg">
                 <Nav />
-                <div className='main'>
-                    <div className='hero'>
+                <div className="main">
+                    <div className="hero">
                         <Heading text={opts.heading} />
-                        <div className='sub'>{opts.subheading}</div>
+                        <div className="sub">{opts.subheading}</div>
                         {missions.length > 0 && !opts.hideSearch && (
                             <Toolbar
                                 query={query}
@@ -564,15 +538,15 @@ export function MissionNotFound() {
     }, [])
     return (
         <div
-            id='notfound'
+            id="notfound"
             className={visible ? 'visible' : ''}
             onClick={() => {
                 document.location.href = window.location.href.split('?')[0]
             }}
         >
-            <p id='mnfmmgis'>{window.mmgisglobal.name || 'MMGIS'}</p>
-            <p id='returnmmgis'>Click anywhere to return home...</p>
-            <div id='nf404'>404</div>
+            <p id="mnfmmgis">{window.mmgisglobal.name || 'MMGIS'}</p>
+            <p id="returnmmgis">Click anywhere to return home...</p>
+            <div id="nf404">404</div>
         </div>
     )
 }
