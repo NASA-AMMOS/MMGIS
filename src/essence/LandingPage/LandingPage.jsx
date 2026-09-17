@@ -430,15 +430,7 @@ function Footer({ creditText, creditUrl }) {
     const clearance = window.mmgisglobal.CLEARANCE_NUMBER
     return (
         <div className="foot">
-            <span
-                className="version"
-                title="Release notes"
-                onClick={() => {
-                    window.location.href = `https://github.com/NASA-AMMOS/MMGIS/releases/tag/${version}`
-                }}
-            >
-                v{version}
-            </span>
+            <span className="version">v{version}</span>
             <a
                 className="imagecredit"
                 target="_blank"

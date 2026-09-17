@@ -516,10 +516,6 @@
     text-decoration: none;
     transition: color 0.2s ease-in;
 }
-.landingPage .foot .version {
-    cursor: pointer;
-}
-.landingPage .foot .version:hover,
 .landingPage .foot a:hover {
     color: var(--lp-accent);
 }
