@@ -30,6 +30,9 @@ $(document).ready(function () {
         {},
         function (resp) {
             mmgisglobal.options = resp.options
+            const landingPage = (resp.options || {}).landingPage || {}
+            if (mmgisglobal.setLoadingTheme)
+                mmgisglobal.setLoadingTheme(landingPage.theme)
             initApp()
         },
         function (err) {
@@ -88,7 +91,9 @@ function initApp() {
                         return m
                     })
                     .filter((m) => typeof m === 'string')
-                    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                    .sort((a, b) =>
+                        a.localeCompare(b, undefined, { sensitivity: 'base' })
+                    )
                 continueOn(missions, missionsMeta)
             },
             function (e) {

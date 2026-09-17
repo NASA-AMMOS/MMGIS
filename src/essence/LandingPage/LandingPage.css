@@ -34,7 +34,7 @@
     opacity: 1;
 }
 .landingPage.dark {
-    --lp-bg: #121414;
+    --lp-bg: #1d1f20;
     --lp-text: #f2f2f2;
     --lp-text-2: #b5b5b5;
     --lp-text-3: #8c8c8c;
@@ -43,15 +43,15 @@
     --lp-border: rgba(255, 255, 255, 0.08);
     --lp-border-2: rgba(255, 255, 255, 0.14);
     --lp-hover: rgba(255, 255, 255, 0.06);
-    --lp-nav-bg: rgba(18, 20, 20, 0.8);
-    --lp-card-bg: #0b0d0d;
+    --lp-nav-bg: rgba(29, 31, 32, 0.8);
+    --lp-card-bg: #262a2d;
     --lp-banner: #2a2f2e;
-    --lp-shadow: rgba(0, 0, 0, 0.6);
+    --lp-shadow: rgba(0, 0, 0, 0.5);
     --lp-topo-filter: none;
     --lp-topo-blend: screen;
-    --lp-topo-opacity: 0.55;
+    --lp-topo-opacity: 0.25;
     --lp-logo-filter: none;
-    --lp-scrim: rgba(18, 20, 20, 0.85);
+    --lp-scrim: rgba(29, 31, 32, 0.85);
 }
 .landingPage .bgimage {
     position: absolute;
@@ -132,14 +132,31 @@
     width: 128px;
     height: 26px;
 }
-/* Same position/size as .LoadingPage #title img (index.html) so the two crossfade as one */
+/* Starts at the loading page's hero logo position (index.html), then glides into the nav */
 .landingPage .nav .logo img {
     position: absolute;
+    top: calc(50% - 60px);
+    left: calc(50% - 108px);
+    height: 44px;
+    display: block;
+    filter: var(--lp-logo-filter);
+    z-index: 2;
+    transition:
+        top 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+        left 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+        height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.landingPage.settled .nav .logo img {
     top: 17px;
     left: 40px;
     height: 26px;
-    display: block;
-    filter: var(--lp-logo-filter);
+}
+.landingPage .pg > .main {
+    opacity: 0;
+    transition: opacity 0.5s ease 0.3s;
+}
+.landingPage.settled .pg > .main {
+    opacity: 1;
 }
 .landingPage .nav .links {
     margin-left: auto;
@@ -199,7 +216,9 @@
     font-weight: 500;
     border: none;
     cursor: pointer;
-    transition: background 0.2s ease-in, color 0.2s ease-in;
+    transition:
+        background 0.2s ease-in,
+        color 0.2s ease-in;
 }
 .landingPage .nav .user .signin {
     background: var(--lp-text);
@@ -338,7 +357,9 @@
     border-radius: 16px;
     border: 1px solid var(--lp-border);
     cursor: pointer;
-    transition: box-shadow 0.2s, transform 0.08s linear;
+    transition:
+        box-shadow 0.2s,
+        transform 0.08s linear;
     outline: none;
     overflow: hidden;
     --rx: 0deg;
@@ -354,7 +375,9 @@
         translateY(-6px) scale(1.03);
 }
 .landingPage .card:not(:hover) {
-    transition: box-shadow 0.2s, transform 0.4s ease;
+    transition:
+        box-shadow 0.2s,
+        transform 0.4s ease;
 }
 .landingPage .card:focus-visible {
     border-color: var(--lp-accent);
@@ -365,7 +388,8 @@
     background-color: var(--lp-banner);
 }
 .landingPage .card .banner.glass {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
         inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 .landingPage.dark .card .banner.glass {
@@ -441,7 +465,8 @@
         var(--dot) 45%,
         color-mix(in srgb, var(--dot) 55%, #000) 100%
     );
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25),
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.25),
         inset 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
@@ -595,6 +620,8 @@
     }
     .landingPage .nav .logo img {
         position: static;
+        height: 26px;
+        transition: none;
     }
     .landingPage .nav .links {
         gap: 12px;

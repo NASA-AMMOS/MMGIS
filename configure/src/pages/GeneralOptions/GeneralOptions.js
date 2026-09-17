@@ -23,7 +23,8 @@ const config = {
         {
           field: "temp.generalOptions.landingPage.theme",
           name: "Theme",
-          description: "Color theme of the mission landing page.",
+          description:
+            "Color theme of the mission landing page. The initial loading screen uses the same theme.",
           type: "dropdown",
           options: ["light", "dark"],
           default: "light",
