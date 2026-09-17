@@ -458,19 +458,13 @@ function Footer({ creditText, creditUrl }) {
 export default function LandingPage({ missions, missionsMeta, onSelectMission }) {
     const opts = useMemo(getLandingOptions, [])
     const [visible, setVisible] = useState(false)
-    const [settled, setSettled] = useState(false)
     const [leaving, setLeaving] = useState(false)
     const [query, setQuery] = useState('')
     const [groupBy, setGroupBy] = useState('alpha')
 
     useEffect(() => {
         const id = requestAnimationFrame(() => setVisible(true))
-        // Once the crossfade from the loading page ends, glide the hero logo into the nav
-        const t = setTimeout(() => setSettled(true), 1000)
-        return () => {
-            cancelAnimationFrame(id)
-            clearTimeout(t)
-        }
+        return () => cancelAnimationFrame(id)
     }, [])
 
     const open = useCallback(
@@ -485,7 +479,6 @@ export default function LandingPage({ missions, missionsMeta, onSelectMission })
     const classes = ['landingPage', opts.theme]
     if (opts.backgroundImageUrl) classes.push('hasBackgroundImage')
     if (visible && !leaving) classes.push('visible')
-    if (settled) classes.push('settled')
 
     return (
         <div className={classes.join(' ')}>

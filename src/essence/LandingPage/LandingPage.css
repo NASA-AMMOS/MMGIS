@@ -149,31 +149,10 @@
     width: 128px;
     height: 26px;
 }
-/* Starts at the loading page's hero logo position (index.html), then glides into the nav */
 .landingPage .nav .logo img {
-    position: absolute;
-    top: calc(50% - 60px);
-    left: calc(50% - 108px);
-    height: 44px;
+    height: 26px;
     display: block;
     filter: var(--lp-logo-filter);
-    z-index: 2;
-    transition:
-        top 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-        left 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-        height 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.landingPage.settled .nav .logo img {
-    top: 17px;
-    left: 40px;
-    height: 26px;
-}
-.landingPage .pg > .main {
-    opacity: 0;
-    transition: opacity 0.5s ease 0.3s;
-}
-.landingPage.settled .pg > .main {
-    opacity: 1;
 }
 .landingPage .nav .links {
     margin-left: auto;
@@ -627,11 +606,6 @@
 @media screen and (max-width: 600px) {
     .landingPage .nav {
         padding: 0 16px;
-    }
-    .landingPage .nav .logo img {
-        position: static;
-        height: 26px;
-        transition: none;
     }
     .landingPage .nav .links {
         gap: 12px;

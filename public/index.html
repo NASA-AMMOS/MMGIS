@@ -85,6 +85,22 @@
         height: 44px;
       }
 
+      /* Same contour tiling as .landingPage .topo */
+      .LoadingPage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url(public/images/contours.png);
+        background-size: 500px;
+        mix-blend-mode: screen;
+        opacity: 0.25;
+        pointer-events: none;
+      }
+      .LoadingPage.light::before {
+        filter: invert(1);
+        mix-blend-mode: multiply;
+        opacity: 0.5;
+      }
       /* Soft edge vignette, same as .landingPage::after */
       .LoadingPage::after {
         content: "";
