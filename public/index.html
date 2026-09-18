@@ -425,7 +425,7 @@
 
       // Loading page theme: server-injected (prod) or last seen (localStorage), re-applied once options load
       mmgisglobal.setLoadingTheme = function (theme) {
-        theme = theme === "dark" ? "dark" : "light";
+        theme = theme === "light" ? "light" : "dark";
         var el = document.querySelector(".LoadingPage");
         if (el) el.classList.toggle("light", theme === "light");
         try {
@@ -439,7 +439,7 @@
             theme = localStorage.getItem("mmgisLandingTheme");
           } catch (e) {}
         }
-        mmgisglobal.setLoadingTheme(theme === "dark" ? "dark" : "light");
+        mmgisglobal.setLoadingTheme(theme === "light" ? "light" : "dark");
       })();
 
       // React UI is always enabled

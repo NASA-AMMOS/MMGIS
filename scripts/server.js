@@ -60,9 +60,9 @@ async function getLandingTheme() {
   try {
     const row = await GeneralOptions.findOne({ where: { id: 1 } });
     const lp = (row && row.options && row.options.landingPage) || {};
-    return lp.theme === "dark" ? "dark" : "light";
+    return lp.theme === "light" ? "light" : "dark";
   } catch (err) {
-    return "light";
+    return "dark";
   }
 }
 

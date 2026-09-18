@@ -26,8 +26,8 @@ const config = {
           description:
             "Color theme of the mission landing page. The initial loading screen uses the same theme.",
           type: "dropdown",
-          options: ["light", "dark"],
-          default: "light",
+          options: ["dark", "light"],
+          default: "dark",
           width: 3,
         },
         {

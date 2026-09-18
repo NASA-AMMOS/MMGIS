@@ -84,7 +84,7 @@ export function getLandingOptions() {
     return {
         heading: str(o.heading, DEFAULT_HEADING),
         subheading: str(o.subheading, DEFAULT_SUBHEADING),
-        theme: o.theme === 'dark' ? 'dark' : 'light',
+        theme: o.theme === 'light' ? 'light' : 'dark',
         backgroundImageUrl: bg || null,
         hideArchived: o.hideArchived === true || o.hideArchived === 'true',
         hideSearch: o.hideSearch === true || o.hideSearch === 'true',
