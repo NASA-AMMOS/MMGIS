@@ -1,281 +1,566 @@
 .landingPage {
+    --lp-bg: #fafafa;
+    --lp-text: #1a1a1a;
+    --lp-text-2: #666;
+    --lp-text-3: #707070;
+    --lp-text-4: #707070;
+    --lp-accent: #0a8a5a;
+    --lp-brand: #0072ae;
+    --lp-border: rgba(0, 0, 0, 0.06);
+    --lp-border-2: rgba(0, 0, 0, 0.1);
+    --lp-hover: rgba(0, 0, 0, 0.04);
+    --lp-nav-bg: rgba(255, 255, 255, 0.8);
+    --lp-card-bg: #fff;
+    --lp-banner: #e4e9e7;
+    --lp-shadow: rgba(0, 0, 0, 0.08);
+    --lp-topo-filter: invert(1);
+    --lp-topo-blend: multiply;
+    --lp-topo-opacity: 0.5;
+    --lp-logo-filter: invert(1) brightness(0.2);
+    --lp-scrim: rgba(250, 250, 250, 0.85);
+    --lp-vignette: rgba(0, 0, 0, 0.06);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
     overflow: hidden;
-    font-family: venus, sans-serif;
+    font-family: 'DM Sans', roboto, sans-serif;
     opacity: 0;
-    display: flex;
-    flex-flow: column;
-    background: var(--color-a);
-    background-image: url(/public/images/PIA20461.jpg);
-    background-size: cover;
-    background-position: center;
-    padding: 40px;
+    transition: opacity 1s ease;
+    background: var(--lp-bg);
+    color: var(--lp-text);
     z-index: 1002;
 }
-
-.landingPage .gradient {
+.landingPage.visible {
+    opacity: 1;
+}
+.landingPage.dark {
+    --lp-bg: #1d1f20;
+    --lp-text: #f2f2f2;
+    --lp-text-2: #b5b5b5;
+    --lp-text-3: #989898;
+    --lp-text-4: #8a8a8a;
+    --lp-accent: #2fbf86;
+    --lp-brand: var(--color-mmgis, #08aeea);
+    --lp-border: rgba(255, 255, 255, 0.08);
+    --lp-border-2: rgba(255, 255, 255, 0.14);
+    --lp-hover: rgba(255, 255, 255, 0.06);
+    --lp-nav-bg: rgba(29, 31, 32, 0.8);
+    --lp-card-bg: #262a2d;
+    --lp-banner: #2a2f2e;
+    --lp-shadow: rgba(0, 0, 0, 0.5);
+    --lp-topo-filter: none;
+    --lp-topo-blend: screen;
+    --lp-topo-opacity: 0.25;
+    --lp-logo-filter: none;
+    --lp-scrim: rgba(29, 31, 32, 0.85);
+    --lp-vignette: rgba(0, 0, 0, 0.35);
+}
+/* Soft edge vignette */
+.landingPage::after {
+    content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    inset: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 55%,
+        var(--lp-vignette) 100%
+    );
     pointer-events: none;
+    z-index: 0;
+}
+.landingPage .bgimage {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    pointer-events: none;
+}
+.landingPage .bgimage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
     background: linear-gradient(
-        rgba(0, 0, 0, 0.1),
-        rgba(0, 0, 0, 0) 25%,
-        rgba(0, 0, 0, 0) 75%,
-        rgba(0, 0, 0, 0.1) 100%
+        180deg,
+        var(--lp-scrim) 0%,
+        transparent 30%,
+        transparent 70%,
+        var(--lp-scrim) 100%
     );
 }
+.landingPage.hasBackgroundImage .main .sub,
+.landingPage.hasBackgroundImage .section h2,
+.landingPage.hasBackgroundImage .foot span,
+.landingPage.hasBackgroundImage .foot a {
+    color: var(--lp-text-2);
+}
+.landingPage.hasBackgroundImage .main .sub,
+.landingPage.hasBackgroundImage .main h1,
+.landingPage.hasBackgroundImage .section h2 {
+    text-shadow: 0 1px 12px var(--lp-bg);
+}
+.landingPage.hasBackgroundImage .card,
+.landingPage.hasBackgroundImage #landingNoMissions {
+    box-shadow: 0 8px 24px var(--lp-shadow);
+}
+.landingPage * {
+    box-sizing: border-box;
+}
 
-.landingPage #landingPanel {
+/* Same contour tiling as the login and configure pages */
+.landingPage .topo {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 315px;
-    height: 100%;
-    background: #1a1a1a;
-    box-shadow: 0px 0px 9px 4px rgba(0, 0, 0, 0.4);
-}
-.landingPage #landingMissionsWrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 315px;
-    height: 100%;
-    padding: 100px 10px 100px 51px;
-}
-
-.landingPage .landingBottom {
-    position: absolute;
-    bottom: 12px;
-    left: 0px;
-    width: 315px;
-    display: flex;
-    justify-content: space-between;
-    z-index: 20;
-    padding: 0px 51px;
-}
-.landingPage .imagecredit,
-.landingPage .version,
-.landingPage .clearance {
-    font-family: 'roboto';
-    font-size: 11px;
-    color: #999;
-    display: flex;
-    justify-content: center;
-}
-.landingPage .imagecredit div {
-    padding-right: 3px;
-}
-
-.landingPage .imagecredit a,
-.landingPage .imagecredit a.visited {
-    color: #777;
-    transition: color 0.2s ease-in;
-}
-.landingPage .imagecredit a:hover {
-    color: #fff;
-}
-
-.landingPage #title img {
-    position: relative;
-    left: -6px;
-    top: 5px;
-}
-
-.landingPageMission {
-    transition: color 0.25s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-    color: #fff;
-    font-family: 'roboto';
-    opacity: 1;
-    list-style-type: none;
-    margin: 10px 0px;
-    font-size: 22px;
-    line-height: 22px;
-    font-weight: 500;
-    cursor: pointer;
-}
-.landingPageMission:hover {
-    text-decoration: underline;
-}
-
-.landingPageMission:first-child {
-    margin-top: 0px;
-}
-
-#configIcon {
-    position: absolute;
-    bottom: 30px;
-    right: 120px;
-    padding: 10px;
-    cursor: pointer;
-    color: #222;
-    transition: color 0.2s ease-in;
-    z-index: 100;
-}
-#configIcon:hover {
-    color: #000;
-}
-
-#docsIcon {
-    position: absolute;
-    bottom: 30px;
-    right: 75px;
-    padding: 10px;
-    cursor: pointer;
-    color: #222;
-    transition: color 0.2s ease-in;
-    z-index: 100;
-}
-#docsIcon:hover {
-    color: #000;
-}
-
-#attributionIcon {
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
-    padding: 10px;
-    cursor: pointer;
-    color: #222;
-    transition: color 0.2s ease-in;
-    z-index: 100;
-}
-#attributionIcon:hover {
-    color: #000;
-}
-
-#attributions {
-    position: absolute;
-    right: 0px;
-    top: 0px;
-    font-family: 'lato';
-    height: 100vh;
-    background: white;
-    opacity: 0;
+    inset: 0;
+    background-image: url(/public/images/contours.png);
+    background-size: 500px;
+    filter: var(--lp-topo-filter);
+    mix-blend-mode: var(--lp-topo-blend);
+    opacity: var(--lp-topo-opacity);
     pointer-events: none;
-    transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
-#attributions.active {
-    opacity: 1;
-    pointer-events: inherit;
+
+.landingPage .pg {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
 }
-#attributionsContent {
-    height: calc(100vh - 84px);
-    padding: 10px;
+
+/* Nav */
+.landingPage .nav {
+    height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 40px;
+    background: var(--lp-nav-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--lp-border);
+}
+.landingPage .nav .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.landingPage .nav .logo {
+    width: 128px;
+    height: 26px;
+}
+.landingPage .nav .logo img {
+    height: 26px;
+    display: block;
+    filter: var(--lp-logo-filter);
+}
+.landingPage .nav .links {
+    margin-left: auto;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+.landingPage .nav .links a,
+.landingPage .nav .links a:visited {
+    font-size: 13px;
+    color: var(--lp-text-2);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease-in;
+}
+.landingPage .nav .links a:hover {
+    color: var(--lp-accent);
+}
+
+/* User / logout area */
+.landingPage .nav .user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 4px;
+}
+.landingPage .nav .user .avatar {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    border-radius: 50%;
+    background: var(--lp-accent);
+    color: #fff;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.landingPage .nav .user .username {
+    font-size: 13px;
+    color: var(--lp-text);
+    font-weight: 500;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.landingPage .nav .user button {
+    height: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease-in, color 0.2s ease-in;
+}
+.landingPage .nav .user .signin {
+    background: var(--lp-text);
+    color: var(--lp-bg);
+    border-color: transparent;
+}
+.landingPage .nav .user .signin:hover {
+    background: var(--lp-accent);
+    color: #fff;
+}
+.landingPage .nav .user .logout {
+    background: transparent;
+    color: var(--lp-text-2);
+    border: 1px solid var(--lp-border-2);
+}
+.landingPage .nav .user .logout:hover {
+    color: var(--lp-text);
+    background: var(--lp-hover);
+}
+
+/* Main */
+.landingPage .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 40px 40px 40px;
     overflow-y: auto;
 }
-
-#attributionsTitle {
+/* Heading + toolbar stay pinned while the cards scroll beneath */
+.landingPage .main .hero {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 40px 24px 40px;
+    margin: 0 -40px 24px -40px;
+    background: var(--lp-scrim);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(180deg, #000 85%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 85%, transparent 100%);
+}
+.landingPage .main .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     width: 100%;
-    height: 40px;
-    line-height: 40px;
-    background: #242424;
-    border-radius: 3px;
+    max-width: 1080px;
+}
+.landingPage .main .toolbar .search {
+    flex: 1;
+    min-width: 0;
     display: flex;
-    justify-content: space-between;
-    padding: 0px 2px 0px 10px;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: var(--lp-card-bg);
+    border: 1px solid var(--lp-border-2);
+    color: var(--lp-text-3);
+    transition: border-color 0.2s;
+}
+.landingPage .main .toolbar .search:focus-within {
+    border-color: var(--lp-brand);
+}
+.landingPage .main .toolbar .search input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font: inherit;
     font-size: 14px;
+    color: var(--lp-text);
 }
-#attributionsTitle > div {
-    display: flex;
+.landingPage .main .toolbar .search input::placeholder {
+    color: var(--lp-text-3);
 }
-#attributionsTitle img {
-    position: relative;
-    top: 4px;
-    left: -2px;
+.landingPage .main .toolbar [role='group'] {
+    flex-shrink: 0;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--lp-card-bg);
+    border: 1px solid var(--lp-border-2);
 }
-#attributions .attributionTitle_library {
-    padding-right: 3px;
-    color: black;
-    font-size: 20px;
-    font-family: 'venus';
+.landingPage .main .toolbar [role='switch'] {
+    color: var(--lp-text-3);
+    border-right: 1px solid var(--lp-border-2);
+    padding: 0 14px;
+    white-space: nowrap;
 }
-#attributions .attributionTitle_version {
-    padding-right: 3px;
-    font-size: 13px;
-    color: #ccc;
+.landingPage .main .toolbar [role='switch']:hover {
+    color: var(--lp-text);
 }
-#attributions .attributionTitle_by {
-    padding-right: 3px;
-    color: #eee;
+.landingPage .main .toolbar [role='switch'][aria-checked='true'] {
+    color: var(--lp-brand);
+    background: var(--lp-hover);
 }
-#attributions .attributionTitle_author {
-    color: #eee;
-}
-#attributions .attributionTitle_under {
-    padding-right: 3px;
-    color: #eee;
-}
-#attributions .attributionTitle_license {
-    padding-right: 3px;
-    color: #eee;
-}
-#attributions .attributionTitle_github {
-    color: #eee;
-}
-
-#attributions a,
-#attributions a:active,
-#attributions a:visited {
-    color: #005fad;
-    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-#attributions a:hover {
-    color: #71b4eb;
-}
-
-#attributionsTitle a,
-#attributionsTitle a:active,
-#attributionsTitle a:visited {
-    color: #71b4eb;
-}
-#attributionsTitle a:hover {
-    color: #005fad;
-}
-
-#attributions ul {
-    list-style-type: none;
-    padding: 0;
-    margin-top: 5px;
-}
-#attributions ul > li {
-    display: flex;
-    justify-content: space-between;
-    color: #242424;
-}
-#attributions ul > li:last-child {
+.landingPage .main h1 {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--lp-text);
+    margin: 0 0 8px 0;
     text-align: center;
+    cursor: default;
+}
+.landingPage .main h1 span {
+    color: var(--lp-brand);
+}
+.landingPage .main .sub {
+    font-size: 15px;
+    color: var(--lp-text-3);
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+/* Cards */
+.landingPage .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    width: 100%;
+    max-width: 1080px;
+}
+.landingPage .cards.few {
+    grid-template-columns: repeat(auto-fit, 349px);
+    justify-content: center;
+}
+.landingPage .card {
+    background: var(--lp-card-bg);
+    border-radius: 16px;
+    border: 1px solid var(--lp-border);
+    cursor: pointer;
+    transition: box-shadow 0.2s, transform 0.08s linear;
+    outline: none;
+    overflow: hidden;
+    --rx: 0deg;
+    --ry: 0deg;
+    transform: perspective(600px) rotateX(var(--rx)) rotateY(var(--ry));
+    transform-style: preserve-3d;
+    will-change: transform;
+}
+.landingPage .card:hover,
+.landingPage .card:focus-visible {
+    box-shadow: 0 12px 32px var(--lp-shadow);
+    transform: perspective(600px) rotateX(var(--rx)) rotateY(var(--ry))
+        translateY(-6px) scale(1.03);
+}
+.landingPage .card:not(:hover) {
+    transition: box-shadow 0.2s, transform 0.4s ease;
+}
+.landingPage .card:focus-visible {
+    border-color: var(--lp-accent);
+}
+.landingPage .card .banner {
+    width: 100%;
+    height: 110px;
+    background-color: var(--lp-banner);
+}
+.landingPage .card .banner.glass {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+.landingPage.dark .card .banner.glass {
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+}
+.landingPage .card .banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     display: block;
-    padding: 8px 8px 0px 8px;
 }
-#attributions ul > li > div {
-    display: flex;
+.landingPage .card .body {
+    padding: 14px 16px 16px 16px;
 }
-#attributions ul > li > div:last-child {
-    padding-left: 20px;
+.landingPage .card h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--lp-text);
+    margin: 0 0 4px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-#attributions .attribution_library {
-    padding-right: 3px;
-}
-#attributions .attribution_version {
-    padding-right: 3px;
+.landingPage .card p {
     font-size: 12px;
-    color: #6b6b6b;
+    color: var(--lp-text-3);
+    line-height: 1.5;
+    margin: 0;
 }
-#attributions .attribution_by {
-    padding-right: 3px;
+
+.landingPage .card .titlerow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 4px;
 }
-#attributions .attribution_author {
+.landingPage .card .titlerow h3 {
+    margin: 0;
+    min-width: 0;
 }
-#attributions .attribution_under {
-    padding-right: 3px;
+.landingPage .card .description {
+    margin-top: 8px;
+    color: var(--lp-text-2);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
-#attributions .attribution_license {
-    padding-right: 3px;
+.landingPage .card .meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--lp-text-3);
 }
-#attributions .attribution_github {
+.landingPage .card .bodyname {
+    font-size: 11px;
+    line-height: 1;
+}
+.landingPage .card .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: radial-gradient(
+        circle at 32% 30%,
+        color-mix(in srgb, var(--dot) 55%, #fff) 0%,
+        var(--dot) 45%,
+        color-mix(in srgb, var(--dot) 55%, #000) 100%
+    );
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+/* Sections */
+.landingPage .sections {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    width: 100%;
+    max-width: 1080px;
+}
+.landingPage .section h2 {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--lp-text-3);
+    margin: 0 0 14px 0;
+    text-align: center;
+}
+.landingPage .section.archived .card .banner {
+    filter: saturate(0.35) brightness(0.9);
+    transition: filter 0.2s;
+}
+.landingPage .section.archived .card:hover .banner {
+    filter: none;
+}
+
+/* Empty state */
+.landingPage #landingNoMissions {
+    color: var(--lp-text-2);
+    font-size: 15px;
+    line-height: 22px;
+    text-align: center;
+    max-width: 420px;
+    padding: 24px 32px;
+    background: var(--lp-card-bg);
+    border: 1px solid var(--lp-border);
+    border-radius: 16px;
+}
+
+/* Footer */
+.landingPage .foot {
+    position: relative;
+    align-self: stretch;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-top: auto;
+    padding-top: 40px;
+}
+.landingPage .foot span,
+.landingPage .foot a,
+.landingPage .foot a:visited {
+    font-size: 11px;
+    color: var(--lp-text-4);
+    text-decoration: none;
+    transition: color 0.2s ease-in;
+}
+.landingPage .foot a:hover {
+    color: var(--lp-accent);
+}
+
+#notfound {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #efefef;
+    color: #757575;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+    cursor: pointer;
+    z-index: 1000;
+}
+#notfound.visible {
+    opacity: 1;
+}
+#notfound p,
+#notfound #nf404 {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    text-align: center;
+}
+#notfound #mnfmmgis {
+    font-family: lato;
+    font-size: 20px;
+    margin: 90px 0;
+    transform: translateX(-50%);
+}
+#notfound #returnmmgis {
+    font-family: lato;
+    font-size: 14px;
+    margin: 125px 0 90px 0;
+    transform: translateX(-50%);
+}
+#notfound #nf404 {
+    font-family: monospace;
+    font-size: 200px;
+    margin-top: 5px;
+    transform: translateX(-50%) translateY(-50%);
+    color: var(--color-b);
 }
 
 #missionnotfound {
@@ -308,66 +593,49 @@
     width: 100%;
     height: 1px;
     background-color: #eee;
-    background: -webkit-radial-gradient(
-        circle,
-        transparent,
-        transparent,
-        #eee
-    ); /* Safari */
-    background: -o-radial-gradient(
-        circle,
-        transparent,
-        transparent,
-        #eee
-    ); /* Opera 11.6 to 12.0 */
-    background: -moz-radial-gradient(
-        circle,
-        transparent,
-        transparent,
-        #eee
-    ); /* Firefox 3.6 to 15 */
-    background: radial-gradient(
-        circle,
-        transparent,
-        transparent,
-        #eee
-    ); /* Standard syntax */
+    background: radial-gradient(circle, transparent, transparent, #eee);
     position: absolute;
     top: calc(50% - 1px);
     left: 0;
 }
 
-/* Mobile-specific centering for title */
 @media screen and (max-width: 600px) {
-    .landingPage #title {
-        left: 50% !important;
-        transform: translateX(-50%) !important;
+    .landingPage .nav {
+        padding: 0 16px;
+    }
+    .landingPage .nav .links {
+        gap: 12px;
+    }
+    .landingPage .nav .links a {
+        display: none;
+    }
+    .landingPage .nav .user .username {
+        display: none;
+    }
+    .landingPage .nav .user .logout span {
+        display: none;
+    }
+    .landingPage .main {
+        padding: 0 16px 24px 16px;
+    }
+    .landingPage .main .hero {
+        padding: 24px 16px 16px 16px;
+        margin: 0 -16px 16px -16px;
+    }
+    .landingPage .main h1 {
+        font-size: 32px;
+    }
+    .landingPage .main .sub {
+        margin-bottom: 16px;
+    }
+    .landingPage .cards,
+    .landingPage .cards.few {
+        grid-template-columns: 1fr;
+    }
+    .landingPage .card {
         text-align: center;
-        position: absolute;
     }
-    .landingPage #title img {
-        left: -1px;
-    }
-    .landingPage #landingPanel {
-        width: 100% !important;
-    }
-    .landingPage #landingMissionsWrapper {
-        width: 100%;
-        padding: 100px 51px 100px 51px;
-    }
-    .landingPage .landingPageMission {
-        text-align: center;
-    }
-    .landingPage #configIcon { display: none }
-    .landingPage #docsIcon { display: none }
-    .landingPage #attributionIcon { display: none }
-    .landingPage #attributions { display: none }
-
-    .landingPage .landingBottom {
-        width: 100%;   
-        justify-content: center;
-    }
-    .landingPage .landingBottom .imagecredit { 
+    .landingPage .foot .imagecredit {
         display: none;
     }
 }

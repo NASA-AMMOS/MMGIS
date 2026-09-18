@@ -149,6 +149,139 @@ function checkMissionPermission(req, res, next) {
     });
 }
 
+// Resolves the set of missions the current session may view under AUTH=local.
+// Resolves to null when unrestricted (all missions), otherwise an array of names.
+function getViewableMissions(req) {
+  if (process.env.AUTH !== "local") return Promise.resolve(null);
+  if (req.isLongTermToken || req.session == null) return Promise.resolve(null);
+
+  const permission = req.session.permission;
+  const uid = req.session.uid;
+  if (permission === "111" || uid == null) return Promise.resolve(null);
+
+  return User.findOne({
+    where: { id: uid },
+    attributes: ["permission", "missions_managing", "missions_viewing"],
+  }).then((user) => {
+    if (!user || user.permission === "111") return null;
+    // null missions_viewing = legacy/unrestricted
+    if (user.missions_viewing == null) return null;
+
+    const viewable = new Set(user.missions_viewing);
+    if (user.permission === "110")
+      (user.missions_managing || []).forEach((m) => viewable.add(m));
+    return Array.from(viewable);
+  });
+}
+
+// Middleware guarding config loads by missions_viewing under AUTH=local
+function checkMissionViewingPermission(req, res, next) {
+  const mission = req.query.mission || (req.body && req.body.mission);
+  getViewableMissions(req)
+    .then((viewable) => {
+      if (viewable == null || mission == null || viewable.includes(mission)) {
+        next();
+        return;
+      }
+      res.send({
+        status: "failure",
+        message: `Unauthorized - no permission to view mission: ${sanitizeInput(
+          mission
+        )}`,
+      });
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to check mission viewing permissions.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to verify mission viewing permissions.",
+      });
+    });
+}
+
+// Cached per-user set of viewable mission folder names (msv.missionFolderName)
+const VIEWABLE_FOLDERS_TTL = 10 * 1000;
+const viewableFoldersCache = new Map();
+let viewableFoldersGeneration = 0;
+function clearViewableFoldersCache(uid) {
+  viewableFoldersGeneration++;
+  if (uid == null) viewableFoldersCache.clear();
+  else viewableFoldersCache.delete(String(uid));
+}
+// Clears the cache again once a mission mutation's response has been sent
+function clearViewableFoldersCacheAfter(req, res, next) {
+  clearViewableFoldersCache();
+  res.on("finish", () => clearViewableFoldersCache());
+  next();
+}
+
+// Resolves to null (unrestricted) or a Set of /Missions folder names the user may read
+function getViewableMissionFolders(req) {
+  const uid = req.session ? req.session.uid : null;
+  const cached = uid != null ? viewableFoldersCache.get(String(uid)) : null;
+  if (cached && Date.now() - cached.ts < VIEWABLE_FOLDERS_TTL)
+    return Promise.resolve(cached.folders);
+
+  const generation = viewableFoldersGeneration;
+  return getViewableMissions(req).then((viewable) => {
+    if (viewable == null) return null;
+    return Config.findAll({
+      where: { mission: viewable },
+      attributes: ["mission", "config"],
+      order: [["id", "DESC"]],
+    }).then((configs) => {
+      const folders = new Set(viewable);
+      const seen = new Set();
+      (configs || []).forEach((c) => {
+        if (seen.has(c.mission)) return;
+        seen.add(c.mission);
+        const folder = c.config && c.config.msv && c.config.msv.missionFolderName;
+        if (typeof folder === "string" && folder.length > 0) folders.add(folder);
+      });
+      if (uid != null && generation === viewableFoldersGeneration)
+        viewableFoldersCache.set(String(uid), { ts: Date.now(), folders });
+      return folders;
+    });
+  });
+}
+
+// Middleware guarding /Missions/<folder>/... static files by missions_viewing
+// forbid(req, res) sends the 403 response
+function checkMissionFileViewingPermission(forbid) {
+  return function (req, res, next) {
+    if (process.env.AUTH !== "local") return next();
+    let folder = null;
+    try {
+      folder = decodeURIComponent(req.path.split("?")[0])
+        .split("/")
+        .filter((s) => s.length > 0)[0];
+    } catch (err) {
+      return res.sendStatus(404);
+    }
+    getViewableMissionFolders(req)
+      .then((folders) => {
+        if (folders == null || folder == null || folders.has(folder)) next();
+        else forbid(req, res);
+      })
+      .catch((err) => {
+        logger(
+          "error",
+          "Failed to check mission file viewing permissions.",
+          req.originalUrl,
+          req,
+          err
+        );
+        res.sendStatus(500);
+      });
+  };
+}
+
 function get(req, res, next, cb, options) {
   const qMission = (options && options.mission) || req.query.mission;
   const qFull = (options && options.full) || req.query.full;
@@ -245,7 +378,7 @@ function get(req, res, next, cb, options) {
     });
   return null;
 }
-router.get("/get", function (req, res, next) {
+router.get("/get", checkMissionViewingPermission, function (req, res, next) {
   get(req, res, next);
 });
 
@@ -718,17 +851,33 @@ function upsert(req, res, next, cb, info) {
 }
 
 if (fullAccess)
-  router.post("/upsert", checkMissionPermission, function (req, res, next) {
+  router.post("/upsert", checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
     upsert(req, res, next);
   });
 
 router.get("/missions", function (req, res, next) {
+  const viewablePromise = getViewableMissions(req).catch((err) => {
+    logger(
+      "error",
+      "Failed to check mission viewing permissions.",
+      req.originalUrl,
+      req,
+      err
+    );
+    // Fail closed
+    return [];
+  });
+
   if (req.query.full === "true") {
-    sequelize
-      .query(
+    Promise.all([
+      viewablePromise,
+      sequelize.query(
         "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC, version DESC"
-      )
-      .then(([results]) => {
+      ),
+    ])
+      .then(([viewable, [results]]) => {
+        if (viewable != null)
+          results = results.filter((r) => viewable.includes(r.mission));
         res.send({ status: "success", missions: results });
         return null;
       })
@@ -738,11 +887,16 @@ router.get("/missions", function (req, res, next) {
         return null;
       });
   } else {
-    Config.aggregate("mission", "DISTINCT", { plain: false })
-      .then((missions) => {
+    Promise.all([
+      viewablePromise,
+      Config.aggregate("mission", "DISTINCT", { plain: false }),
+    ])
+      .then(([viewable, missions]) => {
         let allMissions = [];
         for (let i = 0; i < missions.length; i++)
           allMissions.push(missions[i].DISTINCT);
+        if (viewable != null)
+          allMissions = allMissions.filter((m) => viewable.includes(m));
         allMissions.sort((a, b) =>
           a.localeCompare(b, undefined, { sensitivity: "base" })
         );
@@ -905,7 +1059,7 @@ const renameLockKeys = (name) => {
 };
 
 if (fullAccess)
-  router.post("/rename", checkMissionPermission, function (req, res, next) {
+  router.post("/rename", checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     const newName = req.body.newName;
 
@@ -1027,28 +1181,30 @@ if (fullAccess)
                   );
                 });
 
-                // Mission-manager permissions are stored as mission names, so
-                // they must follow the rename or the manager loses access.
+                // Per-user mission permissions are stored as mission names, so
+                // they must follow the rename or the user loses access.
+                const renameIn = (list) =>
+                  list.map((m) => (m === missionName ? newName : m));
                 const permissionUpdate = User.findAll({
                   transaction: t,
                 }).then((users) => {
-                  const affected = (users || []).filter(
-                    (u) =>
+                  const updates = [];
+                  (users || []).forEach((u) => {
+                    const fields = {};
+                    if (
                       Array.isArray(u.missions_managing) &&
                       u.missions_managing.includes(missionName)
-                  );
-                  return Promise.all(
-                    affected.map((u) =>
-                      u.update(
-                        {
-                          missions_managing: u.missions_managing.map((m) =>
-                            m === missionName ? newName : m
-                          ),
-                        },
-                        { transaction: t }
-                      )
                     )
-                  );
+                      fields.missions_managing = renameIn(u.missions_managing);
+                    if (
+                      Array.isArray(u.missions_viewing) &&
+                      u.missions_viewing.includes(missionName)
+                    )
+                      fields.missions_viewing = renameIn(u.missions_viewing);
+                    if (Object.keys(fields).length > 0)
+                      updates.push(u.update(fields, { transaction: t }));
+                  });
+                  return Promise.all(updates);
                 });
 
                 return Promise.all([...configUpdates, permissionUpdate]);
@@ -1142,7 +1298,7 @@ if (fullAccess)
   });
 
 if (fullAccess)
-  router.post("/destroy", checkMissionPermission, function (req, res, next) {
+  router.post("/destroy", checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     if (!missionName || !/^[A-Za-z0-9_ -]+$/.test(missionName)) {
       logger("error", "Invalid mission name in destroy request.", req.originalUrl, req);
@@ -1982,3 +2138,6 @@ router.post("/reference-mission/save-to-base", checkMissionPermission, function 
 
 module.exports = router;
 module.exports.checkMissionPermission = checkMissionPermission;
+module.exports.checkMissionFileViewingPermission =
+  checkMissionFileViewingPermission;
+module.exports.clearViewableFoldersCache = clearViewableFoldersCache;

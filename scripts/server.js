@@ -50,6 +50,21 @@ const WebSocket = require("isomorphic-ws");
 const chalk = require("chalk");
 
 const middleware = require("./middleware").middleware;
+const {
+  checkMissionFileViewingPermission,
+} = require("../plugins/core/backend/Config/routes/configs");
+const GeneralOptions = require("../plugins/core/backend/GeneralOptions/models/generaloptions");
+
+// Landing page theme from General Options; the loading page is themed to match it
+async function getLandingTheme() {
+  try {
+    const row = await GeneralOptions.findOne({ where: { id: 1 } });
+    const lp = (row && row.options && row.options.landingPage) || {};
+    return lp.theme === "light" ? "light" : "dark";
+  } catch (err) {
+    return "dark";
+  }
+}
 
 const isDevEnv = process.env.NODE_ENV === "development";
 
@@ -464,7 +479,15 @@ function validateLongTermToken(token, successCallback, failureCallback) {
     });
 }
 
-function ensureUser() {
+// 403 for file routes: styled page for browsers, plain status otherwise
+function sendForbidden(req, res) {
+  if (req.accepts(["json", "html"]) === "html")
+    res.status(403).render("forbidden", { HOME: `${ROOT_PATH}/` });
+  else res.sendStatus(403);
+}
+
+// options.forbid: respond 403 instead of rendering the login page (for file routes)
+function ensureUser(options = {}) {
   return (req, res, next) => {
     /* If the request is:
       - Not trying to use an authorization header (longtermtoken)
@@ -508,6 +531,8 @@ function ensureUser() {
             );
           },
         );
+      } else if (options.forbid) {
+        sendForbidden(req, res);
       } else {
         res.render("login", {
           user: req.user,
@@ -732,28 +757,29 @@ setups.getBackendSetups(function (setups) {
 
   app.use(
     `${ROOT_PATH}/build`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/build")),
   );
   app.use(
     `${ROOT_PATH}/docs`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/docs")),
   );
   app.use(
     `${ROOT_PATH}/configure/build`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/configure/build")),
   );
   app.use(
     `${ROOT_PATH}/configure/public`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/configure/public")),
   );
 
   app.use(
     `${ROOT_PATH}/Missions`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
+    checkMissionFileViewingPermission(sendForbidden),
     middleware.missions(ROOT_PATH),
     express.static(path.join(rootDir, "/Missions")),
   );
@@ -856,7 +882,7 @@ setups.getBackendSetups(function (setups) {
         `${ROOT_PATH}/`,
         ensureUser(),
         ensureGroup(permissions.users),
-        (req, res) => {
+        async (req, res) => {
           let user = guestUsername;
           if (process.env.AUTH === "csso" || req.user != null) user = req.user;
 
@@ -889,6 +915,7 @@ setups.getBackendSetups(function (setups) {
             HOSTS: JSON.stringify({
               scienceIntent: process.env.SCIENCE_INTENT_HOST,
             }),
+            LANDING_THEME: await getLandingTheme(),
           });
         },
       );

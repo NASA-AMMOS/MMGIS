@@ -8,6 +8,7 @@ const crypto = require("crypto");
 
 const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
+const { clearViewableFoldersCache } = require("../../Config/routes/configs");
 const User = userModel.User;
 
 router.get("/entries", function (req, res) {
@@ -18,6 +19,7 @@ router.get("/entries", function (req, res) {
       "email",
       "permission",
       "missions_managing",
+      "missions_viewing",
       "createdAt",
       "updatedAt",
     ],
@@ -142,6 +144,18 @@ router.post("/update", function (req, res, next) {
   if (req.body.permission === "001") {
     toUpdateTo.missions_managing = null;
   }
+  // Only SuperAdmins may change what a user can view
+  if (
+    req.session.permission === "111" &&
+    req.body.hasOwnProperty("missions_viewing") &&
+    (req.body.missions_viewing === null ||
+      Array.isArray(req.body.missions_viewing))
+  ) {
+    toUpdateTo.missions_viewing =
+      req.body.missions_viewing == null
+        ? null
+        : req.body.missions_viewing.filter((m) => typeof m === "string");
+  }
   
   // Don't allow changing the main admin account's permissions
   if (id === 1) {
@@ -156,6 +170,7 @@ router.post("/update", function (req, res, next) {
 
   User.update(toUpdateTo, updateObj)
     .then(() => {
+      clearViewableFoldersCache(id);
       res.send({
         status: "success",
         message: `Successfully updated user with id: '${id}'.`,

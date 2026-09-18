@@ -53,6 +53,7 @@
         margin-top: 0;
       }
       /* Loading screen */
+      /* Dark by default, matching .landingPage.dark (--lp-bg) */
       .LoadingPage {
         height: 100%;
         width: 100%;
@@ -66,11 +67,12 @@
         z-index: 100;
       }
 
+      /* Hero logo; the landing page logo starts here then glides into its nav */
       .LoadingPage #title {
         position: absolute;
-        top: 45px;
-        left: 35px;
-        padding: 0px 10px;
+        top: calc(50% - 60px);
+        left: calc(50% - 108px);
+        padding: 0;
       }
 
       .LoadingPage #title p {
@@ -79,8 +81,57 @@
       }
 
       .LoadingPage img {
-        position: relative;
-        left: -1px;
+        display: block;
+        height: 44px;
+      }
+
+      /* Same contour tiling as .landingPage .topo */
+      .LoadingPage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url(public/images/contours.png);
+        background-size: 500px;
+        mix-blend-mode: screen;
+        opacity: 0.25;
+        pointer-events: none;
+      }
+      .LoadingPage.light::before {
+        filter: invert(1);
+        mix-blend-mode: multiply;
+        opacity: 0.5;
+      }
+      /* Soft edge vignette, same as .landingPage::after */
+      .LoadingPage::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(0, 0, 0, 0.35) 100%
+        );
+        pointer-events: none;
+      }
+      /* Light variant matches .landingPage (light) so the two crossfade seamlessly */
+      .LoadingPage.light {
+        background-color: #fafafa;
+      }
+      .LoadingPage.light::after {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(0, 0, 0, 0.06) 100%
+        );
+      }
+      .LoadingPage.light img {
+        filter: invert(1) brightness(0.2);
+      }
+      .LoadingPage.light .planet,
+      .LoadingPage.light .planet2,
+      .LoadingPage.light .planet3 {
+        filter: invert(1);
+        opacity: 0.35;
       }
 
       @keyframes rotate {
@@ -239,15 +290,17 @@
       */
       #loading2 {
         position: absolute;
-        top: 85px;
-        left: 51px;
+        top: calc(50% - 8px);
+        left: calc(50% - 100px);
+        width: 200px;
+        display: flex;
+        justify-content: space-between;
+        line-height: 0;
       }
       #loading2 span {
-        display: inline-block;
-        vertical-align: middle;
-        width: 6px;
-        height: 6px;
-        margin: 0px 18.5px 0px 0px;
+        display: block;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         animation: loading2 1.6s infinite alternate;
       }
@@ -297,22 +350,7 @@
         }
       }
 
-      /* Mobile-specific centering for LoadingPage title and loading dots */
-      @media screen and (max-width: 600px) {
-        .LoadingPage #title {
-          left: 50%;
-          transform: translateX(-50%);
-          text-align: center;
-        }
-        .LoadingPage #loading2 {
-          left: 50%;
-          transform: translateX(-50%);
-          width: 204px;
-        }
-        .LoadingPage #loading2 span {
-          margin: 0px 8px 0px 8px;
-        }
-      }
+
     </style>
   </head>
   <body>
@@ -359,6 +397,7 @@
           mmgisglobal.THIRD_PARTY_COOKIES = "#{THIRD_PARTY_COOKIES}";
           mmgisglobal.IS_DOCKER = "#{IS_DOCKER}";
           mmgisglobal.WITH_TITILER = "#{WITH_TITILER}";
+          mmgisglobal.LANDING_THEME = "#{LANDING_THEME}";
           break;
         default:
           mmgisglobal.AUTH = "%AUTH%";
@@ -383,6 +422,25 @@
           break;
       }
       window.mmgisglobal = mmgisglobal;
+
+      // Loading page theme: server-injected (prod) or last seen (localStorage), re-applied once options load
+      mmgisglobal.setLoadingTheme = function (theme) {
+        theme = theme === "light" ? "light" : "dark";
+        var el = document.querySelector(".LoadingPage");
+        if (el) el.classList.toggle("light", theme === "light");
+        try {
+          localStorage.setItem("mmgisLandingTheme", theme);
+        } catch (e) {}
+      };
+      (function () {
+        var theme = mmgisglobal.LANDING_THEME;
+        if (theme !== "light" && theme !== "dark") {
+          try {
+            theme = localStorage.getItem("mmgisLandingTheme");
+          } catch (e) {}
+        }
+        mmgisglobal.setLoadingTheme(theme === "light" ? "light" : "dark");
+      })();
 
       // React UI is always enabled
       mmgisglobal.useReactUI = true;

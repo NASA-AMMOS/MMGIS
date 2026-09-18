@@ -1,6 +1,20 @@
 {
   "rows": [
     {
+      "name": "Mission Status",
+      "components": [
+        {
+          "field": "look.card.status",
+          "name": "Status",
+          "inlineHelp": true,
+          "description": "<b>Active</b>: listed normally on the landing page.<br/><b>Archived</b>: listed under 'Archived Missions' below the active ones (omitted entirely if 'Hide Archived Missions' is on in General Options) but still fully accessible.<br/><b>Hidden</b>: never shown on the landing page and only visible here in Configure. Other missions can still point to this mission's data and it stays reachable by URL.",
+          "type": "dropdown",
+          "options": ["active", "archived", "hidden"],
+          "width": 4
+        }
+      ]
+    },
+    {
       "name": "Initial View",
       "components": [
         {
@@ -68,6 +82,52 @@
           "type": "text",
           "width": 4,
           "required": true
+        }
+      ]
+    },
+    {
+      "name": "Landing Page Card",
+      "components": [
+        {
+          "field": "look.card.body",
+          "name": "Planet / Moon",
+          "inlineHelp": true,
+          "description": "Body this mission targets (e.g. 'Mars', 'Europa'). Shown at the top right of the card and used to group cards when the landing page groups by planet. Leave blank to omit.",
+          "type": "text",
+          "width": 3
+        },
+        {
+          "field": "look.card.dotColor",
+          "name": "Dot Color",
+          "inlineHelp": true,
+          "description": "Small shaded dot shown beside the planet/moon name. When no banner image is set, the banner uses a matching gradient. Select 'none' to omit.",
+          "type": "dropdown",
+          "options": ["none", "red", "orange", "yellow", "green", "teal", "blue", "purple", "gray"],
+          "width": 3
+        },
+        {
+          "field": "look.card.imageurl",
+          "name": "Banner Image URL",
+          "inlineHelp": true,
+          "description": "Full-width image across the top of the card. Accepts an absolute URL, a mission-relative path ('banner.png' → Missions/[mission]/banner.png), or a public asset ('public/images/...'). Leave blank for a gradient based on the dot color, or a consistent default derived from the mission name.",
+          "type": "text",
+          "width": 6
+        },
+        {
+          "field": "look.card.subtext",
+          "name": "Subtitle",
+          "inlineHelp": true,
+          "description": "Short line shown directly under the mission name (e.g. 'Perseverance Rover · Jezero Crater'). Leave blank to omit.",
+          "type": "text",
+          "width": 4
+        },
+        {
+          "field": "look.card.description",
+          "name": "Description",
+          "inlineHelp": true,
+          "description": "Longer blurb shown under the subtitle, clamped to three lines. Leave blank to omit.",
+          "type": "textarea",
+          "width": 8
         }
       ]
     }
