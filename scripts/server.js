@@ -355,6 +355,7 @@ function ensureAdmin(
     if (
       url.endsWith("/api/configure/get") ||
       url.endsWith("/api/configure/missions") ||
+      url.endsWith("/api/configure/export") ||
       url.endsWith("/api/configure/getgeneraloptions") ||
       url.endsWith("/api/geodatasets/get") ||
       url.endsWith("/api/geodatasets/intersect") ||
