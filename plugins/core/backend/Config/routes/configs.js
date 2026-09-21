@@ -163,18 +163,19 @@ function viewableFromUser(user) {
   return Array.from(viewable);
 }
 
-// Long-term tokens inherit their creator's viewing scope
-function viewableFromToken(req) {
+function resolveTokenUser(req) {
   if (req.isLongTermToken)
-    return Promise.resolve(
-      viewableFromUser({
-        permission: req.tokenUserPermission,
-        missions_managing: req.tokenUserMissions,
-        missions_viewing: req.tokenUserMissionsViewing,
-      })
-    );
+    return Promise.resolve({
+      permission: req.tokenUserPermission,
+      missions_managing: req.tokenUserMissions,
+      missions_viewing: req.tokenUserMissionsViewing,
+    });
+
+  const authorization = req.headers && req.headers.authorization;
+  if (!authorization) return Promise.resolve(null);
+
   // Whitelisted routes skip token validation upstream; resolve the creator here
-  const token = String(req.headers.authorization).replace(/Bearer:?\s+/g, "");
+  const token = String(authorization).replace(/Bearer:?\s+/g, "");
   return sequelize
     .query(
       'SELECT lt.period, lt."createdAt", u.permission, u.missions_managing, u.missions_viewing FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
@@ -189,9 +190,20 @@ function viewableFromToken(req) {
           Date.now() - new Date(r.createdAt).getTime() < parseInt(r.period)
         )
       )
-        return [];
-      return viewableFromUser(r);
+        return null;
+      return {
+        permission: r.permission,
+        missions_managing: r.missions_managing,
+        missions_viewing: r.missions_viewing,
+      };
     });
+}
+
+// Long-term tokens inherit their creator's viewing scope
+function viewableFromToken(req) {
+  return resolveTokenUser(req).then((user) =>
+    user ? viewableFromUser(user) : []
+  );
 }
 
 function getViewableMissions(req) {
@@ -210,6 +222,32 @@ function getViewableMissions(req) {
     where: { id: uid },
     attributes: ["permission", "missions_managing", "missions_viewing"],
   }).then((user) => (user ? viewableFromUser(user) : []));
+}
+
+function getManagedMissions(req) {
+  if (req.session && req.session.permission === "111")
+    return Promise.resolve(null);
+
+  if (req.session && req.session.uid != null) {
+    return User.findOne({
+      where: { id: req.session.uid },
+      attributes: ["permission", "missions_managing"],
+    }).then((user) => {
+      if (!user || user.permission !== "110") return [];
+      return user.missions_managing || [];
+    });
+  }
+
+  if (req.isLongTermToken || (req.headers && req.headers.authorization)) {
+    return resolveTokenUser(req).then((user) => {
+      if (!user) return [];
+      if (user.permission === "111") return null;
+      if (user.permission !== "110") return [];
+      return user.missions_managing || [];
+    });
+  }
+
+  return Promise.resolve([]);
 }
 
 // Middleware guarding config loads by missions_viewing under AUTH=local
@@ -239,6 +277,39 @@ function checkMissionViewingPermission(req, res, next) {
       res.send({
         status: "failure",
         message: "Failed to verify mission viewing permissions.",
+      });
+    });
+}
+
+function requireAdminForVersion(req, res, next) {
+  if (req.query.version == null || req.query.version === "") {
+    next();
+    return;
+  }
+
+  getManagedMissions(req)
+    .then((managed) => {
+      if (managed === null || managed.includes(req.query.mission)) {
+        next();
+        return;
+      }
+      res.send({
+        status: "failure",
+        message:
+          "Unauthorized - only mission admins may request specific configuration versions.",
+      });
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to check mission permissions.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to verify mission permissions.",
       });
     });
 }
@@ -416,9 +487,14 @@ function get(req, res, next, cb, options) {
     });
   return null;
 }
-router.get("/get", checkMissionViewingPermission, function (req, res, next) {
-  get(req, res, next);
-});
+router.get(
+  "/get",
+  checkMissionViewingPermission,
+  requireAdminForVersion,
+  function (req, res, next) {
+    get(req, res, next);
+  }
+);
 
 /**
  * Create a Reference Mission demo
@@ -906,47 +982,80 @@ router.get("/missions", function (req, res, next) {
     return [];
   });
 
-  if (req.query.full === "true") {
-    Promise.all([
-      viewablePromise,
-      sequelize.query(
-        "SELECT DISTINCT ON (mission) mission, version, config FROM configs ORDER BY mission ASC, version DESC"
-      ),
-    ])
-      .then(([viewable, [results]]) => {
-        if (viewable != null)
-          results = results.filter((r) => viewable.includes(r.mission));
-        res.send({ status: "success", missions: results });
-        return null;
-      })
-      .catch((err) => {
-        logger("error", "Failed to find missions.", req.originalUrl, req, err);
-        res.send({ status: "failure", message: "Failed to find missions." });
-        return null;
-      });
-  } else {
-    Promise.all([
-      viewablePromise,
-      Config.aggregate("mission", "DISTINCT", { plain: false }),
-    ])
-      .then(([viewable, missions]) => {
-        let allMissions = [];
-        for (let i = 0; i < missions.length; i++)
-          allMissions.push(missions[i].DISTINCT);
-        if (viewable != null)
-          allMissions = allMissions.filter((m) => viewable.includes(m));
-        allMissions.sort((a, b) =>
-          a.localeCompare(b, undefined, { sensitivity: "base" })
-        );
-        res.send({ status: "success", missions: allMissions });
-        return null;
-      })
-      .catch((err) => {
-        logger("error", "Failed to find missions.", req.originalUrl, req, err);
-        res.send({ status: "failure", message: "Failed to find missions." });
-        return null;
-      });
+  Promise.all([
+    viewablePromise,
+    Config.aggregate("mission", "DISTINCT", { plain: false }),
+  ])
+    .then(([viewable, missions]) => {
+      let allMissions = [];
+      for (let i = 0; i < missions.length; i++)
+        allMissions.push(missions[i].DISTINCT);
+      if (viewable != null)
+        allMissions = allMissions.filter((m) => viewable.includes(m));
+      allMissions.sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
+      );
+      res.send({ status: "success", missions: allMissions });
+      return null;
+    })
+    .catch((err) => {
+      logger("error", "Failed to find missions.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to find missions." });
+      return null;
+    });
+  return null;
+});
+
+router.get("/export", function (req, res, next) {
+  const requested = req.query.mission
+    ? String(req.query.mission)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
+
+  if (
+    process.env.AUTH === "local" &&
+    (!req.session || req.session.uid == null) &&
+    !req.isLongTermToken &&
+    !(req.headers && req.headers.authorization)
+  ) {
+    res.send({ status: "failure", message: "Unauthorized - login required." });
+    return;
   }
+
+  Promise.all([
+    getViewableMissions(req),
+    Config.aggregate("mission", "DISTINCT", { plain: false }),
+  ])
+    .then(([viewable, missions]) => {
+      let targetMissions = Array.from(
+        new Set((missions || []).map((row) => row.DISTINCT))
+      );
+      if (viewable != null)
+        targetMissions = targetMissions.filter((m) => viewable.includes(m));
+      if (requested != null)
+        targetMissions = targetMissions.filter((m) => requested.includes(m));
+
+      if (targetMissions.length === 0) {
+        res.send({ status: "success", missions: [] });
+        return null;
+      }
+
+      const query =
+        'SELECT DISTINCT ON (mission) mission, version, config, "createdAt" FROM configs WHERE mission IN (:missions) ORDER BY mission ASC, version DESC';
+      return sequelize
+        .query(query, { replacements: { missions: targetMissions } })
+        .then(([rows]) => {
+          res.send({ status: "success", missions: rows });
+          return null;
+        });
+    })
+    .catch((err) => {
+      logger("error", "Failed to export missions.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to export missions." });
+      return null;
+    });
   return null;
 });
 
