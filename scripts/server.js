@@ -367,6 +367,7 @@ function ensureAdmin(
     if (
       url.endsWith("/api/configure/get") ||
       url.endsWith("/api/configure/missions") ||
+      url.endsWith("/api/configure/export") ||
       url.endsWith("/api/configure/getgeneraloptions") ||
       url.endsWith("/api/geodatasets/get") ||
       url.endsWith("/api/geodatasets/intersect") ||
@@ -418,6 +419,7 @@ function ensureAdmin(
           req.isLongTermToken = true;
           req.tokenUserPermission = tokenData.permission;
           req.tokenUserMissions = tokenData.missions_managing;
+          req.tokenUserMissionsViewing = tokenData.missions_viewing;
           req.user = tokenData.username;
           next();
         },
@@ -450,7 +452,7 @@ function validateLongTermToken(token, successCallback, failureCallback) {
 
   sequelize
     .query(
-      'SELECT lt.*, u.permission, u.missions_managing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
+      'SELECT lt.*, u.permission, u.missions_managing, u.missions_viewing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
       {
         replacements: {
           token: token,
@@ -518,6 +520,7 @@ function ensureUser(options = {}) {
             req.isLongTermToken = true;
             req.tokenUserPermission = tokenData.permission;
             req.tokenUserMissions = tokenData.missions_managing;
+            req.tokenUserMissionsViewing = tokenData.missions_viewing;
             req.user = tokenData.username;
             next();
           },

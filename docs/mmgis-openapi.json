@@ -87,7 +87,7 @@
           {
             "name": "version",
             "in": "query",
-            "description": "The version number of the provided mission's configuration object. If unset, gets the latest version.",
+            "description": "The version number of the provided mission's configuration object. Specific version requests are admin-only. If unset, gets the latest version.",
             "example": 3,
             "required": false,
             "schema": {
@@ -309,31 +309,26 @@
       "get": {
         "summary": "Get all missions",
         "tags": ["Configure"],
-        "parameters": [
-          {
-            "name": "full",
-            "in": "query",
-            "description": "If true, return a fuller response of which the configuration object will be in the 'config' key, otherwise return the raw configuration object directly.",
-            "example": true,
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Get missions response",
             "content": {
               "application/json": {
-                "examples": {
-                  "success_full": {
-                    "summary": "Success: Full",
-                    "value": {
-                      "status": "success",
-                      "missions": ["example_mission_1", "example_mission_2"]
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "missions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
-                  },
+                  }
+                },
+                "examples": {
                   "success": {
                     "summary": "Success",
                     "value": {
@@ -346,6 +341,86 @@
                     "value": {
                       "status": "failure",
                       "message": "Failed to find missions."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/configure/export": {
+      "get": {
+        "summary": "Export mission configurations",
+        "description": "Exports the latest configuration for each viewable mission.",
+        "tags": ["Configure"],
+        "parameters": [
+          {
+            "name": "mission",
+            "in": "query",
+            "description": "Optional comma-separated mission names to export.",
+            "example": "ExampleMission,OtherMission",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Export mission configurations response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "missions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "mission": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "integer"
+                          },
+                          "config": {
+                            "type": "object"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "missions": [
+                        {
+                          "mission": "ExampleMission",
+                          "version": 2,
+                          "config": {},
+                          "createdAt": "2024-01-01T00:00:00.000Z"
+                        }
+                      ]
+                    }
+                  },
+                  "failure": {
+                    "summary": "Failure",
+                    "value": {
+                      "status": "failure",
+                      "message": "Failed to export missions."
                     }
                   }
                 }
@@ -4919,6 +4994,12 @@
                   "skipLogin": {
                     "type": "boolean",
                     "description": "If true, create the account without logging the new user in on this session. Requires an admin session unless AUTH_LOCAL_ALLOW_SIGNUP is enabled."
+                  },
+                  "missions_viewing": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": { "type": "string" },
+                    "description": "SuperAdmin-only override of the site-wide default viewable missions for this new account (null = all, [] = none). Ignored for non-SuperAdmin sessions, which receive the default. Only enforced when AUTH=local."
                   }
                 },
                 "required": ["username", "password"]
@@ -5418,6 +5499,80 @@
                     "value": {
                       "status": "failure",
                       "message": "Failed to update user with id: ."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/defaults": {
+      "get": {
+        "summary": "Get the site-wide default missions_viewing applied to newly created accounts. Stored in every AUTH mode but only enforced when AUTH=local. null = unrestricted, [] = no missions. Requires administrator permissions.",
+        "tags": ["Accounts"],
+        "responses": {
+          "200": {
+            "description": "Account defaults response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": { "missions_viewing": ["MissionA"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/updateDefaults": {
+      "post": {
+        "summary": "Set the site-wide default missions_viewing applied to newly created accounts. Requires SuperAdmin permissions.",
+        "tags": ["Accounts"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "missions_viewing": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "nullable": true,
+                    "description": "null = new accounts see all missions, [] = new accounts see no missions"
+                  }
+                },
+                "required": ["missions_viewing"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update account defaults response",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "success": {
+                    "summary": "Success",
+                    "value": {
+                      "status": "success",
+                      "body": { "missions_viewing": ["MissionA"] }
+                    }
+                  },
+                  "forbidden": {
+                    "summary": "Not a SuperAdmin",
+                    "value": {
+                      "status": "failure",
+                      "message": "Only SuperAdmins may update account defaults."
                     }
                   }
                 }

@@ -13,6 +13,10 @@ const c = {
         type: 'GET',
         url: 'api/configure/missions',
     },
+    missions_export: {
+        type: 'GET',
+        url: 'api/configure/export',
+    },
     login: {
         type: 'POST',
         url: 'api/users/login',

@@ -1613,7 +1613,7 @@ const getComponent = (
       let source = "";
       if (window.mmgisglobal.WITH_TITILER === "true") {
         // Get colors from TiTiler if it is available
-        source = `${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`
+        source = `${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?f=png`
       }
 
       return (

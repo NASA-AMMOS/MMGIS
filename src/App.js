@@ -75,12 +75,11 @@ function initApp() {
             )
         }
     } else {
+        // Viewing-filtered {mission, version, config} rows for the landing page cards
         calls.api(
-            'missions',
-            { full: true },
+            'missions_export',
+            {},
             function (s) {
-                // Server returns viewing-filtered {mission, version, config} objects
-                // (or plain name strings on the static path); keep names as `missions`
                 const missionsMeta = {}
                 const missions = (s.missions || [])
                     .map((m) => {

@@ -25,6 +25,10 @@ const {
   withAverages,
 } = require("../lib/stats");
 
+// Bounds for `in` filter values (`$`-separated list)
+const MAX_IN_VALUES = 500;
+const MAX_IN_VALUE_LENGTH = 1000;
+
 //Returns a geodataset table as a geojson
 router.get("/get/:layer", function (req, res, next) {
   get("get", req, res, next, { layer: req.params.layer });
@@ -426,11 +430,14 @@ function get(reqtype, req, res, next, options) {
                   else currentGroup.push(qNull);
                   return;
                 } else if (op === "IN") {
-                  const valueSplit = f.value.split("$");
+                  const valueSplit = String(f.value ?? "")
+                    .split("$")
+                    .slice(0, MAX_IN_VALUES)
+                    .map((v) => v.substring(0, MAX_IN_VALUE_LENGTH));
                   const values = [];
-                  valueSplit.forEach((v) => {
-                    replacements[`filter_value_${i}_${v}`] = v;
-                    values.push(`:filter_value_${i}_${v}`);
+                  valueSplit.forEach((v, j) => {
+                    replacements[`filter_value_${i}_${j}`] = v;
+                    values.push(`:filter_value_${i}_${j}`);
                   });
                   value = `(${values.join(",")})`;
                 } else if (op === "LIKE") {
