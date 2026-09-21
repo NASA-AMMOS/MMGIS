@@ -1022,20 +1022,27 @@ router.get("/missions", function (req, res, next) {
               })),
             },
             attributes: ["mission", "version", "config"],
-            order: [["mission", "ASC"]],
+            order: [
+              ["mission", "ASC"],
+              ["id", "DESC"],
+            ],
           })
         )
         .then((rows) => {
-          const cards = rows.map((row) => {
+          const seen = new Set();
+          const cards = [];
+          for (const row of rows) {
+            if (seen.has(row.mission)) continue;
+            seen.add(row.mission);
             const config = row.config || {};
             const look = config.look || {};
-            return {
+            cards.push({
               mission: row.mission,
               version: row.version,
               look: { missionname: look.missionname, card: look.card },
               msv: { missionFolderName: (config.msv || {}).missionFolderName },
-            };
-          });
+            });
+          }
           res.send({ status: "success", missions: cards });
           return null;
         });
