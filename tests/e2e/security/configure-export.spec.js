@@ -169,5 +169,35 @@ test.describe.serial("configure export", () => {
       expect(version?.status).toBe("success");
       expect(version?.version).toBe(1);
     });
+
+    test("session permissions take precedence over authorization tokens", async () => {
+      const generated = await json(
+        await superadmin.post("/api/longtermtoken/generate", {
+          data: { name: `configure${stamp}`, period: "never" },
+        }),
+      );
+      expect(generated?.status).toBe("success");
+      const token = generated.body.token;
+      const tokens = await json(
+        await superadmin.get("/api/longtermtoken/get"),
+      );
+      const tokenRow = tokens.tokens.find((entry) => entry.token === token);
+      expect(tokenRow).toBeTruthy();
+
+      try {
+        const body = await json(
+          await user.get(
+            `/api/configure/get?mission=${missionA}&version=1`,
+            { headers: { Authorization: `Bearer ${token}` } },
+          ),
+        );
+        expect(body?.status).toBe("failure");
+        expect(body?.message).toContain("Unauthorized");
+      } finally {
+        await superadmin
+          .post("/api/longtermtoken/clear", { data: { id: tokenRow.id } })
+          .catch(() => {});
+      }
+    });
   });
 });

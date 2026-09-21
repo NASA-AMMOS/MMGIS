@@ -225,15 +225,6 @@ function getViewableMissions(req) {
 }
 
 function getManagedMissions(req) {
-  if (req.isLongTermToken || (req.headers && req.headers.authorization)) {
-    return resolveTokenUser(req).then((user) => {
-      if (!user) return [];
-      if (user.permission === "111") return null;
-      if (user.permission !== "110") return [];
-      return user.missions_managing || [];
-    });
-  }
-
   if (req.session && req.session.permission === "111")
     return Promise.resolve(null);
 
@@ -243,6 +234,15 @@ function getManagedMissions(req) {
       attributes: ["permission", "missions_managing"],
     }).then((user) => {
       if (!user || user.permission !== "110") return [];
+      return user.missions_managing || [];
+    });
+  }
+
+  if (req.isLongTermToken || (req.headers && req.headers.authorization)) {
+    return resolveTokenUser(req).then((user) => {
+      if (!user) return [];
+      if (user.permission === "111") return null;
+      if (user.permission !== "110") return [];
       return user.missions_managing || [];
     });
   }
