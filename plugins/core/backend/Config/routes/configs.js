@@ -1007,7 +1007,6 @@ router.get("/missions", function (req, res, next) {
 });
 
 router.get("/export", function (req, res, next) {
-  const wantVersions = req.query.versions === "true";
   const requested = req.query.mission
     ? String(req.query.mission)
         .split(",")
@@ -1027,10 +1026,9 @@ router.get("/export", function (req, res, next) {
 
   Promise.all([
     getViewableMissions(req),
-    wantVersions ? getManagedMissions(req) : Promise.resolve(null),
     Config.aggregate("mission", "DISTINCT", { plain: false }),
   ])
-    .then(([viewable, managed, missions]) => {
+    .then(([viewable, missions]) => {
       let targetMissions = Array.from(
         new Set((missions || []).map((row) => row.DISTINCT))
       );
@@ -1039,27 +1037,13 @@ router.get("/export", function (req, res, next) {
       if (requested != null)
         targetMissions = targetMissions.filter((m) => requested.includes(m));
 
-      if (
-        wantVersions &&
-        managed !== null &&
-        !targetMissions.every((mission) => managed.includes(mission))
-      ) {
-        res.send({
-          status: "failure",
-          message:
-            "Unauthorized - only mission admins may export previous versions.",
-        });
-        return null;
-      }
-
       if (targetMissions.length === 0) {
         res.send({ status: "success", missions: [] });
         return null;
       }
 
-      const query = wantVersions
-        ? 'SELECT mission, version, config, "createdAt" FROM configs WHERE mission IN (:missions) ORDER BY mission ASC, version DESC'
-        : 'SELECT DISTINCT ON (mission) mission, version, config, "createdAt" FROM configs WHERE mission IN (:missions) ORDER BY mission ASC, version DESC';
+      const query =
+        'SELECT DISTINCT ON (mission) mission, version, config, "createdAt" FROM configs WHERE mission IN (:missions) ORDER BY mission ASC, version DESC';
       return sequelize
         .query(query, { replacements: { missions: targetMissions } })
         .then(([rows]) => {

@@ -58,17 +58,14 @@ Gets a list of all configured missions. _Auth token not needed._
 
 ### GET /export
 
-Exports the latest configuration for each viewable mission, or every configuration
-version when `versions=true`.
+Exports the latest configuration for each viewable mission.
 
 | Parameter |   Type    | Required | Default | Description |
 | :-------: | :-------: | :------: | :-----: | :---------- |
 | **mission** | _string_ | false | all viewable missions | Comma-separated mission names |
-| **versions** | _boolean_ | false | false | Include all versions; admins only |
 
 Auth: Login required under `AUTH=local`; results are limited to missions the
-requester may view; `versions=true` requires Admin/SuperAdmin for every exported
-mission.
+requester may view.
 
 #### Example
 

@@ -147,30 +147,6 @@ test.describe.serial("configure export", () => {
       }
     });
 
-    test("viewing user cannot export previous versions", async () => {
-      const body = await json(
-        await user.get("/api/configure/export?versions=true"),
-      );
-      expect(body?.status).toBe("failure");
-    });
-
-    test("superadmin exports all requested versions in descending order", async () => {
-      const body = await json(
-        await superadmin.get(
-          `/api/configure/export?mission=${missionA}&versions=true`,
-        ),
-      );
-      expect(body?.status).toBe("success");
-      expect(body.missions).toHaveLength(2);
-      expect(body.missions.map((row) => row.mission)).toEqual([
-        missionA,
-        missionA,
-      ]);
-      expect(body.missions[0].version).toBeGreaterThan(
-        body.missions[1].version,
-      );
-    });
-
     test("specific config versions require mission admin access", async () => {
       const denied = await json(
         await user.get(`/api/configure/get?mission=${missionA}&version=1`),

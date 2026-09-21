@@ -353,7 +353,7 @@
     "/api/configure/export": {
       "get": {
         "summary": "Export mission configurations",
-        "description": "Exports the latest configuration for each viewable mission, or every configuration version when versions=true. Login is required under AUTH=local; versions=true requires Admin/SuperAdmin permissions for every exported mission.",
+        "description": "Exports the latest configuration for each viewable mission.",
         "tags": ["Configure"],
         "parameters": [
           {
@@ -364,16 +364,6 @@
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "versions",
-            "in": "query",
-            "description": "If true, include all configuration versions. Admin/SuperAdmin permissions are required for every exported mission.",
-            "example": true,
-            "required": false,
-            "schema": {
-              "type": "boolean"
             }
           }
         ],
