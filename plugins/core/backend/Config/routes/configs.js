@@ -1006,29 +1006,39 @@ router.get("/missions", function (req, res, next) {
       // Landing page card metadata only (latest version per mission)
       return Config.findAll({
         where: { mission: allMissions },
-        attributes: ["mission", "version", "config"],
-        order: [
-          ["mission", "ASC"],
-          ["version", "DESC"],
+        attributes: [
+          "mission",
+          [Sequelize.fn("MAX", Sequelize.col("version")), "version"],
         ],
-      }).then((rows) => {
-        const seen = new Set();
-        const cards = [];
-        for (const row of rows) {
-          if (seen.has(row.mission)) continue;
-          seen.add(row.mission);
-          const config = row.config || {};
-          const look = config.look || {};
-          cards.push({
-            mission: row.mission,
-            version: row.version,
-            look: { missionname: look.missionname, card: look.card },
-            msv: { missionFolderName: (config.msv || {}).missionFolderName },
+        group: ["mission"],
+        raw: true,
+      })
+        .then((latest) =>
+          Config.findAll({
+            where: {
+              [Sequelize.Op.or]: latest.map((l) => ({
+                mission: l.mission,
+                version: l.version,
+              })),
+            },
+            attributes: ["mission", "version", "config"],
+            order: [["mission", "ASC"]],
+          })
+        )
+        .then((rows) => {
+          const cards = rows.map((row) => {
+            const config = row.config || {};
+            const look = config.look || {};
+            return {
+              mission: row.mission,
+              version: row.version,
+              look: { missionname: look.missionname, card: look.card },
+              msv: { missionFolderName: (config.msv || {}).missionFolderName },
+            };
           });
-        }
-        res.send({ status: "success", missions: cards });
-        return null;
-      });
+          res.send({ status: "success", missions: cards });
+          return null;
+        });
     })
     .catch((err) => {
       logger("error", "Failed to find missions.", req.originalUrl, req, err);
