@@ -37,12 +37,11 @@ export const DOT_COLORS = {
 }
 
 export function getCardFields(missionName, missionsMeta) {
-    const meta = missionsMeta[missionName]
-    const config = (meta && meta.config) || {}
-    const look = config.look || {}
+    const meta = missionsMeta[missionName] || {}
+    const look = meta.look || {}
     const card = look.card || {}
     const str = (v) => (typeof v === 'string' && v.trim() ? v : null)
-    const folder = str(config.msv && config.msv.missionFolderName) || missionName
+    const folder = str(meta.msv && meta.msv.missionFolderName) || missionName
     return {
         title: str(look.missionname) || missionName,
         color: str(card.color),

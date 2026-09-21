@@ -75,10 +75,10 @@ function initApp() {
             )
         }
     } else {
-        // Viewing-filtered {mission, version, config} rows for the landing page cards
+        // Viewing-filtered {mission, look, msv} card metadata for the landing page
         calls.api(
-            'missions_export',
-            {},
+            'missions',
+            { cards: true },
             function (s) {
                 const missionsMeta = {}
                 const missions = (s.missions || [])
