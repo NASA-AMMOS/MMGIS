@@ -47,6 +47,14 @@ const config = {
           width: 5,
         },
         {
+          field: "temp.generalOptions.landingPage.logoUrl",
+          name: "Logo Image URL",
+          description:
+            "Optional logo shown on the landing page navigation bar and the initial loading screen. Supports absolute URLs and public assets (e.g., 'public/images/logos/mmgis.png'). Leave blank for the MMGIS logo.",
+          type: "text",
+          width: 6,
+        },
+        {
           field: "temp.generalOptions.landingPage.backgroundImageUrl",
           name: "Background Image URL",
           description:

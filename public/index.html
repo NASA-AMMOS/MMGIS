@@ -67,11 +67,12 @@
         z-index: 100;
       }
 
-      /* Hero logo; the landing page logo starts here then glides into its nav */
+      /* Hero logo, centered */
       .LoadingPage #title {
         position: absolute;
         top: calc(50% - 60px);
-        left: calc(50% - 108px);
+        left: 50%;
+        transform: translateX(-50%);
         padding: 0;
       }
 
@@ -83,6 +84,8 @@
       .LoadingPage img {
         display: block;
         height: 44px;
+        max-width: 80vw;
+        object-fit: contain;
       }
 
       /* Same contour tiling as .landingPage .topo */
@@ -126,6 +129,9 @@
       }
       .LoadingPage.light img {
         filter: invert(1) brightness(0.2);
+      }
+      .LoadingPage.light img.customLogo {
+        filter: none;
       }
       .LoadingPage.light .planet,
       .LoadingPage.light .planet2,
@@ -362,7 +368,7 @@
       <div class="planet3"></div>
       <div id="title">
         <p>
-          <img src="public/images/logos/mmgis.png" alt="Full logo" />
+          <img id="loadingLogo" src="public/images/logos/mmgis.png" alt="Full logo" />
         </p>
       </div>
       <div id="loading2">
@@ -398,6 +404,7 @@
           mmgisglobal.IS_DOCKER = "#{IS_DOCKER}";
           mmgisglobal.WITH_TITILER = "#{WITH_TITILER}";
           mmgisglobal.LANDING_THEME = "#{LANDING_THEME}";
+          mmgisglobal.LANDING_LOGO_URL = "#{LANDING_LOGO_URL}";
           break;
         default:
           mmgisglobal.AUTH = "%AUTH%";
@@ -432,6 +439,29 @@
           localStorage.setItem("mmgisLandingTheme", theme);
         } catch (e) {}
       };
+      // Loading page logo: server-injected (prod) or last seen (localStorage); default MMGIS logo
+      mmgisglobal.setLoadingLogo = function (url) {
+        url = typeof url === "string" ? url.trim() : "";
+        var img = document.getElementById("loadingLogo");
+        if (img) {
+          img.src = url || "public/images/logos/mmgis.png";
+          img.classList.toggle("customLogo", !!url);
+        }
+        try {
+          localStorage.setItem("mmgisLandingLogo", url);
+        } catch (e) {}
+      };
+      (function () {
+        var logo = mmgisglobal.LANDING_LOGO_URL;
+        if (typeof logo !== "string" || logo.indexOf("#{") === 0) {
+          try {
+            logo = localStorage.getItem("mmgisLandingLogo") || "";
+          } catch (e) {
+            logo = "";
+          }
+        }
+        if (logo) mmgisglobal.setLoadingLogo(logo);
+      })();
       (function () {
         var theme = mmgisglobal.LANDING_THEME;
         if (theme !== "light" && theme !== "dark") {

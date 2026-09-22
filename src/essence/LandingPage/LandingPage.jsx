@@ -85,6 +85,7 @@ export function getLandingOptions() {
         subheading: str(o.subheading, DEFAULT_SUBHEADING),
         theme: o.theme === 'light' ? 'light' : 'dark',
         backgroundImageUrl: bg || null,
+        logoUrl: str(o.logoUrl, MMGIS_LOGO_URL),
         hideArchived: o.hideArchived === true || o.hideArchived === 'true',
         hideSearch: o.hideSearch === true || o.hideSearch === 'true',
         creditText: str(o.creditText, DEFAULT_CREDIT_TEXT),
@@ -210,10 +211,15 @@ function UserArea() {
 }
 
 function Nav() {
+    const { logoUrl } = getLandingOptions()
     return (
         <div className="nav">
             <div className="logo">
-                <img src={MMGIS_LOGO_URL} alt="MMGIS logo" />
+                <img
+                    src={logoUrl}
+                    className={logoUrl === MMGIS_LOGO_URL ? undefined : 'customLogo'}
+                    alt="Logo"
+                />
             </div>
             <div className="links">
                 {window.mmgisglobal.AUTH !== 'off' && <UserArea />}

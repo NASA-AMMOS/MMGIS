@@ -146,13 +146,18 @@
     gap: 12px;
 }
 .landingPage .nav .logo {
-    width: 128px;
+    min-width: 128px;
     height: 26px;
 }
 .landingPage .nav .logo img {
     height: 26px;
+    max-width: 260px;
+    object-fit: contain;
     display: block;
     filter: var(--lp-logo-filter);
+}
+.landingPage .nav .logo img.customLogo {
+    filter: none;
 }
 .landingPage .nav .links {
     margin-left: auto;

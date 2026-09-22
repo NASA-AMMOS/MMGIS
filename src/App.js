@@ -33,6 +33,8 @@ $(document).ready(function () {
             const landingPage = (resp.options || {}).landingPage || {}
             if (mmgisglobal.setLoadingTheme)
                 mmgisglobal.setLoadingTheme(landingPage.theme)
+            if (mmgisglobal.setLoadingLogo)
+                mmgisglobal.setLoadingLogo(landingPage.logoUrl)
             initApp()
         },
         function (err) {

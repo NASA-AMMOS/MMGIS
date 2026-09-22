@@ -55,15 +55,17 @@ const {
 } = require("../plugins/core/backend/Config/routes/configs");
 const GeneralOptions = require("../plugins/core/backend/GeneralOptions/models/generaloptions");
 
-// Landing page theme from General Options; the loading page is themed to match it
-async function getLandingTheme() {
+// Landing page theme/logo from General Options; the loading page uses them before the bundle loads
+async function getLandingPageInjection() {
+  let lp = {};
   try {
     const row = await GeneralOptions.findOne({ where: { id: 1 } });
-    const lp = (row && row.options && row.options.landingPage) || {};
-    return lp.theme === "light" ? "light" : "dark";
-  } catch (err) {
-    return "dark";
-  }
+    lp = (row && row.options && row.options.landingPage) || {};
+  } catch (err) {}
+  return {
+    LANDING_THEME: lp.theme === "light" ? "light" : "dark",
+    LANDING_LOGO_URL: typeof lp.logoUrl === "string" ? lp.logoUrl.trim() : "",
+  };
 }
 
 const isDevEnv = process.env.NODE_ENV === "development";
@@ -918,7 +920,7 @@ setups.getBackendSetups(function (setups) {
             HOSTS: JSON.stringify({
               scienceIntent: process.env.SCIENCE_INTENT_HOST,
             }),
-            LANDING_THEME: await getLandingTheme(),
+            ...(await getLandingPageInjection()),
           });
         },
       );
