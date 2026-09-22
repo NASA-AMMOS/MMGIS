@@ -14,6 +14,18 @@
     />
     <meta name="theme-color" content="#1d1f20" />
     <meta name="description" content="#{LINK_PREVIEW_DESCRIPTION}" />
+    <script>
+      // Apply the landing theme before first paint (server-injected in prod, last seen otherwise)
+      (function () {
+        var t = "#{LANDING_THEME}";
+        if (t !== "light" && t !== "dark") {
+          try {
+            t = localStorage.getItem("mmgisLandingTheme");
+          } catch (e) {}
+        }
+        if (t === "light") document.documentElement.classList.add("light");
+      })();
+    </script>
     <style>
       html,
       body {
@@ -104,7 +116,11 @@
         opacity: 0.25;
         pointer-events: none;
       }
-      .LoadingPage.light::before {
+      html.light,
+      html.light body {
+        background: #fafafa;
+      }
+      html.light .LoadingPage::before {
         filter: invert(1);
         mix-blend-mode: multiply;
         opacity: 0.5;
@@ -122,25 +138,25 @@
         pointer-events: none;
       }
       /* Light variant matches .landingPage (light) so the two crossfade seamlessly */
-      .LoadingPage.light {
+      html.light .LoadingPage {
         background-color: #fafafa;
       }
-      .LoadingPage.light::after {
+      html.light .LoadingPage::after {
         background: radial-gradient(
           ellipse at center,
           transparent 55%,
           rgba(0, 0, 0, 0.06) 100%
         );
       }
-      .LoadingPage.light img {
+      html.light .LoadingPage img {
         filter: invert(1) brightness(0.2);
       }
-      .LoadingPage.light img.customLogo {
+      html.light .LoadingPage img.customLogo {
         filter: none;
       }
-      .LoadingPage.light .planet,
-      .LoadingPage.light .planet2,
-      .LoadingPage.light .planet3 {
+      html.light .LoadingPage .planet,
+      html.light .LoadingPage .planet2,
+      html.light .LoadingPage .planet3 {
         filter: invert(1);
         opacity: 0.35;
       }
@@ -440,11 +456,10 @@
       }
       window.mmgisglobal = mmgisglobal;
 
-      // Loading page theme: server-injected (prod) or last seen (localStorage), re-applied once options load
+      // Loading page theme: re-applied once options load (see the <head> script for first paint)
       mmgisglobal.setLoadingTheme = function (theme) {
         theme = theme === "light" ? "light" : "dark";
-        var el = document.querySelector(".LoadingPage");
-        if (el) el.classList.toggle("light", theme === "light");
+        document.documentElement.classList.toggle("light", theme === "light");
         try {
           localStorage.setItem("mmgisLandingTheme", theme);
         } catch (e) {}
@@ -471,15 +486,6 @@
           }
         }
         if (logo) mmgisglobal.setLoadingLogo(logo);
-      })();
-      (function () {
-        var theme = mmgisglobal.LANDING_THEME;
-        if (theme !== "light" && theme !== "dark") {
-          try {
-            theme = localStorage.getItem("mmgisLandingTheme");
-          } catch (e) {}
-        }
-        mmgisglobal.setLoadingTheme(theme === "light" ? "light" : "dark");
       })();
 
       // React UI is always enabled
