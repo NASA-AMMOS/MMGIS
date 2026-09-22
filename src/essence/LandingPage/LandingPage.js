@@ -41,7 +41,9 @@ export default {
             mmgisglobal.MAIN_MISSION != '' &&
             mmgisglobal.MAIN_MISSION != 'undefined' &&
             typeof mmgisglobal.MAIN_MISSION === 'string' &&
-            mmgisglobal.MAIN_MISSION.length > 0
+            mmgisglobal.MAIN_MISSION.length > 0 &&
+            (mmgisglobal.AUTH !== 'local' ||
+                missions.includes(mmgisglobal.MAIN_MISSION))
         ) {
             missionUrl = mmgisglobal.MAIN_MISSION
         }
@@ -140,6 +142,17 @@ export default {
                     'padding-right': '20px'
                 })
             missionsDiv.append(missionsUl)
+            if (missions.length === 0) {
+                missionsUl.append(
+                    $('<li>')
+                        .attr('id', 'landingNoMissions')
+                        .text(
+                            window.mmgisglobal.AUTH === 'local'
+                                ? 'You do not have access to any missions. Please contact an administrator.'
+                                : 'No missions are available.'
+                        )
+                )
+            }
             for (let m in missions) {
                 const missionLi = $('<li>')
                     .attr('class', 'landingPageMission')
