@@ -38,12 +38,12 @@ let setup = {
   //Once the server starts
   onceStarted: (s) => {},
   //Once all tables sync
-  onceSynced: (s) => {
+  onceSynced: async (s) => {
     if (typeof file_histories.up === "function") {
       file_histories.up();
     }
     if (typeof ufiles.up === "function") {
-      ufiles.up();
+      await ufiles.up();
     }
     routeFiles.makeMasterFiles([
       "roi",
