@@ -684,6 +684,37 @@
     }
 }
 
+/* Mobile animation steps */
+#tools #animationToolSteps {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 8px 12px;
+    gap: 0;
+}
+
+#tools #animationToolSteps::before {
+    display: block;
+    top: 21px;
+    left: 25px;
+    right: 25px;
+}
+
+#tools .animation-step {
+    flex-direction: column;
+    gap: 0;
+}
+
+#tools .step-number {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    margin-bottom: 0;
+}
+
+#tools .step-title {
+    display: none;
+}
+
 /* Animation Tool Modal Styling */
 .mmgisModal .modal-content {
     background: var(--color-k) !important;

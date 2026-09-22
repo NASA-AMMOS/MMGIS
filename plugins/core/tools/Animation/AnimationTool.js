@@ -265,6 +265,19 @@ const AnimationTool = {
     drawingHandlers: null,
     originalCursor: null,
 
+    initialize: function () {
+        if (L_.UserInterface_.isMobile === true) {
+            const mapRect = document
+                .getElementById('map')
+                .getBoundingClientRect()
+            this.width = 'full'
+            // Mobile bottom-sheet detents (fractions of map height), small to large.
+            // Middle detent is the default open height.
+            this.heightDetents = [0.5, 0.8, 0.9]
+            this.height = Math.round(mapRect.height * this.heightDetents[1])
+        }
+    },
+
     make: function () {
         this.MMGISInterface = new interfaceWithMMGIS()
         Help.finalize(helpKey)
@@ -287,7 +300,8 @@ function interfaceWithMMGIS() {
     }
 
     // Initialize the tool UI
-    const toolPanel = $('#toolPanel')
+    const divID = L_.UserInterface_.isMobile === true ? '#tools' : '#toolPanel'
+    const toolPanel = $(divID)
     toolPanel.css('background', 'transparent')
     toolPanel.empty()
 
