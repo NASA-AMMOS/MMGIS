@@ -65,7 +65,8 @@ async function getLandingPageInjection() {
   const logoUrl = typeof lp.logoUrl === "string" ? lp.logoUrl.trim() : "";
   return {
     LANDING_THEME: lp.theme === "light" ? "light" : "dark",
-    LANDING_LOGO_URL: logoUrl,
+    // JS-string-escaped (no surrounding quotes); Pug HTML-escapes it on top
+    LANDING_LOGO_URL: JSON.stringify(logoUrl).slice(1, -1),
   };
 }
 
