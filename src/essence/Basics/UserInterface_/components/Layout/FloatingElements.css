@@ -69,10 +69,3 @@
     background: transparent !important;
 }
 
-/* --- Attributions --- */
-#mmgis-attributions {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    border-radius: 4px !important;
-    padding: 2px 6px !important;
-}

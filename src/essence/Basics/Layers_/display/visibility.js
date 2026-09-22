@@ -52,11 +52,6 @@ export async function toggleLayer(
     // Always reupdate layer infos at the end to keep them in sync
     Description.updateInfo()
 
-    // Update attributions display
-    if (typeof Attributions !== 'undefined' && Attributions.update) {
-        Attributions.update()
-    }
-
     // Deselect active feature if its layer is being turned off
     if (L_.activeFeature && L_.activeFeature.layerName === s.name && on) {
         L_.setActiveFeature(null)
@@ -255,6 +250,9 @@ export async function toggleLayerHelper(
                 L_.toggleFeature(f, false)
             })
         }
+
+        // Visible layer set changed on every path (API, tree restore, reload)
+        Attributions.update()
     }
 }
 
@@ -378,6 +376,7 @@ export function addVisible(L_, map_, onlyTheseLayers) {
     }
 
     L_._refreshAnnotationEvents()
+    Attributions.update()
 }
 
 export function toggleFeature(L_, layer, on) {

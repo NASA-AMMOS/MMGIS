@@ -58,6 +58,7 @@
     "screenshot": true,
     "fullscreen": true,
     "help": true,
+    "showAttributionsOnMap": true,
     "logourl": "",
     "helpurl": "https://nasa-ammos.github.io/MMGIS/",
     "aboutModalContent": "Welcome to the **MMGIS Reference Mission**.\n\nThis mission demonstrates the full capabilities of the Multi-Mission Geographic Information System."

@@ -2,7 +2,7 @@ import $ from 'jquery'
 import L_ from '@basics/Layers_/Layers_'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
 import marked from '@essence/services/Markdown'
-import { safeHTML } from '@essence/services/Sanitize'
+import { safeHTML, safeLinkUrl } from '@essence/services/Sanitize'
 import F_ from '@basics/Formulae_/Formulae_'
 
 import './LayerInfoModal.css'
@@ -24,6 +24,15 @@ const LayerInfo = {
 
         let type = layer.type
         if (type === 'tile') type = 'raster'
+
+        let attribution = ''
+        if (layer.attribution != null && layer.attribution !== '') {
+            const text = F_.escapeHtml(layer.attribution)
+            const link = safeLinkUrl(layer.attributionLink)
+            attribution = link
+                ? `<a href='${F_.escapeHtml(link)}' target='_blank' rel='noopener noreferrer'>${text}</a>`
+                : text
+        }
 
         // prettier-ignore
         Modal.set(
@@ -65,7 +74,10 @@ const LayerInfo = {
                                 layer.description ? safeHTML(LayerInfo.converter.parse(layer.description)) : `<div class='LayerInfoModalNone'>No Description</div>`,
                             `</div>`,
                         `</div>`,
-                        `<div id='LayerInfoModalInnerUUID'>${layer.uuid}</div>`,
+                        `<div id='LayerInfoModalFooter'>`,
+                            `<div id='LayerInfoModalAttribution'>${attribution ? `\u00a9 ${attribution}` : ''}</div>`,
+                            `<div id='LayerInfoModalInnerUUID'>${layer.uuid}</div>`,
+                        `</div>`,
                     `</div>`,
                 `</div>`
             ].join('\n'),
