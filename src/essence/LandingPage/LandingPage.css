@@ -520,47 +520,43 @@
     color: var(--lp-accent);
 }
 
-#notfound {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #efefef;
-    color: #757575;
-    opacity: 0;
-    transition: opacity 1.5s ease;
-    cursor: pointer;
-    z-index: 1000;
-}
-#notfound.visible {
-    opacity: 1;
-}
-#notfound p,
-#notfound #nf404 {
-    position: absolute;
-    top: 50%;
-    left: 50%;
+/* Mission not found (404) */
+.landingPage.notfound .nfmain {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
+    padding: 0 24px 80px;
 }
-#notfound #mnfmmgis {
-    font-family: lato;
-    font-size: 20px;
-    margin: 90px 0;
-    transform: translateX(-50%);
+.landingPage.notfound .nf404 {
+    font-family: 'DM Sans', roboto, sans-serif;
+    font-size: clamp(120px, 22vw, 220px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--lp-text);
+    opacity: 0.08;
+    margin-bottom: -0.35em;
 }
-#notfound #returnmmgis {
-    font-family: lato;
-    font-size: 14px;
-    margin: 125px 0 90px 0;
-    transform: translateX(-50%);
+.landingPage.notfound h2 {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--lp-text);
+    margin: 0 0 12px;
 }
-#notfound #nf404 {
-    font-family: monospace;
-    font-size: 200px;
-    margin-top: 5px;
-    transform: translateX(-50%) translateY(-50%);
-    color: var(--color-b);
+.landingPage.notfound p {
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--lp-text-2);
+    max-width: 440px;
+    margin: 0 0 28px;
+}
+.landingPage.notfound p strong {
+    color: var(--lp-text);
+    font-weight: 600;
 }
 
 #missionnotfound {

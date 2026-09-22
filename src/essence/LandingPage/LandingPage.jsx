@@ -356,9 +356,15 @@ function Missions({ missions, missionsMeta, onOpen, hideArchived, query, groupBy
     if (missions.length === 0) {
         return (
             <div id="landingNoMissions">
-                {window.mmgisglobal.AUTH === 'local'
-                    ? 'You do not have access to any missions. Please contact an administrator.'
-                    : 'No missions are available.'}
+                {window.mmgisglobal.AUTH === 'local' ? (
+                    <>
+                        You do not have access to any missions.
+                        <br />
+                        Please contact an administrator.
+                    </>
+                ) : (
+                    'No missions are available.'
+                )}
             </div>
         )
     }
@@ -514,23 +520,48 @@ export default function LandingPage({ missions, missionsMeta, onSelectMission })
     )
 }
 
-export function MissionNotFound() {
+export function MissionNotFound({ missionName }) {
+    const opts = getLandingOptions()
     const [visible, setVisible] = useState(false)
     useEffect(() => {
         const id = requestAnimationFrame(() => setVisible(true))
         return () => cancelAnimationFrame(id)
     }, [])
+    const classes = ['landingPage', 'notfound', opts.theme]
+    if (visible) classes.push('visible')
+    const home = window.location.href.split('?')[0]
     return (
-        <div
-            id="notfound"
-            className={visible ? 'visible' : ''}
-            onClick={() => {
-                document.location.href = window.location.href.split('?')[0]
-            }}
-        >
-            <p id="mnfmmgis">{window.mmgisglobal.name || 'MMGIS'}</p>
-            <p id="returnmmgis">Click anywhere to return home...</p>
-            <div id="nf404">404</div>
+        <div className={classes.join(' ')}>
+            <div className="topo" />
+            <div className="pg">
+                <Nav />
+                <div className="main nfmain">
+                    <div className="nf404 unselectable">404</div>
+                    <h2>Beyond the edge of the map</h2>
+                    <p>
+                        {missionName ? (
+                            <>
+                                Nothing has been charted at{' '}
+                                <strong>{missionName}</strong> &mdash; or
+                                it&rsquo;s a world that hasn&rsquo;t been
+                                shared with you.
+                            </>
+                        ) : (
+                            'Nothing has been charted here.'
+                        )}
+                        <br />
+                        Even the contour lines stop here.
+                    </p>
+                    <Button
+                        variant="primary"
+                        onClick={() => {
+                            document.location.href = home
+                        }}
+                    >
+                        Back to charted worlds
+                    </Button>
+                </div>
+            </div>
         </div>
     )
 }

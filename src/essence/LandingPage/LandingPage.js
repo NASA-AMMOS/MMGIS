@@ -129,7 +129,7 @@ function loadMission(missionName, missions) {
                 console.warn(
                     "Warning: Couldn't load: " + missionName + ' configuration.'
                 )
-                makeMissionNotFoundDiv()
+                makeMissionNotFoundDiv(missionName)
             }
         )
     } else {
@@ -137,6 +137,6 @@ function loadMission(missionName, missions) {
     }
 }
 
-export const makeMissionNotFoundDiv = () => {
-    mount(<MissionNotFound />)
+export const makeMissionNotFoundDiv = (missionName) => {
+    mount(<MissionNotFound missionName={missionName || null} />)
 }
