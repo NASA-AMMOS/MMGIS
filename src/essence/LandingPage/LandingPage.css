@@ -144,19 +144,23 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    height: 26px;
+    padding: 4px 0;
     min-width: 0;
-    max-width: min(260px, 60vw);
+    max-width: min(200px, 60vw);
     flex: 0 1 auto;
 }
 .landingPage .nav .logo img {
     height: 26px;
     max-width: 100%;
     object-fit: contain;
+    object-position: left center;
     display: block;
     filter: var(--lp-logo-filter);
 }
+/* Custom logos fit a box instead of a fixed height so badges aren't tiny */
 .landingPage .nav .logo img.customLogo {
+    height: auto;
+    max-height: 32px;
     filter: none;
 }
 .landingPage .nav .links {
