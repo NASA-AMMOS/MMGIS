@@ -542,9 +542,10 @@ export function MissionNotFound({ missionName }) {
                         {missionName ? (
                             <>
                                 Nothing has been charted at{' '}
-                                <strong>{missionName}</strong> &mdash; or
-                                it&rsquo;s a world that hasn&rsquo;t been
-                                shared with you.
+                                <strong>{missionName}</strong>
+                                <br />
+                                &mdash; or it&rsquo;s a world that
+                                hasn&rsquo;t been shared with you.
                             </>
                         ) : (
                             'Nothing has been charted here.'
