@@ -53,6 +53,22 @@ const middleware = require("./middleware").middleware;
 const {
   checkMissionFileViewingPermission,
 } = require("../plugins/core/backend/Config/routes/configs");
+const GeneralOptions = require("../plugins/core/backend/GeneralOptions/models/generaloptions");
+
+// Landing page theme/logo from General Options; the loading page uses them before the bundle loads
+async function getLandingPageInjection() {
+  let lp = {};
+  try {
+    const row = await GeneralOptions.findOne({ where: { id: 1 } });
+    lp = (row && row.options && row.options.landingPage) || {};
+  } catch (err) {}
+  const logoUrl = typeof lp.logoUrl === "string" ? lp.logoUrl.trim() : "";
+  return {
+    LANDING_THEME: lp.theme === "light" ? "light" : "dark",
+    // JS-string-escaped (no surrounding quotes); Pug HTML-escapes it on top
+    LANDING_LOGO_URL: JSON.stringify(logoUrl).slice(1, -1),
+  };
+}
 
 const isDevEnv = process.env.NODE_ENV === "development";
 
@@ -873,7 +889,7 @@ setups.getBackendSetups(function (setups) {
         `${ROOT_PATH}/`,
         ensureUser(),
         ensureGroup(permissions.users),
-        (req, res) => {
+        async (req, res) => {
           let user = guestUsername;
           if (process.env.AUTH === "csso" || req.user != null) user = req.user;
 
@@ -906,6 +922,7 @@ setups.getBackendSetups(function (setups) {
             HOSTS: JSON.stringify({
               scienceIntent: process.env.SCIENCE_INTENT_HOST,
             }),
+            ...(await getLandingPageInjection()),
           });
         },
       );
