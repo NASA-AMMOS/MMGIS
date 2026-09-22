@@ -94,8 +94,11 @@ const websocket = {
         }
 
         const completeUpgrade = () => {
+          // Guests are allowed unless AUTH gates the whole site (local/csso)
+          const guestsAllowed =
+            process.env.AUTH !== "local" && process.env.AUTH !== "csso";
           const authenticated =
-            process.env.AUTH === "off" ||
+            guestsAllowed ||
             (request.session &&
               ((typeof request.session.user === "string" &&
                 request.session.user.length > 0) ||

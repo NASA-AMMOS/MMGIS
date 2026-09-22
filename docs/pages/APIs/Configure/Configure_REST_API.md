@@ -16,6 +16,7 @@ Enables programmatic control over configuration endpoints.
 - [API Tokens](#api-tokens)
 - [Endpoints](#endpoints)
   - [GET /missions](#get-missions)
+  - [GET /export](#get-export)
   - [GET /versions](#get-versions)
   - [GET /get](#get-get)
   - [POST /validate](#post-validate)
@@ -45,10 +46,6 @@ To use the Configure API through HTTP requests, an API Token must be used for au
 
 Gets a list of all configured missions. _Auth token not needed._
 
-| Parameter |   Type    | Required | Default |                                 Description                                 |
-| :-------: | :-------: | :------: | :-----: | :-------------------------------------------------------------------------: |
-| **full**  | _boolean_ |  false   |   N/A   | If true, returns versions and configuration objects alongside mission names |
-
 #### Example
 
 `curl -X GET http://localhost:8889/api/configure/missions`
@@ -57,16 +54,33 @@ Gets a list of all configured missions. _Auth token not needed._
 => {status: "success", missions: ["Mission1", "Mission2"]}
 ```
 
-`curl -X GET http://localhost:8889/api/configure/missions?full=true`
+---
+
+### GET /export
+
+Exports the latest configuration for each viewable mission.
+
+| Parameter |   Type    | Required | Default | Description |
+| :-------: | :-------: | :------: | :-----: | :---------- |
+| **mission** | _string_ | false | all viewable missions | Comma-separated mission names |
+
+Auth: Login required under `AUTH=local`; results are limited to missions the
+requester may view.
+
+#### Example
+
+`curl -X GET http://localhost:8889/api/configure/export`
 
 ```javascript
 => {
   status: "success",
   missions: [
     {
-      mission: "name", version: 99, config: {}
-    },
-    ...
+      mission: "Mission1",
+      version: 2,
+      config: {},
+      createdAt: "2024-01-01T00:00:00.000Z"
+    }
   ]
 }
 ```
@@ -90,7 +104,7 @@ Gets a mission's configuration object. _Auth token not needed._
 |  Parameter  |   Type    | Required | Default |              Description              |
 | :---------: | :-------: | :------: | :-----: | :-----------------------------------: |
 | **mission** | _string_  |   true   |   N/A   |             Mission name              |
-| **version** | _number_  |  false   | latest  |       Version of configuration        |
+| **version** | _number_  |  false   | latest  | Version of configuration; requesting a specific version is admin-only |
 |  **full**   | _boolean_ |  false   |  false  | Return additional metadata and status |
 
 #### Example
