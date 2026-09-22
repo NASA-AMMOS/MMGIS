@@ -526,6 +526,8 @@ class OffscreenMapManager {
             const layerConfig = this.layers.data[layerName]
             const layer = this.layers.layer[layerName]
 
+            if (!layer || !layerConfig) continue
+
             if (layerConfig.time && layerConfig.time.enabled) {
                 if (layerConfig.type === 'tile') {
                     // Use pre-transformed URL if available, otherwise transform
