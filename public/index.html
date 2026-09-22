@@ -431,7 +431,7 @@
           mmgisglobal.IS_DOCKER = "#{IS_DOCKER}";
           mmgisglobal.WITH_TITILER = "#{WITH_TITILER}";
           mmgisglobal.LANDING_THEME = "#{LANDING_THEME}";
-          mmgisglobal.LANDING_LOGO_URL = !{LANDING_LOGO_URL_JS};
+          mmgisglobal.LANDING_LOGO_URL = "#{LANDING_LOGO_URL}";
           break;
         default:
           mmgisglobal.AUTH = "%AUTH%";
@@ -479,7 +479,16 @@
       };
       (function () {
         var logo = mmgisglobal.LANDING_LOGO_URL;
-        if (typeof logo !== "string" || logo.indexOf("#{") === 0) {
+        if (typeof logo === "string") {
+          // Pug HTML-escapes interpolated values
+          logo = logo
+            .replace(/&quot;/gi, '"')
+            .replace(/&lt;/gi, "<")
+            .replace(/&gt;/gi, ">")
+            .replace(/&amp;/gi, "&");
+          mmgisglobal.LANDING_LOGO_URL = logo;
+        }
+        if (typeof logo !== "string" || /^#\{/.test(logo)) {
           try {
             logo = localStorage.getItem("mmgisLandingLogo") || "";
           } catch (e) {
