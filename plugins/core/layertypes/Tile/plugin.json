@@ -759,7 +759,7 @@
           },
           {
             "subname": "Attribution",
-            "subdescription": "Attribution information for the dataset. If configured, the attribution will be displayed horizontally below the scalebar when the layer is visible.",
+            "subdescription": "Attribution information for the dataset. If configured, the attribution is listed in the About modal while the layer is visible and, if 'Show Attributions on Map' is enabled in the Look tab, in the on-map attributions dropdown.",
             "components": [
               {
                 "field": "attribution",

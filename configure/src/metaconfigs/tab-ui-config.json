@@ -444,6 +444,18 @@
       ]
     },
     {
+      "components": [
+        {
+          "field": "look.showAttributionsOnMap",
+          "name": "Show Attributions on Map",
+          "description": "Always show a collapsible dropdown of the visible layers' attributions on the map (top-right, next to the home button). Attributions are always listed in the About modal regardless of this setting.",
+          "type": "checkbox",
+          "width": 4,
+          "defaultChecked": false
+        }
+      ]
+    },
+    {
       "name": "Default Tool",
       "components": [
         {

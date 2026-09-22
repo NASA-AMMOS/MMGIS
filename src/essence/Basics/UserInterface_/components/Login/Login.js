@@ -161,57 +161,7 @@ var Login = {
             .attr('tabindex', 500)
             .on('click', function () {
                 if (Login.loggedIn) {
-                    //Then Logout
-                    if (
-                        window.mmgisglobal.AUTH == 'csso' &&
-                        Login.beganLoggedIn
-                    ) {
-                        Login.loggedIn = false
-                        window.location.href = '/ssologoutredirect'
-                    } else {
-                        calls.api(
-                            'logout',
-                            { username: Login.username },
-                            function (d) {
-                                ToolController_.closeActiveTool()
-                                window.mmgisglobal.user = 'guest'
-                                window.mmgisglobal.groups = []
-
-                                Login.username = null
-                                Login.loggedIn = false
-                                $('#loginUser')
-                                    .css('display', 'none')
-                                    .html('')
-                                $('#loginoutButton').attr(
-                                    'title',
-                                    'Login'
-                                )
-                                $('#loginoutButtonIcon').attr(
-                                    'class',
-                                    'mdi mdi-login mdi-18px'
-                                )
-                                // Destroy the cookie session here
-                                var decodedCookie = decodeURIComponent(
-                                    document.cookie
-                                )
-                                var cookies = decodedCookie.split(';')
-                                var MMGISUser = {}
-                                try {
-                                    MMGISUser = cookies[0].split('=')
-                                    MMGISUser = JSON.parse(MMGISUser[1])
-                                } catch (err) {}
-                                MMGISUser.username = ''
-                                MMGISUser.token = ''
-
-                                document.cookie =
-                                    'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-
-                                if (window.mmgisglobal.AUTH === 'local')
-                                    reloadToLogin()
-                            },
-                            function (d) {}
-                        )
-                    }
+                    Login.logout()
                 } else {
                     //Open login
                     //default to login
@@ -243,6 +193,55 @@ var Login = {
             Login.initialLogin()
         }
     },
+    // Logs the current user out. `onDone` is called after a non-redirecting
+    // logout completes (i.e. not for csso redirects or AUTH=local reloads).
+    logout: function (onDone) {
+        if (window.mmgisglobal.AUTH == 'csso' && Login.beganLoggedIn) {
+            Login.loggedIn = false
+            window.location.href = '/ssologoutredirect'
+            return
+        }
+        const username = Login.username || window.mmgisglobal.user
+        calls.api(
+            'logout',
+            { username: username },
+            function (d) {
+                ToolController_.closeActiveTool()
+                window.mmgisglobal.user = 'guest'
+                window.mmgisglobal.groups = []
+
+                Login.username = null
+                Login.loggedIn = false
+                $('#loginUser').css('display', 'none').html('')
+                $('#loginoutButton').attr('title', 'Login')
+                $('#loginoutButtonIcon').attr(
+                    'class',
+                    'mdi mdi-login mdi-18px'
+                )
+                // Destroy the cookie session here
+                var decodedCookie = decodeURIComponent(document.cookie)
+                var cookies = decodedCookie.split(';')
+                var MMGISUser = {}
+                try {
+                    MMGISUser = cookies[0].split('=')
+                    MMGISUser = JSON.parse(MMGISUser[1])
+                } catch (err) {}
+                MMGISUser.username = ''
+                MMGISUser.token = ''
+
+                document.cookie =
+                    'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+                if (window.mmgisglobal.AUTH === 'local') {
+                    reloadToLogin()
+                    return
+                }
+                document.dispatchEvent(new CustomEvent('mmgis:loginchange'))
+                if (typeof onDone === 'function') onDone()
+            },
+            function (d) {}
+        )
+    },
     initialLogin() {
         calls.api(
             'login',
@@ -266,7 +265,12 @@ var Login = {
 
         const wrapper = $('<div>')
             .attr('id', 'loginModalWrapper')
-        $('#topBar').append(wrapper)
+        // Mount on body when the landing page is up so the modal stacks above it
+        const host =
+            $('#topBar').length && !$('.landingPage').length
+                ? $('#topBar')
+                : $('body')
+        host.append(wrapper)
 
         const modal = $('<div>').attr('id', 'loginModal')
         wrapper.append(modal)
@@ -499,7 +503,7 @@ var Login = {
         }, 250)
     },
     removeModal: function () {
-        $('#topBar > #loginModalWrapper').remove()
+        $('#loginModalWrapper').remove()
     },
 }
 
@@ -576,6 +580,7 @@ function loginSuccess(data, ignoreError) {
                     allowHTML: true,
                 })
         }
+        document.dispatchEvent(new CustomEvent('mmgis:loginchange'))
     } else {
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 

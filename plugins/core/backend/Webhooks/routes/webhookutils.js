@@ -4,6 +4,7 @@
  **********************************************************/
 const logger = require("../../../../../API/logger");
 const Webhooks = require("../models/webhooks");
+const buildEntriesResponse = require("./buildEntriesResponse");
 
 function entries(req, res, next) {
   logger("success", "Called /webhooks/entries API", req.originalUrl, req);
@@ -11,17 +12,7 @@ function entries(req, res, next) {
     order: [["updatedAt", "DESC"]],
   })
     .then((sets) => {
-      if (sets && sets.length > 0) {
-        let entries = [];
-        for (let i = 0; i < sets.length; i++) {
-          entries.push({ config: sets[i].config, updated: sets[i].updatedAt });
-        }
-
-        res.send({
-          status: "success",
-          body: { entries: entries },
-        });
-      }
+      res.send(buildEntriesResponse(sets));
     })
     .catch((err) => {
       logger("error", "Failure finding webhooks.", req.originalUrl, req, err);
