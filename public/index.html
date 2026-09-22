@@ -14,6 +14,18 @@
     />
     <meta name="theme-color" content="#1d1f20" />
     <meta name="description" content="#{LINK_PREVIEW_DESCRIPTION}" />
+    <script>
+      // Apply the landing theme before first paint (server-injected in prod, last seen otherwise)
+      (function () {
+        var t = "#{LANDING_THEME}";
+        if (t !== "light" && t !== "dark") {
+          try {
+            t = localStorage.getItem("mmgisLandingTheme");
+          } catch (e) {}
+        }
+        if (t === "light") document.documentElement.classList.add("light");
+      })();
+    </script>
     <style>
       html,
       body {
@@ -53,6 +65,7 @@
         margin-top: 0;
       }
       /* Loading screen */
+      /* Dark by default, matching .landingPage.dark (--lp-bg) */
       .LoadingPage {
         height: 100%;
         width: 100%;
@@ -66,11 +79,16 @@
         z-index: 100;
       }
 
+      /* Hero logo + dots, centered as one block; dots span the logo's rendered width */
       .LoadingPage #title {
         position: absolute;
-        top: 45px;
-        left: 35px;
-        padding: 0px 10px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -60%);
+        padding: 0;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: stretch;
       }
 
       .LoadingPage #title p {
@@ -79,8 +97,69 @@
       }
 
       .LoadingPage img {
-        position: relative;
-        left: -1px;
+        display: block;
+        max-height: 72px;
+        max-width: min(320px, 80vw);
+        width: auto;
+        height: auto;
+        object-fit: contain;
+      }
+
+      /* Same contour tiling as .landingPage .topo */
+      .LoadingPage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url(public/images/contours.png);
+        background-size: 500px;
+        mix-blend-mode: screen;
+        opacity: 0.25;
+        pointer-events: none;
+      }
+      /* Only while the loading screen exists, so the mission UI keeps its own body background */
+      html.light:has(.LoadingPage),
+      html.light:has(.LoadingPage) body {
+        background: #fafafa;
+      }
+      html.light .LoadingPage::before {
+        filter: invert(1);
+        mix-blend-mode: multiply;
+        opacity: 0.5;
+      }
+      /* Soft edge vignette, same as .landingPage::after */
+      .LoadingPage::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(0, 0, 0, 0.35) 100%
+        );
+        pointer-events: none;
+      }
+      /* Light variant matches .landingPage (light) so the two crossfade seamlessly */
+      html.light .LoadingPage {
+        background-color: #fafafa;
+      }
+      html.light .LoadingPage::after {
+        background: radial-gradient(
+          ellipse at center,
+          transparent 55%,
+          rgba(0, 0, 0, 0.06) 100%
+        );
+      }
+      html.light .LoadingPage img {
+        filter: invert(1) brightness(0.2);
+      }
+      html.light .LoadingPage img.customLogo {
+        filter: none;
+      }
+      html.light .LoadingPage .planet,
+      html.light .LoadingPage .planet2,
+      html.light .LoadingPage .planet3 {
+        filter: invert(1);
+        opacity: 0.35;
       }
 
       @keyframes rotate {
@@ -237,17 +316,24 @@
       /*
       * Loading Dots
       */
+      /* Default mmgis.png has 8px transparent sides / 7px bottom; align dots to the glyphs */
       #loading2 {
-        position: absolute;
-        top: 85px;
-        left: 51px;
+        margin: -2px 0 0 0;
+        align-self: center;
+        width: calc(100% - 16px);
+        min-width: 120px;
+        display: flex;
+        justify-content: space-between;
+        line-height: 0;
+      }
+      #title:has(img.customLogo) #loading2 {
+        margin-top: 8px;
+        width: calc(100% - 8px);
       }
       #loading2 span {
-        display: inline-block;
-        vertical-align: middle;
-        width: 6px;
-        height: 6px;
-        margin: 0px 18.5px 0px 0px;
+        display: block;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         animation: loading2 1.6s infinite alternate;
       }
@@ -297,22 +383,7 @@
         }
       }
 
-      /* Mobile-specific centering for LoadingPage title and loading dots */
-      @media screen and (max-width: 600px) {
-        .LoadingPage #title {
-          left: 50%;
-          transform: translateX(-50%);
-          text-align: center;
-        }
-        .LoadingPage #loading2 {
-          left: 50%;
-          transform: translateX(-50%);
-          width: 204px;
-        }
-        .LoadingPage #loading2 span {
-          margin: 0px 8px 0px 8px;
-        }
-      }
+
     </style>
   </head>
   <body>
@@ -324,12 +395,12 @@
       <div class="planet3"></div>
       <div id="title">
         <p>
-          <img src="public/images/logos/mmgis.png" alt="Full logo" />
+          <img id="loadingLogo" src="public/images/logos/mmgis.png" alt="Full logo" />
         </p>
-      </div>
-      <div id="loading2">
-        <span></span><span></span><span></span><span></span><span></span
-        ><span></span><span></span><span></span><span></span>
+        <div id="loading2">
+          <span></span><span></span><span></span><span></span><span></span
+          ><span></span><span></span><span></span><span></span>
+        </div>
       </div>
     </div>
     <script>
@@ -359,6 +430,8 @@
           mmgisglobal.THIRD_PARTY_COOKIES = "#{THIRD_PARTY_COOKIES}";
           mmgisglobal.IS_DOCKER = "#{IS_DOCKER}";
           mmgisglobal.WITH_TITILER = "#{WITH_TITILER}";
+          mmgisglobal.LANDING_THEME = "#{LANDING_THEME}";
+          mmgisglobal.LANDING_LOGO_URL = !{LANDING_LOGO_URL_JS};
           break;
         default:
           mmgisglobal.AUTH = "%AUTH%";
@@ -383,6 +456,38 @@
           break;
       }
       window.mmgisglobal = mmgisglobal;
+
+      // Loading page theme: re-applied once options load (see the <head> script for first paint)
+      mmgisglobal.setLoadingTheme = function (theme) {
+        theme = theme === "light" ? "light" : "dark";
+        document.documentElement.classList.toggle("light", theme === "light");
+        try {
+          localStorage.setItem("mmgisLandingTheme", theme);
+        } catch (e) {}
+      };
+      // Loading page logo: server-injected (prod) or last seen (localStorage); default MMGIS logo
+      mmgisglobal.setLoadingLogo = function (url) {
+        url = typeof url === "string" ? url.trim() : "";
+        var img = document.getElementById("loadingLogo");
+        if (img) {
+          img.src = url || "public/images/logos/mmgis.png";
+          img.classList.toggle("customLogo", !!url);
+        }
+        try {
+          localStorage.setItem("mmgisLandingLogo", url);
+        } catch (e) {}
+      };
+      (function () {
+        var logo = mmgisglobal.LANDING_LOGO_URL;
+        if (typeof logo !== "string" || logo.indexOf("#{") === 0) {
+          try {
+            logo = localStorage.getItem("mmgisLandingLogo") || "";
+          } catch (e) {
+            logo = "";
+          }
+        }
+        if (logo) mmgisglobal.setLoadingLogo(logo);
+      })();
 
       // React UI is always enabled
       mmgisglobal.useReactUI = true;
