@@ -486,6 +486,7 @@
             .replace(/&quot;/gi, '"')
             .replace(/&lt;/gi, "<")
             .replace(/&gt;/gi, ">");
+          mmgisglobal.LANDING_LOGO_URL = logo;
         }
         if (typeof logo !== "string" || /^#\{/.test(logo)) {
           try {
