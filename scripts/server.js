@@ -62,9 +62,11 @@ async function getLandingPageInjection() {
     const row = await GeneralOptions.findOne({ where: { id: 1 } });
     lp = (row && row.options && row.options.landingPage) || {};
   } catch (err) {}
+  const logoUrl = typeof lp.logoUrl === "string" ? lp.logoUrl.trim() : "";
   return {
     LANDING_THEME: lp.theme === "light" ? "light" : "dark",
-    LANDING_LOGO_URL: typeof lp.logoUrl === "string" ? lp.logoUrl.trim() : "",
+    // JS string literal for unescaped script interpolation; '</' can't close the script tag
+    LANDING_LOGO_URL_JS: JSON.stringify(logoUrl).replace(/<\//g, "<\\/"),
   };
 }
 

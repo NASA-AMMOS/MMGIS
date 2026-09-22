@@ -144,14 +144,14 @@
     display: flex;
     align-items: center;
     gap: 12px;
-}
-.landingPage .nav .logo {
-    min-width: 128px;
     height: 26px;
+    min-width: 0;
+    max-width: min(260px, 60vw);
+    flex: 0 1 auto;
 }
 .landingPage .nav .logo img {
     height: 26px;
-    max-width: 260px;
+    max-width: 100%;
     object-fit: contain;
     display: block;
     filter: var(--lp-logo-filter);
@@ -609,8 +609,12 @@
     .landingPage .nav {
         padding: 0 16px;
     }
+    .landingPage .nav .logo {
+        max-width: calc(100vw - 32px - 140px);
+    }
     .landingPage .nav .links {
         gap: 12px;
+        flex-shrink: 0;
     }
     .landingPage .nav .links a {
         display: none;
