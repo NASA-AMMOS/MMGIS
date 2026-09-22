@@ -161,10 +161,12 @@ export default async function globalSetup() {
       'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS template json NULL',
       'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS publicity_type varchar(255) NULL',
       'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS public_editors text[] NULL',
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS mission varchar(255) NULL',
       // Same columns on the test variant table
       'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS template json NULL',
       'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS publicity_type varchar(255) NULL',
       'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS public_editors text[] NULL',
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS mission varchar(255) NULL',
       // file_histories (Draw/models/filehistories.js)
       'ALTER TABLE IF EXISTS file_histories ADD COLUMN IF NOT EXISTS author varchar(255) NULL',
       // users (Users/models/user.js)

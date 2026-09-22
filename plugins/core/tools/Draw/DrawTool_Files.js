@@ -7,6 +7,9 @@ import Globe_ from '@basics/Globe_/Globe_'
 import Map_ from '@basics/Map_/Map_'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import Toast from '@design/components/Toast/Toast'
+import Select from '@design/components/Select/Select'
+import React from 'react'
+import { createRoot } from 'react-dom/client'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
 
 import DrawTool_Templater from './DrawTool_Templater'
@@ -84,6 +87,8 @@ var Files = {
         }
 
         Files.recalculateFolderCounts()
+
+        $('#drawToolMaster').toggle(DrawTool.files.some((f) => f.is_master))
 
         //Master Header
         $('.drawToolMasterHeaderLeftLeft').off('click')
@@ -957,6 +962,12 @@ var Files = {
                 )
                 .join('\n')
 
+            const missionMarkup = isLead && !file.is_master
+                ? `<div id='drawToolFileEditOnMissionDropdown'></div>`
+                : `<div>${safeHTML(file.mission || 'NONE')}</div>`
+            let selectedMission = file.mission || ''
+            let missionRoot = null
+
             // prettier-ignore
             const modalContentEditable = [
                 "<div class='drawToolFileEditOn' file_id='" + fileId + "'  file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
@@ -993,6 +1004,12 @@ var Files = {
                         "<div class='drawToolFileTemplate' id='drawToolFileTemplateEdit'>",
                             "<div>Template:</div>",
                             `<div><div>${file.template?.name || 'NONE'}</div><i class='mdi mdi-pencil mdi-14px'></i></div>`,
+                        "</div>",
+                    "</div>",
+                    "<div class='drawToolFileEditOnDates drawToolFileEditOnMission'>",
+                        "<div>",
+                            "<div>Mission:</div>",
+                            missionMarkup,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
@@ -1061,6 +1078,12 @@ var Files = {
                             `<div><div>${template?.name || 'NONE'}</div></div>`,
                         "</div>",
                     "</div>",
+                    "<div class='drawToolFileEditOnDates drawToolFileEditOnMission'>",
+                        "<div>",
+                            "<div>Mission:</div>",
+                            missionMarkup,
+                        "</div>",
+                    "</div>",
                     "<div class='drawToolFileEditOnDescription'>",
                         "<textarea class='drawToolFileDesc' rows='9' placeholder='No description...' disabled>" + DrawTool.stripTagsFromDescription(file.file_description) + "</textarea>",
                     "</div>",
@@ -1080,7 +1103,10 @@ var Files = {
                     "</div>",
                     "<div id='drawToolFileEditOnActions'>",
                         "<div></div>",
-                        "<div class='drawToolFileCancel drawToolButton1'>Cancel</div>",
+                        "<div class='flexbetween'>",
+                            "<div class='drawToolFileCancel drawToolButton1'>Cancel</div>",
+                            isLead && !file.is_master ? "<div class='drawToolFileSaveMission drawToolButton1'>Save</div>" : "",
+                        "</div>",
                     "</div>",
                 "</div>"
                 ].join('\n')
@@ -1092,6 +1118,38 @@ var Files = {
                     ? modalContentEditable
                     : modalContent,
                 function () {
+                    if (isLead) {
+                        calls.api(
+                            'missions',
+                            {},
+                            function (s) {
+                                const container = document.getElementById(
+                                    'drawToolFileEditOnMissionDropdown'
+                                )
+                                if (!container) return
+                                const options = (s.missions || []).map(
+                                    (m) => ({ value: m, label: m })
+                                )
+                                if (!file.mission)
+                                    options.unshift({ value: '', label: 'NONE' })
+                                const render = () =>
+                                    missionRoot.render(
+                                        <Select
+                                            value={selectedMission}
+                                            placeholder='NONE'
+                                            options={options}
+                                            onValueChange={(v) => {
+                                                selectedMission = v
+                                                render()
+                                            }}
+                                        />
+                                    )
+                                missionRoot = createRoot(container)
+                                render()
+                            },
+                            function () {}
+                        )
+                    }
                     //
                     $('#drawToolFileTemplateEdit').on('click', () => {
                         // prettier-ignore
@@ -1357,6 +1415,30 @@ var Files = {
                         Modal.remove()
                     })
 
+                    // Leads may reassign the mission even when other file info is read-only
+                    $('.drawToolFileSaveMission').on('click', function () {
+                        const mission = selectedMission
+                        if (!mission || mission === file.mission) {
+                            Modal.remove()
+                            return
+                        }
+                        DrawTool.changeFile(
+                            { id: fileId, mission: mission },
+                            function () {
+                                Modal.remove()
+                                Toast.success('Successfully changed file mission!', 3500)
+                                if (DrawTool.filesOn.indexOf(parseInt(fileId)) !== -1)
+                                    DrawTool.toggleFile(parseInt(fileId), 'off', true)
+                                DrawTool.getFiles(function () {
+                                    DrawTool.populateFiles()
+                                })
+                            },
+                            function () {
+                                Toast.error('Failed to change file mission!', 3500)
+                            }
+                        )
+                    })
+
                     //save
                     $('.drawToolFileSave').on('click', function () {
                         const elm = $(this).parent().parent().parent()
@@ -1420,6 +1502,8 @@ var Files = {
                                 .find('#drawToolFileEditListEditors')
                                 .val(),
                         }
+                        if (isLead && !file.is_master && selectedMission)
+                            body.mission = selectedMission
 
                         DrawTool.changeFile(
                             body,
@@ -1435,6 +1519,12 @@ var Files = {
                                 if (files_i !== -1)
                                     DrawTool.files[files_i].file_name = filename
 
+                                if (
+                                    body.mission &&
+                                    body.mission !== file.mission &&
+                                    DrawTool.filesOn.indexOf(parseInt(fileId)) !== -1
+                                )
+                                    DrawTool.toggleFile(parseInt(fileId), 'off', true)
                                 DrawTool.getFiles(function () {
                                     DrawTool.populateFiles()
                                 })
@@ -1522,6 +1612,10 @@ var Files = {
                 },
                 function () {
                     // on close
+                    if (missionRoot) {
+                        missionRoot.unmount()
+                        missionRoot = null
+                    }
                     // Just incase this gets stuck
                     $('.autocomplete-suggestions').remove()
                 }

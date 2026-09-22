@@ -25,6 +25,8 @@
             "defaultPublicFilter": false,
             "defaultYoursOnlyFilter": true,
             "defaultOnFilter": false,
+            "showNullMissionFiles": true,
+            "showMasterFiles": true,
             "leadsCanEditFileInfo": false,
             "hoverLengthOnLines": false,
             "templates": {
@@ -206,6 +208,26 @@
                         "type": "checkbox",
                         "width": 4,
                         "defaultChecked": false
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "field": "variables.showNullMissionFiles",
+                        "name": "Show Files Without a Mission",
+                        "description": "Files are scoped to the mission they were created in. Also show legacy files that were created before mission scoping and have no mission set.",
+                        "type": "checkbox",
+                        "width": 6,
+                        "defaultChecked": true
+                    },
+                    {
+                        "field": "variables.showMasterFiles",
+                        "name": "Show Lead Files",
+                        "description": "Show the shared Lead files (ROI, CAMPAIGN, etc.) in this mission regardless of mission scoping.",
+                        "type": "checkbox",
+                        "width": 6,
+                        "defaultChecked": true
                     }
                 ]
             },
