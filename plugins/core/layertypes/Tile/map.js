@@ -134,6 +134,7 @@ async function make(layerObj, ctx = {}) {
                 cogMax: layerObj.cogMax,
                 currentCogMax: layerObj.currentCogMax,
                 cogColormap: layerObj.cogColormap,
+                cogColormapJson: layerObj.cogColormapJson,
                 cogExpression: layerObj.cogExpression,
                 currentCogExpression: layerObj.currentCogExpression,
                 variables: layerObj.variables || {},
