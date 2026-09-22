@@ -544,8 +544,10 @@ export function MissionNotFound({ missionName }) {
                                 Nothing has been charted at{' '}
                                 <strong>{missionName}</strong>
                                 <br />
-                                &mdash; or it&rsquo;s a world that
-                                hasn&rsquo;t been shared with you.
+                                <span className="nfaside">
+                                    &mdash; or it&rsquo;s a world that
+                                    hasn&rsquo;t been shared with you.
+                                </span>
                             </>
                         ) : (
                             'Nothing has been charted here.'
@@ -559,7 +561,7 @@ export function MissionNotFound({ missionName }) {
                             document.location.href = home
                         }}
                     >
-                        Back to charted worlds
+                        Back to mapped worlds
                     </Button>
                 </div>
             </div>

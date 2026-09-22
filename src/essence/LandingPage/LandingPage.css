@@ -554,6 +554,11 @@
     max-width: 440px;
     margin: 0 0 28px;
 }
+.landingPage.notfound p .nfaside {
+    font-size: 13px;
+    color: var(--lp-text-3);
+}
+
 .landingPage.notfound p strong {
     color: var(--lp-text);
     font-weight: 600;
