@@ -65,8 +65,7 @@ async function getLandingPageInjection() {
   const logoUrl = typeof lp.logoUrl === "string" ? lp.logoUrl.trim() : "";
   return {
     LANDING_THEME: lp.theme === "light" ? "light" : "dark",
-    // JS string literal for unescaped script interpolation; '</' can't close the script tag
-    LANDING_LOGO_URL_JS: JSON.stringify(logoUrl).replace(/<\//g, "<\\/"),
+    LANDING_LOGO_URL: logoUrl,
   };
 }
 
