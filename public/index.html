@@ -116,8 +116,9 @@
         opacity: 0.25;
         pointer-events: none;
       }
-      html.light,
-      html.light body {
+      /* Only while the loading screen exists, so the mission UI keeps its own body background */
+      html.light:has(.LoadingPage),
+      html.light:has(.LoadingPage) body {
         background: #fafafa;
       }
       html.light .LoadingPage::before {
