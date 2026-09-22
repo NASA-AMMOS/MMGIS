@@ -99,7 +99,7 @@ export default {
     },
 }
 
-function loadConfigJson(jsonUrl, missions, logLevel) {
+function loadConfigJson(jsonUrl, missions, logLevel, missionName) {
     fetch(jsonUrl + '?nocache=' + new Date().getTime())
         .then((r) => {
             if (!r.ok) throw new Error(r.statusText)
@@ -108,7 +108,7 @@ function loadConfigJson(jsonUrl, missions, logLevel) {
         .then((data) => s.init(data, missions))
         .catch(() => {
             console[logLevel]("Warning: Couldn't load: " + jsonUrl)
-            makeMissionNotFoundDiv()
+            makeMissionNotFoundDiv(missionName)
         })
 }
 
@@ -133,7 +133,12 @@ function loadMission(missionName, missions) {
             }
         )
     } else {
-        loadConfigJson('Missions/' + missionName + '/config.json', missions, 'warn')
+        loadConfigJson(
+            'Missions/' + missionName + '/config.json',
+            missions,
+            'warn',
+            missionName
+        )
     }
 }
 
