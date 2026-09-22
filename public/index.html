@@ -299,14 +299,19 @@
       /*
       * Loading Dots
       */
+      /* Default mmgis.png has 8px transparent sides / 7px bottom; align dots to the glyphs */
       #loading2 {
-        margin: 8px 0 0 0;
+        margin: -2px 0 0 0;
         align-self: center;
-        width: calc(100% - 8px);
+        width: calc(100% - 16px);
         min-width: 120px;
         display: flex;
         justify-content: space-between;
         line-height: 0;
+      }
+      #title:has(img.customLogo) #loading2 {
+        margin-top: 8px;
+        width: calc(100% - 8px);
       }
       #loading2 span {
         display: block;
