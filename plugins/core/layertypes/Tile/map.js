@@ -17,6 +17,7 @@ import TimeControl from '@basics/TimeControl_/TimeControl'
 import { transformStacUrl } from '@basics/Layers_/LayerUtils'
 
 import { applyTimeParams } from './time'
+import { buildCogTileUrl } from './cog'
 
 async function make(layerObj, ctx = {}) {
     const mctx = MapRenderer.context(ctx.mapContext)
@@ -26,10 +27,6 @@ async function make(layerObj, ctx = {}) {
     let splitColonType
     const splitColonLayerUrl = layerObj.url.split(':')
     if (splitColonLayerUrl[1] != null) {
-        let bandsParam = ''
-        let b
-        let resamplingParam = ''
-
         switch (splitColonLayerUrl[0]) {
             case 'stac-collection':
                 splitColonType = splitColonLayerUrl[0]
@@ -46,34 +43,8 @@ async function make(layerObj, ctx = {}) {
                 break
             case 'COG':
                 splitColonType = splitColonLayerUrl[0]
-
-                // Bands parameter (expression will be added dynamically in getTileUrl)
-                bandsParam = ''
-
-                // Only add bands if no expression exists (expression takes precedence)
-                if (
-                    !layerObj.cogExpression ||
-                    layerObj.cogExpression.trim() === ''
-                ) {
-                    b = layerObj.cogBands
-                    if (b != null) {
-                        b.forEach((band) => {
-                            if (band != null) bandsParam += `&bidx=${band}`
-                        })
-                    }
-                }
-
-                resamplingParam = ''
-                if (layerObj.cogResampling) {
-                    resamplingParam = `&resampling=${layerObj.cogResampling}`
-                }
-
-                layerUrl = `${window.location.origin}${(
-                    window.location.pathname || ''
-                ).replace(/\/$/g, '')}/titiler/cog/tiles/${
-                    layerObj.tileMatrixSet || 'WebMercatorQuad'
-                }/{z}/{x}/{y}.webp?url=${layerUrl}${bandsParam}${resamplingParam}`
-
+                // Expression is added dynamically in getTileUrl
+                layerUrl = buildCogTileUrl(layerUrl, layerObj, window.location)
                 break
             default:
                 break

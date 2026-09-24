@@ -7,6 +7,8 @@
  */
 import L_ from '@basics/Layers_/Layers_'
 
+import { buildCogTileUrl } from '../cog'
+
 // COG/STAC tile sources are addressed by a scheme prefix on the configured url
 // ('COG:…', 'stac-collection:…'); the globe needs to know which one it is after
 // getUrl() has already rewritten the url itself.
@@ -24,6 +26,14 @@ export function toGlobeConfig(layerObj) {
     let demUrl = L_.getUrl(s.type, s.demtileurl, s)
     if (s.demtileurl == null || s.demtileurl.length === 0) demUrl = undefined
 
+    const splitColonType = splitColonTypeOf(s.url)
+    // getUrl() resolves the COG source; the globe still needs the TiTiler
+    // tile endpoint around it, as the 2D map builds.
+    let path = L_.getUrl(s.type, s.url, s)
+    if (splitColonType === 'COG') {
+        path = buildCogTileUrl(path, s, window.location)
+    }
+
     return {
         name: s.name,
         order: L_._layersOrdered,
@@ -36,14 +46,14 @@ export function toGlobeConfig(layerObj) {
             wmsParams: {},
         },
         parser: s.demparser || null,
-        path: L_.getUrl(s.type, s.url, s),
+        path,
         demPath: demUrl,
         opacity: L_.layers.opacity[s.name],
         minZoom: s.minZoom,
         maxZoom: s.maxNativeZoom,
         time: s.time,
         // COG parameters for TiTiler layers
-        splitColonType: splitColonTypeOf(s.url),
+        splitColonType,
         cogTransform: s.cogTransform,
         cogMin: s.cogMin,
         cogMax: s.cogMax,

@@ -795,9 +795,8 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                     : `${window.location.origin}${(
                           window.location.pathname || ''
                       ).replace(/\/$/g, '')}`
-            }/titiler/cog/point/${lng},${lat}?url=${L_.getUrl(
-                'tile',
-                url
+            }/titiler/cog/point/${lng},${lat}?url=${encodeURIComponent(
+                L_.getUrl('tile', url)
             )}${timeParam}${expressionParam}${bandsParam}`,
             {
                 method: 'GET',
