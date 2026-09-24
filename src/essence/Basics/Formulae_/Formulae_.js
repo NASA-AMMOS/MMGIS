@@ -822,7 +822,8 @@ var Formulae_ = {
         return 'zero'
     },
     isUrlAbsolute: function (url) {
-        const r = new RegExp('^(?:[a-z]+:)?//', 'i')
+        // RFC 3986 scheme (letters, digits, + - .) so s3://, gs://, etc. count
+        const r = new RegExp('^(?:[a-z][a-z0-9+.-]*:)?//', 'i')
         return r.test(url)
     },
     csvToJSON: function (csv) {
