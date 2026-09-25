@@ -2348,7 +2348,7 @@ function tilePopulateFromX(
         }
       }
 
-      fullUrl = `${window.location.origin}/titiler/cog/info?url=${encodeURIComponent(fullUrl)}`;
+      fullUrl = `${window.location.origin}/titiler/cog/info?url=${fullUrl}`;
 
       fetch(fullUrl)
         .then((response) => response.json())
