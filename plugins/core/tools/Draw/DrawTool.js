@@ -1256,7 +1256,9 @@ var DrawTool = {
         }
         calls.api(
             'files_getfiles',
-            {},
+            {
+                mission: L_.mission,
+            },
             function (data) {
                 if (data && data.body) {
                     //sort files by intent and then alphabetically by name within intent
@@ -1302,6 +1304,7 @@ var DrawTool = {
     },
     makeFile: function (body, callback) {
         const filename = body.file_name
+        body.mission = L_.mission
         calls.api(
             'files_make',
             body,

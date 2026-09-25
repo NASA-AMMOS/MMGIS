@@ -58,6 +58,7 @@
     "screenshot": true,
     "fullscreen": true,
     "help": true,
+    "showAttributionsOnMap": true,
     "logourl": "",
     "helpurl": "https://nasa-ammos.github.io/MMGIS/",
     "aboutModalContent": "Welcome to the **MMGIS Reference Mission**.\n\nThis mission demonstrates the full capabilities of the Multi-Mission Geographic Information System."
@@ -3730,6 +3731,48 @@
                 "legendOrientation": "vertical"
               },
               "description": "EMIT L2B Methane Enhancement Data 60 m V002 - STAC COG collection. Requires WITH_STAC=true and WITH_TITILER_PGSTAC=true."
+            },
+            {
+              "name": "USGS SF DEM \u2014 Custom Color Table (GDAL)",
+              "uuid": "fa3b9734-e223-40e1-a253-7bc9e63968a3",
+              "type": "tile",
+              "visibility": false,
+              "sourceType": "COG",
+              "url": "Data/DEMs/USGS_13_n38w123_20250826_SFHill.tif",
+              "tileformat": "tms",
+              "controlled": false,
+              "initialOpacity": 1,
+              "minZoom": 0,
+              "maxNativeZoom": 30,
+              "maxZoom": 30,
+              "demparser": "rgba",
+              "throughTileServer": true,
+              "cogResampling": "nearest",
+              "cogBands": [
+                1
+              ],
+              "cogExpressionEditable": false,
+              "cogTransform": true,
+              "cogMin": 0,
+              "cogMax": 800,
+              "cogUnits": "m",
+              "cogColormapJson": "[[[-5,5],[70,130,180,255]],[[5,50],[90,170,120,255]],[[50,120],[150,200,110,255]],[[120,220],[220,220,120,255]],[[220,350],[210,170,90,255]],[[350,500],[180,120,70,255]],[[500,700],[150,90,60,255]],[[700,900],[240,240,240,255]]]",
+              "style": {
+                "brightness": 1,
+                "contrast": 1,
+                "saturation": 1,
+                "blend": "none"
+              },
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "compositeTile": false,
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical"
+              },
+              "description": "Demonstrates the Custom Color Table (GDAL) feature: the SF DEM colored by an interval color table (cogColormapJson) passed to TiTiler's colormap parameter, producing discrete elevation bands (blue sea level \u2192 green \u2192 tan \u2192 white peaks) with an auto-generated discrete legend and no rescale. Served as a direct COG via TiTiler \u2014 requires WITH_TITILER=true only (no STAC stack)."
             },
             {
               "name": "USGS SF DEM \u2014 Elevation",

@@ -14,3 +14,15 @@ export function safeHTML(untrusted) {
         ],
     })
 }
+
+// Returns the url if it is http(s) (absolute or relative), otherwise null
+export function safeLinkUrl(url) {
+    if (typeof url !== 'string' || url.trim() === '') return null
+    try {
+        const protocol = new URL(url, window.location.href).protocol
+        if (protocol !== 'http:' && protocol !== 'https:') return null
+    } catch (e) {
+        return null
+    }
+    return url.trim()
+}

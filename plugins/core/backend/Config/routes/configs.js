@@ -14,6 +14,7 @@ const logger = require("../../../../../API/logger");
 const Config = require("../models/config");
 const config_template = require("../../../../../API/templates/config_template");
 const userModel = require("../../Users/models/user");
+const Userfiles = require("../../Draw/models/userfiles").Userfiles;
 const User = userModel.User;
 const { UserDefaults } = require("../../Users/models/userdefaults");
 const missionTemplates = require("../../Utils/missionTemplates");
@@ -1418,10 +1419,17 @@ if (fullAccess)
                   return null;
                 });
 
+                // Draw files are scoped by mission name too.
+                const userfilesUpdate = Userfiles.update(
+                  { mission: newName },
+                  { where: { mission: missionName }, transaction: t }
+                );
+
                 return Promise.all([
                   ...configUpdates,
                   permissionUpdate,
                   defaultsUpdate,
+                  userfilesUpdate,
                 ]);
               })
               .then(() => {
@@ -1528,11 +1536,16 @@ if (fullAccess)
       return;
     }
 
-    Config.destroy({
-      where: {
-        mission: missionName,
-      },
-    })
+    sequelize
+      .transaction((t) =>
+        Promise.all([
+          Config.destroy({ where: { mission: missionName }, transaction: t }),
+          Userfiles.update(
+            { mission: null },
+            { where: { mission: missionName }, transaction: t }
+          ),
+        ])
+      )
       .then((mission) => {
         logger(
           "info",

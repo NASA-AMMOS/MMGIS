@@ -94,6 +94,12 @@ const attributes = {
     unique: false,
     allowNull: true,
   },
+  mission: {
+    type: Sequelize.STRING,
+    unique: false,
+    allowNull: true,
+    defaultValue: null,
+  },
 };
 
 const options = {
@@ -201,6 +207,27 @@ const up = async () => {
       );
       return null;
     });
+
+  // mission column
+  for (const table of ["user_files", "user_files_tests"]) {
+    await sequelize
+      .query(
+        `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS mission varchar(255) NULL;`
+      )
+      .then(() => {
+        return null;
+      })
+      .catch((err) => {
+        logger(
+          "error",
+          `Failed to adding ${table}.mission column. DB tables may be out of sync!`,
+          "user_files",
+          null,
+          err
+        );
+        return null;
+      });
+  }
 };
 
 // export User model for use in other files.
