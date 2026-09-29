@@ -684,7 +684,7 @@
     }
 }
 
-/* Mobile animation steps */
+/* Mobile animation steps with no text labels */
 #tools #animationToolSteps {
     flex-direction: row;
     justify-content: space-between;
@@ -704,6 +704,11 @@
     gap: 0;
 }
 
+/* Hide Select Area on mobile */
+#tools .animation-step[data-step="1"] {
+    display: none;
+}
+
 #tools .step-number {
     width: 26px;
     height: 26px;
@@ -713,6 +718,16 @@
 
 #tools .step-title {
     display: none;
+}
+
+/* Keep Previous/Next/Reset in one row on mobile. */
+#tools #animationToolFooter {
+    flex-direction: row;
+}
+
+#tools #animationToolFooter .btn {
+    width: auto;
+    padding: 8px 30px;
 }
 
 /* Animation Tool Modal Styling */

@@ -300,7 +300,8 @@ function interfaceWithMMGIS() {
     }
 
     // Initialize the tool UI
-    const divID = L_.UserInterface_.isMobile === true ? '#tools' : '#toolPanel'
+    const isMobile = L_.UserInterface_.isMobile === true
+    const divID = isMobile ? '#tools' : '#toolPanel'
     const toolPanel = $(divID)
     toolPanel.css('background', 'transparent')
     toolPanel.empty()
@@ -314,6 +315,17 @@ function interfaceWithMMGIS() {
     // Initialize components
     initializeComponents()
     setupEventHandlers()
+
+    // On mobile, skip "Select Area"
+    if (isMobile) {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        useCurrentView()
+        $('.animation-step[data-step="2"] .step-number').text('1')
+        $('.animation-step[data-step="3"] .step-number').text('2')
+        $('.animation-step[data-step="4"] .step-number').text('3')
+        AnimationTool.currentStep = 2
+        updateStepDisplay()
+    }
 
     function updateExportOptionsVisibility() {
         // Get config variables
@@ -695,7 +707,8 @@ function interfaceWithMMGIS() {
         })
 
         $('#animationPrevStep').on('click', () => {
-            if (AnimationTool.currentStep > 1) {
+            // "Select Area" is skipped on mobile
+            if (AnimationTool.currentStep > (isMobile ? 2 : 1)) {
                 AnimationTool.currentStep--
                 updateStepDisplay()
             }
@@ -885,7 +898,7 @@ function interfaceWithMMGIS() {
         // Update navigation buttons
         $('#animationPrevStep').prop(
             'disabled',
-            AnimationTool.currentStep === 1
+            AnimationTool.currentStep === (isMobile ? 2 : 1)
         )
         $('#animationNextStep').prop(
             'disabled',
@@ -1519,17 +1532,19 @@ function interfaceWithMMGIS() {
     }
 
     function startExport(format) {
+        // Get the current view again in case it changed since the AnimationTool was opened
+        if (isMobile) {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            useCurrentView()
+        }
+
         if (!AnimationTool.boundingBox) {
-            showModalAlert(
-                'Please complete Step 1 (Select Area) before exporting.'
-            )
+            showModalAlert('Please select an area before exporting.')
             return
         }
 
         if (!AnimationTool.timeRange) {
-            showModalAlert(
-                'Please complete Step 2 (Set Time Range) before exporting.'
-            )
+            showModalAlert('Please set a time range before exporting.')
             return
         }
 
@@ -2967,6 +2982,13 @@ function interfaceWithMMGIS() {
         AnimationTool.animationSettings.showTimeStep = false
         AnimationTool.animationSettings.showScaleBar = false
         AnimationTool.animationSettings.layerRefreshRate = 500
+
+        // Go back to "Set Time Range" as step 1 is hidden on mobile
+        if (isMobile) {
+            // eslint-disable-next-line react-hooks/rules-of-hooks
+            useCurrentView()
+            AnimationTool.currentStep = 2
+        }
 
         updateStepDisplay()
 
