@@ -720,14 +720,40 @@
     display: none;
 }
 
-/* Keep Previous/Next/Reset in one row on mobile. */
+/* Keep Previous/Next/Reset in one row on mobile */
 #tools #animationToolFooter {
     flex-direction: row;
+    gap: 8px;
 }
 
 #tools #animationToolFooter .btn {
+    flex: 1 1 0;
     width: auto;
-    padding: 8px 30px;
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Stack label above input on mobile */
+#tools .time-input-group,
+#tools .step-selector,
+#tools .interval-selector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+#tools .time-input-group label,
+#tools .step-selector label,
+#tools .interval-selector label {
+    min-width: 0;
+}
+
+#tools .step-selector input {
+    width: 100%;
 }
 
 /* Animation Tool Modal Styling */
