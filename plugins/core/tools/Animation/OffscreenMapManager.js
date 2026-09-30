@@ -556,7 +556,20 @@ class OffscreenMapManager {
                     }
 
                     // Force tile layer to clear cache and reload
-                    if (layer.redraw) {
+                    // GridLayer.redraw() sets _tileZoom from the raw zoom without
+                    // rounding, which can leave gaps in the basemap if the value
+                    // is fractional. Fixed in Leaflet 2.0.0-alpha:
+                    // https://github.com/Leaflet/Leaflet/pull/8613
+                    if (layer._removeAllTiles) {
+                        layer._removeAllTiles()
+                        const rawZoom = this.leafletMap.getZoom()
+                        const roundedZoom = Math.round(rawZoom)
+                        if (roundedZoom !== layer._tileZoom) {
+                            layer._tileZoom = roundedZoom
+                            layer._updateLevels()
+                        }
+                        layer._update()
+                    } else if (layer.redraw) {
                         layer.redraw()
                     }
 
