@@ -50,6 +50,7 @@ export function toGlobeConfig(layerObj) {
         currentCogMin: s.currentCogMin,
         currentCogMax: s.currentCogMax,
         cogColormap: s.cogColormap,
+        cogColormapJson: s.cogColormapJson,
         cogExpression: s.cogExpression,
         currentCogExpression: s.currentCogExpression,
     }

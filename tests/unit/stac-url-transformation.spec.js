@@ -4,6 +4,7 @@ import {
     parseExternalStacUrl,
     formatStacBidx,
     normalizeTitilerExpression,
+    buildTiTilerQueryParams,
 } from '../../src/essence/Basics/Layers_/LayerUtils.js';
 
 /**
@@ -406,5 +407,45 @@ test.describe('normalizeTitilerExpression', () => {
         expect(normalizeTitilerExpression('red_b1 + b10')).toBe('red_b1 + b10');
         expect(normalizeTitilerExpression('')).toBe('');
         expect(normalizeTitilerExpression(null)).toBe(null);
+    });
+});
+
+test.describe('buildTiTilerQueryParams (globe tiles)', () => {
+    const table = [[[0, 0.5], [0, 0, 0, 0]], [[0.5, 1], [253, 231, 37, 255]]];
+
+    test('passes a custom GDAL color table through as colormap', () => {
+        const params = buildTiTilerQueryParams({
+            splitColonType: 'stac-collection',
+            cogColormapJson: JSON.stringify(table),
+        });
+        expect(params).toContain(`colormap=${encodeURIComponent(JSON.stringify(table))}`);
+    });
+
+    test('accepts a color table given as an object', () => {
+        const params = buildTiTilerQueryParams({ cogColormapJson: { 1: [10, 40, 85, 255] } });
+        expect(params).toBe(`colormap=${encodeURIComponent('{"1":[10,40,85,255]}')}`);
+    });
+
+    test('a color table supersedes rescale and the named colormap', () => {
+        const params = buildTiTilerQueryParams({
+            cogTransform: true,
+            cogMin: 0,
+            cogMax: 1,
+            cogColormap: 'viridis',
+            cogColormapJson: JSON.stringify(table),
+        });
+        expect(params).not.toContain('rescale=');
+        expect(params).not.toContain('colormap_name=');
+        expect(params).toContain('colormap=');
+    });
+
+    test('without a color table, rescale and colormap_name are unchanged', () => {
+        const params = buildTiTilerQueryParams({
+            cogTransform: true,
+            cogMin: 0,
+            cogMax: 1,
+            cogColormap: 'Viridis',
+        });
+        expect(params).toBe('rescale=[0,1]&colormap_name=viridis');
     });
 });
