@@ -407,8 +407,8 @@ function SepToolsSection() {
  * delta-based drag (offset from the grab point) so its position doesn't need
  * to match the panel's top edge, and snaps to the nearest detent on release.
  */
-const MOBILE_TOOLBAR_HEIGHT = 40
-const MOBILE_HANDLE_HEIGHT = 17
+export const MOBILE_TOOLBAR_HEIGHT = 40
+export const MOBILE_HANDLE_HEIGHT = 17
 
 function MobileToolDragHandle({ pxIsTools, isDragging, visible }) {
     const startRef = useRef({ y: 0, px: 0 })
