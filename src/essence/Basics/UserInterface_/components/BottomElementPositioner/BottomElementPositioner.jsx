@@ -20,6 +20,7 @@ function BottomElementPositioner() {
     const topSize = useUIStore((s) => s.topSize)
     const isDragging = useUIStore((s) => s.isDraggingSplitter)
     const toolDetentFractions = useUIStore((s) => s.toolDetentFractions)
+    const toolbarVisible = useUIStore((s) => s.toolbarVisible)
     // Re-run when separated tool panels (e.g. Legend) open/close so the
     // legend-height reserve is (re)computed once #LegendTool exists in the DOM.
     const activeSeparatedTools = useUIStore((s) => s.activeSeparatedTools)
@@ -33,7 +34,10 @@ function BottomElementPositioner() {
 
             // Shift the scale bar up by the handle's height when the drag
             // handle is showing so it doesn't cover the scale bar text.
-            const hasDragHandle = toolsH > 0 && toolDetentFractions.length > 0
+            // Mirrors MobileToolDragHandle's own visible condition
+            // (Toolbar.jsx) — toolbarVisible=false hides the handle too.
+            const hasDragHandle =
+                toolsH > 0 && toolDetentFractions.length > 0 && toolbarVisible
             const mapControlOffset = hasDragHandle
                 ? toolbarH + MOBILE_HANDLE_HEIGHT
                 : toolbarH
@@ -167,7 +171,7 @@ function BottomElementPositioner() {
                 )
             }
         }
-    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging, activeSeparatedTools, toolDetentFractions])
+    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging, activeSeparatedTools, toolDetentFractions, toolbarVisible])
 
     return null
 }
