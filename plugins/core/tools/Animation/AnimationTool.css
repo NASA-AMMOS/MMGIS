@@ -684,6 +684,78 @@
     }
 }
 
+/* Mobile animation steps with no text labels */
+#tools #animationToolSteps {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 8px 12px;
+    gap: 0;
+}
+
+#tools #animationToolSteps::before {
+    display: block;
+    top: 21px;
+    left: 25px;
+    right: 25px;
+}
+
+#tools .animation-step {
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Hide Select Area on mobile */
+#tools .animation-step[data-step="1"] {
+    display: none;
+}
+
+#tools .step-number {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    margin-bottom: 0;
+}
+
+#tools .step-title {
+    display: none;
+}
+
+/* Keep Previous/Next/Reset in one row on mobile */
+#tools #animationToolFooter {
+    flex-direction: row;
+    gap: 8px;
+}
+
+#tools #animationToolFooter .btn {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    padding: 8px 12px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Stack label above input on mobile */
+#tools .time-input-group,
+#tools .step-selector,
+#tools .interval-selector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+#tools .time-input-group label,
+#tools .step-selector label,
+#tools .interval-selector label {
+    min-width: 0;
+}
+
+#tools .step-selector input {
+    width: 100%;
+}
+
 /* Animation Tool Modal Styling */
 .mmgisModal .modal-content {
     background: var(--color-k) !important;

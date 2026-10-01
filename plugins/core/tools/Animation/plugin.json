@@ -13,6 +13,7 @@
     "hasVars": false,
     "name": "Animation",
     "toolbarPriority": 1002,
+    "worksOnMobile": true,
     "paths": {
         "AnimationTool": "./AnimationTool"
     },
