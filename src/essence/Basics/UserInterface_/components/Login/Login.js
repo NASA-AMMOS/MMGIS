@@ -6,6 +6,7 @@ import ToolController_ from '../../../ToolController_/ToolController_'
 import tippy from 'tippy.js'
 
 import calls from '../../../../../pre/calls'
+import Toast from '../../../../../design-system/components/Toast/Toast'
 
 import './Login.css'
 
@@ -202,44 +203,44 @@ var Login = {
             return
         }
         const username = Login.username || window.mmgisglobal.user
+        // The server clears its session before checking the token cookie, so
+        // a "No user." failure still means the user is logged out.
+        const finish = function () {
+            ToolController_.closeActiveTool()
+            window.mmgisglobal.user = 'guest'
+            window.mmgisglobal.groups = []
+
+            Login.username = null
+            Login.loggedIn = false
+            $('#loginUser').css('display', 'none').html('')
+            $('#loginoutButton').attr('title', 'Login')
+            $('#loginoutButtonIcon').attr('class', 'mdi mdi-login mdi-18px')
+
+            document.cookie =
+                'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+            if (window.mmgisglobal.AUTH === 'local') {
+                reloadToLogin()
+                return
+            }
+            document.dispatchEvent(new CustomEvent('mmgis:loginchange'))
+            Toast.success('Logged out')
+            if (typeof onDone === 'function') onDone()
+        }
         calls.api(
             'logout',
             { username: username },
+            finish,
             function (d) {
-                ToolController_.closeActiveTool()
-                window.mmgisglobal.user = 'guest'
-                window.mmgisglobal.groups = []
-
-                Login.username = null
-                Login.loggedIn = false
-                $('#loginUser').css('display', 'none').html('')
-                $('#loginoutButton').attr('title', 'Login')
-                $('#loginoutButtonIcon').attr(
-                    'class',
-                    'mdi mdi-login mdi-18px'
-                )
-                // Destroy the cookie session here
-                var decodedCookie = decodeURIComponent(document.cookie)
-                var cookies = decodedCookie.split(';')
-                var MMGISUser = {}
-                try {
-                    MMGISUser = cookies[0].split('=')
-                    MMGISUser = JSON.parse(MMGISUser[1])
-                } catch (err) {}
-                MMGISUser.username = ''
-                MMGISUser.token = ''
-
-                document.cookie =
-                    'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-
-                if (window.mmgisglobal.AUTH === 'local') {
-                    reloadToLogin()
+                if (d && d.message === 'No user.') {
+                    finish()
                     return
                 }
-                document.dispatchEvent(new CustomEvent('mmgis:loginchange'))
-                if (typeof onDone === 'function') onDone()
-            },
-            function (d) {}
+                Toast.error(
+                    'Logout failed' +
+                        (d && d.message ? ': ' + d.message : '')
+                )
+            }
         )
     },
     initialLogin() {
