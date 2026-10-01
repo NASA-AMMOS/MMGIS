@@ -851,6 +851,15 @@ test.describe('Formulae_ - Validation Utilities', () => {
     test('detects absolute URLs', () => {
       expect(F_.isUrlAbsolute('http://example.com')).toBe(true);
       expect(F_.isUrlAbsolute('https://example.com')).toBe(true);
+      expect(F_.isUrlAbsolute('//example.com/path')).toBe(true);
+    });
+
+    test('detects schemes containing digits or punctuation', () => {
+      expect(F_.isUrlAbsolute('s3://my-bucket/path/file.tif')).toBe(true);
+      expect(F_.isUrlAbsolute('gs://my-bucket/file.tif')).toBe(true);
+      expect(F_.isUrlAbsolute('az://container/file.tif')).toBe(true);
+      expect(F_.isUrlAbsolute('file:///Missions/cog.tif')).toBe(true);
+      expect(F_.isUrlAbsolute('svn+ssh://host/repo')).toBe(true);
     });
 
     test('detects relative URLs', () => {
