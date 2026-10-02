@@ -209,6 +209,7 @@ export function normalizeTitilerExpression(expression) {
  * @param {number} options.currentCogMin - Runtime minimum value (overrides cogMin)
  * @param {number} options.currentCogMax - Runtime maximum value (overrides cogMax)
  * @param {string} options.cogColormap - Colormap name (e.g., 'viridis', 'cividis')
+ * @param {string|Object|Array} options.cogColormapJson - Custom GDAL color table for TiTiler's `colormap` (supersedes rescale and cogColormap)
  * @param {string} options.cogExpression - Band math expression
  * @param {string} options.currentCogExpression - Runtime expression (overrides cogExpression)
  * @returns {string} Query parameters string (without leading ? or &)
@@ -241,8 +242,11 @@ export function buildTiTilerQueryParams(options) {
         params.push('exitwhenfull=false&skipcovered=false')
     }
 
-    // rescale parameter
+    // rescale parameter. Skipped when a custom GDAL color table is set (as in
+    // leaflet-tilelayer-middleware): TiTiler rescales before the colormap
+    // lookup, which would move pixel values off the table's keys.
     if (
+        options.cogColormapJson == null &&
         options.cogTransform === true &&
         options.cogMin != null &&
         options.cogMax != null
@@ -254,6 +258,22 @@ export function buildTiTilerQueryParams(options) {
         // colormap parameter (only with rescale)
         if (options.cogColormap != null) {
             params.push(`colormap_name=${options.cogColormap.toLowerCase()}`)
+        }
+    }
+
+    // A custom GDAL color table, passed through to TiTiler's `colormap`
+    // parameter with or without a rescale.
+    if (options.cogColormapJson != null) {
+        let colormap = options.cogColormapJson
+        if (typeof colormap !== 'string') {
+            try {
+                colormap = JSON.stringify(colormap)
+            } catch (e) {
+                colormap = null
+            }
+        }
+        if (colormap != null && colormap !== '') {
+            params.push(`colormap=${encodeURIComponent(colormap)}`)
         }
     }
 

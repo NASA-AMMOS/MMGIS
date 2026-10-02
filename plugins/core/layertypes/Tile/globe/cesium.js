@@ -102,6 +102,7 @@ function buildTiTilerUrl(baseUrl, layerConfig) {
         currentCogMin: layerConfig.currentCogMin,
         currentCogMax: layerConfig.currentCogMax,
         cogColormap: layerConfig.cogColormap,
+        cogColormapJson: layerConfig.cogColormapJson,
         cogExpression: layerConfig.cogExpression,
         currentCogExpression: layerConfig.currentCogExpression,
     })
@@ -243,6 +244,7 @@ function render(layerConfig, gctx) {
             currentCogMin: layerConfig.currentCogMin,
             currentCogMax: layerConfig.currentCogMax,
             cogColormap: layerConfig.cogColormap,
+            cogColormapJson: layerConfig.cogColormapJson,
             cogExpression: layerConfig.cogExpression,
             currentCogExpression: layerConfig.currentCogExpression,
         },
