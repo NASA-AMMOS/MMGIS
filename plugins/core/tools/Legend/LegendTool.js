@@ -11,6 +11,10 @@ import { dynamicStyleLegendEntries } from '@basics/Layers_/legend/dynamicStyleLe
 import { RESTYLED_EVENT } from '@basics/Layers_/render/dynamicStyleRuntime'
 import { getDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
 import { extractUnits, splitValueUnits } from './legendValueUnits'
+import {
+    resolveCandidateIndex,
+    resolveCandidatePosition,
+} from './legendHighlight'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
@@ -79,6 +83,8 @@ var LegendTool = {
     },
     refreshLegends: refreshLegends,
     overwriteLegends: overwriteLegends,
+    highlightEntries: highlightEntries,
+    clearHighlightedEntries: clearHighlightedEntries,
 }
 
 //
@@ -263,6 +269,14 @@ function refreshLegends() {
             )
         }
     }
+
+    reapplyHighlight()
+}
+
+// A redraw builds fresh rows, so a highlight has to be put back.
+function reapplyHighlight() {
+    const matches = LegendTool._lastMatches
+    if (Array.isArray(matches) && matches.length > 0) highlightEntries(matches)
 }
 
 // The legends parameter should be an array of objects, where each object must contain
@@ -291,6 +305,140 @@ function overwriteLegends(legends) {
         }
         drawLegends(tools, legend, layerUUID, display_name, opacity)
     }
+
+    reapplyHighlight()
+}
+
+// Applied inline because the rows themselves are styled inline.
+const HIGHLIGHT_CSS = {
+    'background': 'var(--color-a1)',
+    'box-shadow': 'inset 3px 0px 0px 0px var(--color-mmgis)',
+    'border-radius': '2px',
+}
+const UNHIGHLIGHT_CSS = {
+    'background': '',
+    'box-shadow': '',
+    'border-radius': '',
+}
+
+// The arrow's thickness across the ramp, and how far it reaches back from it.
+const MARKER_SIZE = 11
+const MARKER_ARROW = 7
+
+// Light the entries a hovered pixel resolved to, as [{ layerUUID, value }].
+// An empty array clears the legend.
+function highlightEntries(matches) {
+    // Kept so a legend redrawn under a resting cursor comes back lit.
+    LegendTool._lastMatches = Array.isArray(matches) ? matches : []
+
+    const panel = $(`#${LegendTool.targetId} #LegendTool`)
+    if (panel.length === 0) return
+
+    const wantedByLayer = new Map()
+    if (Array.isArray(matches)) {
+        matches.forEach((m) => {
+            if (m == null || m.layerUUID == null) return
+            const candidates = (
+                Array.isArray(m.value) ? m.value : [m.value]
+            ).filter((v) => v != null && v !== '')
+            if (candidates.length === 0) return
+            if (!wantedByLayer.has(m.layerUUID)) {
+                wantedByLayer.set(m.layerUUID, candidates)
+            }
+        })
+    }
+
+    // Discrete rows: light the resolved one, put the layer's others back.
+    const rowsByLayer = new Map()
+    panel.find('.legendEntry').each(function () {
+        const row = $(this)
+        const uuid = row.attr('data-legend-layer-uuid')
+        if (!rowsByLayer.has(uuid)) rowsByLayer.set(uuid, [])
+        rowsByLayer.get(uuid).push(row)
+    })
+
+    rowsByLayer.forEach((rows, uuid) => {
+        const entries = rows.map((row) => ({
+            label: row.attr('data-legend-value'),
+            propertyValue: row.attr('data-legend-property-value'),
+        }))
+        // Rows require an exact match; nearest would light an unrelated row.
+        const index = wantedByLayer.has(uuid)
+            ? resolveCandidateIndex(entries, wantedByLayer.get(uuid), false)
+            : -1
+        rows.forEach((row, i) => {
+            row.css(i === index ? HIGHLIGHT_CSS : UNHIGHLIGHT_CSS)
+        })
+    })
+
+    // Continuous scales: no row to light, so the band is marked on the ramp.
+    panel.find('.legendScale').each(function () {
+        const scale = $(this)
+        const uuid = scale.attr('data-legend-layer-uuid')
+        let values = []
+        let propertyValues = []
+        try {
+            values = JSON.parse(scale.attr('data-legend-values') || '[]')
+            propertyValues = JSON.parse(
+                scale.attr('data-legend-property-values') || '[]'
+            )
+        } catch (e) {
+            values = []
+            propertyValues = []
+        }
+        const entries = values.map((label, i) => ({
+            label: label,
+            propertyValue: propertyValues[i],
+        }))
+
+        // Interpolated between stops, not snapped to one, so the mark stays
+        // level with the Identifier's readout.
+        const position = wantedByLayer.has(uuid)
+            ? resolveCandidatePosition(entries, wantedByLayer.get(uuid))
+            : null
+        let marker = scale.children('.legendScaleMarker')
+        if (position == null || values.length === 0) {
+            marker.remove()
+            return
+        }
+
+        const horizontal =
+            scale.attr('data-legend-orientation') === 'horizontal'
+        if (marker.length === 0) {
+            marker = $('<div>')
+                .attr('class', 'legendScaleMarker')
+                .css({
+                    'position': 'absolute',
+                    // Inverted against whatever it lands on, so it reads over
+                    // the panel and over the labels it may cross.
+                    'mix-blend-mode': 'difference',
+                    'pointer-events': 'none',
+                    // The labels are painted after the ramp, so the arrow has
+                    // to be lifted over them.
+                    'z-index': '20',
+                })
+                .append($('<div>').attr('class', 'legendScaleMarkerArrow'))
+                .appendTo(scale)
+        }
+
+        // Points back at the ramp from the labelled side, centred on the value.
+        const along = `${Math.min(Math.max(position, 0), 1) * 100}%`
+        const half = MARKER_SIZE / 2
+        marker.css(
+            horizontal
+                ? { 'top': '100%', 'bottom': 'auto', 'left': along, 'right': 'auto', 'width': `${MARKER_SIZE}px`, 'height': `${MARKER_ARROW}px`, 'margin-left': `${-half}px`, 'margin-top': '0px' }
+                : { 'left': '100%', 'right': 'auto', 'top': along, 'bottom': 'auto', 'height': `${MARKER_SIZE}px`, 'width': `${MARKER_ARROW}px`, 'margin-top': `${-half}px`, 'margin-left': '0px' }
+        )
+        marker.children('.legendScaleMarkerArrow').css(
+            horizontal
+                ? { 'position': 'absolute', 'top': '0px', 'left': '0px', 'width': '0px', 'height': '0px', 'border-left': `${half}px solid transparent`, 'border-right': `${half}px solid transparent`, 'border-bottom': `${MARKER_ARROW}px solid #ffffff`, 'border-top': 'none' }
+                : { 'position': 'absolute', 'left': '0px', 'top': '0px', 'width': '0px', 'height': '0px', 'border-top': `${half}px solid transparent`, 'border-bottom': `${half}px solid transparent`, 'border-right': `${MARKER_ARROW}px solid #ffffff`, 'border-left': 'none' }
+        )
+    })
+}
+
+function clearHighlightedEntries() {
+    highlightEntries([])
 }
 
 function drawLegendHeader() {
@@ -487,7 +635,11 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
             }
             drawScaleTitle(_legend[d].scaleTitle)
             var r = $('<div>')
-                .attr('class', 'row')
+                .attr('class', 'row legendEntry')
+                // Keyed so another tool can address this entry.
+                .attr('data-legend-layer-uuid', layerUUID)
+                .attr('data-legend-value', _legend[d].value == null ? '' : String(_legend[d].value))
+                .attr('data-legend-property-value', _legend[d].propertyValue == null ? '' : String(_legend[d].propertyValue))
                 .css({
                     'display': 'flex',
                     'margin': orientation === 'horizontal' ? '0px 8px 8px 0px' : '0px 0px 8px 9px',
@@ -694,6 +846,30 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
         if (orientation === 'horizontal') {
             legendEntries = [...legendEntries].reverse()
         }
+
+        // Values in paint order: entry i covers the band i/n to (i+1)/n.
+        gradient
+            .addClass('legendScale')
+            .attr('data-legend-layer-uuid', layerUUID)
+            .attr('data-legend-orientation', orientation)
+            .attr(
+                'data-legend-values',
+                JSON.stringify(
+                    legendEntries.map((entry) =>
+                        entry.value == null ? '' : String(entry.value)
+                    )
+                )
+            )
+            .attr(
+                'data-legend-property-values',
+                JSON.stringify(
+                    legendEntries.map((entry) =>
+                        entry.propertyValue == null
+                            ? ''
+                            : String(entry.propertyValue)
+                    )
+                )
+            )
 
         // Start with all legend entries, reduce labels if needed for horizontal legends
         let visibleLabels = legendEntries
