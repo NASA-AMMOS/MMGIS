@@ -26,6 +26,7 @@ The MMGIS Docker image still runs as an unprivileged user by default, but its de
 - The `mmgis` micromamba environment is activated via `ENV` instead of `~/.bashrc`, so it applies to any runtime uid
 - Removed `_docker-entrypoint.sh`; the image now starts with `CMD ["npm", "run", "start:prod-docker"]`
 - `/usr/src/app` is owned by `mmgis:0` with group permissions equal to user permissions (`g=u`)
+- Numba (`NUMBA_CACHE_DIR`) and npm (`NPM_CONFIG_CACHE`) caches point at `/tmp`, and `API/logs` is writable by any uid, so Sightmap and file logging work under a custom `user:` without `group_add`
 - `docker-compose.sample.yml` documents the optional `user:` override
 
 #### Fixed
