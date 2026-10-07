@@ -2,6 +2,36 @@
 
 ---
 
+## Unreleased
+
+#### Summary
+
+The MMGIS Docker image still runs as an unprivileged user by default, but its default uid/gid changes from `1000` to `10001`, and it now works for any uid set with Compose `user: "<uid>:<gid>"`. This lets each deployment run the container as the existing host owner of its `Missions` directory without `chown`, ACLs, root or a custom image build.
+
+### Compatibility
+
+- **Mission configurations: No changes.**
+- **End users: No changes.**
+- **Deployments: Breaking for some Docker deployments.** See the migration guide below.
+
+### Migration Guide
+
+- **Breaking (Deployments): Default container uid/gid is now `10001`.** Sites that chowned `./Missions` / `./ssl` to `1000` after 5.4.0 should either set `user: "1000:1000"` on the `mmgis` service or chown to `10001`. Sites that build their own image with `--build-arg APP_UID/APP_GID` are unaffected.
+- **Added (Deployments): Run as any uid.** Set `user: "<uid>:<gid>"` (numeric host ids, e.g. from `stat -c '%u:%g' ./Missions`) on the `mmgis` service. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, or `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`).
+
+#### Changed
+
+- Dockerfile runtime user defaults to uid/gid `10001` and is created with `useradd --no-log-init`
+- The `mmgis` micromamba environment is activated via `ENV` instead of `~/.bashrc`, so it applies to any runtime uid; `_docker-entrypoint.sh` no longer sources `~/.bashrc` or runs `micromamba activate`
+- `/usr/src/app` is owned by `mmgis:0` with group permissions equal to user permissions (`g=u`)
+- `docker-compose.sample.yml` documents the optional `user:` override
+
+#### Fixed
+
+- `pypgstac migrate` on startup is run directly from `PATH` and receives `HOME`, so it works when the container runs under a custom uid
+
+---
+
 ## 5.4.0
 
 _September 15, 2026_

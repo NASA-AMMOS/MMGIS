@@ -62,6 +62,7 @@ This repo contains a `/docker-compose.sample.yml` file that defines a service fo
 - To run MMGIS in a container, you need to create a directory on the host machine and map this to a directory in the container.
   - On the host machine, create a `Missions` directory and copy the contents of `./Missions` to your directory.
   - Via the docker-compose.yml, map this directory to `/usr/src/app/Missions` in the container. For example, if the host directory is `./Missions`, the volume mapping would be `- ./Missions:/usr/src/app/Missions`
+- The MMGIS image runs as the unprivileged user `mmgis` with uid/gid `10001`, so the host `Missions` (and `ssl`) directories must be readable and writable by uid `10001`. To instead run as the existing host owner of your data, set `user: "<uid>:<gid>"` on the `mmgis` service using numeric ids (find them with `stat -c '%u:%g' ./Missions`). Names like `user: mmgis` are resolved against the container's `/etc/passwd`, not the host's. If that uid must also write inside the image (e.g. saving a mission back to its blueprint template, or `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`), also add `group_add: ["0"]`.
 - Note, the `/docker-compose.sample.yml` includes optional STAC and TiTiler services. If any of them are unwanted, they can be removed from the docker-compose-yml and their respective `.env` variable `WITH_{service}` can be set to false.
 
 ### Running
