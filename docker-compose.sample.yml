@@ -24,10 +24,14 @@ services:
       start_period: 15s
       timeout: 8s
     restart: on-failure
-    # The image runs as uid/gid 1000 (build args APP_UID/APP_GID); ./Missions must be writable by it
+    # Runs as uid/gid 10001 by default; ./Missions and ./ssl must be writable by it.
+    # To run as the host owner of ./Missions instead (set MMGIS_UID/MMGIS_GID in .env):
+    # user: "${MMGIS_UID}:${MMGIS_GID}"
     volumes:
       - ./Missions:/usr/src/app/Missions
       - ./ssl:/usr/src/app/ssl
+      # Optional: persist SPICE kernels downloaded with SPICE_SCHEDULED_KERNEL_DOWNLOAD (must be writable by the mmgis uid)
+      # - ./spice/kernels:/usr/src/app/spice/kernels
 
   stac-fastapi:
     image: ghcr.io/stac-utils/stac-fastapi-pgstac:6.2.2
