@@ -43,6 +43,11 @@ function sanitizeInput(input) {
 const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
 
 const validate = require("../validate");
+const {
+  SHARED_MISSION_FOLDER_NAME,
+  isReservedMissionName,
+  reservedMissionNameMessage,
+} = require("../constants");
 const populateUUIDs = require("../uuids");
 const Utils = require("../../../../../API/utils.js");
 
@@ -348,17 +353,37 @@ function getViewableMissionFolders(req) {
     }).then((configs) => {
       const folders = new Set(viewable);
       const seen = new Set();
+      folders.delete(SHARED_MISSION_FOLDER_NAME);
       (configs || []).forEach((c) => {
         if (seen.has(c.mission)) return;
         seen.add(c.mission);
         const folder = c.config && c.config.msv && c.config.msv.missionFolderName;
-        if (typeof folder === "string" && folder.length > 0) folders.add(folder);
+        if (
+          typeof folder === "string" &&
+          folder.length > 0 &&
+          folder !== SHARED_MISSION_FOLDER_NAME
+        )
+          folders.add(folder);
       });
       if (uid != null && generation === viewableFoldersGeneration)
         viewableFoldersCache.set(String(uid), { ts: Date.now(), folders });
       return folders;
     });
   });
+}
+
+// Any logged-in session or valid long-term token
+function isAuthenticated(req) {
+  const session = req.session || {};
+  if (
+    session.uid != null &&
+    ["111", "110", "001"].includes(session.permission)
+  )
+    return Promise.resolve(true);
+  if (req.isLongTermToken) return Promise.resolve(true);
+  if (req.headers && req.headers.authorization)
+    return resolveTokenUser(req).then((user) => user != null);
+  return Promise.resolve(false);
 }
 
 // Middleware guarding /Missions/<folder>/... static files by missions_viewing
@@ -368,11 +393,31 @@ function checkMissionFileViewingPermission(forbid) {
     if (process.env.AUTH !== "local") return next();
     let folder = null;
     try {
-      folder = decodeURIComponent(req.path.split("?")[0])
+      // Normalize so "<folder>/%2e%2e/<other>" resolves to <other>, as the
+      // static file server would
+      folder = path.posix
+        .normalize(
+          "/" + decodeURIComponent(req.path.split("?")[0]).replace(/\\/g, "/")
+        )
         .split("/")
         .filter((s) => s.length > 0)[0];
     } catch (err) {
       return res.sendStatus(404);
+    }
+    if (folder === SHARED_MISSION_FOLDER_NAME) {
+      isAuthenticated(req)
+        .then((ok) => (ok ? next() : forbid(req, res)))
+        .catch((err) => {
+          logger(
+            "error",
+            "Failed to check shared mission folder permissions.",
+            req.originalUrl,
+            req,
+            err
+          );
+          res.sendStatus(500);
+        });
+      return;
     }
     getViewableMissionFolders(req)
       .then((folders) => {
@@ -389,6 +434,16 @@ function checkMissionFileViewingPermission(forbid) {
         );
         res.sendStatus(500);
       });
+  };
+}
+
+function rejectReservedMissionName(field) {
+  return function (req, res, next) {
+    if (req.body && isReservedMissionName(req.body[field])) {
+      res.send({ status: "failure", message: reservedMissionNameMessage() });
+      return;
+    }
+    next();
   };
 }
 
@@ -637,6 +692,11 @@ function add(req, res, next, cb) {
   ) {
     logger("error", "Attempted to add bad mission name.", req.originalUrl, req);
     res.send({ status: "failure", message: "Bad mission name." });
+    return;
+  }
+  if (isReservedMissionName(req.body.mission)) {
+    logger("error", "Attempted to add reserved mission name.", req.originalUrl, req);
+    res.send({ status: "failure", message: reservedMissionNameMessage() });
     return;
   }
 
@@ -966,7 +1026,7 @@ function upsert(req, res, next, cb, info) {
 }
 
 if (fullAccess)
-  router.post("/upsert", checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
+  router.post("/upsert", rejectReservedMissionName("mission"), checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
     upsert(req, res, next);
   });
 
@@ -991,6 +1051,7 @@ router.get("/missions", function (req, res, next) {
       let allMissions = [];
       for (let i = 0; i < missions.length; i++)
         allMissions.push(missions[i].DISTINCT);
+      allMissions = allMissions.filter((m) => !isReservedMissionName(m));
       if (viewable != null)
         allMissions = allMissions.filter((m) => viewable.includes(m));
       allMissions.sort((a, b) =>
@@ -1209,7 +1270,7 @@ function relativizePaths(config, mission) {
 //cloneMission
 //hasPaths
 if (fullAccess)
-  router.post("/clone", function (req, res, next) {
+  router.post("/clone", rejectReservedMissionName("cloneMission"), function (req, res, next) {
     get(req, res, next, function (r) {
       if (r.status == "success") {
         r.config.msv.mission = req.body.cloneMission;
@@ -1256,7 +1317,7 @@ const renameLockKeys = (name) => {
 };
 
 if (fullAccess)
-  router.post("/rename", checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
+  router.post("/rename", rejectReservedMissionName("mission"), checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     const newName = req.body.newName;
 
@@ -1280,6 +1341,10 @@ if (fullAccess)
     ) {
       logger("error", "Bad new mission name in rename request.", req.originalUrl, req);
       res.send({ status: "failure", message: "Bad mission name." });
+      return;
+    }
+    if (isReservedMissionName(newName)) {
+      res.send({ status: "failure", message: reservedMissionNameMessage() });
       return;
     }
     if (missionName === newName) {
@@ -1521,7 +1586,7 @@ if (fullAccess)
   });
 
 if (fullAccess)
-  router.post("/destroy", checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
+  router.post("/destroy", rejectReservedMissionName("mission"), checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     if (!missionName || !/^[A-Za-z0-9_ -]+$/.test(missionName)) {
       logger("error", "Invalid mission name in destroy request.", req.originalUrl, req);

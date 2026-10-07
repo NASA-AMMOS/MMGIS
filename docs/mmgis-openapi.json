@@ -160,7 +160,7 @@
                 "properties": {
                   "mission": {
                     "type": "string",
-                    "description": "Name of the new mission. Must be filesystem-safe: cannot start with a number and cannot contain path traversal sequences ('../').",
+                    "description": "Name of the new mission. Must be filesystem-safe: cannot start with a number and cannot contain path traversal sequences ('../'). 'shared' is reserved for the /Missions/shared/ folder (readable by any authenticated user when AUTH=local) and is rejected.",
                     "example": "ExampleMission"
                   },
                   "config": {
@@ -201,6 +201,13 @@
                     "value": {
                       "status": "failure",
                       "message": "Bad mission name."
+                    }
+                  },
+                  "failure_reserved_name": {
+                    "summary": "Failure: Reserved Mission Name",
+                    "value": {
+                      "status": "failure",
+                      "message": "Mission name 'shared' is reserved."
                     }
                   },
                   "failure_exists": {
@@ -308,6 +315,7 @@
     "/api/configure/missions": {
       "get": {
         "summary": "Get all missions",
+        "description": "Lists missions the caller may view. The reserved shared folder name 'shared' is never listed.",
         "tags": ["Configure"],
         "responses": {
           "200": {
@@ -590,6 +598,7 @@
     "/api/configure/destroy": {
       "post": {
         "summary": "Delete a mission configuration",
+        "description": "The reserved shared folder name 'shared' cannot be destroyed.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -637,6 +646,7 @@
     "/api/configure/rename": {
       "post": {
         "summary": "Rename a mission configuration",
+        "description": "The reserved shared folder name 'shared' can be neither renamed nor renamed into.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
