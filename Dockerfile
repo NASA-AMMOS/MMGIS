@@ -181,7 +181,6 @@ COPY --from=builder /usr/src/app/API ./API
 COPY --from=builder /usr/src/app/scripts ./scripts
 COPY --from=builder /usr/src/app/public ./public
 COPY --from=builder /usr/src/app/configuration ./configuration
-COPY --from=builder /usr/src/app/_docker-entrypoint.sh ./_docker-entrypoint.sh
 
 # Copy additional runtime directories
 COPY --from=builder /usr/src/app/views ./views
@@ -192,12 +191,11 @@ COPY --from=builder /usr/src/app/private ./private
 COPY --from=builder /usr/src/app/blueprints ./blueprints
 COPY --from=builder /usr/src/app/plugins ./plugins
 
-RUN chmod 755 _docker-entrypoint.sh && \
-    mkdir -p Missions ssl && \
+RUN mkdir -p Missions ssl && \
     chown -R mmgis:0 /usr/src/app && \
     chmod -R g=u /usr/src/app
 
 USER mmgis
 
 EXPOSE 8888
-CMD ["./_docker-entrypoint.sh"]
+CMD ["npm", "run", "start:prod-docker"]
