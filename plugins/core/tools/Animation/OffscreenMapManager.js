@@ -526,6 +526,8 @@ class OffscreenMapManager {
             const layerConfig = this.layers.data[layerName]
             const layer = this.layers.layer[layerName]
 
+            if (!layer || !layerConfig) continue
+
             if (layerConfig.time && layerConfig.time.enabled) {
                 if (layerConfig.type === 'tile') {
                     // Use pre-transformed URL if available, otherwise transform
@@ -554,12 +556,40 @@ class OffscreenMapManager {
                     }
 
                     // Force tile layer to clear cache and reload
-                    if (layer.redraw) {
+                    // This mirrors GridLayer._setView. It rounds the zoom, which
+                    // GridLayer.redraw() doesn't, leaving gaps at fractional
+                    // zoom. Out-of-range zooms are dropped so the layer stays
+                    // hidden, and the rest are clamped to the native range.
+                    // https://github.com/Leaflet/Leaflet/pull/8613
+                    let tileZoomInRange = true
+                    if (layer._removeAllTiles) {
+                        layer._removeAllTiles()
+                        const opts = layer.options || {}
+                        let tileZoom = Math.round(this.leafletMap.getZoom())
+                        if (
+                            (opts.maxZoom !== undefined &&
+                                tileZoom > opts.maxZoom) ||
+                            (opts.minZoom !== undefined &&
+                                tileZoom < opts.minZoom)
+                        ) {
+                            tileZoom = undefined
+                        } else if (layer._clampZoom) {
+                            tileZoom = layer._clampZoom(tileZoom)
+                        }
+                        if (tileZoom !== layer._tileZoom) {
+                            layer._tileZoom = tileZoom
+                            layer._updateLevels()
+                        }
+                        tileZoomInRange = tileZoom !== undefined
+                        if (tileZoomInRange) layer._update()
+                    } else if (layer.redraw) {
                         layer.redraw()
                     }
 
-                    // Wait for tiles to load
-                    await this._waitForLayerLoad(layer, 5000)
+                    if (tileZoomInRange) {
+                        // Wait for tiles to load
+                        await this._waitForLayerLoad(layer, 5000)
+                    }
                 } else if (layerConfig.type === 'vector') {
                     // Vector layers with time need to be rebuilt with new URL
                     // Remove old layer
