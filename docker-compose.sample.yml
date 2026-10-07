@@ -30,6 +30,8 @@ services:
     volumes:
       - ./Missions:/usr/src/app/Missions
       - ./ssl:/usr/src/app/ssl
+      # Optional: persist SPICE kernels downloaded with SPICE_SCHEDULED_KERNEL_DOWNLOAD (must be writable by the mmgis uid)
+      # - ./spice/kernels:/usr/src/app/spice/kernels
 
   stac-fastapi:
     image: ghcr.io/stac-utils/stac-fastapi-pgstac:6.2.2

@@ -27,6 +27,7 @@ The MMGIS Docker image still runs as an unprivileged user by default, but its de
 - Removed `_docker-entrypoint.sh`; the image now starts with `CMD ["npm", "run", "start:prod-docker"]`
 - `/usr/src/app` is owned by `mmgis:0` with group permissions equal to user permissions (`g=u`)
 - Numba (`NUMBA_CACHE_DIR`) and npm (`NPM_CONFIG_CACHE`) caches point at `/tmp`, so Sightmap works under a custom `user:` without `group_add`
+- A SPICE kernel directory that can't be created (e.g. unwritable `spice/kernels`) is now logged as an error instead of crashing MMGIS on startup with `SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START=true`
 - `docker-compose.sample.yml` documents the optional `user:` override
 
 #### Fixed
