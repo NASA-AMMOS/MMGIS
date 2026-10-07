@@ -194,8 +194,7 @@ COPY --from=builder /usr/src/app/plugins ./plugins
 RUN mkdir -p Missions ssl && \
     rm -rf API/logs && mkdir API/logs && \
     chown -R mmgis:0 /usr/src/app && \
-    chmod -R g=u /usr/src/app && \
-    chmod 1777 API/logs
+    chmod -R g=u /usr/src/app
 
 # HOME is / for runtime uids not in /etc/passwd, so point caches at /tmp
 ENV NUMBA_CACHE_DIR=/tmp/numba-cache \

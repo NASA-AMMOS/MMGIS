@@ -18,7 +18,7 @@ The MMGIS Docker image still runs as an unprivileged user by default, but its de
 
 - **Breaking (Deployments): Default container uid/gid is now `10001`.** Sites that chowned `./Missions` / `./ssl` to `1000` after 5.4.0 should either set `user: "1000:1000"` on the `mmgis` service or chown to `10001`. Sites that build their own image with `--build-arg APP_UID/APP_GID` are unaffected.
 - **Breaking (Deployments): `_docker-entrypoint.sh` removed.** Compose files or scripts that set `entrypoint`/`command` to `./_docker-entrypoint.sh` should use `npm run start:prod-docker` instead (or drop the override).
-- **Added (Deployments): Run as any uid.** Set `user: "<uid>:<gid>"` (numeric host ids, e.g. from `stat -c '%u:%g' ./Missions`) on the `mmgis` service. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, or `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`).
+- **Added (Deployments): Run as any uid.** Set `user: "<uid>:<gid>"` (numeric host ids, e.g. from `stat -c '%u:%g' ./Missions`) on the `mmgis` service. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`, or file logs in `API/logs`; stdout logging is unaffected).
 
 #### Changed
 
@@ -26,7 +26,7 @@ The MMGIS Docker image still runs as an unprivileged user by default, but its de
 - The `mmgis` micromamba environment is activated via `ENV` instead of `~/.bashrc`, so it applies to any runtime uid
 - Removed `_docker-entrypoint.sh`; the image now starts with `CMD ["npm", "run", "start:prod-docker"]`
 - `/usr/src/app` is owned by `mmgis:0` with group permissions equal to user permissions (`g=u`)
-- Numba (`NUMBA_CACHE_DIR`) and npm (`NPM_CONFIG_CACHE`) caches point at `/tmp`, and `API/logs` is writable by any uid, so Sightmap and file logging work under a custom `user:` without `group_add`
+- Numba (`NUMBA_CACHE_DIR`) and npm (`NPM_CONFIG_CACHE`) caches point at `/tmp`, so Sightmap works under a custom `user:` without `group_add`
 - `docker-compose.sample.yml` documents the optional `user:` override
 
 #### Fixed
