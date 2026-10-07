@@ -16,8 +16,8 @@ const {
  *   - SuperAdmins (111) always see everything
  *   - GET /api/configure/get is rejected for non-viewable missions
  *   - GET /Missions/<mission>/... static files are rejected for non-viewable missions
- *   - GET /Missions/_shared/... is readable by any authenticated user, never guests
- *   - "_shared" is reserved and never a mission
+ *   - GET /Missions/shared/... is readable by any authenticated user, never guests
+ *   - "shared" is reserved and never a mission
  * Under any other AUTH mode the field is ignored and all missions are visible.
  */
 
@@ -267,7 +267,7 @@ test.describe.serial("missions_viewing permissions", () => {
     expect(denied.headers()["content-type"]).toContain("text/html");
   });
 
-  test("/Missions/_shared is readable by any authenticated user", async () => {
+  test("/Missions/shared is readable by any authenticated user", async () => {
     const url = `/Missions/${SHARED_MISSION_FOLDER_NAME}/${sharedRel}`;
     await setViewing(userIds[userName], [missionA]);
     const res = await user.get(url);
@@ -305,7 +305,7 @@ test.describe.serial("missions_viewing permissions", () => {
     await badToken.dispose();
   });
 
-  test("_shared is reserved and never listed as a mission", async () => {
+  test("shared is reserved and never listed as a mission", async () => {
     for (const name of [
       SHARED_MISSION_FOLDER_NAME,
       SHARED_MISSION_FOLDER_NAME.toUpperCase(),

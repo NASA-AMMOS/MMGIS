@@ -1,6 +1,6 @@
 // Reserved /Missions/<folder> for data shared across missions. Under
 // AUTH=local any authenticated user may read it; it is never a mission.
-const SHARED_MISSION_FOLDER_NAME = "_shared";
+const SHARED_MISSION_FOLDER_NAME = "shared";
 
 // Case-insensitive so it cannot collide on case-insensitive filesystems
 function isReservedMissionName(name) {

@@ -160,7 +160,7 @@
                 "properties": {
                   "mission": {
                     "type": "string",
-                    "description": "Name of the new mission. Must be filesystem-safe: cannot start with a number and cannot contain path traversal sequences ('../'). '_shared' is reserved for the /Missions/_shared/ folder (readable by any authenticated user when AUTH=local) and is rejected.",
+                    "description": "Name of the new mission. Must be filesystem-safe: cannot start with a number and cannot contain path traversal sequences ('../'). 'shared' is reserved for the /Missions/shared/ folder (readable by any authenticated user when AUTH=local) and is rejected.",
                     "example": "ExampleMission"
                   },
                   "config": {
@@ -207,7 +207,7 @@
                     "summary": "Failure: Reserved Mission Name",
                     "value": {
                       "status": "failure",
-                      "message": "Mission name '_shared' is reserved."
+                      "message": "Mission name 'shared' is reserved."
                     }
                   },
                   "failure_exists": {
@@ -315,7 +315,7 @@
     "/api/configure/missions": {
       "get": {
         "summary": "Get all missions",
-        "description": "Lists missions the caller may view. The reserved shared folder name '_shared' is never listed.",
+        "description": "Lists missions the caller may view. The reserved shared folder name 'shared' is never listed.",
         "tags": ["Configure"],
         "responses": {
           "200": {

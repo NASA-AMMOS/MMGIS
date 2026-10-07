@@ -1,5 +1,5 @@
 /**
- * Unit tests for the reserved /Missions/_shared folder name
+ * Unit tests for the reserved /Missions/shared folder name
  * (plugins/core/backend/Config/constants.js).
  */
 

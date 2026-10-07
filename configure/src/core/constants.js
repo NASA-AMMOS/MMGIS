@@ -14,4 +14,4 @@ export const HASH_PATHS = {
 
 // Reserved /Missions/<folder> for shared data; never a mission name.
 // Mirrors SHARED_MISSION_FOLDER_NAME in plugins/core/backend/Config/constants.js
-export const SHARED_MISSION_NAME = "_shared";
+export const SHARED_MISSION_NAME = "shared";
