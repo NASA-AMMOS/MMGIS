@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import useUIStore from '../../store/uiStore'
+import { MOBILE_TOOLBAR_HEIGHT, MOBILE_HANDLE_HEIGHT } from '../Toolbar/Toolbar'
 
 /**
  * BottomElementPositioner — a headless React component that reactively
@@ -18,6 +19,8 @@ function BottomElementPositioner() {
     const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
     const topSize = useUIStore((s) => s.topSize)
     const isDragging = useUIStore((s) => s.isDraggingSplitter)
+    const toolDetentFractions = useUIStore((s) => s.toolDetentFractions)
+    const toolbarVisible = useUIStore((s) => s.toolbarVisible)
     // Re-run when separated tool panels (e.g. Legend) open/close so the
     // legend-height reserve is (re)computed once #LegendTool exists in the DOM.
     const activeSeparatedTools = useUIStore((s) => s.activeSeparatedTools)
@@ -26,12 +29,18 @@ function BottomElementPositioner() {
         const ease = isDragging ? 'none' : 'bottom 0.3s ease-out, left 0.3s ease-out'
 
         if (isMobile) {
-            const toolbarH = 40
+            const toolbarH = MOBILE_TOOLBAR_HEIGHT
             const toolsH = pxIsTools || 0
 
-            // Scalebar/compass stay fixed above the toolbar at rest (40px).
-            // They don't shift up when a tool panel opens.
-            const mapControlOffset = toolbarH
+            // Shift the scale bar up by the handle's height when the drag
+            // handle is showing so it doesn't cover the scale bar text.
+            // Mirrors MobileToolDragHandle's own visible condition
+            // (Toolbar.jsx) — toolbarVisible=false hides the handle too.
+            const hasDragHandle =
+                toolsH > 0 && toolDetentFractions.length > 0 && toolbarVisible
+            const mapControlOffset = hasDragHandle
+                ? toolbarH + MOBILE_HANDLE_HEIGHT
+                : toolbarH
 
             const coordsDiv = document.getElementById('CoordinatesDiv')
             if (coordsDiv) {
@@ -162,7 +171,7 @@ function BottomElementPositioner() {
                 )
             }
         }
-    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging, activeSeparatedTools])
+    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging, activeSeparatedTools, toolDetentFractions, toolbarVisible])
 
     return null
 }
