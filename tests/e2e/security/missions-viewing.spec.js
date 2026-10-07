@@ -327,6 +327,28 @@ test.describe.serial("missions_viewing permissions", () => {
     expect(rename?.status).toBe("failure");
     expect(rename?.message).toContain("reserved");
 
+    for (const name of [
+      SHARED_MISSION_FOLDER_NAME,
+      SHARED_MISSION_FOLDER_NAME.toUpperCase(),
+    ]) {
+      const renameFrom = await json(
+        await superadmin.post("/api/configure/rename", {
+          data: { mission: name, newName: `${missionA}_renamed` },
+        }),
+      );
+      expect(renameFrom?.status).toBe("failure");
+      expect(renameFrom?.message).toContain("reserved");
+
+      const destroy = await json(
+        await superadmin.post("/api/configure/destroy", {
+          data: { mission: name },
+        }),
+      );
+      expect(destroy?.status).toBe("failure");
+      expect(destroy?.message).toContain("reserved");
+    }
+    expect(fs.existsSync(sharedFile)).toBe(true);
+
     const clone = await json(
       await superadmin.post("/api/configure/clone", {
         data: {

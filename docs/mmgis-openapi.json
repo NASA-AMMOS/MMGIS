@@ -598,6 +598,7 @@
     "/api/configure/destroy": {
       "post": {
         "summary": "Delete a mission configuration",
+        "description": "The reserved shared folder name 'shared' cannot be destroyed.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -645,6 +646,7 @@
     "/api/configure/rename": {
       "post": {
         "summary": "Rename a mission configuration",
+        "description": "The reserved shared folder name 'shared' can be neither renamed nor renamed into.",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
