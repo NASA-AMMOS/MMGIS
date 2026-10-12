@@ -114,7 +114,7 @@ async function getKernels(
             });
             ws.on("error", (err) => {
               if (shouldLog)
-                logger(`warn`, `Failed to downloaded ${filename}`, err);
+                logger(`warn`, `Failed to downloaded ${filename}`, "getKernels", null, err);
               loaded[basename] = true;
               proceed();
               reject();
