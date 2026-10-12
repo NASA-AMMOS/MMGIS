@@ -168,6 +168,7 @@ capabilities:
       - tests/unit/dynamicStyle*.spec.js
       - tests/unit/layerDynamicStyle.spec.js
       - tests/unit/legendValueUnits.spec.js
+      - tests/unit/legendHighlight.spec.js
       - tests/unit/gradientPolyline.spec.js
       - tests/e2e/map/dynamic-style.spec.js
       - plugins/core/tools/Legend/tests/**
@@ -180,7 +181,7 @@ capabilities:
     title: Layer attachments and declared references
     risk: medium
     requires: [unit]
-    paths: [src/essence/Basics/Layers_/registry/LayerAttachmentRegistry.js, src/essence/Basics/Layers_/registry/attachmentDefaults.js, src/pre/layerattachments.js]
+    paths: [src/essence/Basics/Layers_/registry/LayerAttachmentRegistry.js, src/essence/Basics/Layers_/registry/attachmentDefaults.js]
     tests:
       - tests/unit/layerAttachmentTabs.spec.js
       - tests/unit/updateLayerAttachments.spec.js
@@ -362,6 +363,7 @@ capabilities:
       - plugins/core/backend/Config/tests/**
       - plugins/core/backend/GeneralOptions/tests/**
       - tests/unit/missionTemplates.spec.js
+      - tests/unit/sharedMissionFolder.spec.js
       - tests/e2e/configure/mission-crud.spec.js
       - tests/e2e/configure/clone.spec.js
       - tests/e2e/configure/configure-access.spec.js
