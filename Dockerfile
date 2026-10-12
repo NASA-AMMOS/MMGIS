@@ -120,10 +120,10 @@ ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
 
 # Unprivileged runtime user
-ARG APP_UID=1000
-ARG APP_GID=1000
+ARG APP_UID=10001
+ARG APP_GID=10001
 RUN groupadd -g ${APP_GID} mmgis && \
-    useradd -m -u ${APP_UID} -g mmgis -s /bin/bash mmgis
+    useradd --no-log-init -m -u ${APP_UID} -g mmgis -s /bin/bash mmgis
 
 WORKDIR /usr/src/app
 
@@ -135,6 +135,17 @@ RUN /opt/micromamba/bin/micromamba shell init -s bash --root-prefix /opt/microma
     su mmgis -c "/opt/micromamba/bin/micromamba shell init -s bash --root-prefix /opt/micromamba" && \
     echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /home/mmgis/.bashrc && \
     echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /home/mmgis/.bashrc
+
+# Activate the mmgis env via ENV (not ~/.bashrc) so it applies to any runtime uid, e.g. compose `user:`
+ENV CONDA_DEFAULT_ENV=mmgis \
+    CONDA_PREFIX=/opt/micromamba/envs/mmgis \
+    PATH=/opt/micromamba/envs/mmgis/bin:$PATH \
+    GDAL_DATA=/opt/micromamba/envs/mmgis/share/gdal \
+    GDAL_DRIVER_PATH=/opt/micromamba/envs/mmgis/lib/gdalplugins \
+    PROJ_DATA=/opt/micromamba/envs/mmgis/share/proj \
+    PROJ_NETWORK=ON \
+    CPL_ZIP_ENCODING=UTF-8 \
+    XML_CATALOG_FILES="file:///opt/micromamba/envs/mmgis/etc/xml/catalog file:///etc/xml/catalog"
 
 # Copy package files for production dependency installation
 COPY --from=builder /usr/src/app/package.json ./package.json
@@ -170,7 +181,6 @@ COPY --from=builder /usr/src/app/API ./API
 COPY --from=builder /usr/src/app/scripts ./scripts
 COPY --from=builder /usr/src/app/public ./public
 COPY --from=builder /usr/src/app/configuration ./configuration
-COPY --from=builder /usr/src/app/_docker-entrypoint.sh ./_docker-entrypoint.sh
 
 # Copy additional runtime directories
 COPY --from=builder /usr/src/app/views ./views
@@ -181,11 +191,16 @@ COPY --from=builder /usr/src/app/private ./private
 COPY --from=builder /usr/src/app/blueprints ./blueprints
 COPY --from=builder /usr/src/app/plugins ./plugins
 
-RUN chmod 755 _docker-entrypoint.sh && \
-    mkdir -p Missions ssl && \
-    chown -R mmgis:mmgis /usr/src/app
+RUN mkdir -p Missions ssl && \
+    rm -rf API/logs && mkdir API/logs && \
+    chown -R mmgis:0 /usr/src/app && \
+    chmod -R g=u /usr/src/app
+
+# HOME is / for runtime uids not in /etc/passwd, so point caches at /tmp
+ENV NUMBA_CACHE_DIR=/tmp/numba-cache \
+    NPM_CONFIG_CACHE=/tmp/.npm
 
 USER mmgis
 
 EXPOSE 8888
-CMD ["./_docker-entrypoint.sh"]
+CMD ["npm", "run", "start:prod-docker"]
