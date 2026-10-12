@@ -9,6 +9,9 @@ nul
 /API/logs/*
 /Missions/*
 !/Missions/.gitkeep
+!/Missions/shared/
+/Missions/shared/*
+!/Missions/shared/README.md
 /private/api/spice/kernels/*
 /configure/public/toolConfigs.json
 configure/public/toolConfigs.json

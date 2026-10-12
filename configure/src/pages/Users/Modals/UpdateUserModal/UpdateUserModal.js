@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 
 import { calls } from "../../../../core/calls";
+import { SHARED_MISSION_NAME } from "../../../../core/constants";
 
 import { setModal, setSnackBarText } from "../../../../core/ConfigureStore";
 
@@ -196,7 +197,7 @@ const UpdateUserModal = (props) => {
         (res) => {
           if (res?.missions) {
             const missions = res.missions
-              .slice()
+              .filter((m) => m !== SHARED_MISSION_NAME)
               .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
             setAvailableMissions(missions);
           }
@@ -404,7 +405,7 @@ const UpdateUserModal = (props) => {
         />
         <Typography
           className={c.subtitle2}
-        >{`When AUTH=local, restricts which missions this user can see and load. Off = all missions. On with none selected = no missions. Files under /Missions/<mission>/ are also restricted, so a mission that references another mission's files (e.g. ../OtherMission/...) needs that mission granted too.`}</Typography>
+        >{`When AUTH=local, restricts which missions this user can see and load. Off = all missions. On with none selected = no missions. Files under /Missions/<mission>/ are also restricted, so a mission that references another mission's files (e.g. ../OtherMission/...) needs that mission granted too. Files under /Missions/${SHARED_MISSION_NAME}/ are readable by any logged-in user.`}</Typography>
         {restrictViewing && (
         <FormControl className={c.assignedMissions} variant="filled" size="small">
           <InputLabel>Viewable Missions</InputLabel>

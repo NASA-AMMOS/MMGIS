@@ -1,6 +1,10 @@
 import { test, expect, request as apiRequest } from "@playwright/test";
 import fs from "fs";
+import http from "http";
 import path from "path";
+const {
+  SHARED_MISSION_FOLDER_NAME,
+} = require("../../../plugins/core/backend/Config/constants");
 
 /**
  * Per-user mission viewing permissions (users.missions_viewing).
@@ -12,6 +16,8 @@ import path from "path";
  *   - SuperAdmins (111) always see everything
  *   - GET /api/configure/get is rejected for non-viewable missions
  *   - GET /Missions/<mission>/... static files are rejected for non-viewable missions
+ *   - GET /Missions/shared/... is readable by any authenticated user, never guests
+ *   - "shared" is reserved and never a mission
  * Under any other AUTH mode the field is ignored and all missions are visible.
  */
 
@@ -28,6 +34,8 @@ const userName = `test_view_user_${stamp}`;
 const adminName = `test_view_admin_${stamp}`;
 const missionsDir = path.resolve(process.cwd(), "Missions");
 const assetRel = "Data/viewing-test.json";
+const sharedRel = `Data/viewing-test-${stamp}.json`;
+const sharedFile = path.join(missionsDir, SHARED_MISSION_FOLDER_NAME, sharedRel);
 
 test.describe.serial("missions_viewing permissions", () => {
   let superadmin;
@@ -72,6 +80,25 @@ test.describe.serial("missions_viewing permissions", () => {
     );
   }
 
+  // Sends the path verbatim; Playwright would normalize "%2e%2e" client-side
+  async function rawGet(ctx, rawPath) {
+    const { cookies } = await ctx.storageState();
+    const cookie = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+    const u = new URL(baseURL);
+    return new Promise((resolve, reject) => {
+      const req = http.request(
+        { host: u.hostname, port: u.port, path: rawPath, headers: { cookie } },
+        (res) => {
+          let body = "";
+          res.on("data", (d) => (body += d));
+          res.on("end", () => resolve({ status: res.statusCode, body }));
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+  }
+
   async function getConfig(ctx, mission) {
     return json(await ctx.get(`/api/configure/get?mission=${mission}`));
   }
@@ -93,6 +120,8 @@ test.describe.serial("missions_viewing permissions", () => {
       if (body?.status !== "success") return;
       fs.writeFileSync(path.join(missionsDir, m, assetRel), `{"m":"${m}"}`);
     }
+    fs.mkdirSync(path.dirname(sharedFile), { recursive: true });
+    fs.writeFileSync(sharedFile, `{"shared":true}`);
     for (const u of [userName, adminName]) {
       const body = await json(
         await superadmin.post("/api/users/signup", {
@@ -123,6 +152,7 @@ test.describe.serial("missions_viewing permissions", () => {
   });
 
   test.afterAll(async () => {
+    fs.rmSync(sharedFile, { force: true });
     if (!superadmin) return;
     for (const m of [missionA, missionB, missionC]) {
       await superadmin
@@ -235,6 +265,105 @@ test.describe.serial("missions_viewing permissions", () => {
     });
     expect(denied.status()).toBe(403);
     expect(denied.headers()["content-type"]).toContain("text/html");
+  });
+
+  test("/Missions/shared is readable by any authenticated user", async () => {
+    const url = `/Missions/${SHARED_MISSION_FOLDER_NAME}/${sharedRel}`;
+    await setViewing(userIds[userName], [missionA]);
+    const res = await user.get(url);
+    expect(res.status()).toBe(200);
+    expect(await res.json()).toEqual({ shared: true });
+
+    await setViewing(userIds[userName], []);
+    expect((await user.get(url)).status()).toBe(200);
+    expect((await superadmin.get(url)).status()).toBe(200);
+
+    // Shared access must not become a path to other missions' files
+    await setViewing(userIds[userName], [missionA]);
+    for (const from of [SHARED_MISSION_FOLDER_NAME, missionA]) {
+      const res = await rawGet(
+        user,
+        `/Missions/${from}/%2e%2e/${missionB}/${assetRel}`,
+      );
+      expect(res.status, from).not.toBe(200);
+      expect(res.body).not.toContain(missionB);
+    }
+
+    const anon = await apiRequest.newContext({ baseURL });
+    expect((await anon.get(url)).status()).toBe(403);
+    const page = await anon.get(url, { headers: { Accept: "text/html" } });
+    expect(page.status()).toBe(403);
+    expect(await page.text()).toContain('href="/"');
+    await anon.dispose();
+
+    const badToken = await apiRequest.newContext({
+      baseURL,
+      extraHTTPHeaders: { Authorization: "Bearer not-a-real-token" },
+    });
+    // Rejected upstream by ensureUser ("Unauthorized Token!")
+    expect(await (await badToken.get(url)).text()).not.toContain('"shared"');
+    await badToken.dispose();
+  });
+
+  test("shared is reserved and never listed as a mission", async () => {
+    for (const name of [
+      SHARED_MISSION_FOLDER_NAME,
+      SHARED_MISSION_FOLDER_NAME.toUpperCase(),
+    ]) {
+      const add = await json(
+        await superadmin.post("/api/configure/add", {
+          data: { mission: name, makedir: true },
+        }),
+      );
+      expect(add?.status).toBe("failure");
+      expect(add?.message).toContain("reserved");
+    }
+
+    const rename = await json(
+      await superadmin.post("/api/configure/rename", {
+        data: { mission: missionA, newName: SHARED_MISSION_FOLDER_NAME },
+      }),
+    );
+    expect(rename?.status).toBe("failure");
+    expect(rename?.message).toContain("reserved");
+
+    for (const name of [
+      SHARED_MISSION_FOLDER_NAME,
+      SHARED_MISSION_FOLDER_NAME.toUpperCase(),
+    ]) {
+      const renameFrom = await json(
+        await superadmin.post("/api/configure/rename", {
+          data: { mission: name, newName: `${missionA}_renamed` },
+        }),
+      );
+      expect(renameFrom?.status).toBe("failure");
+      expect(renameFrom?.message).toContain("reserved");
+
+      const destroy = await json(
+        await superadmin.post("/api/configure/destroy", {
+          data: { mission: name },
+        }),
+      );
+      expect(destroy?.status).toBe("failure");
+      expect(destroy?.message).toContain("reserved");
+    }
+    expect(fs.existsSync(sharedFile)).toBe(true);
+
+    const clone = await json(
+      await superadmin.post("/api/configure/clone", {
+        data: {
+          existingMission: missionA,
+          cloneMission: SHARED_MISSION_FOLDER_NAME,
+        },
+      }),
+    );
+    expect(clone?.status).toBe("failure");
+
+    for (const ctx of [superadmin, user]) {
+      const body = await json(await ctx.get("/api/configure/missions"));
+      expect(body?.status).toBe("success");
+      expect(body.missions).not.toContain(SHARED_MISSION_FOLDER_NAME);
+    }
   });
 
   test("guests (not logged in) see no missions and cannot load configs", async () => {
