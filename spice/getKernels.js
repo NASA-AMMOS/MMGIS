@@ -34,7 +34,14 @@ async function getKernelsFromConf() {
     Object.keys(kernels.body).forEach(async (b) => {
       const body = kernels.body[b];
       if (body.kernels) {
-        await getKernels(body.kernels, `${OUTPUT_DIR}/${b}`, true, SHOULD_LOG);
+        await getKernels(
+          body.kernels,
+          `${OUTPUT_DIR}/${b}`,
+          true,
+          SHOULD_LOG
+        ).catch((err) => {
+          logger(`error`, `getKernelsFromConf: ${b}: ${err}`);
+        });
       }
       if (body.targets) {
         Object.keys(body.targets).forEach(async (t) => {
@@ -45,7 +52,9 @@ async function getKernelsFromConf() {
               `${OUTPUT_DIR}/${b}/${t}`,
               true,
               SHOULD_LOG
-            );
+            ).catch((err) => {
+              logger(`error`, `getKernelsFromConf: ${b}/${t}: ${err}`);
+            });
           }
         });
       }
@@ -75,7 +84,15 @@ async function getKernels(
 
   // Make outputPath directories if they don't already exist
   if (!fs.existsSync(outputPath)) {
-    fs.mkdirSync(outputPath, { recursive: true });
+    try {
+      fs.mkdirSync(outputPath, { recursive: true });
+    } catch (err) {
+      logger(
+        `error`,
+        `Failed to create SPICE kernel directory ${outputPath} (it must be writable by the MMGIS user): ${err}`
+      );
+      return;
+    }
   }
 
   const loaded = {};
