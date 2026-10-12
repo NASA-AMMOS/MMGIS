@@ -1,0 +1,10 @@
+# Python packages the test server needs to start TiTiler in CI.
+# Versions match python-environment.yml. Regenerate the lock with:
+#   uv pip compile tests/requirements/adjacent-servers-ci.in --generate-hashes \
+#     --python-version 3.11 --python-platform x86_64-manylinux_2_28 --only-binary :all: \
+#     -o tests/requirements/adjacent-servers-ci.txt
+titiler.application==2.2.0
+python-dotenv[cli]==1.0.1
+uvicorn==0.30.6
+# titiler 2.2.0 breaks at import with newer fastapi (same bound as python-environment.yml)
+fastapi<0.140.3

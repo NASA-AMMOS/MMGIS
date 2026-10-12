@@ -43,7 +43,12 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        # Dependency lifecycle scripts are skipped; MMGIS only needs its own
+        # plugin-deps postinstall, which is run explicitly.
+        run: |
+          npm ci --ignore-scripts
+          node scripts/resolve-plugin-deps.js
+          node scripts/install-plugin-deps.js
 
       - name: Install Playwright Browsers
         run: ./node_modules/.bin/playwright install --with-deps chromium
@@ -111,7 +116,12 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        # Dependency lifecycle scripts are skipped; MMGIS only needs its own
+        # plugin-deps postinstall, which is run explicitly.
+        run: |
+          npm ci --ignore-scripts
+          node scripts/resolve-plugin-deps.js
+          node scripts/install-plugin-deps.js
 
       - name: Install Playwright Browsers
         run: ./node_modules/.bin/playwright install --with-deps chromium
@@ -122,7 +132,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install adjacent server Python packages
-        run: pip install "titiler.application" "python-dotenv[cli]" uvicorn
+        run: pip install --only-binary :all: --require-hashes -r tests/requirements/adjacent-servers-ci.txt
 
       - name: Setup test environment
         run: |
@@ -235,7 +245,12 @@ jobs:
             configure/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        # Dependency lifecycle scripts are skipped; MMGIS only needs its own
+        # plugin-deps postinstall, which is run explicitly.
+        run: |
+          npm ci --ignore-scripts
+          node scripts/resolve-plugin-deps.js
+          node scripts/install-plugin-deps.js
 
       - name: Install Playwright Browsers
         run: ./node_modules/.bin/playwright install --with-deps chromium
@@ -258,7 +273,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install adjacent server Python packages
-        run: pip install "titiler.application" "python-dotenv[cli]" uvicorn
+        run: pip install --only-binary :all: --require-hashes -r tests/requirements/adjacent-servers-ci.txt
 
       - name: Setup test environment
         run: |
