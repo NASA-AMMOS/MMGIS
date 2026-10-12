@@ -235,6 +235,9 @@ jobs:
 
       - name: Build Configure app
         working-directory: configure
+        env:
+          # CRA treats lint warnings as errors when CI=true; match the Docker build
+          CI: "false"
         run: |
           npm ci
           npm run build
