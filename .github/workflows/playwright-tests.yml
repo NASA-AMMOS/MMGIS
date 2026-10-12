@@ -132,7 +132,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install adjacent server Python packages
-        run: pip install --only-binary :all: --require-hashes -r tests/requirements/adjacent-servers-ci.txt
+        run: |
+          pip install --only-binary :all: --require-hashes -r tests/requirements/adjacent-servers-ci.txt
 
       - name: Setup test environment
         run: |
@@ -273,7 +274,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install adjacent server Python packages
-        run: pip install --only-binary :all: --require-hashes -r tests/requirements/adjacent-servers-ci.txt
+        run: |
+          pip install --only-binary :all: --require-hashes -r tests/requirements/adjacent-servers-ci.txt
 
       - name: Setup test environment
         run: |
