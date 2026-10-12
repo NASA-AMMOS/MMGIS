@@ -46,10 +46,10 @@ jobs:
         run: npm ci
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Run unit and CI tests
-        run: npx playwright test tests/unit tests/ci --project=chromium
+        run: ./node_modules/.bin/playwright test tests/unit tests/ci --project=chromium
         env:
           PLAYWRIGHT_TEST_UNIT_ONLY: "true"
 
@@ -114,7 +114,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Setup Python for adjacent servers
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -147,7 +147,7 @@ jobs:
 
       - name: Run API, security, startup and backend plugin tests
         run: >-
-          npx playwright test
+          ./node_modules/.bin/playwright test
           tests/e2e/api tests/e2e/security tests/e2e/startup tests/e2e/middleware
           plugins/core/backend
           --project=chromium
@@ -228,7 +228,7 @@ jobs:
         run: npm ci
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Build MMGIS frontend
         run: npm run build
@@ -239,7 +239,7 @@ jobs:
           # CRA treats lint warnings as errors when CI=true; match the Docker build
           CI: "false"
         run: |
-          npm ci
+          npm ci --ignore-scripts
           npm run build
 
       - name: Setup Python for adjacent servers
@@ -270,7 +270,7 @@ jobs:
 
       - name: Run functional flow tests
         run: >-
-          npx playwright test
+          ./node_modules/.bin/playwright test
           tests/e2e/map tests/e2e/time tests/e2e/tools tests/e2e/ui
           tests/e2e/configure tests/e2e/auth tests/e2e/collaboration
           tests/e2e/accessibility tests/e2e/mobile tests/e2e/performance
