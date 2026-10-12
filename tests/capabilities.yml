@@ -1,0 +1,552 @@
+# MMGIS capability catalog
+#
+# Single source of truth for "what MMGIS does" and how each capability is tested.
+# Used by tests/reporting/capability-report.js to build the capability coverage
+# report published by .github/workflows/playwright-tests.yml.
+#
+# Test levels
+#   unit  - low-level, no server; must always pass (tests/unit, tests/ci)
+#   api   - backend/HTTP behaviour against a running server (no browser UI)
+#   flow  - user-facing functional flows driven through the browser
+#
+# How a test is attributed to a capability (first match wins):
+#   1. Playwright tags on the test or its describe block, e.g.
+#        test("applies a filter", { tag: ["@UIF-LAYERS-FILTER-01", "@flow"] }, ...)
+#      A scenario tag (CAP-NN) also credits its parent capability.
+#   2. Otherwise the test file is matched against each capability's `tests` globs.
+#   Level comes from an @unit/@api/@flow tag, else the `levels.*.tests` globs below.
+#
+# Scenarios marked `source: gherkin/...` were seeded from the scenario titles in
+# the feature/bdd-gherkin-tests branch. A scenario is only reported as covered
+# once a real test carries its tag.
+
+version: 1
+
+levels:
+  unit:
+    title: Unit / low-level
+    description: Pure functions, modules and static checks. Fast, no server, must always pass.
+    tests:
+      - tests/unit/**
+      - tests/ci/**
+  api:
+    title: API / backend
+    description: HTTP routes, backend plugins, security and startup behaviour against a live test server.
+    tests:
+      - tests/e2e/api/**
+      - tests/e2e/security/**
+      - tests/e2e/startup/**
+      - tests/e2e/middleware.spec.js
+      - tests/e2e/performance/api-response-times.spec.js
+      - plugins/**/backend/**/tests/**
+  flow:
+    title: Functional flow
+    description: End-to-end user flows in the browser, including corner cases.
+    tests:
+      - "**"
+
+areas:
+  - id: MAP
+    title: Map & globe
+    description: Mission loading, 2D map and 3D globe rendering, navigation, coordinates, deep links.
+  - id: LYR
+    title: Layers & data
+    description: Layer types, visibility, styling, legends, attachments and time-enabled data.
+  - id: UIF
+    title: User interaction features
+    description: Tools, filters, search, interactions, context menus and panels.
+  - id: CFG
+    title: Configuration (Configure / CMS)
+    description: Mission, layer, tool and interaction configuration in the Configure app.
+  - id: AUTH
+    title: Authentication & access
+    description: Login, sessions, accounts, permissions and long-term tokens.
+  - id: API
+    title: APIs & integrations
+    description: mmgisAPI, geodatasets, STAC, TiTiler, webhooks and other adjacent services.
+  - id: COL
+    title: Collaboration
+    description: Websockets, broadcast and multi-user behaviour.
+  - id: PLT
+    title: Platform
+    description: Security hardening, startup, plugin system, performance, accessibility and compatibility.
+
+capabilities:
+  # ---------------------------------------------------------------- MAP
+  - id: MAP-INIT
+    area: MAP
+    title: Load a mission and initialise the map
+    risk: high
+    requires: [flow]
+    paths: [src/essence/essence.js, src/essence/Basics/Map_/**, src/essence/LandingPage/**, src/essence/mmgisAPI/**]
+    tests:
+      - tests/e2e/smoke.spec.js
+      - tests/e2e/map/map-init.spec.js
+      - tests/e2e/map/landing-page.spec.js
+      - tests/e2e/map/panel-layout.spec.js
+      - tests/e2e/map/error-handling.spec.js
+      - tests/e2e/reference-mission*.spec.js
+    scenarios:
+      - { id: MAP-INIT-01, title: Loading a mission with default view, source: gherkin/MapNavigation.feature }
+      - { id: MAP-INIT-02, title: Unknown or misconfigured mission shows a clear error }
+
+  - id: MAP-NAV
+    area: MAP
+    title: Navigate the map, coordinates and deep links
+    risk: high
+    requires: [unit, flow]
+    paths: [src/essence/Basics/Formulae_/**, src/essence/services/QueryURL.js, src/essence/Basics/UserInterface_/BottomBar.js]
+    tests:
+      - tests/unit/formulae.spec.js
+      - tests/e2e/map/coordinates.spec.js
+      - tests/e2e/map/deep-linking.spec.js
+      - tests/e2e/map/bottom-bar.spec.js
+      - tests/e2e/map/hotkeys.spec.js
+    scenarios:
+      - { id: MAP-NAV-01, title: Panning and zooming the map, source: gherkin/MapNavigation.feature }
+      - { id: MAP-NAV-02, title: Deep linking to specific map coordinates, source: gherkin/MapNavigation.feature }
+      - { id: MAP-NAV-03, title: Custom projection coordinate display, source: gherkin/MapNavigation.feature }
+
+  - id: MAP-GLOBE
+    area: MAP
+    title: 3D globe rendering and 2D/3D switching
+    risk: medium
+    requires: [unit, flow]
+    paths: [src/essence/Basics/Globe_/**]
+    tests:
+      - tests/unit/globe*.spec.js
+      - tests/unit/cesiumVectorReloadIds.spec.js
+    scenarios:
+      - { id: MAP-GLOBE-01, title: Switching between 2D and 3D views, source: gherkin/MapNavigation.feature }
+      - { id: MAP-GLOBE-02, title: Vector selection identity is preserved between 2D and 3D }
+
+  # ---------------------------------------------------------------- LYR
+  - id: LYR-TOGGLE
+    area: LYR
+    title: Toggle layer visibility, opacity and groups
+    risk: high
+    requires: [unit, flow]
+    paths: [src/essence/Basics/Layers_/**]
+    tests:
+      - tests/unit/layerToggleSubscriptions.spec.js
+      - tests/e2e/map/layer-toggle.spec.js
+    scenarios:
+      - { id: LYR-TOGGLE-01, title: Toggling layer visibility, source: gherkin/LayerManagement.feature }
+      - { id: LYR-TOGGLE-02, title: Adjusting layer opacity, source: gherkin/LayerManagement.feature }
+      - { id: LYR-TOGGLE-03, title: Managing layer groups and hierarchy, source: gherkin/LayerManagement.feature }
+
+  - id: LYR-TYPES
+    area: LYR
+    title: Layer types (tile, vector, KML, query, data) load and render
+    risk: high
+    requires: [unit, flow]
+    paths: [plugins/core/layertypes/**, src/essence/Basics/Layers_/registry/**, src/essence/Basics/Layers_/lifecycle/**]
+    tests:
+      - plugins/core/layertypes/**
+      - tests/unit/layerAcquire.spec.js
+      - tests/unit/layerInterface.spec.js
+      - tests/unit/layerSource.spec.js
+      - tests/unit/layerSurfaces.spec.js
+      - tests/unit/layerType*.spec.js
+      - tests/unit/updateLayerTypes.spec.js
+      - tests/unit/kml-support.spec.js
+      - tests/unit/refreshAndAvailability.spec.js
+      - tests/e2e/map/layer-types.spec.js
+      - tests/e2e/map/kml-layer.spec.js
+    scenarios:
+      - { id: LYR-TYPES-01, title: Loading and displaying raster layers, source: gherkin/LayerManagement.feature }
+      - { id: LYR-TYPES-02, title: Displaying vector layer features, source: gherkin/LayerManagement.feature }
+      - { id: LYR-TYPES-03, title: Cloud Optimized GeoTIFF (COG) layer performance, source: gherkin/LayerManagement.feature }
+
+  - id: LYR-STYLE
+    area: LYR
+    title: Vector styling, dynamic style and legends
+    risk: medium
+    requires: [unit, flow]
+    paths: [plugins/core/tools/Legend/**, src/essence/Basics/Layers_/legend/**, plugins/core/tools/Layers/components/DynamicStyleRamp*]
+    tests:
+      - tests/unit/dynamicStyle*.spec.js
+      - tests/unit/layerDynamicStyle.spec.js
+      - tests/unit/legendValueUnits.spec.js
+      - tests/unit/legendHighlight.spec.js
+      - tests/unit/gradientPolyline.spec.js
+      - tests/e2e/map/dynamic-style.spec.js
+      - plugins/core/tools/Legend/tests/**
+    scenarios:
+      - { id: LYR-STYLE-01, title: Dynamic style updates features when a property threshold changes }
+      - { id: LYR-STYLE-02, title: Legend reflects the active style and value units }
+
+  - id: LYR-ATTACH
+    area: LYR
+    title: Layer attachments and declared references
+    risk: medium
+    requires: [unit]
+    paths: [src/essence/Basics/Layers_/registry/LayerAttachmentRegistry.js, src/essence/Basics/Layers_/registry/attachmentDefaults.js]
+    tests:
+      - tests/unit/layerAttachmentTabs.spec.js
+      - tests/unit/updateLayerAttachments.spec.js
+      - tests/unit/defaultAttachments.spec.js
+      - tests/unit/declaredReferences.spec.js
+
+  - id: LYR-TIME
+    area: LYR
+    title: Time controls and time-enabled layers
+    risk: high
+    requires: [unit, flow]
+    paths: [src/essence/Basics/TimeControl_/**]
+    tests:
+      - tests/unit/timeTilesParser.spec.js
+      - tests/e2e/time/**
+    scenarios:
+      - { id: LYR-TIME-01, title: Temporal layer control, source: gherkin/LayerManagement.feature }
+      - { id: LYR-TIME-02, title: Concurrent time changes reload each layer exactly once }
+
+  - id: LYR-VELOCITY
+    area: LYR
+    title: Velocity (wind/flow) layer visualisation
+    risk: low
+    requires: [flow]
+    paths: [plugins/core/layertypes/Velocity/**]
+    tests: []
+    scenarios:
+      - { id: LYR-VELOCITY-01, title: Streamlines visualization with wind data, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-02, title: Particle visualization with atmospheric data, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-03, title: Wind barb visualization for meteorological data, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-04, title: Arrow visualization for flow direction, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-05, title: Velocity layer with temporal animation, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-06, title: Multi-level velocity data visualization, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-07, title: Velocity layer performance with large datasets, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-08, title: Velocity layer data format support, source: gherkin/VelocityLayer.feature }
+      - { id: LYR-VELOCITY-09, title: Velocity layer customization and styling, source: gherkin/VelocityLayer.feature }
+
+  # ---------------------------------------------------------------- UIF
+  - id: UIF-LAYERS-FILTER
+    area: UIF
+    title: Filter vector layer features
+    risk: high
+    requires: [unit, flow]
+    paths: [src/essence/Basics/Layers_/Filtering/**, src/essence/services/LocalFilterer.js]
+    tests:
+      - tests/e2e/map/layer-filtering.spec.js
+    scenarios:
+      - { id: UIF-LAYERS-FILTER-01, title: Layer filtering functionality, source: gherkin/LayerManagement.feature }
+      - { id: UIF-LAYERS-FILTER-02, title: Clearing a filter restores all features }
+      - { id: UIF-LAYERS-FILTER-03, title: A filter that matches nothing shows an empty layer without errors }
+
+  - id: UIF-LAYERS-TOOL
+    area: UIF
+    title: Layers tool panel
+    risk: high
+    requires: [flow]
+    paths: [plugins/core/tools/Layers/**]
+    tests:
+      - plugins/core/tools/Layers/tests/**
+
+  - id: UIF-SEARCH
+    area: UIF
+    title: Global search
+    risk: medium
+    requires: [unit, flow]
+    paths: [plugins/core/components/Search/**]
+    tests:
+      - tests/unit/globalSearch.spec.js
+      - tests/e2e/globalSearch.spec.js
+      - tests/e2e/ui/search.spec.js
+
+  - id: UIF-DRAW
+    area: UIF
+    title: Draw tool
+    risk: high
+    requires: [unit, api, flow]
+    paths: [plugins/core/tools/Draw/**, plugins/core/backend/Draw/**]
+    tests:
+      - plugins/core/tools/Draw/tests/**
+      - plugins/core/backend/Draw/tests/**
+      - tests/unit/turf.spec.js
+    scenarios:
+      - { id: UIF-DRAW-01, title: Creating basic geometric shapes, source: gherkin/DrawTool.feature }
+      - { id: UIF-DRAW-02, title: Editing drawing properties, source: gherkin/DrawTool.feature }
+      - { id: UIF-DRAW-03, title: Using drawing templates, source: gherkin/DrawTool.feature }
+      - { id: UIF-DRAW-04, title: Managing drawing files, source: gherkin/DrawTool.feature }
+      - { id: UIF-DRAW-05, title: Collaborative drawing features, source: gherkin/DrawTool.feature }
+      - { id: UIF-DRAW-06, title: Drawing file sharing and permissions, source: gherkin/DrawTool.feature }
+      - { id: UIF-DRAW-07, title: Drawing data export and import, source: gherkin/DrawTool.feature }
+
+  - id: UIF-MEASURE
+    area: UIF
+    title: Measure tool
+    risk: medium
+    requires: [flow]
+    paths: [plugins/core/tools/Measure/**]
+    tests:
+      - plugins/core/tools/Measure/tests/**
+    scenarios:
+      - { id: UIF-MEASURE-01, title: Basic distance measurement, source: gherkin/MeasureTool.feature }
+      - { id: UIF-MEASURE-02, title: Multi-segment distance measurement, source: gherkin/MeasureTool.feature }
+      - { id: UIF-MEASURE-03, title: Elevation profile generation, source: gherkin/MeasureTool.feature }
+      - { id: UIF-MEASURE-04, title: Using different DEM datasets, source: gherkin/MeasureTool.feature }
+      - { id: UIF-MEASURE-05, title: Measurement unit conversion, source: gherkin/MeasureTool.feature }
+      - { id: UIF-MEASURE-06, title: Measurement persistence and management, source: gherkin/MeasureTool.feature }
+      - { id: UIF-MEASURE-07, title: Area measurement functionality, source: gherkin/MeasureTool.feature }
+      - { id: UIF-MEASURE-08, title: Measurement accuracy with map projections, source: gherkin/MeasureTool.feature }
+
+  - id: UIF-INFO
+    area: UIF
+    title: Info and Identifier tools
+    risk: medium
+    requires: [flow]
+    paths: [plugins/core/tools/Info/**, plugins/core/tools/Identifier/**]
+    tests:
+      - plugins/core/tools/Info/tests/**
+      - plugins/core/tools/Identifier/tests/**
+    scenarios:
+      - { id: UIF-INFO-01, title: Querying vector feature properties, source: gherkin/InfoTool.feature }
+      - { id: UIF-INFO-02, title: Property display formatting and sorting, source: gherkin/InfoTool.feature }
+      - { id: UIF-INFO-03, title: Complex property data visualization, source: gherkin/InfoTool.feature }
+      - { id: UIF-INFO-04, title: Multi-feature selection and comparison, source: gherkin/InfoTool.feature }
+      - { id: UIF-INFO-05, title: Feature information persistence, source: gherkin/InfoTool.feature }
+      - { id: UIF-INFO-06, title: Linked data and external references, source: gherkin/InfoTool.feature }
+      - { id: UIF-INFO-07, title: Info tool keyboard navigation, source: gherkin/InfoTool.feature }
+      - { id: UIF-INFO-08, title: Information display customization, source: gherkin/InfoTool.feature }
+
+  - id: UIF-ANALYSIS
+    area: UIF
+    title: Sites, Viewshed and Sightline analysis tools
+    risk: medium
+    requires: [unit, flow]
+    paths: [plugins/core/tools/Sites/**, plugins/core/tools/Viewshed/**, plugins/core/backend/Sightline/**]
+    tests:
+      - plugins/core/tools/Sites/tests/**
+      - plugins/core/tools/Viewshed/tests/**
+      - plugins/core/backend/Sightline/tests/**
+      - tests/unit/sightlineTool.spec.js
+
+  - id: UIF-TOOLS
+    area: UIF
+    title: Tool framework (loading, separated tools, tool panels)
+    risk: high
+    requires: [unit, flow]
+    paths: [src/essence/Basics/ToolController_/**, API/updateTools.js]
+    tests:
+      - tests/unit/toolControllerHelpers.spec.js
+      - tests/unit/toolLazyLoading.spec.js
+      - tests/unit/updateTools.spec.js
+      - tests/e2e/tools/**
+
+  - id: UIF-INTERACT
+    area: UIF
+    title: Interactions, components, context menu and widgets
+    risk: medium
+    requires: [unit, flow]
+    paths: [src/essence/Basics/InteractionRunner/**, src/essence/Basics/ComponentController_/**, src/essence/Basics/UserInterface_/**]
+    tests:
+      - tests/unit/interaction*.spec.js
+      - tests/unit/configureInteractions.spec.js
+      - tests/unit/defaultInteractions.spec.js
+      - tests/unit/updateInteractions.spec.js
+      - tests/unit/component*.spec.js
+      - tests/unit/essenceComponentIntegration.spec.js
+      - tests/unit/userInterfaceBridge.spec.js
+      - tests/unit/uiStore.spec.js
+      - tests/e2e/map/context-menu.spec.js
+      - tests/e2e/map/kinds.spec.js
+      - tests/e2e/map/widgets.spec.js
+
+  # ---------------------------------------------------------------- CFG
+  - id: CFG-MISSION
+    area: CFG
+    title: Create, edit, clone and export missions
+    risk: high
+    requires: [api, flow]
+    paths: [configure/src/**, plugins/core/backend/Config/**, plugins/core/backend/GeneralOptions/**]
+    tests:
+      - plugins/core/backend/Config/tests/**
+      - plugins/core/backend/GeneralOptions/tests/**
+      - tests/unit/missionTemplates.spec.js
+      - tests/unit/sharedMissionFolder.spec.js
+      - tests/e2e/configure/mission-crud.spec.js
+      - tests/e2e/configure/clone.spec.js
+      - tests/e2e/configure/configure-access.spec.js
+      - tests/e2e/security/configure-export.spec.js
+
+  - id: CFG-LAYERS-TOOLS
+    area: CFG
+    title: Configure layers, tools and interactions
+    risk: high
+    requires: [flow]
+    paths: [configure/src/**]
+    tests:
+      - tests/e2e/configure/layer-management.spec.js
+      - tests/e2e/configure/layer-type-options.spec.js
+      - tests/e2e/configure/tool-configuration.spec.js
+      - tests/e2e/configure/interaction-settings.spec.js
+
+  # ---------------------------------------------------------------- AUTH
+  - id: AUTH-LOGIN
+    area: AUTH
+    title: Login, signup, sessions and passwords
+    risk: high
+    requires: [api, flow]
+    paths: [plugins/core/backend/Users/**, plugins/core/backend/Accounts/**, src/essence/Basics/UserInterface_/components/Login/**]
+    tests:
+      - plugins/core/backend/Users/tests/**
+      - plugins/core/backend/Accounts/tests/**
+      - tests/e2e/auth/login-flow.spec.js
+      - tests/e2e/auth/signup-flow.spec.js
+      - tests/e2e/auth/session-management.spec.js
+      - tests/e2e/auth/password-management.spec.js
+      - tests/e2e/api/env-behavior.spec.js
+
+  - id: AUTH-PERMS
+    area: AUTH
+    title: Permissions, mission visibility and long-term tokens
+    risk: high
+    requires: [api]
+    paths: [plugins/core/backend/LongTermToken/**, scripts/middleware.js]
+    tests:
+      - plugins/core/backend/LongTermToken/tests/**
+      - tests/e2e/auth/authorization.spec.js
+      - tests/e2e/security/auth-bypass.spec.js
+      - tests/e2e/security/missions-viewing.spec.js
+
+  # ---------------------------------------------------------------- API
+  - id: API-GEODATA
+    area: API
+    title: Geodatasets and datasets
+    risk: high
+    requires: [unit, api]
+    paths: [plugins/core/backend/Geodatasets/**, plugins/core/backend/Datasets/**]
+    tests:
+      - plugins/core/backend/Geodatasets/tests/**
+      - plugins/core/backend/Datasets/tests/**
+      - tests/unit/geodatasets-*.spec.js
+      - tests/e2e/api/geodatasets-*.spec.js
+      - tests/e2e/security/geodatasets-in-filter.spec.js
+
+  - id: API-MMGIS
+    area: API
+    title: mmgisAPI, API docs, utilities, shortener and webhooks
+    risk: medium
+    requires: [api]
+    paths: [src/essence/mmgisAPI/**, plugins/core/backend/Utils/**, plugins/core/backend/Shortener/**, plugins/core/backend/Webhooks/**]
+    tests:
+      - tests/e2e/api/mmgis-api.spec.js
+      - tests/e2e/api/docs.spec.js
+      - tests/e2e/api/sharp-imaging.spec.js
+      - tests/unit/sharp.spec.js
+      - tests/unit/webhookEntries.spec.js
+      - plugins/core/backend/Utils/tests/**
+      - plugins/core/backend/Shortener/tests/**
+      - plugins/core/backend/Webhooks/tests/**
+
+  - id: API-STAC
+    area: API
+    title: STAC catalogs, collections and items
+    risk: medium
+    requires: [unit, api, flow]
+    paths: [plugins/core/backend/Stac/**, adjacent-servers/stac/**]
+    tests:
+      - plugins/core/backend/Stac/tests/**
+      - tests/unit/stac-url-transformation.spec.js
+    scenarios:
+      - { id: API-STAC-01, title: Loading vector features from STAC Item, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-02, title: Browsing STAC Collection as vector features, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-03, title: STAC Catalog browsing and navigation, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-04, title: STAC Collection as tile mosaic through TiTiler-PgSTAC, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-05, title: STAC temporal queries with time controls, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-06, title: STAC asset access and preview, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-07, title: STAC search with spatial and temporal filters, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-08, title: STAC metadata standards compliance, source: gherkin/STACIntegration.feature }
+      - { id: API-STAC-09, title: STAC error handling and fallbacks, source: gherkin/STACIntegration.feature }
+
+  - id: API-TITILER
+    area: API
+    title: TiTiler and adjacent tile servers
+    risk: medium
+    requires: [unit, api]
+    paths: [adjacent-servers/**]
+    tests:
+      - tests/e2e/api/adjacent-servers.spec.js
+      - tests/e2e/api/titiler-planetcantile.spec.js
+      - tests/unit/validateTitilerExpression.spec.js
+    scenarios:
+      - { id: API-TITILER-01, title: Serving basic COG through TiTiler, source: gherkin/TiTilerIntegration.feature }
+      - { id: API-TITILER-02, title: Transforming 32-bit COG with color scaling, source: gherkin/TiTilerIntegration.feature }
+      - { id: API-TITILER-03, title: Multi-band COG with custom band selection, source: gherkin/TiTilerIntegration.feature }
+      - { id: API-TITILER-04, title: COG with custom tile matrix set for non-Web Mercator projection, source: gherkin/TiTilerIntegration.feature }
+      - { id: API-TITILER-05, title: TiTiler performance with large COG datasets, source: gherkin/TiTilerIntegration.feature }
+      - { id: API-TITILER-06, title: TiTiler error handling for invalid COG, source: gherkin/TiTilerIntegration.feature }
+      - { id: API-TITILER-07, title: COG metadata access through TiTiler, source: gherkin/TiTilerIntegration.feature }
+
+  # ---------------------------------------------------------------- COL
+  - id: COL-REALTIME
+    area: COL
+    title: Websockets, broadcast and multi-user sessions
+    risk: medium
+    requires: [unit, flow]
+    paths: [API/websocket.js, plugins/core/backend/Broadcast/**]
+    tests:
+      - tests/unit/broadcast.spec.js
+      - plugins/core/backend/Broadcast/tests/**
+      - tests/e2e/collaboration/**
+
+  # ---------------------------------------------------------------- PLT
+  - id: PLT-SECURITY
+    area: PLT
+    title: Security hardening (injection, traversal, XSS, headers, rate limits)
+    risk: high
+    requires: [unit, api]
+    paths: [scripts/middleware.js, scripts/rateLimiters.js, API/validate*.js, API/utils.js, adjacent-servers/validate*.js]
+    tests:
+      - tests/unit/dom-xss-sanitization.spec.js
+      - tests/unit/logger-sanitization.spec.js
+      - tests/unit/path-traversal-prevention.spec.js
+      - tests/unit/prototype-pollution.spec.js
+      - tests/unit/sql-injection-prevention.spec.js
+      - tests/unit/security-fixes.spec.js
+      - tests/unit/rate-limiting.spec.js
+      - tests/unit/validate*Path.spec.js
+      - tests/unit/static-middleware-order.spec.js
+      - tests/e2e/api/filesutils-sql-injection.spec.js
+      - tests/e2e/api/ratelimit.spec.js
+      - tests/e2e/middleware.spec.js
+      - tests/e2e/security/gdal-dataset-path.spec.js
+      - tests/e2e/security/header-injection.spec.js
+      - tests/e2e/security/headers.spec.js
+      - tests/e2e/security/path-traversal.spec.js
+      - tests/e2e/security/sql-injection.spec.js
+
+  - id: PLT-STARTUP
+    area: PLT
+    title: Server startup, database and CI configuration
+    risk: high
+    requires: [unit, api]
+    paths: [scripts/server.js, scripts/init-db.js, API/connection.js, API/database.js, .github/workflows/**]
+    tests:
+      - tests/unit/server-startup-logs.spec.js
+      - tests/unit/sequelize.spec.js
+      - tests/e2e/api/sequelize-orm.spec.js
+      - tests/e2e/startup/**
+      - tests/ci/**
+
+  - id: PLT-PLUGINS
+    area: PLT
+    title: Plugin system and plugin CLI
+    risk: medium
+    requires: [unit]
+    paths: [plugin-cli/**, API/pluginDiscovery.js, API/pluginValidation.js, scripts/*plugin-deps.js]
+    tests:
+      - tests/unit/plugin*.spec.js
+      - tests/unit/resolvePluginDeps.spec.js
+
+  - id: PLT-QUALITY
+    area: PLT
+    title: Performance, accessibility, mobile and cross-browser
+    risk: medium
+    requires: [flow]
+    paths: [src/css/**, public/**]
+    tests:
+      - tests/e2e/performance/**
+      - tests/e2e/accessibility/**
+      - tests/e2e/mobile/**
+      - tests/e2e/cross-browser/**

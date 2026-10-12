@@ -40,6 +40,56 @@ tests/
 └── test-db-clean.js            # Database cleanup utility (npm run test:clean)
 ```
 
+## Test Levels and Capabilities
+
+Tests are organised on two axes: **level** (how deep) and **capability** (what feature).
+
+| Level | Purpose | Location | Expectation |
+|-------|---------|----------|-------------|
+| `unit` | Low-level software behaviour; no server or browser | `tests/unit/`, `tests/ci/`, `@unit`-tagged plugin tests | Always pass |
+| `api` | Backend routes, plugins, security, startup against the test server | `tests/e2e/api/`, `tests/e2e/security/`, `tests/e2e/startup/`, `plugins/*/backend/*/tests/` | Pass in both `AUTH` modes |
+| `flow` | User-visible functional flows and corner cases in the browser | `tests/e2e/<area>/`, `plugins/*/tools/*/tests/`, `plugins/*/layertypes/*/tests/` | Cover every user-visible feature |
+
+[`tests/capabilities.yml`](./capabilities.yml) is the capability catalog. It lists:
+
+- **areas** — `MAP` map & globe, `LYR` layers & data, `UIF` user interaction features, `CFG` configuration, `AUTH` authentication, `API` APIs & integrations, `COL` collaboration, `PLT` platform.
+- **capabilities** — e.g. `UIF-LAYERS-FILTER`, with `risk`, the levels it `requires`, the source `paths` it owns and the test files (`tests` globs) that exercise it.
+- **scenarios** — user-level behaviours, e.g. `UIF-LAYERS-FILTER-02: Clearing a filter restores all features`. Scenarios marked `source: gherkin/...` were seeded from the `feature/bdd-gherkin-tests` branch.
+
+### Attributing a test to a capability
+
+1. **Tag** the test (preferred for new tests). A scenario tag also credits its capability:
+   ```javascript
+   test('clear filter restores all features', { tag: ['@UIF-LAYERS-FILTER-02'] }, async ({ page }) => { ... })
+   ```
+   Add `@unit`, `@api` or `@flow` only when the directory does not already imply the level.
+2. Otherwise the file is matched by a capability's `tests` globs.
+
+`tests/ci/capability-catalog.spec.js` (runs with the unit suite) fails if a spec file is not mapped to any capability, a tag references an unknown ID, or a catalog glob matches nothing.
+
+### Adding a feature (example: a new layer filter)
+
+1. Find the capability whose `paths` cover your files — `UIF-LAYERS-FILTER`. If none fits, add one.
+2. Add unit tests for the filter logic (`tests/unit/...`).
+3. Add a scenario per new user-visible behaviour, e.g. `UIF-LAYERS-FILTER-04: Filtering by date range hides out-of-range features`.
+4. Add flow tests tagged with those scenario IDs, including corner cases (no matches, invalid values, layer toggled off/on).
+5. List `UIF-LAYERS-FILTER` under "Feature areas impacted" in the PR.
+
+### Capability coverage report
+
+```bash
+npm run test:unit            # or any Playwright run; writes playwright-report/results.json
+npm run test:capabilities    # writes capability-report/index.html, capability-report.md, capability-report.json
+```
+
+Merge several runs by pointing `--results` at a directory of JSON files:
+
+```bash
+node tests/reporting/capability-report.js --results capability-results --out capability-report
+```
+
+Each capability is reported as **Covered** (every required level has passing tests), **Failing**, **Gap** (a required level has no tests), or **Skipped only**. Scenarios are **Not linked** until a test carries their tag. The report also lists unmapped tests and the top skip reasons.
+
 ## Prerequisites
 
 - **PostgreSQL** with **PostGIS** extension
@@ -173,22 +223,30 @@ test.describe('My E2E Tests', () => {
 
 ## Continuous Integration
 
-Tests run automatically on PRs and pushes to `master`/`main`/`development`.
+Tests run automatically on PRs and pushes to `master`/`main`/`development`, and can be started manually from **Actions → Playwright Tests → Run workflow** (`run_flows` toggles the slow browser suites).
 
 CI configuration: `.github/workflows/playwright-tests.yml`
 
-### What runs in CI:
-- Unit tests (`tests/unit/`)
-- API tests (`tests/e2e/api/`)
-- Security tests (`tests/e2e/security/`)
-- Startup tests (`tests/e2e/startup/`)
+### Jobs
 
-Both `AUTH=off` and `AUTH=local` modes are tested in a matrix.
+| Job | Runs | AUTH |
+|-----|------|------|
+| `unit` | `tests/unit`, `tests/ci` | n/a |
+| `api` | `tests/e2e/api`, `security`, `startup`, `middleware`, `plugins/core/backend` | `off`, `local` |
+| `flow` | Builds the frontend and Configure app, then `tests/e2e/{map,time,tools,ui,configure,auth,collaboration,accessibility,mobile,performance}`, smoke, global search, Reference Mission, `plugins/core/tools`, `plugins/core/layertypes` | `off`, `local` |
+| `capability-report` | Joins every job's results with `tests/capabilities.yml` | — |
+
+Not yet in CI: Firefox cross-browser (`tests/e2e/cross-browser`) and suites needing STAC/TiTiler/WebSocket services, which skip with a `SKIP:` reason.
+
+### Artifacts
+
+- `capability-coverage-report` — `index.html` (stakeholder view), `capability-report.md` (also shown as the run's job summary), `capability-report.json` and the raw per-job results. Kept 90 days.
+- `playwright-report-<job>` — Playwright HTML/JSON/JUnit reports per job.
+- `test-results-<job>` — screenshots, videos and traces for failures.
 
 ### CI Features:
 - PostgreSQL + PostGIS test database
 - Chromium browser
-- Test artifacts uploaded (reports, screenshots, videos)
 - Retry on failure (2 attempts)
 
 ## Debugging Failed Tests
