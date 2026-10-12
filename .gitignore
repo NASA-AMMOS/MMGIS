@@ -64,6 +64,8 @@ docker-compose.env.yml
 
 # Playwright Test Artifacts
 /playwright-report/
+/capability-report/
+/capability-results/
 /test-results/
 /.playwright/
 #tools

@@ -7,7 +7,7 @@ const EXPECTED_CENTER = { lat: MISSION_MSV.view[0], lng: MISSION_MSV.view[1] };
 const EXPECTED_ZOOM = MISSION_MSV.view[2];
 
 test.describe('Map Initialization', () => {
-  test('navigates to Reference-Mission and map container is visible', async ({ page }) => {
+  test('navigates to Reference-Mission and map container is visible', { tag: ['@MAP-INIT-01'] }, async ({ page }) => {
     await page.goto(MISSION_URL);
     await page.waitForLoadState('networkidle');
     await expect(page.locator('#map')).toBeVisible();

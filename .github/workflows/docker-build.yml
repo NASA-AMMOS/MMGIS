@@ -26,6 +26,9 @@ on:
   release:
     types: [published]
 
+  # Manual runs build and push images tagged from the selected ref
+  workflow_dispatch:
+
 permissions:
   contents: read
   packages: write

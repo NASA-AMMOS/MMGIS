@@ -33,7 +33,7 @@ test.describe('Layer Toggle', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('"Points Basic" layer (initially off) can be toggled on and features appear', async ({ page }) => {
+  test('"Points Basic" layer (initially off) can be toggled on and features appear', { tag: ['@LYR-TOGGLE-01'] }, async ({ page }) => {
     // "Points Basic" has visibility: false in config
     // Expand the header groups to find it
     await layersPanel.expandGroup('Geometry Types');
@@ -51,7 +51,7 @@ test.describe('Layer Toggle', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('"Points Basic" can be toggled off and features disappear', async ({ page }) => {
+  test('"Points Basic" can be toggled off and features disappear', { tag: ['@LYR-TOGGLE-01'] }, async ({ page }) => {
     await layersPanel.expandGroup('Geometry Types');
     await page.waitForTimeout(300);
 

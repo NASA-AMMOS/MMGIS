@@ -37,11 +37,12 @@ Docker: `docker build -t mmgis . && docker-compose up -d`
 - **Database safety**: Never `DROP DATABASE` in app code. Test DBs only: `mmgis-test`, `mmgis-stac-test`.
 - **Reference Mission**: New features needing specific config/data should be added to a Reference Mission blueprint. See [blueprints/README.md](./blueprints/README.md).
 - **Design system placement**: Generic UI components → `src/design-system/`. MMGIS-specific UI → `src/essence/Basics/UserInterface_/`.
+- **Categorized tests required**: Every code change ships with tests tagged to a capability in `tests/capabilities.yml` and lists the impacted feature areas in the PR. See [Testing & Feature-Area Tracking](#testing--feature-area-tracking).
 - **Spec-kit for features**: Significant new features follow: `/speckit.specify` → `/speckit.plan` → `/speckit.tasks` → `/speckit.implement` → `/speckit.checklist`.
 
 ## Architecture at a Glance
 
-Express 5.2 backend (Node.js 22+) with PostgreSQL/PostGIS, Sequelize ORM, and WebSocket real-time collaboration. React + jQuery frontend built with Webpack 5. Tri-renderer: Leaflet (2D) + Cesium/LithoSphere (3D) + Viewer panel (OpenSeadragon, Photosphere, Model, PDF, Video). Playwright E2E tests, Jest unit tests, GitHub Actions CI/CD, Docker deployment.
+Express 5.2 backend (Node.js 22+) with PostgreSQL/PostGIS, Sequelize ORM, and WebSocket real-time collaboration. React + jQuery frontend built with Webpack 5. Tri-renderer: Leaflet (2D) + Cesium/LithoSphere (3D) + Viewer panel (OpenSeadragon, Photosphere, Model, PDF, Video). Playwright tests (unit, API and functional flow levels), GitHub Actions CI/CD, Docker deployment.
 
 ## Key Patterns
 
@@ -60,7 +61,7 @@ MMGIS/
 ├── src/design-system/    # Generic reusable UI components & theming
 ├── configure/            # Separate React admin app (own npm install + build)
 ├── scripts/              # server.js, init-db.js, build.js, middleware.js
-├── tests/                # Playwright E2E + Jest unit tests
+├── tests/                # Playwright unit/API/flow tests + capabilities.yml
 ├── .knowledge/           # Agent context: setup, conventions, gotchas, code patterns
 ├── .specify/             # Spec-kit infrastructure + constitution
 ├── specs/                # Feature specifications (spec-kit)
@@ -90,6 +91,35 @@ MMGIS/
 | 012 | Reference Mission Demo | Implemented |
 
 See `specs/NNN-feature-name/` for individual spec and plan documents.
+
+## Testing & Feature-Area Tracking
+
+Every change that touches behaviour must include tests, and those tests must be **categorized** so we can track which feature areas a change impacts. Full guide: [tests/README.md](./tests/README.md#test-levels-and-capabilities).
+
+**Test levels** (all run by Playwright):
+
+| Level | What it covers | Where | Must |
+|-------|----------------|-------|------|
+| `unit` | Pure functions, modules, config validation. No server, no browser. | `tests/unit/`, `tests/ci/`, or `@unit`-tagged plugin tests | Always pass |
+| `api` | HTTP routes, backend plugins, security, startup, against the test server | `tests/e2e/api|security|startup/`, `plugins/*/backend/*/tests/` | Pass in CI for both `AUTH` modes |
+| `flow` | User-visible behaviour driven through the browser, incl. corner cases | `tests/e2e/<area>/`, `plugins/*/tools|layertypes/*/tests/` | Cover every user-visible change |
+
+**Capability catalog**: `tests/capabilities.yml` defines feature areas (`MAP`, `LYR`, `UIF`, `CFG`, `AUTH`, `API`, `COL`, `PLT`), the capabilities inside them (e.g. `UIF-LAYERS-FILTER`), the levels each capability `requires`, the source `paths` it owns, and user-level `scenarios` (e.g. `UIF-LAYERS-FILTER-02`).
+
+**When you change code, you MUST:**
+
+1. **Identify impacted capabilities** — match changed files against `paths` in `tests/capabilities.yml`. If nothing matches, add the paths to the right capability, or add a new capability (and area only if truly new).
+2. **Add/update low-level tests** (`unit` and/or `api`) for the logic you changed.
+3. **Add/update `flow` tests** for anything user-visible, including at least one corner case (empty data, invalid input, permission denied, missing service, etc.). Add a scenario to the capability for each new user-visible behaviour.
+4. **Tag new tests** with the capability or scenario ID (and level if it is not implied by the directory):
+   ```js
+   test('clearing a filter restores all features', { tag: ['@UIF-LAYERS-FILTER-02'] }, async ({ page }) => { ... })
+   ```
+   New test files must be matched by a capability's `tests` globs; `tests/ci/capability-catalog.spec.js` fails on unmapped spec files and unknown tags.
+5. **Skip only for missing infrastructure** (`test.skip(cond, 'SKIP: needs TiTiler')`). Never skip because a UI element or mission is missing — that hides regressions; fail instead.
+6. **List impacted feature areas in the PR** — fill in the "Feature areas impacted" table in `.github/PULL_REQUEST_TEMPLATE.md` with capability IDs, test levels and test files.
+
+**Coverage report**: `npm run test:capabilities` builds `capability-report/index.html` (plus `.md`/`.json`) from `playwright-report/results.json`. CI publishes it as the `capability-coverage-report` artifact on every run of `playwright-tests.yml` (also runnable via **Run workflow**).
 
 ## Constitution (Summary)
 

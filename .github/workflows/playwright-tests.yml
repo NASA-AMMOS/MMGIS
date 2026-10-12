@@ -1,19 +1,87 @@
 name: Playwright Tests
 
+# Three test levels (see tests/README.md and tests/capabilities.yml):
+#   unit - low-level tests, no server
+#   api  - backend/API/security/startup tests against a live test server
+#   flow - browser functional flows against the built frontend + Configure app
+# Every job uploads its Playwright JSON results; the capability-report job joins
+# them with tests/capabilities.yml and publishes the "capability-coverage-report"
+# artifact plus a job summary.
+
 on:
   push:
     branches: [master, main, development]
   pull_request:
     branches: [master, main, development]
+  workflow_dispatch:
+    inputs:
+      run_flows:
+        description: Run the browser functional flow suites (slow)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  test:
+  unit:
+    name: Unit + CI checks
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run unit and CI tests
+        run: npx playwright test tests/unit tests/ci --project=chromium
+        env:
+          PLAYWRIGHT_TEST_UNIT_ONLY: "true"
+
+      - name: Collect capability results
+        if: always()
+        run: |
+          mkdir -p capability-results
+          cp playwright-report/results.json capability-results/unit.json || echo "no results.json produced"
+
+      - name: Upload capability results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: capability-results-unit
+          path: capability-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-unit
+          path: playwright-report/
+          retention-days: 30
+
+  api:
+    name: API + backend (AUTH=${{ matrix.auth_mode }})
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         auth_mode: [off, local]
 
@@ -76,24 +144,36 @@ jobs:
 
       # DB creation, Reference Mission setup, and server lifecycle are all
       # handled by tests/global-setup.js (runs before any test suite).
-      # No manual init-db / server start / curl steps needed.
 
-      - name: Run Unit Tests
-        run: npx playwright test tests/unit --project=chromium
-        env:
-          AUTH: ${{ matrix.auth_mode }}
-          PLAYWRIGHT_TEST_UNIT_ONLY: "true"
-
-      - name: Run E2E API Tests
-        run: npx playwright test tests/e2e/api tests/e2e/security tests/e2e/startup --project=chromium
+      - name: Run API, security, startup and backend plugin tests
+        run: >-
+          npx playwright test
+          tests/e2e/api tests/e2e/security tests/e2e/startup tests/e2e/middleware
+          plugins/core/backend
+          --project=chromium
         env:
           AUTH: ${{ matrix.auth_mode }}
 
-      - name: Upload test results
+      - name: Collect capability results
+        if: always()
+        run: |
+          mkdir -p capability-results
+          cp playwright-report/results.json capability-results/api-auth-${{ matrix.auth_mode }}.json || echo "no results.json produced"
+
+      - name: Upload capability results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-report-${{ matrix.auth_mode }}
+          name: capability-results-api-${{ matrix.auth_mode }}
+          path: capability-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-api-${{ matrix.auth_mode }}
           path: playwright-report/
           retention-days: 30
 
@@ -101,6 +181,171 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: test-results-${{ matrix.auth_mode }}
+          name: test-results-api-${{ matrix.auth_mode }}
           path: test-results/
+          if-no-files-found: ignore
           retention-days: 7
+
+  flow:
+    name: Functional flows (AUTH=${{ matrix.auth_mode }})
+    if: github.event_name != 'workflow_dispatch' || inputs.run_flows
+    timeout-minutes: 75
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        auth_mode: [off, local]
+
+    services:
+      postgres:
+        image: postgis/postgis:13-3.1
+        env:
+          POSTGRES_DB: mmgis-test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            configure/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build MMGIS frontend
+        run: npm run build
+
+      - name: Build Configure app
+        working-directory: configure
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup Python for adjacent servers
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install adjacent server Python packages
+        run: pip install "titiler.application" "python-dotenv[cli]" uvicorn
+
+      - name: Setup test environment
+        run: |
+          cp sample.env .env || touch .env
+          echo "NODE_ENV=test" >> .env
+          echo "PORT=18888" >> .env
+          echo "AUTH=${{ matrix.auth_mode }}" >> .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_NAME=mmgis-test" >> .env
+          echo "DB_USER=test_user" >> .env
+          echo "DB_PASS=test_password" >> .env
+          echo "DB_USER_TEST=test_user" >> .env
+          echo "DB_PASS_TEST=test_password" >> .env
+          echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
+          echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
+          echo "HIDE_CONFIG=false" >> .env
+          echo "SECRET=ci-test-session-secret-not-for-production" >> .env
+
+      - name: Run functional flow tests
+        run: >-
+          npx playwright test
+          tests/e2e/map tests/e2e/time tests/e2e/tools tests/e2e/ui
+          tests/e2e/configure tests/e2e/auth tests/e2e/collaboration
+          tests/e2e/accessibility tests/e2e/mobile tests/e2e/performance
+          tests/e2e/smoke tests/e2e/globalSearch tests/e2e/reference-mission
+          plugins/core/tools plugins/core/layertypes
+          --project=chromium --workers=2
+        env:
+          AUTH: ${{ matrix.auth_mode }}
+
+      - name: Collect capability results
+        if: always()
+        run: |
+          mkdir -p capability-results
+          cp playwright-report/results.json capability-results/flow-auth-${{ matrix.auth_mode }}.json || echo "no results.json produced"
+
+      - name: Upload capability results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: capability-results-flow-${{ matrix.auth_mode }}
+          path: capability-results/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-flow-${{ matrix.auth_mode }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-flow-${{ matrix.auth_mode }}
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  capability-report:
+    name: Capability coverage report
+    needs: [unit, api, flow]
+    if: always()
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Download capability results
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: capability-results-*
+          path: capability-results
+          merge-multiple: true
+
+      - name: Build capability coverage report
+        run: node tests/reporting/capability-report.js --results capability-results --out capability-report
+
+      - name: Publish job summary
+        run: cat capability-report/capability-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload capability coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: capability-coverage-report
+          path: |
+            capability-report/
+            capability-results/
+          retention-days: 90
