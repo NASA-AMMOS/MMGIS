@@ -194,7 +194,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        auth_mode: [off, local]
+        include:
+          - auth_mode: "off"
+            suites: >-
+              tests/e2e/map tests/e2e/time tests/e2e/tools tests/e2e/ui
+              tests/e2e/configure tests/e2e/collaboration
+              tests/e2e/accessibility tests/e2e/mobile tests/e2e/performance
+              tests/e2e/smoke tests/e2e/globalSearch tests/e2e/reference-mission
+              plugins/core/tools plugins/core/layertypes
+          # The UI suites assume no login; under AUTH=local only the auth flows run
+          - auth_mode: local
+            suites: tests/e2e/auth
 
     services:
       postgres:
@@ -269,16 +279,11 @@ jobs:
           echo "SECRET=ci-test-session-secret-not-for-production" >> .env
 
       - name: Run functional flow tests
-        run: >-
-          ./node_modules/.bin/playwright test
-          tests/e2e/map tests/e2e/time tests/e2e/tools tests/e2e/ui
-          tests/e2e/configure tests/e2e/auth tests/e2e/collaboration
-          tests/e2e/accessibility tests/e2e/mobile tests/e2e/performance
-          tests/e2e/smoke tests/e2e/globalSearch tests/e2e/reference-mission
-          plugins/core/tools plugins/core/layertypes
-          --project=chromium --workers=2
+        # SUITES is intentionally unquoted so it splits into paths
+        run: ./node_modules/.bin/playwright test $SUITES --project=chromium --workers=2
         env:
           AUTH: ${{ matrix.auth_mode }}
+          SUITES: ${{ matrix.suites }}
 
       - name: Collect capability results
         if: always()
