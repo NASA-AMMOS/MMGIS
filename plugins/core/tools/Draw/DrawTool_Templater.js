@@ -420,11 +420,17 @@ const DrawTool_Templater = {
                             )
                                 invalids[t.field] =
                                     `'${t.field}' must be <= ${t.max}`
+                            // Compare with a tolerance: in IEEE-754, 1.2 / 0.1 is
+                            // 11.999999999999998, so an exact integer check rejected
+                            // valid values for decimal steps (#1129).
                             if (
                                 t.step != null &&
                                 t.step != '' &&
-                                values[t.field] / t.step !=
-                                    parseInt(values[t.field] / t.step)
+                                values[t.field] != null &&
+                                Math.abs(
+                                    values[t.field] / t.step -
+                                        Math.round(values[t.field] / t.step)
+                                ) > 1e-9
                             )
                                 invalids[t.field] =
                                     `'${t.field}' must be a multiple of ${t.step}`
