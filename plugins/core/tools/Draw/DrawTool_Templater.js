@@ -18,6 +18,26 @@ import Sortable from 'sortablejs'
 import './DrawTool_Templater.css'
 
 const DrawTool_Templater = {
+    /**
+     * Whether a number template value is a whole number of `step`s from 0
+     * (#1129). value / step is not exact in IEEE-754 (1.2 / 0.1 is
+     * 11.999999999999998), so the quotient is compared to its nearest integer
+     * within a few units of floating-point error relative to its own size —
+     * enough to absorb rounding, too little to let a genuinely off-step value
+     * such as 1.0000000001 (step 1) through. A step that is not a positive
+     * finite number constrains nothing, as with HTML <input step>; a quotient
+     * that overflows cannot be verified and is rejected.
+     */
+    isStepMultiple: function (value, step) {
+        step = Number(step)
+        if (!isFinite(step) || step <= 0) return true
+        const q = value / step
+        if (!isFinite(q)) return false
+        return (
+            Math.abs(q - Math.round(q)) <=
+            4 * Number.EPSILON * Math.max(1, Math.abs(q))
+        )
+    },
     renderTemplate: function (containerId, templateObj, properties) {
         if (templateObj == null) return null
         properties = properties || {}
@@ -420,17 +440,14 @@ const DrawTool_Templater = {
                             )
                                 invalids[t.field] =
                                     `'${t.field}' must be <= ${t.max}`
-                            // Compare with a tolerance: in IEEE-754, 1.2 / 0.1 is
-                            // 11.999999999999998, so an exact integer check rejected
-                            // valid values for decimal steps (#1129).
                             if (
                                 t.step != null &&
                                 t.step != '' &&
                                 values[t.field] != null &&
-                                Math.abs(
-                                    values[t.field] / t.step -
-                                        Math.round(values[t.field] / t.step)
-                                ) > 1e-9
+                                !DrawTool_Templater.isStepMultiple(
+                                    values[t.field],
+                                    t.step
+                                )
                             )
                                 invalids[t.field] =
                                     `'${t.field}' must be a multiple of ${t.step}`
