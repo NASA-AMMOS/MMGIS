@@ -69,6 +69,9 @@ const DrawTool_Templater = {
         const two = BigInt(2)
         const k = (two * num + (num < 0 ? -den : den)) / (two * den)
         const nearest = Number(String(k * s.m) + 'e' + s.e)
+        // a multiple beyond the largest double cannot be stored, so no finite
+        // value is "next to" it (Infinity's bits sit beside Number.MAX_VALUE)
+        if (!isFinite(nearest)) return false
 
         // "the same double or the one next to it", counted exactly: doubles of
         // one sign are ordered like their bit patterns, so neighbours differ
