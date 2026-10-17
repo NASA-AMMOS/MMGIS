@@ -33,8 +33,8 @@ const DrawTool_Templater = {
      * The nearest multiple is found exactly: both numbers are read as the
      * decimals String() gives back (125e-2 for 1.25) and divided as integers
      * with BigInt, so neither the size of the numbers nor the binary rounding
-     * of the step can move the answer. Only the final one-ulp comparison is
-     * done in floating point.
+     * of the step can move the answer; "next to it" is decided on the bit
+     * patterns, not with an estimated ulp.
      *
      * A step that is not a positive finite number constrains nothing, as with
      * HTML <input step>.
@@ -70,11 +70,17 @@ const DrawTool_Templater = {
         const k = (two * num + (num < 0 ? -den : den)) / (two * den)
         const nearest = Number(String(k * s.m) + 'e' + s.e)
 
-        const ulp = Math.max(
-            Number.MIN_VALUE,
-            Math.pow(2, Math.floor(Math.log2(Math.abs(value))) - 52)
-        )
-        return Math.abs(value - nearest) <= ulp
+        // "the same double or the one next to it", counted exactly: doubles of
+        // one sign are ordered like their bit patterns, so neighbours differ
+        // by one. (An ulp from Math.log2 is wrong just below powers of two.)
+        const order = (x) => {
+            const view = new DataView(new ArrayBuffer(8))
+            view.setFloat64(0, Math.abs(x))
+            const bits = view.getBigInt64(0)
+            return x < 0 ? -bits : bits
+        }
+        const apart = order(value) - order(nearest)
+        return apart >= BigInt(-1) && apart <= BigInt(1)
     },
     renderTemplate: function (containerId, templateObj, properties) {
         if (templateObj == null) return null
