@@ -20,12 +20,21 @@ import './DrawTool_Templater.css'
 const DrawTool_Templater = {
     /**
      * Whether a number template value is a whole number of `step`s from 0
-     * (#1129). Binary floating point cannot answer this: 1.2 / 0.1 is
-     * 11.999999999999998, 9.5e21 % 1e20 is 1048576, and any tolerance wide
-     * enough for that is wide enough to let 1e15 + 0.25 (step 1) through.
-     * So both numbers are read back as the decimals the user typed -- the
-     * shortest string that round-trips, which is what String() returns --
-     * and the division is done exactly, on integers (BigInt).
+     * (#1129).
+     *
+     * The rule: the value must be the double nearest to some multiple
+     * k * step, or the double right next to it. Exactly-typed multiples pass
+     * (1.2 with step 0.1, 9.5e21 with step 1e20); so do values carrying the
+     * last-bit rounding of earlier arithmetic (0.1 + 0.2 = 0.30000000000000004)
+     * and values next to a step finer than their own precision (10 with
+     * step 3e-16), since no other double sits closer to a multiple. Anything
+     * further away is rejected: 1.0000000001 or 1e15 + 0.25 with step 1.
+     *
+     * The nearest multiple is found exactly: both numbers are read as the
+     * decimals String() gives back (125e-2 for 1.25) and divided as integers
+     * with BigInt, so neither the size of the numbers nor the binary rounding
+     * of the step can move the answer. Only the final one-ulp comparison is
+     * done in floating point.
      *
      * A step that is not a positive finite number constrains nothing, as with
      * HTML <input step>.
@@ -36,7 +45,7 @@ const DrawTool_Templater = {
         if (!isFinite(value)) return false
         if (value === 0) return true
 
-        // x === m * 10^e, with m an integer: "1.25" -> 125e-2, "9.5e+21" -> 95e20
+        // x === m * 10^e with m an integer: "1.25" -> 125e-2, "9.5e+21" -> 95e20
         const decimal = (x) => {
             const m = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(String(x))
             const frac = m[3] || ''
@@ -50,14 +59,22 @@ const DrawTool_Templater = {
             for (let i = 0; i < n; i++) p *= BigInt(10)
             return p
         }
-        // value / step is an integer exactly when v.m * 10^(v.e - s.e) is a
-        // multiple of s.m; move the power of ten to whichever side keeps it whole
+        // value / step === num / den exactly; k is that ratio rounded half
+        // away from zero, and k * step is the nearest multiple of the step
         const v = decimal(value)
         const s = decimal(step)
         const d = v.e - s.e
         const num = d >= 0 ? v.m * tenTo(d) : v.m
         const den = d >= 0 ? s.m : s.m * tenTo(-d)
-        return num % den === BigInt(0)
+        const two = BigInt(2)
+        const k = (two * num + (num < 0 ? -den : den)) / (two * den)
+        const nearest = Number(String(k * s.m) + 'e' + s.e)
+
+        const ulp = Math.max(
+            Number.MIN_VALUE,
+            Math.pow(2, Math.floor(Math.log2(Math.abs(value))) - 52)
+        )
+        return Math.abs(value - nearest) <= ulp
     },
     renderTemplate: function (containerId, templateObj, properties) {
         if (templateObj == null) return null
