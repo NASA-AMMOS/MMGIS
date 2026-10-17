@@ -20,45 +20,44 @@ import './DrawTool_Templater.css'
 const DrawTool_Templater = {
     /**
      * Whether a number template value is a whole number of `step`s from 0
-     * (#1129). value / step is not exact in IEEE-754 (1.2 / 0.1 is
-     * 11.999999999999998), and a tolerance relative to that quotient grows
-     * with its size until it lets off-step values through (1e15 + 0.25 with
-     * step 1). So the check is done on integers instead: both numbers are
-     * scaled by the step's own decimal places, the scaled value must be an
-     * integer to within the rounding of that one multiplication (one unit in
-     * the last place; exactly, when the step is whole and nothing is scaled),
-     * and then divisible by the scaled step.
+     * (#1129). Binary floating point cannot answer this: 1.2 / 0.1 is
+     * 11.999999999999998, 9.5e21 % 1e20 is 1048576, and any tolerance wide
+     * enough for that is wide enough to let 1e15 + 0.25 (step 1) through.
+     * So both numbers are read back as the decimals the user typed -- the
+     * shortest string that round-trips, which is what String() returns --
+     * and the division is done exactly, on integers (BigInt).
      *
      * A step that is not a positive finite number constrains nothing, as with
-     * HTML <input step>. Neither does a step below the value's own precision
-     * (10 with step 1e-308): no representable number lies between two such
-     * multiples, so there is nothing to reject.
+     * HTML <input step>.
      */
     isStepMultiple: function (value, step) {
         step = Number(step)
         if (!isFinite(step) || step <= 0) return true
         if (!isFinite(value)) return false
-        if (step <= Math.abs(value) * Number.EPSILON) return true
+        if (value === 0) return true
 
-        // decimal places of the step, from its shortest round-trip string:
-        // 0.25 -> 2, 1e-7 -> 7, 2.5e-8 -> 9, 5 -> 0
-        const m = /^[^e]*?(?:\.(\d+))?(?:e([+-]\d+))?$/i.exec(String(step))
-        const places = Math.max(
-            0,
-            (m && m[1] ? m[1].length : 0) - (m && m[2] ? Number(m[2]) : 0)
-        )
-        const scale = Math.pow(10, places)
-        const v = value * scale
-        const s = Math.round(step * scale)
-        if (!isFinite(v) || s <= 0) return false
-
-        const n = Math.round(v)
-        const ulp =
-            places === 0 || v === 0
-                ? 0
-                : Math.pow(2, Math.floor(Math.log2(Math.abs(v))) - 52)
-        if (Math.abs(v - n) > ulp) return false
-        return n % s === 0
+        // x === m * 10^e, with m an integer: "1.25" -> 125e-2, "9.5e+21" -> 95e20
+        const decimal = (x) => {
+            const m = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(String(x))
+            const frac = m[3] || ''
+            return {
+                m: BigInt(m[1] + m[2] + frac),
+                e: Number(m[4] || 0) - frac.length,
+            }
+        }
+        const tenTo = (n) => {
+            let p = BigInt(1)
+            for (let i = 0; i < n; i++) p *= BigInt(10)
+            return p
+        }
+        // value / step is an integer exactly when v.m * 10^(v.e - s.e) is a
+        // multiple of s.m; move the power of ten to whichever side keeps it whole
+        const v = decimal(value)
+        const s = decimal(step)
+        const d = v.e - s.e
+        const num = d >= 0 ? v.m * tenTo(d) : v.m
+        const den = d >= 0 ? s.m : s.m * tenTo(-d)
+        return num % den === BigInt(0)
     },
     renderTemplate: function (containerId, templateObj, properties) {
         if (templateObj == null) return null
