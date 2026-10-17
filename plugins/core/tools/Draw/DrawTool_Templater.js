@@ -21,22 +21,44 @@ const DrawTool_Templater = {
     /**
      * Whether a number template value is a whole number of `step`s from 0
      * (#1129). value / step is not exact in IEEE-754 (1.2 / 0.1 is
-     * 11.999999999999998), so the quotient is compared to its nearest integer
-     * within a few units of floating-point error relative to its own size —
-     * enough to absorb rounding, too little to let a genuinely off-step value
-     * such as 1.0000000001 (step 1) through. A step that is not a positive
-     * finite number constrains nothing, as with HTML <input step>; a quotient
-     * that overflows cannot be verified and is rejected.
+     * 11.999999999999998), and a tolerance relative to that quotient grows
+     * with its size until it lets off-step values through (1e15 + 0.25 with
+     * step 1). So the check is done on integers instead: both numbers are
+     * scaled by the step's own decimal places, the scaled value must be an
+     * integer to within the rounding of that one multiplication (one unit in
+     * the last place; exactly, when the step is whole and nothing is scaled),
+     * and then divisible by the scaled step.
+     *
+     * A step that is not a positive finite number constrains nothing, as with
+     * HTML <input step>. Neither does a step below the value's own precision
+     * (10 with step 1e-308): no representable number lies between two such
+     * multiples, so there is nothing to reject.
      */
     isStepMultiple: function (value, step) {
         step = Number(step)
         if (!isFinite(step) || step <= 0) return true
-        const q = value / step
-        if (!isFinite(q)) return false
-        return (
-            Math.abs(q - Math.round(q)) <=
-            4 * Number.EPSILON * Math.max(1, Math.abs(q))
+        if (!isFinite(value)) return false
+        if (step <= Math.abs(value) * Number.EPSILON) return true
+
+        // decimal places of the step, from its shortest round-trip string:
+        // 0.25 -> 2, 1e-7 -> 7, 2.5e-8 -> 9, 5 -> 0
+        const m = /^[^e]*?(?:\.(\d+))?(?:e([+-]\d+))?$/i.exec(String(step))
+        const places = Math.max(
+            0,
+            (m && m[1] ? m[1].length : 0) - (m && m[2] ? Number(m[2]) : 0)
         )
+        const scale = Math.pow(10, places)
+        const v = value * scale
+        const s = Math.round(step * scale)
+        if (!isFinite(v) || s <= 0) return false
+
+        const n = Math.round(v)
+        const ulp =
+            places === 0 || v === 0
+                ? 0
+                : Math.pow(2, Math.floor(Math.log2(Math.abs(v))) - 52)
+        if (Math.abs(v - n) > ulp) return false
+        return n % s === 0
     },
     renderTemplate: function (containerId, templateObj, properties) {
         if (templateObj == null) return null
