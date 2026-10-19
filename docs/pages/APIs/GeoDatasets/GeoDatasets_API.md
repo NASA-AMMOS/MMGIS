@@ -177,7 +177,9 @@ Like [GET /aggregations](#get-aggregations) but aggregates across multiple layer
 |   Parameter   |   Type   | Required | Default |                    Description                     |
 | :-----------: | :------: | :------: | :-----: | :------------------------------------------------: |
 |  **layers**   | _string_ |   true   |   N/A   | Comma-separated list of layer names (max 100)      |
-|   **limit**   | _integer_|  false   |   500   | Sample size per layer (clamped to 1–1000)          |
+|  **fields**   | _string_ |  false   |   N/A   | Comma-separated property paths (dot notation, max 20). When set, returns every distinct value combination of these fields across all layers instead of a random row sample |
+|   **limit**   | _integer_|  false   |   500   | Without `fields`: random sample size per layer (clamped to 1–1000). With `fields`: page size of distinct combinations (default 5000, clamped to 1–10000) |
+|  **offset**   | _integer_|  false   |    0    | With `fields`: number of distinct combinations to skip, for pagination |
 | **starttime** |  _time_  |  false   |   N/A   |  Start time of time window (used with `endtime`)   |
 |  **endtime**  |  _time_  |  false   |   N/A   |   End time of time window (used with `starttime`)  |
 | **startProp** | _string_ |  false   |`start_time`| Start time column used for time filtering       |
@@ -186,6 +188,10 @@ Like [GET /aggregations](#get-aggregations) but aggregates across multiple layer
 #### Example
 
 `curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/bulk_aggregations?layers=layer_a,layer_b&limit=500"`
+
+With `fields`, the response's `rows` hold one object per distinct combination (values as strings), `aggregations[field].aggs` maps each value to its feature count within the page, and `hasMore` is `true` when another page exists at `offset + limit`.
+
+`curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/bulk_aggregations?layers=layer_a,layer_b&fields=name,category&limit=5000&offset=0"`
 
 ---
 

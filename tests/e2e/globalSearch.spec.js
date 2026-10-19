@@ -693,6 +693,40 @@ test.describe('Global Feature Search', () => {
             }
         })
 
+        test('bulk_aggregations with fields paginates every distinct value', async ({
+            request,
+        }) => {
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+
+            const url = (q) =>
+                `${BASE_URL}/api/geodatasets/bulk_aggregations?layers=reference_mission_basic&fields=name,category${q}`
+
+            const all = await request.get(url('&limit=10000'))
+            expect(all.status()).toBe(200)
+            const allData = await all.json()
+            expect(allData.status).toBe('success')
+            expect(allData.hasMore).toBe(false)
+            expect(allData.rows.length).toBeGreaterThan(2)
+            const allKeys = allData.rows.map((r) => `${r.name}|${r.category}`)
+            expect(new Set(allKeys).size).toBe(allKeys.length)
+
+            const paged = []
+            let offset = 0
+            let hasMore = true
+            while (hasMore) {
+                const res = await request.get(url(`&limit=2&offset=${offset}`))
+                const d = await res.json()
+                expect(d.status).toBe('success')
+                expect(d.rows.length).toBeLessThanOrEqual(2)
+                paged.push(...d.rows.map((r) => `${r.name}|${r.category}`))
+                offset += d.rows.length
+                hasMore = d.hasMore
+            }
+            expect(paged).toEqual(allKeys)
+        })
+
         test('search with > operator filters numerics', async ({
             request,
         }) => {

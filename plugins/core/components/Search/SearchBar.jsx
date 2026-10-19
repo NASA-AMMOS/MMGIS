@@ -413,7 +413,6 @@ function SearchBar({ componentVars }) {
     // filter to layers that actually have the value.
     const mergePerLayerValues = useCallback(
         (targetLayers) => {
-            const MAX_VALUES = 500
             const allMaps = targetLayers
                 .map((l) => [l, cachedPerLayerValues.current[l]])
                 .filter(([, m]) => m && m.size !== undefined)
@@ -456,7 +455,7 @@ function SearchBar({ componentVars }) {
                 if (!isNaN(entries[0].label)) entries.sort((a, b) => a.label - b.label)
                 else entries.sort((a, b) => a.label > b.label ? 1 : -1)
             }
-            setArrayToSearch(entries.slice(0, MAX_VALUES))
+            setArrayToSearch(entries)
             setPlaceholder(getSearchFieldKeys(effectiveSearchFields, targetLayers[0]) || 'Search...')
         },
         [effectiveSearchFields, valuesIntersectOnly]
@@ -532,17 +531,25 @@ function SearchBar({ componentVars }) {
         }
 
         // --- Geodataset layers: backend bulk_aggregations API ---
+        // Requests the distinct values of the search fields, page by page,
+        // so every unique value is reachable rather than a row sample.
+        const GEO_PAGE_SIZE = 10000
         const processGeoLayers = () => {
             if (geoTargets.length === 0) return Promise.resolve()
             return Promise.all(geoTargets.map((lname) => {
                 return new Promise((resolve) => {
                     const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
-                    if (!geodatasetName) {
+                    const sf = effectiveSearchFields[lname]
+                    if (!geodatasetName || !sf || sf.length === 0) {
                         cachedPerLayerValues.current[lname] = new Map()
                         resolve()
                         return
                     }
-                    const params = { layers: geodatasetName, limit: 1000 }
+                    const params = {
+                        layers: geodatasetName,
+                        fields: sf.map((f) => f[1]).join(','),
+                        limit: GEO_PAGE_SIZE,
+                    }
                     // When time restriction is on, pass time bounds
                     if (searchTimeRestrict) {
                         const ld = L_.layers.data[lname]
@@ -553,62 +560,35 @@ function SearchBar({ componentVars }) {
                             params.endProp = ld.time.endProp || 'end_time'
                         }
                     }
-                    calls.api(
-                        'geodatasets_bulk_aggregations',
-                        params,
-                        (d) => {
-                            const vals = new Map()
-                            if (d?.status === 'success' && d.aggregations) {
-                                const sf = effectiveSearchFields[lname]
-                                if (sf && sf.length > 0) {
-                                    if (sf.length === 1) {
-                                        const fieldName = sf[0][1]
-                                        const transform = sf[0][0].toLowerCase()
-                                        const fieldAgg = d.aggregations[fieldName]
-                                        if (fieldAgg) {
-                                            Object.keys(fieldAgg.aggs).forEach((val) => {
-                                                let v = val
-                                                if (transform === 'round') v = String(Math.round(Number(v)))
-                                                else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
-                                                if (v && !vals.has(v)) {
-                                                    vals.set(v, { label: v, fields: { [fieldName]: v } })
-                                                }
-                                            })
+                    const vals = new Map()
+                    const fetchPage = (offset) => {
+                        calls.api(
+                            'geodatasets_bulk_aggregations',
+                            { ...params, offset },
+                            (d) => {
+                                if (cancelled) return resolve()
+                                if (d?.status === 'success' && Array.isArray(d.rows)) {
+                                    d.rows.forEach((row) => {
+                                        const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, row)
+                                        if (entry.label && !vals.has(entry.label)) {
+                                            vals.set(entry.label, entry)
                                         }
-                                    } else {
-                                        if (d.rows) {
-                                            d.rows.forEach((row) => {
-                                                const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, row)
-                                                if (entry.label && !vals.has(entry.label)) {
-                                                    vals.set(entry.label, entry)
-                                                }
-                                            })
-                                        } else {
-                                            const fieldName = sf[0][1]
-                                            const transform = sf[0][0].toLowerCase()
-                                            const fieldAgg = d.aggregations[fieldName]
-                                            if (fieldAgg) {
-                                                Object.keys(fieldAgg.aggs).forEach((val) => {
-                                                    let v = val
-                                                    if (transform === 'round') v = String(Math.round(Number(v)))
-                                                    else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
-                                                    if (v && !vals.has(v)) {
-                                                        vals.set(v, { label: v, fields: { [fieldName]: v } })
-                                                    }
-                                                })
-                                            }
-                                        }
+                                    })
+                                    if (d.hasMore === true && d.rows.length > 0) {
+                                        fetchPage(offset + d.rows.length)
+                                        return
                                     }
                                 }
+                                cachedPerLayerValues.current[lname] = vals
+                                resolve()
+                            },
+                            () => {
+                                cachedPerLayerValues.current[lname] = vals
+                                resolve()
                             }
-                            cachedPerLayerValues.current[lname] = vals
-                            resolve()
-                        },
-                        () => {
-                            cachedPerLayerValues.current[lname] = new Map()
-                            resolve()
-                        }
-                    )
+                        )
+                    }
+                    fetchPage(0)
                 })
             }))
         }
@@ -2157,7 +2137,7 @@ function SearchBar({ componentVars }) {
                         <div className="searchUnifiedCol searchRegularColValues">
                             <div className="searchUnifiedColHeader">
                                 <span>Values</span>
-                                {arrayToSearch.length >= 500 && (
+                                {suggestions.length >= 500 && (
                                     <span className="searchValuesCount">Top 500</span>
                                 )}
                                 {selectedGroupId && (
