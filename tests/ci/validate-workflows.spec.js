@@ -2,6 +2,7 @@
  * Fix 4: GitHub Actions hardening — validate workflow files
  *
  * Parses each workflow YAML and asserts:
+ * - every workflow file parses as valid YAML
  * - `permissions:` key exists at the top level or job level
  * - All `uses:` references to third-party actions use 40-char hex SHA pins
  * - bump-version.yml does not use the unsafe `node -e "require('./package.json')"` pattern
@@ -10,6 +11,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
+import YAML from 'yaml';
 
 const WORKFLOWS_DIR = path.join(process.cwd(), '.github', 'workflows');
 
@@ -27,6 +29,13 @@ function getWorkflowContent(filename) {
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 
 test.describe('Fix 4: GitHub Actions workflow hardening', () => {
+  for (const file of fs.readdirSync(WORKFLOWS_DIR).filter((f) => /\.ya?ml$/.test(f))) {
+    test(`${file} is valid YAML`, () => {
+      const doc = YAML.parseDocument(getWorkflowContent(file));
+      expect(doc.errors.map((e) => e.message), `${file} has YAML errors`).toEqual([]);
+    });
+  }
+
   for (const file of workflowFiles) {
     test(`${file} has permissions: key`, () => {
       const content = getWorkflowContent(file);

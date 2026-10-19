@@ -39,7 +39,7 @@ test.describe('Layer Filtering', () => {
     await page.waitForTimeout(500);
   });
 
-  test('"Initial Filters" layer applies initial filter (status = active)', async ({ page }) => {
+  test('"Initial Filters" layer applies initial filter (status = active)', { tag: ['@UIF-LAYERS-FILTER-01'] }, async ({ page }) => {
     // Expand group to find the "Initial Filters" layer
     // It's under "Filter Tab" header in the config
     await layersPanel.expandGroup('Filter Tab').catch(() => {});
@@ -127,7 +127,7 @@ test.describe('Layer Filtering', () => {
     expect(filterUIVisible !== undefined).toBeTruthy();
   });
 
-  test('modify filter criteria and verify features update', async ({ page }) => {
+  test('modify filter criteria and verify features update', { tag: ['@UIF-LAYERS-FILTER-01'] }, async ({ page }) => {
     // Check if "Initial Filters" layer exists in the mission config
     const layerExists = await page.evaluate(() => {
       if (!window.L_ || !window.L_.layers || !window.L_.layers.data) return false;
@@ -170,7 +170,7 @@ test.describe('Layer Filtering', () => {
     expect(isOn).toBeTruthy();
   });
 
-  test('clear filter restores all features', async ({ page }) => {
+  test('clear filter restores all features', { tag: ['@UIF-LAYERS-FILTER-02'] }, async ({ page }) => {
     // Check if "Initial Filters" layer exists
     const layerExists = await page.evaluate(() => {
       if (!window.L_ || !window.L_.layers || !window.L_.layers.data) return false;

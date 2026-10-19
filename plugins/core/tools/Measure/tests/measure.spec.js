@@ -48,7 +48,7 @@ test.describe('Measure Tool', () => {
     expect(panelVisible).toBe(true);
   });
 
-  test('Click two points on map shows measurement line and distance', async ({ page }) => {
+  test('Click two points on map shows measurement line and distance', { tag: ['@UIF-MEASURE-01'] }, async ({ page }) => {
     // Open Measure tool
     const measureButton = page.locator(
       '#toolButtonMeasure'
@@ -119,7 +119,7 @@ test.describe('Measure Tool', () => {
     expect(hasData).toBe(true);
   });
 
-  test('Elevation profile', async ({ page }) => {
+  test('Elevation profile', { tag: ['@UIF-MEASURE-03'] }, async ({ page }) => {
     test.skip(true, 'SKIP: Elevation profile requires TiTiler serving the DEM — needs WITH_TITILER=true');
   });
 
