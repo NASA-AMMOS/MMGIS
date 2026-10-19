@@ -61,6 +61,48 @@ function getSearchFieldStringForFeature(searchFields, name, props) {
 
 // Returns { label, fields } for a feature — label is the composite display
 // string, fields is { fieldName: transformedValue } for each search field.
+// Rebuilds a properties object from a bulk_aggregations `fields` row,
+// whose values are ordered like `fields` (dot paths).
+function distinctRowToProps(fields, values) {
+    const props = {}
+    fields.forEach((field, i) => {
+        if (values[i] == null) return
+        const path = field.split('.')
+        let obj = props
+        for (const key of path.slice(0, -1)) {
+            if (obj[key] == null || typeof obj[key] !== 'object') obj[key] = {}
+            obj = obj[key]
+        }
+        obj[path[path.length - 1]] = values[i]
+    })
+    return props
+}
+
+// Pages through bulk_aggregations `fields` mode until every distinct value
+// combination is fetched. Resolves with one properties object per combination.
+function fetchGeodatasetDistinctProps(params, isCancelled) {
+    return new Promise((resolve) => {
+        const all = []
+        const fetchPage = (offset) => {
+            calls.api(
+                'geodatasets_bulk_aggregations',
+                { ...params, offset },
+                (d) => {
+                    if (isCancelled()) return resolve(all)
+                    if (d?.status !== 'success' || !Array.isArray(d.rows) || !Array.isArray(d.fields)) {
+                        return resolve(all)
+                    }
+                    for (const row of d.rows) all.push(distinctRowToProps(d.fields, row.values || []))
+                    if (d.hasMore === true && d.rows.length > 0) fetchPage(offset + d.rows.length)
+                    else resolve(all)
+                },
+                () => resolve(all)
+            )
+        }
+        fetchPage(0)
+    })
+}
+
 function getSearchFieldEntryForFeature(searchFields, name, props) {
     const F_ = require('@basics/Formulae_/Formulae_').default
     const fields = {}
@@ -537,58 +579,35 @@ function SearchBar({ componentVars }) {
         const processGeoLayers = () => {
             if (geoTargets.length === 0) return Promise.resolve()
             return Promise.all(geoTargets.map((lname) => {
-                return new Promise((resolve) => {
-                    const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
-                    const sf = effectiveSearchFields[lname]
-                    if (!geodatasetName || !sf || sf.length === 0) {
-                        cachedPerLayerValues.current[lname] = new Map()
-                        resolve()
-                        return
+                const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
+                const sf = effectiveSearchFields[lname]
+                if (!geodatasetName || !sf || sf.length === 0) {
+                    cachedPerLayerValues.current[lname] = new Map()
+                    return Promise.resolve()
+                }
+                const params = {
+                    layers: geodatasetName,
+                    fields: sf.map((f) => f[1]).join(','),
+                    limit: GEO_PAGE_SIZE,
+                }
+                // When time restriction is on, pass time bounds
+                if (searchTimeRestrict) {
+                    const ld = L_.layers.data[lname]
+                    if (ld?.time?.enabled === true && ld?.time?.type === 'requery') {
+                        params.starttime = ld.time.start || TimeControl.startTime
+                        params.endtime = ld.time.end || TimeControl.endTime
+                        params.startProp = ld.time.startProp || 'start_time'
+                        params.endProp = ld.time.endProp || 'end_time'
                     }
-                    const params = {
-                        layers: geodatasetName,
-                        fields: sf.map((f) => f[1]).join(','),
-                        limit: GEO_PAGE_SIZE,
-                    }
-                    // When time restriction is on, pass time bounds
-                    if (searchTimeRestrict) {
-                        const ld = L_.layers.data[lname]
-                        if (ld?.time?.enabled === true && ld?.time?.type === 'requery') {
-                            params.starttime = ld.time.start || TimeControl.startTime
-                            params.endtime = ld.time.end || TimeControl.endTime
-                            params.startProp = ld.time.startProp || 'start_time'
-                            params.endProp = ld.time.endProp || 'end_time'
-                        }
-                    }
+                }
+                return fetchGeodatasetDistinctProps(params, () => cancelled).then((propsList) => {
+                    if (cancelled) return
                     const vals = new Map()
-                    const fetchPage = (offset) => {
-                        calls.api(
-                            'geodatasets_bulk_aggregations',
-                            { ...params, offset },
-                            (d) => {
-                                if (cancelled) return resolve()
-                                if (d?.status === 'success' && Array.isArray(d.rows)) {
-                                    d.rows.forEach((row) => {
-                                        const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, row)
-                                        if (entry.label && !vals.has(entry.label)) {
-                                            vals.set(entry.label, entry)
-                                        }
-                                    })
-                                    if (d.hasMore === true && d.rows.length > 0) {
-                                        fetchPage(offset + d.rows.length)
-                                        return
-                                    }
-                                }
-                                cachedPerLayerValues.current[lname] = vals
-                                resolve()
-                            },
-                            () => {
-                                cachedPerLayerValues.current[lname] = vals
-                                resolve()
-                            }
-                        )
+                    for (const props of propsList) {
+                        const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, props)
+                        if (entry.label && !vals.has(entry.label)) vals.set(entry.label, entry)
                     }
-                    fetchPage(0)
+                    cachedPerLayerValues.current[lname] = vals
                 })
             }))
         }

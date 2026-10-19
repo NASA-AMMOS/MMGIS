@@ -189,7 +189,7 @@ Like [GET /aggregations](#get-aggregations) but aggregates across multiple layer
 
 `curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/bulk_aggregations?layers=layer_a,layer_b&limit=500"`
 
-With `fields`, the response's `rows` hold one object per distinct combination (values as strings), `aggregations[field].aggs` maps each value to its feature count within the page, and `hasMore` is `true` when another page exists at `offset + limit`.
+With `fields`, the response has no `aggregations`. Instead it returns `fields` (the parsed field list) and `rows`, one `{ values, count }` per distinct combination, where `values` are strings in `fields` order and `count` is the matching feature count. `hasMore` is `true` when another page exists at `offset + limit`.
 
 `curl -X GET -H "Authorization:Bearer <token>" "http://localhost:8889/api/geodatasets/bulk_aggregations?layers=layer_a,layer_b&fields=name,category&limit=5000&offset=0"`
 

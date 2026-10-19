@@ -708,8 +708,9 @@ test.describe('Global Feature Search', () => {
             const allData = await all.json()
             expect(allData.status).toBe('success')
             expect(allData.hasMore).toBe(false)
+            expect(allData.fields).toEqual(['name', 'category'])
             expect(allData.rows.length).toBeGreaterThan(2)
-            const allKeys = allData.rows.map((r) => `${r.name}|${r.category}`)
+            const allKeys = allData.rows.map((r) => r.values.join('|'))
             expect(new Set(allKeys).size).toBe(allKeys.length)
 
             const paged = []
@@ -720,7 +721,7 @@ test.describe('Global Feature Search', () => {
                 const d = await res.json()
                 expect(d.status).toBe('success')
                 expect(d.rows.length).toBeLessThanOrEqual(2)
-                paged.push(...d.rows.map((r) => `${r.name}|${r.category}`))
+                paged.push(...d.rows.map((r) => r.values.join('|')))
                 offset += d.rows.length
                 hasMore = d.hasMore
             }

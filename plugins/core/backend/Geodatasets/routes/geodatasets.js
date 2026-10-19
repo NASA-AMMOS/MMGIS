@@ -1522,8 +1522,28 @@ const BULK_DISTINCT_DEFAULT_LIMIT = 5000;
 const BULK_DISTINCT_MAX_LIMIT = 10000;
 const BULK_DISTINCT_MAX_FIELDS = 20;
 
+// Resolves requested time columns to actual columns of `table`, else defaults.
+async function resolveTimeColumns(table, startProp, endProp) {
+  const pick = (columns, requested, fallback) => {
+    const i = columns.indexOf(Utils.forceAlphaNumUnder(requested || fallback));
+    return i >= 0 ? columns[i] : fallback;
+  };
+  try {
+    const columns = Object.keys(
+      await sequelize.getQueryInterface().describeTable(table)
+    );
+    return {
+      startCol: pick(columns, startProp, "start_time"),
+      endCol: pick(columns, endProp, "end_time"),
+    };
+  } catch (_e) {
+    return { startCol: "start_time", endCol: "end_time" };
+  }
+}
+
 // Distinct value combinations of `fields` (dot paths into properties) across
 // the given geodataset layers, ordered for stable limit/offset pagination.
+// Each row is { values: [value per field, in `fields` order], count }.
 function bulkDistinctFieldValues(req, res, layerNames) {
   const fields = String(req.query.fields)
     .split(",")
@@ -1535,17 +1555,15 @@ function bulkDistinctFieldValues(req, res, layerNames) {
     return;
   }
 
-  const _l = parseInt(req.query.limit);
-  const limit = Number.isNaN(_l)
+  const parsedLimit = Number.parseInt(req.query.limit, 10);
+  const limit = Number.isNaN(parsedLimit)
     ? BULK_DISTINCT_DEFAULT_LIMIT
-    : Math.min(Math.max(_l, 1), BULK_DISTINCT_MAX_LIMIT);
-  const _o = parseInt(req.query.offset);
-  const offset = Number.isNaN(_o) ? 0 : Math.max(_o, 0);
+    : Math.min(Math.max(parsedLimit, 1), BULK_DISTINCT_MAX_LIMIT);
+  const parsedOffset = Number.parseInt(req.query.offset, 10);
+  const offset = Number.isNaN(parsedOffset) ? 0 : Math.max(parsedOffset, 0);
 
-  const starttime = req.query.starttime;
-  const endtime = req.query.endtime;
-  const startProp = req.query.startProp || "start_time";
-  const endProp = req.query.endProp || "end_time";
+  const { starttime, endtime } = req.query;
+  const timeFiltered = Boolean(starttime && endtime);
 
   const Op = require("sequelize").Op;
   Geodatasets.findAll({ where: { name: { [Op.in]: layerNames } } })
@@ -1553,8 +1571,10 @@ function bulkDistinctFieldValues(req, res, layerNames) {
       if (!results || results.length === 0) {
         res.send({
           status: "success",
-          aggregations: {},
+          fields,
           rows: [],
+          limit,
+          offset,
           hasMore: false,
         });
         return;
@@ -1564,28 +1584,30 @@ function bulkDistinctFieldValues(req, res, layerNames) {
       fields.forEach((f, i) => {
         replacements[`f${i}`] = f.split(".");
       });
-      if (starttime && endtime) {
+      if (timeFiltered) {
         replacements.starttime = new Date(starttime).getTime();
         replacements.endtime = new Date(endtime).getTime();
       }
 
-      const cols = fields.map((f, i) => `v${i}`);
-      const selects = fields
-        .map((f, i) => `properties #>> ARRAY[:f${i}]::text[] AS v${i}`)
+      const cols = fields.map((_f, i) => `v${i}`);
+      const selects = cols
+        .map((c, i) => `properties #>> ARRAY[:f${i}]::text[] AS ${c}`)
         .join(", ");
-      const subqueries = results.map((result) => {
-        let sq = `SELECT ${selects} FROM ${Utils.forceAlphaNumUnder(
-          result.dataValues.table
-        )}`;
-        if (starttime && endtime) {
-          sq += ` WHERE ${Utils.forceAlphaNumUnder(
-            startProp
-          )} >= :starttime AND ${Utils.forceAlphaNumUnder(
-            endProp
-          )} <= :endtime`;
-        }
-        return sq;
-      });
+      const subqueries = await Promise.all(
+        results.map(async (result) => {
+          const table = Utils.forceAlphaNumUnder(result.dataValues.table);
+          let sq = `SELECT ${selects} FROM ${table}`;
+          if (timeFiltered) {
+            const { startCol, endCol } = await resolveTimeColumns(
+              table,
+              req.query.startProp,
+              req.query.endProp
+            );
+            sq += ` WHERE ${startCol} >= :starttime AND ${endCol} <= :endtime`;
+          }
+          return sq;
+        })
+      );
 
       const q = `SELECT ${cols.join(", ")}, COUNT(*)::int AS count FROM (${subqueries.join(
         " UNION ALL "
@@ -1597,41 +1619,12 @@ function bulkDistinctFieldValues(req, res, layerNames) {
 
       const [dbRows] = await sequelize.query(q, { replacements });
       const hasMore = dbRows.length > limit;
-      const pageRows = hasMore ? dbRows.slice(0, limit) : dbRows;
+      const rows = dbRows.slice(0, limit).map((dbRow) => ({
+        values: cols.map((c) => dbRow[c]),
+        count: dbRow.count,
+      }));
 
-      const aggs = {};
-      fields.forEach((f) => {
-        aggs[f] = { type: "number", aggs: {} };
-      });
-      const rows = pageRows.map((dbRow) => {
-        const props = {};
-        fields.forEach((f, i) => {
-          const value = dbRow[`v${i}`];
-          if (value == null) return;
-          if (isNaN(value) || isNaN(parseFloat(value)))
-            aggs[f].type = "string";
-          aggs[f].aggs[value] = (aggs[f].aggs[value] || 0) + dbRow.count;
-
-          const path = f.split(".");
-          let obj = props;
-          for (let p = 0; p < path.length - 1; p++) {
-            if (obj[path[p]] == null || typeof obj[path[p]] !== "object")
-              obj[path[p]] = {};
-            obj = obj[path[p]];
-          }
-          obj[path[path.length - 1]] = value;
-        });
-        return props;
-      });
-
-      res.send({
-        status: "success",
-        aggregations: aggs,
-        rows,
-        limit,
-        offset,
-        hasMore,
-      });
+      res.send({ status: "success", fields, rows, limit, offset, hasMore });
       return null;
     })
     .catch((err) => {
