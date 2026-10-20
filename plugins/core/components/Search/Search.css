@@ -218,6 +218,11 @@
     user-select: none;
     margin-left: 4px;
 }
+.searchValuesLoadFailed {
+    color: var(--color-red, #e53935);
+    opacity: 1;
+    cursor: default;
+}
 
 /* Select / Filter mode toggle */
 .searchModeSwitch {

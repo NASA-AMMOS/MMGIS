@@ -177,7 +177,7 @@ Like [GET /aggregations](#get-aggregations) but aggregates across multiple layer
 |   Parameter   |   Type   | Required | Default |                    Description                     |
 | :-----------: | :------: | :------: | :-----: | :------------------------------------------------: |
 |  **layers**   | _string_ |   true   |   N/A   | Comma-separated list of layer names (max 100)      |
-|  **fields**   | _string_ |  false   |   N/A   | Comma-separated property paths (dot notation, max 20). When set, returns every distinct value combination of these fields across all layers instead of a random row sample |
+|  **fields**   | _string_ |  false   |   N/A   | Comma-separated property paths (dot notation, max 20). When set, returns every distinct value combination of these fields across all layers (max 10) instead of a random row sample. Requests over either maximum fail rather than being truncated |
 |   **limit**   | _integer_|  false   |   500   | Without `fields`: random sample size per layer (clamped to 1–1000). With `fields`: page size of distinct combinations (default 5000, clamped to 1–10000) |
 |  **offset**   | _integer_|  false   |    0    | With `fields`: number of distinct combinations to skip, for pagination |
 | **starttime** |  _time_  |  false   |   N/A   |  Start time of time window (used with `endtime`)   |

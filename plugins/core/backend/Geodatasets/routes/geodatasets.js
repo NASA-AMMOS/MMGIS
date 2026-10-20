@@ -1521,6 +1521,7 @@ router.get("/bulk_aggregations", function (req, res, next) {
 const BULK_DISTINCT_DEFAULT_LIMIT = 5000;
 const BULK_DISTINCT_MAX_LIMIT = 10000;
 const BULK_DISTINCT_MAX_FIELDS = 20;
+const BULK_DISTINCT_MAX_LAYERS = 10;
 
 // Resolves requested time columns to actual columns of `table`, else defaults.
 async function resolveTimeColumns(table, startProp, endProp) {
@@ -1548,10 +1549,23 @@ function bulkDistinctFieldValues(req, res, layerNames) {
   const fields = String(req.query.fields)
     .split(",")
     .map((f) => f.trim())
-    .filter(Boolean)
-    .slice(0, BULK_DISTINCT_MAX_FIELDS);
+    .filter(Boolean);
   if (fields.length === 0) {
     res.send({ status: "failure", message: "No valid fields provided." });
+    return;
+  }
+  if (fields.length > BULK_DISTINCT_MAX_FIELDS) {
+    res.send({
+      status: "failure",
+      message: `Too many fields (max ${BULK_DISTINCT_MAX_FIELDS}).`,
+    });
+    return;
+  }
+  if (layerNames.length > BULK_DISTINCT_MAX_LAYERS) {
+    res.send({
+      status: "failure",
+      message: `Too many layers for fields mode (max ${BULK_DISTINCT_MAX_LAYERS}).`,
+    });
     return;
   }
 

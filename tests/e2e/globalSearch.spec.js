@@ -728,6 +728,27 @@ test.describe('Global Feature Search', () => {
             expect(paged).toEqual(allKeys)
         })
 
+        test('bulk_aggregations fields mode rejects oversized requests instead of truncating', async ({
+            request,
+        }) => {
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+            const base = `${BASE_URL}/api/geodatasets/bulk_aggregations`
+
+            const tooManyFields = Array.from({ length: 21 }, (_, i) => `f${i}`).join(',')
+            const f = await (
+                await request.get(`${base}?layers=reference_mission_basic&fields=${tooManyFields}`)
+            ).json()
+            expect(f.status).toBe('failure')
+
+            const tooManyLayers = Array(11).fill('reference_mission_basic').join(',')
+            const l = await (
+                await request.get(`${base}?layers=${tooManyLayers}&fields=name`)
+            ).json()
+            expect(l.status).toBe('failure')
+        })
+
         test('search with > operator filters numerics', async ({
             request,
         }) => {

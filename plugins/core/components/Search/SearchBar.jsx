@@ -63,11 +63,13 @@ function getSearchFieldStringForFeature(searchFields, name, props) {
 // string, fields is { fieldName: transformedValue } for each search field.
 // Rebuilds a properties object from a bulk_aggregations `fields` row,
 // whose values are ordered like `fields` (dot paths).
+const UNSAFE_PROP_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 function distinctRowToProps(fields, values) {
     const props = {}
     fields.forEach((field, i) => {
         if (values[i] == null) return
         const path = field.split('.')
+        if (path.some((key) => UNSAFE_PROP_KEYS.has(key))) return
         let obj = props
         for (const key of path.slice(0, -1)) {
             if (obj[key] == null || typeof obj[key] !== 'object') obj[key] = {}
@@ -79,9 +81,10 @@ function distinctRowToProps(fields, values) {
 }
 
 // Pages through bulk_aggregations `fields` mode until every distinct value
-// combination is fetched. Resolves with one properties object per combination.
+// combination is fetched. Resolves with one properties object per combination;
+// rejects if any page fails so a partial list is never treated as complete.
 function fetchGeodatasetDistinctProps(params, isCancelled) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const all = []
         const fetchPage = (offset) => {
             calls.api(
@@ -90,13 +93,13 @@ function fetchGeodatasetDistinctProps(params, isCancelled) {
                 (d) => {
                     if (isCancelled()) return resolve(all)
                     if (d?.status !== 'success' || !Array.isArray(d.rows) || !Array.isArray(d.fields)) {
-                        return resolve(all)
+                        return reject(new Error(d?.message || 'bulk_aggregations failed'))
                     }
                     for (const row of d.rows) all.push(distinctRowToProps(d.fields, row.values || []))
                     if (d.hasMore === true && d.rows.length > 0) fetchPage(offset + d.rows.length)
                     else resolve(all)
                 },
-                () => resolve(all)
+                () => reject(new Error('bulk_aggregations request failed'))
             )
         }
         fetchPage(0)
@@ -238,6 +241,9 @@ function SearchBar({ componentVars }) {
 
     // Tracks whether the values-building effect is still running
     const [valuesLoading, setValuesLoading] = useState(false)
+
+    // Layers whose values could not be fully loaded in the values-building effect
+    const [valuesLoadFailed, setValuesLoadFailed] = useState([])
 
     // 'select' (default) = highlight/pan to matches; 'filter' = apply real layer filters
     const [searchMode, setSearchMode] = useState('select')
@@ -519,6 +525,7 @@ function SearchBar({ componentVars }) {
 
         let cancelled = false
         setValuesLoading(true)
+        setValuesLoadFailed([])
 
         // Determine which layers to gather suggestions from
         const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
@@ -608,6 +615,11 @@ function SearchBar({ componentVars }) {
                         if (entry.label && !vals.has(entry.label)) vals.set(entry.label, entry)
                     }
                     cachedPerLayerValues.current[lname] = vals
+                }).catch((err) => {
+                    if (cancelled) return
+                    console.warn(`Search: failed to load values for ${lname}:`, err?.message)
+                    delete cachedPerLayerValues.current[lname]
+                    setValuesLoadFailed((prev) => [...prev, lname])
                 })
             }))
         }
@@ -2159,6 +2171,14 @@ function SearchBar({ componentVars }) {
                                 {suggestions.length >= 500 && (
                                     <span className="searchValuesCount">Top 500</span>
                                 )}
+                                {valuesLoadFailed.length > 0 && (
+                                    <Tooltip
+                                        content={`Failed to load values for: ${valuesLoadFailed.join(', ')}`}
+                                        placement="bottom"
+                                    >
+                                        <span className="searchValuesCount searchValuesLoadFailed">Incomplete</span>
+                                    </Tooltip>
+                                )}
                                 {selectedGroupId && (
                                     <Tooltip
                                         content={valuesIntersectOnly ? 'Common to all layers' : 'From any layer'}
@@ -2232,6 +2252,8 @@ function SearchBar({ componentVars }) {
                                             ? 'Select a layer'
                                             : valuesLoading
                                             ? 'Loading...'
+                                            : arrayToSearch.length === 0 && valuesLoadFailed.length > 0
+                                            ? 'Failed to load values'
                                             : arrayToSearch.length === 0
                                             ? (valuesIntersectOnly ? 'No common values' : 'No values')
                                             : inputValue
