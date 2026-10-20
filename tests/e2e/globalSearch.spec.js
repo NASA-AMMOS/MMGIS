@@ -68,6 +68,17 @@ async function closePanel(page) {
     await page.waitForTimeout(300)
 }
 
+// globalSetup keeps an existing Reference Mission, so a test database seeded
+// before the Many Features fixtures were added won't have them.
+const FIXTURE_SKIP_REASON =
+    'Reference Mission predates the Many Features fixtures; recreate it to run this test'
+async function fetchMissionConfigText(request) {
+    const res = await request.get(
+        `${BASE_URL}/api/configure/get?mission=Reference-Mission`
+    )
+    return res.text().catch(() => '')
+}
+
 test.describe('Global Feature Search', () => {
     /** @type {import('@playwright/test').BrowserContext} */
     let ctx
@@ -509,8 +520,13 @@ test.describe('Global Feature Search', () => {
             { layer: 'Search - Many Features', last: 'vec_0599' },
             { layer: 'Geodatasets - Many Features', last: 'geo_1199' },
         ]
+        let missionConfig = ''
+        test.beforeAll(async ({ request }) => {
+            missionConfig = await fetchMissionConfigText(request)
+        })
         for (const { layer, last } of cases) {
             test(`${layer}: values past the old cutoff are reachable, dropdown stays capped`, async () => {
+                test.skip(!missionConfig.includes(layer), FIXTURE_SKIP_REASON)
                 await openPanel(pg)
                 await pg
                     .locator('.searchRegularLayerItem', { hasText: layer })
@@ -755,6 +771,12 @@ test.describe('Global Feature Search', () => {
         test('bulk_aggregations fields mode returns all 1200 names of the Many Features geodataset', async ({
             request,
         }) => {
+            test.skip(
+                !(await fetchMissionConfigText(request)).includes(
+                    'reference_mission_search_many_features'
+                ),
+                FIXTURE_SKIP_REASON
+            )
             await request.post(`${BASE_URL}/api/users/login`, {
                 data: ADMIN_CREDS,
             })

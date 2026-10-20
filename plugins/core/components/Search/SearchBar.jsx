@@ -84,6 +84,25 @@ function distinctRowToProps(fields, values) {
     return props
 }
 
+function getValuesEmptyMessage({ selectedLayer, valuesLoading, hasValues, loadFailed, valuesIntersectOnly, inputValue }) {
+    if (!selectedLayer) return 'Select a layer'
+    if (valuesLoading) return 'Loading...'
+    if (!hasValues && loadFailed) return 'Failed to load values'
+    if (!hasValues) return valuesIntersectOnly ? 'No common values' : 'No values'
+    if (inputValue) return 'No matches'
+    return 'Type to search'
+}
+
+// Unique-label map of search entries for a layer's reconstructed properties.
+function buildLayerValueMap(searchFields, lname, propsList) {
+    const vals = new Map()
+    for (const props of propsList) {
+        const entry = getSearchFieldEntryForFeature(searchFields, lname, props)
+        if (entry.label && !vals.has(entry.label)) vals.set(entry.label, entry)
+    }
+    return vals
+}
+
 // Pages through bulk_aggregations `fields` mode until every distinct value
 // combination is fetched. Resolves with one properties object per combination;
 // rejects if any page fails so a partial list is never treated as complete.
@@ -625,12 +644,7 @@ function SearchBar({ componentVars }) {
                 }
                 return fetchGeodatasetDistinctProps(params, () => cancelled).then((propsList) => {
                     if (cancelled) return
-                    const vals = new Map()
-                    for (const props of propsList) {
-                        const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, props)
-                        if (entry.label && !vals.has(entry.label)) vals.set(entry.label, entry)
-                    }
-                    cachedPerLayerValues.current[lname] = vals
+                    cachedPerLayerValues.current[lname] = buildLayerValueMap(effectiveSearchFields, lname, propsList)
                 }).catch((err) => {
                     if (cancelled) return
                     console.warn(`Search: failed to load values for ${lname}:`, err?.message)
@@ -2265,17 +2279,14 @@ function SearchBar({ componentVars }) {
                                     })
                                 ) : (
                                     <div className="searchUnifiedEmpty">
-                                        {!selectedLayer
-                                            ? 'Select a layer'
-                                            : valuesLoading
-                                            ? 'Loading...'
-                                            : arrayToSearch.length === 0 && valuesLoadFailed.length > 0
-                                            ? 'Failed to load values'
-                                            : arrayToSearch.length === 0
-                                            ? (valuesIntersectOnly ? 'No common values' : 'No values')
-                                            : inputValue
-                                            ? 'No matches'
-                                            : 'Type to search'}
+                                        {getValuesEmptyMessage({
+                                            selectedLayer,
+                                            valuesLoading,
+                                            hasValues: arrayToSearch.length > 0,
+                                            loadFailed: valuesLoadFailed.length > 0,
+                                            valuesIntersectOnly,
+                                            inputValue,
+                                        })}
                                     </div>
                                 )}
                             </div>

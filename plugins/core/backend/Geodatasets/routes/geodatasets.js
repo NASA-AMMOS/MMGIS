@@ -1522,6 +1522,7 @@ const BULK_DISTINCT_DEFAULT_LIMIT = 5000;
 const BULK_DISTINCT_MAX_LIMIT = 10000;
 const BULK_DISTINCT_MAX_FIELDS = 20;
 const BULK_DISTINCT_MAX_LAYERS = 10;
+const BULK_DISTINCT_STATEMENT_TIMEOUT_MS = 30000;
 
 // Resolves requested time columns to actual columns of `table`, else defaults.
 async function resolveTimeColumns(table, startProp, endProp) {
@@ -1538,6 +1539,7 @@ async function resolveTimeColumns(table, startProp, endProp) {
       endCol: pick(columns, endProp, "end_time"),
     };
   } catch (_e) {
+    // Table can't be described (e.g. missing): use the default time columns.
     return { startCol: "start_time", endCol: "end_time" };
   }
 }
@@ -1631,7 +1633,15 @@ function bulkDistinctFieldValues(req, res, layerNames) {
         ", "
       )} LIMIT :limit OFFSET :offset;`;
 
-      const [dbRows] = await sequelize.query(q, { replacements });
+      // Bound the GROUP BY so a large or repeated request can't tie up the database.
+      const dbRows = await sequelize.transaction(async (transaction) => {
+        await sequelize.query(
+          `SET LOCAL statement_timeout = ${BULK_DISTINCT_STATEMENT_TIMEOUT_MS}`,
+          { transaction }
+        );
+        const [r] = await sequelize.query(q, { replacements, transaction });
+        return r;
+      });
       const hasMore = dbRows.length > limit;
       const rows = dbRows.slice(0, limit).map((dbRow) => ({
         values: cols.map((c) => dbRow[c]),
