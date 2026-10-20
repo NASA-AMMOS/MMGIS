@@ -98,6 +98,18 @@ jobs:
           SITE_ACCESS: ${{ matrix.site_access }}
           AUTH_PROVIDERS: local
 
+      - name: Run E2E Auth Tests
+        run: npx playwright test tests/e2e/auth --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+
+      - name: Check existing accounts survive the upgrade
+        if: matrix.site_access == 'required' && github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=200 origin ${{ github.base_ref }}
+          bash tests/migration/run-legacy-compat.sh origin/${{ github.base_ref }}
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

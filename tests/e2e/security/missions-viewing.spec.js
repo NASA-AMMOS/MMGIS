@@ -190,12 +190,13 @@ test.describe.serial("missions_viewing permissions", () => {
 
   test("Admins (110) cannot change missions_viewing", async () => {
     await setViewing(userIds[userName], [missionA]);
+    // Mission admins no longer manage accounts at all
     const body = await json(
       await admin.post("/api/accounts/update", {
         data: { id: userIds[userName], missions_viewing: null },
       }),
     );
-    expect(body?.status).toBe("success");
+    expect(body?.status).toBe("failure");
 
     const entries = await json(await superadmin.get("/api/accounts/entries"));
     const row = entries.body.entries.find((e) => e.id === userIds[userName]);

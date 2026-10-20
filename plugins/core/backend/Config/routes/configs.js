@@ -1124,7 +1124,7 @@ const renameLockKeys = (name) => {
 };
 
 if (fullAccess)
-  router.post("/rename", authorize("mission.manage", missionFromReq), rejectReservedMissionName("mission"), clearViewableFoldersCacheAfter, function (req, res, next) {
+  router.post("/rename", rejectReservedMissionName("mission"), authorize("mission.manage", missionFromReq), clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     const newName = req.body.newName;
 
@@ -1394,7 +1394,7 @@ if (fullAccess)
   });
 
 if (fullAccess)
-  router.post("/destroy", authorize("mission.manage", missionFromReq), rejectReservedMissionName("mission"), clearViewableFoldersCacheAfter, function (req, res, next) {
+  router.post("/destroy", rejectReservedMissionName("mission"), authorize("mission.manage", missionFromReq), clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     if (!missionName || !/^[A-Za-z0-9_ -]+$/.test(missionName)) {
       logger("error", "Invalid mission name in destroy request.", req.originalUrl, req);

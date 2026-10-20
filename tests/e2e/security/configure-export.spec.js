@@ -37,9 +37,14 @@ test.describe.serial("configure export", () => {
 
   test("GET /missions?full=true returns only mission names", async () => {
     const anon = await apiRequest.newContext({ baseURL });
-    const body = await json(
-      await anon.get("/api/configure/missions?full=true"),
-    );
+    const res = await anon.get("/api/configure/missions?full=true");
+    const body = await json(res);
+    if (isLocal) {
+      // Guests get nothing on a login-required site
+      expect(res.status()).toBe(403);
+      await anon.dispose();
+      return;
+    }
     expect(body?.status).toBe("success");
     expect(Array.isArray(body?.missions)).toBe(true);
     expect(body.missions.every((mission) => typeof mission === "string")).toBe(
@@ -181,7 +186,10 @@ test.describe.serial("configure export", () => {
       const tokens = await json(
         await superadmin.get("/api/longtermtoken/get"),
       );
-      const tokenRow = tokens.tokens.find((entry) => entry.token === token);
+      // Only a prefix of the token is ever listed
+      const tokenRow = tokens.tokens.find(
+        (entry) => entry.name === `configure${stamp}`,
+      );
       expect(tokenRow).toBeTruthy();
 
       try {

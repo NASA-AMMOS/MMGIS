@@ -476,6 +476,8 @@ function ensureAdmin(
 function sendForbidden(req, res) {
   if (req.accepts(["json", "html"]) === "html")
     res.status(403).render("forbidden", { HOME: `${ROOT_PATH}/` });
+  else if ((req.originalUrl || "").startsWith(`${ROOT_PATH}/api/`))
+    res.status(403).send({ status: "failure", message: "Unauthorized" });
   else res.sendStatus(403);
 }
 
