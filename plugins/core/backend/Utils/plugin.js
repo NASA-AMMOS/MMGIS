@@ -4,9 +4,9 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/utils",
-      s.ensureUser(),
+      s.ensureUser({ forbid: true }),
       s.setContentType,
-      router
+      s.registerRouter("/api/utils", router)
     );
   },
   //Once the server starts

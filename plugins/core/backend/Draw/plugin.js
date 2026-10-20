@@ -10,29 +10,26 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/files",
-      s.ensureUser(),
+      s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.stopGuests,
-      routerFiles
+      s.registerRouter("/api/files", routerFiles)
     );
 
     s.app.use(
       s.ROOT_PATH + "/api/draw",
-      s.ensureUser(),
+      s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.stopGuests,
-      routerDraw
+      s.registerRouter("/api/draw", routerDraw)
     );
 
     s.app.use(
       s.ROOT_PATH + "/api/draw",
-      s.ensureUser(),
+      s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.stopGuests,
-      routerAggregations
+      s.registerRouter("/api/draw", routerAggregations)
     );
   },
   //Once the server starts

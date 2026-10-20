@@ -10,6 +10,10 @@ const crypto = require("crypto");
 const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
 const { clearViewableFoldersCache } = require("../../Config/routes/configs");
+const bindings = require("../../../../../API/authz/bindings");
+const policy = require("../../../../../API/authz/policy");
+const { ensurePrincipal } = require("../../../../../API/authz/authorize");
+const { RoleBinding } = require("../../Authz/models/authz");
 const User = userModel.User;
 const {
   UserDefaults,
@@ -63,20 +67,38 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
     });
     return null;
   }
-  if (id === 1) {
-    logger(
-      "error",
-      `Cannot delete the original Administrator account.`,
-      "accounts",
-      null
-    );
-    res.send({
-      status: "failure",
-      message: `Cannot delete the original Administrator account.`,
+  bindings
+    .superAdminUserIds()
+    .then(async (superAdmins) => {
+      if (superAdmins.includes(id) && superAdmins.length <= 1) {
+        res.send({
+          status: "failure",
+          message: "There must always be at least one SuperAdmin.",
+        });
+        return null;
+      }
+      const actor = await ensurePrincipal(req);
+      if (superAdmins.includes(id) && !policy.isSuperAdmin(actor)) {
+        res.send({
+          status: "failure",
+          message: "Only SuperAdmins may delete SuperAdmin accounts.",
+        });
+        return null;
+      }
+      await RoleBinding.destroy({
+        where: { subject_type: "user", subject_id: String(id) },
+      });
+      bindings.afterChange("user", id).catch(() => {});
+      return removeUser(req, res, id);
+    })
+    .catch((err) => {
+      logger("error", `Failed to delete user with id: '${id}'.`, "accounts", null, err);
+      res.send({ status: "failure", message: `Failed to delete user with id: '${id}'.` });
     });
-    return null;
-  }
+  return null;
+});
 
+function removeUser(req, res, id) {
   User.destroy({ where: { id: id } })
     .then(() => {
       logger("info", `Successfully deleted user with id: '${id}'.`);
@@ -103,7 +125,7 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       return null;
     });
   return null;
-});
+}
 
 router.post("/update", authorize("accounts.manage"), function (req, res, next) {
   let id = null;
@@ -125,55 +147,7 @@ router.post("/update", authorize("accounts.manage"), function (req, res, next) {
     return null;
   }
 
-  //Form update object
-  let toUpdateTo = {};
-  if (req.body.hasOwnProperty("email") && req.body.email != null) {
-    toUpdateTo.email = req.body.email;
-  }
-  if (
-    req.body.hasOwnProperty("permission") &&
-    req.body.permission != null &&
-    (req.body.permission === "110" || req.body.permission === "001")
-  ) {
-    toUpdateTo.permission = req.body.permission;
-  }
-  // Handle missions_managing field for admin users
-  if (
-    req.body.hasOwnProperty("missions_managing") &&
-    Array.isArray(req.body.missions_managing) &&
-    req.body.permission === "110"
-  ) {
-    toUpdateTo.missions_managing = req.body.missions_managing;
-  }
-  // Clear missions_managing if user is being changed to non-admin role
-  if (req.body.permission === "001") {
-    toUpdateTo.missions_managing = null;
-  }
-  // Only SuperAdmins may change what a user can view
-  if (
-    req.session.permission === "111" &&
-    req.body.hasOwnProperty("missions_viewing") &&
-    (req.body.missions_viewing === null ||
-      Array.isArray(req.body.missions_viewing))
-  ) {
-    toUpdateTo.missions_viewing =
-      req.body.missions_viewing == null
-        ? null
-        : req.body.missions_viewing.filter((m) => typeof m === "string");
-  }
-  
-  // Don't allow changing the main admin account's permissions
-  if (id === 1) {
-    delete toUpdateTo.permission;
-  }
-
-  let updateObj = {
-    where: {
-      id: id,
-    }
-  };
-
-  User.update(toUpdateTo, updateObj)
+  updateUser(req, id)
     .then(() => {
       clearViewableFoldersCache(id);
       res.send({
@@ -183,9 +157,12 @@ router.post("/update", authorize("accounts.manage"), function (req, res, next) {
           updated_id: id,
         },
       });
-      return null;
     })
     .catch((err) => {
+      if (err instanceof bindings.BindingError) {
+        res.send({ status: "failure", message: err.message, body: {} });
+        return;
+      }
       logger(
         "error",
         `Failed to update user with id: '${id}'. Email may already exist.`,
@@ -200,6 +177,65 @@ router.post("/update", authorize("accounts.manage"), function (req, res, next) {
       });
     });
 });
+
+// Applies email and the legacy permission / missions fields as role bindings
+async function updateUser(req, id) {
+  const actor = await ensurePrincipal(req);
+  const body = req.body || {};
+  const user = await User.findOne({ where: { id }, attributes: ["id"] });
+  if (!user) throw new bindings.BindingError("User not found.");
+
+  if (body.email != null)
+    // Only the email column; never password/username
+    await User.update({ email: body.email }, { where: { id }, hooks: false });
+
+  const userBinding = (role, scope_type, extra = {}) => ({
+    subject_type: "user",
+    subject_id: id,
+    role,
+    scope_type,
+    ...extra,
+  });
+  const existing = await RoleBinding.findAll({
+    where: { subject_type: "user", subject_id: String(id) },
+  });
+  const remove = async (filter) => {
+    for (const b of existing.filter(filter)) await bindings.removeBinding(actor, b.id);
+  };
+
+  const permission = body.permission;
+  if (permission === "111") {
+    await bindings.addBinding(actor, userBinding("superadmin", "global"));
+  } else if (permission === "110" || permission === "001") {
+    await remove((b) => b.role === "superadmin" && b.scope_type === "global");
+    await bindings.setUserMissionRole(
+      actor,
+      id,
+      "mission_admin",
+      permission === "110" && Array.isArray(body.missions_managing)
+        ? body.missions_managing.filter((m) => typeof m === "string")
+        : []
+    );
+  }
+
+  if (
+    Object.prototype.hasOwnProperty.call(body, "missions_viewing") &&
+    (body.missions_viewing === null || Array.isArray(body.missions_viewing))
+  ) {
+    if (!policy.isSuperAdmin(actor))
+      throw new bindings.BindingError("Only SuperAdmins may change what a user can view.");
+    const viewing =
+      body.missions_viewing == null
+        ? null
+        : body.missions_viewing.filter((m) => typeof m === "string");
+    if (viewing == null)
+      await bindings.addBinding(actor, userBinding("viewer", "global"));
+    else await remove((b) => b.role === "viewer" && b.scope_type === "global");
+    await bindings.setUserMissionRole(actor, id, "viewer", viewing || []);
+    await User.update({ missions_viewing: viewing }, { where: { id }, hooks: false });
+  }
+  await bindings.afterChange("user", id);
+}
 
 // Site-wide default missions_viewing stamped onto new accounts (enforced only under AUTH=local)
 router.get("/defaults", authorize("accounts.manage"), function (req, res) {
@@ -220,13 +256,6 @@ router.get("/defaults", authorize("accounts.manage"), function (req, res) {
 });
 
 router.post("/updateDefaults", authorize("accounts.manage"), function (req, res) {
-  if (req.session.permission !== "111") {
-    res.send({
-      status: "failure",
-      message: "Only SuperAdmins may update account defaults.",
-    });
-    return;
-  }
   if (
     req.body.missions_viewing !== null &&
     !Array.isArray(req.body.missions_viewing)
