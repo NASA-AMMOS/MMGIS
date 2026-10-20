@@ -1,0 +1,9 @@
+# Used instead of /.dockerignore when building .oss-scanner/Dockerfile.
+# The production .dockerignore drops tests, docs and specs; the scanner needs the whole source tree.
+node_modules/
+**/node_modules/
+build/
+configure/build/
+test-results/
+playwright-report/
+.env
