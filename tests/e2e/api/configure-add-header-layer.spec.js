@@ -1,4 +1,8 @@
 import { test, expect, request as apiRequest } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+
+const { updateLayerTypes } = require('../../../API/updateTools');
 
 /**
  * POST /api/configure/addLayer with header layers (#442).
@@ -6,6 +10,7 @@ import { test, expect, request as apiRequest } from '@playwright/test';
  * A header added without a `sublayers` array used to be saved as-is, after
  * which `placement.path` could never resolve to it and every later addLayer
  * under that header failed with "Path specified in 'placement.path' not found".
+ * A plugin layer type that `extends: "header"` must behave the same way.
  *
  * Runs under AUTH=off only. The Configure API needs an admin login in either
  * mode, and /api/users/login allows 10 logins per 15 minutes per IP
@@ -18,7 +23,7 @@ import { test, expect, request as apiRequest } from '@playwright/test';
 test.describe('Configure API — addLayer header sublayers', () => {
   test.skip(
     process.env.AUTH === 'local',
-    'SKIP: the AUTH=local job has no logins left under the login rate limit',
+    'SKIP: the AUTH=local job already goes past the login rate limit; one more login here makes a missions-viewing.spec.js login fail one test earlier',
   );
 
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
@@ -114,5 +119,62 @@ test.describe('Configure API — addLayer header sublayers', () => {
 
     const after = await getLayers(mission);
     expect(after[0].sublayers.map((l) => l.name)).toEqual(['Child']);
+  });
+
+  test('a stored layer of a type extending header, without sublayers, can still take new layers', async () => {
+    const HEADER_TYPE = 'headersublayersfixture';
+    const mission = `HeaderSublayersPlugin-${Date.now()}`;
+    // A config saved before the fix: a layer of a plugin type that extends
+    // header, with no `sublayers` key, next to a vector layer.
+    await createMission(mission, {
+      layers: [
+        { type: HEADER_TYPE, name: 'CustomGroup' },
+        { type: 'vector', name: 'Points', url: 'points.json' },
+      ],
+    });
+
+    // Register the type the way an activated plugin is: a container with a
+    // layertype manifest, then the layer-type registry regenerated. The server
+    // reads that registry from disk on every save.
+    const container = path.resolve(
+      __dirname,
+      '../../../plugins/mmgis-test-header-sublayers',
+    );
+    const typeDir = path.join(container, 'layertypes', 'HeaderSublayersFixture');
+    fs.mkdirSync(typeDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(typeDir, 'plugin.json'),
+      JSON.stringify({
+        name: 'HeaderSublayersFixture',
+        type: 'layertype',
+        typeId: HEADER_TYPE,
+        extends: 'header',
+        version: '1.0.0',
+        description: 'Fixture for configure-add-header-layer.spec.js',
+        capabilities: {},
+      }),
+    );
+    try {
+      updateLayerTypes();
+
+      // Only header types get the empty array: a vector still has no level.
+      const underVector = await addLayer(mission, { type: 'header', name: 'Nope' }, 'Points');
+      expect(underVector).toMatchObject({ status: 'failure' });
+      expect(underVector.message).toContain("not found in 'layers': Points.sublayers.");
+
+      const added = await addLayer(mission, { type: 'header', name: 'Child' }, 'CustomGroup');
+      expect(added, added.message).toMatchObject({ status: 'success' });
+
+      // A new layer of that type is saved with an empty sublayers array too.
+      const sub = await addLayer(mission, { type: HEADER_TYPE, name: 'CustomSubgroup' }, 'CustomGroup');
+      expect(sub, sub.message).toMatchObject({ status: 'success' });
+
+      const after = await getLayers(mission);
+      expect(after[0].sublayers.map((l) => l.name)).toEqual(['Child', 'CustomSubgroup']);
+      expect(after[0].sublayers[1].sublayers).toEqual([]);
+    } finally {
+      fs.rmSync(container, { recursive: true, force: true });
+      updateLayerTypes();
+    }
   });
 });
