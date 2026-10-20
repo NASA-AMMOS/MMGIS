@@ -1,5 +1,18 @@
 require("dotenv").config();
 
+const siteAccess = require("../API/authz/siteAccess");
+{
+  const authConfigErrors = siteAccess.validate();
+  if (authConfigErrors.length > 0) {
+    console.error(
+      "\nMMGIS cannot start because of its authentication settings:\n  - " +
+        authConfigErrors.join("\n  - ") +
+        "\nSee docs/pages/Setup/ENVs/ENVs.md.\n",
+    );
+    process.exit(1);
+  }
+}
+
 const fs = require("fs");
 const http = require("http");
 const https = require("https");
@@ -27,6 +40,18 @@ const utils = require("../API/utils");
 
 const { sequelize } = require("../API/connection");
 const { getRequestHost, isOriginAllowed } = require("../API/origin");
+const crypto = require("crypto");
+const policy = require("../API/authz/policy");
+const { principalMiddleware } = require("../API/authz/principal");
+const {
+  authorize,
+  resolvers,
+  can,
+  missionNamesWith,
+  ensurePrincipal,
+  registerRouter,
+  undeclaredRoutes,
+} = require("../API/authz/authorize");
 
 const setups = require("../API/setups");
 
@@ -211,6 +236,23 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
 ///////////////////////////
 
 // This is application-level middleware, written to run for all requests.
+// When CSSO_PROXY_SECRET is set, identity headers are only trusted if the
+// proxy also sends the matching X-MMGIS-Proxy-Secret header.
+function cssoProxyTrusted(req) {
+  const secret = process.env.CSSO_PROXY_SECRET;
+  if (!secret) return true;
+  const sent = req.get("X-MMGIS-Proxy-Secret") || "";
+  const a = Buffer.from(String(sent));
+  const b = Buffer.from(String(secret));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+if (siteAccess.hasProvider("csso") && !process.env.CSSO_PROXY_SECRET)
+  logger(
+    "warn",
+    "AUTH_PROVIDERS includes csso but CSSO_PROXY_SECRET is not set. Identity headers will be trusted from any request.",
+    "server",
+  );
+
 const cssoHandler = (req, res, next) => {
   // For this application, every HTTP request is a direct response to user
   // activity, so we can set the activity header to true on every response.
@@ -222,29 +264,33 @@ const cssoHandler = (req, res, next) => {
   // Get the user's and username information from the request headers and set
   // them as attributes of the req object.
 
-  if (process.env.AUTH == "csso") {
-    if (req.get("X-Groups") !== undefined) {
-      req.groups = JSON.parse(
-        Buffer.from(req.get("X-Groups"), "base64").toString("ascii"),
-      );
+  if (siteAccess.hasProvider("csso") && req.get("X-Sub") !== undefined) {
+    if (cssoProxyTrusted(req)) {
+      req.groups = {};
+      if (req.get("X-Groups") !== undefined) {
+        try {
+          req.groups = JSON.parse(
+            Buffer.from(req.get("X-Groups"), "base64").toString("ascii"),
+          );
+        } catch (err) {
+          req.groups = {};
+        }
+      }
       if (req.groups[process.env.CSSO_LEAD_GROUP] === true) {
         req.groups[req.leadGroupName] = true;
       }
       req.user = req.get("X-Sub");
-      req.session.user = req.user;
+      req.cssoAuthenticated = true;
       let cssoSessionID = req.get("X-Session");
       if (cssoSessionID) req.cssoSessionID = cssoSessionID;
-    }
-  } else {
-    req.user = req.session.user || guestUsername;
-    let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
-    if (leads.indexOf(req.user) != -1) {
-      req.groups = {};
-      req.groups[req.leadGroupName] = true;
-    } else {
-      req.groups = {};
+      next();
+      return;
     }
   }
+  req.user = req.session.user || guestUsername;
+  let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
+  req.groups = {};
+  if (leads.indexOf(req.user) != -1) req.groups[req.leadGroupName] = true;
 
   next();
 };
@@ -292,46 +338,26 @@ function checkHeadersCodeInjection(req, res, next) {
   }
 }
 
+// Requires a signed-in principal (session user, CSSO user or token)
 function stopGuests(req, res, next) {
-  let url = req.originalUrl.split("?")[0].toLowerCase();
-
-  if (
-    url.endsWith("/api/configure/get") ||
-    url.endsWith("/api/configure/missions") ||
-    url.endsWith("/api/files/getfile")
-  ) {
-    next();
-    return;
-  }
-
-  if (req.user == guestUsername || process.env.AUTH === "off") {
-    res.send({ status: "failure", message: "User is not logged in." });
-    res.end();
-    return;
-  } else next();
+  ensurePrincipal(req)
+    .then((principal) => {
+      if (principal.authenticated) next();
+      else res.send({ status: "failure", message: "User is not logged in." });
+    })
+    .catch(next);
 }
 
 /**
  * ensureGroup - Checks if user is in ANY of the allowed groups.
- *
- * Returns an Express/Connect middleware function that calls the next handler
- * if the user is authorized, and sends a 403 Forbidden error message if not.
+ * Only applies when the csso login provider is enabled.
  *
  * @param {array} allowedGroups - An array of group names.
  * @return {function}
  */
 function ensureGroup(allowedGroups) {
   return (req, res, next) => {
-    // req.groups is an object, set by cssoHandler (which runs on every
-    // request), where each key is a group and each value is a boolean
-    // indicating if the user is in that group. For each allowed group, this
-    // will check if the group is present in req.groups, and if the value for
-    // that group is True. If that is the case, continue to the next handler,
-    // otherwise continue checking the list of allowed groups. If the user is
-    // not in any allowed groups, the next handler will never be called and a
-    // 403 Forbidden response will be returned to the user.
-    //console.log( 'ensureGroup', req );
-    if (process.env.AUTH != "csso") {
+    if (!siteAccess.hasProvider("csso") || !req.cssoAuthenticated) {
       next();
       return;
     }
@@ -356,6 +382,39 @@ function ensureGroup(allowedGroups) {
   };
 }
 
+// Capabilities that make someone an administrator (may use /configure)
+const ADMIN_CAPABILITIES = [
+  "mission.layer.edit",
+  "mission.config.edit",
+  "mission.create",
+  "accounts.manage",
+  "groups.manage",
+  "data.geodatasets.write",
+  "data.datasets.write",
+  "data.stac.write",
+];
+function isAdminPrincipal(principal) {
+  const caps = policy.capabilitiesOf(principal);
+  return ADMIN_CAPABILITIES.some((c) => caps.includes(c));
+}
+
+function renderAdminLogin(req, res) {
+  res.render("adminlogin", {
+    user: req.user,
+    VERSION: configurePackageJson.version,
+    ROOT_PATH: isDevEnv
+      ? ""
+      : process.env.ROOT_PATH
+        ? process.env.ROOT_PATH + "/"
+        : "",
+  });
+}
+
+/**
+ * ensureAdmin - Requires an administrator (anyone holding an admin capability).
+ * Route-level authorize() calls decide what that administrator may actually do.
+ * Kept for plugins; core routes declare capabilities with s.authorize.
+ */
 function ensureAdmin(
   toLoginPage,
   denyLongTermTokens,
@@ -364,125 +423,53 @@ function ensureAdmin(
   disallow,
 ) {
   return (req, res, next) => {
-    let url = req.originalUrl.split("?")[0].toLowerCase();
-    const remoteAddress =
-      req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-
+    const url = req.originalUrl.split("?")[0].toLowerCase();
+    const notDisallowed =
+      disallow == null || disallow.filter((p) => url.endsWith(p)).length == 0;
     if (
-      url.endsWith("/api/configure/get") ||
-      url.endsWith("/api/configure/missions") ||
-      url.endsWith("/api/configure/export") ||
-      url.endsWith("/api/configure/getgeneraloptions") ||
-      url.endsWith("/api/geodatasets/get") ||
-      url.endsWith("/api/geodatasets/intersect") ||
-      url.endsWith("/api/geodatasets/aggregations") ||
-      url.endsWith("/api/geodatasets/schema") ||
-      url.endsWith("/api/geodatasets/bulk_aggregations") ||
-      url.endsWith("/api/geodatasets/search") ||
-      url.endsWith("/api/datasets/get") ||
-      req.session.permission === "111" ||
-      req.session.permission === "110"
+      notDisallowed &&
+      ((allowGets === true && req.method === "GET") ||
+        (allowPosts === true && req.method === "POST"))
     ) {
-      next();
+      ensureUser({ forbid: true })(req, res, next);
       return;
     }
-
-    if (allowGets === true && req.method === "GET") {
-      if (
-        disallow == null ||
-        disallow.filter((path) => url.endsWith(path)).length == 0
-      ) {
-        next();
-        return;
-      }
-    }
-
-    if (allowPosts === true && req.method === "POST") {
-      if (
-        disallow == null ||
-        disallow.filter((path) => url.endsWith(path)).length == 0
-      ) {
-        next();
-        return;
-      }
-    }
-
-    if (toLoginPage) {
-      res.render("adminlogin", {
-        user: req.user,
-        VERSION: configurePackageJson.version,
-        ROOT_PATH: isDevEnv ? "" : (process.env.ROOT_PATH ? process.env.ROOT_PATH + "/" : ""),
-      });
-      return;
-    }
-
-    if (!denyLongTermTokens && req.headers.authorization) {
-      validateLongTermToken(
-        req.headers.authorization,
-        (tokenData) => {
-          req.isLongTermToken = true;
-          req.tokenUserPermission = tokenData.permission;
-          req.tokenUserMissions = tokenData.missions_managing;
-          req.tokenUserMissionsViewing = tokenData.missions_viewing;
-          req.user = tokenData.username;
-          next();
-        },
-        () => {
+    ensurePrincipal(req)
+      .then((principal) => {
+        const remoteAddress =
+          req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+        if (principal.kind === "invalid_token") {
           res.send({ status: "failure", message: "Unauthorized Token!" });
           logger(
             "warn",
-            `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization.slice(0, 16)}...)`,
+            `Unauthorized token call made and rejected (from ${remoteAddress})`,
             req.originalUrl,
             req,
           );
-        },
-      );
-      return;
-    }
-
-    res.send({ status: "failure", message: "Unauthorized!" });
-    logger(
-      "warn",
-      `Unauthorized call made and rejected (from ${remoteAddress})`,
-      req.originalUrl,
-      req,
-    );
-    return;
+          return;
+        }
+        if (denyLongTermTokens && principal.kind === "token") {
+          res.send({ status: "failure", message: "Unauthorized!" });
+          return;
+        }
+        if (isAdminPrincipal(principal)) {
+          next();
+          return;
+        }
+        if (toLoginPage) {
+          renderAdminLogin(req, res);
+          return;
+        }
+        res.send({ status: "failure", message: "Unauthorized!" });
+        logger(
+          "warn",
+          `Unauthorized call made and rejected (from ${remoteAddress})`,
+          req.originalUrl,
+          req,
+        );
+      })
+      .catch(next);
   };
-}
-
-function validateLongTermToken(token, successCallback, failureCallback) {
-  token = token.replace(/Bearer:?\s+/g, "");
-
-  sequelize
-    .query(
-      'SELECT lt.*, u.permission, u.missions_managing, u.missions_viewing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
-      {
-        replacements: {
-          token: token,
-        },
-      },
-    )
-    .then((result) => {
-      try {
-        result = result[0][0];
-      } catch (err) {
-        failureCallback();
-      }
-
-      if (
-        result &&
-        result.token == token &&
-        result.created_by_user_id != null && // Block tokens without creator ID (legacy tokens)
-        (result.period == "never" ||
-          Date.now() - new Date(result.createdAt).getTime() <
-            parseInt(result.period))
-      ) {
-        successCallback(result);
-      } else {
-        failureCallback();
-      }
-    });
 }
 
 // 403 for file routes: styled page for browsers, plain status otherwise
@@ -492,93 +479,42 @@ function sendForbidden(req, res) {
   else res.sendStatus(403);
 }
 
+// Lets the request through when the site allows guests or the caller is signed in.
 // options.forbid: respond 403 instead of rendering the login page (for file routes)
 function ensureUser(options = {}) {
   return (req, res, next) => {
-    /* If the request is:
-      - Not trying to use an authorization header (longtermtoken)
-      - And MMGIS is not configured to use AUTH-local
-        OR
-      - There is already a user session with valid permissions set
-        Then continue
-
-      Otherwise, if there is an authorization header (longtermtoken), try to validate it.
-
-      Still if not, redirect to the login page
-    */
-    if (
-      (req.headers.authorization == null && process.env.AUTH != "local") ||
-      (typeof req.session.permission === "string" &&
-        (req.session.permission === "111" ||
-          req.session.permission === "110" ||
-          req.session.permission === "001"))
-    ) {
-      next();
-    } else {
-      if (req.headers.authorization) {
-        const remoteAddress =
-          req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-        validateLongTermToken(
-          req.headers.authorization,
-          (tokenData) => {
-            req.isLongTermToken = true;
-            req.tokenUserPermission = tokenData.permission;
-            req.tokenUserMissions = tokenData.missions_managing;
-            req.tokenUserMissionsViewing = tokenData.missions_viewing;
-            req.user = tokenData.username;
-            next();
-          },
-          () => {
-            res.send({ status: "failure", message: "Unauthorized Token!" });
-            logger(
-              "warn",
-              `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization.slice(0, 16)}...)`,
-              req.originalUrl,
-              req,
-            );
-          },
-        );
-      } else if (options.forbid) {
-        sendForbidden(req, res);
-      } else {
-        res.render("login", {
-          user: req.user,
-          CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
-          CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
-          AUTH_LOCAL_ALLOW_SIGNUP: process.env.AUTH_LOCAL_ALLOW_SIGNUP || false,
-          ROOT_PATH: isDevEnv ? "" : (process.env.ROOT_PATH ? process.env.ROOT_PATH + "/" : ""),
-        });
-      }
-    }
-    return;
+    ensurePrincipal(req)
+      .then((principal) => {
+        if (principal.kind === "invalid_token") {
+          res.send({ status: "failure", message: "Unauthorized Token!" });
+          return;
+        }
+        if (principal.authenticated || siteAccess.guestsAllowed()) {
+          next();
+          return;
+        }
+        if (options.forbid) sendForbidden(req, res);
+        else
+          res.render("login", {
+            user: req.user,
+            CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
+            CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
+            AUTH_LOCAL_ALLOW_SIGNUP:
+              process.env.AUTH_LOCAL_ALLOW_SIGNUP || false,
+            ROOT_PATH: isDevEnv
+              ? ""
+              : process.env.ROOT_PATH
+                ? process.env.ROOT_PATH + "/"
+                : "",
+          });
+      })
+      .catch(next);
   };
 }
 
-/**
- * Middleware to protect adjacent server proxies based on AUTH mode
- * - AUTH=off/none: Allow GETs, require admin for other methods (current behavior)
- * - AUTH=local/csso: Require user authentication for all methods
- */
+// Site gate for adjacent server proxies; per-method capabilities are declared on each proxy
 function ensureUserForAdjacentServers() {
-  return (req, res, next) => {
-    const authMode = process.env.AUTH;
-
-    // For 'off' and 'none', maintain current behavior:
-    // - Allow GET requests
-    // - Require admin for other methods
-    if (authMode === "off" || authMode === "none") {
-      if (req.method === "GET") {
-        next();
-        return;
-      }
-      // For non-GET methods, require admin
-      ensureAdmin()(req, res, next);
-      return;
-    }
-
-    // For 'local' and 'csso', require user authentication for all methods
-    ensureUser()(req, res, next);
-  };
+  return ensureUser();
 }
 
 var swaggerOptions = {
@@ -611,6 +547,13 @@ let s = {
   ensureAdmin,
   ensureUser,
   ensureUserForAdjacentServers,
+  authorize,
+  resolvers,
+  can,
+  missionNamesWith,
+  registerRouter,
+  siteAccess,
+  policy,
   swaggerUi,
   useSwaggerSchema,
   permissions,
@@ -683,6 +626,7 @@ app.set("view engine", "pug");
 
 // Ensure the CSSO handler runs on every request.
 app.use(cssoHandler);
+app.use(principalMiddleware);
 
 //app.use(logger('dev'));
 //app.use(express.json());
@@ -791,10 +735,11 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/Missions")),
   );
   app.get(s.ROOT_PATH + "/resetPassword", (req, res) => {
-    const user = process.env.AUTH === "csso" ? req.user : req.user || "";
+    const user = req.cssoAuthenticated ? req.user : req.user || "";
     res.render("../views/resetpassword.pug", {
       user: user,
-      AUTH: process.env.AUTH,
+      SITE_ACCESS: siteAccess.getSiteAccess(),
+      AUTH_PROVIDERS: JSON.stringify(siteAccess.getProviders()),
       NODE_ENV: process.env.NODE_ENV,
       ROOT_PATH:
         process.env.NODE_ENV === "development"
@@ -852,6 +797,18 @@ setups.getBackendSetups(function (setups) {
   //////Setups Init//////
   setups.init(s);
 
+  // Every registered API route must declare its permission
+  const undeclared = undeclaredRoutes();
+  if (undeclared.length > 0) {
+    logger(
+      "infrastructure_error",
+      "Routes without a declared permission (use s.authorize): " +
+        undeclared.map((r) => `${r.methods} ${r.path}`).join(", "),
+      "server",
+    );
+    process.exit(1);
+  }
+
   let httpServer;
   if (process.env.HTTPS == "true") {
     httpServer = https.createServer(
@@ -891,18 +848,22 @@ setups.getBackendSetups(function (setups) {
         ensureGroup(permissions.users),
         async (req, res) => {
           let user = guestUsername;
-          if (process.env.AUTH === "csso" || req.user != null) user = req.user;
+          if (req.principal && req.principal.authenticated)
+            user = req.principal.username;
+          else if (req.user != null) user = req.user;
 
-          let permission = "000";
-          if (process.env.AUTH === "csso") permission = "001";
-          if (req.session.permission) permission = req.session.permission;
+          const permission =
+            req.principal && req.principal.authenticated
+              ? policy.legacyPermission(req.principal.bindings || [])
+              : "000";
 
           const groups = req.groups ? Object.keys(req.groups) : [];
           res.render("../build/index.pug", {
             user: user,
             permission: permission,
             groups: JSON.stringify(groups),
-            AUTH: process.env.AUTH,
+            SITE_ACCESS: siteAccess.getSiteAccess(),
+            AUTH_PROVIDERS: JSON.stringify(siteAccess.getProviders()),
             NODE_ENV: process.env.NODE_ENV,
             VERSION: packagejson.version,
             FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
