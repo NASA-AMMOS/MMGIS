@@ -26,6 +26,7 @@ const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 const Utils = require("../../../../../API/utils");
 
 const router = express.Router();
+const { authorize, resolvers } = require("../../../../../API/authz/authorize");
 const db = database.db;
 
 const historyKey = {
@@ -40,7 +41,7 @@ const historyKey = {
   8: "Split",
 };
 
-router.post("/", function (req, res, next) {
+router.post("/", authorize("draw.use"), function (req, res, next) {
   res.send("test files");
 });
 
@@ -69,7 +70,7 @@ function getDrawToolVars(mission) {
  *    the mission's DrawTool variables (showNullMissionFiles, showMasterFiles).
  * }
  */
-router.post("/getfiles", async function (req, res, next) {
+router.post("/getfiles", authorize("draw.use"), async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   let showNullMissionFiles = true;
@@ -162,7 +163,7 @@ router.post("/getfiles", async function (req, res, next) {
  * 	published: <bool> (optional) get last published version (makes 'time' ignored)
  * }
  */
-router.post("/getfile", getfile);
+router.post("/getfile", authorize("site.view"), getfile);
 
 /**
  * Makes a new file
@@ -175,7 +176,7 @@ router.post("/getfile", getfile);
  *  mission: <string> (optional) -- mission this file belongs to (must exist)
  * }
  */
-router.post("/make", async function (req, res, next) {
+router.post("/make", authorize("draw.use"), async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   if (req.body.mission != null) {
@@ -398,7 +399,7 @@ router.post("/make", async function (req, res, next) {
  * 	id: <number> (required)
  * }
  */
-router.post("/remove", function (req, res, next) {
+router.post("/remove", authorize("draw.use"), function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   Table.update(
@@ -447,7 +448,7 @@ router.post("/remove", function (req, res, next) {
  * 	id: <number> (required)
  * }
  */
-router.post("/restore", function (req, res, next) {
+router.post("/restore", authorize("draw.use"), function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   Table.update(
@@ -499,7 +500,7 @@ router.post("/restore", function (req, res, next) {
  *  mission: <string> (optional, leads only) move the file to an existing mission
  * }
  */
-router.post("/change", async function (req, res, next) {
+router.post("/change", authorize("draw.use"), async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   const isLead = req.groups && req.groups["mmgis-group"] === true;
 
@@ -611,7 +612,7 @@ router.post("/change", async function (req, res, next) {
  *   newKeyword: <string>
  * }
  */
-router.post("/modifykeyword", function (req, res, next) {
+router.post("/modifykeyword", authorize("draw.use"), function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   const type = req.body.type;
@@ -1496,7 +1497,7 @@ const compile = function (req, res, callback, options) {
       return null;
     });
 };
-router.get("/compile", function (req, res, next) {
+router.get("/compile", authorize("draw.use"), function (req, res, next) {
   let sent = false;
   compile(req, res, (body) => {
     if (sent === true) return;
@@ -1518,7 +1519,7 @@ router.get("/compile", function (req, res, next) {
  * {
  * }
  */
-router.post("/publish", function (req, res, next) {
+router.post("/publish", authorize("draw.use"), function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
@@ -1730,7 +1731,7 @@ router.post("/publish", function (req, res, next) {
  * 	id: <int>
  * }
  */
-router.post("/gethistory", function (req, res, next) {
+router.post("/gethistory", authorize("draw.use"), function (req, res, next) {
   let Table = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
   Table.findAll({

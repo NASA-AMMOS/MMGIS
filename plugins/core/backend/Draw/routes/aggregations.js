@@ -11,6 +11,7 @@ const Userfiles = ufiles.Userfiles;
 const UserfilesTEST = ufiles.UserfilesTEST;
 
 const router = express.Router();
+const { authorize, resolvers } = require("../../../../../API/authz/authorize");
 
 /**
  * POST /api/draw/aggregations
@@ -25,7 +26,7 @@ const router = express.Router();
  * - startTime, endTime: Optional temporal filter
  * - timeProp: Optional time property name
  */
-router.post("/aggregations", function (req, res, next) {
+router.post("/aggregations", authorize("draw.use"), function (req, res, next) {
   const test = req.body.test === "true";
   const Table = test ? UserfilesTEST : Userfiles;
   const Histories = test ? FilehistoriesTEST : Filehistories;
