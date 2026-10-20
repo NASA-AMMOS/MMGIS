@@ -4,6 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
+const { authorize, resolvers } = require("../../../../../API/authz/authorize");
 const crypto = require("crypto");
 
 const logger = require("../../../../../API/logger");
@@ -15,7 +16,7 @@ const {
   getDefaultMissionsViewing,
 } = require("../../Users/models/userdefaults");
 
-router.get("/entries", function (req, res) {
+router.get("/entries", authorize("accounts.manage"), function (req, res) {
   User.findAll({
     attributes: [
       "id",
@@ -46,7 +47,7 @@ router.get("/entries", function (req, res) {
     });
 });
 
-router.delete("/remove/:id", function (req, res, next) {
+router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, next) {
   const id = parseInt(req.params.id);
 
   if (isNaN(id)) {
@@ -104,7 +105,7 @@ router.delete("/remove/:id", function (req, res, next) {
   return null;
 });
 
-router.post("/update", function (req, res, next) {
+router.post("/update", authorize("accounts.manage"), function (req, res, next) {
   let id = null;
   if (req.body.hasOwnProperty("id") && req.body.id != null) {
     id = parseInt(req.body.id);
@@ -201,7 +202,7 @@ router.post("/update", function (req, res, next) {
 });
 
 // Site-wide default missions_viewing stamped onto new accounts (enforced only under AUTH=local)
-router.get("/defaults", function (req, res) {
+router.get("/defaults", authorize("accounts.manage"), function (req, res) {
   getDefaultMissionsViewing()
     .then((missions_viewing) => {
       res.send({
@@ -218,7 +219,7 @@ router.get("/defaults", function (req, res) {
     });
 });
 
-router.post("/updateDefaults", function (req, res) {
+router.post("/updateDefaults", authorize("accounts.manage"), function (req, res) {
   if (req.session.permission !== "111") {
     res.send({
       status: "failure",
@@ -258,7 +259,7 @@ router.post("/updateDefaults", function (req, res) {
     });
 });
 
-router.post("/generateResetPasswordLink", function (req, res, next) {
+router.post("/generateResetPasswordLink", authorize("accounts.manage"), function (req, res, next) {
   let id = null;
   if (req.body.hasOwnProperty("id") && req.body.id != null) {
     id = parseInt(req.body.id);

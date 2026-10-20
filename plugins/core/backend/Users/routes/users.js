@@ -4,6 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
+const { authorize, resolvers } = require("../../../../../API/authz/authorize");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
@@ -30,7 +31,7 @@ function isStrongPassword(password) {
   );
 }
 
-router.post("/has", function (req, res, next) {
+router.post("/has", authorize.public("login and account self-service"), function (req, res, next) {
   User.count()
     .then((count) => {
       res.send({ status: "success", has: count !== 0 });
@@ -40,7 +41,7 @@ router.post("/has", function (req, res, next) {
     });
 });
 
-router.post("/first_signup", function (req, res, next) {
+router.post("/first_signup", authorize.public("login and account self-service"), function (req, res, next) {
   if (!req.body.password || !isStrongPassword(req.body.password)) {
     res.send({
       status: "failure",
@@ -83,7 +84,7 @@ router.post("/first_signup", function (req, res, next) {
     });
 });
 
-router.post("/signup", function (req, res, next) {
+router.post("/signup", authorize.public("login and account self-service"), function (req, res, next) {
   if (
     (process.env.AUTH === "local" &&
       req.session.permission !== "111" &&
@@ -264,7 +265,7 @@ router.post("/signup", function (req, res, next) {
 /**
  * User login
  */
-router.post("/login", authLimiter, function (req, res) {
+router.post("/login", authorize.public("login and account self-service"), authLimiter, function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;
@@ -413,7 +414,7 @@ router.post("/login", authLimiter, function (req, res) {
   return null;
 });
 
-router.post("/logout", function (req, res) {
+router.post("/logout", authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser = req.cookies.MMGISUser
     ? JSON.parse(req.cookies.MMGISUser)
     : false;
@@ -450,7 +451,7 @@ router.post("/logout", function (req, res) {
   }
 });
 
-router.get("/logged_in", function (req, res) {
+router.get("/logged_in", authorize.public("login and account self-service"), function (req, res) {
   if (
     typeof req.session.permission === "string" &&
     req.session.permission[req.session.permission.length - 1] === "1"
@@ -474,7 +475,7 @@ router.get("/logged_in", function (req, res) {
     });
 });
 
-router.post("/resetPassword", function (req, res) {
+router.post("/resetPassword", authorize.public("login and account self-service"), function (req, res) {
   let username = req.body.username;
   let password = req.body.password;
   let resetToken = req.body.resetToken;

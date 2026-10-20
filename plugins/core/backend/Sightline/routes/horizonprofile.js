@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { authorize, resolvers } = require("../../../../../API/authz/authorize");
 const { execFile } = require("child_process");
 const path = require("path");
 
@@ -9,7 +10,7 @@ const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 
 const scriptsDir = path.join(__dirname, "..", "scripts");
 
-router.post("/horizonprofile", computeLimiter, function (req, res) {
+router.post("/horizonprofile", authorize("site.view"), computeLimiter, function (req, res) {
   // Validate required fields
   if (req.body.path == null || req.body.lat == null || req.body.lng == null) {
     return res.status(400).json({ error: true, message: "path, lat, and lng are required" });

@@ -4,6 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
+const { authorize, resolvers } = require("../../../../../API/authz/authorize");
 const fs = require("fs");
 const path = require("path");
 const execFile = require("child_process").execFile;
@@ -231,7 +232,7 @@ function queryTilesetTimesStac(req, res) {
   });
 }
 
-router.get("/queryTilesetTimes", function (req, res) {
+router.get("/queryTilesetTimes", authorize("site.view"), function (req, res) {
   if (req.query.stacCollection != null) queryTilesetTimesStac(req, res);
   else queryTilesetTimesDir(req, res);
 });
@@ -239,14 +240,14 @@ router.get("/queryTilesetTimes", function (req, res) {
 // API
 // TODO: move to API/Backend
 //TEST
-router.get("/healthcheck", function (req, res) {
+router.get("/healthcheck", authorize.public("health check"), function (req, res) {
   res.send("Alive and Well!");
 });
 
 // TODO: Remove or move to Setup structure. Some are definitely still used.
 
 //utils getprofile
-router.post("/getprofile", computeLimiter, function (req, res) {
+router.post("/getprofile", authorize("site.view"), computeLimiter, function (req, res) {
   const pathResult = validateGdalDatasetPath(req.body.path);
   if (pathResult.error) {
     return res.status(400).json({ error: true, message: pathResult.error });
@@ -284,7 +285,7 @@ router.post("/getprofile", computeLimiter, function (req, res) {
 });
 
 //utils getbands
-router.post("/getbands", computeLimiter, function (req, res) {
+router.post("/getbands", authorize("site.view"), computeLimiter, function (req, res) {
   const pathResult = validateGdalDatasetPath(req.body.path);
   if (pathResult.error) {
     return res.status(400).json({ error: true, message: pathResult.error });
@@ -310,7 +311,7 @@ router.post("/getbands", computeLimiter, function (req, res) {
 });
 
 //utils getminmax
-router.post("/getminmax", computeLimiter, function (req, res) {
+router.post("/getminmax", authorize("site.view"), computeLimiter, function (req, res) {
   const pathResult = validateGdalDatasetPath(req.body.path);
   if (pathResult.error) {
     return res.status(400).json({ error: true, message: pathResult.error });
@@ -333,7 +334,7 @@ router.post("/getminmax", computeLimiter, function (req, res) {
 });
 
 //utils ll2aerll
-router.post("/ll2aerll", computeLimiter, function (req, res) {
+router.post("/ll2aerll", authorize("site.view"), computeLimiter, function (req, res) {
   const lng = encodeURIComponent(req.body.lng);
   const lat = encodeURIComponent(req.body.lat);
   const height = encodeURIComponent(req.body.height);
@@ -377,7 +378,7 @@ router.post("/ll2aerll", computeLimiter, function (req, res) {
 
 
 //utils ll2aerll_bulk (batch time queries, kernels loaded once)
-router.post("/ll2aerll_bulk", computeLimiter, function (req, res) {
+router.post("/ll2aerll_bulk", authorize("site.view"), computeLimiter, function (req, res) {
   const MAX_TIMES = 1000;
   if (!Array.isArray(req.body.times) || req.body.times.length === 0) {
     return res.status(400).json({ error: true, message: "times must be a non-empty array" });
@@ -437,7 +438,7 @@ router.post("/ll2aerll_bulk", computeLimiter, function (req, res) {
 });
 
 //utils chronos (spice time converter)
-router.post("/chronice", computeLimiter, function (req, res) {
+router.post("/chronice", authorize("site.view"), computeLimiter, function (req, res) {
   const body = encodeURIComponent(req.body.body);
   const target = encodeURIComponent(req.body.target);
   const fromFormat = encodeURIComponent(req.body.from);
@@ -461,7 +462,7 @@ router.post("/chronice", computeLimiter, function (req, res) {
 });
 
 //utils chronos (spice time converter)
-router.get("/proj42wkt", computeLimiter, function (req, res) {
+router.get("/proj42wkt", authorize("site.view"), computeLimiter, function (req, res) {
   const proj4 = encodeURIComponent(req.query.proj4);
 
   execFile(

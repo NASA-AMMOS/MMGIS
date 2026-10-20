@@ -412,7 +412,8 @@
       mmgisglobal.SERVER = "node";
       switch (NODE_ENV) {
         case "production":
-          mmgisglobal.AUTH = "#{AUTH}";
+          mmgisglobal.SITE_ACCESS = "#{SITE_ACCESS}";
+          mmgisglobal.AUTH_PROVIDERS = "#{AUTH_PROVIDERS}";
           mmgisglobal.version = "#{VERSION}";
           mmgisglobal.user = "#{user}";
           mmgisglobal.permission = "#{permission}";
@@ -434,7 +435,8 @@
           mmgisglobal.LANDING_LOGO_URL = "#{LANDING_LOGO_URL}";
           break;
         default:
-          mmgisglobal.AUTH = "%AUTH%";
+          mmgisglobal.SITE_ACCESS = "%SITE_ACCESS%";
+          mmgisglobal.AUTH_PROVIDERS = "%AUTH_PROVIDERS%";
           mmgisglobal.version = "%VERSION%";
           mmgisglobal.user = "guest";
           mmgisglobal.permission = "000";
