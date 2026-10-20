@@ -351,7 +351,7 @@ function AccountDefaults() {
         Default Viewable Missions for New Accounts
       </Typography>
       <Typography className={c.defaultsNote}>
-        {`Applied to every newly created account in all AUTH modes, but only enforced when AUTH=local. Off = new accounts can view all missions. On with none selected = new accounts can view no missions until a SuperAdmin grants some. Only SuperAdmins can change this.`}
+        {`Applied to every newly created account in every SITE_ACCESS mode as viewer role assignments. Off = new accounts can view all missions. On with none selected = new accounts can view no missions until a SuperAdmin grants some. Only SuperAdmins can change this.`}
       </Typography>
       <div className={c.defaultsRow}>
         <FormControlLabel
@@ -601,22 +601,20 @@ export default function Users() {
   );
 
   let authDescription = null;
-  switch (mmgisglobal.AUTH) {
-    case "off":
+  const providers = mmgisglobal.authProviders || [];
+  switch (mmgisglobal.SITE_ACCESS) {
+    case "public":
       authDescription =
-        "- Guests are allowed access. No authentication. Users cannot sign up or log in. Tools that require log in will not work.";
+        "- Guests are allowed access. Users cannot sign up or log in on the main site. Tools that require log in will not work.";
       break;
-    case "none":
+    case "optional":
       authDescription =
-        "- Guests are allowed access. No authentication. Users can still sign up and log in from within MMGIS.";
+        "- Guests are allowed access. Users can still sign up and log in from within MMGIS.";
       break;
-    case "local":
-      authDescription =
-        "- Anyone without credentials is blocked. Either the Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true so that users may sign up on their own.";
-      break;
-    case "csso":
-      authDescription =
-        "- Using an external Cloud Single Sign On (CSSO) service that's proxied in front of MMGIS for authentication.";
+    case "required":
+      authDescription = providers.includes("csso")
+        ? "- Anyone without credentials is blocked. Login is through an external Cloud Single Sign On (CSSO) service proxied in front of MMGIS."
+        : "- Anyone without credentials is blocked. Either an Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true so that users may sign up on their own.";
       break;
     default:
       break;
@@ -629,8 +627,11 @@ export default function Users() {
           <EnhancedTableToolbar />
           {authDescription != null && (
             <div className={c.authIndicator}>
-              <div>AUTH:</div>
-              <div>{mmgisglobal.AUTH}</div>
+              <div>SITE_ACCESS:</div>
+              <div>
+                {mmgisglobal.SITE_ACCESS}
+                {providers.length > 0 ? ` (${providers.join(", ")})` : ""}
+              </div>
               <div>{authDescription}</div>
             </div>
           )}

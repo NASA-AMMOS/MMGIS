@@ -36,7 +36,7 @@ async function isLoginPage(response) {
 }
 
 test.describe('ENV Variable Behavior', () => {
-  const authMode = process.env.AUTH || 'off';
+  const authMode = process.env.MMGIS_TEST_AUTH_MODE || 'off';
 
   test('healthcheck works regardless of AUTH mode', async ({ request }) => {
     const res = await request.get(`${BASE}/api/utils/healthcheck`, { timeout: 10000 });

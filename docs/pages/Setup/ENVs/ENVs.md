@@ -19,14 +19,31 @@ The kind of server running (apache is deprecated) | string enum | default `''`
 - _node:_ A node express server running NodeJS v22.20.0+
 - _apache (deprecated):_ Served through Apache. Some or all functionality may not work
 
-#### `AUTH=`
+#### `SITE_ACCESS=`
 
-The kind of authentication method used | string enum | default `''`
+Who can view the main site | string enum | no default (required)
 
-- _off:_ No authentication. Users cannot sign up or log in. Tools that require log in will not work.
-- _none:_ No authentication. Users can still sign up and log in from within MMGIS.
-- _local:_ Anyone without credentials is blocked. The Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true.
-- _csso:_ Use a Cloud Single Sign On service that's proxied in front of MMGIS.
+- _public:_ Anyone can view. There is no end-user login on the main site; only admins log in at `/configure`.
+- _optional:_ Anyone can view. Users can sign up and log in from within MMGIS (e.g. to save Draw files).
+- _required:_ Visitors must log in to see anything. The Admin must log in, create accounts and pass out the credentials or set `AUTH_LOCAL_ALLOW_SIGNUP=true`.
+
+The old `AUTH` variable has been removed. MMGIS refuses to start while `AUTH` is set and prints its replacement:
+
+| Old | New |
+|---|---|
+| `AUTH=off` | `SITE_ACCESS=public` `AUTH_PROVIDERS=["local"]` |
+| `AUTH=none` | `SITE_ACCESS=optional` `AUTH_PROVIDERS=["local"]` |
+| `AUTH=local` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["local"]` |
+| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["csso"]` |
+
+#### `AUTH_PROVIDERS=`
+
+Login methods, as a JSON array or comma-separated list | string[] | default `["local"]`
+
+- _local:_ MMGIS username/password accounts. Keep it listed so `/configure` admins can always log in.
+- _csso:_ A Cloud Single Sign On service proxied in front of MMGIS. See `CSSO_PROXY_SECRET`.
+
+`ldap` and `earthdata` are reserved for future providers and are rejected for now.
 
 #### `NODE_ENV=`
 
@@ -115,11 +132,15 @@ Test-specific database password. Required by test infrastructure for least-privi
 
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
-If AUTH=local and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
+If SITE_ACCESS=required and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
 
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`
+
+#### `CSSO_PROXY_SECRET=`
+
+When `AUTH_PROVIDERS` includes `csso`, identity headers are only trusted on requests carrying a matching `X-MMGIS-Proxy-Secret` header, which the CSSO proxy must add. If unset, MMGIS logs a warning and trusts identity headers from any request, so MMGIS must then only be reachable through the proxy | string | default `''`
 
 #### `VERBOSE_LOGGING=`
 
@@ -135,7 +156,7 @@ Sets the `Content-Security-Policy: frame-src` header to allow the embedding ifra
 
 #### `THIRD_PARTY_COOKIES=`
 
-Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local as an iframe within a cross-origin page. | boolean | default `false`
+Sets "SameSite=None; Secure" on the login cookie. Useful when using SITE_ACCESS=required as an iframe within a cross-origin page. | boolean | default `false`
 
 #### `CORS_ORIGINS=`
 

@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Auth Bypass Protection', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
-  test.skip(process.env.AUTH === 'off', 'SKIP: Requires AUTH != off to test auth bypass');
+  test.skip(process.env.MMGIS_TEST_AUTH_MODE === 'off', 'SKIP: Requires AUTH != off to test auth bypass');
 
   test('admin endpoints reject unauthenticated requests', async ({ request }) => {
     // Try admin-only endpoints without auth

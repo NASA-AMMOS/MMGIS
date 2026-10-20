@@ -16,6 +16,11 @@ jobs:
     strategy:
       matrix:
         auth_mode: [off, local]
+        include:
+          - auth_mode: off
+            site_access: public
+          - auth_mode: local
+            site_access: required
 
     services:
       postgres:
@@ -59,9 +64,11 @@ jobs:
       - name: Setup test environment
         run: |
           cp sample.env .env || touch .env
+          sed -i "/^SITE_ACCESS=/d;/^AUTH_PROVIDERS=/d" .env
           echo "NODE_ENV=test" >> .env
           echo "PORT=18888" >> .env
-          echo "AUTH=${{ matrix.auth_mode }}" >> .env
+          echo "SITE_ACCESS=${{ matrix.site_access }}" >> .env
+          echo 'AUTH_PROVIDERS=["local"]' >> .env
           echo "DB_HOST=localhost" >> .env
           echo "DB_PORT=5432" >> .env
           echo "DB_NAME=mmgis-test" >> .env
@@ -81,13 +88,15 @@ jobs:
       - name: Run Unit Tests
         run: npx playwright test tests/unit --project=chromium
         env:
-          AUTH: ${{ matrix.auth_mode }}
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
           PLAYWRIGHT_TEST_UNIT_ONLY: "true"
 
       - name: Run E2E API Tests
         run: npx playwright test tests/e2e/api tests/e2e/security tests/e2e/startup --project=chromium
         env:
-          AUTH: ${{ matrix.auth_mode }}
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
 
       - name: Upload test results
         if: always()
