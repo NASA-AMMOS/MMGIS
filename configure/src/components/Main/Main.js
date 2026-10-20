@@ -40,6 +40,7 @@ import Time from "../Tabs/Time/Time";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 import APITokens from "../../pages/APITokens/APITokens";
+import Access from "../../pages/Access/Access";
 import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
@@ -241,6 +242,9 @@ export default function Main() {
       break;
     case "users":
       Page = <Users />;
+      break;
+    case "access":
+      Page = <Access />;
       break;
     case "data_formats":
       Page = <DataFormats />;

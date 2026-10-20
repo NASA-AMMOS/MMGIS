@@ -29,6 +29,7 @@ import ApiIcon from "@mui/icons-material/Api";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
 import AccountBoxIcon from "@mui/icons-material/AccountBox";
+import SecurityIcon from "@mui/icons-material/Security";
 import StorageIcon from "@mui/icons-material/Storage";
 import WarningIcon from "@mui/icons-material/Warning";
 
@@ -201,13 +202,21 @@ export default function Panel() {
     );
   }, [dispatch]);
 
-  const canEditMission = (mission) => {
-    if (!userPermissions) return true; // Default to allowing until we know
-    if (userPermissions.permission === "111") return true; // SuperAdmin can edit all
-    if (userPermissions.permission !== "110") return false; // Non-admins, who can't even access this page, can't edit any
+  // Until permissions load, only show what the legacy page flag allowed
+  const can = (cap) =>
+    userPermissions?.capabilities
+      ? userPermissions.capabilities.includes(cap)
+      : window.mmgisglobal?.permission === "111";
 
-    const managingMissions = userPermissions.missions_managing || [];
-    return managingMissions.includes(mission);
+  // missions_managing / missions_layer_editing: null means every mission
+  const canEditMission = (mission) => {
+    if (!userPermissions) return true;
+    const lists = [
+      userPermissions.missions_managing,
+      userPermissions.missions_layer_editing,
+    ];
+    if (lists.some((l) => l === null)) return true;
+    return lists.some((l) => Array.isArray(l) && l.includes(mission));
   };
 
   // Version mismatch detection
@@ -263,7 +272,7 @@ export default function Panel() {
             </>
           )}
         </div>
-        {window.mmgisglobal?.permission === "111" && (
+        {can("mission.create") && (
           <div className={c.newMission}>
             <Button
               className={c.newMissionButton}
@@ -329,7 +338,8 @@ export default function Panel() {
           >
             Data Formats
           </Button>
-          <Button
+          {can("data.geodatasets.write") && (
+            <Button
             className={c.pageButton}
             variant="contained"
             disableElevation
@@ -341,7 +351,9 @@ export default function Panel() {
           >
             GeoDatasets
           </Button>
-          <Button
+          )}
+          {can("data.datasets.write") && (
+            <Button
             className={c.pageButton}
             variant="contained"
             disableElevation
@@ -353,8 +365,9 @@ export default function Panel() {
           >
             Datasets
           </Button>
+          )}
 
-          {window.mmgisglobal.WITH_STAC === "true" ? (
+          {window.mmgisglobal.WITH_STAC === "true" && can("data.stac.write") ? (
             <Button
               className={c.pageButton}
               variant="contained"
@@ -369,7 +382,8 @@ export default function Panel() {
             </Button>
           ) : null}
 
-          <Button
+          {can("tokens.create") && (
+            <Button
             className={c.pageButton}
             variant="contained"
             disableElevation
@@ -381,6 +395,7 @@ export default function Panel() {
           >
             API Tokens
           </Button>
+          )}
 
           <Button
             className={c.pageButton}
@@ -395,7 +410,8 @@ export default function Panel() {
             APIs
           </Button>
 
-          <Button
+          {can("webhooks.manage") && (
+            <Button
             className={c.pageButton}
             variant="contained"
             disableElevation
@@ -407,8 +423,10 @@ export default function Panel() {
           >
             Webhooks
           </Button>
+          )}
 
-          <Button
+          {can("options.manage") && (
+            <Button
             className={c.pageButton}
             variant="contained"
             disableElevation
@@ -420,8 +438,10 @@ export default function Panel() {
           >
             General Options
           </Button>
+          )}
 
-          <Button
+          {can("accounts.manage") && (
+            <Button
             className={c.pageButton}
             variant="contained"
             disableElevation
@@ -433,6 +453,21 @@ export default function Panel() {
           >
             Users
           </Button>
+          )}
+          {can("groups.manage") && (
+            <Button
+              className={c.pageButton}
+              variant="contained"
+              disableElevation
+              startIcon={<SecurityIcon size="small" />}
+              onClick={() => {
+                dispatch(setMission(null));
+                dispatch(setPage({ page: "access" }));
+              }}
+            >
+              Access
+            </Button>
+          )}
         </div>
       </div>
       <NewMissionModal />

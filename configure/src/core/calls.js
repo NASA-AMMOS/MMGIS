@@ -62,6 +62,54 @@ const c = {
     type: "GET",
     url: "api/configure/user-permissions",
   },
+  authz_me: {
+    type: "GET",
+    url: "api/authz/me",
+  },
+  authz_roles: {
+    type: "GET",
+    url: "api/authz/roles",
+  },
+  authz_missions: {
+    type: "GET",
+    url: "api/authz/missions",
+  },
+  authz_groups: {
+    type: "GET",
+    url: "api/authz/groups",
+  },
+  authz_groups_create: {
+    type: "POST",
+    url: "api/authz/groups/create",
+  },
+  authz_groups_delete: {
+    type: "POST",
+    url: "api/authz/groups/delete",
+  },
+  authz_members_add: {
+    type: "POST",
+    url: "api/authz/groups/members/add",
+  },
+  authz_members_remove: {
+    type: "POST",
+    url: "api/authz/groups/members/remove",
+  },
+  authz_bindings: {
+    type: "GET",
+    url: "api/authz/bindings",
+  },
+  authz_bindings_add: {
+    type: "POST",
+    url: "api/authz/bindings/add",
+  },
+  authz_bindings_remove: {
+    type: "POST",
+    url: "api/authz/bindings/remove",
+  },
+  authz_effective: {
+    type: "GET",
+    url: "api/authz/effective",
+  },
   versions: {
     type: "GET",
     url: "api/configure/versions",
