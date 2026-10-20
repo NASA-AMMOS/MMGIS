@@ -131,6 +131,8 @@ function bindingGrants(binding, cap, chain) {
 // }
 function can(principal, cap, resource) {
   if (!principal || !CAPABILITIES[cap]) return false;
+  // Guests get nothing at all when the site requires login
+  if (!principal.authenticated && principal.guestsAllowed === false) return false;
   const token = principal.token;
   if (token) {
     if (Array.isArray(token.scopes) && !token.scopes.includes(cap))
@@ -153,12 +155,23 @@ function can(principal, cap, resource) {
     BASELINE[principal.authenticated ? "authenticated" : "anonymous"];
   if (baseline.has(cap)) return true;
   const chain = scopeChain(resource);
-  return (principal.bindings || []).some((b) => bindingGrants(b, cap, chain));
+  const bindings = principal.bindings || [];
+  if (bindings.some((b) => bindingGrants(b, cap, chain))) return true;
+  // Editing any layer in a mission implies viewing that mission
+  if (cap === "mission.view" && resource && resource.mission)
+    return bindings.some(
+      (b) =>
+        ROLE_CAPS[b.role] &&
+        ROLE_CAPS[b.role].has(cap) &&
+        b.scope.startsWith(`layer:${resource.mission}:`)
+    );
+  return false;
 }
 
 // Missions (UUIDs) where cap is granted. null = every mission.
 function missionsWith(principal, cap) {
   if (!principal) return [];
+  if (!principal.authenticated && principal.guestsAllowed === false) return [];
   let result = null;
   const bindings = principal.bindings || [];
   const global = bindings.some((b) => bindingGrants(b, cap, ["global"]));

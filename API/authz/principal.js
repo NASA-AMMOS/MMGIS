@@ -131,6 +131,7 @@ async function anonymousPrincipal() {
   return cached("anonymous", async () => ({
     kind: "anonymous",
     authenticated: false,
+    guestsAllowed: siteAccess.guestsAllowed(),
     userId: null,
     username: null,
     groupIds: [],
