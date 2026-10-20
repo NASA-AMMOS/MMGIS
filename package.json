@@ -96,7 +96,7 @@
     "chart.js": "^3.6.0",
     "chartjs-plugin-zoom": "^1.2.1",
     "chroma-js": "^1.4.1",
-    "compression": "1.8.1",
+    "compression": "1.8.2",
     "connect-pg-simple": "10.0.0",
     "cookie-parser": "1.4.7",
     "cors": "^2.8.5",
