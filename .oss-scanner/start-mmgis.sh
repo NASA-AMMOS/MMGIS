@@ -38,5 +38,7 @@ post /api/users/first_signup "{\"username\":\"$ADMIN_USER\",\"password\":\"$ADMI
 post /api/users/login "{\"username\":\"$ADMIN_USER\",\"password\":\"$ADMIN_PASS\"}"
 post /api/configure/add '{"setupReferenceMission":true}' || true
 post /api/users/signup "{\"username\":\"$USER_USER\",\"password\":\"$USER_PASS\",\"email\":\"user@example.com\"}" || true
+# signup switches the session to the new user, so log back in as admin for the cookie jar
+post /api/users/login "{\"username\":\"$ADMIN_USER\",\"password\":\"$ADMIN_PASS\"}" > /dev/null
 
 echo "MMGIS is running at $URL (admin session cookies in $JAR)"
