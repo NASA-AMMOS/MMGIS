@@ -16,6 +16,7 @@
  *
  * Only ever targets the mmgis-test database.
  */
+require("dotenv").config();
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
@@ -274,11 +275,37 @@ async function verify() {
   console.log(`OK: ${after.length} password hashes unchanged, ${results.length} login probes identical.`);
 }
 
+// Prints a fingerprint of everything an upgrade must not change before startup
+async function snapshot() {
+  const client = new Client({
+    host: process.env.DB_HOST || "localhost",
+    port: Number(process.env.DB_PORT || 5432),
+    user: process.env.DB_USER_TEST || process.env.DB_USER,
+    password: process.env.DB_PASS_TEST || process.env.DB_PASS,
+    database: TEST_DB_NAME,
+  });
+  await client.connect();
+  try {
+    const out = [];
+    const { rows } = await client.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"
+    );
+    out.push(rows.map((r) => r.table_name).join(","));
+    out.push(JSON.stringify((await client.query("SELECT * FROM users ORDER BY id")).rows));
+    for (const t of ["role_bindings", "auth_missions", "auth_meta"])
+      if (rows.some((r) => r.table_name === t))
+        out.push(`${t}:${(await client.query(`SELECT count(*) FROM ${t}`)).rows[0].count}`);
+    console.log(require("crypto").createHash("sha256").update(out.join("\n")).digest("hex"));
+  } finally {
+    await client.end();
+  }
+}
+
 const cmd = process.argv[2];
-(cmd === "seed" ? seed : cmd === "verify" ? verify : () => {
-  console.error("usage: legacy-accounts.js seed|verify");
+({ seed, verify, snapshot }[cmd] || (() => {
+  console.error("usage: legacy-accounts.js seed|verify|snapshot");
   process.exit(2);
-})().catch((err) => {
+}))().catch((err) => {
   console.error(err);
   process.exit(1);
 });

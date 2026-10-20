@@ -12,10 +12,29 @@ function models() {
   return { ...authz, User };
 }
 
-// Returns the bindings the import would create (no writes)
-async function plan() {
+// Mission name -> UUID without creating anything (for dry runs)
+async function readOnlyMissionLookup() {
+  const { AuthMission } = models();
+  const Config = require("../../plugins/core/backend/Config/models/config");
+  let known = new Map();
+  try {
+    known = new Map((await AuthMission.findAll({ raw: true })).map((r) => [r.name, r.uuid]));
+  } catch (err) {
+    // Roles tables do not exist yet: every mission would get a new UUID
+  }
+  const configured = new Set(
+    (await Config.aggregate("mission", "DISTINCT", { plain: false })).map((r) => r.DISTINCT)
+  );
+  return async (name) =>
+    known.get(name) || (configured.has(name) ? `(new UUID for ${name})` : null);
+}
+
+// Returns the bindings the import would create. With dryRun nothing is written.
+async function plan({ dryRun = false } = {}) {
   const { User } = models();
-  await missions.backfill();
+  let lookup = missions.uuidForName;
+  if (dryRun) lookup = await readOnlyMissionLookup();
+  else await missions.backfill();
   const users = await User.findAll({
     attributes: ["id", "username", "permission", "missions_managing", "missions_viewing"],
     order: [["id", "ASC"]],
@@ -25,7 +44,7 @@ async function plan() {
   const unknownMissions = new Set();
   const add = (b) => bindings.push({ source: "import", ...b });
   const missionScope = async (name) => {
-    const uuid = await missions.uuidForName(name);
+    const uuid = await lookup(name);
     if (!uuid) unknownMissions.add(name);
     return uuid;
   };
@@ -63,7 +82,12 @@ async function plan() {
 
 async function alreadyImported() {
   const { AuthMeta } = models();
-  return (await AuthMeta.findOne({ where: { key: IMPORT_KEY } })) != null;
+  try {
+    return (await AuthMeta.findOne({ where: { key: IMPORT_KEY } })) != null;
+  } catch (err) {
+    // auth_meta does not exist yet
+    return false;
+  }
 }
 
 // Idempotent: runs once per database
