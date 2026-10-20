@@ -1382,6 +1382,8 @@ router.get("/schema", function (req, res, next) {
 // Bulk aggregations endpoint — returns aggregated field values across
 // multiple geodataset layers in a single call.
 // GET /api/geodatasets/bulk_aggregations?layers=layer1,layer2,...&limit=500
+// With `fields`, returns every distinct value combination of those fields
+// (paginated via limit/offset) instead of a random row sample.
 router.get("/bulk_aggregations", function (req, res, next) {
   const layersParam = req.query.layers;
   if (!layersParam) {
@@ -1399,6 +1401,12 @@ router.get("/bulk_aggregations", function (req, res, next) {
   }
 
   const cappedLayerNames = layerNames.slice(0, 100);
+
+  if (req.query.fields) {
+    bulkDistinctFieldValues(req, res, cappedLayerNames);
+    return;
+  }
+
   const _sl = req.query.limit != null ? parseInt(req.query.limit) : 500;
   const sampleLimit = Number.isNaN(_sl) ? 500 : Math.min(Math.max(_sl, 1), 1000);
 
@@ -1509,6 +1517,154 @@ router.get("/bulk_aggregations", function (req, res, next) {
       });
     });
 });
+
+const BULK_DISTINCT_DEFAULT_LIMIT = 5000;
+const BULK_DISTINCT_MAX_LIMIT = 10000;
+const BULK_DISTINCT_MAX_FIELDS = 20;
+const BULK_DISTINCT_MAX_LAYERS = 10;
+const BULK_DISTINCT_STATEMENT_TIMEOUT_MS = 30000;
+
+// Resolves requested time columns to actual columns of `table`, else defaults.
+async function resolveTimeColumns(table, startProp, endProp) {
+  const pick = (columns, requested, fallback) => {
+    const i = columns.indexOf(Utils.forceAlphaNumUnder(requested || fallback));
+    return i >= 0 ? columns[i] : fallback;
+  };
+  try {
+    const columns = Object.keys(
+      await sequelize.getQueryInterface().describeTable(table)
+    );
+    return {
+      startCol: pick(columns, startProp, "start_time"),
+      endCol: pick(columns, endProp, "end_time"),
+    };
+  } catch (_e) {
+    // Table can't be described (e.g. missing): use the default time columns.
+    return { startCol: "start_time", endCol: "end_time" };
+  }
+}
+
+// Distinct value combinations of `fields` (dot paths into properties) across
+// the given geodataset layers, ordered for stable limit/offset pagination.
+// Each row is { values: [value per field, in `fields` order], count }.
+function bulkDistinctFieldValues(req, res, layerNames) {
+  const fields = String(req.query.fields)
+    .split(",")
+    .map((f) => f.trim())
+    .filter(Boolean);
+  if (fields.length === 0) {
+    res.send({ status: "failure", message: "No valid fields provided." });
+    return;
+  }
+  if (fields.length > BULK_DISTINCT_MAX_FIELDS) {
+    res.send({
+      status: "failure",
+      message: `Too many fields (max ${BULK_DISTINCT_MAX_FIELDS}).`,
+    });
+    return;
+  }
+  if (layerNames.length > BULK_DISTINCT_MAX_LAYERS) {
+    res.send({
+      status: "failure",
+      message: `Too many layers for fields mode (max ${BULK_DISTINCT_MAX_LAYERS}).`,
+    });
+    return;
+  }
+
+  const parsedLimit = Number.parseInt(req.query.limit, 10);
+  const limit = Number.isNaN(parsedLimit)
+    ? BULK_DISTINCT_DEFAULT_LIMIT
+    : Math.min(Math.max(parsedLimit, 1), BULK_DISTINCT_MAX_LIMIT);
+  const parsedOffset = Number.parseInt(req.query.offset, 10);
+  const offset = Number.isNaN(parsedOffset) ? 0 : Math.max(parsedOffset, 0);
+
+  const { starttime, endtime } = req.query;
+  const timeFiltered = Boolean(starttime && endtime);
+
+  const Op = require("sequelize").Op;
+  Geodatasets.findAll({ where: { name: { [Op.in]: layerNames } } })
+    .then(async (results) => {
+      if (!results || results.length === 0) {
+        res.send({
+          status: "success",
+          fields,
+          rows: [],
+          limit,
+          offset,
+          hasMore: false,
+        });
+        return;
+      }
+
+      const replacements = { limit: limit + 1, offset };
+      fields.forEach((f, i) => {
+        replacements[`f${i}`] = f.split(".");
+      });
+      if (timeFiltered) {
+        replacements.starttime = new Date(starttime).getTime();
+        replacements.endtime = new Date(endtime).getTime();
+      }
+
+      const cols = fields.map((_f, i) => `v${i}`);
+      const selects = cols
+        .map((c, i) => `properties #>> ARRAY[:f${i}]::text[] AS ${c}`)
+        .join(", ");
+      const subqueries = await Promise.all(
+        results.map(async (result) => {
+          const table = Utils.forceAlphaNumUnder(result.dataValues.table);
+          let sq = `SELECT ${selects} FROM ${table}`;
+          if (timeFiltered) {
+            const { startCol, endCol } = await resolveTimeColumns(
+              table,
+              req.query.startProp,
+              req.query.endProp
+            );
+            sq += ` WHERE ${startCol} >= :starttime AND ${endCol} <= :endtime`;
+          }
+          return sq;
+        })
+      );
+
+      const q = `SELECT ${cols.join(", ")}, COUNT(*)::int AS count FROM (${subqueries.join(
+        " UNION ALL "
+      )}) AS combined WHERE ${cols
+        .map((c) => `${c} IS NOT NULL`)
+        .join(" OR ")} GROUP BY ${cols.join(", ")} ORDER BY ${cols.join(
+        ", "
+      )} LIMIT :limit OFFSET :offset;`;
+
+      // Bound the GROUP BY so a large or repeated request can't tie up the database.
+      const dbRows = await sequelize.transaction(async (transaction) => {
+        await sequelize.query(
+          `SET LOCAL statement_timeout = ${BULK_DISTINCT_STATEMENT_TIMEOUT_MS}`,
+          { transaction }
+        );
+        const [r] = await sequelize.query(q, { replacements, transaction });
+        return r;
+      });
+      const hasMore = dbRows.length > limit;
+      const rows = dbRows.slice(0, limit).map((dbRow) => ({
+        values: cols.map((c) => dbRow[c]),
+        count: dbRow.count,
+      }));
+
+      res.send({ status: "success", fields, rows, limit, offset, hasMore });
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failure querying distinct bulk geodataset field values.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failure querying bulk geodataset aggregations.",
+      });
+    });
+}
 
 //Returns a list of entries in the geodatasets table
 router.post("/entries", function (req, res, next) {

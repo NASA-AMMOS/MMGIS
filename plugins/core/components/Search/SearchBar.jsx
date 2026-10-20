@@ -61,6 +61,74 @@ function getSearchFieldStringForFeature(searchFields, name, props) {
 
 // Returns { label, fields } for a feature — label is the composite display
 // string, fields is { fieldName: transformedValue } for each search field.
+// Rebuilds a properties object from a bulk_aggregations `fields` row,
+// whose values are ordered like `fields` (dot paths).
+// Keys are only ever read as own properties and written with defineProperty,
+// so names like `__proto__` or `constructor` stay plain data keys.
+function setOwnProp(obj, key, value) {
+    Object.defineProperty(obj, key, { value, writable: true, enumerable: true, configurable: true })
+}
+function distinctRowToProps(fields, values) {
+    const props = {}
+    fields.forEach((field, i) => {
+        if (values[i] == null) return
+        const path = field.split('.')
+        let obj = props
+        for (const key of path.slice(0, -1)) {
+            const next = Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : null
+            if (next == null || typeof next !== 'object') setOwnProp(obj, key, {})
+            obj = obj[key]
+        }
+        setOwnProp(obj, path[path.length - 1], values[i])
+    })
+    return props
+}
+
+function getValuesEmptyMessage({ selectedLayer, valuesLoading, hasValues, loadFailed, valuesIntersectOnly, inputValue }) {
+    if (!selectedLayer) return 'Select a layer'
+    if (valuesLoading) return 'Loading...'
+    if (!hasValues && loadFailed) return 'Failed to load values'
+    if (!hasValues) return valuesIntersectOnly ? 'No common values' : 'No values'
+    if (inputValue) return 'No matches'
+    return 'Type to search'
+}
+
+// Unique-label map of search entries for a layer's reconstructed properties.
+function buildLayerValueMap(searchFields, lname, propsList) {
+    const vals = new Map()
+    for (const props of propsList) {
+        const entry = getSearchFieldEntryForFeature(searchFields, lname, props)
+        if (entry.label && !vals.has(entry.label)) vals.set(entry.label, entry)
+    }
+    return vals
+}
+
+// Pages through bulk_aggregations `fields` mode until every distinct value
+// combination is fetched. Resolves with one properties object per combination;
+// rejects if any page fails so a partial list is never treated as complete.
+function fetchGeodatasetDistinctProps(params, isCancelled) {
+    return new Promise((resolve, reject) => {
+        const all = []
+        const fetchPage = (offset) => {
+            calls.api(
+                'geodatasets_bulk_aggregations',
+                { ...params, offset },
+                (d) => {
+                    if (isCancelled()) return resolve(all)
+                    if (d?.status !== 'success' || !Array.isArray(d.rows) || !Array.isArray(d.fields)) {
+                        return reject(new Error(d?.message || 'bulk_aggregations failed'))
+                    }
+                    for (const row of d.rows) all.push(distinctRowToProps(d.fields, row.values || []))
+                    if (d.hasMore === true && d.rows.length > 0) fetchPage(offset + d.rows.length)
+                    else resolve(all)
+                },
+                () => reject(new Error('bulk_aggregations request failed'))
+            )
+        }
+        fetchPage(0)
+    })
+}
+
 function getSearchFieldEntryForFeature(searchFields, name, props) {
     const F_ = require('@basics/Formulae_/Formulae_').default
     const fields = {}
@@ -197,6 +265,9 @@ function SearchBar({ componentVars }) {
     // Tracks whether the values-building effect is still running
     const [valuesLoading, setValuesLoading] = useState(false)
 
+    // Layers whose values could not be fully loaded in the values-building effect
+    const [valuesLoadFailed, setValuesLoadFailed] = useState([])
+
     // 'select' (default) = highlight/pan to matches; 'filter' = apply real layer filters
     const [searchMode, setSearchMode] = useState('select')
 
@@ -205,6 +276,9 @@ function SearchBar({ componentVars }) {
 
     // Cached per-layer value sets — avoids re-fetching when toggling All/Common
     const cachedPerLayerValues = useRef({})
+    // Layers whose values failed to load; their membership is unknown, so
+    // Common mode cannot compute a trustworthy intersection while any are present
+    const failedPerLayerValues = useRef(new Set())
 
     // Time-range warning state: { layerName, start, end } when filter bypasses time bounds
     const [timeRangeWarning, setTimeRangeWarning] = useState(null)
@@ -413,7 +487,14 @@ function SearchBar({ componentVars }) {
     // filter to layers that actually have the value.
     const mergePerLayerValues = useCallback(
         (targetLayers) => {
-            const MAX_VALUES = 500
+            if (
+                valuesIntersectOnly &&
+                targetLayers.length > 1 &&
+                targetLayers.some((l) => failedPerLayerValues.current.has(l))
+            ) {
+                setArrayToSearch([])
+                return
+            }
             const allMaps = targetLayers
                 .map((l) => [l, cachedPerLayerValues.current[l]])
                 .filter(([, m]) => m && m.size !== undefined)
@@ -456,7 +537,7 @@ function SearchBar({ componentVars }) {
                 if (!isNaN(entries[0].label)) entries.sort((a, b) => a.label - b.label)
                 else entries.sort((a, b) => a.label > b.label ? 1 : -1)
             }
-            setArrayToSearch(entries.slice(0, MAX_VALUES))
+            setArrayToSearch(entries)
             setPlaceholder(getSearchFieldKeys(effectiveSearchFields, targetLayers[0]) || 'Search...')
         },
         [effectiveSearchFields, valuesIntersectOnly]
@@ -478,6 +559,8 @@ function SearchBar({ componentVars }) {
 
         let cancelled = false
         setValuesLoading(true)
+        setValuesLoadFailed([])
+        failedPerLayerValues.current = new Set()
 
         // Determine which layers to gather suggestions from
         const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
@@ -532,83 +615,42 @@ function SearchBar({ componentVars }) {
         }
 
         // --- Geodataset layers: backend bulk_aggregations API ---
+        // Requests the distinct values of the search fields, page by page,
+        // so every unique value is reachable rather than a row sample.
+        const GEO_PAGE_SIZE = 10000
         const processGeoLayers = () => {
             if (geoTargets.length === 0) return Promise.resolve()
             return Promise.all(geoTargets.map((lname) => {
-                return new Promise((resolve) => {
-                    const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
-                    if (!geodatasetName) {
-                        cachedPerLayerValues.current[lname] = new Map()
-                        resolve()
-                        return
+                const geodatasetName = L_.layers.data[lname]?.url?.split(':')[1]
+                const sf = effectiveSearchFields[lname]
+                if (!geodatasetName || !sf || sf.length === 0) {
+                    cachedPerLayerValues.current[lname] = new Map()
+                    return Promise.resolve()
+                }
+                const params = {
+                    layers: geodatasetName,
+                    fields: sf.map((f) => f[1]).join(','),
+                    limit: GEO_PAGE_SIZE,
+                }
+                // When time restriction is on, pass time bounds
+                if (searchTimeRestrict) {
+                    const ld = L_.layers.data[lname]
+                    if (ld?.time?.enabled === true && ld?.time?.type === 'requery') {
+                        params.starttime = ld.time.start || TimeControl.startTime
+                        params.endtime = ld.time.end || TimeControl.endTime
+                        params.startProp = ld.time.startProp || 'start_time'
+                        params.endProp = ld.time.endProp || 'end_time'
                     }
-                    const params = { layers: geodatasetName, limit: 1000 }
-                    // When time restriction is on, pass time bounds
-                    if (searchTimeRestrict) {
-                        const ld = L_.layers.data[lname]
-                        if (ld?.time?.enabled === true && ld?.time?.type === 'requery') {
-                            params.starttime = ld.time.start || TimeControl.startTime
-                            params.endtime = ld.time.end || TimeControl.endTime
-                            params.startProp = ld.time.startProp || 'start_time'
-                            params.endProp = ld.time.endProp || 'end_time'
-                        }
-                    }
-                    calls.api(
-                        'geodatasets_bulk_aggregations',
-                        params,
-                        (d) => {
-                            const vals = new Map()
-                            if (d?.status === 'success' && d.aggregations) {
-                                const sf = effectiveSearchFields[lname]
-                                if (sf && sf.length > 0) {
-                                    if (sf.length === 1) {
-                                        const fieldName = sf[0][1]
-                                        const transform = sf[0][0].toLowerCase()
-                                        const fieldAgg = d.aggregations[fieldName]
-                                        if (fieldAgg) {
-                                            Object.keys(fieldAgg.aggs).forEach((val) => {
-                                                let v = val
-                                                if (transform === 'round') v = String(Math.round(Number(v)))
-                                                else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
-                                                if (v && !vals.has(v)) {
-                                                    vals.set(v, { label: v, fields: { [fieldName]: v } })
-                                                }
-                                            })
-                                        }
-                                    } else {
-                                        if (d.rows) {
-                                            d.rows.forEach((row) => {
-                                                const entry = getSearchFieldEntryForFeature(effectiveSearchFields, lname, row)
-                                                if (entry.label && !vals.has(entry.label)) {
-                                                    vals.set(entry.label, entry)
-                                                }
-                                            })
-                                        } else {
-                                            const fieldName = sf[0][1]
-                                            const transform = sf[0][0].toLowerCase()
-                                            const fieldAgg = d.aggregations[fieldName]
-                                            if (fieldAgg) {
-                                                Object.keys(fieldAgg.aggs).forEach((val) => {
-                                                    let v = val
-                                                    if (transform === 'round') v = String(Math.round(Number(v)))
-                                                    else if (transform === 'rmunder') v = String(v).replace(/_/g, ' ')
-                                                    if (v && !vals.has(v)) {
-                                                        vals.set(v, { label: v, fields: { [fieldName]: v } })
-                                                    }
-                                                })
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            cachedPerLayerValues.current[lname] = vals
-                            resolve()
-                        },
-                        () => {
-                            cachedPerLayerValues.current[lname] = new Map()
-                            resolve()
-                        }
-                    )
+                }
+                return fetchGeodatasetDistinctProps(params, () => cancelled).then((propsList) => {
+                    if (cancelled) return
+                    cachedPerLayerValues.current[lname] = buildLayerValueMap(effectiveSearchFields, lname, propsList)
+                }).catch((err) => {
+                    if (cancelled) return
+                    console.warn(`Search: failed to load values for ${lname}:`, err?.message)
+                    delete cachedPerLayerValues.current[lname]
+                    failedPerLayerValues.current.add(lname)
+                    setValuesLoadFailed((prev) => [...prev, lname])
                 })
             }))
         }
@@ -2157,8 +2199,16 @@ function SearchBar({ componentVars }) {
                         <div className="searchUnifiedCol searchRegularColValues">
                             <div className="searchUnifiedColHeader">
                                 <span>Values</span>
-                                {arrayToSearch.length >= 500 && (
+                                {suggestions.length >= 500 && (
                                     <span className="searchValuesCount">Top 500</span>
+                                )}
+                                {valuesLoadFailed.length > 0 && (
+                                    <Tooltip
+                                        content={`Failed to load values for: ${valuesLoadFailed.join(', ')}`}
+                                        placement="bottom"
+                                    >
+                                        <span className="searchValuesCount searchValuesLoadFailed">Incomplete</span>
+                                    </Tooltip>
                                 )}
                                 {selectedGroupId && (
                                     <Tooltip
@@ -2177,21 +2227,23 @@ function SearchBar({ componentVars }) {
                                         </div>
                                     </Tooltip>
                                 )}
-                                <Tooltip
-                                    content={searchTimeRestrict ? 'Restricted to current time range' : 'All time (no time restriction)'}
-                                    placement="bottom"
-                                >
-                                    <div className="searchValuesToggle">
-                                        <span className="searchValuesToggleLabel">
-                                            <i className={`mdi mdi-clock-outline mdi-12px ${searchTimeRestrict ? 'searchTimeActive' : ''}`} />
-                                        </span>
-                                        <Switch
-                                            checked={searchTimeRestrict}
-                                            onCheckedChange={setSearchTimeRestrict}
-                                            size="sm"
-                                        />
-                                    </div>
-                                </Tooltip>
+                                {TimeControl.enabled === true && (
+                                    <Tooltip
+                                        content={searchTimeRestrict ? 'Restricted to current time range' : 'All time (no time restriction)'}
+                                        placement="bottom"
+                                    >
+                                        <div className="searchValuesToggle">
+                                            <span className="searchValuesToggleLabel">
+                                                <i className={`mdi mdi-clock-outline mdi-12px ${searchTimeRestrict ? 'searchTimeActive' : ''}`} />
+                                            </span>
+                                            <Switch
+                                                checked={searchTimeRestrict}
+                                                onCheckedChange={setSearchTimeRestrict}
+                                                size="sm"
+                                            />
+                                        </div>
+                                    </Tooltip>
+                                )}
                             </div>
                             <div className="searchUnifiedColBody" ref={suggestionsRef}>
                                 {suggestions.length > 0 ? (
@@ -2227,15 +2279,14 @@ function SearchBar({ componentVars }) {
                                     })
                                 ) : (
                                     <div className="searchUnifiedEmpty">
-                                        {!selectedLayer
-                                            ? 'Select a layer'
-                                            : valuesLoading
-                                            ? 'Loading...'
-                                            : arrayToSearch.length === 0
-                                            ? (valuesIntersectOnly ? 'No common values' : 'No values')
-                                            : inputValue
-                                            ? 'No matches'
-                                            : 'Type to search'}
+                                        {getValuesEmptyMessage({
+                                            selectedLayer,
+                                            valuesLoading,
+                                            hasValues: arrayToSearch.length > 0,
+                                            loadFailed: valuesLoadFailed.length > 0,
+                                            valuesIntersectOnly,
+                                            inputValue,
+                                        })}
                                     </div>
                                 )}
                             </div>
