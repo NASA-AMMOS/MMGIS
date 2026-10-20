@@ -65,8 +65,11 @@ RUN npx playwright install --with-deps chromium && rm -rf /var/lib/apt/lists/*
 #############################
 
 # The cluster is local to this sandbox; mmgis is a superuser so init-db.js can create the DB and extensions.
+# init-db.js first connects without a database name, which defaults to one named after the user, so create it
+# (the postgis image used by docker-compose does the same for POSTGRES_USER).
 RUN pg_ctlcluster 15 main start && \
     su postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE ROLE mmgis WITH LOGIN SUPERUSER PASSWORD 'mmgis'\"" && \
+    su postgres -c "createdb -O mmgis mmgis" && \
     pg_ctlcluster 15 main stop
 
 RUN cp .oss-scanner/scanner.env .env && \
