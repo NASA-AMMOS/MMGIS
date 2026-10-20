@@ -8,25 +8,32 @@ The MMGIS Authentication & User Management system provides a comprehensive secur
 
 ### Core Capabilities
 
-The authentication system supports four distinct operational modes, each designed for different deployment scenarios and security requirements:
+Site access is chosen with `SITE_ACCESS`, and login methods with `AUTH_PROVIDERS`:
 
-1. **Off Mode** - No authentication required. Guest access only. Users cannot sign up or log in. Tools requiring authentication are disabled.
+1. **public** - Anyone can view. End users don't sign up or log in; admins log in at `/configure`. Tools requiring an account are disabled.
 
-2. **None Mode** - Open access with optional authentication. Guests can browse, but users can voluntarily sign up and log in to access additional features.
+2. **optional** - Guests can browse, and users can sign up and log in for additional features.
 
-3. **Local Mode** - Credential-based authentication required. All unauthenticated users are blocked. Administrator must create accounts or enable self-signup via environment configuration.
+3. **required** - All unauthenticated users are blocked. Administrators create accounts or enable self-signup via environment configuration.
 
-4. **CSSO Mode** - Cloud Single Sign-On integration. External LDAP/OAuth2 service proxied in front of MMGIS handles authentication.
+Providers: `local` (username/password) and `csso` (an upstream Cloud Single Sign-On proxy handles authentication). `ldap` and `earthdata` are reserved names for future providers.
 
 ### User Roles & Permissions
 
-The system implements a three-tier permission model represented by a three-character binary string:
+Access is granted through role bindings (`role_bindings`). Each binding gives a role to a subject at a scope:
 
-- **SuperAdmin (111)** - Full system access including user management, configuration editing, and all mission data access
-- **Admin (110)** - Configuration editing and mission management capabilities, with optional mission-specific restrictions
-- **User (001)** - Basic authenticated access to MMGIS features
+- **Subjects:** a user, a group (`auth_groups` / `auth_group_members`, or CSSO groups), or an audience (`everyone`, `authenticated`).
+- **Scopes:** global, a mission (by stable mission UUID in `missions`), or a layer and its children (by layer UUID).
+- **Roles** bundle named capabilities (`API/authz/policy.js`):
+  - **superadmin** - everything, globally. There must always be at least one.
+  - **data_admin** - geodatasets, datasets and STAC.
+  - **mission_admin** - view the mission, edit its configuration and layers.
+  - **layer_editor** - view the mission, edit a layer and its children.
+  - **viewer** - view the mission.
 
-<!-- HUMAN REVIEW NEEDED: Verify if there are additional permission combinations (e.g., 010, 011, 100, 101) that were intended for future use or have specific meanings -->
+Rules are allow-only. Nobody can grant a role they don't hold at that scope. Every `/api` route declares its capability with `authorize()` (`API/authz/authorize.js`), and the server refuses to start if one doesn't. Configure → Access manages groups, bindings and shows effective access.
+
+`users.permission` (`111` / `110` / `001`) is kept as a value derived from bindings for compatibility; it no longer grants anything by itself.
 
 ### Authentication Features
 
@@ -46,10 +53,13 @@ The system implements a three-tier permission model represented by a three-chara
 
 #### Long-Term API Tokens
 - Token-based authentication for programmatic API access
-- Tokens inherit creator's permissions and mission access
-- Configurable expiration periods (time-based or "never")
+- Stored as SHA-256 hashes; the plaintext is shown once (older plaintext tokens are converted on first use)
+- Named, with scopes (read-only or the creator's access) and an optional mission limit
+- Always capped by the creator's current access; removed when the creator is deleted
+- Configurable expiration periods (time-based or "never") and revocation
 - Bearer token format for HTTP Authorization headers
-- Admin users can only manage their own tokens; SuperAdmins can manage all tokens
+- Any signed-in user can create read-only tokens; users manage their own tokens, SuperAdmins all tokens
+- Tokens can't be used to create, list or revoke tokens
 
 #### Session Management
 - Express-session with PostgreSQL persistence (connect-pg-simple)
@@ -78,7 +88,7 @@ The system implements a three-tier permission model represented by a three-chara
 
 ### CSSO Integration
 
-When AUTH=csso, the system expects an upstream proxy to handle authentication and inject headers:
+When `AUTH_PROVIDERS` includes `csso`, the system expects an upstream proxy to handle authentication and inject headers:
 
 - **X-Sub** - Username/subject identifier
 - **X-Groups** - Base64-encoded JSON group membership object
@@ -172,13 +182,15 @@ Protected by `ensureAdmin()` middleware:
 
 ### Required Variables
 
-- `AUTH` - Authentication mode (off|none|local|csso)
+- `SITE_ACCESS` - `public` (no end-user login), `optional` (guests and users) or `required` (login required). No default.
+- `AUTH_PROVIDERS` - login methods: `local`, `csso` (`ldap`, `earthdata` reserved)
+- `AUTH` is removed; the server refuses to start while it is set and prints the replacement.
 - `SECRET` - Session encryption secret
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` - PostgreSQL connection
 
 ### Optional Authentication Variables
 
-- `AUTH_LOCAL_ALLOW_SIGNUP` - Allow user self-registration when AUTH=local (default: false)
+- `AUTH_LOCAL_ALLOW_SIGNUP` - Allow user self-registration when SITE_ACCESS=required (default: false)
 - `CSSO_GROUPS` - JSON array of allowed LDAP groups for CSSO mode
 - `CSSO_LEAD_GROUP` - LDAP group name for Lead permissions in CSSO mode
 - `LEADS` - JSON array of usernames with Lead permissions (non-CSSO modes)
@@ -296,8 +308,9 @@ Migrations run automatically on application startup after table synchronization.
 - This ensures someone always has administrative access
 
 ### Permission Inheritance
-- Long-term tokens inherit permissions from creating user
-- Admin users can be restricted to specific missions via `missions_managing` array
+- Long-term tokens get the intersection of their scopes, their mission limit and the creator's current access
+- Layer bindings apply to that layer and its descendants
+- Mission bindings follow the mission's UUID, so they survive renames; clones get a new UUID and no bindings
 - SuperAdmins have unrestricted access to all missions
 
 ### Token Lifecycle
@@ -309,7 +322,7 @@ Migrations run automatically on application startup after table synchronization.
 ### User Deletion Rules
 - Original administrator (ID 1) cannot be deleted
 - User deletion is permanent and cascades to sessions
-- Long-term tokens remain valid until cleaned up separately
+- The user's role bindings and long-term tokens are deleted with the account
 
 <!-- HUMAN REVIEW NEEDED: Verify business rules for handling user deletion and associated data cleanup -->
 

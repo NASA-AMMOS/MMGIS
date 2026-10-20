@@ -19,7 +19,7 @@ Version 4.0.0+ adds support for the following adjacent services:
 
 All adjacent services are proxied through MMGIS and endpoints that perform writes are locked behind MMGIS' authentication.
 
-**Requirement:** adjacent services must only be reachable through these MMGIS proxy routes. Don't publish their ports outside the host or container network. MMGIS checks access on the proxy routes (reads need the matching `*.read` capability, other methods the `*.write` one), but the services themselves don't, so a directly reachable service bypasses MMGIS' site access and roles.
+**Requirement:** adjacent services must only be reachable through these MMGIS proxy routes. Don't publish their ports outside the host or container network. MMGIS checks access on the proxy routes (reads need the matching `*.read` capability, other methods the `*.write` one), but the services themselves don't, so a directly reachable service is not covered by MMGIS' site access and roles.
 
 - https://{mmgis-domain}/stac
 - https://{mmgis-domain}/tipg

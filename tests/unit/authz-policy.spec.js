@@ -210,7 +210,7 @@ test.describe('Authz policy: mission isolation', () => {
     expect(can(p, 'mission.layer.edit', RESOURCES.m2Layer)).toBe(false);
   });
 
-  test('a layer UUID shared across missions does not leak access', () => {
+  test('a layer UUID shared across missions does not carry access across missions', () => {
     const p = user([['layer_editor', `layer:${M1}:${ROOT}`]]);
     expect(can(p, 'mission.layer.edit', layer(M1, ROOT))).toBe(true);
     expect(can(p, 'mission.layer.edit', layer(M2, ROOT))).toBe(false);
