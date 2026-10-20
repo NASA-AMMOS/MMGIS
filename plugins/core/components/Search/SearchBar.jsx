@@ -2176,21 +2176,23 @@ function SearchBar({ componentVars }) {
                                         </div>
                                     </Tooltip>
                                 )}
-                                <Tooltip
-                                    content={searchTimeRestrict ? 'Restricted to current time range' : 'All time (no time restriction)'}
-                                    placement="bottom"
-                                >
-                                    <div className="searchValuesToggle">
-                                        <span className="searchValuesToggleLabel">
-                                            <i className={`mdi mdi-clock-outline mdi-12px ${searchTimeRestrict ? 'searchTimeActive' : ''}`} />
-                                        </span>
-                                        <Switch
-                                            checked={searchTimeRestrict}
-                                            onCheckedChange={setSearchTimeRestrict}
-                                            size="sm"
-                                        />
-                                    </div>
-                                </Tooltip>
+                                {TimeControl.enabled === true && (
+                                    <Tooltip
+                                        content={searchTimeRestrict ? 'Restricted to current time range' : 'All time (no time restriction)'}
+                                        placement="bottom"
+                                    >
+                                        <div className="searchValuesToggle">
+                                            <span className="searchValuesToggleLabel">
+                                                <i className={`mdi mdi-clock-outline mdi-12px ${searchTimeRestrict ? 'searchTimeActive' : ''}`} />
+                                            </span>
+                                            <Switch
+                                                checked={searchTimeRestrict}
+                                                onCheckedChange={setSearchTimeRestrict}
+                                                size="sm"
+                                            />
+                                        </div>
+                                    </Tooltip>
+                                )}
                             </div>
                             <div className="searchUnifiedColBody" ref={suggestionsRef}>
                                 {suggestions.length > 0 ? (
