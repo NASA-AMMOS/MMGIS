@@ -1764,6 +1764,16 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
               .concat("sublayers")
               .join(".");
 
+            // Headers saved without a 'sublayers' array (#442) can still take layers
+            const header = Utils.getIn(
+              config.layers,
+              placementPath.replace(/\.sublayers$/, ""),
+              null,
+              true
+            );
+            if (header?.type === "header" && header.sublayers == null)
+              header.sublayers = [];
+
             const level = Utils.getIn(config.layers, placementPath, null, true);
             if (level == null) {
               if (cb)
