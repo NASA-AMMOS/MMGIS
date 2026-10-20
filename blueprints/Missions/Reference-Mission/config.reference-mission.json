@@ -980,6 +980,28 @@
                     "hideMainFeature": false
                   },
                   "initialOpacity": 1
+                },
+                {
+                  "name": "Search - Many Features",
+                  "type": "vector",
+                  "url": "Layers/Vectors/search-many-features.geojson",
+                  "initialOpacity": 1,
+                  "visibility": false,
+                  "style": {
+                    "className": "searchmanyfeatures",
+                    "strokeColor": "#000000",
+                    "strokeWeight": 1,
+                    "fillColor": "#ff9800",
+                    "fillOpacity": 0.8,
+                    "radius": 4
+                  },
+                  "description": "Search stress fixture: 600 points with unique `name` values (vec_0000..vec_0599). Global Search autocomplete must reach every value, including those beyond the old 500-value cap.",
+                  "demparser": "",
+                  "controlled": false,
+                  "uuid": "5ea4c3d1-0b6e-4f2a-9a51-600f0e47a001",
+                  "variables": {
+                    "search": "(name) (category)"
+                  }
                 }
               ]
             }
@@ -1502,6 +1524,107 @@
                 "hideMainFeature": false
               },
               "description": "Demonstrates time.type='requery' for geodatasets: the time range is sent to PostGIS as a server-side SQL filter on the start_time/end_time BIGINT columns. Use the Time Control tool to filter events by date range (Jan\u2013Jun 2024)."
+            },
+            {
+              "name": "Geodatasets - Many Features",
+              "uuid": "5ea4c3d1-0b6e-4f2a-9a51-1200f0e47a02",
+              "type": "vector",
+              "kind": "none",
+              "visibility": false,
+              "sourceType": "geodatasets",
+              "url": "reference_mission_search_many_features",
+              "layer3dType": "clamped",
+              "initialOpacity": 1,
+              "controlled": false,
+              "style": {
+                "color": "#FFFFFF",
+                "opacity": 1,
+                "fillColor": "#ff9800",
+                "fillOpacity": 0.8,
+                "weight": 2,
+                "radius": 4,
+                "animation": "none",
+                "className": "geodatasets-manyfeatures"
+              },
+              "shape": "none",
+              "time": {
+                "enabled": false,
+                "type": "requery",
+                "refreshIntervalEnabled": false
+              },
+              "variables": {
+                "legendOrientation": "vertical",
+                "search": "(name) (category)",
+                "dynamicExtent": false,
+                "noDuplicates": false,
+                "getFeaturePropertiesOnClick": false,
+                "style": {
+                  "nointeraction": false
+                },
+                "layerAttachments": {
+                  "labels": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "theme": "default",
+                    "size": "default"
+                  },
+                  "pairings": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "style": {
+                      "color": "#FFFFFF"
+                    }
+                  }
+                },
+                "coordinateAttachments": {
+                  "marker": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "color": "#FFFFFF",
+                    "fillColor": "#FFFFFF"
+                  }
+                },
+                "markerAttachments": {
+                  "bearing": {
+                    "enabled": false,
+                    "angleUnit": "deg",
+                    "color": "#FFFFFF",
+                    "useCustomShape": false
+                  },
+                  "image": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "angleUnit": "deg",
+                    "show": "click"
+                  },
+                  "model": {
+                    "enabled": false,
+                    "yawUnit": "deg",
+                    "invertYaw": false,
+                    "pitchUnit": "deg",
+                    "invertPitch": false,
+                    "rollUnit": "deg",
+                    "invertRoll": false,
+                    "show": "click"
+                  },
+                  "uncertainty": {
+                    "enabled": false,
+                    "initialVisibility": false,
+                    "strokeColor": "#FFFFFF",
+                    "color": "#FFFFFF",
+                    "axisUnit": "meters",
+                    "angleUnit": "deg"
+                  }
+                },
+                "pathAttachments": {
+                  "gradient": {
+                    "enabled": false,
+                    "connectAllPoints": false
+                  }
+                },
+                "hideMainFeature": false
+              },
+              "description": "Search stress fixture: 1200 points with unique `name` values (geo_0000..geo_1199). Global Search autocomplete must reach every value, including those beyond the old 1000-row sample."
             }
           ],
           "type": "header",

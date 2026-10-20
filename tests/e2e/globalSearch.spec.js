@@ -504,6 +504,30 @@ test.describe('Global Feature Search', () => {
     //  7. Backend API — /api/geodatasets/search
     // =====================================================================
 
+    test.describe('Large layers (Search - Many Features fixtures)', () => {
+        const cases = [
+            { layer: 'Search - Many Features', last: 'vec_0599' },
+            { layer: 'Geodatasets - Many Features', last: 'geo_1199' },
+        ]
+        for (const { layer, last } of cases) {
+            test(`${layer}: values past the old cutoff are reachable, dropdown stays capped`, async () => {
+                await openPanel(pg)
+                await pg
+                    .locator('.searchRegularLayerItem', { hasText: layer })
+                    .first()
+                    .click()
+                const items = pg.locator('.searchSuggestionItem')
+                await expect(items).toHaveCount(500, { timeout: 15000 })
+
+                await pg.locator('.searchCompactInput').fill(last)
+                await expect(items.first()).toContainText(last, {
+                    timeout: 5000,
+                })
+                await closePanel(pg)
+            })
+        }
+    })
+
     test.describe('Backend API — geodataset search', () => {
         test('search returns features for known value', async ({
             request,
@@ -726,6 +750,24 @@ test.describe('Global Feature Search', () => {
                 hasMore = d.hasMore
             }
             expect(paged).toEqual(allKeys)
+        })
+
+        test('bulk_aggregations fields mode returns all 1200 names of the Many Features geodataset', async ({
+            request,
+        }) => {
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+            const d = await (
+                await request.get(
+                    `${BASE_URL}/api/geodatasets/bulk_aggregations?layers=reference_mission_search_many_features&fields=name&limit=10000`
+                )
+            ).json()
+            expect(d.status).toBe('success')
+            expect(d.hasMore).toBe(false)
+            const names = d.rows.map((r) => r.values[0])
+            expect(new Set(names).size).toBe(1200)
+            expect(names).toContain('geo_1199')
         })
 
         test('bulk_aggregations fields mode rejects oversized requests instead of truncating', async ({
