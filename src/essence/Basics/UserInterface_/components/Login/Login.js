@@ -65,11 +65,11 @@ var Login = {
     signUp: false,
     beganLoggedIn: false,
     init: function () {
-        if (window.mmgisglobal.AUTH == 'off') return
+        if (window.mmgisglobal.SITE_ACCESS === 'public') return
         if (
-            (window.mmgisglobal.AUTH === 'csso' ||
-                window.mmgisglobal.AUTH === 'none' ||
-                window.mmgisglobal.AUTH === 'local') &&
+            (window.mmgisglobal.authProviders.includes('csso') ||
+                window.mmgisglobal.SITE_ACCESS === 'optional' ||
+                (window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) &&
             window.mmgisglobal.hasOwnProperty('user')
         ) {
             this.username = window.mmgisglobal.user
@@ -124,7 +124,7 @@ var Login = {
 
         //Show signup for admins
         if (
-            window.mmgisglobal.AUTH === 'local' &&
+            (window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local')) &&
             window.mmgisglobal.permission === '111'
         ) {
             const forceSignupButton = $('<div>')
@@ -187,17 +187,17 @@ var Login = {
 
         // Sign in at page load from cookie if possible
         if (
-            window.mmgisglobal.AUTH !== 'off' &&
-            window.mmgisglobal.AUTH !== 'csso' &&
+            window.mmgisglobal.SITE_ACCESS !== 'public' &&
+            !window.mmgisglobal.authProviders.includes('csso') &&
             window.mmgisglobal.SKIP_CLIENT_INITIAL_LOGIN != 'true'
         ) {
             Login.initialLogin()
         }
     },
     // Logs the current user out. `onDone` is called after a non-redirecting
-    // logout completes (i.e. not for csso redirects or AUTH=local reloads).
+    // logout completes (i.e. not for csso redirects or SITE_ACCESS=required reloads).
     logout: function (onDone) {
-        if (window.mmgisglobal.AUTH == 'csso' && Login.beganLoggedIn) {
+        if (window.mmgisglobal.authProviders.includes('csso') && Login.beganLoggedIn) {
             Login.loggedIn = false
             window.location.href = '/ssologoutredirect'
             return
@@ -219,7 +219,7 @@ var Login = {
             document.cookie =
                 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
-            if (window.mmgisglobal.AUTH === 'local') {
+            if ((window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) {
                 reloadToLogin()
                 return
             }
@@ -430,7 +430,7 @@ var Login = {
                         values,
                         function (d) {
                             //This automatically signed a new user in
-                            if (window.mmgisglobal.AUTH === 'local') {
+                            if ((window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) {
                                 //This just flashes blue to show it worked
                                 // prettier-ignore
                                 $('#loginErrorMessage').animate({ opacity: '0' }, 500)
@@ -451,7 +451,7 @@ var Login = {
                             }
                         },
                         function (d) {
-                            if (window.mmgisglobal.AUTH === 'local') {
+                            if ((window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) {
                                 $('#loginErrorMessage')
                                     .html(d.message)
                                     .animate({ opacity: '1' }, 80)
@@ -585,7 +585,7 @@ function loginSuccess(data, ignoreError) {
     } else {
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
 
-        if (window.mmgisglobal.AUTH === 'local') reloadToLogin()
+        if ((window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) reloadToLogin()
 
         if (ignoreError) return
 

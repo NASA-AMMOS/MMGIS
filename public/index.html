@@ -413,7 +413,11 @@
       switch (NODE_ENV) {
         case "production":
           mmgisglobal.SITE_ACCESS = "#{SITE_ACCESS}";
-          mmgisglobal.AUTH_PROVIDERS = "#{AUTH_PROVIDERS}";
+          mmgisglobal.AUTH_PROVIDERS = '#{AUTH_PROVIDERS}';
+          mmgisglobal.authProviders = String(mmgisglobal.AUTH_PROVIDERS || "")
+            .replace(/&quot;|[\[\]"' ]/g, "")
+            .split(",")
+            .filter(Boolean);
           mmgisglobal.version = "#{VERSION}";
           mmgisglobal.user = "#{user}";
           mmgisglobal.permission = "#{permission}";
@@ -436,7 +440,11 @@
           break;
         default:
           mmgisglobal.SITE_ACCESS = "%SITE_ACCESS%";
-          mmgisglobal.AUTH_PROVIDERS = "%AUTH_PROVIDERS%";
+          mmgisglobal.AUTH_PROVIDERS = '%AUTH_PROVIDERS%';
+          mmgisglobal.authProviders = String(mmgisglobal.AUTH_PROVIDERS || "")
+            .replace(/&quot;|[\[\]"' ]/g, "")
+            .split(",")
+            .filter(Boolean);
           mmgisglobal.version = "%VERSION%";
           mmgisglobal.user = "guest";
           mmgisglobal.permission = "000";

@@ -13,7 +13,11 @@
       var mmgisglobal = {};
       mmgisglobal.SERVER = "node";
       mmgisglobal.SITE_ACCESS = "#{SITE_ACCESS}";
-      mmgisglobal.AUTH_PROVIDERS = "#{AUTH_PROVIDERS}";
+      mmgisglobal.AUTH_PROVIDERS = '#{AUTH_PROVIDERS}';
+      mmgisglobal.authProviders = String(mmgisglobal.AUTH_PROVIDERS || "")
+        .replace(/&quot;|[\[\]"' ]/g, "")
+        .split(",")
+        .filter(Boolean);
       mmgisglobal.SHOW_AUTH_TIMEOUT = true;
       mmgisglobal.user = "#{user}";
       mmgisglobal.permission = "#{permission}";

@@ -170,8 +170,26 @@ async function setUserMissionRole(actor, userId, role, missionNames) {
     await addBinding(actor, { subject_type: "user", subject_id: userId, role, scope_type: "mission", mission: m });
 }
 
+// Initial bindings for a newly created local account. Not actor-checked:
+// callers have already authorized account creation.
+async function seedNewUser(userId, { superadmin = false, missionsViewing = null } = {}) {
+  const { RoleBinding } = models();
+  const base = { subject_type: "user", subject_id: String(userId), source: "local" };
+  const rows = [];
+  if (superadmin) rows.push({ ...base, role: "superadmin", scope_type: "global" });
+  else if (missionsViewing == null) rows.push({ ...base, role: "viewer", scope_type: "global" });
+  else
+    for (const name of missionsViewing) {
+      const uuid = await missions.uuidForName(name);
+      if (uuid) rows.push({ ...base, role: "viewer", scope_type: "mission", mission_uuid: uuid });
+    }
+  if (rows.length) await RoleBinding.bulkCreate(rows);
+  await afterChange("user", userId);
+}
+
 module.exports = {
   BindingError,
+  seedNewUser,
   addBinding,
   removeBinding,
   listBindings,

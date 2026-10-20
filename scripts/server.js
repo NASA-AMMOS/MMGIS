@@ -739,7 +739,7 @@ setups.getBackendSetups(function (setups) {
     res.render("../views/resetpassword.pug", {
       user: user,
       SITE_ACCESS: siteAccess.getSiteAccess(),
-      AUTH_PROVIDERS: JSON.stringify(siteAccess.getProviders()),
+      AUTH_PROVIDERS: siteAccess.getProviders().join(","),
       NODE_ENV: process.env.NODE_ENV,
       ROOT_PATH:
         process.env.NODE_ENV === "development"
@@ -863,7 +863,7 @@ setups.getBackendSetups(function (setups) {
             permission: permission,
             groups: JSON.stringify(groups),
             SITE_ACCESS: siteAccess.getSiteAccess(),
-            AUTH_PROVIDERS: JSON.stringify(siteAccess.getProviders()),
+            AUTH_PROVIDERS: siteAccess.getProviders().join(","),
             NODE_ENV: process.env.NODE_ENV,
             VERSION: packagejson.version,
             FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,

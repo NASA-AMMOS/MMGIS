@@ -375,8 +375,8 @@ function TopBar({ userInterface }) {
                         </Toggle.Group>
                     )}
 
-                    {/* User account area — hidden when AUTH=off */}
-                    {typeof window !== 'undefined' && window.mmgisglobal && window.mmgisglobal.AUTH !== 'off' && (
+                    {/* User account area — hidden when SITE_ACCESS=public */}
+                    {typeof window !== 'undefined' && window.mmgisglobal && window.mmgisglobal.SITE_ACCESS !== 'public' && (
                         <div className={styles.userArea}>
                             {username ? (
                                 <div className={styles.userWrapper}>

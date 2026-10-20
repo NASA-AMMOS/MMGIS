@@ -1,5 +1,6 @@
 const WebSocket = require("isomorphic-ws");
 const logger = require("./logger");
+const siteAccess = require("./authz/siteAccess");
 
 const websocket = {
   wss: null,
@@ -94,16 +95,13 @@ const websocket = {
         }
 
         const completeUpgrade = () => {
-          // Guests are allowed unless AUTH gates the whole site (local/csso)
-          const guestsAllowed =
-            process.env.AUTH !== "local" && process.env.AUTH !== "csso";
+          // Guests are allowed unless SITE_ACCESS=required
           const authenticated =
-            guestsAllowed ||
+            siteAccess.guestsAllowed() ||
             (request.session &&
-              ((typeof request.session.user === "string" &&
-                request.session.user.length > 0) ||
-                (typeof request.session.permission === "string" &&
-                  request.session.permission.length > 0)));
+              (request.session.uid != null ||
+                (typeof request.session.user === "string" &&
+                  request.session.user.length > 0)));
 
           if (!authenticated) {
             reject("unauthenticated session");

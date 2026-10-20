@@ -22,7 +22,7 @@ let setup = {
             user: user,
             permission: permission,
             SITE_ACCESS: s.siteAccess.getSiteAccess(),
-            AUTH_PROVIDERS: JSON.stringify(s.siteAccess.getProviders()),
+            AUTH_PROVIDERS: s.siteAccess.getProviders().join(","),
             NODE_ENV: process.env.NODE_ENV,
             VERSION: configurePackageJson.version,
             PORT: process.env.PORT || "8888",

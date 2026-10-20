@@ -14,6 +14,9 @@ const { authLimiter } = require("../../../../../scripts/rateLimiters");
 const userModel = require("../models/user");
 const User = userModel.User;
 const { getDefaultMissionsViewing } = require("../models/userdefaults");
+const siteAccess = require("../../../../../API/authz/siteAccess");
+const policy = require("../../../../../API/authz/policy");
+const bindings = require("../../../../../API/authz/bindings");
 
 function isStrongPassword(password) {
   const minLength = 8;
@@ -64,7 +67,8 @@ router.post("/first_signup", authorize.public("login and account self-service"),
         };
 
         User.create(firstUser)
-          .then((created) => {
+          .then(async (created) => {
+            await bindings.seedNewUser(created.id, { superadmin: true });
             res.send({ status: "success", message: "Successfully signed up" });
             return null;
           })
@@ -85,15 +89,14 @@ router.post("/first_signup", authorize.public("login and account self-service"),
 });
 
 router.post("/signup", authorize.public("login and account self-service"), function (req, res, next) {
-  if (
-    (process.env.AUTH === "local" &&
-      req.session.permission !== "111" &&
-      !(
-        process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
-        process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true"
-      )) ||
-    (process.env.AUTH === "off" && req.session.permission !== "111")
-  ) {
+  const accountManager = policy.can(req.principal, "accounts.manage");
+  const selfSignup =
+    siteAccess.hasProvider("local") &&
+    (siteAccess.isOptional() ||
+      (siteAccess.isRequired() &&
+        (process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
+          process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true")));
+  if (!accountManager && !selfSignup) {
     res.send({
       status: "failure",
       message: "Currently only administrators may create accounts.",
@@ -137,10 +140,9 @@ router.post("/signup", authorize.public("login and account self-service"), funct
   })
     .then(async (user) => {
       if (user == null) {
-        // SuperAdmins may override the site default; stamped in every AUTH mode
-        // so a later switch to AUTH=local stays restricted
+        // SuperAdmins may override the site default viewing missions
         if (
-          req.session.permission === "111" &&
+          policy.isSuperAdmin(req.principal) &&
           req.body.hasOwnProperty("missions_viewing") &&
           (req.body.missions_viewing === null ||
             Array.isArray(req.body.missions_viewing))
@@ -164,7 +166,10 @@ router.post("/signup", authorize.public("login and account self-service"), funct
           );
         }
         User.create(newUser)
-          .then((created) => {
+          .then(async (created) => {
+            await bindings.seedNewUser(created.id, {
+              missionsViewing: newUser.missions_viewing,
+            });
             // Just make the account -- don't also login
             if (skipLogin === true) {
               logger(
@@ -452,10 +457,7 @@ router.post("/logout", authorize.public("login and account self-service"), funct
 });
 
 router.get("/logged_in", authorize.public("login and account self-service"), function (req, res) {
-  if (
-    typeof req.session.permission === "string" &&
-    req.session.permission[req.session.permission.length - 1] === "1"
-  )
+  if (req.session.uid != null && typeof req.session.user === "string")
     res.send({
       status: "success",
       message: `'${req.session.user}' is logged in to this session.`,
