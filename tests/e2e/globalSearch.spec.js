@@ -68,6 +68,17 @@ async function closePanel(page) {
     await page.waitForTimeout(300)
 }
 
+// globalSetup keeps an existing Reference Mission, so a test database seeded
+// before the Many Features fixtures were added won't have them.
+const FIXTURE_SKIP_REASON =
+    'Reference Mission predates the Many Features fixtures; recreate it to run this test'
+async function fetchMissionConfigText(request) {
+    const res = await request.get(
+        `${BASE_URL}/api/configure/get?mission=Reference-Mission`
+    )
+    return res.text().catch(() => '')
+}
+
 test.describe('Global Feature Search', () => {
     /** @type {import('@playwright/test').BrowserContext} */
     let ctx
@@ -504,6 +515,35 @@ test.describe('Global Feature Search', () => {
     //  7. Backend API — /api/geodatasets/search
     // =====================================================================
 
+    test.describe('Large layers (Search - Many Features fixtures)', () => {
+        const cases = [
+            { layer: 'Search - Many Features', last: 'vec_0599' },
+            { layer: 'Geodatasets - Many Features', last: 'geo_1199' },
+        ]
+        let missionConfig = ''
+        test.beforeAll(async ({ request }) => {
+            missionConfig = await fetchMissionConfigText(request)
+        })
+        for (const { layer, last } of cases) {
+            test(`${layer}: values past the old cutoff are reachable, dropdown stays capped`, async () => {
+                test.skip(!missionConfig.includes(layer), FIXTURE_SKIP_REASON)
+                await openPanel(pg)
+                await pg
+                    .locator('.searchRegularLayerItem', { hasText: layer })
+                    .first()
+                    .click()
+                const items = pg.locator('.searchSuggestionItem')
+                await expect(items).toHaveCount(500, { timeout: 15000 })
+
+                await pg.locator('.searchCompactInput').fill(last)
+                await expect(items.first()).toContainText(last, {
+                    timeout: 5000,
+                })
+                await closePanel(pg)
+            })
+        }
+    })
+
     test.describe('Backend API — geodataset search', () => {
         test('search returns features for known value', async ({
             request,
@@ -691,6 +731,86 @@ test.describe('Global Feature Search', () => {
                     expect(data.rows.length).toBeLessThanOrEqual(10)
                 }
             }
+        })
+
+        test('bulk_aggregations with fields paginates every distinct value', async ({
+            request,
+        }) => {
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+
+            const url = (q) =>
+                `${BASE_URL}/api/geodatasets/bulk_aggregations?layers=reference_mission_basic&fields=name,category${q}`
+
+            const all = await request.get(url('&limit=10000'))
+            expect(all.status()).toBe(200)
+            const allData = await all.json()
+            expect(allData.status).toBe('success')
+            expect(allData.hasMore).toBe(false)
+            expect(allData.fields).toEqual(['name', 'category'])
+            expect(allData.rows.length).toBeGreaterThan(2)
+            const allKeys = allData.rows.map((r) => r.values.join('|'))
+            expect(new Set(allKeys).size).toBe(allKeys.length)
+
+            const paged = []
+            let offset = 0
+            let hasMore = true
+            while (hasMore) {
+                const res = await request.get(url(`&limit=2&offset=${offset}`))
+                const d = await res.json()
+                expect(d.status).toBe('success')
+                expect(d.rows.length).toBeLessThanOrEqual(2)
+                paged.push(...d.rows.map((r) => r.values.join('|')))
+                offset += d.rows.length
+                hasMore = d.hasMore
+            }
+            expect(paged).toEqual(allKeys)
+        })
+
+        test('bulk_aggregations fields mode returns all 1200 names of the Many Features geodataset', async ({
+            request,
+        }) => {
+            test.skip(
+                !(await fetchMissionConfigText(request)).includes(
+                    'reference_mission_search_many_features'
+                ),
+                FIXTURE_SKIP_REASON
+            )
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+            const d = await (
+                await request.get(
+                    `${BASE_URL}/api/geodatasets/bulk_aggregations?layers=reference_mission_search_many_features&fields=name&limit=10000`
+                )
+            ).json()
+            expect(d.status).toBe('success')
+            expect(d.hasMore).toBe(false)
+            const names = d.rows.map((r) => r.values[0])
+            expect(new Set(names).size).toBe(1200)
+            expect(names).toContain('geo_1199')
+        })
+
+        test('bulk_aggregations fields mode rejects oversized requests instead of truncating', async ({
+            request,
+        }) => {
+            await request.post(`${BASE_URL}/api/users/login`, {
+                data: ADMIN_CREDS,
+            })
+            const base = `${BASE_URL}/api/geodatasets/bulk_aggregations`
+
+            const tooManyFields = Array.from({ length: 21 }, (_, i) => `f${i}`).join(',')
+            const f = await (
+                await request.get(`${base}?layers=reference_mission_basic&fields=${tooManyFields}`)
+            ).json()
+            expect(f.status).toBe('failure')
+
+            const tooManyLayers = Array(11).fill('reference_mission_basic').join(',')
+            const l = await (
+                await request.get(`${base}?layers=${tooManyLayers}&fields=name`)
+            ).json()
+            expect(l.status).toBe('failure')
         })
 
         test('search with > operator filters numerics', async ({

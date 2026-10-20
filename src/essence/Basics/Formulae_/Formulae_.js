@@ -646,10 +646,11 @@ var Formulae_ = {
         // eslint-disable-next-line no-eq-null, eqeqeq
         if (keyArray == null) return notSetValue != null ? notSetValue : null
         if (typeof keyArray === 'string') keyArray = keyArray.split('.')
-        let object = Object.assign({}, obj)
+        // Read-only walk over own properties, so keys like `__proto__` resolve as data.
+        let object = obj
         for (let i = 0; i < keyArray.length; i++)
-            // eslint-disable-next-line no-prototype-builtins,no-eq-null, eqeqeq
-            if (object != null && object.hasOwnProperty(keyArray[i]))
+            // eslint-disable-next-line no-eq-null, eqeqeq
+            if (object != null && Object.prototype.hasOwnProperty.call(object, keyArray[i]))
                 object = object[keyArray[i]]
             // eslint-disable-next-line no-eq-null, eqeqeq
             else return notSetValue != null ? notSetValue : null
