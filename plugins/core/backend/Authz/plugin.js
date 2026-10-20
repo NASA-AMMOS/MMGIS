@@ -6,6 +6,13 @@ const logger = require("../../../../API/logger");
 
 let setup = {
   onceInit: (s) => {
+    // Every mission gets a stable UUID as soon as its first config row exists
+    const Config = require("../Config/models/config");
+    Config.addHook("afterCreate", "authzEnsureMission", (row) =>
+      missions.ensureMission(row.mission).catch((err) =>
+        logger("error", "Failed to register mission UUID.", "authz", null, err)
+      )
+    );
     s.app.use(
       s.ROOT_PATH + "/api/authz",
       s.checkHeadersCodeInjection,

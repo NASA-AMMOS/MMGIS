@@ -58,11 +58,22 @@ async function ensureMission(name) {
   return row.uuid;
 }
 
+// Keeps the old UUID across a rename. A row already created for newName
+// (e.g. by the config afterCreate hook) is a placeholder and is replaced.
 async function renameMission(oldName, newName) {
   const { AuthMission } = models();
-  await AuthMission.update({ name: newName }, { where: { name: oldName } });
+  const { RoleBinding } = require("../../plugins/core/backend/Authz/models/authz");
+  const oldRow = await AuthMission.findOne({ where: { name: oldName } });
+  if (!oldRow) return ensureMission(newName);
+  const placeholder = await AuthMission.findOne({ where: { name: newName } });
+  if (placeholder && placeholder.uuid !== oldRow.uuid) {
+    await RoleBinding.destroy({ where: { mission_uuid: placeholder.uuid } });
+    await placeholder.destroy();
+  }
+  await AuthMission.update({ name: newName }, { where: { uuid: oldRow.uuid } });
   clear();
-  return ensureMission(newName);
+  require("./principal").invalidate();
+  return oldRow.uuid;
 }
 
 async function removeMission(name) {

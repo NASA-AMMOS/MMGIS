@@ -82,6 +82,28 @@ missionFromReq.description = "mission(body.mission | query.mission)";
 // Whole-mission configuration edits
 const checkMissionPermission = authorize("mission.config.edit", missionFromReq);
 
+// Layer-subtree editors may change a layer in place; moving it or
+// changing its UUID needs whole-config permission
+async function requireConfigEditToMoveLayer(req, res, next) {
+  const body = req.body || {};
+  const moving =
+    body.placement != null ||
+    (body.layer &&
+      body.layer.uuid != null &&
+      String(body.layer.uuid) !== String(body.layerUUID));
+  if (!moving) return next();
+  try {
+    const resource = await missionFromReq(req);
+    if (resource && (await can(req, "mission.config.edit", resource))) return next();
+  } catch (err) {
+    logger("error", "Failed to check layer move permission.", req.originalUrl, req, err);
+  }
+  res.status(403).send({
+    status: "failure",
+    message: "Unauthorized - moving a layer requires mission configuration permission.",
+  });
+}
+
 // Mission names the request may view (null = all)
 function getViewableMissions(req) {
   return missionNamesWith(req, "mission.view");
@@ -1282,6 +1304,7 @@ if (fullAccess)
                   userfilesUpdate,
                 ]);
               })
+              .then(() => authzMissions.renameMission(missionName, newName))
               .then(() => {
                 logger(
                   "info",
@@ -1396,6 +1419,7 @@ if (fullAccess)
           ),
         ])
       )
+      .then(() => authzMissions.removeMission(missionName))
       .then((mission) => {
         logger(
           "info",
@@ -1700,7 +1724,11 @@ if (fullAccess)
    */
   router.post(
     "/updateLayer",
-    checkMissionPermission,
+    authorize(
+      "mission.layer.edit",
+      resolvers.layer("body.mission", "body.layerUUID")
+    ),
+    requireConfigEditToMoveLayer,
     function (req, res, next) {
       const exampleBody = {
         mission: "{mission_name}",
@@ -1955,7 +1983,10 @@ if (fullAccess)
  */
   router.post(
     "/removeLayer",
-    checkMissionPermission,
+    authorize(
+      "mission.layer.edit",
+      resolvers.layers("body.mission", "body.layerUUID")
+    ),
     function (req, res, next) {
       removeLayer(req, res, next);
     }
