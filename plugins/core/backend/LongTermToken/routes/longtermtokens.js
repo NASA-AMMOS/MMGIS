@@ -75,9 +75,18 @@ class TokenError extends Error {}
 
 // Validates requested scopes/missions against what the creator holds right now
 async function resolveRequest(principal, body) {
+  const holds = (cap) =>
+    policy.MISSION_SCOPED.has(cap)
+      ? policy.capabilitiesOf(principal).includes(cap)
+      : policy.can(principal, cap);
   let scopes = body.scopes;
-  if (scopes === "read" || scopes == null)
+  if (scopes === "read" || scopes == null) {
     scopes = scopes === "read" || !hasAnyWrite(principal) ? policy.READ_CAPABILITIES.slice() : null;
+    // A default read set only carries the read capabilities the creator holds
+    if (scopes != null) scopes = scopes.filter(holds);
+    if (scopes != null && scopes.length === 0)
+      throw new TokenError("You have no read access to put in a token.");
+  }
   if (scopes != null) {
     if (!Array.isArray(scopes) || scopes.length === 0)
       throw new TokenError("scopes must be 'read', null (all of your access) or an array of capabilities.");
@@ -86,20 +95,20 @@ async function resolveRequest(principal, body) {
       if (!policy.CAPABILITIES[cap]) throw new TokenError(`Unknown capability '${cap}'.`);
       if (cap === "tokens.create" || cap === "tokens.manage")
         throw new TokenError("Tokens cannot manage tokens.");
-      const held = policy.MISSION_SCOPED.has(cap)
-        ? policy.capabilitiesOf(principal).includes(cap)
-        : policy.can(principal, cap);
-      if (!held) throw new TokenError(`You do not have '${cap}'.`);
+      if (!holds(cap)) throw new TokenError(`You do not have '${cap}'.`);
     }
   } else if (!policy.isSuperAdmin(principal) && !hasAnyWrite(principal)) {
-    scopes = policy.READ_CAPABILITIES.slice();
+    scopes = policy.READ_CAPABILITIES.filter(holds);
   }
   let missionUUIDs = null;
   if (Array.isArray(body.missions)) {
     missionUUIDs = [];
+    const reachable = policy.missionsWith(principal, "mission.view");
     for (const name of body.missions) {
       const uuid = await missions.uuidForName(name);
       if (!uuid) throw new TokenError(`Unknown mission '${name}'.`);
+      if (reachable != null && !reachable.includes(uuid))
+        throw new TokenError(`You do not have access to mission '${name}'.`);
       missionUUIDs.push(uuid);
     }
   }

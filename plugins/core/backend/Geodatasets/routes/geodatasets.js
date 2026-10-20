@@ -2082,6 +2082,7 @@ function recreate(req, res, next) {
       message: "Failure: Malformed file.",
       body: {},
     });
+    return;
   }
   if (!features) {
     //Must be a single feature from an append.  Make an array

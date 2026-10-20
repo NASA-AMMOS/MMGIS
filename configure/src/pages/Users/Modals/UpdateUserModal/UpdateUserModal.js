@@ -405,7 +405,7 @@ const UpdateUserModal = (props) => {
         />
         <Typography
           className={c.subtitle2}
-        >{`When AUTH=local, restricts which missions this user can see and load. Off = all missions. On with none selected = no missions. Files under /Missions/<mission>/ are also restricted, so a mission that references another mission's files (e.g. ../OtherMission/...) needs that mission granted too. Files under /Missions/${SHARED_MISSION_NAME}/ are readable by any logged-in user.`}</Typography>
+        >{`When SITE_ACCESS=required, restricts which missions this user can see and load. Off = all missions. On with none selected = no missions. Files under /Missions/<mission>/ are also restricted, so a mission that references another mission's files (e.g. ../OtherMission/...) needs that mission granted too. Files under /Missions/${SHARED_MISSION_NAME}/ are readable by any logged-in user.`}</Typography>
         {restrictViewing && (
         <FormControl className={c.assignedMissions} variant="filled" size="small">
           <InputLabel>Viewable Missions</InputLabel>

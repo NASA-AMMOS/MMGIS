@@ -14,6 +14,7 @@ const bindings = require("../../../../../API/authz/bindings");
 const policy = require("../../../../../API/authz/policy");
 const { ensurePrincipal } = require("../../../../../API/authz/authorize");
 const { RoleBinding } = require("../../Authz/models/authz");
+const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
 const User = userModel.User;
 const {
   UserDefaults,
@@ -88,6 +89,8 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       await RoleBinding.destroy({
         where: { subject_type: "user", subject_id: String(id) },
       });
+      // A user's tokens act with that user's authority, so they go with the account
+      await LongTermTokens.destroy({ where: { created_by_user_id: id } });
       bindings.afterChange("user", id).catch(() => {});
       return removeUser(req, res, id);
     })
@@ -237,7 +240,7 @@ async function updateUser(req, id) {
   await bindings.afterChange("user", id);
 }
 
-// Site-wide default missions_viewing stamped onto new accounts (enforced only under AUTH=local)
+// Site-wide default missions_viewing stamped onto new accounts (enforced only under SITE_ACCESS=required)
 router.get("/defaults", authorize("accounts.manage"), function (req, res) {
   getDefaultMissionsViewing()
     .then((missions_viewing) => {
