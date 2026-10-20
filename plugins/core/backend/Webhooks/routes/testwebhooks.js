@@ -40,7 +40,7 @@ router.delete("/test_webhook_del/:id", authorize.public("development-only webhoo
 
 });
 
-router.patch("/test_webhook_patch/:id", function (req, res, next) {
+router.patch("/test_webhook_patch/:id", authorize.public("development-only webhook test receiver"), function (req, res, next) {
     logger("success", "Called /testwebhooks/test_webhook_patch API", req.originalUrl, req);
     logger("info", "Body of request\n" + JSON.stringify(req.body, null, 4), req.originalUrl, req);
 
