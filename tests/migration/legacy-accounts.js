@@ -230,6 +230,7 @@ async function verify() {
     const s = await login(a.username, a.password);
     const r = await api(s.jar, "GET", "/api/configure/user-permissions");
     perms[a.username] = r.json || {};
+    perms[a.username].missions = ((await api(s.jar, "GET", "/api/configure/missions")).json || {}).missions;
   }
   const legacyOf = (u) => fixture.legacy.find((e) => e.username === u);
   for (const a of fixture.accounts) {
@@ -244,6 +245,16 @@ async function verify() {
         failures.push(`${a.username} kept site-wide capabilities`);
     }
     if (l.permission === "001" && p.superadmin) failures.push(`${a.username} became SuperAdmin`);
+
+    // Mission viewing restrictions carry over: null = every mission
+    const all = [MISSION, OTHER_MISSION];
+    const expectedViewing =
+      l.permission === "111" || l.missions_viewing == null
+        ? all
+        : all.filter((m) => l.missions_viewing.includes(m) || (l.missions_managing || []).includes(m));
+    const seen = (p.missions || []).filter((m) => all.includes(m)).sort();
+    if (JSON.stringify(seen) !== JSON.stringify(expectedViewing.slice().sort()))
+      failures.push(`${a.username} views ${JSON.stringify(seen)}, expected ${JSON.stringify(expectedViewing)}`);
   }
 
   console.table(results);
@@ -253,6 +264,7 @@ async function verify() {
       legacy: legacyOf(a.username).permission,
       superadmin: perms[a.username].superadmin,
       managing: JSON.stringify(perms[a.username].missions_managing),
+      viewing: JSON.stringify(perms[a.username].missions),
     }))
   );
   if (failures.length) {
