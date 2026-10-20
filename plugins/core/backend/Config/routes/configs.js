@@ -14,6 +14,7 @@ const {
 } = require("../../../../../API/authz/authorize");
 const siteAccess = require("../../../../../API/authz/siteAccess");
 const authzMissions = require("../../../../../API/authz/missions");
+const policy = require("../../../../../API/authz/policy");
 const execFile = require("child_process").execFile;
 const Sequelize = require("sequelize");
 const crypto = require("crypto");
@@ -371,6 +372,7 @@ function get(req, res, next, cb, options) {
 }
 router.get(
   "/get",
+  authorize.inHandler("site.view", "mission.view per requested mission"),
   checkMissionViewingPermission,
   requireAdminForVersion,
   function (req, res, next) {
@@ -629,17 +631,7 @@ function add(req, res, next, cb) {
 }
 
 if (fullAccess)
-  router.post("/add", function (req, res, next) {
-    const userPermission = req.isLongTermToken
-      ? req.tokenUserPermission
-      : req.session.permission;
-    if (userPermission !== "111") {
-      res.send({
-        status: "failure",
-        message: "Only SuperAdmins can add new missions.",
-      });
-      return null;
-    }
+  router.post("/add", authorize("mission.create"), function (req, res, next) {
     add(req, res, next);
   });
 
@@ -856,7 +848,7 @@ if (fullAccess)
     upsert(req, res, next);
   });
 
-router.get("/missions", function (req, res, next) {
+router.get("/missions", authorize.inHandler("site.view", "lists only viewable missions"), function (req, res, next) {
   const viewablePromise = getViewableMissions(req).catch((err) => {
     logger(
       "error",
@@ -943,7 +935,7 @@ router.get("/missions", function (req, res, next) {
   return null;
 });
 
-router.get("/export", function (req, res, next) {
+router.get("/export", authorize.inHandler("site.view", "exports only viewable missions"), function (req, res, next) {
   const requested = req.query.mission
     ? String(req.query.mission)
         .split(",")
@@ -951,15 +943,6 @@ router.get("/export", function (req, res, next) {
         .filter(Boolean)
     : null;
 
-  if (
-    process.env.AUTH === "local" &&
-    (!req.session || req.session.uid == null) &&
-    !req.isLongTermToken &&
-    !(req.headers && req.headers.authorization)
-  ) {
-    res.send({ status: "failure", message: "Unauthorized - login required." });
-    return;
-  }
 
   Promise.all([
     getViewableMissions(req),
@@ -997,56 +980,32 @@ router.get("/export", function (req, res, next) {
 });
 
 // Get current user's mission permissions for the Configure page
-router.get("/user-permissions", function (req, res, next) {
-  // SuperAdmins can manage all missions
-  if (req.session.permission === "111") {
-    res.send({
-      status: "success",
-      permission: "111",
-      missions_managing: null, // null means all missions
-    });
-    return;
-  }
-
-  // Regular admins get their specific mission list
-  if (req.session.permission === "110") {
-    User.findOne({
-      where: { id: req.session.uid },
-      attributes: ["missions_managing"],
-    })
-      .then((user) => {
-        res.send({
-          status: "success",
-          permission: "110",
-          missions_managing: user ? user.missions_managing || [] : [],
-        });
-      })
-      .catch((err) => {
-        logger(
-          "error",
-          "Failed to get user permissions.",
-          req.originalUrl,
-          req,
-          err
-        );
-        res.send({
-          status: "failure",
-          message: "Failed to get user permissions.",
-        });
+router.get(
+  "/user-permissions",
+  authorize.public("returns the caller's own permissions"),
+  async function (req, res, next) {
+    try {
+      const principal = await ensurePrincipal(req);
+      const managing = await getManagedMissions(req);
+      const layerEditable = await missionNamesWith(req, "mission.layer.edit");
+      res.send({
+        status: "success",
+        permission: policy.legacyPermission(principal.bindings || []),
+        superadmin: policy.isSuperAdmin(principal),
+        capabilities: policy.capabilitiesOf(principal),
+        // null means all missions
+        missions_managing: managing,
+        missions_layer_editing: layerEditable,
       });
-    return;
+    } catch (err) {
+      logger("error", "Failed to get user permissions.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to get user permissions." });
+    }
   }
-
-  // Non-admin users
-  res.send({
-    status: "success",
-    permission: req.session.permission || "000",
-    missions_managing: [],
-  });
-});
+);
 
 if (fullAccess)
-  router.get("/versions", function (req, res, next) {
+  router.get("/versions", checkMissionPermission, function (req, res, next) {
     Config.findAll({
       where: {
         mission: req.query.mission,
@@ -1096,7 +1055,7 @@ function relativizePaths(config, mission) {
 //cloneMission
 //hasPaths
 if (fullAccess)
-  router.post("/clone", rejectReservedMissionName("cloneMission"), function (req, res, next) {
+  router.post("/clone", authorize("mission.create"), rejectReservedMissionName("cloneMission"), function (req, res, next) {
     get(req, res, next, function (r) {
       if (r.status == "success") {
         r.config.msv.mission = req.body.cloneMission;
@@ -1143,7 +1102,7 @@ const renameLockKeys = (name) => {
 };
 
 if (fullAccess)
-  router.post("/rename", rejectReservedMissionName("mission"), checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
+  router.post("/rename", authorize("mission.manage", missionFromReq), rejectReservedMissionName("mission"), clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     const newName = req.body.newName;
 
@@ -1412,7 +1371,7 @@ if (fullAccess)
   });
 
 if (fullAccess)
-  router.post("/destroy", rejectReservedMissionName("mission"), checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
+  router.post("/destroy", authorize("mission.manage", missionFromReq), rejectReservedMissionName("mission"), clearViewableFoldersCacheAfter, function (req, res, next) {
     const missionName = req.body.mission;
     if (!missionName || !/^[A-Za-z0-9_ -]+$/.test(missionName)) {
       logger("error", "Invalid mission name in destroy request.", req.originalUrl, req);
@@ -1487,7 +1446,7 @@ if (fullAccess)
   });
 
 if (fullAccess)
-  router.post("/validate", function (req, res, next) {
+  router.post("/validate", authorize.inHandler("site.view", "validates a config body without saving"), function (req, res, next) {
     let configJSON;
     if (typeof req.body.config === "string") {
       try {
@@ -2106,7 +2065,7 @@ if (fullAccess)
   );
 
 if (fullAccess) {
-  router.post("/updateGeneralOptions", function (req, res, next) {
+  router.post("/updateGeneralOptions", authorize("options.manage"), function (req, res, next) {
     let optionsJSON;
     if (typeof req.body.options === "string") {
       try {
@@ -2177,7 +2136,7 @@ function getGeneralOptions(req, res, next, cb) {
     });
   return null;
 }
-router.get("/getGeneralOptions", function (req, res, next) {
+router.get("/getGeneralOptions", authorize("site.view"), function (req, res, next) {
   getGeneralOptions(req, res, next);
 });
 
