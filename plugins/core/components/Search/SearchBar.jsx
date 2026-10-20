@@ -63,19 +63,23 @@ function getSearchFieldStringForFeature(searchFields, name, props) {
 // string, fields is { fieldName: transformedValue } for each search field.
 // Rebuilds a properties object from a bulk_aggregations `fields` row,
 // whose values are ordered like `fields` (dot paths).
-const UNSAFE_PROP_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+// Keys are only ever read as own properties and written with defineProperty,
+// so names like `__proto__` or `constructor` stay plain data keys.
+function setOwnProp(obj, key, value) {
+    Object.defineProperty(obj, key, { value, writable: true, enumerable: true, configurable: true })
+}
 function distinctRowToProps(fields, values) {
     const props = {}
     fields.forEach((field, i) => {
         if (values[i] == null) return
         const path = field.split('.')
-        if (path.some((key) => UNSAFE_PROP_KEYS.has(key))) return
         let obj = props
         for (const key of path.slice(0, -1)) {
-            if (obj[key] == null || typeof obj[key] !== 'object') obj[key] = {}
+            const next = Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : null
+            if (next == null || typeof next !== 'object') setOwnProp(obj, key, {})
             obj = obj[key]
         }
-        obj[path[path.length - 1]] = values[i]
+        setOwnProp(obj, path[path.length - 1], values[i])
     })
     return props
 }
@@ -253,6 +257,9 @@ function SearchBar({ componentVars }) {
 
     // Cached per-layer value sets — avoids re-fetching when toggling All/Common
     const cachedPerLayerValues = useRef({})
+    // Layers whose values failed to load; their membership is unknown, so
+    // Common mode cannot compute a trustworthy intersection while any are present
+    const failedPerLayerValues = useRef(new Set())
 
     // Time-range warning state: { layerName, start, end } when filter bypasses time bounds
     const [timeRangeWarning, setTimeRangeWarning] = useState(null)
@@ -461,6 +468,14 @@ function SearchBar({ componentVars }) {
     // filter to layers that actually have the value.
     const mergePerLayerValues = useCallback(
         (targetLayers) => {
+            if (
+                valuesIntersectOnly &&
+                targetLayers.length > 1 &&
+                targetLayers.some((l) => failedPerLayerValues.current.has(l))
+            ) {
+                setArrayToSearch([])
+                return
+            }
             const allMaps = targetLayers
                 .map((l) => [l, cachedPerLayerValues.current[l]])
                 .filter(([, m]) => m && m.size !== undefined)
@@ -526,6 +541,7 @@ function SearchBar({ componentVars }) {
         let cancelled = false
         setValuesLoading(true)
         setValuesLoadFailed([])
+        failedPerLayerValues.current = new Set()
 
         // Determine which layers to gather suggestions from
         const targetLayers = selectedGroupId && searchGroups[selectedGroupId]
@@ -619,6 +635,7 @@ function SearchBar({ componentVars }) {
                     if (cancelled) return
                     console.warn(`Search: failed to load values for ${lname}:`, err?.message)
                     delete cachedPerLayerValues.current[lname]
+                    failedPerLayerValues.current.add(lname)
                     setValuesLoadFailed((prev) => [...prev, lname])
                 })
             }))
