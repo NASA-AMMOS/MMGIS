@@ -5,6 +5,15 @@
 require("dotenv").config();
 const express = require("express");
 const router = express.Router();
+const {
+  authorize,
+  resolvers,
+  missionNamesWith,
+  ensurePrincipal,
+  can,
+} = require("../../../../../API/authz/authorize");
+const siteAccess = require("../../../../../API/authz/siteAccess");
+const authzMissions = require("../../../../../API/authz/missions");
 const execFile = require("child_process").execFile;
 const Sequelize = require("sequelize");
 const crypto = require("crypto");
@@ -64,199 +73,25 @@ if (
 )
   fullAccess = true;
 
-// Middleware to check if admin user has permission to access specific mission
-function checkMissionPermission(req, res, next) {
-  // Determine if this is a long term token request or regular session
-  let userPermission, userMissions, userId;
+const missionFromReq = resolvers.mission(
+  (req) => (req.body && req.body.mission) || req.query.mission
+);
+missionFromReq.description = "mission(body.mission | query.mission)";
 
-  if (req.isLongTermToken) {
-    // Use token creator's permissions for long term tokens
-    userPermission = req.tokenUserPermission;
-    userMissions = req.tokenUserMissions;
-    userId = null; // We don't need to lookup again since we have the data
-  } else {
-    // Use session permissions for regular requests
-    userPermission = req.session.permission;
-    userId = req.session.uid;
-    userMissions = null; // Will be looked up from database
-  }
+// Whole-mission configuration edits
+const checkMissionPermission = authorize("mission.config.edit", missionFromReq);
 
-  // SuperAdmins (111) have access to all missions
-  if (userPermission === "111") {
-    next();
-    return;
-  }
-
-  // Regular users (not 110) should not access config endpoints
-  if (userPermission !== "110") {
-    res.send({
-      status: "failure",
-      message: "Unauthorized - insufficient permissions.",
-    });
-    return;
-  }
-
-  // For Admins (110), check mission-specific permissions
-  const mission = req.body.mission || req.query.mission;
-  if (!mission) {
-    next(); // No mission specified, let other validation handle it
-    return;
-  }
-
-  // If we already have missions from token, use them directly
-  if (req.isLongTermToken) {
-    const managingMissions = userMissions || [];
-    if (managingMissions.includes(mission)) {
-      next();
-    } else {
-      res.send({
-        status: "failure",
-        message: `Unauthorized - no permission to access mission: ${mission}`,
-      });
-    }
-    return;
-  }
-
-  // For regular session users, get user's missions_managing array from database
-  User.findOne({
-    where: { id: userId },
-    attributes: ["missions_managing"],
-  })
-    .then((user) => {
-      if (!user) {
-        res.send({
-          status: "failure",
-          message: "User not found.",
-        });
-        return;
-      }
-
-      const managingMissions = user.missions_managing || [];
-      if (managingMissions.includes(mission)) {
-        next();
-      } else {
-        res.send({
-          status: "failure",
-          message: `Unauthorized - no permission to access mission: ${mission}`,
-        });
-      }
-    })
-    .catch((err) => {
-      logger(
-        "error",
-        "Failed to check mission permissions.",
-        req.originalUrl,
-        req,
-        err
-      );
-      res.send({
-        status: "failure",
-        message: "Failed to verify mission permissions.",
-      });
-    });
-}
-
-// Resolves the set of missions the current session may view under AUTH=local.
-// Resolves to null when unrestricted (all missions), otherwise an array of names.
-function viewableFromUser(user) {
-  if (!user || user.permission === "111") return null;
-  // null missions_viewing = legacy/unrestricted
-  if (user.missions_viewing == null) return null;
-
-  const viewable = new Set(user.missions_viewing);
-  if (user.permission === "110")
-    (user.missions_managing || []).forEach((m) => viewable.add(m));
-  return Array.from(viewable);
-}
-
-function resolveTokenUser(req) {
-  if (req.isLongTermToken)
-    return Promise.resolve({
-      permission: req.tokenUserPermission,
-      missions_managing: req.tokenUserMissions,
-      missions_viewing: req.tokenUserMissionsViewing,
-    });
-
-  const authorization = req.headers && req.headers.authorization;
-  if (!authorization) return Promise.resolve(null);
-
-  // Whitelisted routes skip token validation upstream; resolve the creator here
-  const token = String(authorization).replace(/Bearer:?\s+/g, "");
-  return sequelize
-    .query(
-      'SELECT lt.period, lt."createdAt", u.permission, u.missions_managing, u.missions_viewing FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
-      { replacements: { token } }
-    )
-    .then(([rows]) => {
-      const r = rows && rows[0];
-      if (
-        !r ||
-        !(
-          r.period == "never" ||
-          Date.now() - new Date(r.createdAt).getTime() < parseInt(r.period)
-        )
-      )
-        return null;
-      return {
-        permission: r.permission,
-        missions_managing: r.missions_managing,
-        missions_viewing: r.missions_viewing,
-      };
-    });
-}
-
-// Long-term tokens inherit their creator's viewing scope
-function viewableFromToken(req) {
-  return resolveTokenUser(req).then((user) =>
-    user ? viewableFromUser(user) : []
-  );
-}
-
+// Mission names the request may view (null = all)
 function getViewableMissions(req) {
-  if (process.env.AUTH !== "local") return Promise.resolve(null);
-  const permission = req.session ? req.session.permission : null;
-  const uid = req.session ? req.session.uid : null;
-  if (permission === "111") return Promise.resolve(null);
-  if (uid == null) {
-    if (req.isLongTermToken || req.headers.authorization)
-      return viewableFromToken(req);
-    // Guests (not logged in) may view nothing under AUTH=local
-    return Promise.resolve([]);
-  }
-
-  return User.findOne({
-    where: { id: uid },
-    attributes: ["permission", "missions_managing", "missions_viewing"],
-  }).then((user) => (user ? viewableFromUser(user) : []));
+  return missionNamesWith(req, "mission.view");
 }
 
+// Mission names whose whole configuration the request may edit (null = all)
 function getManagedMissions(req) {
-  if (req.session && req.session.permission === "111")
-    return Promise.resolve(null);
-
-  if (req.session && req.session.uid != null) {
-    return User.findOne({
-      where: { id: req.session.uid },
-      attributes: ["permission", "missions_managing"],
-    }).then((user) => {
-      if (!user || user.permission !== "110") return [];
-      return user.missions_managing || [];
-    });
-  }
-
-  if (req.isLongTermToken || (req.headers && req.headers.authorization)) {
-    return resolveTokenUser(req).then((user) => {
-      if (!user) return [];
-      if (user.permission === "111") return null;
-      if (user.permission !== "110") return [];
-      return user.missions_managing || [];
-    });
-  }
-
-  return Promise.resolve([]);
+  return missionNamesWith(req, "mission.config.edit");
 }
 
-// Middleware guarding config loads by missions_viewing under AUTH=local
+// Guards config loads by mission.view
 function checkMissionViewingPermission(req, res, next) {
   const mission = req.query.mission || (req.body && req.body.mission);
   getViewableMissions(req)
@@ -287,6 +122,7 @@ function checkMissionViewingPermission(req, res, next) {
     });
 }
 
+// Specific (older) configuration versions are for mission config editors
 function requireAdminForVersion(req, res, next) {
   if (req.query.version == null || req.query.version === "") {
     next();
@@ -320,14 +156,13 @@ function requireAdminForVersion(req, res, next) {
     });
 }
 
-// Cached per-user set of viewable mission folder names (msv.missionFolderName)
+// Cached per-principal set of viewable mission folder names (msv.missionFolderName)
 const VIEWABLE_FOLDERS_TTL = 10 * 1000;
 const viewableFoldersCache = new Map();
 let viewableFoldersGeneration = 0;
 function clearViewableFoldersCache(uid) {
   viewableFoldersGeneration++;
-  if (uid == null) viewableFoldersCache.clear();
-  else viewableFoldersCache.delete(String(uid));
+  viewableFoldersCache.clear();
 }
 // Clears the cache again once a mission mutation's response has been sent
 function clearViewableFoldersCacheAfter(req, res, next) {
@@ -336,61 +171,57 @@ function clearViewableFoldersCacheAfter(req, res, next) {
   next();
 }
 
-// Resolves to null (unrestricted) or a Set of /Missions folder names the user may read
-function getViewableMissionFolders(req) {
-  const uid = req.session ? req.session.uid : null;
-  const cached = uid != null ? viewableFoldersCache.get(String(uid)) : null;
-  if (cached && Date.now() - cached.ts < VIEWABLE_FOLDERS_TTL)
-    return Promise.resolve(cached.folders);
+function principalCacheKey(req) {
+  const p = req.principal || {};
+  if (p.kind === "token") return `token:${p.token.id}`;
+  if (p.kind === "user") return `user:${p.userId}`;
+  if (p.kind === "csso") return `csso:${p.username}:${(p.groupIds || []).join(",")}`;
+  return p.kind || "anonymous";
+}
 
-  const generation = viewableFoldersGeneration;
-  return getViewableMissions(req).then((viewable) => {
-    if (viewable == null) return null;
-    return Config.findAll({
-      where: { mission: viewable },
-      attributes: ["mission", "config"],
-      order: [["id", "DESC"]],
-    }).then((configs) => {
-      const folders = new Set(viewable);
-      const seen = new Set();
-      folders.delete(SHARED_MISSION_FOLDER_NAME);
-      (configs || []).forEach((c) => {
-        if (seen.has(c.mission)) return;
-        seen.add(c.mission);
-        const folder = c.config && c.config.msv && c.config.msv.missionFolderName;
-        if (
-          typeof folder === "string" &&
-          folder.length > 0 &&
-          folder !== SHARED_MISSION_FOLDER_NAME
-        )
-          folders.add(folder);
+// Resolves to null (unrestricted) or a Set of /Missions folder names the request may read
+function getViewableMissionFolders(req) {
+  return ensurePrincipal(req).then(() => {
+    const key = principalCacheKey(req);
+    const cached = viewableFoldersCache.get(key);
+    if (cached && Date.now() - cached.ts < VIEWABLE_FOLDERS_TTL)
+      return cached.folders;
+
+    const generation = viewableFoldersGeneration;
+    return getViewableMissions(req).then((viewable) => {
+      if (viewable == null) return null;
+      return Config.findAll({
+        where: { mission: viewable },
+        attributes: ["mission", "config"],
+        order: [["id", "DESC"]],
+      }).then((configs) => {
+        const folders = new Set(viewable);
+        const seen = new Set();
+        folders.delete(SHARED_MISSION_FOLDER_NAME);
+        (configs || []).forEach((c) => {
+          if (seen.has(c.mission)) return;
+          seen.add(c.mission);
+          const folder =
+            c.config && c.config.msv && c.config.msv.missionFolderName;
+          if (
+            typeof folder === "string" &&
+            folder.length > 0 &&
+            folder !== SHARED_MISSION_FOLDER_NAME
+          )
+            folders.add(folder);
+        });
+        if (generation === viewableFoldersGeneration)
+          viewableFoldersCache.set(key, { ts: Date.now(), folders });
+        return folders;
       });
-      if (uid != null && generation === viewableFoldersGeneration)
-        viewableFoldersCache.set(String(uid), { ts: Date.now(), folders });
-      return folders;
     });
   });
 }
 
-// Any logged-in session or valid long-term token
-function isAuthenticated(req) {
-  const session = req.session || {};
-  if (
-    session.uid != null &&
-    ["111", "110", "001"].includes(session.permission)
-  )
-    return Promise.resolve(true);
-  if (req.isLongTermToken) return Promise.resolve(true);
-  if (req.headers && req.headers.authorization)
-    return resolveTokenUser(req).then((user) => user != null);
-  return Promise.resolve(false);
-}
-
-// Middleware guarding /Missions/<folder>/... static files by missions_viewing
+// Guards /Missions/<folder>/... static files by mission.view
 // forbid(req, res) sends the 403 response
 function checkMissionFileViewingPermission(forbid) {
   return function (req, res, next) {
-    if (process.env.AUTH !== "local") return next();
     let folder = null;
     try {
       // Normalize so "<folder>/%2e%2e/<other>" resolves to <other>, as the
@@ -405,18 +236,13 @@ function checkMissionFileViewingPermission(forbid) {
       return res.sendStatus(404);
     }
     if (folder === SHARED_MISSION_FOLDER_NAME) {
-      isAuthenticated(req)
-        .then((ok) => (ok ? next() : forbid(req, res)))
-        .catch((err) => {
-          logger(
-            "error",
-            "Failed to check shared mission folder permissions.",
-            req.originalUrl,
-            req,
-            err
-          );
-          res.sendStatus(500);
-        });
+      ensurePrincipal(req)
+        .then((p) =>
+          p.authenticated || siteAccess.guestsAllowed()
+            ? next()
+            : forbid(req, res)
+        )
+        .catch(() => res.sendStatus(500));
       return;
     }
     getViewableMissionFolders(req)
