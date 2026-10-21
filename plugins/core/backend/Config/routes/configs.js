@@ -15,6 +15,7 @@ const {
 const siteAccess = require("../../../../../API/permissions/siteAccess");
 const missionIdentity = require("../../../../../API/permissions/missions");
 const policy = require("../../../../../API/permissions/policy");
+const principal = require("../../../../../API/permissions/principal");
 const execFile = require("child_process").execFile;
 const Sequelize = require("sequelize");
 const crypto = require("crypto");
@@ -187,6 +188,8 @@ function clearViewableFoldersCache(uid) {
   viewableFoldersGeneration++;
   viewableFoldersCache.clear();
 }
+principal.onInvalidate(() => clearViewableFoldersCache());
+
 // Clears the cache again once a mission mutation's response has been sent
 function clearViewableFoldersCacheAfter(req, res, next) {
   clearViewableFoldersCache();

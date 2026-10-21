@@ -86,7 +86,7 @@ async function main() {
   const report = {
     mode: dryRun ? "dry-run (no changes written)" : result.skipped ? "already imported (no changes)" : "applied",
     // Only known values are echoed, never raw ENV contents
-    siteAccess: siteAccess.SITE_ACCESS_VALUES.find((v) => v === siteAccess.getSiteAccess()) || null,
+    siteAccess: siteAccess.SITE_ACCESS_VALUES[siteAccess.SITE_ACCESS_VALUES.indexOf(siteAccess.getSiteAccess())] || null,
     providers: providers.availableProviders().filter((p) => siteAccess.getProviders().includes(p)),
     alreadyImported: imported,
     users: users.length,
@@ -96,7 +96,8 @@ async function main() {
     notes,
     plan: byUser,
   };
-  if (json) console.log(JSON.stringify(report, null, 2));
+  // One line of JSON; JSON.stringify already escapes control characters
+  if (json) console.log(JSON.stringify(report).replace(/[\r\n]/g, ""));
   else {
     console.log(`\nMMGIS auth migration — ${report.mode}`);
     console.log(`SITE_ACCESS=${report.siteAccess} AUTH_PROVIDERS=${JSON.stringify(report.providers)}`);

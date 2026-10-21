@@ -1,4 +1,5 @@
 import { test, expect, request as apiRequest } from "@playwright/test";
+import { loginHeaders } from "../../helpers/auth.js";
 import fs from "fs";
 import http from "http";
 import path from "path";
@@ -56,6 +57,7 @@ test.describe.serial("missions_viewing permissions", () => {
     const ctx = await apiRequest.newContext({ baseURL });
     const body = await json(
       await ctx.post("/api/users/login", {
+        headers: loginHeaders(),
         data: { username, password: PASSWORD },
       }),
     );
@@ -107,7 +109,7 @@ test.describe.serial("missions_viewing permissions", () => {
     if (!isLocal) return;
     superadmin = await apiRequest.newContext({ baseURL });
     const login = await json(
-      await superadmin.post("/api/users/login", { data: ADMIN }),
+      await superadmin.post("/api/users/login", { headers: loginHeaders(), data: ADMIN }),
     );
     if (login?.status !== "success") return;
 
@@ -407,8 +409,10 @@ test.describe.serial("missions_viewing permissions", () => {
         }),
       );
       expect(body?.status).toBe("success");
+      // Lists only show a token prefix, so match on the id returned at creation
       const list = await json(await ctx.get("/api/longtermtoken/get"));
-      const row = list.tokens.find((t) => t.token === body.body.token);
+      const row = list.tokens.find((t) => t.id === body.body.id);
+      expect(row?.token).toBe(`${body.body.token.slice(0, row.token.length - 3)}...`);
       tokenIds.push(row.id);
       return apiRequest.newContext({
         baseURL,
@@ -630,7 +634,7 @@ test.describe("default missions_viewing is stored in every AUTH mode", () => {
   test("new accounts receive the default even though it is not enforced", async () => {
     const superadmin = await apiRequest.newContext({ baseURL });
     const login = await superadmin
-      .post("/api/users/login", { data: ADMIN })
+      .post("/api/users/login", { headers: loginHeaders(), data: ADMIN })
       .then((r) => r.json());
     test.skip(login?.status !== "success", "Requires the test admin account");
 
@@ -669,6 +673,7 @@ test.describe("default missions_viewing is stored in every AUTH mode", () => {
       // Not enforced outside AUTH=local: the new user still lists every mission
       const ctx = await apiRequest.newContext({ baseURL });
       await ctx.post("/api/users/login", {
+        headers: loginHeaders(),
         data: { username: name, password: PASSWORD },
       });
       const body = await ctx.get("/api/configure/missions").then((r) => r.json());

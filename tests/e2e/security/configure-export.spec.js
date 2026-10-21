@@ -1,4 +1,5 @@
 import { test, expect, request as apiRequest } from "@playwright/test";
+import { loginHeaders } from "../../helpers/auth.js";
 
 const baseURL = process.env.TEST_BASE_URL || "http://localhost:18888";
 const ADMIN = { username: "test_admin", password: "TestAdmin1!" }; // pragma: allowlist secret
@@ -28,6 +29,7 @@ test.describe.serial("configure export", () => {
     const ctx = await apiRequest.newContext({ baseURL });
     const body = await json(
       await ctx.post("/api/users/login", {
+        headers: loginHeaders(),
         data: { username, password },
       }),
     );
@@ -58,7 +60,7 @@ test.describe.serial("configure export", () => {
 
     superadmin = await apiRequest.newContext({ baseURL });
     const login = await json(
-      await superadmin.post("/api/users/login", { data: ADMIN }),
+      await superadmin.post("/api/users/login", { headers: loginHeaders(), data: ADMIN }),
     );
     if (login?.status !== "success") return;
 

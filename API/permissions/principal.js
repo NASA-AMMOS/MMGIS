@@ -21,10 +21,17 @@ function models() {
   return { ...permissionModels, User, LongTermTokens };
 }
 
+const invalidateListeners = [];
+// Lets other per-principal caches clear whenever access changes
+function onInvalidate(fn) {
+  invalidateListeners.push(fn);
+}
+
 // Call after any change to bindings, groups, memberships or users
 function invalidate() {
   generation++;
   cache.clear();
+  invalidateListeners.forEach((fn) => fn());
 }
 
 function hashToken(token) {
@@ -237,6 +244,7 @@ module.exports = {
   resolvePrincipal,
   userPrincipal,
   invalidate,
+  onInvalidate,
   hashToken,
   tokenExpired,
   siteAccess,
