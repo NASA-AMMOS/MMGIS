@@ -92,7 +92,19 @@ const useStyles = makeStyles((theme) => ({
   muted: { opacity: 0.6 },
   roleText: { fontWeight: "bold" },
   drawer: { width: "640px", padding: "0px 24px 48px 24px", boxSizing: "border-box" },
-  drawerHead: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0px" },
+  drawerHead: {
+    position: "sticky",
+    top: 0,
+    zIndex: 2,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    margin: "0px -24px",
+    padding: "8px 16px 8px 24px",
+    background: theme.palette.secondary.main,
+    boxShadow: "0px 2px 6px 0px rgba(0, 0, 0, 0.35)",
+    "& .MuiTypography-root, & .MuiIconButton-root, & svg": { color: "#fff" },
+  },
   section: { marginTop: "20px" },
   sectionTitle: { fontSize: "14px !important", fontWeight: "bold !important", marginBottom: "6px !important" },
   input: { minWidth: "220px !important" },
@@ -918,12 +930,12 @@ export default function UsersAccessV1() {
             {["everyone", "authenticated"].map((a) => {
               const st = audienceState(a);
               return (
-                <AudienceCard key={`${a}-${version}`} title={AUDIENCE_LABEL[a]} state={st} missions={missions}
+                <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={AUDIENCE_LABEL[a]} state={st} missions={missions}
                   hint={a === "everyone" ? "Applies to guests too when SITE_ACCESS allows them." : "Applies to every logged-in user, including CSSO users."}
                   onSave={(mode, list) => setAudience(a, mode, list)} />
               );
             })}
-            <AudienceCard key={`defaults-${version}`} title="Default for new accounts" missions={missions}
+            <AudienceCard key={`defaults-${defaults == null ? "all" : defaults.slice().sort().join(",")}`} title="Default for new accounts" missions={missions}
               hint="What a newly created account can view. Doesn't change existing accounts."
               noneLabel={null}
               state={{ mode: defaults == null ? "all" : "selected", list: defaults || [] }}
