@@ -26,7 +26,28 @@ MMGIS no longer starts while `AUTH` is set, and it requires `SITE_ACCESS`. Repla
 - `optional`: anyone can view; users may log in (e.g. to save Draw files).
 - `required`: everything requires login.
 
-`ldap` and `earthdata` are reserved provider names and are not implemented yet.
+`ldap`, `earthdata`, `keycloak` and `cognito` are reserved provider names and are not implemented yet.
+
+### What to expect for each previous setup
+
+Compared request by request against the previous release on the same upgraded database:
+
+- **`AUTH=off` → `public`**: visitors browse every mission without logging in, as before. Admins still log in at `/configure`. Draw stays unavailable, as before, because public sites have no end-user accounts.
+- **`AUTH=none` → `optional`**: guests browse as before, and logged-in users keep their mission access and Draw.
+- **`AUTH=local` → `required`**: logins, mission lists and `missions_viewing` limits behave as before. API calls from someone who isn't logged in now get a JSON `403` instead of an empty result or the login page.
+- **`AUTH=csso` → `required` + `["csso"]`**:
+  - The proxy's `X-Sub`, `X-Groups` and `X-Session` headers are read as before.
+  - `CSSO_GROUPS` still gates the map and `/configure`, and `CSSO_LEAD_GROUP` still maps to the lead group.
+  - On upgrade, every CSSO user can view every mission, as before.
+  - Admins still log in to `/configure` with their local MMGIS account.
+  - Requests that reach MMGIS without the CSSO headers (i.e. not through the proxy) are now refused. Scripts that called MMGIS directly need a long-term token.
+  - `CSSO_PROXY_SECRET` is optional. Leave it unset to keep the previous behavior. Set it only after your proxy adds a matching `X-MMGIS-Proxy-Secret` header to every request; otherwise every CSSO user is treated as logged out.
+
+On every kind of site:
+
+- Mission admins no longer see the Accounts page; see section 3.
+- Any logged-in user can create read-only long-term tokens.
+- Long-term tokens can't open the `/configure` page; they are for API calls.
 
 ## 2. Preview and import existing accounts
 

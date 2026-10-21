@@ -5,6 +5,16 @@ const routerAggregations = require("./routes/aggregations");
 const ufiles = require("./models/userfiles");
 const file_histories = require("./models/filehistories");
 
+// Draw needs end-user accounts, which public sites don't have (as with AUTH=off)
+const noDrawOnPublicSites = (s) => (req, res, next) => {
+  const url = req.originalUrl.split("?")[0].toLowerCase();
+  if (s.siteAccess.isPublic() && !url.endsWith("/api/files/getfile")) {
+    res.send({ status: "failure", message: "User is not logged in." });
+    return;
+  }
+  next();
+};
+
 let setup = {
   //Once the app initializes
   onceInit: (s) => {
@@ -13,6 +23,7 @@ let setup = {
       s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
+      noDrawOnPublicSites(s),
       s.registerRouter("/api/files", routerFiles)
     );
 
@@ -21,6 +32,7 @@ let setup = {
       s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
+      noDrawOnPublicSites(s),
       s.registerRouter("/api/draw", routerDraw)
     );
 
@@ -29,6 +41,7 @@ let setup = {
       s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
+      noDrawOnPublicSites(s),
       s.registerRouter("/api/draw", routerAggregations)
     );
   },

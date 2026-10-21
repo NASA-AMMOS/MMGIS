@@ -433,6 +433,11 @@ function ensureAdmin(
           );
           return;
         }
+        // Pages are for browser sessions; tokens get the login page as before
+        if (toLoginPage && principal.kind === "token") {
+          renderAdminLogin(req, res);
+          return;
+        }
         if (denyLongTermTokens && principal.kind === "token") {
           res.send({ status: "failure", message: "Unauthorized!" });
           return;
