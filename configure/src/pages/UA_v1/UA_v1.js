@@ -78,6 +78,7 @@ const useStyles = makeStyles((theme) => ({
     padding: "12px 16px",
     background: theme.palette.swatches.grey[850],
     borderRadius: "4px",
+    marginBottom: "0px !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
   field: {
@@ -1132,7 +1133,7 @@ export default function UsersAccessV1() {
                 <GrantsTable rows={missionRows} roles={roles} layerPaths={allLayerPaths} viaText={subjectName} onRemove={(b) => askRemove(b)} emptyText="Nobody has access to this mission yet." />
               </>
             ) : (
-              <div className={c.muted}>Choose a mission to see who can access it.</div>
+              <div className={c.muted} style={{ marginTop: "12px" }}>Choose a mission to see who can access it.</div>
             )}
           </div>
         )}
