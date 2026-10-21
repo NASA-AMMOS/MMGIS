@@ -41,7 +41,9 @@ grep -v -E '^(SITE_ACCESS|AUTH_PROVIDERS|AUTH|PORT|NODE_ENV|DB_NAME)=' .env > "$
 printf 'AUTH=local\nPORT=%s\nNODE_ENV=test\nDB_NAME=mmgis-test\n' "$OLD_PORT" >> "$WORK/.env"
 
 node tests/test-db-clean.js
-(cd "$WORK" && node scripts/init-db.js > "$LOGS/legacy-old-initdb.log" 2>&1)
+# Older init-db connects without a database name; point it at the maintenance DB
+(cd "$WORK" && PGDATABASE=postgres node scripts/init-db.js > "$LOGS/legacy-old-initdb.log" 2>&1) ||
+  { echo "init-db for $BASE_REF failed"; tail -30 "$LOGS/legacy-old-initdb.log"; exit 1; }
 
 echo "== Starting $BASE_REF on :$OLD_PORT"
 (cd "$WORK" && exec node scripts/server.js > "$LOGS/legacy-old-server.log" 2>&1) &
