@@ -40,7 +40,8 @@ function api(who, method, url, body, { bearer, localAddress } = {}) {
     const req = http.request(
       {
         method,
-        hostname: target.hostname,
+        // An IPv4 local address can't reach localhost if it resolves to ::1
+        hostname: localAddress && target.hostname === 'localhost' ? '127.0.0.1' : target.hostname,
         port: target.port,
         path: target.pathname + target.search,
         localAddress,

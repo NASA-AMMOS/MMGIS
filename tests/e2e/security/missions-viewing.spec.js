@@ -74,7 +74,7 @@ test.describe.serial("missions_viewing permissions", () => {
 
   async function listMissions(ctx) {
     const body = await json(await ctx.get("/api/configure/missions"));
-    expect(body?.status).toBe("success");
+    expect(body?.status, JSON.stringify(body)).toBe("success");
     return body.missions.filter(
       (m) => m.startsWith(`test_view_`) && m.includes(`_${stamp}`),
     );

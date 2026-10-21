@@ -19,6 +19,7 @@ const force = args.has("--force");
 const json = args.has("--json");
 
 const siteAccess = require("../API/permissions/siteAccess");
+const providers = require("../API/permissions/providers");
 
 const notes = [];
 if (process.env.AUTH != null && process.env.AUTH !== "") {
@@ -97,7 +98,9 @@ async function main() {
   if (json) console.log(JSON.stringify(report, null, 2));
   else {
     console.log(`\nMMGIS auth migration — ${report.mode}`);
-    console.log(`SITE_ACCESS=${report.siteAccess} AUTH_PROVIDERS=${JSON.stringify(report.providers)}`);
+    const shownAccess = siteAccess.SITE_ACCESS_VALUES.find((v) => v === report.siteAccess);
+    const shownProviders = providers.availableProviders().filter((p) => report.providers.includes(p));
+    console.log(`SITE_ACCESS=${shownAccess} AUTH_PROVIDERS=${JSON.stringify(shownProviders)}`);
     notes.forEach((n) => console.log(`NOTE: ${n}`));
     if (imported && dryRun) console.log("NOTE: this database was already imported; the server will not import again.");
     console.log(`${report.users} user(s), ${report.bindings} role binding(s):`);

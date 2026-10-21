@@ -32,12 +32,12 @@ test.describe('SITE_ACCESS validation', () => {
   test('requires SITE_ACCESS (no default)', () => {
     const errors = siteAccess.validate({});
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/SITE_ACCESS must be one of/);
+    expect(errors[0]).toMatch(/SITE_ACCESS must be set to one of/);
   });
 
   for (const bad of ['', 'off', 'none', 'local', 'csso', 'PUBLIC', 'true'])
     test(`rejects SITE_ACCESS=${JSON.stringify(bad)}`, () => {
-      expect(siteAccess.validate({ SITE_ACCESS: bad }).join('\n')).toMatch(/SITE_ACCESS must be one of/);
+      expect(siteAccess.validate({ SITE_ACCESS: bad }).join('\n')).toMatch(/SITE_ACCESS must be set to one of/);
     });
 
   const legacy = {
@@ -89,7 +89,7 @@ test.describe('AUTH_PROVIDERS parsing', () => {
   });
 
   test('unknown providers are rejected', () => {
-    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'oauth' }).join()).toMatch(/unknown provider 'oauth'/);
+    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'oauth' }).join()).toMatch(/unknown provider\. Available/);
   });
 });
 

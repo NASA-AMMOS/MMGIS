@@ -70,7 +70,7 @@ test.describe('AUTH_PROVIDERS validation against the registry', () => {
 
   test('unknown providers list what is available', () => {
     expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["okta"]' }).join())
-      .toMatch(/unknown provider 'okta'\. Available: .*local/);
+      .toMatch(/unknown provider\. Available: .*local/);
   });
 
   test('csso warns when CSSO_PROXY_SECRET is unset', () => {
@@ -101,11 +101,11 @@ test.describe('identities', () => {
   });
 
   test('csso only trusts headers carrying the proxy secret when one is set', () => {
-    process.env.CSSO_PROXY_SECRET = 'shh';
+    process.env.CSSO_PROXY_SECRET = 'shh'; // pragma: allowlist secret
     try {
       expect(csso.identify(req({ 'X-Sub': 'jdoe' }))).toBeNull();
-      expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'nope' }))).toBeNull();
-      expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'shh' })).subject).toBe('jdoe');
+      expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'nope' }))).toBeNull(); // pragma: allowlist secret
+      expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'shh' })).subject).toBe('jdoe'); // pragma: allowlist secret
     } finally {
       delete process.env.CSSO_PROXY_SECRET;
     }

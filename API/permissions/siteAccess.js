@@ -30,18 +30,20 @@ function parseProviders(raw) {
 function validate(env = process.env) {
   const errors = [];
   if (env.AUTH != null && env.AUTH !== "") {
-    const legacy = LEGACY_AUTH_REPLACEMENTS[String(env.AUTH).toLowerCase()];
+    // Messages only echo known values, never raw ENV contents
+    const key = Object.keys(LEGACY_AUTH_REPLACEMENTS).find(
+      (k) => k === String(env.AUTH).toLowerCase()
+    );
+    const legacy = key && LEGACY_AUTH_REPLACEMENTS[key];
     errors.push(
       legacy
-        ? `The AUTH ENV has been removed. Replace 'AUTH=${env.AUTH}' with 'SITE_ACCESS=${legacy.SITE_ACCESS}' and 'AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}'.`
-        : `The AUTH ENV has been removed. Unset 'AUTH=${env.AUTH}' and set SITE_ACCESS (public | optional | required) and AUTH_PROVIDERS instead.`
+        ? `The AUTH ENV has been removed. Replace 'AUTH=${key}' with 'SITE_ACCESS=${legacy.SITE_ACCESS}' and 'AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}'.`
+        : `The AUTH ENV has been removed. Unset AUTH and set SITE_ACCESS (public | optional | required) and AUTH_PROVIDERS instead.`
     );
   }
   if (!SITE_ACCESS_VALUES.includes(env.SITE_ACCESS))
     errors.push(
-      `SITE_ACCESS must be one of: ${SITE_ACCESS_VALUES.join(" | ")} (got '${
-        env.SITE_ACCESS == null ? "" : env.SITE_ACCESS
-      }').`
+      `SITE_ACCESS must be set to one of: ${SITE_ACCESS_VALUES.join(" | ")}.`
     );
   const providers = parseProviders(env.AUTH_PROVIDERS);
   if (providers == null || providers.length === 0) {
@@ -53,11 +55,11 @@ function validate(env = process.env) {
   const available = registry.availableProviders();
   providers.forEach((p) => {
     if (available.includes(p)) return;
-    if (registry.RESERVED_PROVIDERS.includes(p))
-      errors.push(`AUTH_PROVIDERS: '${p}' is not supported yet.`);
+    const reserved = registry.RESERVED_PROVIDERS.find((r) => r === p);
+    if (reserved) errors.push(`AUTH_PROVIDERS: '${reserved}' is not supported yet.`);
     else
       errors.push(
-        `AUTH_PROVIDERS: unknown provider '${p}'. Available: ${available.join(", ")}.`
+        `AUTH_PROVIDERS lists an unknown provider. Available: ${available.join(", ")}.`
       );
   });
   if (errors.length === 0) errors.push(...registry.validateProviders(providers, env));
