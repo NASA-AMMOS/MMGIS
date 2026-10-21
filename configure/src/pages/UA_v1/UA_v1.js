@@ -34,8 +34,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
-import Menu from "@mui/material/Menu";
-import ListItemIcon from "@mui/material/ListItemIcon";
 import Popover from "@mui/material/Popover";
 
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
@@ -43,7 +41,6 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
@@ -173,16 +170,8 @@ const useStyles = makeStyles((theme) => ({
     background: theme.palette.secondary.main,
     "& .MuiTypography-root, & .MuiIconButton-root, & svg": { color: "#fff" },
   },
-  panelBar: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-    padding: "10px 24px",
-    background: theme.palette.swatches.grey[850],
-    borderBottom: `1px solid ${theme.palette.swatches.grey[700]}`,
-    "& .MuiButton-root": { height: "32px", whiteSpace: "nowrap" },
-    "& .MuiButton-outlined": { background: theme.palette.swatches.grey[1000] },
-  },
+  headDanger: { "&&, && svg": { color: "#ff9aa2" } },
+  headDivider: { width: "1px", height: "24px", margin: "0px 4px", background: "rgba(255,255,255,0.25)" },
   rowIcon: {
     border: `1px solid ${theme.palette.swatches.grey[600]} !important`,
     borderRadius: "4px !important",
@@ -191,7 +180,21 @@ const useStyles = makeStyles((theme) => ({
   },
   pickBox: { width: "280px", padding: "8px 0px" },
   pickList: { maxHeight: "300px", overflowY: "auto" },
-  section: { marginTop: "20px" },
+  // Faint rule between panel sections
+  section: {
+    padding: "16px 0px",
+    borderTop: `1px solid ${theme.palette.swatches.grey[800]}`,
+    "$drawerTop + &": { borderTop: "none" },
+  },
+  sectionHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: "32px",
+    marginBottom: "6px",
+    "& $sectionTitle": { marginBottom: "0px !important" },
+  },
+  sectionButton: { height: "30px", whiteSpace: "nowrap", background: `${theme.palette.swatches.grey[1000]} !important` },
   sectionTitle: { fontSize: "14px !important", fontWeight: "bold !important", marginBottom: "6px !important" },
   input: { minWidth: "220px !important" },
   layerTree: {
@@ -555,7 +558,7 @@ function PickButton({ label, icon, items, onPick, emptyText }) {
   };
   return (
     <>
-      <Button variant="outlined" size="small" startIcon={icon} disabled={!items.length} onClick={(e) => setAnchor(e.currentTarget)}>
+      <Button variant="outlined" size="small" className={c.sectionButton} startIcon={icon} disabled={!items.length} onClick={(e) => setAnchor(e.currentTarget)}>
         {label}
       </Button>
       <Popover open={!!anchor} anchorEl={anchor} onClose={close} anchorOrigin={{ vertical: "bottom", horizontal: "left" }}>
@@ -578,30 +581,34 @@ function PickButton({ label, icon, items, onPick, emptyText }) {
   );
 }
 
-// Dark title bar with a ⋯ menu for less common actions, and a toolbar of the main ones below it
-function PanelHeader({ title, onClose, actions, menu }) {
+// Dark title bar with icon buttons for account-level actions
+function PanelHeader({ title, onClose, icons }) {
   const c = useStyles();
-  const [anchor, setAnchor] = useState(null);
   return (
     <div className={c.drawerTop}>
       <div className={c.drawerHead}>
         <Typography variant="h6" className={c.grow}>{title}</Typography>
-        {menu && menu.length > 0 && (
-          <Tooltip title="More actions" arrow>
-            <IconButton onClick={(e) => setAnchor(e.currentTarget)}><MoreVertIcon /></IconButton>
+        {(icons || []).map((m) => (
+          <Tooltip key={m.label} title={m.label} arrow>
+            <IconButton aria-label={m.label} className={m.danger ? c.headDanger : ""} onClick={m.onClick}>{m.icon}</IconButton>
           </Tooltip>
-        )}
-        <IconButton onClick={onClose}><CloseIcon /></IconButton>
-      </div>
-      {actions && <div className={c.panelBar}>{actions}</div>}
-      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)} anchorOrigin={{ vertical: "bottom", horizontal: "right" }} transformOrigin={{ vertical: "top", horizontal: "right" }}>
-        {(menu || []).map((m) => (
-          <MenuItem key={m.label} onClick={() => { setAnchor(null); m.onClick(); }} sx={m.danger ? { color: "error.main" } : undefined}>
-            <ListItemIcon sx={m.danger ? { color: "error.main" } : undefined}>{m.icon}</ListItemIcon>
-            {m.label}
-          </MenuItem>
         ))}
-      </Menu>
+        <span className={c.headDivider} />
+        <Tooltip title="Close" arrow>
+          <IconButton aria-label="Close" onClick={onClose}><CloseIcon /></IconButton>
+        </Tooltip>
+      </div>
+    </div>
+  );
+}
+
+// Section title with an optional action button on the right
+function SectionHead({ title, children }) {
+  const c = useStyles();
+  return (
+    <div className={c.sectionHead}>
+      <Typography className={c.sectionTitle}>{title}</Typography>
+      {children}
     </div>
   );
 }
@@ -668,21 +675,10 @@ function PersonPanel({ user, ctx }) {
       <PanelHeader
         title={`User: ${user.username}`}
         onClose={ctx.close}
-        actions={
-          <>
-            <Button variant="contained" disableElevation size="small" startIcon={<AddIcon />} onClick={() => openGrant({ subject_type: "user", subject_id: user.id }, load)}>Add access</Button>
-            <PickButton
-              label="Add to group"
-              icon={<GroupAddIcon />}
-              items={groups.filter((g) => g.source === "local" && !memberOf.includes(g)).map((g) => ({ value: g.id, label: g.name }))}
-              onPick={(id) => api("access_members_add", { group_id: id, user_id: user.id }).then(() => { refresh(); load(); }).catch((res) => notify(res.message || "Failed.", "error"))}
-            />
-            <Button variant="outlined" size="small" startIcon={<VpnKeyIcon />} onClick={() => dispatch(setModal({ name: "resetPassword", row: user }))}>Reset password</Button>
-          </>
-        }
-        menu={[
-          { label: "Open token page", icon: <OpenInNewIcon fontSize="small" />, onClick: () => dispatch(setPage({ page: "api_tokens" })) },
-          { label: "Delete user", icon: <DeleteOutlineIcon fontSize="small" />, danger: true, onClick: () => dispatch(setModal({ name: "deleteUser", row: user })) },
+        icons={[
+          { label: "Reset password", icon: <VpnKeyIcon />, onClick: () => dispatch(setModal({ name: "resetPassword", row: user })) },
+          { label: "Open token page", icon: <OpenInNewIcon />, onClick: () => dispatch(setPage({ page: "api_tokens" })) },
+          { label: "Delete user", icon: <DeleteOutlineIcon />, danger: true, onClick: () => dispatch(setModal({ name: "deleteUser", row: user })) },
         ]}
       />
 
@@ -713,12 +709,21 @@ function PersonPanel({ user, ctx }) {
       </div>
 
       <div className={c.section}>
-        <Typography className={c.sectionTitle}>Access</Typography>
+        <SectionHead title="Access">
+          <Button variant="outlined" size="small" className={c.sectionButton} startIcon={<AddIcon />} onClick={() => openGrant({ subject_type: "user", subject_id: user.id }, load)}>Add access</Button>
+        </SectionHead>
         <GrantsTable rows={rows} roles={roles} layerPaths={layerPaths} onRemove={(b) => askRemove(b, load)} />
       </div>
 
       <div className={c.section}>
-        <Typography className={c.sectionTitle}>Groups</Typography>
+        <SectionHead title="Groups">
+          <PickButton
+            label="Add to group"
+            icon={<GroupAddIcon />}
+            items={groups.filter((g) => g.source === "local" && !memberOf.includes(g)).map((g) => ({ value: g.id, label: g.name }))}
+            onPick={(id) => api("access_members_add", { group_id: id, user_id: user.id }).then(() => { refresh(); load(); }).catch((res) => notify(res.message || "Failed.", "error"))}
+          />
+        </SectionHead>
         {memberOf.length === 0 && <div className={c.muted}>Not in any group.</div>}
         {memberOf.length > 0 && (
           <Table size="small" className={c.table}>
@@ -817,36 +822,30 @@ function GroupPanel({ group, ctx }) {
       <PanelHeader
         title={`Group: ${group.name}`}
         onClose={ctx.close}
-        actions={
-          <>
-            <Button variant="contained" disableElevation size="small" startIcon={<AddIcon />} onClick={() => openGrant({ subject_type: "group", subject_id: group.id })}>Add access</Button>
-            {group.source === "local" && (
-              <PickButton
-                label="Add member"
-                icon={<PersonAddIcon />}
-                items={users.filter((u) => !group.members.some((m) => m.id === u.id)).map((u) => ({ value: u.id, label: u.username }))}
-                onPick={(id) => api("access_members_add", { group_id: group.id, user_id: id }).then(refresh).catch((res) => notify(res.message || "Failed.", "error"))}
-              />
-            )}
-          </>
-        }
-        menu={[
+        icons={[
           {
             label: "Delete group",
-            icon: <DeleteOutlineIcon fontSize="small" />,
+            icon: <DeleteOutlineIcon />,
             danger: true,
             onClick: () => ctx.askConfirm({ title: "Delete group?", text: `Delete '${group.name}'? Its members lose the access it grants.`, action: "Delete", onConfirm: () => api("access_groups_delete", { id: group.id }).then(() => { ctx.close(); refresh(); }).catch((res) => notify(res.message || "Failed.", "error")) }),
           },
         ]}
       />
       {group.source !== "local" && (
-        <div className={c.hint}>
+        <div className={`${c.section} ${c.hint}`}>
           Members come from {group.source.toUpperCase()}: anyone whose group claims include <b>{group.external_name}</b>.
         </div>
       )}
       {group.source === "local" && (
         <div className={c.section}>
-          <Typography className={c.sectionTitle}>Members</Typography>
+          <SectionHead title="Members">
+            <PickButton
+              label="Add member"
+              icon={<PersonAddIcon />}
+              items={users.filter((u) => !group.members.some((m) => m.id === u.id)).map((u) => ({ value: u.id, label: u.username }))}
+              onPick={(id) => api("access_members_add", { group_id: group.id, user_id: id }).then(refresh).catch((res) => notify(res.message || "Failed.", "error"))}
+            />
+          </SectionHead>
           {group.members.length === 0 && <div className={c.muted}>No members.</div>}
           {group.members.length > 0 && (
             <Table size="small" className={c.table}>
@@ -869,7 +868,9 @@ function GroupPanel({ group, ctx }) {
         </div>
       )}
       <div className={c.section}>
-        <Typography className={c.sectionTitle}>Access</Typography>
+        <SectionHead title="Access">
+          <Button variant="outlined" size="small" className={c.sectionButton} startIcon={<AddIcon />} onClick={() => openGrant({ subject_type: "group", subject_id: group.id })}>Add access</Button>
+        </SectionHead>
         <GrantsTable rows={own.map((b) => ({ b, removable: true, via: sourceText(b) }))} roles={roles} layerPaths={layerPaths} onRemove={(b) => askRemove(b)} />
       </div>
     </>
