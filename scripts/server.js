@@ -481,6 +481,9 @@ function ensureUser(options = {}) {
           return;
         }
         if (options.forbid) sendForbidden(req, res);
+        // Sites without local accounts log in through their provider (e.g. the CSSO proxy)
+        else if (!siteAccess.hasProvider("local"))
+          res.render("unauthorized", { user: req.user });
         else
           res.render("login", {
             user: req.user,

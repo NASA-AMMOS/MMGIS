@@ -94,14 +94,24 @@ const websocket = {
           return;
         }
 
-        const completeUpgrade = () => {
+        // Header-based login providers (e.g. CSSO) identify the upgrade request itself
+        const providerIdentity = () =>
+          require("./permissions/providers")
+            .identify({
+              headers: request.headers,
+              get: (name) => request.headers[String(name).toLowerCase()],
+            })
+            .catch(() => null);
+
+        const completeUpgrade = async () => {
           // Guests are allowed unless SITE_ACCESS=required
           const authenticated =
             siteAccess.guestsAllowed() ||
             (request.session &&
               (request.session.uid != null ||
                 (typeof request.session.user === "string" &&
-                  request.session.user.length > 0)));
+                  request.session.user.length > 0))) ||
+            (await providerIdentity()) != null;
 
           if (!authenticated) {
             reject("unauthenticated session");
@@ -119,10 +129,10 @@ const websocket = {
               reject("session middleware error");
               return;
             }
-            completeUpgrade();
+            completeUpgrade().catch(() => reject("upgrade error"));
           });
         } else {
-          completeUpgrade();
+          completeUpgrade().catch(() => reject("upgrade error"));
         }
       } catch (err) {
         reject("upgrade error");
