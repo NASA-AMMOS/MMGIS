@@ -468,6 +468,20 @@ export default function Panel() {
               Access
             </Button>
           )}
+          {can("accounts.manage") && can("groups.manage") && (
+            <Button
+              className={c.pageButton}
+              variant="contained"
+              disableElevation
+              startIcon={<SecurityIcon size="small" />}
+              onClick={() => {
+                dispatch(setMission(null));
+                dispatch(setPage({ page: "ua_v1" }));
+              }}
+            >
+              UA_v1
+            </Button>
+          )}
         </div>
       </div>
       <NewMissionModal />

@@ -41,6 +41,7 @@ import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 import APITokens from "../../pages/APITokens/APITokens";
 import Access from "../../pages/Access/Access";
+import UA_V1 from "../../pages/UA_v1/UA_v1";
 import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
@@ -245,6 +246,9 @@ export default function Main() {
       break;
     case "access":
       Page = <Access />;
+      break;
+    case "ua_v1":
+      Page = <UA_V1 />;
       break;
     case "data_formats":
       Page = <DataFormats />;
