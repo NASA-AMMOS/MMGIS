@@ -85,8 +85,9 @@ async function main() {
   }
   const report = {
     mode: dryRun ? "dry-run (no changes written)" : result.skipped ? "already imported (no changes)" : "applied",
-    siteAccess: siteAccess.getSiteAccess(),
-    providers: siteAccess.getProviders(),
+    // Only known values are echoed, never raw ENV contents
+    siteAccess: siteAccess.SITE_ACCESS_VALUES.find((v) => v === siteAccess.getSiteAccess()) || null,
+    providers: providers.availableProviders().filter((p) => siteAccess.getProviders().includes(p)),
     alreadyImported: imported,
     users: users.length,
     bindings: result.bindings.length,
@@ -98,9 +99,7 @@ async function main() {
   if (json) console.log(JSON.stringify(report, null, 2));
   else {
     console.log(`\nMMGIS auth migration — ${report.mode}`);
-    const shownAccess = siteAccess.SITE_ACCESS_VALUES.find((v) => v === report.siteAccess);
-    const shownProviders = providers.availableProviders().filter((p) => report.providers.includes(p));
-    console.log(`SITE_ACCESS=${shownAccess} AUTH_PROVIDERS=${JSON.stringify(shownProviders)}`);
+    console.log(`SITE_ACCESS=${report.siteAccess} AUTH_PROVIDERS=${JSON.stringify(report.providers)}`);
     notes.forEach((n) => console.log(`NOTE: ${n}`));
     if (imported && dryRun) console.log("NOTE: this database was already imported; the server will not import again.");
     console.log(`${report.users} user(s), ${report.bindings} role binding(s):`);

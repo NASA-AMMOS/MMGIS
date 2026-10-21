@@ -369,7 +369,13 @@ test.describe.serial("missions_viewing permissions", () => {
 
   test("guests (not logged in) see no missions and cannot load configs", async () => {
     const anon = await apiRequest.newContext({ baseURL });
-    expect(await listMissions(anon)).toEqual([]);
+    // A login-required site refuses guests outright; otherwise they see none of these missions
+    const list = await json(await anon.get("/api/configure/missions"));
+    if (list?.status === "success")
+      expect(
+        list.missions.filter((m) => m.startsWith(`test_view_`) && m.includes(`_${stamp}`)),
+      ).toEqual([]);
+    else expect(list?.message, JSON.stringify(list)).toContain("Unauthorized");
     const full = await json(await anon.get("/api/configure/missions?full=true"));
     expect(
       (full?.missions || []).filter((m) => m.mission === missionA),
