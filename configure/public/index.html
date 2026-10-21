@@ -24,7 +24,9 @@
       mmgisglobal.ENABLE_CONFIG_OVERRIDE = "#{ENABLE_CONFIG_OVERRIDE}";
       mmgisglobal.VERSION = "#{VERSION}";
       mmgisglobal.IS_DOCKER = "#{IS_DOCKER}";
-      mmgisglobal.ADJACENT_SERVERS_MODE = "#{ADJACENT_SERVERS_MODE}";
+      mmgisglobal.ADJACENT_SERVERS_MODE = "%NODE_ENV%" === "development"
+        ? "%REACT_APP_ADJACENT_SERVERS_MODE%"
+        : "#{ADJACENT_SERVERS_MODE}";
       mmgisglobal.WITH_STAC = "#{WITH_STAC}";
       mmgisglobal.WITH_TIPG = "#{WITH_TIPG}";
       mmgisglobal.WITH_TITILER = "#{WITH_TITILER}";

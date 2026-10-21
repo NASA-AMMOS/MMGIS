@@ -7,6 +7,7 @@
 
 Notes:
 
+- When using `npm start` in this directory, the development launcher reads `ADJACENT_SERVERS_MODE` from the inherited environment or the root MMGIS `.env` and passes it to the HTML through CRA's `REACT_APP_ADJACENT_SERVERS_MODE`. Production builds receive the mode from MMGIS through Pug.
 - The Preview Changes features iframes MMGIS and would have to be run in a development browser with security disabled to work.
 - This `configure` page can be developed with hot-reloading but this would require disabling user/admin permissions and, because it is easy to forget to reenable those permissions, this building method is preferred.
 

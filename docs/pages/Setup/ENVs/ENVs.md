@@ -255,6 +255,8 @@ Controls where adjacent services run, independently of Docker or Podman. | strin
 
 `WITH_*` flags still control which services are enabled. Veloserver and custom services are always managed separately; embedded mode proxies to them on `localhost`.
 
+Embedded database services still need their own `POSTGRES_*` (STAC/TiPG) or `PG*` (TiTiler-pgSTAC) settings in the inherited environment or optional service `.env`. `DB_*` configures MMGIS and is not mapped to the separate STAC database automatically.
+
 **Migration:** Existing container deployments using separate adjacent service containers must set `ADJACENT_SERVERS_MODE=external`. Both Compose samples set this explicitly. A standalone MMGIS container can use `embedded` without creating per-service `.env` files. Local COG paths use `../../Missions/...` in embedded mode (relative to the service directory), or `/Missions/...` in external mode (mount Missions at `/Missions` in the adjacent containers).
 
 #### `WITH_STAC=`
@@ -304,11 +306,11 @@ A JSON array of regular expression patterns that define allowed URLs for TiTiler
 
 1. **Recommended for Production** (HTTPS + local Missions files):
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^https://(?!.*\\.\\.)(?!.*\\x00).*$", "^/Missions/(?!.*\\.\\.).*$"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^https://(?!.*\\.\\.)(?!.*\\x00).*$", "^(?:/|\\.\\./\\.\\./)Missions/(?!.*\\.\\.).*$"]'
    ```
    - Requires HTTPS protocol for remote URLs
-   - Allows local `/Missions` directory files as relative paths (e.g., `/Missions/Test/data.tif`)
-   - Blocks path traversal (`..`) in both remote and local paths
+   - Allows `/Missions/Test/data.tif` for external services and `../../Missions/Test/data.tif` for embedded services. Only the fixed embedded prefix may contain `..`; additional traversal after `Missions/` is rejected.
+   - Blocks additional path traversal (`..`) in remote URLs and Mission filenames
    - Blocks null byte injection
 
 2. **Specific Trusted Domains**:

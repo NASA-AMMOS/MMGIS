@@ -29,7 +29,7 @@ function load(file, mocks = {}) {
     }).code;
   }
   vm.runInNewContext(source, {
-    module, exports: module.exports, process, Buffer, window: globalThis.window,
+    module, exports: module.exports, process, Buffer, __dirname: path.dirname(filename), window: globalThis.window,
     require: (name) => name in mocks ? mocks[name] : localRequire(name),
   }, { filename });
   return module.exports;
@@ -98,7 +98,7 @@ for (const [code, signal] of [[1, null], [null, 'SIGTERM'], [0, null]]) {
   test(`logs child termination (${signal || code}) with stderr diagnostics`, () => {
     process.env.WITH_TITILER = 'true';
     const { children, logs } = startup();
-    children[0].child.stderr.emit('data', Buffer.from('x'.repeat(8000)));
+    children[0].child.stderr.emit('data', Buffer.from('x'.repeat(8000) + '\n'));
     children[0].child.stderr.emit('data', Buffer.from('missing configuration'));
     children[0].child.emit('close', code, signal);
     const failure = logs.find(([level]) => level === (code === 0 ? 'warn' : 'error'));
@@ -115,6 +115,56 @@ test('logs process spawn errors', () => {
   const { children, logs } = startup();
   children[0].child.emit('error', new Error('spawn failed'));
   expect(logs.some(([level, message]) => level === 'error' && message.includes('spawn failed'))).toBe(true);
+});
+
+test('redacts credentials and signed URL queries from persistent child diagnostics', () => {
+  process.env.WITH_TITILER = 'true';
+  process.env.DB_PASS = 'inherited-password';
+  const { children, logs } = startup();
+  children[0].child.stderr.emit('data', Buffer.from(
+    'Connection refused postgres://alice:uri-password@db/catalog?token=signed-value ' +
+    'password=dsn-password https://storage.example.com/cog.tif?signature=private-signature inherited-password'
+  ));
+  children[0].child.emit('close', 1, null);
+  const message = logs.find(([level]) => level === 'error')[1];
+  expect(message).toContain('Connection refused');
+  for (const secret of ['uri-password', 'signed-value', 'dsn-password', 'private-signature', 'inherited-password']) {
+    expect(message).not.toContain(secret);
+  }
+});
+
+test('does not persist a credential-bearing line cut by the stderr buffer limit', () => {
+  process.env.WITH_TITILER = 'true';
+  const { children, logs } = startup();
+  children[0].child.stderr.emit('data', Buffer.from('postgres://' + 'a'.repeat(5000)));
+  children[0].child.stderr.emit('data', Buffer.from(':per-service-password@db/catalog\nConnection refused'));
+  children[0].child.emit('close', 1, null);
+  const message = logs.find(([level]) => level === 'error')[1];
+  expect(message).toContain('Connection refused');
+  expect(message).not.toContain('per-service-password');
+});
+
+test('Configure development startup exports the validated deployment mode to CRA', () => {
+  process.env.ADJACENT_SERVERS_MODE = 'external';
+  delete process.env.REACT_APP_ADJACENT_SERVERS_MODE;
+  load('configure/scripts/start.js', { 'react-scripts/scripts/start': {} });
+  expect(process.env.REACT_APP_ADJACENT_SERVERS_MODE).toBe('external');
+});
+
+test('Configure reads only deployment mode from the backend env file', () => {
+  delete process.env.ADJACENT_SERVERS_MODE;
+  delete process.env.PORT;
+  delete process.env.HTTPS;
+  load('configure/scripts/start.js', {
+    fs: {
+      existsSync: () => true,
+      readFileSync: () => Buffer.from('ADJACENT_SERVERS_MODE=external\nPORT=8888\nHTTPS=true\n'),
+    },
+    'react-scripts/scripts/start': {},
+  });
+  expect(process.env.REACT_APP_ADJACENT_SERVERS_MODE).toBe('external');
+  expect(process.env.PORT).toBeUndefined();
+  expect(process.env.HTTPS).toBeUndefined();
 });
 
 for (const mode of ['embedded', 'external']) {

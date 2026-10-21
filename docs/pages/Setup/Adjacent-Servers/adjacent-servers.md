@@ -68,6 +68,8 @@ MMGIS only proxies to these services and does not start duplicate local processe
 
 Set `ADJACENT_SERVERS_MODE=embedded` to let MMGIS start the enabled Python services and proxy to `localhost`. This also works inside a standalone Docker or Podman container. The child processes inherit MMGIS's environment, so per-service `.env` files are optional. To use service-specific settings instead, follow the steps below. Values in these files override inherited variables. An unsuccessful startup is logged with the exit code or signal and the last stderr output.
 
+Database configuration is still required: supply the `POSTGRES_*` settings from the STAC/TiPG examples and the `PG*` settings from the TiTiler-pgSTAC example in MMGIS's process environment, or use the optional per-service files below. MMGIS does not infer them from `DB_*`: those variables configure MMGIS's own database, whereas these services normally use the separate `mmgis-stac` database. Exit diagnostics redact URL credentials, URL queries and recognized secret values; do not put credentials in arbitrary diagnostic messages.
+
 1. Copy `/adjacent-servers/stac/.env.example` to `/adjacent-servers/stac/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/tipg/.env.example` to `/adjacent-servers/tipg/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/titiler/.env.example` to `/adjacent-servers/titiler/.env`.

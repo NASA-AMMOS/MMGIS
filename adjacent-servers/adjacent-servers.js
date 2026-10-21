@@ -2,6 +2,7 @@ require("dotenv").config();
 const logger = require("../API/logger");
 const { spawn } = require("child_process");
 const getAdjacentServersMode = require("./mode");
+const redactStderr = require("./redactStderr");
 
 function adjacentServers() {
   if (getAdjacentServersMode() === "external") return;
@@ -48,6 +49,7 @@ function adjacentServers() {
       let cmd = spawn(s.command, [s.port], { shell: true });
       serverProcesses.push(cmd);
       let stderrTail = "";
+      let stderrTruncated = false;
 
       cmd.stdout.on("data", (data) => {
         if (`${data}`.indexOf("running") != -1)
@@ -55,17 +57,28 @@ function adjacentServers() {
       });
 
       cmd.stderr.on("data", (data) => {
-        stderrTail = (stderrTail + data).slice(-4096);
+        stderrTail += data;
+        if (stderrTail.length > 4096) {
+          stderrTruncated = true;
+          stderrTail = stderrTail.slice(-4096);
+        }
         if (`${data}`.indexOf("running") != -1)
           process.stdout.write(`${s.name} - ${data}`);
       });
 
       // Wait for stdio to close so the final startup error is included.
       cmd.on("close", (code, signal) => {
+        // A partial first line may have lost the prefix identifying a secret.
+        let diagnostic = stderrTail;
+        if (stderrTruncated) {
+          const newline = stderrTail.indexOf("\n");
+          diagnostic = newline === -1 ? "" : stderrTail.slice(newline + 1);
+        }
+        diagnostic = redactStderr(diagnostic.trim()).slice(-4096);
         logger(
           code === 0 ? "warn" : "error",
           `[${s.name}] exited with ${signal ? `signal ${signal}` : `code ${code}`}.${
-            stderrTail ? ` Stderr: ${stderrTail.trim()}` : ""
+            diagnostic ? ` Stderr: ${diagnostic}` : ""
           }`,
           "adjacent-servers"
         );
