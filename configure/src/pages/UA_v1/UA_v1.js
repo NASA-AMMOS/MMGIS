@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
@@ -38,6 +39,7 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 import GroupsIcon from "@mui/icons-material/Groups";
 import PublicIcon from "@mui/icons-material/Public";
@@ -56,16 +58,35 @@ const useStyles = makeStyles((theme) => ({
     background: theme.palette.swatches.grey[1000],
     backgroundImage: "url(configure/build/gridlines.png)",
   },
+  // topbar/topbarTitle/addButton match the Users page toolbar
   topbar: {
-    width: "100%",
-    height: "48px",
-    minHeight: "48px !important",
+    width: "calc(100% - 100px)",
+    height: "44px",
+    minHeight: "44px !important",
     display: "flex",
     justifyContent: "space-between",
-    padding: "4px 20px",
+    padding: "0px 20px",
     boxSizing: "border-box !important",
   },
-  topbarTitle: { display: "flex", alignItems: "center", gap: "8px" },
+  topbarTitle: {
+    display: "flex",
+    color: theme.palette.swatches.grey[150],
+    "& > svg": { color: theme.palette.swatches.grey[150], margin: "3px 10px 0px 2px" },
+  },
+  addButton: {
+    whiteSpace: "nowrap",
+    padding: "5px 20px !important",
+    margin: "0px 10px 0px 10px !important",
+  },
+  field: {
+    "&.MuiInputBase-root, & .MuiInputBase-root": {
+      height: "34px",
+      fontSize: "14px",
+      background: theme.palette.swatches.grey[1000],
+    },
+  },
+  search: { width: "320px" },
+  barButton: { height: "34px", whiteSpace: "nowrap", padding: "0px 16px !important" },
   tabs: {
     padding: "0px 20px",
     background: theme.palette.swatches.grey[1000],
@@ -971,8 +992,15 @@ export default function UsersAccessV1() {
       <Toolbar className={c.topbar}>
         <div className={c.topbarTitle}>
           <ManageAccountsIcon />
-          <Typography variant="h6">Users &amp; Access (UA_v1)</Typography>
+          <Typography style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }} variant="h6" component="div">
+            Users &amp; Access (UA_v1)
+          </Typography>
         </div>
+        {tab === 0 && (
+          <Button variant="contained" className={c.addButton} endIcon={<AddIcon />} onClick={() => dispatch(setModal({ name: "newUser" }))}>
+            New User
+          </Button>
+        )}
       </Toolbar>
       <Tabs className={c.tabs} value={tab} onChange={(e, v) => setTab(v)}>
         <Tab label="People" />
@@ -984,9 +1012,14 @@ export default function UsersAccessV1() {
         {tab === 0 && (
           <div className={c.pane}>
             <div className={c.bar}>
-              <TextField size="small" placeholder="Search users" value={search} onChange={(e) => setSearch(e.target.value)} />
-              <span className={c.grow} />
-              <Button variant="contained" disableElevation startIcon={<AddIcon />} onClick={() => dispatch(setModal({ name: "newUser" }))}>New user</Button>
+              <TextField
+                size="small"
+                className={`${c.field} ${c.search}`}
+                placeholder="Search by username or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+              />
             </div>
             <Table size="small" className={c.table} stickyHeader>
               <TableHead>
@@ -1039,17 +1072,17 @@ export default function UsersAccessV1() {
         {tab === 1 && (
           <div className={c.pane}>
             <div className={c.bar}>
-              <TextField size="small" placeholder="New group name" value={newGroup.name} onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} />
+              <TextField size="small" className={c.field} placeholder="New group name" value={newGroup.name} onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} />
               {providers.length > 0 && (
-                <Select size="small" value={newGroup.source} onChange={(e) => setNewGroup({ ...newGroup, source: e.target.value })}>
+                <Select size="small" className={c.field} value={newGroup.source} onChange={(e) => setNewGroup({ ...newGroup, source: e.target.value })}>
                   <MenuItem value="local">Members managed here</MenuItem>
                   {providers.map((p) => <MenuItem key={p} value={p}>Members from {p.toUpperCase()}</MenuItem>)}
                 </Select>
               )}
               {newGroup.source !== "local" && (
-                <TextField size="small" placeholder={`${newGroup.source.toUpperCase()} group name`} value={newGroup.external_name} onChange={(e) => setNewGroup({ ...newGroup, external_name: e.target.value })} />
+                <TextField size="small" className={c.field} placeholder={`${newGroup.source.toUpperCase()} group name`} value={newGroup.external_name} onChange={(e) => setNewGroup({ ...newGroup, external_name: e.target.value })} />
               )}
-              <Button variant="contained" disableElevation disabled={!newGroup.name.trim()} onClick={() =>
+              <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} disabled={!newGroup.name.trim()} onClick={() =>
                 api("access_groups_create", { name: newGroup.name, source: newGroup.source, external_name: newGroup.external_name || undefined })
                   .then(() => { setNewGroup({ name: "", source: "local", external_name: "" }); refresh(); })
                   .catch((res) => notify(res.message || "Failed to create group.", "error"))
@@ -1085,13 +1118,13 @@ export default function UsersAccessV1() {
         {tab === 2 && (
           <div className={c.pane}>
             <div className={c.bar}>
-              <Select size="small" displayEmpty className={c.input} value={missionPick} onChange={(e) => setMissionPick(e.target.value)}>
+              <Select size="small" displayEmpty className={`${c.input} ${c.field}`} value={missionPick} onChange={(e) => setMissionPick(e.target.value)}>
                 <MenuItem value=""><em>Choose a mission…</em></MenuItem>
                 {missions.map((m) => <MenuItem key={m.uuid} value={m.name}>{m.name}</MenuItem>)}
               </Select>
               <span className={c.grow} />
               {pickedMission && (
-                <Button variant="contained" disableElevation startIcon={<AddIcon />} onClick={() => openGrant({ mission: pickedMission.name })}>Add access</Button>
+                <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => openGrant({ mission: pickedMission.name })}>Add access</Button>
               )}
             </div>
             {pickedMission ? (
