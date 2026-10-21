@@ -1,10 +1,10 @@
 {
   "uuid": "6f2b1c1e-6a63-4d7e-9a2f-6f0f3f0b8d21",
-  "id": "core-authz",
-  "name": "Authz",
+  "id": "core-access",
+  "name": "Access",
   "display_name": "Roles, Groups and Permissions",
   "aliases": [
-    "authz"
+    "access"
   ],
   "version": "core",
   "type": "backend",
@@ -12,7 +12,7 @@
   "overridable": false,
   "required": true,
   "routes": {
-    "prefix": "/api/authz",
+    "prefix": "/api/access",
     "auth": "user"
   },
   "author": "NASA-AMMOS/MMGIS",

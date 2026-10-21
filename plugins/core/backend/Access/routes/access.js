@@ -1,20 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const logger = require("../../../../../API/logger");
-const policy = require("../../../../../API/authz/policy");
-const missions = require("../../../../../API/authz/missions");
-const bindings = require("../../../../../API/authz/bindings");
-const { authorize, ensurePrincipal } = require("../../../../../API/authz/authorize");
-const { invalidate, userPrincipal } = require("../../../../../API/authz/principal");
-const { AuthGroup, AuthGroupMember } = require("../models/authz");
+const policy = require("../../../../../API/permissions/policy");
+const missions = require("../../../../../API/permissions/missions");
+const bindings = require("../../../../../API/permissions/bindings");
+const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
+const { invalidate, userPrincipal } = require("../../../../../API/permissions/principal");
+const { AuthGroup, AuthGroupMember } = require("../../../../../API/permissions/models");
 const { User } = require("../../Users/models/user");
+const providers = require("../../../../../API/permissions/providers");
 
 const manage = authorize("groups.manage");
 
 function fail(res, err, message) {
   if (err instanceof bindings.BindingError)
     return res.send({ status: "failure", message: err.message });
-  logger("error", message, "authz", null, err);
+  logger("error", message, "permissions", null, err);
   res.send({ status: "failure", message });
 }
 
@@ -36,7 +37,7 @@ async function summarize(principal) {
     username: principal.username || null,
     authenticated: !!principal.authenticated,
     superadmin: policy.isSuperAdmin(principal),
-    permission: policy.legacyPermission(principal.bindings || []),
+    role: policy.accountRole(principal.bindings || []),
     capabilities: policy.capabilitiesOf(principal),
     missions: scoped,
     layers: layerScoped,
@@ -88,12 +89,17 @@ router.post("/groups/create", manage, async (req, res) => {
   try {
     const name = String(req.body.name || "").trim();
     if (!name) throw new bindings.BindingError("A group name is required.");
-    const source = req.body.source === "csso" ? "csso" : "local";
+    // Non-local groups get their members from a login provider's group claims
+    const source =
+      req.body.source !== "local" &&
+      providers.availableProviders().includes(req.body.source)
+        ? req.body.source
+        : "local";
     const group = await AuthGroup.create({
       name,
       description: req.body.description || null,
       source,
-      external_name: source === "csso" ? req.body.external_name || name : null,
+      external_name: source !== "local" ? req.body.external_name || name : null,
     });
     invalidate();
     res.send({ status: "success", body: group });

@@ -259,7 +259,7 @@ const UpdateUserModal = (props) => {
       "account_update_user",
       {
         id: modal.row.id,
-        permission: permissions || modal.row.permission,
+        role: permissions || modal.row.role,
         email: email || modal.row.email,
         missions_managing: missionsManaging || modal.row.missions_managing,
         missions_viewing: restrictViewing ? missionsViewing : null,
@@ -341,24 +341,24 @@ const UpdateUserModal = (props) => {
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>Role</InputLabel>
           <Select
-            value={permissions || modal?.row?.permission}
+            value={permissions || modal?.row?.role}
             onChange={(e) => {
               setPermissions(e.target.value);
               // Clear missions when changing to user role
-              if (e.target.value === "001") {
+              if (e.target.value === "user") {
                 setMissionsManaging([]);
               }
             }}
           >
-            <MenuItem value={"110"}>Administrator</MenuItem>
-            <MenuItem value={"001"}>User</MenuItem>
+            <MenuItem value={"mission_admin"}>Administrator</MenuItem>
+            <MenuItem value={"user"}>User</MenuItem>
           </Select>
         </FormControl>
         <Typography
           className={c.subtitle2}
         >{`Admins have full control over mission configurations as well as elevated privileges in the Draw Tool. Users do not and are the most basic role.`}</Typography>
         
-        {(permissions === "110" || (!permissions && modal?.row?.permission === "110")) && (
+        {(permissions === "mission_admin" || (!permissions && modal?.row?.role === "mission_admin")) && (
           <>
             <FormControl className={c.assignedMissions} variant="filled" size="small">
               <InputLabel>Assigned Missions</InputLabel>
@@ -366,7 +366,7 @@ const UpdateUserModal = (props) => {
                 className={c.selectDropdown}
                 multiple
                 value={missionsManaging}
-                disabled={mmgisglobal.permission !== "111"}
+                disabled={mmgisglobal.role !== "superadmin"}
                 onChange={(e) => {
                   setMissionsManaging(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value);
                 }}
@@ -395,7 +395,7 @@ const UpdateUserModal = (props) => {
           control={
             <Switch
               checked={restrictViewing}
-              disabled={mmgisglobal.permission !== "111"}
+              disabled={mmgisglobal.role !== "superadmin"}
               onChange={(e) => {
                 setRestrictViewing(e.target.checked);
               }}
@@ -413,7 +413,7 @@ const UpdateUserModal = (props) => {
             className={c.selectDropdown}
             multiple
             value={missionsViewing}
-            disabled={mmgisglobal.permission !== "111"}
+            disabled={mmgisglobal.role !== "superadmin"}
             onChange={(e) => {
               setMissionsViewing(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value);
             }}

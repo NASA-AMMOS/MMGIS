@@ -35,19 +35,19 @@ if (process.env.NODE_ENV === "production") {
   process.exit(1);
 }
 
-const ADMIN = { username: "legacy_admin", password: "Adm!n #Pass 1" };
+const ADMIN = { username: "legacy_admin", password: "Adm!n #Pass 1" }; // pragma: allowlist secret
 // [username, password, legacy permission setup]
 const ACCOUNTS = [
-  { username: "mission.admin", password: "M1ss!on-Adm1n", permission: "110", missions_managing: [MISSION] },
-  { username: "multi_admin", password: "Two missions 2!", permission: "110", missions_managing: [MISSION, OTHER_MISSION] },
-  { username: "viewer-limited", password: "V1ewer'\"\\`$(x)", permission: "001", missions_viewing: [MISSION] },
-  { username: "viewer_none", password: "Nothing-to-see9", permission: "001", missions_viewing: [] },
-  { username: "plainuser", password: "Plain123!" },
-  { username: "CaseUser", password: "UpperCase!1" },
-  { username: "user@example.com", password: "Email-like username 7" },
-  { username: "unicode_user", password: "Pässwörd—✓ 測試 🚀 9" },
-  { username: "long_pw_user", password: "Xx1!".repeat(15) + "-tail-after-bcrypt-72-bytes-" + "y".repeat(30) },
-  { username: "demoted_admin", password: "Was a mission admin 3", permission: "001", wasAdmin: true },
+  { username: "mission.admin", password: "M1ss!on-Adm1n", permission: "110", missions_managing: [MISSION] }, // pragma: allowlist secret
+  { username: "multi_admin", password: "Two missions 2!", permission: "110", missions_managing: [MISSION, OTHER_MISSION] }, // pragma: allowlist secret
+  { username: "viewer-limited", password: "V1ewer'\"\\`$(x)", permission: "001", missions_viewing: [MISSION] }, // pragma: allowlist secret
+  { username: "viewer_none", password: "Nothing-to-see9", permission: "001", missions_viewing: [] }, // pragma: allowlist secret
+  { username: "plainuser", password: "Plain123!" }, // pragma: allowlist secret
+  { username: "CaseUser", password: "UpperCase!1" }, // pragma: allowlist secret
+  { username: "user@example.com", password: "Email-like username 7" }, // pragma: allowlist secret
+  { username: "unicode_user", password: "Pässwörd—✓ 測試 🚀 9" }, // pragma: allowlist secret
+  { username: "long_pw_user", password: "Xx1!".repeat(15) + "-tail-after-bcrypt-72-bytes-" + "y".repeat(30) }, // pragma: allowlist secret
+  { username: "demoted_admin", password: "Was a mission admin 3", permission: "001", wasAdmin: true }, // pragma: allowlist secret
 ];
 
 // Each login comes from its own loopback address so the per-IP login rate
@@ -105,10 +105,10 @@ async function login(username, password) {
 
 function probesFor(a) {
   return [
-    { name: "correct", username: a.username, password: a.password },
-    { name: "wrong password", username: a.username, password: a.password + "x" },
-    { name: "upper-cased username", username: a.username.toUpperCase(), password: a.password },
-    { name: "trailing-space username", username: a.username + " ", password: a.password },
+    { name: "correct", username: a.username, password: a.password }, // pragma: allowlist secret
+    { name: "wrong password", username: a.username, password: a.password + "x" }, // pragma: allowlist secret
+    { name: "upper-cased username", username: a.username.toUpperCase(), password: a.password }, // pragma: allowlist secret
+    { name: "trailing-space username", username: a.username + " ", password: a.password }, // pragma: allowlist secret
   ];
 }
 
@@ -117,7 +117,7 @@ async function hashes() {
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT || 5432),
     user: process.env.DB_USER_TEST || process.env.DB_USER,
-    password: process.env.DB_PASS_TEST || process.env.DB_PASS,
+    password: process.env.DB_PASS_TEST || process.env.DB_PASS, // pragma: allowlist secret
     database: TEST_DB_NAME,
   });
   await client.connect();
@@ -153,7 +153,7 @@ async function seed() {
     r = await api(admin, "POST", "/api/users/signup", {
       skipLogin: true,
       username: a.username,
-      password: a.password,
+      password: a.password, // pragma: allowlist secret
       email: `${a.username.replace(/[^a-z0-9]/gi, "")}@example.com`,
     });
     must(r.json && r.json.status === "success", `signup ${a.username} failed: ${r.text.slice(0, 200)}`);
@@ -281,7 +281,7 @@ async function snapshot() {
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT || 5432),
     user: process.env.DB_USER_TEST || process.env.DB_USER,
-    password: process.env.DB_PASS_TEST || process.env.DB_PASS,
+    password: process.env.DB_PASS_TEST || process.env.DB_PASS, // pragma: allowlist secret
     database: TEST_DB_NAME,
   });
   await client.connect();

@@ -8,7 +8,7 @@ const router = express.Router();
 
 const logger = require("../../../../../API/logger");
 const websocket = require("../../../../../API/websocket.js");
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const {
   websocketsEnabled,
   validateLayerUpdateBody,

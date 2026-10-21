@@ -4,7 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 
 const Busboy = require("busboy");
 const inspect = require("util").inspect;

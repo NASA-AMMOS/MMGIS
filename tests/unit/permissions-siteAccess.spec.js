@@ -1,12 +1,12 @@
 /**
  * Unit tests for SITE_ACCESS / AUTH_PROVIDERS validation.
- * Source: API/authz/siteAccess.js
+ * Source: API/permissions/siteAccess.js
  */
 
 import { test, expect } from '@playwright/test';
 const path = require('path');
 
-const siteAccess = require(path.resolve(__dirname, '../../API/authz/siteAccess.js'));
+const siteAccess = require(path.resolve(__dirname, '../../API/permissions/siteAccess.js'));
 
 function withEnv(env, fn) {
   const saved = { SITE_ACCESS: process.env.SITE_ACCESS, AUTH_PROVIDERS: process.env.AUTH_PROVIDERS };

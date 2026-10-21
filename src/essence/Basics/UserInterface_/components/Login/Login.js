@@ -125,7 +125,7 @@ var Login = {
         //Show signup for admins
         if (
             (window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local')) &&
-            window.mmgisglobal.permission === '111'
+            window.mmgisglobal.role === 'superadmin'
         ) {
             const forceSignupButton = $('<div>')
                 .attr('id', 'forceSignupButton')

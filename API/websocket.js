@@ -1,6 +1,6 @@
 const WebSocket = require("isomorphic-ws");
 const logger = require("./logger");
-const siteAccess = require("./authz/siteAccess");
+const siteAccess = require("./permissions/siteAccess");
 
 const websocket = {
   wss: null,

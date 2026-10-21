@@ -4,19 +4,19 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
 
 const logger = require("../../../../../API/logger");
-const { authLimiter } = require("../../../../../scripts/rateLimiters");
+const { apilimiter, authLimiter } = require("../../../../../scripts/rateLimiters");
 const userModel = require("../models/user");
 const User = userModel.User;
 const { getDefaultMissionsViewing } = require("../models/userdefaults");
-const siteAccess = require("../../../../../API/authz/siteAccess");
-const policy = require("../../../../../API/authz/policy");
-const bindings = require("../../../../../API/authz/bindings");
+const siteAccess = require("../../../../../API/permissions/siteAccess");
+const policy = require("../../../../../API/permissions/policy");
+const bindings = require("../../../../../API/permissions/bindings");
 
 function isStrongPassword(password) {
   const minLength = 8;
@@ -62,7 +62,6 @@ router.post("/first_signup", authorize.public("login and account self-service"),
           username: req.body.username,
           email: null,
           password: req.body.password,
-          permission: "111",
           token: null,
         };
 
@@ -128,7 +127,6 @@ router.post("/signup", authorize.public("login and account self-service"), funct
     username: req.body.username,
     email: req.body.email == "" ? null : req.body.email,
     password: req.body.password,
-    permission: "001",
     token: null,
   };
 
@@ -194,7 +192,6 @@ router.post("/signup", authorize.public("login and account self-service"), funct
               req.session.user = created.username;
               req.session.uid = created.id;
               req.session.token = crypto.randomBytes(128).toString("hex");
-              req.session.permission = created.permission;
 
               User.update(
                 {
@@ -296,7 +293,7 @@ router.post("/login", authorize.public("login and account self-service"), authLi
         username: MMGISUser.username,
         token: MMGISUser.token,
       },
-      attributes: ["id", "username", "email", "permission"],
+      attributes: ["id", "username", "email"],
     })
       .then((user) => {
         if (!user) {
@@ -304,7 +301,6 @@ router.post("/login", authorize.public("login and account self-service"), authLi
         } else {
           req.session.user = user.username;
           req.session.uid = user.id;
-          req.session.permission = user.permission;
           if (!req.session.token) {
             req.session.token = MMGISUser.token;
           }
@@ -346,7 +342,7 @@ router.post("/login", authorize.public("login and account self-service"), authLi
       where: {
         username: username,
       },
-      attributes: ["id", "username", "email", "password", "permission"],
+      attributes: ["id", "username", "email", "password"],
     })
       .then((user) => {
         if (!user) {
@@ -361,7 +357,6 @@ router.post("/login", authorize.public("login and account self-service"), authLi
               req.session.user = user.username;
               req.session.uid = user.id;
               req.session.token = crypto.randomBytes(128).toString("hex");
-              req.session.permission = user.permission;
 
               User.update(
                 {
@@ -419,7 +414,7 @@ router.post("/login", authorize.public("login and account self-service"), authLi
   return null;
 });
 
-router.post("/logout", authorize.public("login and account self-service"), function (req, res) {
+router.post("/logout", authorize.public("login and account self-service"), apilimiter, function (req, res) {
   let MMGISUser = req.cookies.MMGISUser
     ? JSON.parse(req.cookies.MMGISUser)
     : false;
@@ -505,7 +500,6 @@ router.post("/resetPassword", authorize.public("login and account self-service")
         "username",
         "email",
         "password",
-        "permission",
         "reset_token",
         "reset_token_expiration",
       ],
@@ -577,7 +571,6 @@ function clearLoginSession(req) {
   req.session.user = "guest";
   req.session.uid = null;
   req.session.token = null;
-  req.session.permission = null;
 }
 
 module.exports = router;

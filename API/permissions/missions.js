@@ -2,7 +2,7 @@
 const logger = require("../logger");
 
 function models() {
-  const { AuthMission } = require("../../plugins/core/backend/Authz/models/authz");
+  const { AuthMission } = require("./models");
   const Config = require("../../plugins/core/backend/Config/models/config");
   return { AuthMission, Config };
 }
@@ -62,7 +62,7 @@ async function ensureMission(name) {
 // (e.g. by the config afterCreate hook) is a placeholder and is replaced.
 async function renameMission(oldName, newName) {
   const { AuthMission } = models();
-  const { RoleBinding } = require("../../plugins/core/backend/Authz/models/authz");
+  const { RoleBinding } = require("./models");
   const oldRow = await AuthMission.findOne({ where: { name: oldName } });
   if (!oldRow) return ensureMission(newName);
   const placeholder = await AuthMission.findOne({ where: { name: newName } });
@@ -78,7 +78,7 @@ async function renameMission(oldName, newName) {
 
 async function removeMission(name) {
   const { AuthMission } = models();
-  const { RoleBinding } = require("../../plugins/core/backend/Authz/models/authz");
+  const { RoleBinding } = require("./models");
   const uuid = await uuidForName(name);
   if (!uuid) return;
   await RoleBinding.destroy({ where: { mission_uuid: uuid } });
@@ -99,7 +99,7 @@ async function backfill() {
     }
   }
   if (created > 0)
-    logger("info", `Assigned UUIDs to ${created} mission(s).`, "authz");
+    logger("info", `Assigned UUIDs to ${created} mission(s).`, "permissions");
   return created;
 }
 

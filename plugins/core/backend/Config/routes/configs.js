@@ -11,10 +11,10 @@ const {
   missionNamesWith,
   ensurePrincipal,
   can,
-} = require("../../../../../API/authz/authorize");
-const siteAccess = require("../../../../../API/authz/siteAccess");
-const authzMissions = require("../../../../../API/authz/missions");
-const policy = require("../../../../../API/authz/policy");
+} = require("../../../../../API/permissions/authorize");
+const siteAccess = require("../../../../../API/permissions/siteAccess");
+const missionIdentity = require("../../../../../API/permissions/missions");
+const policy = require("../../../../../API/permissions/policy");
 const execFile = require("child_process").execFile;
 const Sequelize = require("sequelize");
 const crypto = require("crypto");
@@ -198,7 +198,8 @@ function principalCacheKey(req) {
   const p = req.principal || {};
   if (p.kind === "token") return `token:${p.token.id}`;
   if (p.kind === "user") return `user:${p.userId}`;
-  if (p.kind === "csso") return `csso:${p.username}:${(p.groupIds || []).join(",")}`;
+  if (p.kind === "external")
+    return `${p.provider}:${p.username}:${(p.groupIds || []).join(",")}`;
   return p.kind || "anonymous";
 }
 
@@ -1012,7 +1013,7 @@ router.get(
       const layerEditable = await missionNamesWith(req, "mission.layer.edit");
       res.send({
         status: "success",
-        permission: policy.legacyPermission(principal.bindings || []),
+        role: policy.accountRole(principal.bindings || []),
         superadmin: policy.isSuperAdmin(principal),
         capabilities: policy.capabilitiesOf(principal),
         // null means all missions
@@ -1304,7 +1305,7 @@ if (fullAccess)
                   userfilesUpdate,
                 ]);
               })
-              .then(() => authzMissions.renameMission(missionName, newName))
+              .then(() => missionIdentity.renameMission(missionName, newName))
               .then(() => {
                 logger(
                   "info",
@@ -1419,7 +1420,7 @@ if (fullAccess)
           ),
         ])
       )
-      .then(() => authzMissions.removeMission(missionName))
+      .then(() => missionIdentity.removeMission(missionName))
       .then((mission) => {
         logger(
           "info",

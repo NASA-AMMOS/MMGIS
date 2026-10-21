@@ -25,7 +25,7 @@ Lessons learned from past sessions — gotchas not obvious from the codebase.
 
 ## Auth Gotchas
 
-- `/api/configure/*` requires admin session (`"111"` or `"110"`) **even when `AUTH=off`**
+- `/api/configure/*` requires a session with the route's capability (SuperAdmin or a scoped mission admin) **even when `SITE_ACCESS=public`**
 - Read-only exceptions: `/api/configure/get`, `/api/configure/missions`, `/api/geodatasets/get`, `/api/geodatasets/search`
 - First admin: start with `AUTH=local`, hit `/api/users/first_signup`
 - Tests must handle auth even in `AUTH=off` mode

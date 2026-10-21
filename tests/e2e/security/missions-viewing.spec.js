@@ -13,7 +13,7 @@ const {
  *   - missions_viewing = null  -> unrestricted (legacy behavior)
  *   - missions_viewing = []    -> no missions
  *   - missions_viewing = [...] -> only those (Admins also get missions_managing)
- *   - SuperAdmins (111) always see everything
+ *   - SuperAdmins always see everything
  *   - GET /api/configure/get is rejected for non-viewable missions
  *   - GET /Missions/<mission>/... static files are rejected for non-viewable missions
  *   - GET /Missions/shared/... is readable by any authenticated user, never guests
@@ -143,7 +143,7 @@ test.describe.serial("missions_viewing permissions", () => {
     if (!userIds[userName] || !userIds[adminName]) return;
 
     await setViewing(userIds[adminName], null, {
-      permission: "110",
+      role: "mission_admin",
       missions_managing: [missionC],
     });
     user = await loginAs(userName);
@@ -188,7 +188,7 @@ test.describe.serial("missions_viewing permissions", () => {
     expect(row.missions_viewing).toBeNull();
   });
 
-  test("Admins (110) cannot change missions_viewing", async () => {
+  test("Mission admins cannot change missions_viewing", async () => {
     await setViewing(userIds[userName], [missionA]);
     // Mission admins no longer manage accounts at all
     const body = await json(
@@ -411,7 +411,7 @@ test.describe.serial("missions_viewing permissions", () => {
     };
     try {
       await setViewing(userIds[adminName], [missionA], {
-        permission: "110",
+        role: "mission_admin",
         missions_managing: [missionC],
       });
       const adminTok = await mint(admin);
@@ -438,7 +438,7 @@ test.describe.serial("missions_viewing permissions", () => {
           .post("/api/longtermtoken/clear", { data: { id } })
           .catch(() => {});
       await setViewing(userIds[adminName], null, {
-        permission: "110",
+        role: "mission_admin",
         missions_managing: [missionC],
       });
     }
@@ -484,7 +484,7 @@ test.describe.serial("missions_viewing permissions", () => {
     expect((await getConfig(user, missionA))?.status).toBe("failure");
   });
 
-  test("Admins (110) see missions_viewing ∪ missions_managing", async () => {
+  test("Mission admins see missions_viewing ∪ missions_managing", async () => {
     await setViewing(userIds[adminName], [missionA]);
     expect((await listMissions(admin)).sort()).toEqual(
       [missionA, missionC].sort(),
@@ -493,7 +493,7 @@ test.describe.serial("missions_viewing permissions", () => {
     expect((await getConfig(admin, missionB))?.status).toBe("failure");
   });
 
-  test("SuperAdmins (111) always see all missions", async () => {
+  test("SuperAdmins always see all missions", async () => {
     expect((await listMissions(superadmin)).sort()).toEqual(
       [missionA, missionB, missionC].sort(),
     );
@@ -552,7 +552,7 @@ test.describe.serial("missions_viewing permissions", () => {
       return e;
     };
 
-    // Admins (110) may not change the defaults
+    // Mission admins may not change the defaults
     expect((await setDefaults(admin, []))?.status).toBe("failure");
 
     const original = await getDefaults();
@@ -579,7 +579,7 @@ test.describe.serial("missions_viewing permissions", () => {
       // SuperAdmins may override the default per account at signup
       const u4 = await signup(`${userName}_d4`, { missions_viewing: [missionC] });
       expect(u4.missions_viewing).toEqual([missionC]);
-      // Admins (110) cannot; signup is allowed but the default applies
+      // Mission admins cannot; signup is allowed but the default applies
       const adminSignup = await json(
         await admin.post("/api/users/signup", {
           data: {

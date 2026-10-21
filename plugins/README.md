@@ -149,6 +149,27 @@ Server-side Express modules. Have `plugin.json` (metadata) + `plugin.js` (lifecy
 
 The server contract — the `s` setup object, lifecycle ordering, choosing an auth gate, `envs`, models and migrations — is documented in [`core/backend/README.md`](./core/backend/README.md).
 
+### Auth Providers
+
+Login providers selected by the `AUTH_PROVIDERS` ENV. A provider only answers "who is this?"; roles, groups and role bindings decide what that person may do, whichever provider answered. Directory is `auth/`, manifest type is `"type": "auth"`.
+
+Auth providers must be core plugins: they are only loaded from `plugins/core/auth/` and their `plugin.json` must set `"tier": "core"` and `"overridable": false`. Providers found in any other container are refused at startup with an error.
+
+**Required manifest fields**: `provider` (the lowercase id used in `AUTH_PROVIDERS`), `tier: "core"`, `overridable: false`.
+
+`plugin.js` may export any of:
+
+| Export | Purpose |
+|---|---|
+| `identify(req)` | Per-request login (e.g. headers from a proxy). Returns an identity or `null`. |
+| `routes(router, ctx)` | Login/callback routes, mounted at `/api/auth/<provider>`. Every route must declare a permission (`ctx.authorize.public(...)` for login pages). Call `ctx.completeLogin(req, identity)` to start a session. |
+| `validate(env)` | Returns configuration problems (`string[]`) that refuse startup. |
+| `warnings(env)` | Returns configuration problems (`string[]`) logged at startup. |
+
+An identity is `{ subject, username?, email?, groups?: string[], session? }`. `subject` is the provider's stable user id. `completeLogin` links `provider + subject` to an MMGIS account in `auth_identities`, creating the account on first login. It never links to an existing account by matching usernames. It then sets the user's membership of groups whose source is this provider to the reported `groups`.
+
+Shipped providers: `local` (`core/auth/Local`; its routes are served by the Users backend at `/api/users`) and `csso` (`core/auth/CSSO`). `ldap`, `earthdata`, `keycloak` and `cognito` are reserved names for future providers.
+
 ### Components
 
 UI components loaded into the MMGIS interface. Directory name is plural (`components/`) but manifest type is singular (`"type": "component"`).

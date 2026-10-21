@@ -18,7 +18,7 @@ const dryRun = args.has("--dry-run");
 const force = args.has("--force");
 const json = args.has("--json");
 
-const siteAccess = require("../API/authz/siteAccess");
+const siteAccess = require("../API/permissions/siteAccess");
 
 const notes = [];
 if (process.env.AUTH != null && process.env.AUTH !== "") {
@@ -48,9 +48,9 @@ const BCRYPT = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/;
 
 async function main() {
   const { sequelize } = require("../API/connection");
-  const legacyImport = require("../API/authz/legacyImport");
+  const legacyImport = require("../API/permissions/legacyImport");
   const { User } = require("../plugins/core/backend/Users/models/user");
-  const authzModels = require("../plugins/core/backend/Authz/models/authz");
+  const permissionModels = require("../API/permissions/models");
 
   const imported = await legacyImport.alreadyImported();
   // Read-only check that every stored password is a bcrypt hash; they are never rewritten
@@ -60,12 +60,12 @@ async function main() {
   let result;
   if (dryRun) result = await legacyImport.plan({ dryRun: true });
   else {
-    await authzModels.AuthMission.sync();
-    await authzModels.AuthGroup.sync();
-    await authzModels.AuthGroupMember.sync();
-    await authzModels.RoleBinding.sync();
-    await authzModels.AuthMeta.sync();
-    await authzModels.up();
+    await permissionModels.AuthMission.sync();
+    await permissionModels.AuthGroup.sync();
+    await permissionModels.AuthGroupMember.sync();
+    await permissionModels.RoleBinding.sync();
+    await permissionModels.AuthMeta.sync();
+    await permissionModels.up();
     result = await legacyImport.run({ force });
     if (result.skipped) result = { ...(await legacyImport.plan()), skipped: true };
   }

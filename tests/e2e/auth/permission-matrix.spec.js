@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
  * End-to-end permission matrix for capability-based authorization.
  *
  * Creates real accounts, missions and layers through the public APIs, grants
- * roles through /api/authz, and checks each role against the routes it should
+ * roles through /api/access, and checks each role against the routes it should
  * and should not reach: mission isolation, layer-subtree editing, site-wide
  * operations, groups, live revocation, the last-SuperAdmin rule and scoped
  * long-term tokens.
@@ -16,8 +16,8 @@ import { randomUUID } from 'crypto';
 
 const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 const RUN = Date.now().toString(36);
-const MISSION_A = `AuthzA_${RUN}`;
-const MISSION_B = `AuthzB_${RUN}`;
+const MISSION_A = `PermA_${RUN}`;
+const MISSION_B = `PermB_${RUN}`;
 const FOLDER = randomUUID();
 const CHILD = randomUUID();
 const SIBLING = randomUUID();
@@ -97,7 +97,7 @@ const users = {};
 const ids = {};
 
 async function grant(actor, subject_type, subject_id, role, scope_type, mission, layer_uuid) {
-  const r = await api(actor, 'POST', '/api/authz/bindings/add', {
+  const r = await api(actor, 'POST', '/api/access/bindings/add', {
     subject_type,
     subject_id,
     role,
@@ -110,7 +110,7 @@ async function grant(actor, subject_type, subject_id, role, scope_type, mission,
 }
 
 async function bindingsOf(userId) {
-  const r = await api(admin, 'GET', `/api/authz/bindings?subject_type=user&subject_id=${userId}`);
+  const r = await api(admin, 'GET', `/api/access/bindings?subject_type=user&subject_id=${userId}`);
   expect(ok(r)).toBe(true);
   return r.json.body;
 }
@@ -180,7 +180,7 @@ test.describe.serial('Permission matrix', () => {
     for (const n of ['madmin', 'ledit', 'viewer', 'plain', 'dadmin', 'grouped'])
       for (const b of await bindingsOf(ids[n]))
         if (b.role === 'viewer' && b.scope_type === 'global')
-          expect(ok(await api(admin, 'POST', '/api/authz/bindings/remove', { id: b.id }))).toBe(true);
+          expect(ok(await api(admin, 'POST', '/api/access/bindings/remove', { id: b.id }))).toBe(true);
 
     for (const n of NAMES) users[n] = await login(`${n}_${RUN}`, PASSWORD);
   });
@@ -263,8 +263,8 @@ test.describe.serial('Permission matrix', () => {
     expect(denied(await api(who, 'GET', '/api/webhooks/entries'))).toBe(true);
     expect(denied(await api(who, 'POST', '/api/geodatasets/recreate', {}))).toBe(true);
     expect(denied(await api(who, 'POST', '/api/datasets/recreate', {}))).toBe(true);
-    expect(denied(await api(who, 'GET', '/api/authz/groups'))).toBe(true);
-    expect(denied(await api(who, 'POST', '/api/authz/bindings/add', {
+    expect(denied(await api(who, 'GET', '/api/access/groups'))).toBe(true);
+    expect(denied(await api(who, 'POST', '/api/access/bindings/add', {
       subject_type: 'user', subject_id: ids.madmin, role: 'superadmin', scope_type: 'global',
     }))).toBe(true);
     const list = (await api(who, 'GET', '/api/configure/missions')).json.missions;
@@ -290,37 +290,37 @@ test.describe.serial('Permission matrix', () => {
   });
 
   test('group roles apply to members and stop on removal', async () => {
-    const g = await api(admin, 'POST', '/api/authz/groups/create', { name: `editorsB_${RUN}` });
+    const g = await api(admin, 'POST', '/api/access/groups/create', { name: `editorsB_${RUN}` });
     expect(ok(g)).toBe(true);
     const gid = g.json.body.id;
     await grant(admin, 'group', gid, 'mission_admin', 'mission', MISSION_B);
     expect(denied(await initialView(users.grouped, MISSION_B))).toBe(true);
-    expect(ok(await api(admin, 'POST', '/api/authz/groups/members/add', { group_id: gid, user_id: ids.grouped }))).toBe(true);
+    expect(ok(await api(admin, 'POST', '/api/access/groups/members/add', { group_id: gid, user_id: ids.grouped }))).toBe(true);
     expect(ok(await initialView(users.grouped, MISSION_B))).toBe(true);
     expect(denied(await initialView(users.grouped, MISSION_A))).toBe(true);
 
-    const eff = (await api(admin, 'GET', `/api/authz/effective?user_id=${ids.grouped}`)).json.body;
+    const eff = (await api(admin, 'GET', `/api/access/effective?user_id=${ids.grouped}`)).json.body;
     expect(eff.groups.map((x) => x.id)).toContain(gid);
     expect(eff.missions['mission.config.edit']).toEqual([MISSION_B]);
 
-    expect(ok(await api(admin, 'POST', '/api/authz/groups/members/remove', { group_id: gid, user_id: ids.grouped }))).toBe(true);
+    expect(ok(await api(admin, 'POST', '/api/access/groups/members/remove', { group_id: gid, user_id: ids.grouped }))).toBe(true);
     expect(denied(await initialView(users.grouped, MISSION_B))).toBe(true);
-    expect(ok(await api(admin, 'POST', '/api/authz/groups/delete', { id: gid }))).toBe(true);
+    expect(ok(await api(admin, 'POST', '/api/access/groups/delete', { id: gid }))).toBe(true);
   });
 
   test('multiple SuperAdmins, live revocation and the last-SuperAdmin rule', async () => {
     expect(ok(await api(users.sa2, 'GET', '/api/accounts/entries'))).toBe(true);
     const saBinding = (await bindingsOf(ids.sa2)).find((b) => b.role === 'superadmin');
     // A SuperAdmin can grant and revoke for another SuperAdmin
-    expect(ok(await api(users.sa2, 'POST', '/api/authz/bindings/remove', { id: saBinding.id }))).toBe(true);
+    expect(ok(await api(users.sa2, 'POST', '/api/access/bindings/remove', { id: saBinding.id }))).toBe(true);
     expect(denied(await api(users.sa2, 'GET', '/api/accounts/entries'))).toBe(true);
 
     // Remaining SuperAdmins now = test_admin (plus any pre-existing ones)
-    const sas = (await api(admin, 'GET', '/api/authz/bindings?role=superadmin')).json.body.filter(
+    const sas = (await api(admin, 'GET', '/api/access/bindings?role=superadmin')).json.body.filter(
       (b) => b.role === 'superadmin' && b.subject_type === 'user' && b.scope_type === 'global'
     );
     if (sas.length === 1) {
-      const r = await api(admin, 'POST', '/api/authz/bindings/remove', { id: sas[0].id });
+      const r = await api(admin, 'POST', '/api/access/bindings/remove', { id: sas[0].id });
       expect(r.json.status).toBe('failure');
       expect(r.json.message).toMatch(/at least one SuperAdmin/i);
       expect(ok(await api(admin, 'GET', '/api/accounts/entries'))).toBe(true);
@@ -385,7 +385,7 @@ test.describe.serial('Permission matrix', () => {
 
     // Demoting the creator immediately narrows the token
     const b = (await bindingsOf(ids.madmin)).find((x) => x.role === 'mission_admin');
-    expect(ok(await api(admin, 'POST', '/api/authz/bindings/remove', { id: b.id }))).toBe(true);
+    expect(ok(await api(admin, 'POST', '/api/access/bindings/remove', { id: b.id }))).toBe(true);
     expect(denied(await initialView(null, MISSION_A, { bearer: token }))).toBe(true);
     expect(denied(await initialView(users.madmin, MISSION_A))).toBe(true);
     await grant(admin, 'user', ids.madmin, 'mission_admin', 'mission', MISSION_A);

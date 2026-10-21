@@ -1,13 +1,13 @@
 /**
  * Unit tests for the capability/role policy core.
- * Source: API/authz/policy.js
+ * Source: API/permissions/policy.js
  */
 
 import { test, expect } from '@playwright/test';
 const path = require('path');
 
-const policy = require(path.resolve(__dirname, '../../API/authz/policy.js'));
-const { can, missionsWith, capabilitiesOf, isSuperAdmin, legacyPermission, scopeChain } = policy;
+const policy = require(path.resolve(__dirname, '../../API/permissions/policy.js'));
+const { can, missionsWith, capabilitiesOf, isSuperAdmin, accountRole, scopeChain } = policy;
 
 const M1 = '11111111-1111-4111-8111-111111111111';
 const M2 = '22222222-2222-4222-8222-222222222222';
@@ -73,7 +73,7 @@ function expectMatrix(principal, expected) {
     }
 }
 
-test.describe('Authz policy: registry', () => {
+test.describe('Permissions policy: registry', () => {
   test('every role only uses known capabilities and scope types', () => {
     for (const [name, role] of Object.entries(policy.ROLES)) {
       for (const cap of role.capabilities) expect(policy.CAPABILITIES[cap], `${name}:${cap}`).toBeTruthy();
@@ -107,7 +107,7 @@ test.describe('Authz policy: registry', () => {
   });
 });
 
-test.describe('Authz policy: role matrix', () => {
+test.describe('Permissions policy: role matrix', () => {
   test('superadmin can do everything everywhere', () => {
     const p = user([['superadmin', 'global']]);
     expectMatrix(p, () => true);
@@ -198,7 +198,7 @@ test.describe('Authz policy: role matrix', () => {
   });
 });
 
-test.describe('Authz policy: mission isolation', () => {
+test.describe('Permissions policy: mission isolation', () => {
   test('admin of one mission and viewer of another cannot edit the other', () => {
     const p = user([
       ['mission_admin', `mission:${M1}`],
@@ -217,7 +217,7 @@ test.describe('Authz policy: mission isolation', () => {
   });
 });
 
-test.describe('Authz policy: groups and audiences', () => {
+test.describe('Permissions policy: groups and audiences', () => {
   test('group and direct bindings are a union (allow-only)', () => {
     // Principals carry the bindings of the user and all their groups
     const p = user([
@@ -249,7 +249,7 @@ test.describe('Authz policy: groups and audiences', () => {
   });
 });
 
-test.describe('Authz policy: long-term tokens', () => {
+test.describe('Permissions policy: long-term tokens', () => {
   const creator = user([['superadmin', 'global']]);
 
   test('a full-scope token acts as its creator', () => {
@@ -297,7 +297,7 @@ test.describe('Authz policy: long-term tokens', () => {
   });
 });
 
-test.describe('Authz policy: listing helpers', () => {
+test.describe('Permissions policy: listing helpers', () => {
   test('missionsWith', () => {
     expect(missionsWith(user([['superadmin', 'global']]), 'mission.view')).toBeNull();
     const p = user([
@@ -331,12 +331,13 @@ test.describe('Authz policy: listing helpers', () => {
     expect(capabilitiesOf(user([['superadmin', 'global']])).sort()).toEqual(ALL.slice().sort());
   });
 
-  test('legacyPermission is derived from bindings', () => {
-    expect(legacyPermission([{ role: 'superadmin', scope: 'global' }])).toBe('111');
-    expect(legacyPermission([{ role: 'mission_admin', scope: `mission:${M1}` }])).toBe('110');
-    expect(legacyPermission([{ role: 'mission_admin', scope: 'global' }])).toBe('110');
-    expect(legacyPermission([{ role: 'viewer', scope: 'global' }])).toBe('001');
-    expect(legacyPermission([])).toBe('001');
+  test('accountRole is derived from bindings', () => {
+    expect(accountRole([{ role: 'superadmin', scope: 'global' }])).toBe('superadmin');
+    expect(accountRole([{ role: 'mission_admin', scope: `mission:${M1}` }])).toBe('mission_admin');
+    expect(accountRole([{ role: 'layer_editor', scope: `layer:${M1}:x` }])).toBe('mission_admin');
+    expect(accountRole([{ role: 'mission_admin', scope: 'global' }])).toBe('mission_admin');
+    expect(accountRole([{ role: 'viewer', scope: 'global' }])).toBe('user');
+    expect(accountRole([])).toBe('user');
   });
 });
 
@@ -359,7 +360,7 @@ function randomPrincipal(r) {
   return user(Array.from({ length: n }, () => randomBinding(r)));
 }
 
-test.describe('Authz policy: properties', () => {
+test.describe('Permissions policy: properties', () => {
   test('adding a binding never removes access; removing one never adds access', () => {
     const r = rng(42);
     for (let i = 0; i < 400; i++) {

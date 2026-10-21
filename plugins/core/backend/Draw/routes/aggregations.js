@@ -11,7 +11,7 @@ const Userfiles = ufiles.Userfiles;
 const UserfilesTEST = ufiles.UserfilesTEST;
 
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 
 /**
  * POST /api/draw/aggregations

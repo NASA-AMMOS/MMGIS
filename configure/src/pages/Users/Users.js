@@ -274,7 +274,7 @@ const useStyles = makeStyles((theme) => ({
 function AccountDefaults() {
   const c = useStyles();
   const dispatch = useDispatch();
-  const isSuperAdmin = mmgisglobal.permission === "111";
+  const isSuperAdmin = mmgisglobal.role === "superadmin";
 
   const [loaded, setLoaded] = React.useState(false);
   const [restrict, setRestrict] = React.useState(false);
@@ -426,7 +426,7 @@ const headCells = [
     label: "Email",
   },
   {
-    id: "permission",
+    id: "role",
     label: "Role",
   },
   {
@@ -534,7 +534,7 @@ EnhancedTableToolbar.propTypes = {
 
 export default function Users() {
   const [order, setOrder] = React.useState("desc");
-  const [orderBy, setOrderBy] = React.useState("permission");
+  const [orderBy, setOrderBy] = React.useState("role");
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(25);
 
@@ -672,20 +672,20 @@ export default function Users() {
                       <TableCell align="left">{row.username}</TableCell>
                       <TableCell align="right">{row.email}</TableCell>
                       <TableCell align="right">
-                        {row.permission === "111" ? (
+                        {row.role === "superadmin" ? (
                           <div className={c.roleSuperAdmin}>SuperAdmin</div>
-                        ) : row.permission === "110" ? (
+                        ) : row.role === "mission_admin" ? (
                           <div className={c.roleAdmin}>Admin</div>
                         ) : (
                           <div className={c.roleUser}>User</div>
                         )}
                       </TableCell>
                       <TableCell align="right">
-                        {row.permission === "110" && row.missions_managing ? (
+                        {row.role === "mission_admin" && row.missions_managing ? (
                           <div style={{ fontSize: "12px" }}>
                             {row.missions_managing.join(", ")}
                           </div>
-                        ) : row.permission === "111" ? (
+                        ) : row.role === "superadmin" ? (
                           <div style={{ fontSize: "12px", fontStyle: "italic", color: "#888" }}>
                             All Missions
                           </div>
@@ -696,7 +696,7 @@ export default function Users() {
                         )}
                       </TableCell>
                       <TableCell align="right">
-                        {row.permission === "111" ? (
+                        {row.role === "superadmin" ? (
                           <div style={{ fontSize: "12px", fontStyle: "italic", color: "#888" }}>
                             All Missions
                           </div>

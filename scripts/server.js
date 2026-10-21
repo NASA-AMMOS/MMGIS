@@ -1,6 +1,7 @@
 require("dotenv").config();
 
-const siteAccess = require("../API/authz/siteAccess");
+const siteAccess = require("../API/permissions/siteAccess");
+const providers = require("../API/permissions/providers");
 {
   const authConfigErrors = siteAccess.validate();
   if (authConfigErrors.length > 0) {
@@ -41,8 +42,8 @@ const utils = require("../API/utils");
 const { sequelize } = require("../API/connection");
 const { getRequestHost, isOriginAllowed } = require("../API/origin");
 const crypto = require("crypto");
-const policy = require("../API/authz/policy");
-const { principalMiddleware } = require("../API/authz/principal");
+const policy = require("../API/permissions/policy");
+const { principalMiddleware } = require("../API/permissions/principal");
 const {
   authorize,
   resolvers,
@@ -51,7 +52,8 @@ const {
   ensurePrincipal,
   registerRouter,
   undeclaredRoutes,
-} = require("../API/authz/authorize");
+  undeclaredPluginRoutes,
+} = require("../API/permissions/authorize");
 
 const setups = require("../API/setups");
 
@@ -236,23 +238,11 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
 ///////////////////////////
 
 // This is application-level middleware, written to run for all requests.
-// When CSSO_PROXY_SECRET is set, identity headers are only trusted if the
-// proxy also sends the matching X-MMGIS-Proxy-Secret header.
-function cssoProxyTrusted(req) {
-  const secret = process.env.CSSO_PROXY_SECRET;
-  if (!secret) return true;
-  const sent = req.get("X-MMGIS-Proxy-Secret") || "";
-  const a = Buffer.from(String(sent));
-  const b = Buffer.from(String(secret));
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-if (siteAccess.hasProvider("csso") && !process.env.CSSO_PROXY_SECRET)
-  logger(
-    "warn",
-    "AUTH_PROVIDERS includes csso but CSSO_PROXY_SECRET is not set. Identity headers will be trusted from any request.",
-    "server",
-  );
+providers
+  .providerWarnings()
+  .forEach((warning) => logger("warn", warning, "server"));
 
+// Identifies the request through the enabled login providers (e.g. CSSO)
 const cssoHandler = (req, res, next) => {
   // For this application, every HTTP request is a direct response to user
   // activity, so we can set the activity header to true on every response.
@@ -261,39 +251,34 @@ const cssoHandler = (req, res, next) => {
   //Also hardcoded a few places on the front-end and maybe initial Lead file creation
   req.leadGroupName = "mmgis-group";
 
-  // Get the user's and username information from the request headers and set
-  // them as attributes of the req object.
-
-  if (siteAccess.hasProvider("csso") && req.get("X-Sub") !== undefined) {
-    if (cssoProxyTrusted(req)) {
-      req.groups = {};
-      if (req.get("X-Groups") !== undefined) {
-        try {
-          req.groups = JSON.parse(
-            Buffer.from(req.get("X-Groups"), "base64").toString("ascii"),
-          );
-        } catch (err) {
-          req.groups = {};
+  providers
+    .identify(req)
+    .then((identity) => {
+      if (identity) {
+        req.identity = identity;
+        req.groups = Object.fromEntries(identity.groups.map((g) => [g, true]));
+        if (req.groups[process.env.CSSO_LEAD_GROUP] === true)
+          req.groups[req.leadGroupName] = true;
+        req.user = identity.username;
+        if (identity.provider === "csso") {
+          req.cssoAuthenticated = true;
+          if (identity.session) req.cssoSessionID = identity.session;
         }
+        next();
+        return;
       }
-      if (req.groups[process.env.CSSO_LEAD_GROUP] === true) {
-        req.groups[req.leadGroupName] = true;
-      }
-      req.user = req.get("X-Sub");
-      req.cssoAuthenticated = true;
-      let cssoSessionID = req.get("X-Session");
-      if (cssoSessionID) req.cssoSessionID = cssoSessionID;
+      sessionIdentity(req);
       next();
-      return;
-    }
-  }
+    })
+    .catch(next);
+};
+
+function sessionIdentity(req) {
   req.user = req.session.user || guestUsername;
   let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
   req.groups = {};
   if (leads.indexOf(req.user) != -1) req.groups[req.leadGroupName] = true;
-
-  next();
-};
+}
 
 function setContentType(req, res, next) {
   res.setHeader("Content-Type", "application/json");
@@ -798,6 +783,7 @@ setups.getBackendSetups(function (setups) {
 
   //////Setups Init//////
   setups.init(s);
+  providers.mountProviderRoutes(app, { registerRouter, authorize });
 
   // Every registered API route must declare its permission
   const undeclared = undeclaredRoutes();
@@ -810,6 +796,13 @@ setups.getBackendSetups(function (setups) {
     );
     process.exit(1);
   }
+  undeclaredPluginRoutes().forEach(({ plugin, routes }) =>
+    logger(
+      "warn",
+      `Backend plugin '${plugin}' has routes without a declared permission; only the site login gate applies to them (use s.authorize): ${routes.join(", ")}`,
+      "server",
+    ),
+  );
 
   let httpServer;
   if (process.env.HTTPS == "true") {
@@ -854,15 +847,15 @@ setups.getBackendSetups(function (setups) {
             user = req.principal.username;
           else if (req.user != null) user = req.user;
 
-          const permission =
+          const role =
             req.principal && req.principal.authenticated
-              ? policy.legacyPermission(req.principal.bindings || [])
-              : "000";
+              ? policy.accountRole(req.principal.bindings || [])
+              : "guest";
 
           const groups = req.groups ? Object.keys(req.groups) : [];
           res.render("../build/index.pug", {
             user: user,
-            permission: permission,
+            role: role,
             groups: JSON.stringify(groups),
             SITE_ACCESS: siteAccess.getSiteAccess(),
             AUTH_PROVIDERS: siteAccess.getProviders().join(","),

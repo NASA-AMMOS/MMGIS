@@ -26,7 +26,7 @@ const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 const Utils = require("../../../../../API/utils");
 
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const db = database.db;
 
 const historyKey = {

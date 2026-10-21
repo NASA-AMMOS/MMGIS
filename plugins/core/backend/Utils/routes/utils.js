@@ -4,7 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const fs = require("fs");
 const path = require("path");
 const execFile = require("child_process").execFile;
@@ -13,7 +13,7 @@ const spawn = require("child_process").spawn;
 const Sequelize = require("sequelize");
 const { sequelizeSTAC } = require("../../../../../API/connection");
 const logger = require("../../../../../API/logger");
-const { computeLimiter } = require("../../../../../scripts/rateLimiters");
+const { apilimiter, computeLimiter } = require("../../../../../scripts/rateLimiters");
 const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 const validateGdalDatasetPath = require("../../../../../API/validateGdalDatasetPath");
 const { parseTilesetTimeDir } = require("./timeTiles");
@@ -232,7 +232,7 @@ function queryTilesetTimesStac(req, res) {
   });
 }
 
-router.get("/queryTilesetTimes", authorize("site.view"), function (req, res) {
+router.get("/queryTilesetTimes", authorize("site.view"), apilimiter, function (req, res) {
   if (req.query.stacCollection != null) queryTilesetTimesStac(req, res);
   else queryTilesetTimesDir(req, res);
 });

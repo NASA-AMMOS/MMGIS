@@ -2,8 +2,6 @@
 // Replaces the former AUTH ENV.
 
 const SITE_ACCESS_VALUES = ["public", "optional", "required"];
-const SUPPORTED_PROVIDERS = ["local", "csso"];
-const PLANNED_PROVIDERS = ["ldap", "earthdata"];
 
 const LEGACY_AUTH_REPLACEMENTS = {
   off: { SITE_ACCESS: "public", AUTH_PROVIDERS: '["local"]' },
@@ -46,17 +44,23 @@ function validate(env = process.env) {
       }').`
     );
   const providers = parseProviders(env.AUTH_PROVIDERS);
-  if (providers == null || providers.length === 0)
+  if (providers == null || providers.length === 0) {
     errors.push(`AUTH_PROVIDERS must be a JSON array, e.g. ["local"].`);
-  else
-    providers.forEach((p) => {
-      if (PLANNED_PROVIDERS.includes(p))
-        errors.push(`AUTH_PROVIDERS: '${p}' is not supported yet.`);
-      else if (!SUPPORTED_PROVIDERS.includes(p))
-        errors.push(
-          `AUTH_PROVIDERS: unknown provider '${p}'. Supported: ${SUPPORTED_PROVIDERS.join(", ")}.`
-        );
-    });
+    return errors;
+  }
+  // Lazy: the provider registry depends on this module
+  const registry = require("./providers");
+  const available = registry.availableProviders();
+  providers.forEach((p) => {
+    if (available.includes(p)) return;
+    if (registry.RESERVED_PROVIDERS.includes(p))
+      errors.push(`AUTH_PROVIDERS: '${p}' is not supported yet.`);
+    else
+      errors.push(
+        `AUTH_PROVIDERS: unknown provider '${p}'. Available: ${available.join(", ")}.`
+      );
+  });
+  if (errors.length === 0) errors.push(...registry.validateProviders(providers, env));
   return errors;
 }
 
@@ -81,7 +85,6 @@ const endUserLoginEnabled = () => !isPublic();
 
 module.exports = {
   SITE_ACCESS_VALUES,
-  SUPPORTED_PROVIDERS,
   LEGACY_AUTH_REPLACEMENTS,
   parseProviders,
   validate,

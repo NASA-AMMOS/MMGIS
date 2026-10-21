@@ -8,10 +8,10 @@ const crypto = require("crypto");
 const { Op } = require("sequelize");
 
 const logger = require("../../../../../API/logger");
-const policy = require("../../../../../API/authz/policy");
-const missions = require("../../../../../API/authz/missions");
-const { authorize, ensurePrincipal } = require("../../../../../API/authz/authorize");
-const { hashToken, invalidate } = require("../../../../../API/authz/principal");
+const policy = require("../../../../../API/permissions/policy");
+const missions = require("../../../../../API/permissions/missions");
+const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
+const { hashToken, invalidate } = require("../../../../../API/permissions/principal");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;
 const { User } = require("../../Users/models/user");
 

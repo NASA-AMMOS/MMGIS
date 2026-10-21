@@ -1,5 +1,5 @@
 const router = require("./routes/utils");
-const { authorize } = require("../../../../API/authz/authorize");
+const { authorize } = require("../../../../API/permissions/authorize");
 let setup = {
   //Once the app initializes
   onceInit: (s) => {

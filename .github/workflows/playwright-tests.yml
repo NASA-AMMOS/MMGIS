@@ -28,7 +28,7 @@ jobs:
         env:
           POSTGRES_DB: mmgis-test
           POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
+          POSTGRES_PASSWORD: test_password # pragma: allowlist secret
         ports:
           - 5432:5432
         options: >-
@@ -62,7 +62,7 @@ jobs:
         run: pip install "titiler.application" "python-dotenv[cli]" uvicorn
 
       - name: Setup test environment
-        run: |
+        run: | # pragma: allowlist secret
           cp sample.env .env || touch .env
           sed -i "/^SITE_ACCESS=/d;/^AUTH_PROVIDERS=/d" .env
           echo "NODE_ENV=test" >> .env

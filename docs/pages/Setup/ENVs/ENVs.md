@@ -43,7 +43,7 @@ Login methods, as a JSON array or comma-separated list | string[] | default `["l
 - _local:_ MMGIS username/password accounts. Keep it listed so `/configure` admins can always log in.
 - _csso:_ A Cloud Single Sign On service proxied in front of MMGIS. See `CSSO_PROXY_SECRET`.
 
-`ldap` and `earthdata` are reserved for future providers and are rejected for now.
+Each provider is a core auth provider plugin under `plugins/core/auth/` (see `plugins/README.md`). `ldap`, `earthdata`, `keycloak` and `cognito` are reserved for future providers and are rejected for now.
 
 #### `NODE_ENV=`
 

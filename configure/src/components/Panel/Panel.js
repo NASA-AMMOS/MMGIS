@@ -202,11 +202,11 @@ export default function Panel() {
     );
   }, [dispatch]);
 
-  // Until permissions load, only show what the legacy page flag allowed
+  // Until capabilities load, only SuperAdmins see everything
   const can = (cap) =>
     userPermissions?.capabilities
       ? userPermissions.capabilities.includes(cap)
-      : window.mmgisglobal?.permission === "111";
+      : window.mmgisglobal?.role === "superadmin";
 
   // missions_managing / missions_layer_editing: null means every mission
   const canEditMission = (mission) => {

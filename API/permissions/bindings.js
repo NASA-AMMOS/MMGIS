@@ -1,13 +1,13 @@
-// Role binding management shared by the Authz and Accounts routes
+// Role binding management shared by the Access and Accounts routes
 const { Op } = require("sequelize");
 const policy = require("./policy");
 const missions = require("./missions");
 const { invalidate } = require("./principal");
 
 function models() {
-  const authz = require("../../plugins/core/backend/Authz/models/authz");
+  const permissionModels = require("./models");
   const { User } = require("../../plugins/core/backend/Users/models/user");
-  return { ...authz, User };
+  return { ...permissionModels, User };
 }
 
 class BindingError extends Error {}
@@ -31,7 +31,7 @@ async function superAdminUserIds() {
   return rows.map((r) => parseInt(r.subject_id));
 }
 
-// Keeps the derived, read-only users.permission column in step with bindings
+// Keeps the derived, read-only users.missions_managing column in step with bindings
 async function syncLegacyPermission(userId) {
   const { RoleBinding, User, AuthGroupMember } = models();
   const groups = await AuthGroupMember.findAll({
@@ -60,7 +60,6 @@ async function syncLegacyPermission(userId) {
   // Only the derived columns; never password/username
   await User.update(
     {
-      permission: policy.legacyPermission(bindings),
       missions_managing: managing.length ? managing : null,
     },
     { where: { id: userId }, hooks: false }

@@ -4,6 +4,7 @@ const semver = require("semver");
 
 const logger = require("./logger");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
+const { pluginScope } = require("./permissions/authorize");
 
 const PLUGINS_ROOT = path.join(__dirname, "..", "plugins");
 const MMGIS_VERSION = require("../package.json").version;
@@ -24,6 +25,7 @@ const MMGIS_VERSION = require("../package.json").version;
 function getBackendSetups(cb) {
   let setups = {};
   const setupManifests = {};
+  const setupContainers = {};
 
   // Single-pass scan of plugins/*/backend/ — discover via plugin.json,
   // then require the sibling plugin.js for lifecycle hooks.
@@ -74,6 +76,7 @@ function getBackendSetups(cb) {
 
     setups[plugin.name] = lifecycle;
     setupManifests[plugin.name] = plugin.manifest;
+    setupContainers[plugin.name] = plugin.container;
     logger(
       "loaded",
       `Backend: ${plugin.name} from ${plugin.container}${
@@ -123,21 +126,31 @@ function getBackendSetups(cb) {
   // Check inter-plugin dependencies at startup.
   checkPluginDependencies(PLUGINS_ROOT, "Setups");
 
+  // External plugins get a setup object that records their route mounts
+  const scoped = new Map();
+  const scopeFor = (f, s) => {
+    const container = setupContainers[f];
+    if (!container || container === "core") return s;
+    if (!scoped.has(f)) scoped.set(f, pluginScope(s, { name: f, container }));
+    return scoped.get(f);
+  };
+
   cb({
     init: (s) => {
       for (const f in setups) {
-        if (typeof setups[f].onceInit === "function") setups[f].onceInit(s);
+        if (typeof setups[f].onceInit === "function")
+          setups[f].onceInit(scopeFor(f, s));
       }
     },
     started: (s) => {
       for (const f in setups)
         if (typeof setups[f].onceStarted === "function")
-          setups[f].onceStarted(s);
+          setups[f].onceStarted(scopeFor(f, s));
     },
     synced: (s) => {
       for (const f in setups)
         if (typeof setups[f].onceSynced === "function")
-          setups[f].onceSynced(s);
+          setups[f].onceSynced(scopeFor(f, s));
     },
     envs: envs,
   });

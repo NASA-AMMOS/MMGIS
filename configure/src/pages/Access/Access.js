@@ -146,7 +146,7 @@ function BindingForm({ subject_type, subject_id, roles, missions, onAdded, notif
         size="small"
         disableElevation
         onClick={() =>
-          api("authz_bindings_add", {
+          api("access_bindings_add", {
             subject_type,
             subject_id,
             role,
@@ -198,15 +198,15 @@ export default function Access() {
   const [effective, setEffective] = useState(null);
 
   const refresh = useCallback(() => {
-    api("authz_roles").then((r) => setRoles(r.body.roles)).catch(() => {});
-    api("authz_missions").then((r) => setMissions(r.body || [])).catch(() => {});
+    api("access_roles").then((r) => setRoles(r.body.roles)).catch(() => {});
+    api("access_missions").then((r) => setMissions(r.body || [])).catch(() => {});
     api("account_entries")
       .then((r) => setUsers((r.body && r.body.entries) || []))
       .catch(() => {});
-    api("authz_groups")
+    api("access_groups")
       .then((r) => setGroups(r.body || []))
       .catch((res) => notify(res.message || "Failed to get groups.", "error"));
-    api("authz_bindings")
+    api("access_bindings")
       .then((r) => setAllBindings(r.body || []))
       .catch(() => {});
   }, [notify]);
@@ -215,7 +215,7 @@ export default function Access() {
   const loadEffective = useCallback(
     (id) => {
       if (id === "" || id == null) return setEffective(null);
-      api("authz_effective", { user_id: id })
+      api("access_effective", { user_id: id })
         .then((r) => setEffective(r.body))
         .catch((res) => notify(res.message || "Failed to get access.", "error"));
     },
@@ -228,7 +228,7 @@ export default function Access() {
     loadEffective(userId);
   };
   const removeBinding = (b) =>
-    api("authz_bindings_remove", { id: b.id })
+    api("access_bindings_remove", { id: b.id })
       .then(() => {
         notify("Role removed.", "success");
         changed();
@@ -344,7 +344,7 @@ export default function Access() {
               size="small"
               disableElevation
               onClick={() =>
-                api("authz_groups_create", { name: newGroup })
+                api("access_groups_create", { name: newGroup })
                   .then(() => {
                     setNewGroup("");
                     refresh();
@@ -364,7 +364,7 @@ export default function Access() {
                   size="small"
                   color="error"
                   onClick={() =>
-                    api("authz_groups_delete", { id: g.id })
+                    api("access_groups_delete", { id: g.id })
                       .then(changed)
                       .catch((res) => notify(res.message || "Failed to delete group.", "error"))
                   }
@@ -382,7 +382,7 @@ export default function Access() {
                     onDelete={
                       g.source === "local"
                         ? () =>
-                            api("authz_members_remove", { group_id: g.id, user_id: m.id })
+                            api("access_members_remove", { group_id: g.id, user_id: m.id })
                               .then(changed)
                               .catch((res) => notify(res.message || "Failed.", "error"))
                         : undefined
@@ -397,7 +397,7 @@ export default function Access() {
                     value={memberPick[g.id] || ""}
                     onChange={(e) => {
                       setMemberPick({ ...memberPick, [g.id]: "" });
-                      api("authz_members_add", { group_id: g.id, user_id: e.target.value })
+                      api("access_members_add", { group_id: g.id, user_id: e.target.value })
                         .then(changed)
                         .catch((res) => notify(res.message || "Failed.", "error"));
                     }}

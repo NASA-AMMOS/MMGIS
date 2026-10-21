@@ -15,12 +15,10 @@ let setup = {
         s.ensureAdmin(true),
         (req, res) => {
           const user = req.principal.username || req.user || "";
-          const permission = s.policy.legacyPermission(
-            req.principal.bindings || []
-          );
+          const role = s.policy.accountRole(req.principal.bindings || []);
           res.render("../configure/build/index.pug", {
             user: user,
-            permission: permission,
+            role: role,
             SITE_ACCESS: s.siteAccess.getSiteAccess(),
             AUTH_PROVIDERS: s.siteAccess.getProviders().join(","),
             NODE_ENV: process.env.NODE_ENV,

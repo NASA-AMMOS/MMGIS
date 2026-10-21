@@ -90,7 +90,7 @@ const resolvers = {
 };
 
 function tag(fn, meta) {
-  fn.__authz = meta;
+  fn.__access = meta;
   return fn;
 }
 
@@ -117,7 +117,7 @@ function authorize(cap, resolver, options = {}) {
           );
           return deny(req, res);
         }
-        req.authz = { capability: granted, resource };
+        req.access = { capability: granted, resource };
         next();
       })
       .catch((err) => {
@@ -138,7 +138,7 @@ authorize.public = (reason) =>
 // Route checks permissions itself in the handler (e.g. lists filtered per user)
 authorize.inHandler = (cap, reason) => {
   const mw = authorize(cap);
-  mw.__authz = { capability: cap, resolver: `in handler: ${reason}` };
+  mw.__access = { capability: cap, resolver: `in handler: ${reason}` };
   return mw;
 };
 
@@ -157,23 +157,24 @@ async function missionNamesWith(req, cap) {
 
 ////// Route registry / coverage
 const registry = [];
-function registerRouter(prefix, router) {
-  registry.push({ prefix, router });
+function registerRouter(prefix, router, plugin) {
+  registry.push({ prefix, router, plugin: plugin || null });
   return router;
 }
 
 function routeTable() {
   const rows = [];
-  registry.forEach(({ prefix, router }) => {
+  registry.forEach(({ prefix, router, plugin }) => {
     (router.stack || []).forEach((layer) => {
       if (!layer.route) return;
       const methods = Object.keys(layer.route.methods || {}).filter(
         (m) => layer.route.methods[m]
       );
       const meta = (layer.route.stack || [])
-        .map((l) => l.handle && l.handle.__authz)
+        .map((l) => l.handle && l.handle.__access)
         .filter(Boolean);
       rows.push({
+        plugin: plugin ? plugin.name : null,
         path: prefix + layer.route.path,
         methods: methods.map((m) => m.toUpperCase()).join(","),
         capability: meta.map((m) => m.capability).join(" + ") || null,
@@ -184,8 +185,71 @@ function routeTable() {
   return rows;
 }
 
+// Core routes without a declaration (startup refuses to run with any)
 function undeclaredRoutes() {
-  return routeTable().filter((r) => r.capability == null);
+  return routeTable().filter((r) => r.capability == null && r.plugin == null);
+}
+
+////// External backend plugins
+// Plugins outside plugins/core may mount routes straight onto s.app. Those
+// mounts are tracked so startup can warn (not fail) about any that skip
+// s.authorize and rely only on the site-level login gate.
+const pluginMounts = [];
+const APP_ROUTE_METHODS = ["use", "all", "get", "post", "put", "patch", "delete"];
+
+function declaresAccess(handler) {
+  if (typeof handler !== "function") return false;
+  if (handler.__access) return true;
+  if (!registry.some((r) => r.router === handler)) return false;
+  return (handler.stack || []).every(
+    (l) => !l.route || (l.route.stack || []).some((x) => x.handle && x.handle.__access)
+  );
+}
+
+function trackAppRoutes(app, plugin) {
+  return new Proxy(app, {
+    get(target, prop) {
+      const value = Reflect.get(target, prop, target);
+      if (typeof value !== "function") return value;
+      if (!APP_ROUTE_METHODS.includes(prop)) return value.bind(target);
+      return (...args) => {
+        // app.get(name) reads a setting; pathless app.use(fn) is middleware
+        if (typeof args[0] === "string" && args.length > 1)
+          pluginMounts.push({
+            plugin: plugin.name,
+            method: prop === "use" ? "USE" : prop.toUpperCase(),
+            path: args[0],
+            declared: args.slice(1).flat().some(declaresAccess),
+          });
+        return value.apply(target, args);
+      };
+    },
+  });
+}
+
+// The setup object handed to an external plugin's lifecycle hooks
+function pluginScope(s, plugin) {
+  return {
+    ...s,
+    app: trackAppRoutes(s.app, plugin),
+    registerRouter: (prefix, router) => registerRouter(prefix, router, plugin),
+  };
+}
+
+// [{ plugin, routes: ["GET /api/x", ...] }] for routes without a declaration
+function undeclaredPluginRoutes() {
+  const byPlugin = new Map();
+  const add = (name, route) => {
+    if (!byPlugin.has(name)) byPlugin.set(name, []);
+    if (!byPlugin.get(name).includes(route)) byPlugin.get(name).push(route);
+  };
+  pluginMounts
+    .filter((m) => !m.declared)
+    .forEach((m) => add(m.plugin, `${m.method} ${m.path}`));
+  routeTable()
+    .filter((r) => r.plugin != null && r.capability == null)
+    .forEach((r) => add(r.plugin, `${r.methods} ${r.path}`));
+  return Array.from(byPlugin, ([plugin, routes]) => ({ plugin, routes }));
 }
 
 module.exports = {
@@ -198,4 +262,6 @@ module.exports = {
   registerRouter,
   routeTable,
   undeclaredRoutes,
+  pluginScope,
+  undeclaredPluginRoutes,
 };

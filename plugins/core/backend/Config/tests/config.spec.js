@@ -39,7 +39,7 @@ test.describe('Config API', () => {
   test('POST /api/configure/add creates a new mission', async ({ request }) => {
     const testMission = `TestMission-${Date.now()}`;
 
-    // Create mission — requires SuperAdmin permission (session.permission === '111')
+    // Create mission — requires the mission.create capability (SuperAdmin)
     const addRes = await request.post(`${baseURL}/api/configure/add`, {
       data: { mission: testMission },
     });

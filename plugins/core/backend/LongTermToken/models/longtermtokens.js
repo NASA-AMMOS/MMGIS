@@ -25,7 +25,7 @@ const attributes = {
       key: 'id'
     }
   },
-  // Columns below are added by the Authz backend's up()
+  // Columns below are added by the Access backend's up()
   token_hash: { type: Sequelize.STRING(128), allowNull: true },
   token_prefix: { type: Sequelize.STRING(64), allowNull: true },
   name: { type: Sequelize.STRING(255), allowNull: true },

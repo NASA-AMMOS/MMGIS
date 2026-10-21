@@ -24,23 +24,23 @@ Access is granted through role bindings (`role_bindings`). Each binding gives a 
 
 - **Subjects:** a user, a group (`auth_groups` / `auth_group_members`, or CSSO groups), or an audience (`everyone`, `authenticated`).
 - **Scopes:** global, a mission (by stable mission UUID in `missions`), or a layer and its children (by layer UUID).
-- **Roles** bundle named capabilities (`API/authz/policy.js`):
+- **Roles** bundle named capabilities (`API/permissions/policy.js`):
   - **superadmin** - everything, globally. There must always be at least one.
   - **data_admin** - geodatasets, datasets and STAC.
   - **mission_admin** - view the mission, edit its configuration and layers.
   - **layer_editor** - view the mission, edit a layer and its children.
   - **viewer** - view the mission.
 
-Rules are allow-only. Nobody can grant a role they don't hold at that scope. Every `/api` route declares its capability with `authorize()` (`API/authz/authorize.js`), and the server refuses to start if one doesn't. Configure → Access manages groups, bindings and shows effective access.
+Rules are allow-only. Nobody can grant a role they don't hold at that scope. Every `/api` route declares its capability with `authorize()` (`API/permissions/authorize.js`), and the server refuses to start if one doesn't. Configure → Access manages groups, bindings and shows effective access.
 
-`users.permission` (`111` / `110` / `001`) is kept as a value derived from bindings for compatibility; it no longer grants anything by itself.
+The legacy `users.permission` column is left untouched for rollback and is read only by the one-time import (`API/permissions/legacyPermissions.js`); nothing writes it and it grants nothing.
 
 ### Authentication Features
 
 #### User Registration & Login
 - Strong password requirements enforced (minimum 8 characters, uppercase, lowercase, number, symbol)
 - bcrypt password hashing with salt generation
-- First user automatically receives SuperAdmin (111) permissions
+- First user automatically receives a global `superadmin` binding
 - Session-based authentication with PostgreSQL session storage
 - Automatic session token generation and validation
 - Cookie-based session persistence with configurable SameSite settings
@@ -121,7 +121,7 @@ users {
   username: VARCHAR UNIQUE NOT NULL
   email: VARCHAR UNIQUE (nullable, validated)
   password: VARCHAR NOT NULL (bcrypt hashed)
-  permission: ENUM('000','001','010','011','100','101','110','111') NOT NULL DEFAULT '000'
+  permission: ENUM (legacy, see API/permissions/legacyPermissions.js; read only by the import)
   token: VARCHAR(2048) (nullable, current session token)
   missions_managing: TEXT[] (nullable, mission names for Admin users)
   reset_token: VARCHAR(2048) (nullable, password reset token)
@@ -232,7 +232,6 @@ Protected by `ensureAdmin()` middleware:
 req.session.user        // Username
 req.session.uid         // User ID
 req.session.token       // Current session token
-req.session.permission  // Permission string (e.g., "111")
 ```
 
 ### CSSO Integration Data
@@ -304,7 +303,7 @@ Migrations run automatically on application startup after table synchronization.
 
 ### First User Creation
 - System checks if any users exist before allowing first signup
-- First user automatically receives SuperAdmin (111) permissions
+- First user automatically receives a global `superadmin` binding
 - This ensures someone always has administrative access
 
 ### Permission Inheritance

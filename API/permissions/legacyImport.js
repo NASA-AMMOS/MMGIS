@@ -3,13 +3,14 @@
 const logger = require("../logger");
 const siteAccess = require("./siteAccess");
 const missions = require("./missions");
+const { LEGACY_SUPERADMIN, LEGACY_ADMIN } = require("./legacyPermissions");
 
 const IMPORT_KEY = "legacy_import_v1";
 
 function models() {
-  const authz = require("../../plugins/core/backend/Authz/models/authz");
+  const permissionModels = require("./models");
   const { User } = require("../../plugins/core/backend/Users/models/user");
-  return { ...authz, User };
+  return { ...permissionModels, User };
 }
 
 // Mission name -> UUID without creating anything (for dry runs)
@@ -52,11 +53,11 @@ async function plan({ dryRun = false } = {}) {
 
   for (const u of users) {
     const subject = { subject_type: "user", subject_id: String(u.id) };
-    if (u.permission === "111") {
+    if (u.permission === LEGACY_SUPERADMIN) {
       add({ ...subject, role: "superadmin", scope_type: "global" });
       continue;
     }
-    if (u.permission === "110")
+    if (u.permission === LEGACY_ADMIN)
       for (const m of u.missions_managing || []) {
         const uuid = await missionScope(m);
         if (uuid) add({ ...subject, role: "mission_admin", scope_type: "mission", mission_uuid: uuid });
@@ -120,10 +121,10 @@ async function run({ force = false } = {}) {
   logger(
     "info",
     `Imported ${result.bindings.length} role binding(s) from ${result.users} legacy user(s).`,
-    "authz"
+    "permissions"
   );
   if (result.unknownMissions.length)
-    logger("warn", `Legacy mission names without a mission: ${result.unknownMissions.join(", ")}`, "authz");
+    logger("warn", `Legacy mission names without a mission: ${result.unknownMissions.join(", ")}`, "permissions");
   return result;
 }
 

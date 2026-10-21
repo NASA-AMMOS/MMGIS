@@ -62,53 +62,53 @@ const c = {
     type: "GET",
     url: "api/configure/user-permissions",
   },
-  authz_me: {
+  access_me: {
     type: "GET",
-    url: "api/authz/me",
+    url: "api/access/me",
   },
-  authz_roles: {
+  access_roles: {
     type: "GET",
-    url: "api/authz/roles",
+    url: "api/access/roles",
   },
-  authz_missions: {
+  access_missions: {
     type: "GET",
-    url: "api/authz/missions",
+    url: "api/access/missions",
   },
-  authz_groups: {
+  access_groups: {
     type: "GET",
-    url: "api/authz/groups",
+    url: "api/access/groups",
   },
-  authz_groups_create: {
+  access_groups_create: {
     type: "POST",
-    url: "api/authz/groups/create",
+    url: "api/access/groups/create",
   },
-  authz_groups_delete: {
+  access_groups_delete: {
     type: "POST",
-    url: "api/authz/groups/delete",
+    url: "api/access/groups/delete",
   },
-  authz_members_add: {
+  access_members_add: {
     type: "POST",
-    url: "api/authz/groups/members/add",
+    url: "api/access/groups/members/add",
   },
-  authz_members_remove: {
+  access_members_remove: {
     type: "POST",
-    url: "api/authz/groups/members/remove",
+    url: "api/access/groups/members/remove",
   },
-  authz_bindings: {
+  access_bindings: {
     type: "GET",
-    url: "api/authz/bindings",
+    url: "api/access/bindings",
   },
-  authz_bindings_add: {
+  access_bindings_add: {
     type: "POST",
-    url: "api/authz/bindings/add",
+    url: "api/access/bindings/add",
   },
-  authz_bindings_remove: {
+  access_bindings_remove: {
     type: "POST",
-    url: "api/authz/bindings/remove",
+    url: "api/access/bindings/remove",
   },
-  authz_effective: {
+  access_effective: {
     type: "GET",
-    url: "api/authz/effective",
+    url: "api/access/effective",
   },
   versions: {
     type: "GET",

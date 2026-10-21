@@ -178,7 +178,7 @@ const NewUserModal = (props) => {
   const [restrictViewing, setRestrictViewing] = useState(false);
   const [missionsViewing, setMissionsViewing] = useState([]);
   const [availableMissions, setAvailableMissions] = useState([]);
-  const isSuperAdmin = mmgisglobal.permission === "111";
+  const isSuperAdmin = mmgisglobal.role === "superadmin";
 
   // Pre-fill from the site-wide new-account default
   useEffect(() => {

@@ -79,10 +79,10 @@ test.describe('Accounts API', () => {
     }
   });
 
-  test('POST /api/accounts/update only accepts valid permission values', async ({ request }) => {
-    // Permission must be "110" (admin) or "001" (user)
+  test('POST /api/accounts/update only accepts valid role values', async ({ request }) => {
+    // Role must be superadmin, mission_admin or user
     const response = await request.post(`${baseURL}/api/accounts/update`, {
-      data: { id: 999999, permission: 'invalid_perm' },
+      data: { id: 999999, role: 'invalid_role' },
     });
     expect(response.status()).not.toBe(500);
   });

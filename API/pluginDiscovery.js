@@ -24,6 +24,7 @@ const PLUGIN_TYPES = [
     "interactions",
     "layertypes",
     "layerattachments",
+    "auth",
 ];
 
 /**

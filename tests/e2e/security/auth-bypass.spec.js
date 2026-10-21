@@ -35,7 +35,7 @@ test.describe('Auth Bypass Protection', () => {
   test('account management endpoints reject unauthenticated requests', async ({ request }) => {
     const endpoints = [
       { method: 'GET', path: '/api/accounts/entries' },
-      { method: 'POST', path: '/api/accounts/update', data: { id: 1, permission: '001' } },
+      { method: 'POST', path: '/api/accounts/update', data: { id: 1, role: 'user' } },
       { method: 'DELETE', path: '/api/accounts/remove/999999' },
     ];
 
@@ -91,16 +91,16 @@ test.describe('Auth Bypass Protection', () => {
     }
   });
 
-  test('cannot escalate privileges via forged permission values', async ({ request }) => {
-    // Try to set superadmin permission (111) which should not be allowed via the API
+  test('cannot escalate privileges via forged role values', async ({ request }) => {
+    // Try to grant the superadmin role, which should not be allowed without a session
     const response = await request.post(`${baseURL}/api/accounts/update`, {
-      data: { id: 2, permission: '111' },
+      data: { id: 2, role: 'superadmin' },
     });
     expect(response.status()).not.toBe(500);
     if (response.status() === 200) {
       const body = await response.json();
-      // The update endpoint only accepts "110" or "001" as valid permissions
-      // Trying "111" should be silently ignored or fail
+      // Only a SuperAdmin session may grant roles
+      // so this must fail
       expect(body.status).not.toBe('success');
     }
   });

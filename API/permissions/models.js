@@ -2,8 +2,8 @@
  * Missions (stable UUIDs), groups, group members and role bindings
  **********************************************************/
 const Sequelize = require("sequelize");
-const { sequelize } = require("../../../../../API/connection");
-const logger = require("../../../../../API/logger");
+const { sequelize } = require("../connection");
+const logger = require("../logger");
 
 // A mission's UUID survives renames; clones get a new one
 const AuthMission = sequelize.define(
@@ -94,6 +94,26 @@ const RoleBinding = sequelize.define(
   }
 );
 
+// Links an account to its identity at an external login provider
+const AuthIdentity = sequelize.define(
+  "auth_identities",
+  {
+    provider: { type: Sequelize.STRING, allowNull: false },
+    // The provider's stable user id (e.g. the OIDC "sub" claim)
+    subject: { type: Sequelize.STRING, allowNull: false },
+    user_id: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      references: { model: "users", key: "id" },
+      onDelete: "CASCADE",
+    },
+  },
+  {
+    timestamps: true,
+    indexes: [{ unique: true, fields: ["provider", "subject"] }],
+  }
+);
+
 const AuthMeta = sequelize.define(
   "auth_meta",
   {
@@ -110,7 +130,7 @@ async function runQuery(sql, what) {
     logger(
       "error",
       `Failed to ${what}. DB tables may be out of sync!`,
-      "authz",
+      "permissions",
       null,
       err
     );
@@ -154,6 +174,7 @@ module.exports = {
   AuthGroup,
   AuthGroupMember,
   RoleBinding,
+  AuthIdentity,
   AuthMeta,
   up,
 };

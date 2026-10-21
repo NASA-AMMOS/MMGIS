@@ -4,16 +4,16 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
 
 const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
 const { clearViewableFoldersCache } = require("../../Config/routes/configs");
-const bindings = require("../../../../../API/authz/bindings");
-const policy = require("../../../../../API/authz/policy");
-const { ensurePrincipal } = require("../../../../../API/authz/authorize");
-const { RoleBinding } = require("../../Authz/models/authz");
+const bindings = require("../../../../../API/permissions/bindings");
+const policy = require("../../../../../API/permissions/policy");
+const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
+const { RoleBinding } = require("../../../../../API/permissions/models");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
 const User = userModel.User;
 const {
@@ -27,19 +27,33 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
       "id",
       "username",
       "email",
-      "permission",
       "missions_managing",
       "missions_viewing",
       "createdAt",
       "updatedAt",
     ],
     order: [["id", "ASC"]],
+    raw: true,
   })
-    .then((users) => {
+    .then(async (users) => {
+      const userBindings = await RoleBinding.findAll({
+        where: { subject_type: "user" },
+        attributes: ["subject_id", "role", "scope_type"],
+        raw: true,
+      });
+      const byUser = {};
+      for (const b of userBindings)
+        (byUser[b.subject_id] = byUser[b.subject_id] || []).push({
+          role: b.role,
+          scope: b.scope_type === "global" ? "global" : b.scope_type,
+        });
       res.send({
         status: "success",
         body: {
-          entries: users,
+          entries: users.map((u) => ({
+            ...u,
+            role: policy.accountRole(byUser[String(u.id)] || []),
+          })),
         },
       });
     })
@@ -181,7 +195,7 @@ router.post("/update", authorize("accounts.manage"), function (req, res, next) {
     });
 });
 
-// Applies email and the legacy permission / missions fields as role bindings
+// Applies email and the role / missions fields as role bindings
 async function updateUser(req, id) {
   const actor = await ensurePrincipal(req);
   const body = req.body || {};
@@ -206,16 +220,16 @@ async function updateUser(req, id) {
     for (const b of existing.filter(filter)) await bindings.removeBinding(actor, b.id);
   };
 
-  const permission = body.permission;
-  if (permission === "111") {
+  const role = body.role;
+  if (role === "superadmin") {
     await bindings.addBinding(actor, userBinding("superadmin", "global"));
-  } else if (permission === "110" || permission === "001") {
+  } else if (role === "mission_admin" || role === "user") {
     await remove((b) => b.role === "superadmin" && b.scope_type === "global");
     await bindings.setUserMissionRole(
       actor,
       id,
       "mission_admin",
-      permission === "110" && Array.isArray(body.missions_managing)
+      role === "mission_admin" && Array.isArray(body.missions_managing)
         ? body.missions_managing.filter((m) => typeof m === "string")
         : []
     );

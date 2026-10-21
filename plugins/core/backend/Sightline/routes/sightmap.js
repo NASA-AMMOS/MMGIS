@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const { spawn } = require("child_process");
 const path = require("path");
 const zlib = require("zlib");

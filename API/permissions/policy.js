@@ -235,20 +235,13 @@ function isSuperAdmin(principal) {
   ) && !(principal.token && Array.isArray(principal.token.scopes));
 }
 
-// Legacy 3-char permission derived from bindings (display/compat only)
-function legacyPermission(bindings) {
+// Coarse account role for display: superadmin | mission_admin | user
+function accountRole(bindings) {
   if (bindings.some((b) => b.role === "superadmin" && b.scope === "global"))
-    return "111";
-  if (
-    bindings.some(
-      (b) =>
-        (b.role === "mission_admin" || b.role === "layer_editor") &&
-        b.scope !== "global"
-    ) ||
-    bindings.some((b) => b.role === "mission_admin")
-  )
-    return "110";
-  return "001";
+    return "superadmin";
+  if (bindings.some((b) => b.role === "mission_admin" || b.role === "layer_editor"))
+    return "mission_admin";
+  return "user";
 }
 
 module.exports = {
@@ -267,5 +260,5 @@ module.exports = {
   layerRootsWith,
   capabilitiesOf,
   isSuperAdmin,
-  legacyPermission,
+  accountRole,
 };

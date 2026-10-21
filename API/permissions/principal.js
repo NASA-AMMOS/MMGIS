@@ -1,5 +1,6 @@
 // Resolves who is making a request (req.principal): anonymous, a session
-// user, a CSSO proxy user, or a long-term token acting for its creator.
+// user, a user identified per request by a login provider (e.g. CSSO), or a
+// long-term token acting for its creator.
 const crypto = require("crypto");
 const { Op } = require("sequelize");
 const logger = require("../logger");
@@ -12,12 +13,12 @@ let generation = 0;
 
 function models() {
   // Lazy to avoid require cycles with plugin models
-  const authz = require("../../plugins/core/backend/Authz/models/authz");
+  const permissionModels = require("./models");
   const { User } = require("../../plugins/core/backend/Users/models/user");
   const {
     LongTermTokens,
   } = require("../../plugins/core/backend/LongTermToken/models/longtermtokens");
-  return { ...authz, User, LongTermTokens };
+  return { ...permissionModels, User, LongTermTokens };
 }
 
 // Call after any change to bindings, groups, memberships or users
@@ -96,16 +97,15 @@ async function userPrincipal(userId) {
   });
 }
 
-async function cssoPrincipal(username, groups) {
-  const groupNames = Object.keys(groups || {})
-    .filter((g) => groups[g] === true)
-    .sort();
-  return cached(`csso:${username}:${groupNames.join(",")}`, async () => {
+// identity: a normalized login-provider identity (see providers.js)
+async function externalPrincipal(identity) {
+  const { provider, username, groups: groupNames } = identity;
+  return cached(`external:${provider}:${username}:${groupNames.join(",")}`, async () => {
     const { AuthGroup } = models();
     const matched =
       groupNames.length > 0
         ? await AuthGroup.findAll({
-            where: { source: "csso", external_name: groupNames },
+            where: { source: provider, external_name: groupNames },
             attributes: ["id"],
             raw: true,
           })
@@ -117,7 +117,8 @@ async function cssoPrincipal(username, groups) {
       ...groupIds.map((g) => ["group", g]),
     ];
     return {
-      kind: "csso",
+      kind: "external",
+      provider,
       authenticated: true,
       userId: null,
       username,
@@ -197,18 +198,19 @@ async function tokenPrincipal(authorization) {
 }
 
 async function resolvePrincipal(req) {
-  const authorization = req.headers && req.headers.authorization;
-  if (authorization && /^Bearer/i.test(String(authorization))) {
-    const p = await tokenPrincipal(authorization);
-    // An invalid token never falls back to the session
-    return p || { kind: "invalid_token", authenticated: false, bindings: [] };
-  }
+  // A logged-in session takes precedence over any Authorization header
   const session = req.session || {};
   if (session.uid != null) {
     const p = await userPrincipal(session.uid);
     if (p) return p;
   }
-  if (req.cssoAuthenticated && req.user) return cssoPrincipal(req.user, req.groups);
+  const authorization = req.headers && req.headers.authorization;
+  if (authorization && /^Bearer/i.test(String(authorization))) {
+    const p = await tokenPrincipal(authorization);
+    // An invalid token never falls back to anonymous access
+    return p || { kind: "invalid_token", authenticated: false, bindings: [] };
+  }
+  if (req.identity) return externalPrincipal(req.identity);
   return anonymousPrincipal();
 }
 

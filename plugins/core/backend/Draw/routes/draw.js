@@ -19,7 +19,7 @@ const getfile = filesutils.getfile;
 const { sequelize } = require("../../../../../API/connection");
 
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/authz/authorize");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const db = database.db;
 const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 

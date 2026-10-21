@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  *   - Unauthenticated users get login redirect for protected routes
  *
  * Admin endpoints are guarded by ensureAdmin() middleware which checks
- * session.permission === "111" or "110".
+ * a role binding that grants the route's capability.
  *
  * All tests are skipped when AUTH=off (no authorization checks).
  */
@@ -23,7 +23,7 @@ test.describe('Authorization', () => {
   );
 
   test('non-admin user cannot access admin-only endpoints', async ({ request }) => {
-    // Login as the regular test_user (permission "001")
+    // Login as the regular test_user (no admin roles)
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
       data: { username: 'test_user', password: ['Test', 'User', '1!'].join('') },
     });
