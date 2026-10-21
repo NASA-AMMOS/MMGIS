@@ -25,6 +25,7 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import TableSortLabel from "@mui/material/TableSortLabel";
 import Drawer from "@mui/material/Drawer";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -66,11 +67,10 @@ const useStyles = makeStyles((theme) => ({
   topbarTitle: { display: "flex", alignItems: "center", gap: "8px" },
   tabs: { padding: "0px 20px", borderBottom: `1px solid ${theme.palette.swatches.grey[700]}` },
   content: { flex: 1, overflowY: "auto", padding: "16px 32px 64px 32px" },
-  card: {
-    background: theme.palette.swatches.grey[900],
-    border: `1px solid ${theme.palette.swatches.grey[700]}`,
-    padding: "16px",
-    marginBottom: "16px",
+  pane: { paddingTop: "8px" },
+  audience: {
+    padding: "16px 0px",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[700]}`,
   },
   bar: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" },
   grow: { flex: 1 },
@@ -95,6 +95,19 @@ const useStyles = makeStyles((theme) => ({
   clickRow: { cursor: "pointer", "&:hover": { background: theme.palette.swatches.grey[800] } },
   muted: { opacity: 0.6 },
   roleText: { fontWeight: "bold" },
+  badge: {
+    display: "inline-block",
+    padding: "4px 6px",
+    borderRadius: "4px",
+    marginRight: "4px",
+    whiteSpace: "nowrap",
+  },
+  badge_superadmin: { background: "#db589a", color: "white" },
+  badge_data_admin: { background: "#3a8fb7", color: "white" },
+  badge_mission_admin: { background: theme.palette.swatches.p[0] },
+  badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
+  missionLine: { display: "flex", gap: "8px", padding: "1px 0px", lineHeight: "18px" },
+  missionLineLabel: { minWidth: "96px", flexShrink: 0, opacity: 0.7, fontSize: "12px" },
   drawer: { width: "640px", padding: "0px 24px 48px 24px", boxSizing: "border-box" },
   drawerHead: {
     position: "sticky",
@@ -716,18 +729,84 @@ function GroupPanel({ group, ctx }) {
   );
 }
 
-function summarizeUser(u, bindings, roles) {
-  const own = bindings.filter((b) => b.subject_type === "user" && String(b.subject_id) === String(u.id));
-  const site = own.filter((b) => b.scope_type === "global" && b.role !== "viewer").map((b) => roles[b.role] ? roles[b.role].label : b.role);
-  const parts = [];
+const VIEW_ROLES = new Set(["superadmin", "mission_admin", "layer_editor", "viewer"]);
+const SITE_ROLE_RANK = { superadmin: 0, data_admin: 1, mission_admin: 2, user: 3 };
+const MAX_LISTED = 5;
+
+function summarizeUser(u, bindings, roles, groups) {
+  const isUser = (b) => b.subject_type === "user" && String(b.subject_id) === String(u.id);
+  const groupIds = new Set(groups.filter((g) => g.members.some((m) => m.id === u.id)).map((g) => String(g.id)));
+  const own = bindings.filter(isUser);
+  // Everything that reaches this person: own grants, their groups and the audiences
+  const reaching = bindings.filter(
+    (b) =>
+      isUser(b) ||
+      (b.subject_type === "group" && groupIds.has(String(b.subject_id))) ||
+      (b.subject_type === "audience" && ["everyone", "authenticated"].includes(b.subject_id))
+  );
+  let siteRoles = own.filter((b) => b.scope_type === "global" && b.role !== "viewer").map((b) => b.role);
+  if (!siteRoles.length) siteRoles = own.some((b) => b.role === "mission_admin") ? ["mission_admin"] : ["user"];
+  siteRoles = [...new Set(siteRoles)].sort((a, b) => (SITE_ROLE_RANK[a] ?? 9) - (SITE_ROLE_RANK[b] ?? 9));
+  const viewAll = reaching.some((b) => b.scope_type === "global" && VIEW_ROLES.has(b.role));
+  const viewList = viewAll ? [] : [...new Set(reaching.filter((b) => b.scope_type !== "global" && VIEW_ROLES.has(b.role) && b.mission).map((b) => b.mission))].sort();
   const byRole = {};
-  own.filter((b) => b.scope_type !== "global" || b.role === "viewer").forEach((b) => {
-    const label = roles[b.role] ? roles[b.role].label : b.role;
-    const where = b.scope_type === "global" ? "all" : b.scope_type === "layer" ? `${b.mission} (layer)` : b.mission;
-    (byRole[label] = byRole[label] || []).push(where);
+  own.filter((b) => b.role !== "viewer" && b.scope_type !== "global").forEach((b) => {
+    const r = (byRole[b.role] = byRole[b.role] || { label: roles[b.role] ? roles[b.role].label : b.role, missions: {}, });
+    const m = b.mission || "(deleted mission)";
+    r.missions[m] = r.missions[m] || { layers: 0 };
+    if (b.scope_type === "layer") r.missions[m].layers++;
+    else r.missions[m].whole = true;
   });
-  Object.entries(byRole).forEach(([r, w]) => parts.push(`${r}: ${w.join(", ")}`));
-  return { site: site.join(", "), missions: parts.join(" · ") };
+  const lines = Object.values(byRole).map((r) => ({
+    label: r.label,
+    items: Object.keys(r.missions).sort().map((m) => {
+      const x = r.missions[m];
+      return x.whole || !x.layers ? m : `${m} (${x.layers} ${x.layers === 1 ? "layer" : "layers"})`;
+    }),
+  }));
+  return { siteRoles, viewAll, viewList, lines };
+}
+
+function SiteRoleBadges({ siteRoles, roles }) {
+  const c = useStyles();
+  return siteRoles.map((r) => (
+    <span key={r} className={`${c.badge} ${c[`badge_${r}`] || c.badge_user}`}>
+      {r === "user" ? "User" : (roles[r] && roles[r].label) || r}
+    </span>
+  ));
+}
+
+function MissionList({ items }) {
+  if (items.length <= MAX_LISTED) return items.join(", ");
+  return (
+    <span>
+      {items.slice(0, MAX_LISTED).join(", ")}
+      {", "}
+      <Tooltip title={items.join(", ")} arrow>
+        <u style={{ cursor: "help" }}>+{items.length - MAX_LISTED} more</u>
+      </Tooltip>
+    </span>
+  );
+}
+
+function MissionsSummary({ s }) {
+  const c = useStyles();
+  return (
+    <div>
+      <div className={c.missionLine}>
+        <span className={c.missionLineLabel}>Can view</span>
+        <span>
+          {s.viewAll ? <b>All</b> : s.viewList.length ? <MissionList items={s.viewList} /> : <span className={c.muted}>None</span>}
+        </span>
+      </div>
+      {s.lines.map((l) => (
+        <div key={l.label} className={c.missionLine}>
+          <span className={c.missionLineLabel}>{l.label}</span>
+          <span><MissionList items={l.items} /></span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function UsersAccessV1() {
@@ -743,6 +822,7 @@ export default function UsersAccessV1() {
   const [tokens, setTokens] = useState([]);
   const [defaults, setDefaults] = useState(null);
   const [search, setSearch] = useState("");
+  const [peopleSort, setPeopleSort] = useState({ by: "username", dir: "asc" });
   const [panel, setPanel] = useState(null);
   const [grant, setGrant] = useState(null);
   const [confirm, setConfirm] = useState(null);
@@ -800,6 +880,25 @@ export default function UsersAccessV1() {
   };
 
   const filteredUsers = users.filter((u) => !search || u.username.toLowerCase().includes(search.toLowerCase()) || (u.email || "").toLowerCase().includes(search.toLowerCase()));
+  const peopleSortKey = {
+    username: (r) => r.u.username.toLowerCase(),
+    email: (r) => (r.u.email || "").toLowerCase(),
+    site: (r) => SITE_ROLE_RANK[r.s.siteRoles[0]] ?? 9,
+    missions: (r) => (r.s.viewAll ? Infinity : r.s.viewList.length),
+    groups: (r) => r.gs.join(", ").toLowerCase(),
+  }[peopleSort.by];
+  const peopleRows = filteredUsers
+    .map((u) => ({
+      u,
+      s: summarizeUser(u, bindings, roles, groups),
+      gs: groups.filter((g) => g.members.some((m) => m.id === u.id)).map((g) => g.name).sort(),
+    }))
+    .sort((a, b) => {
+      const ka = peopleSortKey(a);
+      const kb = peopleSortKey(b);
+      const cmp = ka < kb ? -1 : ka > kb ? 1 : a.u.username.localeCompare(b.u.username);
+      return peopleSort.dir === "asc" ? cmp : -cmp;
+    });
   const pickedMission = missions.find((m) => m.name === missionPick);
   const missionRows = pickedMission
     ? bindings
@@ -852,7 +951,7 @@ export default function UsersAccessV1() {
       </Tabs>
       <div className={c.content}>
         {tab === 0 && (
-          <div className={c.card}>
+          <div className={c.pane}>
             <div className={c.bar}>
               <TextField size="small" placeholder="Search users" value={search} onChange={(e) => setSearch(e.target.value)} />
               <span className={c.grow} />
@@ -861,23 +960,27 @@ export default function UsersAccessV1() {
             <Table size="small" className={c.table}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Username</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Site role</TableCell>
-                  <TableCell>Missions</TableCell>
-                  <TableCell>Groups</TableCell>
+                  {[["username", "Username"], ["email", "Email"], ["site", "Site role"], ["missions", "Missions"], ["groups", "Groups"]].map(([k, label]) => (
+                    <TableCell key={k} sortDirection={peopleSort.by === k ? peopleSort.dir : false}>
+                      <TableSortLabel
+                        active={peopleSort.by === k}
+                        direction={peopleSort.by === k ? peopleSort.dir : "asc"}
+                        onClick={() => setPeopleSort({ by: k, dir: peopleSort.by === k && peopleSort.dir === "asc" ? "desc" : "asc" })}
+                      >
+                        {label}
+                      </TableSortLabel>
+                    </TableCell>
+                  ))}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredUsers.map((u) => {
-                  const s = summarizeUser(u, bindings, roles);
-                  const gs = groups.filter((g) => g.members.some((m) => m.id === u.id)).map((g) => g.name);
+                {peopleRows.map(({ u, s, gs }) => {
                   return (
                     <TableRow key={u.id} className={c.clickRow} onClick={() => setPanel({ type: "user", id: u.id })}>
                       <TableCell className={c.roleText}>{u.username}</TableCell>
                       <TableCell>{u.email}</TableCell>
-                      <TableCell>{s.site || <span className={c.muted}>—</span>}</TableCell>
-                      <TableCell>{s.missions || <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell><SiteRoleBadges siteRoles={s.siteRoles} roles={roles} /></TableCell>
+                      <TableCell><MissionsSummary s={s} /></TableCell>
                       <TableCell>{gs.length ? gs.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
                   );
@@ -891,7 +994,7 @@ export default function UsersAccessV1() {
         )}
 
         {tab === 1 && (
-          <div className={c.card}>
+          <div className={c.pane}>
             <div className={c.bar}>
               <TextField size="small" placeholder="New group name" value={newGroup.name} onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} />
               {providers.length > 0 && (
@@ -937,7 +1040,7 @@ export default function UsersAccessV1() {
         )}
 
         {tab === 2 && (
-          <div className={c.card}>
+          <div className={c.pane}>
             <div className={c.bar}>
               <Select size="small" displayEmpty className={c.input} value={missionPick} onChange={(e) => setMissionPick(e.target.value)}>
                 <MenuItem value=""><em>Choose a mission…</em></MenuItem>
@@ -1012,7 +1115,7 @@ function AudienceCard({ title, hint, state, missions, onSave, noneLabel = "No ac
   const [mode, setMode] = useState(state.mode);
   const [list, setList] = useState(state.list);
   return (
-    <div className={c.card}>
+    <div className={c.audience}>
       <Typography className={c.sectionTitle}>{title}</Typography>
       <div className={c.hint}>{hint}</div>
       <RadioGroup row value={mode} onChange={(e) => setMode(e.target.value)}>
