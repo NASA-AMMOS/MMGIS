@@ -22,9 +22,12 @@ const siteAccess = require("../API/permissions/siteAccess");
 
 const notes = [];
 if (process.env.AUTH != null && process.env.AUTH !== "") {
-  const legacy = siteAccess.LEGACY_AUTH_REPLACEMENTS[String(process.env.AUTH).toLowerCase()];
+  const legacyKey = Object.keys(siteAccess.LEGACY_AUTH_REPLACEMENTS).find(
+    (k) => k === String(process.env.AUTH).toLowerCase()
+  );
+  const legacy = legacyKey && siteAccess.LEGACY_AUTH_REPLACEMENTS[legacyKey];
   if (!legacy) {
-    console.error(`Unknown legacy AUTH=${process.env.AUTH}. Set SITE_ACCESS and AUTH_PROVIDERS instead.`);
+    console.error("Unknown legacy AUTH value. Set SITE_ACCESS and AUTH_PROVIDERS instead.");
     process.exit(1);
   }
   if (!dryRun) {
@@ -32,7 +35,7 @@ if (process.env.AUTH != null && process.env.AUTH !== "") {
     process.exit(1);
   }
   notes.push(
-    `Legacy AUTH=${process.env.AUTH} found. Before upgrading, replace it with SITE_ACCESS=${legacy.SITE_ACCESS} and AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}.`
+    `Legacy AUTH=${legacyKey} found. Before upgrading, replace it with SITE_ACCESS=${legacy.SITE_ACCESS} and AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}.`
   );
   delete process.env.AUTH;
   process.env.SITE_ACCESS = process.env.SITE_ACCESS || legacy.SITE_ACCESS;

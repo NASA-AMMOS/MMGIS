@@ -99,7 +99,7 @@ jobs:
           AUTH_PROVIDERS: local
 
       - name: Run E2E Auth Tests
-        run: npx playwright test tests/e2e/auth --project=chromium
+        run: npx --no-install playwright test tests/e2e/auth --project=chromium
         env:
           SITE_ACCESS: ${{ matrix.site_access }}
           AUTH_PROVIDERS: local
