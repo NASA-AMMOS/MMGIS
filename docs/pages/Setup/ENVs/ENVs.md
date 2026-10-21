@@ -140,7 +140,7 @@ A list of CSSO LDAP groups that have access | string[] | default `[]`
 
 #### `CSSO_PROXY_SECRET=`
 
-When `AUTH_PROVIDERS` includes `csso`, identity headers are only trusted on requests carrying a matching `X-MMGIS-Proxy-Secret` header, which the CSSO proxy must add. If unset, MMGIS logs a warning and trusts identity headers from any request, so MMGIS must then only be reachable through the proxy | string | default `''`
+Optional. If unset, CSSO works as before: MMGIS trusts the identity headers on every request and logs a startup warning, so MMGIS must only be reachable through the proxy. If set (with `AUTH_PROVIDERS` including `csso`), identity headers are only trusted on requests that also carry a matching `X-MMGIS-Proxy-Secret` header, so configure the proxy to add that header before setting this; otherwise every CSSO user is treated as logged out | string | default `''`
 
 #### `VERBOSE_LOGGING=`
 
