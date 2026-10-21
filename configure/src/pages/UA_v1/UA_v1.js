@@ -71,9 +71,22 @@ const useStyles = makeStyles((theme) => ({
   bar: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" },
   grow: { flex: 1 },
   hint: { fontSize: "13px", opacity: 0.75, marginBottom: "12px" },
+  // Matches the Users page table
   table: {
-    "& th": { fontWeight: "bold", fontSize: "12px", textTransform: "uppercase", opacity: 0.8 },
-    "& td, & th": { padding: "6px 10px", borderColor: theme.palette.swatches.grey[700] },
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
+    "& tr": { background: theme.palette.swatches.grey[850] },
+    "& th": { fontWeight: "bold", fontSize: "13px", padding: "8px 12px" },
+    "& td": {
+      padding: "6px 12px",
+      borderRight: `1px solid ${theme.palette.swatches.grey[800]}`,
+      borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
+    },
+    "& td:first-child": {
+      fontWeight: "bold",
+      letterSpacing: "1px",
+      fontSize: "16px",
+      color: `${theme.palette.swatches.p[13]}`,
+    },
   },
   clickRow: { cursor: "pointer", "&:hover": { background: theme.palette.swatches.grey[800] } },
   muted: { opacity: 0.6 },

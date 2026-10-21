@@ -10,27 +10,16 @@ import clsx from "clsx";
 import {
   setMission,
   setModal,
-  setPage,
   setSnackBarText,
 } from "../../core/ConfigureStore";
 import { calls } from "../../core/calls";
 
+import SiteMenu from "../SiteMenu/SiteMenu";
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
 
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 
-import TextSnippetIcon from "@mui/icons-material/TextSnippet";
-import ShapeLineIcon from "@mui/icons-material/ShapeLine";
-import KeyIcon from "@mui/icons-material/Key";
-import SettingsIcon from "@mui/icons-material/Settings";
-import PhishingIcon from "@mui/icons-material/Phishing";
-import ApiIcon from "@mui/icons-material/Api";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import HorizontalSplitIcon from "@mui/icons-material/HorizontalSplit";
-import AccountBoxIcon from "@mui/icons-material/AccountBox";
-import SecurityIcon from "@mui/icons-material/Security";
-import StorageIcon from "@mui/icons-material/Storage";
 import WarningIcon from "@mui/icons-material/Warning";
 
 const useStyles = makeStyles((theme) => ({
@@ -145,32 +134,6 @@ const useStyles = makeStyles((theme) => ({
     pointerEvents: "all !important",
     "&:hover": {
       background: "unset !important",
-    },
-  },
-  pages: {
-    bottom: "0px",
-    display: "flex",
-    flexFlow: "column",
-    width: "100%",
-    borderTop: `2px solid ${theme.palette.swatches.grey[300]}`,
-  },
-  pageButton: {
-    width: "100%",
-    borderTop: `1px solid ${theme.palette.swatches.grey[300]} !important`,
-    color: `${theme.palette.swatches.grey[700]} !important`,
-    textTransform: "capitalize !important",
-    justifyContent: "start !important",
-    fontSize: "14px !important",
-    padding: "3px 16px !important",
-    background: "rgba(255,255,255,0.06) !important",
-    transition:
-      "background-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, width 250ms ease-out 0ms, box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, border-color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms, color 250ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
-    "&:hover": {
-      color: `${theme.palette.swatches.grey[900]} !important`,
-      background: `${theme.palette.swatches.grey[200]} !important`,
-    },
-    "& svg": {
-      fontSize: "16px !important",
     },
   },
 }));
@@ -325,164 +288,7 @@ export default function Panel() {
             })}
           </ul>
         </div>
-        <div className={c.pages}>
-          <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<StorageIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "data_formats" }));
-            }}
-          >
-            Data Formats
-          </Button>
-          {can("data.geodatasets.write") && (
-            <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<ShapeLineIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "geodatasets" }));
-            }}
-          >
-            GeoDatasets
-          </Button>
-          )}
-          {can("data.datasets.write") && (
-            <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<TextSnippetIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "datasets" }));
-            }}
-          >
-            Datasets
-          </Button>
-          )}
-
-          {window.mmgisglobal.WITH_STAC === "true" && can("data.stac.write") ? (
-            <Button
-              className={c.pageButton}
-              variant="contained"
-              disableElevation
-              startIcon={<HorizontalSplitIcon size="small" />}
-              onClick={() => {
-                dispatch(setMission(null));
-                dispatch(setPage({ page: "stac" }));
-              }}
-            >
-              STAC
-            </Button>
-          ) : null}
-
-          {can("tokens.create") && (
-            <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<KeyIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "api_tokens" }));
-            }}
-          >
-            API Tokens
-          </Button>
-          )}
-
-          <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<ApiIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "apis" }));
-            }}
-          >
-            APIs
-          </Button>
-
-          {can("webhooks.manage") && (
-            <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<PhishingIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "webhooks" }));
-            }}
-          >
-            Webhooks
-          </Button>
-          )}
-
-          {can("options.manage") && (
-            <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<SettingsIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "general_options" }));
-            }}
-          >
-            General Options
-          </Button>
-          )}
-
-          {can("accounts.manage") && (
-            <Button
-            className={c.pageButton}
-            variant="contained"
-            disableElevation
-            startIcon={<AccountBoxIcon size="small" />}
-            onClick={() => {
-              dispatch(setMission(null));
-              dispatch(setPage({ page: "users" }));
-            }}
-          >
-            Users
-          </Button>
-          )}
-          {can("groups.manage") && (
-            <Button
-              className={c.pageButton}
-              variant="contained"
-              disableElevation
-              startIcon={<SecurityIcon size="small" />}
-              onClick={() => {
-                dispatch(setMission(null));
-                dispatch(setPage({ page: "access" }));
-              }}
-            >
-              Access
-            </Button>
-          )}
-          {can("accounts.manage") && can("groups.manage") && (
-            <Button
-              className={c.pageButton}
-              variant="contained"
-              disableElevation
-              startIcon={<SecurityIcon size="small" />}
-              onClick={() => {
-                dispatch(setMission(null));
-                dispatch(setPage({ page: "ua_v1" }));
-              }}
-            >
-              UA_v1
-            </Button>
-          )}
-        </div>
+        <SiteMenu />
       </div>
       <NewMissionModal />
     </>
