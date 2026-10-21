@@ -229,7 +229,7 @@ function normalize(layerObj) {
 function resolveUrl(url, layerObj, ctx = {}) {
     if (!(layerObj.throughTileServer || ctx.wasCOG) || F_.isUrlAbsolute(url))
         return url
-    return window.mmgisglobal.IS_DOCKER === 'true' ? `/${url}` : `../../${url}`
+    return window.mmgisglobal.ADJACENT_SERVERS_MODE === 'external' ? `/${url}` : `../../${url}`
 }
 
 export default { normalize, resolveUrl }

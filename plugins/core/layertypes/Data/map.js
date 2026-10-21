@@ -48,9 +48,9 @@ function make(layerObj, ctx = {}) {
         }
         if (!F_.isUrlAbsolute(cogUrl)) {
             // Pass a TiTiler-relative path (../../ reaches the project root
-            // where Missions/ lives); in Docker use an absolute /path instead
+            // where Missions/ lives); external services use an absolute /path instead
             cogUrl =
-                window.mmgisglobal.IS_DOCKER === 'true'
+                window.mmgisglobal.ADJACENT_SERVERS_MODE === 'external'
                     ? `/${cogUrl}`
                     : `../../${cogUrl}`
         }

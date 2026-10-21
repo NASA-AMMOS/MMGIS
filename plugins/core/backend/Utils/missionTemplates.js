@@ -287,7 +287,7 @@ async function setupReferenceSTAC(missionName, blueprintSourcePath) {
         ? path.join(blueprintSourcePath, 'STAC')
         : path.resolve('./blueprints/Missions/Reference-Mission/STAC');
     const missionSlug = missionName.toLowerCase().replace(/-/g, '_');
-    const stacUrl = `http://${process.env.IS_DOCKER === 'true' ? 'stac-fastapi' : 'localhost'}:${process.env.STAC_PORT || 8881}`;
+    const stacUrl = `http://${process.env.ADJACENT_SERVERS_MODE === 'external' ? 'stac-fastapi' : 'localhost'}:${process.env.STAC_PORT || 8881}`;
 
     try {
         await fs.access(stacBlueprintDir);
@@ -376,9 +376,9 @@ async function setupReferenceSTAC(missionName, blueprintSourcePath) {
                     }
 
                     // Asset href as seen by TiTiler:
-                    // - In Docker: /Missions is mounted directly, so use absolute path
-                    // - Outside Docker: titiler-pgstac runs locally and needs ../../ to reach Missions/
-                    const assetHref = process.env.IS_DOCKER === 'true'
+                    // - External services: /Missions is mounted directly, so use absolute path
+                    // - Embedded services: titiler-pgstac needs ../../ to reach Missions/
+                    const assetHref = process.env.ADJACENT_SERVERS_MODE === 'external'
                         ? `/Missions/${missionName}/STAC/${dirName}/${filename}`
                         : `../../Missions/${missionName}/STAC/${dirName}/${filename}`;
 

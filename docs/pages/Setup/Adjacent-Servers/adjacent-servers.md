@@ -53,12 +53,20 @@ This pattern requires HTTPS and blocks common attack vectors (path traversal, nu
 
 ### Setting the Adjacent Server ENVs
 
-#### With Docker
+Set `ADJACENT_SERVERS_MODE` explicitly for your deployment. The mode controls process startup, proxy targets and local COG paths; it does not depend on the container runtime.
+
+#### Separate services (`external`)
 
 1. Fill out the `POSTGRES_*` environment variables in and use `docker-compose.sample.yml`
+1. Set `ADJACENT_SERVERS_MODE=external` for MMGIS. Both Compose samples already set this on the MMGIS service and work with Docker or Podman. Existing container deployments with separate services must also add this setting when upgrading.
 1. Unused services within the docker-compose.yml can be safely removed.
+1. Mount Missions at `/Missions` in TiTiler services to resolve local COG paths.
 
-#### Without Docker
+MMGIS only proxies to these services and does not start duplicate local processes. Service hostnames and ports are listed in the [ENVs documentation](../ENVs/ENVs.md#adjacent_servers_mode).
+
+#### Local processes (`embedded`, the default)
+
+Set `ADJACENT_SERVERS_MODE=embedded` to let MMGIS start the enabled Python services and proxy to `localhost`. This also works inside a standalone Docker or Podman container. The child processes inherit MMGIS's environment, so per-service `.env` files are optional. To use service-specific settings instead, follow the steps below. Values in these files override inherited variables. An unsuccessful startup is logged with the exit code or signal and the last stderr output.
 
 1. Copy `/adjacent-servers/stac/.env.example` to `/adjacent-servers/stac/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/tipg/.env.example` to `/adjacent-servers/tipg/.env` and fill out the `POSTGRES_*` environment variables.

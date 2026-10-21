@@ -1,3 +1,7 @@
-:: ###############################################################################
-:: STAC
-python -m dotenv run python -m uvicorn stac_fastapi.pgstac.app:app --port %1
+@echo off
+if exist .env (
+  python -m dotenv -f .env run python -m uvicorn stac_fastapi.pgstac.app:app --port %1
+) else (
+  python -m uvicorn stac_fastapi.pgstac.app:app --port %1
+)
+exit /b %errorlevel%

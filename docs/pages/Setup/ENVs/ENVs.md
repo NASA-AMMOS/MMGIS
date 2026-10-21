@@ -246,6 +246,17 @@ When using composited time tiles, MMGIS queries the tileset's folder for existin
 
 Enables and proxies to other self-hosted services. [Additional setup](/MMGIS/setup/adjacent-servers) may be required.
 
+#### `ADJACENT_SERVERS_MODE=`
+
+Controls where adjacent services run, independently of Docker or Podman. | string | default `embedded`
+
+- `embedded`: MMGIS starts enabled STAC, TiPG, TiTiler and TiTiler-pgSTAC processes and proxies to `localhost`. Services inherit MMGIS environment variables; a per-service `.env` is optional and overrides inherited values when present.
+- `external`: MMGIS does not start these processes. Proxies use the service names `stac-fastapi`, `tipg`, `titiler`, `titiler-pgstac` and `veloserver`, with the existing `*_PORT` settings. Custom proxies use their configured service names. These names must resolve from MMGIS.
+
+`WITH_*` flags still control which services are enabled. Veloserver and custom services are always managed separately; embedded mode proxies to them on `localhost`.
+
+**Migration:** Existing container deployments using separate adjacent service containers must set `ADJACENT_SERVERS_MODE=external`. Both Compose samples set this explicitly. A standalone MMGIS container can use `embedded` without creating per-service `.env` files. Local COG paths use `../../Missions/...` in embedded mode (relative to the service directory), or `/Missions/...` in external mode (mount Missions at `/Missions` in the adjacent containers).
+
 #### `WITH_STAC=`
 
 STAC Catalogs - https://github.com/stac-utils/stac-fastapi-pgstac | default `false`
@@ -371,7 +382,7 @@ Custom adjacent server configuration where X is a number (0, 1, 2, etc.) | JSON 
 
 - `isEnabled` - String "true" or "false" to enable/disable this server
 - `routeName` - URL path name (will be accessible at `/routeName`)
-- `serviceName` - Docker service name or "localhost" for non-containerized deployments
+- `serviceName` - Hostname used in external mode (for example, a Compose service name). Embedded mode always uses `localhost`.
 - `port` - Port number the service runs on
 
 **Examples:**

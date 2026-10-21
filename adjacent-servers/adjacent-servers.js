@@ -1,8 +1,11 @@
 require("dotenv").config();
 const logger = require("../API/logger");
 const { spawn } = require("child_process");
+const getAdjacentServersMode = require("./mode");
 
 function adjacentServers() {
+  if (getAdjacentServersMode() === "external") return;
+
   const IS_WINDOWS = /^win/i.test(process.platform) ? true : false;
   const EXT = IS_WINDOWS ? ".bat" : ".sh";
   const CMD = IS_WINDOWS ? "" : "sh ";
@@ -44,6 +47,7 @@ function adjacentServers() {
       );
       let cmd = spawn(s.command, [s.port], { shell: true });
       serverProcesses.push(cmd);
+      let stderrTail = "";
 
       cmd.stdout.on("data", (data) => {
         if (`${data}`.indexOf("running") != -1)
@@ -51,8 +55,20 @@ function adjacentServers() {
       });
 
       cmd.stderr.on("data", (data) => {
+        stderrTail = (stderrTail + data).slice(-4096);
         if (`${data}`.indexOf("running") != -1)
           process.stdout.write(`${s.name} - ${data}`);
+      });
+
+      // Wait for stdio to close so the final startup error is included.
+      cmd.on("close", (code, signal) => {
+        logger(
+          code === 0 ? "warn" : "error",
+          `[${s.name}] exited with ${signal ? `signal ${signal}` : `code ${code}`}.${
+            stderrTail ? ` Stderr: ${stderrTail.trim()}` : ""
+          }`,
+          "adjacent-servers"
+        );
       });
 
       cmd.on("error", (err) => {

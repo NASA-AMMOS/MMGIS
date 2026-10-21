@@ -19,7 +19,7 @@ router.get("/collections", function (req, res, next) {
 
   fetch(
     `http://${
-      process.env.IS_DOCKER === "true" ? "stac-fastapi" : "localhost"
+      process.env.ADJACENT_SERVERS_MODE === "external" ? "stac-fastapi" : "localhost"
     }:${process.env.STAC_PORT || 8881}/collections${fullQueryString}`,
     {
       method: "GET",
@@ -112,7 +112,7 @@ router.get("/collections/:collection/export", async function (req, res, next) {
   const { collection } = req.params;
 
   const stacUrl = `http://${
-    process.env.IS_DOCKER === "true" ? "stac-fastapi" : "localhost"
+    process.env.ADJACENT_SERVERS_MODE === "external" ? "stac-fastapi" : "localhost"
   }:${process.env.STAC_PORT || 8881}`;
 
   try {

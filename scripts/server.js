@@ -44,6 +44,7 @@ const { setSPICEKernelDownloadSchedule } = require("../spice/getKernels");
 
 const initAdjacentServersProxy = require("../adjacent-servers/adjacent-servers-proxy");
 const adjacentServers = require("../adjacent-servers/adjacent-servers");
+const getAdjacentServersMode = require("../adjacent-servers/mode");
 
 const WebSocket = require("isomorphic-ws");
 
@@ -90,6 +91,8 @@ const app = express();
 
 const isDocker = utils.isDocker();
 process.env.IS_DOCKER = isDocker ? "true" : "false";
+const adjacentServersMode = getAdjacentServersMode();
+process.env.ADJACENT_SERVERS_MODE = adjacentServersMode;
 
 // Load the permissions.json file, which maps LDAP groups to permission sets.
 // This application has two permission sets: "users" and "admins".
@@ -595,7 +598,7 @@ const useSwaggerSchema =
 adjacentServers();
 initAdjacentServersProxy(
   app,
-  isDocker,
+  adjacentServersMode,
   ensureAdmin,
   ensureUserForAdjacentServers,
 );
@@ -914,6 +917,7 @@ setups.getBackendSetups(function (setups) {
             ENABLE_MMGIS_WEBSOCKETS: process.env.ENABLE_MMGIS_WEBSOCKETS,
             MAIN_MISSION: process.env.MAIN_MISSION,
             IS_DOCKER: process.env.IS_DOCKER,
+            ADJACENT_SERVERS_MODE: adjacentServersMode,
             SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN,
             THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES,
             PORT: process.env.PORT,

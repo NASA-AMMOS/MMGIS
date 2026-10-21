@@ -1,4 +1,7 @@
 #!/bin/bash
-###############################################################################
-# TiTiler-pgSTAC
-python -m dotenv run python -m uvicorn titiler.pgstac.main:app --port $1
+# Load service-specific settings when present; otherwise inherit MMGIS ENVs.
+if [ -f .env ]; then
+  exec python -m dotenv -f .env run python -m uvicorn titiler.pgstac.main:app --port "$1"
+else
+  exec python -m uvicorn titiler.pgstac.main:app --port "$1"
+fi

@@ -15,14 +15,14 @@ function normalize(layerObj) {
  * core has expanded STAC, stripped `COG:` and made mission-relative paths
  * absolute. Tiles read back out of MMGIS' own tile server are requested
  * relative to the tile endpoint, which sits two levels deeper than the app
- * root (and at the root under Docker).
+ * root (and at the root for external services).
  */
 function resolveUrl(url, layerObj, ctx = {}) {
     const throughTileServer =
         (layerObj && layerObj.throughTileServer === true) || ctx.wasCOG === true
     if (!throughTileServer || F_.isUrlAbsolute(url)) return url
 
-    return window.mmgisglobal.IS_DOCKER === 'true' ? `/${url}` : `../../${url}`
+    return window.mmgisglobal.ADJACENT_SERVERS_MODE === 'external' ? `/${url}` : `../../${url}`
 }
 
 export default {

@@ -2367,7 +2367,7 @@ function tilePopulateFromX(
       if (!isUrlAbsolute(url)) {
         fullUrl = missionPath.replace("config.json", "") + fullUrl;
 
-        if (window.mmgisglobal.IS_DOCKER !== "true") {
+        if (window.mmgisglobal.ADJACENT_SERVERS_MODE !== "external") {
           fullUrl = `../../${fullUrl}`;
         }
       }
@@ -2452,7 +2452,7 @@ function projectionPopulateFromX(pathOrUrl, missionPath) {
     let fullUrl = pathOrUrl;
     if (!isAbsolute && !isEsri) {
       fullUrl = missionPath.replace("config.json", "") + fullUrl;
-      if (window.mmgisglobal.IS_DOCKER !== "true") {
+      if (window.mmgisglobal.ADJACENT_SERVERS_MODE !== "external") {
         fullUrl = `../../${fullUrl}`;
       }
     }

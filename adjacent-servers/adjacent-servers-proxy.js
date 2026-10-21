@@ -7,12 +7,13 @@ const logger = require("../API/logger");
 const createTitilerUrlValidator = require("./validateTitilerUrl");
 const createTitilerExpressionValidator = require("./validateTitilerExpression");
 
-function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
+function initAdjacentServersProxy(app, mode, ensureAdmin, ensureUserForAdjacentServers) {
+  const isExternal = mode === "external";
   ///////////////////////////
   // Proxies
   //// STAC
   if (process.env.WITH_STAC === "true") {
-    const stacTarget = `http://${isDocker ? "stac-fastapi" : "localhost"}:${
+    const stacTarget = `http://${isExternal ? "stac-fastapi" : "localhost"}:${
       process.env.STAC_PORT || 8881
     }`;
     app.use(
@@ -34,7 +35,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
 
   //// Tipg
   if (process.env.WITH_TIPG === "true") {
-    const tipgTarget = `http://${isDocker ? "tipg" : "localhost"}:${
+    const tipgTarget = `http://${isExternal ? "tipg" : "localhost"}:${
       process.env.TIPG_PORT || 8882
     }`;
     app.use(
@@ -56,7 +57,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
 
   //// TiTiler
   if (process.env.WITH_TITILER === "true") {
-    const titilerTarget = `http://${isDocker ? "titiler" : "localhost"}:${
+    const titilerTarget = `http://${isExternal ? "titiler" : "localhost"}:${
       process.env.TITILER_PORT || 8883
     }`;
 
@@ -97,7 +98,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
   /// TiTiler-pgSTAC
   if (process.env.WITH_TITILER_PGSTAC === "true") {
     const titilerpgstacTarget = `http://${
-      isDocker ? "titiler-pgstac" : "localhost"
+      isExternal ? "titiler-pgstac" : "localhost"
     }:${process.env.TITILER_PGSTAC_PORT || 8884}`;
     app.use(
       `${process.env.ROOT_PATH || ""}/titilerpgstac`,
@@ -128,7 +129,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
       `${process.env.ROOT_PATH || ""}/veloserver`,
       ensureUserForAdjacentServers(),
       createProxyMiddleware({
-        target: `http://${isDocker ? "veloserver" : "localhost"}:${
+        target: `http://${isExternal ? "veloserver" : "localhost"}:${
           process.env.VELOSERVER_PORT || 8104
         }`,
         changeOrigin: true,
@@ -140,7 +141,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
   }
 
   // Custom Adjacent Servers
-  setupCustomAdjacentServers(app, isDocker, ensureAdmin, ensureUserForAdjacentServers);
+  setupCustomAdjacentServers(app, isExternal, ensureAdmin, ensureUserForAdjacentServers);
 }
 
 /**
@@ -148,7 +149,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
  * Format: ADJACENT_SERVER_CUSTOM_X=["isEnabled", "routeName", "serviceName", "port"]
  * Example: ADJACENT_SERVER_CUSTOM_0=["true", "frozon_api", "frozon_api", "8104"]
  */
-function setupCustomAdjacentServers(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
+function setupCustomAdjacentServers(app, isExternal, ensureAdmin, ensureUserForAdjacentServers) {
   const customServerPrefix = "ADJACENT_SERVER_CUSTOM_";
 
   // Find all custom server environment variables
@@ -192,7 +193,7 @@ function setupCustomAdjacentServers(app, isDocker, ensureAdmin, ensureUserForAdj
       }
 
       // Setup the custom adjacent server
-      setupCustomAdjacentServer(app, isDocker, ensureAdmin, ensureUserForAdjacentServers, {
+      setupCustomAdjacentServer(app, isExternal, ensureAdmin, ensureUserForAdjacentServers, {
         routeName: String(routeName),
         serviceName: String(serviceName),
         port: parseInt(port, 10),
@@ -215,10 +216,10 @@ function setupCustomAdjacentServers(app, isDocker, ensureAdmin, ensureUserForAdj
 /**
  * Sets up a single custom adjacent server
  */
-function setupCustomAdjacentServer(app, isDocker, ensureAdmin, ensureUserForAdjacentServers, config) {
+function setupCustomAdjacentServer(app, isExternal, ensureAdmin, ensureUserForAdjacentServers, config) {
   const { routeName, serviceName, port } = config;
 
-  const target = `http://${isDocker ? serviceName : "localhost"}:${port}`;
+  const target = `http://${isExternal ? serviceName : "localhost"}:${port}`;
   const routePath = `${process.env.ROOT_PATH || ""}/${routeName}`;
 
   app.use(

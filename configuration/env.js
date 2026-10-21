@@ -111,6 +111,7 @@ function getClientEnvironment(publicUrl) {
         THIRD_PARTY_COOKIES: process.env.THIRD_PARTY_COOKIES || "",
         SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN || "",
         IS_DOCKER: process.env.IS_DOCKER,
+        ADJACENT_SERVERS_MODE: require("../adjacent-servers/mode")(),
         WITH_TITILER: process.env.WITH_TITILER,
         FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH || "",
       }

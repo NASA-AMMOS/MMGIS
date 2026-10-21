@@ -4,6 +4,8 @@ services:
     depends_on:
       - db
     env_file: .env
+    environment:
+      ADJACENT_SERVERS_MODE: external
     ports:
       - 8888:8888
     restart: on-failure
