@@ -232,7 +232,7 @@ function queryTilesetTimesStac(req, res) {
   });
 }
 
-router.get("/queryTilesetTimes", authorize("site.view"), apilimiter, function (req, res) {
+router.get("/queryTilesetTimes", apilimiter, authorize("site.view"), function (req, res) {
   if (req.query.stacCollection != null) queryTilesetTimesStac(req, res);
   else queryTilesetTimesDir(req, res);
 });

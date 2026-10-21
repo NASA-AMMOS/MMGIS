@@ -267,7 +267,7 @@ router.post("/signup", authorize.public("login and account self-service"), funct
 /**
  * User login
  */
-router.post("/login", authorize.public("login and account self-service"), authLimiter, function (req, res) {
+router.post("/login", authLimiter, authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;
@@ -414,7 +414,7 @@ router.post("/login", authorize.public("login and account self-service"), authLi
   return null;
 });
 
-router.post("/logout", authorize.public("login and account self-service"), apilimiter, function (req, res) {
+router.post("/logout", apilimiter, authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser = req.cookies.MMGISUser
     ? JSON.parse(req.cookies.MMGISUser)
     : false;
