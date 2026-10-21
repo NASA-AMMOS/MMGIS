@@ -36,6 +36,10 @@ import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
+import PersonIcon from "@mui/icons-material/Person";
+import GroupsIcon from "@mui/icons-material/Groups";
+import PublicIcon from "@mui/icons-material/Public";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
 
 import ResetPasswordModal from "../Users/Modals/ResetPasswordModal/ResetPasswordModal";
 import DeleteUserModal from "../Users/Modals/DeleteUserModal/DeleteUserModal";
@@ -132,6 +136,36 @@ const ROLE_HELP = {
 };
 const SCOPE_LABEL = { global: "Site-wide", mission: "Mission", layer: "Layer & children" };
 const AUDIENCE_LABEL = { everyone: "Everyone (including guests)", authenticated: "Logged-in users" };
+
+const SUBJECT_STYLE = {
+  user: { icon: PersonIcon, color: null, kind: "User" },
+  group: { icon: GroupsIcon, color: "#8e5bd8", kind: "Group" },
+  everyone: { icon: PublicIcon, color: "#2e9b6b", kind: "Audience" },
+  authenticated: { icon: HowToRegIcon, color: "#d4881c", kind: "Audience" },
+};
+
+// Users, groups and audiences each get their own icon and color
+function SubjectTag({ type, name }) {
+  const s = SUBJECT_STYLE[type] || SUBJECT_STYLE.user;
+  const Icon = s.icon;
+  return (
+    <span
+      title={s.kind}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "4px",
+        fontWeight: "bold",
+        letterSpacing: "normal",
+        whiteSpace: "nowrap",
+        ...(s.color ? { color: s.color } : {}),
+      }}
+    >
+      <Icon style={{ fontSize: "16px" }} />
+      {name}
+    </span>
+  );
+}
 // Effective access, grouped into the capabilities people ask about
 const EFFECTIVE_ROWS = [
   { label: "View missions", caps: ["mission.view"] },
@@ -200,11 +234,11 @@ function GrantsTable({ rows, roles, layerPaths, viaText, onRemove, emptyText }) 
       </TableHead>
       <TableBody>
         {rows.map((r) => (
-          <TableRow key={`${r.b.id}-${r.via}`}>
+          <TableRow key={`${r.b.subject_type}-${r.b.id}`}>
             {viaText && <TableCell>{viaText(r.b)}</TableCell>}
             <TableCell className={c.roleText}>{(roles[r.b.role] && roles[r.b.role].label) || r.b.role}</TableCell>
             <TableCell>{whereText(r.b, layerPaths)}</TableCell>
-            <TableCell className={r.removable ? "" : c.muted}>{r.via}</TableCell>
+            <TableCell className={r.removable || typeof r.via !== "string" ? "" : c.muted}>{r.via}</TableCell>
             <TableCell align="right">
               {r.removable && (
                 <Tooltip title="Remove" placement="left" arrow>
@@ -454,8 +488,8 @@ function PersonPanel({ user, ctx }) {
       b.subject_type === "user"
         ? sourceText(b)
         : b.subject_type === "group"
-        ? `Group: ${groupName(b.subject_id)}`
-        : `Audience: ${AUDIENCE_LABEL[b.subject_id] || b.subject_id}`,
+        ? <SubjectTag type="group" name={groupName(b.subject_id)} />
+        : <SubjectTag type={b.subject_id} name={AUDIENCE_LABEL[b.subject_id] || b.subject_id} />,
   }));
   const memberOf = groups.filter((g) => g.members.some((m) => m.id === user.id));
   const myTokens = tokens.filter((t) => t.created_by_user_id === user.id);
@@ -526,7 +560,7 @@ function PersonPanel({ user, ctx }) {
             <TableBody>
               {memberOf.map((g) => (
                 <TableRow key={g.id}>
-                  <TableCell>{g.name}</TableCell>
+                  <TableCell><SubjectTag type="group" name={g.name} /></TableCell>
                   <TableCell align="right">
                     {g.source === "local" && (
                       <Tooltip title="Remove from group" placement="left" arrow>
@@ -760,9 +794,9 @@ export default function UsersAccessV1() {
   };
 
   const subjectName = (b) => {
-    if (b.subject_type === "user") return (users.find((u) => String(u.id) === String(b.subject_id)) || {}).username || `user ${b.subject_id}`;
-    if (b.subject_type === "group") return `Group: ${(groups.find((g) => String(g.id) === String(b.subject_id)) || {}).name || b.subject_id}`;
-    return AUDIENCE_LABEL[b.subject_id] || b.subject_id;
+    if (b.subject_type === "user") return <SubjectTag type="user" name={(users.find((u) => String(u.id) === String(b.subject_id)) || {}).username || `user ${b.subject_id}`} />;
+    if (b.subject_type === "group") return <SubjectTag type="group" name={(groups.find((g) => String(g.id) === String(b.subject_id)) || {}).name || b.subject_id} />;
+    return <SubjectTag type={b.subject_id} name={AUDIENCE_LABEL[b.subject_id] || b.subject_id} />;
   };
 
   const filteredUsers = users.filter((u) => !search || u.username.toLowerCase().includes(search.toLowerCase()) || (u.email || "").toLowerCase().includes(search.toLowerCase()));
@@ -844,7 +878,7 @@ export default function UsersAccessV1() {
                       <TableCell>{u.email}</TableCell>
                       <TableCell>{s.site || <span className={c.muted}>—</span>}</TableCell>
                       <TableCell>{s.missions || <span className={c.muted}>—</span>}</TableCell>
-                      <TableCell>{gs.join(", ") || <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell>{gs.length ? gs.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -891,7 +925,7 @@ export default function UsersAccessV1() {
                   const own = bindings.filter((b) => b.subject_type === "group" && String(b.subject_id) === String(g.id));
                   return (
                     <TableRow key={g.id} className={c.clickRow} onClick={() => setPanel({ type: "group", id: g.id })}>
-                      <TableCell className={c.roleText}>{g.name}</TableCell>
+                      <TableCell><SubjectTag type="group" name={g.name} /></TableCell>
                       <TableCell>{g.source === "local" ? g.members.length : `from ${g.source.toUpperCase()} (${g.external_name})`}</TableCell>
                       <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
@@ -930,8 +964,8 @@ export default function UsersAccessV1() {
             {["everyone", "authenticated"].map((a) => {
               const st = audienceState(a);
               return (
-                <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={AUDIENCE_LABEL[a]} state={st} missions={missions}
-                  hint={a === "everyone" ? "Applies to guests too when SITE_ACCESS allows them." : "Applies to every logged-in user, including CSSO users."}
+                <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={<SubjectTag type={a} name={AUDIENCE_LABEL[a]} />} state={st} missions={missions}
+                  hint={a === "everyone" ? "Every logged-in user (including CSSO users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below." : "Every logged-in user, including CSSO users. Adds to what Everyone gets: \"No access\" here doesn't take away access granted to Everyone."}
                   onSave={(mode, list) => setAudience(a, mode, list)} />
               );
             })}
