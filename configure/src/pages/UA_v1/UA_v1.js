@@ -26,6 +26,7 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
+import TablePagination from "@mui/material/TablePagination";
 import Drawer from "@mui/material/Drawer";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -65,7 +66,11 @@ const useStyles = makeStyles((theme) => ({
     boxSizing: "border-box !important",
   },
   topbarTitle: { display: "flex", alignItems: "center", gap: "8px" },
-  tabs: { padding: "0px 20px", borderBottom: `1px solid ${theme.palette.swatches.grey[700]}` },
+  tabs: {
+    padding: "0px 20px",
+    background: theme.palette.swatches.grey[1000],
+    borderBottom: `1px solid ${theme.palette.swatches.grey[700]}`,
+  },
   content: { flex: 1, overflowY: "auto", padding: "16px 32px 64px 32px" },
   pane: { paddingTop: "8px" },
   audience: {
@@ -79,7 +84,16 @@ const useStyles = makeStyles((theme) => ({
   table: {
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
     "& tr": { background: theme.palette.swatches.grey[850] },
-    "& th": { fontWeight: "bold", fontSize: "13px", padding: "8px 12px" },
+    // Matches the Users page header cells
+    "& th": {
+      fontWeight: "bold !important",
+      fontSize: "13px",
+      padding: "8px 12px",
+      textTransform: "uppercase",
+      letterSpacing: "1px !important",
+      backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
+      borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
+    },
     "& td": {
       padding: "6px 12px",
       borderRight: `1px solid ${theme.palette.swatches.grey[800]}`,
@@ -106,8 +120,10 @@ const useStyles = makeStyles((theme) => ({
   badge_data_admin: { background: "#3a8fb7", color: "white" },
   badge_mission_admin: { background: theme.palette.swatches.p[0] },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
-  missionLine: { display: "flex", gap: "8px", padding: "1px 0px", lineHeight: "18px" },
-  missionLineLabel: { minWidth: "96px", flexShrink: 0, opacity: 0.7, fontSize: "12px" },
+  bottomBar: {
+    background: theme.palette.swatches.grey[850],
+    boxShadow: "inset 10px 0px 10px -5px rgba(0,0,0,0.3)",
+  },
   drawer: { width: "640px", padding: "0px 24px 48px 24px", boxSizing: "border-box" },
   drawerHead: {
     position: "sticky",
@@ -476,7 +492,7 @@ function PersonPanel({ user, ctx }) {
   const c = useStyles();
   const { roles, missions, groups, tokens, layerPathsFor, notify, refresh, askRemove, openGrant, dispatch } = ctx;
   const [effective, setEffective] = useState(null);
-  const [viewMode, setViewMode] = useState("all");
+  const [viewMode, setViewMode] = useState("");
   const [viewMissions, setViewMissions] = useState([]);
   const [groupPick, setGroupPick] = useState("");
 
@@ -486,10 +502,14 @@ function PersonPanel({ user, ctx }) {
       .catch((res) => notify(res.message || "Failed to get access.", "error"));
   }, [user.id, notify]);
   useEffect(load, [load, ctx.version]);
+  // Reflect this person's own viewer grants, not the legacy missions_viewing column
   useEffect(() => {
-    setViewMode(user.missions_viewing == null ? "all" : "selected");
-    setViewMissions(user.missions_viewing || []);
-  }, [user]);
+    if (!effective) return;
+    const own = (effective.bindings || []).filter((b) => b.subject_type === "user" && b.role === "viewer");
+    const list = [...new Set(own.filter((b) => b.scope_type !== "global" && b.mission).map((b) => b.mission))].sort();
+    setViewMode(own.some((b) => b.scope_type === "global") ? "all" : list.length ? "selected" : "none");
+    setViewMissions(list);
+  }, [effective]);
 
   const bindings = (effective && effective.bindings) || [];
   const layerPaths = layerPathsFor(bindings);
@@ -529,7 +549,7 @@ function PersonPanel({ user, ctx }) {
   return (
     <>
       <div className={c.drawerHead}>
-        <Typography variant="h6">{user.username}</Typography>
+        <Typography variant="h6">User: {user.username}</Typography>
         <IconButton onClick={ctx.close}><CloseIcon /></IconButton>
       </div>
 
@@ -544,9 +564,15 @@ function PersonPanel({ user, ctx }) {
 
       <div className={c.section}>
         <Typography className={c.sectionTitle}>Can view</Typography>
-        <RadioGroup row value={viewMode} onChange={(e) => { setViewMode(e.target.value); if (e.target.value === "all") saveViewing("all"); }}>
-          <FormControlLabel value="all" control={<Radio size="small" />} label="All missions" />
+        <RadioGroup row value={viewMode} onChange={(e) => {
+          const v = e.target.value;
+          setViewMode(v);
+          if (v === "all") saveViewing("all");
+          else if (v === "none") saveViewing("selected", []);
+        }}>
+          <FormControlLabel value="none" control={<Radio size="small" />} label="None" />
           <FormControlLabel value="selected" control={<Radio size="small" />} label="Selected missions" />
+          <FormControlLabel value="all" control={<Radio size="small" />} label="All missions" />
         </RadioGroup>
         {viewMode === "selected" && (
           <div className={c.bar}>
@@ -674,7 +700,7 @@ function GroupPanel({ group, ctx }) {
   return (
     <>
       <div className={c.drawerHead}>
-        <Typography variant="h6">{group.name}</Typography>
+        <Typography variant="h6">Group: {group.name}</Typography>
         <IconButton onClick={ctx.close}><CloseIcon /></IconButton>
       </div>
       {group.source !== "local" && (
@@ -733,39 +759,65 @@ const VIEW_ROLES = new Set(["superadmin", "mission_admin", "layer_editor", "view
 const SITE_ROLE_RANK = { superadmin: 0, data_admin: 1, mission_admin: 2, user: 3 };
 const MAX_LISTED = 5;
 
-function summarizeUser(u, bindings, roles, groups) {
-  const isUser = (b) => b.subject_type === "user" && String(b.subject_id) === String(u.id);
-  const groupIds = new Set(groups.filter((g) => g.members.some((m) => m.id === u.id)).map((g) => String(g.id)));
-  const own = bindings.filter(isUser);
+const pushTo = (map, k, v) => {
+  if (!map.has(k)) map.set(k, []);
+  map.get(k).push(v);
+};
+
+// One pass over bindings/groups so People stays fast with thousands of accounts
+function indexBindings(bindings, groups) {
+  const byUser = new Map();
+  const byGroup = new Map();
+  const audience = [];
+  bindings.forEach((b) => {
+    if (b.subject_type === "user") pushTo(byUser, String(b.subject_id), b);
+    else if (b.subject_type === "group") pushTo(byGroup, String(b.subject_id), b);
+    else if (b.subject_type === "audience" && ["everyone", "authenticated"].includes(b.subject_id)) audience.push(b);
+  });
+  const groupsOf = new Map();
+  groups.forEach((g) => g.members.forEach((m) => pushTo(groupsOf, String(m.id), g)));
+  return { byUser, byGroup, audience, groupsOf };
+}
+
+function summarizeUser(u, idx) {
+  const own = idx.byUser.get(String(u.id)) || [];
+  const myGroups = idx.groupsOf.get(String(u.id)) || [];
   // Everything that reaches this person: own grants, their groups and the audiences
-  const reaching = bindings.filter(
-    (b) =>
-      isUser(b) ||
-      (b.subject_type === "group" && groupIds.has(String(b.subject_id))) ||
-      (b.subject_type === "audience" && ["everyone", "authenticated"].includes(b.subject_id))
-  );
+  const reaching = own.concat(...myGroups.map((g) => idx.byGroup.get(String(g.id)) || []), idx.audience);
   let siteRoles = own.filter((b) => b.scope_type === "global" && b.role !== "viewer").map((b) => b.role);
   if (!siteRoles.length) siteRoles = own.some((b) => b.role === "mission_admin") ? ["mission_admin"] : ["user"];
   siteRoles = [...new Set(siteRoles)].sort((a, b) => (SITE_ROLE_RANK[a] ?? 9) - (SITE_ROLE_RANK[b] ?? 9));
   const viewAll = reaching.some((b) => b.scope_type === "global" && VIEW_ROLES.has(b.role));
   const viewList = viewAll ? [] : [...new Set(reaching.filter((b) => b.scope_type !== "global" && VIEW_ROLES.has(b.role) && b.mission).map((b) => b.mission))].sort();
-  const byRole = {};
-  own.filter((b) => b.role !== "viewer" && b.scope_type !== "global").forEach((b) => {
-    const r = (byRole[b.role] = byRole[b.role] || { label: roles[b.role] ? roles[b.role].label : b.role, missions: {}, });
-    const m = b.mission || "(deleted mission)";
-    r.missions[m] = r.missions[m] || { layers: 0 };
-    if (b.scope_type === "layer") r.missions[m].layers++;
-    else r.missions[m].whole = true;
-  });
-  const lines = Object.values(byRole).map((r) => ({
-    label: r.label,
-    items: Object.keys(r.missions).sort().map((m) => {
-      const x = r.missions[m];
-      return x.whole || !x.layers ? m : `${m} (${x.layers} ${x.layers === 1 ? "layer" : "layers"})`;
-    }),
-  }));
-  return { siteRoles, viewAll, viewList, lines };
+  const scoped = (role) => {
+    const ms = {};
+    own.filter((b) => b.role === role && b.scope_type !== "global").forEach((b) => {
+      const m = b.mission || "(deleted mission)";
+      ms[m] = ms[m] || { layers: 0 };
+      if (b.scope_type === "layer") ms[m].layers++;
+      else ms[m].whole = true;
+    });
+    return Object.keys(ms).sort().map((m) => (ms[m].whole || !ms[m].layers ? m : `${m} (${ms[m].layers} ${ms[m].layers === 1 ? "layer" : "layers"})`));
+  };
+  return {
+    siteRoles,
+    viewAll,
+    viewList,
+    missionAdmin: scoped("mission_admin"),
+    layerEditor: scoped("layer_editor"),
+    groupNames: myGroups.map((g) => g.name).sort(),
+  };
 }
+
+const PEOPLE_COLUMNS = [
+  ["username", "Username", (r) => r.u.username.toLowerCase()],
+  ["email", "Email", (r) => (r.u.email || "").toLowerCase()],
+  ["site", "Site role", (r) => SITE_ROLE_RANK[r.s.siteRoles[0]] ?? 9],
+  ["view", "Can view", (r) => (r.s.viewAll ? Infinity : r.s.viewList.length)],
+  ["admin", "Mission Admin", (r) => r.s.missionAdmin.length],
+  ["layer", "Layer Editor", (r) => r.s.layerEditor.length],
+  ["groups", "Groups", (r) => r.s.groupNames.join(", ").toLowerCase()],
+];
 
 function SiteRoleBadges({ siteRoles, roles }) {
   const c = useStyles();
@@ -789,26 +841,6 @@ function MissionList({ items }) {
   );
 }
 
-function MissionsSummary({ s }) {
-  const c = useStyles();
-  return (
-    <div>
-      <div className={c.missionLine}>
-        <span className={c.missionLineLabel}>Can view</span>
-        <span>
-          {s.viewAll ? <b>All</b> : s.viewList.length ? <MissionList items={s.viewList} /> : <span className={c.muted}>None</span>}
-        </span>
-      </div>
-      {s.lines.map((l) => (
-        <div key={l.label} className={c.missionLine}>
-          <span className={c.missionLineLabel}>{l.label}</span>
-          <span><MissionList items={l.items} /></span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function UsersAccessV1() {
   const c = useStyles();
   const dispatch = useDispatch();
@@ -823,6 +855,8 @@ export default function UsersAccessV1() {
   const [defaults, setDefaults] = useState(null);
   const [search, setSearch] = useState("");
   const [peopleSort, setPeopleSort] = useState({ by: "username", dir: "asc" });
+  const [peoplePage, setPeoplePage] = useState(0);
+  const [peoplePerPage, setPeoplePerPage] = useState(25);
   const [panel, setPanel] = useState(null);
   const [grant, setGrant] = useState(null);
   const [confirm, setConfirm] = useState(null);
@@ -879,26 +913,23 @@ export default function UsersAccessV1() {
     return <SubjectTag type={b.subject_id} name={AUDIENCE_LABEL[b.subject_id] || b.subject_id} />;
   };
 
-  const filteredUsers = users.filter((u) => !search || u.username.toLowerCase().includes(search.toLowerCase()) || (u.email || "").toLowerCase().includes(search.toLowerCase()));
-  const peopleSortKey = {
-    username: (r) => r.u.username.toLowerCase(),
-    email: (r) => (r.u.email || "").toLowerCase(),
-    site: (r) => SITE_ROLE_RANK[r.s.siteRoles[0]] ?? 9,
-    missions: (r) => (r.s.viewAll ? Infinity : r.s.viewList.length),
-    groups: (r) => r.gs.join(", ").toLowerCase(),
-  }[peopleSort.by];
-  const peopleRows = filteredUsers
-    .map((u) => ({
-      u,
-      s: summarizeUser(u, bindings, roles, groups),
-      gs: groups.filter((g) => g.members.some((m) => m.id === u.id)).map((g) => g.name).sort(),
-    }))
-    .sort((a, b) => {
-      const ka = peopleSortKey(a);
-      const kb = peopleSortKey(b);
-      const cmp = ka < kb ? -1 : ka > kb ? 1 : a.u.username.localeCompare(b.u.username);
-      return peopleSort.dir === "asc" ? cmp : -cmp;
-    });
+  const bindingIndex = useMemo(() => indexBindings(bindings, groups), [bindings, groups]);
+  const summaries = useMemo(() => users.map((u) => ({ u, s: summarizeUser(u, bindingIndex) })), [users, bindingIndex]);
+  const peopleRows = useMemo(() => {
+    const q = search.toLowerCase();
+    const key = (PEOPLE_COLUMNS.find((col) => col[0] === peopleSort.by) || PEOPLE_COLUMNS[0])[2];
+    return summaries
+      .filter(({ u }) => !q || u.username.toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q))
+      .sort((a, b) => {
+        const ka = key(a);
+        const kb = key(b);
+        const cmp = ka < kb ? -1 : ka > kb ? 1 : a.u.username.localeCompare(b.u.username);
+        return peopleSort.dir === "asc" ? cmp : -cmp;
+      });
+  }, [summaries, search, peopleSort]);
+  useEffect(() => setPeoplePage(0), [search, peopleSort, peoplePerPage]);
+  const pageIndex = Math.min(peoplePage, Math.max(0, Math.ceil(peopleRows.length / peoplePerPage) - 1));
+  const pageRows = peopleRows.slice(pageIndex * peoplePerPage, (pageIndex + 1) * peoplePerPage);
   const pickedMission = missions.find((m) => m.name === missionPick);
   const missionRows = pickedMission
     ? bindings
@@ -957,10 +988,10 @@ export default function UsersAccessV1() {
               <span className={c.grow} />
               <Button variant="contained" disableElevation startIcon={<AddIcon />} onClick={() => dispatch(setModal({ name: "newUser" }))}>New user</Button>
             </div>
-            <Table size="small" className={c.table}>
+            <Table size="small" className={c.table} stickyHeader>
               <TableHead>
                 <TableRow>
-                  {[["username", "Username"], ["email", "Email"], ["site", "Site role"], ["missions", "Missions"], ["groups", "Groups"]].map(([k, label]) => (
+                  {PEOPLE_COLUMNS.map(([k, label]) => (
                     <TableCell key={k} sortDirection={peopleSort.by === k ? peopleSort.dir : false}>
                       <TableSortLabel
                         active={peopleSort.by === k}
@@ -974,19 +1005,31 @@ export default function UsersAccessV1() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {peopleRows.map(({ u, s, gs }) => {
+                {pageRows.map(({ u, s }) => {
                   return (
                     <TableRow key={u.id} className={c.clickRow} onClick={() => setPanel({ type: "user", id: u.id })}>
                       <TableCell className={c.roleText}>{u.username}</TableCell>
                       <TableCell>{u.email}</TableCell>
                       <TableCell><SiteRoleBadges siteRoles={s.siteRoles} roles={roles} /></TableCell>
-                      <TableCell><MissionsSummary s={s} /></TableCell>
-                      <TableCell>{gs.length ? gs.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell>{s.viewAll ? <b>All</b> : s.viewList.length ? <MissionList items={s.viewList} /> : <span className={c.muted}>None</span>}</TableCell>
+                      <TableCell>{s.missionAdmin.length ? <MissionList items={s.missionAdmin} /> : <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell>{s.layerEditor.length ? <MissionList items={s.layerEditor} /> : <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell>{s.groupNames.length ? s.groupNames.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
+            <TablePagination
+              className={c.bottomBar}
+              rowsPerPageOptions={[25, 50, 100]}
+              component="div"
+              count={peopleRows.length}
+              rowsPerPage={peoplePerPage}
+              page={pageIndex}
+              onPageChange={(e, p) => setPeoplePage(p)}
+              onRowsPerPageChange={(e) => setPeoplePerPage(parseInt(e.target.value, 10))}
+            />
             <div className={c.hint} style={{ marginTop: "12px" }}>
               CSSO users aren't stored as accounts. Give them access through groups mapped from CSSO or the Site-wide tab.
             </div>
