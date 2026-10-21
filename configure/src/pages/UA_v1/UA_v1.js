@@ -73,10 +73,12 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.swatches.grey[150],
     "& > svg": { color: theme.palette.swatches.grey[150], margin: "3px 10px 0px 2px" },
   },
-  addButton: {
-    whiteSpace: "nowrap",
-    padding: "5px 20px !important",
-    margin: "0px 10px 0px 10px !important",
+  // Same panel look as the Users page's "Default viewable missions" box
+  toolbarBox: {
+    padding: "12px 16px",
+    background: theme.palette.swatches.grey[850],
+    borderRadius: "4px",
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
   field: {
     "&.MuiInputBase-root, & .MuiInputBase-root": {
@@ -996,11 +998,6 @@ export default function UsersAccessV1() {
             Users &amp; Access (UA_v1)
           </Typography>
         </div>
-        {tab === 0 && (
-          <Button variant="contained" className={c.addButton} endIcon={<AddIcon />} onClick={() => dispatch(setModal({ name: "newUser" }))}>
-            New User
-          </Button>
-        )}
       </Toolbar>
       <Tabs className={c.tabs} value={tab} onChange={(e, v) => setTab(v)}>
         <Tab label="People" />
@@ -1011,7 +1008,7 @@ export default function UsersAccessV1() {
       <div className={c.content}>
         {tab === 0 && (
           <div className={c.pane}>
-            <div className={c.bar}>
+            <div className={`${c.bar} ${c.toolbarBox}`}>
               <TextField
                 size="small"
                 className={`${c.field} ${c.search}`}
@@ -1020,6 +1017,8 @@ export default function UsersAccessV1() {
                 onChange={(e) => setSearch(e.target.value)}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
               />
+              <span className={c.grow} />
+              <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => dispatch(setModal({ name: "newUser" }))}>New user</Button>
             </div>
             <Table size="small" className={c.table} stickyHeader>
               <TableHead>
@@ -1071,7 +1070,7 @@ export default function UsersAccessV1() {
 
         {tab === 1 && (
           <div className={c.pane}>
-            <div className={c.bar}>
+            <div className={`${c.bar} ${c.toolbarBox}`}>
               <TextField size="small" className={c.field} placeholder="New group name" value={newGroup.name} onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} />
               {providers.length > 0 && (
                 <Select size="small" className={c.field} value={newGroup.source} onChange={(e) => setNewGroup({ ...newGroup, source: e.target.value })}>
@@ -1117,7 +1116,7 @@ export default function UsersAccessV1() {
 
         {tab === 2 && (
           <div className={c.pane}>
-            <div className={c.bar}>
+            <div className={`${c.bar} ${c.toolbarBox}`}>
               <Select size="small" displayEmpty className={`${c.input} ${c.field}`} value={missionPick} onChange={(e) => setMissionPick(e.target.value)}>
                 <MenuItem value=""><em>Choose a mission…</em></MenuItem>
                 {missions.map((m) => <MenuItem key={m.uuid} value={m.name}>{m.name}</MenuItem>)}
