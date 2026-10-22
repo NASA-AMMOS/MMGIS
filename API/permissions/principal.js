@@ -210,13 +210,24 @@ function localAccountAllowed(p) {
   return !siteAccess.localAdminsOnly() || require("./policy").isAdministrator(p);
 }
 
+// Accounts created by a login provider follow that provider; the rest are local accounts
+async function accountAllowed(p) {
+  const links = await models().AuthIdentity.findAll({
+    where: { user_id: p.userId },
+    attributes: ["provider"],
+    raw: true,
+  });
+  if (links.length === 0) return localAccountAllowed(p);
+  return links.some((l) => siteAccess.hasProvider(l.provider));
+}
+
 async function tokenPrincipal(authorization) {
   const raw = String(authorization).replace(/^Bearer:?\s+/i, "").trim();
   if (!raw) return null;
   const row = await findToken(raw);
   if (!row || row.created_by_user_id == null || tokenExpired(row)) return null;
   const creator = await userPrincipal(row.created_by_user_id);
-  if (!creator || !localAccountAllowed(creator)) return null;
+  if (!creator || !(await accountAllowed(creator))) return null;
   const { LongTermTokens } = models();
   if (
     !row.last_used_at ||

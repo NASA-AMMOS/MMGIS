@@ -129,11 +129,21 @@ const websocket = {
 
         const completeUpgrade = async () => {
           const identity = await providerIdentity();
+          // The session as stored now, so logouts and ended sessions apply to open sockets
+          const currentSession = () =>
+            new Promise((resolve) => {
+              const store = request.sessionStore;
+              if (!request.session || !store || !request.sessionID) {
+                resolve(request.session || {});
+                return;
+              }
+              store.get(request.sessionID, (err, s) => resolve(err || !s ? {} : s));
+            });
           // Resolved again on every broadcast, so removed access and deleted accounts apply at once
-          const viewer = () =>
+          const viewer = async () =>
             require("./permissions/principal").resolvePrincipal({
               headers: request.headers,
-              session: request.session || {},
+              session: await currentSession(),
               identity: identity || undefined,
             });
           const p = await viewer();

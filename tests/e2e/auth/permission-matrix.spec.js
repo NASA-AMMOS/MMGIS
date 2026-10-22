@@ -910,4 +910,64 @@ test.describe.serial('Permission matrix', () => {
     }
   });
 
+  test('tokens cannot grant SuperAdmin', async () => {
+    const gen = await api(admin, 'POST', '/api/longtermtoken/generate', { name: `sa_${RUN}`, period: '86400000' });
+    expect(ok(gen), gen.text.slice(0, 200)).toBe(true);
+    const bearer = gen.json.body.token;
+    try {
+      const viaGrant = await api(null, 'POST', '/api/access/bindings/add', {
+        subject_type: 'user', subject_id: ids.plain, role: 'superadmin', scope_type: 'global',
+      }, { bearer });
+      expect(ok(viaGrant)).toBe(false);
+      const viaUpdate = await api(null, 'POST', '/api/accounts/update', { id: ids.plain, role: 'superadmin' }, { bearer });
+      expect(ok(viaUpdate)).toBe(false);
+      expect((await bindingsOf(ids.plain)).some((b) => b.role === 'superadmin')).toBe(false);
+      // The same token still does other account management
+      expect(ok(await api(null, 'GET', '/api/accounts/entries', null, { bearer }))).toBe(true);
+    } finally {
+      const row = (await api(admin, 'GET', '/api/longtermtoken/get')).json.tokens.find((t) => t.name === `sa_${RUN}`);
+      if (row) await api(admin, 'POST', '/api/longtermtoken/clear', { id: row.id });
+    }
+  });
+
+  test('a SuperAdmin grant made while its account is deleted never outlives the account', async () => {
+    for (let i = 0; i < 5; i++) {
+      const username = `race${i}_${RUN}`;
+      expect(ok(await api(admin, 'POST', '/api/users/signup', { username, password: PASSWORD, skipLogin: true }))).toBe(true);
+      const id = (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.username === username).id;
+      await Promise.all([
+        api(admin, 'POST', '/api/access/bindings/add', { subject_type: 'user', subject_id: id, role: 'superadmin', scope_type: 'global' }),
+        api(admin, 'DELETE', `/api/accounts/remove/${id}`),
+      ]);
+      const left = (await api(admin, 'GET', '/api/access/bindings?role=superadmin')).json.body.filter(
+        (b) => b.subject_type === 'user' && String(b.subject_id) === String(id)
+      );
+      const stillThere = (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.some((e) => e.id === id);
+      if (stillThere) await api(admin, 'DELETE', `/api/accounts/remove/${id}`);
+      else expect(left, `SuperAdmin grant left for deleted account ${id}`).toEqual([]);
+    }
+  });
+
+  test('renaming a Draw tag only changes the caller\'s own files', async () => {
+    const tag = `t_${RUN}`;
+    const made = await api(admin, 'POST', '/api/files/make', {
+      file_name: `tags_${RUN}`, intent: 'all', mission: MISSION_A, file_description: `notes ~#${tag}`,
+    });
+    expect(ok(made), made.text.slice(0, 200)).toBe(true);
+    const file_id = made.json.body.file_id;
+    const description = async () =>
+      (await api(admin, 'POST', '/api/files/getfiles', {})).json.body.find((f) => f.id === file_id).file_description;
+    try {
+      const rename = (who, newKeyword) => api(who, 'POST', '/api/files/modifykeyword', { keyword: tag, type: 'tags', newKeyword });
+      await rename(users.viewer, 'pwned');
+      await rename(users.viewer, undefined);
+      expect(await description()).toBe(`notes ~#${tag}`);
+      expect(ok(await rename(admin, 'mine'))).toBe(true);
+      expect(await description()).toBe('notes ~#mine');
+      expect((await api(admin, 'POST', '/api/files/modifykeyword', { keyword: tag })).status).toBeLessThan(500);
+    } finally {
+      await api(admin, 'POST', '/api/files/remove', { id: file_id });
+    }
+  });
+
 });

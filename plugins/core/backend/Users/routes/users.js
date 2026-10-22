@@ -7,7 +7,10 @@ const { Op } = require("sequelize");
 const router = express.Router();
 const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
-const { userPrincipal } = require("../../../../../API/permissions/principal");
+const {
+  userPrincipal,
+  unusableLegacyToken,
+} = require("../../../../../API/permissions/principal");
 
 // AUTH_LOCAL_LOGIN=admins: only accounts holding an admin role may log in locally
 const LOCAL_ADMINS_ONLY = "Only administrators may log in with a local account on this site.";
@@ -341,6 +344,8 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
           const signIn = () => {
             req.session.user = user.username;
             req.session.uid = user.id;
+            // A saved local login is a local login, whatever signed this session in before
+            delete req.session.provider;
             if (!req.session.token) {
               req.session.token = MMGISUser.token;
             }
@@ -539,6 +544,21 @@ router.get("/logged_in", authorize.public("login and account self-service"), fun
     });
 });
 
+// Revokes the account's long-term tokens and blanks their old plaintext column,
+// so they can't be used again after rolling back to an older release
+async function revokeTokensOf(userId) {
+  await LongTermTokens.update(
+    { revoked_at: new Date() },
+    { where: { created_by_user_id: userId, revoked_at: null } }
+  );
+  const rows = await LongTermTokens.findAll({
+    where: { created_by_user_id: userId, token: { [Op.notLike]: "unusable\\_%" } },
+    attributes: ["id"],
+  });
+  for (const r of rows)
+    await LongTermTokens.update({ token: unusableLegacyToken() }, { where: { id: r.id } });
+}
+
 router.post("/resetPassword", resetLimiter, authorize.public("login and account self-service"), function (req, res) {
   let username = req.body.username;
   let password = req.body.password;
@@ -591,10 +611,7 @@ router.post("/resetPassword", resetLimiter, authorize.public("login and account 
 
             // A reset revokes the account's long-term tokens first, so a failure changes nothing.
             // using user.save() so that the beforeUpdate hook gets triggered (User.update() doesn't trigger it)
-            LongTermTokens.update(
-              { revoked_at: new Date() },
-              { where: { created_by_user_id: user.id, revoked_at: null } }
-            )
+            revokeTokensOf(user.id)
               .then(() => user.save())
               .then(() =>
                 endSessionsOf(user.id).catch((err) =>
@@ -656,6 +673,7 @@ function clearLoginSession(req) {
   req.session.user = "guest";
   req.session.uid = null;
   req.session.token = null;
+  delete req.session.provider;
 }
 
 module.exports = router;

@@ -1427,6 +1427,30 @@ if (fullAccess)
             { mission: null },
             { where: { mission: missionName }, transaction: t }
           ),
+          // Per-user mission lists are stored as names, so a later mission with this name doesn't inherit them
+          User.findAll({ transaction: t }).then((users) =>
+            Promise.all(
+              (users || []).map((u) => {
+                const fields = {};
+                for (const col of ["missions_managing", "missions_viewing"])
+                  if (Array.isArray(u[col]) && u[col].includes(missionName))
+                    fields[col] = u[col].filter((m) => m !== missionName);
+                return Object.keys(fields).length > 0
+                  ? u.update(fields, { transaction: t })
+                  : null;
+              })
+            )
+          ),
+          UserDefaults.findOne({ where: { id: 1 }, transaction: t }).then((d) =>
+            d &&
+            Array.isArray(d.missions_viewing) &&
+            d.missions_viewing.includes(missionName)
+              ? d.update(
+                  { missions_viewing: d.missions_viewing.filter((m) => m !== missionName) },
+                  { transaction: t }
+                )
+              : null
+          ),
         ])
       )
       .then(() => missionIdentity.removeMission(missionName))

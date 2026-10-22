@@ -258,10 +258,17 @@ const createSwaggerInterceptor = (path, target) => {
   return responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
     let finalReturn = responseBuffer;
     let newResponse;
+    const requestPath = req.originalUrl.split("?")[0];
+    let responseJSON = null;
+    if (requestPath.endsWith(`/${path}/api`)) {
+      try {
+        responseJSON = JSON.parse(responseBuffer.toString("utf8"));
+      } catch (err) {
+        responseJSON = null;
+      }
+    }
 
-    if (req.originalUrl.endsWith(`/${path}/api`)) {
-      newResponse = newResponse || responseBuffer.toString("utf8");
-      const responseJSON = JSON.parse(newResponse); // convert buffer to string
+    if (responseJSON) {
       responseJSON.servers = [
         {
           url: `${
@@ -271,7 +278,7 @@ const createSwaggerInterceptor = (path, target) => {
         },
       ];
       newResponse = JSON.stringify(responseJSON); // manipulate response
-    } else if (req.originalUrl.endsWith(`/${path}/api.html`)) {
+    } else if (requestPath.endsWith(`/${path}/api.html`)) {
       newResponse = newResponse || responseBuffer.toString("utf8");
       newResponse = newResponse
         .replace(

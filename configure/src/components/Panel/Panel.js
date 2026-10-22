@@ -159,9 +159,9 @@ export default function Panel() {
   const [section, setSection] = useState(
     () => sectionForPage(page) || MISSIONS_SECTION,
   );
+  // No page open (e.g. a mission was chosen) shows the mission list
   useEffect(() => {
-    const s = sectionForPage(page);
-    if (s) setSection(s);
+    setSection(sectionForPage(page) || MISSIONS_SECTION);
   }, [page]);
   const [userPermissions, setUserPermissions] = useState(null);
 

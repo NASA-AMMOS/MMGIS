@@ -46,6 +46,14 @@ test.describe('stripCredentials', () => {
     expect(r.headers.cookie).toBe('other=1');
   });
 
+  test('removes CSSO identity headers and the proxy secret', () => {
+    const r = fakeReq({
+      'x-mmgis-proxy-secret': 's', 'x-sub': 'u', 'x-groups': 'g', 'x-session': 'x', accept: 'application/json',
+    });
+    stripCredentials(r);
+    expect(Object.keys(r.headers)).toEqual(['accept']);
+  });
+
   test('drops the cookie header when only MMGIS cookies were sent', () => {
     const r = fakeReq({ cookie: 'MMGISSession=s' });
     stripCredentials(r);

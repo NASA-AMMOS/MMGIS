@@ -106,20 +106,14 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
         transaction,
       });
       // A user's tokens act with that user's authority, so they go with the account
-      await LongTermTokens.destroy({ where: { created_by_user_id: id } });
-      bindings.afterChange("user", id).catch(() => {});
-      return removeUser(req, res, id);
+      await LongTermTokens.destroy({ where: { created_by_user_id: id }, transaction });
+      // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile
+      await User.destroy({ where: { id: id }, transaction });
+      return true;
     })
-    .catch((err) => {
-      logger("error", `Failed to delete user with id: '${id}'.`, "accounts", null, err);
-      res.send({ status: "failure", message: `Failed to delete user with id: '${id}'.` });
-    });
-  return null;
-});
-
-function removeUser(req, res, id) {
-  User.destroy({ where: { id: id } })
-    .then(() => {
+    .then((deleted) => {
+      if (!deleted) return;
+      bindings.afterChange("user", id).catch(() => {});
       logger("info", `Successfully deleted user with id: '${id}'.`);
       res.send({
         status: "success",
@@ -130,21 +124,11 @@ function removeUser(req, res, id) {
       });
     })
     .catch((err) => {
-      logger(
-        "error",
-        `Failed to delete user with id: '${id}'.`,
-        "accounts",
-        null,
-        err
-      );
-      res.send({
-        status: "failure",
-        message: `Failed to delete user with id: '${id}'.`,
-      });
-      return null;
+      logger("error", `Failed to delete user with id: '${id}'.`, "accounts", null, err);
+      res.send({ status: "failure", message: `Failed to delete user with id: '${id}'.` });
     });
   return null;
-}
+});
 
 router.post("/update", authorize("accounts.manage"), function (req, res, next) {
   let id = null;

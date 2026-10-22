@@ -631,7 +631,7 @@ router.post("/modifykeyword", authorize("draw.use"), function (req, res, next) {
   const newKeyword = req.body.newKeyword ? Utils.forceAlphaNumUnder(req.body.newKeyword) : null;
 
   let symbol = null;
-  switch (type.toLowerCase()) {
+  switch (String(type || "").toLowerCase()) {
     case "tags":
       symbol = "~#";
       break;
@@ -675,6 +675,8 @@ router.post("/modifykeyword", authorize("draw.use"), function (req, res, next) {
     },
     {
       where: {
+        // Only the caller's own files are renamed
+        file_owner: req.user,
         file_description: {
           // Escape special chars so that regex works
           [Sequelize.Op.like]: sequelize.literal(

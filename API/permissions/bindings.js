@@ -33,9 +33,18 @@ function withSuperAdminLock(fn) {
       lock: transaction.LOCK.UPDATE,
       transaction,
     });
-    const superAdmins = Array.from(new Set(rows.filter((r) => /^[1-9][0-9]*$/.test(r.subject_id)).map((r) => parseInt(r.subject_id))));
+    const superAdmins = await existingUserIds(rows, transaction);
     return fn({ transaction, rows, superAdmins });
   });
+}
+
+// Ids of the accounts that still exist among these SuperAdmin rows
+async function existingUserIds(rows, transaction) {
+  const ids = Array.from(new Set(rows.filter((r) => /^[1-9][0-9]*$/.test(r.subject_id)).map((r) => parseInt(r.subject_id))));
+  if (ids.length === 0) return [];
+  const users = await models().User.findAll({ where: { id: ids }, attributes: ["id"], raw: true, transaction });
+  const existing = new Set(users.map((u) => u.id));
+  return ids.filter((id) => existing.has(id));
 }
 
 // Users whose effective superadmin comes from a direct global binding
@@ -46,7 +55,7 @@ async function superAdminUserIds() {
     attributes: ["subject_id"],
     raw: true,
   });
-  return Array.from(new Set(rows.filter((r) => /^[1-9][0-9]*$/.test(r.subject_id)).map((r) => parseInt(r.subject_id))));
+  return existingUserIds(rows);
 }
 
 // Keeps the derived, read-only users.missions_managing column in step with bindings
@@ -150,6 +159,8 @@ async function addBinding(actor, input) {
     throw new BindingError("New grants to 'anonymous' are not allowed. Grant 'everyone' instead.");
   if (role === "superadmin" && subject_type !== "user")
     throw new BindingError("SuperAdmin can only be granted to individual users.");
+  if (role === "superadmin" && actor && actor.kind === "token")
+    throw new BindingError("SuperAdmin can only be granted from a signed-in session, not with a token.");
   if (subject_type === "user" && !(await User.findOne({ where: { id: parseInt(subject_id) }, attributes: ["id"] })))
     throw new BindingError("User not found.");
   if (subject_type === "group" && !(await AuthGroup.findOne({ where: { id: parseInt(subject_id) } })))
@@ -174,10 +185,21 @@ async function addBinding(actor, input) {
     if (!policy.can(actor, cap, policy.MISSION_SCOPED.has(cap) ? resource : null))
       throw new BindingError("You cannot grant a role with more access than your own.");
 
-  const [row] = await RoleBinding.findOrCreate({
-    where: { subject_type, subject_id, role, scope_type, mission_uuid, layer_uuid },
-    defaults: { source: "local", created_by_user_id: actor.userId || null },
-  });
+  const create = (transaction) =>
+    RoleBinding.findOrCreate({
+      where: { subject_type, subject_id, role, scope_type, mission_uuid, layer_uuid },
+      defaults: { source: "local", created_by_user_id: actor.userId || null },
+      transaction,
+    });
+  let row;
+  // Serialized with account deletion, so a SuperAdmin grant never outlives its account
+  if (role === "superadmin")
+    await withSuperAdminLock(async ({ transaction }) => {
+      if (!(await User.findOne({ where: { id: parseInt(subject_id) }, attributes: ["id"], transaction })))
+        throw new BindingError("User not found.");
+      [row] = await create(transaction);
+    });
+  else [row] = await create();
   await afterChange(subject_type, subject_id);
   return describe(row);
 }
