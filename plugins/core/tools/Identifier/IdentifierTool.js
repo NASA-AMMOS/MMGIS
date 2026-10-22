@@ -32,6 +32,7 @@ var IdentifierTool = {
     MMWebGISInterface: null,
     mousemoveTimeout: null,
     mousemoveTimeoutMap: null,
+    mousemoveTimeoutGlobe: null,
     targetId: null,
     made: false,
 
@@ -165,17 +166,23 @@ var IdentifierTool = {
             ])
         }, 400)
     },
+    // Debounced like idPixelMap: without it every globe mousemove sent a point
+    // query. The position is read when the timer fires, where the mouse rests.
     idPixelGlobe: function (e) {
-        if (Globe_.litho.mouse)
-            IdentifierTool.idPixel(e, [
-                Globe_.litho.mouse.lng,
-                Globe_.litho.mouse.lat,
-                Globe_.litho.zoom,
-            ])
+        clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
+        IdentifierTool.mousemoveTimeoutGlobe = setTimeout(function () {
+            if (Globe_.litho.mouse)
+                IdentifierTool.idPixel(e, [
+                    Globe_.litho.mouse.lng,
+                    Globe_.litho.mouse.lat,
+                    Globe_.litho.zoom,
+                ])
+        }, 400)
     },
     clearCursor: function (e) {
         clearTimeout(IdentifierTool.mousemoveTimeout)
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
+        clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
         CursorInfo.hide()
         IdentifierTool.resetLegendMatches()
         IdentifierTool.highlightInLegend()
