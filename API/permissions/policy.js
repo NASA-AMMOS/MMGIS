@@ -137,13 +137,13 @@ function can(principal, cap, resource) {
   if (token) {
     if (Array.isArray(token.scopes) && !token.scopes.includes(cap))
       return false;
-    if (
-      Array.isArray(token.missions) &&
-      resource &&
-      resource.mission &&
-      !token.missions.includes(resource.mission)
-    )
-      return false;
+    if (Array.isArray(token.missions)) {
+      // A mission-limited token only reaches those missions, plus read-only site access
+      if (resource && resource.mission) {
+        if (!token.missions.includes(resource.mission)) return false;
+      } else if (!MISSION_SCOPED.has(cap) && !READ_CAPABILITIES.includes(cap))
+        return false;
+    }
   }
   if (MISSION_SCOPED.has(cap) && !(resource && resource.mission)) {
     // Without a mission, only a global grant satisfies a mission capability

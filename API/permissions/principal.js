@@ -205,17 +205,21 @@ async function tokenPrincipal(authorization) {
 }
 
 async function resolvePrincipal(req) {
-  // A logged-in session takes precedence over any Authorization header
+  // An explicit bearer token takes precedence over the session, so its limits always apply
+  const authorization = req.headers && req.headers.authorization;
+  if (authorization && /^Bearer/i.test(String(authorization))) {
+    const p = await tokenPrincipal(authorization);
+    const session = req.session || {};
+    // An invalid token, or one used inside another user's session, never falls
+    // back to the session or anonymous access
+    if (!p || (session.uid != null && String(p.userId) !== String(session.uid)))
+      return { kind: "invalid_token", authenticated: false, bindings: [] };
+    return p;
+  }
   const session = req.session || {};
   if (session.uid != null) {
     const p = await userPrincipal(session.uid);
     if (p) return p;
-  }
-  const authorization = req.headers && req.headers.authorization;
-  if (authorization && /^Bearer/i.test(String(authorization))) {
-    const p = await tokenPrincipal(authorization);
-    // An invalid token never falls back to anonymous access
-    return p || { kind: "invalid_token", authenticated: false, bindings: [] };
   }
   if (req.identity) return externalPrincipal(req.identity);
   return anonymousPrincipal();

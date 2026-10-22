@@ -406,3 +406,19 @@ test.describe('Permissions policy: properties', () => {
     }
   });
 });
+
+test.describe('mission-limited tokens and site-wide capabilities', () => {
+  const sa = { authenticated: true, bindings: [{ role: 'superadmin', scope: 'global' }] };
+  const t = { ...sa, kind: 'token', token: { scopes: null, missions: ['m-1'] } };
+  test('cannot use non-mission capabilities beyond reads', () => {
+    for (const cap of ['mission.create', 'data.geodatasets.write', 'accounts.manage', 'tokens.create'])
+      expect(can(t, cap)).toBe(false);
+    for (const cap of ['site.view', 'data.geodatasets.read'])
+      expect(can(t, cap)).toBe(true);
+    expect(can(t, 'mission.config.edit', { mission: 'm-1' })).toBe(true);
+    expect(can(t, 'mission.config.edit', { mission: 'm-2' })).toBe(false);
+  });
+  test('unrestricted tokens keep site-wide capabilities', () => {
+    expect(can({ ...t, token: { scopes: null, missions: null } }, 'mission.create')).toBe(true);
+  });
+});

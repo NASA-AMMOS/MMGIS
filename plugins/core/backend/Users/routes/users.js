@@ -340,6 +340,12 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
     return null;
   }
 
+  // Password login is only for sites that use the local provider
+  if (!siteAccess.hasProvider("local")) {
+    res.send({ status: "failure", message: "Local login is not enabled on this site." });
+    return null;
+  }
+
   // Credential-based login: regenerate the session to prevent session fixation
   clearLoginSession(req);
 

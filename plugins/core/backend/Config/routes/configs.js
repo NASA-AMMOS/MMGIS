@@ -265,9 +265,7 @@ function checkMissionFileViewingPermission(forbid) {
     if (folder === SHARED_MISSION_FOLDER_NAME) {
       ensurePrincipal(req)
         .then((p) =>
-          p.authenticated || siteAccess.guestsAllowed()
-            ? next()
-            : forbid(req, res)
+          p.authenticated ? next() : forbid(req, res)
         )
         .catch(() => res.sendStatus(500));
       return;

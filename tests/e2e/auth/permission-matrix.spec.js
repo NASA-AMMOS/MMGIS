@@ -18,6 +18,7 @@ const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 const RUN = Date.now().toString(36);
 const MISSION_A = `PermA_${RUN}`;
 const MISSION_B = `PermB_${RUN}`;
+const MISSION_C = `PermC_${RUN}`;
 const FOLDER = randomUUID();
 const CHILD = randomUUID();
 const SIBLING = randomUUID();
@@ -33,7 +34,7 @@ function freshAddress() {
   return `127.1.${Math.floor(n / 250)}.${(n % 250) + 2}`;
 }
 
-function api(who, method, url, body, { bearer, localAddress } = {}) {
+function api(who, method, url, body, { bearer, localAddress, withSession } = {}) {
   const target = new URL(baseURL + url);
   const payload = body ? JSON.stringify(body) : null;
   return new Promise((resolve, reject) => {
@@ -49,7 +50,7 @@ function api(who, method, url, body, { bearer, localAddress } = {}) {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
-          ...(who && who.cookie && !bearer ? { Cookie: who.cookie } : {}),
+          ...(who && who.cookie && (!bearer || withSession) ? { Cookie: who.cookie } : {}),
           ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
         },
       },
@@ -257,7 +258,7 @@ test.describe.serial('Permission matrix', () => {
     const who = users.madmin;
     expect(denied(await api(who, 'POST', '/api/configure/add', { mission: `Nope_${RUN}` }))).toBe(true);
     expect(denied(await api(who, 'POST', '/api/configure/clone', { existingMission: MISSION_A, cloneMission: `NopeC_${RUN}` }))).toBe(true);
-    expect(denied(await api(who, 'POST', '/api/configure/rename', { mission: MISSION_A, newMissionName: `NopeR_${RUN}` }))).toBe(true);
+    expect(denied(await api(who, 'POST', '/api/configure/rename', { mission: MISSION_A, newName: `NopeR_${RUN}` }))).toBe(true);
     expect(denied(await api(who, 'POST', '/api/configure/destroy', { mission: MISSION_A }))).toBe(true);
     expect(denied(await api(who, 'POST', '/api/configure/updateGeneralOptions', {}))).toBe(true);
     expect(denied(await api(who, 'GET', '/api/accounts/entries'))).toBe(true);
@@ -326,6 +327,33 @@ test.describe.serial('Permission matrix', () => {
       expect(r.json.message).toMatch(/at least one SuperAdmin/i);
       expect(ok(await api(admin, 'GET', '/api/accounts/entries'))).toBe(true);
     }
+  });
+
+  test('simultaneous SuperAdmin removals always leave one SuperAdmin', async () => {
+    const superAdmins = async () =>
+      (await api(admin, 'GET', '/api/access/bindings?role=superadmin')).json.body.filter(
+        (b) => b.role === 'superadmin' && b.subject_type === 'user' && b.scope_type === 'global'
+      );
+    await grant(admin, 'user', ids.sa2, 'superadmin', 'global');
+    const sas = await superAdmins();
+    const holders = new Set(sas.map((b) => String(b.subject_id)));
+    test.skip(holders.size !== 2, 'needs exactly two SuperAdmins');
+    const mine = sas.find((b) => String(b.subject_id) === String(ids.admin));
+    const theirs = sas.find((b) => String(b.subject_id) === String(ids.sa2));
+    const [a, b] = await Promise.all([
+      api(admin, 'POST', '/api/access/bindings/remove', { id: theirs.id }),
+      api(users.sa2, 'POST', '/api/access/bindings/remove', { id: mine.id }),
+    ]);
+    expect([ok(a), ok(b)].filter(Boolean).length).toBe(1);
+    const left = await superAdmins();
+    expect(left.length).toBe(1);
+    // Put test_admin back as the only SuperAdmin
+    if (String(left[0].subject_id) === String(ids.sa2)) {
+      await grant(users.sa2, 'user', ids.admin, 'superadmin', 'global');
+      expect(ok(await api(admin, 'POST', '/api/access/bindings/remove', { id: left[0].id }))).toBe(true);
+    }
+    expect(ok(await api(admin, 'GET', '/api/accounts/entries'))).toBe(true);
+    expect(denied(await api(users.sa2, 'GET', '/api/accounts/entries'))).toBe(true);
   });
 
   test('read-only tokens read but never write', async () => {
@@ -403,6 +431,69 @@ test.describe.serial('Permission matrix', () => {
     expect(readable(viaToken1), viaToken1.text.slice(0, 200)).toBe(true);
     await new Promise((r) => setTimeout(r, 2500));
     expect(readable(await getConfig(null, MISSION_A, { bearer: token }))).toBe(false);
+  });
+
+  test('a rejected account update changes nothing', async () => {
+    const before = (await bindingsOf(ids.madmin)).map((b) => b.id).sort();
+    const r = await api(admin, 'POST', '/api/accounts/update', {
+      id: ids.madmin,
+      email: `changed_${RUN}@example.test`,
+      role: 'mission_admin',
+      missions_managing: [`Missing_${RUN}`],
+    });
+    expect(ok(r)).toBe(false);
+    expect((await bindingsOf(ids.madmin)).map((b) => b.id).sort()).toEqual(before);
+    const entry = (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.id === ids.madmin);
+    expect(entry.email).not.toBe(`changed_${RUN}@example.test`);
+    expect(ok(await initialView(users.madmin, MISSION_A))).toBe(true);
+  });
+
+  test('a bearer token keeps its limits when sent with a session', async () => {
+    const gen = await api(users.madmin, 'POST', '/api/longtermtoken/generate', {
+      name: `ros_${RUN}`, period: '86400000', scopes: 'read',
+    });
+    expect(ok(gen), gen.text.slice(0, 200)).toBe(true);
+    const token = gen.json.body.token;
+    expect(ok(await initialView(users.madmin, MISSION_A))).toBe(true);
+    expect(denied(await initialView(users.madmin, MISSION_A, { bearer: token, withSession: true }))).toBe(true);
+    expect(denied(await initialView(users.madmin, MISSION_A, { bearer: 'not-a-token', withSession: true }))).toBe(true);
+    const row = (await api(users.madmin, 'GET', '/api/longtermtoken/get')).json.tokens.find((t) => t.name === `ros_${RUN}`);
+    expect(ok(await api(users.madmin, 'POST', '/api/longtermtoken/clear', { id: row.id }))).toBe(true);
+  });
+
+  test('mission-limited tokens cannot use site-wide capabilities', async () => {
+    const gen = await api(admin, 'POST', '/api/longtermtoken/generate', {
+      name: `sam_${RUN}`, period: '86400000', scopes: null, missions: [MISSION_A],
+    });
+    expect(ok(gen), gen.text.slice(0, 200)).toBe(true);
+    const token = gen.json.body.token;
+    expect(ok(await initialView(null, MISSION_A, { bearer: token }))).toBe(true);
+    expect(denied(await initialView(null, MISSION_B, { bearer: token }))).toBe(true);
+    expect(denied(await api(null, 'POST', '/api/configure/add', { mission: `NopeT_${RUN}` }, { bearer: token }))).toBe(true);
+    expect(denied(await api(null, 'GET', '/api/accounts/entries', null, { bearer: token }))).toBe(true);
+    expect((await api(admin, 'GET', '/api/configure/missions')).json.missions).not.toContain(`NopeT_${RUN}`);
+    const row = (await api(admin, 'GET', '/api/longtermtoken/get')).json.tokens.find((t) => t.name === `sam_${RUN}`);
+    expect(ok(await api(admin, 'POST', '/api/longtermtoken/clear', { id: row.id }))).toBe(true);
+  });
+
+  test('renaming a mission keeps account mission lists current', async () => {
+    const renamed = `${MISSION_C}_r`;
+    expect(ok(await api(admin, 'POST', '/api/configure/add', { mission: MISSION_C }))).toBe(true);
+    await grant(admin, 'user', ids.madmin, 'mission_admin', 'mission', MISSION_C);
+    const rn = await api(admin, 'POST', '/api/configure/rename', { mission: MISSION_C, newName: renamed });
+    expect(ok(rn), rn.text.slice(0, 200)).toBe(true);
+    const entry = async () =>
+      (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.id === ids.madmin);
+    expect((await entry()).missions_managing).toEqual(expect.arrayContaining([MISSION_A, renamed]));
+    expect((await entry()).missions_managing).not.toContain(MISSION_C);
+    // Saving the account as shown keeps both assignments
+    const r = await api(admin, 'POST', '/api/accounts/update', {
+      id: ids.madmin, role: 'mission_admin', missions_managing: (await entry()).missions_managing,
+    });
+    expect(ok(r), r.text.slice(0, 200)).toBe(true);
+    expect(ok(await initialView(users.madmin, renamed))).toBe(true);
+    expect(ok(await initialView(users.madmin, MISSION_A))).toBe(true);
+    await api(admin, 'POST', '/api/configure/destroy', { mission: renamed });
   });
 
   test('anonymous requests are denied on a required site', async () => {

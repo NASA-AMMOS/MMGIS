@@ -12,6 +12,7 @@ const userModel = require("../../Users/models/user");
 const { clearViewableFoldersCache } = require("../../Config/routes/configs");
 const bindings = require("../../../../../API/permissions/bindings");
 const policy = require("../../../../../API/permissions/policy");
+const missions = require("../../../../../API/permissions/missions");
 const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
 const { RoleBinding } = require("../../../../../API/permissions/models");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
@@ -83,8 +84,7 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
     return null;
   }
   bindings
-    .superAdminUserIds()
-    .then(async (superAdmins) => {
+    .withSuperAdminLock(async ({ transaction, superAdmins }) => {
       if (superAdmins.includes(id) && superAdmins.length <= 1) {
         res.send({
           status: "failure",
@@ -102,6 +102,7 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       }
       await RoleBinding.destroy({
         where: { subject_type: "user", subject_id: String(id) },
+        transaction,
       });
       // A user's tokens act with that user's authority, so they go with the account
       await LongTermTokens.destroy({ where: { created_by_user_id: id } });
@@ -202,9 +203,30 @@ async function updateUser(req, id) {
   const user = await User.findOne({ where: { id }, attributes: ["id"] });
   if (!user) throw new bindings.BindingError("User not found.");
 
-  if (body.email != null)
-    // Only the email column; never password/username
-    await User.update({ email: body.email }, { where: { id }, hooks: false });
+  // Validate everything up front so a rejected update changes nothing
+  const managing =
+    body.role === "mission_admin" && Array.isArray(body.missions_managing)
+      ? body.missions_managing.filter((m) => typeof m === "string")
+      : [];
+  const changesViewing =
+    Object.prototype.hasOwnProperty.call(body, "missions_viewing") &&
+    (body.missions_viewing === null || Array.isArray(body.missions_viewing));
+  const viewingNames =
+    changesViewing && Array.isArray(body.missions_viewing)
+      ? body.missions_viewing.filter((m) => typeof m === "string")
+      : [];
+  if (changesViewing && !policy.isSuperAdmin(actor))
+    throw new bindings.BindingError("Only SuperAdmins may change what a user can view.");
+  if (body.role === "superadmin" && !policy.isSuperAdmin(actor))
+    throw new bindings.BindingError("You cannot grant a role with more access than your own.");
+  for (const name of new Set([...managing, ...viewingNames])) {
+    const uuid = await missions.uuidForName(name);
+    if (!uuid) throw new bindings.BindingError(`Mission not found: ${name}`);
+    if (managing.includes(name))
+      for (const cap of policy.ROLES.mission_admin.capabilities)
+        if (!policy.can(actor, cap, { mission: uuid, layers: [] }))
+          throw new bindings.BindingError("You cannot grant a role with more access than your own.");
+  }
 
   const userBinding = (role, scope_type, extra = {}) => ({
     subject_type: "user",
@@ -251,6 +273,9 @@ async function updateUser(req, id) {
     await bindings.setUserMissionRole(actor, id, "viewer", viewing || []);
     await User.update({ missions_viewing: viewing }, { where: { id }, hooks: false });
   }
+  if (body.email != null)
+    // Only the email column; never password/username
+    await User.update({ email: body.email }, { where: { id }, hooks: false });
   await bindings.afterChange("user", id);
 }
 

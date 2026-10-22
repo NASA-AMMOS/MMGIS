@@ -507,9 +507,16 @@ function ensureUser(options = {}) {
   };
 }
 
-// Site gate for adjacent server proxies; per-method capabilities are declared on each proxy
+// Site gate for adjacent server proxies. Reads follow the site gate; other methods
+// need a signed-in user, and an admin on sites that allow guests.
 function ensureUserForAdjacentServers() {
-  return ensureUser();
+  const gate = ensureUser();
+  const admin = ensureAdmin();
+  return (req, res, next) => {
+    if (req.method === "GET" || req.method === "HEAD") return gate(req, res, next);
+    if (siteAccess.guestsAllowed()) return admin(req, res, next);
+    return gate(req, res, next);
+  };
 }
 
 var swaggerOptions = {

@@ -1,5 +1,6 @@
 // Role binding management shared by the Access and Accounts routes
 const { Op } = require("sequelize");
+const { sequelize } = require("../connection");
 const policy = require("./policy");
 const missions = require("./missions");
 const { invalidate } = require("./principal");
@@ -20,15 +21,32 @@ async function describe(row) {
   };
 }
 
+const SUPERADMIN_WHERE = { subject_type: "user", role: "superadmin", scope_type: "global" };
+
+// Serializes changes that can remove a direct SuperAdmin: the SuperAdmin rows stay
+// locked until fn's transaction commits, so concurrent removals see each other
+function withSuperAdminLock(fn) {
+  const { RoleBinding } = models();
+  return sequelize.transaction(async (transaction) => {
+    const rows = await RoleBinding.findAll({
+      where: SUPERADMIN_WHERE,
+      lock: transaction.LOCK.UPDATE,
+      transaction,
+    });
+    const superAdmins = Array.from(new Set(rows.map((r) => parseInt(r.subject_id))));
+    return fn({ transaction, rows, superAdmins });
+  });
+}
+
 // Users whose effective superadmin comes from a direct global binding
 async function superAdminUserIds() {
   const { RoleBinding } = models();
   const rows = await RoleBinding.findAll({
-    where: { subject_type: "user", role: "superadmin", scope_type: "global" },
+    where: SUPERADMIN_WHERE,
     attributes: ["subject_id"],
     raw: true,
   });
-  return rows.map((r) => parseInt(r.subject_id));
+  return Array.from(new Set(rows.map((r) => parseInt(r.subject_id))));
 }
 
 // Keeps the derived, read-only users.missions_managing column in step with bindings
@@ -110,16 +128,15 @@ async function addBinding(actor, input) {
     mission_uuid = await missions.uuidForName(input.mission);
     if (!mission_uuid) throw new BindingError("Mission not found.");
   }
+  let layerChain = [];
   if (scope_type === "layer") {
     layer_uuid = input.layer_uuid != null ? String(input.layer_uuid) : null;
     const config = await missions.latestConfig(input.mission);
-    if (!layer_uuid || !config || !missions.layerChain(config.layers, layer_uuid))
-      throw new BindingError("Layer not found in mission.");
+    layerChain = layer_uuid && config ? missions.layerChain(config.layers, layer_uuid) : null;
+    if (!layerChain) throw new BindingError("Layer not found in mission.");
   }
-  // Nobody grants more than they hold
-  const resource = mission_uuid
-    ? { mission: mission_uuid, layers: layer_uuid ? [layer_uuid] : [] }
-    : null;
+  // Nobody grants more than they hold; a grant on a folder covers its children
+  const resource = mission_uuid ? { mission: mission_uuid, layers: layerChain } : null;
   for (const cap of policy.ROLES[role].capabilities)
     if (!policy.can(actor, cap, policy.MISSION_SCOPED.has(cap) ? resource : null))
       throw new BindingError("You cannot grant a role with more access than your own.");
@@ -138,12 +155,18 @@ async function removeBinding(actor, id) {
   if (!row) throw new BindingError("Binding not found.");
   if (row.role === "superadmin" && !policy.isSuperAdmin(actor))
     throw new BindingError("Only SuperAdmins may remove SuperAdmin access.");
-  if (row.role === "superadmin" && row.subject_type === "user" && row.scope_type === "global") {
-    const ids = await superAdminUserIds();
-    if (ids.length <= 1) throw new BindingError("There must always be at least one SuperAdmin.");
-  }
   const { subject_type, subject_id } = row;
-  await row.destroy();
+  if (row.role === "superadmin" && row.subject_type === "user" && row.scope_type === "global") {
+    await withSuperAdminLock(async ({ transaction, rows, superAdmins }) => {
+      const locked = rows.find((r) => r.id === row.id);
+      if (!locked) throw new BindingError("Binding not found.");
+      const others = superAdmins.filter((u) => u !== parseInt(subject_id));
+      const rowsForUser = rows.filter((r) => String(r.subject_id) === String(subject_id)).length;
+      if (others.length === 0 && rowsForUser <= 1)
+        throw new BindingError("There must always be at least one SuperAdmin.");
+      await locked.destroy({ transaction });
+    });
+  } else await row.destroy();
   await afterChange(subject_type, subject_id);
 }
 
@@ -195,5 +218,6 @@ module.exports = {
   setUserMissionRole,
   syncLegacyPermission,
   superAdminUserIds,
+  withSuperAdminLock,
   afterChange,
 };

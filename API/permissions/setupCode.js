@@ -11,7 +11,7 @@
 const crypto = require("crypto");
 
 // Crockford-style alphabet: no 0/O, 1/I/L confusion when copying from a log
-const ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // pragma: allowlist secret
 const GROUPS = 4;
 const GROUP_LEN = 4;
 

@@ -73,6 +73,17 @@ async function renameMission(oldName, newName) {
   await AuthMission.update({ name: newName }, { where: { uuid: oldRow.uuid } });
   clear();
   require("./principal").invalidate();
+  // Derived users.missions_managing holds names; refresh it for everyone bound here
+  const bound = await RoleBinding.findAll({
+    where: { mission_uuid: oldRow.uuid },
+    attributes: ["subject_type", "subject_id"],
+    raw: true,
+  });
+  const { afterChange } = require("./bindings");
+  for (const key of new Set(bound.map((b) => `${b.subject_type}\u0000${b.subject_id}`))) {
+    const [type, id] = key.split("\u0000");
+    await afterChange(type, id);
+  }
   return oldRow.uuid;
 }
 
