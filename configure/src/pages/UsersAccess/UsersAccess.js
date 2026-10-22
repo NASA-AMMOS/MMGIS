@@ -49,6 +49,10 @@ import PersonIcon from "@mui/icons-material/Person";
 import GroupsIcon from "@mui/icons-material/Groups";
 import PublicIcon from "@mui/icons-material/Public";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import UnfoldMoreIcon from "@mui/icons-material/UnfoldMore";
+import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 
 import ResetPasswordModal from "./Modals/ResetPasswordModal/ResetPasswordModal";
 import DeleteUserModal from "./Modals/DeleteUserModal/DeleteUserModal";
@@ -94,6 +98,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   search: { width: "320px" },
+  barHint: { fontSize: "13px", opacity: 0.75, minWidth: 0 },
   barButton: { height: "34px", whiteSpace: "nowrap", padding: "0px 16px !important" },
   tabs: {
     padding: "0px 20px",
@@ -138,6 +143,9 @@ const useStyles = makeStyles((theme) => ({
   clickRow: { cursor: "pointer", "&:hover": { background: theme.palette.swatches.grey[800] } },
   muted: { opacity: 0.6 },
   roleText: { fontWeight: "bold" },
+  subjectRow: { cursor: "pointer", "&& td": { background: theme.palette.swatches.grey[900] }, "&:hover td": { background: theme.palette.swatches.grey[800] } },
+  subjectCell: { display: "flex", alignItems: "center", gap: "4px" },
+  childRow: { "& td:first-child": { borderRight: "none" } },
   badge: {
     display: "inline-block",
     padding: "4px 6px",
@@ -148,6 +156,8 @@ const useStyles = makeStyles((theme) => ({
   badge_superadmin: { background: "#db589a", color: "white" },
   badge_data_admin: { background: "#3a8fb7", color: "white" },
   badge_mission_admin: { background: theme.palette.swatches.p[0] },
+  badge_layer_editor: { background: theme.palette.swatches.p[3], color: "white" },
+  badge_viewer: { background: theme.palette.swatches.grey[500], color: "white" },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
   bottomBar: {
     background: theme.palette.swatches.grey[850],
@@ -321,7 +331,7 @@ function GrantsTable({ rows, roles, layerPaths, viaText, onRemove, emptyText }) 
         {rows.map((r) => (
           <TableRow key={`${r.b.subject_type}-${r.b.id}`}>
             {viaText && <TableCell>{viaText(r.b)}</TableCell>}
-            <TableCell className={c.roleText}>{(roles[r.b.role] && roles[r.b.role].label) || r.b.role}</TableCell>
+            <TableCell><RoleBadge role={r.b.role} roles={roles} /></TableCell>
             <TableCell>{whereText(r.b, layerPaths)}</TableCell>
             <TableCell className={r.removable || typeof r.via !== "string" ? "" : c.muted}>{r.via}</TableCell>
             <TableCell align="right">
@@ -335,6 +345,73 @@ function GrantsTable({ rows, roles, layerPaths, viaText, onRemove, emptyText }) 
             </TableCell>
           </TableRow>
         ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function RoleBadge({ role, roles }) {
+  const c = useStyles();
+  return (
+    <span className={`${c.badge} ${c[`badge_${role}`] || c.badge_user}`}>
+      {(roles[role] && roles[role].label) || role}
+    </span>
+  );
+}
+
+// One collapsible section per user, group or audience
+function GroupedGrantsTable({ sections, expanded, onToggle, roles, layerPaths, onRemove, emptyText }) {
+  const c = useStyles();
+  if (!sections.length) return <div className={c.muted}>{emptyText}</div>;
+  return (
+    <Table size="small" className={c.table}>
+      <TableHead>
+        <TableRow>
+          <TableCell>Who</TableCell>
+          <TableCell>Role</TableCell>
+          <TableCell>Where</TableCell>
+          <TableCell>Granted via</TableCell>
+          <TableCell />
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {sections.map((sec) => {
+          const open = expanded(sec.key);
+          const Arrow = open ? KeyboardArrowDownIcon : KeyboardArrowRightIcon;
+          return (
+            <React.Fragment key={sec.key}>
+              <TableRow className={c.subjectRow} onClick={() => onToggle(sec.key)} aria-expanded={open}>
+                <TableCell>
+                  <span className={c.subjectCell}>
+                    <Arrow fontSize="small" />
+                    <SubjectTag type={sec.tagType} name={sec.who} />
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {[...new Set(sec.rows.map((r) => r.b.role))].map((role) => <RoleBadge key={role} role={role} roles={roles} />)}
+                </TableCell>
+                <TableCell colSpan={3} className={c.muted}>
+                  {sec.rows.length} {sec.rows.length === 1 ? "grant" : "grants"}
+                </TableCell>
+              </TableRow>
+              {open && sec.rows.map((r) => (
+                <TableRow key={`${r.b.subject_type}-${r.b.id}`} className={c.childRow}>
+                  <TableCell />
+                  <TableCell><RoleBadge role={r.b.role} roles={roles} /></TableCell>
+                  <TableCell>{whereText(r.b, layerPaths)}</TableCell>
+                  <TableCell>{r.via}</TableCell>
+                  <TableCell align="right">
+                    <Tooltip title="Remove" placement="left" arrow>
+                      <IconButton size="small" className={c.rowIcon} onClick={() => onRemove(r.b)}>
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </React.Fragment>
+          );
+        })}
       </TableBody>
     </Table>
   );
@@ -1023,6 +1100,7 @@ export default function UsersAccess() {
   const [grantSearch, setGrantSearch] = useState("");
   const [grantPage, setGrantPage] = useState(0);
   const [grantsPerPage, setGrantsPerPage] = useState(50);
+  const [openGrantSections, setOpenGrantSections] = useState({});
   const [newGroup, setNewGroup] = useState({ name: "", source: "local", external_name: "" });
   const [providers] = useState(
     String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local")
@@ -1118,7 +1196,21 @@ export default function UsersAccess() {
       )
       .sort((x, y) => x.who.localeCompare(y.who));
   }, [tab, bindings, users, groups, roles, allLayerPaths, grantSearch]);
-  const grantPageIndex = Math.min(grantPage, Math.max(0, Math.ceil(allGrantRows.length / grantsPerPage) - 1));
+  const grantSections = useMemo(() => {
+    const byKey = new Map();
+    for (const r of allGrantRows) {
+      const key = `${r.b.subject_type}:${r.b.subject_id}`;
+      if (!byKey.has(key))
+        byKey.set(key, { key, type: r.b.subject_type, tagType: r.b.subject_type === "audience" ? r.b.subject_id : r.b.subject_type, who: r.who, rows: [] });
+      byKey.get(key).rows.push(r);
+    }
+    const order = { audience: 0, group: 1, user: 2 };
+    return [...byKey.values()].sort((x, y) => (order[x.type] ?? 9) - (order[y.type] ?? 9) || x.who.localeCompare(y.who));
+  }, [allGrantRows]);
+  // While filtering every matching section is open, so matches aren't hidden
+  const grantExpanded = (key) => !!grantSearch.trim() || !!openGrantSections[key];
+  const allGrantSectionsOpen = grantSections.length > 0 && grantSections.every((sec) => grantExpanded(sec.key));
+  const grantPageIndex = Math.min(grantPage, Math.max(0, Math.ceil(grantSections.length / grantsPerPage) - 1));
 
   const audienceState = (a) => {
     const own = bindings.filter((b) => b.subject_type === "audience" && b.subject_id === a && b.role === "viewer");
@@ -1178,6 +1270,7 @@ export default function UsersAccess() {
                 onChange={(e) => setSearch(e.target.value)}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
               />
+              <span className={c.barHint}>Every account, its site role and what it can view and edit. Click a row for details.</span>
               <span className={c.grow} />
               <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => dispatch(setModal({ name: "newUser" }))}>New user</Button>
             </div>
@@ -1249,6 +1342,7 @@ export default function UsersAccess() {
                   .then(() => { setNewGroup({ name: "", source: "local", external_name: "" }); refresh(); })
                   .catch((res) => notify(res.message || "Failed to create group.", "error"))
               }>Create group</Button>
+              <span className={c.barHint}>Give roles to several people at once. Click a group to manage its members and access.</span>
             </div>
             <Table size="small" className={c.table}>
               <TableHead>
@@ -1284,6 +1378,7 @@ export default function UsersAccess() {
                 <MenuItem value=""><em>Choose a mission…</em></MenuItem>
                 {missions.map((m) => <MenuItem key={m.uuid} value={m.name}>{m.name}</MenuItem>)}
               </Select>
+              <span className={c.barHint}>Everyone with access to the chosen mission, including site-wide grants that cover every mission.</span>
               <span className={c.grow} />
               {pickedMission && (
                 <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => openGrant({ mission: pickedMission.name })}>Add access</Button>
@@ -1291,11 +1386,10 @@ export default function UsersAccess() {
             </div>
             {pickedMission ? (
               <>
-                <div className={c.hint}>Everyone with access to {pickedMission.name}, including site-wide grants that cover every mission.</div>
                 <GrantsTable rows={missionRows} roles={roles} layerPaths={allLayerPaths} viaText={subjectName} onRemove={(b) => askRemove(b)} emptyText="Nobody has access to this mission yet." />
               </>
             ) : (
-              <div className={c.muted} style={{ marginTop: "12px" }}>Choose a mission to see who can access it.</div>
+              <div className={c.muted}>Choose a mission to see who can access it.</div>
             )}
           </div>
         )}
@@ -1332,17 +1426,30 @@ export default function UsersAccess() {
                 onChange={(e) => { setGrantSearch(e.target.value); setGrantPage(0); }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
               />
+              <span className={c.barHint}>Everyone who has access, one row each. Click a row to see its grants.</span>
               <span className={c.grow} />
+              {!grantSearch.trim() && grantSections.length > 0 && (
+                <Button className={c.barButton} startIcon={allGrantSectionsOpen ? <UnfoldLessIcon /> : <UnfoldMoreIcon />} onClick={() =>
+                  setOpenGrantSections(allGrantSectionsOpen ? {} : Object.fromEntries(grantSections.map((sec) => [sec.key, true])))
+                }>{allGrantSectionsOpen ? "Collapse all" : "Expand all"}</Button>
+              )}
               <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => openGrant({})}>Add access</Button>
             </div>
-            <div className={c.hint}>Every grant on this site, whoever it's for.</div>
-            <GrantsTable rows={allGrantRows.slice(grantPageIndex * grantsPerPage, (grantPageIndex + 1) * grantsPerPage)} roles={roles} layerPaths={allLayerPaths} viaText={subjectName} onRemove={(b) => askRemove(b)} emptyText={grantSearch ? "No grants match." : "No access granted yet."} />
-            {allGrantRows.length > 0 && (
+            <GroupedGrantsTable
+              sections={grantSections.slice(grantPageIndex * grantsPerPage, (grantPageIndex + 1) * grantsPerPage)}
+              expanded={grantExpanded}
+              onToggle={(key) => setOpenGrantSections((o) => ({ ...o, [key]: !grantExpanded(key) }))}
+              roles={roles}
+              layerPaths={allLayerPaths}
+              onRemove={(b) => askRemove(b)}
+              emptyText={grantSearch ? "No grants match." : "No access granted yet."}
+            />
+            {grantSections.length > 0 && (
               <TablePagination
                 className={c.bottomBar}
                 rowsPerPageOptions={[25, 50, 100]}
                 component="div"
-                count={allGrantRows.length}
+                count={grantSections.length}
                 rowsPerPage={grantsPerPage}
                 page={grantPageIndex}
                 onPageChange={(e, p) => setGrantPage(p)}
