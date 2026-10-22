@@ -6,6 +6,7 @@ const missions = require("./missions");
 const { LEGACY_SUPERADMIN, LEGACY_ADMIN } = require("./legacyPermissions");
 
 const IMPORT_KEY = "legacy_import_v1";
+const SIGNED_IN_PERMISSIONS = [LEGACY_ADMIN, "001"];
 
 function models() {
   const permissionModels = require("./models");
@@ -62,8 +63,9 @@ async function plan({ dryRun = false } = {}) {
         const uuid = await missionScope(m);
         if (uuid) add({ ...subject, role: "mission_admin", scope_type: "mission", mission_uuid: uuid });
       }
-    // Viewing limits were only enforced for local-login sites that require login
-    if (legacyLocal) {
+    // Viewing limits were only enforced for local-login sites that require login,
+    // and there only these permissions could get past the login page
+    if (legacyLocal && SIGNED_IN_PERMISSIONS.includes(u.permission)) {
       if (u.missions_viewing == null)
         add({ ...subject, role: "viewer", scope_type: "global" });
       else

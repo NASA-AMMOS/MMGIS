@@ -325,6 +325,26 @@ test.describe.serial('Permission matrix', () => {
     expect(denied(await api(users.plain, 'POST', '/api/datasets/upload', {}))).toBe(true);
   });
 
+  test('repointing a group needs every role the group holds', async () => {
+    const g = await api(admin, 'POST', '/api/access/groups/create', { name: `admins_${RUN}` });
+    expect(ok(g)).toBe(true);
+    const gid = g.json.body.id;
+    try {
+      await grant(admin, 'group', gid, 'superadmin', 'global');
+      const gen = await api(admin, 'POST', '/api/longtermtoken/generate', {
+        name: `gm_${RUN}`, period: '86400000', scopes: ['groups.manage'],
+      });
+      expect(ok(gen), gen.text.slice(0, 200)).toBe(true);
+      const bearer = gen.json.body.token;
+      const update = (who, body, opts) => api(who, 'POST', '/api/access/groups/update', { id: gid, ...body }, opts);
+      expect(ok(await update(null, { external_name: `elsewhere_${RUN}` }, { bearer }))).toBe(false);
+      expect(ok(await update(null, { description: 'still editable' }, { bearer }))).toBe(true);
+      expect(ok(await update(admin, { external_name: `elsewhere_${RUN}` }))).toBe(true);
+    } finally {
+      await api(admin, 'POST', '/api/access/groups/delete', { id: gid });
+    }
+  });
+
   test('group roles apply to members and stop on removal', async () => {
     const g = await api(admin, 'POST', '/api/access/groups/create', { name: `editorsB_${RUN}` });
     expect(ok(g)).toBe(true);

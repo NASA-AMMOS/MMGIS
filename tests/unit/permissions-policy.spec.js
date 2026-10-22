@@ -448,34 +448,66 @@ test.describe('adjacent servers', () => {
   const { canUseAdjacentServer } = policy;
   const editor = user([['layer_editor', `mission:${M1}`]]);
   const admin = user([['superadmin', 'global']]);
+  const SERVERS = ['stac', 'titiler-pgstac', 'tipg', 'titiler', 'veloserver', 'custom'];
 
   test('sessions and guests are left to the site gate', () => {
-    for (const method of ['GET', 'POST', 'DELETE']) {
-      expect(canUseAdjacentServer(editor, method)).toBe(true);
-      expect(canUseAdjacentServer(anonymous([]), method)).toBe(true);
+    for (const server of SERVERS)
+      for (const method of ['GET', 'POST', 'DELETE']) {
+        expect(canUseAdjacentServer(editor, method, server)).toBe(true);
+        expect(canUseAdjacentServer(anonymous([]), method, server)).toBe(true);
+      }
+  });
+
+  test('STAC servers need data.stac.read to read and data.stac.write to change anything', () => {
+    const read = withToken(admin, { scopes: ['data.stac.read'] });
+    for (const server of ['stac', 'titiler-pgstac']) {
+      expect(canUseAdjacentServer(withToken(admin, { scopes: ['site.view'] }), 'GET', server)).toBe(false);
+      expect(canUseAdjacentServer(read, 'GET', server)).toBe(true);
+      expect(canUseAdjacentServer(read, 'HEAD', server)).toBe(true);
+      for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) expect(canUseAdjacentServer(read, method, server)).toBe(false);
+      expect(canUseAdjacentServer(withToken(admin, {}), 'DELETE', server)).toBe(true);
     }
   });
 
-  test('tokens need data.stac.read to read and data.stac.write to change anything', () => {
-    const siteOnly = withToken(admin, { scopes: ['site.view'] });
-    expect(canUseAdjacentServer(siteOnly, 'GET')).toBe(false);
-    expect(canUseAdjacentServer(siteOnly, 'POST')).toBe(false);
-    const read = withToken(admin, { scopes: ['data.stac.read'] });
-    expect(canUseAdjacentServer(read, 'GET')).toBe(true);
-    expect(canUseAdjacentServer(read, 'HEAD')).toBe(true);
-    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) expect(canUseAdjacentServer(read, method)).toBe(false);
-    expect(canUseAdjacentServer(withToken(admin, {}), 'DELETE')).toBe(true);
+  test('TiPG needs the geodataset capabilities, not the STAC ones', () => {
+    expect(canUseAdjacentServer(withToken(admin, { scopes: ['data.stac.read'] }), 'GET', 'tipg')).toBe(false);
+    expect(canUseAdjacentServer(withToken(admin, { scopes: ['data.geodatasets.read'] }), 'GET', 'tipg')).toBe(true);
+    expect(canUseAdjacentServer(withToken(admin, { scopes: ['data.geodatasets.read'] }), 'POST', 'tipg')).toBe(false);
+    expect(canUseAdjacentServer(withToken(admin, { scopes: ['data.geodatasets.write'] }), 'POST', 'tipg')).toBe(true);
+  });
+
+  test('other servers read with site.view and write only with unrestricted tokens', () => {
+    for (const server of ['titiler', 'veloserver', 'custom']) {
+      expect(canUseAdjacentServer(withToken(admin, { scopes: ['data.stac.read'] }), 'GET', server)).toBe(false);
+      expect(canUseAdjacentServer(withToken(admin, { scopes: ['site.view'] }), 'GET', server)).toBe(true);
+      expect(canUseAdjacentServer(withToken(admin, { scopes: ['site.view', 'data.stac.write'] }), 'POST', server)).toBe(false);
+      expect(canUseAdjacentServer(withToken(admin, { missions: [M1] }), 'POST', server)).toBe(false);
+      expect(canUseAdjacentServer(withToken(admin, {}), 'POST', server)).toBe(true);
+    }
   });
 
   test('a token cannot write STAC unless its creator can', () => {
-    expect(canUseAdjacentServer(withToken(editor, {}), 'GET')).toBe(true);
-    expect(canUseAdjacentServer(withToken(editor, {}), 'POST')).toBe(false);
-    expect(canUseAdjacentServer(withToken(editor, { scopes: ['mission.layer.edit'] }), 'POST')).toBe(false);
+    expect(canUseAdjacentServer(withToken(editor, {}), 'GET', 'stac')).toBe(true);
+    expect(canUseAdjacentServer(withToken(editor, {}), 'POST', 'stac')).toBe(false);
+    expect(canUseAdjacentServer(withToken(editor, { scopes: ['mission.layer.edit'] }), 'POST', 'stac')).toBe(false);
   });
 
-  test('a mission-limited token can read but not write', () => {
+  test('a mission-limited token can read STAC but not write it', () => {
     const limited = withToken(admin, { missions: [M1] });
-    expect(canUseAdjacentServer(limited, 'GET')).toBe(true);
-    expect(canUseAdjacentServer(limited, 'POST')).toBe(false);
+    expect(canUseAdjacentServer(limited, 'GET', 'stac')).toBe(true);
+    expect(canUseAdjacentServer(limited, 'POST', 'stac')).toBe(false);
+  });
+});
+
+test.describe('capabilities of tokens over layer grants', () => {
+  const editor = user([['layer_editor', `layer:${M1}:${CHILD}`]]);
+  test('a read-only token of a layer editor holds no edit capability', () => {
+    expect(capabilitiesOf(editor)).toContain('mission.layer.edit');
+    const read = withToken(editor, { scopes: ['site.view', 'mission.view'] });
+    expect(capabilitiesOf(read)).not.toContain('mission.layer.edit');
+  });
+  test('a token limited to another mission holds no edit capability', () => {
+    expect(capabilitiesOf(withToken(editor, { missions: [M2] }))).not.toContain('mission.layer.edit');
+    expect(capabilitiesOf(withToken(editor, { missions: [M1] }))).toContain('mission.layer.edit');
   });
 });

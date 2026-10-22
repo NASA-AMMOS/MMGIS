@@ -509,14 +509,14 @@ function ensureUser(options = {}) {
 
 // Site gate for adjacent server proxies. Reads follow the site gate; other methods
 // need a signed-in user, and an admin on sites that allow guests. Tokens also need
-// the STAC capability for the method.
-function ensureUserForAdjacentServers() {
+// the capability for that server and method.
+function ensureUserForAdjacentServers(server) {
   const gate = ensureUser();
   const admin = ensureAdmin();
   const tokenAllowed = (req, res, next) =>
     ensurePrincipal(req)
       .then((p) =>
-        policy.canUseAdjacentServer(p, req.method)
+        policy.canUseAdjacentServer(p, req.method, server)
           ? next()
           : res.send({ status: "failure", message: "Unauthorized!" }),
       )

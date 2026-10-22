@@ -110,6 +110,14 @@ router.post("/groups/create", manage, async (req, res) => {
   }
 });
 
+async function assertHoldsGroupRoles(actor, groupId) {
+  const groupBindings = await bindings.listBindings({ subject_type: "group", subject_id: String(groupId) });
+  for (const b of groupBindings)
+    for (const cap of policy.ROLES[b.role].capabilities)
+      if (!policy.can(actor, cap, b.mission_uuid ? { mission: b.mission_uuid, layers: b.layer_uuid ? [b.layer_uuid] : [] } : null))
+        throw new bindings.BindingError("You cannot grant a role with more access than your own.");
+}
+
 router.post("/groups/update", manage, async (req, res) => {
   try {
     const group = await AuthGroup.findOne({ where: { id: parseInt(req.body.id) } });
@@ -118,6 +126,9 @@ router.post("/groups/update", manage, async (req, res) => {
     ["name", "description", "external_name"].forEach((k) => {
       if (req.body[k] !== undefined) set[k] = req.body[k];
     });
+    // Pointing a provider group elsewhere grants its roles to new people
+    if (set.external_name !== undefined && set.external_name !== group.external_name)
+      await assertHoldsGroupRoles(await ensurePrincipal(req), group.id);
     await group.update(set);
     invalidate();
     res.send({ status: "success", body: group });
@@ -155,13 +166,8 @@ async function changeMember(req, res, add) {
       throw new bindings.BindingError("Membership of this group comes from the login provider.");
     if (!(await User.findOne({ where: { id: user_id }, attributes: ["id"] })))
       throw new bindings.BindingError("User not found.");
-    const groupBindings = await bindings.listBindings({ subject_type: "group", subject_id: String(group_id) });
     // Adding someone to a group grants its roles, so the actor must hold them
-    if (add)
-      for (const b of groupBindings)
-        for (const cap of policy.ROLES[b.role].capabilities)
-          if (!policy.can(actor, cap, b.mission_uuid ? { mission: b.mission_uuid, layers: b.layer_uuid ? [b.layer_uuid] : [] } : null))
-            throw new bindings.BindingError("You cannot grant a role with more access than your own.");
+    if (add) await assertHoldsGroupRoles(actor, group_id);
     if (add) await AuthGroupMember.findOrCreate({ where: { group_id, user_id } });
     else await AuthGroupMember.destroy({ where: { group_id, user_id } });
     await bindings.syncLegacyPermission(user_id);

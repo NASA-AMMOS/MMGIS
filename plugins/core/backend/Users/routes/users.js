@@ -306,6 +306,12 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
     return null;
   }
 
+  // Password and saved logins are only for sites that use the local provider
+  if (!siteAccess.hasProvider("local")) {
+    res.send({ status: "failure", message: "Local login is not enabled on this site." });
+    return null;
+  }
+
   // Token-based re-authentication (page reload): verify the token in the DB
   // and refresh session data in-place. Session regeneration and token rotation
   // are intentionally skipped to preserve multi-tab compatibility.
@@ -350,12 +356,6 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
       .catch((err) => {
         res.send({ status: "failure", message: "Bad token." });
       });
-    return null;
-  }
-
-  // Password login is only for sites that use the local provider
-  if (!siteAccess.hasProvider("local")) {
-    res.send({ status: "failure", message: "Local login is not enabled on this site." });
     return null;
   }
 

@@ -17,7 +17,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     }`;
     app.use(
       `${process.env.ROOT_PATH || ""}/stac`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("stac"),
       createProxyMiddleware({
         target: stacTarget,
         changeOrigin: true,
@@ -39,7 +39,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     }`;
     app.use(
       `${process.env.ROOT_PATH || ""}/tipg`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("tipg"),
       createProxyMiddleware({
         target: tipgTarget,
         changeOrigin: true,
@@ -76,7 +76,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         }
 
         // All other TiTiler endpoints follow standard adjacent server auth
-        ensureUserForAdjacentServers()(req, res, next);
+        ensureUserForAdjacentServers("titiler")(req, res, next);
       },
       validateTitilerUrl, // URL validation middleware (SSRF prevention)
       validateTitilerExpression, // band-math token allowlist
@@ -101,7 +101,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     }:${process.env.TITILER_PGSTAC_PORT || 8884}`;
     app.use(
       `${process.env.ROOT_PATH || ""}/titilerpgstac`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("titiler-pgstac"),
       createTitilerExpressionValidator(),
       createProxyMiddleware({
         target: titilerpgstacTarget,
@@ -126,7 +126,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
   if (process.env.WITH_VELOSERVER === "true") {
     app.use(
       `${process.env.ROOT_PATH || ""}/veloserver`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("veloserver"),
       createProxyMiddleware({
         target: `http://${isDocker ? "veloserver" : "localhost"}:${
           process.env.VELOSERVER_PORT || 8104
@@ -223,7 +223,7 @@ function setupCustomAdjacentServer(app, isDocker, ensureAdmin, ensureUserForAdja
 
   app.use(
     routePath,
-    ensureUserForAdjacentServers(),
+    ensureUserForAdjacentServers("custom"),
     createProxyMiddleware({
       target: target,
       changeOrigin: true,

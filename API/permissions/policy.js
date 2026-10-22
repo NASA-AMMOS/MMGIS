@@ -221,11 +221,15 @@ function capabilitiesOf(principal) {
   return Array.from(out);
 }
 function layerRootsAny(principal, cap) {
+  const token = principal.token;
+  if (token && Array.isArray(token.scopes) && !token.scopes.includes(cap)) return false;
+  const limited = token && Array.isArray(token.missions) ? token.missions : null;
   return (principal.bindings || []).some(
     (b) =>
       ROLE_CAPS[b.role] &&
       ROLE_CAPS[b.role].has(cap) &&
-      b.scope.startsWith("layer:")
+      b.scope.startsWith("layer:") &&
+      (limited == null || limited.includes(b.scope.split(":")[1]))
   );
 }
 
@@ -252,11 +256,24 @@ function canReadSharedFolder(principal) {
   return viewable == null || viewable.length > 0;
 }
 
-// Adjacent servers (STAC, TiTiler, TiPG, ...) serve data, so a token also needs the STAC capability
-function canUseAdjacentServer(principal, method) {
+// Data capability family behind each adjacent server
+const ADJACENT_SERVER_DATA = {
+  stac: "data.stac",
+  "titiler-pgstac": "data.stac",
+  tipg: "data.geodatasets",
+};
+
+// Tokens on adjacent servers: the server's data capability where it has one. Servers
+// without one (TiTiler, Veloserver, custom) take reads from site.view and writes only
+// from unrestricted tokens.
+function canUseAdjacentServer(principal, method, server) {
   if (!principal || principal.kind !== "token") return true;
   const read = method === "GET" || method === "HEAD";
-  return can(principal, read ? "data.stac.read" : "data.stac.write");
+  const family = ADJACENT_SERVER_DATA[server];
+  if (family) return can(principal, `${family}.${read ? "read" : "write"}`);
+  if (read) return can(principal, "site.view");
+  const token = principal.token || {};
+  return token.scopes == null && token.missions == null;
 }
 
 module.exports = {
