@@ -704,13 +704,14 @@ function PersonPanel({ user, ctx }) {
             size="small"
             type="email"
             label="Email"
-            placeholder="No email"
+            placeholder="No email set"
+            InputLabelProps={{ shrink: true }}
+            sx={{ flex: 1, "& input::placeholder": { fontStyle: "italic", opacity: 0.8 } }}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && canSaveEmail) saveEmail();
             }}
-            sx={{ flex: 1 }}
           />
           <Button variant="outlined" size="small" disabled={!canSaveEmail} onClick={saveEmail}>
             Save
@@ -1201,7 +1202,7 @@ export default function UsersAccess() {
                   return (
                     <TableRow key={u.id} className={c.clickRow} onClick={() => setPanel({ type: "user", id: u.id })}>
                       <TableCell className={c.roleText}>{u.username}</TableCell>
-                      <TableCell>{u.email}</TableCell>
+                      <TableCell className={u.email ? "" : c.muted}>{u.email || "No email"}</TableCell>
                       <TableCell><SiteRoleBadges siteRoles={s.siteRoles} roles={roles} /></TableCell>
                       <TableCell>{s.viewAll ? <b>All</b> : s.viewList.length ? <MissionList items={s.viewList} /> : <span className={c.muted}>None</span>}</TableCell>
                       <TableCell>{s.missionAdmin.length ? <MissionList items={s.missionAdmin} /> : <span className={c.muted}>—</span>}</TableCell>
