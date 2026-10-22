@@ -194,6 +194,40 @@ test.describe.serial('Permission matrix', () => {
     for (const n of NAMES) if (ids[n]) await api(admin, 'DELETE', `/api/accounts/remove/${ids[n]}`);
   });
 
+  test('dataset listings only name layers in missions the caller can view', async () => {
+    const name = `pm_gds_${RUN}`;
+    const made = await api(admin, 'POST', '/api/geodatasets/recreate', {
+      name,
+      geojson: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [{ type: 'Feature', properties: { a: 1 }, geometry: { type: 'Point', coordinates: [0, 0] } }],
+      }),
+    });
+    expect(ok(made), made.text.slice(0, 300)).toBe(true);
+    try {
+      const layer = await api(admin, 'POST', '/api/configure/addLayer', {
+        mission: MISSION_B,
+        layer: { name: 'Uses geodataset', uuid: randomUUID(), type: 'vector', url: `geodatasets:${name}` },
+      });
+      expect(ok(layer), layer.text.slice(0, 300)).toBe(true);
+      const occurrences = async (who, route, entryName) => {
+        const r = await api(who, 'POST', route, {});
+        expect(ok(r), r.text.slice(0, 300)).toBe(true);
+        const entries = r.json.body.entries || [];
+        const entry = entryName ? entries.find((e) => e.name === entryName) : entries[0];
+        return entry ? Object.keys(entry.occurrences || {}) : [];
+      };
+      expect(await occurrences(admin, '/api/geodatasets/entries', name)).toContain(MISSION_B);
+      for (const who of [users.viewer, users.plain]) {
+        expect(await occurrences(who, '/api/geodatasets/entries', name)).not.toContain(MISSION_B);
+        expect(await occurrences(who, '/api/datasets/entries')).not.toContain(MISSION_B);
+      }
+      expect(await occurrences(users.viewer, '/api/geodatasets/entries', name)).toContain(MISSION_A);
+    } finally {
+      await api(admin, 'DELETE', `/api/geodatasets/remove/${name}`);
+    }
+  });
+
   test('mission lists only include viewable missions', async () => {
     const list = async (who) => (await api(who, 'GET', '/api/configure/missions')).json.missions || [];
     expect(await list(admin)).toEqual(expect.arrayContaining([MISSION_A, MISSION_B]));

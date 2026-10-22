@@ -4,7 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
+const { authorize, resolvers, missionNamesWith } = require("../../../../../API/permissions/authorize");
 
 const { sequelize } = require("../../../../../API/connection");
 
@@ -1702,9 +1702,11 @@ router.post("/entries", authorize("data.geodatasets.read"), function (req, res, 
             ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
             `
           )
-          .then(([results]) => {
-            // Populate occurrences
+          .then(async ([results]) => {
+            // Populate occurrences, only in missions the caller can view
+            const viewable = await missionNamesWith(req, "mission.view");
             results.forEach((m) => {
+              if (viewable != null && !viewable.includes(m.mission)) return;
               Utils.traverseLayers(m.config.layers, (layer, path) => {
                 entries.forEach((entry) => {
                   entry.occurrences = entry.occurrences || {};
