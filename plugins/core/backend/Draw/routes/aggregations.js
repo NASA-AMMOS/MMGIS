@@ -12,6 +12,7 @@ const UserfilesTEST = ufiles.UserfilesTEST;
 
 const router = express.Router();
 const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
+const { canViewFileMissions } = require("./filesutils");
 
 /**
  * POST /api/draw/aggregations
@@ -65,8 +66,15 @@ router.post("/aggregations", authorize("draw.use"), function (req, res, next) {
       },
     },
   })
-    .then((files) => {
-      if (!files || files.length === 0) {
+    .then(async (files) => {
+      // Every requested file must be one the caller may read
+      const readable = new Set((files || []).map((f) => String(f.id)));
+      if (
+        !files ||
+        files.length === 0 ||
+        !fileIds.every((id) => readable.has(String(id))) ||
+        !(await canViewFileMissions(req, files))
+      ) {
         return res.send({
           status: "failure",
           message: "No accessible files found.",

@@ -970,4 +970,35 @@ test.describe.serial('Permission matrix', () => {
     }
   });
 
+
+  test('private drawings stay private through getfile and aggregations', async () => {
+    const make = async (who, name) => {
+      const r = await api(who, 'POST', '/api/files/make', { file_name: `${name}_${RUN}`, intent: 'all', mission: MISSION_A });
+      expect(ok(r), r.text.slice(0, 200)).toBe(true);
+      return r.json.body.file_id;
+    };
+    const secret = await make(admin, 'secret');
+    const mine = await make(users.viewer, 'mine');
+    try {
+      expect(ok(await api(admin, 'POST', '/api/files/change', { id: secret, public: '0' }))).toBe(true);
+      const getfile = (who, id) => api(who, 'POST', '/api/files/getfile', { id });
+      const aggs = (who, id) => api(who, 'POST', '/api/draw/aggregations', { id: JSON.stringify(id) });
+      expect(ok(await getfile(users.viewer, mine))).toBe(true);
+      expect(ok(await getfile(users.viewer, secret))).toBe(false);
+      expect(ok(await getfile(users.viewer, [mine, secret]))).toBe(false);
+      expect(ok(await getfile(admin, secret))).toBe(true);
+      expect(ok(await aggs(users.viewer, [mine]))).toBe(true);
+      expect(ok(await aggs(users.viewer, [mine, secret]))).toBe(false);
+      expect(ok(await aggs(users.viewer, [secret]))).toBe(false);
+    } finally {
+      await api(admin, 'POST', '/api/files/remove', { id: secret });
+      await api(users.viewer, 'POST', '/api/files/remove', { id: mine });
+    }
+  });
+
+  test('the Draw owner name "group" cannot be registered', async () => {
+    for (const username of ['group', 'Group', ' group '])
+      expect(ok(await api(admin, 'POST', '/api/users/signup', { username, password: PASSWORD, skipLogin: true }))).toBe(false);
+  });
+
 });

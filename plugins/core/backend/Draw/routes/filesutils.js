@@ -178,7 +178,15 @@ function getfile(req, res, next) {
       },
     })
       .then(async (file) => {
-        if (!file || !(await canViewFileMissions(req, file))) {
+        // Every requested file must be one the caller may read
+        const readable = new Set((file || []).map((f) => f.id));
+        const requested = ids == null ? [] : Array.isArray(ids) ? ids : [ids];
+        if (
+          !file ||
+          requested.length === 0 ||
+          !requested.every((id) => readable.has(id)) ||
+          !(await canViewFileMissions(req, file))
+        ) {
           res.send({
             status: "failure",
             message: "Failed to access file.",
