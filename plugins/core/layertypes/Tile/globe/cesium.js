@@ -117,12 +117,42 @@ function buildTiTilerUrl(baseUrl, layerConfig) {
 // Build a Cesium imagery provider from a resolved URL. `full` selects the
 // verbose WMS parameter set (used on add / time-refresh); COG-refresh passes the
 // raw WMS params through unchanged, matching the original behavior.
+// A 1x1 transparent tile, shared by every provider below.
+let emptyTileCanvas = null
+function emptyTile() {
+    if (!emptyTileCanvas) {
+        emptyTileCanvas = document.createElement('canvas')
+        emptyTileCanvas.width = 1
+        emptyTileCanvas.height = 1
+    }
+    return emptyTileCanvas
+}
+
 function makeUrlTemplateProvider(url, format, maxZoom, minZoom) {
-    return new Cesium.UrlTemplateImageryProvider({
+    const provider = new Cesium.UrlTemplateImageryProvider({
         url: convertTileUrl(url, format),
         maximumLevel: maxZoom || 18,
         minimumLevel: minZoom || 0,
     })
+    // TiTiler answers 204 No Content where a tile has no data. That is a
+    // successful, empty response, so the request itself succeeds and Cesium
+    // fails only when decoding it, then logs "Failed to obtain image tile" for
+    // each one. Hand it an empty tile for decode failures only: HTTP and
+    // network errors reject with a RequestErrorEvent, and cancelled requests
+    // must reject so Cesium retries them later; both keep Cesium's handling.
+    const requestImage = provider.requestImage.bind(provider)
+    provider.requestImage = (x, y, level, request) => {
+        const promise = requestImage(x, y, level, request)
+        return promise?.catch((error) => {
+            if (
+                error instanceof Cesium.RequestErrorEvent ||
+                request?.state === Cesium.RequestState.CANCELLED
+            )
+                throw error
+            return emptyTile()
+        })
+    }
+    return provider
 }
 
 function makeWmsProviderFull(url, name, maxZoom, minZoom) {
