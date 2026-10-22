@@ -4,7 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
+const { authorize, resolvers, missionNamesWith } = require("../../../../../API/permissions/authorize");
 
 const fetch = require("node-fetch");
 const { sequelize } = require("../../../../../API/connection");
@@ -51,7 +51,10 @@ router.get("/collections", authorize("data.stac.read"), function (req, res, next
                 ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
                 `
         )
-        .then(([results]) => {
+        .then(async ([results]) => {
+          const viewable = await missionNamesWith(req, "mission.view");
+          if (viewable != null)
+            results = results.filter((m) => viewable.includes(m.mission));
           // Populate occurrences
           results.forEach((m) => {
             Utils.traverseLayers(m.config.layers, (layer, path) => {

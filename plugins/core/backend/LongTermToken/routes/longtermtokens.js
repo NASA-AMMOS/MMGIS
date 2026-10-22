@@ -11,7 +11,7 @@ const logger = require("../../../../../API/logger");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
 const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { hashToken, invalidate } = require("../../../../../API/permissions/principal");
+const { hashToken, invalidate, unusableLegacyToken } = require("../../../../../API/permissions/principal");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;
 const { User } = require("../../Users/models/user");
 
@@ -141,7 +141,7 @@ router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, re
     const token = `${TOKEN_PREFIX}${label ? label + "_" : ""}${secret}`;
     const token_prefix = token.slice(0, TOKEN_PREFIX.length + (label ? label.length + 1 : 0) + 6);
     const created = await LongTermTokens.create({
-      token: token_prefix,
+      token: unusableLegacyToken(),
       token_hash: hashToken(token),
       token_prefix,
       name: body.name ? String(body.name) : null,

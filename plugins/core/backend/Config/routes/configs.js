@@ -82,6 +82,10 @@ missionFromReq.description = "mission(body.mission | query.mission)";
 
 // Whole-mission configuration edits
 const checkMissionPermission = authorize("mission.config.edit", missionFromReq);
+const checkQueryMissionPermission = authorize(
+  "mission.config.edit",
+  resolvers.mission((req) => req.query.mission)
+);
 
 // Layer-subtree editors may change a layer in place; moving it or
 // changing its UUID needs whole-config permission
@@ -1029,7 +1033,7 @@ router.get(
 );
 
 if (fullAccess)
-  router.get("/versions", checkMissionPermission, function (req, res, next) {
+  router.get("/versions", checkQueryMissionPermission, function (req, res, next) {
     Config.findAll({
       where: {
         mission: req.query.mission,
@@ -1791,9 +1795,17 @@ if (fullAccess)
             try {
               // Fill out layer and placement before addLayer
               let existingLayer = null;
+              let parentLayer = null;
               let placementPath = req.body.placement?.path;
               let placementIndex = req.body.placement?.index;
 
+              Utils.traverseLayers(config.layers, (layer) => {
+                if (
+                  Array.isArray(layer.sublayers) &&
+                  layer.sublayers.some((s) => s && s.uuid === req.body.layerUUID)
+                )
+                  parentLayer = layer;
+              });
               Utils.traverseLayers(config.layers, (layer, path, index) => {
                 if (layer.uuid === req.body.layerUUID) {
                   existingLayer = JSON.parse(JSON.stringify(layer));
@@ -1809,6 +1821,32 @@ if (fullAccess)
                   message: `Layer ${req.body.layerUUID} not found. Cannot update.`,
                 });
                 return;
+              }
+
+              // Re-adding goes by header names; with duplicate names that
+              // path can resolve to a different header than the original
+              if (
+                req.body.placement == null &&
+                typeof placementPath === "string" &&
+                placementPath !== ""
+              ) {
+                const level = Utils.getIn(
+                  config.layers,
+                  placementPath
+                    .replace(/\./g, ".sublayers.")
+                    .split(".")
+                    .concat("sublayers")
+                    .join("."),
+                  null,
+                  true
+                );
+                if (parentLayer == null || level !== parentLayer.sublayers) {
+                  res.send({
+                    status: "failure",
+                    message: `Layer ${req.body.layerUUID} is under a header whose name path '${placementPath}' is not unique. Rename the header so its path is unique, then update.`,
+                  });
+                  return;
+                }
               }
 
               // Merge existing and new

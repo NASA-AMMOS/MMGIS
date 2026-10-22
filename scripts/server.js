@@ -30,6 +30,17 @@ var swaggerDocumentMain = require("../docs/mmgis-openapi.json");
 const createError = require("http-errors");
 const cors = require("cors");
 const logger = require("../API/logger");
+
+// A rejected promise a route forgot to catch fails that request, not the server
+process.on("unhandledRejection", (reason) => {
+  logger(
+    "error",
+    "Unhandled promise rejection.",
+    "server",
+    null,
+    reason instanceof Error ? reason : new Error(String(reason))
+  );
+});
 const { apilimiter, authLimiter, computeLimiter } = require("./rateLimiters");
 const compression = require("compression");
 

@@ -27,6 +27,21 @@ router.post("/", authorize("draw.use"), function (req, res, next) {
   res.send("test draw");
 });
 
+// Every feature route acts on one file; a missing or non-integer id would
+// otherwise reach Sequelize as an invalid WHERE value
+router.use(["/add", "/edit", "/remove", "/undo", "/merge", "/split"], (req, res, next) => {
+  if (req.method !== "POST") return next();
+  const id = req.body ? req.body.file_id : undefined;
+  if (!/^[0-9]+$/.test(String(id))) {
+    return res.send({
+      status: "failure",
+      message: "Required parameter 'file_id' must be an integer.",
+      body: {},
+    });
+  }
+  next();
+});
+
 /**
  * Crops out duplicate array elements between arrays
  * Ex.

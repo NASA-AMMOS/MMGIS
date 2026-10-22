@@ -203,6 +203,12 @@ const middleware = {
       }
 
       if (req.query.time != null && originalUrl.indexOf("_time_") > -1) {
+        if (
+          typeof req.query.time !== "string" ||
+          (req.query.starttime != null &&
+            typeof req.query.starttime !== "string")
+        )
+          return res.sendStatus(400);
         const urlSplit = originalUrl.split("_time_");
         const relUrlSplit = relUrl.split("_time_");
 

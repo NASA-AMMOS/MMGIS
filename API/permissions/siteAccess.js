@@ -7,7 +7,7 @@ const LEGACY_AUTH_REPLACEMENTS = {
   off: { SITE_ACCESS: "public", AUTH_PROVIDERS: '["local"]' },
   none: { SITE_ACCESS: "optional", AUTH_PROVIDERS: '["local"]' },
   local: { SITE_ACCESS: "required", AUTH_PROVIDERS: '["local"]' },
-  csso: { SITE_ACCESS: "required", AUTH_PROVIDERS: '["csso"]' },
+  csso: { SITE_ACCESS: "required", AUTH_PROVIDERS: '["csso","local"]' },
 };
 
 function parseProviders(raw) {

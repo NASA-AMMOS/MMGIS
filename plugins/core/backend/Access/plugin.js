@@ -27,6 +27,7 @@ let setup = {
       await missions.backfill();
       await legacyImport.run();
       await legacyImport.warnIfSiteAccessChanged();
+      await require("../../../../API/permissions/principal").scrubLegacyTokenColumn();
     } catch (err) {
       logger("error", "Failed to initialize roles and permissions.", "permissions", null, err);
     }

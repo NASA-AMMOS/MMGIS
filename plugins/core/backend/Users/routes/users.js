@@ -137,7 +137,9 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
     return;
   }
 
-  const skipLogin = req.body.skipLogin === true;
+  // With admins-only local login, only an admin reaches here and stays signed in as themselves
+  const skipLogin =
+    req.body.skipLogin === true || siteAccess.localAdminsOnly();
 
   if (req.body.username == null || req.body.username == "") {
     res.send({

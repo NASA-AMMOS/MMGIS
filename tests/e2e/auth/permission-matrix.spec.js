@@ -796,4 +796,78 @@ test.describe.serial('Permission matrix', () => {
       expect(tooMany(r)).toBe(false);
     }
   });
+
+  test('mission version history is gated on the mission it returns', async () => {
+    const r = await api(
+      users.madmin,
+      'GET',
+      `/api/configure/versions?mission=${encodeURIComponent(MISSION_B)}`,
+      { mission: MISSION_A }
+    );
+    expect(denied(r)).toBe(true);
+    expect(ok(await api(users.madmin, 'GET', `/api/configure/versions?mission=${encodeURIComponent(MISSION_A)}`))).toBe(true);
+  });
+
+  test('grants to padded or non-numeric account ids are refused', async () => {
+    for (const subject_id of [` ${ids.viewer}`, `${ids.viewer}x`, '0', '-1'])
+      expect(ok(await api(admin, 'POST', '/api/access/bindings/add', {
+        subject_type: 'user', subject_id, role: 'superadmin', scope_type: 'global',
+      })), subject_id).toBe(false);
+  });
+
+  test('a token cannot generate password reset links', async () => {
+    const gen = await api(admin, 'POST', '/api/longtermtoken/generate', {
+      name: `rl_${RUN}`, period: '86400000', scopes: ['accounts.manage'],
+    });
+    expect(ok(gen), gen.text.slice(0, 200)).toBe(true);
+    const r = await api(null, 'POST', '/api/accounts/generateResetPasswordLink', { id: ids.plain }, { bearer: gen.json.body.token });
+    expect(ok(r)).toBe(false);
+    expect(JSON.stringify(r.json || {})).not.toMatch(/resetToken|reset_token/i);
+  });
+
+  test('setting an account to User also removes a global Mission Admin grant', async () => {
+    await grant(admin, 'user', ids.plain, 'mission_admin', 'global');
+    expect((await bindingsOf(ids.plain)).some((b) => b.role === 'mission_admin')).toBe(true);
+    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.plain, role: 'user' }))).toBe(true);
+    expect((await bindingsOf(ids.plain)).some((b) => b.role === 'mission_admin')).toBe(false);
+    expect(denied(await initialView(users.plain, MISSION_A))).toBe(true);
+  });
+
+  test('updating a layer under an ambiguous header name path refuses instead of moving it', async () => {
+    const first = randomUUID();
+    const second = randomUUID();
+    const inner = randomUUID();
+    const mission = `PermD_${RUN}`;
+    expect(ok(await api(admin, 'POST', '/api/configure/add', { mission }))).toBe(true);
+    const add = (layer, placement) => api(admin, 'POST', '/api/configure/addLayer', { mission, layer, placement });
+    expect(ok(await add({ name: `Dup_${RUN}`, uuid: first, type: 'header', sublayers: [] }, { index: 0 }))).toBe(true);
+    expect(ok(await add({
+      name: `Dup_${RUN}`, uuid: second, type: 'header',
+      sublayers: [{ name: `Inner_${RUN}`, uuid: inner, type: 'header', sublayers: [] }],
+    }, { index: 1 }))).toBe(true);
+    const r = await updateLayer(admin, mission, inner);
+    expect(ok(r)).toBe(false);
+    expect(r.json.message).toMatch(/not unique/);
+    const layers = (await getConfig(admin, mission)).json.layers;
+    const firstHeader = layers.find((l) => l.uuid === first);
+    const secondHeader = layers.find((l) => l.uuid === second);
+    expect(firstHeader.sublayers.length).toBe(0);
+    expect(secondHeader.sublayers.map((l) => l.uuid)).toEqual([inner]);
+    await api(admin, 'POST', '/api/configure/destroy', { mission });
+  });
+
+
+  test('malformed draw bodies and repeated time parameters fail the request, not the server', async () => {
+    for (const file_id of [undefined, '1 OR 1=1', { a: 1 }]) {
+      const r = await api(admin, 'POST', '/api/draw/remove', file_id === undefined ? {} : { file_id, id: 1 });
+      expect(r.status).toBeLessThan(500);
+      expect(ok(r)).toBe(false);
+    }
+    const time = await api(admin, 'GET', `/Missions/${MISSION_A}/Layers/_time_/x.png?time=a&time=b`);
+    expect(time.status).toBe(400);
+    const start = await api(admin, 'GET', `/Missions/${MISSION_A}/Layers/_time_/x.png?time=a&starttime=b&starttime=c`);
+    expect(start.status).toBe(400);
+    expect((await api(admin, 'GET', '/api/utils/healthcheck')).status).toBe(200);
+  });
+
 });

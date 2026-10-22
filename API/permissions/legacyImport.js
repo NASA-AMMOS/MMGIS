@@ -1,6 +1,7 @@
 // One-time conversion of legacy users.permission / missions_managing /
 // missions_viewing into role bindings. Never reads or writes passwords.
 const logger = require("../logger");
+const { sequelize } = require("../connection");
 const siteAccess = require("./siteAccess");
 const missions = require("./missions");
 const { LEGACY_SUPERADMIN, LEGACY_ADMIN } = require("./legacyPermissions");
@@ -83,10 +84,13 @@ async function plan({ dryRun = false } = {}) {
   return { users: users.length, bindings, unknownMissions: Array.from(unknownMissions) };
 }
 
-async function alreadyImported() {
+async function alreadyImported(transaction) {
   const { AuthMeta } = models();
   try {
-    return (await AuthMeta.findOne({ where: { key: IMPORT_KEY } })) != null;
+    return (
+      (await AuthMeta.findOne({ where: { key: IMPORT_KEY }, transaction })) !=
+      null
+    );
   } catch (err) {
     // auth_meta does not exist yet
     return false;
@@ -95,8 +99,30 @@ async function alreadyImported() {
 
 // Runs once per database; later grant changes are never undone by re-importing
 async function run() {
-  const { AuthMeta, RoleBinding } = models();
   if (await alreadyImported()) return { skipped: true };
+  // Servers starting together would otherwise each import
+  const result = await sequelize.transaction(async (transaction) => {
+    await sequelize.query("SELECT pg_advisory_xact_lock(hashtext(:key))", {
+      replacements: { key: `mmgis:${IMPORT_KEY}` },
+      transaction,
+    });
+    if (await alreadyImported(transaction)) return null;
+    return importLocked(transaction);
+  });
+  if (result == null) return { skipped: true };
+  require("./principal").invalidate();
+  logger(
+    "info",
+    `Imported ${result.bindings.length} role binding(s) from ${result.users} legacy user(s).`,
+    "permissions"
+  );
+  if (result.unknownMissions.length)
+    logger("warn", `Legacy mission names without a mission: ${result.unknownMissions.join(", ")}`, "permissions");
+  return result;
+}
+
+async function importLocked(transaction) {
+  const { AuthMeta, RoleBinding } = models();
   const result = await plan();
   for (const b of result.bindings)
     await RoleBinding.findOrCreate({
@@ -109,6 +135,7 @@ async function run() {
         layer_uuid: b.layer_uuid || null,
       },
       defaults: { source: b.source },
+      transaction,
     });
   await AuthMeta.upsert({
     key: IMPORT_KEY,
@@ -118,15 +145,7 @@ async function run() {
       providers: siteAccess.getProviders(),
       bindings: result.bindings.length,
     },
-  });
-  require("./principal").invalidate();
-  logger(
-    "info",
-    `Imported ${result.bindings.length} role binding(s) from ${result.users} legacy user(s).`,
-    "permissions"
-  );
-  if (result.unknownMissions.length)
-    logger("warn", `Legacy mission names without a mission: ${result.unknownMissions.join(", ")}`, "permissions");
+  }, { transaction });
   return result;
 }
 

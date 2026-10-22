@@ -163,6 +163,30 @@ function tokenExpired(row) {
   return Date.now() - new Date(row.createdAt).getTime() >= period;
 }
 
+// Value for the old plaintext `token` column of hashed rows. Older releases look
+// tokens up by that column, so it must never be derivable from the real token.
+function unusableLegacyToken() {
+  return `unusable_${crypto.randomBytes(32).toString("hex")}`;
+}
+
+// Hashed rows written before unusableLegacyToken kept a token prefix there
+async function scrubLegacyTokenColumn() {
+  const { LongTermTokens } = models();
+  const rows = await LongTermTokens.findAll({
+    where: {
+      token_hash: { [Op.ne]: null },
+      token: { [Op.notLike]: "unusable\\_%" },
+    },
+    attributes: ["id"],
+  });
+  for (const r of rows)
+    await LongTermTokens.update(
+      { token: unusableLegacyToken() },
+      { where: { id: r.id } }
+    );
+  return rows.length;
+}
+
 // Finds a token row by hash, upgrading a not-yet-hashed legacy row in place
 async function findToken(raw) {
   const { LongTermTokens } = models();
@@ -174,7 +198,7 @@ async function findToken(raw) {
   });
   if (!row) return null;
   await LongTermTokens.update(
-    { token_hash: hash, token_prefix: raw.slice(0, 12), token: raw.slice(0, 12) },
+    { token_hash: hash, token_prefix: raw.slice(0, 12), token: unusableLegacyToken() },
     { where: { id: row.id } }
   );
   return row;
@@ -255,5 +279,7 @@ module.exports = {
   onInvalidate,
   hashToken,
   tokenExpired,
+  unusableLegacyToken,
+  scrubLegacyTokenColumn,
   siteAccess,
 };

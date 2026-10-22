@@ -45,7 +45,7 @@ test.describe('SITE_ACCESS validation', () => {
     off: ['public', '["local"]'],
     none: ['optional', '["local"]'],
     local: ['required', '["local"]'],
-    csso: ['required', '["csso"]'],
+    csso: ['required', '["csso","local"]'],
   };
   for (const [auth, [access, providers]] of Object.entries(legacy))
     test(`legacy AUTH=${auth} fails with its exact replacement`, () => {

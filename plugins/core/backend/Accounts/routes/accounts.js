@@ -256,7 +256,11 @@ async function updateUser(req, id) {
   if (role === "superadmin") {
     await bindings.addBinding(actor, userBinding("superadmin", "global"));
   } else if (role === "mission_admin" || role === "user") {
-    await remove((b) => b.role === "superadmin" && b.scope_type === "global");
+    await remove(
+      (b) =>
+        (b.role === "superadmin" || b.role === "mission_admin") &&
+        b.scope_type === "global"
+    );
     // "User" has no editing or data administration anywhere
     if (role === "user") await remove((b) => b.role === "layer_editor" || b.role === "data_admin");
     await bindings.setUserMissionRole(
@@ -343,6 +347,11 @@ router.post("/updateDefaults", authorize("accounts.manage"), function (req, res)
 });
 
 router.post("/generateResetPasswordLink", authorize("accounts.manage"), function (req, res, next) {
+  // A reset link can sign in as its account, so it needs more than a token's scopes
+  if (req.principal && req.principal.kind === "token") {
+    res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    return;
+  }
   let id = null;
   if (req.body.hasOwnProperty("id") && req.body.id != null) {
     id = parseInt(req.body.id);

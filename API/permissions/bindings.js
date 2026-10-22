@@ -33,7 +33,7 @@ function withSuperAdminLock(fn) {
       lock: transaction.LOCK.UPDATE,
       transaction,
     });
-    const superAdmins = Array.from(new Set(rows.map((r) => parseInt(r.subject_id))));
+    const superAdmins = Array.from(new Set(rows.filter((r) => /^[1-9][0-9]*$/.test(r.subject_id)).map((r) => parseInt(r.subject_id))));
     return fn({ transaction, rows, superAdmins });
   });
 }
@@ -46,7 +46,7 @@ async function superAdminUserIds() {
     attributes: ["subject_id"],
     raw: true,
   });
-  return Array.from(new Set(rows.map((r) => parseInt(r.subject_id))));
+  return Array.from(new Set(rows.filter((r) => /^[1-9][0-9]*$/.test(r.subject_id)).map((r) => parseInt(r.subject_id))));
 }
 
 // Keeps the derived, read-only users.missions_managing column in step with bindings
@@ -132,7 +132,12 @@ async function afterChange(subject_type, subject_id) {
 async function addBinding(actor, input) {
   const { RoleBinding, AuthGroup, User } = models();
   const { subject_type, role, scope_type } = input;
-  const subject_id = String(input.subject_id);
+  let subject_id = String(input.subject_id);
+  if (subject_type === "user" || subject_type === "group") {
+    if (!/^[1-9][0-9]*$/.test(subject_id))
+      throw new BindingError(`Invalid ${subject_type} id.`);
+    subject_id = String(parseInt(subject_id));
+  }
   if (!policy.SUBJECT_TYPES.includes(subject_type)) throw new BindingError("Invalid subject type.");
   if (!policy.ROLES[role]) throw new BindingError("Invalid role.");
   if (!policy.ROLES[role].scopes.includes(scope_type))
