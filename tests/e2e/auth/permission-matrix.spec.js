@@ -448,6 +448,16 @@ test.describe.serial('Permission matrix', () => {
     expect(ok(await initialView(users.madmin, MISSION_A))).toBe(true);
   });
 
+  test('an update rejected for a duplicate email changes nothing', async () => {
+    const taken = `taken_${RUN}@example.test`;
+    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.viewer, email: taken }))).toBe(true);
+    const before = (await bindingsOf(ids.madmin)).map((b) => b.id).sort();
+    const r = await api(admin, 'POST', '/api/accounts/update', { id: ids.madmin, email: taken, role: 'user' });
+    expect(ok(r)).toBe(false);
+    expect((await bindingsOf(ids.madmin)).map((b) => b.id).sort()).toEqual(before);
+    expect(ok(await initialView(users.madmin, MISSION_A))).toBe(true);
+  });
+
   test('a bearer token keeps its limits when sent with a session', async () => {
     const gen = await api(users.madmin, 'POST', '/api/longtermtoken/generate', {
       name: `ros_${RUN}`, period: '86400000', scopes: 'read',

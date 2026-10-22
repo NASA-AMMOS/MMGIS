@@ -6,6 +6,7 @@ const express = require("express");
 const router = express.Router();
 const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
+const { Op } = require("sequelize");
 
 const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
@@ -219,6 +220,13 @@ async function updateUser(req, id) {
     throw new bindings.BindingError("Only SuperAdmins may change what a user can view.");
   if (body.role === "superadmin" && !policy.isSuperAdmin(actor))
     throw new bindings.BindingError("You cannot grant a role with more access than your own.");
+  if (body.email != null) {
+    await User.build({ email: body.email }).validate({ fields: ["email"] }).catch(() => {
+      throw new bindings.BindingError("Invalid email.");
+    });
+    if (await User.findOne({ where: { email: body.email, id: { [Op.ne]: id } }, attributes: ["id"] }))
+      throw new bindings.BindingError("Email already in use.");
+  }
   for (const name of new Set([...managing, ...viewingNames])) {
     const uuid = await missions.uuidForName(name);
     if (!uuid) throw new bindings.BindingError(`Mission not found: ${name}`);
