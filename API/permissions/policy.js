@@ -244,6 +244,14 @@ function accountRole(bindings) {
   return "user";
 }
 
+// Missions/shared: signed-in users, and guests who can view at least one mission
+function canReadSharedFolder(principal) {
+  if (!principal) return false;
+  if (principal.authenticated) return true;
+  const viewable = missionsWith(principal, "mission.view");
+  return viewable == null || viewable.length > 0;
+}
+
 module.exports = {
   CAPABILITIES,
   ALL_CAPABILITIES,
@@ -257,6 +265,7 @@ module.exports = {
   scopeChain,
   can,
   missionsWith,
+  canReadSharedFolder,
   layerRootsWith,
   capabilitiesOf,
   isSuperAdmin,

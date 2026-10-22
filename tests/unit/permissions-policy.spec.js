@@ -422,3 +422,24 @@ test.describe('mission-limited tokens and site-wide capabilities', () => {
     expect(can({ ...t, token: { scopes: null, missions: null } }, 'mission.create')).toBe(true);
   });
 });
+
+test.describe('shared mission folder', () => {
+  const { canReadSharedFolder } = policy;
+
+  test('signed-in users can always read it', () => {
+    expect(canReadSharedFolder(user([]))).toBe(true);
+    expect(canReadSharedFolder(withToken(user([]), { scopes: ['site.view'] }))).toBe(true);
+  });
+
+  test('guests need view access to at least one mission', () => {
+    expect(canReadSharedFolder(anonymous([]))).toBe(false);
+    expect(canReadSharedFolder(anonymous([['viewer', `mission:${M1}`]]))).toBe(true);
+    expect(canReadSharedFolder(anonymous([['viewer', 'global']]))).toBe(true);
+    expect(canReadSharedFolder(anonymous([['layer_editor', `layer:${M1}:${CHILD}`]]))).toBe(true);
+  });
+
+  test('guests on a site that requires login cannot', () => {
+    expect(canReadSharedFolder(anonymous([['viewer', 'global']], false))).toBe(false);
+    expect(canReadSharedFolder(null)).toBe(false);
+  });
+});
