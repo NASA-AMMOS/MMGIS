@@ -712,6 +712,7 @@ test.describe.serial('Permission matrix', () => {
       const stale = {};
       expect(ok(await api(stale, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() }))).toBe(true);
       const r4 = await api({}, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() });
+      expect(ok(r4), 'second login for the stale-session check').toBe(true);
       const saved4 = `MMGISUser=${encodeURIComponent(JSON.stringify({ username: name, token: r4.json.token }))}`;
       expect(ok(await api({ cookie: `${stale.cookie}; ${saved4}` }, 'POST', '/api/users/logout', {}))).toBe(true);
       expect(ok(await api({ cookie: saved4 }, 'POST', '/api/users/login', { useToken: true }, { localAddress: freshAddress() }))).toBe(false);
