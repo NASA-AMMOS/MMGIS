@@ -3,6 +3,7 @@
  * Loading all required dependencies, libraries and packages
  **********************************************************/
 const express = require("express");
+const { Op } = require("sequelize");
 const router = express.Router();
 const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
@@ -462,10 +463,13 @@ router.post("/logout", apilimiter, authorize.public("login and account self-serv
   } catch (err) {
     MMGISUser = false;
   }
-  // The session's own saved login ends; the cookie is a fallback for sessions without one
+  // The session's account loses the saved logins this browser holds (session and cookie);
+  // without a signed-in session, the cookie alone says which saved login ends
   const uid = req.session.uid;
-  const sessionToken = req.session.token;
-  const bySession = uid != null && typeof sessionToken === "string" && sessionToken.length > 0;
+  const tokens = [req.session.token, MMGISUser && MMGISUser.token].filter(
+    (t) => typeof t === "string" && t.length > 0
+  );
+  const bySession = uid != null && tokens.length > 0;
 
   clearLoginSession(req);
 
@@ -478,7 +482,7 @@ router.post("/logout", apilimiter, authorize.public("login and account self-serv
       },
       {
         where: bySession
-          ? { id: uid, token: sessionToken }
+          ? { id: uid, token: { [Op.in]: tokens } }
           : { username: String(MMGISUser.username), token: String(MMGISUser.token) },
       }
     )

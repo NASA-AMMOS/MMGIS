@@ -661,6 +661,14 @@ test.describe.serial('Permission matrix', () => {
       const saved3 = `MMGISUser=${encodeURIComponent(JSON.stringify({ username: name, token: r3.json.token }))}`;
       expect(ok(await api(older, 'POST', '/api/users/logout', {}))).toBe(true);
       expect(ok(await api({ cookie: saved3 }, 'POST', '/api/users/login', { useToken: true }, { localAddress: freshAddress() }))).toBe(true);
+
+      // An older session logging out with the newer saved-login cookie ends that saved login too
+      const stale = {};
+      expect(ok(await api(stale, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() }))).toBe(true);
+      const r4 = await api({}, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() });
+      const saved4 = `MMGISUser=${encodeURIComponent(JSON.stringify({ username: name, token: r4.json.token }))}`;
+      expect(ok(await api({ cookie: `${stale.cookie}; ${saved4}` }, 'POST', '/api/users/logout', {}))).toBe(true);
+      expect(ok(await api({ cookie: saved4 }, 'POST', '/api/users/login', { useToken: true }, { localAddress: freshAddress() }))).toBe(false);
     } finally {
       const entries = (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries;
       for (const e of entries.filter((x) => x.username === name || x.username === `${name}_x`))
