@@ -27,29 +27,46 @@ test.describe('Guests on open sites', () => {
     const rel = `Data/guest-access-${Date.now()}.json`;
     const file = path.join(process.cwd(), 'Missions', 'shared', rel);
     const url = `${baseURL}/Missions/shared/${rel}`;
-    const guestMissions = async () =>
-      (((await (await request.get(`${baseURL}/api/configure/missions`)).json().catch(() => null)) || {}).missions || []);
     const admin = await playwright.request.newContext({ baseURL });
+    const removed = [];
+    let grantId = null;
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, '{"shared":true}');
-    let grantId = null;
     try {
-      const login = await admin.post('/api/users/login', { data: ADMIN });
-      expect((await login.json()).status).toBe('success');
-      if ((await guestMissions()).length === 0) {
-        expect(await blocked(await request.get(url, { maxRedirects: 0 }))).toBe(true);
-        const add = await admin.post('/api/access/bindings/add', {
-          data: { subject_type: 'audience', subject_id: 'everyone', role: 'viewer', scope_type: 'mission', mission: 'Reference-Mission' },
-        });
-        const added = await add.json();
-        expect(added.status, JSON.stringify(added)).toBe('success');
-        grantId = added.body.id;
+      expect((await (await admin.post('/api/users/login', { data: ADMIN })).json()).status).toBe('success');
+      // Take away every guest grant so guests can view no mission
+      for (const audience of ['everyone', 'anonymous']) {
+        const list = await (await admin.get(`/api/access/bindings?subject_type=audience&subject_id=${audience}`)).json();
+        for (const b of list.body || []) {
+          expect((await (await admin.post('/api/access/bindings/remove', { data: { id: b.id } })).json()).status).toBe('success');
+          removed.push(b);
+        }
       }
+      expect(await blocked(await request.get(url, { maxRedirects: 0 }))).toBe(true);
+
+      const added = await (await admin.post('/api/access/bindings/add', {
+        data: { subject_type: 'audience', subject_id: 'everyone', role: 'viewer', scope_type: 'mission', mission: 'Reference-Mission' },
+      })).json();
+      expect(added.status, JSON.stringify(added)).toBe('success');
+      grantId = added.body.id;
       const r = await request.get(url, { maxRedirects: 0 });
       expect(r.status()).toBe(200);
       expect(await r.json()).toEqual({ shared: true });
     } finally {
       if (grantId != null) await admin.post('/api/access/bindings/remove', { data: { id: grantId } });
+      for (const b of removed) {
+        const restored = await admin.post('/api/access/bindings/add', {
+          data: {
+            subject_type: b.subject_type,
+            subject_id: b.subject_id,
+            role: b.role,
+            scope_type: b.scope_type,
+            mission: b.mission_name || b.mission,
+            layer_uuid: b.layer_uuid,
+          },
+        });
+        expect((await restored.json()).status, `restore ${b.subject_id} ${b.role}@${b.scope_type}`).toBe('success');
+      }
       await admin.dispose();
       fs.rmSync(file, { force: true });
     }
