@@ -81,14 +81,20 @@ When rolling back, also clear the sessions table (`DELETE FROM session;`) so eve
 
 - **SuperAdmins**: unchanged. More than one SuperAdmin is supported, and the last one can't be removed or demoted.
 - **Mission admins**: can edit the configuration and layers of their missions only. Creating, cloning, renaming or deleting missions, STAC, geodatasets, datasets, accounts, webhooks and site options are now SuperAdmin (or `data_admin` for data) operations.
-- **Layer editors (new)**: edit one layer folder and its children through the per-layer routes. Saving a whole configuration (`/api/configure/upsert`) or moving layers requires mission configuration access.
+- **Layer editors (new)**: edit one layer folder and everything inside it, and nothing else in the mission.
+  - They make their changes through the per-layer API routes, signed in or with a long-term token: `/api/configure/updateLayer` changes a layer in place, and `/api/configure/removeLayer` removes one. Adding layers with `/api/configure/addLayer` needs mission configuration access.
+  - Configure's **Save Changes** button saves the whole configuration through `/api/configure/upsert`, which needs mission configuration access (Mission Admin or SuperAdmin). A layer editor can open the mission in Configure, but Save Changes is refused, so their edits have to be made through the API.
+  - Moving a layer to another place in the tree, or changing its UUID, also needs mission configuration access.
 - **Viewers**: see only the missions they're granted. `Missions/shared` stays readable by any signed-in user, and by guests who can view at least one mission.
 
 Roles are granted to users, to groups, or to the `authenticated` / `everyone` audiences (`everyone` includes guests). SuperAdmin can only be granted to individual users, and audiences only get Viewer. Grants are made in **Configure → Users & Access**, which also shows each user's effective access and where it comes from.
 
 ## 4. Long-term tokens
 
-- Tokens and signed-in sessions of local accounts follow the current login rules on every request: they stop working when `local` is removed from `AUTH_PROVIDERS`, or, with `AUTH_LOCAL_LOGIN=admins`, when the account has no admin role.
+- Tokens and signed-in sessions of local accounts follow the current login rules on every request. They stop working when `local` is removed from `AUTH_PROVIDERS`, or, with `AUTH_LOCAL_LOGIN=admins`, when the account has no admin role.
+  - Under `AUTH_LOCAL_LOGIN=admins`, an account counts as an admin if it holds any editing or managing role: SuperAdmin, Data Admin, Mission Admin, or Layer Editor (even on a single layer folder). Viewer-only accounts are not admins.
+  - The check is on the account that created the token, not on the token's scopes. An admin's read-only or single-mission token keeps working; a viewer-only account's tokens stop working.
+  - A token can't make an account an admin: its scopes and mission limits only narrow what the account already has. Tokens can't be limited to one layer; that limit comes from the account's Layer Editor grant.
 - A password reset revokes all of the account's tokens.
 - New tokens are shown once and stored hashed. Existing tokens keep working and are converted to hashed storage on first use.
 - Tokens can be read-only or carry the creator's access, optionally limited to some missions, and can expire or be revoked.
