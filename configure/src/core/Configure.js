@@ -25,11 +25,11 @@ const useStyles = makeStyles((theme) => ({
   },
   left: {
     height: "100%",
-    width: "220px",
+    width: "260px",
   },
   right: {
     height: "100%",
-    width: "calc(100% - 220px)",
+    width: "calc(100% - 260px)",
     position: "relative",
   },
 }));

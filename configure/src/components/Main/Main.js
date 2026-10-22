@@ -88,15 +88,19 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     justifyContent: "start",
     width: "88px",
+    flexShrink: 0,
     padding: "4px",
   },
   right: {
     display: "flex",
     justifyContent: "end",
-    width: "88px",
+    minWidth: "88px",
+    flexShrink: 0,
     padding: "4px",
   },
   tabs: {
+    flex: 1,
+    minWidth: 0,
     "& > div": {
       borderRight: "none",
       height: "48px",

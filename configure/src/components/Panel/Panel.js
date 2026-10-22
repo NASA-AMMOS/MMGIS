@@ -14,7 +14,12 @@ import {
 } from "../../core/ConfigureStore";
 import { calls } from "../../core/calls";
 
-import SiteMenu from "../SiteMenu/SiteMenu";
+import {
+  NavRail,
+  SitePageList,
+  sectionForPage,
+  MISSIONS_SECTION,
+} from "../SiteMenu/SiteMenu";
 import NewMissionModal from "./Modals/NewMissionModal/NewMissionModal";
 
 import Button from "@mui/material/Button";
@@ -24,11 +29,17 @@ import WarningIcon from "@mui/icons-material/Warning";
 
 const useStyles = makeStyles((theme) => ({
   Panel: {
-    width: "220px",
+    width: "100%",
     height: "100%",
     background: theme.palette.secondary.main,
     backgroundImage: "url(configure/build/contours.png)",
     backgroundSize: "200%",
+    display: "flex",
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    height: "100%",
     display: "flex",
     flexFlow: "column",
   },
@@ -144,6 +155,14 @@ export default function Panel() {
 
   const missions = useSelector((state) => state.core.missions);
   const activeMission = useSelector((state) => state.core.mission);
+  const page = useSelector((state) => state.core.page);
+  const [section, setSection] = useState(
+    () => sectionForPage(page) || MISSIONS_SECTION,
+  );
+  useEffect(() => {
+    const s = sectionForPage(page);
+    if (s) setSection(s);
+  }, [page]);
   const [userPermissions, setUserPermissions] = useState(null);
 
   // Fetch user permissions to determine which missions can be edited
@@ -159,9 +178,9 @@ export default function Panel() {
           setSnackBarText({
             text: res?.message || "Failed to get user permissions.",
             severity: "error",
-          })
+          }),
         );
-      }
+      },
     );
   }, [dispatch]);
 
@@ -192,7 +211,7 @@ export default function Panel() {
   useEffect(() => {
     if (isVersionMismatch) {
       console.warn(
-        `⚠️ Version Mismatch Detected!\nConfigure UI (build): v${buildVersion}\nServer: v${serverVersion}\n\nPlease refresh the page or contact your administrator.`
+        `⚠️ Version Mismatch Detected!\nConfigure UI (build): v${buildVersion}\nServer: v${serverVersion}\n\nPlease refresh the page or contact your administrator.`,
       );
     }
   }, [isVersionMismatch, buildVersion, serverVersion]);
@@ -200,95 +219,107 @@ export default function Panel() {
   return (
     <>
       <div className={c.Panel}>
-        <div className={c.title}>
-          <img className={c.titleImage} src={mmgisLogo} alt="MMGIS"></img>
-          <div className={c.configurationName}>
-            <span>Config</span>uration
-          </div>
-          {buildVersion && (
-            <>
-              {isVersionMismatch ? (
-                <Tooltip
-                  title={
-                    <div className={c.versionMismatchTooltip}>
-                      <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
-                        Version Mismatch
+        <NavRail section={section} onSelect={setSection} can={can} />
+        <div className={c.content}>
+          <div className={c.title}>
+            <img className={c.titleImage} src={mmgisLogo} alt="MMGIS"></img>
+            <div className={c.configurationName}>
+              <span>Config</span>uration
+            </div>
+            {buildVersion && (
+              <>
+                {isVersionMismatch ? (
+                  <Tooltip
+                    title={
+                      <div className={c.versionMismatchTooltip}>
+                        <div
+                          style={{ fontWeight: "bold", marginBottom: "4px" }}
+                        >
+                          Version Mismatch
+                        </div>
+                        <div>Configure UI: v{buildVersion}</div>
+                        <div>Server: v{serverVersion}</div>
+                        <div style={{ marginTop: "4px", fontSize: "11px" }}>
+                          Please refresh or contact admin
+                        </div>
                       </div>
-                      <div>Configure UI: v{buildVersion}</div>
-                      <div>Server: v{serverVersion}</div>
-                      <div style={{ marginTop: "4px", fontSize: "11px" }}>
-                        Please refresh or contact admin
-                      </div>
+                    }
+                    placement="right"
+                    arrow
+                  >
+                    <div className={c.versionMismatch}>
+                      <WarningIcon />
+                      <span>v{buildVersion}</span>
                     </div>
-                  }
-                  placement="right"
-                  arrow
-                >
-                  <div className={c.versionMismatch}>
-                    <WarningIcon />
-                    <span>v{buildVersion}</span>
-                  </div>
-                </Tooltip>
-              ) : (
-                <div className={c.version}>v{buildVersion}</div>
+                  </Tooltip>
+                ) : (
+                  <div className={c.version}>v{buildVersion}</div>
+                )}
+              </>
+            )}
+          </div>
+          {section !== MISSIONS_SECTION ? (
+            <SitePageList section={section} can={can} />
+          ) : (
+            <>
+              {can("mission.create") && (
+                <div className={c.newMission}>
+                  <Button
+                    className={c.newMissionButton}
+                    variant="contained"
+                    disableElevation
+                    onClick={() => {
+                      dispatch(setModal({ name: "newMission" }));
+                    }}
+                  >
+                    New Mission
+                  </Button>
+                </div>
               )}
+              <div className={c.missions}>
+                <ul className={c.missionsUl}>
+                  {missions.map((mission, idx) => {
+                    const canEdit = canEditMission(mission);
+                    return (
+                      <li className={c.missionsLi} key={idx}>
+                        <Button
+                          className={clsx(
+                            {
+                              [c.missionActive]: mission === activeMission,
+                              [c.missionNotActive]: mission !== activeMission,
+                              [c.missionDisabled]: !canEdit,
+                            },
+                            c.missionButton,
+                          )}
+                          disableElevation
+                          onClick={() => {
+                            if (canEdit) {
+                              dispatch(setMission(mission));
+                            } else {
+                              dispatch(
+                                setSnackBarText({
+                                  text: `You don't have permission to edit the "${mission}" mission.`,
+                                  severity: "warning",
+                                }),
+                              );
+                            }
+                          }}
+                          title={
+                            canEdit
+                              ? mission
+                              : `No permission to edit "${mission}"`
+                          }
+                        >
+                          {mission}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             </>
           )}
         </div>
-        {can("mission.create") && (
-          <div className={c.newMission}>
-            <Button
-              className={c.newMissionButton}
-              variant="contained"
-              disableElevation
-              onClick={() => {
-                dispatch(setModal({ name: "newMission" }));
-              }}
-            >
-              New Mission
-            </Button>
-          </div>
-        )}
-        <div className={c.missions}>
-          <ul className={c.missionsUl}>
-            {missions.map((mission, idx) => {
-              const canEdit = canEditMission(mission);
-              return (
-                <li className={c.missionsLi} key={idx}>
-                  <Button
-                    className={clsx(
-                      {
-                        [c.missionActive]: mission === activeMission,
-                        [c.missionNotActive]: mission !== activeMission,
-                        [c.missionDisabled]: !canEdit,
-                      },
-                      c.missionButton
-                    )}
-                    disableElevation
-                    onClick={() => {
-                      if (canEdit) {
-                        dispatch(setMission(mission));
-                      } else {
-                        dispatch(
-                          setSnackBarText({
-                            text: `You don't have permission to edit the "${mission}" mission.`,
-                            severity: "warning",
-                          })
-                        );
-                      }
-                    }}
-                    title={
-                      canEdit ? mission : `No permission to edit "${mission}"`
-                    }
-                  >
-                    {mission}
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-        <SiteMenu />
       </div>
       <NewMissionModal />
     </>

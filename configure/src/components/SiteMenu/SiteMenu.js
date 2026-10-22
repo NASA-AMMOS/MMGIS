@@ -1,20 +1,13 @@
-// Site-level pages, grouped in one menu at the bottom of the side panel
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { makeStyles } from "@mui/styles";
+import clsx from "clsx";
 
-import { calls } from "../../core/calls";
 import { setMission, setPage } from "../../core/ConfigureStore";
 
 import Button from "@mui/material/Button";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import ListSubheader from "@mui/material/ListSubheader";
 
-import TuneIcon from "@mui/icons-material/Tune";
-import ArrowDropUpIcon from "@mui/icons-material/ArrowDropUp";
+import PublicIcon from "@mui/icons-material/Public";
 import StorageIcon from "@mui/icons-material/Storage";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
@@ -26,40 +19,107 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 
 const useStyles = makeStyles((theme) => ({
-  wrapper: {
-    padding: "8px",
-    borderTop: `2px solid ${theme.palette.swatches.grey[300]}`,
+  // Matches the main MMGIS map's left toolbar (#toolbar / .toolButton)
+  railSlot: {
+    width: "40px",
+    minWidth: "40px",
+    height: "100%",
+    position: "relative",
+    zIndex: 1200,
   },
-  button: {
-    width: "100%",
-    height: "40px",
-    justifyContent: "space-between !important",
-    fontWeight: "bold !important",
-    letterSpacing: "1px !important",
-    color: `${theme.palette.swatches.grey[0]} !important`,
-    background: `${theme.palette.swatches.p[0]} !important`,
-    boxShadow: "0px 2px 6px 0px rgba(0, 0, 0, 0.35) !important",
-    "&:hover": { background: `${theme.palette.swatches.p[4]} !important` },
-  },
-  label: {
-    flex: 1,
-    textAlign: "left",
-    paddingLeft: "8px",
+  rail: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: "40px",
     overflow: "hidden",
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
+    padding: "6px 0px",
+    boxSizing: "border-box",
+    display: "flex",
+    flexFlow: "column",
+    background: "#1d1f20",
+    borderRight: "1px solid #3a3e40",
+    boxShadow: "4px 8px 12px rgba(0, 0, 0, 0.4)",
+    transition: "width 150ms ease-out",
+    "&:hover, &:has(:focus-visible)": {
+      width: "190px",
+    },
+    "&:hover $railLabel, &:has(:focus-visible) $railLabel": {
+      opacity: 1,
+    },
   },
-  header: {
-    fontWeight: "bold !important",
+  railButton: {
+    width: "calc(100% - 6px)",
+    height: "34px",
+    minHeight: "34px",
+    margin: "1px 3px",
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    border: "none",
+    borderRadius: "8px",
+    background: "transparent",
+    color: "#e1e1e1",
+    cursor: "pointer",
+    transition: "all 0.15s",
+    "&:hover": { background: "#2c2f30", color: "#08aeea" },
+    "& svg": { fontSize: "18px" },
+  },
+  railIcon: {
+    width: "34px",
+    minWidth: "34px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  railLabel: {
+    paddingLeft: "6px",
+    fontSize: "14px",
+    whiteSpace: "nowrap",
+    opacity: 0,
+    transition: "opacity 150ms",
+  },
+  railActive: {
+    color: "#08aeea !important",
+    background: "#3a3e40 !important",
+  },
+  heading: {
+    color: theme.palette.swatches.grey[700],
+    fontSize: "12px",
+    fontWeight: "bold",
     textTransform: "uppercase",
     letterSpacing: "1px",
-    lineHeight: "32px !important",
+    padding: "16px 16px 8px 16px",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[300]}`,
+  },
+  pageButton: {
+    width: "100%",
+    justifyContent: "flex-start !important",
+    gap: "12px",
+    padding: "8px 16px !important",
+    color: `${theme.palette.swatches.grey[900]} !important`,
+    textTransform: "none !important",
+    fontSize: "15px !important",
+    borderRadius: "0px !important",
+    borderBottom: `1px solid ${theme.palette.swatches.grey[300]} !important`,
+  },
+  pageNotActive: {
+    "&:hover": { background: `${theme.palette.swatches.grey[200]} !important` },
+  },
+  pageActive: {
+    background: `${theme.palette.swatches.grey[1000]} !important`,
+    color: `${theme.palette.swatches.grey[100]} !important`,
+    fontWeight: "bold !important",
   },
 }));
 
-const GROUPS = [
+export const MISSIONS_SECTION = "Missions";
+
+export const SITE_GROUPS = [
   {
     name: "Data",
+    Icon: StorageIcon,
     pages: [
       { page: "data_formats", label: "Data Formats", Icon: StorageIcon },
       {
@@ -85,6 +145,7 @@ const GROUPS = [
   },
   {
     name: "Integrations",
+    Icon: ApiIcon,
     pages: [
       {
         page: "api_tokens",
@@ -103,6 +164,7 @@ const GROUPS = [
   },
   {
     name: "Site",
+    Icon: SettingsIcon,
     pages: [
       {
         page: "general_options",
@@ -120,85 +182,72 @@ const GROUPS = [
   },
 ];
 
-export default function SiteMenu() {
+const visibleWith = (can) => (p) =>
+  (!p.cap || can(p.cap)) &&
+  (!p.caps || p.caps.every(can)) &&
+  (!p.when || p.when());
+
+export const sectionForPage = (page) =>
+  (SITE_GROUPS.find((g) => g.pages.some((p) => p.page === page)) || {}).name;
+
+export function NavRail({ section, onSelect, can }) {
+  const c = useStyles();
+  const visible = visibleWith(can);
+  const sections = [
+    { name: MISSIONS_SECTION, Icon: PublicIcon },
+    ...SITE_GROUPS.filter((g) => g.pages.some(visible)),
+  ];
+  return (
+    <div className={c.railSlot}>
+      <nav className={c.rail} aria-label="Configure sections">
+        {sections.map((s) => (
+          <button
+            key={s.name}
+            type="button"
+            aria-label={s.name}
+            aria-current={section === s.name ? "true" : undefined}
+            className={clsx(c.railButton, {
+              [c.railActive]: section === s.name,
+            })}
+            onClick={() => onSelect(s.name)}
+          >
+            <span className={c.railIcon}>
+              <s.Icon />
+            </span>
+            <span className={c.railLabel}>{s.name}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+export function SitePageList({ section, can }) {
   const c = useStyles();
   const dispatch = useDispatch();
   const page = useSelector((state) => state.core.page);
-  const [anchor, setAnchor] = useState(null);
-  const [capabilities, setCapabilities] = useState(null);
-
-  useEffect(() => {
-    calls.api(
-      "user_permissions",
-      {},
-      (res) => setCapabilities(res?.capabilities || []),
-      () => setCapabilities([])
-    );
-  }, []);
-
-  // Until capabilities load, only SuperAdmins see everything
-  const can = (cap) =>
-    capabilities
-      ? capabilities.includes(cap)
-      : window.mmgisglobal?.role === "superadmin";
-  const visible = (p) =>
-    (!p.cap || can(p.cap)) &&
-    (!p.caps || p.caps.every(can)) &&
-    (!p.when || p.when());
-
-  const items = [];
-  GROUPS.forEach((g) => {
-    const pages = g.pages.filter(visible);
-    if (!pages.length) return;
-    items.push(
-      <ListSubheader key={g.name} className={c.header}>
-        {g.name}
-      </ListSubheader>
-    );
-    pages.forEach((p) =>
-      items.push(
-        <MenuItem
+  const group = SITE_GROUPS.find((g) => g.name === section);
+  if (!group) return null;
+  return (
+    <div>
+      <div className={c.heading}>{group.name}</div>
+      {group.pages.filter(visibleWith(can)).map((p) => (
+        <Button
           key={p.page}
+          className={clsx(c.pageButton, {
+            [c.pageActive]: page === p.page,
+            [c.pageNotActive]: page !== p.page,
+          })}
+          disableElevation
           onClick={() => {
-            setAnchor(null);
             dispatch(setMission(null));
             dispatch(setPage({ page: p.page }));
           }}
         >
-          <ListItemIcon>
-            <p.Icon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>{p.label}</ListItemText>
-        </MenuItem>
-      )
-    );
-  });
-
-  const active = GROUPS.flatMap((g) => g.pages).find((p) => p.page === page);
-
-  return (
-    <div className={c.wrapper}>
-      <Button
-        className={c.button}
-        variant="contained"
-        disableElevation
-        startIcon={<TuneIcon />}
-        endIcon={<ArrowDropUpIcon />}
-        onClick={(e) => setAnchor(e.currentTarget)}
-      >
-        <span className={c.label}>
-          {active ? `Site: ${active.label}` : "Site Pages"}
-        </span>
-      </Button>
-      <Menu
-        anchorEl={anchor}
-        open={!!anchor}
-        onClose={() => setAnchor(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "left" }}
-        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
-      >
-        {items}
-      </Menu>
+          <p.Icon fontSize="small" />
+          {p.label}
+        </Button>
+      ))}
     </div>
   );
 }
