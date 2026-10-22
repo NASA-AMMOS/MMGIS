@@ -100,6 +100,8 @@ async function resolveRequest(principal, body) {
   } else if (!policy.isSuperAdmin(principal) && !hasAnyWrite(principal)) {
     scopes = policy.READ_CAPABILITIES.filter(holds);
   }
+  if (body.missions != null && !Array.isArray(body.missions))
+    throw new TokenError("missions must be null or an array of mission names.");
   let missionUUIDs = null;
   if (Array.isArray(body.missions)) {
     missionUUIDs = [];

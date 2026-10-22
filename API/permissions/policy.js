@@ -252,6 +252,13 @@ function canReadSharedFolder(principal) {
   return viewable == null || viewable.length > 0;
 }
 
+// Adjacent servers (STAC, TiTiler, TiPG, ...) serve data, so a token also needs the STAC capability
+function canUseAdjacentServer(principal, method) {
+  if (!principal || principal.kind !== "token") return true;
+  const read = method === "GET" || method === "HEAD";
+  return can(principal, read ? "data.stac.read" : "data.stac.write");
+}
+
 module.exports = {
   CAPABILITIES,
   ALL_CAPABILITIES,
@@ -266,6 +273,7 @@ module.exports = {
   can,
   missionsWith,
   canReadSharedFolder,
+  canUseAdjacentServer,
   layerRootsWith,
   capabilitiesOf,
   isSuperAdmin,

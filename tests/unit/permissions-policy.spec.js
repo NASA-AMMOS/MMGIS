@@ -443,3 +443,39 @@ test.describe('shared mission folder', () => {
     expect(canReadSharedFolder(null)).toBe(false);
   });
 });
+
+test.describe('adjacent servers', () => {
+  const { canUseAdjacentServer } = policy;
+  const editor = user([['layer_editor', `mission:${M1}`]]);
+  const admin = user([['superadmin', 'global']]);
+
+  test('sessions and guests are left to the site gate', () => {
+    for (const method of ['GET', 'POST', 'DELETE']) {
+      expect(canUseAdjacentServer(editor, method)).toBe(true);
+      expect(canUseAdjacentServer(anonymous([]), method)).toBe(true);
+    }
+  });
+
+  test('tokens need data.stac.read to read and data.stac.write to change anything', () => {
+    const siteOnly = withToken(admin, { scopes: ['site.view'] });
+    expect(canUseAdjacentServer(siteOnly, 'GET')).toBe(false);
+    expect(canUseAdjacentServer(siteOnly, 'POST')).toBe(false);
+    const read = withToken(admin, { scopes: ['data.stac.read'] });
+    expect(canUseAdjacentServer(read, 'GET')).toBe(true);
+    expect(canUseAdjacentServer(read, 'HEAD')).toBe(true);
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) expect(canUseAdjacentServer(read, method)).toBe(false);
+    expect(canUseAdjacentServer(withToken(admin, {}), 'DELETE')).toBe(true);
+  });
+
+  test('a token cannot write STAC unless its creator can', () => {
+    expect(canUseAdjacentServer(withToken(editor, {}), 'GET')).toBe(true);
+    expect(canUseAdjacentServer(withToken(editor, {}), 'POST')).toBe(false);
+    expect(canUseAdjacentServer(withToken(editor, { scopes: ['mission.layer.edit'] }), 'POST')).toBe(false);
+  });
+
+  test('a mission-limited token can read but not write', () => {
+    const limited = withToken(admin, { missions: [M1] });
+    expect(canUseAdjacentServer(limited, 'GET')).toBe(true);
+    expect(canUseAdjacentServer(limited, 'POST')).toBe(false);
+  });
+});

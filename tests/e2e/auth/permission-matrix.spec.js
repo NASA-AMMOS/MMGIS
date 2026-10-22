@@ -407,6 +407,11 @@ test.describe.serial('Permission matrix', () => {
       name: `rwB_${RUN}`, period: '86400000', scopes: null, missions: [MISSION_B],
     });
     expect(ok(wider)).toBe(false);
+    // A single mission name instead of a list is refused, not ignored
+    const unlisted = await api(users.madmin, 'POST', '/api/longtermtoken/generate', {
+      name: `rwS_${RUN}`, period: '86400000', scopes: null, missions: MISSION_A,
+    });
+    expect(ok(unlisted)).toBe(false);
 
     expect(ok(await initialView(null, MISSION_A, { bearer: token }))).toBe(true);
     expect(denied(await initialView(null, MISSION_B, { bearer: token }))).toBe(true);
