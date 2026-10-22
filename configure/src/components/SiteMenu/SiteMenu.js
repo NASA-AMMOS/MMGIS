@@ -38,7 +38,7 @@ const useStyles = makeStyles((theme) => ({
     boxSizing: "border-box",
     display: "flex",
     flexFlow: "column",
-    background: "#1d1f20",
+    background: "#1a1a1a",
     borderRight: "1px solid #3a3e40",
     boxShadow: "4px 8px 12px rgba(0, 0, 0, 0.4)",
     transition: "width 150ms ease-out",
@@ -79,6 +79,12 @@ const useStyles = makeStyles((theme) => ({
     whiteSpace: "nowrap",
     opacity: 0,
     transition: "opacity 150ms",
+  },
+  railCollapsed: {
+    width: "40px !important",
+    "& $railLabel": {
+      opacity: "0 !important",
+    },
   },
   railActive: {
     color: "#08aeea !important",
@@ -193,13 +199,18 @@ export const sectionForPage = (page) =>
 export function NavRail({ section, onSelect, can }) {
   const c = useStyles();
   const visible = visibleWith(can);
+  const [collapsed, setCollapsed] = React.useState(false);
   const sections = [
     { name: MISSIONS_SECTION, Icon: PublicIcon },
     ...SITE_GROUPS.filter((g) => g.pages.some(visible)),
   ];
   return (
     <div className={c.railSlot}>
-      <nav className={c.rail} aria-label="Configure sections">
+      <nav
+        className={clsx(c.rail, { [c.railCollapsed]: collapsed })}
+        aria-label="Configure sections"
+        onMouseLeave={() => setCollapsed(false)}
+      >
         {sections.map((s) => (
           <button
             key={s.name}
@@ -209,7 +220,10 @@ export function NavRail({ section, onSelect, can }) {
             className={clsx(c.railButton, {
               [c.railActive]: section === s.name,
             })}
-            onClick={() => onSelect(s.name)}
+            onClick={(e) => {
+              if (e.detail > 0) setCollapsed(true);
+              onSelect(s.name);
+            }}
           >
             <span className={c.railIcon}>
               <s.Icon />
