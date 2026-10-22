@@ -40,15 +40,13 @@ import Time from "../Tabs/Time/Time";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 import APITokens from "../../pages/APITokens/APITokens";
-import Access from "../../pages/Access/Access";
-import UA_V1 from "../../pages/UA_v1/UA_v1";
+import UsersAccess from "../../pages/UsersAccess/UsersAccess";
 import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
 import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
 import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
-import Users from "../../pages/Users/Users";
 import DataFormats from "../../pages/DataFormats/DataFormats";
 
 const useStyles = makeStyles((theme) => ({
@@ -242,13 +240,9 @@ export default function Main() {
       Page = <GeneralOptions />;
       break;
     case "users":
-      Page = <Users />;
-      break;
     case "access":
-      Page = <Access />;
-      break;
     case "ua_v1":
-      Page = <UA_V1 />;
+      Page = <UsersAccess />;
       break;
     case "data_formats":
       Page = <DataFormats />;

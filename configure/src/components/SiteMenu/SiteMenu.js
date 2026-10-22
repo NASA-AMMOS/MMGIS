@@ -23,8 +23,6 @@ import KeyIcon from "@mui/icons-material/Key";
 import ApiIcon from "@mui/icons-material/Api";
 import PhishingIcon from "@mui/icons-material/Phishing";
 import SettingsIcon from "@mui/icons-material/Settings";
-import AccountBoxIcon from "@mui/icons-material/AccountBox";
-import SecurityIcon from "@mui/icons-material/Security";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 
 const useStyles = makeStyles((theme) => ({
@@ -114,19 +112,7 @@ const GROUPS = [
       },
       {
         page: "users",
-        label: "Users",
-        Icon: AccountBoxIcon,
-        cap: "accounts.manage",
-      },
-      {
-        page: "access",
-        label: "Access",
-        Icon: SecurityIcon,
-        cap: "groups.manage",
-      },
-      {
-        page: "ua_v1",
-        label: "UA_v1",
+        label: "Users & Access",
         Icon: ManageAccountsIcon,
         caps: ["accounts.manage", "groups.manage"],
       },

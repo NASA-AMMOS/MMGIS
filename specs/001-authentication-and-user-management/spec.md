@@ -31,7 +31,7 @@ Access is granted through role bindings (`role_bindings`). Each binding gives a 
   - **layer_editor** - view the mission, edit a layer and its children.
   - **viewer** - view the mission.
 
-Rules are allow-only. Nobody can grant a role they don't hold at that scope. Every `/api` route declares its capability with `authorize()` (`API/permissions/authorize.js`), and the server refuses to start if one doesn't. Configure → Access manages groups, bindings and shows effective access.
+Rules are allow-only. Nobody can grant a role they don't hold at that scope. Every `/api` route declares its capability with `authorize()` (`API/permissions/authorize.js`), and the server refuses to start if one doesn't. Configure → Users & Access manages groups, bindings and shows effective access.
 
 The legacy `users.permission` column is left untouched for rollback and is read only by the one-time import (`API/permissions/legacyPermissions.js`); nothing writes it and it grants nothing.
 
@@ -217,7 +217,7 @@ Protected by `ensureAdmin()` middleware:
 - Token-based password reset interface
 - Password strength validation
 
-### Users Management Interface (`configure/src/pages/Users/Users.js`)
+### Users & Access Interface (`configure/src/pages/UsersAccess/UsersAccess.js`)
 - React-based Material-UI table component
 - Sortable user list with pagination
 - Role badges (color-coded by permission level)
@@ -395,7 +395,7 @@ Migrations run automatically on application startup after table synchronization.
 - Token Routes: `API/Backend/LongTermToken/routes/longtermtokens.js`
 - Token Model: `API/Backend/LongTermToken/models/longtermtokens.js`
 - Server Middleware: `scripts/server.js`
-- UI Components: `configure/src/pages/Users/Users.js`
+- UI Components: `configure/src/pages/UsersAccess/UsersAccess.js`
 - Login Templates: `views/login.pug`, `views/adminlogin.pug`, `views/resetpassword.pug`
 - Environment Documentation: `docs/pages/Setup/ENVs/ENVs.md`
 

@@ -261,6 +261,14 @@ var Login = {
             }
         )
     },
+    setSignUpView: function (signUp) {
+        Login.signUp = signUp
+        $('#loginModalTitle').text(signUp ? 'Sign Up' : 'Log In')
+        $('#loginEmail').css({ display: signUp ? 'inherit' : 'none' })
+        $('#loginRetypePassword').css({ display: signUp ? 'inherit' : 'none' })
+        $('#loginSubmit').val(signUp ? 'Sign Up' : 'Sign In')
+        $('#loginInUpToggle').html(signUp ? 'or sign in' : 'or sign up')
+    },
     createModal: function () {
         this.removeModal()
 
@@ -284,27 +292,14 @@ var Login = {
 
         modal.append($('<div>').attr('id', 'loginModalBody').html(modalFormSignIn))
 
-        // Hide visitor sign-up when the server would refuse it
-        if (window.mmgisglobal.SELF_SIGNUP === 'false')
+        // Admins opening account creation start in sign-up; visitors only see the toggle if they may sign up
+        Login.setSignUpView(Login.signUp)
+        if (window.mmgisglobal.SELF_SIGNUP === 'false' && !Login.signUp)
             $('#loginModal #loginInUpToggle').hide()
 
         $('#loginModal #loginInUpToggle').on('click', function () {
             $('#loginErrorMessage').animate({ opacity: '0' }, 500)
-            if (!Login.signUp) {
-                Login.signUp = true
-                $('#loginModalTitle').text('Sign Up')
-                $('#loginEmail').css({ display: 'inherit' })
-                $('#loginRetypePassword').css({ display: 'inherit' })
-                $('#loginSubmit').val('Sign Up')
-                $('#loginInUpToggle').html('or sign in')
-            } else {
-                Login.signUp = false
-                $('#loginModalTitle').text('Log In')
-                $('#loginEmail').css({ display: 'none' })
-                $('#loginRetypePassword').css({ display: 'none' })
-                $('#loginSubmit').val('Sign In')
-                $('#loginInUpToggle').html('or sign up')
-            }
+            Login.setSignUpView(!Login.signUp)
         })
 
         $('#loginUsernameInput').on('change paste keyup', function () {

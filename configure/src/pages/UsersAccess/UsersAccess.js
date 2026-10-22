@@ -1,4 +1,4 @@
-// Combined Users & Access page (draft; the Users and Access pages remain for reference)
+// Users & Access page: accounts, groups and access grants
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
@@ -50,9 +50,9 @@ import GroupsIcon from "@mui/icons-material/Groups";
 import PublicIcon from "@mui/icons-material/Public";
 import HowToRegIcon from "@mui/icons-material/HowToReg";
 
-import ResetPasswordModal from "../Users/Modals/ResetPasswordModal/ResetPasswordModal";
-import DeleteUserModal from "../Users/Modals/DeleteUserModal/DeleteUserModal";
-import NewUserModal from "../Users/Modals/NewUserModal/NewUserModal";
+import ResetPasswordModal from "./Modals/ResetPasswordModal/ResetPasswordModal";
+import DeleteUserModal from "./Modals/DeleteUserModal/DeleteUserModal";
+import NewUserModal from "./Modals/NewUserModal/NewUserModal";
 
 const useStyles = makeStyles((theme) => ({
   page: {
@@ -63,7 +63,7 @@ const useStyles = makeStyles((theme) => ({
     background: theme.palette.swatches.grey[1000],
     backgroundImage: "url(configure/build/gridlines.png)",
   },
-  // topbar/topbarTitle/addButton match the Users page toolbar
+  // Toolbar: title and add button
   topbar: {
     width: "calc(100% - 100px)",
     height: "44px",
@@ -78,7 +78,7 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.swatches.grey[150],
     "& > svg": { color: theme.palette.swatches.grey[150], margin: "3px 10px 0px 2px" },
   },
-  // Same panel look as the Users page's "Default viewable missions" box
+  // Panel used for the "Default for new accounts" box
   toolbarBox: {
     padding: "12px 16px",
     background: theme.palette.swatches.grey[850],
@@ -109,11 +109,11 @@ const useStyles = makeStyles((theme) => ({
   bar: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" },
   grow: { flex: 1 },
   hint: { fontSize: "13px", opacity: 0.75, marginBottom: "12px" },
-  // Matches the Users page table
+  // People table
   table: {
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
     "& tr": { background: theme.palette.swatches.grey[850] },
-    // Matches the Users page header cells
+    // Header cells
     "& th": {
       fontWeight: "bold !important",
       fontSize: "13px",
@@ -970,7 +970,11 @@ const PEOPLE_COLUMNS = [
   ["admin", "Mission Admin", (r) => r.s.missionAdmin.length],
   ["layer", "Layer Editor", (r) => r.s.layerEditor.length],
   ["groups", "Groups", (r) => r.s.groupNames.join(", ").toLowerCase()],
+  ["created", "Created", (r) => r.u.createdAt || ""],
+  ["updated", "Updated", (r) => r.u.updatedAt || ""],
 ];
+
+const dateText = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 
 function SiteRoleBadges({ siteRoles, roles }) {
   const c = useStyles();
@@ -994,7 +998,7 @@ function MissionList({ items }) {
   );
 }
 
-export default function UsersAccessV1() {
+export default function UsersAccess() {
   const c = useStyles();
   const dispatch = useDispatch();
   const notify = useCallback((text, severity) => dispatch(setSnackBarText({ text, severity })), [dispatch]);
@@ -1015,6 +1019,7 @@ export default function UsersAccessV1() {
   const [confirm, setConfirm] = useState(null);
   const [version, setVersion] = useState(0);
   const [missionPick, setMissionPick] = useState("");
+  const [grantSearch, setGrantSearch] = useState("");
   const [newGroup, setNewGroup] = useState({ name: "", source: "local", external_name: "" });
   const [providers] = useState(
     String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local")
@@ -1090,6 +1095,22 @@ export default function UsersAccessV1() {
         .map((b) => ({ b, removable: true, via: b.scope_type === "global" ? "Site-wide grant" : sourceText(b) }))
     : [];
 
+  const subjectText = (b) => {
+    if (b.subject_type === "user") return (users.find((u) => String(u.id) === String(b.subject_id)) || {}).username || `user ${b.subject_id}`;
+    if (b.subject_type === "group") return (groups.find((g) => String(g.id) === String(b.subject_id)) || {}).name || String(b.subject_id);
+    return AUDIENCE_LABEL[b.subject_id] || b.subject_id;
+  };
+  const allGrantRows = (() => {
+    const q = grantSearch.trim().toLowerCase();
+    return bindings
+      .map((b) => ({ b, removable: true, via: sourceText(b) }))
+      .filter(({ b }) =>
+        !q ||
+        [subjectText(b), (roles[b.role] && roles[b.role].label) || b.role, whereText(b, allLayerPaths)].some((t) => String(t).toLowerCase().includes(q))
+      )
+      .sort((x, y) => subjectText(x.b).localeCompare(subjectText(y.b)));
+  })();
+
   const audienceState = (a) => {
     const own = bindings.filter((b) => b.subject_type === "audience" && b.subject_id === a && b.role === "viewer");
     if (own.some((b) => b.scope_type === "global")) return { mode: "all", list: [], own };
@@ -1125,7 +1146,7 @@ export default function UsersAccessV1() {
         <div className={c.topbarTitle}>
           <ManageAccountsIcon />
           <Typography style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }} variant="h6" component="div">
-            Users &amp; Access (UA_v1)
+            Users &amp; Access
           </Typography>
         </div>
       </Toolbar>
@@ -1134,6 +1155,7 @@ export default function UsersAccessV1() {
         <Tab label="Groups" />
         <Tab label="Missions" />
         <Tab label="Site-wide" />
+        <Tab label="All grants" />
       </Tabs>
       <div className={c.content}>
         {tab === 0 && (
@@ -1177,6 +1199,8 @@ export default function UsersAccessV1() {
                       <TableCell>{s.missionAdmin.length ? <MissionList items={s.missionAdmin} /> : <span className={c.muted}>—</span>}</TableCell>
                       <TableCell>{s.layerEditor.length ? <MissionList items={s.layerEditor} /> : <span className={c.muted}>—</span>}</TableCell>
                       <TableCell>{s.groupNames.length ? s.groupNames.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell className={c.muted}>{dateText(u.createdAt)}</TableCell>
+                      <TableCell className={c.muted}>{dateText(u.updatedAt)}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -1287,6 +1311,24 @@ export default function UsersAccessV1() {
                   .catch((res) => notify(res.message || "Failed to update default.", "error"))
               } />
           </>
+        )}
+        {tab === 4 && (
+          <div className={c.pane}>
+            <div className={`${c.bar} ${c.toolbarBox}`}>
+              <TextField
+                size="small"
+                className={`${c.field} ${c.search}`}
+                placeholder="Filter by who, role or where"
+                value={grantSearch}
+                onChange={(e) => setGrantSearch(e.target.value)}
+                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
+              />
+              <span className={c.grow} />
+              <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => openGrant({})}>Add access</Button>
+            </div>
+            <div className={c.hint}>Every grant on this site, whoever it's for.</div>
+            <GrantsTable rows={allGrantRows} roles={roles} layerPaths={allLayerPaths} viaText={subjectName} onRemove={(b) => askRemove(b)} emptyText={grantSearch ? "No grants match." : "No access granted yet."} />
+          </div>
         )}
       </div>
 

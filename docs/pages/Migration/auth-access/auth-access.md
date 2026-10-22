@@ -80,7 +80,7 @@ The legacy columns are kept, so rolling back to the previous image still works. 
 - **Layer editors (new)**: edit one layer folder and its children through the per-layer routes. Saving a whole configuration (`/api/configure/upsert`) or moving layers requires mission configuration access.
 - **Viewers**: see only the missions they're granted. `Missions/shared` stays readable by any signed-in user, and by guests who can view at least one mission.
 
-Roles are granted to users, to groups, or to the `authenticated` / `everyone` audiences (`everyone` includes guests). SuperAdmin can only be granted to individual users, and audiences only get Viewer. Grants are made in **Configure → Access**, which also shows each user's effective access and where it comes from.
+Roles are granted to users, to groups, or to the `authenticated` / `everyone` audiences (`everyone` includes guests). SuperAdmin can only be granted to individual users, and audiences only get Viewer. Grants are made in **Configure → Users & Access**, which also shows each user's effective access and where it comes from.
 
 ## 4. Long-term tokens
 
