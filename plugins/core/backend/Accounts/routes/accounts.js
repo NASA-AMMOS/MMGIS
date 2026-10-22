@@ -220,6 +220,8 @@ async function updateUser(req, id) {
     throw new bindings.BindingError("Only SuperAdmins may change what a user can view.");
   if (body.role === "superadmin" && !policy.isSuperAdmin(actor))
     throw new bindings.BindingError("You cannot grant a role with more access than your own.");
+  if (body.email === "") body.email = null;
+  const clearEmail = Object.prototype.hasOwnProperty.call(body, "email") && body.email === null;
   if (body.email != null) {
     await User.build({ email: body.email }).validate({ fields: ["email"] }).catch(() => {
       throw new bindings.BindingError("Invalid email.");
@@ -283,7 +285,7 @@ async function updateUser(req, id) {
     await bindings.setUserMissionRole(actor, id, "viewer", viewing || []);
     await User.update({ missions_viewing: viewing }, { where: { id }, hooks: false });
   }
-  if (body.email != null)
+  if (body.email != null || clearEmail)
     // Only the email column; never password/username
     await User.update({ email: body.email }, { where: { id }, hooks: false });
   await bindings.afterChange("user", id);

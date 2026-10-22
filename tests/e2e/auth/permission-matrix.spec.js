@@ -358,6 +358,16 @@ test.describe.serial('Permission matrix', () => {
     expect(denied(await api(users.grouped, 'POST', '/api/geodatasets/recreate', {}))).toBe(true);
   });
 
+  test('an account email can be changed and cleared', async () => {
+    const mail = `pm_${RUN}@example.org`;
+    const emailOf = async () => (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.id === ids.viewer).email;
+    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.viewer, email: mail }))).toBe(true);
+    expect(await emailOf()).toBe(mail);
+    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.viewer, email: '' }))).toBe(true);
+    expect(await emailOf()).toBeNull();
+    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.viewer, email: 'not-an-email' }))).toBe(false);
+  });
+
   test('cloning without a new mission name is refused', async () => {
     const r = await api(admin, 'POST', '/api/configure/clone', { existingMission: MISSION_A });
     expect(ok(r)).toBe(false);

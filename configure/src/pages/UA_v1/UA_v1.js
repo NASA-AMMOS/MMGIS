@@ -656,7 +656,8 @@ function PersonPanel({ user, ctx }) {
   const myTokens = tokens.filter((t) => t.created_by_user_id === user.id);
 
   const trimmedEmail = email.trim();
-  const canSaveEmail = trimmedEmail !== "" && trimmedEmail !== (user.email || "");
+  // A blank field removes the email
+  const canSaveEmail = trimmedEmail !== (user.email || "");
   const saveEmail = () =>
     api("account_update_user", { id: user.id, email: trimmedEmail })
       .then(() => {
