@@ -1741,8 +1741,25 @@ router.post("/publish", authorize("draw.use"), function (req, res, next) {
  * 	id: <int>
  * }
  */
-router.post("/gethistory", authorize("draw.use"), function (req, res, next) {
+router.post("/gethistory", authorize("draw.use"), async function (req, res, next) {
   let Table = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
+  let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
+
+  // Same access as reading the file itself
+  let file = null;
+  if (/^[0-9]+$/.test(String(req.body.id)))
+    file = await Files.findOne({
+      where: {
+        id: req.body.id,
+        [Sequelize.Op.or]: { file_owner: req.user, public: "1" },
+      },
+      attributes: ["file_owner", "mission"],
+      raw: true,
+    }).catch(() => null);
+  if (!file || !(await filesutils.canViewFileMissions(req, [file]))) {
+    res.send({ status: "failure", message: "Failed to get history.", body: {} });
+    return;
+  }
 
   Table.findAll({
     where: {

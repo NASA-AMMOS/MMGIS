@@ -203,6 +203,7 @@ async function completeLogin(req, identity) {
   );
   req.session.user = user.username;
   req.session.uid = user.id;
+  req.session.provider = identity.provider;
   req.session.token = crypto.randomBytes(128).toString("hex");
   await new Promise((resolve, reject) =>
     req.session.save((err) => (err ? reject(err) : resolve()))

@@ -38,13 +38,37 @@ const websocket = {
     websocket.wss = wss;
     const { getRequestHost, isOriginAllowed } = require("./origin");
 
-    // Broadcast to all clients
+    // Sends each mission's updates only to clients that can view that mission
     wss.broadcast = function broadcast(data, isBinary) {
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN && data !== undefined) {
-          client.send(data, { binary: isBinary });
-        }
-      });
+      if (data === undefined) return;
+      let mission = null;
+      try {
+        const parsed = JSON.parse(data);
+        mission = parsed && parsed.body ? parsed.body.mission : null;
+      } catch (err) {}
+      if (typeof mission !== "string" || mission === "") return;
+      const policy = require("./permissions/policy");
+      require("./permissions/missions")
+        .uuidForName(mission)
+        .then((uuid) => {
+          if (!uuid) return;
+          wss.clients.forEach((client) => {
+            if (client.readyState !== WebSocket.OPEN || !client.mmgisViewer) return;
+            client
+              .mmgisViewer()
+              .then((p) => {
+                if (
+                  client.readyState === WebSocket.OPEN &&
+                  policy.can(p, "mission.view", { mission: uuid })
+                )
+                  client.send(data, { binary: isBinary });
+              })
+              .catch(() => {});
+          });
+        })
+        .catch((err) =>
+          logger("error", "Failed to broadcast websocket update.", "websocket", null, err)
+        );
     };
 
     wss.on("connection", (ws, request) => {
@@ -104,21 +128,24 @@ const websocket = {
             .catch(() => null);
 
         const completeUpgrade = async () => {
-          // Guests are allowed unless SITE_ACCESS=required
-          const authenticated =
-            siteAccess.guestsAllowed() ||
-            (request.session &&
-              (request.session.uid != null ||
-                (typeof request.session.user === "string" &&
-                  request.session.user.length > 0))) ||
-            (await providerIdentity()) != null;
+          const identity = await providerIdentity();
+          // Resolved again on every broadcast, so removed access and deleted accounts apply at once
+          const viewer = () =>
+            require("./permissions/principal").resolvePrincipal({
+              headers: request.headers,
+              session: request.session || {},
+              identity: identity || undefined,
+            });
+          const p = await viewer();
 
-          if (!authenticated) {
+          // Guests are allowed unless SITE_ACCESS=required; a deleted account's session is a guest
+          if (p.kind === "invalid_token" || !(p.authenticated || siteAccess.guestsAllowed())) {
             reject("unauthenticated session");
             return;
           }
 
           wss.handleUpgrade(request, socket, head, function done(ws) {
+            ws.mmgisViewer = viewer;
             wss.emit("connection", ws, request);
           });
         };

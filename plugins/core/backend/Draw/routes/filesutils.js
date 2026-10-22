@@ -672,4 +672,4 @@ function getfile(req, res, next) {
   }
 }
 
-module.exports = { getfile };
+module.exports = { getfile, canViewFileMissions };

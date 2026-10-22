@@ -8,6 +8,7 @@ const bodyParser = require("body-parser");
 const logger = require("../API/logger");
 const createTitilerUrlValidator = require("./validateTitilerUrl");
 const createTitilerExpressionValidator = require("./validateTitilerExpression");
+const { routedPath, stripCredentials } = require("./proxyPath");
 
 function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
   ///////////////////////////
@@ -28,6 +29,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: stripCredentials,
           proxyRes: createSwaggerInterceptor("stac", stacTarget),
         },
       })
@@ -50,6 +52,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: stripCredentials,
           proxyRes: createSwaggerInterceptor("tipg", tipgTarget),
         },
       })
@@ -69,10 +72,15 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     app.use(
       `${process.env.ROOT_PATH || ""}/titiler`,
       (req, res, next) => {
-        const url = req.originalUrl.split('?')[0].toLowerCase();
+        // Checked on the path TiTiler will route, so encodings like %73tac or //stac can't skip it
+        const url = routedPath(req.originalUrl);
+        if (url == null) {
+          res.status(400).send({ status: "failure", message: "Invalid path." });
+          return;
+        }
 
-        // /cog/stac is always admin-only regardless of AUTH mode
-        if (url.includes('/titiler') && url.includes('/cog/stac')) {
+        // /cog/stac is always admin-only regardless of SITE_ACCESS
+        if (url.includes('/cog/stac')) {
           ensureAdmin()(req, res, next);
           return;
         }
@@ -93,7 +101,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
-          proxyReq: fixRequestBody,
+          proxyReq: (proxyReq, req) => {
+            stripCredentials(proxyReq);
+            fixRequestBody(proxyReq, req);
+          },
           proxyRes: createSwaggerInterceptor("titiler", titilerTarget),
         },
       })
@@ -119,6 +130,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: stripCredentials,
           proxyRes: createSwaggerInterceptor(
             "titilerpgstac",
             titilerpgstacTarget
@@ -141,6 +153,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/veloserver`]: "",
         },
+        on: { proxyReq: stripCredentials },
       })
     );
   }
@@ -236,6 +249,7 @@ function setupCustomAdjacentServer(app, isDocker, ensureAdmin, ensureUserForAdja
       pathRewrite: {
         [`^${process.env.ROOT_PATH || ""}/${routeName}`]: "",
       },
+      on: { proxyReq: stripCredentials },
     })
   );
 }

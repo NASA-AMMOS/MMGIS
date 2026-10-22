@@ -737,6 +737,11 @@ test.describe.serial('Permission matrix', () => {
       const reauth = () => api({ ...saved }, 'POST', '/api/users/login', { useToken: true }, { localAddress: freshAddress() });
       expect(await signedIn(tab)).toBe(true);
       expect(ok(await reauth())).toBe(true);
+      await grant(admin, 'user', id, 'superadmin', 'global');
+      const gen = await api(tab, 'POST', '/api/longtermtoken/generate', { name: `rt_${RUN}`, period: '86400000' });
+      expect(ok(gen), gen.text.slice(0, 200)).toBe(true);
+      const withToken = () => api(null, 'GET', '/api/accounts/entries', null, { bearer: gen.json.body.token });
+      expect(ok(await withToken())).toBe(true);
 
       const link = await api(admin, 'POST', '/api/accounts/generateResetPasswordLink', { id });
       expect(ok(link), link.text.slice(0, 200)).toBe(true);
@@ -749,6 +754,7 @@ test.describe.serial('Permission matrix', () => {
 
       expect(await signedIn(tab)).toBe(false);
       expect(ok(await reauth())).toBe(false);
+      expect(ok(await withToken())).toBe(false);
       const old = await api({}, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() });
       expect(ok(old)).toBe(false);
       expect(await signedIn(await login(name, NEW_PASSWORD))).toBe(true);
@@ -868,6 +874,40 @@ test.describe.serial('Permission matrix', () => {
     const start = await api(admin, 'GET', `/Missions/${MISSION_A}/Layers/_time_/x.png?time=a&starttime=b&starttime=c`);
     expect(start.status).toBe(400);
     expect((await api(admin, 'GET', '/api/utils/healthcheck')).status).toBe(200);
+  });
+
+  test('drawing history and shared editing follow mission visibility', async () => {
+    const make = async (mission) => {
+      const r = await api(admin, 'POST', '/api/files/make', { file_name: `share_${RUN}`, intent: 'all', mission });
+      expect(ok(r), r.text.slice(0, 200)).toBe(true);
+      const file_id = r.json.body.file_id;
+      const ch = await api(admin, 'POST', '/api/files/change', { id: file_id, public: '1', publicity_type: 'all_edit' });
+      expect(ok(ch), ch.text.slice(0, 200)).toBe(true);
+      return file_id;
+    };
+    const inA = await make(MISSION_A);
+    const inB = await make(MISSION_B);
+    const history = (who, id) => api(who, 'POST', '/api/files/gethistory', { id });
+    const addTo = (who, file_id) => api(who, 'POST', '/api/draw/add', {
+      file_id,
+      intent: 'point',
+      properties: JSON.stringify({ name: 'p' }),
+      geometry: JSON.stringify({ type: 'Point', coordinates: [0, 0] }),
+    });
+    try {
+      expect(ok(await history(users.viewer, inA))).toBe(true);
+      expect(ok(await history(users.viewer, inB))).toBe(false);
+      expect(ok(await history(admin, inB))).toBe(true);
+      expect(ok(await history(users.viewer, 'x'))).toBe(false);
+      // "Anyone can edit" applies only to those who can view the file's mission
+      const blocked = await addTo(users.viewer, inB);
+      expect(ok(blocked)).toBe(false);
+      expect(blocked.json.message).toBe('Permission denied.');
+      expect(ok(await addTo(users.viewer, inA)), 'viewer edits shared file in viewable mission').toBe(true);
+      expect(ok(await addTo(admin, inB))).toBe(true);
+    } finally {
+      for (const id of [inA, inB]) await api(admin, 'POST', '/api/files/remove', { id });
+    }
   });
 
 });

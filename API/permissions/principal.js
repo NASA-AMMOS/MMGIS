@@ -204,13 +204,19 @@ async function findToken(raw) {
   return row;
 }
 
+// Local accounts, and their tokens, only work while the login rules still let that account log in
+function localAccountAllowed(p) {
+  if (!siteAccess.hasProvider("local")) return false;
+  return !siteAccess.localAdminsOnly() || require("./policy").isAdministrator(p);
+}
+
 async function tokenPrincipal(authorization) {
   const raw = String(authorization).replace(/^Bearer:?\s+/i, "").trim();
   if (!raw) return null;
   const row = await findToken(raw);
   if (!row || row.created_by_user_id == null || tokenExpired(row)) return null;
   const creator = await userPrincipal(row.created_by_user_id);
-  if (!creator) return null;
+  if (!creator || !localAccountAllowed(creator)) return null;
   const { LongTermTokens } = models();
   if (
     !row.last_used_at ||
@@ -247,7 +253,11 @@ async function resolvePrincipal(req) {
   const session = req.session || {};
   if (session.uid != null) {
     const p = await userPrincipal(session.uid);
-    if (p) return p;
+    // Sessions started through a login provider follow that provider; the rest are local logins
+    const allowed =
+      p && (session.provider ? siteAccess.hasProvider(session.provider) : localAccountAllowed(p));
+    if (allowed) return p;
+    req.staleSession = true;
   }
   if (req.identity) return externalPrincipal(req.identity);
   return anonymousPrincipal();
@@ -258,6 +268,15 @@ function principalMiddleware(req, res, next) {
   resolvePrincipal(req)
     .then((p) => {
       req.principal = p;
+      // The session's account was deleted or may no longer log in: sign it out
+      if (req.staleSession && req.session) {
+        req.session.uid = null;
+        req.session.user = "guest";
+        if (!req.identity) {
+          req.user = "guest";
+          req.groups = {};
+        }
+      }
       if (p.kind === "token") {
         req.isLongTermToken = true;
         req.user = p.username;

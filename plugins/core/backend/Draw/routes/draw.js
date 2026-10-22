@@ -39,7 +39,15 @@ router.use(["/add", "/edit", "/remove", "/undo", "/merge", "/split"], (req, res,
       body: {},
     });
   }
-  next();
+  // Shared files (edit lists, "anyone can edit", groups) only within missions the caller can view
+  const Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
+  Files.findOne({ where: { id }, attributes: ["file_owner", "mission"], raw: true })
+    .then(async (file) => {
+      if (file && !(await filesutils.canViewFileMissions(req, [file])))
+        return res.send({ status: "failure", message: "Permission denied.", body: {} });
+      next();
+    })
+    .catch(next);
 });
 
 /**

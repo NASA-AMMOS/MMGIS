@@ -33,6 +33,7 @@ const siteAccess = require("../../../../../API/permissions/siteAccess");
 const policy = require("../../../../../API/permissions/policy");
 const bindings = require("../../../../../API/permissions/bindings");
 const setupCode = require("../../../../../API/permissions/setupCode");
+const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
 
 // Same message whether the username or the email is taken
 const SIGNUP_UNAVAILABLE =
@@ -588,9 +589,13 @@ router.post("/resetPassword", resetLimiter, authorize.public("login and account 
             // Signs out saved logins (MMGISUser cookie) along with open sessions below
             user.token = null;
 
+            // A reset revokes the account's long-term tokens first, so a failure changes nothing.
             // using user.save() so that the beforeUpdate hook gets triggered (User.update() doesn't trigger it)
-            user
-              .save()
+            LongTermTokens.update(
+              { revoked_at: new Date() },
+              { where: { created_by_user_id: user.id, revoked_at: null } }
+            )
+              .then(() => user.save())
               .then(() =>
                 endSessionsOf(user.id).catch((err) =>
                   logger(

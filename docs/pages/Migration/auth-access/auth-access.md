@@ -73,6 +73,8 @@ The server also runs the import once on first start if it hasn't run. It never r
 
 The legacy columns are kept, so rolling back to the previous image still works. They are only ever lowered to match current grants (for example when a SuperAdmin is demoted or a viewer grant is removed), never raised, so a rollback never gives more access than the grants did. Accounts created on this release have `permission=000` and can't log in on the previous release.
 
+When rolling back, also clear the sessions table (`DELETE FROM session;`) so everyone signs in again. Sessions started before the upgrade still carry the old `permission` value, and the previous release trusts it.
+
 ## 3. What changes for each kind of account
 
 - **SuperAdmins**: unchanged. More than one SuperAdmin is supported, and the last one can't be removed or demoted.
@@ -84,6 +86,8 @@ Roles are granted to users, to groups, or to the `authenticated` / `everyone` au
 
 ## 4. Long-term tokens
 
+- Tokens and signed-in sessions of local accounts follow the current login rules on every request: they stop working when `local` is removed from `AUTH_PROVIDERS`, or, with `AUTH_LOCAL_LOGIN=admins`, when the account has no admin role.
+- A password reset revokes all of the account's tokens.
 - New tokens are shown once and stored hashed. Existing tokens keep working and are converted to hashed storage on first use.
 - Tokens can be read-only or carry the creator's access, optionally limited to some missions, and can expire or be revoked.
 - A token never exceeds what its creator can currently do: demoting or deleting the creator narrows or removes it immediately.
