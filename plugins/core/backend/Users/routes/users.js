@@ -462,12 +462,14 @@ router.post("/logout", apilimiter, authorize.public("login and account self-serv
   } catch (err) {
     MMGISUser = false;
   }
-  // The signed-in session decides whose saved login ends; the cookie is a fallback
+  // The session's own saved login ends; the cookie is a fallback for sessions without one
   const uid = req.session.uid;
+  const sessionToken = req.session.token;
+  const bySession = uid != null && typeof sessionToken === "string" && sessionToken.length > 0;
 
   clearLoginSession(req);
 
-  if (uid == null && !MMGISUser) {
+  if (!bySession && !MMGISUser) {
     res.send({ status: "failure", message: "No user." });
   } else {
     User.update(
@@ -475,10 +477,9 @@ router.post("/logout", apilimiter, authorize.public("login and account self-serv
         token: null,
       },
       {
-        where:
-          uid != null
-            ? { id: uid }
-            : { username: String(MMGISUser.username), token: String(MMGISUser.token) },
+        where: bySession
+          ? { id: uid, token: sessionToken }
+          : { username: String(MMGISUser.username), token: String(MMGISUser.token) },
       }
     )
       .then(() => {
