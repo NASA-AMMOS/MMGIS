@@ -1314,6 +1314,8 @@ if (fullAccess)
                   userfilesUpdate,
                 ]);
               })
+              // The legacy columns changed here, not on a previous release
+              .then(() => require("../../../../../API/permissions/legacyImport").recordColumns(null))
               .then(() => missionIdentity.renameMission(missionName, newName))
               .then(() => {
                 logger(
@@ -1453,6 +1455,8 @@ if (fullAccess)
           ),
         ])
       )
+      // The legacy columns changed here, not on a previous release
+      .then(() => require("../../../../../API/permissions/legacyImport").recordColumns(null))
       .then(() => missionIdentity.removeMission(missionName))
       .then((mission) => {
         logger(

@@ -111,6 +111,7 @@ async function syncLegacyPermission(userId) {
   }
   // Only the derived columns; never password/username
   await User.update(update, { where: { id: userId }, hooks: false });
+  await require("./legacyImport").recordColumns([userId]);
 }
 
 async function affectedUserIds(subject_type, subject_id) {

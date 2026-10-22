@@ -73,6 +73,8 @@ The server also runs the import once on first start if it hasn't run. It never r
 
 The legacy columns are kept, so rolling back to the previous image still works. They are only ever lowered to match current grants (for example when a SuperAdmin is demoted or a viewer grant is removed), never raised, so a rollback never gives more access than the grants did. Accounts created on this release have `permission=000` and can't log in on the previous release.
 
+If you roll back, change accounts on the previous release and then upgrade again, the server compares each account's legacy columns with the values it last saw. Access removed there is removed from the matching grants: a SuperAdmin set to `110` or `001` loses SuperAdmin (unless they are the last one), missions taken out of `missions_managing` or `missions_viewing` lose the Mission Admin or Viewer grant, a viewer limited from all missions to a list keeps only those missions, and an account set to `000`/`010` loses its viewer grants. Access added there is not granted, only reported. Accounts created there are imported like the first upgrade, and grants of accounts deleted there are removed. Each change is logged at startup as a warning. Only the account's own grants are changed: access through a group or the Everyone / Logged-in users audiences stays until you change it in Users & Access.
+
 When rolling back, also clear the sessions table (`DELETE FROM session;`) so everyone signs in again. Sessions started before the upgrade still carry the old `permission` value, and the previous release trusts it.
 
 ## 3. What changes for each kind of account
