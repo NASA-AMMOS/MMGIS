@@ -1,14 +1,13 @@
 const {
   createProxyMiddleware,
   responseInterceptor,
-  fixRequestBody,
 } = require("http-proxy-middleware");
 const bodyParser = require("body-parser");
 
 const logger = require("../API/logger");
 const createTitilerUrlValidator = require("./validateTitilerUrl");
 const createTitilerExpressionValidator = require("./validateTitilerExpression");
-const { routedPath, stripCredentials } = require("./proxyPath");
+const { routedPath, stripCredentials, forwardParsedBody } = require("./proxyPath");
 
 function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
   ///////////////////////////
@@ -103,7 +102,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         on: {
           proxyReq: (proxyReq, req) => {
             stripCredentials(proxyReq);
-            fixRequestBody(proxyReq, req);
+            forwardParsedBody(proxyReq, req);
           },
           proxyRes: createSwaggerInterceptor("titiler", titilerTarget),
         },

@@ -1,4 +1,5 @@
 const path = require("path");
+const { fixRequestBody } = require("http-proxy-middleware");
 
 // The request path as an upstream server routes it: percent-decoded, backslashes
 // and dot segments resolved, lowercased. null if it can't be decoded.
@@ -30,4 +31,13 @@ function stripCredentials(proxyReq) {
   else proxyReq.removeHeader("cookie");
 }
 
-module.exports = { routedPath, stripCredentials };
+// Re-sends a body that bodyParser already read. fixRequestBody sets Content-Length,
+// so a chunked Transfer-Encoding from the caller must go or upstream rejects the request.
+function forwardParsedBody(proxyReq, req) {
+  const type = String(proxyReq.getHeader("content-type") || "");
+  if (req.readableLength === 0 && req.body && /json|x-www-form-urlencoded|multipart\/form-data/.test(type))
+    proxyReq.removeHeader("transfer-encoding");
+  fixRequestBody(proxyReq, req);
+}
+
+module.exports = { routedPath, stripCredentials, forwardParsedBody };

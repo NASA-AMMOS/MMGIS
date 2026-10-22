@@ -4,7 +4,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-const { routedPath, stripCredentials } = require('../../adjacent-servers/proxyPath');
+const { routedPath, stripCredentials, forwardParsedBody } = require('../../adjacent-servers/proxyPath');
 
 test.describe('routedPath', () => {
   test('decodes, resolves dot segments and duplicate slashes, and lowercases', () => {
@@ -58,5 +58,33 @@ test.describe('stripCredentials', () => {
     const r = fakeReq({ cookie: 'MMGISSession=s' });
     stripCredentials(r);
     expect(r.headers.cookie).toBeUndefined();
+  });
+});
+
+test.describe('forwardParsedBody', () => {
+  function fakeProxyReq(headers) {
+    const h = { ...headers };
+    return {
+      headers: h, written: '',
+      getHeader: (n) => h[n.toLowerCase()],
+      setHeader: (n, v) => { h[n.toLowerCase()] = String(v); },
+      removeHeader: (n) => delete h[n.toLowerCase()],
+      write(d) { this.written += d; },
+    };
+  }
+
+  test('replaces chunked encoding with Content-Length when the parsed body is re-sent', () => {
+    const r = fakeProxyReq({ 'content-type': 'application/json', 'transfer-encoding': 'chunked' });
+    forwardParsedBody(r, { readableLength: 0, body: { a: 1 } });
+    expect(r.headers['transfer-encoding']).toBeUndefined();
+    expect(r.headers['content-length']).toBe('7');
+    expect(r.written).toBe('{"a":1}');
+  });
+
+  test('leaves bodies it does not re-send alone', () => {
+    const r = fakeProxyReq({ 'content-type': 'application/octet-stream', 'transfer-encoding': 'chunked' });
+    forwardParsedBody(r, { readableLength: 0, body: undefined });
+    expect(r.headers['transfer-encoding']).toBe('chunked');
+    expect(r.written).toBe('');
   });
 });
