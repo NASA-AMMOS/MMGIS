@@ -284,6 +284,10 @@ var Login = {
 
         modal.append($('<div>').attr('id', 'loginModalBody').html(modalFormSignIn))
 
+        // Hide visitor sign-up when the server would refuse it
+        if (window.mmgisglobal.SELF_SIGNUP === 'false')
+            $('#loginModal #loginInUpToggle').hide()
+
         $('#loginModal #loginInUpToggle').on('click', function () {
             $('#loginErrorMessage').animate({ opacity: '0' }, 500)
             if (!Login.signUp) {

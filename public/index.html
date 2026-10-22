@@ -414,6 +414,7 @@
         case "production":
           mmgisglobal.SITE_ACCESS = "#{SITE_ACCESS}";
           mmgisglobal.AUTH_PROVIDERS = '#{AUTH_PROVIDERS}';
+          mmgisglobal.SELF_SIGNUP = "#{SELF_SIGNUP}";
           mmgisglobal.authProviders = String(mmgisglobal.AUTH_PROVIDERS || "")
             .replace(/&quot;|[\[\]"' ]/g, "")
             .split(",")

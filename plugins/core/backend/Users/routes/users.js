@@ -128,13 +128,7 @@ router.post("/first_signup", signupLimiter, authorize.public("login and account 
 
 router.post("/signup", signupLimiter, authorize.public("login and account self-service"), function (req, res, next) {
   const accountManager = policy.can(req.principal, "accounts.manage");
-  const selfSignup =
-    siteAccess.hasProvider("local") &&
-    !siteAccess.localAdminsOnly() &&
-    (siteAccess.isOptional() ||
-      (siteAccess.isRequired() &&
-        (process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
-          process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true")));
+  const selfSignup = siteAccess.selfSignupAllowed();
   if (!accountManager && !selfSignup) {
     res.send({
       status: "failure",

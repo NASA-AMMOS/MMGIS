@@ -9,7 +9,8 @@ const path = require('path');
 const siteAccess = require(path.resolve(__dirname, '../../API/permissions/siteAccess.js'));
 
 function withEnv(env, fn) {
-  const saved = { SITE_ACCESS: process.env.SITE_ACCESS, AUTH_PROVIDERS: process.env.AUTH_PROVIDERS };
+  const keys = ['SITE_ACCESS', 'AUTH_PROVIDERS', 'AUTH_LOCAL_LOGIN', 'AUTH_LOCAL_ALLOW_SIGNUP'];
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
   Object.assign(process.env, env);
   for (const k of Object.keys(env)) if (env[k] === undefined) delete process.env[k];
   try {
@@ -124,7 +125,6 @@ test.describe('Site access helpers', () => {
 });
 
 test.describe('AUTH_LOCAL_LOGIN', () => {
-  const siteAccess = require(require('path').resolve(__dirname, '../../API/permissions/siteAccess.js'));
   const base = { SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local"]' };
   test('accepts all, admins or unset', () => {
     for (const v of [undefined, '', 'all', 'admins'])
@@ -133,4 +133,21 @@ test.describe('AUTH_LOCAL_LOGIN', () => {
   test('rejects anything else', () => {
     expect(siteAccess.validate({ ...base, AUTH_LOCAL_LOGIN: 'everyone' }).some((e) => /AUTH_LOCAL_LOGIN/.test(e))).toBe(true);
   });
+});
+
+test.describe('Self sign-up', () => {
+  const cases = [
+    [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local' }, true],
+    [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local', AUTH_LOCAL_LOGIN: 'admins' }, false],
+    [{ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'local' }, false],
+    [{ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'local', AUTH_LOCAL_ALLOW_SIGNUP: 'true' }, true],
+    [{ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'csso,local', AUTH_LOCAL_ALLOW_SIGNUP: 'true', AUTH_LOCAL_LOGIN: 'admins' }, false],
+    [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'csso' }, false],
+    [{ SITE_ACCESS: 'public', AUTH_PROVIDERS: 'local' }, false],
+  ];
+  for (const [env, expected] of cases)
+    test(`${JSON.stringify(env)} -> ${expected}`, () => {
+      const full = { AUTH_LOCAL_LOGIN: undefined, AUTH_LOCAL_ALLOW_SIGNUP: undefined, ...env };
+      withEnv(full, () => expect(siteAccess.selfSignupAllowed()).toBe(expected));
+    });
 });

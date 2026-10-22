@@ -484,8 +484,7 @@ function ensureUser(options = {}) {
             user: req.user,
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
             CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
-            AUTH_LOCAL_ALLOW_SIGNUP:
-              process.env.AUTH_LOCAL_ALLOW_SIGNUP || false,
+            AUTH_LOCAL_ALLOW_SIGNUP: siteAccess.selfSignupAllowed(),
             ROOT_PATH: isDevEnv
               ? ""
               : process.env.ROOT_PATH
@@ -871,6 +870,7 @@ setups.getBackendSetups(function (setups) {
             role: role,
             groups: JSON.stringify(groups),
             SITE_ACCESS: siteAccess.getSiteAccess(),
+            SELF_SIGNUP: String(siteAccess.selfSignupAllowed()),
             AUTH_PROVIDERS: siteAccess.getProviders().join(","),
             NODE_ENV: process.env.NODE_ENV,
             VERSION: packagejson.version,
