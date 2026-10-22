@@ -60,7 +60,11 @@ async function bindingsFor(subjects) {
     },
     raw: true,
   });
-  return rows.map(toBinding).filter((b) => b.scope != null);
+  // SuperAdmin only ever comes from a user's own binding
+  return rows
+    .filter((r) => r.role !== "superadmin" || r.subject_type === "user")
+    .map(toBinding)
+    .filter((b) => b.scope != null);
 }
 
 async function cached(key, build) {

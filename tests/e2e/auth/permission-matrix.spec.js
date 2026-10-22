@@ -331,7 +331,7 @@ test.describe.serial('Permission matrix', () => {
     expect(ok(g)).toBe(true);
     const gid = g.json.body.id;
     try {
-      await grant(admin, 'group', gid, 'superadmin', 'global');
+      await grant(admin, 'group', gid, 'data_admin', 'global');
       const gen = await api(admin, 'POST', '/api/longtermtoken/generate', {
         name: `gm_${RUN}`, period: '86400000', scopes: ['groups.manage'],
       });
@@ -362,6 +362,42 @@ test.describe.serial('Permission matrix', () => {
     const r = await api(admin, 'POST', '/api/configure/clone', { existingMission: MISSION_A });
     expect(ok(r)).toBe(false);
     expect(ok(await api(admin, 'GET', '/api/configure/missions'))).toBe(true);
+  });
+
+  test('SuperAdmin is only granted to users, and audiences only to everyone or logged-in users', async () => {
+    const g = await api(admin, 'POST', '/api/access/groups/create', { name: `noSA_${RUN}` });
+    expect(ok(g)).toBe(true);
+    try {
+      const add = (body) => api(admin, 'POST', '/api/access/bindings/add', body);
+      expect(ok(await add({ subject_type: 'group', subject_id: g.json.body.id, role: 'superadmin', scope_type: 'global' }))).toBe(false);
+      expect(ok(await add({ subject_type: 'audience', subject_id: 'anonymous', role: 'viewer', scope_type: 'mission', mission: MISSION_A }))).toBe(false);
+      const everyone = await add({ subject_type: 'audience', subject_id: 'everyone', role: 'viewer', scope_type: 'mission', mission: MISSION_A });
+      expect(ok(everyone)).toBe(true);
+      await api(admin, 'POST', '/api/access/bindings/remove', { id: everyone.json.body.id });
+    } finally {
+      await api(admin, 'POST', '/api/access/groups/delete', { id: g.json.body.id });
+    }
+  });
+
+  test('legacy columns only go down when access is removed', async () => {
+    const name = `legacy_${RUN}`;
+    expect(ok(await api(admin, 'POST', '/api/users/signup', { username: name, password: PASSWORD, skipLogin: true, missions_viewing: null }))).toBe(true);
+    const entry = async () => (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.username === name);
+    const id = (await entry()).id;
+    try {
+      expect((await entry()).missions_viewing).toBeNull();
+      await grant(admin, 'user', id, 'viewer', 'mission', MISSION_A);
+      for (const b of (await bindingsOf(id)).filter((x) => x.role === 'viewer' && x.scope_type === 'global'))
+        expect(ok(await api(admin, 'POST', '/api/access/bindings/remove', { id: b.id }))).toBe(true);
+      const after = (await entry()).missions_viewing;
+      expect(after).toContain(MISSION_A);
+      expect(after).not.toContain(MISSION_B);
+      // Adding access back never raises the column again
+      await grant(admin, 'user', id, 'viewer', 'mission', MISSION_B);
+      expect((await entry()).missions_viewing).not.toContain(MISSION_B);
+    } finally {
+      await api(admin, 'DELETE', `/api/accounts/remove/${id}`);
+    }
   });
 
   test('group roles apply to members and stop on removal', async () => {

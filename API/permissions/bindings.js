@@ -61,27 +61,46 @@ async function syncLegacyPermission(userId) {
     where: {
       [Op.or]: [
         { subject_type: "user", subject_id: String(userId) },
+        { subject_type: "audience", subject_id: ["authenticated", "everyone"] },
         ...groups.map((g) => ({ subject_type: "group", subject_id: String(g.group_id) })),
       ],
     },
     raw: true,
   });
-  const bindings = rows.map((r) => ({
-    role: r.role,
-    scope: policy.scopeKey(r.scope_type, r.mission_uuid, r.layer_uuid),
-  }));
+  const bindings = rows
+    .filter((r) => r.role !== "superadmin" || r.subject_type === "user")
+    .map((r) => ({
+      role: r.role,
+      scope: policy.scopeKey(r.scope_type, r.mission_uuid, r.layer_uuid),
+    }));
   const managing = await missions.namesForUUIDs(
     rows
       .filter((r) => r.role === "mission_admin" && r.mission_uuid)
       .map((r) => r.mission_uuid)
   );
+  const update = { missions_managing: managing.length ? managing : null };
+
+  // The legacy permission and missions_viewing columns are only ever lowered to match
+  // the grants, so rolling back to a release that reads them never gives more access
+  const user = await User.findOne({
+    where: { id: userId },
+    attributes: ["permission", "missions_viewing"],
+    raw: true,
+  });
+  if (user) {
+    const superAdmin = bindings.some((b) => b.role === "superadmin" && b.scope === "global");
+    if (user.permission === "111" && !superAdmin) update.permission = managing.length ? "110" : "001";
+    else if (user.permission === "110" && managing.length === 0) update.permission = "001";
+    const viewable = policy.missionsWith({ authenticated: true, bindings }, "mission.view");
+    if (viewable != null) {
+      const names = await missions.namesForUUIDs(viewable);
+      const current = user.missions_viewing;
+      const lowered = current == null ? names : current.filter((m) => names.includes(m));
+      if (current == null || lowered.length !== current.length) update.missions_viewing = lowered;
+    }
+  }
   // Only the derived columns; never password/username
-  await User.update(
-    {
-      missions_managing: managing.length ? managing : null,
-    },
-    { where: { id: userId }, hooks: false }
-  );
+  await User.update(update, { where: { id: userId }, hooks: false });
 }
 
 async function affectedUserIds(subject_type, subject_id) {
@@ -94,6 +113,10 @@ async function affectedUserIds(subject_type, subject_id) {
       raw: true,
     });
     return rows.map((r) => r.user_id);
+  }
+  if (subject_type === "audience") {
+    const { User } = models();
+    return (await User.findAll({ attributes: ["id"], raw: true })).map((u) => u.id);
   }
   return [];
 }
@@ -117,6 +140,10 @@ async function addBinding(actor, input) {
     throw new BindingError("Invalid audience.");
   if (subject_type === "audience" && role !== "viewer")
     throw new BindingError("Audiences may only be granted the viewer role.");
+  if (subject_type === "audience" && subject_id === "anonymous")
+    throw new BindingError("New grants to 'anonymous' are not allowed. Grant 'everyone' instead.");
+  if (role === "superadmin" && subject_type !== "user")
+    throw new BindingError("SuperAdmin can only be granted to individual users.");
   if (subject_type === "user" && !(await User.findOne({ where: { id: parseInt(subject_id) }, attributes: ["id"] })))
     throw new BindingError("User not found.");
   if (subject_type === "group" && !(await AuthGroup.findOne({ where: { id: parseInt(subject_id) } })))

@@ -26,6 +26,7 @@ let setup = {
       await permissionModels.up();
       await missions.backfill();
       await legacyImport.run();
+      await legacyImport.warnIfSiteAccessChanged();
     } catch (err) {
       logger("error", "Failed to initialize roles and permissions.", "permissions", null, err);
     }

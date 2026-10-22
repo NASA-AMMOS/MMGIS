@@ -369,7 +369,9 @@ function GrantDialog({ open, onClose, fixed, roles, missions, users, groups, not
     setLayer(null);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const roleNames = Object.keys(roles).filter((r) => subjectType !== "audience" || r === "viewer");
+  const roleNames = Object.keys(roles).filter(
+    (r) => (subjectType !== "audience" || r === "viewer") && (subjectType === "user" || r !== "superadmin")
+  );
   const scopes = (roles[role] && roles[role].scopes) || [];
   useEffect(() => {
     if (scopes.length && !scopes.includes(scope)) setScope(scopes[0]);

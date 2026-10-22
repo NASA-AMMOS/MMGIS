@@ -93,10 +93,10 @@ async function alreadyImported() {
   }
 }
 
-// Idempotent: runs once per database
-async function run({ force = false } = {}) {
+// Runs once per database; later grant changes are never undone by re-importing
+async function run() {
   const { AuthMeta, RoleBinding } = models();
-  if (!force && (await alreadyImported())) return { skipped: true };
+  if (await alreadyImported()) return { skipped: true };
   const result = await plan();
   for (const b of result.bindings)
     await RoleBinding.findOrCreate({
@@ -130,4 +130,21 @@ async function run({ force = false } = {}) {
   return result;
 }
 
-module.exports = { plan, run, alreadyImported, IMPORT_KEY };
+// The import used the SITE_ACCESS of the first start; say so if it has changed since
+async function warnIfSiteAccessChanged() {
+  const { AuthMeta } = models();
+  const row = await AuthMeta.findOne({ where: { key: IMPORT_KEY } }).catch(() => null);
+  const before = row && row.value && row.value.siteAccess;
+  const now = siteAccess.getSiteAccess();
+  if (before && before !== now) {
+    logger(
+      "warn",
+      `SITE_ACCESS is '${now}' but accounts were imported under '${before}'. The import does not run again: review the Everyone and Logged-in users grants in Configure → Access.`,
+      "permissions"
+    );
+    return { before, now };
+  }
+  return null;
+}
+
+module.exports = { plan, run, alreadyImported, warnIfSiteAccessChanged, IMPORT_KEY };

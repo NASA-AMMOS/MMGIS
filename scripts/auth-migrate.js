@@ -5,7 +5,6 @@
  *
  *   npm run auth:migrate -- --dry-run   Report what would happen. Writes nothing.
  *   npm run auth:migrate                Apply (the server also does this on first start).
- *   npm run auth:migrate -- --force     Re-run even if already imported (adds missing bindings only).
  *
  * The dry run may be run before upgrading, against the old .env: a legacy AUTH
  * value is translated to its SITE_ACCESS / AUTH_PROVIDERS replacement.
@@ -15,7 +14,10 @@ require("dotenv").config();
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
-const force = args.has("--force");
+if (args.has("--force")) {
+  console.error("--force has been removed: the import runs once per database so it never re-grants removed access.");
+  process.exit(1);
+}
 const json = args.has("--json");
 
 const siteAccess = require("../API/permissions/siteAccess");
@@ -70,7 +72,7 @@ async function main() {
     await permissionModels.RoleBinding.sync();
     await permissionModels.AuthMeta.sync();
     await permissionModels.up();
-    result = await legacyImport.run({ force });
+    result = await legacyImport.run();
     if (result.skipped) result = { ...(await legacyImport.plan()), skipped: true };
   }
 
