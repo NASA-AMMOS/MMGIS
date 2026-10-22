@@ -255,6 +255,8 @@ async function updateUser(req, id) {
     await bindings.addBinding(actor, userBinding("superadmin", "global"));
   } else if (role === "mission_admin" || role === "user") {
     await remove((b) => b.role === "superadmin" && b.scope_type === "global");
+    // "User" has no editing or data administration anywhere
+    if (role === "user") await remove((b) => b.role === "layer_editor" || b.role === "data_admin");
     await bindings.setUserMissionRole(
       actor,
       id,

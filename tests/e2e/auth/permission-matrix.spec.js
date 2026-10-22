@@ -345,6 +345,24 @@ test.describe.serial('Permission matrix', () => {
     }
   });
 
+  test('setting an account to User removes its editing and data roles', async () => {
+    await grant(admin, 'user', ids.grouped, 'layer_editor', 'layer', MISSION_A, CHILD);
+    await grant(admin, 'user', ids.grouped, 'data_admin', 'global');
+    const roles = async () => (await bindingsOf(ids.grouped)).map((b) => b.role);
+    expect(await roles()).toEqual(expect.arrayContaining(['layer_editor', 'data_admin']));
+    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.grouped, role: 'user' }))).toBe(true);
+    const left = await roles();
+    expect(left).not.toContain('layer_editor');
+    expect(left).not.toContain('data_admin');
+    expect(denied(await api(users.grouped, 'POST', '/api/geodatasets/recreate', {}))).toBe(true);
+  });
+
+  test('cloning without a new mission name is refused', async () => {
+    const r = await api(admin, 'POST', '/api/configure/clone', { existingMission: MISSION_A });
+    expect(ok(r)).toBe(false);
+    expect(ok(await api(admin, 'GET', '/api/configure/missions'))).toBe(true);
+  });
+
   test('group roles apply to members and stop on removal', async () => {
     const g = await api(admin, 'POST', '/api/access/groups/create', { name: `editorsB_${RUN}` });
     expect(ok(g)).toBe(true);
