@@ -1020,6 +1020,8 @@ export default function UsersAccess() {
   const [version, setVersion] = useState(0);
   const [missionPick, setMissionPick] = useState("");
   const [grantSearch, setGrantSearch] = useState("");
+  const [grantPage, setGrantPage] = useState(0);
+  const [grantsPerPage, setGrantsPerPage] = useState(50);
   const [newGroup, setNewGroup] = useState({ name: "", source: "local", external_name: "" });
   const [providers] = useState(
     String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local")
@@ -1095,21 +1097,27 @@ export default function UsersAccess() {
         .map((b) => ({ b, removable: true, via: b.scope_type === "global" ? "Site-wide grant" : sourceText(b) }))
     : [];
 
-  const subjectText = (b) => {
-    if (b.subject_type === "user") return (users.find((u) => String(u.id) === String(b.subject_id)) || {}).username || `user ${b.subject_id}`;
-    if (b.subject_type === "group") return (groups.find((g) => String(g.id) === String(b.subject_id)) || {}).name || String(b.subject_id);
-    return AUDIENCE_LABEL[b.subject_id] || b.subject_id;
-  };
-  const allGrantRows = (() => {
+  // Sorted once per change and only while the All grants tab is open
+  const allGrantRows = useMemo(() => {
+    if (tab !== 4) return [];
+    const userNames = new Map(users.map((u) => [String(u.id), u.username]));
+    const groupNames = new Map(groups.map((g) => [String(g.id), g.name]));
+    const subjectText = (b) => {
+      const id = String(b.subject_id);
+      if (b.subject_type === "user") return userNames.get(id) || `user ${id}`;
+      if (b.subject_type === "group") return groupNames.get(id) || id;
+      return AUDIENCE_LABEL[b.subject_id] || id;
+    };
     const q = grantSearch.trim().toLowerCase();
     return bindings
-      .map((b) => ({ b, removable: true, via: sourceText(b) }))
-      .filter(({ b }) =>
+      .map((b) => ({ b, removable: true, via: sourceText(b), who: subjectText(b) }))
+      .filter(({ b, who }) =>
         !q ||
-        [subjectText(b), (roles[b.role] && roles[b.role].label) || b.role, whereText(b, allLayerPaths)].some((t) => String(t).toLowerCase().includes(q))
+        [who, (roles[b.role] && roles[b.role].label) || b.role, whereText(b, allLayerPaths)].some((t) => String(t).toLowerCase().includes(q))
       )
-      .sort((x, y) => subjectText(x.b).localeCompare(subjectText(y.b)));
-  })();
+      .sort((x, y) => x.who.localeCompare(y.who));
+  }, [tab, bindings, users, groups, roles, allLayerPaths, grantSearch]);
+  const grantPageIndex = Math.min(grantPage, Math.max(0, Math.ceil(allGrantRows.length / grantsPerPage) - 1));
 
   const audienceState = (a) => {
     const own = bindings.filter((b) => b.subject_type === "audience" && b.subject_id === a && b.role === "viewer");
@@ -1320,14 +1328,26 @@ export default function UsersAccess() {
                 className={`${c.field} ${c.search}`}
                 placeholder="Filter by who, role or where"
                 value={grantSearch}
-                onChange={(e) => setGrantSearch(e.target.value)}
+                onChange={(e) => { setGrantSearch(e.target.value); setGrantPage(0); }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}
               />
               <span className={c.grow} />
               <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => openGrant({})}>Add access</Button>
             </div>
             <div className={c.hint}>Every grant on this site, whoever it's for.</div>
-            <GrantsTable rows={allGrantRows} roles={roles} layerPaths={allLayerPaths} viaText={subjectName} onRemove={(b) => askRemove(b)} emptyText={grantSearch ? "No grants match." : "No access granted yet."} />
+            <GrantsTable rows={allGrantRows.slice(grantPageIndex * grantsPerPage, (grantPageIndex + 1) * grantsPerPage)} roles={roles} layerPaths={allLayerPaths} viaText={subjectName} onRemove={(b) => askRemove(b)} emptyText={grantSearch ? "No grants match." : "No access granted yet."} />
+            {allGrantRows.length > 0 && (
+              <TablePagination
+                className={c.bottomBar}
+                rowsPerPageOptions={[25, 50, 100]}
+                component="div"
+                count={allGrantRows.length}
+                rowsPerPage={grantsPerPage}
+                page={grantPageIndex}
+                onPageChange={(e, p) => setGrantPage(p)}
+                onRowsPerPageChange={(e) => { setGrantsPerPage(parseInt(e.target.value, 10)); setGrantPage(0); }}
+              />
+            )}
           </div>
         )}
       </div>
