@@ -10,7 +10,13 @@ const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
 
 const logger = require("../../../../../API/logger");
-const { apilimiter, authLimiter } = require("../../../../../scripts/rateLimiters");
+const {
+  apilimiter,
+  authLimiter,
+  signupLimiter,
+  resetLimiter,
+} = require("../../../../../scripts/rateLimiters");
+const { sequelize } = require("../../../../../API/connection");
 const userModel = require("../models/user");
 const User = userModel.User;
 const { getDefaultMissionsViewing } = require("../models/userdefaults");
@@ -18,6 +24,17 @@ const siteAccess = require("../../../../../API/permissions/siteAccess");
 const policy = require("../../../../../API/permissions/policy");
 const bindings = require("../../../../../API/permissions/bindings");
 const setupCode = require("../../../../../API/permissions/setupCode");
+
+// Same message whether the username or the email is taken
+const SIGNUP_UNAVAILABLE =
+  "Failed to sign up. The username or email may be invalid or already in use.";
+
+// Ends every session of a user, e.g. after their password is reset
+function endSessionsOf(userId) {
+  return sequelize.query(`DELETE FROM "session" WHERE sess->>'uid' = :uid`, {
+    replacements: { uid: String(userId) },
+  });
+}
 
 function isStrongPassword(password) {
   const minLength = 8;
@@ -45,7 +62,7 @@ router.post("/has", authorize.public("login and account self-service"), function
     });
 });
 
-router.post("/first_signup", authorize.public("login and account self-service"), function (req, res, next) {
+router.post("/first_signup", signupLimiter, authorize.public("login and account self-service"), function (req, res, next) {
   if (!req.body.password || !isStrongPassword(req.body.password)) {
     res.send({
       status: "failure",
@@ -100,7 +117,7 @@ router.post("/first_signup", authorize.public("login and account self-service"),
     });
 });
 
-router.post("/signup", authorize.public("login and account self-service"), function (req, res, next) {
+router.post("/signup", signupLimiter, authorize.public("login and account self-service"), function (req, res, next) {
   const accountManager = policy.can(req.principal, "accounts.manage");
   const selfSignup =
     siteAccess.hasProvider("local") &&
@@ -258,15 +275,11 @@ router.post("/signup", authorize.public("login and account self-service"), funct
               req,
               err
             );
-            res.send({
-              status: "failure",
-              message:
-                "Failed to sign up. Email might be invalid or already in use.",
-            });
+            res.send({ status: "failure", message: SIGNUP_UNAVAILABLE });
             return null;
           });
       } else {
-        res.send({ status: "failure", message: "Username already exists." });
+        res.send({ status: "failure", message: SIGNUP_UNAVAILABLE });
       }
       return null;
     })
@@ -491,7 +504,7 @@ router.get("/logged_in", authorize.public("login and account self-service"), fun
     });
 });
 
-router.post("/resetPassword", authorize.public("login and account self-service"), function (req, res) {
+router.post("/resetPassword", resetLimiter, authorize.public("login and account self-service"), function (req, res) {
   let username = req.body.username;
   let password = req.body.password;
   let resetToken = req.body.resetToken;
@@ -521,6 +534,7 @@ router.post("/resetPassword", authorize.public("login and account self-service")
         "password",
         "reset_token",
         "reset_token_expiration",
+        "token",
       ],
     })
       .then((user) => {
@@ -537,10 +551,23 @@ router.post("/resetPassword", authorize.public("login and account self-service")
             user.password = password;
             user.reset_token = null;
             user.reset_token_expiration = null;
+            // Signs out saved logins (MMGISUser cookie) along with open sessions below
+            user.token = null;
 
             // using user.save() so that the beforeUpdate hook gets triggered (User.update() doesn't trigger it)
             user
               .save()
+              .then(() =>
+                endSessionsOf(user.id).catch((err) =>
+                  logger(
+                    "error",
+                    `Failed to end sessions after password reset for user: ${username}`,
+                    req.originalUrl,
+                    req,
+                    err
+                  )
+                )
+              )
               .then(() => {
                 res.send({
                   status: "success",

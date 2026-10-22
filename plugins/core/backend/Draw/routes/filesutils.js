@@ -8,6 +8,34 @@ const FilehistoriesTEST = fhistories.FilehistoriesTEST;
 const ufiles = require("../models/userfiles");
 const Userfiles = ufiles.Userfiles;
 const UserfilesTEST = ufiles.UserfilesTEST;
+const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
+const policy = require("../../../../../API/permissions/policy");
+const missions = require("../../../../../API/permissions/missions");
+
+// Files of a mission are readable by their owner and by those who can view that mission
+async function canViewFileMissions(req, files) {
+  try {
+    const names = [
+      ...new Set(
+        files
+          .filter((f) => f.file_owner !== req.user)
+          .map((f) => f.mission)
+          .filter((m) => m != null && m !== "")
+      ),
+    ];
+    if (names.length === 0) return true;
+    const p = await ensurePrincipal(req);
+    for (const name of names) {
+      const uuid = await missions.uuidForName(name);
+      if (!policy.can(p, "mission.view", uuid ? { mission: uuid } : undefined))
+        return false;
+    }
+    return true;
+  } catch (err) {
+    logger("error", "Failed to check file mission access.", req.originalUrl, req, err);
+    return false;
+  }
+}
 
 // Safe lookup maps to break SonarQube taint analysis chains (S3649)
 const SAFE_GROUP_OPS = Object.freeze({ 'AND': 'AND', 'OR': 'OR', 'NOT_AND': 'NOT_AND', 'NOT_OR': 'NOT_OR' });
@@ -149,8 +177,8 @@ function getfile(req, res, next) {
         },
       },
     })
-      .then((file) => {
-        if (!file) {
+      .then(async (file) => {
+        if (!file || !(await canViewFileMissions(req, file))) {
           res.send({
             status: "failure",
             message: "Failed to access file.",

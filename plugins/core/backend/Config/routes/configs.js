@@ -245,6 +245,13 @@ function getViewableMissionFolders(req) {
   });
 }
 
+// Shared files: signed-in users, and guests who can view at least one mission
+function canUseSharedFolder(p) {
+  if (p.authenticated) return true;
+  const viewable = policy.missionsWith(p, "mission.view");
+  return viewable == null || viewable.length > 0;
+}
+
 // Guards /Missions/<folder>/... static files by mission.view
 // forbid(req, res) sends the 403 response
 function checkMissionFileViewingPermission(forbid) {
@@ -265,7 +272,7 @@ function checkMissionFileViewingPermission(forbid) {
     if (folder === SHARED_MISSION_FOLDER_NAME) {
       ensurePrincipal(req)
         .then((p) =>
-          p.authenticated ? next() : forbid(req, res)
+          canUseSharedFolder(p) ? next() : forbid(req, res)
         )
         .catch(() => res.sendStatus(500));
       return;

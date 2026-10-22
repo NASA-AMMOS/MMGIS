@@ -511,4 +511,99 @@ test.describe.serial('Permission matrix', () => {
     expect(denied(await api(null, 'GET', '/api/accounts/entries'))).toBe(true);
     expect(denied(await initialView(null, MISSION_A))).toBe(true);
   });
+
+  test('a drawing file is only readable by those who can view its mission', async () => {
+    const make = async (mission) => {
+      const r = await api(admin, 'POST', '/api/files/make', { file_name: `draw_${RUN}`, intent: 'all', mission });
+      expect(ok(r), `make in ${mission}: ${r.text.slice(0, 200)}`).toBe(true);
+      return r.json.body.file_id;
+    };
+    const inA = await make(MISSION_A);
+    const inB = await make(MISSION_B);
+    const get = (who, id) => api(who, 'POST', '/api/files/getfile', { id: JSON.stringify(id) });
+    try {
+      expect(ok(await get(users.viewer, inA))).toBe(true);
+      expect(ok(await get(users.viewer, inB))).toBe(false);
+      expect(ok(await get(users.viewer, [inA, inB]))).toBe(false);
+      expect(ok(await get(users.madmin, inB))).toBe(false);
+      expect(ok(await get(admin, inB))).toBe(true);
+      expect(ok(await get(users.sa2, [inA, inB]))).toBe(true);
+    } finally {
+      for (const id of [inA, inB]) await api(admin, 'POST', '/api/files/remove', { id });
+    }
+  });
+
+  test('a password reset ends open sessions and saved logins', async () => {
+    const name = `reset_${RUN}`;
+    const NEW_PASSWORD = ['Reset', 'Pass', '2!'].join('');
+    expect(ok(await api(admin, 'POST', '/api/users/signup', { username: name, password: PASSWORD, skipLogin: true }))).toBe(true);
+    const id = (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.username === name).id;
+    try {
+      const tab = {};
+      const r = await api(tab, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() });
+      expect(ok(r)).toBe(true);
+      const saved = { cookie: `MMGISUser=${encodeURIComponent(JSON.stringify({ username: name, token: r.json.token }))}` };
+      const signedIn = async (who) => readable(await api(who, 'GET', '/api/configure/missions'));
+      const reauth = () => api({ ...saved }, 'POST', '/api/users/login', { useToken: true }, { localAddress: freshAddress() });
+      expect(await signedIn(tab)).toBe(true);
+      expect(ok(await reauth())).toBe(true);
+
+      const link = await api(admin, 'POST', '/api/accounts/generateResetPasswordLink', { id });
+      expect(ok(link), link.text.slice(0, 200)).toBe(true);
+      const reset = await api({}, 'POST', '/api/users/resetPassword', {
+        username: name,
+        password: NEW_PASSWORD,
+        resetToken: link.json.body.resetToken,
+      }, { localAddress: freshAddress() });
+      expect(ok(reset), reset.text.slice(0, 200)).toBe(true);
+
+      expect(await signedIn(tab)).toBe(false);
+      expect(ok(await reauth())).toBe(false);
+      const old = await api({}, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() });
+      expect(ok(old)).toBe(false);
+      expect(await signedIn(await login(name, NEW_PASSWORD))).toBe(true);
+    } finally {
+      await api(admin, 'DELETE', `/api/accounts/remove/${id}`);
+    }
+  });
+
+  test('sign-up gives the same answer for a taken username and a taken email', async () => {
+    const name = `uniq_${RUN}`;
+    const email = `${name}@example.test`;
+    expect(ok(await api(admin, 'POST', '/api/users/signup', { username: name, email, password: PASSWORD, skipLogin: true }))).toBe(true);
+    try {
+      const takenName = await api(admin, 'POST', '/api/users/signup', {
+        username: name, email: `other_${RUN}@example.test`, password: PASSWORD, skipLogin: true,
+      });
+      const takenEmail = await api(admin, 'POST', '/api/users/signup', {
+        username: `other_${RUN}`, email, password: PASSWORD, skipLogin: true,
+      });
+      expect(ok(takenName)).toBe(false);
+      expect(ok(takenEmail)).toBe(false);
+      expect(takenName.json.message).toBe(takenEmail.json.message);
+    } finally {
+      const entries = (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries;
+      for (const e of entries.filter((x) => [name, `other_${RUN}`].includes(x.username)))
+        await api(admin, 'DELETE', `/api/accounts/remove/${e.id}`);
+    }
+  });
+
+  test('sign-up and password reset are rate limited per address, except for account admins', async () => {
+    const tooMany = (r) => r.status === 429 || /too many/i.test((r.json && r.json.message) || '');
+    const flood = async (url, body) => {
+      const localAddress = freshAddress();
+      let last = null;
+      for (let i = 0; i < 21; i++) last = await api({}, 'POST', url, body, { localAddress });
+      return last;
+    };
+    expect(tooMany(await flood('/api/users/signup', { username: `flood_${RUN}`, password: 'x' }))).toBe(true);
+    expect(tooMany(await flood('/api/users/first_signup', { username: `flood_${RUN}`, password: 'x' }))).toBe(true);
+    expect(tooMany(await flood('/api/users/resetPassword', { username: `flood_${RUN}`, password: 'x', resetToken: 'x' }))).toBe(true);
+
+    const localAddress = freshAddress();
+    for (let i = 0; i < 21; i++) {
+      const r = await api(admin, 'POST', '/api/users/signup', { username: `flood_${RUN}`, password: 'weak' }, { localAddress }); // pragma: allowlist secret
+      expect(tooMany(r)).toBe(false);
+    }
+  });
 });

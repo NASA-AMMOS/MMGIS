@@ -52,7 +52,7 @@ test.describe('Users API', () => {
         expect(second.status()).toBeLessThan(500);
         const secondBody = await second.json();
         expect(secondBody.status).toBe('failure');
-        expect(secondBody.message).toMatch(/already exists/i);
+        expect(secondBody.message).toMatch(/already in use/i);
       }
       // If signup is blocked by auth policy, the test still passes (no crash).
     });

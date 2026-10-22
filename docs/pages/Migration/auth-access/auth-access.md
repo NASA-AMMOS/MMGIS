@@ -76,7 +76,7 @@ The server also runs the import once on first start if it hasn't run. Unknown mi
 - **SuperAdmins**: unchanged. More than one SuperAdmin is supported, and the last one can't be removed or demoted.
 - **Mission admins**: can edit the configuration and layers of their missions only. Creating, cloning, renaming or deleting missions, STAC, geodatasets, datasets, accounts, webhooks and site options are now SuperAdmin (or `data_admin` for data) operations.
 - **Layer editors (new)**: edit one layer folder and its children through the per-layer routes. Saving a whole configuration (`/api/configure/upsert`) or moving layers requires mission configuration access.
-- **Viewers**: see only the missions they're granted. `Missions/shared` stays readable by any signed-in user.
+- **Viewers**: see only the missions they're granted. `Missions/shared` stays readable by any signed-in user, and by guests who can view at least one mission.
 
 Roles are granted to users, to groups, or to the `authenticated` / `everyone` audiences in **Configure → Access**, which also shows each user's effective access and where it comes from.
 
