@@ -26,6 +26,10 @@ function parseProviders(raw) {
   return Array.from(new Set(parsed.map((p) => String(p).toLowerCase())));
 }
 
+// all: any local account may log in; admins: only accounts holding an admin role
+const LOCAL_LOGIN_VALUES = ["all", "admins"];
+const localAdminsOnly = () => process.env.AUTH_LOCAL_LOGIN === "admins";
+
 // Returns a list of human-readable problems with the current ENV (empty if valid)
 function validate(env = process.env) {
   const errors = [];
@@ -45,6 +49,8 @@ function validate(env = process.env) {
     errors.push(
       `SITE_ACCESS must be set to one of: ${SITE_ACCESS_VALUES.join(" | ")}.`
     );
+  if (env.AUTH_LOCAL_LOGIN != null && env.AUTH_LOCAL_LOGIN !== "" && !LOCAL_LOGIN_VALUES.includes(env.AUTH_LOCAL_LOGIN))
+    errors.push(`AUTH_LOCAL_LOGIN must be one of: ${LOCAL_LOGIN_VALUES.join(" | ")}.`);
   const providers = parseProviders(env.AUTH_PROVIDERS);
   if (providers == null || providers.length === 0) {
     errors.push(`AUTH_PROVIDERS must be a JSON array, e.g. ["local"].`);
@@ -98,4 +104,6 @@ module.exports = {
   isRequired,
   guestsAllowed,
   endUserLoginEnabled,
+  localAdminsOnly,
+  LOCAL_LOGIN_VALUES,
 };

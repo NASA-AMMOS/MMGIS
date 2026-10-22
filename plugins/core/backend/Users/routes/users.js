@@ -7,6 +7,14 @@ const { Op } = require("sequelize");
 const router = express.Router();
 const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
+const { userPrincipal } = require("../../../../../API/permissions/principal");
+
+// AUTH_LOCAL_LOGIN=admins: only accounts holding an admin role may log in locally
+const LOCAL_ADMINS_ONLY = "Only administrators may log in with a local account on this site.";
+async function localLoginAllowed(userId) {
+  if (!siteAccess.localAdminsOnly()) return true;
+  return policy.isAdministrator(await userPrincipal(userId));
+}
 const bcrypt = require("bcryptjs");
 const buf = crypto.randomBytes(128);
 
@@ -122,6 +130,7 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
   const accountManager = policy.can(req.principal, "accounts.manage");
   const selfSignup =
     siteAccess.hasProvider("local") &&
+    !siteAccess.localAdminsOnly() &&
     (siteAccess.isOptional() ||
       (siteAccess.isRequired() &&
         (process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
@@ -353,13 +362,16 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
               });
             });
           };
-          // A session that is not already this user's gets a new id
-          if (String(req.session.uid) === String(user.id)) signIn();
-          else
-            req.session.regenerate((err) => {
-              if (err) res.send({ status: "failure", message: "Bad token." });
-              else signIn();
-            });
+          return localLoginAllowed(user.id).then((allowed) => {
+            if (!allowed) return res.send({ status: "failure", message: LOCAL_ADMINS_ONLY });
+            // A session that is not already this user's gets a new id
+            if (String(req.session.uid) === String(user.id)) signIn();
+            else
+              req.session.regenerate((err) => {
+                if (err) res.send({ status: "failure", message: "Bad token." });
+                else signIn();
+              });
+          });
         }
         return null;
       })
@@ -444,7 +456,14 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
             }
           }
 
-          bcrypt.compare(req.body.password, user.password, pass);
+          bcrypt.compare(req.body.password, user.password, (err, result, again) => {
+            if (!result) return pass(err, result, again);
+            localLoginAllowed(user.id)
+              .then((allowed) =>
+                allowed ? pass(err, result, again) : res.send({ status: "failure", message: LOCAL_ADMINS_ONLY })
+              )
+              .catch(() => res.send({ status: "failure", message: "Login failed." }));
+          });
           return null;
         }
         return null;

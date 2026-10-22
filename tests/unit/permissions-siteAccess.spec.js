@@ -122,3 +122,15 @@ test.describe('Site access helpers', () => {
       expect(siteAccess.guestsAllowed()).toBe(false);
     }));
 });
+
+test.describe('AUTH_LOCAL_LOGIN', () => {
+  const siteAccess = require(require('path').resolve(__dirname, '../../API/permissions/siteAccess.js'));
+  const base = { SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local"]' };
+  test('accepts all, admins or unset', () => {
+    for (const v of [undefined, '', 'all', 'admins'])
+      expect(siteAccess.validate({ ...base, AUTH_LOCAL_LOGIN: v }).filter((e) => /AUTH_LOCAL_LOGIN/.test(e))).toEqual([]);
+  });
+  test('rejects anything else', () => {
+    expect(siteAccess.validate({ ...base, AUTH_LOCAL_LOGIN: 'everyone' }).some((e) => /AUTH_LOCAL_LOGIN/.test(e))).toBe(true);
+  });
+});

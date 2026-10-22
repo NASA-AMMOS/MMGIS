@@ -367,17 +367,7 @@ function ensureGroup(allowedGroups) {
   };
 }
 
-// Capabilities that make someone an administrator (may use /configure)
-const ADMIN_CAPABILITIES = [
-  "mission.layer.edit",
-  "mission.config.edit",
-  "mission.create",
-  "accounts.manage",
-  "groups.manage",
-  "data.geodatasets.write",
-  "data.datasets.write",
-  "data.stac.write",
-];
+const ADMIN_CAPABILITIES = policy.ADMIN_CAPABILITIES;
 function isAdminPrincipal(principal) {
   const caps = policy.capabilitiesOf(principal);
   return ADMIN_CAPABILITIES.some((c) => caps.includes(c));

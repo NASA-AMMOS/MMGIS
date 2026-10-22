@@ -248,6 +248,22 @@ function accountRole(bindings) {
   return "user";
 }
 
+// Capabilities that make someone an administrator (may use /configure)
+const ADMIN_CAPABILITIES = [
+  "mission.layer.edit",
+  "mission.config.edit",
+  "mission.create",
+  "accounts.manage",
+  "groups.manage",
+  "data.geodatasets.write",
+  "data.datasets.write",
+  "data.stac.write",
+];
+const isAdministrator = (principal) => {
+  const caps = capabilitiesOf(principal);
+  return ADMIN_CAPABILITIES.some((c) => caps.includes(c));
+};
+
 // Missions/shared: signed-in users, and guests who can view at least one mission
 function canReadSharedFolder(principal) {
   if (!principal) return false;
@@ -290,6 +306,8 @@ module.exports = {
   can,
   missionsWith,
   canReadSharedFolder,
+  ADMIN_CAPABILITIES,
+  isAdministrator,
   canUseAdjacentServer,
   layerRootsWith,
   capabilitiesOf,
