@@ -67,6 +67,8 @@ The import never changes usernames or password hashes, so every existing account
 | `missions_viewing` list | `viewer` on each listed mission |
 | `missions_viewing` unset | `viewer` (global) |
 
+On a brand-new site with no accounts, creating the first account on `/configure` now asks for a one-time setup code printed in the server log (see `SETUP_CODE`). Existing sites already have accounts and are unaffected.
+
 The server also runs the import once on first start if it hasn't run. Unknown mission names are reported and skipped. The legacy columns are kept, so rolling back to the previous image still works.
 
 ## 3. What changes for each kind of account

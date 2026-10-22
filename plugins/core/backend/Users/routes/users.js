@@ -17,6 +17,7 @@ const { getDefaultMissionsViewing } = require("../models/userdefaults");
 const siteAccess = require("../../../../../API/permissions/siteAccess");
 const policy = require("../../../../../API/permissions/policy");
 const bindings = require("../../../../../API/permissions/bindings");
+const setupCode = require("../../../../../API/permissions/setupCode");
 
 function isStrongPassword(password) {
   const minLength = 8;
@@ -57,6 +58,15 @@ router.post("/first_signup", authorize.public("login and account self-service"),
   User.count()
     .then((count) => {
       if (count === 0) {
+        setupCode.ensure();
+        if (!setupCode.consume(req.body.setup_code)) {
+          logger("warn", "First account sign-up rejected: wrong or missing setup code.", req.originalUrl, req);
+          res.send({
+            status: "failure",
+            message: "Invalid setup code (see the server log).",
+          });
+          return null;
+        }
         // Define a new user
         let firstUser = {
           username: req.body.username,
@@ -72,10 +82,13 @@ router.post("/first_signup", authorize.public("login and account self-service"),
             return null;
           })
           .catch((err) => {
+            // The code was consumed; issue a fresh one for the next attempt
+            setupCode.ensure();
             res.send({ status: "failure", message: "Failed to sign up" });
             return null;
           });
       } else {
+        setupCode.clear();
         res.send({ status: "failure", message: "Permission denied" });
         return null;
       }

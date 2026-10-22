@@ -128,8 +128,14 @@ a:hover {
   transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 
-#pwd_retype {
+#pwd_retype,
+#setup_code {
   display: none;
+}
+
+#setup_code {
+  font-family: monospace;
+  letter-spacing: 1px;
 }
 
 img {
