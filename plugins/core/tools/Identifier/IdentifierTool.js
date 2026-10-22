@@ -457,14 +457,20 @@ var IdentifierTool = {
                                             ) {
                                                 unit = d2.units[cnt]
                                             }
+                                            // A null/NaN reading is "no data", never 0
+                                            const raw = Array.isArray(value[v][1])
+                                                ? value[v][1][0]
+                                                : value[v][1]
                                             let valueParsed =
-                                                parseValue(
-                                                    value[v][1],
-                                                    d2.sigfigs,
-                                                    d2.scalefactor
-                                                ) +
-                                                '' +
-                                                unit
+                                                raw == null || Number.isNaN(raw)
+                                                    ? 'no data'
+                                                    : parseValue(
+                                                          value[v][1],
+                                                          d2.sigfigs,
+                                                          d2.scalefactor
+                                                      ) +
+                                                      '' +
+                                                      unit
 
                                             if (
                                                 value.length > 1 ||
@@ -827,7 +833,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         }
 
         fetch(
-            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}&items_limit=10${timeParam}${expressionParam}`,
+            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}&items_limit=100${timeParam}${expressionParam}`,
             {
                 method: 'GET',
                 headers: {
@@ -842,9 +848,18 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             })
             .then((json) => {
                 // titiler-pgstac>=3: { assets: [{ name: 'collection/item', values, band_names }] }
+                // Items arrive in the search order the map's mosaic uses
+                // (newest first), and the mosaic draws each pixel from the
+                // first item with data there. Report that one item, so the
+                // value matches the pixel shown, rather than every item in the
+                // window (most of a swath collection is empty at any point).
                 if (json && Array.isArray(json.assets)) {
+                    const hasData = (v) => v != null && !Number.isNaN(v)
+                    const asset = json.assets.find((a) =>
+                        (a.values || []).some(hasData)
+                    )
                     const values = []
-                    json.assets.forEach((asset) => {
+                    if (asset) {
                         const itemName = (asset.name || '').split('/').pop()
                         asset.band_names.forEach((bandName, idx) => {
                             values.push([
@@ -853,7 +868,9 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                                 [bandName],
                             ])
                         })
-                    })
+                    } else {
+                        values.push(['', [null], null]) // shown as a lone "no data"
+                    }
                     respond(values)
                 } else respond(null)
             })
