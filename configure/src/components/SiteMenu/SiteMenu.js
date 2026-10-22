@@ -199,6 +199,7 @@ export const sectionForPage = (page) =>
 export function NavRail({ section, onSelect, can }) {
   const c = useStyles();
   const visible = visibleWith(can);
+  const dispatch = useDispatch();
   const [collapsed, setCollapsed] = React.useState(false);
   const sections = [
     { name: MISSIONS_SECTION, Icon: PublicIcon },
@@ -223,6 +224,10 @@ export function NavRail({ section, onSelect, can }) {
             onClick={(e) => {
               if (e.detail > 0) setCollapsed(true);
               onSelect(s.name);
+              // Missions shows the mission prompt; other sections open their first page
+              dispatch(setMission(null));
+              const first = s.pages && s.pages.find(visible);
+              if (first) dispatch(setPage({ page: first.page }));
             }}
           >
             <span className={c.railIcon}>
