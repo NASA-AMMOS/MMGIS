@@ -1,7 +1,9 @@
 const {
   createProxyMiddleware,
   responseInterceptor,
+  fixRequestBody,
 } = require("http-proxy-middleware");
+const bodyParser = require("body-parser");
 
 const logger = require("../API/logger");
 const createTitilerUrlValidator = require("./validateTitilerUrl");
@@ -78,6 +80,9 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         // All other TiTiler endpoints follow standard adjacent server auth
         ensureUserForAdjacentServers("titiler")(req, res, next);
       },
+      // Parse bodies so the validators also see URLs and expressions sent in them
+      bodyParser.json({ limit: "10mb" }),
+      bodyParser.urlencoded({ limit: "10mb", extended: true }),
       validateTitilerUrl, // URL validation middleware (SSRF prevention)
       validateTitilerExpression, // band-math token allowlist
       createProxyMiddleware({
@@ -88,6 +93,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: fixRequestBody,
           proxyRes: createSwaggerInterceptor("titiler", titilerTarget),
         },
       })

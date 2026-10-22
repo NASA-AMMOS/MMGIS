@@ -331,25 +331,34 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
         if (!user) {
           res.send({ status: "failure", message: "Bad token." });
         } else {
-          req.session.user = user.username;
-          req.session.uid = user.id;
-          if (!req.session.token) {
-            req.session.token = MMGISUser.token;
-          }
-          req.session.save(() => {
-            res.send({
-              status: "success",
-              username: user.username,
-              token: req.session.token,
-              groups: getUserGroups(user.username, req.leadGroupName),
-              additional:
-                process.env.THIRD_PARTY_COOKIES === "true"
-                  ? `; SameSite=None;${
-                      process.env.NODE_ENV === "production" ? " Secure" : ""
-                    }`
-                  : "",
+          const signIn = () => {
+            req.session.user = user.username;
+            req.session.uid = user.id;
+            if (!req.session.token) {
+              req.session.token = MMGISUser.token;
+            }
+            req.session.save(() => {
+              res.send({
+                status: "success",
+                username: user.username,
+                token: req.session.token,
+                groups: getUserGroups(user.username, req.leadGroupName),
+                additional:
+                  process.env.THIRD_PARTY_COOKIES === "true"
+                    ? `; SameSite=None;${
+                        process.env.NODE_ENV === "production" ? " Secure" : ""
+                      }`
+                    : "",
+              });
             });
-          });
+          };
+          // A session that is not already this user's gets a new id
+          if (String(req.session.uid) === String(user.id)) signIn();
+          else
+            req.session.regenerate((err) => {
+              if (err) res.send({ status: "failure", message: "Bad token." });
+              else signIn();
+            });
         }
         return null;
       })
@@ -447,13 +456,18 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
 });
 
 router.post("/logout", apilimiter, authorize.public("login and account self-service"), function (req, res) {
-  let MMGISUser = req.cookies.MMGISUser
-    ? JSON.parse(req.cookies.MMGISUser)
-    : false;
+  let MMGISUser = false;
+  try {
+    MMGISUser = req.cookies.MMGISUser ? JSON.parse(req.cookies.MMGISUser) : false;
+  } catch (err) {
+    MMGISUser = false;
+  }
+  // The signed-in session decides whose saved login ends; the cookie is a fallback
+  const uid = req.session.uid;
 
   clearLoginSession(req);
 
-  if (MMGISUser == false) {
+  if (uid == null && !MMGISUser) {
     res.send({ status: "failure", message: "No user." });
   } else {
     User.update(
@@ -461,10 +475,10 @@ router.post("/logout", apilimiter, authorize.public("login and account self-serv
         token: null,
       },
       {
-        where: {
-          username: MMGISUser.username,
-          token: MMGISUser.token,
-        },
+        where:
+          uid != null
+            ? { id: uid }
+            : { username: String(MMGISUser.username), token: String(MMGISUser.token) },
       }
     )
       .then(() => {

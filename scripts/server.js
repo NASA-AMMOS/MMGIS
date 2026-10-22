@@ -508,8 +508,7 @@ function ensureUser(options = {}) {
 }
 
 // Site gate for adjacent server proxies. Reads follow the site gate; other methods
-// need a signed-in user, and an admin on sites that allow guests. Tokens also need
-// the capability for that server and method.
+// need an admin. Tokens also need the capability for that server and method.
 function ensureUserForAdjacentServers(server) {
   const gate = ensureUser();
   const admin = ensureAdmin();
@@ -524,8 +523,7 @@ function ensureUserForAdjacentServers(server) {
   return (req, res, next) => {
     const then = () => tokenAllowed(req, res, next);
     if (req.method === "GET" || req.method === "HEAD") return gate(req, res, then);
-    if (siteAccess.guestsAllowed()) return admin(req, res, then);
-    return gate(req, res, then);
+    return admin(req, res, then);
   };
 }
 

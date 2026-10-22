@@ -26,7 +26,7 @@ const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 const Utils = require("../../../../../API/utils");
 
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
+const { authorize, resolvers, missionNamesWith } = require("../../../../../API/permissions/authorize");
 const db = database.db;
 
 const historyKey = {
@@ -129,7 +129,7 @@ router.post("/getfiles", authorize("draw.use"), async function (req, res, next) 
       [Sequelize.Op.and]: andWhere,
     },
   })
-    .then((files) => {
+    .then(async (files) => {
       if (!files) {
         res.send({
           status: "failure",
@@ -137,6 +137,12 @@ router.post("/getfiles", authorize("draw.use"), async function (req, res, next) 
           body: {},
         });
       } else {
+        // Others' files only from missions the caller can view
+        const viewable = await missionNamesWith(req, "mission.view");
+        if (viewable != null)
+          files = files.filter(
+            (f) => f.file_owner === req.user || f.mission == null || viewable.includes(f.mission)
+          );
         files.sort((a, b) => (a.id > b.id ? 1 : -1));
         res.send({
           status: "success",
@@ -185,6 +191,10 @@ router.post("/make", authorize("draw.use"), async function (req, res, next) {
       vars = await getDrawToolVars(req.body.mission);
     } catch (err) {
       logger("error", "Failed to make a new file.", req.originalUrl, req, err);
+    }
+    if (vars != null) {
+      const viewable = await missionNamesWith(req, "mission.view").catch(() => []);
+      if (viewable != null && !viewable.includes(req.body.mission)) vars = null;
     }
     if (vars == null) {
       res.send({

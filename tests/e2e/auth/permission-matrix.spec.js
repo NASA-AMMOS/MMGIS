@@ -222,6 +222,7 @@ test.describe.serial('Permission matrix', () => {
         expect(await occurrences(who, '/api/geodatasets/entries', name)).not.toContain(MISSION_B);
         expect(await occurrences(who, '/api/datasets/entries')).not.toContain(MISSION_B);
       }
+      // Every mission with layers gets an occurrences key (possibly empty), so the viewer's own mission stays listed
       expect(await occurrences(users.viewer, '/api/geodatasets/entries', name)).toContain(MISSION_A);
     } finally {
       await api(admin, 'DELETE', `/api/geodatasets/remove/${name}`);
@@ -605,8 +606,55 @@ test.describe.serial('Permission matrix', () => {
       expect(ok(await get(users.madmin, inB))).toBe(false);
       expect(ok(await get(admin, inB))).toBe(true);
       expect(ok(await get(users.sa2, [inA, inB]))).toBe(true);
+      // Listings only show other people's files from viewable missions
+      const listed = async (who, body = {}) => ((await api(who, 'POST', '/api/files/getfiles', body)).json.body || []).map((f) => f.id);
+      for (const body of [{}, { mission: MISSION_B }]) {
+        expect(await listed(users.viewer, body)).not.toContain(inB);
+        expect(await listed(admin, body)).toContain(inB);
+      }
+      expect(await listed(users.viewer, { mission: MISSION_A })).toContain(inA);
+      // Nobody makes files in a mission they cannot view
+      const outside = await api(users.viewer, 'POST', '/api/files/make', { file_name: `out_${RUN}`, intent: 'all', mission: MISSION_B });
+      expect(ok(outside)).toBe(false);
     } finally {
       for (const id of [inA, inB]) await api(admin, 'POST', '/api/files/remove', { id });
+    }
+  });
+
+  test('saved logins: a new session id on reload, and logout ends them without the cookie', async () => {
+    const name = `saved_${RUN}`;
+    for (const u of [name, `${name}_x`])
+      expect(ok(await api(admin, 'POST', '/api/users/signup', { username: u, password: PASSWORD, skipLogin: true }))).toBe(true);
+    try {
+      const tab = {};
+      const r = await api(tab, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() });
+      expect(ok(r)).toBe(true);
+      const savedCookie = `MMGISUser=${encodeURIComponent(JSON.stringify({ username: name, token: r.json.token }))}`;
+      const signedIn = async (who) => readable(await api(who, 'GET', '/api/configure/missions'));
+
+      // Someone else's session id planted before the reload never becomes this user's session
+      const planted = await login(`${name}_x`, PASSWORD);
+      const victim = { cookie: `${planted.cookie}; ${savedCookie}` };
+      expect(ok(await api(victim, 'POST', '/api/users/login', { useToken: true }, { localAddress: freshAddress() }))).toBe(true);
+      expect(victim.cookie).not.toContain(planted.cookie);
+      expect(await signedIn(victim)).toBe(true);
+      expect(await signedIn(planted)).toBe(false);
+
+      // A malformed cookie doesn't break logout
+      const bad = await api({ cookie: `${tab.cookie}; MMGISUser=%7Bnot-json` }, 'POST', '/api/users/logout', {});
+      expect(bad.status).toBe(200);
+
+      // Logging out without the cookie still ends the saved login
+      const tab2 = {};
+      const r2 = await api(tab2, 'POST', '/api/users/login', { username: name, password: PASSWORD }, { localAddress: freshAddress() });
+      expect(ok(r2)).toBe(true);
+      const saved2 = `MMGISUser=${encodeURIComponent(JSON.stringify({ username: name, token: r2.json.token }))}`;
+      expect(ok(await api(tab2, 'POST', '/api/users/logout', {}))).toBe(true);
+      expect(ok(await api({ cookie: saved2 }, 'POST', '/api/users/login', { useToken: true }, { localAddress: freshAddress() }))).toBe(false);
+    } finally {
+      const entries = (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries;
+      for (const e of entries.filter((x) => x.username === name || x.username === `${name}_x`))
+        await api(admin, 'DELETE', `/api/accounts/remove/${e.id}`);
     }
   });
 
