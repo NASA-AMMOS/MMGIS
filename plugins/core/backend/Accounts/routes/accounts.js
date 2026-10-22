@@ -289,7 +289,7 @@ async function updateUser(req, id) {
   await bindings.afterChange("user", id);
 }
 
-// Site-wide default missions_viewing stamped onto new accounts (enforced only under SITE_ACCESS=required)
+// Site-wide default missions_viewing stamped onto new accounts (applies in every SITE_ACCESS mode)
 router.get("/defaults", authorize("accounts.manage"), function (req, res) {
   getDefaultMissionsViewing()
     .then((missions_viewing) => {

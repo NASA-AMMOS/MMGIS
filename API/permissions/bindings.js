@@ -89,7 +89,8 @@ async function syncLegacyPermission(userId) {
   });
   if (user) {
     const superAdmin = bindings.some((b) => b.role === "superadmin" && b.scope === "global");
-    if (user.permission === "111" && !superAdmin) update.permission = managing.length ? "110" : "001";
+    // "110" was broadly authorized on older releases, so a demoted SuperAdmin drops to "001"
+    if (user.permission === "111" && !superAdmin) update.permission = "001";
     else if (user.permission === "110" && managing.length === 0) update.permission = "001";
     const viewable = policy.missionsWith({ authenticated: true, bindings }, "mission.view");
     if (viewable != null) {

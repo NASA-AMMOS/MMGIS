@@ -650,8 +650,20 @@ function PersonPanel({ user, ctx }) {
         ? <SubjectTag type="group" name={groupName(b.subject_id)} />
         : <SubjectTag type={b.subject_id} name={AUDIENCE_LABEL[b.subject_id] || b.subject_id} />,
   }));
+  const [email, setEmail] = useState(user.email || "");
+  useEffect(() => setEmail(user.email || ""), [user.id, user.email]);
   const memberOf = groups.filter((g) => g.members.some((m) => m.id === user.id));
   const myTokens = tokens.filter((t) => t.created_by_user_id === user.id);
+
+  const trimmedEmail = email.trim();
+  const canSaveEmail = trimmedEmail !== "" && trimmedEmail !== (user.email || "");
+  const saveEmail = () =>
+    api("account_update_user", { id: user.id, email: trimmedEmail })
+      .then(() => {
+        notify("Email updated.", "success");
+        refresh();
+      })
+      .catch((res) => notify(res.message || "Failed to update email.", "error"));
 
   const saveViewing = (mode, list) =>
     api("account_update_user", { id: user.id, missions_viewing: mode === "all" ? null : list })
@@ -686,7 +698,23 @@ function PersonPanel({ user, ctx }) {
 
       <div className={c.section}>
         <Typography className={c.sectionTitle}>Account</Typography>
-        <div>{user.email || <span className={c.muted}>No email</span>}</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <TextField
+            size="small"
+            type="email"
+            label="Email"
+            placeholder="No email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && canSaveEmail) saveEmail();
+            }}
+            sx={{ flex: 1 }}
+          />
+          <Button variant="outlined" size="small" disabled={!canSaveEmail} onClick={saveEmail}>
+            Save
+          </Button>
+        </div>
       </div>
 
       <div className={c.section}>
