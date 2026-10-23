@@ -35,6 +35,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
+import Autocomplete from "@mui/material/Autocomplete";
 
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -259,6 +260,7 @@ const ROLE_HELP = {
 const ROLE_RANK = ["viewer", "layer_editor", "mission_admin", "data_admin", "superadmin"];
 const SCOPE_LABEL = { global: "Site-wide", mission: "Mission", layer: "Layer & children" };
 const AUDIENCE_LABEL = { everyone: "Everyone (including guests)", authenticated: "Logged-in users" };
+const AUDIENCE_ORDER = ["everyone", "authenticated", "anonymous"];
 
 const SUBJECT_STYLE = {
   user: { icon: PersonIcon, swatch: 13, kind: "User" },
@@ -552,12 +554,20 @@ function GrantDialog({ open, onClose, fixed, roles, missions, users, groups, not
               <MenuItem value="group">Group</MenuItem>
               <MenuItem value="audience">Audience</MenuItem>
             </Select>
-            <Select size="small" className={c.input} displayEmpty value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
-              <MenuItem value=""><em>Choose…</em></MenuItem>
-              {subjectType === "user" && users.map((u) => <MenuItem key={u.id} value={String(u.id)}>{u.username}</MenuItem>)}
-              {subjectType === "group" && groups.map((g) => <MenuItem key={g.id} value={String(g.id)}>{g.name}</MenuItem>)}
-              {subjectType === "audience" && Object.keys(AUDIENCE_LABEL).map((a) => <MenuItem key={a} value={a}>{AUDIENCE_LABEL[a]}</MenuItem>)}
-            </Select>
+            {subjectType === "audience" ? (
+              <Select size="small" className={c.input} displayEmpty value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
+                <MenuItem value=""><em>Choose…</em></MenuItem>
+                {Object.keys(AUDIENCE_LABEL).map((a) => <MenuItem key={a} value={a}>{AUDIENCE_LABEL[a]}</MenuItem>)}
+              </Select>
+            ) : (
+              <SubjectSearch
+                key={subjectType}
+                options={subjectType === "user" ? users.map((u) => ({ id: String(u.id), label: u.username })) : groups.map((g) => ({ id: String(g.id), label: g.name }))}
+                value={subjectId}
+                onChange={setSubjectId}
+                placeholder={subjectType === "user" ? "Search users…" : "Search groups…"}
+              />
+            )}
           </div>
         )}
 
@@ -667,6 +677,29 @@ function MissionMultiSelect({ missions, value, onChange, placeholder }) {
 }
 
 const PICK_LIMIT = 50;
+
+// Searchable picker that renders at most PICK_LIMIT matches, so sites with thousands of accounts stay responsive
+function SubjectSearch({ options, value, onChange, placeholder }) {
+  const c = useStyles();
+  const selected = options.find((o) => o.id === value) || null;
+  return (
+    <Autocomplete
+      size="small"
+      className={c.input}
+      options={options}
+      value={selected}
+      onChange={(e, o) => onChange(o ? o.id : "")}
+      isOptionEqualToValue={(o, v) => o.id === v.id}
+      getOptionLabel={(o) => o.label}
+      filterOptions={(opts, { inputValue }) => {
+        const q = inputValue.trim().toLowerCase();
+        return (q ? opts.filter((o) => o.label.toLowerCase().includes(q)) : opts).slice(0, PICK_LIMIT);
+      }}
+      noOptionsText="No matches"
+      renderInput={(params) => <TextField {...params} placeholder={placeholder} />}
+    />
+  );
+}
 
 // Button that opens a searchable list, e.g. "Add to group" or "Add member"
 function PickButton({ label, icon, items, onPick, emptyText }) {
@@ -1213,11 +1246,19 @@ export default function UsersAccess() {
   const pageIndex = Math.min(peoplePage, Math.max(0, Math.ceil(peopleRows.length / peoplePerPage) - 1));
   const pageRows = peopleRows.slice(pageIndex * peoplePerPage, (pageIndex + 1) * peoplePerPage);
   const pickedMission = missions.find((m) => m.name === missionPick);
-  const missionRows = pickedMission
-    ? bindings
-        .filter((b) => b.scope_type === "global" ? b.role !== "data_admin" : b.mission_uuid === pickedMission.uuid)
-        .map((b) => ({ b, removable: true, via: b.scope_type === "global" ? "Site-wide grant" : sourceText(b) }))
-    : [];
+  const missionRows = useMemo(() => {
+    if (!pickedMission) return [];
+    const userNames = new Map(users.map((u) => [String(u.id), u.username]));
+    const groupNames = new Map(groups.map((g) => [String(g.id), g.name]));
+    const who = (b) =>
+      b.subject_type === "user" ? userNames.get(String(b.subject_id)) || "" : b.subject_type === "group" ? groupNames.get(String(b.subject_id)) || "" : "";
+    // Audiences (Everyone first), then groups, then users; by name, then least to most access
+    const rank = (b) => (b.subject_type === "audience" ? Math.max(0, AUDIENCE_ORDER.indexOf(b.subject_id)) : b.subject_type === "group" ? 10 : 20);
+    return bindings
+      .filter((b) => (b.scope_type === "global" ? b.role !== "data_admin" : b.mission_uuid === pickedMission.uuid))
+      .map((b) => ({ b, removable: true, via: b.scope_type === "global" ? "Site-wide grant" : sourceText(b), who: who(b) }))
+      .sort((x, y) => rank(x.b) - rank(y.b) || x.who.localeCompare(y.who) || ROLE_RANK.indexOf(x.b.role) - ROLE_RANK.indexOf(y.b.role));
+  }, [pickedMission, bindings, users, groups]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sorted once per change and only while the All grants tab is open
   const allGrantRows = useMemo(() => {
