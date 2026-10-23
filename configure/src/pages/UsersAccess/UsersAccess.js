@@ -5,7 +5,6 @@ import { makeStyles } from "@mui/styles";
 
 import { calls } from "../../core/calls";
 import { setSnackBarText, setModal, setPage } from "../../core/ConfigureStore";
-import AccessHelp from "./AccessHelp";
 
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -280,7 +279,7 @@ const useSubjectStyles = makeStyles((theme) => ({
 
 // Users, groups and audiences each get their own icon, colour and kind label.
 // Pass showKind={false} where the column already says what kind it is.
-function SubjectTag({ type, name, showKind = true }) {
+export function SubjectTag({ type, name, showKind = true }) {
   const s = SUBJECT_STYLE[type] || SUBJECT_STYLE.user;
   const c = useSubjectStyles({ swatch: s.swatch });
   const Icon = s.icon;
@@ -381,7 +380,7 @@ function GrantsTable({ rows, roles, layerPaths, viaText, onRemove, emptyText }) 
   );
 }
 
-function RoleBadge({ role, roles }) {
+export function RoleBadge({ role, roles }) {
   const c = useStyles();
   return (
     <span className={`${c.badge} ${c[`badge_${role}`] || c.badge_user}`}>
@@ -1288,7 +1287,6 @@ export default function UsersAccess() {
         <Tab label="Missions" />
         <Tab label="Site-wide" />
         <Tab label="All grants" />
-        <Tab label="Help" />
       </Tabs>
       <div className={c.content}>
         {tab === 0 && (
@@ -1485,11 +1483,6 @@ export default function UsersAccess() {
                 onRowsPerPageChange={(e) => { setGrantsPerPage(parseInt(e.target.value, 10)); setGrantPage(0); }}
               />
             )}
-          </div>
-        )}
-        {tab === 5 && (
-          <div className={c.pane}>
-            <AccessHelp SubjectTag={SubjectTag} RoleBadge={RoleBadge} roles={roles} />
           </div>
         )}
       </div>

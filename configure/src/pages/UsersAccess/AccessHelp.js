@@ -1,7 +1,13 @@
-// Help tab of Users & Access: how grants, roles and scopes fit together
-import React from "react";
+// Access Help page: how grants, roles and scopes fit together
+import React, { useEffect, useState } from "react";
 import { makeStyles } from "@mui/styles";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
 import CheckIcon from "@mui/icons-material/Check";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+
+import { calls } from "../../core/calls";
+import { SubjectTag, RoleBadge } from "./UsersAccess";
 
 const ROLES = [
   ["viewer", "See a mission and its layers."],
@@ -13,7 +19,30 @@ const ROLES = [
 
 const ACCESS_COLUMNS = ["Their own grants", "Their groups", "Logged-in users", "Everyone"];
 
-export default function AccessHelp({ SubjectTag, RoleBadge, roles }) {
+export default function AccessHelp() {
+  const c = useStyles();
+  const [roles, setRoles] = useState({});
+  useEffect(() => {
+    calls.api("access_roles", {}, (r) => setRoles((r.body && r.body.roles) || {}), () => {});
+  }, []);
+  return (
+    <div className={c.page}>
+      <Toolbar className={c.topbar}>
+        <div className={c.topbarTitle}>
+          <HelpOutlineIcon />
+          <Typography style={{ fontWeight: "bold", fontSize: "16px", lineHeight: "29px" }} variant="h6" component="div">
+            Access Help
+          </Typography>
+        </div>
+      </Toolbar>
+      <div className={c.content}>
+        <AccessGuide roles={roles} />
+      </div>
+    </div>
+  );
+}
+
+function AccessGuide({ roles }) {
   const c = useStyles();
   const yes = <CheckIcon className={c.yes} fontSize="small" />;
   const no = <span className={c.no}>—</span>;
@@ -147,7 +176,7 @@ export default function AccessHelp({ SubjectTag, RoleBadge, roles }) {
         </div>
         <div className={c.rule}>
           <b>Check one person</b>
-          Click someone on the People tab to see what they can view and edit, and where each grant comes from.
+          In Users & Access, click someone on the People tab to see what they can view and edit, and where each grant comes from.
         </div>
       </div>
     </div>
@@ -155,6 +184,29 @@ export default function AccessHelp({ SubjectTag, RoleBadge, roles }) {
 }
 
 const useStyles = makeStyles((theme) => ({
+  page: {
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    flexFlow: "column",
+    background: theme.palette.swatches.grey[1000],
+    backgroundImage: "url(configure/build/gridlines.png)",
+  },
+  topbar: {
+    width: "calc(100% - 100px)",
+    height: "44px",
+    minHeight: "44px !important",
+    display: "flex",
+    justifyContent: "space-between",
+    padding: "0px 20px",
+    boxSizing: "border-box !important",
+  },
+  topbarTitle: {
+    display: "flex",
+    color: theme.palette.swatches.grey[150],
+    "& > svg": { color: theme.palette.swatches.grey[150], margin: "3px 10px 0px 2px" },
+  },
+  content: { flex: 1, overflowY: "auto", padding: "16px 32px 64px 32px" },
   help: { maxWidth: "1400px", paddingBottom: "24px" },
   title: { fontSize: "20px", fontWeight: "bold", marginBottom: "4px" },
   lead: { fontSize: "14px", marginBottom: "16px", opacity: 0.85 },

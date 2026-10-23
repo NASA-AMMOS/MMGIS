@@ -7,7 +7,9 @@ import { setMission, setPage } from "../../core/ConfigureStore";
 
 import Button from "@mui/material/Button";
 
-import PublicIcon from "@mui/icons-material/Public";
+import MapIcon from "@mui/icons-material/Map";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import StorageIcon from "@mui/icons-material/Storage";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
@@ -127,7 +129,6 @@ export const SITE_GROUPS = [
     name: "Data",
     Icon: StorageIcon,
     pages: [
-      { page: "data_formats", label: "Data Formats", Icon: StorageIcon },
       {
         page: "geodatasets",
         label: "GeoDatasets",
@@ -147,18 +148,13 @@ export const SITE_GROUPS = [
         cap: "data.stac.write",
         when: () => window.mmgisglobal.WITH_STAC === "true",
       },
+      { page: "data_formats", label: "Help", Icon: HelpOutlineIcon },
     ],
   },
   {
     name: "Integrations",
     Icon: ApiIcon,
     pages: [
-      {
-        page: "api_tokens",
-        label: "API Tokens",
-        Icon: KeyIcon,
-        cap: "tokens.create",
-      },
       { page: "apis", label: "APIs", Icon: ApiIcon },
       {
         page: "webhooks",
@@ -169,7 +165,7 @@ export const SITE_GROUPS = [
     ],
   },
   {
-    name: "Site",
+    name: "Settings",
     Icon: SettingsIcon,
     pages: [
       {
@@ -178,12 +174,25 @@ export const SITE_GROUPS = [
         Icon: SettingsIcon,
         cap: "options.manage",
       },
+    ],
+  },
+  {
+    name: "Access",
+    Icon: AdminPanelSettingsIcon,
+    pages: [
       {
         page: "users",
         label: "Users & Access",
         Icon: ManageAccountsIcon,
         caps: ["accounts.manage", "groups.manage"],
       },
+      {
+        page: "api_tokens",
+        label: "API Tokens",
+        Icon: KeyIcon,
+        cap: "tokens.create",
+      },
+      { page: "access_help", label: "Access Help", Icon: HelpOutlineIcon },
     ],
   },
 ];
@@ -202,7 +211,7 @@ export function NavRail({ section, onSelect, can }) {
   const dispatch = useDispatch();
   const [collapsed, setCollapsed] = React.useState(false);
   const sections = [
-    { name: MISSIONS_SECTION, Icon: PublicIcon },
+    { name: MISSIONS_SECTION, Icon: MapIcon },
     ...SITE_GROUPS.filter((g) => g.pages.some(visible)),
   ];
   return (

@@ -48,6 +48,7 @@ import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
 import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
 import DataFormats from "../../pages/DataFormats/DataFormats";
+import AccessHelp from "../../pages/UsersAccess/AccessHelp";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -250,6 +251,9 @@ export default function Main() {
       break;
     case "data_formats":
       Page = <DataFormats />;
+      break;
+    case "access_help":
+      Page = <AccessHelp />;
       break;
     default:
   }
