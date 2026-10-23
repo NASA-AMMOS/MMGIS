@@ -240,6 +240,8 @@ const ROLE_HELP = {
   layer_editor: "Edit one layer or folder and everything inside it.",
   viewer: "See a mission.",
 };
+// Least to most access; matches the badge colour ramp
+const ROLE_RANK = ["viewer", "layer_editor", "mission_admin", "data_admin", "superadmin"];
 const SCOPE_LABEL = { global: "Site-wide", mission: "Mission", layer: "Layer & children" };
 const AUDIENCE_LABEL = { everyone: "Everyone (including guests)", authenticated: "Logged-in users" };
 
@@ -414,7 +416,7 @@ function GroupedGrantsTable({ sections, expanded, onToggle, roles, layerPaths, o
                   </span>
                 </TableCell>
                 <TableCell>
-                  {[...new Set(sec.rows.map((r) => r.b.role))].map((role) => <RoleBadge key={role} role={role} roles={roles} />)}
+                  {[...new Set(sec.rows.map((r) => r.b.role))].sort((x, y) => ROLE_RANK.indexOf(x) - ROLE_RANK.indexOf(y)).map((role) => <RoleBadge key={role} role={role} roles={roles} />)}
                 </TableCell>
                 <TableCell colSpan={3} className={c.muted}>
                   {sec.rows.length} {sec.rows.length === 1 ? "grant" : "grants"}
