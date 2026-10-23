@@ -152,10 +152,14 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: "4px",
     marginRight: "4px",
     whiteSpace: "nowrap",
+    fontSize: "14px",
+    lineHeight: "20px",
+    fontWeight: "normal",
+    letterSpacing: "normal",
   },
   badge_superadmin: { background: "#db589a", color: "white" },
   badge_data_admin: { background: "#3a8fb7", color: "white" },
-  badge_mission_admin: { background: theme.palette.swatches.p[0] },
+  badge_mission_admin: { background: theme.palette.swatches.p[0], color: "black" },
   badge_layer_editor: { background: theme.palette.swatches.p[3], color: "white" },
   badge_viewer: { background: theme.palette.swatches.grey[500], color: "white" },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
@@ -233,31 +237,46 @@ const SCOPE_LABEL = { global: "Site-wide", mission: "Mission", layer: "Layer & c
 const AUDIENCE_LABEL = { everyone: "Everyone (including guests)", authenticated: "Logged-in users" };
 
 const SUBJECT_STYLE = {
-  user: { icon: PersonIcon, color: null, kind: "User" },
-  group: { icon: GroupsIcon, color: "#8e5bd8", kind: "Group" },
-  everyone: { icon: PublicIcon, color: "#2e9b6b", kind: "Audience" },
-  authenticated: { icon: HowToRegIcon, color: "#d4881c", kind: "Audience" },
+  user: { icon: PersonIcon, swatch: 13, kind: "User" },
+  group: { icon: GroupsIcon, swatch: 11, kind: "Group" },
+  everyone: { icon: PublicIcon, swatch: 12, kind: "Audience" },
+  authenticated: { icon: HowToRegIcon, swatch: 12, kind: "Audience" },
 };
 
-// Users, groups and audiences each get their own icon and color
-function SubjectTag({ type, name }) {
+const useSubjectStyles = makeStyles((theme) => ({
+  tag: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    fontWeight: "bold",
+    letterSpacing: "normal",
+    whiteSpace: "nowrap",
+    color: ({ swatch }) => theme.palette.swatches.p[swatch],
+  },
+  kind: {
+    marginLeft: "4px",
+    padding: "0px 6px",
+    borderRadius: "3px",
+    fontSize: "10px",
+    lineHeight: "16px",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    border: "1px solid currentColor",
+    background: ({ swatch }) => `${theme.palette.swatches.p[swatch]}14`,
+  },
+}));
+
+// Users, groups and audiences each get their own icon, colour and kind label.
+// Pass showKind={false} where the column already says what kind it is.
+function SubjectTag({ type, name, showKind = true }) {
   const s = SUBJECT_STYLE[type] || SUBJECT_STYLE.user;
+  const c = useSubjectStyles({ swatch: s.swatch });
   const Icon = s.icon;
   return (
-    <span
-      title={s.kind}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "4px",
-        fontWeight: "bold",
-        letterSpacing: "normal",
-        whiteSpace: "nowrap",
-        ...(s.color ? { color: s.color } : {}),
-      }}
-    >
+    <span title={s.kind} className={c.tag}>
       <Icon style={{ fontSize: "16px" }} />
       {name}
+      {showKind && <span className={c.kind}>{s.kind}</span>}
     </span>
   );
 }
@@ -839,7 +858,7 @@ function PersonPanel({ user, ctx }) {
             <TableBody>
               {memberOf.map((g) => (
                 <TableRow key={g.id}>
-                  <TableCell><SubjectTag type="group" name={g.name} /></TableCell>
+                  <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
                   <TableCell align="right">
                     {g.source === "local" && (
                       <Tooltip title="Remove from group" placement="left" arrow>
@@ -1300,7 +1319,7 @@ export default function UsersAccess() {
                       <TableCell>{s.viewAll ? <b>All</b> : s.viewList.length ? <MissionList items={s.viewList} /> : <span className={c.muted}>None</span>}</TableCell>
                       <TableCell>{s.missionAdmin.length ? <MissionList items={s.missionAdmin} /> : <span className={c.muted}>—</span>}</TableCell>
                       <TableCell>{s.layerEditor.length ? <MissionList items={s.layerEditor} /> : <span className={c.muted}>—</span>}</TableCell>
-                      <TableCell>{s.groupNames.length ? s.groupNames.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell>{s.groupNames.length ? s.groupNames.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} showKind={false} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
                       <TableCell className={c.muted}>{dateText(u.createdAt)}</TableCell>
                       <TableCell className={c.muted}>{dateText(u.updatedAt)}</TableCell>
                     </TableRow>
@@ -1360,7 +1379,7 @@ export default function UsersAccess() {
                   const own = bindings.filter((b) => b.subject_type === "group" && String(b.subject_id) === String(g.id));
                   return (
                     <TableRow key={g.id} className={c.clickRow} onClick={() => setPanel({ type: "group", id: g.id })}>
-                      <TableCell><SubjectTag type="group" name={g.name} /></TableCell>
+                      <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
                       <TableCell>{g.source === "local" ? g.members.length : `from ${g.source.toUpperCase()} (${g.external_name})`}</TableCell>
                       <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
@@ -1399,7 +1418,7 @@ export default function UsersAccess() {
             {["everyone", "authenticated"].map((a) => {
               const st = audienceState(a);
               return (
-                <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={<SubjectTag type={a} name={AUDIENCE_LABEL[a]} />} state={st} missions={missions}
+                <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={<SubjectTag type={a} name={AUDIENCE_LABEL[a]} showKind={false} />} state={st} missions={missions}
                   hint={a === "everyone" ? "Every logged-in user (including CSSO users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below." : "Every logged-in user, including CSSO users. Adds to what Everyone gets: \"No access\" here doesn't take away access granted to Everyone."}
                   onSave={(mode, list) => setAudience(a, mode, list)} />
               );
