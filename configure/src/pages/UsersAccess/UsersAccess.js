@@ -157,11 +157,12 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "normal",
     letterSpacing: "normal",
   },
-  badge_superadmin: { background: "#db589a", color: "white" },
-  badge_data_admin: { background: "#3a8fb7", color: "white" },
+  // Blue (least access) to red (most access)
+  badge_viewer: { background: theme.palette.swatches.p[10], color: "black" },
+  badge_layer_editor: { background: "#3a8fb7", color: "white" },
   badge_mission_admin: { background: theme.palette.swatches.p[0], color: "black" },
-  badge_layer_editor: { background: theme.palette.swatches.p[3], color: "white" },
-  badge_viewer: { background: theme.palette.swatches.grey[500], color: "white" },
+  badge_data_admin: { background: theme.palette.accent.tertiary, color: "white" },
+  badge_superadmin: { background: "#db589a", color: "white" },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
   // Pagination footer: continues the table's shadow on the sides and bottom only,
   // and sits above the table so it covers the table's bottom shadow
