@@ -163,9 +163,15 @@ const useStyles = makeStyles((theme) => ({
   badge_layer_editor: { background: theme.palette.swatches.p[3], color: "white" },
   badge_viewer: { background: theme.palette.swatches.grey[500], color: "white" },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
+  // Pagination footer: continues the table's shadow on the sides and bottom only,
+  // and sits above the table so it covers the table's bottom shadow
   bottomBar: {
-    background: theme.palette.swatches.grey[850],
-    boxShadow: "inset 10px 0px 10px -5px rgba(0,0,0,0.3)",
+    position: "relative",
+    zIndex: 1,
+    background: theme.palette.swatches.grey[1000],
+    borderTop: `1px solid ${theme.palette.swatches.grey[700]}`,
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
+    clipPath: "inset(0px -12px -12px -12px)",
   },
   drawer: { width: "640px", padding: "0px 24px 48px 24px", boxSizing: "border-box" },
   // Title bar + action toolbar stay pinned while the panel scrolls
