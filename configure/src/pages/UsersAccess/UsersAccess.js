@@ -5,6 +5,7 @@ import { makeStyles } from "@mui/styles";
 
 import { calls } from "../../core/calls";
 import { setSnackBarText, setModal, setPage } from "../../core/ConfigureStore";
+import AccessHelp from "./AccessHelp";
 
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -1287,6 +1288,7 @@ export default function UsersAccess() {
         <Tab label="Missions" />
         <Tab label="Site-wide" />
         <Tab label="All grants" />
+        <Tab label="Help" />
       </Tabs>
       <div className={c.content}>
         {tab === 0 && (
@@ -1483,6 +1485,11 @@ export default function UsersAccess() {
                 onRowsPerPageChange={(e) => { setGrantsPerPage(parseInt(e.target.value, 10)); setGrantPage(0); }}
               />
             )}
+          </div>
+        )}
+        {tab === 5 && (
+          <div className={c.pane}>
+            <AccessHelp SubjectTag={SubjectTag} RoleBadge={RoleBadge} roles={roles} />
           </div>
         )}
       </div>
