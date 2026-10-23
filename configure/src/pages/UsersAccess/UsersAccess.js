@@ -158,7 +158,7 @@ const useStyles = makeStyles((theme) => ({
     letterSpacing: "normal",
   },
   // Green (least access), then blue, through to red (most access)
-  badge_viewer: { background: theme.palette.swatches.p[3], color: "white" },
+  badge_viewer: { background: "#5b8c32", color: "white" },
   badge_layer_editor: { background: "#3a8fb7", color: "white" },
   badge_mission_admin: { background: theme.palette.swatches.p[0], color: "black" },
   badge_data_admin: { background: theme.palette.accent.tertiary, color: "white" },
