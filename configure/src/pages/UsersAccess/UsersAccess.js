@@ -118,6 +118,8 @@ const useStyles = makeStyles((theme) => ({
   table: {
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
     "& tr": { background: theme.palette.swatches.grey[850] },
+    // Sticky headers pin to the top of the scrolling area, above its 16px top padding
+    "& th.MuiTableCell-stickyHeader": { top: "-16px" },
     // Header cells
     "& th": {
       fontWeight: "bold !important",
@@ -1346,9 +1348,6 @@ export default function UsersAccess() {
               onPageChange={(e, p) => setPeoplePage(p)}
               onRowsPerPageChange={(e) => setPeoplePerPage(parseInt(e.target.value, 10))}
             />
-            <div className={c.hint} style={{ marginTop: "12px" }}>
-              CSSO users aren't stored as accounts. Give them access through groups mapped from CSSO or the Site-wide tab.
-            </div>
           </div>
         )}
 
