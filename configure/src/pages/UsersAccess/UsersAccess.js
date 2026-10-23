@@ -107,10 +107,23 @@ const useStyles = makeStyles((theme) => ({
   },
   content: { flex: 1, overflowY: "auto", padding: "16px 32px 64px 32px" },
   pane: { paddingTop: "8px" },
+  // Site-wide tab: one card per audience and for the new-account default
   audience: {
-    padding: "16px 0px",
-    borderBottom: `1px solid ${theme.palette.swatches.grey[700]}`,
+    maxWidth: "1100px",
+    padding: "20px 24px",
+    marginBottom: "16px",
+    borderRadius: "4px",
+    background: theme.palette.swatches.grey[1000],
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
+    "& .MuiFormControlLabel-label": { fontSize: "15px" },
   },
+  audienceTitle: {
+    fontSize: "18px !important",
+    fontWeight: "bold !important",
+    marginBottom: "6px !important",
+    "& svg": { fontSize: "22px !important" },
+  },
+  audienceHint: { maxWidth: "900px", fontSize: "14px", lineHeight: "20px", opacity: 0.85, marginBottom: "14px" },
   bar: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" },
   grow: { flex: 1 },
   hint: { fontSize: "13px", opacity: 0.75, marginBottom: "12px" },
@@ -1415,14 +1428,12 @@ export default function UsersAccess() {
               <>
                 <GrantsTable rows={missionRows} roles={roles} layerPaths={allLayerPaths} viaText={subjectName} onRemove={(b) => askRemove(b)} emptyText="Nobody has access to this mission yet." />
               </>
-            ) : (
-              <div className={c.muted}>Choose a mission to see who can access it.</div>
-            )}
+            ) : null}
           </div>
         )}
 
         {tab === 3 && (
-          <>
+          <div className={c.pane}>
             {["everyone", "authenticated"].map((a) => {
               const st = audienceState(a);
               return (
@@ -1440,7 +1451,7 @@ export default function UsersAccess() {
                   .then(() => { notify("Default updated.", "success"); refresh(); })
                   .catch((res) => notify(res.message || "Failed to update default.", "error"))
               } />
-          </>
+          </div>
         )}
         {tab === 4 && (
           <div className={c.pane}>
@@ -1518,15 +1529,15 @@ function AudienceCard({ title, hint, state, missions, onSave, noneLabel = "No ac
   const [list, setList] = useState(state.list);
   return (
     <div className={c.audience}>
-      <Typography className={c.sectionTitle}>{title}</Typography>
-      <div className={c.hint}>{hint}</div>
+      <Typography className={c.audienceTitle}>{title}</Typography>
+      <div className={c.audienceHint}>{hint}</div>
       <RadioGroup row value={mode} onChange={(e) => setMode(e.target.value)}>
         {noneLabel && <FormControlLabel value="none" control={<Radio size="small" />} label={noneLabel} />}
         <FormControlLabel value="all" control={<Radio size="small" />} label="View all missions" />
         <FormControlLabel value="selected" control={<Radio size="small" />} label="View selected missions" />
       </RadioGroup>
       {mode === "selected" && <MissionMultiSelect missions={missions} value={list} onChange={setList} />}
-      <div style={{ marginTop: "8px" }}>
+      <div style={{ marginTop: "14px" }}>
         <Button size="small" variant="contained" disableElevation
           disabled={mode === state.mode && JSON.stringify(list.slice().sort()) === JSON.stringify(state.list.slice().sort())}
           onClick={() => onSave(mode, list)}>Save</Button>

@@ -165,18 +165,6 @@ export const SITE_GROUPS = [
     ],
   },
   {
-    name: "Settings",
-    Icon: SettingsIcon,
-    pages: [
-      {
-        page: "general_options",
-        label: "General Options",
-        Icon: SettingsIcon,
-        cap: "options.manage",
-      },
-    ],
-  },
-  {
     name: "Access",
     Icon: AdminPanelSettingsIcon,
     pages: [
@@ -193,6 +181,18 @@ export const SITE_GROUPS = [
         cap: "tokens.create",
       },
       { page: "access_help", label: "Access Help", Icon: HelpOutlineIcon },
+    ],
+  },
+  {
+    name: "Settings",
+    Icon: SettingsIcon,
+    pages: [
+      {
+        page: "general_options",
+        label: "General Options",
+        Icon: SettingsIcon,
+        cap: "options.manage",
+      },
     ],
   },
 ];
