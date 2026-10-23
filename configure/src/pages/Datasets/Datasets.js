@@ -25,6 +25,8 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import Tooltip from "@mui/material/Tooltip";
 import Divider from "@mui/material/Divider";
 import Badge from "@mui/material/Badge";
@@ -35,6 +37,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 
 import NewDatasetModal from "./Modals/NewDatasetModal/NewDatasetModal";
@@ -100,8 +103,32 @@ const useStyles = makeStyles((theme) => ({
       color: `${theme.palette.swatches.p[13]}`,
     },
   },
+  toolbarBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    margin: "32px 32px 0px 32px",
+    padding: "12px 16px",
+    background: theme.palette.swatches.grey[850],
+    borderRadius: "4px",
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
+  },
+  field: {
+    "& .MuiInputBase-root": {
+      height: "34px",
+      fontSize: "14px",
+      background: theme.palette.swatches.grey[1000],
+    },
+  },
+  search: { width: "320px" },
+  grow: { flex: 1 },
+  barButton: {
+    height: "34px",
+    whiteSpace: "nowrap",
+    padding: "0px 16px !important",
+  },
   tableInner: {
-    margin: "32px",
+    margin: "0px 32px 32px 32px",
     width: "calc(100% - 64px) !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
@@ -144,11 +171,6 @@ const useStyles = makeStyles((theme) => ({
       background: "#c43541 !important",
       color: `${theme.palette.swatches.grey[900]} !important`,
     },
-  },
-  addButton: {
-    whiteSpace: "nowrap",
-    padding: "5px 20px !important",
-    margin: "0px 10px !important",
   },
   badge: {
     "& > span": {
@@ -248,7 +270,6 @@ EnhancedTableHead.propTypes = {
 
 function EnhancedTableToolbar(props) {
   const c = useStyles();
-  const dispatch = useDispatch();
 
   return (
     <Toolbar className={c.topbar}>
@@ -275,17 +296,6 @@ function EnhancedTableToolbar(props) {
           {`1) Create a New Dataset. 2) Connect to it through a Vector Layer's Datasets tab.`}
         </Typography>
       </div>
-
-      <Button
-        variant="contained"
-        className={c.addButton}
-        endIcon={<AddIcon />}
-        onClick={() => {
-          dispatch(setModal({ name: "newDataset" }));
-        }}
-      >
-        New Dataset
-      </Button>
     </Toolbar>
   );
 }
@@ -303,7 +313,17 @@ export default function Datasets() {
   const c = useStyles();
 
   const dispatch = useDispatch();
-  const datasets = useSelector((state) => state.core.datasets);
+  const allDatasets = useSelector((state) => state.core.datasets);
+  const [search, setSearch] = React.useState("");
+  const datasets = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allDatasets;
+    return allDatasets.filter((d) =>
+      String(d.name || "")
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [allDatasets, search]);
 
   const queryDatasets = () => {
     calls.api(
@@ -316,15 +336,15 @@ export default function Datasets() {
               res.body.entries.map((en, idx) => {
                 en.id = idx;
                 return en;
-              })
-            )
+              }),
+            ),
           );
         else
           dispatch(
             setSnackBarText({
               text: res?.message || "Failed to get datasets.",
               severity: "error",
-            })
+            }),
           );
       },
       (res) => {
@@ -332,9 +352,9 @@ export default function Datasets() {
           setSnackBarText({
             text: res?.message || "Failed to get datasets.",
             severity: "error",
-          })
+          }),
         );
-      }
+      },
     );
   };
   useEffect(() => {
@@ -364,9 +384,9 @@ export default function Datasets() {
     () =>
       stableSort(datasets, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
-        page * rowsPerPage + rowsPerPage
+        page * rowsPerPage + rowsPerPage,
       ),
-    [order, orderBy, page, rowsPerPage, datasets]
+    [order, orderBy, page, rowsPerPage, datasets],
   );
 
   return (
@@ -375,6 +395,37 @@ export default function Datasets() {
         <Paper className={c.DatasetsInner}>
           <EnhancedTableToolbar />
           <TableContainer className={c.table}>
+            <div className={c.toolbarBox}>
+              <TextField
+                size="small"
+                className={`${c.field} ${c.search}`}
+                placeholder="Search by name"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <span className={c.grow} />
+              <Button
+                variant="contained"
+                disableElevation
+                className={c.barButton}
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  dispatch(setModal({ name: "newDataset" }));
+                }}
+              >
+                New Dataset
+              </Button>
+            </div>
             <Table
               className={c.tableInner}
               sx={{ minWidth: 750 }}
@@ -425,7 +476,7 @@ export default function Datasets() {
                                   setModal({
                                     name: "layersUsedByDataset",
                                     dataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -454,7 +505,7 @@ export default function Datasets() {
                                       downloadObject(
                                         res,
                                         `${row.name}-dataset`,
-                                        ".json"
+                                        ".json",
                                       );
                                       dispatch(
                                         setSnackBarText({
@@ -462,7 +513,7 @@ export default function Datasets() {
                                             res?.message ||
                                             "Successfully downloaded Dataset.",
                                           severity: "success",
-                                        })
+                                        }),
                                       );
                                     },
                                     (res) => {
@@ -472,9 +523,9 @@ export default function Datasets() {
                                             res?.message ||
                                             "Failed to download Dataset.",
                                           severity: "error",
-                                        })
+                                        }),
                                       );
-                                    }
+                                    },
                                   );
                               }}
                             >
@@ -504,7 +555,7 @@ export default function Datasets() {
                                   setModal({
                                     name: "updateDataset",
                                     dataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >
@@ -523,7 +574,7 @@ export default function Datasets() {
                                   setModal({
                                     name: "deleteDataset",
                                     dataset: row,
-                                  })
+                                  }),
                                 );
                               }}
                             >

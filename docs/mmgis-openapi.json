@@ -149,7 +149,7 @@
     "/api/configure/add": {
       "post": {
         "summary": "Add a new mission configuration",
-        "description": "Creates a new mission configuration. Requires SuperAdmin permissions (111).",
+        "description": "Creates a new mission configuration. Requires the mission.create capability (SuperAdmin).",
         "tags": ["Configure"],
         "requestBody": {
           "required": true,
@@ -453,7 +453,7 @@
                     "summary": "SuperAdmin permissions",
                     "value": {
                       "status": "success",
-                      "permission": "111",
+                      "role": "superadmin",
                       "missions_managing": null
                     }
                   },
@@ -461,7 +461,7 @@
                     "summary": "Admin with specific missions",
                     "value": {
                       "status": "success",
-                      "permission": "110",
+                      "role": "mission_admin",
                       "missions_managing": ["mission1", "mission2"]
                     }
                   },
@@ -4579,8 +4579,7 @@
                           "period": "example_period1",
                           "created_by_user_id": 5,
                           "created_by_username": "admin_user",
-                          "created_by_permission": "111",
-                          "created_by_missions": null,
+                                                    "created_by_missions": null,
                           "createdAt": "2025-02-28T20:00:00Z",
                           "updatedAt": "2025-02-28T20:00:00Z"
                         },
@@ -4590,8 +4589,7 @@
                           "period": "example_period2",
                           "created_by_user_id": 7,
                           "created_by_username": "mission_admin",
-                          "created_by_permission": "110",
-                          "created_by_missions": ["Mars2020", "InSight"],
+                                                    "created_by_missions": ["Mars2020", "InSight"],
                           "createdAt": "2025-02-28T20:00:00Z",
                           "updatedAt": "2025-02-28T20:00:00Z"
                         }
@@ -5359,7 +5357,7 @@
                             "id": 7,
                             "username": "admin_user",
                             "email": "admin@email.com",
-                            "permission": "110",
+                            "role": "mission_admin",
                             "missions_managing": ["mission1", "mission2"],
                             "missions_viewing": null,
                             "createdAt": "2023-02-10T01:48:24.961Z",
@@ -5455,17 +5453,17 @@
                   "email": {
                     "type": "string"
                   },
-                  "permission": {
+                  "role": {
                     "type": "string",
-                    "enum": ["110", "001"],
-                    "description": "User permission level: 110 for Admin, 001 for User"
+                    "enum": ["superadmin", "mission_admin", "user"],
+                    "description": "Account role; granting superadmin requires a SuperAdmin"
                   },
                   "missions_managing": {
                     "type": "array",
                     "items": {
                       "type": "string"
                     },
-                    "description": "Array of mission names this admin can manage (only applies when permission is 110)"
+                    "description": "Array of mission names this admin can manage (only applies when role is mission_admin)"
                   },
                   "missions_viewing": {
                     "type": "array",

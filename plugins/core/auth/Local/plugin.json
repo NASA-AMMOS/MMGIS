@@ -1,0 +1,19 @@
+{
+  "uuid": "c6ee9419-c609-4901-9d56-be67facdc2f2",
+  "id": "core-auth-local",
+  "name": "Local",
+  "display_name": "Local Accounts",
+  "description": "MMGIS username/password accounts. Login, signup and password reset are served by the Users backend (/api/users).",
+  "aliases": [
+    "local"
+  ],
+  "version": "core",
+  "type": "auth",
+  "provider": "local",
+  "tier": "core",
+  "overridable": false,
+  "required": true,
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

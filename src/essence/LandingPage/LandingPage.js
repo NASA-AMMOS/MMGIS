@@ -74,7 +74,7 @@ export default {
             window.mmgisglobal.MAIN_MISSION != 'undefined' &&
             typeof window.mmgisglobal.MAIN_MISSION === 'string' &&
             window.mmgisglobal.MAIN_MISSION.length > 0 &&
-            (window.mmgisglobal.AUTH !== 'local' ||
+            (!(window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local')) ||
                 missions.includes(window.mmgisglobal.MAIN_MISSION))
         ) {
             missionUrl = window.mmgisglobal.MAIN_MISSION

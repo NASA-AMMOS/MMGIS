@@ -4,6 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
+const { authorize, resolvers, missionNamesWith } = require("../../../../../API/permissions/authorize");
 
 const fetch = require("node-fetch");
 const { sequelize } = require("../../../../../API/connection");
@@ -12,7 +13,7 @@ const logger = require("../../../../../API/logger");
 const Utils = require("../../../../../API/utils.js");
 
 // Wraps /stac/collections to include occurrences
-router.get("/collections", function (req, res, next) {
+router.get("/collections", authorize("data.stac.read"), function (req, res, next) {
   // Pass a query parameters along
   const queryString = req.originalUrl.split("?")[1] || "";
   const fullQueryString = queryString ? `?${queryString}` : "";
@@ -50,7 +51,10 @@ router.get("/collections", function (req, res, next) {
                 ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
                 `
         )
-        .then(([results]) => {
+        .then(async ([results]) => {
+          const viewable = await missionNamesWith(req, "mission.view");
+          if (viewable != null)
+            results = results.filter((m) => viewable.includes(m.mission));
           // Populate occurrences
           results.forEach((m) => {
             Utils.traverseLayers(m.config.layers, (layer, path) => {
@@ -108,7 +112,7 @@ router.get("/collections", function (req, res, next) {
 });
 
 // Export collection with all items
-router.get("/collections/:collection/export", async function (req, res, next) {
+router.get("/collections/:collection/export", authorize("data.stac.read"), async function (req, res, next) {
   const { collection } = req.params;
 
   const stacUrl = `http://${

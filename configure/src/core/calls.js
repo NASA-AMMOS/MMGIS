@@ -62,6 +62,54 @@ const c = {
     type: "GET",
     url: "api/configure/user-permissions",
   },
+  access_me: {
+    type: "GET",
+    url: "api/access/me",
+  },
+  access_roles: {
+    type: "GET",
+    url: "api/access/roles",
+  },
+  access_missions: {
+    type: "GET",
+    url: "api/access/missions",
+  },
+  access_groups: {
+    type: "GET",
+    url: "api/access/groups",
+  },
+  access_groups_create: {
+    type: "POST",
+    url: "api/access/groups/create",
+  },
+  access_groups_delete: {
+    type: "POST",
+    url: "api/access/groups/delete",
+  },
+  access_members_add: {
+    type: "POST",
+    url: "api/access/groups/members/add",
+  },
+  access_members_remove: {
+    type: "POST",
+    url: "api/access/groups/members/remove",
+  },
+  access_bindings: {
+    type: "GET",
+    url: "api/access/bindings",
+  },
+  access_bindings_add: {
+    type: "POST",
+    url: "api/access/bindings/add",
+  },
+  access_bindings_remove: {
+    type: "POST",
+    url: "api/access/bindings/remove",
+  },
+  access_effective: {
+    type: "GET",
+    url: "api/access/effective",
+  },
   versions: {
     type: "GET",
     url: "api/configure/versions",

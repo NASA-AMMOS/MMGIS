@@ -33,7 +33,7 @@ Docker: `docker build -t mmgis . && docker-compose up -d`
 - **PostGIS required**: PostgreSQL must have PostGIS extension installed. `init-db.js` creates it.
 - **ENV triple-update**: When modifying environment variables, update `.env`, `sample.env`, AND `docs/pages/Setup/ENVs/ENVs.md`.
 - **No raw SQL for data**: Use application APIs and UI workflows — never bypass the application layer with direct SQL.
-- **Admin auth always required**: CMS endpoints (`/api/configure/*`) require admin session even when `AUTH=off`.
+- **Admin auth always required**: CMS endpoints (`/api/configure/*`) require an authorized session even when `SITE_ACCESS=public`.
 - **Database safety**: Never `DROP DATABASE` in app code. Test DBs only: `mmgis-test`, `mmgis-stac-test`.
 - **Reference Mission**: New features needing specific config/data should be added to a Reference Mission blueprint. See [blueprints/README.md](./blueprints/README.md).
 - **Design system placement**: Generic UI components → `src/design-system/`. MMGIS-specific UI → `src/essence/Basics/UserInterface_/`.

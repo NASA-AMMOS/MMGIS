@@ -276,6 +276,8 @@ export default function APITokens() {
 
   const [tokenName, setTokenName] = useState(null);
   const [expireAfter, setExpireAfter] = useState("never");
+  const [tokenScope, setTokenScope] = useState("read");
+  const [tokenMissions, setTokenMissions] = useState("");
   const [token, setToken] = useState(null);
   const [tokenList, setTokenList] = useState([]);
 
@@ -435,7 +437,14 @@ print(response.json())`
   const generatedLongTermToken = () => {
     calls.api(
       "longtermtoken_generate",
-      { name: tokenName || null, period: expireAfter },
+      {
+        name: tokenName || null,
+        period: expireAfter,
+        scopes: tokenScope === "read" ? "read" : null,
+        missions: tokenMissions.trim()
+          ? tokenMissions.split(",").map((m) => m.trim()).filter((m) => m)
+          : null,
+      },
       (res) => {
         if (res.status === "success") {
           dispatch(
@@ -450,7 +459,7 @@ print(response.json())`
         } else {
           dispatch(
             setSnackBarText({
-              ext: res?.message || "Failed to generate an API key.",
+              text: res?.message || "Failed to generate an API key.",
               severity: "error",
             })
           );
@@ -521,7 +530,7 @@ print(response.json())`
       <div className={c.content}>
         <Typography className={c.subtitle}>
           {
-            "Generate an authentication token for programmatic control over the configuration and data endpoints. Each token inherits the mission permissions of the admin who creates it - SuperAdmin tokens have access to all missions, while regular Admin tokens are restricted to assigned missions. The generated token may be used in requests via the header: 'Authorization:Bearer <token>' and more information can be found at https://nasa-ammos.github.io/MMGIS/apis/configure#api-tokens"
+            "Generate an authentication token for programmatic access to the configuration and data endpoints. A token can only do what its creator can currently do, narrowed further by its access level and mission list. Read-only tokens can view missions and data but change nothing. The secret is shown once; only a prefix is stored for display. The generated token may be used in requests via the header: 'Authorization:Bearer <token>' and more information can be found at https://nasa-ammos.github.io/MMGIS/apis/configure#api-tokens"
           }
         </Typography>
         <Box sx={{ flexGrow: 1 }} className={clsx(c.row)}>
@@ -544,6 +553,30 @@ print(response.json())`
               </Typography>
             </Grid>
 
+            <Grid item xs={4} md={4} lg={4} xl={4} key={"scope"}>
+              <FormControl className={c.dropdown} variant="filled" size="small">
+                <InputLabel>{"Access"}</InputLabel>
+                <Select
+                  value={tokenScope}
+                  onChange={(e) => {
+                    setTokenScope(e.target.value);
+                  }}
+                >
+                  <MenuItem value={"read"}>{"READ ONLY"}</MenuItem>
+                  <MenuItem value={"full"}>{"ALL OF MY ACCESS"}</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField
+                className={c.text}
+                label={"Limit to missions (comma separated)"}
+                variant="filled"
+                size="small"
+                value={tokenMissions}
+                onChange={(e) => {
+                  setTokenMissions(e.target.value);
+                }}
+              />
+            </Grid>
             <Grid item xs={4} md={4} lg={4} xl={4} key={1}>
               <FormControl className={c.dropdown} variant="filled" size="small">
                 <InputLabel>{"Expire After"}</InputLabel>
@@ -650,23 +683,20 @@ print(response.json())`
               const creatorDisplay = isLegacyToken ? "Legacy Token" : (t.created_by_username || "Unknown");
               
               // Handle mission access display
-              let missionDisplay = "Unknown";
-              if (isLegacyToken) {
-                missionDisplay = "BLOCKED - Legacy token";
-              } else if (t.created_by_permission === "111") {
-                missionDisplay = "All Missions (SuperAdmin)";
-              } else if (t.created_by_permission === "110") {
-                const missions = t.created_by_missions || [];
-                if (missions.length === 0) {
-                  missionDisplay = "No missions assigned";
-                } else if (missions.length <= 3) {
-                  missionDisplay = missions.join(", ");
-                } else {
-                  missionDisplay = `${missions.slice(0, 2).join(", ")} +${missions.length - 2} more`;
-                }
-              } else {
-                missionDisplay = "Not an admin";
-              }
+              const scopeDisplay =
+                t.scopes == null
+                  ? "all of creator's access"
+                  : t.scopes.every((sc) => sc.endsWith(".read") || sc.endsWith(".view"))
+                  ? "read only"
+                  : t.scopes.join(", ");
+              let missionDisplay = `${
+                t.missions == null
+                  ? "All missions the creator can access"
+                  : t.missions.length <= 3
+                  ? t.missions.join(", ") || "No missions"
+                  : `${t.missions.slice(0, 2).join(", ")} +${t.missions.length - 2} more`
+              } (${scopeDisplay})`;
+              if (isLegacyToken) missionDisplay = "BLOCKED - Legacy token";
 
               return (
                 <div className={c.tokenListItem} key={t.id}>

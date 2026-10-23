@@ -40,14 +40,15 @@ import Time from "../Tabs/Time/Time";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 import APITokens from "../../pages/APITokens/APITokens";
+import UsersAccess from "../../pages/UsersAccess/UsersAccess";
 import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
 import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
 import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
-import Users from "../../pages/Users/Users";
 import DataFormats from "../../pages/DataFormats/DataFormats";
+import AccessHelp from "../../pages/UsersAccess/AccessHelp";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -88,15 +89,19 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     justifyContent: "start",
     width: "88px",
+    flexShrink: 0,
     padding: "4px",
   },
   right: {
     display: "flex",
     justifyContent: "end",
-    width: "88px",
+    minWidth: "88px",
+    flexShrink: 0,
     padding: "4px",
   },
   tabs: {
+    flex: 1,
+    minWidth: 0,
     "& > div": {
       borderRight: "none",
       height: "48px",
@@ -240,10 +245,15 @@ export default function Main() {
       Page = <GeneralOptions />;
       break;
     case "users":
-      Page = <Users />;
+    case "access":
+    case "ua_v1":
+      Page = <UsersAccess />;
       break;
     case "data_formats":
       Page = <DataFormats />;
+      break;
+    case "access_help":
+      Page = <AccessHelp />;
       break;
     default:
   }

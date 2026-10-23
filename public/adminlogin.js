@@ -61,6 +61,13 @@ function setupLogin() {
     return;
   }
 
+  if (document.getElementById("setup_code").value.trim() == "") {
+    document.getElementById("msg").innerHTML =
+      "Enter the setup code from the server log.";
+    document.getElementById("msg").style.opacity = 1;
+    return;
+  }
+
   if (
     document.getElementById("pwd").value !=
     document.getElementById("pwd_retype").value
@@ -76,6 +83,7 @@ function setupLogin() {
     data: {
       username: document.getElementById("username").value,
       password: document.getElementById("pwd").value,
+      setup_code: document.getElementById("setup_code").value,
     },
     success: function (data) {
       if (
@@ -115,8 +123,10 @@ $(document).ready(function () {
           setup = true;
           $("#setup").css("opacity", "1");
           $(".container").css("height", "520px");
+          $(".box h5").css("margin-bottom", "30px");
           $("#pwd_retype").css("display", "block");
-          $(".btn1").css("top", "81%");
+          $("#setup_code").css("display", "block");
+          $(".btn1").css("top", "82%");
           $(".btn1").text("Create Administrator Account");
         }
       }

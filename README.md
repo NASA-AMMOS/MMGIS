@@ -179,6 +179,7 @@ Run: `docker-compose down`
 1. Setup the admin account:
    - In your browser, navigate to `https://{your-mmgis-domain}/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
+   - Enter the one-time setup code. While no accounts exist, the server prints it in its log (`docker logs <container>` for Docker) as `MMGIS has no accounts yet ... one-time setup code: XXXX-XXXX-XXXX-XXXX`. A restart prints a new code; set `SETUP_CODE` to choose it yourself.
 
 1. Now sign in with your Administrator credentials
 

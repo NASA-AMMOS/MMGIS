@@ -14,12 +14,13 @@ let setup = {
         s.ensureGroup(s.permissions.users),
         s.ensureAdmin(true),
         (req, res) => {
-          const user = process.env.AUTH === "csso" ? req.user : req.user || "";
-          const permission = req.session.permission || "000";
+          const user = req.principal.username || req.user || "";
+          const role = s.policy.accountRole(req.principal.bindings || []);
           res.render("../configure/build/index.pug", {
             user: user,
-            permission: permission,
-            AUTH: process.env.AUTH,
+            role: role,
+            SITE_ACCESS: s.siteAccess.getSiteAccess(),
+            AUTH_PROVIDERS: s.siteAccess.getProviders().join(","),
             NODE_ENV: process.env.NODE_ENV,
             VERSION: configurePackageJson.version,
             PORT: process.env.PORT || "8888",
@@ -46,10 +47,10 @@ let setup = {
 
     s.app.use(
       s.ROOT_PATH + "/api/configure",
-      s.ensureAdmin(),
+      s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      router
+      s.registerRouter("/api/configure", router)
     );
   },
   //Once the server starts
