@@ -135,11 +135,8 @@ $(document).ready(function () {
         if (data.has == false) {
           setup = true;
           $("#setup").css("opacity", "1");
-          $(".container").css("height", "520px");
-          $(".box h5").css("margin-bottom", "30px");
-          $("#pwd_retype").css("display", "block");
-          $("#setup_code").css("display", "block");
-          $(".btn1").css("top", "82%");
+          $("#pwd_retype, #pwd_retype_label").css("display", "block");
+          $("#setup_code, #setup_code_label").css("display", "block");
           $(".btn1").text("Create Administrator Account");
           $("#signInTitle").text("Create the first administrator account.");
         }

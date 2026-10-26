@@ -37,12 +37,11 @@ function resetPassword() {
         //success
         document.getElementById("msgSuccessMsg").innerHTML =
           "Successfully Reset Password!";
+        document.getElementById("msgSuccess").style.display = "block";
         document.getElementById("msgSuccess").style.opacity = 1;
         document.getElementById("msgSuccess").style.pointerEvents = "all";
         document.querySelector("form.box").style.display = "none";
         document.getElementById("container").style.borderTop =
-          "4px solid #08ea67";
-        document.getElementById("container").style.borderBottom =
           "4px solid #08ea67";
       } else {
         //error

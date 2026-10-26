@@ -91,7 +91,6 @@ function login() {
 }
 function toggle() {
   if (toggleState === "login") {
-    document.getElementById("container").style.height = "635px";
     document.getElementById("login").innerHTML = "Sign Up";
     document.getElementById("toggle").innerHTML = "Or Log In";
 
@@ -102,11 +101,9 @@ function toggle() {
     document.getElementById("pwd_description").style.display = "block";
     document.getElementById("pwd_retype_label").style.display = "block";
     document.getElementById("pwd_retype").style.display = "block";
-    document.getElementById("pwd_label").style.top = "348px";
 
     toggleState = "signup";
   } else {
-    document.getElementById("container").style.height = "440px";
     document.getElementById("login").innerHTML = "Log In";
     document.getElementById("toggle").innerHTML = "Or Sign Up";
 
@@ -121,7 +118,6 @@ function toggle() {
 
     document.getElementById("pwd_retype").style.display = "none";
 
-    document.getElementById("pwd_label").style.top = "270px";
 
     toggleState = "login";
   }
