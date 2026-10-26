@@ -70,13 +70,18 @@ test.describe('AUTH_PROVIDERS validation against the registry', () => {
 
   test('unknown providers list what is available', () => {
     expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["okta"]' }).join())
-      .toMatch(/unknown provider\. Available: .*local/);
+      .toMatch(/unknown provider 'okta'\. Available: .*local/);
   });
 
   test('csso warns when CSSO_PROXY_SECRET is unset', () => {
     expect(providers.providerWarnings(['csso'], {}).join()).toMatch(/CSSO_PROXY_SECRET/);
-    expect(providers.providerWarnings(['csso'], { CSSO_PROXY_SECRET: 'x' })).toEqual([]);
+    expect(providers.providerWarnings(['csso', 'local'], { CSSO_PROXY_SECRET: 'x' })).toEqual([]);
     expect(providers.providerWarnings(['local'], {})).toEqual([]);
+  });
+
+  test('csso without local warns that local admins lose /configure', () => {
+    expect(providers.providerWarnings(['csso'], { CSSO_PROXY_SECRET: 'x' }).join()).toMatch(/does not include local/);
+    expect(providers.providerWarnings(['csso', 'local'], { CSSO_PROXY_SECRET: 'x' })).toEqual([]);
   });
 });
 

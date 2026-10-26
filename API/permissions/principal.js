@@ -305,6 +305,7 @@ module.exports = {
   principalMiddleware,
   resolvePrincipal,
   userPrincipal,
+  externalPrincipal,
   invalidate,
   onInvalidate,
   hashToken,

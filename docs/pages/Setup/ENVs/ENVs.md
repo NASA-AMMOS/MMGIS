@@ -34,7 +34,7 @@ The old `AUTH` variable has been removed. MMGIS refuses to start while `AUTH` is
 | `AUTH=off` | `SITE_ACCESS=public` `AUTH_PROVIDERS=["local"]` |
 | `AUTH=none` | `SITE_ACCESS=optional` `AUTH_PROVIDERS=["local"]` |
 | `AUTH=local` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["local"]` |
-| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["csso"]` |
+| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["csso","local"]` |
 
 #### `AUTH_PROVIDERS=`
 
@@ -220,7 +220,7 @@ The path to a json config file that acts as the only configured mission for the 
 
 #### `LEADS=`
 
-When not using AUTH=csso, this is a list of usernames to be treated as leads (users with elevated permissions) | string[] | default `[]`
+For local accounts, this is a list of usernames to be treated as leads (users with elevated permissions) | string[] | default `[]`
 
 #### `CSSO_LEAD_GROUP=`
 

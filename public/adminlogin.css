@@ -107,7 +107,7 @@ a:hover {
   border-radius: 5px;
   margin: 10px auto 10px;
   position: absolute;
-  top: 90%;
+  bottom: -52px;
   left: 7.2%;
   color: #d6d7db;
   border-bottom: 2px solid #ff7426;
@@ -185,4 +185,32 @@ img {
   width: 100%;
   bottom: 14px;
   font-family: monospace;
+}
+
+.notAdmin {
+  position: absolute;
+  left: 50%;
+  bottom: calc(50% + 240px);
+  transform: translateX(-50%);
+  width: 400px;
+  color: #d6d7db;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+.notAdmin a {
+  color: #08aeea;
+}
+.notAdmin .btn2 {
+  display: table;
+  margin: 10px auto 0;
+  padding: 6px 16px;
+  border-radius: 5px;
+  background: #36373a;
+  color: #dfdeee;
+  cursor: pointer;
+}
+.notAdmin .btn2:hover {
+  background: #08aeea;
+  color: #1a1a1a;
 }

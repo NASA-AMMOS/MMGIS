@@ -105,7 +105,9 @@ async function main() {
     console.log(`SITE_ACCESS=${report.siteAccess} AUTH_PROVIDERS=${JSON.stringify(report.providers)}`);
     notes.forEach((n) => console.log(`NOTE: ${n}`));
     if (imported && dryRun) console.log("NOTE: this database was already imported; the server will not import again.");
-    console.log(`${report.users} user(s), ${report.bindings} role binding(s):`);
+    console.log(
+      `${report.users} user(s), ${report.bindings} role binding(s)${Object.keys(byUser).length ? ":" : "."}`
+    );
     for (const [who, list] of Object.entries(byUser)) console.log(`  ${who}: ${list.join(", ")}`);
     if (report.unknownMissions.length)
       console.log(`WARNING: legacy mission names with no mission (skipped): ${report.unknownMissions.join(", ")}`);

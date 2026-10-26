@@ -5,10 +5,11 @@ const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
 const bindings = require("../../../../../API/permissions/bindings");
 const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { invalidate, userPrincipal } = require("../../../../../API/permissions/principal");
+const { invalidate, userPrincipal, externalPrincipal } = require("../../../../../API/permissions/principal");
 const { AuthGroup, AuthGroupMember } = require("../../../../../API/permissions/models");
 const { User } = require("../../Users/models/user");
 const providers = require("../../../../../API/permissions/providers");
+const siteAccess = require("../../../../../API/permissions/siteAccess");
 
 const manage = authorize("groups.manage");
 
@@ -212,7 +213,24 @@ router.post("/bindings/remove", manage, async (req, res) => {
 // Effective access for a user and where each binding comes from
 router.get("/effective", manage, async (req, res) => {
   try {
-    const principal = await userPrincipal(parseInt(req.query.user_id));
+    // Provider users have no account row; check them by provider, username and group claims
+    if (req.query.provider) {
+      const external = siteAccess.getProviders().filter((p) => p !== "local");
+      if (!external.includes(String(req.query.provider)))
+        throw new bindings.BindingError("That login provider isn't enabled on this site.");
+      if (!String(req.query.username || "").trim())
+        throw new bindings.BindingError("Enter a username.");
+    }
+    const principal = req.query.provider
+      ? await externalPrincipal({
+          provider: String(req.query.provider),
+          username: String(req.query.username || ""),
+          groups: String(req.query.groups || "")
+            .split(",")
+            .map((g) => g.trim())
+            .filter((g) => g),
+        })
+      : await userPrincipal(parseInt(req.query.user_id));
     if (!principal) throw new bindings.BindingError("User not found.");
     const detailed = [];
     for (const b of principal.bindings) {

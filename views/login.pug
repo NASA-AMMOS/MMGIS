@@ -22,7 +22,10 @@ html(lang='en')
         h4
           | Log in
           span to your account.
-        h5 If you do not have an account,<br>sign up or request one from your administrator.
+        if AUTH_LOCAL_ALLOW_SIGNUP
+          h5 If you do not have an account,<br>sign up or request one from your administrator.
+        else
+          h5 If you do not have an account,<br>request one from your administrator.
         label#username_label(for="username" style="position: absolute; color: #a1a4ad; top: 203px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Username
         input#username(type='text' name='username' placeholder='Username' autocomplete='off')
         label#email_label(for="email" style="position: absolute; color: #a1a4ad; top: 270px; left: 50%; transform: translateX(-50%); background: #1c1c1c; border-radius: 10px; font-size: 14px; width: 100px; text-align: center;") Email
@@ -45,4 +48,3 @@ html(lang='en')
         a(href='http://www.jpl.nasa.gov/copyrights.cfm' style='margin-right: 10px;') PRIVACY
         a(href='http://www.jpl.nasa.gov/imagepolicy/') IMAGE POLICY
   footer
-    script(id="_fed_an_ua_tag" type="text/javascript" src="https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=NASA&subagency=MMGIS&dclink=true&sp=search,s")

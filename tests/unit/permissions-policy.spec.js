@@ -511,3 +511,12 @@ test.describe('capabilities of tokens over layer grants', () => {
     expect(capabilitiesOf(withToken(editor, { missions: [M1] }))).toContain('mission.layer.edit');
   });
 });
+
+test.describe('provider users and tokens', () => {
+  test('external principals are not offered tokens.create (tokens belong to accounts)', () => {
+    const ext = { kind: 'external', provider: 'csso', authenticated: true, userId: null, bindings: [] };
+    expect(capabilitiesOf(ext)).not.toContain('tokens.create');
+    expect(capabilitiesOf(ext)).toContain('draw.use');
+    expect(capabilitiesOf(user([]))).toContain('tokens.create');
+  });
+});

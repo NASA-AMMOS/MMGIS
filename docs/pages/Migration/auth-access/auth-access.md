@@ -45,8 +45,8 @@ Compared request by request against the previous release on the same upgraded da
 
 On every kind of site:
 
-- Mission admins no longer see the Accounts page; see section 3.
-- Any logged-in user can create read-only long-term tokens.
+- Mission admins no longer see the Users & Access page; see section 3.
+- Any logged-in local account can create read-only long-term tokens through the API (`POST /api/longtermtoken/generate`). Only admins who can open Configure get the API Tokens page; there's no token UI for other users. CSSO users can't create tokens.
 - Long-term tokens can't open the `/configure` page; they are for API calls.
 
 ## 2. Preview and import existing accounts

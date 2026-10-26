@@ -384,9 +384,12 @@ function isAdminPrincipal(principal) {
   return ADMIN_CAPABILITIES.some((c) => caps.includes(c));
 }
 
-function renderAdminLogin(req, res) {
+function renderAdminLogin(req, res, principal) {
+  const signedIn =
+    principal && principal.authenticated && principal.kind !== "token";
   res.render("adminlogin", {
     user: req.user,
+    SIGNED_IN_AS: signedIn ? principal.username || req.user || "" : null,
     VERSION: configurePackageJson.version,
     ROOT_PATH: isDevEnv
       ? ""
@@ -425,7 +428,7 @@ function ensureAdmin(
         const remoteAddress =
           req.headers["x-forwarded-for"] || req.socket.remoteAddress;
         if (principal.kind === "invalid_token") {
-          res.send({ status: "failure", message: "Unauthorized Token!" });
+          res.status(401).send({ status: "failure", message: "Unauthorized Token!" });
           logger(
             "warn",
             `Unauthorized token call made and rejected (from ${remoteAddress})`,
@@ -448,7 +451,7 @@ function ensureAdmin(
           return;
         }
         if (toLoginPage) {
-          renderAdminLogin(req, res);
+          renderAdminLogin(req, res, principal);
           return;
         }
         res.send({ status: "failure", message: "Unauthorized!" });
@@ -479,7 +482,7 @@ function ensureUser(options = {}) {
     ensurePrincipal(req)
       .then((principal) => {
         if (principal.kind === "invalid_token") {
-          res.send({ status: "failure", message: "Unauthorized Token!" });
+          res.status(401).send({ status: "failure", message: "Unauthorized Token!" });
           return;
         }
         if (principal.authenticated || siteAccess.guestsAllowed()) {
@@ -489,7 +492,7 @@ function ensureUser(options = {}) {
         if (options.forbid) sendForbidden(req, res);
         // Sites without local accounts log in through their provider (e.g. the CSSO proxy)
         else if (!siteAccess.hasProvider("local"))
-          res.render("unauthorized", { user: req.user });
+          res.render("unauthorized", { user: null });
         else
           res.render("login", {
             user: req.user,
@@ -556,6 +559,7 @@ let s = {
   ensureGroup,
   ensureAdmin,
   ensureUser,
+  ensurePrincipal,
   ensureUserForAdjacentServers,
   authorize,
   resolvers,

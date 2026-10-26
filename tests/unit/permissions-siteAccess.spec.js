@@ -90,7 +90,7 @@ test.describe('AUTH_PROVIDERS parsing', () => {
   });
 
   test('unknown providers are rejected', () => {
-    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'oauth' }).join()).toMatch(/unknown provider\. Available/);
+    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'oauth' }).join()).toMatch(/unknown provider 'oauth'\. Available/);
   });
 });
 

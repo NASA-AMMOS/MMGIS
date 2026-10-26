@@ -74,7 +74,7 @@ function validate(env = process.env) {
     if (reserved) errors.push(`AUTH_PROVIDERS: '${reserved}' is not supported yet.`);
     else
       errors.push(
-        `AUTH_PROVIDERS lists an unknown provider. Available: ${available.join(", ")}.`
+        `AUTH_PROVIDERS lists an unknown provider '${String(p).replace(/[^\w.-]/g, "").slice(0, 40)}'. Available: ${available.join(", ")}.`
       );
   });
   if (errors.length === 0) errors.push(...registry.validateProviders(providers, env));

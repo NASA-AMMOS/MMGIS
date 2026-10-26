@@ -12,6 +12,10 @@ body.mmgisScrollbar
   #backIcon.mdi.mdi-keyboard-backspace.mdi-18px
   #setup
     | SETUP
+  if SIGNED_IN_AS != null
+    .notAdmin
+      | Signed in as #[b= SIGNED_IN_AS], but this account can't manage anything in Configure. Sign in with an administrator account, or #[a(href=(ROOT_PATH || '/')) go to the map].
+      div.btn2(onClick='signOut()') Sign out
   .container
     img(src=ROOT_PATH + 'public/images/logos/mmgis.png' alt='MMGIS' onClick='back()')
     span#msg.error
@@ -19,10 +23,10 @@ body.mmgisScrollbar
       h4
         | Admin
         span Dashboard
-      h5 Sign in to your account.
+      h5#signInTitle Sign in to your account.
       input#username(type='text' name='username' placeholder='Username' autocomplete='off')
       input#pwd(type='password' name='password' placeholder='Password' autocomplete='off')
       input#pwd_retype(type='password' name='password' placeholder='Retype Password' autocomplete='off')
-      input#setup_code(type='text' name='setup_code' placeholder='Setup code (printed in the server log)' autocomplete='off' spellcheck='false')
+      input#setup_code(type='text' name='setup_code' placeholder='Setup code (see server log)' autocomplete='off' spellcheck='false')
       div.btn1(onClick='login()') Sign in
       div.version v#{VERSION}

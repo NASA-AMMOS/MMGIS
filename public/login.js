@@ -32,14 +32,15 @@ function login() {
           window.location.reload();
         } else {
           //error
-          document.getElementById("msg").innerHTML =
-            "Invalid username or password";
+          document.getElementById("msg").innerText =
+            (data && data.message) || "Invalid username or password";
           document.getElementById("msg").style.opacity = 1;
         }
       },
-      error: function () {
+      error: function (xhr) {
         //error
-        document.getElementById("msg").innerHTML = "Server error.";
+        document.getElementById("msg").innerText =
+          (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.";
         document.getElementById("msg").style.opacity = 1;
       },
     });

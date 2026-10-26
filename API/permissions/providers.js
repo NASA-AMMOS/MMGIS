@@ -88,8 +88,14 @@ function collect(hook, ids, env) {
   return out;
 }
 const validateProviders = (ids, env = process.env) => collect("validate", ids, env);
-const providerWarnings = (ids = siteAccess.getProviders(), env = process.env) =>
-  collect("warnings", ids, env);
+const providerWarnings = (ids = siteAccess.getProviders(), env = process.env) => {
+  const out = collect("warnings", ids, env);
+  if (ids.includes("csso") && !ids.includes("local"))
+    out.push(
+      'AUTH_PROVIDERS does not include local, so local admin accounts cannot sign in to /configure. Use ["csso","local"] to keep them.'
+    );
+  return out;
+};
 
 function normalizeIdentity(provider, raw) {
   if (!raw || raw.subject == null || String(raw.subject) === "") return null;

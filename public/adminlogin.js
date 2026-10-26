@@ -37,15 +37,28 @@ function login() {
         location.reload();
       } else {
         //error
-        document.getElementById("msg").innerHTML =
-          "Invalid username or password.";
+        document.getElementById("msg").innerText =
+          (data && data.message) || "Invalid username or password.";
         document.getElementById("msg").style.opacity = 1;
       }
     },
-    error: function () {
+    error: function (xhr) {
       //error
-      document.getElementById("msg").innerHTML = "Server error.";
+      document.getElementById("msg").innerText =
+        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.";
       document.getElementById("msg").style.opacity = 1;
+    },
+  });
+}
+
+function signOut() {
+  $.ajax({
+    type: "POST",
+    url: "api/users/logout",
+    complete: function () {
+      document.cookie =
+        "MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/";
+      location.reload();
     },
   });
 }
@@ -128,6 +141,7 @@ $(document).ready(function () {
           $("#setup_code").css("display", "block");
           $(".btn1").css("top", "82%");
           $(".btn1").text("Create Administrator Account");
+          $("#signInTitle").text("Create the first administrator account.");
         }
       }
     },
