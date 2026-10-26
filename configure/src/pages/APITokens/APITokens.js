@@ -2,20 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
-import clsx from "clsx";
-
 import { calls } from "../../core/calls";
 import { copyToClipboard } from "../../core/utils";
 import { setSnackBarText } from "../../core/ConfigureStore";
-
-import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
-import Tooltip from "@mui/material/Tooltip";
-import Paper from "@mui/material/Paper";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
-import Link from "@mui/material/Link";
 
 import Toolbar from "@mui/material/Toolbar";
 import TextField from "@mui/material/TextField";
@@ -27,10 +16,25 @@ import Select from "@mui/material/Select";
 import Button from "@mui/material/Button";
 import Autocomplete from "@mui/material/Autocomplete";
 import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Link from "@mui/material/Link";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
 
 import KeyIcon from "@mui/icons-material/Key";
-import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+
+const shadow = "0px 1px 7px 0px rgba(0, 0, 0, 0.2)";
 
 const useStyles = makeStyles((theme) => ({
   APITokens: {
@@ -42,11 +46,6 @@ const useStyles = makeStyles((theme) => ({
     overflowY: "auto",
     height: "100vh",
     boxSizing: "border-box",
-  },
-  top: {
-    display: "flex",
-    paddingBottom: "10px",
-    height: "48px",
   },
   topbar: {
     width: "calc(100% - 100px)",
@@ -65,211 +64,164 @@ const useStyles = makeStyles((theme) => ({
       margin: "3px 10px 0px 2px",
     },
   },
-  title: {
-    margin: "18px 0px 0px 60px",
-    paddingBottom: "5px",
-    fontSize: "22px",
-    letterSpacing: "1px",
-    fontWeight: "bold",
+  content: { padding: "16px 32px 64px 32px" },
+  card: {
+    background: theme.palette.swatches.grey[1000],
+    borderRadius: "4px",
+    boxShadow: shadow,
+    marginBottom: "20px",
+  },
+  cardHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+    padding: "16px 16px 10px 16px",
+  },
+  cardTitle: {
+    fontSize: "18px !important",
+    fontWeight: "bold !important",
     whiteSpace: "nowrap",
   },
-  row: {
-    margin: "20px 60px",
+  hint: { fontSize: "13px", opacity: 0.75, lineHeight: "18px" },
+  form: {
+    display: "grid",
+    gridTemplateColumns: "1.2fr auto 0.8fr 1.4fr auto",
+    gap: "12px",
+    alignItems: "center",
+    padding: "4px 16px 8px 16px",
   },
-  subtitle: {
-    margin: "30px 60px 0px 60px !important",
-    fontSize: "13px !important",
-    paddingBottom: "5px",
-    fontStyle: "italic",
-  },
-  subtitle2: {
-    fontSize: "12px !important",
-    fontStyle: "italic",
-    width: "100%",
-    marginBottom: "8px !important",
-    color: theme.palette.swatches.grey[400],
-  },
-  text: {
-    width: "100%",
-  },
-  dropdown: {
-    width: "100%",
-  },
-  generate: { width: "100%", height: "48px" },
-  generated: {
-    height: "42px",
-    lineHeight: "42px",
-    display: "flex",
-    marginBottom: "20px",
-    border: `2px solid ${theme.palette.swatches.p[0]}`,
-    borderRadius: "4px",
-    boxShadow: `0px 2px 2px 0px rgba(0,0,0,0.2)`,
-    "& > div:nth-child(1)": {
-      padding: "0px 16px",
-      background: theme.palette.swatches.p[0],
-      textTransform: "uppercase",
+  toggle: {
+    height: "40px",
+    "& .MuiToggleButton-root": {
+      textTransform: "none",
       fontSize: "13px",
-    },
-    "& > div:nth-child(2)": {
-      padding: "0px 16px",
-    },
-    "& > div:nth-child(3)": {
-      height: "42px",
-    },
-  },
-  genTitle: {},
-  generatedToken: { flex: 1, letterSpacing: "1px", fontWeight: "bold" },
-  copy2clipboard: {},
-  tokenList: {},
-  tokenListHeader: {
-    display: "flex",
-    height: "32px",
-    lineHeight: "32px",
-    width: "100%",
-    background: theme.palette.swatches.grey[150],
-    color: "white",
-    fontWeight: "bold",
-    fontSize: "12px",
-    textTransform: "uppercase",
-    marginBottom: "2px",
-    "& > div:nth-child(1)": {
-      textAlign: "center",
-      width: "42px",
-    },
-    "& > div:nth-child(2)": { 
-      width: "220px",
-      padding: "0px 16px",
-    },
-    "& > div:nth-child(3)": {
-      width: "120px",
-      padding: "0px 16px",
-    },
-    "& > div:nth-child(4)": {
-      flex: 1,
-      padding: "0px 16px",
-    },
-    "& > div:nth-child(5)": {
-      width: "140px",
-      padding: "0px 16px",
-    },
-    "& > div:nth-child(6)": {
-      width: "120px",
-      padding: "0px 16px",
-    },
-    "& > div:nth-child(7)": {
-      width: "60px",
-      textAlign: "center",
-    },
-  },
-  tokenListItem: {
-    display: "flex",
-    height: "42px",
-    lineHeight: "42px",
-    width: "100%",
-    background: theme.palette.swatches.grey[900],
-    border: `1px solid ${theme.palette.swatches.grey[700]}`,
-    boxShadow: `0px 1px 3px 0px rgba(0,0,0,0.15)`,
-    marginBottom: "3px",
-    "& > div:nth-child(1)": {
-      background: theme.palette.swatches.grey[150],
-      color: "white",
-      textAlign: "center",
-      width: "42px",
-    },
-    "& > div:nth-child(2)": { 
-      width: "220px",
-      padding: "0px 16px",
-      fontFamily: "monospace",
-      fontSize: "12px",
-    },
-    "& > div:nth-child(3)": {
-      width: "120px",
-      padding: "0px 16px",
-      fontSize: "12px",
-    },
-    "& > div:nth-child(4)": {
-      flex: 1,
-      minWidth: 0,
-      padding: "0px 16px",
-      fontSize: "12px",
+      padding: "0px 14px",
       whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
+      color: theme.palette.swatches.grey[150],
     },
-    "& > div:nth-child(5)": {
-      width: "140px",
-      padding: "0px 16px",
-      fontFamily: "monospace",
-      fontSize: "11px",
+    "& .MuiToggleButton-root.Mui-selected": {
+      background: theme.palette.swatches.grey[300],
+      color: "white",
     },
-    "& > div:nth-child(6)": {
-      width: "120px",
-      padding: "0px 16px",
-      textTransform: "uppercase",
-      fontSize: "12px",
-      display: "flex",
-      "& > div:first-child": {
-        width: "16px",
-        height: "16px",
-        margin: "13px 6px 13px 0px",
-        borderRadius: "3px",
-      },
-    },
-    "& > div:nth-child(7)": {
-      width: "60px",
-      textAlign: "center",
+    "& .MuiToggleButton-root.Mui-selected:hover": {
+      background: theme.palette.swatches.grey[150],
     },
   },
-  examples: {
-    margin: "20px 0px",
+  generate: {
+    height: "40px",
+    whiteSpace: "nowrap",
+    padding: "0px 20px !important",
+    background: `${theme.palette.swatches.p[0]} !important`,
+    color: "black !important",
   },
-  exampleCard: {
-    marginBottom: "16px",
-    background: "none !important",
-    boxShadow: "none !important",  
-    border: "none !important", 
-    borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
-    borderRadius: "0px !important",
-    '& .MuiCardContent-root': {
-      padding: '16px !important',
-    },
-  },
-  exampleTitle: {
-    color: theme.palette.swatches.grey[150],
-    fontWeight: "bold !important",
-    marginBottom: "8px !important",
-    fontSize: '16px !important',
-    letterSpacing: "1px !important",
-  },
-  code: {
-    fontFamily: "monospace !important",
-    padding: "8px",
-    fontSize: '14px',
+  fieldHint: { fontSize: "12px", opacity: 0.7, padding: "0px 16px 14px 16px" },
+  newToken: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    marginBottom: "20px",
+    padding: "12px 16px",
+    background: theme.palette.swatches.grey[1000],
+    borderLeft: "4px solid #5b8c32",
     borderRadius: "4px",
-    background: theme.palette.swatches.grey[900],
+    boxShadow: shadow,
+  },
+  newTokenText: { flex: 1, minWidth: 0 },
+  newTokenLabel: {
+    fontSize: "12px",
+    fontWeight: "bold",
+    letterSpacing: "0.5px",
+    textTransform: "uppercase",
+    color: "#5b8c32",
+    marginBottom: "2px",
+  },
+  newTokenValue: {
+    fontFamily: "monospace",
+    fontWeight: "bold",
+    fontSize: "14px",
     wordBreak: "break-all",
+  },
+  table: {
+    "& tr": { background: theme.palette.swatches.grey[850] },
+    "& th": {
+      fontWeight: "bold !important",
+      fontSize: "13px",
+      padding: "8px 12px",
+      textTransform: "uppercase",
+      letterSpacing: "1px !important",
+      backgroundColor: `${theme.palette.swatches.grey[1000]} !important`,
+      borderRight: `1px solid ${theme.palette.swatches.grey[900]}`,
+    },
+    "& td": {
+      padding: "6px 12px",
+      borderRight: `1px solid ${theme.palette.swatches.grey[800]}`,
+      borderBottom: `1px solid ${theme.palette.swatches.grey[700]} !important`,
+    },
+    "& td:first-child": {
+      fontWeight: "bold",
+      letterSpacing: "1px",
+      fontSize: "15px",
+      color: `${theme.palette.swatches.p[13]}`,
+    },
+  },
+  mono: { fontFamily: "monospace !important", fontSize: "13px !important" },
+  muted: { opacity: 0.6 },
+  chip: {
+    display: "inline-block",
+    padding: "3px 8px",
+    borderRadius: "4px",
+    fontSize: "13px",
+    color: "white",
+    whiteSpace: "nowrap",
+  },
+  chipRead: { background: "#5b8c32" },
+  chipFull: { background: theme.palette.swatches.grey[300] },
+  chipCustom: { background: "#3a8fb7", whiteSpace: "normal" },
+  dot: {
+    display: "inline-block",
+    width: "10px",
+    height: "10px",
+    borderRadius: "50%",
+    marginRight: "8px",
+    verticalAlign: "middle",
+  },
+  nowrap: { whiteSpace: "nowrap" },
+  empty: { padding: "4px 16px 16px 16px", fontSize: "14px", opacity: 0.7 },
+  accordion: {
+    boxShadow: "none !important",
+    borderTop: `1px solid ${theme.palette.swatches.grey[800]}`,
+    background: "transparent !important",
+    "&:before": { display: "none" },
+    "& .MuiAccordionSummary-root": { padding: "0px 16px" },
+    "& .MuiAccordionDetails-root": { padding: "0px 16px 16px 16px" },
+  },
+  exampleTitle: { fontSize: "15px !important", fontWeight: "500 !important" },
+  code: {
+    position: "relative",
+    margin: 0,
+    padding: "14px 48px 14px 16px",
+    background: "#1a1a1a",
+    color: "#e8e8e8",
+    borderRadius: "4px",
+    fontFamily: "monospace",
+    fontSize: "13px",
+    lineHeight: "20px",
     whiteSpace: "pre-wrap",
+    wordBreak: "break-all",
   },
-  content: {
-    width: "100%",
-    overflowY: "auto",
+  codeCopy: {
+    position: "absolute !important",
+    top: "6px",
+    right: "6px",
+    color: "#bbb !important",
   },
-  exampleNote: {
-    fontSize: "11px",
-    fontStyle: "italic",
-    color: theme.palette.swatches.grey[400],
-    marginTop: "4px",
-  },
-  docsCard: {
-    marginTop: "20px",
-    backgroundColor: theme.palette.swatches.grey[850],
-    border: `1px solid ${theme.palette.swatches.grey[700]}`,
-  },
-  docsBox: {
-    fontSize: '16px',
-  },
-  codePaper: {
-    background: "none !important",
+  exampleNote: { fontSize: "13px", opacity: 0.75, marginTop: "8px" },
+  docs: {
+    display: "flex",
+    gap: "18px",
+    padding: "12px 16px 16px 16px",
+    fontSize: "13px",
+    borderTop: `1px solid ${theme.palette.swatches.grey[800]}`,
   },
 }));
 
@@ -389,33 +341,6 @@ print(response.json())`
     }
   ];
 
-  const renderExampleCard = (example, index) => (
-    <Card key={index} className={c.exampleCard}>
-      <CardContent>
-        <Typography className={c.exampleTitle} variant="h6">
-          {example.title}
-        </Typography>
-        <Paper elevation={0} className={c.codePaper} sx={{ p: 1, backgroundColor: 'grey.900' }}>
-          <Typography
-            className={c.code}
-            component="pre"
-          >
-            {example.code}
-          </Typography>
-        </Paper>
-        {example.note && (
-          <Chip 
-            label={example.note.text} 
-            size="small" 
-            color={example.note.color || "default"}
-            variant={example.note.variant || "filled"}
-            sx={{ mt: 1, fontSize: '11px', height: '20px' }}
-          />
-        )}
-      </CardContent>
-    </Card>
-  );
-
   const updateExistingTokenList = () => {
     calls.api(
       "longtermtoken_get",
@@ -499,7 +424,7 @@ print(response.json())`
         } else {
           dispatch(
             setSnackBarText({
-              ext: res?.message || "Failed to delete token.",
+              text: res?.message || "Failed to delete token.",
               severity: "error",
             })
           );
@@ -521,6 +446,44 @@ print(response.json())`
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const copy = (text) => {
+    if (!text) return;
+    copyToClipboard(text);
+    dispatch(setSnackBarText({ text: "Copied to Clipboard!", severity: "success" }));
+  };
+
+  const expiryOf = (t) => {
+    if (!t.created_by_user_id) return { color: "#d22d2d", text: "Blocked (legacy)" };
+    const end = t.expires_at
+      ? new Date(t.expires_at).getTime()
+      : t.period === "never"
+      ? null
+      : new Date(t.createdAt).getTime() + parseInt(t.period);
+    if (end == null || isNaN(end)) return { color: "#5b8c32", text: "Never expires" };
+    const left = end - Date.now();
+    if (left <= 0) return { color: "#d22d2d", text: "Expired" };
+    if (left < 86400000)
+      return { color: "#5b8c32", text: `${Math.max(1, Math.round(left / 3600000))} hours left` };
+    return { color: "#5b8c32", text: `${(left / 86400000).toFixed(1)} days left` };
+  };
+
+  const accessOf = (t) => {
+    if (t.scopes == null) return { label: "All of my access", className: c.chipFull };
+    if (t.scopes.every((sc) => sc.endsWith(".read") || sc.endsWith(".view")))
+      return { label: "Read only", className: c.chipRead };
+    return {
+      label: t.scopes.map((sc) => capLabels[sc] || sc).join(", "),
+      className: c.chipCustom,
+    };
+  };
+
+  const missionsOf = (t) => {
+    if (t.missions == null) return "All missions";
+    if (t.missions.length === 0) return "No missions";
+    if (t.missions.length <= 3) return t.missions.join(", ");
+    return `${t.missions.slice(0, 2).join(", ")} +${t.missions.length - 2} more`;
+  };
+
   return (
     <div className={c.APITokens}>
       <Toolbar className={c.topbar}>
@@ -536,256 +499,187 @@ print(response.json())`
         </div>
       </Toolbar>
       <div className={c.content}>
-        <Typography className={c.subtitle}>
-          {
-            "Generate an authentication token for programmatic access to the configuration and data endpoints. A token can only do what its creator can currently do, narrowed further by its access level and mission list. Read-only tokens can view missions and data but change nothing. The secret is shown once; only a prefix is stored for display. The generated token may be used in requests via the header: 'Authorization:Bearer <token>' and more information can be found at https://nasa-ammos.github.io/MMGIS/apis/configure#api-tokens"
-          }
-        </Typography>
-        <Box sx={{ flexGrow: 1 }} className={clsx(c.row)}>
-          <Grid container spacing={4} direction="row" alignItems="left">
-            <Grid item xs={4} md={4} lg={4} xl={4} key={0}>
-              <TextField
-                className={c.text}
-                label={"Token Name"}
-                variant="filled"
-                size="small"
-                value={tokenName}
-                onChange={(e) => {
-                  setTokenName(e.target.value);
-                }}
-              />
-              <Typography className={c.subtitle2}>
-                {
-                  "An optional name to be prefixed on the generated token in order to better identify it later. Only letters and numbers are kept, in lowercase (ro_b becomes rob). Otherwise, the original hash alone is used."
-                }
-              </Typography>
-            </Grid>
-
-            <Grid item xs={4} md={4} lg={4} xl={4} key={"scope"}>
-              <FormControl className={c.dropdown} variant="filled" size="small">
-                <InputLabel>{"Access"}</InputLabel>
-                <Select
-                  value={tokenScope}
-                  onChange={(e) => {
-                    setTokenScope(e.target.value);
-                  }}
-                >
-                  <MenuItem value={"read"}>{"READ ONLY"}</MenuItem>
-                  <MenuItem value={"full"}>{"ALL OF MY ACCESS"}</MenuItem>
-                </Select>
-              </FormControl>
-              <Autocomplete
-                multiple
-                size="small"
-                className={c.text}
-                options={missionNames}
-                value={tokenMissions}
-                onChange={(e, v) => setTokenMissions(v)}
-                renderInput={(params) => (
-                  <TextField {...params} variant="filled" label={"Limit to missions (all if empty)"} />
-                )}
-              />
-            </Grid>
-            <Grid item xs={4} md={4} lg={4} xl={4} key={1}>
-              <FormControl className={c.dropdown} variant="filled" size="small">
-                <InputLabel>{"Expire After"}</InputLabel>
-                <Select
-                  value={expireAfter}
-                  onChange={(e) => {
-                    setExpireAfter(e.target.value);
-                  }}
-                >
-                  <MenuItem value={"never"}>{"NEVER"}</MenuItem>
-                  <MenuItem value={"31557600000"}>{"1 YEAR"}</MenuItem>
-                  <MenuItem value={"2629800000"}>{"1 MONTH"}</MenuItem>
-                  <MenuItem value={"604800000"}>{"1 WEEK"}</MenuItem>
-                  <MenuItem value={"86400000"}>{"1 DAY"}</MenuItem>
-                  <MenuItem value={"3600000"}>{"1 HOUR"}</MenuItem>
-                </Select>
-              </FormControl>
-              <Typography className={c.subtitle2}>
-                {"When should the next generated token cease to authenticate."}
-              </Typography>
-            </Grid>
-
-            <Grid item xs={4} md={4} lg={4} xl={4} key={2}>
-              <Button
-                className={c.generate}
-                variant="contained"
-                disableElevation
-                endIcon={<KeyIcon size="small" />}
-                onClick={() => {
-                  generatedLongTermToken();
-                }}
-              >
-                Generate New Token
-              </Button>
-            </Grid>
-          </Grid>
-          <div className={c.generated}>
-            <div className={c.genTitle}>New Token</div>
-            <div className={c.generatedToken}>{token}</div>
-            <Tooltip title={"Copy Token to Clipboard"} placement="top" arrow>
-              <IconButton
-                className={c.copy2clipboard}
-                onClick={() => {
-                  if (token) {
-                    copyToClipboard(token);
-                    dispatch(
-                      setSnackBarText({
-                        text: "Copied to Clipboard!",
-                        severity: "success",
-                      })
-                    );
-                  }
-                }}
-              >
-                <ContentPasteIcon fontSize="inherit" />
-              </IconButton>
-            </Tooltip>
-          </div>
-
-          <div className={c.tokenList}>
-            <div className={c.tokenListHeader}>
-              <div>ID</div>
-              <div>Token</div>
-              <div>Created By</div>
-              <div>Mission Access</div>
-              <div>Created At</div>
-              <div>Status</div>
-              <div>Actions</div>
+        <div className={c.card}>
+          <div className={c.cardHead}>
+            <Typography className={c.cardTitle}>Create a token</Typography>
+            <div className={c.hint}>
+              A token can only do what you can do, narrowed by its access and missions. Read-only
+              tokens can view missions and data but change nothing.
             </div>
-            {tokenList.map((t) => {
-              // Handle legacy tokens without creator info
-              const isLegacyToken = !t.created_by_user_id;
-              
-              let expires = "";
-              let expireType = "";
-              let expireColor = "black";
-              
-              if (isLegacyToken) {
-                expireType = "Blocked";
-                expireColor = "#d22d2d";
-                expires = "blocked";
-              } else if (t.period === "never") {
-                expires = "never expires";
-                expireType = "Active";
-                expireColor = "#77d22d";
-              } else {
-                const timeDif = Date.now() - new Date(t.createdAt).getTime();
-                const timePeriod = parseInt(t.period);
-                if (timeDif >= timePeriod) {
-                  expires = "expired";
-                  expireType = "Expired";
-                  expireColor = "#d22d2d";
-                } else {
-                  expires = `expires in ${(
-                    (timePeriod - timeDif) /
-                    86400000
-                  ).toFixed(2)} days`;
-                  expireType = "Active";
-                  expireColor = "#77d22d";
-                }
-              }
-              
-              // Handle creator information
-              const creatorDisplay = isLegacyToken ? "Legacy Token" : (t.created_by_username || "Unknown");
-              
-              // Handle mission access display
-              const scopeDisplay =
-                t.scopes == null
-                  ? "all of creator's access"
-                  : t.scopes.every((sc) => sc.endsWith(".read") || sc.endsWith(".view"))
-                  ? "read only"
-                  : t.scopes.map((sc) => capLabels[sc] || sc).join(", ");
-              let missionDisplay = `${
-                t.missions == null
-                  ? "All missions the creator can access"
-                  : t.missions.length <= 3
-                  ? t.missions.join(", ") || "No missions"
-                  : `${t.missions.slice(0, 2).join(", ")} +${t.missions.length - 2} more`
-              } (${scopeDisplay})`;
-              if (isLegacyToken) missionDisplay = "BLOCKED - Legacy token";
+          </div>
+          <div className={c.form}>
+            <TextField
+              label="Name (optional)"
+              size="small"
+              value={tokenName || ""}
+              onChange={(e) => setTokenName(e.target.value)}
+            />
+            <ToggleButtonGroup
+              className={c.toggle}
+              exclusive
+              size="small"
+              value={tokenScope}
+              onChange={(e, v) => v && setTokenScope(v)}
+            >
+              <ToggleButton value="read">Read only</ToggleButton>
+              <ToggleButton value="full">All of my access</ToggleButton>
+            </ToggleButtonGroup>
+            <FormControl size="small">
+              <InputLabel>Expire after</InputLabel>
+              <Select
+                label="Expire after"
+                value={expireAfter}
+                onChange={(e) => setExpireAfter(e.target.value)}
+              >
+                <MenuItem value={"never"}>Never</MenuItem>
+                <MenuItem value={"31557600000"}>1 year</MenuItem>
+                <MenuItem value={"2629800000"}>1 month</MenuItem>
+                <MenuItem value={"604800000"}>1 week</MenuItem>
+                <MenuItem value={"86400000"}>1 day</MenuItem>
+                <MenuItem value={"3600000"}>1 hour</MenuItem>
+              </Select>
+            </FormControl>
+            <Autocomplete
+              multiple
+              size="small"
+              limitTags={2}
+              options={missionNames}
+              value={tokenMissions}
+              onChange={(e, v) => setTokenMissions(v)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Limit to missions"
+                  placeholder={tokenMissions.length ? "" : "All missions"}
+                  InputLabelProps={{ ...params.InputLabelProps, shrink: true }}
+                />
+              )}
+            />
+            <Button
+              className={c.generate}
+              variant="contained"
+              disableElevation
+              startIcon={<KeyIcon />}
+              onClick={generatedLongTermToken}
+            >
+              Generate
+            </Button>
+          </div>
+          <div className={c.fieldHint}>
+            Names keep only lowercase letters and numbers (ro_b becomes rob). Without a name, the
+            token is just its hash.
+          </div>
+        </div>
 
-              return (
-                <div className={c.tokenListItem} key={t.id}>
-                  <div>{t.id}</div>
-                  <div title={t.token}>{t.token}</div>
-                  <div title={creatorDisplay}>{creatorDisplay}</div>
-                  <div title={missionDisplay}>{missionDisplay}</div>
-                  <div>{new Date(t.createdAt).toLocaleDateString()}</div>
-                  <div>
-                    <Tooltip title={expireType} placement="top" arrow>
-                      <div style={{ background: expireColor }}></div>
-                    </Tooltip>
-                    <div>{expires}</div>
-                  </div>
-                  <div>
-                    <IconButton
-                      className={c.tokenDelete}
-                      onClick={() => {
-                        clearLongTermToken(t.id);
-                      }}
-                    >
-                      <DeleteForeverIcon fontSize="inherit" />
+        {token && (
+          <div className={c.newToken}>
+            <div className={c.newTokenText}>
+              <div className={c.newTokenLabel}>New token: copy it now, it's shown once</div>
+              <div className={c.newTokenValue}>{token}</div>
+            </div>
+            <Button variant="outlined" size="small" startIcon={<ContentCopyIcon />} onClick={() => copy(token)}>
+              Copy
+            </Button>
+          </div>
+        )}
+
+        <div className={c.card}>
+          <div className={c.cardHead}>
+            <Typography className={c.cardTitle}>Tokens</Typography>
+            <div className={c.hint}>
+              {tokenList.length} {tokenList.length === 1 ? "token" : "tokens"}
+            </div>
+          </div>
+          {tokenList.length === 0 ? (
+            <div className={c.empty}>No tokens yet.</div>
+          ) : (
+            <Table size="small" className={c.table}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Token</TableCell>
+                  <TableCell>Created by</TableCell>
+                  <TableCell>Access</TableCell>
+                  <TableCell>Missions</TableCell>
+                  <TableCell>Created</TableCell>
+                  <TableCell>Expires</TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {tokenList.map((t) => {
+                  const legacy = !t.created_by_user_id;
+                  const expiry = expiryOf(t);
+                  const access = accessOf(t);
+                  return (
+                    <TableRow key={t.id} className={legacy ? c.muted : undefined}>
+                      <TableCell>{t.name || "(no name)"}</TableCell>
+                      <TableCell className={c.mono}>{t.token}</TableCell>
+                      <TableCell>{legacy ? "Legacy token" : t.created_by_username || "Unknown"}</TableCell>
+                      <TableCell>
+                        {legacy ? "—" : <span className={`${c.chip} ${access.className}`}>{access.label}</span>}
+                      </TableCell>
+                      <TableCell title={t.missions ? t.missions.join(", ") : undefined}>
+                        {legacy ? "—" : missionsOf(t)}
+                      </TableCell>
+                      <TableCell className={c.nowrap}>
+                        {new Date(t.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className={c.nowrap}>
+                        <span className={c.dot} style={{ background: expiry.color }} />
+                        {expiry.text}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Delete token" placement="top" arrow>
+                          <IconButton size="small" onClick={() => clearLongTermToken(t.id)}>
+                            <DeleteForeverIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        <div className={c.card}>
+          <div className={c.cardHead}>
+            <Typography className={c.cardTitle}>Using a token</Typography>
+            <div className={c.hint}>Send it in the header: Authorization: Bearer &lt;token&gt;</div>
+          </div>
+          {apiExamples.map((example, i) => (
+            <Accordion key={example.title} className={c.accordion} disableGutters defaultExpanded={i === 0}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography className={c.exampleTitle}>{example.title}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <pre className={c.code}>
+                  {example.code}
+                  <Tooltip title="Copy" placement="top" arrow>
+                    <IconButton size="small" className={c.codeCopy} onClick={() => copy(example.code)}>
+                      <ContentCopyIcon fontSize="small" />
                     </IconButton>
-                  </div>
-                </div>
-              );
-            })}
+                  </Tooltip>
+                </pre>
+                {example.note && <div className={c.exampleNote}>{example.note.text}</div>}
+              </AccordionDetails>
+            </Accordion>
+          ))}
+          <div className={c.docs}>
+            <span>Docs:</span>
+            <Link href="https://nasa-ammos.github.io/MMGIS/apis/configure" target="_blank" underline="hover">
+              Configure API
+            </Link>
+            <Link href="https://nasa-ammos.github.io/MMGIS/apis/geodatasets" target="_blank" underline="hover">
+              GeoDatasets API
+            </Link>
+            <Link href="https://nasa-ammos.github.io/MMGIS/apis/" target="_blank" underline="hover">
+              All APIs
+            </Link>
           </div>
-
-          <div className={c.examples}>
-            <Typography variant="h5" component="h2" sx={{ color: 'inherit', fontWeight: 'bold', mb: 2, borderBottom: 1, borderColor: 'divider', pb: 1 }}>
-              API Usage Examples
-            </Typography>
-
-            {apiExamples.map(renderExampleCard)}
-
-            <Card className={c.docsCard}>
-              <CardContent>
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: 'inherit' }}>
-                  Documentation
-                </Typography>
-                <Box className={c.docsBox} sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <div>Configure API:</div>
-                    <Link 
-                      href="https://nasa-ammos.github.io/MMGIS/apis/configure" 
-                      target="_blank"
-                      color="primary"
-                      underline="hover"
-                    >
-                      https://nasa-ammos.github.io/MMGIS/apis/configure
-                    </Link>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <div>GeoDatasets API:</div>
-                    <Link 
-                      href="https://nasa-ammos.github.io/MMGIS/apis/geodatasets" 
-                      target="_blank"
-                      color="primary"
-                      underline="hover"
-                    >
-                      https://nasa-ammos.github.io/MMGIS/apis/geodatasets
-                    </Link>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <div>All APIs:</div>
-                    <Link 
-                      href="https://nasa-ammos.github.io/MMGIS/apis/" 
-                      target="_blank"
-                      color="primary"
-                      underline="hover"
-                    >
-                      https://nasa-ammos.github.io/MMGIS/apis/
-                    </Link>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </div>
-        </Box>
+        </div>
       </div>
     </div>
   );
