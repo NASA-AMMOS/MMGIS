@@ -1,4 +1,5 @@
 const winston = require("winston");
+const util = require("util");
 const moment = require("moment");
 var os = require("os");
 const chalk = require("chalk");
@@ -120,9 +121,9 @@ const logger = function (level, message, caller, req, err) {
     if (message)
       console.log(
         " ",
-        typeof message === "string"
-          ? sanitizeForLog(message).replace(/[\r\n]+/g, " ")
-          : message
+        sanitizeForLog(
+          typeof message === "string" ? message : util.inspect(message)
+        ).replace(/[\r\n]+/g, " ")
       );
     if (caller && level != "success" && level != "info" && level != "loaded")
       console.log(
