@@ -42,6 +42,7 @@ export async function createTestUser(request, { username, password, email }) {
 export async function loginAsUser(request, { username, password }) {
   const response = await request.post('/api/users/login', {
     data: { username, password },
+    headers: loginHeaders(),
   });
 
   // Extract the session cookie from the response headers

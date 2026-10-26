@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { loginHeaders } from '../../helpers/auth.js';
 
 /**
  * E2E test for the layer modal's Layer Type control.
@@ -50,6 +51,7 @@ test.describe('Configure CMS — layer type options', () => {
 
     await page.request.post(`${baseURL}/api/users/login`, {
       data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      headers: loginHeaders(),
     });
     await page.goto('/configure');
     await page.waitForLoadState('networkidle');

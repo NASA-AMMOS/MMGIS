@@ -51,13 +51,13 @@ test.describe('Broadcast API', () => {
     expect(body.status).toBe('failure');
     expect(body.message).toContain('layerName');
 
-    // Missing mission
+    // Missing mission: the mission-scoped permission check refuses it
     response = await request.post(`${baseURL}/api/broadcast/layerUpdate`, {
       data: { layerName: 'some-layer' },
     });
+    expect(response.status()).toBe(403);
     body = await response.json();
     expect(body.status).toBe('failure');
-    expect(body.message).toContain('mission');
 
     // Valid single layer
     response = await request.post(`${baseURL}/api/broadcast/layerUpdate`, {
