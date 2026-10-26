@@ -38,16 +38,16 @@ test.describe('Log redaction', () => {
   test('redacts passwords nested in error objects', () => {
     const err = {
       name: 'SequelizeValidationError',
-      errors: [{ message: 'Validation isEmail on email failed', instance: { dataValues: { username: 'u', password: 'Passw0rd!x' } } }],
+      errors: [{ message: 'Validation isEmail on email failed', instance: { dataValues: { username: 'u', password: 'Passw0rd!x' } } }], // pragma: allowlist secret
     };
     const out = JSON.stringify(err, redactSecrets);
     expect(out).not.toContain('Passw0rd!x');
-    expect(stringify(err).errors[0].instance.dataValues).toEqual({ username: 'u', password: '_redacted_' });
+    expect(stringify(err).errors[0].instance.dataValues).toEqual({ username: 'u', password: '_redacted_' }); // pragma: allowlist secret
   });
 
   test('redacts token and password keys regardless of case', () => {
     expect(stringify({ Password: 'a', token: 'mmgis_x', retypePassword: 'b', keep: 'c' }))
-      .toEqual({ Password: '_redacted_', token: '_redacted_', retypePassword: '_redacted_', keep: 'c' });
+      .toEqual({ Password: '_redacted_', token: '_redacted_', retypePassword: '_redacted_', keep: 'c' }); // pragma: allowlist secret
   });
 
   test('leaves null secrets and other fields alone', () => {
