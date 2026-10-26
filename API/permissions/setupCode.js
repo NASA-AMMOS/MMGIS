@@ -14,6 +14,8 @@ const crypto = require("crypto");
 const ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // pragma: allowlist secret
 const GROUPS = 4;
 const GROUP_LEN = 4;
+const RULE =
+  "================================================================";
 
 let currentHash = null;
 
@@ -44,16 +46,15 @@ function fromEnv() {
 }
 
 function announce(code) {
-  const line = "=".repeat(64);
   const out = [
     "",
-    line,
+    RULE,
     "  MMGIS has no accounts yet.",
     "  Open /configure and create the first (SuperAdmin) account",
     code
       ? `  with this one-time setup code:  ${String(code).replace(/[\r\n]/g, "")}`
       : "  with the setup code from the SETUP_CODE environment variable.",
-    line,
+    RULE,
     "",
   ].join("\n");
   // Printed straight to stdout rather than through the logger so it is never
