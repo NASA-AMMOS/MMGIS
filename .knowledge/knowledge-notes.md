@@ -25,7 +25,8 @@ Lessons learned from past sessions — gotchas not obvious from the codebase.
 
 ## Auth Gotchas
 
+- **Every API route declares its permission** with `authorize(capability, resolver)` (or `authorize.public` / `authorize.inHandler`). Core routes without one stop the server at startup. How to pick the capability and resolver: `docs/pages/Contributing/Permissions/Permissions.md`
 - `/api/configure/*` requires a session with the route's capability (SuperAdmin or a scoped mission admin) **even when `SITE_ACCESS=public`**
 - Read-only exceptions: `/api/configure/get`, `/api/configure/missions`, `/api/geodatasets/get`, `/api/geodatasets/search`
-- First admin: start with `AUTH=local`, hit `/api/users/first_signup`
-- Tests must handle auth even in `AUTH=off` mode
+- First admin: on an empty database, open `/configure` and create the SuperAdmin with the setup code printed in the server log (or `SETUP_CODE`)
+- Tests must handle auth even when `SITE_ACCESS=public`

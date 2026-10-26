@@ -127,7 +127,7 @@ const logger = function (level, message, caller, req, err) {
     if (caller && level != "success" && level != "info" && level != "loaded")
       console.log(
         "   Caller:",
-        sanitizeForLog(String(caller)).replace(/\n/g, "")
+        sanitizeForLog(String(caller)).replace(/[\r\n]+/g, "")
       );
     if (err) console.log("   Error:", sanitizeForLog(err instanceof Error ? err.stack || String(err) : String(err)));
   } else {
