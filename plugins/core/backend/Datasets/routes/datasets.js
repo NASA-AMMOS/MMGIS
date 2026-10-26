@@ -304,14 +304,14 @@ router.post("/upload", authorize("data.datasets.write"), function (req, res, nex
     let uploadFinished = false;
     let busboy;
     try {
-      busboy = new Busboy({ headers: req.headers });
+      busboy = Busboy({ headers: req.headers });
     } catch (err) {
       return res.status(400).send({
         status: "failure",
         message: "Invalid Content-Type for file upload.",
       });
     }
-    busboy.on("file", function (fieldname, file, filename, encoding, mimetype) {
+    busboy.on("file", function (fieldname, file) {
       file.on("data", function (data) {
         uploaded += data.toString("utf8");
         populateNext();
@@ -320,14 +320,7 @@ router.post("/upload", authorize("data.datasets.write"), function (req, res, nex
     });
     busboy.on(
       "field",
-      function (
-        fieldname,
-        val,
-        fieldnameTruncated,
-        valTruncated,
-        encoding,
-        mimetype
-      ) {
+      function (fieldname, val) {
         if (['__proto__', 'constructor', 'prototype'].includes(fieldname)) return;
         fields[fieldname] = val;
         if (
@@ -338,7 +331,7 @@ router.post("/upload", authorize("data.datasets.write"), function (req, res, nex
           begin();
       }
     );
-    busboy.on("finish", function () {
+    busboy.on("close", function () {
       uploadFinished = true;
       populateInterval = setInterval(populateNext, 100);
     });

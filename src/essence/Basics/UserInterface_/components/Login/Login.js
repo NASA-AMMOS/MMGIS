@@ -320,7 +320,6 @@ var Login = {
                 $('#loginUsernameInputIcon').animate({ opacity: '0' }, 80)
                 validate.username = false
             }
-            $('#loginEmailInput').val(value + emailSuffix)
         })
 
         $('#loginEmailInput').on('change paste keyup', function () {

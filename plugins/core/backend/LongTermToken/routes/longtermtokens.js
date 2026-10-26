@@ -124,8 +124,8 @@ function hasAnyWrite(principal) {
 
 function expiryFrom(period) {
   if (period == null || period === "never") return null;
-  const ms = parseInt(period);
-  if (isNaN(ms) || ms <= 0) throw new TokenError("period must be 'never' or a positive number of milliseconds.");
+  const ms = /^\d+$/.test(String(period)) ? Number(period) : NaN;
+  if (!Number.isSafeInteger(ms) || ms <= 0) throw new TokenError("period must be 'never' or a positive number of milliseconds.");
   return new Date(Date.now() + ms);
 }
 
@@ -206,3 +206,5 @@ router.post("/clear", authorize("tokens.create"), sessionOnly, async (req, res) 
 
 module.exports = router;
 module.exports.TOKEN_PREFIX = TOKEN_PREFIX;
+module.exports.expiryFrom = expiryFrom;
+module.exports.TokenError = TokenError;

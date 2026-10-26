@@ -47,7 +47,7 @@ Compared request by request against the previous release on the same upgraded da
 On every kind of site:
 
 - Mission admins no longer see the Users & Access page; see section 3.
-- Any logged-in local account can create read-only long-term tokens through the API (`POST /api/longtermtoken/generate`). Only admins who can open Configure get the API Tokens page; there's no token UI for other users. CSSO users can't create tokens.
+- Any logged-in local account can create long-term tokens through the API (`POST /api/longtermtoken/generate`). A token is read-only unless the account has an editing role or asks for a capability it already holds, such as `draw.use`. Only admins who can open Configure get the API Tokens page; there's no token UI for other users. CSSO users can't create tokens.
 - Long-term tokens can't open the `/configure` page; they are for API calls.
 
 ## 2. Preview and import existing accounts
@@ -65,8 +65,12 @@ The import never changes usernames or password hashes, so every existing account
 | --- | --- |
 | `permission=111` | `superadmin` (global) |
 | `permission=110` + `missions_managing` | `mission_admin` on each listed mission |
-| `missions_viewing` list | `viewer` on each listed mission |
-| `missions_viewing` unset | `viewer` (global) |
+| `missions_viewing` list | `viewer` on each listed mission (only with `SITE_ACCESS=required` and no `csso`, the only sites where viewing lists applied) |
+| `missions_viewing` unset | `viewer` (global), same condition |
+| `SITE_ACCESS=public` or `optional` | `everyone` audience: `viewer` (global) |
+| `SITE_ACCESS=required` with `csso` | `authenticated` audience: `viewer` (global) |
+
+The audience grant keeps every mission visible as before. A brand-new site gets it too, so on `public` and `optional` sites guests can see every mission until you remove or narrow it in **Configure → Users & Access**.
 
 On a brand-new site with no accounts, creating the first account on `/configure` now asks for a one-time setup code printed in the server log (see `SETUP_CODE`). Existing sites already have accounts and are unaffected.
 
@@ -75,6 +79,8 @@ The server also runs the import once on first start if it hasn't run. It never r
 The legacy columns are kept, so rolling back to the previous image still works. They are only ever lowered to match current grants (for example when a SuperAdmin is demoted or a viewer grant is removed), never raised, so a rollback never gives more access than the grants did. Accounts created on this release have `permission=000` and can't log in on the previous release.
 
 If you roll back, change accounts on the previous release and then upgrade again, the server compares each account's legacy columns with the values it last saw. Access removed there is removed from the matching grants: a SuperAdmin set to `110` or `001` loses SuperAdmin (unless they are the last one), missions taken out of `missions_managing` or `missions_viewing` lose the Mission Admin or Viewer grant, a viewer limited from all missions to a list keeps only those missions, and an account set to `000`/`010` loses its viewer grants. Access added there is not granted, only reported. Accounts created there are imported like the first upgrade, and grants of accounts deleted there are removed. Each change is logged at startup as a warning. Only the account's own grants are changed: access through a group or the Everyone / Logged-in users audiences stays until you change it in Users & Access.
+
+Long-term tokens used on this release don't work after a rollback. On first use their stored value is replaced by a hash that the previous release can't check, so it treats them as having no access (for example, empty mission lists) instead of refusing them. Tokens created on this release never worked there. Generate new tokens on the previous release after rolling back.
 
 When rolling back, also clear the sessions table (`DELETE FROM session;`) so everyone signs in again. Sessions started before the upgrade still carry the old `permission` value, and the previous release trusts it.
 
@@ -100,7 +106,7 @@ Roles are granted to users, to groups, or to the `authenticated` / `everyone` au
 - New tokens are shown once and stored hashed. Existing tokens keep working and are converted to hashed storage on first use.
 - Tokens can be read-only or carry the creator's access, optionally limited to some missions, and can expire or be revoked.
 - A token never exceeds what its creator can currently do: demoting or deleting the creator narrows or removes it immediately.
-- Any signed-in user can create read-only tokens.
+- Any logged-in local account can create tokens. A token is read-only by default and never carries more than the account can do itself.
 
 ## 5. Adjacent servers
 

@@ -663,6 +663,42 @@ if (fullAccess)
     add(req, res, next);
   });
 
+// A config may only point msv.missionFolderName at another mission's folder if the caller can already configure that mission
+async function missionFolderNameError(req, mission, configJSON) {
+  const folder = configJSON && configJSON.msv && configJSON.msv.missionFolderName;
+  if (typeof folder !== "string" || folder === "" || folder === mission) return null;
+  if (/[\\/]/.test(folder) || folder === "." || folder === "..")
+    return "msv.missionFolderName must be a single folder name.";
+  const latest = await Config.findOne({
+    where: { mission },
+    order: [["version", "DESC"]],
+    attributes: ["config"],
+  });
+  const previous = latest && latest.config && latest.config.msv && latest.config.msv.missionFolderName;
+  if (previous === folder) return null;
+  const claimers = await Config.findAll({
+    attributes: ["mission"],
+    where: {
+      [Sequelize.Op.and]: [
+        { mission: { [Sequelize.Op.ne]: mission } },
+        {
+          [Sequelize.Op.or]: [
+            { mission: folder },
+            sequelize.where(sequelize.json("config.msv.missionFolderName"), folder),
+          ],
+        },
+      ],
+    },
+    group: ["mission"],
+  });
+  for (const c of claimers) {
+    const resource = await resolvers.mission(() => c.mission)(req);
+    if (!resource || !(await can(req, "mission.config.edit", resource)))
+      return `msv.missionFolderName '${folder}' belongs to another mission.`;
+  }
+  return null;
+}
+
 /**
  * Updates and mission's full config
  * @param req {object}
@@ -771,12 +807,22 @@ function upsert(req, res, next, cb, info) {
         return;
       }
 
-      Config.create({
-        mission: req.body.mission,
-        config: configJSON,
-        version: version + 1,
-      })
+      missionFolderNameError(req, req.body.mission, configJSON)
+        .then((folderError) => {
+          if (folderError) {
+            const failure = { status: "failure", message: folderError };
+            if (cb) cb(failure);
+            else res.send(failure);
+            return null;
+          }
+          return Config.create({
+            mission: req.body.mission,
+            config: configJSON,
+            version: version + 1,
+          });
+        })
         .then((created) => {
+          if (!created) return;
           logger(
             "info",
             "Successfully updated mission: " +

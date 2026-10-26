@@ -276,15 +276,15 @@ export default function APITokens() {
     },
     {
       title: "Validate Configuration",
-      code: `curl -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -H "Content-Type: application/json" -d '{"config":{"msv":1,"projection":"EPSG:4326","look":{"zoom":5,"center":[0,0]},"layers":[]}}' "${baseUrl}/api/configure/validate"`
+      code: `curl -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -H "Content-Type: application/json" -d '{"config":{"msv":1,"projection":"EPSG:4326","look":{"zoom":5,"center":[0,0]},"layers":[],"tools":[]}}' "${baseUrl}/api/configure/validate"`
     },
     {
       title: "Update Mission Configuration",
-      code: `curl -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -H "Content-Type: application/json" -d '{"mission":"YourMission","config":{"msv":1,"projection":"EPSG:4326","look":{"zoom":5,"center":[0,0]},"layers":[]}}' "${baseUrl}/api/configure/upsert"`
+      code: `curl -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -H "Content-Type: application/json" -d '{"mission":"YourMission","config":{"msv":1,"projection":"EPSG:4326","look":{"zoom":5,"center":[0,0]},"layers":[],"tools":[]}}' "${baseUrl}/api/configure/upsert"`
     },
     {
       title: "Add New Layer",
-      code: `curl -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -H "Content-Type: application/json" -d '{"mission":"YourMission","layer":{"name":"NewLayer","type":"tile","url":"https://example.com/{z}/{x}/{y}.png","visibility":true},"placement":{"index":0}}' "${baseUrl}/api/configure/addLayer"`
+      code: `curl -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -H "Content-Type: application/json" -d '{"mission":"YourMission","layer":{"name":"NewLayer","type":"tile","url":"https://example.com/{z}/{x}/{y}.png","minZoom":0,"maxNativeZoom":18,"maxZoom":18,"visibility":true},"placement":{"index":0}}' "${baseUrl}/api/configure/addLayer"`
     },
     {
       title: "Update Existing Layer",

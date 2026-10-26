@@ -4554,9 +4554,11 @@
     },
     "/api/longtermtoken/get": {
       "get": {
-        "summary": "Get all long term tokens",
-        "description": "Returns all existing API tokens. Each token now includes the ID of the admin who created it, which determines the token's mission access permissions.",
-        "tags": ["API Tokens"],
+        "summary": "List long term tokens",
+        "description": "Lists unrevoked tokens. Users with tokens.manage (SuperAdmin) see every token; others see only their own. Only a prefix of each token is returned; the full token is shown once, at creation. Needs a signed-in session, not a token.",
+        "tags": [
+          "API Tokens"
+        ],
         "security": [
           {
             "adminAuth": []
@@ -4575,23 +4577,25 @@
                       "tokens": [
                         {
                           "id": 1,
-                          "token": "example_token1",
-                          "period": "example_period1",
+                          "name": "ci-pipeline",
+                          "token": "mmgis_cipipeline_1a2b3c...",
+                          "period": "never",
+                          "scopes": [
+                            "site.view",
+                            "mission.view",
+                            "data.geodatasets.read",
+                            "data.datasets.read",
+                            "data.stac.read"
+                          ],
+                          "missions": [
+                            "Mars2020"
+                          ],
+                          "expires_at": null,
+                          "last_used_at": "2026-10-01T12:00:00Z",
                           "created_by_user_id": 5,
                           "created_by_username": "admin_user",
-                                                    "created_by_missions": null,
-                          "createdAt": "2025-02-28T20:00:00Z",
-                          "updatedAt": "2025-02-28T20:00:00Z"
-                        },
-                        {
-                          "id": 2,
-                          "token": "example_token2",
-                          "period": "example_period2",
-                          "created_by_user_id": 7,
-                          "created_by_username": "mission_admin",
-                                                    "created_by_missions": ["Mars2020", "InSight"],
-                          "createdAt": "2025-02-28T20:00:00Z",
-                          "updatedAt": "2025-02-28T20:00:00Z"
+                          "createdAt": "2026-09-28T20:00:00Z",
+                          "updatedAt": "2026-10-01T12:00:00Z"
                         }
                       ]
                     }
@@ -4613,15 +4617,17 @@
     "/api/longtermtoken/generate": {
       "post": {
         "summary": "Generate a new long term token",
-        "description": "Creates a new API token for programmatic access. The token inherits the mission permissions of the admin who creates it. SuperAdmins get tokens with access to all missions, while regular Admins get tokens restricted to their assigned missions.",
-        "tags": ["API Tokens"],
+        "description": "Creates a token for API calls (send it as 'Authorization: Bearer <token>'). Any signed-in local account can create one. Scopes and mission limits only narrow the creator's own access, and every request is re-checked against what the creator can currently do. Needs a signed-in session, not a token.",
+        "tags": [
+          "API Tokens"
+        ],
         "security": [
           {
             "adminAuth": []
           }
         ],
         "requestBody": {
-          "required": true,
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
@@ -4629,16 +4635,45 @@
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "Optional label for the token. Non-alphanumeric characters are stripped and it is lowercased, then prefixed to the generated token (e.g. name 'My CI' produces a token like 'myci-<hex>').",
+                    "description": "Optional label. Non-alphanumeric characters are stripped and it is lowercased, then included in the token (name 'CI pipeline' gives 'mmgis_cipipeline_<hex>').",
                     "example": "ci-pipeline"
                   },
                   "period": {
                     "type": "string",
-                    "description": "Token lifetime, measured in MILLISECONDS from creation, or the literal string 'never' for no expiry. IMPORTANT: unit strings like '1d' are NOT parsed \u2014 they resolve to parseInt('1d')=1ms and the token is treated as immediately expired. Use e.g. '86400000' for one day, or 'never'.",
+                    "description": "Lifetime in milliseconds from creation as a whole number (e.g. '86400000' for one day), or 'never'. Defaults to 'never'. Anything else is rejected.",
                     "example": "never"
+                  },
+                  "scopes": {
+                    "description": "'read' for read-only, null or omitted for all of the creator's access (read-only for accounts with no editing role), or an array of capability names the creator holds. tokens.create and tokens.manage are not allowed.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "read"
+                        ]
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "nullable": true,
+                    "example": "read"
+                  },
+                  "missions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "nullable": true,
+                    "description": "Optional mission names the token is limited to. Null or omitted means every mission the creator can access.",
+                    "example": [
+                      "Mars2020"
+                    ]
                   }
-                },
-                "required": ["period"]
+                }
               }
             }
           }
@@ -4653,10 +4688,24 @@
                     "summary": "Success",
                     "value": {
                       "status": "success",
-                      "message": "Successfully created long term token.",
+                      "message": "Successfully created long term token. Copy it now; it will not be shown again.",
                       "body": {
-                        "token": "example_token",
-                        "period": "example_period"
+                        "id": 1,
+                        "token": "mmgis_cipipeline_<64 hex characters>",
+                        "name": "ci-pipeline",
+                        "period": "never",
+                        "scopes": [
+                          "site.view",
+                          "mission.view",
+                          "data.geodatasets.read",
+                          "data.datasets.read",
+                          "data.stac.read"
+                        ],
+                        "missions": [
+                          "Mars2020"
+                        ],
+                        "expires_at": null,
+                        "created_by_user_id": 5
                       }
                     }
                   },
@@ -4664,10 +4713,7 @@
                     "summary": "Failure",
                     "value": {
                       "status": "failure",
-                      "message": "Failed to create long term token!",
-                      "body": {
-                        "err": "example_error"
-                      }
+                      "message": "period must be 'never' or a positive number of milliseconds."
                     }
                   }
                 }

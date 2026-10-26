@@ -33,6 +33,13 @@ const filelogger = winston.createLogger({
   ],
 });
 
+const SECRET_LOG_KEYS = new Set(["password", "token", "retypepassword"]);
+function redactSecrets(key, value) {
+  if (typeof key === "string" && SECRET_LOG_KEYS.has(key.toLowerCase()) && value != null)
+    return "_redacted_";
+  return value;
+}
+
 function sanitizeForLog(str) {
   if (typeof str !== "string") return str;
   return str.replace(/\x1B\[[0-9;]*m/g, "").replace(/[\x00-\x08\x0B-\x1F\x7F]/g, " ");
@@ -87,7 +94,7 @@ const logger = function (level, message, caller, req, err) {
 
     log.msg = sanitizeForLog(log.msg);
     log.caller = sanitizeForLog(log.caller);
-    log = JSON.stringify(log);
+    log = JSON.stringify(log, redactSecrets);
   } catch (err2) {
     log.err = err2;
   }
@@ -123,12 +130,12 @@ const logger = function (level, message, caller, req, err) {
         " ",
         sanitizeForLog(
           typeof message === "string" ? message : util.inspect(message)
-        ).replace(/[\r\n]+/g, " ")
+        ).replace(/\r/g, "").replace(/\n/g, "")
       );
     if (caller && level != "success" && level != "info" && level != "loaded")
       console.log(
         "   Caller:",
-        sanitizeForLog(String(caller)).replace(/[\r\n]+/g, "")
+        sanitizeForLog(String(caller)).replace(/\r/g, "").replace(/\n/g, "")
       );
     if (err) console.log("   Error:", sanitizeForLog(err instanceof Error ? err.stack || String(err) : String(err)));
   } else {
@@ -146,3 +153,4 @@ const logger = function (level, message, caller, req, err) {
 };
 
 module.exports = logger;
+module.exports.redactSecrets = redactSecrets;
