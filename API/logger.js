@@ -117,7 +117,13 @@ const logger = function (level, message, caller, req, err) {
           chalk.black(chalk.bgHex("#009eff")("\r " + level + " "))
         );
     }
-    if (message) console.log(" ", sanitizeForLog(message));
+    if (message)
+      console.log(
+        " ",
+        typeof message === "string"
+          ? sanitizeForLog(message).replace(/[\r\n]+/g, " ")
+          : message
+      );
     if (caller && level != "success" && level != "info" && level != "loaded")
       console.log(
         "   Caller:",

@@ -1466,8 +1466,9 @@ if (fullAccess)
           req
         );
 
-        const dir = "./Missions/" + missionName;
-        if (fs.existsSync(dir)) {
+        const missionsRoot = path.resolve("./Missions");
+        const dir = path.resolve(missionsRoot, missionName);
+        if (dir.startsWith(missionsRoot + path.sep) && fs.existsSync(dir)) {
           let deletedDir = dir + "_deleted_";
           if (fs.existsSync(deletedDir)) deletedDir = `${dir}_${Date.now()}_deleted_`;
           fs.rename(dir, deletedDir, (err) => {
