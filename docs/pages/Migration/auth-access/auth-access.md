@@ -39,6 +39,7 @@ Compared request by request against the previous release on the same upgraded da
   - The proxy's `X-Sub`, `X-Groups` and `X-Session` headers are read as before.
   - `CSSO_GROUPS` still gates the map and `/configure`, and `CSSO_LEAD_GROUP` still maps to the lead group.
   - On upgrade, every CSSO user can view every mission, as before.
+  - Draw files belong to a plain username, as before. A CSSO user and a local account with the same username share the same Draw files. Give local accounts names that don't match anyone's CSSO username unless they are the same person.
   - Admins still log in to `/configure` with their local MMGIS account. Set `AUTH_LOCAL_LOGIN=admins` so only accounts with an admin role can log in locally. This needs `local` in `AUTH_PROVIDERS`; with `["csso"]` alone, password logins are refused and the site has no way to sign in as an administrator.
   - Requests that reach MMGIS without the CSSO headers (i.e. not through the proxy) are now refused. Scripts that called MMGIS directly need a long-term token.
   - `CSSO_PROXY_SECRET` is optional. Leave it unset to keep the previous behavior. Set it only after your proxy adds a matching `X-MMGIS-Proxy-Secret` header to every request; otherwise every CSSO user is treated as logged out.

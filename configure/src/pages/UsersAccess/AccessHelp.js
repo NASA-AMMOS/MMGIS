@@ -164,6 +164,7 @@ function AccessGuide({ roles }) {
         </tbody>
       </table>
       <div className={c.note}>On sites that require login, guests get nothing, whatever Everyone has.</div>
+      <div className={c.note}>Draw files belong to a username. A CSSO user and a local account with the same username share the same Draw files, so only reuse a CSSO username for a local account that belongs to the same person.</div>
 
       <div className={c.rules}>
         <div className={c.rule}>
