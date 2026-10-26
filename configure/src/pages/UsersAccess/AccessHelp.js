@@ -154,7 +154,7 @@ function AccessGuide({ roles }) {
           <tr>
             <td><b>CSSO user</b> <span className={c.muted}>no MMGIS account</span></td>
             <td>{no}</td>
-            <td>{yes} <span className={c.muted}>matched by CSSO group name</span></td>
+            <td>{yes} <span className={c.muted}>matched by CSSO group name; when CSSO_GROUPS is set, they also need one of those groups to open the site</span></td>
             <td>{yes}</td><td>{yes}</td>
           </tr>
           <tr>

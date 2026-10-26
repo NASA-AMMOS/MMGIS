@@ -792,6 +792,9 @@ function PersonPanel({ user, ctx }) {
 
   const bindings = (effective && effective.bindings) || [];
   const layerPaths = layerPathsFor(bindings);
+  const viewAllVia = [...new Set(bindings
+    .filter((b) => b.scope_type === "global" && VIEW_ROLES.has(b.role) && !(b.subject_type === "user" && b.role === "viewer"))
+    .map((b) => `${(roles[b.role] && roles[b.role].label) || b.role} (${b.subject_type === "user" ? "own grant" : b.subject_type === "group" ? "group" : "audience"})`))];
   const groupName = (id) => (groups.find((g) => String(g.id) === String(id)) || {}).name || `group ${id}`;
   const rows = bindings.map((b) => ({
     b,
@@ -890,7 +893,11 @@ function PersonPanel({ user, ctx }) {
             <Button size="small" variant="contained" disableElevation onClick={() => saveViewing("selected", viewMissions)}>Save</Button>
           </div>
         )}
-        <div className={c.hint}>Groups and audiences below can still give this person access to more missions.</div>
+        {viewAllVia.length > 0 ? (
+          <div className={c.hint}>Already sees every mission through {viewAllVia.join(", ")}. This setting only changes their own Viewer grants.</div>
+        ) : (
+          <div className={c.hint}>Groups and audiences below can still give this person access to more missions.</div>
+        )}
       </div>
 
       <div className={c.section}>
@@ -906,7 +913,7 @@ function PersonPanel({ user, ctx }) {
             label="Add to group"
             icon={<GroupAddIcon />}
             items={groups.filter((g) => g.source === "local" && !memberOf.includes(g)).map((g) => ({ value: g.id, label: g.name }))}
-            onPick={(id) => api("access_members_add", { group_id: id, user_id: user.id }).then(() => { refresh(); load(); }).catch((res) => notify(res.message || "Failed.", "error"))}
+            onPick={(id) => api("access_members_add", { group_id: id, user_id: user.id }).then(() => { notify("Added to group.", "success"); refresh(); load(); }).catch((res) => notify(res.message || "Failed.", "error"))}
           />
         </SectionHead>
         {memberOf.length === 0 && <div className={c.muted}>Not in any group.</div>}
@@ -919,7 +926,7 @@ function PersonPanel({ user, ctx }) {
                   <TableCell align="right">
                     {g.source === "local" && (
                       <Tooltip title="Remove from group" placement="left" arrow>
-                        <IconButton size="small" className={c.rowIcon} onClick={() => api("access_members_remove", { group_id: g.id, user_id: user.id }).then(() => { refresh(); load(); }).catch((res) => notify(res.message || "Failed.", "error"))}>
+                        <IconButton size="small" className={c.rowIcon} onClick={() => api("access_members_remove", { group_id: g.id, user_id: user.id }).then(() => { notify("Removed from group.", "success"); refresh(); load(); }).catch((res) => notify(res.message || "Failed.", "error"))}>
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -997,11 +1004,72 @@ function PersonPanel({ user, ctx }) {
   );
 }
 
+// Provider users have no account row, so check what one would get from a username and group claims
+function ProviderCheckDialog({ open, providers, roles, onClose }) {
+  const c = useStyles();
+  const [provider, setProvider] = useState(providers[0] || "");
+  const [username, setUsername] = useState("");
+  const [groupClaims, setGroupClaims] = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const check = () =>
+    api("access_effective", { provider, username: username.trim(), groups: groupClaims })
+      .then((r) => { setResult(r.body); setError(null); })
+      .catch((res) => { setResult(null); setError(res.message || "Failed to check access."); });
+  const viewing = result && result.missions ? result.missions["mission.view"] : undefined;
+  const roleLabel = (r) => (roles[r] && roles[r].label) || r;
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Check a provider user</DialogTitle>
+      <DialogContent>
+        <div className={c.hint} style={{ marginBottom: 12 }}>
+          Enter a username and the group names their login provider sends, separated by commas, to see the access they would get.
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
+            {providers.map((p) => <MenuItem key={p} value={p}>{p.toUpperCase()}</MenuItem>)}
+          </Select>
+          <TextField size="small" sx={{ flex: 1 }} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+        </div>
+        <TextField size="small" fullWidth placeholder="Groups, e.g. science-team, ops" value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim()) check(); }} />
+        {error && <div className={c.hint} style={{ color: "#a8572e", marginTop: 12 }}>{error}</div>}
+        {result && (
+          <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>
+            <div><b>Site role:</b> <RoleBadge role={result.role || "user"} roles={roles} /></div>
+            <div><b>Can view:</b> {viewing === null ? "All missions" : viewing && viewing.length ? viewing.join(", ") : "No missions"}</div>
+            {["mission.config.edit", "mission.layer.edit"].map((cap) => {
+              const ms = result.missions && result.missions[cap];
+              if (ms !== null && !(ms && ms.length)) return null;
+              return <div key={cap}><b>{cap === "mission.config.edit" ? roleLabel("mission_admin") : roleLabel("layer_editor")}:</b> {ms === null ? "All missions" : ms.join(", ")}</div>;
+            })}
+          </div>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+        <Button variant="contained" disableElevation disabled={!username.trim() || !provider} onClick={check}>Check</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 function GroupPanel({ group, ctx }) {
   const c = useStyles();
   const { roles, users, bindings, layerPathsFor, notify, refresh, askRemove, openGrant } = ctx;
   const own = bindings.filter((b) => b.subject_type === "group" && String(b.subject_id) === String(group.id));
   const layerPaths = layerPathsFor(own);
+  const [name, setName] = useState(group.name);
+  const [externalName, setExternalName] = useState(group.external_name || "");
+  useEffect(() => {
+    setName(group.name);
+    setExternalName(group.external_name || "");
+  }, [group.name, group.external_name]);
+  const changed = name.trim() !== group.name || (group.source !== "local" && externalName.trim() !== (group.external_name || ""));
+  const saveGroup = () =>
+    api("access_groups_update", { id: group.id, name: name.trim(), ...(group.source !== "local" ? { external_name: externalName.trim() } : {}) })
+      .then(() => { notify("Group updated.", "success"); refresh(); })
+      .catch((res) => notify(res.message || "Failed to update group.", "error"));
+  const providerOn = group.source === "local" || (window.mmgisglobal?.authProviders || []).includes(group.source);
   return (
     <>
       <PanelHeader
@@ -1012,13 +1080,31 @@ function GroupPanel({ group, ctx }) {
             label: "Delete group",
             icon: <DeleteOutlineIcon />,
             danger: true,
-            onClick: () => ctx.askConfirm({ title: "Delete group?", text: `Delete '${group.name}'? Its members lose the access it grants.`, action: "Delete", onConfirm: () => api("access_groups_delete", { id: group.id }).then(() => { ctx.close(); refresh(); }).catch((res) => notify(res.message || "Failed.", "error")) }),
+            onClick: () => ctx.askConfirm({ title: "Delete group?", text: `Delete '${group.name}'? Its members lose the access it grants.`, action: "Delete", onConfirm: () => api("access_groups_delete", { id: group.id }).then(() => { notify(`Deleted group '${group.name}'.`, "success"); ctx.close(); refresh(); }).catch((res) => notify(res.message || "Failed.", "error")) }),
           },
         ]}
       />
+      {!providerOn && (
+        <div className={`${c.section} ${c.hint}`} style={{ color: "#a8572e" }}>
+          {group.source.toUpperCase()} isn't in AUTH_PROVIDERS on this site, so nobody can be a member of this group right now.
+        </div>
+      )}
+      <div className={c.section}>
+        <Typography className={c.sectionTitle}>Group</Typography>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <TextField size="small" label="Name" InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && changed && name.trim()) saveGroup(); }} />
+          {group.source !== "local" && (
+            <TextField size="small" label={`${group.source.toUpperCase()} group name`} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={externalName} onChange={(e) => setExternalName(e.target.value)} />
+          )}
+          <Button variant="outlined" size="small" disabled={!changed || !name.trim() || (group.source !== "local" && !externalName.trim())} onClick={saveGroup}>
+            Save
+          </Button>
+        </div>
+      </div>
       {group.source !== "local" && (
         <div className={`${c.section} ${c.hint}`}>
           Members come from {group.source.toUpperCase()}: anyone whose group claims include <b>{group.external_name}</b>.
+          {group.source === "csso" && " If CSSO_GROUPS is set, members must also be in one of those groups to open the map or Configure."}
         </div>
       )}
       {group.source === "local" && (
@@ -1028,7 +1114,7 @@ function GroupPanel({ group, ctx }) {
               label="Add member"
               icon={<PersonAddIcon />}
               items={users.filter((u) => !group.members.some((m) => m.id === u.id)).map((u) => ({ value: u.id, label: u.username }))}
-              onPick={(id) => api("access_members_add", { group_id: group.id, user_id: id }).then(refresh).catch((res) => notify(res.message || "Failed.", "error"))}
+              onPick={(id) => api("access_members_add", { group_id: group.id, user_id: id }).then(() => { notify("Member added.", "success"); refresh(); }).catch((res) => notify(res.message || "Failed.", "error"))}
             />
           </SectionHead>
           {group.members.length === 0 && <div className={c.muted}>No members.</div>}
@@ -1040,7 +1126,7 @@ function GroupPanel({ group, ctx }) {
                     <TableCell>{m.username}</TableCell>
                     <TableCell align="right">
                       <Tooltip title="Remove from group" placement="left" arrow>
-                        <IconButton size="small" className={c.rowIcon} onClick={() => api("access_members_remove", { group_id: group.id, user_id: m.id }).then(refresh).catch((res) => notify(res.message || "Failed.", "error"))}>
+                        <IconButton size="small" className={c.rowIcon} onClick={() => api("access_members_remove", { group_id: group.id, user_id: m.id }).then(() => { notify("Member removed.", "success"); refresh(); }).catch((res) => notify(res.message || "Failed.", "error"))}>
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -1098,7 +1184,7 @@ function summarizeUser(u, idx) {
   const viewList = viewAll ? [] : [...new Set(reaching.filter((b) => b.scope_type !== "global" && VIEW_ROLES.has(b.role) && b.mission).map((b) => b.mission))].sort();
   const scoped = (role) => {
     const ms = {};
-    own.filter((b) => b.role === role && b.scope_type !== "global").forEach((b) => {
+    reaching.filter((b) => b.role === role && b.scope_type !== "global").forEach((b) => {
       const m = b.mission || "(deleted mission)";
       ms[m] = ms[m] || { layers: 0 };
       if (b.scope_type === "layer") ms[m].layers++;
@@ -1178,6 +1264,7 @@ export default function UsersAccess() {
   const [grantsPerPage, setGrantsPerPage] = useState(50);
   const [openGrantSections, setOpenGrantSections] = useState({});
   const [newGroup, setNewGroup] = useState({ name: "", source: "local", external_name: "" });
+  const [providerCheck, setProviderCheck] = useState(false);
   const [providers] = useState(
     String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local")
   );
@@ -1205,7 +1292,9 @@ export default function UsersAccess() {
   const askRemove = (b, after) =>
     askConfirm({
       title: "Remove access?",
-      text: `Remove ${(roles[b.role] && roles[b.role].label) || b.role} — ${whereText(b, allLayerPaths)}?`,
+      text:
+        `Remove ${(roles[b.role] && roles[b.role].label) || b.role} — ${whereText(b, allLayerPaths)}?` +
+        (b.scope_type === "global" ? " This is a site-wide grant, so this access is removed from every mission, not just this one." : ""),
       onConfirm: () =>
         api("access_bindings_remove", { id: b.id })
           .then(() => {
@@ -1423,6 +1512,9 @@ export default function UsersAccess() {
                   .then(() => { setNewGroup({ name: "", source: "local", external_name: "" }); refresh(); })
                   .catch((res) => notify(res.message || "Failed to create group.", "error"))
               }>Create group</Button>
+              {providers.length > 0 && (
+                <Button variant="outlined" size="small" className={c.barButton} onClick={() => setProviderCheck(true)}>Check a provider user</Button>
+              )}
               <span className={c.barHint}>Give roles to several people at once. Click a group to manage its members and access.</span>
             </div>
             <Table size="small" className={c.table}>
@@ -1443,7 +1535,7 @@ export default function UsersAccess() {
                     <TableRow key={g.id} className={c.clickRow} onClick={() => setPanel({ type: "group", id: g.id })}>
                       <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
                       <TableCell>{g.source === "local" ? g.members.length : `from ${g.source.toUpperCase()} (${g.external_name})`}</TableCell>
-                      <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.scope_type === "layer" ? `${b.mission || "?"} › ${(allLayerPaths[b.mission] || {})[b.layer_uuid] || "folder"}` : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -1485,10 +1577,9 @@ export default function UsersAccess() {
             })}
             <AudienceCard key={`defaults-${defaults == null ? "all" : defaults.slice().sort().join(",")}`} title="Default for new accounts" missions={missions}
               hint="What a newly created account can view. Doesn't change existing accounts."
-              noneLabel={null}
-              state={{ mode: defaults == null ? "all" : "selected", list: defaults || [] }}
+              state={{ mode: defaults == null ? "all" : defaults.length === 0 ? "none" : "selected", list: defaults || [] }}
               onSave={(mode, list) =>
-                api("account_update_defaults", { missions_viewing: mode === "all" ? null : list })
+                api("account_update_defaults", { missions_viewing: mode === "all" ? null : mode === "none" ? [] : list })
                   .then(() => { notify("Default updated.", "success"); refresh(); })
                   .catch((res) => notify(res.message || "Failed to update default.", "error"))
               } />
@@ -1545,6 +1636,7 @@ export default function UsersAccess() {
           {panelGroup && <GroupPanel group={panelGroup} ctx={ctx} />}
         </div>
       </Drawer>
+      {providerCheck && <ProviderCheckDialog open providers={providers} roles={roles} onClose={() => setProviderCheck(false)} />}
       <GrantDialog
         open={!!grant}
         fixed={grant && grant.fixed}

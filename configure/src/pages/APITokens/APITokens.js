@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
 import clsx from "clsx";
@@ -26,6 +26,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import Button from "@mui/material/Button";
+import Autocomplete from "@mui/material/Autocomplete";
 import IconButton from "@mui/material/IconButton";
 
 import KeyIcon from "@mui/icons-material/Key";
@@ -137,7 +138,7 @@ const useStyles = makeStyles((theme) => ({
       width: "42px",
     },
     "& > div:nth-child(2)": { 
-      width: "350px",
+      width: "220px",
       padding: "0px 16px",
     },
     "& > div:nth-child(3)": {
@@ -177,7 +178,7 @@ const useStyles = makeStyles((theme) => ({
       width: "42px",
     },
     "& > div:nth-child(2)": { 
-      width: "350px",
+      width: "220px",
       padding: "0px 16px",
       fontFamily: "monospace",
       fontSize: "12px",
@@ -189,8 +190,12 @@ const useStyles = makeStyles((theme) => ({
     },
     "& > div:nth-child(4)": {
       flex: 1,
+      minWidth: 0,
       padding: "0px 16px",
       fontSize: "12px",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
     },
     "& > div:nth-child(5)": {
       width: "140px",
@@ -277,7 +282,12 @@ export default function APITokens() {
   const [tokenName, setTokenName] = useState(null);
   const [expireAfter, setExpireAfter] = useState("never");
   const [tokenScope, setTokenScope] = useState("read");
-  const [tokenMissions, setTokenMissions] = useState("");
+  const [tokenMissions, setTokenMissions] = useState([]);
+  const missionNames = useSelector((state) => state.core.missions) || [];
+  const [capLabels, setCapLabels] = useState({});
+  useEffect(() => {
+    calls.api("access_roles", {}, (res) => setCapLabels(res?.body?.capabilities || {}), () => {});
+  }, []);
   const [token, setToken] = useState(null);
   const [tokenList, setTokenList] = useState([]);
 
@@ -297,18 +307,18 @@ export default function APITokens() {
     },
     {
       title: "Get All Missions",
-      code: `curl -X GET "${baseUrl}/api/configure/missions"`,
+      code: `curl -X GET -H "Authorization:Bearer ${token != null ? token : "<token>"}" "${baseUrl}/api/configure/missions"`,
       note: {
-        text: "No authentication required for this endpoint",
+        text: "Uses the site's sign-in rules: add the Authorization header when the site requires sign-in or the mission isn't public",
         color: "default",
         variant: "outlined"
       }
     },
     {
       title: "Get Mission Configuration",
-      code: `curl -X GET "${baseUrl}/api/configure/get?mission=YourMission"`,
+      code: `curl -X GET -H "Authorization:Bearer ${token != null ? token : "<token>"}" "${baseUrl}/api/configure/get?mission=YourMission"`,
       note: {
-        text: "No authentication required for this endpoint",
+        text: "Uses the site's sign-in rules: add the Authorization header when the site requires sign-in or the mission isn't public",
         color: "default",
         variant: "outlined"
       }
@@ -441,9 +451,7 @@ print(response.json())`
         name: tokenName || null,
         period: expireAfter,
         scopes: tokenScope === "read" ? "read" : null,
-        missions: tokenMissions.trim()
-          ? tokenMissions.split(",").map((m) => m.trim()).filter((m) => m)
-          : null,
+        missions: tokenMissions.length ? tokenMissions : null,
       },
       (res) => {
         if (res.status === "success") {
@@ -548,7 +556,7 @@ print(response.json())`
               />
               <Typography className={c.subtitle2}>
                 {
-                  "An optional name to be prefixed on the generated token in order to better identify it later. Otherwise, the original hash alone is used."
+                  "An optional name to be prefixed on the generated token in order to better identify it later. Only letters and numbers are kept, in lowercase (ro_b becomes rob). Otherwise, the original hash alone is used."
                 }
               </Typography>
             </Grid>
@@ -566,15 +574,16 @@ print(response.json())`
                   <MenuItem value={"full"}>{"ALL OF MY ACCESS"}</MenuItem>
                 </Select>
               </FormControl>
-              <TextField
-                className={c.text}
-                label={"Limit to missions (comma separated)"}
-                variant="filled"
+              <Autocomplete
+                multiple
                 size="small"
+                className={c.text}
+                options={missionNames}
                 value={tokenMissions}
-                onChange={(e) => {
-                  setTokenMissions(e.target.value);
-                }}
+                onChange={(e, v) => setTokenMissions(v)}
+                renderInput={(params) => (
+                  <TextField {...params} variant="filled" label={"Limit to missions (all if empty)"} />
+                )}
               />
             </Grid>
             <Grid item xs={4} md={4} lg={4} xl={4} key={1}>
@@ -688,7 +697,7 @@ print(response.json())`
                   ? "all of creator's access"
                   : t.scopes.every((sc) => sc.endsWith(".read") || sc.endsWith(".view"))
                   ? "read only"
-                  : t.scopes.join(", ");
+                  : t.scopes.map((sc) => capLabels[sc] || sc).join(", ");
               let missionDisplay = `${
                 t.missions == null
                   ? "All missions the creator can access"

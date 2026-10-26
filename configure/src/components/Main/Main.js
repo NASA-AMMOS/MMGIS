@@ -160,6 +160,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function Main() {
+  const missionList = useSelector((state) => state.core.missions) || [];
   const c = useStyles();
 
   const dispatch = useDispatch();
@@ -378,7 +379,13 @@ export default function Main() {
           <div className={c.intro}>
             <div className={c.title}>MMGIS</div>
             <div className={c.subtitle}>Configuration</div>
-            <div className={c.message}>Create or Select a Mission</div>
+            <div className={c.message}>
+              {window.mmgisglobal?.role === "superadmin"
+                ? "Create or Select a Mission"
+                : missionList.length > 0
+                  ? "Select a Mission"
+                  : "No missions to configure. GeoDatasets, Datasets and STAC are under Data in the menu."}
+            </div>
           </div>
         </div>
       ) : (

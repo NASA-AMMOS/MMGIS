@@ -82,6 +82,10 @@ const c = {
     type: "POST",
     url: "api/access/groups/create",
   },
+  access_groups_update: {
+    type: "POST",
+    url: "api/access/groups/update",
+  },
   access_groups_delete: {
     type: "POST",
     url: "api/access/groups/delete",
@@ -268,6 +272,29 @@ const c = {
   },
 };
 
+// After a 401/403, reload if the session ended or lost admin access so the
+// server shows the sign-in page instead of a stale Configure
+let recheckingSession = false;
+function recheckSession() {
+  if (recheckingSession) return;
+  recheckingSession = true;
+  fetch(`${domain}api/access/me`, { credentials: "include" })
+    .then((res) => res.json())
+    .then((json) => {
+      const me = json && json.body;
+      const admin =
+        me && me.authenticated && (me.capabilities || []).some((cap) => ADMIN_CAPS.has(cap));
+      if (!admin) window.location.reload();
+    })
+    .catch(() => {})
+    .finally(() => setTimeout(() => (recheckingSession = false), 5000));
+}
+const ADMIN_CAPS = new Set([
+  "mission.layer.edit", "mission.config.edit", "mission.create", "mission.manage",
+  "accounts.manage", "groups.manage", "options.manage", "webhooks.manage",
+  "broadcast.send", "tokens.manage", "data.geodatasets.write", "data.datasets.write", "data.stac.write",
+]);
+
 function api(call, data, success, error) {
   if (c[call] == null) {
     console.warn("Unknown api call: " + call);
@@ -311,8 +338,12 @@ function api(call, data, success, error) {
     }`,
     options,
   )
-    .then((res) => res.json())
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) recheckSession();
+      return res.json();
+    })
     .then((json) => {
+      if (json && /^Unauthorized/.test(json.message || "")) recheckSession();
       if (
         !json.hasOwnProperty("status") ||
         (json.hasOwnProperty("status") && json.status === "success")

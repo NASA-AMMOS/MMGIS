@@ -377,7 +377,7 @@ const NewUserModal = (props) => {
               onChange={(e) => setRestrictViewing(e.target.checked)}
             />
           }
-          label="Restrict Viewable Missions"
+          label="Missions they can view (all if empty)"
         />
         <Typography
           className={c.subtitle2}

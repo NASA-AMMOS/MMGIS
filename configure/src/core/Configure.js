@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
 import { makeStyles } from "@mui/styles";
 
@@ -9,6 +9,8 @@ import Panel from "../components/Panel/Panel";
 import { calls } from "../core/calls";
 import {
   setMissions,
+  setMission,
+  setPage,
   setLayerTypeConfiguration,
   setLayerAttachmentConfiguration,
   setInteractionConfiguration,
@@ -34,9 +36,40 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+// Keeps ?mission= or ?page= in the URL so reloading or sharing returns to the same place
+function useUrlState(dispatch) {
+  const mission = useSelector((state) => state.core.mission);
+  const page = useSelector((state) => state.core.page);
+  const missions = useSelector((state) => state.core.missions);
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current || !missions || missions.length === 0) return;
+    restored.current = true;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("page")) dispatch(setPage({ page: q.get("page") }));
+    else if (q.get("mission") && missions.includes(q.get("mission")))
+      dispatch(setMission(q.get("mission")));
+  }, [missions, dispatch]);
+  useEffect(() => {
+    if (!restored.current) return;
+    const q = new URLSearchParams(window.location.search);
+    q.delete("mission");
+    q.delete("page");
+    if (page) q.set("page", page);
+    else if (mission) q.set("mission", mission);
+    const search = q.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`,
+    );
+  }, [mission, page]);
+}
+
 export default function Configure() {
   const c = useStyles();
   const dispatch = useDispatch();
+  useUrlState(dispatch);
   useEffect(() => {
     calls.api(
       "missions",
