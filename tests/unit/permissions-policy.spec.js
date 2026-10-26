@@ -334,7 +334,9 @@ test.describe('Permissions policy: listing helpers', () => {
   test('accountRole is derived from bindings', () => {
     expect(accountRole([{ role: 'superadmin', scope: 'global' }])).toBe('superadmin');
     expect(accountRole([{ role: 'mission_admin', scope: `mission:${M1}` }])).toBe('mission_admin');
-    expect(accountRole([{ role: 'layer_editor', scope: `layer:${M1}:x` }])).toBe('mission_admin');
+    expect(accountRole([{ role: 'layer_editor', scope: `layer:${M1}:x` }])).toBe('layer_editor');
+    expect(accountRole([{ role: 'layer_editor', scope: `layer:${M1}:x` }, { role: 'mission_admin', scope: `mission:${M1}` }])).toBe('mission_admin');
+    expect(accountRole([{ role: 'data_admin', scope: 'global' }])).toBe('data_admin');
     expect(accountRole([{ role: 'mission_admin', scope: 'global' }])).toBe('mission_admin');
     expect(accountRole([{ role: 'viewer', scope: 'global' }])).toBe('user');
     expect(accountRole([])).toBe('user');

@@ -9,25 +9,39 @@ function models() {
 
 let byName = null;
 let loading = null;
+let generation = 0;
 
 async function load() {
+  const gen = generation;
   const { AuthMission } = models();
   const rows = await AuthMission.findAll({ raw: true });
-  byName = new Map(rows.map((r) => [r.name, r.uuid]));
-  return byName;
+  const loaded = new Map(rows.map((r) => [r.name, r.uuid]));
+  // Rows read before a clear() may miss that change, so don't cache them
+  if (gen === generation) byName = loaded;
+  return loaded;
 }
 function clear() {
+  generation++;
   byName = null;
   loading = null;
 }
 async function map() {
   if (byName) return byName;
-  if (!loading) loading = load().finally(() => (loading = null));
+  if (!loading) {
+    const pending = load().finally(() => {
+      if (loading === pending) loading = null;
+    });
+    loading = pending;
+  }
   return loading;
 }
 
 async function uuidForName(name) {
   if (typeof name !== "string" || name === "") return null;
+  const hit = (await map()).get(name);
+  if (hit) return hit;
+  // Another server process sharing the database may have added it since
+  clear();
   return (await map()).get(name) || null;
 }
 async function nameForUUID(uuid) {

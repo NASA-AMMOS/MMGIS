@@ -51,7 +51,7 @@ function announce(code) {
     "  MMGIS has no accounts yet.",
     "  Open /configure and create the first (SuperAdmin) account",
     code
-      ? `  with this one-time setup code:  ${code}`
+      ? `  with this one-time setup code:  ${String(code).replace(/[\r\n]/g, "")}`
       : "  with the setup code from the SETUP_CODE environment variable.",
     line,
     "",

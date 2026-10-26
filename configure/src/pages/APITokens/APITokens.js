@@ -16,7 +16,6 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import Link from "@mui/material/Link";
-import Divider from "@mui/material/Divider";
 
 import Toolbar from "@mui/material/Toolbar";
 import TextField from "@mui/material/TextField";
@@ -372,7 +371,7 @@ print(response.json())`
     },
     {
       title: "Upload Dataset CSV (Datasets API)",
-      code: `curl -i -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -F "name=my_dataset" -F "upsert=true" -F "header=[\"latitude\",\"longitude\",\"sample_id\",\"rock_type\"]" -F "data=@data.csv;type=text/csv" "${baseUrl}/api/datasets/upload"`,
+      code: `curl -i -X POST -H "Authorization:Bearer ${token != null ? token : "<token>"}" -F "name=my_dataset" -F "upsert=true" -F "header=["latitude","longitude","sample_id","rock_type"]" -F "data=@data.csv;type=text/csv" "${baseUrl}/api/datasets/upload"`,
       note: {
         text: "Note: This uses the Datasets API, not the Configure API",
         color: "default",
@@ -519,6 +518,7 @@ print(response.json())`
 
   useEffect(() => {
     updateExistingTokenList();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

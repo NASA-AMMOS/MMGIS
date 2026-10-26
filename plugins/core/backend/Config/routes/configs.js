@@ -1468,7 +1468,9 @@ if (fullAccess)
 
         const dir = "./Missions/" + missionName;
         if (fs.existsSync(dir)) {
-          fs.rename(dir, dir + "_deleted_", (err) => {
+          let deletedDir = dir + "_deleted_";
+          if (fs.existsSync(deletedDir)) deletedDir = `${dir}_${Date.now()}_deleted_`;
+          fs.rename(dir, deletedDir, (err) => {
             if (err)
               res.send({
                 status: "success",

@@ -245,8 +245,10 @@ function isSuperAdmin(principal) {
 function accountRole(bindings) {
   if (bindings.some((b) => b.role === "superadmin" && b.scope === "global"))
     return "superadmin";
-  if (bindings.some((b) => b.role === "mission_admin" || b.role === "layer_editor"))
-    return "mission_admin";
+  if (bindings.some((b) => b.role === "data_admin" && b.scope === "global"))
+    return "data_admin";
+  if (bindings.some((b) => b.role === "mission_admin")) return "mission_admin";
+  if (bindings.some((b) => b.role === "layer_editor")) return "layer_editor";
   return "user";
 }
 

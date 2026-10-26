@@ -107,6 +107,10 @@ router.get("/collections", authorize("data.stac.read"), function (req, res, next
         null,
         err
       );
+      res.status(502).send({
+        status: "failure",
+        message: "Failed to query for STAC Collections.",
+      });
       return null;
     });
 });
@@ -175,7 +179,7 @@ router.get("/collections/:collection/export", authorize("data.stac.read"), async
       req,
       error
     );
-    res.status(500).send({
+    res.status(error.message === "Collection not found" ? 404 : 502).send({
       status: "failure",
       message: error.message || "Failed to export STAC Collection",
     });
