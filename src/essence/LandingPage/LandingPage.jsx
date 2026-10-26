@@ -368,6 +368,13 @@ function Missions({ missions, missionsMeta, onOpen, hideArchived, query, groupBy
                         <br />
                         Please contact an administrator.
                     </>
+                ) : !window.mmgisglobal.user &&
+                  window.mmgisglobal.SITE_ACCESS === 'optional' ? (
+                    <>
+                        No missions are available to guests.
+                        <br />
+                        Sign in to see missions shared with your account.
+                    </>
                 ) : (
                     'No missions are available.'
                 )}

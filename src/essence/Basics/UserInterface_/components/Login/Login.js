@@ -10,6 +10,12 @@ import Toast from '../../../../../design-system/components/Toast/Toast'
 
 import './Login.css'
 
+// Pages restored from the back/forward cache can show a signed-out user as signed in
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted && window.mmgisglobal.SITE_ACCESS !== 'public')
+        window.location.reload()
+})
+
 var emailSuffix = '@domain.com'
 var mmgisLogoURL = 'public/images/logos/mmgis.png'
 
@@ -401,10 +407,12 @@ var Login = {
                             Login.username = values.username
                             window.mmgisglobal.user = Login.username
                             window.mmgisglobal.groups = d.groups
-                            loginSuccess(d)
+                            loginSuccess(d, false, true)
                         },
                         function (d) {
-                            alert(d.message)
+                            Toast.error(
+                                (d && d.message) || 'Invalid username or password.'
+                            )
                         }
                     )
                 } else {
@@ -507,8 +515,10 @@ var Login = {
     },
 }
 
-function loginSuccess(data, ignoreError) {
+function loginSuccess(data, ignoreError, fromModal) {
     if (data.status == 'success') {
+        // The landing page lists missions for whoever was signed in, so reload it after a login
+        const reloadAfter = fromModal === true && !L_.mission
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
         document.cookie = `MMGISUser=${JSON.stringify({
             username: data.username,
@@ -531,6 +541,10 @@ function loginSuccess(data, ignoreError) {
                 function () {
                     ToolController_.closeActiveTool()
                     setTimeout(function () {
+                        if (reloadAfter) {
+                            window.location.reload()
+                            return
+                        }
                         Login.closeModal()
                         $('#loginForm').trigger('reset')
                         $('#loginModal')

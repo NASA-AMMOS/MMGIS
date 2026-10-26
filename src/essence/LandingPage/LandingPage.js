@@ -57,13 +57,21 @@ export default {
 
         if (!forceConfig) {
             missionUrl = QueryURL.checkIfMission()
+            // A requested mission this user can't view shows the mission list, not another mission
+            const unavailable =
+                missionUrl != false && !missions.includes(missionUrl)
+            if (unavailable) {
+                console.warn(`Mission '${missionUrl}' isn't available.`)
+                missionUrl = false
+            }
 
             //If there's only one listed mission, go straight to it
             const opts = getLandingOptions()
             const listed = missions.filter((m) =>
                 isListedMission(m, missionsMeta, opts)
             )
-            if (listed.length == 1 && !forceLanding) missionUrl = listed[0]
+            if (listed.length == 1 && !forceLanding && !unavailable)
+                missionUrl = listed[0]
         }
 
         if (
