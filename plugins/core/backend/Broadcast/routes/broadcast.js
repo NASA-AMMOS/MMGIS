@@ -8,7 +8,7 @@ const router = express.Router();
 
 const logger = require("../../../../../API/logger");
 const websocket = require("../../../../../API/websocket.js");
-const { checkMissionPermission } = require("../../Config/routes/configs");
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const {
   websocketsEnabled,
   validateLayerUpdateBody,
@@ -31,8 +31,8 @@ function validateBody(req, res, next) {
 
 router.post(
   "/layerUpdate",
+  authorize("mission.layer.edit", resolvers.mission("body.mission")),
   validateBody,
-  checkMissionPermission,
   function (req, res, next) {
     const { mission, layerName } = req.body;
 

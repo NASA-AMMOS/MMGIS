@@ -12,10 +12,18 @@
     <script>
       var mmgisglobal = {};
       mmgisglobal.SERVER = "node";
-      mmgisglobal.AUTH = "#{AUTH}";
+      mmgisglobal.SITE_ACCESS = "#{SITE_ACCESS}";
+      mmgisglobal.AUTH_PROVIDERS = '#{AUTH_PROVIDERS}';
+      mmgisglobal.authProviders = String(mmgisglobal.AUTH_PROVIDERS || "")
+        .replace(/&quot;|[\[\]"' ]/g, "")
+        .split(",")
+        .filter(Boolean);
+      mmgisglobal.AUTH_LOCAL_ALLOW_SIGNUP = "#{AUTH_LOCAL_ALLOW_SIGNUP}";
+      mmgisglobal.AUTH_LOCAL_LOGIN = "#{AUTH_LOCAL_LOGIN}";
+      mmgisglobal.SELF_SIGNUP = "#{SELF_SIGNUP}";
       mmgisglobal.SHOW_AUTH_TIMEOUT = true;
       mmgisglobal.user = "#{user}";
-      mmgisglobal.permission = "#{permission}";
+      mmgisglobal.role = "#{role}";
       mmgisglobal.NODE_ENV = "#{NODE_ENV}";
       mmgisglobal.ROOT_PATH = "#{ROOT_PATH}";
       mmgisglobal.WEBSOCKET_ROOT_PATH = "#{WEBSOCKET_ROOT_PATH}";

@@ -57,13 +57,21 @@ export default {
 
         if (!forceConfig) {
             missionUrl = QueryURL.checkIfMission()
+            // A requested mission this user can't view shows the mission list, not another mission
+            const unavailable =
+                missionUrl != false && !missions.includes(missionUrl)
+            if (unavailable) {
+                console.warn(`Mission '${missionUrl}' isn't available.`)
+                missionUrl = false
+            }
 
             //If there's only one listed mission, go straight to it
             const opts = getLandingOptions()
             const listed = missions.filter((m) =>
                 isListedMission(m, missionsMeta, opts)
             )
-            if (listed.length == 1 && !forceLanding) missionUrl = listed[0]
+            if (listed.length == 1 && !forceLanding && !unavailable)
+                missionUrl = listed[0]
         }
 
         if (
@@ -74,7 +82,7 @@ export default {
             window.mmgisglobal.MAIN_MISSION != 'undefined' &&
             typeof window.mmgisglobal.MAIN_MISSION === 'string' &&
             window.mmgisglobal.MAIN_MISSION.length > 0 &&
-            (window.mmgisglobal.AUTH !== 'local' ||
+            (!(window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local')) ||
                 missions.includes(window.mmgisglobal.MAIN_MISSION))
         ) {
             missionUrl = window.mmgisglobal.MAIN_MISSION

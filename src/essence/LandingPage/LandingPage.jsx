@@ -222,7 +222,7 @@ function Nav() {
                 />
             </div>
             <div className="links">
-                {window.mmgisglobal.AUTH !== 'off' && <UserArea />}
+                {window.mmgisglobal.SITE_ACCESS !== 'public' && <UserArea />}
             </div>
         </div>
     )
@@ -362,11 +362,18 @@ function Missions({ missions, missionsMeta, onOpen, hideArchived, query, groupBy
     if (missions.length === 0) {
         return (
             <div id="landingNoMissions">
-                {window.mmgisglobal.AUTH === 'local' ? (
+                {(window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local')) ? (
                     <>
                         You do not have access to any missions.
                         <br />
                         Please contact an administrator.
+                    </>
+                ) : !window.mmgisglobal.user &&
+                  window.mmgisglobal.SITE_ACCESS === 'optional' ? (
+                    <>
+                        No missions are available to guests.
+                        <br />
+                        Sign in to see missions shared with your account.
                     </>
                 ) : (
                     'No missions are available.'

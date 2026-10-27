@@ -101,7 +101,9 @@ export default function SaveBar() {
                           : "Failed to save configuration!" +
                             (resp?.errors?.[0]?.reason
                               ? ` — ${resp?.errors?.[0]?.reason}`
-                              : ""),
+                              : resp?.message
+                                ? ` — ${resp.message}`
+                                : ""),
                       severity: status,
                     })
                   );
