@@ -50,6 +50,51 @@ On every kind of site:
 - Any logged-in local account can create long-term tokens through the API (`POST /api/longtermtoken/generate`). A token is read-only unless the account has an editing role or asks for a capability it already holds, such as `draw.use`. Only admins who can open Configure get the API Tokens page; there's no token UI for other users. CSSO users can't create tokens.
 - Long-term tokens can't open the `/configure` page; they are for API calls.
 
+### Upgrading an `AUTH=csso` site with env changes only
+
+No code or proxy changes are needed.
+
+1. In `.env` (or the container environment), replace `AUTH` and keep the CSSO settings:
+
+   ```bash
+   # remove
+   AUTH=csso
+   # add
+   SITE_ACCESS=required
+   AUTH_PROVIDERS=["csso","local"]
+   # keep as they are
+   CSSO_GROUPS=[...]
+   CSSO_LEAD_GROUP=...
+   # optional
+   AUTH_LOCAL_LOGIN=admins      # only accounts with an admin role may log in with a password
+   CSSO_PROXY_SECRET=...        # only once the proxy sends a matching X-MMGIS-Proxy-Secret header
+   ```
+
+   MMGIS refuses to start while `AUTH` is still set, and the error names the replacement.
+
+2. Start MMGIS. The first start imports the existing accounts once (see section 2; a `--dry-run` beforehand is optional):
+   - `permission=111` accounts become SuperAdmin.
+   - `permission=110` accounts become Mission Admin on the missions in their `missions_managing` list. A `110` account with no listed (or no existing) missions gets no role and can't manage anything in Configure until a SuperAdmin grants one.
+   - The Logged-in users audience gets Viewer site-wide, so every CSSO user still sees every mission.
+
+3. Check:
+   - a CSSO user sees the same missions and Draw files as before;
+   - a user outside `CSSO_GROUPS` gets 403;
+   - an admin logs in to `/configure` with their local account.
+
+4. To roll back, restore the previous image and env. Accounts work as before; long-term tokens used on this release must be regenerated (section 4).
+
+What CSSO users and admins will notice:
+
+- **Unchanged:** the `X-Sub`, `X-Groups` and `X-Session` headers, `CSSO_GROUPS` gating of the map and `/configure`, `CSSO_LEAD_GROUP`, every mission visible, Draw files owned by username, Sign out through `/ssologoutredirect`, and local admin logins at `/configure`.
+- **Each request must come through the proxy.** The previous release copied `X-Sub` into the MMGIS session, so a later request without the headers still counted as that user. Now identity is read from the headers on every request; anything that reaches MMGIS directly (scripts, health checks behind the proxy) is treated as logged out and needs a long-term token.
+- **`X-Groups` is no longer required to identify the user**; `X-Sub` is enough. `CSSO_GROUPS` still decides who gets in.
+- **API calls without a login** get a JSON `403`.
+- **Configure:** Mission Admins no longer see the Users & Access page. Long-term tokens are scoped and can't open `/configure`. CSSO users can't create tokens.
+- **Local logins:** with the default `AUTH_LOCAL_LOGIN=all`, any local account can still log in with a password, as before.
+- **Startup log:** a warning while `CSSO_PROXY_SECRET` is unset; nothing else changes.
+- **New, optional:** CSSO groups can be given roles in **Configure → Users & Access** (for example Mission Admin for an LDAP group), so CSSO users can manage missions without a local account, and missions can be limited per group.
+
 ## 2. Preview and import existing accounts
 
 Run against a copy of your database first:
