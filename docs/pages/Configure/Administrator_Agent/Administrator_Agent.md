@@ -199,14 +199,14 @@ Projection tab:
 
 Initial tab: planet radius major and minor `1737400`; initial latitude `-89.7`, longitude `0`, zoom `3`.
 
-Coordinates tab: enable Longitude/Latitude and Easting/Northing; enable **With Elevation** with `Data/south_pole_elevation_240m_cog.tif`.
+Coordinates tab: enable Longitude/Latitude; enable **Primary Projection** (display name `Polar Stereographic`, axis names `E` and `N`) so the readout shows easting and northing from the mission's proj4 string; enable **With Elevation** with `Data/south_pole_elevation_240m_cog.tif`. Leave the plain **Easting, Northing** option off for a polar mission: that readout is not projected through `projection.proj`, it is longitude and latitude in radians multiplied by the body radius (an equirectangular convention), so near the pole its northing would read about -2.7 million meters while the tiles and the DEM sit at a few thousand meters from the origin. The `cproj` readout uses the same proj4 string as the tiles and agrees with the raster.
 
 ### 8. Add the layers and tools
 
 Layers tab: a header `Terrain` with two sublayers.
 
 - Tile Layer `Hillshade 240m`: Source Type `url`, Source URL `Layers/south_pole_hillshade_240m/{z}/{x}/{y}.png`, Tile Format `tms`, then **Populate from XML** (Minimum Zoom `0`, Maximum Native Zoom `4`); set Maximum Zoom `7`.
-- Data Layer `Elevation 240m`: Source Type `url`, Data Tile URL `Layers/south_pole_elevation_240m_dem/{z}/{x}/{y}.png`, DEM Parser `rgba`, Tile Format `tms`, **Populate from XML** (Minimum Zoom `0`, Maximum Native Zoom `7`), Initially On unchecked.
+- Data Layer `Elevation 240m`: Source Type `url`, Data Tile URL `Layers/south_pole_elevation_240m_dem/{z}/{x}/{y}.png`, DEM Parser `rgba`, Tile Format `tms`, **Populate from XML** (Minimum Zoom `0`, Maximum Native Zoom `7`), Initially On unchecked. Then set **Shader** to `colorize`, Units `m`, SigFigs `1`, and one Color Ramp (a list of hex colours; the JSON below uses six). Without a shader the layer falls back to the `image` shader, which paints the raw RGBA encoding bytes instead of elevations: the tiles look like noise, and that is the sign that `variables.shader` is missing. `colorize` stretches the ramp between the minimum and maximum values in the current view, so no fixed min/max is needed; this DEM spans about `-3616` to `+1954` m. `noDataValues` stays empty because the source raster has no nodata; for a LOLA product with `-32768` nodata, list it there so those pixels render transparent.
 
 Tools tab: Layers, Legend, Info, Measure. In Measure set the DEM path to `Data/south_pole_elevation_240m_cog.tif`.
 
@@ -236,7 +236,11 @@ Save. The equivalent complete configuration, which passes `POST /api/configure/v
   },
   "coordinates": {
     "coordll": true,
-    "coorden": true,
+    "coorden": false,
+    "coordcustomproj": true,
+    "coordcustomprojname": "Polar Stereographic",
+    "coordcustomprojnamex": "E",
+    "coordcustomprojnamey": "N",
     "coordelev": true,
     "coordelevurl": "Data/south_pole_elevation_240m_cog.tif"
   },
@@ -283,6 +287,17 @@ Save. The equivalent complete configuration, which passes `POST /api/configure/v
           "boundingBox": [-180, -90, 180, -88.5],
           "visibility": false,
           "initialOpacity": 1,
+          "variables": {
+            "shader": {
+              "type": "colorize",
+              "units": "m",
+              "sigfigs": 1,
+              "noDataValues": [],
+              "ramps": [
+                ["#2c105c", "#711f81", "#b63679", "#ee605e", "#fdae78", "#fcfdbf"]
+              ]
+            }
+          },
           "description": "South Pole Ops Atlas 240m, elevation_m.tif, encoded as RGBA DEM tiles."
         },
         {
@@ -333,9 +348,9 @@ where `config.json.wrapped` is `{"mission": "Lunar-South-Pole-DEM", "config": <t
 Open the mission (`http://localhost:8888/?mission=Lunar-South-Pole-DEM`, or `8889` in development mode). Expected:
 
 - The hillshade appears centered on the pole; zooming past level 4 scales the tiles rather than fetching new ones.
-- The coordinate bar shows lon/lat and easting/northing in meters, and an elevation that changes with the cursor inside the 61 km window.
-- Turning on `Elevation 240m` and clicking a point reports the elevation in meters.
-- The Measure tool draws a profile with values between roughly `-700` and `+450` m.
+- The coordinate bar shows lon/lat, the `Polar Stereographic` E/N in meters (a few thousand meters from the origin near the pole, matching `gdalinfo` corner coordinates of the DEM), and an elevation that changes with the cursor inside the 61 km window.
+- Turning on `Elevation 240m` shows a colour ramp over the window (dark for the deep crater floors, light for the ridges) and clicking a point reports the elevation in meters.
+- The Measure tool draws a profile; across the whole 61 km window values run from about `-3616` to `+1954` m.
 
 If the hillshade is offset from the coordinate readout, `bounds` or `origin` disagree with the tiling `--extentworld`. If it renders at the wrong size, `resunitsperpixel` was taken from the wrong XML or the world width is not `256 * 2^n` pixels. If tiles never load, check the browser's network tab for the tile URL and compare it to the folder layout; a `404` with the right path means the mission folder is not where the server looks (`Missions/<MissionName>/` relative to the MMGIS root, or the mounted volume on Docker).
 
@@ -361,6 +376,7 @@ Before reporting success, confirm each line:
 - [ ] `msv.radius` matches the `+R=` or `+a=`/`+b=` in the proj4 string.
 - [ ] Tile layers are 8-bit; DEM Data Layers are 32-bit and tiled with `--dem` and without `-z`.
 - [ ] Tool DEM paths point at a GeoTIFF under `Data/`, relative to the mission folder.
+- [ ] Every Data Layer has `variables.shader` (`colorize` for DEMs); the coordinate readout for a custom projection uses **Primary Projection** (`coordcustomproj`), not the plain Easting/Northing option.
 - [ ] Configuration passes `POST /api/configure/validate` (or saves without errors in `/configure`).
 - [ ] The map, the coordinate readout and one tool checked in the browser.
 
@@ -372,5 +388,7 @@ Failures seen while writing this page, and their cause:
 | `gdal2customtiles.py` refuses the file: "convert to 8-bit" | A Float32 raster passed without `--dem`; make a hillshade or colour relief first |
 | `gdalwarp` asks for petabytes of disk | `-tr` given in degrees for a projection in meters (or the reverse) |
 | Elevation readout empty | `coordinates.coordelevurl` not set, file not under the mission folder, or not a GeoTIFF |
+| Data Layer renders as coloured noise | No `variables.shader` on the layer, so the `image` shader draws the RGBA encoding bytes |
+| Easting/Northing readout in the millions of meters on a polar mission | Plain `coorden` readout enabled; it is lon/lat times body radius, not the custom projection. Use `coordcustomproj` |
 | Projection "Populate from XML" gives `30720` m/px | The DEM tileset's XML (32 px tiles) was used instead of the basemap's |
 | `/api/configure/*` returns an auth error with `AUTH=off` | Configure endpoints always need an admin session or token |
