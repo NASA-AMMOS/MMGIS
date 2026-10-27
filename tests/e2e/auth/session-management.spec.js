@@ -16,7 +16,7 @@ const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 test.describe('Session Management', () => {
   test.skip(
-    process.env.AUTH !== 'local',
+    process.env.MMGIS_TEST_AUTH_MODE !== 'local',
     'SKIP: AUTH is not local — no session management'
   );
 

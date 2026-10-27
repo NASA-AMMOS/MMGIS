@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Accounts API', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
-  test.skip(process.env.AUTH === 'off', 'SKIP: Requires AUTH != off for account management');
+  test.skip(process.env.MMGIS_TEST_AUTH_MODE === 'off', 'SKIP: Requires AUTH != off for account management');
 
   test('GET /api/accounts/entries returns user list or requires auth', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/accounts/entries`);
@@ -79,10 +79,10 @@ test.describe('Accounts API', () => {
     }
   });
 
-  test('POST /api/accounts/update only accepts valid permission values', async ({ request }) => {
-    // Permission must be "110" (admin) or "001" (user)
+  test('POST /api/accounts/update only accepts valid role values', async ({ request }) => {
+    // Role must be superadmin, mission_admin or user
     const response = await request.post(`${baseURL}/api/accounts/update`, {
-      data: { id: 999999, permission: 'invalid_perm' },
+      data: { id: 999999, role: 'invalid_role' },
     });
     expect(response.status()).not.toBe(500);
   });

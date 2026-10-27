@@ -4,6 +4,7 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
+const { authorize, resolvers, missionNamesWith } = require("../../../../../API/permissions/authorize");
 
 const Busboy = require("busboy");
 const inspect = require("util").inspect;
@@ -18,7 +19,7 @@ const Datasets = datasets.Datasets;
 const makeNewDatasetTable = datasets.makeNewDatasetTable;
 
 //Returns dataset rows based on search
-router.post("/get", function (req, res, next) {
+router.post("/get", authorize("data.datasets.read"), function (req, res, next) {
   get(req, res, next);
 });
 function get(req, res, next) {
@@ -79,7 +80,7 @@ function get(req, res, next) {
 }
 
 //Returns a list of entries in the datasets table
-router.post("/entries", function (req, res, next) {
+router.post("/entries", authorize("data.datasets.read"), function (req, res, next) {
   Datasets.findAll()
     .then((sets) => {
       if (sets) {
@@ -101,9 +102,11 @@ router.post("/entries", function (req, res, next) {
             ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
             `
           )
-          .then(([results]) => {
-            // Populate occurrences
+          .then(async ([results]) => {
+            // Populate occurrences, only in missions the caller can view
+            const viewable = await missionNamesWith(req, "mission.view");
             results.forEach((m) => {
+              if (viewable != null && !viewable.includes(m.mission)) return;
               Utils.traverseLayers(m.config.layers, (layer, path) => {
                 entries.forEach((entry) => {
                   entry.occurrences = entry.occurrences || {};
@@ -163,7 +166,7 @@ router.post("/entries", function (req, res, next) {
  * req.body.key
  * req.body.value
  */
-router.post("/search", function (req, res, next) {
+router.post("/search", authorize("data.datasets.read"), function (req, res, next) {
   //First Find the table name
   Datasets.findOne({ where: { name: req.body.layer } })
     .then((result) => {
@@ -230,7 +233,7 @@ router.post("/search", function (req, res, next) {
 /*
  * req.query.layer
  */
-router.get("/download", function (req, res, next) {
+router.get("/download", authorize("data.datasets.read"), function (req, res, next) {
   //First Find the table name
   Datasets.findOne({ where: { name: req.query.layer } })
     .then((result) => {
@@ -279,7 +282,7 @@ router.get("/download", function (req, res, next) {
     });
 });
 
-router.post("/upload", function (req, res, next) {
+router.post("/upload", authorize("data.datasets.write"), function (req, res, next) {
   // Disable timeout
   req.setTimeout(0);
 
@@ -301,14 +304,14 @@ router.post("/upload", function (req, res, next) {
     let uploadFinished = false;
     let busboy;
     try {
-      busboy = new Busboy({ headers: req.headers });
+      busboy = Busboy({ headers: req.headers });
     } catch (err) {
       return res.status(400).send({
         status: "failure",
         message: "Invalid Content-Type for file upload.",
       });
     }
-    busboy.on("file", function (fieldname, file, filename, encoding, mimetype) {
+    busboy.on("file", function (fieldname, file) {
       file.on("data", function (data) {
         uploaded += data.toString("utf8");
         populateNext();
@@ -317,14 +320,7 @@ router.post("/upload", function (req, res, next) {
     });
     busboy.on(
       "field",
-      function (
-        fieldname,
-        val,
-        fieldnameTruncated,
-        valTruncated,
-        encoding,
-        mimetype
-      ) {
+      function (fieldname, val) {
         if (['__proto__', 'constructor', 'prototype'].includes(fieldname)) return;
         fields[fieldname] = val;
         if (
@@ -335,7 +331,7 @@ router.post("/upload", function (req, res, next) {
           begin();
       }
     );
-    busboy.on("finish", function () {
+    busboy.on("close", function () {
       uploadFinished = true;
       populateInterval = setInterval(populateNext, 100);
     });
@@ -522,7 +518,7 @@ router.post("/upload", function (req, res, next) {
   }
 });
 
-router.post("/recreate", function (req, res, next) {
+router.post("/recreate", authorize("data.datasets.write"), function (req, res, next) {
   // Disable timeout
   req.setTimeout(0);
 

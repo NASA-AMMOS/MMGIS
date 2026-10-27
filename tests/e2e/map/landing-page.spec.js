@@ -79,8 +79,8 @@ test.describe('Landing Page — Mission Selection', () => {
     }
 
     // Find and click the Reference-Mission link / card
-    const missionLink = page.locator('a, button, [class*="mission"], [class*="Mission"]')
-      .filter({ hasText: 'Reference-Mission' })
+    const missionLink = page.locator('[data-mission="Reference-Mission"]')
+      .or(page.locator('a, button, [class*="mission"], [class*="Mission"]').filter({ hasText: 'Reference-Mission' }))
       .first();
 
     if (!(await missionLink.isVisible({ timeout: 5000 }).catch(() => false))) {
