@@ -237,8 +237,28 @@ async function updateUser(req, id) {
   };
 
   const role = body.role;
-  if (role === "mission_admin" || role === "user" || changesViewing)
-    await bindings.assertCanRemoveIds(actor, existing.map((b) => b.id));
+  // Exactly the grants this update removes, checked before anything changes
+  const toRemove = new Set();
+  const keepOnlyMissions = async (r, names) => {
+    for (const b of existing)
+      if (b.role === r && b.scope_type === "mission" && !names.includes(await missions.nameForUUID(b.mission_uuid)))
+        toRemove.add(b.id);
+  };
+  if (role === "mission_admin" || role === "user") {
+    for (const b of existing)
+      if (
+        ((b.role === "superadmin" || b.role === "mission_admin") && b.scope_type === "global") ||
+        (role === "user" && (b.role === "layer_editor" || b.role === "data_admin"))
+      )
+        toRemove.add(b.id);
+    await keepOnlyMissions("mission_admin", managing);
+  }
+  if (changesViewing) {
+    if (body.missions_viewing != null)
+      for (const b of existing) if (b.role === "viewer" && b.scope_type === "global") toRemove.add(b.id);
+    await keepOnlyMissions("viewer", viewingNames);
+  }
+  if (toRemove.size) await bindings.assertCanRemoveIds(actor, Array.from(toRemove));
   if (role === "superadmin") {
     await bindings.addBinding(actor, userBinding("superadmin", "global"));
   } else if (role === "mission_admin" || role === "user") {
