@@ -208,7 +208,7 @@ const useStyles = makeStyles((theme) => ({
     "& > svg": { color: theme.palette.swatches.grey[150], margin: "3px 10px 0px 2px" },
   },
   content: { flex: 1, overflowY: "auto", padding: "16px 32px 64px 32px" },
-  help: { maxWidth: "1400px", paddingBottom: "24px" },
+  help: { maxWidth: "1400px", margin: "0 auto", paddingBottom: "24px" },
   title: { fontSize: "20px", fontWeight: "bold", marginBottom: "4px" },
   lead: { fontSize: "14px", marginBottom: "16px", opacity: 0.85 },
   row: { display: "flex", alignItems: "stretch" },

@@ -111,7 +111,6 @@ const useStyles = makeStyles((theme) => ({
   pane: { paddingTop: "8px" },
   // Site-wide tab: one card per audience and for the new-account default
   audience: {
-    maxWidth: "1100px",
     padding: "20px 24px",
     marginBottom: "16px",
     borderRadius: "4px",
