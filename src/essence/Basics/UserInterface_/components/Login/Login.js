@@ -21,41 +21,36 @@ var mmgisLogoURL = 'public/images/logos/mmgis.png'
 
 // prettier-ignore
 var modalFormSignIn =
-  "<img src='" + mmgisLogoURL + "' alt='Full logo' style='position: relative; left: 50%; transform: translateX(-50%);' />" +
-  "<form id='loginForm' class='ui form segment' style='background: transparent; width: 300px; border: none; box-shadow: none; margin: auto;' accept-charset='UTF-8'>" +
+  "<img id='loginModalLogo' src='" + mmgisLogoURL + "' alt='MMGIS' />" +
+  "<div id='loginModalHeading'><span id='loginModalTitle'>Log in</span> <span id='loginModalTitleRest'>to your account.</span></div>" +
+  "<div id='loginModalLead'></div>" +
+  "<form id='loginForm' accept-charset='UTF-8'>" +
     "<div class='field'>" +
-      "<label id='loginUsernameLabel' style='color: #CCC;'>Username</label>" +
-      "<div class='ui icon input'>" +
-        "<input id='loginUsernameInput' placeholder='Username' name='username' type='text' autocomplete='off'>" +
-        "<i id='loginUsernameInputIcon' class='inverted blue checkmark icon' style='opacity: 0;'></i>" +
-      "</div>" +
+      "<label id='loginUsernameLabel' for='loginUsernameInput'>Username</label>" +
+      "<input id='loginUsernameInput' name='username' type='text' autocomplete='off'>" +
+      "<i id='loginUsernameInputIcon' style='opacity: 0;'></i>" +
     "</div>" +
     "<div id='loginEmail' class='field' style='display: none'>" +
-      "<label style='color: #CCC;'>Email</label>" +
-      "<div class='ui icon input'>" +
-        "<input id='loginEmailInput' placeholder='Email" + emailSuffix + "' name='email' type='text' autocomplete='off'>" +
-        "<i id='loginEmailInputIcon' class='inverted blue checkmark icon' style='opacity: 0;'></i>" +
-      "</div>" +
+      "<label for='loginEmailInput'>Email</label>" +
+      "<input id='loginEmailInput' placeholder='name" + emailSuffix + "' name='email' type='text' autocomplete='off'>" +
+      "<i id='loginEmailInputIcon' style='opacity: 0;'></i>" +
+      "<div class='loginFieldDescription'>An email is optional.</div>" +
     "</div>" +
     "<div class='field'>" +
-      "<label style='color: #CCC;'>Password</label>" +
-      "<div class='ui icon input'>" +
-        "<input id='loginPasswordInput' placeholder='Password' name='password' type='password' autocomplete='off'>" +
-        "<i id='loginPasswordInputIcon' class='inverted blue checkmark icon' style='opacity: 0;'></i>" +
-      "</div>" +
+      "<label for='loginPasswordInput'>Password</label>" +
+      "<input id='loginPasswordInput' name='password' type='password' autocomplete='off'>" +
+      "<i id='loginPasswordInputIcon' style='opacity: 0;'></i>" +
+      "<div id='loginPasswordDescription' class='loginFieldDescription' style='display: none'>Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.</div>" +
     "</div>" +
     "<div id='loginRetypePassword' class='field' style='display: none'>" +
-      "<label style='color: #CCC;'>Retype Password</label>" +
-      "<div class='ui icon input'>" +
-        "<input id='loginRetypePasswordInput' placeholder='Retype Password' name='retypepassword' type='password' autocomplete='off'>" +
-        "<i id='loginRetypePasswordInputIcon' class='inverted blue checkmark icon' style='opacity: 0;'></i>" +
-      "</div>" +
+      "<label for='loginRetypePasswordInput'>Retype Password</label>" +
+      "<input id='loginRetypePasswordInput' name='retypepassword' type='password' autocomplete='off'>" +
+      "<i id='loginRetypePasswordInputIcon' style='opacity: 0;'></i>" +
     "</div>" +
-    "<input id='loginSubmit' type='submit' name='Submit' value='Sign In' class='ui primary submit button' style='width: 100%; margin-top: 13px;'></input>" +
-    "<div id='loginInUpToggle' class='ui small button' style='width: 80px; margin-left: 95px; padding: 10px 0 0 0; background: transparent;'>or sign up</div>" +
+    "<input id='loginSubmit' type='submit' name='Submit' value='Log In'></input>" +
+    "<div id='loginInUpToggleWrapper'><div id='loginInUpToggle' role='button' tabindex='0'>or sign up</div></div>" +
   "</form>" +
-  "<div id='loginErrorMessage' style='text-align: center; font-size: 16px; font-weight: bold; color: #F88; border: 2px solid #F88; border-radius: 4px; margin: 0 14px 0 14px; padding: 8px 0 8px 0; opacity: 0;'>Invalid username or password</div>" +
-  "<br>";
+  "<div id='loginErrorMessage' style='opacity: 0;'>Invalid username or password</div>";
 
 var validate = {
     username: false,
@@ -149,10 +144,10 @@ var Login = {
                     //Open login
                     //default to signup
                     Login.signUp = true
-                    $('#loginEmail').css({ display: 'inherit' })
-                    $('#loginRetypePassword').css({ display: 'inherit' })
+                    $('#loginEmail').css({ display: 'block' })
+                    $('#loginRetypePassword').css({ display: 'block' })
                     $('#loginSubmit').val('Sign Up')
-                    $('#loginInUpToggle').html('or sign in')
+                    $('#loginInUpToggle').html('or log in')
                     //and open modal
                     Login.openModal()
                 })
@@ -269,11 +264,20 @@ var Login = {
     },
     setSignUpView: function (signUp) {
         Login.signUp = signUp
-        $('#loginModalTitle').text(signUp ? 'Sign Up' : 'Log In')
-        $('#loginEmail').css({ display: signUp ? 'inherit' : 'none' })
-        $('#loginRetypePassword').css({ display: signUp ? 'inherit' : 'none' })
-        $('#loginSubmit').val(signUp ? 'Sign Up' : 'Sign In')
-        $('#loginInUpToggle').html(signUp ? 'or sign in' : 'or sign up')
+        $('#loginModalTitle').text(signUp ? 'Sign up' : 'Log in')
+        $('#loginModalTitleRest').text(signUp ? 'for an account.' : 'to your account.')
+        $('#loginModalLead').html(
+            signUp
+                ? ''
+                : window.mmgisglobal.SELF_SIGNUP === 'false'
+                  ? 'If you do not have an account,<br>request one from your administrator.'
+                  : 'If you do not have an account,<br>sign up or request one from your administrator.'
+        )
+        $('#loginEmail').css({ display: signUp ? 'block' : 'none' })
+        $('#loginRetypePassword').css({ display: signUp ? 'block' : 'none' })
+        $('#loginPasswordDescription').css({ display: signUp ? 'block' : 'none' })
+        $('#loginSubmit').val(signUp ? 'Sign Up' : 'Log In')
+        $('#loginInUpToggle').html(signUp ? 'or log in' : 'or sign up')
     },
     createModal: function () {
         this.removeModal()
@@ -290,11 +294,11 @@ var Login = {
         const modal = $('<div>').attr('id', 'loginModal')
         wrapper.append(modal)
 
-        // Header with title and close button
-        const header = $('<div>').attr('id', 'loginModalHeader')
-        header.append($('<div>').attr('id', 'loginModalTitle').text('Log In'))
-        header.append($('<div>').attr('id', 'loginModalClose').html("<i class='mdi mdi-close mdi-18px'></i>"))
-        modal.append(header)
+        modal.append(
+            $('<div>')
+                .attr({ id: 'loginModalClose', role: 'button', tabindex: '0', title: 'Close' })
+                .html("<i class='mdi mdi-close mdi-18px'></i>")
+        )
 
         modal.append($('<div>').attr('id', 'loginModalBody').html(modalFormSignIn))
 
@@ -309,7 +313,6 @@ var Login = {
         })
 
         $('#loginUsernameInput').on('change paste keyup', function () {
-            $('#loginUsernameInput').css({ 'background-color': 'white' })
             var value = $(this).val()
             if (value.length > 0) {
                 $('#loginUsernameInputIcon').animate({ opacity: '1' }, 80)
@@ -495,6 +498,13 @@ var Login = {
         $('#loginModalClose').on('click', function (e) {
             e.stopPropagation()
             Login.closeModal()
+        })
+        // Enter or Space on the close and sign-up toggle "buttons"
+        $('#loginModalClose, #loginModal #loginInUpToggle').on('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                $(this).trigger('click')
+            }
         })
     },
     openModal: function () {

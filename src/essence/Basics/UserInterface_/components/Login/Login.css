@@ -18,140 +18,178 @@
     pointer-events: auto !important;
 }
 
+/* Matches the center card of the full-page login (public/login.css) */
 #loginModal {
     width: 400px;
+    max-width: calc(100vw - 24px);
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translateX(-50%) translateY(-50%);
-    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    box-sizing: border-box;
+    text-align: center;
+    font-family: roboto, sans-serif;
+    background: #1c1c1c;
+    border-top: 4px solid #08aeea;
     border-radius: 10px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
+    padding-bottom: 26px;
+    box-shadow: 0px 4px 30px 10px #141414;
 }
 
-#loginModalHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 44px;
-    padding: 0 0 0 14px;
-    border-bottom: 1px solid var(--color-a1);
+#loginModalLogo {
+    display: block;
+    height: 30px;
+    margin: 34px auto 0;
+}
+#loginModalHeading {
+    font-size: 18px;
+    margin-top: 16px;
 }
 #loginModalTitle {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--color-f);
-    text-transform: capitalize;
+    color: #08aeea;
 }
-
-#loginModalBody {
-    padding: 40px 0px 0px;
+#loginModalTitleRest {
+    color: #dfdeee;
+    font-weight: lighter;
+}
+#loginModalLead {
+    font-size: 13.5px;
+    font-weight: bold;
+    line-height: 1.45;
+    color: #b4b7bf;
+    letter-spacing: 0.3px;
+    margin: 12px 0 0;
 }
 
 #loginForm {
-    padding: 1em;
+    width: 342px;
+    max-width: calc(100% - 40px);
+    margin: 24px auto 0;
     font-size: 14px;
-}
-#loginForm input {
-    margin: 0;
-    outline: 0;
-    -webkit-appearance: none;
-    line-height: 1.2142em;
-    padding: 0.67861429em 1em;
-    font-size: 1em;
-    background: #fff;
-    border: 1px solid rgba(34, 36, 38, 0.15);
-    color: rgba(0, 0, 0, 0.87);
-    width: 100%;
-    border-radius: 3px;
-    max-width: 100%;
-    flex: 1 0 auto;
     text-align: left;
 }
-#loginForm input::placeholder {
-    color: rgba(0, 0, 0, 0.5);
-}
-
 #loginForm .field {
-    clear: both;
-    margin: 0 0 1em;
+    margin: 0 0 16px;
 }
-
 #loginForm label {
-    line-height: 20px;
-    font-size: 12px;
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
     font-weight: bold;
+    color: #a1a4ad;
+}
+#loginForm input[type='text'],
+#loginForm input[type='password'] {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 14px 10px;
+    font-size: 14px;
+    color: #ececec;
+    background: #36373a;
+    border: 1px solid #45464a;
+    border-radius: 5px;
+    outline: none;
+}
+#loginForm input::placeholder {
+    color: #727580;
+}
+#loginForm input[type='text']:focus,
+#loginForm input[type='password']:focus {
+    border: 1px solid #08aeea;
+    box-shadow: 0 0 0 3px rgba(8, 174, 234, 0.25);
+}
+#loginForm .field > i {
+    display: none;
+}
+.loginFieldDescription {
+    margin-top: 6px;
+    color: #a1a4ad;
+    font-style: italic;
+    font-size: 12.5px;
+    line-height: 1.4;
 }
 
 #loginSubmit[type='submit'] {
-    background-color: var(--color-mmgis);
-    color: #fff;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    height: 49px;
+    margin: 12px 0 0;
+    border: 0;
+    border-radius: 6px;
+    background: #08aeea;
+    color: #08222e;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
-    display: inline-block;
-    min-height: 1em;
-    outline: 0;
-    border: none;
-    vertical-align: baseline;
-    font-family: Lato, 'Helvetica Neue', Arial, Helvetica, sans-serif;
-    margin: 0 0.25em 0 0;
-    padding: 0.78571429em 1.5em;
-    text-transform: none;
-    font-weight: 700;
-    line-height: 1em;
-    font-style: normal;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 0.28571429rem;
-
-    transition: background 0.1s ease;
+    transition: background 0.3s;
 }
-#loginSubmit:hover {
-    background-color: #19659f;
+#loginSubmit:hover,
+#loginSubmit:focus-visible {
+    background: #3cc4f3;
+    outline: none;
 }
 
+#loginInUpToggleWrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 14px;
+}
 #loginInUpToggle {
-    font-size: 0.92857143rem;
+    padding: 2px 8px;
+    line-height: 16px;
+    font-size: 13px;
+    text-transform: lowercase;
+    color: #a1a4ad;
+    background: #36373a;
+    border-radius: 3px;
     cursor: pointer;
-    display: inline-block;
-    min-height: 1em;
-    outline: 0;
-    border: none;
-    vertical-align: baseline;
-    color: #ccc;
-    font-family: Lato, 'Helvetica Neue', Arial, Helvetica, sans-serif;
-    margin: 0 0.25em 0 0;
-    text-transform: none;
-    text-shadow: none;
-    font-weight: 700;
-    line-height: 1em;
-    font-style: normal;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 0.28571429rem;
     user-select: none;
-    transition: opacity 0.1s ease, background-color 0.1s ease, color 0.1s ease,
-        box-shadow 0.1s ease, background 0.1s ease;
+    transition: all 0.2s ease-out;
 }
-#loginInUpToggle:hover {
+#loginInUpToggle:hover,
+#loginInUpToggle:focus-visible {
+    background: #08aeea;
     color: white;
+    outline: none;
+}
+
+#loginErrorMessage {
+    width: 342px;
+    max-width: calc(100% - 40px);
+    margin: 16px auto 0;
+    padding: 4px 0;
+    color: #ffcfb3;
+    border-bottom: 2px solid #ff7426;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* Hidden until a message is shown, so it doesn't leave a gap */
+#loginErrorMessage[style='opacity: 0;'] {
+    display: none;
 }
 
 #loginModalClose {
-    width: 44px;
-    height: 44px;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--color-a3);
+    color: #75767a;
     cursor: pointer;
     transition: color 0.15s;
-    flex-shrink: 0;
 }
-#loginModalClose:hover {
-    color: var(--color-f);
+#loginModalClose:hover,
+#loginModalClose:focus-visible {
+    color: #ececec;
+    outline: none;
 }
 
 #loginoutButton {
