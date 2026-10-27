@@ -222,15 +222,26 @@ async function holdsRoleAt(actor, role, mission_uuid, layer_uuid) {
   );
 }
 
+// Nobody removes a grant they couldn't have made
+async function assertCanRemove(actor, row) {
+  if (row.role === "superadmin" && !policy.isSuperAdmin(actor))
+    throw new BindingError("Only SuperAdmins may remove SuperAdmin access.");
+  if (policy.ROLES[row.role] && !(await holdsRoleAt(actor, row.role, row.mission_uuid, row.layer_uuid)))
+    throw new BindingError("You cannot remove a role with more access than your own.");
+}
+
+// Checks a batch before any of it is removed, so a refusal leaves nothing half-done
+async function assertCanRemoveIds(actor, ids) {
+  const { RoleBinding } = models();
+  const rows = await RoleBinding.findAll({ where: { id: ids.map((i) => parseInt(i)) } });
+  for (const row of rows) await assertCanRemove(actor, row);
+}
+
 async function removeBinding(actor, id) {
   const { RoleBinding } = models();
   const row = await RoleBinding.findOne({ where: { id: parseInt(id) } });
   if (!row) throw new BindingError("Binding not found.");
-  if (row.role === "superadmin" && !policy.isSuperAdmin(actor))
-    throw new BindingError("Only SuperAdmins may remove SuperAdmin access.");
-  // Nobody removes a grant they couldn't have made
-  if (policy.ROLES[row.role] && !(await holdsRoleAt(actor, row.role, row.mission_uuid, row.layer_uuid)))
-    throw new BindingError("You cannot remove a role with more access than your own.");
+  await assertCanRemove(actor, row);
   const { subject_type, subject_id } = row;
   if (row.role === "superadmin" && row.subject_type === "user" && row.scope_type === "global") {
     await withSuperAdminLock(async ({ transaction, rows, superAdmins }) => {
@@ -289,6 +300,7 @@ module.exports = {
   BindingError,
   seedNewUser,
   addBinding,
+  assertCanRemoveIds,
   removeBinding,
   listBindings,
   setUserMissionRole,

@@ -461,6 +461,17 @@ test.describe('adjacent servers', () => {
       for (const method of ['POST', 'DELETE']) expect(canUseAdjacentServer(editor, method, server)).toBe(true);
   });
 
+  test('read-only POSTs (STAC search, pgSTAC search registration) count as reads', () => {
+    const read = withToken(admin, { scopes: ['data.stac.read'] });
+    for (const [server, path] of [['stac', '/search'], ['titiler-pgstac', '/searches/register'], ['titiler-pgstac', '/mosaic/register']]) {
+      expect(canUseAdjacentServer(editor, 'POST', server, path)).toBe(true);
+      expect(canUseAdjacentServer(read, 'POST', server, path)).toBe(true);
+    }
+    expect(canUseAdjacentServer(editor, 'POST', 'stac', '/collections')).toBe(false);
+    expect(canUseAdjacentServer(read, 'POST', 'stac', '/collections/c1/items')).toBe(false);
+    expect(canUseAdjacentServer(editor, 'DELETE', 'stac', '/search')).toBe(false);
+  });
+
   test('session writes to STAC and TiPg need the data write capability', () => {
     const dataAdmin = user([['data_admin', 'global']]);
     for (const [server, ok] of [['stac', true], ['titiler-pgstac', true], ['tipg', true]])

@@ -144,8 +144,9 @@ router.post("/groups/delete", manage, async (req, res) => {
     const id = parseInt(req.body.id);
     const group = await AuthGroup.findOne({ where: { id } });
     if (!group) throw new bindings.BindingError("Group not found.");
-    for (const b of await bindings.listBindings({ subject_type: "group", subject_id: String(id) }))
-      await bindings.removeBinding(actor, b.id);
+    const groupBindings = await bindings.listBindings({ subject_type: "group", subject_id: String(id) });
+    await bindings.assertCanRemoveIds(actor, groupBindings.map((b) => b.id));
+    for (const b of groupBindings) await bindings.removeBinding(actor, b.id);
     const members = await AuthGroupMember.findAll({ where: { group_id: id }, raw: true });
     await group.destroy();
     for (const m of members) await bindings.syncLegacyPermission(m.user_id);

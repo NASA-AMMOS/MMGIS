@@ -524,7 +524,7 @@ function ensureUserForAdjacentServers(server) {
   const tokenAllowed = (req, res, next) =>
     ensurePrincipal(req)
       .then((p) =>
-        policy.canUseAdjacentServer(p, req.method, server)
+        policy.canUseAdjacentServer(p, req.method, server, req.path)
           ? next()
           : res.send({ status: "failure", message: "Unauthorized!" }),
       )

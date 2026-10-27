@@ -287,9 +287,18 @@ const ADJACENT_SERVER_DATA = {
 // capability need its write capability. Tokens: the server's data capability where it
 // has one; servers without one (TiTiler, Veloserver, custom) take reads from site.view
 // and writes only from unrestricted tokens.
-function canUseAdjacentServer(principal, method, server) {
+// POST endpoints that only read: STAC item search and TiTiler-pgSTAC search registration
+const ADJACENT_READ_POSTS = {
+  stac: /^\/search\/?$/,
+  "titiler-pgstac": /^\/(searches|mosaic)\/(register|list)\/?$/,
+};
+
+function canUseAdjacentServer(principal, method, server, path = "") {
   if (!principal) return true;
-  const read = method === "GET" || method === "HEAD";
+  const read =
+    method === "GET" ||
+    method === "HEAD" ||
+    (method === "POST" && ADJACENT_READ_POSTS[server] != null && ADJACENT_READ_POSTS[server].test(String(path)));
   const family = ADJACENT_SERVER_DATA[server];
   if (principal.kind !== "token") return read || !family || can(principal, `${family}.write`);
   if (family) return can(principal, `${family}.${read ? "read" : "write"}`);

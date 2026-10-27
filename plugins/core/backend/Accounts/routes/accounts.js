@@ -237,6 +237,8 @@ async function updateUser(req, id) {
   };
 
   const role = body.role;
+  if (role === "mission_admin" || role === "user" || changesViewing)
+    await bindings.assertCanRemoveIds(actor, existing.map((b) => b.id));
   if (role === "superadmin") {
     await bindings.addBinding(actor, userBinding("superadmin", "global"));
   } else if (role === "mission_admin" || role === "user") {
