@@ -234,3 +234,39 @@
         background: var(--color-red);
     }
 }
+
+#loginProviderLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 342px;
+    max-width: calc(100% - 40px);
+    margin: 0 auto;
+}
+#loginProviderLinks:empty {
+    display: none;
+}
+#loginProviderLinks .loginProviderOr {
+    margin-top: 12px;
+    text-align: center;
+    color: #808080;
+    font-size: 13px;
+}
+#loginProviderLinks .loginProviderBtn {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #08aeea;
+    border-radius: 6px;
+    color: #dfdeee;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+#loginProviderLinks .loginProviderBtn:hover,
+#loginProviderLinks .loginProviderBtn:focus-visible {
+    background: #08aeea;
+    color: #08222e;
+}

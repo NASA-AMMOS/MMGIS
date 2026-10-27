@@ -245,3 +245,35 @@ img {
   background: #08aeea;
   color: #1a1a1a;
 }
+
+.providerLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 342px;
+  max-width: 100%;
+  margin: 14px auto 0;
+}
+.providerOr {
+  text-align: center;
+  color: #808080;
+  font-size: 13px;
+}
+.providerBtn {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #08aeea;
+  border-radius: 6px;
+  color: #dfdeee;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.providerBtn:hover,
+.providerBtn:focus-visible {
+  background: #08aeea;
+  color: #08222e;
+}

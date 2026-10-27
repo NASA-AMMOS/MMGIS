@@ -50,6 +50,7 @@ var modalFormSignIn =
     "<input id='loginSubmit' type='submit' name='Submit' value='Log In'></input>" +
     "<div id='loginInUpToggleWrapper'><div id='loginInUpToggle' role='button' tabindex='0'>or sign up</div></div>" +
   "</form>" +
+  "<div id='loginProviderLinks'></div>" +
   "<div id='loginErrorMessage' style='opacity: 0;'>Invalid username or password</div>";
 
 var validate = {
@@ -65,6 +66,11 @@ var Login = {
     username: null,
     signUp: false,
     beganLoggedIn: false,
+    // The non-local provider this browser is signed in through, if any
+    provider: null,
+    providerLogoutUrl: null,
+    providerPerRequest: false,
+    providerLinks: null,
     init: function () {
         if (window.mmgisglobal.SITE_ACCESS === 'public') return
         if (
@@ -203,6 +209,12 @@ var Login = {
             window.location.href = '/ssologoutredirect'
             return
         }
+        // Signed in on every request by a proxy: only the proxy can sign the user out
+        if (Login.provider && Login.providerPerRequest) {
+            if (Login.providerLogoutUrl) window.location.href = Login.providerLogoutUrl
+            else Toast.error('Sign out through your login provider.')
+            return
+        }
         const username = Login.username || window.mmgisglobal.user
         // The server clears its session before checking the token cookie, so
         // a "No user." failure still means the user is logged out.
@@ -219,6 +231,15 @@ var Login = {
 
             document.cookie =
                 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+
+            // Then end the login at the provider too
+            const providerLogoutUrl = Login.providerLogoutUrl
+            Login.provider = null
+            Login.providerLogoutUrl = null
+            if (providerLogoutUrl) {
+                window.location.href = providerLogoutUrl
+                return
+            }
 
             if ((window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) {
                 reloadToLogin()
@@ -254,6 +275,9 @@ var Login = {
                 Login.username = d.username
                 window.mmgisglobal.user = Login.username
                 window.mmgisglobal.groups = d.groups
+                Login.provider = d.provider || null
+                Login.providerLogoutUrl = d.logoutUrl || null
+                Login.providerPerRequest = d.perRequest === true
 
                 loginSuccess(d)
             },
@@ -278,6 +302,35 @@ var Login = {
         $('#loginPasswordDescription').css({ display: signUp ? 'block' : 'none' })
         $('#loginSubmit').val(signUp ? 'Sign Up' : 'Log In')
         $('#loginInUpToggle').html(signUp ? 'or log in' : 'or sign up')
+    },
+    // Buttons for providers whose plugin.json sets "login_path"
+    renderProviderLinks: function () {
+        const root = window.mmgisglobal.ROOT_PATH ? window.mmgisglobal.ROOT_PATH + '/' : ''
+        const draw = (links) => {
+            const el = $('#loginProviderLinks').empty()
+            if (!links || links.length === 0) return
+            const returnTo = window.location.pathname + window.location.search
+            if (window.mmgisglobal.authProviders.includes('local'))
+                el.append($('<div>').addClass('loginProviderOr').text('or'))
+            links.forEach((link) => {
+                el.append(
+                    $('<a>')
+                        .addClass('loginProviderBtn')
+                        .attr('href', `${root}${link.path}?returnTo=${encodeURIComponent(returnTo)}`)
+                        .text(link.label)
+                )
+            })
+        }
+        if (Login.providerLinks) return draw(Login.providerLinks)
+        $.ajax({
+            type: 'GET',
+            url: `${root}api/auth`,
+            xhrFields: { withCredentials: true },
+            success: (d) => {
+                Login.providerLinks = (d && d.loginLinks) || []
+                draw(Login.providerLinks)
+            },
+        })
     },
     createModal: function () {
         this.removeModal()
@@ -306,6 +359,11 @@ var Login = {
         Login.setSignUpView(Login.signUp)
         if (window.mmgisglobal.SELF_SIGNUP === 'false' && !Login.signUp)
             $('#loginModal #loginInUpToggle').hide()
+        if (!window.mmgisglobal.authProviders.includes('local')) {
+            $('#loginModal #loginForm').hide()
+            $('#loginModalLead').text('Choose how to log in.')
+        }
+        Login.renderProviderLinks()
 
         $('#loginModal #loginInUpToggle').on('click', function () {
             $('#loginErrorMessage').animate({ opacity: '0' }, 500)
@@ -528,8 +586,10 @@ function loginSuccess(data, ignoreError, fromModal) {
     if (data.status == 'success') {
         // The landing page lists missions for whoever was signed in, so reload it after a login
         const reloadAfter = fromModal === true && !L_.mission
+        // Provider sign-ins live in the session; only local logins save a login cookie
+        const saveLogin = !data.provider || data.provider === 'local'
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-        document.cookie = `MMGISUser=${JSON.stringify({
+        if (saveLogin) document.cookie = `MMGISUser=${JSON.stringify({
             username: data.username,
             token: data.token,
         })}${

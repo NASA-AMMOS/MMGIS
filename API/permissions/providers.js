@@ -13,12 +13,14 @@
 const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
+const { rateLimit } = require("express-rate-limit");
 const logger = require("../logger");
 const { discoverPlugins } = require("../pluginDiscovery");
 const siteAccess = require("./siteAccess");
 
-// Planned providers; not available until their core plugins exist
-const RESERVED_PROVIDERS = ["ldap", "earthdata", "keycloak", "cognito"];
+// Ids of the shipped providers; only their own plugin folders may use them
+const BUILTIN_PROVIDERS = { local: "Local", csso: "CSSO" };
+const DOCS_URL = "https://nasa-ammos.github.io/MMGIS/contributing/auth-providers";
 const DEFAULT_PLUGINS_ROOT = path.join(__dirname, "..", "..", "plugins");
 
 let registry = null;
@@ -46,7 +48,13 @@ function loadProviders(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
     }
     const id = typeof m.provider === "string" ? m.provider.toLowerCase() : "";
     if (!/^[a-z][a-z0-9_-]*$/.test(id)) {
-      refuse('its plugin.json needs a "provider" id.');
+      refuse(
+        'its plugin.json needs a "provider" id: lowercase letters, digits, "-" or "_", starting with a letter.'
+      );
+      continue;
+    }
+    if (BUILTIN_PROVIDERS[id] && p.name !== BUILTIN_PROVIDERS[id]) {
+      refuse(`'${id}' is the id of the built-in ${BUILTIN_PROVIDERS[id]} provider. Pick another "provider" id.`);
       continue;
     }
     if (found.has(id)) {
@@ -59,7 +67,11 @@ function loadProviders(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
       delete require.cache[require.resolve(lifecyclePath)];
       impl = require(lifecyclePath) || {};
     } catch (err) {
-      logger("error", `Failed to require plugin.js for auth provider ${p.name}`, "AuthProviders", null, err);
+      logger(
+        "error",
+        `Auth provider '${p.container}/auth/${p.name}' was not loaded: its plugin.js threw ${err && err.stack ? err.stack : err}`,
+        "AuthProviders"
+      );
       continue;
     }
     found.set(id, { id, name: p.name, label: m.display_name || p.name, manifest: m, impl });
@@ -158,10 +170,24 @@ async function linkIdentity(identity, m = accountModels()) {
       `The username '${identity.username}' already belongs to another account.`
     );
   // Random password: the account can only be used through its provider
-  const created = await m.User.create({
-    username: identity.username,
-    password: crypto.randomBytes(32).toString("hex"),
-  });
+  const fields = { username: identity.username, password: crypto.randomBytes(32).toString("hex") };
+  // Email is optional and unique, so one already in use is left off
+  if (identity.email) {
+    const emailTaken = await m.User.findOne({
+      where: { email: identity.email },
+      attributes: ["id"],
+      raw: true,
+    });
+    if (!emailTaken) fields.email = identity.email;
+  }
+  let created;
+  try {
+    created = await m.User.create(fields);
+  } catch (err) {
+    if (!fields.email || err.name !== "SequelizeValidationError") throw err;
+    delete fields.email;
+    created = await m.User.create(fields);
+  }
   await m.AuthIdentity.create({
     provider: identity.provider,
     subject: identity.subject,
@@ -217,8 +243,55 @@ async function completeLogin(req, identity) {
   return user;
 }
 
-// Mounts each enabled provider's routes at /api/auth/<id>
+const rootPath = () => process.env.ROOT_PATH || "";
+
+// A same-site path to send the browser to after login; anything else falls back to the site root
+function returnTo(value, fallback = `${rootPath()}/`) {
+  if (typeof value !== "string" || value.length > 2048) return fallback;
+  if (!value.startsWith("/") || value.startsWith("//") || /[\\\s]/.test(value)) return fallback;
+  return value;
+}
+
+// Login entry points that the login page, Configure sign-in and the in-app modal show.
+// A provider gets one by setting "login_path" in its plugin.json.
+function loginLinks(ids = siteAccess.getProviders()) {
+  return enabledProviders(ids)
+    .filter((p) => typeof p.manifest.login_path === "string" && p.manifest.login_path.startsWith("/"))
+    .map((p) => ({
+      id: p.id,
+      label: p.manifest.login_label || `Log in with ${p.label}`,
+      path: `api/auth/${p.id}${p.manifest.login_path}`,
+    }));
+}
+
+// Where "Sign out" sends a user signed in by this provider (plugin.json "logout_url"), if anywhere
+function logoutUrl(id) {
+  const p = getProvider(id);
+  const url = p && p.manifest.logout_url;
+  return typeof url === "string" && url !== "" ? url : null;
+}
+
+// Only failed responses (status >= 400) count, so a provider answers bad credentials with 401
+const providerLimiter = () =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    skipSuccessfulRequests: true,
+    message: { status: "failure", message: "Too many attempts, try again later." },
+  });
+
+// Mounts GET /api/auth (the login entry points) and each enabled provider's routes at /api/auth/<id>
 function mountProviderRoutes(app, { registerRouter, authorize }) {
+  const list = express.Router();
+  list.get("/", authorize.public("lists the enabled login providers"), (req, res) => {
+    res.send({
+      status: "success",
+      providers: enabledProviders().map((p) => ({ id: p.id, label: p.label })),
+      loginLinks: loginLinks(),
+    });
+  });
+  app.use("/api/auth", registerRouter("/api/auth", list));
+
   enabledProviders().forEach((p) => {
     if (typeof p.impl.routes !== "function") return;
     const prefix = `/api/auth/${p.id}`;
@@ -226,14 +299,17 @@ function mountProviderRoutes(app, { registerRouter, authorize }) {
     p.impl.routes(router, {
       authorize,
       logger,
+      LinkError,
+      returnTo: (value) => returnTo(value),
       completeLogin: (req, raw) => completeLogin(req, normalizeIdentity(p.id, raw)),
     });
-    app.use(prefix, registerRouter(prefix, router));
+    app.use(prefix, providerLimiter(), registerRouter(prefix, router));
   });
 }
 
 module.exports = {
-  RESERVED_PROVIDERS,
+  BUILTIN_PROVIDERS,
+  DOCS_URL,
   loadProviders,
   availableProviders,
   getProvider,
@@ -246,5 +322,8 @@ module.exports = {
   linkIdentity,
   syncGroups,
   completeLogin,
+  returnTo,
+  loginLinks,
+  logoutUrl,
   mountProviderRoutes,
 };

@@ -1,6 +1,8 @@
 let toggleState = "login";
 
 function login() {
+  // Sites without local login only show provider links
+  if (!document.getElementById("username")) return;
   if (
     document.getElementById("username").value === "" ||
     document.getElementById("pwd").value === ""
@@ -124,7 +126,7 @@ function toggle() {
 }
 
 $(document).ready(function () {
-  if (allowSignup === true)
+  if (allowSignup === true && document.getElementById("toggleWrapper"))
     document.getElementById("toggleWrapper").style.display = "flex";
   $(document).on("keypress", function (e) {
     if (e.which === 13) {

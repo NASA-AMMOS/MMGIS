@@ -26,7 +26,7 @@ MMGIS no longer starts while `AUTH` is set, and it requires `SITE_ACCESS`. Repla
 - `optional`: anyone can view; users may log in (e.g. to save Draw files).
 - `required`: everything requires login.
 
-`ldap`, `earthdata`, `keycloak` and `cognito` are reserved provider names and are not implemented yet.
+Other providers (LDAP, OIDC, and so on) can be added as plugins; see [Writing an Auth Provider](/MMGIS/contributing/auth-providers).
 
 ### What to expect for each previous setup
 

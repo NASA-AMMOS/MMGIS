@@ -34,4 +34,9 @@ body.mmgisScrollbar
       label#setup_code_label.fieldLabel(for='setup_code') Setup Code
       input#setup_code(type='text' name='setup_code' placeholder='See the server log' autocomplete='off' spellcheck='false')
       div.btn1(onClick='login()') Sign in
+      if LOGIN_LINKS && LOGIN_LINKS.length
+        .providerLinks
+          .providerOr or
+          each link in LOGIN_LINKS
+            a.providerBtn(href=ROOT_PATH + link.path + '?returnTo=' + encodeURIComponent(RETURN_TO))= link.label
       div.version v#{VERSION}

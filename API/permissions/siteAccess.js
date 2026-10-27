@@ -70,12 +70,9 @@ function validate(env = process.env) {
   const available = registry.availableProviders();
   providers.forEach((p) => {
     if (available.includes(p)) return;
-    const reserved = registry.RESERVED_PROVIDERS.find((r) => r === p);
-    if (reserved) errors.push(`AUTH_PROVIDERS: '${reserved}' is not supported yet.`);
-    else
-      errors.push(
-        `AUTH_PROVIDERS lists an unknown provider '${String(p).replace(/[^\w.-]/g, "").slice(0, 40)}'. Available: ${available.join(", ")}.`
-      );
+    errors.push(
+      `AUTH_PROVIDERS lists an unknown provider '${String(p).replace(/[^\w.-]/g, "").slice(0, 40)}'. Available: ${available.join(", ")}. To write a provider, see ${registry.DOCS_URL}`
+    );
   });
   if (errors.length === 0) errors.push(...registry.validateProviders(providers, env));
   return errors;

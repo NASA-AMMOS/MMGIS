@@ -16,7 +16,7 @@ Site access is chosen with `SITE_ACCESS`, and login methods with `AUTH_PROVIDERS
 
 3. **required** - All unauthenticated users are blocked. Administrators create accounts or enable self-signup via environment configuration.
 
-Providers: `local` (username/password) and `csso` (an upstream Cloud Single Sign-On proxy handles authentication). `ldap` and `earthdata` are reserved names for future providers.
+Providers: `local` (username/password) and `csso` (an upstream Cloud Single Sign-On proxy handles authentication). Other providers are added as plugins under `plugins/core/auth/`.
 
 ### User Roles & Permissions
 
@@ -183,7 +183,7 @@ Protected by `ensureAdmin()` middleware:
 ### Required Variables
 
 - `SITE_ACCESS` - `public` (no end-user login), `optional` (guests and users) or `required` (login required). No default.
-- `AUTH_PROVIDERS` - login methods: `local`, `csso` (`ldap`, `earthdata` reserved)
+- `AUTH_PROVIDERS` - login methods: `local`, `csso`, or any provider plugin
 - `AUTH` is removed; the server refuses to start while it is set and prints the replacement.
 - `SECRET` - Session encryption secret
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` - PostgreSQL connection

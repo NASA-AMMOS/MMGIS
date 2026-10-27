@@ -84,9 +84,8 @@ test.describe('AUTH_PROVIDERS parsing', () => {
     expect(siteAccess.validate({ SITE_ACCESS: 'public', AUTH_PROVIDERS: '[]' }).join()).toMatch(/JSON array/);
   });
 
-  test('planned providers are reserved but not yet supported', () => {
-    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["ldap"]' }).join()).toMatch(/'ldap' is not supported yet/);
-    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local","earthdata"]' }).join()).toMatch(/'earthdata' is not supported yet/);
+  test('a provider without a plugin is unknown and points to the guide', () => {
+    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["ldap"]' }).join()).toMatch(/unknown provider 'ldap'.*contributing\/auth-providers/);
   });
 
   test('unknown providers are rejected', () => {

@@ -268,7 +268,7 @@ const cssoHandler = (req, res, next) => {
       if (identity) {
         req.identity = identity;
         req.groups = Object.fromEntries(identity.groups.map((g) => [g, true]));
-        if (req.groups[process.env.CSSO_LEAD_GROUP] === true)
+        if (identity.provider === "csso" && req.groups[process.env.CSSO_LEAD_GROUP] === true)
           req.groups[req.leadGroupName] = true;
         req.user = identity.username;
         if (identity.provider === "csso") {
@@ -390,6 +390,9 @@ function renderAdminLogin(req, res, principal) {
   res.render("adminlogin", {
     user: req.user,
     SIGNED_IN_AS: signedIn ? principal.username || req.user || "" : null,
+    LOCAL_LOGIN: siteAccess.hasProvider("local"),
+    LOGIN_LINKS: providers.loginLinks(),
+    RETURN_TO: providers.returnTo(req.originalUrl),
     VERSION: configurePackageJson.version,
     ROOT_PATH: isDevEnv
       ? ""
@@ -490,12 +493,15 @@ function ensureUser(options = {}) {
           return;
         }
         if (options.forbid) sendForbidden(req, res);
-        // Sites without local accounts log in through their provider (e.g. the CSSO proxy)
-        else if (!siteAccess.hasProvider("local"))
+        // Sites with no login form or login links sign in through their proxy (e.g. CSSO)
+        else if (!siteAccess.hasProvider("local") && providers.loginLinks().length === 0)
           res.render("unauthorized", { user: null });
         else
           res.render("login", {
             user: req.user,
+            LOCAL_LOGIN: siteAccess.hasProvider("local"),
+            LOGIN_LINKS: providers.loginLinks(),
+            RETURN_TO: providers.returnTo(req.originalUrl),
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
             CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
             AUTH_LOCAL_ALLOW_SIGNUP: siteAccess.selfSignupAllowed(),

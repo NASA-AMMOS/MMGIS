@@ -33,6 +33,7 @@ const userModel = require("../models/user");
 const User = userModel.User;
 const { getDefaultMissionsViewing } = require("../models/userdefaults");
 const siteAccess = require("../../../../../API/permissions/siteAccess");
+const providers = require("../../../../../API/permissions/providers");
 const policy = require("../../../../../API/permissions/policy");
 const bindings = require("../../../../../API/permissions/bindings");
 const setupCode = require("../../../../../API/permissions/setupCode");
@@ -324,6 +325,24 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
   } catch (err) {
     res.send({ status: "failure", message: "Malformed MMGISUser cookie." });
     return null;
+  }
+
+  // Page-load check from a browser already signed in through another provider:
+  // report that sign-in rather than looking for a saved local login
+  if (req.body.useToken) {
+    const provider = req.session.provider || (req.identity && req.identity.provider);
+    const p = req.principal;
+    if (provider && provider !== "local" && p && p.authenticated && p.kind !== "token") {
+      res.send({
+        status: "success",
+        username: p.username || req.user,
+        provider,
+        perRequest: !req.session.provider,
+        logoutUrl: providers.logoutUrl(provider),
+        groups: req.groups ? Object.keys(req.groups) : [],
+      });
+      return null;
+    }
   }
 
   // Password and saved logins are only for sites that use the local provider

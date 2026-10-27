@@ -33,6 +33,8 @@ test.describe('provider discovery', () => {
     writePlugin(root, 'core', 'Broken', coreManifest('broken'), 'throw new Error("boom")');
     writePlugin(root, 'external', 'Rogue', coreManifest('rogue'));
     writePlugin(root, 'external', 'Shadow', coreManifest('good'));
+    writePlugin(root, 'core', 'Ldap', coreManifest('ldap'));
+    writePlugin(root, 'core', 'Impostor', coreManifest('local'));
   });
   test.afterAll(() => {
     fs.rmSync(root, { recursive: true, force: true });
@@ -40,10 +42,16 @@ test.describe('provider discovery', () => {
   });
 
   test('loads only core, non-overridable providers with a unique id', () => {
-    expect(providers.loadProviders(root)).toEqual(['good']);
+    expect(providers.loadProviders(root)).toEqual(['good', 'ldap']);
     // Discovery is alphabetical, so the first 'good' wins
     expect(providers.getProvider('good').name).toBe('Dupe');
     for (const id of ['tiered', 'over', 'broken', 'rogue']) expect(providers.getProvider(id)).toBeNull();
+  });
+
+  test('any id is allowed except the built-in ids from other folders', () => {
+    providers.loadProviders(root);
+    expect(providers.getProvider('ldap').name).toBe('Ldap');
+    expect(providers.getProvider('local')).toBeNull();
   });
 
   test('the shipped providers are local and csso', () => {
@@ -61,12 +69,6 @@ test.describe('AUTH_PROVIDERS validation against the registry', () => {
   test('accepts discovered providers', () => {
     expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local","csso"]' })).toEqual([]);
   });
-
-  for (const id of providers.RESERVED_PROVIDERS)
-    test(`reserved '${id}' is refused until its plugin exists`, () => {
-      expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: `["${id}"]` }).join())
-        .toMatch(new RegExp(`'${id}' is not supported yet`));
-    });
 
   test('unknown providers list what is available', () => {
     expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["okta"]' }).join())
@@ -158,6 +160,42 @@ test.describe('account linking', () => {
   test('the same subject at a different provider is a different identity', async () => {
     const m = fakeModels({ users: [{ id: 5, username: 'a' }], links: [{ provider: 'cognito', subject: 's', user_id: 5 }] });
     await expect(providers.linkIdentity(identity({ subject: 's', username: 'a' }), m)).rejects.toThrow();
+  });
+});
+
+test.describe('provider accounts keep their email', () => {
+  test('a new account gets the identity email unless another account has it', async () => {
+    const m = fakeModels({ users: [{ id: 1, username: 'other', email: 'taken@example.test' }] });
+    await providers.linkIdentity(identity({ subject: 's1', username: 'carol', email: 'carol@example.test' }), m);
+    await providers.linkIdentity(identity({ subject: 's2', username: 'dave', email: 'taken@example.test' }), m);
+    expect(m.User.rows.find((u) => u.username === 'carol').email).toBe('carol@example.test');
+    expect(m.User.rows.find((u) => u.username === 'dave').email).toBeUndefined();
+  });
+});
+
+test.describe('login links and returnTo', () => {
+  test('returnTo only allows same-site paths', () => {
+    expect(providers.returnTo('/?mission=A')).toBe('/?mission=A');
+    for (const bad of ['//evil.test', 'https://evil.test', '/a\\b', '/a b', null, 42]) expect(providers.returnTo(bad)).toBe('/');
+  });
+
+  test('providers with a login_path get a login link', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-auth-'));
+    try {
+      writePlugin(root, 'core', 'Button', { ...coreManifest('button'), display_name: 'Button SSO', login_path: '/login' });
+      writePlugin(root, 'core', 'Labelled', { ...coreManifest('labelled'), login_path: '/start', login_label: 'Use Labelled', logout_url: 'https://idp.test/out' });
+      writePlugin(root, 'core', 'Headers', coreManifest('headers'));
+      providers.loadProviders(root);
+      expect(providers.loginLinks(['button', 'labelled', 'headers'])).toEqual([
+        { id: 'button', label: 'Log in with Button SSO', path: 'api/auth/button/login' },
+        { id: 'labelled', label: 'Use Labelled', path: 'api/auth/labelled/start' },
+      ]);
+      expect(providers.logoutUrl('labelled')).toBe('https://idp.test/out');
+      expect(providers.logoutUrl('button')).toBeNull();
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+      providers.loadProviders(REAL_ROOT);
+    }
   });
 });
 
