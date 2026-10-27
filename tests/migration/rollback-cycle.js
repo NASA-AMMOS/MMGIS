@@ -5,6 +5,7 @@
  *   seed          - previous release: accounts of each legacy kind
  *   rollbackEdits - previous release again, after one upgrade: demote / narrow / delete
  *   bindings      - print each account's grants (verify=1 checks the expected result)
+ *   tokenNew      - this release: the previous release's long-term token still works (and is hashed)
  */
 require("dotenv").config();
 const http = require("http");
@@ -15,7 +16,7 @@ function api(jar, method, url, body) {
   const t = new URL(BASE + url); const payload = body ? JSON.stringify(body) : null;
   return new Promise((res, rej) => {
     const r = http.request({ method, hostname: t.hostname, port: t.port, path: t.pathname,
-      headers: { "Content-Type": "application/json", ...(jar.cookie ? { Cookie: jar.cookie } : {}) } }, (s) => {
+      headers: { "Content-Type": "application/json", ...(jar.cookie ? { Cookie: jar.cookie } : {}), ...(jar.authorization ? { Authorization: jar.authorization } : {}) } }, (s) => {
       const sc = s.headers["set-cookie"] || []; if (sc.length) jar.cookie = sc.map((c) => c.split(";")[0]).join("; ");
       let x = ""; s.on("data", (d) => (x += d)); s.on("end", () => { let j = null; try { j = JSON.parse(x); } catch (e) {} res({ json: j, text: x }); });
     });
@@ -23,6 +24,11 @@ function api(jar, method, url, body) {
   });
 }
 const must = (c, m) => { if (!c) throw new Error(m); };
+const TOKEN_FILE = require("path").resolve(__dirname, "../../test-results/rb-token.json");
+async function tokenMissions(token) {
+  const r = await api({ authorization: `Bearer ${token}` }, "GET", "/api/configure/missions");
+  return ((r.json || {}).missions || []).slice().sort();
+}
 if (process.env.NODE_ENV === "production") { console.error("Refusing to run with NODE_ENV=production."); process.exit(1); }
 const EXPECTED = {
   rb_admin: ["superadmin@global"],
@@ -59,9 +65,23 @@ async function seed() {
   await upd(jar, "rb_vlim", { permission: "001", missions_viewing: ["RbA", "RbB"] });
   await upd(jar, "rb_plain", { permission: "001" });
   await upd(jar, "rb_gone", { permission: "001" });
+  r = await api(jar, "POST", "/api/longtermtoken/generate", { period: "never", name: "rb" });
+  must(r.json && r.json.status === "success", "token " + r.text.slice(0, 200));
+  require("fs").writeFileSync(TOKEN_FILE, JSON.stringify({ token: r.json.body.token, missions: await tokenMissions(r.json.body.token) }));
   console.log("seeded");
 }
+async function tokenNew() {
+  const t = JSON.parse(require("fs").readFileSync(TOKEN_FILE, "utf8"));
+  const now = await tokenMissions(t.token);
+  must(JSON.stringify(now) === JSON.stringify(t.missions), `legacy token sees ${JSON.stringify(now)} on this release, was ${JSON.stringify(t.missions)}`);
+  console.log("legacy token works on this release");
+}
 async function rollbackEdits() {
+  // Documented: a token used on this release gives no access on the previous one
+  const t = JSON.parse(require("fs").readFileSync(TOKEN_FILE, "utf8"));
+  const seen = await tokenMissions(t.token);
+  must(seen.length === 0, `token used on this release still sees ${JSON.stringify(seen)} after rollback`);
+  console.log("legacy token used on this release gives no access after rollback");
   const jar = await adminJar();
   await upd(jar, "rb_sa2", { permission: "001" });
   await upd(jar, "rb_ma", { permission: "110", missions_managing: ["RbA"] });
@@ -105,4 +125,4 @@ async function bindings() {
     console.log("re-upgrade grants OK");
   }
 }
-({ seed, rollbackEdits, bindings })[process.argv[2]]().catch((e) => { console.error(e.message); process.exit(1); });
+({ seed, rollbackEdits, bindings, tokenNew })[process.argv[2]]().catch((e) => { console.error(e.message); process.exit(1); });

@@ -238,7 +238,7 @@ function layerRootsAny(principal, cap) {
 function isSuperAdmin(principal) {
   return (principal.bindings || []).some(
     (b) => b.role === "superadmin" && b.scope === "global"
-  ) && !(principal.token && Array.isArray(principal.token.scopes));
+  ) && !(principal.token && (Array.isArray(principal.token.scopes) || Array.isArray(principal.token.missions)));
 }
 
 // Coarse account role for display: superadmin | mission_admin | user

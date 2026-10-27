@@ -19,7 +19,7 @@ async function blocked(r) {
 
 test.describe('Guests on open sites', () => {
   test.skip(
-    !['off', 'none'].includes(process.env.MMGIS_TEST_AUTH_MODE),
+    !['public', 'optional'].includes(process.env.MMGIS_TEST_SITE_ACCESS),
     'SKIP: needs SITE_ACCESS=public or optional'
   );
 

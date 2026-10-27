@@ -4,7 +4,7 @@ import { loginHeaders } from "../../helpers/auth.js";
 const baseURL = process.env.TEST_BASE_URL || "http://localhost:18888";
 const ADMIN = { username: "test_admin", password: "TestAdmin1!" }; // pragma: allowlist secret
 const PASSWORD = "Export1!x"; // pragma: allowlist secret
-const isLocal = process.env.MMGIS_TEST_AUTH_MODE === "local";
+const isLocal = process.env.MMGIS_TEST_SITE_ACCESS === "required";
 
 const stamp = Date.now();
 const missionA = `test_export_a_${stamp}`;

@@ -90,7 +90,10 @@ function providerMap() {
 }
 
 const availableProviders = () => Array.from(providerMap().keys());
-const conflictingProviders = () => (providerMap(), Array.from(conflicts));
+const conflictingProviders = () => {
+  providerMap();
+  return Array.from(conflicts);
+};
 const getProvider = (id) => providerMap().get(id) || null;
 const enabledProviders = (ids = siteAccess.getProviders()) =>
   ids.map(getProvider).filter(Boolean);

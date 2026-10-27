@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Accounts API', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
-  test.skip(process.env.MMGIS_TEST_AUTH_MODE === 'off', 'SKIP: Requires AUTH != off for account management');
+  test.skip(process.env.MMGIS_TEST_SITE_ACCESS === 'public', 'SKIP: Requires SITE_ACCESS != public for account management');
 
   test('GET /api/accounts/entries returns user list or requires auth', async ({ request }) => {
     const response = await request.get(`${baseURL}/api/accounts/entries`);

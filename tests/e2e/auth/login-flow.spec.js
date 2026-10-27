@@ -18,7 +18,7 @@ import { TEST_ADMIN } from '../../fixtures/user-credentials.js';
 test.describe('Login Flow', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(
-      process.env.MMGIS_TEST_AUTH_MODE !== 'local',
+      process.env.MMGIS_TEST_SITE_ACCESS !== 'required',
       'SKIP: AUTH is not local — no login page'
     );
   });

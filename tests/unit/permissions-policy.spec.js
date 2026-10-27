@@ -258,6 +258,12 @@ test.describe('Permissions policy: long-term tokens', () => {
     expect(isSuperAdmin(t)).toBe(true);
   });
 
+  test('a mission-limited token is not a SuperAdmin, even with every capability', () => {
+    const t = withToken(creator, { missions: [M1] });
+    expect(can(t, 'mission.config.edit', mission(M1))).toBe(true);
+    expect(isSuperAdmin(t)).toBe(false);
+  });
+
   test('a scoped token only has its scopes', () => {
     const t = withToken(creator, { scopes: ['mission.view', 'data.stac.read'] });
     expect(can(t, 'mission.view', mission(M1))).toBe(true);

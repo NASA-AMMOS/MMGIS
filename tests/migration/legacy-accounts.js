@@ -73,6 +73,7 @@ function api(jar, method, url, body, localAddress) {
           "Content-Type": "application/json",
           ...(payload ? { "Content-Length": Buffer.byteLength(payload) } : {}),
           ...(jar.cookie ? { Cookie: jar.cookie } : {}),
+          ...(jar.authorization ? { Authorization: jar.authorization } : {}),
         },
       },
       (res) => {
@@ -183,11 +184,25 @@ async function seed() {
       probes.push({ ...p, ok: (await login(p.username, p.password)).ok });
       await sleep(50);
     }
+  // Sessions and a long-term token issued here must keep working after the upgrade
+  const missionsOf = async (jar) => (((await api(jar, "GET", "/api/configure/missions")).json || {}).missions || []).slice().sort();
+  const sessions = [];
+  for (const a of [ADMIN, ...ACCOUNTS]) {
+    const s = await login(a.username, a.password);
+    if (s.ok) sessions.push({ username: a.username, cookie: s.jar.cookie, missions: await missionsOf(s.jar) });
+    await sleep(50);
+  }
+  r = await api(admin, "POST", "/api/longtermtoken/generate", { period: "never", name: "legacy" });
+  must(r.json && r.json.status === "success", `token generate failed: ${r.text.slice(0, 200)}`);
+  const legacyToken = { token: r.json.body.token };
+  legacyToken.missions = await missionsOf({ authorization: `Bearer ${legacyToken.token}` });
+  must(legacyToken.missions.length > 0, "legacy token sees no missions on the previous release");
+
   const final = (await api(admin, "GET", "/api/accounts/entries")).json.body.entries;
   fs.mkdirSync(path.dirname(FIXTURE), { recursive: true });
   fs.writeFileSync(
     FIXTURE,
-    JSON.stringify({ base: BASE_URL, accounts: [ADMIN, ...ACCOUNTS], legacy: final, probes, hashes: await hashes() }, null, 2)
+    JSON.stringify({ base: BASE_URL, accounts: [ADMIN, ...ACCOUNTS], legacy: final, probes, sessions, legacyToken, hashes: await hashes() }, null, 2)
   );
   console.log(`Seeded ${final.length} accounts and ${probes.length} login probes -> ${FIXTURE}`);
   console.table(final.map((e) => ({ username: e.username, permission: e.permission, managing: JSON.stringify(e.missions_managing), viewing: JSON.stringify(e.missions_viewing) })));
@@ -196,6 +211,19 @@ async function seed() {
 async function verify() {
   const fixture = JSON.parse(fs.readFileSync(FIXTURE, "utf8"));
   const failures = [];
+
+  // 0. Sessions and the long-term token from the previous release still work, before any new login
+  const missionsOf = async (jar) => (((await api(jar, "GET", "/api/configure/missions")).json || {}).missions || []).slice().sort();
+  for (const s of fixture.sessions || []) {
+    const now = await missionsOf({ cookie: s.cookie });
+    if (JSON.stringify(now) !== JSON.stringify(s.missions))
+      failures.push(`previous-release session of ${s.username} sees ${JSON.stringify(now)}, was ${JSON.stringify(s.missions)}`);
+  }
+  if (fixture.legacyToken) {
+    const now = await missionsOf({ authorization: `Bearer ${fixture.legacyToken.token}` });
+    if (JSON.stringify(now) !== JSON.stringify(fixture.legacyToken.missions))
+      failures.push(`legacy long-term token sees ${JSON.stringify(now)}, was ${JSON.stringify(fixture.legacyToken.missions)}`);
+  }
 
   // 1. Stored hashes are byte-for-byte unchanged
   const before = new Map(fixture.hashes.map((h) => [h.id, h]));
@@ -272,7 +300,9 @@ async function verify() {
     console.error(`FAILED (${failures.length}):\n- ` + failures.join("\n- "));
     process.exit(1);
   }
-  console.log(`OK: ${after.length} password hashes unchanged, ${results.length} login probes identical.`);
+  console.log(
+    `OK: ${after.length} password hashes unchanged, ${results.length} login probes identical, ${(fixture.sessions || []).length} previous-release sessions and the legacy token see the same missions.`
+  );
 }
 
 // Prints a fingerprint of everything an upgrade must not change before startup

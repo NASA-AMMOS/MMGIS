@@ -131,7 +131,7 @@ const getConfig = (who, mission, opts) =>
   api(who, 'GET', `/api/configure/get?mission=${encodeURIComponent(mission)}`, null, opts);
 
 test.describe.serial('Permission matrix', () => {
-  test.skip(process.env.MMGIS_TEST_AUTH_MODE !== 'local', 'SKIP: needs SITE_ACCESS=required');
+  test.skip(process.env.MMGIS_TEST_SITE_ACCESS !== 'required', 'SKIP: needs SITE_ACCESS=required');
 
   test.beforeAll(async () => {
     const r = await api(admin, 'POST', '/api/users/login', ADMIN, { localAddress: freshAddress() });

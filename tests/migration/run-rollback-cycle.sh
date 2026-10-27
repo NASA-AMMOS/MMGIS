@@ -19,7 +19,7 @@ old(){ (cd "$WORK" && exec node scripts/server.js > "$LOGS/rb-old-$1.log" 2>&1) 
 new(){ env -u AUTH SITE_ACCESS=required AUTH_PROVIDERS='["local"]' PORT=$NEW NODE_ENV=test DB_NAME=mmgis-test node scripts/server.js > "$LOGS/rb-new-$1.log" 2>&1 & PID=$!; wait_for $NEW "$LOGS/rb-new-$1.log"; sleep 4; }
 stop(){ kill $PID; wait $PID 2>/dev/null || true; PID=; }
 echo "== dev seed"; old 1; BASE_URL=http://127.0.0.1:$OLD node $S seed; stop
-echo "== upgrade 1"; new 1; node $S bindings; stop
+echo "== upgrade 1"; new 1; node $S bindings; BASE_URL=http://127.0.0.1:$NEW node $S tokenNew; stop
 echo "== rollback edits on dev"; old 2; BASE_URL=http://127.0.0.1:$OLD node $S rollbackEdits; stop
 echo "== re-upgrade"; new 2; VERIFY=1 node $S bindings; stop
 echo "== third start (no changes)"; new 3; stop

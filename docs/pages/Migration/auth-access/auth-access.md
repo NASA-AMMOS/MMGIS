@@ -82,7 +82,7 @@ No code or proxy changes are needed.
    - a user outside `CSSO_GROUPS` gets 403;
    - an admin logs in to `/configure` with their local account.
 
-4. To roll back, restore the previous image and env. Accounts work as before; long-term tokens used on this release must be regenerated (section 4).
+4. To roll back, run `npm run auth:migrate -- --end-sessions`, then restore the previous image and env. Accounts work as before; long-term tokens used on this release must be regenerated (section 2).
 
 What CSSO users and admins will notice:
 
@@ -127,7 +127,7 @@ If you roll back, change accounts on the previous release and then upgrade again
 
 Long-term tokens used on this release don't work after a rollback. On first use their stored value is replaced by a hash that the previous release can't check, so it treats them as having no access (for example, empty mission lists) instead of refusing them. Tokens created on this release never worked there. Generate new tokens on the previous release after rolling back.
 
-When rolling back, also clear the sessions table (`DELETE FROM session;`) so everyone signs in again. Sessions started before the upgrade still carry the old `permission` value, and the previous release trusts it.
+**Before rolling back, sign everyone out:** run `npm run auth:migrate -- --end-sessions` from this release against the same database, then start the previous image. Sessions still carry a legacy `permission` value that the previous release trusts, so without this step an account demoted on this release keeps its old rights there until its session expires.
 
 ## 3. What changes for each kind of account
 

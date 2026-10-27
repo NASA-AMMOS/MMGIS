@@ -5,6 +5,7 @@
  *
  *   npm run auth:migrate -- --dry-run   Report what would happen. Writes nothing.
  *   npm run auth:migrate                Apply (the server also does this on first start).
+ *   npm run auth:migrate -- --end-sessions  Sign everyone out (run before rolling back).
  *
  * The dry run may be run before upgrading, against the old .env: a legacy AUTH
  * value is translated to its SITE_ACCESS / AUTH_PROVIDERS replacement.
@@ -19,6 +20,7 @@ if (args.has("--force")) {
   process.exit(1);
 }
 const json = args.has("--json");
+const endSessions = args.has("--end-sessions");
 
 const siteAccess = require("../API/permissions/siteAccess");
 const providers = require("../API/permissions/providers");
@@ -57,6 +59,15 @@ async function main() {
   const legacyImport = require("../API/permissions/legacyImport");
   const { User } = require("../plugins/core/backend/Users/models/user");
   const permissionModels = require("../API/permissions/models");
+
+  // The previous release trusts the permission saved in each session, so a rollback
+  // must not keep sessions from this release
+  if (endSessions) {
+    const [, result] = await sequelize.query('DELETE FROM "session"');
+    console.log(`Ended ${result && result.rowCount != null ? result.rowCount : "all"} session(s). Everyone signs in again.`);
+    await sequelize.close();
+    return;
+  }
 
   const imported = await legacyImport.alreadyImported();
   // Read-only check that every stored password is a bcrypt hash; they are never rewritten

@@ -247,7 +247,6 @@ export default function Main() {
       break;
     case "users":
     case "access":
-    case "ua_v1":
       Page = <UsersAccess />;
       break;
     case "data_formats":

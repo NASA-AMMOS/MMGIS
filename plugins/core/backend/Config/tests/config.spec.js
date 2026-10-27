@@ -353,7 +353,7 @@ test.describe('Config API', () => {
   // Authorization: non-admin rejected (skip if AUTH=off)
   test('rejects non-admin config changes', async ({ request }) => {
     test.skip(
-      process.env.MMGIS_TEST_AUTH_MODE === 'off',
+      process.env.MMGIS_TEST_SITE_ACCESS === 'public',
       'SKIP: Requires AUTH != off to test authorization',
     );
 
