@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { makeStyles } from "@mui/styles";
@@ -37,21 +37,22 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 // Keeps ?mission= or ?page= in the URL so reloading or sharing returns to the same place
-function useUrlState(dispatch) {
+function useUrlState(dispatch, missionsLoaded) {
   const mission = useSelector((state) => state.core.mission);
   const page = useSelector((state) => state.core.page);
   const missions = useSelector((state) => state.core.missions);
-  const restored = useRef(false);
+  const [restored, setRestored] = useState(false);
   useEffect(() => {
-    if (restored.current || !missions || missions.length === 0) return;
-    restored.current = true;
+    if (restored || !missionsLoaded) return;
     const q = new URLSearchParams(window.location.search);
     if (q.get("page")) dispatch(setPage({ page: q.get("page") }));
     else if (q.get("mission") && missions.includes(q.get("mission")))
       dispatch(setMission(q.get("mission")));
-  }, [missions, dispatch]);
+    // Set with the restore so the first URL write sees the restored state
+    setRestored(true);
+  }, [restored, missionsLoaded, missions, dispatch]);
   useEffect(() => {
-    if (!restored.current) return;
+    if (!restored) return;
     const q = new URLSearchParams(window.location.search);
     q.delete("mission");
     q.delete("page");
@@ -63,13 +64,14 @@ function useUrlState(dispatch) {
       "",
       `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`,
     );
-  }, [mission, page]);
+  }, [restored, mission, page]);
 }
 
 export default function Configure() {
   const c = useStyles();
   const dispatch = useDispatch();
-  useUrlState(dispatch);
+  const [missionsLoaded, setMissionsLoaded] = useState(false);
+  useUrlState(dispatch, missionsLoaded);
   useEffect(() => {
     calls.api(
       "missions",
@@ -81,8 +83,10 @@ export default function Configure() {
             a.localeCompare(b, undefined, { sensitivity: "base" }),
           );
         dispatch(setMissions(missions));
+        setMissionsLoaded(true);
       },
       (res) => {
+        setMissionsLoaded(true);
         dispatch(
           setSnackBarText({
             text: res?.message || "Failed to get available missions.",
