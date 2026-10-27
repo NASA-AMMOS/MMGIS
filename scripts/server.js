@@ -823,7 +823,7 @@ setups.getBackendSetups(function (setups) {
   if (undeclared.length > 0) {
     logger(
       "infrastructure_error",
-      "Routes without a declared permission (use s.authorize): " +
+      "Routes without a declared permission (use s.authorize, or ctx.authorize in auth providers): " +
         undeclared.map((r) => `${r.methods} ${r.path}`).join(", "),
       "server",
     );
@@ -886,8 +886,17 @@ setups.getBackendSetups(function (setups) {
               : "guest";
 
           const groups = req.groups ? Object.keys(req.groups) : [];
+          // Which provider signed this browser in, so the client signs out the right way
+          const p = req.principal || {};
+          let loginProvider = "";
+          if (p.authenticated && p.kind === "external") loginProvider = p.provider || "";
+          else if (p.authenticated && p.kind === "user")
+            loginProvider = (req.session && req.session.provider) || "local";
           res.render("../build/index.pug", {
             user: user,
+            LOGIN_PROVIDER: loginProvider,
+            LOGIN_PER_REQUEST: String(p.kind === "external"),
+            LOGOUT_URL: providers.logoutUrl(loginProvider) || "",
             role: role,
             groups: JSON.stringify(groups),
             SITE_ACCESS: siteAccess.getSiteAccess(),

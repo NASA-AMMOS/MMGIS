@@ -68,10 +68,13 @@ function validate(env = process.env) {
   // Lazy: the provider registry depends on this module
   const registry = require("./providers");
   const available = registry.availableProviders();
+  const conflicting = registry.conflictingProviders();
   providers.forEach((p) => {
+    if (conflicting.includes(p))
+      errors.push(`AUTH_PROVIDERS: more than one plugin folder provides '${p}'. Give each one its own "provider" id.`);
     if (available.includes(p)) return;
     errors.push(
-      `AUTH_PROVIDERS lists an unknown provider '${String(p).replace(/[^\w.-]/g, "").slice(0, 40)}'. Available: ${available.join(", ")}. To write a provider, see ${registry.DOCS_URL}`
+      `AUTH_PROVIDERS lists an unknown provider '${String(p).replace(/[^\w.-]/g, "").slice(0, 40)}'. Available: ${available.join(", ")}. A provider must be in plugins/core/auth/<Name>/ with a plugin.json whose "provider" is this id; if it is, see the errors logged above for why it did not load. Guide: ${registry.DOCS_URL}`
     );
   });
   if (errors.length === 0) errors.push(...registry.validateProviders(providers, env));

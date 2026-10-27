@@ -199,6 +199,31 @@ test.describe('login links and returnTo', () => {
   });
 });
 
+test.describe('provider hook results', () => {
+  test('non-array, async and throwing validate() results are reported, and duplicate ids refuse startup', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-auth-'));
+    try {
+      writePlugin(root, 'core', 'Str', coreManifest('str'), 'module.exports = { validate: () => "STR_URL must be set" };');
+      writePlugin(root, 'core', 'Async', coreManifest('async'), 'module.exports = { validate: async () => [] };');
+      writePlugin(root, 'core', 'Throws', coreManifest('throws'), 'module.exports = { validate: () => { throw new Error("bad env") } };');
+      writePlugin(root, 'core', 'Proxy', { ...coreManifest('proxy'), login_url: 'https://proxy.test/login', login_path: 'nope' });
+      writePlugin(root, 'core', 'Twin1', coreManifest('twin'));
+      writePlugin(root, 'core', 'Twin2', coreManifest('twin'));
+      providers.loadProviders(root);
+      const problems = providers.validateProviders(['str', 'async', 'throws']);
+      expect(problems).toContain('STR_URL must be set');
+      expect(problems.join()).toMatch(/'async': validate\(env\) must return an array of strings synchronously/);
+      expect(problems.join()).toMatch(/'throws': validate\(env\) threw bad env/);
+      expect(providers.loginLinks(['proxy'])).toEqual([{ id: 'proxy', label: 'Log in with Proxy', url: 'https://proxy.test/login' }]);
+      expect(providers.providerWarnings(['proxy']).join()).toMatch(/login_path" must start with/);
+      expect(providers.conflictingProviders()).toEqual(['twin']);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+      providers.loadProviders(REAL_ROOT);
+    }
+  });
+});
+
 test.describe('provider group sync', () => {
   test('membership of provider-sourced groups mirrors the reported groups', async () => {
     const m = fakeModels({

@@ -85,6 +85,13 @@ var Login = {
                 this.beganLoggedIn = true
             }
         }
+        // Set by the server on production builds
+        const loginProvider = window.mmgisglobal.loginProvider
+        if (typeof loginProvider === 'string' && loginProvider !== '' && loginProvider !== 'local' && !loginProvider.startsWith('#{')) {
+            this.provider = loginProvider
+            this.providerPerRequest = window.mmgisglobal.loginPerRequest === 'true'
+            this.providerLogoutUrl = window.mmgisglobal.logoutUrl || null
+        }
 
         Login.loginBar = $('<div>')
             .attr('id', 'loginDiv')
@@ -204,7 +211,7 @@ var Login = {
     // Logs the current user out. `onDone` is called after a non-redirecting
     // logout completes (i.e. not for csso redirects or SITE_ACCESS=required reloads).
     logout: function (onDone) {
-        if (window.mmgisglobal.authProviders.includes('csso') && Login.beganLoggedIn) {
+        if (Login.provider === 'csso' && Login.beganLoggedIn) {
             Login.loggedIn = false
             window.location.href = '/ssologoutredirect'
             return
@@ -316,7 +323,7 @@ var Login = {
                 el.append(
                     $('<a>')
                         .addClass('loginProviderBtn')
-                        .attr('href', `${root}${link.path}?returnTo=${encodeURIComponent(returnTo)}`)
+                        .attr('href', link.url || `${root}${link.path}?returnTo=${encodeURIComponent(returnTo)}`)
                         .text(link.label)
                 )
             })

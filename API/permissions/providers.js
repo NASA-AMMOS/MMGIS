@@ -24,9 +24,12 @@ const DOCS_URL = "https://nasa-ammos.github.io/MMGIS/contributing/auth-providers
 const DEFAULT_PLUGINS_ROOT = path.join(__dirname, "..", "..", "plugins");
 
 let registry = null;
+// Provider ids claimed by more than one plugin folder
+let conflicts = new Set();
 
 function loadProviders(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
   const found = new Map();
+  conflicts = new Set();
   const discovered = discoverPlugins(pluginsRoot, "auth", "plugin.json", {
     loggerCategory: "AuthProviders",
   });
@@ -58,6 +61,7 @@ function loadProviders(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
       continue;
     }
     if (found.has(id)) {
+      conflicts.add(id);
       refuse(`provider '${id}' is already provided by ${found.get(id).name}.`);
       continue;
     }
@@ -69,7 +73,7 @@ function loadProviders(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
     } catch (err) {
       logger(
         "error",
-        `Auth provider '${p.container}/auth/${p.name}' was not loaded: its plugin.js threw ${err && err.stack ? err.stack : err}`,
+        `Auth provider '${p.container}/auth/${p.name}' was not loaded: its plugin.js threw ${err && err.stack ? err.stack.split("\n").slice(0, 2).join(" ") : err}`,
         "AuthProviders"
       );
       continue;
@@ -86,6 +90,7 @@ function providerMap() {
 }
 
 const availableProviders = () => Array.from(providerMap().keys());
+const conflictingProviders = () => (providerMap(), Array.from(conflicts));
 const getProvider = (id) => providerMap().get(id) || null;
 const enabledProviders = (ids = siteAccess.getProviders()) =>
   ids.map(getProvider).filter(Boolean);
@@ -94,14 +99,32 @@ function collect(hook, ids, env) {
   const out = [];
   enabledProviders(ids).forEach((p) => {
     if (typeof p.impl[hook] !== "function") return;
-    const result = p.impl[hook](env);
+    let result;
+    try {
+      result = p.impl[hook](env);
+    } catch (err) {
+      out.push(`Auth provider '${p.id}': ${hook}(env) threw ${err && err.message ? err.message : err}`);
+      return;
+    }
     if (Array.isArray(result)) out.push(...result.map(String));
+    else if (typeof result === "string" && result !== "") out.push(result);
+    else if (result != null)
+      out.push(
+        `Auth provider '${p.id}': ${hook}(env) must return an array of strings${
+          result && typeof result.then === "function" ? " synchronously (it returned a Promise)" : ""
+        }.`
+      );
   });
   return out;
 }
 const validateProviders = (ids, env = process.env) => collect("validate", ids, env);
 const providerWarnings = (ids = siteAccess.getProviders(), env = process.env) => {
   const out = collect("warnings", ids, env);
+  enabledProviders(ids).forEach((p) => {
+    const lp = p.manifest.login_path;
+    if (lp != null && (typeof lp !== "string" || !lp.startsWith("/")))
+      out.push(`Auth provider '${p.id}': plugin.json "login_path" must start with "/", so no login button is shown.`);
+  });
   if (ids.includes("csso") && !ids.includes("local"))
     out.push(
       'AUTH_PROVIDERS does not include local, so local admin accounts cannot sign in to /configure. Use ["csso","local"] to keep them.'
@@ -129,7 +152,14 @@ function normalizeIdentity(provider, raw) {
 async function identify(req) {
   for (const p of enabledProviders()) {
     if (typeof p.impl.identify !== "function") continue;
-    const identity = normalizeIdentity(p.id, await p.impl.identify(req));
+    let raw;
+    try {
+      raw = await p.impl.identify(req);
+    } catch (err) {
+      logger("error", `Auth provider '${p.id}': identify(req) threw; treating the request as not identified.`, "AuthProviders", req, err);
+      continue;
+    }
+    const identity = normalizeIdentity(p.id, raw);
     if (identity) return identity;
   }
   return null;
@@ -253,15 +283,19 @@ function returnTo(value, fallback = `${rootPath()}/`) {
 }
 
 // Login entry points that the login page, Configure sign-in and the in-app modal show.
-// A provider gets one by setting "login_path" in its plugin.json.
+// "login_path" (a route of the provider) gets returnTo appended; "login_url" (e.g. a
+// proxy's own login page, for per-request providers) is linked as is.
 function loginLinks(ids = siteAccess.getProviders()) {
-  return enabledProviders(ids)
-    .filter((p) => typeof p.manifest.login_path === "string" && p.manifest.login_path.startsWith("/"))
-    .map((p) => ({
-      id: p.id,
-      label: p.manifest.login_label || `Log in with ${p.label}`,
-      path: `api/auth/${p.id}${p.manifest.login_path}`,
-    }));
+  const out = [];
+  enabledProviders(ids).forEach((p) => {
+    const m = p.manifest;
+    const label = m.login_label || `Log in with ${p.label}`;
+    if (typeof m.login_path === "string" && m.login_path.startsWith("/"))
+      out.push({ id: p.id, label, path: `api/auth/${p.id}${m.login_path}` });
+    else if (typeof m.login_url === "string" && /^(\/(?!\/)|https?:\/\/)/.test(m.login_url))
+      out.push({ id: p.id, label, url: m.login_url });
+  });
+  return out;
 }
 
 // Where "Sign out" sends a user signed in by this provider (plugin.json "logout_url"), if anywhere
@@ -313,6 +347,7 @@ module.exports = {
   DOCS_URL,
   loadProviders,
   availableProviders,
+  conflictingProviders,
   getProvider,
   enabledProviders,
   validateProviders,

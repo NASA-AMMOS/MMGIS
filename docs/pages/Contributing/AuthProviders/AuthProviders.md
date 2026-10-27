@@ -68,8 +68,10 @@ There are two kinds of provider. Pick one:
 | `tier`, `overridable` | yes | Must be `"core"` and `false`. Providers can't be overridden by external plugin containers. |
 | `display_name` | no | Shown on login buttons (`Log in with <display_name>`). Defaults to the folder name. |
 | `login_path` | no | Session providers: the route that starts a login, relative to `/api/auth/<id>`. When set, the login page, the Configure sign-in page and the in-app login modal show a button for it. |
+| `login_url` | no | Per-request providers: a login page outside MMGIS (for example the proxy's), linked as is. Use it instead of `login_path`. |
 | `login_label` | no | Text of that button. |
 | `logout_url` | no | Where the main site's **Sign out** sends the browser after ending the MMGIS session, e.g. your identity provider's logout page. Per-request providers need it, because MMGIS can't end a proxy's login. |
+| `dependencies` | no | npm/pip packages your provider needs, e.g. `{ "npm": { "ldapts": "^7.0.0" } }`. `node scripts/resolve-plugin-deps.js` collects them with every other plugin's (see `plugins/README.md`, Dependencies). |
 
 ## plugin.js hooks
 
@@ -89,7 +91,9 @@ module.exports = {
 ```
 
 - `identify` runs on every HTTP request and websocket connection, for each enabled provider in `AUTH_PROVIDERS` order. The first provider that returns an identity wins. A signed-in MMGIS session takes precedence over it.
-- `validate(env)` and `warnings(env)` get `process.env`. Read your own settings from it and name them `<PROVIDERID>_*` (for example `MYPROVIDER_URL`). Document them in `docs/pages/Setup/ENVs/ENVs.md` and `sample.env`.
+- `validate(env)` and `warnings(env)` get `process.env` and must return an array of strings synchronously (an empty array means no problems). Anything else, or an exception, is reported at startup under your provider id.
+- If `identify(req)` throws, the error is logged under your provider id and the request is treated as not identified.
+- Read your provider's settings from `env` and name them `<PROVIDERID>_*` (for example `MYPROVIDER_URL`). Document them in `docs/pages/Setup/ENVs/ENVs.md` and `sample.env`.
 - Every route you mount must declare its permission, usually `ctx.authorize.public("...")` for login pages; startup lists routes that don't. See [Backend Permissions](/MMGIS/contributing/permissions).
 - JSON and URL-encoded bodies are already parsed into `req.body`, and `req.session` is the MMGIS session.
 
@@ -101,7 +105,7 @@ An identity is:
 { subject, username?, email?, groups?: string[], session? }
 ```
 
-- `subject` (required) is the provider's stable id for the person. MMGIS links accounts by provider + subject, never by username, so renames at the provider keep the same account.
+- `subject` (required) is the provider's stable id for the person. MMGIS links accounts by provider + subject, never by username, so renames at the provider keep the same account (and its first username; MMGIS doesn't rename accounts).
 - `username` defaults to `subject`. `email` is optional. `groups` are the provider's group names.
 
 **Session providers.** `await ctx.completeLogin(req, identity)`:
@@ -134,6 +138,7 @@ There's no database handle or config object; read settings from `process.env`.
 ## Login buttons, returnTo and sign out
 
 - **Buttons.** With `login_path` set, the login page, Configure sign-in and the main site's login modal link to `/api/auth/<id><login_path>?returnTo=<the page the user was on>`. `GET /api/auth` returns the enabled providers and these links.
+- **Keeping provider tokens.** To keep something for later (for example an ID token for RP-initiated logout), set it on `req.session` after `completeLogin` resolves and call `req.session.save(...)` before redirecting.
 - **returnTo.** Read it with `ctx.returnTo(req.query.returnTo)`. `completeLogin` starts a new session, so read anything you stored in `req.session` (state, nonce, returnTo) **before** calling it, then `res.redirect(...)`.
 - **On a site without `local`.** With `SITE_ACCESS=required` and no `local`, the login page shows only the provider buttons. Without any button it shows the "not allowed" page meant for proxies.
 - **Main site.** On page load the main site asks `/api/users/login` (`useToken`) who is signed in; provider sessions and per-request identities are reported as signed in, with no saved-login cookie.
@@ -291,6 +296,7 @@ Declare both with `ctx.authorize.public(...)`, set `"login_path": "/login"`, and
 - **Groups:** create a **Members from <PROVIDER>** group, give it a role, log in and check what the user can see; remove the group at the provider and log in again.
 - **Coexistence:** local accounts still log in with your provider enabled.
 - **Removal:** take the id out of `AUTH_PROVIDERS` and restart: its routes return 404 and its sessions and tokens stop working. Its accounts, groups and grants are kept.
+- **Websockets:** scripted websocket clients must send an `Origin` header, or MMGIS closes the connection (the reason is only in the server log).
 - **Unit tests:** see `tests/unit/permissions-providers.spec.js` for loading a provider from a temporary plugins folder.
 
 Redirect flows are easiest to test with a production build (`npm run build`, then `NODE_ENV=production npm start`). In development the map is served on a different port (PORT+1) from the API, so redirects back to `/` land on the API port.

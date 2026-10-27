@@ -38,5 +38,5 @@ body.mmgisScrollbar
         .providerLinks
           .providerOr or
           each link in LOGIN_LINKS
-            a.providerBtn(href=ROOT_PATH + link.path + '?returnTo=' + encodeURIComponent(RETURN_TO))= link.label
+            a.providerBtn(href=link.url || (ROOT_PATH + link.path + '?returnTo=' + encodeURIComponent(RETURN_TO)))= link.label
       div.version v#{VERSION}
