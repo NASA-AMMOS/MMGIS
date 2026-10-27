@@ -270,10 +270,11 @@ img {
   display: block;
   box-sizing: border-box;
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #08aeea;
+  padding: 10px 12px;
+  border: 0;
   border-radius: 6px;
-  color: #dfdeee;
+  background: #ffffff;
+  color: #1a1a1a;
   text-align: center;
   text-decoration: none;
   font-weight: 600;
@@ -281,6 +282,7 @@ img {
 }
 .providerBtn:hover,
 .providerBtn:focus-visible {
-  background: #08aeea;
-  color: #08222e;
+  background: #d9e9f0;
+  color: #1a1a1a;
+  outline: none;
 }

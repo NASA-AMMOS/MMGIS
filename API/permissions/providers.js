@@ -283,7 +283,8 @@ const providerLimiter = () =>
 // Mounts GET /api/auth (the login entry points) and each enabled provider's routes at /api/auth/<id>
 function mountProviderRoutes(app, { registerRouter, authorize }) {
   const list = express.Router();
-  list.get("/", authorize.public("lists the enabled login providers"), (req, res) => {
+  const { apilimiter } = require("../../scripts/rateLimiters");
+  list.get("/", apilimiter, authorize.public("lists the enabled login providers"), (req, res) => {
     res.send({
       status: "success",
       providers: enabledProviders().map((p) => ({ id: p.id, label: p.label })),
