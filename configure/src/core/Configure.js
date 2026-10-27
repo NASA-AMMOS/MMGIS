@@ -86,7 +86,6 @@ export default function Configure() {
         setMissionsLoaded(true);
       },
       (res) => {
-        setMissionsLoaded(true);
         dispatch(
           setSnackBarText({
             text: res?.message || "Failed to get available missions.",
