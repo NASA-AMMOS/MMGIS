@@ -21,6 +21,10 @@ if (args.has("--force")) {
 }
 const json = args.has("--json");
 const endSessions = args.has("--end-sessions");
+if (endSessions && dryRun) {
+  console.error("--end-sessions signs everyone out, so it can't be combined with --dry-run.");
+  process.exit(1);
+}
 
 const siteAccess = require("../API/permissions/siteAccess");
 const providers = require("../API/permissions/providers");
