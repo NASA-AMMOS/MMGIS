@@ -115,19 +115,3 @@ test.describe('validateTitilerExpression middleware', () => {
     expect(res.statusCode).toBe(400);
   });
 });
-
-test.describe('validateTitilerExpression on other methods', () => {
-  const call = (req) => {
-    const res = { statusCode: null, status(c) { this.statusCode = c; return this; }, json() { return this; } };
-    let nextCalled = false;
-    createTitilerExpressionValidator()({ query: {}, body: {}, ...req }, res, () => (nextCalled = true));
-    return { nextCalled, status: res.statusCode };
-  };
-  test('checks the query string of a POST', () => {
-    expect(call({ method: 'POST', query: { expression: '__import__("os")' } }).status).toBe(400);
-    expect(call({ method: 'POST', query: { expression: 'b1*2' } }).nextCalled).toBe(true);
-  });
-  test('checks query and body together', () => {
-    expect(call({ method: 'POST', query: { expression: 'b1' }, body: { expression: 'b1.real' } }).status).toBe(400);
-  });
-});

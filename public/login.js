@@ -1,8 +1,6 @@
 let toggleState = "login";
 
 function login() {
-  // Sites without local login only show provider links
-  if (!document.getElementById("username")) return;
   if (
     document.getElementById("username").value === "" ||
     document.getElementById("pwd").value === ""
@@ -34,15 +32,14 @@ function login() {
           window.location.reload();
         } else {
           //error
-          document.getElementById("msg").innerText =
-            (data && data.message) || "Invalid username or password";
+          document.getElementById("msg").innerHTML =
+            "Invalid username or password";
           document.getElementById("msg").style.opacity = 1;
         }
       },
-      error: function (xhr) {
+      error: function () {
         //error
-        document.getElementById("msg").innerText =
-          (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.";
+        document.getElementById("msg").innerHTML = "Server error.";
         document.getElementById("msg").style.opacity = 1;
       },
     });
@@ -93,6 +90,7 @@ function login() {
 }
 function toggle() {
   if (toggleState === "login") {
+    document.getElementById("container").style.height = "635px";
     document.getElementById("login").innerHTML = "Sign Up";
     document.getElementById("toggle").innerHTML = "Or Log In";
 
@@ -103,9 +101,11 @@ function toggle() {
     document.getElementById("pwd_description").style.display = "block";
     document.getElementById("pwd_retype_label").style.display = "block";
     document.getElementById("pwd_retype").style.display = "block";
+    document.getElementById("pwd_label").style.top = "348px";
 
     toggleState = "signup";
   } else {
+    document.getElementById("container").style.height = "440px";
     document.getElementById("login").innerHTML = "Log In";
     document.getElementById("toggle").innerHTML = "Or Sign Up";
 
@@ -120,13 +120,14 @@ function toggle() {
 
     document.getElementById("pwd_retype").style.display = "none";
 
+    document.getElementById("pwd_label").style.top = "270px";
 
     toggleState = "login";
   }
 }
 
 $(document).ready(function () {
-  if (allowSignup === true && document.getElementById("toggleWrapper"))
+  if (allowSignup === true)
     document.getElementById("toggleWrapper").style.display = "flex";
   $(document).on("keypress", function (e) {
     if (e.which === 13) {

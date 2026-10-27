@@ -63,15 +63,16 @@ function createTitilerUrlValidator() {
       return next();
     }
 
-    // URLs from the query string, and from the body for other methods
-    const urls = [req.query.url, req.method !== "GET" ? req.body?.url : undefined]
-        .filter((v) => v !== undefined && v !== null);
+    // Extract URL from query parameter (GET) or request body (POST)
+    const url = req.method === "GET" ? req.query.url : req.body?.url;
 
-    // Every URL must match at least one allowed pattern
-    const url = urls.find(
-      (u) => typeof u !== "string" || !allowedPatterns.some((regex) => regex.test(u))
-    );
-    const isAllowed = url === undefined;
+    // If no URL parameter, let request through (TiTiler will handle the error)
+    if (!url) {
+      return next();
+    }
+
+    // Check if URL matches at least one allowed pattern
+    const isAllowed = allowedPatterns.some((regex) => regex.test(url));
 
     if (!isAllowed) {
       // Log blocked request for security audit

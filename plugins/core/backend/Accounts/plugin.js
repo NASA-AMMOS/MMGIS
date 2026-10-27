@@ -6,10 +6,10 @@ let setup = {
     s.app.use(
       s.ROOT_PATH + "/api/accounts",
       s.checkHeadersCodeInjection,
-      s.ensureUser({ forbid: true }),
+      s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.registerRouter("/api/accounts", router)
+      router
     );
   },
   //Once the server starts

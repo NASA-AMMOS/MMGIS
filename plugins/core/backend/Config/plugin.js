@@ -14,18 +14,12 @@ let setup = {
         s.ensureGroup(s.permissions.users),
         s.ensureAdmin(true),
         (req, res) => {
-          const user = req.principal.username || req.user || "";
-          const role = s.policy.accountRole(req.principal.bindings || []);
+          const user = process.env.AUTH === "csso" ? req.user : req.user || "";
+          const permission = req.session.permission || "000";
           res.render("../configure/build/index.pug", {
             user: user,
-            role: role,
-            SITE_ACCESS: s.siteAccess.getSiteAccess(),
-            AUTH_PROVIDERS: s.siteAccess.getProviders().join(","),
-            AUTH_LOCAL_ALLOW_SIGNUP: String(
-              process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true"
-            ),
-            AUTH_LOCAL_LOGIN: s.siteAccess.localAdminsOnly() ? "admins" : "all",
-            SELF_SIGNUP: String(s.siteAccess.selfSignupAllowed()),
+            permission: permission,
+            AUTH: process.env.AUTH,
             NODE_ENV: process.env.NODE_ENV,
             VERSION: configurePackageJson.version,
             PORT: process.env.PORT || "8888",
@@ -52,10 +46,10 @@ let setup = {
 
     s.app.use(
       s.ROOT_PATH + "/api/configure",
-      s.ensureUser({ forbid: true }),
+      s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.registerRouter("/api/configure", router)
+      router
     );
   },
   //Once the server starts

@@ -111,32 +111,8 @@ const useStyles = makeStyles((theme) => ({
       color: `${theme.palette.swatches.p[13]}`,
     },
   },
-  toolbarBox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    margin: "32px 32px 0px 32px",
-    padding: "12px 16px",
-    background: theme.palette.swatches.grey[850],
-    borderRadius: "4px",
-    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
-  },
-  field: {
-    "& .MuiInputBase-root": {
-      height: "34px",
-      fontSize: "14px",
-      background: theme.palette.swatches.grey[1000],
-    },
-  },
-  search: { width: "320px" },
-  grow: { flex: 1 },
-  barButton: {
-    height: "34px",
-    whiteSpace: "nowrap",
-    padding: "0px 16px !important",
-  },
   tableInner: {
-    margin: "0px 32px 32px 32px",
+    margin: "8px 32px 32px 32px",
     width: "calc(100% - 64px) !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
@@ -180,6 +156,11 @@ const useStyles = makeStyles((theme) => ({
       color: `${theme.palette.swatches.grey[900]} !important`,
     },
   },
+  addButton: {
+    whiteSpace: "nowrap",
+    padding: "5px 20px !important",
+    margin: "0px 10px !important",
+  },
   badge: {
     "& > span": {
       backgroundColor: `${theme.palette.swatches.p[11]} !important`,
@@ -205,6 +186,9 @@ const useStyles = makeStyles((theme) => ({
   bottomBar: {
     background: theme.palette.swatches.grey[850],
     boxShadow: "inset 10px 0px 10px -5px rgba(0,0,0,0.3)",
+  },
+  searchContainer: {
+    padding: "16px 32px 8px 32px",
   },
   th: {
     fontWeight: "bold !important",
@@ -278,6 +262,7 @@ EnhancedTableHead.propTypes = {
 
 function EnhancedTableToolbar(props) {
   const c = useStyles();
+  const dispatch = useDispatch();
 
   return (
     <Toolbar className={c.topbar}>
@@ -304,6 +289,17 @@ function EnhancedTableToolbar(props) {
           {`1) Create a Collection. 2) Add COG Items to the Collection. See MMGIS/auxiliary/stac for script examples. 3) Set a Tile Layer URL to 'stac-collection:{collection_name}'`}
         </Typography>
       </div>
+
+      <Button
+        variant="contained"
+        className={c.addButton}
+        endIcon={<AddIcon />}
+        onClick={() => {
+          dispatch(setModal({ name: "newStacCollection" }));
+        }}
+      >
+        New Collection
+      </Button>
     </Toolbar>
   );
 }
@@ -338,7 +334,7 @@ export default function STAC() {
             setSnackBarText({
               text: res?.message || "Failed to get STAC Collections.",
               severity: "error",
-            }),
+            })
           );
       },
       (res) => {
@@ -346,9 +342,9 @@ export default function STAC() {
           setSnackBarText({
             text: res?.message || "Failed to get STAC Collections.",
             severity: "error",
-          }),
+          })
         );
-      },
+      }
     );
   };
   useEffect(() => {
@@ -375,13 +371,9 @@ export default function STAC() {
     if (!searchTerm.trim()) {
       return stacCollections;
     }
-    return stacCollections.filter(
-      (collection) =>
-        collection.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (collection.description &&
-          collection.description
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())),
+    return stacCollections.filter(collection =>
+      collection.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (collection.description && collection.description.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [stacCollections, searchTerm]);
 
@@ -395,9 +387,9 @@ export default function STAC() {
     () =>
       stableSort(filteredCollections, getComparator(order, orderBy)).slice(
         page * rowsPerPage,
-        page * rowsPerPage + rowsPerPage,
+        page * rowsPerPage + rowsPerPage
       ),
-    [order, orderBy, page, rowsPerPage, filteredCollections],
+    [order, orderBy, page, rowsPerPage, filteredCollections]
   );
 
   const handleSearchChange = (event) => {
@@ -421,20 +413,20 @@ export default function STAC() {
             minifiedJson,
             `stac-collection-${collection.id}-export`,
             ".json",
-            "json",
+            "json"
           );
           dispatch(
             setSnackBarText({
               text: `Successfully exported collection: ${collection.id}`,
               severity: "success",
-            }),
+            })
           );
         } else {
           dispatch(
             setSnackBarText({
               text: "Failed to export collection",
               severity: "error",
-            }),
+            })
           );
         }
       },
@@ -443,9 +435,9 @@ export default function STAC() {
           setSnackBarText({
             text: err?.message || "Failed to export collection",
             severity: "error",
-          }),
+          })
         );
-      },
+      }
     );
   };
 
@@ -454,7 +446,7 @@ export default function STAC() {
       setModal({
         name: "importStacItems",
         collection: collection,
-      }),
+      })
     );
   };
 
@@ -463,36 +455,26 @@ export default function STAC() {
       <Box className={c.STAC}>
         <Paper className={c.STACInner}>
           <EnhancedTableToolbar numSelected={0} />
-
+          
+          <div className={c.searchContainer}>
+            <TextField
+              fullWidth
+              label="Search Collections"
+              variant="filled"
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder="Search by Collection ID or Description"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </div>
+          
           <TableContainer className={c.table}>
-            <div className={c.toolbarBox}>
-              <TextField
-                size="small"
-                className={`${c.field} ${c.search}`}
-                placeholder="Search by collection ID or description"
-                value={searchTerm}
-                onChange={handleSearchChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <span className={c.grow} />
-              <Button
-                variant="contained"
-                disableElevation
-                className={c.barButton}
-                startIcon={<AddIcon />}
-                onClick={() => {
-                  dispatch(setModal({ name: "newStacCollection" }));
-                }}
-              >
-                New Collection
-              </Button>
-            </div>
             <Table
               className={c.tableInner}
               sx={{ minWidth: 750 }}
@@ -538,7 +520,7 @@ export default function STAC() {
                                   setModal({
                                     name: "layersUsedByStacCollection",
                                     stacCollection: row,
-                                  }),
+                                  })
                                 );
                               }}
                             >
@@ -552,11 +534,7 @@ export default function STAC() {
                             </IconButton>
                           </Tooltip>
 
-                          <Tooltip
-                            title={"Edit Collection"}
-                            placement="top"
-                            arrow
-                          >
+                          <Tooltip title={"Edit Collection"} placement="top" arrow>
                             <IconButton
                               className={c.previewIcon}
                               title="Edit Collection"
@@ -566,7 +544,7 @@ export default function STAC() {
                                   setModal({
                                     name: "editStacCollection",
                                     collection: row,
-                                  }),
+                                  })
                                 );
                               }}
                             >
@@ -584,7 +562,7 @@ export default function STAC() {
                                   setModal({
                                     name: "stacCollectionItems",
                                     stacCollection: row,
-                                  }),
+                                  })
                                 );
                               }}
                             >
@@ -603,11 +581,7 @@ export default function STAC() {
                             </IconButton>
                           </Tooltip>
 
-                          <Tooltip
-                            title={"Export Collection + Items"}
-                            placement="top"
-                            arrow
-                          >
+                          <Tooltip title={"Export Collection + Items"} placement="top" arrow>
                             <IconButton
                               className={c.previewIcon}
                               title="Export"
@@ -630,7 +604,7 @@ export default function STAC() {
                                   setModal({
                                     name: "deleteStacCollection",
                                     stacCollection: row,
-                                  }),
+                                  })
                                 );
                               }}
                             >

@@ -412,16 +412,10 @@
       mmgisglobal.SERVER = "node";
       switch (NODE_ENV) {
         case "production":
-          mmgisglobal.SITE_ACCESS = "#{SITE_ACCESS}";
-          mmgisglobal.AUTH_PROVIDERS = '#{AUTH_PROVIDERS}';
-          mmgisglobal.SELF_SIGNUP = "#{SELF_SIGNUP}";
-          mmgisglobal.authProviders = String(mmgisglobal.AUTH_PROVIDERS || "")
-            .replace(/&quot;|[\[\]"' ]/g, "")
-            .split(",")
-            .filter(Boolean);
+          mmgisglobal.AUTH = "#{AUTH}";
           mmgisglobal.version = "#{VERSION}";
           mmgisglobal.user = "#{user}";
-          mmgisglobal.role = "#{role}";
+          mmgisglobal.permission = "#{permission}";
           mmgisglobal.groups = "#{groups}";
           mmgisglobal.NODE_ENV = "#{NODE_ENV}";
           mmgisglobal.FORCE_CONFIG_PATH = "%FORCE_CONFIG_PATH%";
@@ -433,9 +427,6 @@
           mmgisglobal.ENABLE_MMGIS_WEBSOCKETS = "#{ENABLE_MMGIS_WEBSOCKETS}";
           mmgisglobal.MAIN_MISSION = "#{MAIN_MISSION}";
           mmgisglobal.SKIP_CLIENT_INITIAL_LOGIN = "#{SKIP_CLIENT_INITIAL_LOGIN}";
-          mmgisglobal.loginProvider = "#{LOGIN_PROVIDER}";
-          mmgisglobal.loginPerRequest = "#{LOGIN_PER_REQUEST}";
-          mmgisglobal.logoutUrl = "#{LOGOUT_URL}";
           mmgisglobal.THIRD_PARTY_COOKIES = "#{THIRD_PARTY_COOKIES}";
           mmgisglobal.IS_DOCKER = "#{IS_DOCKER}";
           mmgisglobal.WITH_TITILER = "#{WITH_TITILER}";
@@ -443,15 +434,10 @@
           mmgisglobal.LANDING_LOGO_URL = "#{LANDING_LOGO_URL}";
           break;
         default:
-          mmgisglobal.SITE_ACCESS = "%SITE_ACCESS%";
-          mmgisglobal.AUTH_PROVIDERS = '%AUTH_PROVIDERS%';
-          mmgisglobal.authProviders = String(mmgisglobal.AUTH_PROVIDERS || "")
-            .replace(/&quot;|[\[\]"' ]/g, "")
-            .split(",")
-            .filter(Boolean);
+          mmgisglobal.AUTH = "%AUTH%";
           mmgisglobal.version = "%VERSION%";
           mmgisglobal.user = "guest";
-          mmgisglobal.role = "guest";
+          mmgisglobal.permission = "000";
           mmgisglobal.groups = [];
           mmgisglobal.NODE_ENV = NODE_ENV;
           mmgisglobal.FORCE_CONFIG_PATH = "%FORCE_CONFIG_PATH%";

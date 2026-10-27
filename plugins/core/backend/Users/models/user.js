@@ -5,10 +5,6 @@ const Sequelize = require("sequelize");
 const { sequelize } = require("../../../../../API/connection");
 const bcrypt = require("bcryptjs");
 const logger = require("../../../../../API/logger");
-const {
-  LEGACY_PERMISSION_VALUES,
-  LEGACY_NONE,
-} = require("../../../../../API/permissions/legacyPermissions");
 
 // setup User model and its fields.
 var User = sequelize.define(
@@ -33,9 +29,9 @@ var User = sequelize.define(
     },
     permission: {
       type: Sequelize.ENUM,
-      values: LEGACY_PERMISSION_VALUES,
+      values: ["000", "001", "010", "011", "100", "101", "110", "111"],
       allowNull: false,
-      defaultValue: LEGACY_NONE,
+      defaultValue: "000",
     },
     token: {
       type: Sequelize.DataTypes.STRING(2048),

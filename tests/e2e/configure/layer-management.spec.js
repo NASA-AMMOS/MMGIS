@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { loginHeaders } from '../../helpers/auth.js';
 
 /**
  * E2E tests for layer management in the Configure CMS.
@@ -26,7 +25,6 @@ test.describe('Configure CMS — Layer Management', () => {
     try {
       const res = await request.post(`${baseURL}/api/users/login`, {
         data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
-        headers: loginHeaders(),
       });
       const body = await res.json().catch(() => null);
       return body && body.status === 'success';
@@ -41,7 +39,6 @@ test.describe('Configure CMS — Layer Management', () => {
     try {
       await page.request.post(`${baseURL}/api/users/login`, {
         data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
-        headers: loginHeaders(),
       });
     } catch { /* best effort */ }
 

@@ -1,6 +1,6 @@
 {
   "name": "mmgis",
-  "version": "5.5.0-20261021",
+  "version": "5.4.6-20261020",
   "description": "A web-based mapping and localization solution for science operation on planetary missions.",
   "homepage": "build",
   "repository": {
@@ -43,7 +43,6 @@
     "start:docs": "cd ./docs && bundle exec jekyll serve",
     "start:analyzer": "node scripts/server.js --analyze",
     "build": "node scripts/build.js",
-    "auth:migrate": "node scripts/auth-migrate.js",
     "postinstall": "node -e \"if(require('fs').existsSync('scripts/resolve-plugin-deps.js')&&require('fs').existsSync('scripts/install-plugin-deps.js'))require('child_process').execSync('node scripts/resolve-plugin-deps.js && node scripts/install-plugin-deps.js',{stdio:'inherit'})\"",
     "plugin": "node plugin-cli/cli.js",
     "plugins": "node plugin-cli/cli.js",
@@ -53,8 +52,8 @@
     "test:ci": "cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true playwright test tests/ci",
     "test:e2e": "cross-env DB_NAME=mmgis-test playwright test tests/e2e",
     "test:e2e:api": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/api",
-    "test:e2e:auth-off": "cross-env DB_NAME=mmgis-test SITE_ACCESS=public AUTH_PROVIDERS=local playwright test tests/e2e/auth",
-    "test:e2e:auth-local": "cross-env DB_NAME=mmgis-test SITE_ACCESS=required AUTH_PROVIDERS=local playwright test tests/e2e/auth",
+    "test:e2e:auth-off": "cross-env DB_NAME=mmgis-test AUTH=off playwright test tests/e2e/auth",
+    "test:e2e:auth-local": "cross-env DB_NAME=mmgis-test AUTH=local playwright test tests/e2e/auth",
     "test:e2e:map": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/map",
     "test:e2e:time": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/time",
     "test:e2e:tools": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/tools",

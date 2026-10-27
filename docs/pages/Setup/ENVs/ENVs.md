@@ -19,31 +19,14 @@ The kind of server running (apache is deprecated) | string enum | default `''`
 - _node:_ A node express server running NodeJS v22.20.0+
 - _apache (deprecated):_ Served through Apache. Some or all functionality may not work
 
-#### `SITE_ACCESS=`
+#### `AUTH=`
 
-Who can view the main site | string enum | no default (required)
+The kind of authentication method used | string enum | default `''`
 
-- _public:_ Anyone can view. There is no end-user login on the main site; only admins log in at `/configure`.
-- _optional:_ Anyone can view. Users can sign up and log in from within MMGIS (e.g. to save Draw files).
-- _required:_ Visitors must log in to see anything. The Admin must log in, create accounts and pass out the credentials or set `AUTH_LOCAL_ALLOW_SIGNUP=true`.
-
-The old `AUTH` variable has been removed. MMGIS refuses to start while `AUTH` is set and prints its replacement:
-
-| Old | New |
-|---|---|
-| `AUTH=off` | `SITE_ACCESS=public` `AUTH_PROVIDERS=["local"]` |
-| `AUTH=none` | `SITE_ACCESS=optional` `AUTH_PROVIDERS=["local"]` |
-| `AUTH=local` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["local"]` |
-| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["csso","local"]` |
-
-#### `AUTH_PROVIDERS=`
-
-Login methods, as a JSON array or comma-separated list | string[] | default `["local"]`
-
-- _local:_ MMGIS username/password accounts. Keep it listed so `/configure` admins can always log in.
-- _csso:_ A Cloud Single Sign On service proxied in front of MMGIS. See `CSSO_PROXY_SECRET`.
-
-Each provider is a core auth provider plugin under `plugins/core/auth/`. To add one, see [Writing an Auth Provider](/MMGIS/contributing/auth-providers).
+- _off:_ No authentication. Users cannot sign up or log in. Tools that require log in will not work.
+- _none:_ No authentication. Users can still sign up and log in from within MMGIS.
+- _local:_ Anyone without credentials is blocked. The Admin must log in, create accounts and pass out the credentials or set AUTH_LOCAL_ALLOW_SIGNUP=true.
+- _csso:_ Use a Cloud Single Sign On service that's proxied in front of MMGIS.
 
 #### `NODE_ENV=`
 
@@ -132,23 +115,11 @@ Test-specific database password. Required by test infrastructure for least-privi
 
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
-If SITE_ACCESS=required and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
-
-#### `AUTH_LOCAL_LOGIN=`
-
-Which local accounts may log in with a username and password. `all`: any local account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin), for sites such as `AUTH_PROVIDERS=["csso","local"]` where everyone else logs in through the external provider. `admins` also turns off visitor sign-up, whatever `AUTH_LOCAL_ALLOW_SIGNUP` says. Any other value stops startup | string | default `all`
-
-#### `SETUP_CODE=`
-
-While the site has no accounts, creating the first (SuperAdmin) account on `/configure` requires a one-time setup code. If unset, the server generates a random code on each start and prints it in its log (not in the log files); the code works once. Set this to choose the code yourself, for scripted installs or several replicas behind one URL. It has no effect once an account exists | string | default `null`
+If AUTH=local and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
 
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`
-
-#### `CSSO_PROXY_SECRET=`
-
-Optional. If unset, CSSO works as before: MMGIS trusts the identity headers on every request and logs a startup warning, so MMGIS must only be reachable through the proxy. If set (with `AUTH_PROVIDERS` including `csso`), identity headers are only trusted on requests that also carry a matching `X-MMGIS-Proxy-Secret` header, so configure the proxy to add that header before setting this; otherwise every CSSO user is treated as logged out | string | default `''`
 
 #### `VERBOSE_LOGGING=`
 
@@ -164,7 +135,7 @@ Sets the `Content-Security-Policy: frame-src` header to allow the embedding ifra
 
 #### `THIRD_PARTY_COOKIES=`
 
-Sets "SameSite=None; Secure" on the login cookie. Useful when using SITE_ACCESS=required as an iframe within a cross-origin page. | boolean | default `false`
+Sets "SameSite=None; Secure" on the login cookie. Useful when using AUTH=local as an iframe within a cross-origin page. | boolean | default `false`
 
 #### `CORS_ORIGINS=`
 
@@ -220,7 +191,7 @@ The path to a json config file that acts as the only configured mission for the 
 
 #### `LEADS=`
 
-For local accounts, this is a list of usernames to be treated as leads (users with elevated permissions) | string[] | default `[]`
+When not using AUTH=csso, this is a list of usernames to be treated as leads (users with elevated permissions) | string[] | default `[]`
 
 #### `CSSO_LEAD_GROUP=`
 

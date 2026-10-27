@@ -32,8 +32,6 @@ const TEST_DB_NAME = 'mmgis-test';
 
 /** Hardcoded test STAC database name — used when STAC services are enabled. */
 const TEST_STAC_DB_NAME = 'mmgis-stac-test';
-// Lets the test server's first account be created without reading its log
-const TEST_SETUP_CODE = 'TEST-SETUP-CODE';
 
 /** Port the test server listens on. */
 const TEST_PORT = Number(process.env.TEST_PORT || 18888);
@@ -292,7 +290,6 @@ export default async function globalSetup() {
     NODE_ENV: 'test',
     PORT: String(TEST_PORT),
     HIDE_CONFIG: 'false',
-    SETUP_CODE: TEST_SETUP_CODE,
     ENABLE_MMGIS_WEBSOCKETS: '',
     ENABLE_CONFIG_WEBSOCKETS: '',
   };
@@ -354,7 +351,7 @@ export default async function globalSetup() {
       // Create admin user (safe to fail if already exists)
       await fetchJSON(`${baseUrl}/api/users/first_signup`, {
         method: 'POST',
-        body: { username: 'test_admin', password: 'TestAdmin1!', setup_code: TEST_SETUP_CODE },  // pragma: allowlist secret
+        body: { username: 'test_admin', password: 'TestAdmin1!' },  // pragma: allowlist secret
       }).catch(() => {});
 
       // Login to get session cookie

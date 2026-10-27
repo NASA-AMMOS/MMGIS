@@ -66,7 +66,7 @@ npm start
 
 ## 4. Creating a Mission
 
-- **Via UI:** Navigate to `http://localhost:8888/configure`, create an admin account (the first user is automatically the SuperAdmin; the form asks for the one-time setup code printed in the server log, or `SETUP_CODE` if set), then click **"New Mission"**.
+- **Via UI:** Navigate to `http://localhost:8888/configure`, create an admin account (the first user is automatically the Administrator), then click **"New Mission"**.
 - **Reference Mission:** Check the **"Setup Reference Mission Demo"** checkbox when creating a new mission to prepopulate it with sample data.
 - **Note:** There is currently no CLI or API for mission creation — it requires the web UI.
 - **Tip:** If only one mission exists, the landing page auto-redirects to the map. Use `?forcelanding=true` in the URL to force the landing page to display.

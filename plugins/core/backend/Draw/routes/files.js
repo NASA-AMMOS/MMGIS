@@ -26,7 +26,6 @@ const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 const Utils = require("../../../../../API/utils");
 
 const router = express.Router();
-const { authorize, resolvers, missionNamesWith } = require("../../../../../API/permissions/authorize");
 const db = database.db;
 
 const historyKey = {
@@ -41,7 +40,7 @@ const historyKey = {
   8: "Split",
 };
 
-router.post("/", authorize("draw.use"), function (req, res, next) {
+router.post("/", function (req, res, next) {
   res.send("test files");
 });
 
@@ -70,7 +69,7 @@ function getDrawToolVars(mission) {
  *    the mission's DrawTool variables (showNullMissionFiles, showMasterFiles).
  * }
  */
-router.post("/getfiles", authorize("draw.use"), async function (req, res, next) {
+router.post("/getfiles", async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   let showNullMissionFiles = true;
@@ -129,7 +128,7 @@ router.post("/getfiles", authorize("draw.use"), async function (req, res, next) 
       [Sequelize.Op.and]: andWhere,
     },
   })
-    .then(async (files) => {
+    .then((files) => {
       if (!files) {
         res.send({
           status: "failure",
@@ -137,12 +136,6 @@ router.post("/getfiles", authorize("draw.use"), async function (req, res, next) 
           body: {},
         });
       } else {
-        // Others' files only from missions the caller can view
-        const viewable = await missionNamesWith(req, "mission.view");
-        if (viewable != null)
-          files = files.filter(
-            (f) => f.file_owner === req.user || f.mission == null || viewable.includes(f.mission)
-          );
         files.sort((a, b) => (a.id > b.id ? 1 : -1));
         res.send({
           status: "success",
@@ -169,7 +162,7 @@ router.post("/getfiles", authorize("draw.use"), async function (req, res, next) 
  * 	published: <bool> (optional) get last published version (makes 'time' ignored)
  * }
  */
-router.post("/getfile", authorize("site.view"), getfile);
+router.post("/getfile", getfile);
 
 /**
  * Makes a new file
@@ -182,7 +175,7 @@ router.post("/getfile", authorize("site.view"), getfile);
  *  mission: <string> (optional) -- mission this file belongs to (must exist)
  * }
  */
-router.post("/make", authorize("draw.use"), async function (req, res, next) {
+router.post("/make", async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   if (req.body.mission != null) {
@@ -191,10 +184,6 @@ router.post("/make", authorize("draw.use"), async function (req, res, next) {
       vars = await getDrawToolVars(req.body.mission);
     } catch (err) {
       logger("error", "Failed to make a new file.", req.originalUrl, req, err);
-    }
-    if (vars != null) {
-      const viewable = await missionNamesWith(req, "mission.view").catch(() => []);
-      if (viewable != null && !viewable.includes(req.body.mission)) vars = null;
     }
     if (vars == null) {
       res.send({
@@ -409,7 +398,7 @@ router.post("/make", authorize("draw.use"), async function (req, res, next) {
  * 	id: <number> (required)
  * }
  */
-router.post("/remove", authorize("draw.use"), function (req, res, next) {
+router.post("/remove", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   Table.update(
@@ -458,7 +447,7 @@ router.post("/remove", authorize("draw.use"), function (req, res, next) {
  * 	id: <number> (required)
  * }
  */
-router.post("/restore", authorize("draw.use"), function (req, res, next) {
+router.post("/restore", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   Table.update(
@@ -510,7 +499,7 @@ router.post("/restore", authorize("draw.use"), function (req, res, next) {
  *  mission: <string> (optional, leads only) move the file to an existing mission
  * }
  */
-router.post("/change", authorize("draw.use"), async function (req, res, next) {
+router.post("/change", async function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   const isLead = req.groups && req.groups["mmgis-group"] === true;
 
@@ -622,7 +611,7 @@ router.post("/change", authorize("draw.use"), async function (req, res, next) {
  *   newKeyword: <string>
  * }
  */
-router.post("/modifykeyword", authorize("draw.use"), function (req, res, next) {
+router.post("/modifykeyword", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
 
   const type = req.body.type;
@@ -631,7 +620,7 @@ router.post("/modifykeyword", authorize("draw.use"), function (req, res, next) {
   const newKeyword = req.body.newKeyword ? Utils.forceAlphaNumUnder(req.body.newKeyword) : null;
 
   let symbol = null;
-  switch (String(type || "").toLowerCase()) {
+  switch (type.toLowerCase()) {
     case "tags":
       symbol = "~#";
       break;
@@ -675,8 +664,6 @@ router.post("/modifykeyword", authorize("draw.use"), function (req, res, next) {
     },
     {
       where: {
-        // Only the caller's own files are renamed
-        file_owner: req.user,
         file_description: {
           // Escape special chars so that regex works
           [Sequelize.Op.like]: sequelize.literal(
@@ -1509,7 +1496,7 @@ const compile = function (req, res, callback, options) {
       return null;
     });
 };
-router.get("/compile", authorize("draw.use"), function (req, res, next) {
+router.get("/compile", function (req, res, next) {
   let sent = false;
   compile(req, res, (body) => {
     if (sent === true) return;
@@ -1531,7 +1518,7 @@ router.get("/compile", authorize("draw.use"), function (req, res, next) {
  * {
  * }
  */
-router.post("/publish", authorize("draw.use"), function (req, res, next) {
+router.post("/publish", function (req, res, next) {
   let Table = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
 
@@ -1743,25 +1730,8 @@ router.post("/publish", authorize("draw.use"), function (req, res, next) {
  * 	id: <int>
  * }
  */
-router.post("/gethistory", authorize("draw.use"), async function (req, res, next) {
+router.post("/gethistory", function (req, res, next) {
   let Table = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
-  let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
-
-  // Same access as reading the file itself
-  let file = null;
-  if (/^[0-9]+$/.test(String(req.body.id)))
-    file = await Files.findOne({
-      where: {
-        id: req.body.id,
-        [Sequelize.Op.or]: { file_owner: req.user, public: "1" },
-      },
-      attributes: ["file_owner", "mission"],
-      raw: true,
-    }).catch(() => null);
-  if (!file || !(await filesutils.canViewFileMissions(req, [file]))) {
-    res.send({ status: "failure", message: "Failed to get history.", body: {} });
-    return;
-  }
 
   Table.findAll({
     where: {

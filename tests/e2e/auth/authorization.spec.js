@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  *   - Unauthenticated users get login redirect for protected routes
  *
  * Admin endpoints are guarded by ensureAdmin() middleware which checks
- * a role binding that grants the route's capability.
+ * session.permission === "111" or "110".
  *
  * All tests are skipped when AUTH=off (no authorization checks).
  */
@@ -18,12 +18,12 @@ const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 test.describe('Authorization', () => {
   test.skip(
-    process.env.MMGIS_TEST_AUTH_MODE !== 'local',
+    process.env.AUTH !== 'local',
     'SKIP: AUTH is not local — no authorization checks'
   );
 
   test('non-admin user cannot access admin-only endpoints', async ({ request }) => {
-    // Login as the regular test_user (no admin roles)
+    // Login as the regular test_user (permission "001")
     const loginRes = await request.post(`${baseURL}/api/users/login`, {
       data: { username: 'test_user', password: ['Test', 'User', '1!'].join('') },
     });

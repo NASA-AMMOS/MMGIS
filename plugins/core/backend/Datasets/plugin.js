@@ -4,10 +4,10 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/datasets",
-      s.ensureUser({ forbid: true }),
+      s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.registerRouter("/api/datasets", router)
+      router
     );
   },
   //Once the server starts

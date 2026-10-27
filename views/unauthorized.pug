@@ -61,13 +61,6 @@ head
     color: #cbcbcb;
     padding-top: 37px;
     }
-    #reason {
-    text-align: center;
-    font-family: monospace;
-    font-size: 14px;
-    color: #9a9a9a;
-    padding: 12px 0px 16px 0px;
-    }
     #button {
     text-align: center;
     width: 100%;
@@ -87,10 +80,8 @@ head
     #title MMGIS
   #middle
     #message Oops! You&apos;re not supposed to be up here so we&apos;re going to have to let you go. Sorry.
-    if user
-      #reason Signed in as #{user}, but your account isn&apos;t in a group allowed on this site. Ask an administrator for access.
     #button
-      a#link(href='/ssologoutredirect')= user ? 'Sign out' : 'Turn around'
+      a#link(href='/ssologoutredirect') Turn around
 #bottom
 footer
   script.

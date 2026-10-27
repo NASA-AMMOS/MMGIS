@@ -4,7 +4,6 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 
 const logger = require("../../../../../API/logger");
 const Webhooks = require("../models/webhooks");
@@ -14,7 +13,7 @@ const entries = webhookutils.entries;
 
 const triggerWebhooks = require("../processes/triggerwebhooks.js");
 
-router.post("/save", authorize("webhooks.manage"), function (req, res, next) {
+router.post("/save", function (req, res, next) {
   let webhookConfig = {
     config: req.body.config,
   };
@@ -35,9 +34,9 @@ router.post("/save", authorize("webhooks.manage"), function (req, res, next) {
     });
 });
 
-router.get("/entries", authorize("webhooks.manage"), entries);
+router.get("/entries", entries);
 
-router.post("/config", authorize("webhooks.manage"), function (req, res, next) {
+router.post("/config", function (req, res, next) {
   logger("success", "Called /webhooks/config API", req.originalUrl, req);
 
   triggerWebhooks("getConfiguration", {});

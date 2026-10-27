@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { loginHeaders } from '../../helpers/auth.js';
 
 /**
  * E2E tests for mission CRUD operations via the Configure CMS.
@@ -30,7 +29,6 @@ test.describe('Configure CMS — Mission CRUD', () => {
     try {
       const res = await request.post(`${baseURL}/api/users/login`, {
         data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
-        headers: loginHeaders(),
       });
       const body = await res.json().catch(() => null);
       return body && body.status === 'success';
@@ -198,7 +196,6 @@ test.describe('Configure CMS — Mission CRUD', () => {
     try {
       await page.request.post(`${baseURL}/api/users/login`, {
         data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
-        headers: loginHeaders(),
       });
     } catch { /* best effort */ }
 
@@ -235,8 +232,6 @@ test.describe('Configure CMS — Mission CRUD', () => {
   // -------------------------------------------------------------------------
 
   test.afterAll(async ({ request }) => {
-    // afterAll gets a fresh request context, so sign in again before deleting
-    if (testMissionsCreated.length > 0) await loginAsAdmin(request);
     for (const mission of testMissionsCreated) {
       await apiDeleteMission(request, mission);
     }

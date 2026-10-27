@@ -1,10 +1,9 @@
 import { test, expect, request as apiRequest } from "@playwright/test";
-import { loginHeaders } from "../../helpers/auth.js";
 
 const baseURL = process.env.TEST_BASE_URL || "http://localhost:18888";
 const ADMIN = { username: "test_admin", password: "TestAdmin1!" }; // pragma: allowlist secret
 const PASSWORD = "Export1!x"; // pragma: allowlist secret
-const isLocal = process.env.MMGIS_TEST_AUTH_MODE === "local";
+const isLocal = process.env.AUTH === "local";
 
 const stamp = Date.now();
 const missionA = `test_export_a_${stamp}`;
@@ -29,7 +28,6 @@ test.describe.serial("configure export", () => {
     const ctx = await apiRequest.newContext({ baseURL });
     const body = await json(
       await ctx.post("/api/users/login", {
-        headers: loginHeaders(),
         data: { username, password },
       }),
     );
@@ -39,14 +37,9 @@ test.describe.serial("configure export", () => {
 
   test("GET /missions?full=true returns only mission names", async () => {
     const anon = await apiRequest.newContext({ baseURL });
-    const res = await anon.get("/api/configure/missions?full=true");
-    const body = await json(res);
-    if (isLocal) {
-      // Guests get nothing on a login-required site
-      expect(res.status()).toBe(403);
-      await anon.dispose();
-      return;
-    }
+    const body = await json(
+      await anon.get("/api/configure/missions?full=true"),
+    );
     expect(body?.status).toBe("success");
     expect(Array.isArray(body?.missions)).toBe(true);
     expect(body.missions.every((mission) => typeof mission === "string")).toBe(
@@ -60,7 +53,7 @@ test.describe.serial("configure export", () => {
 
     superadmin = await apiRequest.newContext({ baseURL });
     const login = await json(
-      await superadmin.post("/api/users/login", { headers: loginHeaders(), data: ADMIN }),
+      await superadmin.post("/api/users/login", { data: ADMIN }),
     );
     if (login?.status !== "success") return;
 
@@ -188,10 +181,7 @@ test.describe.serial("configure export", () => {
       const tokens = await json(
         await superadmin.get("/api/longtermtoken/get"),
       );
-      // Only a prefix of the token is ever listed
-      const tokenRow = tokens.tokens.find(
-        (entry) => entry.name === `configure${stamp}`,
-      );
+      const tokenRow = tokens.tokens.find((entry) => entry.token === token);
       expect(tokenRow).toBeTruthy();
 
       try {

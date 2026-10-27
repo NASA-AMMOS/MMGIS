@@ -47,7 +47,7 @@ test.describe('API Response Times', () => {
   });
 
   test('protected endpoints in AUTH=local return quickly (not hanging)', async ({ request }) => {
-    const authMode = process.env.MMGIS_TEST_AUTH_MODE || 'off';
+    const authMode = process.env.AUTH || 'off';
 
     // This test is most meaningful in AUTH=local mode but should pass
     // in any mode — the key assertion is that the server responds fast.

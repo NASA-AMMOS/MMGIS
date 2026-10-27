@@ -4,7 +4,6 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers, missionNamesWith } = require("../../../../../API/permissions/authorize");
 
 const { sequelize } = require("../../../../../API/connection");
 
@@ -31,10 +30,10 @@ const MAX_IN_VALUES = 500;
 const MAX_IN_VALUE_LENGTH = 1000;
 
 //Returns a geodataset table as a geojson
-router.get("/get/:layer", authorize("data.geodatasets.read"), function (req, res, next) {
+router.get("/get/:layer", function (req, res, next) {
   get("get", req, res, next, { layer: req.params.layer });
 });
-router.get("/get", authorize("data.geodatasets.read"), function (req, res, next) {
+router.get("/get", function (req, res, next) {
   get("get", req, res, next);
 });
 
@@ -742,7 +741,7 @@ function get(reqtype, req, res, next, options) {
     });
 }
 
-router.post("/intersect", authorize("data.geodatasets.read"), function (req, res, next) {
+router.post("/intersect", function (req, res, next) {
   let layer = req.body.layer;
   let noDuplicates = null;
 
@@ -913,7 +912,7 @@ req.query.maxy
 req.query.starttime
 req.query.endtime
 */
-router.get("/aggregations", authorize("data.geodatasets.read"), function (req, res, next) {
+router.get("/aggregations", function (req, res, next) {
   //First Find the table name
   Geodatasets.findOne({ where: { name: req.query.layer } })
     .then(async (result) => {
@@ -1114,7 +1113,7 @@ async function countRows(table) {
 // Recomputes a geodataset's dataset-wide field statistics from the rows it
 // already holds — what a geodataset ingested before `field_stats` existed needs,
 // since an append only merges the features it appends.
-router.post("/recompute_stats/:name", authorize("data.geodatasets.write"), function (req, res, next) {
+router.post("/recompute_stats/:name", function (req, res, next) {
   Geodatasets.findOne({ where: { name: req.params.name } })
     .then(async (result) => {
       if (result == null) {
@@ -1203,7 +1202,7 @@ async function propertiesTypes(tables) {
 // several times faster for the per-group statistics and every other read.
 // The table is rewritten under an exclusive lock, so this is an explicit
 // administrator action rather than something that happens on its own.
-router.post("/convert_properties/:name", authorize("data.geodatasets.write"), function (req, res, next) {
+router.post("/convert_properties/:name", function (req, res, next) {
   Geodatasets.findOne({ where: { name: req.params.name } })
     .then(async (result) => {
       if (result == null) {
@@ -1263,7 +1262,7 @@ router.post("/convert_properties/:name", authorize("data.geodatasets.write"), fu
 // Bulk schema endpoint — returns field names, types and source layers for
 // multiple geodataset layers in a single call.
 // GET /api/geodatasets/schema?layers=layer1,layer2,...
-router.get("/schema", authorize("data.geodatasets.read"), function (req, res, next) {
+router.get("/schema", function (req, res, next) {
   const layersParam = req.query.layers;
   if (!layersParam) {
     res.send({ status: "failure", message: "Missing 'layers' parameter." });
@@ -1385,7 +1384,7 @@ router.get("/schema", authorize("data.geodatasets.read"), function (req, res, ne
 // GET /api/geodatasets/bulk_aggregations?layers=layer1,layer2,...&limit=500
 // With `fields`, returns every distinct value combination of those fields
 // (paginated via limit/offset) instead of a random row sample.
-router.get("/bulk_aggregations", authorize("data.geodatasets.read"), function (req, res, next) {
+router.get("/bulk_aggregations", function (req, res, next) {
   const layersParam = req.query.layers;
   if (!layersParam) {
     res.send({ status: "failure", message: "Missing 'layers' parameter." });
@@ -1668,7 +1667,7 @@ function bulkDistinctFieldValues(req, res, layerNames) {
 }
 
 //Returns a list of entries in the geodatasets table
-router.post("/entries", authorize("data.geodatasets.read"), function (req, res, next) {
+router.post("/entries", function (req, res, next) {
   Geodatasets.findAll()
     .then(async (sets) => {
       if (sets && sets.length > 0) {
@@ -1702,11 +1701,9 @@ router.post("/entries", authorize("data.geodatasets.read"), function (req, res, 
             ON t1.mission = t2.mission AND t1.version = t2.max_version ORDER BY mission ASC;
             `
           )
-          .then(async ([results]) => {
-            // Populate occurrences, only in missions the caller can view
-            const viewable = await missionNamesWith(req, "mission.view");
+          .then(([results]) => {
+            // Populate occurrences
             results.forEach((m) => {
-              if (viewable != null && !viewable.includes(m.mission)) return;
               Utils.traverseLayers(m.config.layers, (layer, path) => {
                 entries.forEach((entry) => {
                   entry.occurrences = entry.occurrences || {};
@@ -1772,7 +1769,7 @@ router.post("/entries", authorize("data.geodatasets.read"), function (req, res, 
  * req.body.restrictToGeometryType
  * req.body.offset (i.e. if -1, then return feature previous to key:val) (can also be 'first' or 'last')
  */
-router.post("/search", authorize("data.geodatasets.read"), function (req, res, next) {
+router.post("/search", function (req, res, next) {
   //First Find the table name
   Geodatasets.findOne({ where: { name: req.body.layer } })
     .then((result) => {
@@ -2007,7 +2004,7 @@ router.post("/search", authorize("data.geodatasets.read"), function (req, res, n
     });
 });
 
-router.post("/append/:name", authorize("data.geodatasets.write"), function (req, res, next) {
+router.post("/append/:name", function (req, res, next) {
   req.body = {
     name: req.params.name,
     startProp: req.query.start_prop || null,
@@ -2021,7 +2018,7 @@ router.post("/append/:name", authorize("data.geodatasets.write"), function (req,
   recreate(req, res, next);
 });
 
-router.post("/append/:name/:start_end_prop", authorize("data.geodatasets.write"), function (req, res, next) {
+router.post("/append/:name/:start_end_prop", function (req, res, next) {
   req.body = {
     name: req.params.name,
     startProp: req.params.start_end_prop.split(",")[0] || null,
@@ -2034,7 +2031,7 @@ router.post("/append/:name/:start_end_prop", authorize("data.geodatasets.write")
   recreate(req, res, next);
 });
 
-router.post("/recreate/:name", authorize("data.geodatasets.write"), function (req, res, next) {
+router.post("/recreate/:name", function (req, res, next) {
   req.body = {
     name: req.params.name,
     startProp: null,
@@ -2047,7 +2044,7 @@ router.post("/recreate/:name", authorize("data.geodatasets.write"), function (re
   recreate(req, res, next);
 });
 
-router.post("/recreate/:name/:start_end_prop", authorize("data.geodatasets.write"), function (req, res, next) {
+router.post("/recreate/:name/:start_end_prop", function (req, res, next) {
   req.body = {
     name: req.params.name,
     startProp: req.params.start_end_prop.split(",")[0] || null,
@@ -2060,7 +2057,7 @@ router.post("/recreate/:name/:start_end_prop", authorize("data.geodatasets.write
   recreate(req, res, next);
 });
 
-router.post("/recreate", authorize("data.geodatasets.write"), function (req, res, next) {
+router.post("/recreate", function (req, res, next) {
   recreate(req, res, next);
 });
 
@@ -2084,7 +2081,6 @@ function recreate(req, res, next) {
       message: "Failure: Malformed file.",
       body: {},
     });
-    return;
   }
   if (!features) {
     //Must be a single feature from an append.  Make an array
@@ -2298,7 +2294,7 @@ function populateGeodatasetTable(
     });
 }
 
-router.delete("/remove/:name", authorize("data.geodatasets.write"), function (req, res, next) {
+router.delete("/remove/:name", function (req, res, next) {
   Geodatasets.findOne({ where: { name: req.params.name } })
     .then((result) => {
       if (result) {
