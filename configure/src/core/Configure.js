@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { makeStyles } from "@mui/styles";
@@ -37,27 +37,35 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 // Keeps ?mission= or ?page= in the URL so reloading or sharing returns to the same place
-function useUrlState(dispatch, missionsLoaded) {
+// missionsStatus: null while loading, then "ok" or "failed"
+function useUrlState(dispatch, missionsStatus) {
   const mission = useSelector((state) => state.core.mission);
   const page = useSelector((state) => state.core.page);
   const missions = useSelector((state) => state.core.missions);
   const [restored, setRestored] = useState(false);
+  // A ?mission= link that couldn't be checked stays in the URL so a reload can retry it
+  const unresolvedMission = useRef(null);
   useEffect(() => {
-    if (restored || !missionsLoaded) return;
+    if (restored || missionsStatus == null) return;
     const q = new URLSearchParams(window.location.search);
     if (q.get("page")) dispatch(setPage({ page: q.get("page") }));
-    else if (q.get("mission") && missions.includes(q.get("mission")))
-      dispatch(setMission(q.get("mission")));
+    else if (q.get("mission")) {
+      if (missionsStatus === "failed") unresolvedMission.current = q.get("mission");
+      else if (missions.includes(q.get("mission")))
+        dispatch(setMission(q.get("mission")));
+    }
     // Set with the restore so the first URL write sees the restored state
     setRestored(true);
-  }, [restored, missionsLoaded, missions, dispatch]);
+  }, [restored, missionsStatus, missions, dispatch]);
   useEffect(() => {
     if (!restored) return;
+    if (page || mission) unresolvedMission.current = null;
     const q = new URLSearchParams(window.location.search);
     q.delete("mission");
     q.delete("page");
     if (page) q.set("page", page);
     else if (mission) q.set("mission", mission);
+    else if (unresolvedMission.current) q.set("mission", unresolvedMission.current);
     const search = q.toString();
     window.history.replaceState(
       null,
@@ -70,8 +78,8 @@ function useUrlState(dispatch, missionsLoaded) {
 export default function Configure() {
   const c = useStyles();
   const dispatch = useDispatch();
-  const [missionsLoaded, setMissionsLoaded] = useState(false);
-  useUrlState(dispatch, missionsLoaded);
+  const [missionsStatus, setMissionsStatus] = useState(null);
+  useUrlState(dispatch, missionsStatus);
   useEffect(() => {
     calls.api(
       "missions",
@@ -83,9 +91,10 @@ export default function Configure() {
             a.localeCompare(b, undefined, { sensitivity: "base" }),
           );
         dispatch(setMissions(missions));
-        setMissionsLoaded(true);
+        setMissionsStatus("ok");
       },
       (res) => {
+        setMissionsStatus("failed");
         dispatch(
           setSnackBarText({
             text: res?.message || "Failed to get available missions.",
