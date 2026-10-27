@@ -1129,7 +1129,7 @@ function relativizePaths(config, mission) {
 //cloneMission
 //hasPaths
 if (fullAccess)
-  router.post("/clone", authorize("mission.create"), rejectReservedMissionName("cloneMission"), function (req, res, next) {
+  router.post("/clone", authorize("mission.create"), authorize("mission.view", resolvers.mission((req) => req.body.existingMission)), rejectReservedMissionName("cloneMission"), function (req, res, next) {
     if (typeof req.body.cloneMission !== "string" || req.body.cloneMission.length === 0) {
       res.send({ status: "failure", message: "Missing cloneMission." });
       return;

@@ -452,11 +452,22 @@ test.describe('adjacent servers', () => {
   const admin = user([['superadmin', 'global']]);
   const SERVERS = ['stac', 'titiler-pgstac', 'tipg', 'titiler', 'veloserver', 'custom'];
 
-  test('sessions and guests are left to the site gate', () => {
-    for (const server of SERVERS)
-      for (const method of ['GET', 'POST', 'DELETE']) {
-        expect(canUseAdjacentServer(editor, method, server)).toBe(true);
-        expect(canUseAdjacentServer(anonymous([]), method, server)).toBe(true);
+  test('session reads, and session writes to servers without a data capability, are left to the site gate', () => {
+    for (const server of SERVERS) {
+      expect(canUseAdjacentServer(editor, 'GET', server)).toBe(true);
+      expect(canUseAdjacentServer(anonymous([]), 'GET', server)).toBe(true);
+    }
+    for (const server of ['titiler', 'veloserver', 'custom'])
+      for (const method of ['POST', 'DELETE']) expect(canUseAdjacentServer(editor, method, server)).toBe(true);
+  });
+
+  test('session writes to STAC and TiPg need the data write capability', () => {
+    const dataAdmin = user([['data_admin', 'global']]);
+    for (const [server, ok] of [['stac', true], ['titiler-pgstac', true], ['tipg', true]])
+      for (const method of ['POST', 'DELETE']) {
+        expect(canUseAdjacentServer(editor, method, server)).toBe(false);
+        expect(canUseAdjacentServer(admin, method, server)).toBe(true);
+        expect(canUseAdjacentServer(dataAdmin, method, server)).toBe(ok);
       }
   });
 

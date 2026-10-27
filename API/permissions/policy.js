@@ -283,13 +283,15 @@ const ADJACENT_SERVER_DATA = {
   tipg: "data.geodatasets",
 };
 
-// Tokens on adjacent servers: the server's data capability where it has one. Servers
-// without one (TiTiler, Veloserver, custom) take reads from site.view and writes only
-// from unrestricted tokens.
+// Adjacent servers. Sessions: reads follow the site gate; writes to a server with a data
+// capability need its write capability. Tokens: the server's data capability where it
+// has one; servers without one (TiTiler, Veloserver, custom) take reads from site.view
+// and writes only from unrestricted tokens.
 function canUseAdjacentServer(principal, method, server) {
-  if (!principal || principal.kind !== "token") return true;
+  if (!principal) return true;
   const read = method === "GET" || method === "HEAD";
   const family = ADJACENT_SERVER_DATA[server];
+  if (principal.kind !== "token") return read || !family || can(principal, `${family}.write`);
   if (family) return can(principal, `${family}.${read ? "read" : "write"}`);
   if (read) return can(principal, "site.view");
   const token = principal.token || {};

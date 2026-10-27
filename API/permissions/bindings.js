@@ -205,12 +205,32 @@ async function addBinding(actor, input) {
   return describe(row);
 }
 
+// Whether the actor holds every capability of a role at a binding's scope
+async function holdsRoleAt(actor, role, mission_uuid, layer_uuid) {
+  let resource = null;
+  if (mission_uuid) {
+    let layers = [];
+    if (layer_uuid) {
+      const name = await missions.nameForUUID(mission_uuid);
+      const config = name ? await missions.latestConfig(name) : null;
+      layers = (config && missions.layerChain(config.layers, layer_uuid)) || [String(layer_uuid)];
+    }
+    resource = { mission: mission_uuid, layers };
+  }
+  return policy.ROLES[role].capabilities.every((cap) =>
+    policy.can(actor, cap, policy.MISSION_SCOPED.has(cap) ? resource : null)
+  );
+}
+
 async function removeBinding(actor, id) {
   const { RoleBinding } = models();
   const row = await RoleBinding.findOne({ where: { id: parseInt(id) } });
   if (!row) throw new BindingError("Binding not found.");
   if (row.role === "superadmin" && !policy.isSuperAdmin(actor))
     throw new BindingError("Only SuperAdmins may remove SuperAdmin access.");
+  // Nobody removes a grant they couldn't have made
+  if (policy.ROLES[row.role] && !(await holdsRoleAt(actor, row.role, row.mission_uuid, row.layer_uuid)))
+    throw new BindingError("You cannot remove a role with more access than your own.");
   const { subject_type, subject_id } = row;
   if (row.role === "superadmin" && row.subject_type === "user" && row.scope_type === "global") {
     await withSuperAdminLock(async ({ transaction, rows, superAdmins }) => {
