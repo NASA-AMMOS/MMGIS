@@ -11,32 +11,10 @@ const authLimiter = rateLimit({
   message: { status: 'failure', message: 'Too many attempts, try again later.' },
 });
 
-// Account admins creating accounts through /signup are not limited
-function skipAccountAdmins(req) {
-  const { ensurePrincipal } = require('../API/permissions/authorize');
-  const policy = require('../API/permissions/policy');
-  return ensurePrincipal(req)
-    .then((p) => policy.can(p, 'accounts.manage'))
-    .catch(() => false);
-}
-
-const signupLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
-  message: { status: 'failure', message: 'Too many attempts, try again later.' },
-  skip: skipAccountAdmins,
-});
-
-const resetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
-  message: { status: 'failure', message: 'Too many attempts, try again later.' },
-});
-
 const computeLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 200,
   message: { status: 'failure', message: 'Rate limit exceeded.' },
 });
 
-module.exports = { apilimiter, authLimiter, signupLimiter, resetLimiter, computeLimiter };
+module.exports = { apilimiter, authLimiter, computeLimiter };

@@ -8,39 +8,32 @@ The MMGIS Authentication & User Management system provides a comprehensive secur
 
 ### Core Capabilities
 
-Site access is chosen with `SITE_ACCESS`, and login methods with `AUTH_PROVIDERS`:
+The authentication system supports four distinct operational modes, each designed for different deployment scenarios and security requirements:
 
-1. **public** - Anyone can view. End users don't sign up or log in; admins log in at `/configure`. Tools requiring an account are disabled.
+1. **Off Mode** - No authentication required. Guest access only. Users cannot sign up or log in. Tools requiring authentication are disabled.
 
-2. **optional** - Guests can browse, and users can sign up and log in for additional features.
+2. **None Mode** - Open access with optional authentication. Guests can browse, but users can voluntarily sign up and log in to access additional features.
 
-3. **required** - All unauthenticated users are blocked. Administrators create accounts or enable self-signup via environment configuration.
+3. **Local Mode** - Credential-based authentication required. All unauthenticated users are blocked. Administrator must create accounts or enable self-signup via environment configuration.
 
-Providers: `local` (username/password) and `csso` (an upstream Cloud Single Sign-On proxy handles authentication). Other providers are added as plugins under `plugins/core/auth/`.
+4. **CSSO Mode** - Cloud Single Sign-On integration. External LDAP/OAuth2 service proxied in front of MMGIS handles authentication.
 
 ### User Roles & Permissions
 
-Access is granted through role bindings (`role_bindings`). Each binding gives a role to a subject at a scope:
+The system implements a three-tier permission model represented by a three-character binary string:
 
-- **Subjects:** a user, a group (`auth_groups` / `auth_group_members`, or CSSO groups), or an audience (`everyone`, `authenticated`).
-- **Scopes:** global, a mission (by stable mission UUID in `missions`), or a layer and its children (by layer UUID).
-- **Roles** bundle named capabilities (`API/permissions/policy.js`):
-  - **superadmin** - everything, globally. There must always be at least one.
-  - **data_admin** - geodatasets, datasets and STAC.
-  - **mission_admin** - view the mission, edit its configuration and layers.
-  - **layer_editor** - view the mission, edit a layer and its children.
-  - **viewer** - view the mission.
+- **SuperAdmin (111)** - Full system access including user management, configuration editing, and all mission data access
+- **Admin (110)** - Configuration editing and mission management capabilities, with optional mission-specific restrictions
+- **User (001)** - Basic authenticated access to MMGIS features
 
-Rules are allow-only. Nobody can grant a role they don't hold at that scope. Every `/api` route declares its capability with `authorize()` (`API/permissions/authorize.js`), and the server refuses to start if one doesn't. Configure → Users & Access manages groups, bindings and shows effective access.
-
-The legacy `users.permission` column is left untouched for rollback and is read only by the one-time import (`API/permissions/legacyPermissions.js`); nothing writes it and it grants nothing.
+<!-- HUMAN REVIEW NEEDED: Verify if there are additional permission combinations (e.g., 010, 011, 100, 101) that were intended for future use or have specific meanings -->
 
 ### Authentication Features
 
 #### User Registration & Login
 - Strong password requirements enforced (minimum 8 characters, uppercase, lowercase, number, symbol)
 - bcrypt password hashing with salt generation
-- First user automatically receives a global `superadmin` binding
+- First user automatically receives SuperAdmin (111) permissions
 - Session-based authentication with PostgreSQL session storage
 - Automatic session token generation and validation
 - Cookie-based session persistence with configurable SameSite settings
@@ -53,13 +46,10 @@ The legacy `users.permission` column is left untouched for rollback and is read 
 
 #### Long-Term API Tokens
 - Token-based authentication for programmatic API access
-- Stored as SHA-256 hashes; the plaintext is shown once (older plaintext tokens are converted on first use)
-- Named, with scopes (read-only or the creator's access) and an optional mission limit
-- Always capped by the creator's current access; removed when the creator is deleted
-- Configurable expiration periods (time-based or "never") and revocation
+- Tokens inherit creator's permissions and mission access
+- Configurable expiration periods (time-based or "never")
 - Bearer token format for HTTP Authorization headers
-- Any signed-in user can create read-only tokens; users manage their own tokens, SuperAdmins all tokens
-- Tokens can't be used to create, list or revoke tokens
+- Admin users can only manage their own tokens; SuperAdmins can manage all tokens
 
 #### Session Management
 - Express-session with PostgreSQL persistence (connect-pg-simple)
@@ -88,7 +78,7 @@ The legacy `users.permission` column is left untouched for rollback and is read 
 
 ### CSSO Integration
 
-When `AUTH_PROVIDERS` includes `csso`, the system expects an upstream proxy to handle authentication and inject headers:
+When AUTH=csso, the system expects an upstream proxy to handle authentication and inject headers:
 
 - **X-Sub** - Username/subject identifier
 - **X-Groups** - Base64-encoded JSON group membership object
@@ -121,7 +111,7 @@ users {
   username: VARCHAR UNIQUE NOT NULL
   email: VARCHAR UNIQUE (nullable, validated)
   password: VARCHAR NOT NULL (bcrypt hashed)
-  permission: ENUM (legacy, see API/permissions/legacyPermissions.js; read only by the import)
+  permission: ENUM('000','001','010','011','100','101','110','111') NOT NULL DEFAULT '000'
   token: VARCHAR(2048) (nullable, current session token)
   missions_managing: TEXT[] (nullable, mission names for Admin users)
   reset_token: VARCHAR(2048) (nullable, password reset token)
@@ -182,15 +172,13 @@ Protected by `ensureAdmin()` middleware:
 
 ### Required Variables
 
-- `SITE_ACCESS` - `public` (no end-user login), `optional` (guests and users) or `required` (login required). No default.
-- `AUTH_PROVIDERS` - login methods: `local`, `csso`, or any provider plugin
-- `AUTH` is removed; the server refuses to start while it is set and prints the replacement.
+- `AUTH` - Authentication mode (off|none|local|csso)
 - `SECRET` - Session encryption secret
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` - PostgreSQL connection
 
 ### Optional Authentication Variables
 
-- `AUTH_LOCAL_ALLOW_SIGNUP` - Allow user self-registration when SITE_ACCESS=required (default: false)
+- `AUTH_LOCAL_ALLOW_SIGNUP` - Allow user self-registration when AUTH=local (default: false)
 - `CSSO_GROUPS` - JSON array of allowed LDAP groups for CSSO mode
 - `CSSO_LEAD_GROUP` - LDAP group name for Lead permissions in CSSO mode
 - `LEADS` - JSON array of usernames with Lead permissions (non-CSSO modes)
@@ -217,7 +205,7 @@ Protected by `ensureAdmin()` middleware:
 - Token-based password reset interface
 - Password strength validation
 
-### Users & Access Interface (`configure/src/pages/UsersAccess/UsersAccess.js`)
+### Users Management Interface (`configure/src/pages/Users/Users.js`)
 - React-based Material-UI table component
 - Sortable user list with pagination
 - Role badges (color-coded by permission level)
@@ -232,6 +220,7 @@ Protected by `ensureAdmin()` middleware:
 req.session.user        // Username
 req.session.uid         // User ID
 req.session.token       // Current session token
+req.session.permission  // Permission string (e.g., "111")
 ```
 
 ### CSSO Integration Data
@@ -303,13 +292,12 @@ Migrations run automatically on application startup after table synchronization.
 
 ### First User Creation
 - System checks if any users exist before allowing first signup
-- First user automatically receives a global `superadmin` binding
+- First user automatically receives SuperAdmin (111) permissions
 - This ensures someone always has administrative access
 
 ### Permission Inheritance
-- Long-term tokens get the intersection of their scopes, their mission limit and the creator's current access
-- Layer bindings apply to that layer and its descendants
-- Mission bindings follow the mission's UUID, so they survive renames; clones get a new UUID and no bindings
+- Long-term tokens inherit permissions from creating user
+- Admin users can be restricted to specific missions via `missions_managing` array
 - SuperAdmins have unrestricted access to all missions
 
 ### Token Lifecycle
@@ -321,7 +309,7 @@ Migrations run automatically on application startup after table synchronization.
 ### User Deletion Rules
 - Original administrator (ID 1) cannot be deleted
 - User deletion is permanent and cascades to sessions
-- The user's role bindings and long-term tokens are deleted with the account
+- Long-term tokens remain valid until cleaned up separately
 
 <!-- HUMAN REVIEW NEEDED: Verify business rules for handling user deletion and associated data cleanup -->
 
@@ -395,7 +383,7 @@ Migrations run automatically on application startup after table synchronization.
 - Token Routes: `API/Backend/LongTermToken/routes/longtermtokens.js`
 - Token Model: `API/Backend/LongTermToken/models/longtermtokens.js`
 - Server Middleware: `scripts/server.js`
-- UI Components: `configure/src/pages/UsersAccess/UsersAccess.js`
+- UI Components: `configure/src/pages/Users/Users.js`
 - Login Templates: `views/login.pug`, `views/adminlogin.pug`, `views/resetpassword.pug`
 - Environment Documentation: `docs/pages/Setup/ENVs/ENVs.md`
 

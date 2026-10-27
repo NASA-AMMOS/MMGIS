@@ -36,7 +36,7 @@ async function isLoginPage(response) {
 }
 
 test.describe('ENV Variable Behavior', () => {
-  const authMode = process.env.MMGIS_TEST_AUTH_MODE || 'off';
+  const authMode = process.env.AUTH || 'off';
 
   test('healthcheck works regardless of AUTH mode', async ({ request }) => {
     const res = await request.get(`${BASE}/api/utils/healthcheck`, { timeout: 10000 });
@@ -102,8 +102,8 @@ test.describe('ENV Variable Behavior', () => {
     }
 
     const res = await request.get(`${BASE}/api/configure/missions`, { timeout: 10000 });
-    // Server should respond (not hang); guests get nothing on a login-required site
-    expect([200, 403]).toContain(res.status());
+    // Server should respond (not hang)
+    expect(res.status()).toBe(200);
 
     // In AUTH=local the body is likely an HTML login page, not JSON
     const body = await safeJson(res);
@@ -145,8 +145,7 @@ test.describe('ENV Variable Behavior', () => {
 
   test('missions endpoint reflects current AUTH mode', async ({ request }) => {
     const res = await request.get(`${BASE}/api/configure/missions`, { timeout: 10000 });
-    if (authMode === 'local') expect(res.status()).toBe(403);
-    else expect(res.status()).toBe(200);
+    expect(res.status()).toBe(200);
 
     const body = await safeJson(res);
 

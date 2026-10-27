@@ -7,10 +7,10 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/geodatasets",
-      s.ensureUser({ forbid: true }),
+      s.ensureAdmin(),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.registerRouter("/api/geodatasets", router)
+      router
     );
   },
   //Once the server starts

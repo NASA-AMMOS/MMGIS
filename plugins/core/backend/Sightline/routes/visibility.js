@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const { spawn } = require("child_process");
 const path = require("path");
 const zlib = require("zlib");
@@ -17,7 +16,7 @@ const scriptsDir = path.join(__dirname, "..", "scripts");
 // azimuth at the DEM's native resolution and reports whether the source is
 // above the local horizon. Independent of the sightmap's viewport-dependent
 // grid, and supports a denser temporal sampling than the sweep itself.
-router.post("/visibility", authorize("site.view"), computeLimiter, function (req, res) {
+router.post("/visibility", computeLimiter, function (req, res) {
   if (
     req.body.dem == null ||
     req.body.lat == null ||

@@ -64,7 +64,7 @@ The same `s` is passed to every hook of every plugin.
 | `stopGuests` | rejects guest sessions — put it *after* an `ensure*`, and mount it on the write route rather than the whole mount (see below) |
 | `checkHeadersCodeInjection` | header sanitation; include it on every mount |
 | `setContentType` | response content-type normalization; include it on every mount |
-| `permissions` | the group-permission lists used by `ensureGroup` |
+| `permissions` | the permission-string constants (`'111'` site admin, …) |
 | `cssoHandler` | the CSSO auth handler, for plugins doing their own auth flows |
 | `swaggerUi`, `useSwaggerSchema` | serve your routes' OpenAPI schema into `/api-docs` |
 

@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin } from '../../../../../tests/helpers/auth.js';
 
 /**
  * E2E tests for Config (Configure) API endpoints.
@@ -40,7 +39,7 @@ test.describe('Config API', () => {
   test('POST /api/configure/add creates a new mission', async ({ request }) => {
     const testMission = `TestMission-${Date.now()}`;
 
-    // Create mission — requires the mission.create capability (SuperAdmin)
+    // Create mission — requires SuperAdmin permission (session.permission === '111')
     const addRes = await request.post(`${baseURL}/api/configure/add`, {
       data: { mission: testMission },
     });
@@ -223,10 +222,8 @@ test.describe('Config API', () => {
 
   // POST /api/configure/rename — rejects invalid names and path traversal
   test('POST /api/configure/rename rejects invalid names', async ({ request }) => {
-    // Renaming needs a signed-in admin; the request fixture keeps the session
-    await loginAsAdmin(request);
     const response = await request.post(`${baseURL}/api/configure/rename`, {
-      data: { mission: 'Reference-Mission', newName: '../evil' },
+      data: { mission: 'SomeMission', newName: '../evil' },
     });
     expect(response.status()).toBeLessThan(500);
     const body = await response.json();
@@ -353,7 +350,7 @@ test.describe('Config API', () => {
   // Authorization: non-admin rejected (skip if AUTH=off)
   test('rejects non-admin config changes', async ({ request }) => {
     test.skip(
-      process.env.MMGIS_TEST_AUTH_MODE === 'off',
+      process.env.AUTH === 'off',
       'SKIP: Requires AUTH != off to test authorization',
     );
 
@@ -368,8 +365,6 @@ test.describe('Config API', () => {
 
   // Best-effort cleanup of any leftover test missions
   test.afterAll(async ({ request }) => {
-    // afterAll gets a fresh request context, so sign in again before deleting
-    if (testMissionsCreated.length > 0) await loginAsAdmin(request);
     for (const mission of testMissionsCreated) {
       try {
         await request.post(`${baseURL}/api/configure/destroy`, {

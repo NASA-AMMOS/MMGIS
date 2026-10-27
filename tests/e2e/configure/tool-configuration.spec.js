@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { loginHeaders } from '../../helpers/auth.js';
 import { MISSION_TOOLS } from '../../fixtures/mission-config.js';
 
 /**
@@ -24,7 +23,6 @@ test.describe('Configure CMS — Tool Configuration', () => {
     try {
       const res = await request.post(`${baseURL}/api/users/login`, {
         data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
-        headers: loginHeaders(),
       });
       const body = await res.json().catch(() => null);
       return body && body.status === 'success';
@@ -35,7 +33,6 @@ test.describe('Configure CMS — Tool Configuration', () => {
     try {
       await page.request.post(`${baseURL}/api/users/login`, {
         data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
-        headers: loginHeaders(),
       });
     } catch { /* best effort */ }
 

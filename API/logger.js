@@ -1,5 +1,4 @@
 const winston = require("winston");
-const util = require("util");
 const moment = require("moment");
 var os = require("os");
 const chalk = require("chalk");
@@ -32,13 +31,6 @@ const filelogger = winston.createLogger({
     new winston.transports.File({ filename: __dirname + "/logs/combined.log" }),
   ],
 });
-
-const SECRET_LOG_KEYS = new Set(["password", "token", "retypepassword"]);
-function redactSecrets(key, value) {
-  if (typeof key === "string" && SECRET_LOG_KEYS.has(key.toLowerCase()) && value != null)
-    return "_redacted_";
-  return value;
-}
 
 function sanitizeForLog(str) {
   if (typeof str !== "string") return str;
@@ -94,7 +86,7 @@ const logger = function (level, message, caller, req, err) {
 
     log.msg = sanitizeForLog(log.msg);
     log.caller = sanitizeForLog(log.caller);
-    log = JSON.stringify(log, redactSecrets);
+    log = JSON.stringify(log);
   } catch (err2) {
     log.err = err2;
   }
@@ -125,17 +117,11 @@ const logger = function (level, message, caller, req, err) {
           chalk.black(chalk.bgHex("#009eff")("\r " + level + " "))
         );
     }
-    if (message)
-      console.log(
-        " ",
-        sanitizeForLog(
-          typeof message === "string" ? message : util.inspect(message)
-        ).replace(/\r/g, "").replace(/\n/g, "")
-      );
+    if (message) console.log(" ", sanitizeForLog(message));
     if (caller && level != "success" && level != "info" && level != "loaded")
       console.log(
         "   Caller:",
-        sanitizeForLog(String(caller)).replace(/\r/g, "").replace(/\n/g, "")
+        sanitizeForLog(String(caller)).replace(/\n/g, "")
       );
     if (err) console.log("   Error:", sanitizeForLog(err instanceof Error ? err.stack || String(err) : String(err)));
   } else {
@@ -153,4 +139,3 @@ const logger = function (level, message, caller, req, err) {
 };
 
 module.exports = logger;
-module.exports.redactSecrets = redactSecrets;

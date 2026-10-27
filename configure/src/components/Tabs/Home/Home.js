@@ -34,13 +34,6 @@ const REFERENCE_MISSION_NAMES = new Set([
 ]);
 
 const useStyles = makeStyles((theme) => ({
-  limitNote: {
-    margin: "0px 32px 16px 32px",
-    padding: "10px 14px",
-    borderLeft: `4px solid ${"#dbb658"}`,
-    background: theme.palette.swatches.grey[900],
-    fontSize: "14px",
-  },
   Home: {
     width: "100%",
     display: "flex",
@@ -112,24 +105,6 @@ export default function Home() {
   const configuration = useSelector((state) => state.core.configuration);
 
   const [isDevelopment, setIsDevelopment] = useState(false);
-  const [perms, setPerms] = useState(null);
-
-  useEffect(() => {
-    calls.api("user_permissions", {}, setPerms, () =>
-      setPerms({ missions_managing: [], capabilities: [] }),
-    );
-  }, []);
-  const can = (cap) =>
-    perms?.capabilities
-      ? perms.capabilities.includes(cap)
-      : window.mmgisglobal?.role === "superadmin";
-  // missions_managing: null means every mission
-  const permsLoaded = perms != null;
-  const canEditWholeMission =
-    !permsLoaded ||
-    perms.missions_managing === null ||
-    (Array.isArray(perms.missions_managing) &&
-      perms.missions_managing.includes(mission));
 
   useEffect(() => {
     // Detect development mode via window.mmgisglobal
@@ -137,11 +112,6 @@ export default function Home() {
   }, []);
 
   const queryVersions = () => {
-    // Version history needs whole-mission edit access (Layer Editors don't have it)
-    if (!canEditWholeMission) {
-      dispatch(setVersions([]));
-      return;
-    }
     if (mission != null)
       calls.api(
         "versions",
@@ -254,42 +224,36 @@ export default function Home() {
                 <UploadIcon fontSize="medium" />
               </IconButton>
             </Tooltip>
-            {can("mission.create") && (
-              <Tooltip title={"Clone Mission"} placement="bottom" arrow>
-                <IconButton
-                  className={c.cloneIcon}
-                  title="Clone"
-                  aria-label="clone"
-                  onClick={handleClone}
-                >
-                  <ContentCopyIcon fontSize="medium" />
-                </IconButton>
-              </Tooltip>
-            )}
-            {can("mission.manage") && (
-              <Tooltip title={"Rename Mission"} placement="bottom" arrow>
-                <IconButton
-                  className={c.renameIcon}
-                  title="Rename"
-                  aria-label="rename"
-                  onClick={handleRename}
-                >
-                  <DriveFileRenameOutlineIcon fontSize="medium" />
-                </IconButton>
-              </Tooltip>
-            )}
-            {can("mission.manage") && (
-              <Tooltip title={"Delete Mission"} placement="bottom" arrow>
-                <IconButton
-                  className={c.deleteIcon}
-                  title="Delete"
-                  aria-label="delete"
-                  onClick={handleDelete}
-                >
-                  <DeleteForeverIcon fontSize="medium" />
-                </IconButton>
-              </Tooltip>
-            )}
+            <Tooltip title={"Clone Mission"} placement="bottom" arrow>
+              <IconButton
+                className={c.cloneIcon}
+                title="Clone"
+                aria-label="clone"
+                onClick={handleClone}
+              >
+                <ContentCopyIcon fontSize="medium" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={"Rename Mission"} placement="bottom" arrow>
+              <IconButton
+                className={c.renameIcon}
+                title="Rename"
+                aria-label="rename"
+                onClick={handleRename}
+              >
+                <DriveFileRenameOutlineIcon fontSize="medium" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={"Delete Mission"} placement="bottom" arrow>
+              <IconButton
+                className={c.deleteIcon}
+                title="Delete"
+                aria-label="delete"
+                onClick={handleDelete}
+              >
+                <DeleteForeverIcon fontSize="medium" />
+              </IconButton>
+            </Tooltip>
             {REFERENCE_MISSION_NAMES.has(mission) && isDevelopment && (
               <Button
                 variant="contained"
@@ -312,17 +276,7 @@ export default function Home() {
             )}
           </div>
         </div>
-        {permsLoaded && !canEditWholeMission && (
-          <div className={c.limitNote}>
-            You can edit the layers you have access to here, but Save Changes
-            and the version history need Mission Admin on this mission. Ask a
-            Mission Admin to save your changes, or update layers through the
-            API.
-          </div>
-        )}
-        {permsLoaded && canEditWholeMission && (
-          <Versions queryVersions={queryVersions} />
-        )}
+        <Versions queryVersions={queryVersions} />
         <Maker config={config} />
       </div>
       <UploadConfigModal queryVersions={queryVersions} />

@@ -4,7 +4,6 @@
  **********************************************************/
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 
 const logger = require("../../../../../API/logger");
 const us = require("../models/url_shortener");
@@ -16,7 +15,7 @@ const UrlShortener_s = us.sequelize;
  * @param url
  * @param text *optional*
  */
-router.post("/shorten", authorize("site.view"), function (req, res, next) {
+router.post("/shorten", function (req, res, next) {
   if (process.env.DISABLE_LINK_SHORTENER == "true") {
     res.send({
       status: "failure",
@@ -71,7 +70,7 @@ router.post("/shorten", authorize("site.view"), function (req, res, next) {
   }
 });
 
-router.post("/expand", authorize("site.view"), function (req, res, next) {
+router.post("/expand", function (req, res, next) {
   if (req.body.short == null) {
     res.send({
       status: "failure",

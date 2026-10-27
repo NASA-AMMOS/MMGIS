@@ -5,10 +5,10 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/shortener",
-      s.ensureUser({ forbid: true }),
+      s.ensureUser(),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      s.registerRouter("/api/shortener", router)
+      router
     );
   },
   //Once the server starts

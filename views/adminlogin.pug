@@ -7,36 +7,21 @@ head
   script(type='text/javascript' src=ROOT_PATH + 'public/jquery.min.js')
   script(type='text/javascript' src=ROOT_PATH + 'public/adminlogin.js')
   style.
-    @font-face { font-family: "Source Sans Pro"; src: url(#{ROOT_PATH}public/fonts/sourcesanspro/SourceSansPro-Regular.ttf); }
     body { background-color: #1a1a1a; background-image: url(#{ROOT_PATH}public/images/contours.png); }
 body.mmgisScrollbar
   #backIcon.mdi.mdi-keyboard-backspace.mdi-18px
+  #setup
+    | SETUP
   .container
-    #setup
-      | SETUP
-    if SIGNED_IN_AS != null
-      .notAdmin
-        | Signed in as #[b= SIGNED_IN_AS], but this account can't manage anything in Configure. Sign in with an administrator account, or #[a(href=(ROOT_PATH || '/')) go to the map].
-        div.btn2(onClick='signOut()') Sign out
     img(src=ROOT_PATH + 'public/images/logos/mmgis.png' alt='MMGIS' onClick='back()')
     span#msg.error
     form.box(name='form1')
       h4
         | Admin
         span Dashboard
-      h5#signInTitle Sign in to your account.
-      label.fieldLabel(for='username') Username
-      input#username(type='text' name='username' autocomplete='off')
-      label.fieldLabel(for='pwd') Password
-      input#pwd(type='password' name='password' autocomplete='off')
-      label#pwd_retype_label.fieldLabel(for='pwd_retype') Retype Password
-      input#pwd_retype(type='password' name='password' autocomplete='off')
-      label#setup_code_label.fieldLabel(for='setup_code') Setup Code
-      input#setup_code(type='text' name='setup_code' placeholder='See the server log' autocomplete='off' spellcheck='false')
+      h5 Sign in to your account.
+      input#username(type='text' name='username' placeholder='Username' autocomplete='off')
+      input#pwd(type='password' name='password' placeholder='Password' autocomplete='off')
+      input#pwd_retype(type='password' name='password' placeholder='Retype Password' autocomplete='off')
       div.btn1(onClick='login()') Sign in
-      if LOGIN_LINKS && LOGIN_LINKS.length
-        .providerLinks
-          .providerOr or
-          each link in LOGIN_LINKS
-            a.providerBtn(href=link.url || (ROOT_PATH + link.path + '?returnTo=' + encodeURIComponent(RETURN_TO)))= link.label
       div.version v#{VERSION}

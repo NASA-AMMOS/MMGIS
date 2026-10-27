@@ -5,8 +5,7 @@ const test = (setupEnvs, port) => {
   let envSample = {
     SERVER: process.env.SERVER,
     PORT: port,
-    SITE_ACCESS: process.env.SITE_ACCESS,
-    AUTH_PROVIDERS: process.env.AUTH_PROVIDERS,
+    AUTH: process.env.AUTH,
     NODE_ENV: process.env.NODE_ENV,
     SECRET: process.env.SECRET ? "_redacted_" : null,
     VERBOSE_LOGGING: process.env.VERBOSE_LOGGING || false,

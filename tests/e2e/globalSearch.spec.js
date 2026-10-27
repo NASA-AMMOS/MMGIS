@@ -1,11 +1,5 @@
 import { test, expect } from '@playwright/test'
 
-// The All/Common toggle; the time-range toggle shares its class
-const intersectToggle = (pg) =>
-    pg.locator('.searchValuesToggle').filter({
-        has: pg.locator('.searchValuesToggleLabel', { hasText: /^(All|Common)$/ }),
-    })
-
 /**
  * Global Feature Search — E2E Tests
  *
@@ -344,7 +338,7 @@ test.describe('Global Feature Search', () => {
             await groups.first().click()
             await pg.waitForTimeout(1000)
 
-            const toggle = intersectToggle(pg)
+            const toggle = pg.locator('.searchValuesToggle')
             await expect(toggle).toBeVisible({ timeout: 5000 })
         })
 
@@ -359,7 +353,7 @@ test.describe('Global Feature Search', () => {
             await groups.first().click()
             await pg.waitForTimeout(1000)
 
-            const label = intersectToggle(pg).locator('.searchValuesToggleLabel')
+            const label = pg.locator('.searchValuesToggleLabel')
             await expect(label).toContainText('All')
         })
 
@@ -374,7 +368,7 @@ test.describe('Global Feature Search', () => {
             await groups.first().click()
             await pg.waitForTimeout(1000)
 
-            const toggleSwitch = intersectToggle(pg).locator('button[role="switch"]')
+            const toggleSwitch = pg.locator('.searchValuesToggle button[role="switch"]')
             if (!(await toggleSwitch.isVisible().catch(() => false))) {
                 test.skip(true, 'Toggle switch not visible')
                 return
@@ -382,12 +376,8 @@ test.describe('Global Feature Search', () => {
             await toggleSwitch.click()
             await pg.waitForTimeout(500)
 
-            const label = intersectToggle(pg).locator('.searchValuesToggleLabel')
+            const label = pg.locator('.searchValuesToggleLabel')
             await expect(label).toContainText('Common')
-
-            // Reset back to All for the next tests
-            await toggleSwitch.click()
-            await expect(label).toContainText('All')
         })
 
         test('toggle is hidden for single layer selection', async () => {
@@ -401,7 +391,7 @@ test.describe('Global Feature Search', () => {
             await layers.first().click()
             await pg.waitForTimeout(500)
 
-            const toggle = intersectToggle(pg)
+            const toggle = pg.locator('.searchValuesToggle')
             await expect(toggle).not.toBeVisible()
         })
     })
@@ -418,7 +408,9 @@ test.describe('Global Feature Search', () => {
 
         test('switch defaults to unchecked (select mode)', async () => {
             const switchEl = pg.locator('.searchModeSwitch button[role="switch"]')
-            await expect(switchEl).toHaveAttribute('aria-checked', 'false')
+            const checked = await switchEl.getAttribute('data-checked')
+            // data-checked is absent when unchecked
+            expect(checked).toBeNull()
         })
 
         test('clicking switch toggles to filter mode', async () => {
@@ -427,7 +419,8 @@ test.describe('Global Feature Search', () => {
             await pg.waitForTimeout(300)
 
             // Verify it toggled
-            await expect(switchEl).toHaveAttribute('aria-checked', 'true')
+            const checked = await switchEl.getAttribute('data-checked')
+            expect(checked).not.toBeNull()
 
             // Reset back to select mode for next tests
             await switchEl.click()
@@ -924,7 +917,7 @@ test.describe('Global Feature Search', () => {
             await groups.first().click()
             await pg.waitForTimeout(1000)
 
-            const switchEl = intersectToggle(pg).locator('button[role="switch"]')
+            const switchEl = pg.locator('.searchValuesToggle button[role="switch"]')
             await expect(switchEl).toBeVisible({ timeout: 5000 })
         })
     })

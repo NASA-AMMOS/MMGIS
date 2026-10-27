@@ -40,15 +40,14 @@ import Time from "../Tabs/Time/Time";
 import UserInterface from "../Tabs/UserInterface/UserInterface";
 
 import APITokens from "../../pages/APITokens/APITokens";
-import UsersAccess from "../../pages/UsersAccess/UsersAccess";
 import GeoDatasets from "../../pages/GeoDatasets/GeoDatasets";
 import Datasets from "../../pages/Datasets/Datasets";
 import WebHooks from "../../pages/WebHooks/WebHooks";
 import APIs from "../../pages/APIs/APIs";
 import STAC from "../../pages/STAC/STAC";
 import GeneralOptions from "../../pages/GeneralOptions/GeneralOptions";
+import Users from "../../pages/Users/Users";
 import DataFormats from "../../pages/DataFormats/DataFormats";
-import AccessHelp from "../../pages/UsersAccess/AccessHelp";
 
 const useStyles = makeStyles((theme) => ({
   Main: {
@@ -89,19 +88,15 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     justifyContent: "start",
     width: "88px",
-    flexShrink: 0,
     padding: "4px",
   },
   right: {
     display: "flex",
     justifyContent: "end",
-    minWidth: "88px",
-    flexShrink: 0,
+    width: "88px",
     padding: "4px",
   },
   tabs: {
-    flex: 1,
-    minWidth: 0,
     "& > div": {
       borderRight: "none",
       height: "48px",
@@ -160,7 +155,6 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function Main() {
-  const missionList = useSelector((state) => state.core.missions) || [];
   const c = useStyles();
 
   const dispatch = useDispatch();
@@ -246,15 +240,10 @@ export default function Main() {
       Page = <GeneralOptions />;
       break;
     case "users":
-    case "access":
-    case "ua_v1":
-      Page = <UsersAccess />;
+      Page = <Users />;
       break;
     case "data_formats":
       Page = <DataFormats />;
-      break;
-    case "access_help":
-      Page = <AccessHelp />;
       break;
     default:
   }
@@ -379,13 +368,7 @@ export default function Main() {
           <div className={c.intro}>
             <div className={c.title}>MMGIS</div>
             <div className={c.subtitle}>Configuration</div>
-            <div className={c.message}>
-              {window.mmgisglobal?.role === "superadmin"
-                ? "Create or Select a Mission"
-                : missionList.length > 0
-                  ? "Select a Mission"
-                  : "No missions to configure. GeoDatasets, Datasets and STAC are under Data in the menu."}
-            </div>
+            <div className={c.message}>Create or Select a Mission</div>
           </div>
         </div>
       ) : (

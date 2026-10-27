@@ -19,35 +19,11 @@ const getfile = filesutils.getfile;
 const { sequelize } = require("../../../../../API/connection");
 
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const db = database.db;
 const triggerWebhooks = require("../../Webhooks/processes/triggerwebhooks");
 
-router.post("/", authorize("draw.use"), function (req, res, next) {
+router.post("/", function (req, res, next) {
   res.send("test draw");
-});
-
-// Every feature route acts on one file; a missing or non-integer id would
-// otherwise reach Sequelize as an invalid WHERE value
-router.use(["/add", "/edit", "/remove", "/undo", "/merge", "/split"], (req, res, next) => {
-  if (req.method !== "POST") return next();
-  const id = req.body ? req.body.file_id : undefined;
-  if (!/^[0-9]+$/.test(String(id))) {
-    return res.send({
-      status: "failure",
-      message: "Required parameter 'file_id' must be an integer.",
-      body: {},
-    });
-  }
-  // Shared files (edit lists, "anyone can edit", groups) only within missions the caller can view
-  const Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
-  Files.findOne({ where: { id }, attributes: ["file_owner", "mission"], raw: true })
-    .then(async (file) => {
-      if (file && !(await filesutils.canViewFileMissions(req, [file])))
-        return res.send({ status: "failure", message: "Permission denied.", body: {} });
-      next();
-    })
-    .catch(next);
 });
 
 /**
@@ -817,7 +793,7 @@ const add = async function (
     }
   });
 };
-router.post("/add", authorize("draw.use"), function (req, res, next) {
+router.post("/add", function (req, res, next) {
   add(
     req,
     res,
@@ -1014,7 +990,7 @@ const edit = async function (req, res, successCallback, failureCallback) {
     });
 };
 
-router.post("/edit", authorize("draw.use"), function (req, res) {
+router.post("/edit", function (req, res) {
   edit(
     req,
     res,
@@ -1046,7 +1022,7 @@ router.post("/edit", authorize("draw.use"), function (req, res) {
  *  feature_id: <number> (required)
  * }
  */
-router.post("/remove", authorize("draw.use"), function (req, res, next) {
+router.post("/remove", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -1167,7 +1143,7 @@ router.post("/remove", authorize("draw.use"), function (req, res, next) {
  *  undo_time: <number> (required)
  * }
  */
-router.post("/undo", authorize("draw.use"), function (req, res, next) {
+router.post("/undo", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -1303,7 +1279,7 @@ router.post("/undo", authorize("draw.use"), function (req, res, next) {
  *  ids: <int array> - of all the ids to merge together
  * }
  */
-router.post("/merge", authorize("draw.use"), function (req, res, next) {
+router.post("/merge", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -1508,7 +1484,7 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
  *  ids: <int array> - of all the ids to perform the split against
  * }
  */
-router.post("/split", authorize("draw.use"), function (req, res, next) {
+router.post("/split", function (req, res, next) {
   let Files = req.body.test === "true" ? UserfilesTEST : Userfiles;
   let Features = req.body.test === "true" ? UserfeaturesTEST : Userfeatures;
   let Histories = req.body.test === "true" ? FilehistoriesTEST : Filehistories;
@@ -1684,22 +1660,22 @@ router.post("/split", authorize("draw.use"), function (req, res, next) {
     });
 });
 
-router.post("/replace", authorize("draw.use"), function (req, res, next) {
+router.post("/replace", function (req, res, next) {
   res.send("test draw replace");
 });
 
-router.post("/sendtofront", authorize("draw.use"), function (req, res, next) {
+router.post("/sendtofront", function (req, res, next) {
   res.send("test draw front");
 });
 
-router.post("/sendtoback", authorize("draw.use"), function (req, res, next) {
+router.post("/sendtoback", function (req, res, next) {
   res.send("test draw back");
 });
 
 /**
  * Clears out testing tables
  */
-router.post("/clear_test", authorize("draw.use"), function (req, res, next) {
+router.post("/clear_test", function (req, res, next) {
   sequelize
     .query('TRUNCATE TABLE "user_features_tests" RESTART IDENTITY')
     .then(() => {

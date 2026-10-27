@@ -7,21 +7,21 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/sightline",
-      s.ensureUser({ forbid: true }),
+      s.ensureUser(),
       s.setContentType,
-      s.registerRouter("/api/sightline", sightmapRouter)
+      sightmapRouter
     );
     s.app.use(
       s.ROOT_PATH + "/api/sightline",
-      s.ensureUser({ forbid: true }),
+      s.ensureUser(),
       s.setContentType,
-      s.registerRouter("/api/sightline", horizonprofileRouter)
+      horizonprofileRouter
     );
     s.app.use(
       s.ROOT_PATH + "/api/sightline",
-      s.ensureUser({ forbid: true }),
+      s.ensureUser(),
       s.setContentType,
-      s.registerRouter("/api/sightline", visibilityRouter)
+      visibilityRouter
     );
   },
   //Once the server starts

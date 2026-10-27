@@ -1,6 +1,5 @@
 const express = require("express");
 const router = express.Router();
-const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const { spawn } = require("child_process");
 const path = require("path");
 const zlib = require("zlib");
@@ -12,7 +11,7 @@ const validateMissionsPath = require("../../../../../API/validateMissionsPath");
 const rootDir = `${__dirname}/../../../../..`;
 const scriptsDir = path.join(__dirname, "..", "scripts");
 
-router.post("/sightmap", authorize("site.view"), computeLimiter, function (req, res) {
+router.post("/sightmap", computeLimiter, function (req, res) {
   const isBatch = req.body.startTime != null && req.body.endTime != null && req.body.stepSeconds != null;
   if (req.body.dem == null || req.body.lat == null || req.body.lng == null || req.body.target == null) {
     return res.status(400).json({ error: true, message: "dem, lat, lng, and target are required" });

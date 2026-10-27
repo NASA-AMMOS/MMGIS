@@ -1,10 +1,4 @@
 import { defineConfig, devices } from "@playwright/test";
-import { config as loadDotenv } from 'dotenv';
-loadDotenv();
-
-// Test-only label for the SITE_ACCESS mode under test: off | none | local
-process.env.MMGIS_TEST_AUTH_MODE =
-  { public: 'off', optional: 'none', required: 'local' }[process.env.SITE_ACCESS] || 'off';
 
 /**
  * Playwright configuration for MMGIS

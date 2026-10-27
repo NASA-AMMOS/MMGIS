@@ -42,7 +42,6 @@ export async function createTestUser(request, { username, password, email }) {
 export async function loginAsUser(request, { username, password }) {
   const response = await request.post('/api/users/login', {
     data: { username, password },
-    headers: loginHeaders(),
   });
 
   // Extract the session cookie from the response headers
@@ -135,18 +134,4 @@ export async function revokeLongTermToken(request, token) {
   const entry = listBody.tokens?.find((t) => t.token === token);
   if (!entry) return;
   await request.post('/api/longtermtoken/clear', { data: { id: entry.id } });
-}
-
-let loginClient = 0;
-/**
- * Headers that give each test login its own client address (the server trusts
- * one proxy hop), so suites with many logins stay under the login rate limit.
- *
- * @returns {Record<string, string>}
- */
-export function loginHeaders() {
-  loginClient++;
-  return {
-    'X-Forwarded-For': `10.${process.pid % 250}.${Math.floor(loginClient / 250) % 250}.${(loginClient % 250) + 2}`,
-  };
 }

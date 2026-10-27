@@ -1,6 +1,5 @@
 const WebSocket = require("isomorphic-ws");
 const logger = require("./logger");
-const siteAccess = require("./permissions/siteAccess");
 
 const websocket = {
   wss: null,
@@ -38,37 +37,13 @@ const websocket = {
     websocket.wss = wss;
     const { getRequestHost, isOriginAllowed } = require("./origin");
 
-    // Sends each mission's updates only to clients that can view that mission
+    // Broadcast to all clients
     wss.broadcast = function broadcast(data, isBinary) {
-      if (data === undefined) return;
-      let mission = null;
-      try {
-        const parsed = JSON.parse(data);
-        mission = parsed && parsed.body ? parsed.body.mission : null;
-      } catch (err) {}
-      if (typeof mission !== "string" || mission === "") return;
-      const policy = require("./permissions/policy");
-      require("./permissions/missions")
-        .uuidForName(mission)
-        .then((uuid) => {
-          if (!uuid) return;
-          wss.clients.forEach((client) => {
-            if (client.readyState !== WebSocket.OPEN || !client.mmgisViewer) return;
-            client
-              .mmgisViewer()
-              .then((p) => {
-                if (
-                  client.readyState === WebSocket.OPEN &&
-                  policy.can(p, "mission.view", { mission: uuid })
-                )
-                  client.send(data, { binary: isBinary });
-              })
-              .catch(() => {});
-          });
-        })
-        .catch((err) =>
-          logger("error", "Failed to broadcast websocket update.", "websocket", null, err)
-        );
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN && data !== undefined) {
+          client.send(data, { binary: isBinary });
+        }
+      });
     };
 
     wss.on("connection", (ws, request) => {
@@ -118,44 +93,24 @@ const websocket = {
           return;
         }
 
-        // Header-based login providers (e.g. CSSO) identify the upgrade request itself
-        const providerIdentity = () =>
-          require("./permissions/providers")
-            .identify({
-              headers: request.headers,
-              get: (name) => request.headers[String(name).toLowerCase()],
-            })
-            .catch(() => null);
+        const completeUpgrade = () => {
+          // Guests are allowed unless AUTH gates the whole site (local/csso)
+          const guestsAllowed =
+            process.env.AUTH !== "local" && process.env.AUTH !== "csso";
+          const authenticated =
+            guestsAllowed ||
+            (request.session &&
+              ((typeof request.session.user === "string" &&
+                request.session.user.length > 0) ||
+                (typeof request.session.permission === "string" &&
+                  request.session.permission.length > 0)));
 
-        const completeUpgrade = async () => {
-          const identity = await providerIdentity();
-          // The session as stored now, so logouts and ended sessions apply to open sockets
-          const currentSession = () =>
-            new Promise((resolve) => {
-              const store = request.sessionStore;
-              if (!request.session || !store || !request.sessionID) {
-                resolve(request.session || {});
-                return;
-              }
-              store.get(request.sessionID, (err, s) => resolve(err || !s ? {} : s));
-            });
-          // Resolved again on every broadcast, so removed access and deleted accounts apply at once
-          const viewer = async () =>
-            require("./permissions/principal").resolvePrincipal({
-              headers: request.headers,
-              session: await currentSession(),
-              identity: identity || undefined,
-            });
-          const p = await viewer();
-
-          // Guests are allowed unless SITE_ACCESS=required; a deleted account's session is a guest
-          if (p.kind === "invalid_token" || !(p.authenticated || siteAccess.guestsAllowed())) {
+          if (!authenticated) {
             reject("unauthenticated session");
             return;
           }
 
           wss.handleUpgrade(request, socket, head, function done(ws) {
-            ws.mmgisViewer = viewer;
             wss.emit("connection", ws, request);
           });
         };
@@ -166,10 +121,10 @@ const websocket = {
               reject("session middleware error");
               return;
             }
-            completeUpgrade().catch(() => reject("upgrade error"));
+            completeUpgrade();
           });
         } else {
-          completeUpgrade().catch(() => reject("upgrade error"));
+          completeUpgrade();
         }
       } catch (err) {
         reject("upgrade error");

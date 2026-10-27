@@ -141,8 +141,8 @@ Comprehensive user account and permission management system.
 
 - **User CRUD**: Create, read, update, and delete user accounts
 - **Role Assignment**: Three-tier permission system
-  - **SuperAdmin**: Full system access to all missions
-  - **Mission admin**: Access to assigned missions only
+  - **SuperAdmin (111)**: Full system access to all missions
+  - **Admin (110)**: Access to assigned missions only
   - **User (100+)**: Limited or no configuration access
 - **Mission Assignment**: Assign admins to specific missions
 - **Password Management**: Reset user passwords
@@ -417,12 +417,12 @@ Admins can be assigned to specific missions:
 ```javascript
 // Example user permissions object
 {
-  role: "mission_admin",
+  permission: "110",  // Admin
   missions_managing: ["Mars2020", "Europa"]
 }
 ```
 
-This admin can only edit the Mars2020 and Europa missions. SuperAdmins can edit all missions.
+This admin can only edit the Mars2020 and Europa missions. SuperAdmins (permission "111") can edit all missions.
 
 ## API Integration
 

@@ -5,9 +5,9 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/broadcast",
-      s.ensureUser({ forbid: true }),
+      s.ensureAdmin(),
       s.checkHeadersCodeInjection,
-      s.registerRouter("/api/broadcast", routerBroadcast)
+      routerBroadcast
     );
   },
   //Once the server starts
