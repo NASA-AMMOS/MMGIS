@@ -36,6 +36,7 @@ import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
 import Autocomplete from "@mui/material/Autocomplete";
+import Link from "@mui/material/Link";
 
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -123,6 +124,28 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "bold !important",
     marginBottom: "6px !important",
     "& svg": { fontSize: "22px !important" },
+  },
+  setupCols: { display: "flex", gap: "12px", marginTop: "16px" },
+  setupCol: {
+    flex: 1,
+    padding: "4px 20px",
+    borderLeft: `3px solid ${theme.palette.swatches.p[0]}`,
+  },
+  setupLabel: {
+    fontSize: "12px",
+    fontWeight: "bold",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+    color: theme.palette.swatches.grey[400],
+  },
+  setupValue: { fontSize: "18px", fontWeight: "bold", margin: "4px 0 6px" },
+  setupDesc: { fontSize: "13px", lineHeight: "19px", color: theme.palette.swatches.grey[300] },
+  setupEnv: {
+    fontFamily: "monospace",
+    fontSize: "12px",
+    color: theme.palette.swatches.grey[500],
+    marginTop: "8px",
+    wordBreak: "break-word",
   },
   audienceHint: { maxWidth: "900px", fontSize: "14px", lineHeight: "20px", opacity: 0.85, marginBottom: "14px" },
   bar: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" },
@@ -1242,7 +1265,7 @@ export default function UsersAccess() {
   const c = useStyles();
   const dispatch = useDispatch();
   const notify = useCallback((text, severity) => dispatch(setSnackBarText({ text, severity })), [dispatch]);
-  const [tab, setTab] = useState(0);
+  const [tab, setTab] = useState(3);
   const [roles, setRoles] = useState({});
   const [missions, setMissions] = useState([]);
   const [users, setUsers] = useState([]);
@@ -1425,11 +1448,11 @@ export default function UsersAccess() {
         </div>
       </Toolbar>
       <Tabs className={c.tabs} value={tab} onChange={(e, v) => setTab(v)}>
-        <Tab label="People" />
-        <Tab label="Groups" />
-        <Tab label="Missions" />
-        <Tab label="Site-wide" />
-        <Tab label="All grants" />
+        <Tab value={3} label="Site-wide" />
+        <Tab value={0} label="People" />
+        <Tab value={1} label="Groups" />
+        <Tab value={2} label="Missions" />
+        <Tab value={4} label="All grants" />
       </Tabs>
       <div className={c.content}>
         {tab === 0 && (
@@ -1567,11 +1590,12 @@ export default function UsersAccess() {
 
         {tab === 3 && (
           <div className={c.pane}>
+            <SiteSetupCard />
             {["everyone", "authenticated"].map((a) => {
               const st = audienceState(a);
               return (
                 <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={<SubjectTag type={a} name={AUDIENCE_LABEL[a]} showKind={false} />} state={st} missions={missions}
-                  hint={a === "everyone" ? "Every logged-in user (including CSSO users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below." : "Every logged-in user, including CSSO users. Adds to what Everyone gets: \"No access\" here doesn't take away access granted to Everyone."}
+                  hint={a === "everyone" ? "Every logged-in user (including CSSO users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below. \"No access\" here only means this grant adds nothing: people keep any access from their own grants, their groups and their mission or layer roles." : "Every logged-in user, including CSSO users. Adds to what Everyone gets. \"No access\" here only means this grant adds nothing: logged-in users still get what Everyone allows, plus any access from their own grants, their groups and their mission or layer roles (see the People, Groups and Missions tabs)."}
                   onSave={(mode, list) => setAudience(a, mode, list)} />
               );
             })}
@@ -1652,6 +1676,77 @@ export default function UsersAccess() {
       <ResetPasswordModal queryUsers={refresh} />
       <DeleteUserModal queryUsers={() => { setPanel(null); refresh(); }} />
       <NewUserModal queryUsers={refresh} />
+    </div>
+  );
+}
+
+const SITE_ACCESS_SUMMARY = {
+  public: {
+    value: "Public: open to everyone",
+    desc: "Anyone can view. There's no login on the main site; only admins log in here. Everyone below is what visitors see.",
+  },
+  optional: {
+    value: "Optional: log in if you like",
+    desc: "Anyone can view, and people can log in for features such as saving Draw files. Everyone below includes guests.",
+  },
+  required: {
+    value: "Required: log in first",
+    desc: "Visitors must log in to see anything. Guests only see the login page, so Everyone below works like Logged-in users.",
+  },
+};
+const PROVIDER_LABEL = { local: "Local accounts", csso: "CSSO" };
+const PROVIDER_DESC = {
+  local: "MMGIS usernames and passwords.",
+  csso: "Cloud Single Sign On proxied in front of MMGIS.",
+};
+
+// Read-only summary of the server's SITE_ACCESS and login ENVs
+function SiteSetupCard() {
+  const c = useStyles();
+  const g = window.mmgisglobal || {};
+  const access = SITE_ACCESS_SUMMARY[g.SITE_ACCESS] || { value: g.SITE_ACCESS || "Unknown", desc: "" };
+  const providers = g.authProviders || [];
+  const adminsOnly = g.AUTH_LOCAL_LOGIN === "admins";
+  const selfSignup = g.SELF_SIGNUP === "true";
+  const loginDesc = [
+    ...providers.map((p) => PROVIDER_DESC[p] || `The ${p} provider.`),
+    providers.includes("local") && !providers.includes("csso") ? "CSSO is off." : null,
+    adminsOnly ? "Only accounts with an editing or admin role may log in with a local password." : null,
+  ].filter(Boolean).join(" ");
+  const accounts = selfSignup
+    ? { value: "Admins and visitors", desc: "Admins add people with New user, and visitors can sign up from the login page." }
+    : { value: "Admins only", desc: `Admins add people with New user. There's no sign-up on the main site${g.SITE_ACCESS === "required" ? "" : " login"}.` };
+  const cols = [
+    { label: "Who can open the site", ...access, env: `SITE_ACCESS=${g.SITE_ACCESS}` },
+    {
+      label: "How people log in",
+      value: providers.map((p) => PROVIDER_LABEL[p] || p).join(" and ") || "None",
+      desc: loginDesc,
+      env: `AUTH_PROVIDERS=${JSON.stringify(providers)}`,
+    },
+    {
+      label: "Who can create accounts",
+      ...accounts,
+      env: `AUTH_LOCAL_ALLOW_SIGNUP=${g.AUTH_LOCAL_ALLOW_SIGNUP} · AUTH_LOCAL_LOGIN=${g.AUTH_LOCAL_LOGIN}`,
+    },
+  ];
+  return (
+    <div className={c.audience}>
+      <Typography className={c.audienceTitle}>How this site is set up</Typography>
+      <div className={c.audienceHint} style={{ marginBottom: 0 }}>
+        Read-only. These come from the server's environment; change them in .env and restart.{" "}
+        <Link href="https://nasa-ammos.github.io/MMGIS/setup/envs" target="_blank" underline="always">ENV docs</Link>
+      </div>
+      <div className={c.setupCols}>
+        {cols.map((col) => (
+          <div key={col.label} className={c.setupCol}>
+            <div className={c.setupLabel}>{col.label}</div>
+            <div className={c.setupValue}>{col.value}</div>
+            <div className={c.setupDesc}>{col.desc}</div>
+            <div className={c.setupEnv}>{col.env}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

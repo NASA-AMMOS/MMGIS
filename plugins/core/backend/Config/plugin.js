@@ -21,6 +21,11 @@ let setup = {
             role: role,
             SITE_ACCESS: s.siteAccess.getSiteAccess(),
             AUTH_PROVIDERS: s.siteAccess.getProviders().join(","),
+            AUTH_LOCAL_ALLOW_SIGNUP: String(
+              process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true"
+            ),
+            AUTH_LOCAL_LOGIN: s.siteAccess.localAdminsOnly() ? "admins" : "all",
+            SELF_SIGNUP: String(s.siteAccess.selfSignupAllowed()),
             NODE_ENV: process.env.NODE_ENV,
             VERSION: configurePackageJson.version,
             PORT: process.env.PORT || "8888",

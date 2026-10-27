@@ -18,6 +18,9 @@
         .replace(/&quot;|[\[\]"' ]/g, "")
         .split(",")
         .filter(Boolean);
+      mmgisglobal.AUTH_LOCAL_ALLOW_SIGNUP = "#{AUTH_LOCAL_ALLOW_SIGNUP}";
+      mmgisglobal.AUTH_LOCAL_LOGIN = "#{AUTH_LOCAL_LOGIN}";
+      mmgisglobal.SELF_SIGNUP = "#{SELF_SIGNUP}";
       mmgisglobal.SHOW_AUTH_TIMEOUT = true;
       mmgisglobal.user = "#{user}";
       mmgisglobal.role = "#{role}";
