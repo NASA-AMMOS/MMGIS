@@ -138,7 +138,7 @@ test.describe('loadConnections', () => {
     );
     connections.loadConnections(root);
     const leaky = connections.setupStatus(connections.getConnection('leaky'), {
-      LEAKY_SECRET: 'hunter2-very-secret',
+      LEAKY_SECRET: 'hunter2-very-secret', // pragma: allowlist secret
     });
     expect(leaky.configured).toBe(false);
     expect(JSON.stringify(leaky.problems)).not.toContain('hunter2-very-secret');
