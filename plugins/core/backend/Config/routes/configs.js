@@ -1522,8 +1522,8 @@ if (fullAccess)
           folderName && fs.existsSync(missionsRoot)
             ? fs.readdirSync(missionsRoot).find((f) => f === folderName)
             : null;
-        const dir = folder ? path.join(missionsRoot, folder) : null;
-        if (dir && fs.existsSync(dir)) {
+        const dir = folder ? path.resolve(missionsRoot, path.basename(folder)) : null;
+        if (dir && dir.startsWith(missionsRoot + path.sep) && fs.existsSync(dir)) {
           let deletedDir = dir + "_deleted_";
           if (fs.existsSync(deletedDir)) deletedDir = `${dir}_${Date.now()}_deleted_`;
           fs.rename(dir, deletedDir, (err) => {

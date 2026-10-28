@@ -208,14 +208,10 @@ function renderMenu() {
                 </div>
             </div>`
         }
-        const guestNote =
-            !loggedIn &&
-            relevant().some((s) => s.storage === 'session' && s.canConnect)
-                ? '<div class="connectionsMenuNote">Guest connections last for this browser session.</div>'
-                : ''
-        html += `<div class="connectionsMenuSection"><div class="connectionsMenuLabel">Services</div>${relevant()
-            .map(serviceRow)
-            .join('')}${guestNote}</div>`
+        if (relevant().length)
+            html += `<div class="connectionsMenuSection"><div class="connectionsMenuLabel">Services</div>${relevant()
+                .map(serviceRow)
+                .join('')}</div>`
         const menu = $('<div>').attr('id', 'connectionsMenu').html(html)
         $('body').append(menu)
         const rect = menuAnchor

@@ -111,26 +111,6 @@
     margin-left: 4px;
 }
 
-.userWrapper {
-    position: relative;
-}
-
-.userCardName {
-    padding: 10px 14px 8px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--color-a5);
-}
-
-.userCardDivider {
-    height: 1px;
-    margin: 0 8px;
-    background: var(--color-a1);
-}
-
 /* Kebab menu trigger — override IconButton border for circular shape */
 .menuBtn {
     border-radius: 4px;

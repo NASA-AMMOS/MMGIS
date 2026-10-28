@@ -1453,7 +1453,7 @@ export default function UsersAccess() {
         <Tab value={1} label="Groups" />
         <Tab value={2} label="Missions" />
         <Tab value={4} label="All grants" />
-        <Tab value={5} label="Services" />
+        <Tab value={5} label="Connections" />
       </Tabs>
       <div className={c.content}>
         {tab === 0 && (
@@ -1723,7 +1723,7 @@ function ServicesPane() {
   return (
     <>
       <div className={c.audience}>
-        <Typography className={c.audienceTitle}>Services</Typography>
+        <Typography className={c.audienceTitle}>Connections</Typography>
         <div className={c.audienceHint} style={{ marginBottom: 0 }}>
           Connections let tools use an outside service, such as Earthdata, with each person's own account there. They don't
           sign anyone in to MMGIS. People connect and disconnect from the account menu on the main site. Read-only: each

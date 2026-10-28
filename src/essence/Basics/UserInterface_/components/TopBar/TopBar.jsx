@@ -123,7 +123,6 @@ function TopBar({ userInterface }) {
     const [mapOpen, setMapOpen] = useState(true)
     const [globeOpen, setGlobeOpen] = useState(false)
     const [username, setUsername] = useState(null)
-    const userBtnRef = useRef(null)
 
     useEffect(() => {
         const el = topBarLeftRef.current
@@ -152,8 +151,8 @@ function TopBar({ userInterface }) {
         return unsub
     }, [])
 
-    // When this mission's tools use a service, the account button opens the
-    // Services menu instead
+    // The account button opens the account menu, which also lists services
+    // when this mission's tools use any
     const [connUI, setConnUI] = useState(Connections_.uiState())
     useEffect(() => Connections_.onUI(setConnUI), [])
 
@@ -301,16 +300,6 @@ function TopBar({ userInterface }) {
         }
     }, [userInterface, isMobile])
 
-    const handleLogout = useCallback(() => {
-        const loginoutBtn = document.getElementById('loginoutButton')
-        if (loginoutBtn) loginoutBtn.click()
-    }, [])
-
-    const handleSignIn = useCallback(() => {
-        const loginoutBtn = document.getElementById('loginoutButton')
-        if (loginoutBtn) loginoutBtn.click()
-    }, [])
-
     // TopBar stays full-width always — tool panel floats underneath it
     const topBarStyle = {}
     if (isMobile) {
@@ -398,52 +387,22 @@ function TopBar({ userInterface }) {
                     {/* User account area — hidden when SITE_ACCESS=public */}
                     {typeof window !== 'undefined' && window.mmgisglobal && window.mmgisglobal.SITE_ACCESS !== 'public' && (
                         <div className={styles.userArea}>
-                            {connUI.hasMenu ? (
-                                username ? (
-                                    <div
-                                        id="accountButton"
-                                        className={`${styles.userAvatar} ${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
-                                        title={username}
-                                        style={{ background: Connections_.avatarColor(username) }}
-                                        onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
-                                    >
-                                        {username[0].toUpperCase()}
-                                    </div>
-                                ) : (
-                                    <IconButton
-                                        id="accountButton"
-                                        title="Sign in and services"
-                                        className={`${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
-                                        onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
-                                    >
-                                        <i className="mdi mdi-login" style={{ fontSize: 16 }} />
-                                    </IconButton>
-                                )
-                            ) : username ? (
-                                <div className={styles.userWrapper}>
-                                    <Dropdown
-                                        trigger={
-                                            <div
-                                                ref={userBtnRef}
-                                                className={styles.userAvatar}
-                                                title={username}
-                                                style={{ background: Connections_.avatarColor(username) }}
-                                            >
-                                                {username[0].toUpperCase()}
-                                            </div>
-                                        }
-                                    >
-                                        <div className={styles.userCardName}>{username}</div>
-                                        <div className={styles.userCardDivider} />
-                                        <Dropdown.Item onClick={handleLogout}>
-                                            <i className="mdi mdi-logout" style={{ marginRight: 6, fontSize: 14 }} />
-                                            Logout
-                                        </Dropdown.Item>
-                                    </Dropdown>
+                            {username ? (
+                                <div
+                                    id="accountButton"
+                                    className={`${styles.userAvatar} ${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
+                                    title={username}
+                                    style={{ background: Connections_.avatarColor(username) }}
+                                    onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
+                                >
+                                    {username[0].toUpperCase()}
                                 </div>
                             ) : (
                                 <IconButton
-                                    onClick={handleSignIn}
+                                    id="accountButton"
+                                    title={connUI.hasMenu ? 'Sign in and services' : 'Sign in'}
+                                    className={`${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
+                                    onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
                                 >
                                     <i className="mdi mdi-login" style={{ fontSize: 16 }} />
                                 </IconButton>

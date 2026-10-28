@@ -43,13 +43,13 @@ MMGIS core ships no connections yet: `plugins/core/connections/` is where core o
 1. Register an application with the service and set its redirect URI to `<your site>/api/connections/<id>/callback` (including any `ROOT_PATH`), where `<id>` is the plugin's `connection` value.
 2. Set the env variables the plugin's `env` lists.
 3. If MMGIS sits behind a reverse proxy that changes the host, port or protocol, set `CONNECTIONS_CALLBACK_BASE_URL` to the site's public URL, including `ROOT_PATH`.
-4. Restart MMGIS. Configure → Users & Access → Services shows whether it is set up and which tools use it.
+4. Restart MMGIS. Configure → Users & Access → Connections shows whether it is set up and which tools use it.
 
 Until its env variables are set, a connection shows as "not set up" and nobody can connect it. With no connection plugins installed, the account menu, tools and Configure look as they did before connections existed.
 
 ## What users see
 
-- **Account menu (top right).** When the open mission has a tool that uses a connection, the account button opens a menu with "Sign in to MMGIS" (or the signed-in user) and a **Services** section listing each service, its status and a Connect or Disconnect button. The button looks pressed while the menu is open, and shows a dot while an open tool is waiting for a connection. On `SITE_ACCESS=public` sites a Services button is shown instead.
+- **Account menu (top right).** The account button opens a menu with an MMGIS section (Guest or the signed-in user, with Sign in or Sign out). When the open mission has a tool that uses a connection, a **Services** section below it lists each service, its status and a Connect or Disconnect button. The button looks pressed while the menu is open, and shows a dot while an open tool is waiting for a connection. On `SITE_ACCESS=public` sites a Services button is shown instead.
 - **Tool card.** Opening a tool that needs a connection the user hasn't made shows a card in the tool panel: "Connect Earthdata", or "Sign in to MMGIS first" for services that don't allow guests. The tool opens as soon as the connection is made.
 - **New tab.** Connect opens the service's own sign-in page in a new browser tab, so its real address and padlock are visible. Afterwards the user lands on an MMGIS page saying "Earthdata connected" that closes itself (or offers "Close this tab"), and the original MMGIS tab updates when they return to it.
 - **Guests.** If the connection plugin allows guests (`"guests": true`), a signed-out visitor can connect for the current browser session only. Signing in to an MMGIS account afterwards (a local account, or a provider such as OIDC that signs people in to MMGIS accounts) keeps the connection on that account. A per-request provider with no MMGIS account, such as a proxy header, doesn't take over the guest's connection.
@@ -328,7 +328,7 @@ Rules for the key page:
 ## Gotchas
 
 - **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser. If that entry is `"required": true`, the tool doesn't open and its card says the service isn't set up; an optional one is ignored.
-- **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back. Configure → Users & Access → Services shows the callback URL MMGIS sends for each connection, and the tool's waiting card has a Cancel link.
+- **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back. Configure → Users & Access → Connections shows the callback URL MMGIS sends for each connection, and the tool's waiting card has a Cancel link.
 - **Several MMGIS instances** behind a load balancer don't share refreshes. With a refresh token that rotates, use sticky sessions, or two instances refreshing at once can sign the user out of the service.
 - **The account menu** lists only services people can connect now. A service that isn't set up appears only on its tools' cards and in Configure.
 - **API keys and other pasted credentials** have no built-in form. See [API keys](#api-keys).
@@ -336,6 +336,6 @@ Rules for the key page:
 - **A sign-in link lasts 10 minutes.** After that the callback says the link expired and the person clicks Connect again.
 - **No `expiresIn` or `expiresAt`** in a grant means the token is treated as never expiring until the service rejects it.
 - **Errors the service sends back** (`error`, `error_description`) are logged as warnings and the description is shown on the return page.
-- **Nothing is logged at startup** when a connection's `env` is unset; Configure's Services tab lists what's missing.
+- **Nothing is logged at startup** when a connection's `env` is unset; Configure's Connections tab lists what's missing.
 - **Don't** ask for a service's username and password in a tool, put tokens in tile URLs, or put credentials in a mission config.
 - **Tiles:** Leaflet and Cesium fetch tiles as plain image requests, which can't carry a per-user token. Serve them through your backend route if they need one.
