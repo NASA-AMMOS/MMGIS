@@ -719,6 +719,10 @@ function interfaceWithMMWebGIS() {
     // Active styling is now handled reactively by SepToolButton in Toolbar.jsx
 
     function separateFromMMWebGIS() {
+        // A hover timer still pending would query and redraw after close.
+        clearTimeout(IdentifierTool.mousemoveTimeout)
+        clearTimeout(IdentifierTool.mousemoveTimeoutMap)
+        clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
         CursorInfo.hide()
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
         Map_.map.off('mouseout', IdentifierTool.clearCursor)
