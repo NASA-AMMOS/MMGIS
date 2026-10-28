@@ -63,15 +63,30 @@
     font-weight: 600;
     cursor: pointer;
     user-select: none;
-    background: var(--color-accent-active);
-    color: var(--color-c);
+    color: white;
     border: 1px solid var(--color-a1);
-    transition: background 0.15s, box-shadow 0.15s;
 }
 
 /* --- User account area --- */
-.userAvatarOpen {
-    box-shadow: 0 0 0 2px var(--color-mmgis), inset 0 2px 4px rgba(0, 0, 0, 0.35);
+/* Line under the account / Services button while its menu is open */
+.menuOpen {
+    position: relative;
+    color: var(--color-mmgis);
+}
+
+.userAvatar.menuOpen {
+    color: white;
+}
+
+.menuOpen::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    bottom: -5px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--color-mmgis);
 }
 
 .needsConnection {

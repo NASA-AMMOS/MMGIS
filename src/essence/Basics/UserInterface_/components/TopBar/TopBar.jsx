@@ -387,8 +387,7 @@ function TopBar({ userInterface }) {
                             <IconButton
                                 id="connectionsButton"
                                 title="Services"
-                                active={connUI.menuOpen}
-                                className={connUI.needsConnection ? styles.needsConnection : ''}
+                                className={`${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
                                 onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
                             >
                                 <i className="mdi mdi-connection" style={{ fontSize: 16 }} />
@@ -403,8 +402,9 @@ function TopBar({ userInterface }) {
                                 username ? (
                                     <div
                                         id="accountButton"
-                                        className={`${styles.userAvatar} ${connUI.menuOpen ? styles.userAvatarOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
+                                        className={`${styles.userAvatar} ${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
                                         title={username}
+                                        style={{ background: Connections_.avatarColor(username) }}
                                         onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
                                     >
                                         {username[0].toUpperCase()}
@@ -413,8 +413,7 @@ function TopBar({ userInterface }) {
                                     <IconButton
                                         id="accountButton"
                                         title="Sign in and services"
-                                        active={connUI.menuOpen}
-                                        className={connUI.needsConnection ? styles.needsConnection : ''}
+                                        className={`${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
                                         onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
                                     >
                                         <i className="mdi mdi-login" style={{ fontSize: 16 }} />
@@ -428,6 +427,7 @@ function TopBar({ userInterface }) {
                                                 ref={userBtnRef}
                                                 className={styles.userAvatar}
                                                 title={username}
+                                                style={{ background: Connections_.avatarColor(username) }}
                                             >
                                                 {username[0].toUpperCase()}
                                             </div>

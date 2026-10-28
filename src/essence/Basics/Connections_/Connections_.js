@@ -195,7 +195,7 @@ function renderMenu() {
             html += `<div class="connectionsMenuSection connectionsMenuMmgis">
                 <div class="connectionsMenuLabel">MMGIS</div>
                 <div class="connectionsMenuAccount">
-                    <div class="connectionsMenuAvatar${loggedIn ? '' : ' guest'}">${avatar}</div>
+                    <div class="connectionsMenuAvatar${loggedIn ? '' : ' guest'}"${loggedIn ? ` style="background:${avatarColor(name)}"` : ''}>${avatar}</div>
                     <div class="connectionsMenuText">
                         <div class="connectionsMenuUser">${loggedIn ? esc(name) : 'Guest'}</div>
                         <div class="connectionsMenuDetail">${loggedIn ? 'Signed in to MMGIS' : 'Not signed in to MMGIS'}</div>
@@ -514,7 +514,16 @@ function overlayGate(s, reason, retry, toolName) {
     g.render()
 }
 
+// Stable color per username, dark enough for white text
+function avatarColor(name) {
+    let h = 0
+    for (const c of String(name || ''))
+        h = (c.charCodeAt(0) + ((h << 5) - h)) | 0
+    return `hsl(${Math.abs(h) % 360}, 55%, 40%)`
+}
+
 const Connections_ = {
+    avatarColor,
     init(tools) {
         missionTools = (tools || []).map((t) => t.name)
         document.addEventListener('click', onOutsideClick, true)

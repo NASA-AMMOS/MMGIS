@@ -69,8 +69,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-accent-active);
-    color: var(--color-c);
+    color: white;
     font-weight: 600;
     font-size: 15px;
     border: 1px solid var(--color-a1);
