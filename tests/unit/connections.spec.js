@@ -272,3 +272,135 @@ test.describe('routes follow ROOT_PATH', () => {
         }
     });
 });
+
+test.describe('token refresh', () => {
+    let root;
+    let saved;
+    const REFRESH_JS = `module.exports = {
+    authorizeUrl: ({ state }) => 'https://svc.example/auth?state=' + state,
+    exchange: async () => ({ accessToken: 'a' }),
+    refresh: async ({ refreshToken }) => {
+        const t = globalThis.__refreshTest;
+        t.calls.push(refreshToken);
+        await new Promise((r) => setTimeout(r, 20));
+        if (t.fail) throw t.fail;
+        return { accessToken: 'fresh-' + t.calls.length, refreshToken: refreshToken + '-next', expiresIn: 3600 };
+    },
+};`;
+    test.beforeAll(() => {
+        saved = process.env.SECRET;
+        process.env.SECRET = 'c'.repeat(32);
+        root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-connections-'));
+        writePlugin(root, 't', 'Svc', { type: 'connection', connection: 'svc', guests: true }, REFRESH_JS);
+        connections.loadConnections(root);
+    });
+    test.afterAll(() => {
+        fs.rmSync(root, { recursive: true, force: true });
+        connections.loadConnections(CORE_PLUGINS);
+        if (saved === undefined) delete process.env.SECRET;
+        else process.env.SECRET = saved;
+    });
+    test.beforeEach(() => {
+        globalThis.__refreshTest = { calls: [], fail: null };
+    });
+    const guestReq = () => ({ principal: { kind: 'anonymous' }, session: {}, sessionID: 'sess-1' });
+    async function stored(req, grant) {
+        const c = connections.getConnection('svc');
+        await connections.writeStored(req, req.principal, c, { ...connections.grantRecord(grant), ...grant.extra });
+        return req;
+    }
+
+    test('a short-lived token is not refreshed on every call', async () => {
+        const req = await stored(guestReq(), { accessToken: 'a', refreshToken: 'short', expiresIn: 30 });
+        expect(await connections.token(req, 'svc')).toBe('a');
+        expect(globalThis.__refreshTest.calls).toEqual([]);
+    });
+
+    test('parallel requests share one refresh of a rotating token', async () => {
+        const first = await stored(guestReq(), { accessToken: 'old', refreshToken: 'rot', expiresIn: 1 });
+        await new Promise((r) => setTimeout(r, 1100));
+        // Each request has its own copy of the session, as with express-session
+        const reqs = Array.from({ length: 6 }, () => ({ ...guestReq(), session: JSON.parse(JSON.stringify(first.session)) }));
+        const tokens = await Promise.all(reqs.map((r) => connections.token(r, 'svc')));
+        expect(globalThis.__refreshTest.calls).toEqual(['rot']);
+        expect(new Set(tokens)).toEqual(new Set(['fresh-1']));
+    });
+
+    test('a network error keeps the connection; a refused refresh drops it', async () => {
+        const req = await stored(guestReq(), { accessToken: 'x', refreshToken: 'net', expiresAt: Date.now() - 1000 });
+        globalThis.__refreshTest.fail = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+        await expect(connections.token(req, 'svc')).rejects.toMatchObject({ reason: 'unavailable' });
+        expect(req.session.connections.svc).toBeTruthy();
+        globalThis.__refreshTest.fail = Object.assign(new Error('invalid_grant'), { status: 400 });
+        await expect(connections.token(req, 'svc')).rejects.toMatchObject({ reason: 'expired' });
+        expect(req.session.connections.svc).toBeUndefined();
+    });
+
+    test('isTransient', () => {
+        expect(connections.isTransient(Object.assign(new TypeError('fetch failed')))).toBe(true);
+        expect(connections.isTransient({ status: 503 })).toBe(true);
+        expect(connections.isTransient({ status: 429 })).toBe(true);
+        expect(connections.isTransient({ status: 401 })).toBe(false);
+        expect(connections.isTransient(Object.assign(new Error('x'), { transient: true }))).toBe(true);
+        expect(connections.isTransient(Object.assign(new Error('x'), { status: 503, transient: false }))).toBe(false);
+        expect(connections.isTransient(new Error('bad'))).toBe(false);
+    });
+
+    test('rejected() refreshes a token the service refused, or asks to reconnect', async () => {
+        const req = await stored(guestReq(), { accessToken: 'valid', refreshToken: 'rej', expiresIn: 3600 });
+        expect(await connections.rejected(req, 'svc', 'valid')).toBe('fresh-1');
+        // An already-replaced token just returns the current one
+        expect(await connections.rejected(req, 'svc', 'valid')).toBe('fresh-1');
+        const noRefresh = await stored(guestReq(), { accessToken: 'only', expiresIn: 3600 });
+        await expect(connections.rejected(noRefresh, 'svc', 'only')).rejects.toMatchObject({ reason: 'expired' });
+        expect(noRefresh.session.connections.svc).toBeUndefined();
+    });
+});
+
+test.describe('PKCE', () => {
+    test('with "pkce": true, exchange() gets the verifier for the challenge sent to authorizeUrl()', async () => {
+        const crypto = require('crypto');
+        const express = require('express');
+        const session = require('express-session');
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-connections-'));
+        writePlugin(root, 't', 'Pk', { type: 'connection', connection: 'pk', guests: true, pkce: true }, `module.exports = {
+    authorizeUrl: ({ state, codeChallenge, codeChallengeMethod }) =>
+        'https://svc.example/auth?' + new URLSearchParams({ state, code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod }),
+    exchange: async ({ codeVerifier }) => { globalThis.__pkceVerifier = codeVerifier; return { accessToken: 'a' } },
+};`);
+        const saved = process.env.SECRET;
+        process.env.SECRET = 'd'.repeat(32);
+        connections.loadConnections(root);
+        const app = express();
+        app.set('views', path.join(__dirname, '..', '..', 'views'));
+        app.set('view engine', 'pug');
+        app.use(session({ secret: 'test', resave: false, saveUninitialized: true }));
+        app.use((req, res, next) => {
+            req.principal = { kind: 'anonymous' };
+            next();
+        });
+        const allow = () => (req, res, next) => next();
+        allow.public = allow;
+        allow.inHandler = allow;
+        connections.mountConnectionRoutes(app, { registerRouter: (p, r) => r, authorize: allow, rootPath: '' });
+        const server = app.listen(0);
+        try {
+            const base = `http://127.0.0.1:${server.address().port}`;
+            const start = await fetch(`${base}/api/connections/pk/connect`, { redirect: 'manual' });
+            const cookie = start.headers.get('set-cookie').split(';')[0];
+            const to = new URL(start.headers.get('location'));
+            expect(to.searchParams.get('code_challenge_method')).toBe('S256');
+            const back = await fetch(`${base}/api/connections/pk/callback?state=${to.searchParams.get('state')}&code=c1`, { headers: { cookie } });
+            expect(back.status).toBe(200);
+            const v = globalThis.__pkceVerifier;
+            expect(v).toMatch(/^[A-Za-z0-9_-]{43}$/);
+            expect(crypto.createHash('sha256').update(v).digest('base64url')).toBe(to.searchParams.get('code_challenge'));
+        } finally {
+            server.close();
+            fs.rmSync(root, { recursive: true, force: true });
+            connections.loadConnections(CORE_PLUGINS);
+            if (saved === undefined) delete process.env.SECRET;
+            else process.env.SECRET = saved;
+        }
+    });
+});

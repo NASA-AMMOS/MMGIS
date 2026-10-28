@@ -4,8 +4,8 @@
 //
 // Connection plugins live in plugins/<container>/connections/<Name>/ with a
 // plugin.json ("type": "connection", "connection": "<id>") and a plugin.js:
-//   authorizeUrl({ state, redirectUri, env })               -> URL of the service's sign-in page
-//   exchange({ code, redirectUri, env })                    -> grant
+//   authorizeUrl({ state, redirectUri, env, codeChallenge, codeChallengeMethod }) -> URL of the service's sign-in page
+//   exchange({ code, redirectUri, env, codeVerifier })      -> grant  (PKCE values only with "pkce": true)
 //   refresh({ refreshToken, env })        (optional)        -> grant
 //   revoke({ accessToken, refreshToken, env }) (optional)
 //   validate(env) / warnings(env)         (optional)        -> string[]
@@ -66,6 +66,7 @@ function loadConnections(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
       label: m.display_name || p.name,
       description: typeof m.description === "string" ? m.description : "",
       guests: m.guests === true,
+      pkce: m.pkce === true,
       env: Array.isArray(m.env) ? m.env.filter((e) => typeof e === "string") : [],
       manifest: m,
       impl,
@@ -153,6 +154,7 @@ function grantRecord(grant) {
     refreshToken: typeof grant.refreshToken === "string" ? grant.refreshToken : null,
     account: grant.account != null ? String(grant.account).slice(0, 255) : null,
     expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    issuedAt: new Date().toISOString(),
   };
 }
 
@@ -213,7 +215,11 @@ async function writeStored(req, principal, c, record) {
     const { AuthConnection } = models();
     const fields = {
       account: record.account,
-      data: secretBox.seal({ accessToken: record.accessToken, refreshToken: record.refreshToken }),
+      data: secretBox.seal({
+        accessToken: record.accessToken,
+        refreshToken: record.refreshToken,
+        issuedAt: record.issuedAt || null,
+      }),
       expires_at: record.expiresAt,
     };
     const row = await AuthConnection.findOne({ where: { user_id: principal.userId, connection: c.id } });
@@ -282,9 +288,92 @@ async function revokeQuietly(c, record) {
 
 ////// For backend plugins
 
-// The current user's access token for a service, refreshed when needed.
-// Throws ConnectionRequiredError when the user has to connect (again).
-async function token(req, id) {
+// Short-lived tokens refresh in the last quarter of their life, others in the last minute
+function refreshEarlyMs(record) {
+  const expiresAt = new Date(record.expiresAt).getTime();
+  const issuedAt = record.issuedAt ? new Date(record.issuedAt).getTime() : NaN;
+  if (!Number.isFinite(issuedAt) || !(expiresAt > issuedAt)) return REFRESH_EARLY_MS;
+  return Math.min(REFRESH_EARLY_MS, (expiresAt - issuedAt) / 4);
+}
+
+const TRANSIENT_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+
+// A refresh() failure worth retrying later (network, 429, 5xx); anything else means the grant is no good
+function isTransient(err) {
+  if (!err) return false;
+  if (typeof err.transient === "boolean") return err.transient;
+  const status = Number(err.status || err.statusCode || (err.response && err.response.status));
+  if (status === 429 || status >= 500) return true;
+  const code = err.code || (err.cause && err.cause.code);
+  if (TRANSIENT_CODES.has(code)) return true;
+  if (err.name === "AbortError" || err.name === "TimeoutError") return true;
+  return err.name === "TypeError" && /fetch failed/i.test(err.message || "");
+}
+
+const errText = (err) => (err && err.message ? String(err.message).slice(0, 200) : String(err));
+
+// One refresh per refresh token: parallel requests (and ones still holding the old
+// token a moment later) share the result, so a rotating refresh token is used once.
+// Per process; several MMGIS instances can still race.
+const REFRESH_SHARE_MS = 30 * 1000;
+const refreshing = new Map();
+
+async function refreshStored(req, principal, c, record) {
+  const scope = storageFor(principal, c) === "account" ? `user:${principal.userId}` : `session:${req.sessionID}`;
+  const key = `${scope}|${c.id}|${crypto.createHash("sha256").update(record.refreshToken).digest("hex")}`;
+  let job = refreshing.get(key);
+  if (!job) {
+    job = (async () => {
+      const fresh = grantRecord(await c.impl.refresh({ refreshToken: record.refreshToken, env: process.env }));
+      if (!fresh.refreshToken) fresh.refreshToken = record.refreshToken;
+      if (!fresh.account) fresh.account = record.account;
+      return fresh;
+    })();
+    refreshing.set(key, job);
+    job.then(
+      () => {
+        const t = setTimeout(() => refreshing.delete(key), REFRESH_SHARE_MS);
+        if (t.unref) t.unref();
+      },
+      () => refreshing.delete(key)
+    );
+  }
+  const fresh = await job;
+  await writeStored(req, principal, c, fresh);
+  return fresh;
+}
+
+// Refreshes the record, or drops it and asks the user to connect again.
+// `rejected`: the service already refused this access token.
+async function renew(req, principal, c, record, rejected) {
+  const expiresAt = record.expiresAt ? new Date(record.expiresAt).getTime() : null;
+  const stillValid = !rejected && expiresAt != null && expiresAt > Date.now();
+  if (record.refreshToken && typeof c.impl.refresh === "function") {
+    try {
+      return await refreshStored(req, principal, c, record);
+    } catch (err) {
+      if (isTransient(err)) {
+        logger("warn", `Refreshing a ${c.label} token failed for now (${errText(err)}); the connection is kept.`, "Connections");
+        if (stillValid) return record;
+        throw new ConnectionRequiredError(c.id, "unavailable", `${c.label} isn't responding. Try again in a moment.`);
+      }
+      logger("warn", `Refreshing a ${c.label} token failed (${errText(err)}); the user has to connect again.`, "Connections");
+    }
+  } else if (stillValid) return record;
+  await removeStored(req, principal, c);
+  throw new ConnectionRequiredError(c.id, "expired", `Your ${c.label} connection expired. Connect again to continue.`);
+}
+
+async function current(req, id) {
   const c = getConnection(id);
   if (!c) throw new ConnectionRequiredError(String(id), "unknown", `No '${id}' connection is installed.`);
   if (!setupStatus(c).configured)
@@ -301,24 +390,24 @@ async function token(req, id) {
   await adoptSessionConnections(req, principal);
   const record = await readStored(req, principal, c);
   if (!record) throw new ConnectionRequiredError(c.id, "not_connected");
-  const expiresAt = record.expiresAt ? new Date(record.expiresAt).getTime() : null;
-  if (expiresAt == null || expiresAt - REFRESH_EARLY_MS > Date.now()) return record.accessToken;
-  if (record.refreshToken && typeof c.impl.refresh === "function") {
-    try {
-      const fresh = grantRecord(
-        await c.impl.refresh({ refreshToken: record.refreshToken, env: process.env })
-      );
-      if (!fresh.refreshToken) fresh.refreshToken = record.refreshToken;
-      if (!fresh.account) fresh.account = record.account;
-      await writeStored(req, principal, c, fresh);
-      return fresh.accessToken;
-    } catch (err) {
-      logger("warn", `Refreshing a ${c.label} token failed; the user has to connect again.`, "Connections");
-    }
-  }
-  if (expiresAt > Date.now()) return record.accessToken;
-  await removeStored(req, principal, c);
-  throw new ConnectionRequiredError(c.id, "expired", `Your ${c.label} connection expired. Connect again to continue.`);
+  return { c, principal, record };
+}
+
+// The current user's access token for a service, refreshed when needed.
+// Throws ConnectionRequiredError when the user has to connect (again).
+async function token(req, id) {
+  const { c, principal, record } = await current(req, id);
+  if (record.expiresAt == null || new Date(record.expiresAt).getTime() - refreshEarlyMs(record) > Date.now())
+    return record.accessToken;
+  return (await renew(req, principal, c, record, false)).accessToken;
+}
+
+// For when the service refused a token from token() (say, a 401): refreshes it once and
+// returns the new one, or throws ConnectionRequiredError so the user connects again.
+async function rejected(req, id, accessToken) {
+  const { c, principal, record } = await current(req, id);
+  if (accessToken != null && record.accessToken !== accessToken) return record.accessToken;
+  return (await renew(req, principal, c, record, true)).accessToken;
 }
 
 // Standard reply for "connect first", which the main site's connection card understands
@@ -457,15 +546,28 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
       .filter(([, v]) => v && Date.now() - v.at < STATE_TTL_MS)
       .slice(-(MAX_PENDING_STATES - 1));
     req.session.connectionStates = Object.fromEntries(pending);
+    // PKCE (RFC 7636), when the plugin asks for it
+    const verifier = c.pkce ? crypto.randomBytes(32).toString("base64url") : null;
     req.session.connectionStates[state] = {
       id: c.id,
+      verifier,
       at: Date.now(),
       mode: req.query.mode === "page" ? "page" : "tab",
       returnTo: sameSitePath(req.query.returnTo),
     };
     let url;
     try {
-      url = await c.impl.authorizeUrl({ state, redirectUri: callbackUrl(req, c), env: process.env });
+      url = await c.impl.authorizeUrl({
+        state,
+        redirectUri: callbackUrl(req, c),
+        env: process.env,
+        ...(verifier
+          ? {
+              codeChallenge: crypto.createHash("sha256").update(verifier).digest("base64url"),
+              codeChallengeMethod: "S256",
+            }
+          : {}),
+      });
     } catch (err) {
       logger("error", `Connection '${c.id}': authorizeUrl() threw.`, req.originalUrl, req, err);
     }
@@ -494,7 +596,12 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     let record;
     try {
       record = grantRecord(
-        await c.impl.exchange({ code: req.query.code, redirectUri: callbackUrl(req, c), env: process.env })
+        await c.impl.exchange({
+          code: req.query.code,
+          redirectUri: callbackUrl(req, c),
+          env: process.env,
+          ...(pending.verifier ? { codeVerifier: pending.verifier } : {}),
+        })
       );
       await writeStored(req, principal, c, record);
     } catch (err) {
@@ -545,6 +652,8 @@ module.exports = {
   adoptSessionConnections,
   carryGuestConnections,
   token,
+  rejected,
+  isTransient,
   connectionRequired,
   ConnectionRequiredError,
   mountConnectionRoutes,

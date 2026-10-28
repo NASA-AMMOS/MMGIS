@@ -585,9 +585,10 @@ let s = {
   useSwaggerSchema,
   permissions,
   ROOT_PATH,
-  // For backend plugins: connections.token(req, id), connections.connectionRequired(res, err)
+  // For backend plugins: connections.token(req, id), connections.rejected(req, id, token), connections.connectionRequired(res, err)
   connections: {
     token: connections.token,
+    rejected: connections.rejected,
     connectionRequired: connections.connectionRequired,
     ConnectionRequiredError: connections.ConnectionRequiredError,
   },

@@ -75,17 +75,19 @@ Declare it in the tool's `plugin.json`, using the connection plugin's path:
 
 Configure shows these requirements, read-only, on the tool's card and in its settings dialog. Nothing is set per mission.
 
-The browser never sees the service's token. Call your own backend route and pass its reply to `handleResponse`, which shows the reconnect card when the service needs connecting again:
+The browser never sees the service's token. Call your own backend route and pass its reply to `handleResponse`, which shows the reconnect card when the service needs connecting again. Pass the function that made the request as the second argument and it runs again once the user has reconnected:
 
 ```javascript
 import Connections_ from '@basics/Connections_/Connections_'
 
-fetch('api/mytool/granules', { credentials: 'same-origin' })
-    .then((r) => r.json())
-    .then((body) => {
-        if (Connections_.handleResponse(body)) return // card is shown
-        render(body)
-    })
+function load() {
+    fetch('api/mytool/granules', { credentials: 'same-origin' })
+        .then((r) => r.json())
+        .then((body) => {
+            if (Connections_.handleResponse(body, load)) return // card is shown
+            render(body)
+        })
+}
 ```
 
 Other helpers: `Connections_.isConnected('earthdata')`, `Connections_.status('earthdata')`, `Connections_.connect('earthdata')` (call it from a click), `Connections_.on('change', fn)` and `Connections_.off('change', fn)`.
@@ -111,7 +113,17 @@ router.get('/granules', s.authorize('site.view'), async (req, res) => {
 })
 ```
 
-The reply looks like `{ "status": "failure", "code": "connection_required", "service": "earthdata", "reason": "not_connected", "message": "..." }`. `reason` is `not_connected`, `expired`, `sign_in` (the service needs an MMGIS sign-in), `not_allowed` (the request used a long-term API token), `not_configured` (its `env` isn't set) or `unknown` (no such connection is installed).
+If the service refuses the token anyway (say, a `401` because the user revoked access there), call `s.connections.rejected(req, id, token)`. It refreshes the token once and returns the new one to retry with, or throws `ConnectionRequiredError` (and forgets the connection) so the user is asked to reconnect:
+
+```javascript
+let r = await call(token)
+if (r.status === 401) {
+    token = await s.connections.rejected(req, 'earthdata', token) // in the same try as token()
+    r = await call(token)
+}
+```
+
+The reply looks like `{ "status": "failure", "code": "connection_required", "service": "earthdata", "reason": "not_connected", "message": "..." }`. `reason` is `not_connected`, `expired`, `sign_in` (the service needs an MMGIS sign-in), `not_allowed` (the request used a long-term API token), `not_configured` (its `env` isn't set), `unavailable` (refreshing the token failed for a reason worth retrying, such as a network error; the user stays connected and the card offers Try again) or `unknown` (no such connection is installed).
 
 Long-term API tokens never get a connection: `token()` throws for them, so scripts can't act as a user at the outside service.
 
@@ -137,13 +149,15 @@ Put it in `plugins/<container>/connections/<Name>/` with a `plugin.json`:
 - `connection`: the id used everywhere else. Lowercase letters, digits, `-` or `_`, starting with a letter, and unique across installed plugins. MMGIS lowercases it, so `"Imagery"` becomes `imagery`.
 - `guests`: whether signed-out visitors may connect for their browser session. Defaults to `false`.
 - `env`: variables that must be set before anyone can connect. Configure lists the missing ones.
+- `pkce`: `true` to use PKCE (S256). MMGIS makes a verifier for each sign-in and passes `codeChallenge` and `codeChallengeMethod` to `authorizeUrl()` and `codeVerifier` to `exchange()`. Defaults to `false`.
 
 and a `plugin.js`:
 
 ```javascript
 module.exports = {
     // URL of the service's sign-in page (OAuth 2 authorization endpoint)
-    authorizeUrl({ state, redirectUri, env }) {
+    // With "pkce": true, also add code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod
+    authorizeUrl({ state, redirectUri, env, codeChallenge, codeChallengeMethod }) {
         const u = new URL('https://imagery.example/oauth/authorize')
         u.search = new URLSearchParams({
             client_id: env.IMAGERY_CLIENT_ID,
@@ -153,8 +167,8 @@ module.exports = {
         })
         return u.toString()
     },
-    // Swap the code for tokens
-    async exchange({ code, redirectUri, env }) {
+    // Swap the code for tokens (with "pkce": true, send code_verifier: codeVerifier)
+    async exchange({ code, redirectUri, env, codeVerifier }) {
         const body = await tokenRequest(env, { grant_type: 'authorization_code', code, redirect_uri: redirectUri })
         return { accessToken: body.access_token, refreshToken: body.refresh_token, expiresIn: body.expires_in, account: body.username }
     },
@@ -167,6 +181,8 @@ module.exports = {
 ```
 
 MMGIS handles the rest: the `state` value and its checks, the callback route, storage, refresh, the menus and cards. `account` is the name shown as "Connected as …" to that user only.
+
+**Refresh.** `token()` calls `refresh()` when the token has under a minute left, or under a quarter of its lifetime for tokens that last less than four minutes. Requests that need a refresh at the same time share one `refresh()` call, so a rotating refresh token is only used once. If `refresh()` throws, the user has to connect again, unless the error is worth retrying: a network error, an error with `status` 429 or 5xx, or one you mark with `err.transient = true`. Then the connection is kept and the reply's `reason` is `unavailable`. Set `err.transient = false` to force either way.
 
 ### Example: NASA Earthdata Login
 
@@ -289,6 +305,8 @@ module.exports = {
 
 - **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser and the tool opens without the card.
 - **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back.
+- **Several MMGIS instances** behind a load balancer don't share refreshes. With a refresh token that rotates, use sticky sessions, or two instances refreshing at once can sign the user out of the service.
+- **Disconnecting** doesn't close an open tool; its next request gets `connection_required` and shows the card.
 - **A sign-in link lasts 10 minutes.** After that the callback says the link expired and the person clicks Connect again.
 - **No `expiresIn` or `expiresAt`** in a grant means the token is treated as never expiring until the service rejects it.
 - **Errors the service sends back** (`error`, `error_description`) are logged as warnings and the description is shown on the return page.

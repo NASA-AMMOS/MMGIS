@@ -926,6 +926,9 @@ function validatePluginConfig(config, pluginName, pluginType) {
       `Plugin '${pluginName}' (${pluginType}): 'connection' must be an id of letters, digits, "-" or "_", starting with a letter (MMGIS lowercases it)`
     );
   }
+  if (pluginType === "connection" && config.pkce !== undefined && typeof config.pkce !== "boolean") {
+    errors.push(`Plugin '${pluginName}' (${pluginType}): 'pkce' must be true or false`);
+  }
   if (config.connections !== undefined) {
     const ok = (r) =>
       r != null &&

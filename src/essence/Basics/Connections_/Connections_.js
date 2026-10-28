@@ -246,6 +246,10 @@ function cardHtml(g) {
     if (!s.configured)
         return `<div class="connectionsCardTitle">${label} isn't set up</div>
             <p>${tool} needs ${label}, which isn't set up on this site yet. Ask a site admin.</p>`
+    if (g.reason === 'unavailable')
+        return `<div class="connectionsCardTitle">${label} isn't responding</div>
+            <p>${tool} couldn't reach ${label}. You're still connected.</p>
+            <button class="connectionsCardButton" data-card="retry">Try again</button>`
     if (g.waiting)
         return `<div class="connectionsCardTitle">Waiting for ${label}…</div>
             <p>Finish signing in on the ${label} tab, then come back here.</p>
@@ -280,7 +284,8 @@ function makeGate(toolName, tool, service, make, reason) {
         el: $('<div>').addClass('connectionsCard').attr('id', 'connectionsCard'),
         render() {
             g.service = find(g.service.id) || g.service
-            if (g.service.connected && g.reason !== 'expired') return g.resume()
+            if (g.service.connected && g.reason !== 'expired' && g.reason !== 'unavailable')
+                return g.resume()
             g.el.html(cardHtml(g))
             renderButton()
         },
@@ -307,6 +312,10 @@ function makeGate(toolName, tool, service, make, reason) {
         connect(g.service)
     })
     g.el.on('click', '[data-card="signin"]', signIn)
+    g.el.on('click', '[data-card="retry"]', () => {
+        g.reason = null
+        g.resume()
+    })
     return g
 }
 
@@ -409,6 +418,21 @@ function openTool(toolName, tool, make) {
     }
 }
 
+// A card over a tool that's already open, when its service needs connecting again
+function overlayGate(s, reason, retry) {
+    if (gate) gate.remove()
+    const g = makeGate(activeTool.name || 'This tool', null, s, () => {}, reason)
+    gate = g
+    g.el.addClass('overlay')
+    const container = containerFor(activeTool.tool)
+    if (container) $(container).prepend(g.el)
+    g.resume = () => {
+        g.remove()
+        if (typeof retry === 'function') retry()
+    }
+    g.render()
+}
+
 const Connections_ = {
     init(tools) {
         missionTools = (tools || []).map((t) => t.name)
@@ -489,20 +513,13 @@ const Connections_ = {
         return b[0]
     },
     // For a tool's own API calls: true when the reply means "connect first",
-    // in which case the active tool shows the reconnect card
-    handleResponse(body) {
+    // in which case the active tool shows the reconnect card. `retry` runs once
+    // the user has reconnected (or clicks Try again).
+    handleResponse(body, retry) {
         if (!body || body.code !== 'connection_required') return false
         refresh().then(() => {
             const s = find(body.service)
-            if (!s) return
-            const name = activeTool.name
-            if (gate) gate.remove()
-            gate = makeGate(name || 'This tool', null, s, () => {}, body.reason)
-            gate.el.addClass('overlay')
-            const container = containerFor(activeTool.tool)
-            if (container) $(container).prepend(gate.el)
-            gate.resume = () => gate.remove()
-            gate.render()
+            if (s) overlayGate(s, body.reason, retry)
         })
         return true
     },
