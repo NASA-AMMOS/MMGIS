@@ -68,6 +68,22 @@ function sanitizeForLog(str) {
   return str.replace(/\x1B\[[0-9;]*m/g, "").replace(/[\x00-\x08\x0B-\x1F\x7F]/g, " ");
 }
 
+// Copy of a request body/query for logging: passwords redacted, long values cropped
+function cleanFields(fields, crop) {
+  const copy = JSON.parse(JSON.stringify(fields));
+  if (!copy || typeof copy !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(copy).map(([k, v]) => [
+      k,
+      k === "password" && v
+        ? "_redacted_"
+        : JSON.stringify(v).length > crop
+          ? "[Too Long...]"
+          : v,
+    ])
+  );
+}
+
 const logger = function (level, message, caller, req, err) {
   let log = {
     level: level,
@@ -84,28 +100,14 @@ const logger = function (level, message, caller, req, err) {
   try {
     let crop = 512;
     if (req && req.body) {
-      let cleanBody = JSON.parse(JSON.stringify(req.body));
-      if (cleanBody.password) {
-        cleanBody.password = "_redacted_";
-      }
-      for (let k in cleanBody) {
-        if (JSON.stringify(cleanBody[k]).length > crop)
-          cleanBody[k] = "[Too Long...]";
-      }
+      const cleanBody = cleanFields(req.body, crop);
       if (Object.keys(cleanBody).length > 0) {
         log.req = log.req || {};
         log.req.body = cleanBody;
       }
     }
     if (req && req.query) {
-      let cleanQuery = JSON.parse(JSON.stringify(req.query));
-      if (cleanQuery.password) {
-        cleanQuery.password = "_redacted_";
-      }
-      for (let k in cleanQuery) {
-        if (JSON.stringify(cleanQuery[k]).length > crop)
-          cleanQuery[k] = "[Too Long...]";
-      }
+      const cleanQuery = cleanFields(req.query, crop);
       if (Object.keys(cleanQuery).length > 0) {
         log.req = log.req || {};
         log.req.query = cleanQuery;
