@@ -25,6 +25,7 @@ const PLUGIN_TYPES = [
     "layertypes",
     "layerattachments",
     "auth",
+    "connections",
 ];
 
 /**

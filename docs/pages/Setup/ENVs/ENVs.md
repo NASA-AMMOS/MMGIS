@@ -142,6 +142,22 @@ Which local accounts may log in with a username and password. `all`: any local a
 
 While the site has no accounts, creating the first (SuperAdmin) account on `/configure` requires a one-time setup code. If unset, the server generates a random code on each start and prints it in its log (not in the log files); the code works once. Set this to choose the code yourself, for scripted installs or several replicas behind one URL. It has no effect once an account exists | string | default `null`
 
+#### `CONNECTIONS_CALLBACK_BASE_URL=`
+
+Public URL of this site, including any `ROOT_PATH`, used to build the address an outside service sends people back to after they connect it (`<url>/api/connections/<id>/callback`). Only needed when MMGIS runs behind a proxy that changes the host or protocol. See [Connections](/MMGIS/contributing/connections) | string | default from the request
+
+#### `EARTHDATA_CLIENT_ID=`
+
+Client ID of an Earthdata Login application, for the Earthdata connection (`plugins/core/connections/Earthdata`). Register the application with the redirect URI `<site>/api/connections/earthdata/callback`. The connection is off until this and `EARTHDATA_CLIENT_SECRET` are set. It lets tools fetch Earthdata data with each person's own Earthdata account; it never signs anyone in to MMGIS | string | default `null`
+
+#### `EARTHDATA_CLIENT_SECRET=`
+
+Client secret ("password") of the Earthdata Login application above | string | default `null`
+
+#### `EARTHDATA_URL=`
+
+Earthdata Login server | string | default `https://urs.earthdata.nasa.gov` (UAT: `https://uat.urs.earthdata.nasa.gov`)
+
 #### `CSSO_GROUPS=`
 
 A list of CSSO LDAP groups that have access | string[] | default `[]`

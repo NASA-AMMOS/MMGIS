@@ -1,0 +1,16 @@
+{
+  "uuid": "5b1e7f3c-2c4a-4f0e-9a61-6f0c2e8d9b14",
+  "id": "core-connection-earthdata",
+  "name": "Earthdata",
+  "display_name": "Earthdata",
+  "description": "NASA Earthdata Login (OAuth 2). Tools use the user's Earthdata token to fetch Earthdata data.",
+  "version": "core",
+  "type": "connection",
+  "connection": "earthdata",
+  "tier": "core",
+  "guests": true,
+  "env": ["EARTHDATA_CLIENT_ID", "EARTHDATA_CLIENT_SECRET"],
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

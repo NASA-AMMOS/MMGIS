@@ -70,6 +70,26 @@
 }
 
 /* --- User account area --- */
+.userAvatarOpen {
+    box-shadow: 0 0 0 2px var(--color-mmgis), inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.needsConnection {
+    position: relative;
+}
+
+.needsConnection::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f0a830;
+    border: 2px solid var(--color-a);
+}
+
 .userArea {
     display: flex;
     align-items: center;

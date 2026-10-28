@@ -30,6 +30,10 @@ import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 import Maker from "../../../../../core/Maker";
+import {
+  useConnectionsSetup,
+  ToolConnections,
+} from "../../../../../core/Connections";
 
 const useStyles = makeStyles((theme) => ({
   Modal: {
@@ -173,6 +177,7 @@ const ToolModal = (props) => {
   modal = modal || {};
   const toolName = modal.toolName;
   const toolConfig = modal.toolConfig;
+  const connectionsSetup = useConnectionsSetup();
   const tool = getToolFromConfiguration(toolName, configuration) || {};
 
   const theme = useTheme();
@@ -281,6 +286,11 @@ const ToolModal = (props) => {
             <Typography className={c.infoTitle}>
               {toolConfig?.description}
             </Typography>
+            <ToolConnections
+              toolConfig={toolConfig}
+              setup={connectionsSetup}
+              style={{ margin: "4px 0 8px" }}
+            />
             <Typography className={c.infoDescription}>
               {toolConfig?.descriptionFull?.title}
             </Typography>

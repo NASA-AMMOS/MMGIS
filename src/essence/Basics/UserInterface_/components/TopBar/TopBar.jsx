@@ -8,6 +8,7 @@ import Tooltip from '../../../../../design-system/components/Tooltip/Tooltip'
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 import Modal from '../Modal/Modal'
 
+import Connections_ from '../../../Connections_/Connections_'
 import styles from './TopBar.module.css'
 
 const STATUS_CONFIG = {
@@ -150,6 +151,11 @@ function TopBar({ userInterface }) {
         setGlobeOpen(s.pxIsGlobe > 0)
         return unsub
     }, [])
+
+    // When this mission's tools use a service, the account button opens the
+    // Services menu instead
+    const [connUI, setConnUI] = useState(Connections_.uiState())
+    useEffect(() => Connections_.onUI(setConnUI), [])
 
     // Sync user login state
     useEffect(() => {
@@ -375,10 +381,46 @@ function TopBar({ userInterface }) {
                         </Toggle.Group>
                     )}
 
+                    {/* Services only, on public sites */}
+                    {connUI.hasMenu && window.mmgisglobal && window.mmgisglobal.SITE_ACCESS === 'public' && (
+                        <div className={styles.userArea}>
+                            <IconButton
+                                id="connectionsButton"
+                                title="Services"
+                                active={connUI.menuOpen}
+                                className={connUI.needsConnection ? styles.needsConnection : ''}
+                                onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
+                            >
+                                <i className="mdi mdi-connection" style={{ fontSize: 16 }} />
+                            </IconButton>
+                        </div>
+                    )}
+
                     {/* User account area — hidden when SITE_ACCESS=public */}
                     {typeof window !== 'undefined' && window.mmgisglobal && window.mmgisglobal.SITE_ACCESS !== 'public' && (
                         <div className={styles.userArea}>
-                            {username ? (
+                            {connUI.hasMenu ? (
+                                username ? (
+                                    <div
+                                        id="accountButton"
+                                        className={`${styles.userAvatar} ${connUI.menuOpen ? styles.userAvatarOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
+                                        title={username}
+                                        onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
+                                    >
+                                        {username[0].toUpperCase()}
+                                    </div>
+                                ) : (
+                                    <IconButton
+                                        id="accountButton"
+                                        title="Sign in and services"
+                                        active={connUI.menuOpen}
+                                        className={connUI.needsConnection ? styles.needsConnection : ''}
+                                        onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
+                                    >
+                                        <i className="mdi mdi-login" style={{ fontSize: 16 }} />
+                                    </IconButton>
+                                )
+                            ) : username ? (
                                 <div className={styles.userWrapper}>
                                     <Dropdown
                                         trigger={

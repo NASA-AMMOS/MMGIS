@@ -1,0 +1,38 @@
+doctype html
+html(lang='en')
+  head
+    title= ok ? label + ' connected · MMGIS' : 'MMGIS'
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    link(rel='shortcut icon' href=HOME + 'public/images/logos/logo.png')
+    style.
+      html, body { margin: 0; height: 100%; background: #1d1f20; color: #dfdeee; font-family: roboto, sans-serif; }
+      .card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 420px; max-width: calc(100vw - 32px);
+        box-sizing: border-box; background: #1c1c1c; border-top: 4px solid #08aeea; border-radius: 10px; padding: 32px 28px 28px;
+        text-align: center; box-shadow: 0 4px 30px 10px #141414; }
+      .card.failed { border-top-color: #e0a33a; }
+      .logo { height: 28px; margin-bottom: 20px; }
+      h1 { font-size: 19px; margin: 0 0 10px; font-weight: 600; }
+      p { font-size: 14px; line-height: 1.5; color: #b4b7bf; margin: 0 0 22px; }
+      button { background: #08aeea; color: #fff; border: 0; border-radius: 3px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  body
+    .card(class=ok ? '' : 'failed')
+      img.logo(src=HOME + 'public/images/logos/mmgis.png' alt='MMGIS')
+      if ok
+        h1#connectedTitle= label + ' connected'
+        p
+          if account
+            | Connected as #{account}. 
+          | You can close this tab and go back to MMGIS.
+      else
+        h1#connectedTitle Not connected
+        p= message
+      button#connectedClose(type='button') Close this tab
+    script.
+      (function () {
+        var ok = !{JSON.stringify(ok)};
+        try { if ('BroadcastChannel' in window) new BroadcastChannel('mmgis-connections').postMessage({ type: 'changed' }); } catch (e) {}
+        var close = function () { window.close(); };
+        document.getElementById('connectedClose').addEventListener('click', close);
+        if (ok) setTimeout(close, 1200);
+      })();

@@ -1,6 +1,7 @@
 import $ from 'jquery'
 import L_ from '../Layers_/Layers_'
 import { toolModules, toolConfigs } from '../../../pre/tools'
+import Connections_ from '../Connections_/Connections_'
 import useUIStore, { readSavedDetentIndex } from '../UserInterface_/store/uiStore'
 import { getSeparatedMode, resolveToolJs } from './toolControllerHelpers'
 
@@ -28,6 +29,7 @@ let ToolController_ = {
     // (Toolbar.jsx and SeparatedTools.jsx).
     init: function (tools) {
         this.tools = tools
+        Connections_.init(tools)
 
         // Build toolModuleNames array (used by makeTool, getToolsUrl, etc.)
         for (let i = 0; i < tools.length; i++) {
@@ -273,8 +275,22 @@ let ToolController_ = {
                         useUIStore.getState().setTimeUIExpanded(false)
                     }
 
-                    this.activeTool = tool
-                    tool.make(this)
+                    // A tool whose plugin.json requires a connection the user
+                    // hasn't made shows the "connect first" card instead
+                    const makeNow = () => {
+                        this.activeTool = tool
+                        tool.make(this)
+                        ToolController_.injectCloseButton()
+                    }
+                    const gated = Connections_.openTool(
+                        ToolController_.tools[idx].name,
+                        tool,
+                        () => {
+                            if (this.activeToolName === name) makeNow()
+                        }
+                    )
+                    this.activeTool = gated || tool
+                    if (!gated) tool.make(this)
 
                     // Inject close X button into the tool's content area
                     ToolController_.injectCloseButton()

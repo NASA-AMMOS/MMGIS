@@ -35,6 +35,7 @@ Docker: `docker build -t mmgis . && docker-compose up -d`
 - **No raw SQL for data**: Use application APIs and UI workflows — never bypass the application layer with direct SQL.
 - **Every API route declares its permission**: use `s.authorize(capability, resolver)` (or `authorize.public` / `authorize.inHandler`); never `ensureAdmin`/`stopGuests` in new code. Guide: [docs/pages/Contributing/Permissions/Permissions.md](./docs/pages/Contributing/Permissions/Permissions.md).
 - **Login providers** (`AUTH_PROVIDERS`) are plugins in `plugins/core/auth/<Name>/`. Guide with worked examples: [docs/pages/Contributing/AuthProviders/AuthProviders.md](./docs/pages/Contributing/AuthProviders/AuthProviders.md).
+- **Service connections** (Earthdata etc., never MMGIS sign-in) are plugins in `plugins/<container>/connections/<Name>/`; tools declare them in `plugin.json` `"connections"`. Guide: [docs/pages/Contributing/Connections/Connections.md](./docs/pages/Contributing/Connections/Connections.md).
 - **Admin auth always required**: CMS endpoints (`/api/configure/*`) require an authorized session even when `SITE_ACCESS=public`.
 - **Database safety**: Never `DROP DATABASE` in app code. Test DBs only: `mmgis-test`, `mmgis-stac-test`.
 - **Reference Mission**: New features needing specific config/data should be added to a Reference Mission blueprint. See [blueprints/README.md](./blueprints/README.md).

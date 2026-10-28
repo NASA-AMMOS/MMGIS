@@ -2,6 +2,9 @@ require("dotenv").config();
 
 const siteAccess = require("../API/permissions/siteAccess");
 const providers = require("../API/permissions/providers");
+const connections = require("../API/connections");
+// Defines auth_connections before the table sync
+require("../API/connections/models");
 {
   const authConfigErrors = siteAccess.validate();
   if (authConfigErrors.length > 0) {
@@ -237,6 +240,7 @@ const sessionMiddleware = session({
   }),
 });
 app.use(sessionMiddleware);
+app.use(connections.carryGuestConnections);
 
 if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
   setSPICEKernelDownloadSchedule(
@@ -251,6 +255,9 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
 // This is application-level middleware, written to run for all requests.
 providers
   .providerWarnings()
+  .forEach((warning) => logger("warn", warning, "server"));
+connections
+  .startupWarnings()
   .forEach((warning) => logger("warn", warning, "server"));
 
 // Identifies the request through the enabled login providers (e.g. CSSO)
@@ -578,6 +585,12 @@ let s = {
   useSwaggerSchema,
   permissions,
   ROOT_PATH,
+  // For backend plugins: connections.token(req, id), connections.connectionRequired(res, err)
+  connections: {
+    token: connections.token,
+    connectionRequired: connections.connectionRequired,
+    ConnectionRequiredError: connections.ConnectionRequiredError,
+  },
 };
 
 // Trust first proxy
@@ -817,6 +830,7 @@ setups.getBackendSetups(function (setups) {
   //////Setups Init//////
   setups.init(s);
   providers.mountProviderRoutes(app, { registerRouter, authorize });
+  connections.mountConnectionRoutes(app, { registerRouter, authorize });
 
   // Every registered API route must declare its permission
   const undeclared = undeclaredRoutes();

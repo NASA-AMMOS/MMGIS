@@ -66,6 +66,10 @@ const c = {
     type: "GET",
     url: "api/access/me",
   },
+  connections_setup: {
+    type: "GET",
+    url: "api/connections/setup",
+  },
   access_roles: {
     type: "GET",
     url: "api/access/roles",
