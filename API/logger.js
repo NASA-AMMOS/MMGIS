@@ -40,6 +40,15 @@ function redactSecrets(key, value) {
   return value;
 }
 
+// Credentials that plugins and libraries put in error messages (URLs, headers, JSON)
+function redactCredentials(str) {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/\b(access_token|refresh_token|id_token|client_secret|code_verifier|code|password|token|api_?key)=[^\s&"',;]+/gi, "$1=_redacted_")
+    .replace(/(["']?\b(?:access_token|refresh_token|id_token|client_secret|code_verifier|password|api_?key)["']?\s*:\s*["']?)[^\s"',}]+/gi, "$1_redacted_")
+    .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/g, "$1 _redacted_");
+}
+
 function sanitizeForLog(str) {
   if (typeof str !== "string") return str;
   return str.replace(/\x1B\[[0-9;]*m/g, "").replace(/[\x00-\x08\x0B-\x1F\x7F]/g, " ");
@@ -90,10 +99,12 @@ const logger = function (level, message, caller, req, err) {
     }
     if (err) {
       log.err =
-        err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err;
+        err instanceof Error
+          ? { name: err.name, message: redactCredentials(err.message), stack: redactCredentials(err.stack) }
+          : err;
     }
 
-    log.msg = sanitizeForLog(log.msg);
+    log.msg = sanitizeForLog(redactCredentials(log.msg));
     log.caller = sanitizeForLog(log.caller);
     log = JSON.stringify(log, redactSecrets);
   } catch (err2) {
@@ -155,3 +166,4 @@ const logger = function (level, message, caller, req, err) {
 
 module.exports = logger;
 module.exports.redactSecrets = redactSecrets;
+module.exports.redactCredentials = redactCredentials;

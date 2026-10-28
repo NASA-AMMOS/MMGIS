@@ -321,6 +321,18 @@ function isTransient(err) {
 
 const errText = (err) => (err && err.message ? String(err.message).slice(0, 200) : String(err));
 
+// A plugin's error with known secrets (codes, tokens, client secrets) taken out, for logging
+const envSecrets = (c) => c.env.map((n) => process.env[n]);
+function scrubbed(err, secrets) {
+  const values = secrets.filter((v) => typeof v === "string" && v.length >= 4);
+  const clean = (str) => values.reduce((out, v) => out.split(v).join("_redacted_"), String(str == null ? "" : str));
+  if (!(err instanceof Error)) return err == null ? err : clean(typeof err === "string" ? err : JSON.stringify(err));
+  const e = new Error(clean(err.message));
+  e.name = err.name;
+  e.stack = clean(err.stack);
+  return e;
+}
+
 // One refresh per refresh token: parallel requests (and ones still holding the old
 // token a moment later) share the result, so a rotating refresh token is used once.
 // Per process; several MMGIS instances can still race.
@@ -331,6 +343,13 @@ async function refreshStored(req, principal, c, record) {
   const scope = storageFor(principal, c) === "account" ? `user:${principal.userId}` : `session:${req.sessionID}`;
   const key = `${scope}|${c.id}|${crypto.createHash("sha256").update(record.refreshToken).digest("hex")}`;
   let job = refreshing.get(key);
+  if (job) {
+    const shared = await job.catch(() => null);
+    if (shared && shared.accessToken === record.accessToken) {
+      if (refreshing.get(key) === job) refreshing.delete(key);
+      job = null;
+    }
+  }
   if (!job) {
     job = (async () => {
       const fresh = grantRecord(await c.impl.refresh({ refreshToken: record.refreshToken, env: process.env }));
@@ -362,11 +381,11 @@ async function renew(req, principal, c, record, rejected) {
       return await refreshStored(req, principal, c, record);
     } catch (err) {
       if (isTransient(err)) {
-        logger("warn", `Refreshing a ${c.label} token failed for now (${errText(err)}); the connection is kept.`, "Connections");
+        logger("warn", `Refreshing a ${c.label} token failed for now (${errText(scrubbed(err, [record.refreshToken, record.accessToken, ...envSecrets(c)]))}); the connection is kept.`, "Connections");
         if (stillValid) return record;
         throw new ConnectionRequiredError(c.id, "unavailable", `${c.label} isn't responding. Try again in a moment.`);
       }
-      logger("warn", `Refreshing a ${c.label} token failed (${errText(err)}); the user has to connect again.`, "Connections");
+      logger("warn", `Refreshing a ${c.label} token failed (${errText(scrubbed(err, [record.refreshToken, record.accessToken, ...envSecrets(c)]))}); the user has to connect again.`, "Connections");
     }
   } else if (stillValid) return record;
   await removeStored(req, principal, c);
@@ -527,6 +546,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
             configured: s.configured,
             missingEnv: s.missingEnv,
             problems: s.problems,
+            redirectUri: callbackUrl(req, c),
           };
         }),
       });
@@ -569,7 +589,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
           : {}),
       });
     } catch (err) {
-      logger("error", `Connection '${c.id}': authorizeUrl() threw.`, req.originalUrl, req, err);
+      logger("error", `Connection '${c.id}': authorizeUrl() threw.`, req.originalUrl, req, scrubbed(err, envSecrets(c)));
     }
     if (typeof url !== "string" || !/^https?:\/\//.test(url))
       return renderResult(res, { label: c.label, message: `${c.label} couldn't be reached. Try again later.` });
@@ -605,7 +625,13 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
       );
       await writeStored(req, principal, c, record);
     } catch (err) {
-      logger("error", `Connecting '${c.id}' (${c.ref}) failed.`, req.baseUrl + req.path, logReq(req), err);
+      logger(
+        "error",
+        `Connecting '${c.id}' (${c.ref}) failed.`,
+        req.baseUrl + req.path,
+        logReq(req),
+        scrubbed(err, [req.query.code, pending.verifier, ...envSecrets(c)])
+      );
       return renderResult(res, {
         id: c.id,
         label: c.label,
@@ -628,7 +654,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
       await revokeQuietly(c, record);
       res.send({ status: "success" });
     } catch (err) {
-      logger("error", `Disconnecting '${c.id}' failed.`, req.originalUrl, req, err);
+      logger("error", `Disconnecting '${c.id}' failed.`, req.originalUrl, req, scrubbed(err, envSecrets(c)));
       res.send({ status: "failure", message: "Failed to disconnect." });
     }
   });
@@ -638,6 +664,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
 }
 
 module.exports = {
+  scrubbed,
   DOCS_URL,
   loadConnections,
   allConnections,

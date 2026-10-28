@@ -284,7 +284,7 @@ test.describe('token refresh', () => {
         t.calls.push(refreshToken);
         await new Promise((r) => setTimeout(r, 20));
         if (t.fail) throw t.fail;
-        return { accessToken: 'fresh-' + t.calls.length, refreshToken: refreshToken + '-next', expiresIn: 3600 };
+        return { accessToken: 'fresh-' + t.calls.length, refreshToken: t.keep ? refreshToken : refreshToken + '-next', expiresIn: 3600 };
     },
 };`;
     test.beforeAll(() => {
@@ -336,6 +336,24 @@ test.describe('token refresh', () => {
         expect(req.session.connections.svc).toBeUndefined();
     });
 
+    test('rejecting a just-refreshed token refreshes again when the refresh token does not rotate', async () => {
+        globalThis.__refreshTest.keep = true;
+        const req = await stored(guestReq(), { accessToken: 'A', refreshToken: 'keep1', expiresIn: 3600 });
+        expect(await connections.rejected(req, 'svc', 'A')).toBe('fresh-1');
+        expect(await connections.rejected(req, 'svc', 'fresh-1')).toBe('fresh-2');
+        expect(globalThis.__refreshTest.calls).toEqual(['keep1', 'keep1']);
+    });
+
+    test('logged plugin errors have known secrets and credential patterns removed', () => {
+        const e = connections.scrubbed(new Error('exchange for code abc123def failed'), ['abc123def', null, '']);
+        expect(e.message).toBe('exchange for code _redacted_ failed');
+        expect(e.stack).not.toContain('abc123def');
+        const { redactCredentials } = require('../../API/logger');
+        expect(redactCredentials('GET /t?code=xyz&state=1 {"refresh_token":"rrr"} Bearer eyJ.a.b code: ECONNRESET')).toBe(
+            'GET /t?code=_redacted_&state=1 {"refresh_token":"_redacted_"} Bearer _redacted_ code: ECONNRESET'
+        );
+    });
+
     test('isTransient', () => {
         expect(connections.isTransient(Object.assign(new TypeError('fetch failed')))).toBe(true);
         expect(connections.isTransient({ status: 503 })).toBe(true);
@@ -374,7 +392,7 @@ test.describe('PKCE', () => {
         const app = express();
         app.set('views', path.join(__dirname, '..', '..', 'views'));
         app.set('view engine', 'pug');
-        app.use(session({ secret: 'test', resave: false, saveUninitialized: true }));
+        app.use(session({ secret: 'test', resave: false, saveUninitialized: true })); // pragma: allowlist secret
         app.use((req, res, next) => {
             req.principal = { kind: 'anonymous' };
             next();
