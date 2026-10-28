@@ -870,8 +870,21 @@ test.describe('validatePluginConfig — connections', () => {
     });
 
     test('documented auth manifest fields are known', () => {
+        // Unknown fields are logged, not returned
+        const unknownFields = (m) => {
+            const lines = [];
+            const log = console.log;
+            console.log = (...args) => lines.push(args.join(' '));
+            try {
+                validatePluginConfig(m, 'P', 'auth');
+            } finally {
+                console.log = log;
+            }
+            return lines.filter((l) => l.includes('unknown top-level field'));
+        };
         const m = { name: 'P', type: 'auth', provider: 'p', login_path: '/login', login_url: 'https://x', login_label: 'Log in', logout_url: 'https://x/out' };
-        expect(validatePluginConfig(m, 'P', 'auth').join(' ')).not.toMatch(/unknown/i);
+        expect(unknownFields(m)).toEqual([]);
+        expect(unknownFields({ ...m, login_lable: 'typo' }).join(' ')).toContain("'login_lable'");
     });
 
     test('a connection env must be a list of names', () => {
