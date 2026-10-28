@@ -394,8 +394,10 @@ async function renew(req, principal, c, record, rejected) {
         // The newer grant still has the refused token: refresh it once
         try {
           return await refreshStored(req, principal, c, latest, true);
-        } catch (_) {
-          // Fall through and ask the user to connect again
+        } catch (retryErr) {
+          if (isTransient(retryErr))
+            throw new ConnectionRequiredError(c.id, "unavailable", `${c.label} isn't responding. Try again in a moment.`);
+          // Otherwise fall through and ask the user to connect again
         }
       }
       logger("warn", `Refreshing a ${c.label} token failed (${errText(scrubbed(err, [record.refreshToken, record.accessToken, ...envSecrets(c)]))}); the user has to connect again.`, "Connections");
