@@ -325,7 +325,8 @@ const errText = (err) => (err && err.message ? String(err.message).slice(0, 200)
 const envSecrets = (c) => c.env.map((n) => process.env[n]);
 function scrubbed(err, secrets) {
   const values = secrets.filter((v) => typeof v === "string" && v.length >= 4);
-  const clean = (str) => values.reduce((out, v) => out.split(v).join("_redacted_"), String(str == null ? "" : str));
+  const clean = (str) =>
+    logger.redactCredentials(values.reduce((out, v) => out.split(v).join("_redacted_"), String(str == null ? "" : str)));
   if (!(err instanceof Error)) return err == null ? err : clean(typeof err === "string" ? err : JSON.stringify(err));
   const e = new Error(clean(err.message));
   e.name = err.name;
@@ -339,11 +340,12 @@ function scrubbed(err, secrets) {
 const REFRESH_SHARE_MS = 30 * 1000;
 const refreshing = new Map();
 
-async function refreshStored(req, principal, c, record) {
+async function refreshStored(req, principal, c, record, rejected) {
   const scope = storageFor(principal, c) === "account" ? `user:${principal.userId}` : `session:${req.sessionID}`;
   const key = `${scope}|${c.id}|${crypto.createHash("sha256").update(record.refreshToken).digest("hex")}`;
   let job = refreshing.get(key);
-  if (job) {
+  // Only a fresh rejection of the shared result's token skips it; everyone else shares it
+  if (job && rejected) {
     const shared = await job.catch(() => null);
     if (shared && shared.accessToken === record.accessToken) {
       if (refreshing.get(key) === job) refreshing.delete(key);
@@ -378,13 +380,16 @@ async function renew(req, principal, c, record, rejected) {
   const stillValid = !rejected && expiresAt != null && expiresAt > Date.now();
   if (record.refreshToken && typeof c.impl.refresh === "function") {
     try {
-      return await refreshStored(req, principal, c, record);
+      return await refreshStored(req, principal, c, record, rejected);
     } catch (err) {
       if (isTransient(err)) {
         logger("warn", `Refreshing a ${c.label} token failed for now (${errText(scrubbed(err, [record.refreshToken, record.accessToken, ...envSecrets(c)]))}); the connection is kept.`, "Connections");
         if (stillValid) return record;
         throw new ConnectionRequiredError(c.id, "unavailable", `${c.label} isn't responding. Try again in a moment.`);
       }
+      // Another request may have saved a newer grant meanwhile; keep it
+      const latest = await readStored(req, principal, c).catch(() => null);
+      if (latest && latest.refreshToken !== record.refreshToken) return latest;
       logger("warn", `Refreshing a ${c.label} token failed (${errText(scrubbed(err, [record.refreshToken, record.accessToken, ...envSecrets(c)]))}); the user has to connect again.`, "Connections");
     }
   } else if (stillValid) return record;

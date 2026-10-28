@@ -284,7 +284,7 @@ function makeGate(toolName, tool, service, make, reason) {
         waiting: false,
         el: $('<div>').addClass('connectionsCard').attr('id', 'connectionsCard'),
         render() {
-            g.service = find(g.service.id) || g.service
+            if (!g.service.missing) g.service = find(g.service.id) || g.service
             if (g.service.connected && g.reason !== 'expired' && g.reason !== 'unavailable')
                 return g.resume()
             g.el.html(cardHtml(g))
@@ -341,7 +341,14 @@ function missingFor(toolName) {
         console.warn(`${toolName}: a required connection isn't installed.`, ref)
         // Fail closed: show "isn't set up" instead of a tool that can't work
         const name = String(ref.plugin || ref.id).split('/').pop()
-        return { id: name.toLowerCase(), label: name, configured: false, connected: false, missing: true }
+        // Its own ID, so it can't be mistaken for an installed service with the same name
+        return {
+            id: `missing:${String(ref.plugin || ref.id).toLowerCase()}`,
+            label: name,
+            configured: false,
+            connected: false,
+            missing: true,
+        }
     }
     return missing
 }

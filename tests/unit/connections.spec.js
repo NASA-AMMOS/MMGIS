@@ -284,7 +284,9 @@ test.describe('token refresh', () => {
         t.calls.push(refreshToken);
         await new Promise((r) => setTimeout(r, 20));
         if (t.fail) throw t.fail;
-        return { accessToken: 'fresh-' + t.calls.length, refreshToken: t.keep ? refreshToken : refreshToken + '-next', expiresIn: 3600 };
+        if (t.spent && t.spent.has(refreshToken)) throw Object.assign(new Error('invalid_grant'), { status: 400 });
+        if (t.spent) t.spent.add(refreshToken);
+        return { accessToken: t.sameAccess || 'fresh-' + t.calls.length, refreshToken: t.keep ? refreshToken : refreshToken + '-next', expiresIn: 3600 };
     },
 };`;
     test.beforeAll(() => {
@@ -326,6 +328,22 @@ test.describe('token refresh', () => {
         expect(new Set(tokens)).toEqual(new Set(['fresh-1']));
     });
 
+    test('parallel refreshes that keep the access token but rotate the refresh token share one refresh', async () => {
+        Object.assign(globalThis.__refreshTest, { sameAccess: 'A', spent: new Set() });
+        const first = await stored(guestReq(), { accessToken: 'A', refreshToken: 'rot2', expiresIn: 1 });
+        await new Promise((r) => setTimeout(r, 1100));
+        const reqs = Array.from({ length: 4 }, () => ({ ...guestReq(), session: JSON.parse(JSON.stringify(first.session)) }));
+        const tokens = await Promise.all(reqs.map((r) => connections.token(r, 'svc')));
+        expect(globalThis.__refreshTest.calls).toEqual(['rot2']);
+        expect(new Set(tokens)).toEqual(new Set(['A']));
+        reqs.forEach((r) => expect(r.session.connections.svc).toBeTruthy());
+    });
+
+    test('a non-Error plugin failure is pattern-redacted too', () => {
+        const out = connections.scrubbed({ body: 'access_token=zzz&x=1' }, []);
+        expect(out).not.toContain('zzz');
+    });
+
     test('a network error keeps the connection; a refused refresh drops it', async () => {
         const req = await stored(guestReq(), { accessToken: 'x', refreshToken: 'net', expiresAt: Date.now() - 1000 });
         globalThis.__refreshTest.fail = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
@@ -347,7 +365,7 @@ test.describe('token refresh', () => {
     test('logged plugin errors have known secrets and credential patterns removed', () => {
         const e = connections.scrubbed(new Error('exchange for code abc123def failed'), ['abc123def', null, '']);
         expect(e.message).toBe('exchange for code _redacted_ failed');
-        expect(e.stack).not.toContain('abc123def');
+        expect(e.stack).not.toContain('abc123def'); // pragma: allowlist secret
         const { redactCredentials } = require('../../API/logger');
         expect(redactCredentials('GET /t?code=xyz&state=1 {"refresh_token":"rrr"} Bearer eyJ.a.b code: ECONNRESET')).toBe(
             'GET /t?code=_redacted_&state=1 {"refresh_token":"_redacted_"} Bearer _redacted_ code: ECONNRESET'
