@@ -253,7 +253,8 @@ function cardHtml(g) {
     if (g.waiting)
         return `<div class="connectionsCardTitle">Waiting for ${label}…</div>
             <p>Finish signing in on the ${label} tab, then come back here.</p>
-            <button class="connectionsCardLink" data-card="connect">Open ${label} again</button>`
+            <button class="connectionsCardLink" data-card="connect">Open ${label} again</button>
+            <button class="connectionsCardLink" data-card="cancel">Cancel</button>`
     if (!s.canConnect)
         return `<div class="connectionsCardTitle">Sign in to use ${tool}</div>
             <p>${tool} uses ${label}. Sign in to MMGIS first, then connect ${label}.</p>
@@ -312,6 +313,10 @@ function makeGate(toolName, tool, service, make, reason) {
         connect(g.service)
     })
     g.el.on('click', '[data-card="signin"]', signIn)
+    g.el.on('click', '[data-card="cancel"]', () => {
+        g.waiting = false
+        g.render()
+    })
     g.el.on('click', '[data-card="retry"]', () => {
         g.reason = null
         g.resume()
@@ -332,8 +337,11 @@ function missingFor(toolName) {
     const missing = needs.map(find).find((s) => s == null || !s.connected)
     if (missing === undefined) return null
     if (missing === null) {
-        console.warn(`${toolName}: a required connection isn't installed.`, needs)
-        return null
+        const ref = needs.find((r) => find(r) == null)
+        console.warn(`${toolName}: a required connection isn't installed.`, ref)
+        // Fail closed: show "isn't set up" instead of a tool that can't work
+        const name = String(ref.plugin || ref.id).split('/').pop()
+        return { id: name.toLowerCase(), label: name, configured: false, connected: false, missing: true }
     }
     return missing
 }

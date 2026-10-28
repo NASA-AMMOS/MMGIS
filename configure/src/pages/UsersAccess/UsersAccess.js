@@ -1766,6 +1766,12 @@ function ServicesPane() {
             <div key={conn.id} className={c.audience}>
               <Typography className={c.audienceTitle}>{conn.label}</Typography>
               {conn.description ? <div className={c.audienceHint} style={{ marginBottom: 0 }}>{conn.description}</div> : null}
+              {conn.redirectUri ? (
+                <div className={c.audienceHint} style={{ marginBottom: 0 }}>
+                  Callback URL to register with the service: <code>{conn.redirectUri}</code>. If it isn't what browsers use to
+                  reach this site, set CONNECTIONS_CALLBACK_BASE_URL.
+                </div>
+              ) : null}
               <div className={c.setupCols}>
                 {cols.map((col) => (
                   <div key={col.label} className={c.setupCol}>

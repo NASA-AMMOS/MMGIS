@@ -71,6 +71,7 @@ Declare it in the tool's `plugin.json`, using the connection plugin's path:
 
 - `required: true` (the default): MMGIS shows the connect card instead of calling the tool's `make()` until the user is connected.
 - `required: false`: the tool opens normally and uses the connection only for some features. Place the standard button yourself with `Connections_.button('earthdata', { container })`.
+- A required connection that isn't installed (or a typo in `plugin`) shows an "isn't set up" card instead of the tool. `npm run plugins -- validate` reports the missing reference.
 - `{ "id": "earthdata" }` may be used in place of `"plugin"` to name the connection by its id.
 
 Configure shows these requirements, read-only, on the tool's card and in its settings dialog. Nothing is set per mission.
@@ -304,8 +305,10 @@ module.exports = {
 ## Gotchas
 
 - **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser and the tool opens without the card.
-- **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back.
+- **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back. Configure → Users & Access → Services shows the callback URL MMGIS sends for each connection, and the tool's waiting card has a Cancel link.
 - **Several MMGIS instances** behind a load balancer don't share refreshes. With a refresh token that rotates, use sticky sessions, or two instances refreshing at once can sign the user out of the service.
+- **The account menu** lists only services people can connect now. A service that isn't set up appears only on its tools' cards and in Configure.
+- **API keys and other pasted credentials** have no built-in form. A plugin can use the same flow: `authorizeUrl()` returns its own backend route that shows a form (keep the `state`), the form posts the key to that route, which redirects to the callback with `state` and a one-time `code`, and `exchange()` turns that code into `{ accessToken: key }`.
 - **Disconnecting** doesn't close an open tool; its next request gets `connection_required` and shows the card.
 - **A sign-in link lasts 10 minutes.** After that the callback says the link expired and the person clicks Connect again.
 - **No `expiresIn` or `expiresAt`** in a grant means the token is treated as never expiring until the service rejects it.
