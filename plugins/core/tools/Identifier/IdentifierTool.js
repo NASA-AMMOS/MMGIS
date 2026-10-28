@@ -839,8 +839,17 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             if (bands) assetsParam += `|bidx=${bands}`
         }
 
+        // Search the same items the map tiles mosaic, so the first item with
+        // data here is the one drawn there. 100 is TiTiler's default.
+        const stac = mmgisglobal.options?.stac || {}
+        let mosaicParams = `&items_limit=${stac.mosaicItemLimit ?? 100}`
+        if (stac.mosaicScanLimit != null)
+            mosaicParams += `&scan_limit=${stac.mosaicScanLimit}`
+        if (stac.mosaicTimeLimit != null)
+            mosaicParams += `&time_limit=${stac.mosaicTimeLimit}`
+
         fetch(
-            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}&items_limit=100${timeParam}${expressionParam}`,
+            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}${mosaicParams}${timeParam}${expressionParam}`,
             {
                 method: 'GET',
                 headers: {
