@@ -382,6 +382,11 @@ const flowLimiter = () =>
     message: { status: "failure", message: "Too many attempts, try again later." },
   });
 
+// The callback's query holds the OAuth code and state, so log without it
+function logReq(req) {
+  return { headers: req.headers, user: req.user, sessionID: req.sessionID, cssoSessionID: req.cssoSessionID };
+}
+
 function renderResult(res, view) {
   res.status(view.ok ? 200 : 400).render("connected", {
     HOME: `${rootPath()}/`,
@@ -389,6 +394,7 @@ function renderResult(res, view) {
     label: view.label || "The service",
     account: view.account || "",
     message: view.message || "",
+    connection: view.id || "",
   });
 }
 
@@ -477,9 +483,9 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     const pending = match ? match[1] : null;
     if (pending) req.session.connectionStates = Object.fromEntries(Object.entries(states).filter(([k]) => k !== state));
     if (!pending || pending.id !== c.id || Date.now() - pending.at > STATE_TTL_MS)
-      return renderResult(res, { label: c.label, message: "This sign-in link has expired. Go back to MMGIS and click Connect again." });
+      return renderResult(res, { id: c.id, label: c.label, message: "This sign-in link has expired. Go back to MMGIS and click Connect again." });
     if (typeof req.query.error === "string" || typeof req.query.code !== "string")
-      return renderResult(res, { label: c.label, message: `${c.label} wasn't connected.` });
+      return renderResult(res, { id: c.id, label: c.label, message: `${c.label} wasn't connected.` });
     const principal = await principalOf(req);
     let record;
     try {
@@ -488,16 +494,17 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
       );
       await writeStored(req, principal, c, record);
     } catch (err) {
-      logger("error", `Connecting '${c.id}' failed.`, req.originalUrl, req, err);
+      logger("error", `Connecting '${c.id}' (${c.ref}) failed.`, req.baseUrl + req.path, logReq(req), err);
       return renderResult(res, {
+        id: c.id,
         label: c.label,
         message:
           err instanceof ConnectionRequiredError ? err.message : `${c.label} couldn't be connected. Try again.`,
       });
     }
-    logger("info", `${principal.username || "A guest"} connected ${c.label}.`, req.originalUrl, req);
+    logger("info", `${principal.username || "A guest"} connected ${c.label}.`, req.baseUrl + req.path, logReq(req));
     if (pending.mode === "page") return req.session.save(() => res.redirect(pending.returnTo));
-    req.session.save(() => renderResult(res, { ok: true, label: c.label, account: record.account }));
+    req.session.save(() => renderResult(res, { ok: true, id: c.id, label: c.label, account: record.account }));
   });
 
   router.post("/:id/disconnect", apilimiter, authorize("site.view"), async (req, res) => {

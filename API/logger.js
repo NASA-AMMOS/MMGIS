@@ -89,7 +89,8 @@ const logger = function (level, message, caller, req, err) {
       }
     }
     if (err) {
-      log.err = err;
+      log.err =
+        err instanceof Error ? { name: err.name, message: err.message, stack: err.stack } : err;
     }
 
     log.msg = sanitizeForLog(log.msg);

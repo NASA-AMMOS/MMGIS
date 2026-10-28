@@ -31,7 +31,7 @@ html(lang='en')
     script.
       (function () {
         var ok = !{JSON.stringify(ok)};
-        try { if ('BroadcastChannel' in window) new BroadcastChannel('mmgis-connections').postMessage({ type: 'changed' }); } catch (e) {}
+        try { if ('BroadcastChannel' in window) new BroadcastChannel('mmgis-connections').postMessage({ type: ok ? 'changed' : 'failed', id: !{JSON.stringify(connection)} }); } catch (e) {}
         var close = function () { window.close(); };
         document.getElementById('connectedClose').addEventListener('click', close);
         if (ok) setTimeout(close, 1200);
