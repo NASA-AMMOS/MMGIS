@@ -156,6 +156,14 @@ function grantRecord(grant) {
   };
 }
 
+// Who a session-stored connection belongs to, so a different identity in the same browser session doesn't get it
+function ownerKey(principal) {
+  if (!principal || principal.kind === "anonymous") return "guest";
+  if (principal.kind === "external") return `external:${principal.provider}:${principal.username}`;
+  if (principal.kind === "user") return `user:${principal.userId}`;
+  return null;
+}
+
 function sessionBag(req) {
   if (!req.session) return null;
   if (req.session.connections == null || typeof req.session.connections !== "object")
@@ -187,11 +195,13 @@ async function readStored(req, principal, c) {
     const sealed = req.session && req.session.connections && req.session.connections[c.id];
     if (!sealed) return null;
     const record = secretBox.open(sealed);
-    if (!record) {
+    const owner = ownerKey(principal);
+    if (!record || owner == null || (record.owner !== owner && record.owner !== "guest")) {
       delete req.session.connections[c.id];
       return null;
     }
-    return { ...record, storage: "session" };
+    if (record.owner !== owner) sessionBag(req)[c.id] = secretBox.seal({ ...record, owner });
+    return { ...record, owner, storage: "session" };
   }
   return null;
 }
@@ -211,7 +221,7 @@ async function writeStored(req, principal, c, record) {
     return "account";
   }
   if (where === "session") {
-    sessionBag(req)[c.id] = secretBox.seal({ ...record, connectedAt: new Date().toISOString() });
+    sessionBag(req)[c.id] = secretBox.seal({ ...record, owner: ownerKey(principal), connectedAt: new Date().toISOString() });
     return "session";
   }
   throw new ConnectionRequiredError(c.id, "not_allowed", `Sign in to MMGIS to connect ${c.label}.`);
@@ -232,7 +242,7 @@ async function adoptSessionConnections(req, principal) {
     const c = getConnection(id);
     const record = secretBox.open(bag[id]);
     delete bag[id];
-    if (!c || !record) continue;
+    if (!c || !record || record.owner !== "guest") continue;
     try {
       await writeStored(req, principal, c, record);
     } catch (err) {
@@ -327,7 +337,8 @@ function connectionRequired(res, errOrService, reason) {
 
 ////// Routes
 
-const rootPath = () => process.env.ROOT_PATH || "";
+let mountedRoot = null;
+const rootPath = () => (mountedRoot != null ? mountedRoot : process.env.ROOT_PATH || "");
 
 function callbackUrl(req, c) {
   const base = process.env.CONNECTIONS_CALLBACK_BASE_URL;
@@ -380,7 +391,8 @@ function renderResult(res, view) {
   });
 }
 
-function mountConnectionRoutes(app, { registerRouter, authorize }) {
+function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root }) {
+  if (typeof root === "string") mountedRoot = root;
   const router = express.Router();
   const { apilimiter } = require("../../scripts/rateLimiters");
   const limiter = flowLimiter();
@@ -459,9 +471,10 @@ function mountConnectionRoutes(app, { registerRouter, authorize }) {
     const c = getConnection(req.params.id);
     if (!c) return res.status(404).send({ status: "failure", message: "No such connection." });
     const states = req.session.connectionStates || {};
-    const state = typeof req.query.state === "string" ? req.query.state : "";
-    const pending = Object.prototype.hasOwnProperty.call(states, state) ? states[state] : null;
-    if (pending) delete states[state];
+    const state = typeof req.query.state === "string" && /^[0-9a-f]{48}$/.test(req.query.state) ? req.query.state : "";
+    const match = state ? Object.entries(states).find(([k]) => k === state) : null;
+    const pending = match ? match[1] : null;
+    if (pending) req.session.connectionStates = Object.fromEntries(Object.entries(states).filter(([k]) => k !== state));
     if (!pending || pending.id !== c.id || Date.now() - pending.at > STATE_TTL_MS)
       return renderResult(res, { label: c.label, message: "This sign-in link has expired. Go back to MMGIS and click Connect again." });
     if (typeof req.query.error === "string" || typeof req.query.code !== "string")
@@ -501,7 +514,8 @@ function mountConnectionRoutes(app, { registerRouter, authorize }) {
     }
   });
 
-  app.use("/api/connections", registerRouter("/api/connections", router));
+  const prefix = `${rootPath()}/api/connections`;
+  app.use(prefix, registerRouter(prefix, router));
 }
 
 module.exports = {
@@ -523,4 +537,5 @@ module.exports = {
   ConnectionRequiredError,
   mountConnectionRoutes,
   sameSitePath,
+  ownerKey,
 };

@@ -12,7 +12,7 @@ nav_order: 4
 
 - [In one sentence](#in-one-sentence)
 - [Connections vs. auth providers](#connections-vs-auth-providers)
-- [Setting up Earthdata](#setting-up-earthdata)
+- [Setting up a connection](#setting-up-a-connection)
 - [What users see](#what-users-see)
 - [Using a connection from a tool](#using-a-connection-from-a-tool)
 - [Using a connection from a backend plugin](#using-a-connection-from-a-backend-plugin)
@@ -36,16 +36,16 @@ A connection lets MMGIS tools use an outside service (such as NASA Earthdata) wi
 
 If a service should be both a way to sign in to MMGIS and a data source, ship one plugin of each type.
 
-## Setting up Earthdata
+## Setting up a connection
 
-The core Earthdata connection is `plugins/core/connections/Earthdata`.
+MMGIS core ships no connections yet: `plugins/core/connections/` is where core ones will go. Install a connection plugin (your own, or from a plugin repo) into `plugins/<container>/connections/<Name>/`, then:
 
-1. Register an application with [Earthdata Login](https://urs.earthdata.nasa.gov) and set its redirect URI to `<your site>/api/connections/earthdata/callback` (including any `ROOT_PATH`).
-2. Set `EARTHDATA_CLIENT_ID` and `EARTHDATA_CLIENT_SECRET`. For the UAT server also set `EARTHDATA_URL=https://uat.urs.earthdata.nasa.gov`.
+1. Register an application with the service and set its redirect URI to `<your site>/api/connections/<id>/callback` (including any `ROOT_PATH`), where `<id>` is the plugin's `connection` value.
+2. Set the env variables the plugin's `env` lists.
 3. If MMGIS sits behind a proxy that changes the host or protocol, set `CONNECTIONS_CALLBACK_BASE_URL` to the site's public URL.
 4. Restart MMGIS. Configure → Users & Access → Services shows whether it is set up and which tools use it.
 
-Until both variables are set, the connection shows as "not set up" and nobody can connect it.
+Until its env variables are set, a connection shows as "not set up" and nobody can connect it. With no connection plugins installed, the account menu, tools and Configure look as they did before connections existed.
 
 ## What users see
 
@@ -64,7 +64,7 @@ Declare it in the tool's `plugin.json`, using the connection plugin's path:
 {
     "name": "MyTool",
     "type": "tool",
-    "connections": [{ "plugin": "core/connections/Earthdata", "required": true }],
+    "connections": [{ "plugin": "mycontainer/connections/Earthdata", "required": true }],
     "pluginDependencies": ["mytools/backend/MyToolApi"]
 }
 ```
@@ -167,6 +167,107 @@ module.exports = {
 ```
 
 MMGIS handles the rest: the `state` value and its checks, the callback route, storage, refresh, the menus and cards. `account` is the name shown as "Connected as …" to that user only.
+
+### Example: NASA Earthdata Login
+
+A complete connection for [Earthdata Login](https://urs.earthdata.nasa.gov), as `plugins/<container>/connections/Earthdata/`. Register an Earthdata Login application with the redirect URI `<your site>/api/connections/earthdata/callback`, then set `EARTHDATA_CLIENT_ID` and `EARTHDATA_CLIENT_SECRET` (and `EARTHDATA_URL=https://uat.urs.earthdata.nasa.gov` for UAT). A tool then declares `"connections": [{ "plugin": "<container>/connections/Earthdata", "required": true }]`.
+
+`plugin.json`:
+
+```json
+{
+  "uuid": "5b1e7f3c-2c4a-4f0e-9a61-6f0c2e8d9b14",
+  "id": "mycontainer-connection-earthdata",
+  "name": "Earthdata",
+  "display_name": "Earthdata",
+  "description": "NASA Earthdata Login (OAuth 2). Tools use the user's Earthdata token to fetch Earthdata data.",
+  "version": "1.0.0",
+  "type": "connection",
+  "connection": "earthdata",
+  "tier": "community",
+  "guests": true,
+  "env": ["EARTHDATA_CLIENT_ID", "EARTHDATA_CLIENT_SECRET"],
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}
+```
+
+`plugin.js`:
+
+```javascript
+// Earthdata Login (https://urs.earthdata.nasa.gov) as a service connection.
+// Register an application with Earthdata Login and set its redirect URI to
+// <site>/api/connections/earthdata/callback.
+const baseUrl = (env) => (env.EARTHDATA_URL || "https://urs.earthdata.nasa.gov").replace(/\/+$/, "");
+
+const basicAuth = (env) =>
+  "Basic " + Buffer.from(`${env.EARTHDATA_CLIENT_ID}:${env.EARTHDATA_CLIENT_SECRET}`).toString("base64");
+
+async function tokenRequest(env, params) {
+  const res = await fetch(`${baseUrl(env)}/oauth/token`, {
+    method: "POST",
+    headers: { Authorization: basicAuth(env), "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(params).toString(),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || typeof body.access_token !== "string")
+    throw new Error(`Earthdata token request failed (HTTP ${res.status}).`);
+  return body;
+}
+
+// Earthdata returns the user's profile path as "endpoint" (e.g. /api/users/jdoe)
+async function accountName(env, body) {
+  const endpoint = typeof body.endpoint === "string" ? body.endpoint : null;
+  const fallback = endpoint ? endpoint.split("/").filter(Boolean).pop() : null;
+  if (!endpoint || !endpoint.startsWith("/")) return fallback;
+  try {
+    const res = await fetch(`${baseUrl(env)}${endpoint}`, {
+      headers: { Authorization: `Bearer ${body.access_token}` },
+    });
+    const profile = await res.json();
+    return (profile && profile.uid) || fallback;
+  } catch (err) {
+    return fallback;
+  }
+}
+
+const grant = async (env, body) => ({
+  accessToken: body.access_token,
+  refreshToken: body.refresh_token,
+  expiresIn: body.expires_in,
+  account: await accountName(env, body),
+});
+
+module.exports = {
+  authorizeUrl({ state, redirectUri, env }) {
+    const q = new URLSearchParams({
+      client_id: env.EARTHDATA_CLIENT_ID,
+      response_type: "code",
+      redirect_uri: redirectUri,
+      state,
+    });
+    return `${baseUrl(env)}/oauth/authorize?${q.toString()}`;
+  },
+  async exchange({ code, redirectUri, env }) {
+    return grant(env, await tokenRequest(env, { grant_type: "authorization_code", code, redirect_uri: redirectUri }));
+  },
+  async refresh({ refreshToken, env }) {
+    return grant(env, await tokenRequest(env, { grant_type: "refresh_token", refresh_token: refreshToken }));
+  },
+  async revoke({ accessToken, env }) {
+    await fetch(`${baseUrl(env)}/oauth/revoke?token=${encodeURIComponent(accessToken)}`, {
+      method: "POST",
+      headers: { Authorization: basicAuth(env) },
+    });
+  },
+  validate(env) {
+    if (env.EARTHDATA_URL && !/^https?:\/\//.test(env.EARTHDATA_URL))
+      return ["EARTHDATA_URL must start with http:// or https://."];
+    return [];
+  },
+};
+```
 
 ## Where tokens are kept
 

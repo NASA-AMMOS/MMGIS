@@ -1,6 +1,6 @@
 # MMGIS Plugin System
 
-MMGIS uses a plugin-based architecture for tools, backend modules, and components. Plugins are organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`.
+MMGIS uses a plugin-based architecture for tools, backend modules, components, interactions, layer types, layer attachments, auth providers and service connections. Plugins are organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`.
 
 ## Table of Contents
 
@@ -35,14 +35,17 @@ plugins/                       # containers only — the CLI lives in /plugin-cl
 │   ├── components/            # UI components (OperationsClock, etc.)
 │   ├── interactions/          # Feature interaction handlers (Select, InfoOpen, etc.)
 │   ├── layertypes/            # Layer renderers (Vector, Tile, Model, etc.)
-│   └── layerattachments/      # Per-feature extras (Labels, PathGradient, etc.)
+│   ├── layerattachments/      # Per-feature extras (Labels, PathGradient, etc.)
+│   ├── auth/                  # MMGIS sign-in providers (Local, CSSO); core only
+│   └── connections/           # Outside services tools use per person (none in core yet)
 └── <org--repo>/               # Installed from git (org--repo naming, gitignored)
     ├── tools/
     ├── backend/
     ├── components/
     ├── interactions/
     ├── layertypes/
-    └── layerattachments/
+    ├── layerattachments/
+    └── connections/
 ```
 
 ## Key Files
@@ -171,6 +174,26 @@ Auth providers must be core plugins: they are only loaded from `plugins/core/aut
 An identity is `{ subject, username?, email?, groups?: string[], session? }`. `subject` is the provider's stable user id. `completeLogin` links `provider + subject` to an MMGIS account in `auth_identities`, creating the account on first login. It never links to an existing account by matching usernames. It then sets the user's membership of groups whose source is this provider to the reported `groups`.
 
 Shipped providers: `local` (`core/auth/Local`; its routes are served by the Users backend at `/api/users`) and `csso` (`core/auth/CSSO`). A new provider can use any other id.
+
+### Connections
+
+**Full guide: [Connections](../docs/pages/Contributing/Connections/Connections.md).**
+
+Outside services, such as Earthdata, that tools use with each person's own account there. A connection never signs anyone in to MMGIS: auth providers answer "who is this?", connections add an outside credential for someone who is already here (or for a guest, for their browser session, when the connection allows guests). Directory is `connections/`, manifest type is `"type": "connection"`. Connections can live in any container.
+
+**Required manifest fields**: `connection` (the lowercase id tools and `s.connections.token(req, id)` use). Optional: `display_name`, `guests` (`true` lets guests connect for their browser session) and `env` (ENV names the connection needs, shown in Configure → Users & Access → Services).
+
+`plugin.js` exports:
+
+| Export | Purpose |
+|---|---|
+| `authorizeUrl({ state, redirectUri, env })` | Required. The service's sign-in URL, opened in a new tab. |
+| `exchange({ code, redirectUri, env })` | Required. Trades the callback's code for `{ accessToken, refreshToken?, expiresIn?, account? }`. |
+| `refresh({ refreshToken, env })` | Optional. Renews an expired access token. |
+| `revoke({ accessToken, refreshToken, env })` | Optional. Called on Disconnect. |
+| `validate(env)` / `warnings(env)` | Optional. Setup problems (`string[]`) shown in Configure and logged at startup. |
+
+Tools declare what they need with a top-level `"connections": [{ "plugin": "<container>/connections/<Name>", "required": true }]` in their own `plugin.json`. Core ships no connections yet; the guide has a worked Earthdata example.
 
 ### Components
 
@@ -368,6 +391,8 @@ So the normal flow for a third-party plugin is: `create … --container my-plugi
 | layertype | `activate` (regenerates `src/pre/layertypes.js`) | a layer's `type` must be your `typeId` |
 | layerattachment | `activate` (regenerates `src/pre/layerattachments.js`) | a layer must fill in your `configPath` — the Configure tab your manifest's `config.tab` names, which should be an **existing** tab (`Attachment - Markers`, `Attachment - Paths`, …) unless you mean to add one |
 | backend | nothing to generate | restart the server; `plugin.js` mounts your routes |
+| auth | nothing to generate | add its id to `AUTH_PROVIDERS` and restart |
+| connection | nothing to generate | set its `env` and restart; a tool must list it in `connections` in its `plugin.json` |
 
 `create` runs `activate` for you, so this bites on the *second* change — adding a module key, renaming a path — not the first.
 

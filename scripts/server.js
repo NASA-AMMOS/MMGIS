@@ -829,8 +829,8 @@ setups.getBackendSetups(function (setups) {
 
   //////Setups Init//////
   setups.init(s);
-  providers.mountProviderRoutes(app, { registerRouter, authorize });
-  connections.mountConnectionRoutes(app, { registerRouter, authorize });
+  providers.mountProviderRoutes(app, { registerRouter, authorize, rootPath: ROOT_PATH });
+  connections.mountConnectionRoutes(app, { registerRouter, authorize, rootPath: ROOT_PATH });
 
   // Every registered API route must declare its permission
   const undeclared = undeclaredRoutes();

@@ -66,23 +66,8 @@ let ToolController_ = {
                 setTimeout(() => {
                     const toolModuleName = tool.name + 'Tool'
                     const tM = ToolController_.toolModules[toolModuleName]
-                    if (tM && tM.made === false) {
-                        tM.make(`toolContentSeparated_${tool.name}`)
-                        useUIStore
-                            .getState()
-                            .addActiveSeparatedTool(toolModuleName)
-                        ToolController_.activeSeparatedTools.push(
-                            toolModuleName
-                        )
-                        document.dispatchEvent(
-                            new CustomEvent('toggleSeparatedTool', {
-                                detail: {
-                                    toggledToolName: tool.js,
-                                    visible: true,
-                                },
-                            })
-                        )
-                    }
+                    if (tM && tM.made === false)
+                        ToolController_.openSeparatedTool(tool.name)
                 }, 0)
             }
         })
@@ -122,25 +107,34 @@ let ToolController_ = {
         }
         return tool || { use: function () {} }
     },
+    // Shows a separated tool; a tool that needs a connection shows the connect card first
+    openSeparatedTool: function (name) {
+        const toolModuleName = name + 'Tool'
+        const tM = this.toolModules[toolModuleName]
+        if (!tM || tM.made === true) return
+        if (this.activeSeparatedTools.includes(toolModuleName)) return
+        const containerId = `toolContentSeparated_${name}`
+        const make = () => {
+            if (tM.made !== true) tM.make(containerId)
+        }
+        if (!Connections_.openSeparated(name, containerId, make)) make()
+        this.activeSeparatedTools.push(toolModuleName)
+        useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+        document.dispatchEvent(
+            new CustomEvent('toggleSeparatedTool', {
+                detail: {
+                    toggledToolName: resolveToolJs(this.tools, name),
+                    visible: true,
+                },
+            })
+        )
+    },
     // openTool/closeTool — type-agnostic public API (keyed by tool name, e.g.
     // 'Identifier') so plugins have one call regardless of tool kind. Both
     // no-op if the tool is already in the requested state.
     openTool: function (name) {
         if (getSeparatedMode(toolConfigs, name)) {
-            const toolModuleName = name + 'Tool'
-            const tM = this.toolModules[toolModuleName]
-            if (!tM || tM.made === true) return
-            tM.make(`toolContentSeparated_${name}`)
-            this.activeSeparatedTools.push(toolModuleName)
-            useUIStore.getState().addActiveSeparatedTool(toolModuleName)
-            document.dispatchEvent(
-                new CustomEvent('toggleSeparatedTool', {
-                    detail: {
-                        toggledToolName: resolveToolJs(this.tools, name),
-                        visible: true,
-                    },
-                })
-            )
+            this.openSeparatedTool(name)
         } else {
             const idx = (this.tools || []).findIndex((t) => t.name === name)
             if (idx < 0) return
@@ -162,8 +156,9 @@ let ToolController_ = {
         if (getSeparatedMode(toolConfigs, name)) {
             const toolModuleName = name + 'Tool'
             const tM = this.toolModules[toolModuleName]
-            if (!tM || tM.made === false) return
-            tM.destroy()
+            const gated = Connections_.closeSeparated(name)
+            if (!tM || (tM.made === false && !gated)) return
+            if (tM.made !== false) tM.destroy()
             this.activeSeparatedTools = this.activeSeparatedTools.filter(
                 (a) => a !== toolModuleName
             )
@@ -493,21 +488,7 @@ let ToolController_ = {
                     tM.made === false
                 ) {
                     setTimeout(() => {
-                        tM.make(`toolContentSeparated_${tool.name}`)
-                        ToolController_.activeSeparatedTools.push(
-                            toolModuleName
-                        )
-                        useUIStore
-                            .getState()
-                            .addActiveSeparatedTool(toolModuleName)
-                        document.dispatchEvent(
-                            new CustomEvent('toggleSeparatedTool', {
-                                detail: {
-                                    toggledToolName: tool.js,
-                                    visible: true,
-                                },
-                            })
-                        )
+                        ToolController_.openSeparatedTool(tool.name)
                     }, 0)
                 }
             })

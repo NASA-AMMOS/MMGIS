@@ -10,7 +10,13 @@ const API = 'api/connections'
 const listeners = []
 let services = []
 let loaded = null
+// False until the first list arrives; tools opened before then wait for it
+let hasLoaded = false
 let gate = null
+// Connect cards in separated tools, by tool name
+const separatedGates = new Map()
+// Separated tools opened before the list arrived, by tool name
+const pendingSeparated = new Map()
 let menuOpen = false
 let missionTools = []
 
@@ -67,15 +73,20 @@ function refresh() {
     loaded = fetch(API, { credentials: 'same-origin' })
         .then((r) => r.json())
         .then((d) => {
+            hasLoaded = true
             if (d.status !== 'success') return services
             services = d.connections || []
             renderButton()
             if (menuOpen) renderMenu()
             if (gate) gate.render()
+            Array.from(separatedGates.values()).forEach((g) => g.render())
             emit()
             return services
         })
-        .catch(() => services)
+        .catch(() => {
+            hasLoaded = true
+            return services
+        })
     return loaded
 }
 
@@ -95,10 +106,12 @@ function connect(ref) {
         window.location.href = connectUrl(service, 'page')
         return true
     }
-    if (gate && gate.service === service) {
-        gate.waiting = true
-        gate.render()
-    }
+    ;[gate, ...separatedGates.values()].forEach((g) => {
+        if (g && g.service === service) {
+            g.waiting = true
+            g.render()
+        }
+    })
     return true
 }
 
@@ -130,7 +143,9 @@ function uiState() {
     return {
         hasMenu: relevant().length > 0,
         menuOpen,
-        needsConnection: gate != null && !gate.service.connected,
+        needsConnection: [gate, ...separatedGates.values()].some(
+            (g) => g != null && !g.service.connected
+        ),
     }
 }
 function renderButton() {
@@ -287,13 +302,15 @@ function makeGate(toolName, tool, service, make, reason) {
     return g
 }
 
-// Called by ToolController_ in place of tool.make(); returns a stand-in for the
-// active tool while the user still has to connect
-const activeTool = { name: null, tool: null }
-function openTool(toolName, tool, make) {
-    activeTool.name = toolName
-    activeTool.tool = tool
-    const needs = requirementsOf(toolName).filter((r) => r.required !== false)
+const requiredOf = (toolName) =>
+    requirementsOf(toolName).filter((r) => r.required !== false)
+
+// True when the tool needs a connection but the list hasn't arrived yet
+const mustWait = (toolName) => !hasLoaded && requiredOf(toolName).length > 0
+
+// The first required connection the user hasn't made, or null
+function missingFor(toolName) {
+    const needs = requiredOf(toolName)
     if (needs.length === 0) return null
     const missing = needs.map(find).find((s) => s == null || !s.connected)
     if (missing === undefined) return null
@@ -301,6 +318,73 @@ function openTool(toolName, tool, make) {
         console.warn(`${toolName}: a required connection isn't installed.`, needs)
         return null
     }
+    return missing
+}
+
+// Separated tools: true when the card is shown in place of the tool, which
+// make() replaces once connected
+function openSeparated(toolName, containerId, make) {
+    if (separatedGates.has(toolName) || pendingSeparated.has(toolName))
+        return true
+    if (mustWait(toolName)) {
+        const token = {}
+        pendingSeparated.set(toolName, token)
+        ;(loaded || refresh()).then(() => {
+            if (pendingSeparated.get(toolName) !== token) return
+            pendingSeparated.delete(toolName)
+            if (!openSeparated(toolName, containerId, make)) make()
+        })
+        return true
+    }
+    const missing = missingFor(toolName)
+    if (!missing) return false
+    const g = makeGate(toolName, null, missing, make)
+    g.el.removeAttr('id').addClass('separated')
+    const remove = g.remove
+    g.remove = () => {
+        if (separatedGates.get(toolName) === g) separatedGates.delete(toolName)
+        remove()
+    }
+    separatedGates.set(toolName, g)
+    $(document.getElementById(containerId)).append(g.el)
+    g.render()
+    return true
+}
+
+function closeSeparated(toolName) {
+    if (pendingSeparated.delete(toolName)) return true
+    const g = separatedGates.get(toolName)
+    if (g) g.remove()
+    return g != null
+}
+
+// Called by ToolController_ in place of tool.make(); returns a stand-in for the
+// active tool while the user still has to connect
+const activeTool = { name: null, tool: null }
+function openTool(toolName, tool, make) {
+    activeTool.name = toolName
+    activeTool.tool = tool
+    if (mustWait(toolName)) {
+        let closed = false
+        ;(loaded || refresh()).then(() => {
+            if (closed || activeTool.name !== toolName) return
+            standIn.inner = openTool(toolName, tool, make)
+            if (!standIn.inner) make()
+        })
+        const standIn = {
+            height: tool.height,
+            width: tool.width,
+            inner: null,
+            destroy() {
+                closed = true
+                if (standIn.inner) standIn.inner.destroy()
+            },
+            connectionsGate: true,
+        }
+        return standIn
+    }
+    const missing = missingFor(toolName)
+    if (!missing) return null
     if (gate) gate.remove()
     gate = makeGate(toolName, tool, missing, make)
     const container = containerFor(tool)
@@ -363,6 +447,8 @@ const Connections_ = {
     disconnect,
     requirementsOf,
     openTool,
+    openSeparated,
+    closeSeparated,
     on(event, fn) {
         if (event === 'change' && typeof fn === 'function') listeners.push(fn)
     },

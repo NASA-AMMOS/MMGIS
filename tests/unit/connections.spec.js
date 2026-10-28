@@ -119,38 +119,12 @@ test.describe('loadConnections', () => {
     });
 });
 
-test.describe('core Earthdata connection', () => {
-    test.beforeAll(() => {
+test.describe('core connections', () => {
+    test('core ships the connections folder but no connection plugins', () => {
+        expect(fs.existsSync(path.join(CORE_PLUGINS, 'core', 'connections'))).toBe(true);
         connections.loadConnections(CORE_PLUGINS);
-    });
-
-    test('is discovered, allows guests and needs its client env', () => {
-        const c = connections.getConnection('earthdata');
-        expect(c).not.toBeNull();
-        expect(c.ref).toBe('core/connections/Earthdata');
-        expect(c.guests).toBe(true);
-        expect(c.env).toEqual(['EARTHDATA_CLIENT_ID', 'EARTHDATA_CLIENT_SECRET']);
-        expect(connections.setupStatus(c, {}).configured).toBe(false);
-        expect(
-            connections.setupStatus(c, { EARTHDATA_CLIENT_ID: 'id', EARTHDATA_CLIENT_SECRET: 's' }).configured
-        ).toBe(true);
-    });
-
-    test('builds the Earthdata sign-in URL', () => {
-        const c = connections.getConnection('earthdata');
-        const url = new URL(
-            c.impl.authorizeUrl({
-                state: 'st8',
-                redirectUri: 'https://site.example/api/connections/earthdata/callback',
-                env: { EARTHDATA_CLIENT_ID: 'my-client', EARTHDATA_CLIENT_SECRET: 's' },
-            })
-        );
-        expect(url.origin).toBe('https://urs.earthdata.nasa.gov');
-        expect(url.searchParams.get('client_id')).toBe('my-client');
-        expect(url.searchParams.get('state')).toBe('st8');
-        expect(url.searchParams.get('response_type')).toBe('code');
-        expect(url.searchParams.get('redirect_uri')).toBe('https://site.example/api/connections/earthdata/callback');
-        expect(url.searchParams.get('client_secret')).toBeNull();
+        const found = connections.allConnections().filter((c) => c.ref.startsWith('core/'));
+        expect(found).toEqual([]);
     });
 });
 
@@ -219,5 +193,81 @@ test.describe('connectionRequired', () => {
         connections.connectionRequired(res, new connections.ConnectionRequiredError('earthdata', 'not_connected'));
         expect(res.body).toMatchObject({ status: 'failure', code: 'connection_required', service: 'earthdata', reason: 'not_connected' });
         expect(typeof res.body.message).toBe('string');
+    });
+});
+
+test.describe('session connections belong to the identity that made them', () => {
+    const c = { id: 'svc', label: 'Svc', guests: true };
+    const guest = { kind: 'anonymous' };
+    const alice = { kind: 'external', provider: 'sso', username: 'alice' };
+    const bob = { kind: 'external', provider: 'sso', username: 'bob' };
+    let saved;
+    test.beforeAll(() => {
+        saved = process.env.SECRET;
+        process.env.SECRET = 'b'.repeat(32);
+    });
+    test.afterAll(() => {
+        if (saved === undefined) delete process.env.SECRET;
+        else process.env.SECRET = saved;
+    });
+    const rec = { accessToken: 'at', account: 'x' };
+
+    test('ownerKey', () => {
+        expect(connections.ownerKey(guest)).toBe('guest');
+        expect(connections.ownerKey(null)).toBe('guest');
+        expect(connections.ownerKey(alice)).toBe('external:sso:alice');
+        expect(connections.ownerKey({ kind: 'user', userId: 4 })).toBe('user:4');
+        expect(connections.ownerKey({ kind: 'invalid_token' })).toBeNull();
+    });
+
+    test('another external identity in the same session does not get it', async () => {
+        const req = { session: {} };
+        await connections.writeStored(req, alice, c, rec);
+        expect((await connections.readStored(req, alice, c)).accessToken).toBe('at');
+        expect(await connections.readStored(req, bob, c)).toBeNull();
+        expect(req.session.connections.svc).toBeUndefined();
+        expect(await connections.readStored(req, alice, c)).toBeNull();
+    });
+
+    test('a guest does not get a signed-in identity\'s connection after sign-out', async () => {
+        const req = { session: {} };
+        await connections.writeStored(req, alice, c, rec);
+        expect(await connections.readStored(req, guest, c)).toBeNull();
+    });
+
+    test("a guest's connection carries over when that browser signs in, then stays with that identity", async () => {
+        const req = { session: {} };
+        await connections.writeStored(req, guest, c, rec);
+        expect((await connections.readStored(req, guest, c)).accessToken).toBe('at');
+        expect((await connections.readStored(req, alice, c)).owner).toBe('external:sso:alice');
+        expect(await connections.readStored(req, bob, c)).toBeNull();
+    });
+
+    test('sign-in only adopts guest-owned session connections', async () => {
+        const req = { session: {} };
+        await connections.writeStored(req, alice, c, rec);
+        await connections.adoptSessionConnections(req, { kind: 'user', userId: 9 });
+        expect(req.session.connections).toBeUndefined();
+    });
+});
+
+test.describe('routes follow ROOT_PATH', () => {
+    test('mounted under the root path only', async () => {
+        const express = require('express');
+        const app = express();
+        const allow = () => (req, res, next) => next();
+        allow.public = allow;
+        allow.inHandler = allow;
+        connections.mountConnectionRoutes(app, { registerRouter: (p, r) => r, authorize: allow, rootPath: '/MMGIS' });
+        const server = app.listen(0);
+        try {
+            const base = `http://127.0.0.1:${server.address().port}`;
+            expect((await fetch(`${base}/MMGIS/api/connections/setup`)).status).toBe(200);
+            expect((await fetch(`${base}/api/connections/setup`)).status).toBe(404);
+            expect(connections.sameSitePath('//evil')).toBe('/MMGIS/');
+        } finally {
+            server.close();
+            connections.mountConnectionRoutes(express(), { registerRouter: (p, r) => r, authorize: allow, rootPath: '' });
+        }
     });
 });

@@ -276,7 +276,8 @@ async function completeLogin(req, identity) {
   return user;
 }
 
-const rootPath = () => process.env.ROOT_PATH || "";
+let mountedRoot = null;
+const rootPath = () => (mountedRoot != null ? mountedRoot : process.env.ROOT_PATH || "");
 
 // A same-site path to send the browser to after login; anything else falls back to the site root
 function returnTo(value, fallback = `${rootPath()}/`) {
@@ -318,7 +319,8 @@ const providerLimiter = () =>
   });
 
 // Mounts GET /api/auth (the login entry points) and each enabled provider's routes at /api/auth/<id>
-function mountProviderRoutes(app, { registerRouter, authorize }) {
+function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root }) {
+  if (typeof root === "string") mountedRoot = root;
   const list = express.Router();
   const { apilimiter } = require("../../scripts/rateLimiters");
   list.get("/", apilimiter, authorize.public("lists the enabled login providers"), (req, res) => {
@@ -328,11 +330,12 @@ function mountProviderRoutes(app, { registerRouter, authorize }) {
       loginLinks: loginLinks(),
     });
   });
-  app.use("/api/auth", registerRouter("/api/auth", list));
+  const base = `${rootPath()}/api/auth`;
+  app.use(base, registerRouter(base, list));
 
   enabledProviders().forEach((p) => {
     if (typeof p.impl.routes !== "function") return;
-    const prefix = `/api/auth/${p.id}`;
+    const prefix = `${base}/${p.id}`;
     const router = express.Router();
     p.impl.routes(router, {
       authorize,

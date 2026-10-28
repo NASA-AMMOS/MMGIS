@@ -1512,9 +1512,13 @@ if (fullAccess)
           req
         );
 
+        // The folder name comes from the Missions directory listing, not the request
         const missionsRoot = path.resolve("./Missions");
-        const dir = path.resolve(missionsRoot, missionName);
-        if (dir.startsWith(missionsRoot + path.sep) && fs.existsSync(dir)) {
+        const folder = fs.existsSync(missionsRoot)
+          ? fs.readdirSync(missionsRoot).find((f) => f === missionName)
+          : null;
+        const dir = folder ? path.join(missionsRoot, folder) : null;
+        if (dir && fs.existsSync(dir)) {
           let deletedDir = dir + "_deleted_";
           if (fs.existsSync(deletedDir)) deletedDir = `${dir}_${Date.now()}_deleted_`;
           fs.rename(dir, deletedDir, (err) => {
