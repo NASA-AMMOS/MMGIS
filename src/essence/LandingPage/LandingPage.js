@@ -52,6 +52,7 @@ export default {
         missionsMeta = missionsMeta || {}
 
         var missionUrl
+        var unavailableMission = null
         var forceLanding =
             QueryURL.getSingleQueryVariable('forcelanding') || false
 
@@ -62,6 +63,7 @@ export default {
                 missionUrl != false && !missions.includes(missionUrl)
             if (unavailable) {
                 console.warn(`Mission '${missionUrl}' isn't available.`)
+                unavailableMission = missionUrl
                 missionUrl = false
             }
 
@@ -93,6 +95,7 @@ export default {
                 <LandingPageView
                     missions={missions}
                     missionsMeta={missionsMeta}
+                    unavailableMission={unavailableMission}
                     onSelectMission={(name) => {
                         unmount()
                         loadMission(name, missions)

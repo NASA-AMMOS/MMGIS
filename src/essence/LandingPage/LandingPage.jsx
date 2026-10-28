@@ -443,6 +443,56 @@ function Missions({ missions, missionsMeta, onOpen, hideArchived, query, groupBy
     )
 }
 
+// Worded the same for missions that don't exist and ones this visitor can't see
+function UnavailableNote({ missionName }) {
+    const [user] = useCurrentUser()
+    const [dismissed, setDismissed] = useState(false)
+    if (!missionName || dismissed) return null
+
+    const guestCanSignIn =
+        !user && window.mmgisglobal.SITE_ACCESS === 'optional'
+    let title = `${missionName} isn't available.`
+    let detail = 'Check the link, or pick a mission below.'
+    if (user) {
+        title = `${missionName} isn't available to your account.`
+        detail = 'Check the link, or ask an administrator for access.'
+    } else if (guestCanSignIn) {
+        title = `${missionName} isn't available to guests.`
+        detail = 'Sign in to see missions shared with your account.'
+    }
+
+    return (
+        <div className="unavailable" role="status">
+            <i className="mdi mdi-information-outline mdi-18px" />
+            <div className="text">
+                <div className="title">{title}</div>
+                <div className="detail">{detail}</div>
+            </div>
+            {guestCanSignIn && (
+                <Button
+                    variant="primary"
+                    className="signin"
+                    onClick={() => {
+                        Login.signUp = false
+                        Login.openModal()
+                    }}
+                >
+                    Sign In
+                </Button>
+            )}
+            <button
+                type="button"
+                className="dismiss"
+                title="Dismiss"
+                aria-label="Dismiss"
+                onClick={() => setDismissed(true)}
+            >
+                <i className="mdi mdi-close mdi-18px" />
+            </button>
+        </div>
+    )
+}
+
 function Footer({ creditText, creditUrl }) {
     const version = window.mmgisglobal.version
     const clearance = window.mmgisglobal.CLEARANCE_NUMBER
@@ -465,7 +515,12 @@ function Footer({ creditText, creditUrl }) {
 }
 
 // `onSelectMission(name)` is called after the page has faded out
-export default function LandingPage({ missions, missionsMeta, onSelectMission }) {
+export default function LandingPage({
+    missions,
+    missionsMeta,
+    unavailableMission,
+    onSelectMission,
+}) {
     const opts = useMemo(getLandingOptions, [])
     const [visible, setVisible] = useState(false)
     const [leaving, setLeaving] = useState(false)
@@ -506,6 +561,7 @@ export default function LandingPage({ missions, missionsMeta, onSelectMission })
                     <div className="hero">
                         <Heading text={opts.heading} />
                         <div className="sub">{opts.subheading}</div>
+                        <UnavailableNote missionName={unavailableMission} />
                         {missions.length > 0 && !opts.hideSearch && (
                             <Toolbar
                                 query={query}
