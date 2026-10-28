@@ -235,6 +235,7 @@ async function writeStored(req, principal, c, record) {
 }
 
 async function removeStored(req, principal, c) {
+  forgetRefreshes(req, principal, c);
   if (storageFor(principal, c) === "account")
     await models().AuthConnection.destroy({ where: { user_id: principal.userId, connection: c.id } });
   if (req.session && req.session.connections && req.session.connections[c.id])
@@ -340,6 +341,23 @@ function scrubbed(err, secrets) {
 const REFRESH_SHARE_MS = 30 * 1000;
 const refreshing = new Map();
 
+// Refreshes of a grant the user has since replaced or removed are neither shared nor saved
+const superseded = new WeakSet();
+
+function refreshScope(req, principal, c) {
+  const owner = storageFor(principal, c) === "account" ? `user:${principal.userId}` : `session:${req.sessionID}`;
+  return `${owner}|${c.id}|`;
+}
+
+function forgetRefreshes(req, principal, c) {
+  const prefix = refreshScope(req, principal, c);
+  for (const [k, job] of refreshing)
+    if (k.startsWith(prefix)) {
+      superseded.add(job);
+      refreshing.delete(k);
+    }
+}
+
 const digest = (v) => crypto.createHash("sha256").update(String(v)).digest("hex");
 
 function startRefresh(keys, c, record) {
@@ -362,19 +380,20 @@ function startRefresh(keys, c, record) {
 }
 
 async function refreshStored(req, principal, c, record, rejected) {
-  const scope = storageFor(principal, c) === "account" ? `user:${principal.userId}` : `session:${req.sessionID}`;
-  const byGrant = `${scope}|${c.id}|r:${digest(record.refreshToken)}`;
+  const scope = refreshScope(req, principal, c);
+  const byGrant = `${scope}r:${digest(record.refreshToken)}`;
   let job = refreshing.get(byGrant);
   if (rejected) {
     // Everyone refused with the same access token shares one refresh. A refresh already
     // made with this grant only helps if it gave a different access token.
     const shared = job && (await job.catch(() => null));
     if (!shared || shared.accessToken === record.accessToken) {
-      const byRefused = `${scope}|${c.id}|a:${digest(record.accessToken)}`;
+      const byRefused = `${scope}a:${digest(record.accessToken)}`;
       job = refreshing.get(byRefused) || startRefresh([byRefused, byGrant], c, record);
     }
   } else if (!job) job = startRefresh([byGrant], c, record);
   const fresh = await job;
+  if (superseded.has(job)) return (await current(req, c.id)).record;
   await writeStored(req, principal, c, fresh);
   return fresh;
 }
@@ -665,6 +684,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
           ...(pending.verifier ? { codeVerifier: pending.verifier } : {}),
         })
       );
+      forgetRefreshes(req, principal, c);
       await writeStored(req, principal, c, record);
     } catch (err) {
       logger(
@@ -719,6 +739,8 @@ module.exports = {
   readStored,
   writeStored,
   removeStored,
+  forgetRefreshes,
+  current,
   adoptSessionConnections,
   carryGuestConnections,
   token,

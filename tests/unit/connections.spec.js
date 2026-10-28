@@ -282,7 +282,7 @@ test.describe('token refresh', () => {
     refresh: async ({ refreshToken }) => {
         const t = globalThis.__refreshTest;
         t.calls.push(refreshToken);
-        await new Promise((r) => setTimeout(r, 20));
+        await new Promise((r) => setTimeout(r, t.delay || 20));
         if (t.fail) throw t.fail;
         if (t.spent && t.spent.has(refreshToken)) throw Object.assign(new Error('invalid_grant'), { status: 400 });
         if (t.spent) t.spent.add(refreshToken);
@@ -351,6 +351,31 @@ test.describe('token refresh', () => {
         expect(globalThis.__refreshTest.calls).toEqual(['burst']);
         expect(new Set(tokens)).toEqual(new Set(['A']));
         reqs.forEach((r) => expect(r.session.connections.svc).toBeTruthy());
+    });
+
+    test('a reconnect is not replaced by a cached or in-flight refresh of the old grant', async () => {
+        Object.assign(globalThis.__refreshTest, { sameAccess: 'A', spent: new Set() });
+        const c = connections.getConnection('svc');
+        const req = await stored({ ...guestReq(), sessionID: 'sess-reconnect' }, { accessToken: 'A', refreshToken: 'R1', expiresIn: 3600 });
+        expect(await connections.rejected(req, 'svc', 'A')).toBe('A');
+        // The user reconnects (as the callback does) and the service hands back the same access token
+        const reconnect = async (refreshToken) => {
+            connections.forgetRefreshes(req, req.principal, c);
+            await connections.writeStored(req, req.principal, c, connections.grantRecord({ accessToken: 'A', refreshToken, expiresIn: 3600 }));
+        };
+        await reconnect('R3');
+        expect(await connections.rejected(req, 'svc', 'A')).toBe('A');
+        expect(globalThis.__refreshTest.calls).toEqual(['R1', 'R3']);
+        expect((await connections.current(req, 'svc')).record.refreshToken).toBe('R3-next');
+        // A refresh still running when the user reconnects doesn't overwrite the new grant
+        await reconnect('R5');
+        globalThis.__refreshTest.delay = 300;
+        const running = connections.rejected(req, 'svc', 'A');
+        await expect.poll(() => globalThis.__refreshTest.calls.length, { timeout: 250, intervals: [5] }).toBe(3);
+        expect(globalThis.__refreshTest.calls).toEqual(['R1', 'R3', 'R5']);
+        await reconnect('R7');
+        await running;
+        expect((await connections.current(req, 'svc')).record.refreshToken).toBe('R7');
     });
 
     test('a rejection during an expiry refresh shares it', async () => {
