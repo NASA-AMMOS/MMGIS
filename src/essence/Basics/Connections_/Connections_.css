@@ -69,10 +69,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-mmgis);
-    color: white;
-    font-weight: bold;
+    background: var(--color-accent-active);
+    color: var(--color-c);
+    font-weight: 600;
     font-size: 15px;
+    border: 1px solid var(--color-a1);
 }
 .connectionsMenuAvatar.guest {
     background: var(--color-a2, #3a3d44);
