@@ -389,7 +389,15 @@ async function renew(req, principal, c, record, rejected) {
       }
       // Another request may have saved a newer grant meanwhile; keep it
       const latest = await readStored(req, principal, c).catch(() => null);
-      if (latest && latest.refreshToken !== record.refreshToken) return latest;
+      if (latest && latest.refreshToken !== record.refreshToken) {
+        if (!rejected || latest.accessToken !== record.accessToken) return latest;
+        // The newer grant still has the refused token: refresh it once
+        try {
+          return await refreshStored(req, principal, c, latest, true);
+        } catch (_) {
+          // Fall through and ask the user to connect again
+        }
+      }
       logger("warn", `Refreshing a ${c.label} token failed (${errText(scrubbed(err, [record.refreshToken, record.accessToken, ...envSecrets(c)]))}); the user has to connect again.`, "Connections");
     }
   } else if (stillValid) return record;
