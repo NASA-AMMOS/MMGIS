@@ -198,6 +198,13 @@ const pool = new Pool({
                 : false,
         }
       : false,
+  // Fail instead of hanging when the database can't be reached
+  connectionTimeoutMillis: 10000,
+});
+// An idle client losing its connection (Postgres restart, failover) emits "error" on the
+// pool; without a listener Node treats it as uncaught and the whole server exits.
+pool.on("error", (err) => {
+  logger("error", `Session store database connection lost: ${err.message}`, "server");
 });
 const sessionSecret = process.env.SECRET;
 if (!sessionSecret) {
@@ -596,8 +603,15 @@ let s = {
   },
 };
 
-// Trust first proxy
-app.set("trust proxy", 1);
+// Which proxies' X-Forwarded-For to trust for the client IP (rate limits, logs). Defaults to the first one.
+function trustProxySetting(v) {
+  if (v == null || v === "") return 1;
+  if (v === "false") return false;
+  if (v === "true") return true;
+  if (/^\d+$/.test(v)) return parseInt(v, 10);
+  return v;
+}
+app.set("trust proxy", trustProxySetting(process.env.TRUST_PROXY));
 
 app.use("/api/", apilimiter);
 

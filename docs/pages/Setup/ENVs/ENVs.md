@@ -52,13 +52,19 @@ Instance type | string enum | default `production`
 - _production:_
 - _development:_ Shows configure and documentation links on the landing page for convenience
 
+#### `TRUST_PROXY=`
+
+Which proxies in front of MMGIS to trust for the client's IP address (`X-Forwarded-For`), used by rate limits and logs. A number trusts that many proxies, `false` trusts none and uses the direct connection's address, and other values (such as `loopback` or a list of addresses) are passed to Express's `trust proxy` setting. Set it to `false` when browsers reach MMGIS directly, or a client can pick its own IP and get around per-IP rate limits.
+
+**Type**: number, boolean or string | **Default**: `1`
+
 #### `SECRET=`
 
 **Required.** A cryptographically random string used to sign session cookies. This secret ensures that session IDs cannot be forged by attackers.
 
 **Type**: string (minimum 24 characters) | **Default**: None (application will fail to start if not set)
 
-**Important**: This value must be kept confidential. Use a long, random string (e.g., 64+ characters generated with `openssl rand -hex 64` or `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`) . Do not use the sample value from `sample.env` in production. If this variable is not set or is shorter than 24 characters, the server will refuse to start.
+**Important**: This value must be kept confidential. Use a long, random string (e.g., 64+ characters generated with `openssl rand -hex 64` or `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`) . Do not use the sample value from `sample.env` in production. If this variable is not set or is shorter than 24 characters, the server will refuse to start. Connection tokens are encrypted with a key derived from it, so changing it removes every stored connection, and users connect again.
 
 #### `DB_HOST=`
 

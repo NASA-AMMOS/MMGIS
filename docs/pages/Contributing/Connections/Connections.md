@@ -236,7 +236,12 @@ async function tokenRequest(env, params) {
   const body = await res.json().catch(() => ({}));
   // The status lets MMGIS tell an outage (429, 5xx: keep the connection) from a refused grant
   if (!res.ok || typeof body.access_token !== "string")
-    throw Object.assign(new Error(`Earthdata token request failed (HTTP ${res.status}).`), { status: res.status });
+    throw Object.assign(new Error(`Earthdata token request failed (HTTP ${res.status}).`), {
+      status: res.status,
+      // A 200 without a token (an HTML maintenance page, { error: "temporarily_unavailable" }) is
+      // an outage, not a refused grant: keep the connection
+      ...(res.ok && body.error !== "invalid_grant" ? { transient: true } : {}),
+    });
   return body;
 }
 
@@ -329,7 +334,15 @@ Rules for the key page:
 
 - **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser. If that entry is `"required": true`, the tool doesn't open and its card says the service isn't set up; an optional one is ignored.
 - **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back. Configure → Users & Access → Connections shows the callback URL MMGIS sends for each connection, and the tool's waiting card has a Cancel link.
-- **Several MMGIS instances** behind a load balancer don't share refreshes. With a refresh token that rotates, use sticky sessions, or two instances refreshing at once can sign the user out of the service.
+- **Connect is rate limited** to 100 a client IP per 15 minutes, because each one saves a session for its OAuth state. Set `TRUST_PROXY` to match your proxies so a client can't pick its own IP.
+- **Several MMGIS instances** sharing a database coordinate refreshes of signed-in users' connections: the first instance to claim the stored row refreshes, and the others wait up to 10 seconds for its result. Guests' and per-request identities' connections live in the session, so use sticky sessions if their refresh tokens rotate.
+- **Plugin hooks time out.** `authorizeUrl`, `exchange`, `refresh` and `revoke` that don't settle in 20 seconds fail. A refresh that fails that way, or with a network error, 429 or 5xx, keeps the connection and the card offers Try again. Disconnect doesn't wait for `revoke`.
+- **Tokens over 64 KB** are refused, and the connect or refresh fails.
+- **A refresh while the current token still works** waits at most 2 seconds; after that the request uses the current token and the refresh finishes in the background.
+- **A guest who signs in** keeps their session connections only for services the account isn't already connected to. Otherwise the guest's grant is revoked and the account's is kept. Connecting again replaces the account's connection and revokes the old grant.
+- **A connect that finishes after the person signed in or out** is discarded; they click Connect again. The one exception follows the guest rule above: a guest's connect that finishes after they sign in is kept if the account has no connection for that service.
+- **`display_name`, `description`, `guests`, `pkce` and `env`** are type-checked at startup; a plugin with a wrong type isn't loaded. The `connection` id is at most 64 characters.
+- **`validate()` and `warnings()` must return their list directly**, not a Promise. Their text is scrubbed of the plugin's `env` values before it's logged or shown in Configure.
 - **The account menu** lists only services people can connect now. A service that isn't set up appears only on its tools' cards and in Configure.
 - **API keys and other pasted credentials** have no built-in form. See [API keys](#api-keys).
 - **Disconnecting** doesn't close an open tool; its next request gets `connection_required` and shows the card.

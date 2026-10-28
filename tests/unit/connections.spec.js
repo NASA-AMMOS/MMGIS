@@ -74,12 +74,16 @@ test.describe('loadConnections', () => {
     });
 
     test('loads valid plugins and refuses bad ones', () => {
-        writePlugin(root, 'a', 'Good', { type: 'connection', connection: 'Good', display_name: 'Good Svc', guests: true, env: ['GOOD_ID', 5] }, GOOD_JS);
+        writePlugin(root, 'a', 'Good', { type: 'connection', connection: 'Good', display_name: 'Good Svc', guests: true, env: ['GOOD_ID'] }, GOOD_JS);
         writePlugin(root, 'b', 'Dup', { type: 'connection', connection: 'good' }, GOOD_JS);
         writePlugin(root, 'a', 'NoId', { type: 'connection' }, GOOD_JS);
         writePlugin(root, 'a', 'BadId', { type: 'connection', connection: '1bad id' }, GOOD_JS);
         writePlugin(root, 'a', 'NoHooks', { type: 'connection', connection: 'nohooks' }, 'module.exports = { exchange() {} }');
         writePlugin(root, 'a', 'Throws', { type: 'connection', connection: 'throws' }, 'throw new Error("boom")');
+    writePlugin(root, 'a', 'LongId', { type: 'connection', connection: 'x'.repeat(65) }, GOOD_JS);
+    writePlugin(root, 'a', 'BadName', { type: 'connection', connection: 'badname', display_name: { en: 'x' } }, GOOD_JS);
+    writePlugin(root, 'a', 'BadEnv', { type: 'connection', connection: 'badenv', env: ['X', 5] }, GOOD_JS);
+    writePlugin(root, 'a', 'BadFlags', { type: 'connection', connection: 'badflags', guests: 'yes', pkce: 1 }, GOOD_JS);
 
         const ids = connections.loadConnections(root);
         expect(ids).toEqual(['good']);
@@ -109,7 +113,41 @@ test.describe('loadConnections', () => {
         expect(bad.problems).toEqual(['BAD is set']);
     });
 
-    test('startupWarnings stays quiet for a connection that is simply not set up', () => {
+    test('validate() and warnings() must be synchronous, and their text is scrubbed of env secrets', () => {
+    writePlugin(
+      root,
+      'a',
+      'Leaky',
+      { type: 'connection', connection: 'leaky', env: ['LEAKY_SECRET'] },
+      `module.exports = {
+    authorizeUrl: () => 'https://svc.example/',
+    exchange: async () => ({ accessToken: 'a' }),
+    validate: (env) => ['secret is ' + env.LEAKY_SECRET],
+};`,
+    );
+    writePlugin(
+      root,
+      'a',
+      'Async',
+      { type: 'connection', connection: 'async' },
+      `module.exports = {
+    authorizeUrl: () => 'https://svc.example/',
+    exchange: async () => ({ accessToken: 'a' }),
+    validate: async () => [],
+};`,
+    );
+    connections.loadConnections(root);
+    const leaky = connections.setupStatus(connections.getConnection('leaky'), {
+      LEAKY_SECRET: 'hunter2-very-secret',
+    });
+    expect(leaky.configured).toBe(false);
+    expect(JSON.stringify(leaky.problems)).not.toContain('hunter2-very-secret');
+    const async = connections.setupStatus(connections.getConnection('async'), {});
+    expect(async.configured).toBe(false);
+    expect(async.problems[0]).toContain('not a Promise');
+  });
+
+  test('startupWarnings stays quiet for a connection that is simply not set up', () => {
         writePlugin(root, 'a', 'Svc', { type: 'connection', connection: 'svc', env: ['SVC_ID', 'SVC_SECRET'] }, GOOD_JS);
         connections.loadConnections(root);
         expect(connections.startupWarnings({})).toEqual([]);
@@ -157,11 +195,86 @@ test.describe('grantRecord', () => {
         expect(r.refreshToken).toBe('r');
         expect(r.account.length).toBe(255);
     });
-    test('ignores bad expiry values', () => {
+    test('refuses oversized tokens', () => {
+    expect(() => connections.grantRecord({ accessToken: 'a'.repeat(64 * 1024 + 1) })).toThrow();
+    expect(() =>
+      connections.grantRecord({
+        accessToken: 'a',
+        refreshToken: 'r'.repeat(64 * 1024 + 1),
+      }),
+    ).toThrow();
+    expect(connections.grantRecord({ accessToken: 'a'.repeat(64 * 1024) }).accessToken.length).toBe(64 * 1024);
+  });
+  test('prefers expiresIn over expiresAt and drops expiries already in the past', () => {
+    const r = connections.grantRecord({
+      accessToken: 'a',
+      expiresIn: 60,
+      expiresAt: Date.now() - 3600 * 1000,
+    });
+    expect(new Date(r.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    expect(
+      connections.grantRecord({
+        accessToken: 'a',
+        expiresAt: Date.now() - 1000,
+      }).expiresAt,
+    ).toBeNull();
+    expect(connections.grantRecord({ accessToken: 'a', expiresAt: { at: 5 } }).expiresAt).toBeNull();
+    expect(connections.grantRecord({ accessToken: 'a', expiresAt: true }).expiresAt).toBeNull();
+  });
+  test('ignores bad expiry values', () => {
         expect(connections.grantRecord({ accessToken: 'a', expiresAt: 'not a date' }).expiresAt).toBeNull();
         expect(connections.grantRecord({ accessToken: 'a', expiresIn: -5 }).expiresAt).toBeNull();
         expect(connections.grantRecord({ accessToken: 'a', refreshToken: 7 }).refreshToken).toBeNull();
     });
+});
+
+test.describe('withTimeout', () => {
+  test('fails a hook that never settles and passes through one that does', async () => {
+    await expect(connections.withTimeout(new Promise(() => {}), 'refresh()', 50)).rejects.toMatchObject({
+      code: 'ETIMEDOUT',
+    });
+    await expect(connections.withTimeout(Promise.resolve(3), 'x', 50)).resolves.toBe(3);
+    await expect(connections.withTimeout(4, 'x', 50)).resolves.toBe(4);
+    const t = await connections.withTimeout(new Promise(() => {}), 'refresh()', 50).catch((e) => e);
+    expect(connections.isTransient(t)).toBe(true);
+  });
+});
+
+test.describe('sameOriginOnly', () => {
+  const run = (headers) => {
+    let status = 200;
+    let passed = false;
+    const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
+    const req = {
+      get: (h) => lower[h.toLowerCase()],
+      protocol: 'https',
+      headers: lower,
+    };
+    const res = {
+      status(c) {
+        status = c;
+        return this;
+      },
+      send() {
+        return this;
+      },
+    };
+    connections.sameOriginOnly(req, res, () => (passed = true));
+    return passed ? 200 : status;
+  };
+  test('refuses cross-site requests and allows same-origin ones', () => {
+    expect(run({ host: 'mmgis.example' })).toBe(200);
+    expect(
+      run({
+        host: 'mmgis.example',
+        origin: 'https://mmgis.example',
+        'sec-fetch-site': 'same-origin',
+      }),
+    ).toBe(200);
+    expect(run({ host: 'mmgis.example', origin: 'https://evil.example' })).toBe(403);
+    expect(run({ host: 'mmgis.example', 'sec-fetch-site': 'cross-site' })).toBe(403);
+    expect(run({ host: 'mmgis.example', origin: 'null' })).toBe(403);
+  });
 });
 
 test.describe('sameSitePath', () => {
@@ -308,7 +421,10 @@ test.describe('token refresh', () => {
     const guestReq = () => ({ principal: { kind: 'anonymous' }, session: {}, sessionID: 'sess-1' });
     async function stored(req, grant) {
         const c = connections.getConnection('svc');
-        await connections.writeStored(req, req.principal, c, { ...connections.grantRecord(grant), ...grant.extra });
+        const record = connections.grantRecord(grant);
+    // Stored grants can be past their expiry; grantRecord drops those only for fresh grants
+    if (grant.expiresAt != null) record.expiresAt = new Date(grant.expiresAt).toISOString();
+    await connections.writeStored(req, req.principal, c, { ...record, ...grant.extra });
         return req;
     }
 
@@ -408,7 +524,26 @@ test.describe('token refresh', () => {
         expect(out).not.toContain('zzz');
     });
 
-    test('a network error keeps the connection; a refused refresh drops it', async () => {
+    test('a still-valid token is not held up by a slow early refresh', async () => {
+    globalThis.__refreshTest.delay = 4000;
+    const req = await stored(guestReq(), {
+      accessToken: 'still',
+      refreshToken: 'slow',
+      expiresIn: 30,
+    });
+    const c = connections.getConnection('svc');
+    // within the early-refresh window but not yet expired
+    const rec = await connections.readStored(req, req.principal, c);
+    rec.expiresAt = new Date(Date.now() + 20 * 1000).toISOString();
+    rec.issuedAt = new Date(Date.now() - 3600 * 1000).toISOString();
+    await connections.writeStored(req, req.principal, c, rec);
+    const start = Date.now();
+    expect(await connections.token(req, 'svc')).toBe('still');
+    expect(Date.now() - start).toBeLessThan(3000);
+    expect(globalThis.__refreshTest.calls).toEqual(['slow']);
+  });
+
+  test('a network error keeps the connection; a refused refresh drops it', async () => {
         const req = await stored(guestReq(), { accessToken: 'x', refreshToken: 'net', expiresAt: Date.now() - 1000 });
         globalThis.__refreshTest.fail = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
         await expect(connections.token(req, 'svc')).rejects.toMatchObject({ reason: 'unavailable' });

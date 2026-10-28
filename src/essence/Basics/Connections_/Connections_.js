@@ -73,11 +73,20 @@ function emit() {
     })
 }
 
+let loadError = false
 function refresh() {
-    loaded = fetch(API, { credentials: 'same-origin' })
+    const ctl =
+        typeof AbortController === 'function' ? new AbortController() : null
+    const timer = ctl && setTimeout(() => ctl.abort(), 15000)
+    loaded = fetch(API, {
+        credentials: 'same-origin',
+        signal: ctl && ctl.signal,
+    })
         .then((r) => r.json())
         .then((d) => {
+            clearTimeout(timer)
             hasLoaded = true
+            loadError = d.status !== 'success'
             if (d.status !== 'success') return services
             services = d.connections || []
             renderButton()
@@ -88,7 +97,11 @@ function refresh() {
             return services
         })
         .catch(() => {
+            clearTimeout(timer)
             hasLoaded = true
+            loadError = true
+            if (gate) gate.render()
+            Array.from(separatedGates.values()).forEach((g) => g.render())
             return services
         })
     return loaded
@@ -105,11 +118,18 @@ function connectUrl(service, mode) {
 function connect(ref) {
     const service = find(ref)
     if (!service) return false
-    const tab = window.open(connectUrl(service), '_blank')
+    // Open a blank same-origin tab first so we can sever `opener` before the
+    // outside service's page loads. `window.open(url, '_blank', 'noopener')`
+    // would return null, which we cannot tell apart from a blocked popup.
+    const tab = window.open('', '_blank')
     if (!tab) {
         window.location.href = connectUrl(service, 'page')
         return true
     }
+    try {
+        tab.opener = null
+    } catch (err) {}
+    tab.location = connectUrl(service)
     ;[gate, ...separatedGates.values()].forEach((g) => {
         if (g && g.service === service) {
             g.waiting = true
@@ -125,7 +145,18 @@ function disconnect(ref) {
     return fetch(`${API}/${encodeURIComponent(service.id)}/disconnect`, {
         method: 'POST',
         credentials: 'same-origin',
-    }).then(refresh)
+    })
+        .then(refresh)
+        .then((list) => {
+            try {
+                if ('BroadcastChannel' in window)
+                    new BroadcastChannel('mmgis-connections').postMessage({
+                        type: 'changed',
+                        id: service.id,
+                    })
+            } catch (err) {}
+            return list
+        })
 }
 
 function signIn() {
@@ -262,6 +293,11 @@ function cardHtml(g) {
     const s = g.service
     const tool = esc(g.toolName)
     const label = esc(s.label)
+    g.loadError = s.missing && loadError
+    if (g.loadError)
+        return `<div class="connectionsCardTitle">Couldn't check ${label}</div>
+            <p>MMGIS couldn't load your connections, so ${tool} can't open yet.</p>
+            <button class="connectionsCardButton" data-card="retry">Try again</button>`
     if (!s.configured)
         return `<div class="connectionsCardTitle">${label} isn't set up</div>
             <p>${tool} needs ${label}, which isn't set up on this site yet. Ask a site admin.</p>`
@@ -274,6 +310,9 @@ function cardHtml(g) {
             <p>Finish signing in on the ${label} tab, then come back here.</p>
             <button class="connectionsCardLink" data-card="connect">Open ${label} again</button>
             <button class="connectionsCardLink" data-card="cancel">Cancel</button>`
+    if (!s.canConnect && window.mmgisglobal.SITE_ACCESS === 'public')
+        return `<div class="connectionsCardTitle">${label} needs an MMGIS account</div>
+            <p>${tool} uses ${label}, which only signed-in MMGIS users can connect, and this site has no sign-in. Ask a site admin.</p>`
     if (!s.canConnect)
         return `<div class="connectionsCardTitle">Sign in to use ${tool}</div>
             <p>${tool} uses ${label}. Sign in to MMGIS first, then connect ${label}.</p>
@@ -313,9 +352,16 @@ function makeGate(toolName, tool, service, make, reason) {
             .addClass('connectionsCard')
             .attr('id', 'connectionsCard'),
         render() {
+            // A stand-in from a failed list load: look again now that the list may have arrived
+            if (g.service.missing && !loadError) {
+                const next = missingFor(g.toolName)
+                if (!next) return g.resume()
+                g.service = next
+            }
             if (!g.service.missing) g.service = find(g.service.id) || g.service
             if (
                 g.service.connected &&
+                !g.hold &&
                 !['expired', 'rejected', 'unavailable'].includes(g.reason)
             )
                 return g.resume()
@@ -342,6 +388,7 @@ function makeGate(toolName, tool, service, make, reason) {
     }
     g.el.on('click', '[data-card="connect"]', () => {
         g.reason = null
+        g.hold = false
         connect(g.service)
     })
     g.el.on('click', '[data-card="signin"]', signIn)
@@ -351,6 +398,7 @@ function makeGate(toolName, tool, service, make, reason) {
     })
     g.el.on('click', '[data-card="retry"]', () => {
         g.reason = null
+        if (g.loadError) return refresh()
         g.resume()
     })
     return g
@@ -468,6 +516,17 @@ function openTool(toolName, tool, make) {
 }
 
 // A card over a tool that's already open, when its service needs connecting again
+function runRetry(retry) {
+    if (typeof retry !== 'function') return
+    try {
+        const out = retry()
+        if (out && typeof out.catch === 'function')
+            out.catch((err) => console.error('A connection retry failed.', err))
+    } catch (err) {
+        console.error('A connection retry failed.', err)
+    }
+}
+
 function overlayGate(s, reason, retry, toolName) {
     const separated =
         toolName && document.getElementById(`toolContentSeparated_${toolName}`)
@@ -475,6 +534,7 @@ function overlayGate(s, reason, retry, toolName) {
         const old = separatedGates.get(toolName)
         if (old) old.remove()
         const g = makeGate(toolName, null, s, () => {}, reason)
+        g.hold = s.connected
         g.el.removeAttr('id').addClass('separated overlay')
         const remove = g.remove
         g.remove = () => {
@@ -499,13 +559,14 @@ function overlayGate(s, reason, retry, toolName) {
         () => {},
         reason
     )
+    g.hold = s.connected
     gate = g
     g.el.addClass('overlay')
     const container = containerFor(activeTool.tool)
     if (container) $(container).prepend(g.el)
     g.resume = () => {
         g.remove()
-        if (typeof retry === 'function') retry()
+        runRetry(retry)
     }
     g.render()
 }
@@ -588,7 +649,14 @@ const Connections_ = {
         const s = find(ref)
         const b = $('<button>').addClass('connectionsCardButton')
         if (!s) return b.text('Unavailable').prop('disabled', true)[0]
+        let attached = false
         const label = () => {
+            if (b[0].isConnected) attached = true
+            else if (attached) {
+                const i = listeners.indexOf(label)
+                if (i >= 0) listeners.splice(i, 1)
+                return
+            }
             const cur = find(s.id) || s
             b.text(
                 cur.connected
@@ -609,9 +677,11 @@ const Connections_ = {
     // toolName puts the card on that separated tool, not the open panel tool
     handleResponse(body, retry, toolName) {
         if (!body || body.code !== 'connection_required') return false
+        if (hasLoaded && !loadError && !find(body.service)) return false
         refresh().then(() => {
             const s = find(body.service)
             if (s) overlayGate(s, body.reason, retry, toolName)
+            else runRetry(retry)
         })
         return true
     },

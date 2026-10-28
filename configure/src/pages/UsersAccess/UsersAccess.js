@@ -1751,7 +1751,7 @@ function ServicesPane() {
               label: "Who can connect",
               value: conn.guests ? "Anyone who can open the site" : "Signed-in users",
               desc: conn.guests
-                ? "Guests' connections last for their browser session. Signing in to MMGIS keeps them."
+                ? "Guests' connections last for their browser session. Signing in to MMGIS keeps them, unless the account already has that connection; then the guest's is disconnected."
                 : "Guests are asked to sign in to MMGIS first.",
               env: conn.plugin,
             },

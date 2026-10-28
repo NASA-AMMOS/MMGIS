@@ -920,12 +920,17 @@ function validatePluginConfig(config, pluginName, pluginType) {
 
   if (
     pluginType === "connection" &&
-    (typeof config.connection !== "string" || !/^[a-z][a-z0-9_-]*$/i.test(config.connection))
+    (typeof config.connection !== "string" || !/^[a-z][a-z0-9_-]{0,63}$/i.test(config.connection))
   ) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'connection' must be an id of letters, digits, "-" or "_", starting with a letter (MMGIS lowercases it)`
+      `Plugin '${pluginName}' (${pluginType}): 'connection' must be an id of letters, digits, "-" or "_", starting with a letter, at most 64 characters (MMGIS lowercases it)`
     );
   }
+  for (const key of ["display_name", "description"])
+    if (pluginType === "connection" && config[key] !== undefined && typeof config[key] !== "string")
+      errors.push(`Plugin '${pluginName}' (${pluginType}): '${key}' must be a string`);
+  if (pluginType === "connection" && config.guests !== undefined && typeof config.guests !== "boolean")
+    errors.push(`Plugin '${pluginName}' (${pluginType}): 'guests' must be true or false`);
   if (pluginType === "connection" && config.pkce !== undefined && typeof config.pkce !== "boolean") {
     errors.push(`Plugin '${pluginName}' (${pluginType}): 'pkce' must be true or false`);
   }
@@ -940,12 +945,12 @@ function validatePluginConfig(config, pluginName, pluginType) {
     const ok = (r) =>
       r != null &&
       typeof r === "object" &&
-      typeof r.plugin === "string" &&
-      /^[^/]+\/connections\/[^/]+$/.test(r.plugin) &&
+      ((typeof r.plugin === "string" && /^[^/]+\/connections\/[^/]+$/.test(r.plugin)) ||
+        (r.plugin === undefined && typeof r.id === "string" && /^[A-Za-z][A-Za-z0-9_-]*$/.test(r.id))) &&
       (r.required === undefined || typeof r.required === "boolean");
     if (!Array.isArray(config.connections) || !config.connections.every(ok)) {
       errors.push(
-        `Plugin '${pluginName}' (${pluginType}): 'connections' must be an array of { "plugin": "<container>/connections/<Name>", "required": true|false }`
+        `Plugin '${pluginName}' (${pluginType}): 'connections' must be an array of { "plugin": "<container>/connections/<Name>" } or { "id": "<connection id>" }, each with an optional "required": true|false`
       );
     }
   }

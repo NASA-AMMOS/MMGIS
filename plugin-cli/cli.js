@@ -559,6 +559,19 @@ function discoverAll() {
                 try {
                     manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
                 } catch {
+                    // A plugin.json that exists but doesn't parse is reported by validate as invalid
+                    if (fs.existsSync(manifestPath)) {
+                        plugins.push({
+                            id: pluginId(containerEntry.name, type, entry.name),
+                            container: containerEntry.name,
+                            type,
+                            name: entry.name,
+                            pluginPath,
+                            manifestPath,
+                            manifest: null,
+                        });
+                        continue;
+                    }
                     // No plugin.json — check for deprecated formats and warn.
                     const deprecated = [
                         { file: "config.json", replacement: "plugin.json" },
