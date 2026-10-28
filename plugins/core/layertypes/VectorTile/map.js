@@ -19,6 +19,17 @@ import {
     resolveLayerInteractions,
 } from '@basics/InteractionRunner/InteractionRunner'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
+import { compileLayerDynamicStyle } from '@basics/Layers_/render/layerDynamicStyle'
+import {
+    dynamicStyleSignature,
+    ensureFieldStats,
+    restyleLayerWhenSettled,
+} from '@basics/Layers_/render/dynamicStyleRuntime'
+import {
+    attachDynamicStyle,
+    hasDynamicStyle,
+    vectorTileStyles,
+} from './dynamicStyle'
 import './lib/SimplifiedVectorGrid'
 
 function make(layerObj, ctx = {}) {
@@ -102,29 +113,19 @@ function make(layerObj, ctx = {}) {
         )
     }
 
-    // Hide sublayers not explicitly listed in vtLayer styles.
-    // Without this, L.vectorGrid renders all sublayers with default blue styling.
-    const vtLayerStyles = layerObj.style.vtLayer || {}
-    const resolvedVtLayerStyles = new Proxy(vtLayerStyles, {
-        get(target, prop) {
-            if (prop in target) return target[prop]
-            return {
-                fill: false,
-                stroke: false,
-                weight: 0,
-                fillOpacity: 0,
-                opacity: 0,
-            }
-        },
-        has() {
-            return true
-        },
-    })
+    // Compile the dynamic style over what earlier visits saw, so tiles are
+    // drawn with it from the start rather than repainted once they've loaded.
+    // A scale typed into the rule needs nothing seen at all.
+    const remembered = [...(layerObj._vtRememberedFeatures?.values() || [])]
+    compileLayerDynamicStyle(layerObj, remembered)
+    layerObj._paintedStyleSignature = dynamicStyleSignature(layerObj)
 
     var vectorTileOptions = {
         layerName: layerObj.name,
         rendererFactory: L.svg.tile,
-        vectorTileLayerStyles: resolvedVtLayerStyles,
+        // Sublayers not listed in vtLayer styles are hidden; without that,
+        // L.vectorGrid renders all sublayers with default blue styling.
+        vectorTileLayerStyles: vectorTileStyles(layerObj),
         interactive: true,
         minZoom: layerObj.minZoom,
         maxZoom: layerObj.maxZoom,
@@ -238,6 +239,18 @@ function make(layerObj, ctx = {}) {
 
     L_.layers.layer[layerObj.name].vtId = layerObj.style.vtId
     L_.layers.layer[layerObj.name].vtKey = layerObj.style.vtKey
+
+    if (hasDynamicStyle(layerObj)) {
+        attachDynamicStyle(L_.layers.layer[layerObj.name], layerObj)
+        // New tiles can widen a scale measured over what has been seen, or
+        // move one measured over the view, so it is measured again once the
+        // tiles in view have arrived.
+        L_.layers.layer[layerObj.name].on('load', () =>
+            restyleLayerWhenSettled(layerObj.name)
+        )
+        // A geodataset's stored statistics give it the whole dataset's scale.
+        ensureFieldStats(layerObj)
+    }
 
     L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
 

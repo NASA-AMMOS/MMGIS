@@ -3233,11 +3233,12 @@ function interfaceWithMMGIS(fromInit) {
 
         const mode = getDomainMode(layerObj)
         const name = F_.escapeHtml(layerName)
-        // A geodataset holds back most of its features, so a scale without
-        // stored statistics is only over what is loaded. A categorical rule
-        // spans no range, and a group statistic is bounded by its field's
-        // numbers - except a sum, which nothing stored bounds.
-        const partiallyLoaded = geodatasetOf(layerObj) != null
+        // A geodataset or a tiled layer holds back most of its features, so a
+        // scale without stored statistics is only over what is loaded. A
+        // categorical rule spans no range, and a group statistic is bounded by
+        // its field's numbers - except a sum, which nothing stored bounds.
+        const partiallyLoaded =
+            geodatasetOf(layerObj) != null || layerObj?.type === 'vectortile'
         const missesDatasetNumbers = (rule) => {
             if (propertyTypeOf(rule) === 'stats')
                 return (

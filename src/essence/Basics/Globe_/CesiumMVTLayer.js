@@ -22,6 +22,7 @@ class CesiumMVTLayer {
      * @param {string} [config.extrudeBaseProperty] - Feature property for base height (min_height)
      * @param {string} [config.extrudeColor="#cccccc"] - CSS color for extruded polygons
      * @param {number} [config.extrudeOpacity=0.9] - Fill opacity for extruded polygons
+     * @param {Function} [config.resolveStyle] - Feature properties → the layer's dynamic style, whose color wins over the others
      * @param {number} [config.minZoom=13] - Minimum zoom level to start loading tiles
      * @param {number} [config.maxZoom=15] - Zoom level at which to fetch tiles (max native)
      * @param {number} [config.opacity=1.0] - Overall layer opacity
@@ -38,6 +39,7 @@ class CesiumMVTLayer {
         this.extrudeOverrideFeatureColor =
             config.extrudeOverrideFeatureColor || false
         this.extrudeOpacity = config.extrudeOpacity ?? 0.9
+        this.resolveStyle = config.resolveStyle || null
         this.minZoom = config.minZoom ?? 13
         this.maxZoom = config.maxZoom ?? 15
         this.opacity = config.opacity ?? 1.0
@@ -539,11 +541,22 @@ class CesiumMVTLayer {
 
     /**
      * Get the color for a building feature.
-     * Uses the feature's own colour property if available, otherwise falls back
-     * to the configured extrudeColor.
+     * Uses the layer's dynamic style color, then the feature's own color
+     * property if available, otherwise falls back to the configured extrudeColor.
      */
     _getFeatureColor(props) {
         const alpha = this.extrudeOpacity * this.opacity
+
+        // The layer's dynamic style, when it colors this feature
+        const dynamic = this.resolveStyle ? this.resolveStyle(props) : null
+        const dynamicColor = dynamic?.fillColor || dynamic?.color
+        if (dynamicColor) {
+            try {
+                return Cesium.Color.fromCssColorString(dynamicColor).withAlpha(alpha)
+            } catch (e) {
+                // Invalid color string, fall through
+            }
+        }
 
         // Try per-feature color from tile data (OpenMapTiles 'colour' property)
         // unless the user has opted to override with a uniform color
@@ -621,6 +634,14 @@ class CesiumMVTLayer {
         if (wasVisible) {
             this._updateTiles()
         }
+    }
+
+    /**
+     * Rebuild all tile primitives after the dynamic style changes (colors are
+     * baked in, as for opacity)
+     */
+    restyle() {
+        this.setOpacity(this.opacity)
     }
 
     /**

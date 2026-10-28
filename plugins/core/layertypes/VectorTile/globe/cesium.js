@@ -29,6 +29,7 @@ function render(layerConfig, gctx) {
         extrudeBaseProperty: layerConfig.extrudeBaseProperty,
         extrudeColor: layerConfig.extrudeColor,
         extrudeOpacity: layerConfig.extrudeOpacity,
+        resolveStyle: layerConfig.resolveStyle,
         minZoom: layerConfig.minZoom,
         maxZoom: layerConfig.maxZoom,
         opacity: layerConfig.opacity,
@@ -39,6 +40,7 @@ function render(layerConfig, gctx) {
         kind: 'mvt',
         mvtLayer: mvtLayer,
         visible: true,
+        styleSignature: layerConfig.styleSignature,
     }
 }
 

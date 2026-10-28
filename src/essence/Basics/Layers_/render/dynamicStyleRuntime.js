@@ -49,10 +49,19 @@ function L_() {
  */
 export function domainFeatures(layerObj) {
     const Layers = L_()
-    const sublayers = loadedSublayers(layerObj)
     const inViewOnly = getDomainMode(layerObj) === 'view'
     const bounds =
         inViewOnly && Layers.Map_?.map ? Layers.Map_.map.getBounds() : null
+
+    const tiled = tiledLayerOf(layerObj)
+    if (tiled != null) {
+        const features = tiled.dynamicStyleFeatures(bounds)
+        return features.length === 0 && bounds != null
+            ? tiled.dynamicStyleFeatures(null)
+            : features
+    }
+
+    const sublayers = loadedSublayers(layerObj)
     if (bounds == null) return sublayers.map((s) => s.feature)
 
     const features = sublayers
@@ -61,6 +70,37 @@ export function domainFeatures(layerObj) {
     // A domain measured over nothing is no styling at all, so a layer panned
     // entirely off screen falls back to everything it holds.
     return features.length === 0 ? sublayers.map((s) => s.feature) : features
+}
+
+/**
+ * A layer drawn from tiles rather than from features it holds - a vector tile
+ * layer. It says itself what it has drawn and how to repaint it, since there
+ * is no feature per drawn shape to measure or reset.
+ *
+ * @param {object} layerObj
+ * @returns {?object} its map layer, if it is one.
+ */
+function tiledLayerOf(layerObj) {
+    const layer = L_().layers.layer[layerObj?.name]
+    return typeof layer?.dynamicStyleFeatures === 'function' ? layer : null
+}
+
+/**
+ * A layer's dynamic style, made comparable: what was compiled and what each
+ * rule resolved to. A tiled layer draws each new tile with the current style
+ * already, so it only needs repainting when this changes.
+ *
+ * @param {object} layerObj
+ * @returns {string}
+ */
+export function dynamicStyleSignature(layerObj) {
+    return JSON.stringify(
+        (layerObj?._dynamicStyleRules || []).map((compiled) => [
+            compiled.rule,
+            compiled.domain,
+            compiled.mappings,
+        ])
+    )
 }
 
 function intersects(bounds, sublayer) {
@@ -100,7 +140,18 @@ export function restyleLayerDynamically(layer) {
     // The style function reads the resolver off the layer, so resetting each
     // feature to it is the whole repaint.
     const leafletLayer = Layers.layers.layer[layerObj.name]
-    if (leafletLayer != null && typeof leafletLayer.eachLayer === 'function') {
+    const tiled = tiledLayerOf(layerObj)
+    if (tiled != null) {
+        // Tiles load and the view moves far more often than the scale
+        // changes, and tiles drawn since the last change are already right.
+        const signature = dynamicStyleSignature(layerObj)
+        if (signature === layerObj._paintedStyleSignature) return false
+        layerObj._paintedStyleSignature = signature
+        tiled.repaintDynamicStyle()
+    } else if (
+        leafletLayer != null &&
+        typeof leafletLayer.eachLayer === 'function'
+    ) {
         leafletLayer.eachLayer((sublayer) => {
             if (sublayer?.feature == null) return
             try {
@@ -376,6 +427,8 @@ export function summarizeProperty(features, property) {
 
 /** Every feature a layer holds, whatever its domain is measured over. */
 function loadedFeatures(layerObj) {
+    const tiled = tiledLayerOf(layerObj)
+    if (tiled != null) return tiled.dynamicStyleFeatures(null)
     return loadedSublayers(layerObj).map((sublayer) => sublayer.feature)
 }
 
@@ -420,6 +473,7 @@ const DynamicStyleRuntime = {
     RESTYLED_EVENT,
     announceRestyle,
     domainFeatures,
+    dynamicStyleSignature,
     overrideDynamicStyleRuleOf,
     propertyStats,
     summarizeProperty,

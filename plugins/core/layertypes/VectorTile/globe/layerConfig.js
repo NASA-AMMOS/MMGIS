@@ -5,6 +5,7 @@
  * are a 2D-map rendering); `isRenderable` answers that for both engines.
  */
 import L_ from '@basics/Layers_/Layers_'
+import { dynamicStyleSignature } from '@basics/Layers_/render/dynamicStyleRuntime'
 
 export function isRenderable(layerObj) {
     return layerObj.extrudeEnabled === true
@@ -26,6 +27,10 @@ export function toGlobeConfig(layerObj) {
         extrudeColor: s.extrudeColor || '#cccccc',
         extrudeOverrideFeatureColor: s.extrudeOverrideFeatureColor || false,
         extrudeOpacity: s.extrudeOpacity ?? 0.9,
+        // Read when each tile is built, so it is always the current style.
+        resolveStyle: (properties) =>
+            s._dynamicStyleResolver ? s._dynamicStyleResolver(properties) : null,
+        styleSignature: dynamicStyleSignature(s),
         minZoom: s.minZoom,
         maxZoom: s.maxNativeZoom,
     }
@@ -41,10 +46,21 @@ export function onToggle(layerObj, gctx) {
     else gctx.removeLayer(layerObj.name)
 }
 
-/** Show extruded tiles already on the globe, or build them. */
+/**
+ * Show extruded tiles already on the globe, or build them. Tiles built before
+ * the layer's dynamic style last changed are rebuilt with it - what a restyle
+ * asks for by adding the layer again.
+ */
 export function makeWith(layerObj, gctx, render) {
     if (!isRenderable(layerObj)) return
-    if (gctx.hasLayer(layerObj.name))
+    if (gctx.hasLayer(layerObj.name)) {
+        const built = gctx.layers?.[layerObj.name]
+        const signature = dynamicStyleSignature(layerObj)
+        if (built?.mvtLayer && built.styleSignature !== signature) {
+            built.styleSignature = signature
+            built.mvtLayer.restyle()
+        }
         return gctx.toggleLayer(layerObj.name, true)
+    }
     return render(toGlobeConfig(layerObj), gctx)
 }
