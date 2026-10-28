@@ -128,30 +128,31 @@ function emptyTile() {
     return emptyTileCanvas
 }
 
+// Setting a tileDiscardPolicy makes Cesium fetch tiles as blobs, which is how
+// a 204 can be told apart from a broken image. It discards nothing.
+const keepAllTiles = {
+    isReady: () => true,
+    shouldDiscardImage: () => false,
+}
+
 function makeUrlTemplateProvider(url, format, maxZoom, minZoom) {
     const provider = new Cesium.UrlTemplateImageryProvider({
         url: convertTileUrl(url, format),
         maximumLevel: maxZoom || 18,
         minimumLevel: minZoom || 0,
+        tileDiscardPolicy: keepAllTiles,
     })
-    // TiTiler answers 204 No Content where a tile has no data. That is a
-    // successful, empty response, so the request itself succeeds and Cesium
-    // fails only when decoding it, then logs "Failed to obtain image tile" for
-    // each one. Hand it an empty tile for decode failures only: HTTP and
-    // network errors reject with a RequestErrorEvent, and cancelled requests
-    // must reject so Cesium retries them later; both keep Cesium's handling.
+    // TiTiler answers 204 No Content where a tile has no data. Cesium would
+    // treat that as a failed tile and log "Failed to obtain image tile" for
+    // each one. With a tileDiscardPolicy set, Cesium fetches tiles as blobs
+    // and resolves a 204 to undefined, so only that case gets an empty tile.
+    // Every real failure (HTTP and network errors, corrupt images, cancelled
+    // requests) still rejects and keeps Cesium's handling.
     const requestImage = provider.requestImage.bind(provider)
-    provider.requestImage = (x, y, level, request) => {
-        const promise = requestImage(x, y, level, request)
-        return promise?.catch((error) => {
-            if (
-                error instanceof Cesium.RequestErrorEvent ||
-                request?.state === Cesium.RequestState.CANCELLED
-            )
-                throw error
-            return emptyTile()
-        })
-    }
+    provider.requestImage = (x, y, level, request) =>
+        requestImage(x, y, level, request)?.then((image) =>
+            image === undefined ? emptyTile() : image
+        )
     return provider
 }
 
