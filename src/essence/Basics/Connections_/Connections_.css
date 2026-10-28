@@ -47,14 +47,41 @@
     color: var(--color-f, #dfdeee);
     font-family: roboto, sans-serif;
     font-size: 13px;
-    padding: 6px 0;
+    overflow: hidden;
 }
-.connectionsMenuHeader,
 .connectionsMenuSection {
-    padding: 6px 12px;
+    padding: 10px 14px;
 }
-.connectionsMenuHeader {
-    border-bottom: 1px solid var(--color-a2, #2b2d30);
+.connectionsMenuSection + .connectionsMenuSection {
+    border-top: 1px solid var(--color-a2, #2b2d30);
+}
+.connectionsMenuAccount {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 0;
+}
+.connectionsMenuAvatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-mmgis);
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+}
+.connectionsMenuAvatar.guest {
+    background: var(--color-a2, #3a3d44);
+    color: var(--color-a6, #b9bcc5);
+}
+.connectionsMenuAccount .connectionsMenuAction {
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: bold;
 }
 .connectionsMenuLabel {
     font-size: 11px;
@@ -65,28 +92,12 @@
 }
 .connectionsMenuUser {
     font-weight: bold;
-    font-size: 14px;
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-.connectionsMenuItem {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    background: none;
-    border: 0;
-    color: inherit;
-    font: inherit;
-    padding: 6px 12px;
-    cursor: pointer;
-    text-align: left;
-}
-.connectionsMenuSection .connectionsMenuItem {
-    padding: 6px 0;
-}
-.connectionsMenuItem:hover {
-    color: var(--color-mmgis);
-}
-.connectionsMenuRow {
+.connectionsMenuSection .connectionsMenuRow {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -136,14 +147,9 @@
     color: white;
 }
 .connectionsMenuNote {
-    padding: 4px 12px 6px;
+    padding-top: 4px;
     font-size: 11.5px;
     color: var(--color-a5, #8a8d96);
-}
-#connectionsMenuSignOut {
-    border-top: 1px solid var(--color-a2, #2b2d30);
-    margin-top: 4px;
-    padding-top: 9px;
 }
 
 .connectionsCard {

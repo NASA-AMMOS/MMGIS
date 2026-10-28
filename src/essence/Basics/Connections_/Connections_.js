@@ -187,21 +187,35 @@ function renderMenu() {
         const loggedIn = Login.loggedIn === true
         const hasLogin = window.mmgisglobal.SITE_ACCESS !== 'public'
         let html = ''
-        if (loggedIn)
-            html += `<div class="connectionsMenuHeader"><div class="connectionsMenuLabel">Signed in to MMGIS</div><div class="connectionsMenuUser">${esc(Login.username)}</div></div>`
-        else if (hasLogin)
-            html += `<div class="connectionsMenuSection"><div class="connectionsMenuLabel">MMGIS</div>
-                <button id="connectionsMenuSignIn" class="connectionsMenuItem"><i class="mdi mdi-login mdi-18px"></i> Sign in to MMGIS</button></div>`
-        html += `<div class="connectionsMenuSection"><div class="connectionsMenuLabel">Services</div>${relevant()
-            .map(serviceRow)
-            .join('')}</div>`
-        if (
+        if (loggedIn || hasLogin) {
+            const name = loggedIn ? String(Login.username || '') : ''
+            const avatar = loggedIn
+                ? esc(name.charAt(0).toUpperCase())
+                : '<i class="mdi mdi-account mdi-18px"></i>'
+            html += `<div class="connectionsMenuSection connectionsMenuMmgis">
+                <div class="connectionsMenuLabel">MMGIS</div>
+                <div class="connectionsMenuAccount">
+                    <div class="connectionsMenuAvatar${loggedIn ? '' : ' guest'}">${avatar}</div>
+                    <div class="connectionsMenuText">
+                        <div class="connectionsMenuUser">${loggedIn ? esc(name) : 'Guest'}</div>
+                        <div class="connectionsMenuDetail">${loggedIn ? 'Signed in to MMGIS' : 'Not signed in to MMGIS'}</div>
+                    </div>
+                    ${
+                        loggedIn
+                            ? '<button id="connectionsMenuSignOut" class="connectionsMenuAction">Sign out</button>'
+                            : '<button id="connectionsMenuSignIn" class="connectionsMenuAction primary">Sign in</button>'
+                    }
+                </div>
+            </div>`
+        }
+        const guestNote =
             !loggedIn &&
             relevant().some((s) => s.storage === 'session' && s.canConnect)
-        )
-            html += `<div class="connectionsMenuNote">Guest connections last for this browser session.</div>`
-        if (loggedIn)
-            html += `<button id="connectionsMenuSignOut" class="connectionsMenuItem"><i class="mdi mdi-logout mdi-18px"></i> Sign out</button>`
+                ? '<div class="connectionsMenuNote">Guest connections last for this browser session.</div>'
+                : ''
+        html += `<div class="connectionsMenuSection"><div class="connectionsMenuLabel">Services</div>${relevant()
+            .map(serviceRow)
+            .join('')}${guestNote}</div>`
         const menu = $('<div>').attr('id', 'connectionsMenu').html(html)
         $('body').append(menu)
         const rect = menuAnchor
