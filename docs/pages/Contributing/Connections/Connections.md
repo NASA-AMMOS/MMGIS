@@ -42,7 +42,7 @@ MMGIS core ships no connections yet: `plugins/core/connections/` is where core o
 
 1. Register an application with the service and set its redirect URI to `<your site>/api/connections/<id>/callback` (including any `ROOT_PATH`), where `<id>` is the plugin's `connection` value.
 2. Set the env variables the plugin's `env` lists.
-3. If MMGIS sits behind a proxy that changes the host or protocol, set `CONNECTIONS_CALLBACK_BASE_URL` to the site's public URL.
+3. If MMGIS sits behind a reverse proxy that changes the host, port or protocol, set `CONNECTIONS_CALLBACK_BASE_URL` to the site's public URL, including `ROOT_PATH`.
 4. Restart MMGIS. Configure → Users & Access → Services shows whether it is set up and which tools use it.
 
 Until its env variables are set, a connection shows as "not set up" and nobody can connect it. With no connection plugins installed, the account menu, tools and Configure look as they did before connections existed.
@@ -111,7 +111,7 @@ router.get('/granules', s.authorize('site.view'), async (req, res) => {
 })
 ```
 
-The reply looks like `{ "status": "failure", "code": "connection_required", "service": "earthdata", "reason": "not_connected", "message": "..." }`. `reason` is `not_connected`, `expired`, `sign_in` (the service needs an MMGIS sign-in) or `not_allowed` (the request used a long-term API token).
+The reply looks like `{ "status": "failure", "code": "connection_required", "service": "earthdata", "reason": "not_connected", "message": "..." }`. `reason` is `not_connected`, `expired`, `sign_in` (the service needs an MMGIS sign-in), `not_allowed` (the request used a long-term API token), `not_configured` (its `env` isn't set) or `unknown` (no such connection is installed).
 
 Long-term API tokens never get a connection: `token()` throws for them, so scripts can't act as a user at the outside service.
 
@@ -134,7 +134,7 @@ Put it in `plugins/<container>/connections/<Name>/` with a `plugin.json`:
 }
 ```
 
-- `connection`: the id used everywhere else. Lowercase letters, digits, `-` or `_`, starting with a letter, and unique across installed plugins.
+- `connection`: the id used everywhere else. Lowercase letters, digits, `-` or `_`, starting with a letter, and unique across installed plugins. MMGIS lowercases it, so `"Imagery"` becomes `imagery`.
 - `guests`: whether signed-out visitors may connect for their browser session. Defaults to `false`.
 - `env`: variables that must be set before anyone can connect. Configure lists the missing ones.
 
@@ -288,6 +288,10 @@ module.exports = {
 ## Gotchas
 
 - **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser and the tool opens without the card.
-- **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`.
+- **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back.
+- **A sign-in link lasts 10 minutes.** After that the callback says the link expired and the person clicks Connect again.
+- **No `expiresIn` or `expiresAt`** in a grant means the token is treated as never expiring until the service rejects it.
+- **Errors the service sends back** (`error`, `error_description`) are logged as warnings and the description is shown on the return page.
+- **Nothing is logged at startup** when a connection's `env` is unset; Configure's Services tab lists what's missing.
 - **Don't** ask for a service's username and password in a tool, put tokens in tile URLs, or put credentials in a mission config.
 - **Tiles:** Leaflet and Cesium fetch tiles as plain image requests, which can't carry a per-user token. Serve them through your backend route if they need one.

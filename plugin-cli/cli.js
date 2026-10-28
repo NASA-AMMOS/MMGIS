@@ -50,8 +50,13 @@ const TYPE_DIRS = {
     interaction: "interactions",
     layertype: "layertypes",
     layerattachment: "layerattachments",
+    auth: "auth",
+    connection: "connections",
 };
-const VALID_TYPES = Object.keys(TYPE_DIRS);
+// Types `create` can scaffold; auth and connection plugins are written from their guides
+const VALID_TYPES = Object.keys(TYPE_DIRS).filter((t) =>
+    fs.existsSync(path.join(__dirname, "scaffolds", t))
+);
 const PLUGIN_TYPE_DIRS = Object.values(TYPE_DIRS);
 const PLUGIN_TYPE_SINGULAR = Object.fromEntries(
     Object.entries(TYPE_DIRS).map(([type, dir]) => [dir, type])
@@ -718,8 +723,8 @@ function cmdList() {
     }
 
     // Type display helpers — colour per type and friendly labels.
-    const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components", interactions: "Interactions", layertypes: "Layer Types", layerattachments: "Layer Attachments" };
-    const TYPE_COLOR = { tools: c.cyan, backend: c.yellow, components: c.green, interactions: c.magenta, layertypes: c.blue, layerattachments: c.blue };
+    const TYPE_LABELS = { tools: "Tools", backend: "Backend", components: "Components", interactions: "Interactions", layertypes: "Layer Types", layerattachments: "Layer Attachments", auth: "Auth Providers", connections: "Connections" };
+    const TYPE_COLOR = { tools: c.cyan, backend: c.yellow, components: c.green, interactions: c.magenta, layertypes: c.blue, layerattachments: c.blue, auth: c.yellow, connections: c.green };
 
     // Compute column widths for alignment (name only, since type is a header).
     let maxName = 0;
@@ -1383,6 +1388,33 @@ function cmdValidate() {
                 depWarningMessages.push(msg);
                 if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: depends on ${c.red(depId)} ${c.yellow("(disabled) — so this plugin is left out of the generated registry and never loads")}`);
             }
+        }
+    }
+
+    // Connections: unique ids, and tools naming connection plugins that exist
+    const connectionPlugins = plugins.filter((p) => p.type === "connections" && p.manifest && isPluginEnabled(p, state));
+    const connectionIds = new Map();
+    for (const p of connectionPlugins) {
+        if (typeof p.manifest.connection !== "string") continue;
+        const cid = p.manifest.connection.toLowerCase();
+        if (connectionIds.has(cid)) {
+            errors++;
+            const msg = `Connection '${cid}' is declared by both ${connectionIds.get(cid)} and ${p.id}; only the first loads`;
+            if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.red(msg)}`);
+            const result = results.find((entry) => entry.plugin === p.id);
+            if (result) { if (result.valid) passed--; result.valid = false; result.errors.push(msg); }
+        } else connectionIds.set(cid, p.id);
+    }
+    const connectionRefs = new Set(connectionPlugins.map((p) => p.id.toLowerCase()));
+    for (const p of plugins) {
+        if (!p.manifest || !Array.isArray(p.manifest.connections) || !isPluginEnabled(p, state)) continue;
+        for (const r of p.manifest.connections) {
+            const ref = r && typeof r.plugin === "string" ? r.plugin : null;
+            if (!ref || connectionRefs.has(ref.toLowerCase())) continue;
+            depWarnings++;
+            const msg = `${p.id} needs connection '${ref}', which is not installed or is disabled, so the tool opens without its connect card`;
+            depWarningMessages.push(msg);
+            if (!FLAG_JSON) console.log(`  ${c.yellow("⚠")} ${c.cyan(p.id)}: needs connection ${c.red(ref)} ${c.yellow("(not found) — so the tool opens without its connect card")}`);
         }
     }
 

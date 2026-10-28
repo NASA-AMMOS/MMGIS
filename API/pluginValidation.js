@@ -638,6 +638,7 @@ const KNOWN_FIELDS = {
     "worksOnMobile",
     "config",
     "providesInteractions",
+    "connections",
   ]),
   component: new Set([
     ...COMMON_FIELDS,
@@ -684,6 +685,8 @@ const KNOWN_FIELDS = {
     "defaultIcon",
     "color",
   ]),
+  auth: new Set([...COMMON_FIELDS, "provider", "description"]),
+  connection: new Set([...COMMON_FIELDS, "connection", "description", "guests", "env"]),
   layerattachment: new Set([
     ...COMMON_FIELDS,
     "module",
@@ -836,10 +839,12 @@ function validatePluginConfig(config, pluginName, pluginType) {
       "interaction",
       "layertype",
       "layerattachment",
+      "auth",
+      "connection",
     ].includes(config.type)
   ) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction, layertype, layerattachment`
+      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction, layertype, layerattachment, auth, connection`
     );
   }
   if (
@@ -910,6 +915,28 @@ function validatePluginConfig(config, pluginName, pluginType) {
           );
         }
       }
+    }
+  }
+
+  if (
+    pluginType === "connection" &&
+    (typeof config.connection !== "string" || !/^[a-z][a-z0-9_-]*$/i.test(config.connection))
+  ) {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'connection' must be an id of letters, digits, "-" or "_", starting with a letter (MMGIS lowercases it)`
+    );
+  }
+  if (config.connections !== undefined) {
+    const ok = (r) =>
+      r != null &&
+      typeof r === "object" &&
+      typeof r.plugin === "string" &&
+      /^[^/]+\/connections\/[^/]+$/.test(r.plugin) &&
+      (r.required === undefined || typeof r.required === "boolean");
+    if (!Array.isArray(config.connections) || !config.connections.every(ok)) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'connections' must be an array of { "plugin": "<container>/connections/<Name>", "required": true|false }`
+      );
     }
   }
 

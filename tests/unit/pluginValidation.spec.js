@@ -851,3 +851,26 @@ test.describe('validateMetaconfig - the Configure form a manifest declares', () 
         expect(errs.length).toBe(2);
     });
 });
+
+test.describe('validatePluginConfig — connections', () => {
+    const tool = (connections) => ({ name: 'T', type: 'tool', paths: { T: 'x' }, connections });
+
+    test('a tool may declare connection plugins', () => {
+        expect(validatePluginConfig(tool([{ plugin: 'c/connections/X', required: true }]), 'T', 'tool')).toEqual([]);
+    });
+
+    test('malformed tool connections are rejected', () => {
+        for (const bad of ['c/connections/X', ['x'], [{ plugin: 'c/tools/X' }], [{ plugin: 'c/connections/X', required: 'yes' }]])
+            expect(validatePluginConfig(tool(bad), 'T', 'tool').join(' ')).toContain("'connections' must be");
+    });
+
+    test('connection and auth plugins are known types', () => {
+        expect(validatePluginConfig({ name: 'E', type: 'connection', connection: 'imagery', guests: true, env: [] }, 'E', 'connection')).toEqual([]);
+        expect(validatePluginConfig({ name: 'L', type: 'auth', provider: 'local' }, 'L', 'auth')).toEqual([]);
+    });
+
+    test('a connection id must start with a letter', () => {
+        expect(validatePluginConfig({ name: 'E', type: 'connection', connection: '1bad' }, 'E', 'connection').join(' ')).toContain("'connection' must be");
+        expect(validatePluginConfig({ name: 'E', type: 'connection' }, 'E', 'connection').join(' ')).toContain("'connection' must be");
+    });
+});

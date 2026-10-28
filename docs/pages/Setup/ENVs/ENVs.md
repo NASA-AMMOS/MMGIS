@@ -144,7 +144,7 @@ While the site has no accounts, creating the first (SuperAdmin) account on `/con
 
 #### `CONNECTIONS_CALLBACK_BASE_URL=`
 
-Public URL of this site, including any `ROOT_PATH`, used to build the address an outside service sends people back to after they connect it (`<url>/api/connections/<id>/callback`). Only needed when MMGIS runs behind a proxy that changes the host or protocol. See [Connections](/MMGIS/contributing/connections) | string | default from the request
+Public URL of this site, including any `ROOT_PATH`, used to build the address an outside service sends people back to after they connect it (`<url>/api/connections/<id>/callback`). Set it whenever MMGIS runs behind a reverse proxy that changes the host, port or protocol; without it MMGIS uses the request's `X-Forwarded-Host` or `Host`. See [Connections](/MMGIS/contributing/connections) | string | default from the request
 
 
 #### `CSSO_GROUPS=`

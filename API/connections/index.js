@@ -343,7 +343,7 @@ const rootPath = () => (mountedRoot != null ? mountedRoot : process.env.ROOT_PAT
 
 function callbackUrl(req, c) {
   const base = process.env.CONNECTIONS_CALLBACK_BASE_URL;
-  const origin = base ? base.replace(/\/+$/, "") : `${req.protocol}://${req.get("host")}${rootPath()}`;
+  const origin = base ? base.replace(/\/+$/, "") : `${req.protocol}://${req.host || req.get("host")}${rootPath()}`;
   return `${origin}/api/connections/${c.id}/callback`;
 }
 
@@ -484,8 +484,12 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     if (pending) req.session.connectionStates = Object.fromEntries(Object.entries(states).filter(([k]) => k !== state));
     if (!pending || pending.id !== c.id || Date.now() - pending.at > STATE_TTL_MS)
       return renderResult(res, { id: c.id, label: c.label, message: "This sign-in link has expired. Go back to MMGIS and click Connect again." });
-    if (typeof req.query.error === "string" || typeof req.query.code !== "string")
-      return renderResult(res, { id: c.id, label: c.label, message: `${c.label} wasn't connected.` });
+    if (typeof req.query.error === "string" || typeof req.query.code !== "string") {
+      const detail = typeof req.query.error_description === "string" ? req.query.error_description.slice(0, 300) : "";
+      if (typeof req.query.error === "string")
+        logger("warn", `Connecting '${c.id}': the service returned '${req.query.error.slice(0, 100)}'${detail ? `: ${detail}` : ""}.`, req.baseUrl + req.path, logReq(req));
+      return renderResult(res, { id: c.id, label: c.label, message: `${c.label} wasn't connected.${detail ? ` ${c.label} said: ${detail}` : ""}` });
+    }
     const principal = await principalOf(req);
     let record;
     try {
