@@ -404,6 +404,8 @@ async function renew(req, principal, c, record, rejected) {
     }
   } else if (stillValid) return record;
   await removeStored(req, principal, c);
+  if (rejected)
+    throw new ConnectionRequiredError(c.id, "rejected", `${c.label} no longer accepts your connection. Connect again to continue.`);
   throw new ConnectionRequiredError(c.id, "expired", `Your ${c.label} connection expired. Connect again to continue.`);
 }
 
@@ -423,7 +425,7 @@ async function current(req, id) {
     );
   await adoptSessionConnections(req, principal);
   const record = await readStored(req, principal, c);
-  if (!record) throw new ConnectionRequiredError(c.id, "not_connected");
+  if (!record) throw new ConnectionRequiredError(c.id, "not_connected", `Connect ${c.label} to continue.`);
   return { c, principal, record };
 }
 
@@ -442,6 +444,14 @@ async function rejected(req, id, accessToken) {
   const { c, principal, record } = await current(req, id);
   if (accessToken != null && record.accessToken !== accessToken) return record.accessToken;
   return (await renew(req, principal, c, record, true)).accessToken;
+}
+
+// For when the service is down or failing during a data call: the user stays connected
+// and the card offers Try again. Throw it, or pass it to connectionRequired().
+function unavailable(id, message) {
+  const c = getConnection(id);
+  const label = c ? c.label : String(id);
+  return new ConnectionRequiredError(c ? c.id : String(id), "unavailable", message || `${label} isn't responding. Try again in a moment.`);
 }
 
 // Standard reply for "connect first", which the main site's connection card understands
@@ -695,6 +705,7 @@ module.exports = {
   carryGuestConnections,
   token,
   rejected,
+  unavailable,
   isTransient,
   connectionRequired,
   ConnectionRequiredError,

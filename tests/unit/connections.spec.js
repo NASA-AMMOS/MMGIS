@@ -388,8 +388,17 @@ test.describe('token refresh', () => {
         // An already-replaced token just returns the current one
         expect(await connections.rejected(req, 'svc', 'valid')).toBe('fresh-1');
         const noRefresh = await stored(guestReq(), { accessToken: 'only', expiresIn: 3600 });
-        await expect(connections.rejected(noRefresh, 'svc', 'only')).rejects.toMatchObject({ reason: 'expired' });
+        await expect(connections.rejected(noRefresh, 'svc', 'only')).rejects.toMatchObject({ reason: 'rejected' });
         expect(noRefresh.session.connections.svc).toBeUndefined();
+    });
+
+    test('unavailable() and not_connected use the connection label', async () => {
+        const err = connections.unavailable('svc');
+        expect(err).toBeInstanceOf(connections.ConnectionRequiredError);
+        expect(err).toMatchObject({ service: 'svc', reason: 'unavailable' });
+        expect(err.message).not.toMatch(/^svc /);
+        expect(connections.unavailable('svc', 'Down for maintenance').message).toBe('Down for maintenance');
+        await expect(connections.token(guestReq(), 'svc')).rejects.toMatchObject({ reason: 'not_connected' });
     });
 });
 

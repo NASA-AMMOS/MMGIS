@@ -181,14 +181,14 @@ Shipped providers: `local` (`core/auth/Local`; its routes are served by the User
 
 Outside services, such as Earthdata, that tools use with each person's own account there. A connection never signs anyone in to MMGIS: auth providers answer "who is this?", connections add an outside credential for someone who is already here (or for a guest, for their browser session, when the connection allows guests). Directory is `connections/`, manifest type is `"type": "connection"`. Connections can live in any container.
 
-**Required manifest fields**: `connection` (the lowercase id tools and `s.connections.token(req, id)` use). Optional: `display_name`, `guests` (`true` lets guests connect for their browser session) and `env` (ENV names the connection needs, shown in Configure → Users & Access → Services).
+**Required manifest fields**: `connection` (the lowercase id tools and `s.connections.token(req, id)` use). Optional: `display_name`, `guests` (`true` lets guests connect for their browser session), `pkce` (`true` for core-managed PKCE) and `env` (ENV names the connection needs, shown in Configure → Users & Access → Services).
 
 `plugin.js` exports:
 
 | Export | Purpose |
 |---|---|
-| `authorizeUrl({ state, redirectUri, env })` | Required. The service's sign-in URL, opened in a new tab. |
-| `exchange({ code, redirectUri, env })` | Required. Trades the callback's code for `{ accessToken, refreshToken?, expiresIn?, account? }`. |
+| `authorizeUrl({ state, redirectUri, env, codeChallenge, codeChallengeMethod })` | Required. The service's sign-in URL, opened in a new tab. `codeChallenge*` are set with `"pkce": true`. |
+| `exchange({ code, redirectUri, env, codeVerifier })` | Required. `codeVerifier` is set with `"pkce": true`. Trades the callback's code for `{ accessToken, refreshToken?, expiresIn?, account? }`. |
 | `refresh({ refreshToken, env })` | Optional. Renews an expired access token. |
 | `revoke({ accessToken, refreshToken, env })` | Optional. Called on Disconnect. |
 | `validate(env)` / `warnings(env)` | Optional. Setup problems (`string[]`) shown in Configure and logged at startup. |

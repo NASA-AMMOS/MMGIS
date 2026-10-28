@@ -259,10 +259,16 @@ function cardHtml(g) {
         return `<div class="connectionsCardTitle">Sign in to use ${tool}</div>
             <p>${tool} uses ${label}. Sign in to MMGIS first, then connect ${label}.</p>
             <button class="connectionsCardButton" data-card="signin">Sign in</button>`
-    const title = g.reason === 'expired' ? `Your ${label} connection expired` : `Connect ${label} to use this tool`
+    const again = g.reason === 'expired' || g.reason === 'rejected'
+    const title =
+        g.reason === 'expired'
+            ? `Your ${label} connection expired`
+            : g.reason === 'rejected'
+            ? `${label} no longer accepts your connection`
+            : `Connect ${label} to use this tool`
     let html = `<div class="connectionsCardTitle">${title}</div>
         <p>${tool} gets data from ${label} with your ${label} account. You'll sign in on ${label}'s own site in a new tab.</p>
-        <button class="connectionsCardButton" data-card="connect">${g.reason === 'expired' ? 'Reconnect' : 'Connect'} ${label}</button>`
+        <button class="connectionsCardButton" data-card="connect">${again ? 'Reconnect' : 'Connect'} ${label}</button>`
     if (s.storage === 'session' && window.mmgisglobal.SITE_ACCESS !== 'public')
         html += `<div class="connectionsCardNote">Connects for this browser session only, or <button class="connectionsCardLink" data-card="signin">sign in to MMGIS</button> to keep it.</div>`
     return html
@@ -285,7 +291,10 @@ function makeGate(toolName, tool, service, make, reason) {
         el: $('<div>').addClass('connectionsCard').attr('id', 'connectionsCard'),
         render() {
             if (!g.service.missing) g.service = find(g.service.id) || g.service
-            if (g.service.connected && g.reason !== 'expired' && g.reason !== 'unavailable')
+            if (
+                g.service.connected &&
+                !['expired', 'rejected', 'unavailable'].includes(g.reason)
+            )
                 return g.resume()
             g.el.html(cardHtml(g))
             renderButton()

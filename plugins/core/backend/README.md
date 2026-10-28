@@ -67,21 +67,27 @@ The same `s` is passed to every hook of every plugin.
 | `permissions` | the group-permission lists used by `ensureGroup` |
 | `cssoHandler` | the CSSO auth handler, for plugins doing their own auth flows |
 | `swaggerUi`, `useSwaggerSchema` | serve your routes' OpenAPI schema into `/api-docs` |
+| `authorize(capability, resolver?)` | per-route permission check; every route declares one (see [Permissions](../../../docs/pages/Contributing/Permissions/Permissions.md)) |
+| `registerRouter(prefix, router)` | registers your router so startup can check that every route declares a permission |
+| `connections` | `token`, `rejected`, `unavailable`, `connectionRequired`, `ConnectionRequiredError` for [service connections](../../../docs/pages/Contributing/Connections/Connections.md) |
 
 A conventional mount:
 
 ```js
+router.get('/things', s.authorize('site.view'), listThings)   // who, per route
+
 s.app.use(
     s.ROOT_PATH + '/api/mything',
-    s.ensureUser(),                  // who
     s.checkHeadersCodeInjection,     // hygiene
     s.setContentType,
-    router                           // what
+    s.registerRouter('/api/mything', router)
 )
 ```
 
-Middleware order is Express order: the gate must come before the router, and
-`stopGuests` after the gate.
+Without `registerRouter`, startup warns that the routes declare no permission.
+The older mount-level gates below (`ensureUser`, `ensureAdmin`, `stopGuests`)
+still work, but new code uses `s.authorize`. Middleware order is Express order:
+a gate must come before the router, and `stopGuests` after the gate.
 
 ---
 

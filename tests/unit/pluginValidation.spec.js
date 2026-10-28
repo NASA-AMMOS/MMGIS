@@ -869,6 +869,12 @@ test.describe('validatePluginConfig — connections', () => {
         expect(validatePluginConfig({ name: 'L', type: 'auth', provider: 'local' }, 'L', 'auth')).toEqual([]);
     });
 
+    test('a connection env must be a list of names', () => {
+        for (const env of ['X_ID', [1], [''], { X: 1 }])
+            expect(validatePluginConfig({ name: 'E', type: 'connection', connection: 'imagery', env }, 'E', 'connection').join(' ')).toContain("'env' must be");
+        expect(validatePluginConfig({ name: 'E', type: 'connection', connection: 'imagery', env: ['X_ID'] }, 'E', 'connection')).toEqual([]);
+    });
+
     test('a connection id must start with a letter', () => {
         expect(validatePluginConfig({ name: 'E', type: 'connection', connection: '1bad' }, 'E', 'connection').join(' ')).toContain("'connection' must be");
         expect(validatePluginConfig({ name: 'E', type: 'connection' }, 'E', 'connection').join(' ')).toContain("'connection' must be");

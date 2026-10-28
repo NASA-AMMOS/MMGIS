@@ -54,7 +54,7 @@ Until its env variables are set, a connection shows as "not set up" and nobody c
 - **New tab.** Connect opens the service's own sign-in page in a new browser tab, so its real address and padlock are visible. Afterwards the user lands on an MMGIS page saying "Earthdata connected" that closes itself (or offers "Close this tab"), and the original MMGIS tab updates when they return to it.
 - **Guests.** If the connection plugin allows guests (`"guests": true`), a signed-out visitor can connect for the current browser session only. Signing in to MMGIS afterwards keeps the connection on their account.
 
-There is no admin view of who has connected what. Disabling or deleting an MMGIS account removes its connections.
+There is no admin view of who has connected what. Deleting an MMGIS account removes its connections.
 
 ## Using a connection from a tool
 
@@ -124,7 +124,9 @@ if (r.status === 401) {
 }
 ```
 
-The reply looks like `{ "status": "failure", "code": "connection_required", "service": "earthdata", "reason": "not_connected", "message": "..." }`. `reason` is `not_connected`, `expired`, `sign_in` (the service needs an MMGIS sign-in), `not_allowed` (the request used a long-term API token), `not_configured` (its `env` isn't set), `unavailable` (refreshing the token failed for a reason worth retrying, such as a network error; the user stays connected and the card offers Try again) or `unknown` (no such connection is installed).
+The reply looks like `{ "status": "failure", "code": "connection_required", "service": "earthdata", "reason": "not_connected", "message": "..." }`. `reason` is `not_connected`, `expired`, `rejected` (the service refused the token and refreshing didn't help), `sign_in` (the service needs an MMGIS sign-in), `not_allowed` (the request used a long-term API token), `not_configured` (its `env` isn't set), `unavailable` (refreshing the token failed for a reason worth retrying, such as a network error; the user stays connected and the card offers Try again) or `unknown` (no such connection is installed).
+
+If the service itself is down or failing (a `5xx`, a timeout), reply with `s.connections.connectionRequired(res, s.connections.unavailable('earthdata'))`. The user stays connected and the card offers Try again. `unavailable(id, message?)` takes an optional message.
 
 Long-term API tokens never get a connection: `token()` throws for them, so scripts can't act as a user at the outside service.
 
@@ -302,13 +304,29 @@ module.exports = {
 | `POST /api/connections/:id/disconnect` | same | Removes the stored token and asks the service to revoke it |
 | `GET /api/connections/setup` | admins | Which connections are installed and set up, and their env status |
 
+## API keys
+
+For a service where each person has a personal API key instead of OAuth, use the same connect flow with a page that hands MMGIS the key indirectly:
+
+1. `authorizeUrl({ state, redirectUri })` returns the URL of a page where the person pastes or confirms their key. Best is a page on the service itself. Otherwise serve it from a companion backend plugin's route (a connection plugin has no routes of its own).
+2. That page redirects to `redirectUri` with `state` unchanged and a one-time `code`, never the key.
+3. `exchange({ code })` trades the code for the key server-to-server and returns `{ accessToken: key }`. Leave out `expiresIn`, so the key never expires in MMGIS until the service refuses it. A `401` then goes through `s.connections.rejected()`, which forgets the key and asks the person to connect again.
+
+Rules for the key page:
+
+- Never put the key in a URL (query or fragment). URLs end up in logs and browser history.
+- Codes are single-use, expire within a minute or so, and are bound to the `redirect_uri` they were issued for. Redirect only to an exact, registered `redirect_uri`.
+- Protect the paste form against CSRF, and require a client secret (from `env`) on the code exchange.
+- Don't log the request body or query strings of the form or exchange.
+- Leave out `revoke()` when the key is the person's own key that other apps also use. Disconnect then only forgets it in MMGIS.
+
 ## Gotchas
 
-- **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser and the tool opens without the card.
+- **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser. If that entry is `"required": true`, the tool doesn't open and its card says the service isn't set up; an optional one is ignored.
 - **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back. Configure → Users & Access → Services shows the callback URL MMGIS sends for each connection, and the tool's waiting card has a Cancel link.
 - **Several MMGIS instances** behind a load balancer don't share refreshes. With a refresh token that rotates, use sticky sessions, or two instances refreshing at once can sign the user out of the service.
 - **The account menu** lists only services people can connect now. A service that isn't set up appears only on its tools' cards and in Configure.
-- **API keys and other pasted credentials** have no built-in form. A plugin can use the same flow: `authorizeUrl()` returns its own backend route that shows a form (keep the `state`), the form posts the key to that route, which redirects to the callback with `state` and a one-time `code`, and `exchange()` turns that code into `{ accessToken: key }`.
+- **API keys and other pasted credentials** have no built-in form. See [API keys](#api-keys).
 - **Disconnecting** doesn't close an open tool; its next request gets `connection_required` and shows the card.
 - **A sign-in link lasts 10 minutes.** After that the callback says the link expired and the person clicks Connect again.
 - **No `expiresIn` or `expiresAt`** in a grant means the token is treated as never expiring until the service rejects it.

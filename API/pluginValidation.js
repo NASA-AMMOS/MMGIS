@@ -929,6 +929,13 @@ function validatePluginConfig(config, pluginName, pluginType) {
   if (pluginType === "connection" && config.pkce !== undefined && typeof config.pkce !== "boolean") {
     errors.push(`Plugin '${pluginName}' (${pluginType}): 'pkce' must be true or false`);
   }
+  if (
+    pluginType === "connection" &&
+    config.env !== undefined &&
+    !(Array.isArray(config.env) && config.env.every((n) => typeof n === "string" && n.length > 0))
+  ) {
+    errors.push(`Plugin '${pluginName}' (${pluginType}): 'env' must be a list of environment variable names`);
+  }
   if (config.connections !== undefined) {
     const ok = (r) =>
       r != null &&
