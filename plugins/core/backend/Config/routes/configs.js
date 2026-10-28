@@ -1664,6 +1664,21 @@ function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
               .concat("sublayers")
               .join(".");
 
+            // Headers saved without a 'sublayers' array (#442) can still take
+            // layers. A plugin type extending header counts, as in validate.js.
+            const header = Utils.getIn(
+              config.layers,
+              placementPath.replace(/\.sublayers$/, ""),
+              null,
+              true
+            );
+            if (
+              header != null &&
+              header.sublayers == null &&
+              validate.defaultsTypeOf(header.type) === "header"
+            )
+              header.sublayers = [];
+
             const level = Utils.getIn(config.layers, placementPath, null, true);
             if (level == null) {
               if (cb)
