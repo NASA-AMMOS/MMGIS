@@ -869,6 +869,11 @@ test.describe('validatePluginConfig — connections', () => {
         expect(validatePluginConfig({ name: 'L', type: 'auth', provider: 'local' }, 'L', 'auth')).toEqual([]);
     });
 
+    test('documented auth manifest fields are known', () => {
+        const m = { name: 'P', type: 'auth', provider: 'p', login_path: '/login', login_url: 'https://x', login_label: 'Log in', logout_url: 'https://x/out' };
+        expect(validatePluginConfig(m, 'P', 'auth').join(' ')).not.toMatch(/unknown/i);
+    });
+
     test('a connection env must be a list of names', () => {
         for (const env of ['X_ID', [1], [''], { X: 1 }])
             expect(validatePluginConfig({ name: 'E', type: 'connection', connection: 'imagery', env }, 'E', 'connection').join(' ')).toContain("'env' must be");

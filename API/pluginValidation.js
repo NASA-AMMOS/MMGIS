@@ -685,7 +685,7 @@ const KNOWN_FIELDS = {
     "defaultIcon",
     "color",
   ]),
-  auth: new Set([...COMMON_FIELDS, "provider", "description"]),
+  auth: new Set([...COMMON_FIELDS, "provider", "description", "login_path", "login_url", "login_label", "logout_url"]),
   connection: new Set([...COMMON_FIELDS, "connection", "description", "guests", "env", "pkce"]),
   layerattachment: new Set([
     ...COMMON_FIELDS,

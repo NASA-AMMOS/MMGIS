@@ -52,7 +52,7 @@ Until its env variables are set, a connection shows as "not set up" and nobody c
 - **Account menu (top right).** When the open mission has a tool that uses a connection, the account button opens a menu with "Sign in to MMGIS" (or the signed-in user) and a **Services** section listing each service, its status and a Connect or Disconnect button. The button looks pressed while the menu is open, and shows a dot while an open tool is waiting for a connection. On `SITE_ACCESS=public` sites a Services button is shown instead.
 - **Tool card.** Opening a tool that needs a connection the user hasn't made shows a card in the tool panel: "Connect Earthdata", or "Sign in to MMGIS first" for services that don't allow guests. The tool opens as soon as the connection is made.
 - **New tab.** Connect opens the service's own sign-in page in a new browser tab, so its real address and padlock are visible. Afterwards the user lands on an MMGIS page saying "Earthdata connected" that closes itself (or offers "Close this tab"), and the original MMGIS tab updates when they return to it.
-- **Guests.** If the connection plugin allows guests (`"guests": true`), a signed-out visitor can connect for the current browser session only. Signing in to MMGIS afterwards keeps the connection on their account.
+- **Guests.** If the connection plugin allows guests (`"guests": true`), a signed-out visitor can connect for the current browser session only. Signing in to an MMGIS account afterwards (a local account, or a provider such as OIDC that signs people in to MMGIS accounts) keeps the connection on that account. A per-request provider with no MMGIS account, such as a proxy header, doesn't take over the guest's connection.
 
 There is no admin view of who has connected what. Deleting an MMGIS account removes its connections.
 
@@ -90,6 +90,8 @@ function load() {
         })
 }
 ```
+
+The card appears over the tool's panel but doesn't clear it. If the tool shows data from the user's account there, clear it before calling `handleResponse`, for example when a disconnect or a reconnect card means the data is no longer the user's to see.
 
 Other helpers: `Connections_.isConnected('earthdata')`, `Connections_.status('earthdata')`, `Connections_.connect('earthdata')` (call it from a click), `Connections_.on('change', fn)` and `Connections_.off('change', fn)`.
 
@@ -290,8 +292,8 @@ module.exports = {
 
 ## Where tokens are kept
 
-- **Signed-in users:** in the `auth_connections` table, one row per user and connection, encrypted with AES-256-GCM using a key derived from `SECRET`. Changing `SECRET` makes stored connections unreadable, and users connect again.
-- **Guests and external-provider sessions:** in the server-side session, gone when the session ends.
+- **Signed-in users with an MMGIS account** (local, or through a provider that links to an account): in the `auth_connections` table, one row per user and connection, encrypted with AES-256-GCM using a key derived from `SECRET`. Changing `SECRET` makes stored connections unreadable, and users connect again.
+- **Guests and per-request provider identities with no MMGIS account:** in the server-side session, gone when the session ends.
 - Tokens are never put in cookies, the mission config, tile URLs or replies to the browser.
 
 ## Routes
