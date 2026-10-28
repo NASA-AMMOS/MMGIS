@@ -464,11 +464,12 @@ const Connections_ = {
             try {
                 new BroadcastChannel('mmgis-connections').onmessage = (e) => {
                     // A cancelled or failed sign-in: offer Connect again
-                    if (e && e.data && e.data.type === 'failed')
+                    if (e && e.data && e.data.type === 'failed') {
                         ;[gate, ...separatedGates.values()].forEach((g) => {
                             if (g && g.service && g.service.id === e.data.id)
                                 g.waiting = false
                         })
+                    }
                     refresh()
                 }
             } catch (err) {}
