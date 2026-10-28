@@ -1467,8 +1467,13 @@ if (fullAccess)
       return;
     }
 
-    sequelize
-      .transaction((t) =>
+    // The Missions folder is named after the stored mission, not the request
+    let folderName = null;
+    Config.findOne({ where: { mission: missionName }, attributes: ["mission"] })
+      .then((row) => {
+        folderName = row ? row.mission : null;
+      })
+      .then(() => sequelize.transaction((t) =>
         Promise.all([
           Config.destroy({ where: { mission: missionName }, transaction: t }),
           Userfiles.update(
@@ -1500,7 +1505,7 @@ if (fullAccess)
               : null
           ),
         ])
-      )
+      ))
       // The legacy columns changed here, not on a previous release
       .then(() => require("../../../../../API/permissions/legacyImport").recordColumns(null))
       .then(() => missionIdentity.removeMission(missionName))
@@ -1512,11 +1517,11 @@ if (fullAccess)
           req
         );
 
-        // The folder name comes from the Missions directory listing, not the request
         const missionsRoot = path.resolve("./Missions");
-        const folder = fs.existsSync(missionsRoot)
-          ? fs.readdirSync(missionsRoot).find((f) => f === missionName)
-          : null;
+        const folder =
+          folderName && fs.existsSync(missionsRoot)
+            ? fs.readdirSync(missionsRoot).find((f) => f === folderName)
+            : null;
         const dir = folder ? path.join(missionsRoot, folder) : null;
         if (dir && fs.existsSync(dir)) {
           let deletedDir = dir + "_deleted_";
