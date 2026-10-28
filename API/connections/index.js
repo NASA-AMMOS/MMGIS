@@ -196,12 +196,13 @@ async function readStored(req, principal, c) {
     if (!sealed) return null;
     const record = secretBox.open(sealed);
     const owner = ownerKey(principal);
-    if (!record || owner == null || (record.owner !== owner && record.owner !== "guest")) {
+    // A guest's connection only moves to an account at local sign-in (adoptSessionConnections)
+    if (record && record.owner === "guest" && owner !== "guest") return null;
+    if (!record || owner == null || record.owner !== owner) {
       delete req.session.connections[c.id];
       return null;
     }
-    if (record.owner !== owner) sessionBag(req)[c.id] = secretBox.seal({ ...record, owner });
-    return { ...record, owner, storage: "session" };
+    return { ...record, storage: "session" };
   }
   return null;
 }

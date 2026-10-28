@@ -285,6 +285,14 @@ function makeGate(toolName, tool, service, make, reason) {
             renderButton()
         },
         resume() {
+            // A tool needing several services waits for all of them
+            const next = missingFor(g.toolName)
+            if (next && next.id !== g.service.id) {
+                g.service = next
+                g.reason = null
+                g.waiting = false
+                return g.render()
+            }
             g.remove()
             g.make()
         },

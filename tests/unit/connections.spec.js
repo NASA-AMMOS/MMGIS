@@ -235,12 +235,13 @@ test.describe('session connections belong to the identity that made them', () =>
         expect(await connections.readStored(req, guest, c)).toBeNull();
     });
 
-    test("a guest's connection carries over when that browser signs in, then stays with that identity", async () => {
+    test("an external identity does not take over a guest's connection", async () => {
         const req = { session: {} };
         await connections.writeStored(req, guest, c, rec);
         expect((await connections.readStored(req, guest, c)).accessToken).toBe('at');
-        expect((await connections.readStored(req, alice, c)).owner).toBe('external:sso:alice');
+        expect(await connections.readStored(req, alice, c)).toBeNull();
         expect(await connections.readStored(req, bob, c)).toBeNull();
+        expect((await connections.readStored(req, guest, c)).accessToken).toBe('at');
     });
 
     test('sign-in only adopts guest-owned session connections', async () => {
