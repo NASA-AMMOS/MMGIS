@@ -686,7 +686,7 @@ const KNOWN_FIELDS = {
     "color",
   ]),
   auth: new Set([...COMMON_FIELDS, "provider", "description"]),
-  connection: new Set([...COMMON_FIELDS, "connection", "description", "guests", "env"]),
+  connection: new Set([...COMMON_FIELDS, "connection", "description", "guests", "env", "pkce"]),
   layerattachment: new Set([
     ...COMMON_FIELDS,
     "module",
