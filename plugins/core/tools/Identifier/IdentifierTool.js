@@ -171,7 +171,10 @@ var IdentifierTool = {
     idPixelGlobe: function (e) {
         clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
         IdentifierTool.mousemoveTimeoutGlobe = setTimeout(function () {
-            if (Globe_.litho.mouse)
+            const mouse = Globe_.litho.mouse
+            // Over sky the last surface position is stale; clear instead.
+            if (mouse?.onSurface === false) IdentifierTool.clearCursor()
+            else if (mouse)
                 IdentifierTool.idPixel(e, [
                     Globe_.litho.mouse.lng,
                     Globe_.litho.mouse.lat,

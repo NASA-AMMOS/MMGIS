@@ -1956,6 +1956,7 @@ class GlobeRenderer {
                     if (this.mouse) {
                         this.mouse.lng = lng
                         this.mouse.lat = lat
+                        this.mouse.onSurface = true
                     }
                     // Try to get the terrain elevation at this position.
                     // scene.sampleHeight samples the currently-rendered tiles
@@ -1967,6 +1968,9 @@ class GlobeRenderer {
                     } catch (_) { /* terrain not available */ }
                     options.onChange(lng, lat, elev)
                 } else {
+                    // Over sky: lng/lat keep the last surface point for
+                    // readers that expect numbers; onSurface marks it stale.
+                    if (this.mouse) this.mouse.onSurface = false
                     options.onChange(null, null, null)
                 }
             })
