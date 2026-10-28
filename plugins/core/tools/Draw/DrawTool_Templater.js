@@ -18,6 +18,73 @@ import Sortable from 'sortablejs'
 import './DrawTool_Templater.css'
 
 const DrawTool_Templater = {
+    /**
+     * Whether a number template value is a whole number of `step`s from 0
+     * (#1129).
+     *
+     * The rule: the value must be the double nearest to some multiple
+     * k * step, or the double right next to it. Exactly-typed multiples pass
+     * (1.2 with step 0.1, 9.5e21 with step 1e20); so do values carrying the
+     * last-bit rounding of earlier arithmetic (0.1 + 0.2 = 0.30000000000000004)
+     * and values next to a step finer than their own precision (10 with
+     * step 3e-16), since no other double sits closer to a multiple. Anything
+     * further away is rejected: 1.0000000001 or 1e15 + 0.25 with step 1.
+     *
+     * The nearest multiple is found exactly: both numbers are read as the
+     * decimals String() gives back (125e-2 for 1.25) and divided as integers
+     * with BigInt, so neither the size of the numbers nor the binary rounding
+     * of the step can move the answer; "next to it" is decided on the bit
+     * patterns, not with an estimated ulp.
+     *
+     * A step that is not a positive finite number constrains nothing, as with
+     * HTML <input step>.
+     */
+    isStepMultiple: function (value, step) {
+        step = Number(step)
+        if (!isFinite(step) || step <= 0) return true
+        if (!isFinite(value)) return false
+        if (value === 0) return true
+
+        // x === m * 10^e with m an integer: "1.25" -> 125e-2, "9.5e+21" -> 95e20
+        const decimal = (x) => {
+            const m = /^(-?)(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/i.exec(String(x))
+            const frac = m[3] || ''
+            return {
+                m: BigInt(m[1] + m[2] + frac),
+                e: Number(m[4] || 0) - frac.length,
+            }
+        }
+        const tenTo = (n) => {
+            let p = BigInt(1)
+            for (let i = 0; i < n; i++) p *= BigInt(10)
+            return p
+        }
+        // value / step === num / den exactly; k is that ratio rounded half
+        // away from zero, and k * step is the nearest multiple of the step
+        const v = decimal(value)
+        const s = decimal(step)
+        const d = v.e - s.e
+        const num = d >= 0 ? v.m * tenTo(d) : v.m
+        const den = d >= 0 ? s.m : s.m * tenTo(-d)
+        const two = BigInt(2)
+        const k = (two * num + (num < 0 ? -den : den)) / (two * den)
+        const nearest = Number(String(k * s.m) + 'e' + s.e)
+        // a multiple beyond the largest double cannot be stored, so no finite
+        // value is "next to" it (Infinity's bits sit beside Number.MAX_VALUE)
+        if (!isFinite(nearest)) return false
+
+        // "the same double or the one next to it", counted exactly: doubles of
+        // one sign are ordered like their bit patterns, so neighbours differ
+        // by one. (An ulp from Math.log2 is wrong just below powers of two.)
+        const order = (x) => {
+            const view = new DataView(new ArrayBuffer(8))
+            view.setFloat64(0, Math.abs(x))
+            const bits = view.getBigInt64(0)
+            return x < 0 ? -bits : bits
+        }
+        const apart = order(value) - order(nearest)
+        return apart >= BigInt(-1) && apart <= BigInt(1)
+    },
     renderTemplate: function (containerId, templateObj, properties) {
         if (templateObj == null) return null
         properties = properties || {}
@@ -423,8 +490,11 @@ const DrawTool_Templater = {
                             if (
                                 t.step != null &&
                                 t.step != '' &&
-                                values[t.field] / t.step !=
-                                    parseInt(values[t.field] / t.step)
+                                values[t.field] != null &&
+                                !DrawTool_Templater.isStepMultiple(
+                                    values[t.field],
+                                    t.step
+                                )
                             )
                                 invalids[t.field] =
                                     `'${t.field}' must be a multiple of ${t.step}`
