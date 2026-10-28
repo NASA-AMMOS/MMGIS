@@ -340,34 +340,40 @@ function scrubbed(err, secrets) {
 const REFRESH_SHARE_MS = 30 * 1000;
 const refreshing = new Map();
 
+const digest = (v) => crypto.createHash("sha256").update(String(v)).digest("hex");
+
+function startRefresh(keys, c, record) {
+  const job = (async () => {
+    const fresh = grantRecord(await c.impl.refresh({ refreshToken: record.refreshToken, env: process.env }));
+    if (!fresh.refreshToken) fresh.refreshToken = record.refreshToken;
+    if (!fresh.account) fresh.account = record.account;
+    return fresh;
+  })();
+  const forget = () => keys.forEach((k) => refreshing.get(k) === job && refreshing.delete(k));
+  keys.forEach((k) => refreshing.set(k, job));
+  job.then(
+    () => {
+      const t = setTimeout(forget, REFRESH_SHARE_MS);
+      if (t.unref) t.unref();
+    },
+    forget
+  );
+  return job;
+}
+
 async function refreshStored(req, principal, c, record, rejected) {
   const scope = storageFor(principal, c) === "account" ? `user:${principal.userId}` : `session:${req.sessionID}`;
-  const key = `${scope}|${c.id}|${crypto.createHash("sha256").update(record.refreshToken).digest("hex")}`;
-  let job = refreshing.get(key);
-  // Only a fresh rejection of the shared result's token skips it; everyone else shares it
-  if (job && rejected) {
-    const shared = await job.catch(() => null);
-    if (shared && shared.accessToken === record.accessToken) {
-      if (refreshing.get(key) === job) refreshing.delete(key);
-      job = null;
+  const byGrant = `${scope}|${c.id}|r:${digest(record.refreshToken)}`;
+  let job = refreshing.get(byGrant);
+  if (rejected) {
+    // Everyone refused with the same access token shares one refresh. A refresh already
+    // made with this grant only helps if it gave a different access token.
+    const shared = job && (await job.catch(() => null));
+    if (!shared || shared.accessToken === record.accessToken) {
+      const byRefused = `${scope}|${c.id}|a:${digest(record.accessToken)}`;
+      job = refreshing.get(byRefused) || startRefresh([byRefused, byGrant], c, record);
     }
-  }
-  if (!job) {
-    job = (async () => {
-      const fresh = grantRecord(await c.impl.refresh({ refreshToken: record.refreshToken, env: process.env }));
-      if (!fresh.refreshToken) fresh.refreshToken = record.refreshToken;
-      if (!fresh.account) fresh.account = record.account;
-      return fresh;
-    })();
-    refreshing.set(key, job);
-    job.then(
-      () => {
-        const t = setTimeout(() => refreshing.delete(key), REFRESH_SHARE_MS);
-        if (t.unref) t.unref();
-      },
-      () => refreshing.delete(key)
-    );
-  }
+  } else if (!job) job = startRefresh([byGrant], c, record);
   const fresh = await job;
   await writeStored(req, principal, c, fresh);
   return fresh;
@@ -474,9 +480,20 @@ function connectionRequired(res, errOrService, reason) {
 let mountedRoot = null;
 const rootPath = () => (mountedRoot != null ? mountedRoot : process.env.ROOT_PATH || "");
 
+// The host the browser used, with a trusted proxy's X-Forwarded-Port when its host has none
+function publicHost(req) {
+  const host = req.host || req.get("host");
+  const port = String(req.get("x-forwarded-port") || "").split(",")[0].trim();
+  const trusted = req.app && req.app.get("trust proxy fn");
+  if (!host || !/^\d{1,5}$/.test(port) || /:\d+$/.test(host)) return host;
+  if (!trusted || !trusted(req.socket && req.socket.remoteAddress, 0)) return host;
+  const defaultPort = req.protocol === "https" ? "443" : "80";
+  return port === defaultPort ? host : `${host}:${port}`;
+}
+
 function callbackUrl(req, c) {
   const base = process.env.CONNECTIONS_CALLBACK_BASE_URL;
-  const origin = base ? base.replace(/\/+$/, "") : `${req.protocol}://${req.host || req.get("host")}${rootPath()}`;
+  const origin = base ? base.replace(/\/+$/, "") : `${req.protocol}://${publicHost(req)}${rootPath()}`;
   return `${origin}/api/connections/${c.id}/callback`;
 }
 
@@ -690,6 +707,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
 
 module.exports = {
   scrubbed,
+  callbackUrl,
   DOCS_URL,
   loadConnections,
   allConnections,

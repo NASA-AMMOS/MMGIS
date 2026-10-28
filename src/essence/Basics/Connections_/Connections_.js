@@ -20,10 +20,15 @@ const pendingSeparated = new Map()
 let menuOpen = false
 let missionTools = []
 
-const esc = (s) => $('<div>').text(s == null ? '' : String(s)).html()
+const esc = (s) =>
+    $('<div>')
+        .text(s == null ? '' : String(s))
+        .html()
 
 function login() {
-    return import('../UserInterface_/components/Login/Login').then((m) => m.default)
+    return import('../UserInterface_/components/Login/Login').then(
+        (m) => m.default
+    )
 }
 
 function find(ref) {
@@ -32,8 +37,7 @@ function find(ref) {
     if (typeof key !== 'string') return null
     const k = key.toLowerCase()
     return (
-        services.find((s) => s.id === k || s.plugin.toLowerCase() === k) ||
-        null
+        services.find((s) => s.id === k || s.plugin.toLowerCase() === k) || null
     )
 }
 
@@ -163,7 +167,9 @@ function serviceRow(s) {
         if (s.storage === 'session') detail += ' · this browser session'
         action = `<button class="connectionsMenuAction" data-disconnect="${esc(s.id)}">Disconnect</button>`
     } else if (s.canConnect) {
-        detail = used.length ? `Needed by ${used.map(esc).join(', ')}` : 'Not connected'
+        detail = used.length
+            ? `Needed by ${used.map(esc).join(', ')}`
+            : 'Not connected'
         action = `<button class="connectionsMenuAction primary" data-connect="${esc(s.id)}">Connect</button>`
     } else {
         detail = 'Sign in to MMGIS first'
@@ -189,7 +195,10 @@ function renderMenu() {
         html += `<div class="connectionsMenuSection"><div class="connectionsMenuLabel">Services</div>${relevant()
             .map(serviceRow)
             .join('')}</div>`
-        if (!loggedIn && relevant().some((s) => s.storage === 'session' && s.canConnect))
+        if (
+            !loggedIn &&
+            relevant().some((s) => s.storage === 'session' && s.canConnect)
+        )
             html += `<div class="connectionsMenuNote">Guest connections last for this browser session.</div>`
         if (loggedIn)
             html += `<button id="connectionsMenuSignOut" class="connectionsMenuItem"><i class="mdi mdi-logout mdi-18px"></i> Sign out</button>`
@@ -264,8 +273,8 @@ function cardHtml(g) {
         g.reason === 'expired'
             ? `Your ${label} connection expired`
             : g.reason === 'rejected'
-            ? `${label} no longer accepts your connection`
-            : `Connect ${label} to use this tool`
+              ? `${label} no longer accepts your connection`
+              : `Connect ${label} to use this tool`
     let html = `<div class="connectionsCardTitle">${title}</div>
         <p>${tool} gets data from ${label} with your ${label} account. You'll sign in on ${label}'s own site in a new tab.</p>
         <button class="connectionsCardButton" data-card="connect">${again ? 'Reconnect' : 'Connect'} ${label}</button>`
@@ -275,9 +284,11 @@ function cardHtml(g) {
 }
 
 function containerFor(tool) {
-    return document.getElementById(
-        tool && tool.height > 0 ? 'tools' : 'toolPanel'
-    ) || document.getElementById('tools')
+    return (
+        document.getElementById(
+            tool && tool.height > 0 ? 'tools' : 'toolPanel'
+        ) || document.getElementById('tools')
+    )
 }
 
 function makeGate(toolName, tool, service, make, reason) {
@@ -288,7 +299,9 @@ function makeGate(toolName, tool, service, make, reason) {
         make,
         reason,
         waiting: false,
-        el: $('<div>').addClass('connectionsCard').attr('id', 'connectionsCard'),
+        el: $('<div>')
+            .addClass('connectionsCard')
+            .attr('id', 'connectionsCard'),
         render() {
             if (!g.service.missing) g.service = find(g.service.id) || g.service
             if (
@@ -349,7 +362,9 @@ function missingFor(toolName) {
         const ref = needs.find((r) => find(r) == null)
         console.warn(`${toolName}: a required connection isn't installed.`, ref)
         // Fail closed: show "isn't set up" instead of a tool that can't work
-        const name = String(ref.plugin || ref.id).split('/').pop()
+        const name = String(ref.plugin || ref.id)
+            .split('/')
+            .pop()
         // Its own ID, so it can't be mistaken for an installed service with the same name
         return {
             id: `missing:${String(ref.plugin || ref.id).toLowerCase()}`,
@@ -443,9 +458,37 @@ function openTool(toolName, tool, make) {
 }
 
 // A card over a tool that's already open, when its service needs connecting again
-function overlayGate(s, reason, retry) {
+function overlayGate(s, reason, retry, toolName) {
+    const separated =
+        toolName && document.getElementById(`toolContentSeparated_${toolName}`)
+    if (separated) {
+        const old = separatedGates.get(toolName)
+        if (old) old.remove()
+        const g = makeGate(toolName, null, s, () => {}, reason)
+        g.el.removeAttr('id').addClass('separated overlay')
+        const remove = g.remove
+        g.remove = () => {
+            if (separatedGates.get(toolName) === g)
+                separatedGates.delete(toolName)
+            remove()
+        }
+        g.resume = () => {
+            g.remove()
+            if (typeof retry === 'function') retry()
+        }
+        separatedGates.set(toolName, g)
+        $(separated).prepend(g.el)
+        g.render()
+        return
+    }
     if (gate) gate.remove()
-    const g = makeGate(activeTool.name || 'This tool', null, s, () => {}, reason)
+    const g = makeGate(
+        activeTool.name || 'This tool',
+        null,
+        s,
+        () => {},
+        reason
+    )
     gate = g
     g.el.addClass('overlay')
     const container = containerFor(activeTool.tool)
@@ -528,7 +571,11 @@ const Connections_ = {
         if (!s) return b.text('Unavailable').prop('disabled', true)[0]
         const label = () => {
             const cur = find(s.id) || s
-            b.text(cur.connected ? `${cur.label} connected` : `Connect ${cur.label}`)
+            b.text(
+                cur.connected
+                    ? `${cur.label} connected`
+                    : `Connect ${cur.label}`
+            )
             b.prop('disabled', cur.connected || !cur.canConnect)
         }
         label()
@@ -540,11 +587,12 @@ const Connections_ = {
     // For a tool's own API calls: true when the reply means "connect first",
     // in which case the active tool shows the reconnect card. `retry` runs once
     // the user has reconnected (or clicks Try again).
-    handleResponse(body, retry) {
+    // toolName puts the card on that separated tool, not the open panel tool
+    handleResponse(body, retry, toolName) {
         if (!body || body.code !== 'connection_required') return false
         refresh().then(() => {
             const s = find(body.service)
-            if (s) overlayGate(s, body.reason, retry)
+            if (s) overlayGate(s, body.reason, retry, toolName)
         })
         return true
     },

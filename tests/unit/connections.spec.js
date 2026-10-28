@@ -339,6 +339,45 @@ test.describe('token refresh', () => {
         reqs.forEach((r) => expect(r.session.connections.svc).toBeTruthy());
     });
 
+    test('a burst of rejections shares one refresh when the access token stays the same', async () => {
+        Object.assign(globalThis.__refreshTest, { sameAccess: 'A', spent: new Set() });
+        const first = await stored(guestReq(), { accessToken: 'A', refreshToken: 'burst', expiresIn: 3600 });
+        const copy = (r) => ({ ...guestReq(), session: JSON.parse(JSON.stringify(r.session)) });
+        const reqs = Array.from({ length: 10 }, () => copy(first));
+        const tokens = await Promise.all(reqs.map((r) => connections.rejected(r, 'svc', 'A')));
+        // Late ones, holding the old grant or the rotated one, share it too
+        tokens.push(await connections.rejected(copy(first), 'svc', 'A'));
+        tokens.push(await connections.rejected(copy(reqs[0]), 'svc', 'A'));
+        expect(globalThis.__refreshTest.calls).toEqual(['burst']);
+        expect(new Set(tokens)).toEqual(new Set(['A']));
+        reqs.forEach((r) => expect(r.session.connections.svc).toBeTruthy());
+    });
+
+    test('a rejection during an expiry refresh shares it', async () => {
+        const first = await stored(guestReq(), { accessToken: 'old', refreshToken: 'mid', expiresIn: 1 });
+        await new Promise((r) => setTimeout(r, 1100));
+        const copy = () => ({ ...guestReq(), session: JSON.parse(JSON.stringify(first.session)) });
+        const out = await Promise.all([connections.token(copy(), 'svc'), connections.rejected(copy(), 'svc', 'old')]);
+        expect(globalThis.__refreshTest.calls).toEqual(['mid']);
+        expect(out).toEqual(['fresh-1', 'fresh-1']);
+    });
+
+    test('the callback URL keeps a trusted proxy X-Forwarded-Port', () => {
+        const c = connections.getConnection('svc');
+        const req = (headers, trusted = true) => ({
+            protocol: 'http',
+            host: headers.host,
+            get: (n) => headers[n.toLowerCase()],
+            app: { get: () => () => trusted },
+            socket: { remoteAddress: '127.0.0.1' }
+        });
+        expect(connections.callbackUrl(req({ host: 'localhost', 'x-forwarded-port': '8080' }), c)).toBe('http://localhost:8080/api/connections/svc/callback');
+        expect(connections.callbackUrl(req({ host: 'localhost:9000', 'x-forwarded-port': '8080' }), c)).toBe('http://localhost:9000/api/connections/svc/callback');
+        expect(connections.callbackUrl(req({ host: 'localhost', 'x-forwarded-port': '80' }), c)).toBe('http://localhost/api/connections/svc/callback');
+        expect(connections.callbackUrl(req({ host: 'localhost', 'x-forwarded-port': '8080' }, false), c)).toBe('http://localhost/api/connections/svc/callback');
+        expect(connections.callbackUrl(req({ host: 'localhost', 'x-forwarded-port': 'x' }), c)).toBe('http://localhost/api/connections/svc/callback');
+    });
+
     test('a non-Error plugin failure is pattern-redacted too', () => {
         const out = connections.scrubbed({ body: 'access_token=zzz&x=1' }, []);
         expect(out).not.toContain('zzz');

@@ -76,7 +76,7 @@ Declare it in the tool's `plugin.json`, using the connection plugin's path:
 
 Configure shows these requirements, read-only, on the tool's card and in its settings dialog. Nothing is set per mission.
 
-The browser never sees the service's token. Call your own backend route and pass its reply to `handleResponse`, which shows the reconnect card when the service needs connecting again. Pass the function that made the request as the second argument and it runs again once the user has reconnected:
+The browser never sees the service's token. Call your own backend route and pass its reply to `handleResponse`, which shows the reconnect card when the service needs connecting again. Pass the function that made the request as the second argument and it runs again once the user has reconnected. A separated tool also passes its tool name as the third argument, so the card goes on its own panel and not on whichever tool is open in the side panel:
 
 ```javascript
 import Connections_ from '@basics/Connections_/Connections_'
@@ -90,6 +90,8 @@ function load() {
         })
 }
 ```
+
+For a separated tool: `Connections_.handleResponse(body, load, 'MyTool')`.
 
 The card appears over the tool's panel but doesn't clear it. If the tool shows data from the user's account there, clear it before calling `handleResponse`, for example when a disconnect or a reconnect card means the data is no longer the user's to see.
 
@@ -232,8 +234,9 @@ async function tokenRequest(env, params) {
     body: new URLSearchParams(params).toString(),
   });
   const body = await res.json().catch(() => ({}));
+  // The status lets MMGIS tell an outage (429, 5xx: keep the connection) from a refused grant
   if (!res.ok || typeof body.access_token !== "string")
-    throw new Error(`Earthdata token request failed (HTTP ${res.status}).`);
+    throw Object.assign(new Error(`Earthdata token request failed (HTTP ${res.status}).`), { status: res.status });
   return body;
 }
 

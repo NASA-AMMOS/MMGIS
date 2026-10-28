@@ -846,7 +846,7 @@ Standard package metadata. `author` can be a string or `{ name, email, url }`. `
 |-------|------|-------------|
 | `toolbarPriority` | `number` | Position in toolbar (lower = first). Core tools use 1–4 for the ones that lead the bar, then 101–102, then 1001–1002 — the gaps are room to insert, so pick a band rather than a number near one you want to sit beside |
 | `expandable` | `boolean` | Whether the tool panel can expand to full width |
-| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel. `true` gives a standard framed floating panel (header + close). `"custom"` renders a chrome-less panel and lets the tool manage its own DOM inside `#toolContentSeparated_<Name>` — use this when the tool draws its own window/overlay (e.g. Identifier) |
+| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel. `true` gives a standard framed floating panel (header + close). `"custom"` renders a chrome-less panel and lets the tool manage its own DOM. MMGIS passes `toolContentSeparated_<Name>` to `make()`, but that container is hidden, so draw the tool's UI elsewhere (on the map, or in an element the tool adds) — use this when the tool draws its own window/overlay (e.g. Identifier) |
 | `hasVars` | `boolean` | Plugin reads per-mission config variables from `config.rows` |
 | `config` | `object` | Defines the configuration UI shown in the configure page. Has `rows[]` with form field definitions |
 | `kinds` | `object` | Sub-types or modes for the tool (used by Kinds tool) |
