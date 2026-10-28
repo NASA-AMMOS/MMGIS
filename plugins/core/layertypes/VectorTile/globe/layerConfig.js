@@ -1,14 +1,15 @@
 /**
  * VectorTile layer type — globe layer config.
  *
- * Only extruded vector tile layers are drawn on the globe (flat vector tiles
- * are a 2D-map rendering); `isRenderable` answers that for both engines.
+ * Extruded vector tile layers are drawn on either globe. Flat ones are drawn
+ * on Cesium only, as imagery painted from the tiles; LithoSphere has no way
+ * to draw them. `isRenderable` answers that per engine.
  */
 import L_ from '@basics/Layers_/Layers_'
 import { dynamicStyleSignature } from '@basics/Layers_/render/dynamicStyleRuntime'
 
-export function isRenderable(layerObj) {
-    return layerObj.extrudeEnabled === true
+export function isRenderable(layerObj, engine) {
+    return layerObj.extrudeEnabled === true || engine === 'cesium'
 }
 
 export function toGlobeConfig(layerObj) {
@@ -17,6 +18,10 @@ export function toGlobeConfig(layerObj) {
     return {
         name: s.name,
         path: L_.getUrl(s.type, s.url, s),
+        extruded: s.extrudeEnabled === true,
+        // Flat tiles are painted from the layer's own styles.
+        layerObj: s,
+        order: L_._layersOrdered,
         opacity: L_.layers.opacity[s.name],
         vtLayer:
             s.extrudeVtLayer ||
@@ -37,28 +42,29 @@ export function toGlobeConfig(layerObj) {
 }
 
 /**
- * Extruded geometry is expensive to build, so it stays loaded on the globe and
+ * Globe content is expensive to build, so it stays loaded on the globe and
  * is hidden in place; `make` toggles it back on instead of rebuilding it.
  */
 export function onToggle(layerObj, gctx) {
     if (gctx.visible) return
-    if (isRenderable(layerObj)) gctx.toggleLayer(layerObj.name, false)
+    if (isRenderable(layerObj, gctx.engine))
+        gctx.toggleLayer(layerObj.name, false)
     else gctx.removeLayer(layerObj.name)
 }
 
 /**
- * Show extruded tiles already on the globe, or build them. Tiles built before
- * the layer's dynamic style last changed are rebuilt with it - what a restyle
- * asks for by adding the layer again.
+ * Show tiles already on the globe, or build them. Tiles built before the
+ * layer's dynamic style last changed are rebuilt with it - what a restyle asks
+ * for by adding the layer again.
  */
 export function makeWith(layerObj, gctx, render) {
-    if (!isRenderable(layerObj)) return
+    if (!isRenderable(layerObj, gctx.engine)) return
     if (gctx.hasLayer(layerObj.name)) {
         const built = gctx.layers?.[layerObj.name]
         const signature = dynamicStyleSignature(layerObj)
-        if (built?.mvtLayer && built.styleSignature !== signature) {
+        if (built?.restyle && built.styleSignature !== signature) {
             built.styleSignature = signature
-            built.mvtLayer.restyle()
+            built.restyle()
         }
         return gctx.toggleLayer(layerObj.name, true)
     }
