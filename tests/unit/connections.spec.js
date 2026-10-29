@@ -392,6 +392,9 @@ test.describe('token refresh', () => {
     const REFRESH_JS = `module.exports = {
     authorizeUrl: ({ state }) => 'https://svc.example/auth?state=' + state,
     exchange: async () => ({ accessToken: 'a' }),
+    revoke: async ({ refreshToken }) => {
+        (globalThis.__refreshTest.revoked ||= []).push(refreshToken);
+    },
     refresh: async ({ refreshToken }) => {
         const t = globalThis.__refreshTest;
         t.calls.push(refreshToken);
@@ -522,6 +525,42 @@ test.describe('token refresh', () => {
         await new Promise((r) => setTimeout(r, 1200));
         expect(globalThis.__refreshTest.calls).toEqual(['L1']);
         expect((await connections.current(request('sess-late'), 'svc')).record.refreshToken).toBe('L1-next');
+    });
+
+    test('a session store error during a late guest refresh keeps the new grant', async () => {
+        Object.assign(globalThis.__refreshTest, { delay: 2600, spent: new Set() });
+        const store = {};
+        let storeDown = false;
+        const request = (id) => {
+            const req = { principal: { kind: 'anonymous' }, sessionID: id, res: { headersSent: false } };
+            const load = () => {
+                req.session = JSON.parse(store[id] || '{}');
+                req.session.save = (cb) => { store[id] = JSON.stringify(req.session); if (cb) cb(); };
+                req.session.reload = (cb) => (storeDown ? cb(new Error('connect ECONNREFUSED')) : (load(), cb()));
+            };
+            load();
+            return req;
+        };
+        const first = request('sess-db');
+        await stored(first, {
+            accessToken: 'a', refreshToken: 'D1', expiresIn: 3600,
+            expiresAt: Date.now() + 5000, extra: { issuedAt: new Date(Date.now() - 3600 * 1000).toISOString() },
+        });
+        first.session.save();
+        const req = request('sess-db');
+        expect(await connections.token(req, 'svc')).toBe('a');
+        req.res.headersSent = true;
+        req.session.save();
+        storeDown = true;
+        await new Promise((r) => setTimeout(r, 1200));
+        storeDown = false;
+        expect(globalThis.__refreshTest.revoked || []).toEqual([]);
+        // The next request still holding D1 gets the refresh's result instead of spending D1 again
+        const next = request('sess-db');
+        expect(await connections.token(next, 'svc')).toBe('fresh-1');
+        expect(globalThis.__refreshTest.calls).toEqual(['D1']);
+        expect(next.session.connections.svc).toBeTruthy();
+        expect((await connections.current(next, 'svc')).record.refreshToken).toBe('D1-next');
     });
 
     test('a session copy saved after Disconnect stays disconnected past ten minutes', async () => {

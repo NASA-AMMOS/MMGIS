@@ -65,11 +65,14 @@ function startRefresh(keys, c, record) {
   return job;
 }
 
-// express-session's reload()/save() as a promise; false when the session is gone
+// express-session's reload()/save() as a promise: "ok", "gone" (the session no longer
+// exists) or "error" (the session store failed)
 function sessionCall(req, method) {
   const s = req.session;
-  if (!s || typeof s[method] !== "function") return Promise.resolve(false);
-  return new Promise((resolve) => s[method]((err) => resolve(!err)));
+  if (!s || typeof s[method] !== "function") return Promise.resolve("gone");
+  return new Promise((resolve) =>
+    s[method]((err) => resolve(!err ? "ok" : err.message === "failed to load session" ? "gone" : "error"))
+  );
 }
 
 // A refreshed grant nobody keeps (the user disconnected or reconnected meanwhile) is revoked once
@@ -105,15 +108,18 @@ async function refreshStored(req, principal, c, record, rejected) {
     // A refresh that outlasted its response (see tokenFor) works on the stored session, since
     // this request's copy is no longer saved
     const detached = storageFor(principal, c) === "session" && !!(req.res && req.res.headersSent);
-    const loaded = !detached || (await sessionCall(req, "reload"));
-    const now = loaded ? await readStored(req, principal, c) : null;
+    const loaded = detached ? await sessionCall(req, "reload") : "ok";
+    // Keep the new grant through a session store outage: the next request still holding the
+    // old one shares this refresh (REFRESH_SHARE_MS) and saves it
+    if (loaded === "error") return fresh;
+    const now = loaded === "ok" ? await readStored(req, principal, c) : null;
     if (!superseded.has(job) && now && now.refreshToken === record.refreshToken) {
       await writeStored(req, principal, c, { ...fresh, connectedAt: record.connectedAt });
       if (detached) await sessionCall(req, "save");
       return fresh;
     }
     if (!now) {
-      if (detached && loaded) await sessionCall(req, "save");
+      if (detached && loaded === "ok") await sessionCall(req, "save");
       dropOrphan(c, job, fresh);
       throw new ConnectionRequiredError(c.id, "not_connected", `Connect ${c.label} to continue.`);
     }
