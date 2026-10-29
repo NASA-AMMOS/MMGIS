@@ -15,6 +15,9 @@ import {
     normalizeTitilerExpression,
 } from '@basics/Layers_/LayerUtils'
 
+// Most STAC items listed for a point (the hover readout stays short)
+const STAC_POINT_MAX_ITEMS = 10
+
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
 
@@ -32,6 +35,7 @@ var IdentifierTool = {
     MMWebGISInterface: null,
     mousemoveTimeout: null,
     mousemoveTimeoutMap: null,
+    mousemoveTimeoutGlobe: null,
     targetId: null,
     made: false,
 
@@ -165,17 +169,26 @@ var IdentifierTool = {
             ])
         }, 400)
     },
+    // Debounced like idPixelMap: without it every globe mousemove sent a point
+    // query. The position is read when the timer fires, where the mouse rests.
     idPixelGlobe: function (e) {
-        if (Globe_.litho.mouse)
-            IdentifierTool.idPixel(e, [
-                Globe_.litho.mouse.lng,
-                Globe_.litho.mouse.lat,
-                Globe_.litho.zoom,
-            ])
+        clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
+        IdentifierTool.mousemoveTimeoutGlobe = setTimeout(function () {
+            const mouse = Globe_.litho.mouse
+            // Over sky the last surface position is stale; clear instead.
+            if (mouse?.onSurface === false) IdentifierTool.clearCursor()
+            else if (mouse)
+                IdentifierTool.idPixel(e, [
+                    Globe_.litho.mouse.lng,
+                    Globe_.litho.mouse.lat,
+                    Globe_.litho.zoom,
+                ])
+        }, 400)
     },
     clearCursor: function (e) {
         clearTimeout(IdentifierTool.mousemoveTimeout)
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
+        clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
         CursorInfo.hide()
         IdentifierTool.resetLegendMatches()
         IdentifierTool.highlightInLegend()
@@ -457,14 +470,20 @@ var IdentifierTool = {
                                             ) {
                                                 unit = d2.units[cnt]
                                             }
+                                            // A null/NaN reading is "no data", never 0
+                                            const raw = Array.isArray(value[v][1])
+                                                ? value[v][1][0]
+                                                : value[v][1]
                                             let valueParsed =
-                                                parseValue(
-                                                    value[v][1],
-                                                    d2.sigfigs,
-                                                    d2.scalefactor
-                                                ) +
-                                                '' +
-                                                unit
+                                                raw == null || Number.isNaN(raw)
+                                                    ? 'no data'
+                                                    : parseValue(
+                                                          value[v][1],
+                                                          d2.sigfigs,
+                                                          d2.scalefactor
+                                                      ) +
+                                                      '' +
+                                                      unit
 
                                             if (
                                                 value.length > 1 ||
@@ -703,6 +722,10 @@ function interfaceWithMMWebGIS() {
     // Active styling is now handled reactively by SepToolButton in Toolbar.jsx
 
     function separateFromMMWebGIS() {
+        // A hover timer still pending would query and redraw after close.
+        clearTimeout(IdentifierTool.mousemoveTimeout)
+        clearTimeout(IdentifierTool.mousemoveTimeoutMap)
+        clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
         CursorInfo.hide()
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
         Map_.map.off('mouseout', IdentifierTool.clearCursor)
@@ -826,8 +849,17 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             if (bands) assetsParam += `|bidx=${bands}`
         }
 
+        // Search the same items the map tiles mosaic, so the first item with
+        // data here is the one drawn there. 100 is TiTiler's default.
+        const stac = window.mmgisglobal?.options?.stac || {}
+        let mosaicParams = `&items_limit=${stac.mosaicItemLimit ?? 100}`
+        if (stac.mosaicScanLimit != null)
+            mosaicParams += `&scan_limit=${stac.mosaicScanLimit}`
+        if (stac.mosaicTimeLimit != null)
+            mosaicParams += `&time_limit=${stac.mosaicTimeLimit}`
+
         fetch(
-            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}&items_limit=10${timeParam}${expressionParam}`,
+            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}${mosaicParams}${timeParam}${expressionParam}`,
             {
                 method: 'GET',
                 headers: {
@@ -842,18 +874,33 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
             })
             .then((json) => {
                 // titiler-pgstac>=3: { assets: [{ name: 'collection/item', values, band_names }] }
+                // Items arrive in the search order the map's mosaic uses
+                // (newest first), and the mosaic draws each pixel from the
+                // first item with data there. List the items with data here,
+                // that one first and marked, so the value shown matches the
+                // pixel and the ones under it can still be compared. Items
+                // with no data (most of a swath collection, at any point) are
+                // left out.
                 if (json && Array.isArray(json.assets)) {
+                    const hasData = (v) => v != null && !Number.isNaN(v)
+                    const withData = json.assets.filter((a) =>
+                        (a.values || []).some(hasData)
+                    )
                     const values = []
-                    json.assets.forEach((asset) => {
-                        const itemName = (asset.name || '').split('/').pop()
-                        asset.band_names.forEach((bandName, idx) => {
-                            values.push([
-                                `${itemName} - ${bandName}`,
-                                [asset.values[idx]],
-                                [bandName],
-                            ])
+                    withData
+                        .slice(0, STAC_POINT_MAX_ITEMS)
+                        .forEach((asset, i) => {
+                            const itemName = (asset.name || '').split('/').pop()
+                            const shown = i === 0 ? ' (shown)' : ''
+                            asset.band_names.forEach((bandName, idx) => {
+                                values.push([
+                                    `${itemName}${shown} - ${bandName}`,
+                                    [asset.values[idx]],
+                                    [bandName],
+                                ])
+                            })
                         })
-                    })
+                    if (!values.length) values.push(['', [null], null]) // shown as a lone "no data"
                     respond(values)
                 } else respond(null)
             })

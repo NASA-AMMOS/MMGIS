@@ -117,12 +117,43 @@ function buildTiTilerUrl(baseUrl, layerConfig) {
 // Build a Cesium imagery provider from a resolved URL. `full` selects the
 // verbose WMS parameter set (used on add / time-refresh); COG-refresh passes the
 // raw WMS params through unchanged, matching the original behavior.
+// A 1x1 transparent tile, shared by every provider below.
+let emptyTileCanvas = null
+function emptyTile() {
+    if (!emptyTileCanvas) {
+        emptyTileCanvas = document.createElement('canvas')
+        emptyTileCanvas.width = 1
+        emptyTileCanvas.height = 1
+    }
+    return emptyTileCanvas
+}
+
+// Setting a tileDiscardPolicy makes Cesium fetch tiles as blobs, which is how
+// a 204 can be told apart from a broken image. It discards nothing.
+const keepAllTiles = {
+    isReady: () => true,
+    shouldDiscardImage: () => false,
+}
+
 function makeUrlTemplateProvider(url, format, maxZoom, minZoom) {
-    return new Cesium.UrlTemplateImageryProvider({
+    const provider = new Cesium.UrlTemplateImageryProvider({
         url: convertTileUrl(url, format),
         maximumLevel: maxZoom || 18,
         minimumLevel: minZoom || 0,
+        tileDiscardPolicy: keepAllTiles,
     })
+    // TiTiler answers 204 No Content where a tile has no data. Cesium would
+    // treat that as a failed tile and log "Failed to obtain image tile" for
+    // each one. With a tileDiscardPolicy set, Cesium fetches tiles as blobs
+    // and resolves a 204 to undefined, so only that case gets an empty tile.
+    // Every real failure (HTTP and network errors, corrupt images, cancelled
+    // requests) still rejects and keeps Cesium's handling.
+    const requestImage = provider.requestImage.bind(provider)
+    provider.requestImage = (x, y, level, request) =>
+        requestImage(x, y, level, request)?.then((image) =>
+            image === undefined ? emptyTile() : image
+        )
+    return provider
 }
 
 function makeWmsProviderFull(url, name, maxZoom, minZoom) {
