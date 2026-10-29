@@ -15,6 +15,9 @@ import {
     normalizeTitilerExpression,
 } from '@basics/Layers_/LayerUtils'
 
+// Most STAC items listed for a point (the hover readout stays short)
+const STAC_POINT_MAX_ITEMS = 10
+
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
 
@@ -848,7 +851,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
 
         // Search the same items the map tiles mosaic, so the first item with
         // data here is the one drawn there. 100 is TiTiler's default.
-        const stac = mmgisglobal.options?.stac || {}
+        const stac = window.mmgisglobal?.options?.stac || {}
         let mosaicParams = `&items_limit=${stac.mosaicItemLimit ?? 100}`
         if (stac.mosaicScanLimit != null)
             mosaicParams += `&scan_limit=${stac.mosaicScanLimit}`
@@ -873,27 +876,31 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                 // titiler-pgstac>=3: { assets: [{ name: 'collection/item', values, band_names }] }
                 // Items arrive in the search order the map's mosaic uses
                 // (newest first), and the mosaic draws each pixel from the
-                // first item with data there. Report that one item, so the
-                // value matches the pixel shown, rather than every item in the
-                // window (most of a swath collection is empty at any point).
+                // first item with data there. List the items with data here,
+                // that one first and marked, so the value shown matches the
+                // pixel and the ones under it can still be compared. Items
+                // with no data (most of a swath collection, at any point) are
+                // left out.
                 if (json && Array.isArray(json.assets)) {
                     const hasData = (v) => v != null && !Number.isNaN(v)
-                    const asset = json.assets.find((a) =>
+                    const withData = json.assets.filter((a) =>
                         (a.values || []).some(hasData)
                     )
                     const values = []
-                    if (asset) {
-                        const itemName = (asset.name || '').split('/').pop()
-                        asset.band_names.forEach((bandName, idx) => {
-                            values.push([
-                                `${itemName} - ${bandName}`,
-                                [asset.values[idx]],
-                                [bandName],
-                            ])
+                    withData
+                        .slice(0, STAC_POINT_MAX_ITEMS)
+                        .forEach((asset, i) => {
+                            const itemName = (asset.name || '').split('/').pop()
+                            const shown = i === 0 ? ' (shown)' : ''
+                            asset.band_names.forEach((bandName, idx) => {
+                                values.push([
+                                    `${itemName}${shown} - ${bandName}`,
+                                    [asset.values[idx]],
+                                    [bandName],
+                                ])
+                            })
                         })
-                    } else {
-                        values.push(['', [null], null]) // shown as a lone "no data"
-                    }
+                    if (!values.length) values.push(['', [null], null]) // shown as a lone "no data"
                     respond(values)
                 } else respond(null)
             })
