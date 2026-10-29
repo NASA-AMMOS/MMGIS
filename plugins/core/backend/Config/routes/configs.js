@@ -1521,10 +1521,12 @@ if (fullAccess)
         const entries =
           folderName && fs.existsSync(missionsRoot) ? fs.readdirSync(missionsRoot) : [];
         const index = entries.indexOf(folderName);
-        const dir = index >= 0 ? path.join(missionsRoot, entries[index]) : null;
-        if (dir && path.dirname(dir) === missionsRoot && fs.existsSync(dir)) {
-          let deletedDir = dir + "_deleted_";
-          if (fs.existsSync(deletedDir)) deletedDir = `${dir}_${Date.now()}_deleted_`;
+        const dir = index >= 0 ? path.resolve(missionsRoot, entries[index]) : null;
+        let deletedDir = dir ? path.resolve(missionsRoot, `${entries[index]}_deleted_`) : null;
+        if (deletedDir && fs.existsSync(deletedDir))
+          deletedDir = path.resolve(missionsRoot, `${entries[index]}_${Date.now()}_deleted_`);
+        const inMissions = (d) => d && d.startsWith(missionsRoot + path.sep) && path.dirname(d) === missionsRoot;
+        if (inMissions(dir) && inMissions(deletedDir) && fs.existsSync(dir)) {
           fs.rename(dir, deletedDir, (err) => {
             if (err)
               res.send({
