@@ -494,6 +494,54 @@ test.describe('token refresh', () => {
         expect((await connections.current(req, 'svc')).record.refreshToken).toBe('R7');
     });
 
+    test('a guest refresh that outlasts the response is saved to the stored session', async () => {
+        Object.assign(globalThis.__refreshTest, { delay: 2600, spent: new Set() });
+        // A minimal express-session: each request loads its own copy, save() writes it back
+        const store = {};
+        const request = (id) => {
+            const req = { principal: { kind: 'anonymous' }, sessionID: id, res: { headersSent: false } };
+            const load = () => {
+                req.session = JSON.parse(store[id] || '{}');
+                req.session.save = (cb) => { store[id] = JSON.stringify(req.session); if (cb) cb(); };
+                req.session.reload = (cb) => { load(); if (cb) cb(); };
+            };
+            load();
+            return req;
+        };
+        const first = request('sess-late');
+        await stored(first, {
+            accessToken: 'a', refreshToken: 'L1', expiresIn: 3600,
+            expiresAt: Date.now() + 5000, extra: { issuedAt: new Date(Date.now() - 3600 * 1000).toISOString() },
+        });
+        first.session.save();
+        const req = request('sess-late');
+        // The token still works for 5 s, so the request gets it after 2 s and the refresh carries on
+        expect(await connections.token(req, 'svc')).toBe('a');
+        req.res.headersSent = true;
+        req.session.save();
+        await new Promise((r) => setTimeout(r, 1200));
+        expect(globalThis.__refreshTest.calls).toEqual(['L1']);
+        expect((await connections.current(request('sess-late'), 'svc')).record.refreshToken).toBe('L1-next');
+    });
+
+    test('a session copy saved after Disconnect stays disconnected past ten minutes', async () => {
+        const c = connections.getConnection('svc');
+        const req = await stored({ ...guestReq(), sessionID: 'sess-gone' }, { accessToken: 'g', refreshToken: 'G1', expiresIn: 3600 });
+        const before = JSON.parse(JSON.stringify(req.session));
+        await connections.removeStored(req, req.principal, c);
+        const realNow = Date.now;
+        try {
+            Date.now = () => realNow() + 11 * 60 * 1000;
+            // A later Disconnect in another session tidies up old ones
+            const other = await stored({ ...guestReq(), sessionID: 'sess-other' }, { accessToken: 'o', refreshToken: 'O1', expiresIn: 3600 });
+            await connections.removeStored(other, other.principal, c);
+            // A request that began before the Disconnect saved its copy of the session afterwards
+            await expect(connections.current({ ...guestReq(), sessionID: 'sess-gone', session: before }, 'svc')).rejects.toThrow(/Connect/);
+        } finally {
+            Date.now = realNow;
+        }
+    });
+
     test('a rejection during an expiry refresh shares it', async () => {
         const first = await stored(guestReq(), { accessToken: 'old', refreshToken: 'mid', expiresIn: 1 });
         await new Promise((r) => setTimeout(r, 1100));

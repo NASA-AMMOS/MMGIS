@@ -65,6 +65,13 @@ function startRefresh(keys, c, record) {
   return job;
 }
 
+// express-session's reload()/save() as a promise; false when the session is gone
+function sessionCall(req, method) {
+  const s = req.session;
+  if (!s || typeof s[method] !== "function") return Promise.resolve(false);
+  return new Promise((resolve) => s[method]((err) => resolve(!err)));
+}
+
 // A refreshed grant nobody keeps (the user disconnected or reconnected meanwhile) is revoked once
 const orphaned = new WeakSet();
 function dropOrphan(c, job, fresh) {
@@ -95,12 +102,18 @@ async function refreshStored(req, principal, c, record, rejected) {
   const fresh = await job;
   // Save it only if the connection is still the one refreshed: not disconnected, reconnected or saved by another request
   return serialized(refreshScope(req, principal, c), async () => {
-    const now = await readStored(req, principal, c);
+    // A refresh that outlasted its response (see tokenFor) works on the stored session, since
+    // this request's copy is no longer saved
+    const detached = storageFor(principal, c) === "session" && !!(req.res && req.res.headersSent);
+    const loaded = !detached || (await sessionCall(req, "reload"));
+    const now = loaded ? await readStored(req, principal, c) : null;
     if (!superseded.has(job) && now && now.refreshToken === record.refreshToken) {
       await writeStored(req, principal, c, { ...fresh, connectedAt: record.connectedAt });
+      if (detached) await sessionCall(req, "save");
       return fresh;
     }
     if (!now) {
+      if (detached && loaded) await sessionCall(req, "save");
       dropOrphan(c, job, fresh);
       throw new ConnectionRequiredError(c.id, "not_connected", `Connect ${c.label} to continue.`);
     }
