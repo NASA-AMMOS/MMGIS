@@ -846,7 +846,7 @@ function PersonPanel({ user, ctx }) {
       .catch((res) => notify(res.message || "Failed to update email.", "error"));
 
   const saveViewing = (mode, list) =>
-    api("account_update_user", { id: user.id, missions_viewing: mode === "all" ? null : list })
+    api("account_update_user", { id: user.id, viewing: mode === "all" ? null : list })
       .then(() => {
         notify("Viewing access updated.", "success");
         refresh();

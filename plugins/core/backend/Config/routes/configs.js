@@ -24,9 +24,7 @@ const { sequelize } = require("../../../../../API/connection");
 const logger = require("../../../../../API/logger");
 const Config = require("../models/config");
 const config_template = require("../../../../../API/templates/config_template");
-const userModel = require("../../Users/models/user");
 const Userfiles = require("../../Draw/models/userfiles").Userfiles;
-const User = userModel.User;
 const { UserDefaults } = require("../../Users/models/userdefaults");
 const missionTemplates = require("../../Utils/missionTemplates");
 
@@ -1306,31 +1304,9 @@ if (fullAccess)
                   );
                 });
 
-                // Per-user mission permissions are stored as mission names, so
-                // they must follow the rename or the user loses access.
+                // The new-account default viewing list is stored as mission names
                 const renameIn = (list) =>
                   list.map((m) => (m === missionName ? newName : m));
-                const permissionUpdate = User.findAll({
-                  transaction: t,
-                }).then((users) => {
-                  const updates = [];
-                  (users || []).forEach((u) => {
-                    const fields = {};
-                    if (
-                      Array.isArray(u.missions_managing) &&
-                      u.missions_managing.includes(missionName)
-                    )
-                      fields.missions_managing = renameIn(u.missions_managing);
-                    if (
-                      Array.isArray(u.missions_viewing) &&
-                      u.missions_viewing.includes(missionName)
-                    )
-                      fields.missions_viewing = renameIn(u.missions_viewing);
-                    if (Object.keys(fields).length > 0)
-                      updates.push(u.update(fields, { transaction: t }));
-                  });
-                  return Promise.all(updates);
-                });
                 const defaultsUpdate = UserDefaults.findOne({
                   where: { id: 1 },
                   transaction: t,
@@ -1355,13 +1331,10 @@ if (fullAccess)
 
                 return Promise.all([
                   ...configUpdates,
-                  permissionUpdate,
                   defaultsUpdate,
                   userfilesUpdate,
                 ]);
               })
-              // The legacy columns changed here, not on a previous release
-              .then(() => require("../../../../../API/permissions/legacyImport").recordColumns(null))
               .then(() => missionIdentity.renameMission(missionName, newName))
               .then(() => {
                 logger(
@@ -1480,20 +1453,6 @@ if (fullAccess)
             { mission: null },
             { where: { mission: missionName }, transaction: t }
           ),
-          // Per-user mission lists are stored as names, so a later mission with this name doesn't inherit them
-          User.findAll({ transaction: t }).then((users) =>
-            Promise.all(
-              (users || []).map((u) => {
-                const fields = {};
-                for (const col of ["missions_managing", "missions_viewing"])
-                  if (Array.isArray(u[col]) && u[col].includes(missionName))
-                    fields[col] = u[col].filter((m) => m !== missionName);
-                return Object.keys(fields).length > 0
-                  ? u.update(fields, { transaction: t })
-                  : null;
-              })
-            )
-          ),
           UserDefaults.findOne({ where: { id: 1 }, transaction: t }).then((d) =>
             d &&
             Array.isArray(d.missions_viewing) &&
@@ -1506,8 +1465,6 @@ if (fullAccess)
           ),
         ])
       ))
-      // The legacy columns changed here, not on a previous release
-      .then(() => require("../../../../../API/permissions/legacyImport").recordColumns(null))
       .then(() => missionIdentity.removeMission(missionName))
       .then((mission) => {
         logger(

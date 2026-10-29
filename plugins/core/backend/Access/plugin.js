@@ -26,7 +26,7 @@ let setup = {
       await permissionModels.up();
       await missions.backfill();
       await legacyImport.run();
-      await legacyImport.reconcileRollback();
+      await legacyImport.dropRollbackTracking();
       await legacyImport.warnIfSiteAccessChanged();
       await require("../../../../API/permissions/principal").scrubLegacyTokenColumn();
     } catch (err) {

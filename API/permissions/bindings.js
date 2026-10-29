@@ -58,84 +58,9 @@ async function superAdminUserIds() {
   return existingUserIds(rows);
 }
 
-// Keeps the derived, read-only users.missions_managing column in step with bindings
-async function syncLegacyPermission(userId) {
-  const { RoleBinding, User, AuthGroupMember } = models();
-  const groups = await AuthGroupMember.findAll({
-    where: { user_id: userId },
-    attributes: ["group_id"],
-    raw: true,
-  });
-  const rows = await RoleBinding.findAll({
-    where: {
-      [Op.or]: [
-        { subject_type: "user", subject_id: String(userId) },
-        { subject_type: "audience", subject_id: ["authenticated", "everyone"] },
-        ...groups.map((g) => ({ subject_type: "group", subject_id: String(g.group_id) })),
-      ],
-    },
-    raw: true,
-  });
-  const bindings = rows
-    .filter((r) => r.role !== "superadmin" || r.subject_type === "user")
-    .map((r) => ({
-      role: r.role,
-      scope: policy.scopeKey(r.scope_type, r.mission_uuid, r.layer_uuid),
-    }));
-  const managing = await missions.namesForUUIDs(
-    rows
-      .filter((r) => r.role === "mission_admin" && r.mission_uuid)
-      .map((r) => r.mission_uuid)
-  );
-  const update = { missions_managing: managing.length ? managing : null };
-
-  // The legacy permission and missions_viewing columns are only ever lowered to match
-  // the grants, so rolling back to a release that reads them never gives more access
-  const user = await User.findOne({
-    where: { id: userId },
-    attributes: ["permission", "missions_viewing"],
-    raw: true,
-  });
-  if (user) {
-    const superAdmin = bindings.some((b) => b.role === "superadmin" && b.scope === "global");
-    // "110" was broadly authorized on older releases, so a demoted SuperAdmin drops to "001"
-    if (user.permission === "111" && !superAdmin) update.permission = "001";
-    else if (user.permission === "110" && managing.length === 0) update.permission = "001";
-    const viewable = policy.missionsWith({ authenticated: true, bindings }, "mission.view");
-    if (viewable != null) {
-      const names = await missions.namesForUUIDs(viewable);
-      const current = user.missions_viewing;
-      const lowered = current == null ? names : current.filter((m) => names.includes(m));
-      if (current == null || lowered.length !== current.length) update.missions_viewing = lowered;
-    }
-  }
-  // Only the derived columns; never password/username
-  await User.update(update, { where: { id: userId }, hooks: false });
-  await require("./legacyImport").recordColumns([userId]);
-}
-
-async function affectedUserIds(subject_type, subject_id) {
-  if (subject_type === "user") return [parseInt(subject_id)];
-  if (subject_type === "group") {
-    const { AuthGroupMember } = models();
-    const rows = await AuthGroupMember.findAll({
-      where: { group_id: parseInt(subject_id) },
-      attributes: ["user_id"],
-      raw: true,
-    });
-    return rows.map((r) => r.user_id);
-  }
-  if (subject_type === "audience") {
-    const { User } = models();
-    return (await User.findAll({ attributes: ["id"], raw: true })).map((u) => u.id);
-  }
-  return [];
-}
-
-async function afterChange(subject_type, subject_id) {
+// After a grant change: cached principals are rebuilt on their next request
+async function afterChange() {
   invalidate();
-  for (const id of await affectedUserIds(subject_type, subject_id))
-    await syncLegacyPermission(id);
 }
 
 // actor: principal performing the change
@@ -304,7 +229,6 @@ module.exports = {
   removeBinding,
   listBindings,
   setUserMissionRole,
-  syncLegacyPermission,
   superAdminUserIds,
   withSuperAdminLock,
   afterChange,

@@ -244,7 +244,7 @@ const NewUserModal = (props) => {
         password: password,
         skipLogin: true,
         ...(isSuperAdmin
-          ? { missions_viewing: restrictViewing ? missionsViewing : null }
+          ? { viewing: restrictViewing ? missionsViewing : null }
           : {}),
       },
       (res) => {

@@ -149,7 +149,6 @@ router.post("/groups/delete", manage, async (req, res) => {
     for (const b of groupBindings) await bindings.removeBinding(actor, b.id);
     const members = await AuthGroupMember.findAll({ where: { group_id: id }, raw: true });
     await group.destroy();
-    for (const m of members) await bindings.syncLegacyPermission(m.user_id);
     invalidate();
     res.send({ status: "success" });
   } catch (err) {
@@ -172,7 +171,6 @@ async function changeMember(req, res, add) {
     if (add) await assertHoldsGroupRoles(actor, group_id);
     if (add) await AuthGroupMember.findOrCreate({ where: { group_id, user_id } });
     else await AuthGroupMember.destroy({ where: { group_id, user_id } });
-    await bindings.syncLegacyPermission(user_id);
     invalidate();
     res.send({ status: "success" });
   } catch (err) {

@@ -30,8 +30,6 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
       "id",
       "username",
       "email",
-      "missions_managing",
-      "missions_viewing",
       "createdAt",
       "updatedAt",
     ],
@@ -186,7 +184,8 @@ router.post("/update", authorize("accounts.manage"), function (req, res, next) {
     });
 });
 
-// Applies email and the role / missions fields as role bindings
+// Applies email, and `viewing` (null: every mission; a list: only those) as the user's own viewer grants.
+// Other roles are granted in Users & Access (/api/access).
 async function updateUser(req, id) {
   const actor = await ensurePrincipal(req);
   const body = req.body || {};
@@ -194,21 +193,12 @@ async function updateUser(req, id) {
   if (!user) throw new bindings.BindingError("User not found.");
 
   // Validate everything up front so a rejected update changes nothing
-  const managing =
-    body.role === "mission_admin" && Array.isArray(body.missions_managing)
-      ? body.missions_managing.filter((m) => typeof m === "string")
-      : [];
   const changesViewing =
-    Object.prototype.hasOwnProperty.call(body, "missions_viewing") &&
-    (body.missions_viewing === null || Array.isArray(body.missions_viewing));
-  const viewingNames =
-    changesViewing && Array.isArray(body.missions_viewing)
-      ? body.missions_viewing.filter((m) => typeof m === "string")
-      : [];
+    Object.prototype.hasOwnProperty.call(body, "viewing") &&
+    (body.viewing === null || Array.isArray(body.viewing));
+  const viewing = changesViewing && Array.isArray(body.viewing) ? body.viewing.filter((m) => typeof m === "string") : null;
   if (changesViewing && !policy.isSuperAdmin(actor))
     throw new bindings.BindingError("Only SuperAdmins may change what a user can view.");
-  if (body.role === "superadmin" && !policy.isSuperAdmin(actor))
-    throw new bindings.BindingError("You cannot grant a role with more access than your own.");
   if (body.email === "") body.email = null;
   const clearEmail = Object.prototype.hasOwnProperty.call(body, "email") && body.email === null;
   if (body.email != null) {
@@ -218,87 +208,19 @@ async function updateUser(req, id) {
     if (await User.findOne({ where: { email: body.email, id: { [Op.ne]: id } }, attributes: ["id"] }))
       throw new bindings.BindingError("Email already in use.");
   }
-  for (const name of new Set([...managing, ...viewingNames])) {
-    const uuid = await missions.uuidForName(name);
-    if (!uuid) throw new bindings.BindingError(`Mission not found: ${name}`);
-    if (managing.includes(name))
-      for (const cap of policy.ROLES.mission_admin.capabilities)
-        if (!policy.can(actor, cap, { mission: uuid, layers: [] }))
-          throw new bindings.BindingError("You cannot grant a role with more access than your own.");
-  }
+  for (const name of viewing || [])
+    if (!(await missions.uuidForName(name))) throw new bindings.BindingError(`Mission not found: ${name}`);
 
-  const userBinding = (role, scope_type, extra = {}) => ({
-    subject_type: "user",
-    subject_id: id,
-    role,
-    scope_type,
-    ...extra,
-  });
-  const existing = await RoleBinding.findAll({
-    where: { subject_type: "user", subject_id: String(id) },
-  });
-  const remove = async (filter) => {
-    for (const b of existing.filter(filter)) await bindings.removeBinding(actor, b.id);
-  };
-
-  const role = body.role;
-  // Exactly the grants this update removes, checked before anything changes
-  const toRemove = new Set();
-  const keepOnlyMissions = async (r, names) => {
-    for (const b of existing)
-      if (b.role === r && b.scope_type === "mission" && !names.includes(await missions.nameForUUID(b.mission_uuid)))
-        toRemove.add(b.id);
-  };
-  if (role === "mission_admin" || role === "user") {
-    for (const b of existing)
-      if (
-        ((b.role === "superadmin" || b.role === "mission_admin") && b.scope_type === "global") ||
-        (role === "user" && (b.role === "layer_editor" || b.role === "data_admin"))
-      )
-        toRemove.add(b.id);
-    await keepOnlyMissions("mission_admin", managing);
-  }
   if (changesViewing) {
-    if (body.missions_viewing != null)
-      for (const b of existing) if (b.role === "viewer" && b.scope_type === "global") toRemove.add(b.id);
-    await keepOnlyMissions("viewer", viewingNames);
-  }
-  if (toRemove.size) await bindings.assertCanRemoveIds(actor, Array.from(toRemove));
-  if (role === "superadmin") {
-    await bindings.addBinding(actor, userBinding("superadmin", "global"));
-  } else if (role === "mission_admin" || role === "user") {
-    await remove(
-      (b) =>
-        (b.role === "superadmin" || b.role === "mission_admin") &&
-        b.scope_type === "global"
-    );
-    // "User" has no editing or data administration anywhere
-    if (role === "user") await remove((b) => b.role === "layer_editor" || b.role === "data_admin");
-    await bindings.setUserMissionRole(
-      actor,
-      id,
-      "mission_admin",
-      role === "mission_admin" && Array.isArray(body.missions_managing)
-        ? body.missions_managing.filter((m) => typeof m === "string")
-        : []
-    );
-  }
-
-  if (
-    Object.prototype.hasOwnProperty.call(body, "missions_viewing") &&
-    (body.missions_viewing === null || Array.isArray(body.missions_viewing))
-  ) {
-    if (!policy.isSuperAdmin(actor))
-      throw new bindings.BindingError("Only SuperAdmins may change what a user can view.");
-    const viewing =
-      body.missions_viewing == null
-        ? null
-        : body.missions_viewing.filter((m) => typeof m === "string");
+    const existing = await RoleBinding.findAll({ where: { subject_type: "user", subject_id: String(id) } });
     if (viewing == null)
-      await bindings.addBinding(actor, userBinding("viewer", "global"));
-    else await remove((b) => b.role === "viewer" && b.scope_type === "global");
+      await bindings.addBinding(actor, { subject_type: "user", subject_id: id, role: "viewer", scope_type: "global" });
+    else {
+      const globalViewer = existing.filter((b) => b.role === "viewer" && b.scope_type === "global");
+      await bindings.assertCanRemoveIds(actor, globalViewer.map((b) => b.id));
+      for (const b of globalViewer) await bindings.removeBinding(actor, b.id);
+    }
     await bindings.setUserMissionRole(actor, id, "viewer", viewing || []);
-    await User.update({ missions_viewing: viewing }, { where: { id }, hooks: false });
   }
   if (body.email != null || clearEmail)
     // Only the email column; never password/username

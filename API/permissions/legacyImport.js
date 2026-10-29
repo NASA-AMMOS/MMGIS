@@ -8,10 +8,8 @@ const missions = require("./missions");
 const { LEGACY_SUPERADMIN, LEGACY_ADMIN } = require("./legacyPermissions");
 
 const IMPORT_KEY = "legacy_import_v1";
-// Last legacy column values this release saw, one row per account, to spot
-// changes made on the previous release after a rollback
-const COLUMNS_KEY = "legacy_columns_v1";
-const COLUMNS_PREFIX = "legacy_columns:";
+// Rollback tracking from earlier builds of this release; no longer kept
+const OLD_COLUMNS_KEYS = { [Op.or]: [{ [Op.eq]: "legacy_columns_v1" }, { [Op.like]: "legacy_columns:%" }] };
 const SIGNED_IN_PERMISSIONS = [LEGACY_ADMIN, "001"];
 
 function models() {
@@ -148,8 +146,6 @@ async function importLocked(transaction) {
       defaults: { source: b.source },
       transaction,
     });
-  await recordColumns(null, transaction);
-  await AuthMeta.upsert({ key: COLUMNS_KEY, value: { at: new Date().toISOString() } }, { transaction });
   await AuthMeta.upsert({
     key: IMPORT_KEY,
     value: {
@@ -179,169 +175,11 @@ async function warnIfSiteAccessChanged() {
   return null;
 }
 
-const COLUMNS = ["permission", "missions_managing", "missions_viewing"];
-const columnsOf = (u) => ({
-  permission: u.permission,
-  missions_managing: u.missions_managing == null ? null : [...u.missions_managing].sort(),
-  missions_viewing: u.missions_viewing == null ? null : [...u.missions_viewing].sort(),
-});
-const sameColumns = (a, b) => JSON.stringify(columnsOf(a)) === JSON.stringify(columnsOf(b));
-
-// Saves the current legacy columns of these accounts (all when ids is null)
-async function recordColumns(ids, transaction) {
-  const { AuthMeta, User } = models();
-  const users = await User.findAll({
-    ...(ids ? { where: { id: ids } } : {}),
-    attributes: ["id", ...COLUMNS],
-    raw: true,
-    transaction,
-  });
-  for (const u of users)
-    await AuthMeta.upsert({ key: COLUMNS_PREFIX + u.id, value: columnsOf(u) }, { transaction });
-}
-
-const minus = (a, b) => (a || []).filter((m) => !(b || []).includes(m));
-const canSignIn = (p) => p === LEGACY_SUPERADMIN || SIGNED_IN_PERMISSIONS.includes(p);
-
-// What a change to an account's legacy columns, made while rolled back, took away.
-// Returns removals (and the narrower grants that replace a removed global one);
-// anything that was raised is only reported.
-function rollbackChanges(before, now, legacyLocal) {
-  const out = { removeSuperAdmin: false, removeManaging: [], removeAllViewing: false,
-    removeGlobalViewer: false, viewOnly: null, removeViewing: [], raised: [] };
-  // A former SuperAdmin is then imported again with its new value
-  if (before.permission === LEGACY_SUPERADMIN && now.permission !== LEGACY_SUPERADMIN) {
-    out.removeSuperAdmin = true;
-    return out;
-  } else if (now.permission === LEGACY_SUPERADMIN && before.permission !== LEGACY_SUPERADMIN)
-    out.raised.push("SuperAdmin");
-  const managedBefore = before.permission === LEGACY_ADMIN ? before.missions_managing : [];
-  const managedNow = now.permission === LEGACY_ADMIN ? now.missions_managing : [];
-  out.removeManaging = minus(managedBefore, managedNow);
-  if (before.permission !== LEGACY_SUPERADMIN && minus(managedNow, managedBefore).length)
-    out.raised.push(`Mission Admin of ${minus(managedNow, managedBefore).join(", ")}`);
-  if (legacyLocal) {
-    if (canSignIn(before.permission) && !canSignIn(now.permission)) out.removeAllViewing = true;
-    else if (canSignIn(now.permission)) {
-      const vb = before.missions_viewing;
-      const vn = now.missions_viewing;
-      if (!canSignIn(before.permission)) out.raised.push("sign-in");
-      else if (vb == null && vn != null) {
-        out.removeGlobalViewer = true;
-        out.viewOnly = vn;
-      } else if (vb != null && vn == null) out.raised.push("view all missions");
-      else if (vb != null && vn != null) {
-        out.removeViewing = minus(vb, vn);
-        if (minus(vn, vb).length) out.raised.push(`view ${minus(vn, vb).join(", ")}`);
-      }
-    }
-  }
-  return out;
-}
-
-// After a rollback to a release that reads the legacy columns and a re-upgrade,
-// access removed there is removed here too. Accounts created there are imported.
-async function reconcileRollback() {
-  if (!(await alreadyImported())) return null;
-  const { AuthMeta, RoleBinding, User } = models();
-  const bindings = require("./bindings");
-  const legacyLocal = isLegacyLocal();
-  const report = [];
-  const changedIds = [];
-  await bindings.withSuperAdminLock(async ({ transaction, superAdmins }) => {
-    await sequelize.query("SELECT pg_advisory_xact_lock(hashtext(:key))", {
-      replacements: { key: `mmgis:${COLUMNS_KEY}` },
-      transaction,
-    });
-    const tracked = (await AuthMeta.findOne({ where: { key: COLUMNS_KEY }, transaction })) != null;
-    if (tracked) {
-      const rows = await AuthMeta.findAll({
-        where: { key: { [Op.like]: `${COLUMNS_PREFIX}%` } },
-        raw: true,
-        transaction,
-      });
-      const before = new Map(rows.map((r) => [r.key.slice(COLUMNS_PREFIX.length), r.value]));
-      const users = await User.findAll({ attributes: ["id", "username", ...COLUMNS], raw: true, transaction });
-      const remaining = new Set(superAdmins.map(String));
-      const userWhere = (id, extra) => ({ subject_type: "user", subject_id: String(id), ...extra });
-      const destroy = (where) => RoleBinding.destroy({ where, transaction });
-      const grant = (id, role, scope_type, mission_uuid) =>
-        RoleBinding.findOrCreate({
-          where: userWhere(id, { role, scope_type, mission_uuid: mission_uuid || null, layer_uuid: null }),
-          defaults: { source: "import" },
-          transaction,
-        });
-      const uuidsOf = async (names) =>
-        (await Promise.all((names || []).map((n) => missions.uuidForName(n)))).filter(Boolean);
-
-      for (const u of users) {
-        const id = String(u.id);
-        const was = before.get(id);
-        before.delete(id);
-        if (was && sameColumns(was, u)) continue;
-        changedIds.push(u.id);
-        const done = [];
-        if (!was) {
-          // Created on the previous release: import it like the first upgrade did
-          const add = [];
-          await userBindings(u, legacyLocal, (n) => missions.uuidForName(n), (b) => add.push(b));
-          for (const b of add) await grant(u.id, b.role, b.scope_type, b.mission_uuid);
-          report.push(`${u.username}: new account, imported ${add.length} grant(s)`);
-          continue;
-        }
-        const c = rollbackChanges(was, u, legacyLocal);
-        if (c.removeSuperAdmin && remaining.has(id)) {
-          if (remaining.size === 1) {
-            report.push(`${u.username}: kept SuperAdmin (it is the last one)`);
-            continue;
-          } else {
-            remaining.delete(id);
-            await destroy(userWhere(id, { role: "superadmin", scope_type: "global" }));
-            done.push("removed SuperAdmin");
-          }
-          const add = [];
-          await userBindings(u, legacyLocal, (n) => missions.uuidForName(n), (b) => add.push(b));
-          for (const b of add) await grant(u.id, b.role, b.scope_type, b.mission_uuid);
-          if (add.length) done.push(`imported ${add.length} grant(s) for permission ${u.permission}`);
-          report.push(`${u.username}: ${done.join("; ")}`);
-          continue;
-        }
-        const managing = await uuidsOf(c.removeManaging);
-        if (managing.length && (await destroy(userWhere(id, { role: "mission_admin", scope_type: "mission", mission_uuid: managing }))))
-          done.push(`removed Mission Admin of ${c.removeManaging.join(", ")}`);
-        if (c.removeAllViewing && (await destroy(userWhere(id, { role: "viewer" }))))
-          done.push("removed viewing (account can no longer sign in there)");
-        if (c.removeGlobalViewer && (await destroy(userWhere(id, { role: "viewer", scope_type: "global" })))) {
-          for (const uuid of await uuidsOf(c.viewOnly)) await grant(u.id, "viewer", "mission", uuid);
-          done.push(`limited viewing to ${c.viewOnly.length ? c.viewOnly.join(", ") : "no missions"}`);
-        }
-        const viewing = await uuidsOf(c.removeViewing);
-        if (viewing.length && (await destroy(userWhere(id, { role: "viewer", scope_type: "mission", mission_uuid: viewing }))))
-          done.push(`removed viewing of ${c.removeViewing.join(", ")}`);
-        if (c.raised.length)
-          done.push(`not raised (grant in Users & Access if intended): ${c.raised.join("; ")}`);
-        if (done.length) report.push(`${u.username}: ${done.join("; ")}`);
-      }
-      // Accounts deleted on the previous release
-      for (const id of before.keys()) {
-        const n = await destroy({ subject_type: "user", subject_id: id });
-        await AuthMeta.destroy({ where: { key: COLUMNS_PREFIX + id }, transaction });
-        if (n) report.push(`deleted account #${id}: removed ${n} grant(s)`);
-      }
-    }
-    await recordColumns(null, transaction);
-    await AuthMeta.upsert({ key: COLUMNS_KEY, value: { at: new Date().toISOString() } }, { transaction });
-  });
-  if (report.length) {
-    require("./principal").invalidate();
-    for (const id of changedIds) await bindings.syncLegacyPermission(id);
-    logger(
-      "warn",
-      `Accounts changed on the previous release since the last start; grants updated to match: ${report.join(" | ")}`,
-      "permissions"
-    );
-  }
-  return report;
+// The legacy columns are left as they were at the import and no longer read or written.
+// Downgrading after this means restoring a database backup taken before the upgrade.
+async function dropRollbackTracking() {
+  const { AuthMeta } = models();
+  await AuthMeta.destroy({ where: { key: OLD_COLUMNS_KEYS } }).catch(() => {});
 }
 
 module.exports = {
@@ -349,8 +187,6 @@ module.exports = {
   run,
   alreadyImported,
   warnIfSiteAccessChanged,
-  reconcileRollback,
-  rollbackChanges,
-  recordColumns,
+  dropRollbackTracking,
   IMPORT_KEY,
 };

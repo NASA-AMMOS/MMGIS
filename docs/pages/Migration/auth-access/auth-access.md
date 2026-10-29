@@ -82,7 +82,7 @@ No code or proxy changes are needed.
    - a user outside `CSSO_GROUPS` gets 403;
    - an admin logs in to `/configure` with their local account.
 
-4. To roll back, run `npm run auth:migrate -- --end-sessions`, then restore the previous image and env. Accounts work as before; long-term tokens used on this release must be regenerated (section 2).
+4. To roll back, restore the database backup you took before upgrading (section 2), then the previous image and env. Changes made on this release are lost.
 
 What CSSO users and admins will notice:
 
@@ -121,13 +121,7 @@ On a brand-new site with no accounts, creating the first account on `/configure`
 
 The server also runs the import once on first start if it hasn't run. It never runs again, so later grant changes are never undone; set `SITE_ACCESS` correctly before that first start (the server warns if it later differs from the value used at import). Unknown mission names are reported and skipped. Accounts whose legacy `permission` could not log in before (`000`, `010`, ...) get no viewer access.
 
-The legacy columns are kept, so rolling back to the previous image still works. They are only ever lowered to match current grants (for example when a SuperAdmin is demoted or a viewer grant is removed), never raised, so a rollback never gives more access than the grants did. Accounts created on this release have `permission=000` and can't log in on the previous release.
-
-If you roll back, change accounts on the previous release and then upgrade again, the server compares each account's legacy columns with the values it last saw. Access removed there is removed from the matching grants: a SuperAdmin set to `110` or `001` loses SuperAdmin (unless they are the last one), missions taken out of `missions_managing` or `missions_viewing` lose the Mission Admin or Viewer grant, a viewer limited from all missions to a list keeps only those missions, and an account set to `000`/`010` loses its viewer grants. Access added there is not granted, only reported. Accounts created there are imported like the first upgrade, and grants of accounts deleted there are removed. Each change is logged at startup as a warning. Only the account's own grants are changed: access through a group or the Everyone / Logged-in users audiences stays until you change it in Users & Access.
-
-Long-term tokens used on this release don't work after a rollback. On first use their stored value is replaced by a hash that the previous release can't check, so it treats them as having no access (for example, empty mission lists) instead of refusing them. Tokens created on this release never worked there. Generate new tokens on the previous release after rolling back.
-
-**Before rolling back, sign everyone out:** run `npm run auth:migrate -- --end-sessions` from this release against the same database, then start the previous image. Sessions still carry a legacy `permission` value that the previous release trusts, so without this step an account demoted on this release keeps its old rights there until its session expires.
+**Back up the database before upgrading.** After the import, access lives only in the role bindings. The legacy `permission`, `missions_managing` and `missions_viewing` columns stay in the `users` table as they were at the import, but this release never reads or updates them. Downgrading on the same database is therefore not supported: the previous release would read those stale columns, so someone demoted or removed from a mission here would get that access back. To downgrade, restore the backup taken before upgrading and start the previous image.
 
 ## 3. What changes for each kind of account
 
