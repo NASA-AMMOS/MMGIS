@@ -1,3 +1,8 @@
-// MMGIS username/password accounts. Login, signup and password reset are
-// served by the Users backend (/api/users), so no hooks are needed here.
-module.exports = {};
+// MMGIS username/password accounts. Its routes are served at /api/auth/local/*
+// and, for existing clients, at /api/users/*.
+const { mountLocalRoutes } = require("./routes");
+module.exports = {
+  routes(router) {
+    mountLocalRoutes(router);
+  },
+};

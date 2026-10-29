@@ -3,7 +3,7 @@
   "id": "core-auth-local",
   "name": "Local",
   "display_name": "Local Accounts",
-  "description": "MMGIS username/password accounts. Login, signup and password reset are served by the Users backend (/api/users).",
+  "description": "MMGIS username/password accounts: signup, login and password reset at /api/auth/local (also /api/users).",
   "aliases": [
     "local"
   ],
