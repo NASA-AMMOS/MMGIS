@@ -14,7 +14,7 @@ const LEGACY_AUTH_REPLACEMENTS = {
 const RENAMED_ENVS = {
   CSSO_GROUPS: "PROXY_GROUPS",
   CSSO_LEAD_GROUP: "PROXY_LEAD_GROUP",
-  CSSO_PROXY_SECRET: "PROXY_SECRET",
+  CSSO_PROXY_SECRET: "PROXY_SECRET", // pragma: allowlist secret
 };
 
 function parseProviders(raw) {

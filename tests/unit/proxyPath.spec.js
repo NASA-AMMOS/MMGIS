@@ -57,7 +57,7 @@ test.describe('stripCredentials', () => {
   test('removes custom proxy identity header names too', () => {
     const saved = { u: process.env.PROXY_USER_HEADER, k: process.env.PROXY_SECRET_HEADER };
     process.env.PROXY_USER_HEADER = 'X-Forwarded-User';
-    process.env.PROXY_SECRET_HEADER = 'X-Edge-Key';
+    process.env.PROXY_SECRET_HEADER = 'X-Edge-Key'; // pragma: allowlist secret
     try {
       const r = fakeReq({ 'x-forwarded-user': 'u', 'x-edge-key': 'k', 'x-sub': 'u', accept: 'application/json' });
       stripCredentials(r);
