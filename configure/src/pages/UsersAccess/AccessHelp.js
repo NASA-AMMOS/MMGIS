@@ -7,7 +7,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 
 import { calls } from "../../core/calls";
-import { SubjectTag, RoleBadge } from "./UsersAccess";
+import { SubjectTag, RoleBadge } from "./shared";
 
 const ROLES = [
   ["viewer", "See a mission and its layers."],
