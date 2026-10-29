@@ -74,7 +74,19 @@ function emit() {
 }
 
 let loadError = false
+let inflight = null
+let queued = null
+// At most one list request at a time, plus one follow-up for changes made meanwhile
 function refresh() {
+    if (!inflight) return loadList()
+    if (!queued)
+        queued = inflight.then(() => {
+            queued = null
+            return loadList()
+        })
+    return queued
+}
+function loadList() {
     const ctl =
         typeof AbortController === 'function' ? new AbortController() : null
     const timer = ctl && setTimeout(() => ctl.abort(), 15000)
@@ -104,6 +116,10 @@ function refresh() {
             Array.from(separatedGates.values()).forEach((g) => g.render())
             return services
         })
+        .finally(() => {
+            inflight = null
+        })
+    inflight = loaded
     return loaded
 }
 
@@ -532,6 +548,8 @@ function overlayGate(s, reason, retry, toolName) {
         toolName && document.getElementById(`toolContentSeparated_${toolName}`)
     if (separated) {
         const old = separatedGates.get(toolName)
+        // The tool isn't open yet: its own card stays, so make() still runs on connect
+        if (old && !old.el.hasClass('overlay')) return old.render()
         if (old) old.remove()
         const g = makeGate(toolName, null, s, () => {}, reason)
         g.hold = s.connected
@@ -544,7 +562,7 @@ function overlayGate(s, reason, retry, toolName) {
         }
         g.resume = () => {
             g.remove()
-            if (typeof retry === 'function') retry()
+            runRetry(retry)
         }
         separatedGates.set(toolName, g)
         $(separated).prepend(g.el)
@@ -591,7 +609,13 @@ const Connections_ = {
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') refresh()
         })
-        document.addEventListener('mmgis:loginchange', refresh)
+        document.addEventListener('mmgis:loginchange', () => {
+            // A sign-in started before signing in or out won't finish into this identity
+            ;[gate, ...separatedGates.values()].forEach((g) => {
+                if (g) g.waiting = false
+            })
+            refresh()
+        })
         if ('BroadcastChannel' in window) {
             try {
                 new BroadcastChannel('mmgis-connections').onmessage = (e) => {
@@ -680,7 +704,29 @@ const Connections_ = {
         if (hasLoaded && !loadError && !find(body.service)) return false
         refresh().then(() => {
             const s = find(body.service)
+            // A late reply from a panel tool the user has since left: the open
+            // tool only gets a card for a service it declares
+            if (
+                s &&
+                !toolName &&
+                !requirementsOf(activeTool.name).some((r) => find(r) === s)
+            )
+                return
             if (s) overlayGate(s, body.reason, retry, toolName)
+            // The list still can't load: show "Couldn't check" instead of retrying in a loop
+            else if (loadError)
+                overlayGate(
+                    {
+                        id: `missing:${String(body.service).toLowerCase()}`,
+                        label: String(body.service),
+                        configured: false,
+                        connected: false,
+                        missing: true,
+                    },
+                    body.reason,
+                    retry,
+                    toolName
+                )
             else runRetry(retry)
         })
         return true

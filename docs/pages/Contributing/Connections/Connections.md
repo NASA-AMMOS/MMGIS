@@ -312,7 +312,7 @@ module.exports = {
 
 ## Where tokens are kept
 
-- **Signed-in users with an MMGIS account** (local, or through a provider that links to an account): in the `auth_connections` table, one row per user and connection, encrypted with AES-256-GCM using a key derived from `SECRET`. Changing `SECRET` makes stored connections unreadable, and users connect again.
+- **Signed-in users with an MMGIS account** (local, or through a provider that links to an account): in the `auth_connections` table, one row per user and connection, encrypted with AES-256-GCM using a key derived from `SECRET`. Changing `SECRET` makes stored connections unreadable, and users connect again. The rows are kept, so putting the old `SECRET` back restores them.
 - **Guests and per-request provider identities with no MMGIS account:** in the server-side session, gone when the session ends.
 - Tokens are never put in cookies, the mission config, tile URLs or replies to the browser.
 
@@ -346,9 +346,11 @@ Rules for the key page:
 
 - **Get the plugin path right** in a tool's `connections` list. A path that matches no installed connection plugin logs a warning in the browser. If that entry is `"required": true`, the tool doesn't open and its card says the service isn't set up; an optional one is ignored.
 - **Register the exact redirect URI** with the service, including `ROOT_PATH`. Behind a proxy, set `CONNECTIONS_CALLBACK_BASE_URL`. If the service rejects it, the error shows on the service's page and MMGIS never hears back. Configure → Users & Access → Connections shows the callback URL MMGIS sends for each connection, and the tool's waiting card has a Cancel link.
-- **Connect is rate limited** to 100 a client IP per 15 minutes, because each one saves a session for its OAuth state. Set `TRUST_PROXY` to match your proxies so a client can't pick its own IP.
-- **Several MMGIS instances** sharing a database coordinate refreshes of signed-in users' connections: the first instance to claim the stored row refreshes, and the others wait up to 10 seconds for its result. Guests' and per-request identities' connections live in the session, so use sticky sessions if their refresh tokens rotate.
-- **Plugin hooks time out.** `authorizeUrl`, `exchange`, `refresh` and `revoke` that don't settle in 20 seconds fail. A refresh that fails that way, or with a network error, 429 or 5xx, keeps the connection and the card offers Try again. Disconnect doesn't wait for `revoke`.
+- **Connect is rate limited** to 100 a client IP per 15 minutes, because each one saves a session for its OAuth state. Callbacks are limited to 30 failed code exchanges. Cross-site requests that aren't page loads, such as an `<img>` on another site, are refused before they count. Set `TRUST_PROXY` to match your proxies so a client can't pick its own IP.
+- **One MMGIS server.** Refreshes are shared within the server process: concurrent requests make one `refresh()` call, and a refresh that failed with a network error, 429 or 5xx is shared for 5 seconds before the service is asked again. Several MMGIS servers sharing a database don't coordinate, so two of them can use the same rotating refresh token.
+- **A rotating refresh that is cut off loses the grant.** If MMGIS restarts, or `refresh()` times out, after the service has rotated the refresh token, MMGIS still holds the old one and the user connects again.
+- **Disconnect wins over refreshes in flight.** A refresh that finishes after Disconnect isn't saved, its new grant is revoked, and requests that started before Disconnect get `connection_required`.
+- **Plugin hooks time out.** `authorizeUrl`, `exchange`, `refresh` and `revoke` that don't settle in 20 seconds fail. An error a plugin raises outside the promise it returns, such as a throw in a timer or an `http.get()` without an `'error'` listener, is logged and MMGIS keeps running. A refresh that fails that way, or with a network error, 429 or 5xx, keeps the connection and the card offers Try again. Disconnect doesn't wait for `revoke`.
 - **Tokens over 64 KB** are refused, and the connect or refresh fails.
 - **A refresh while the current token still works** waits at most 2 seconds; after that the request uses the current token and the refresh finishes in the background.
 - **A guest who signs in** keeps their session connections only for services the account isn't already connected to. Otherwise the guest's grant is revoked and the account's is kept. Connecting again replaces the account's connection and revokes the old grant.

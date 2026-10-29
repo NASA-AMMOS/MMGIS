@@ -21,7 +21,8 @@ const secretBox = require("./secretBox");
 const DOCS_URL = "https://nasa-ammos.github.io/MMGIS/contributing/connections";
 const DEFAULT_PLUGINS_ROOT = path.join(__dirname, "..", "..", "plugins");
 const STATE_TTL_MS = 10 * 60 * 1000;
-const MAX_PENDING_STATES = 5;
+// Sign-ins in progress per browser session (several tabs can each be connecting)
+const MAX_PENDING_STATES = 20;
 // Refresh tokens this close to expiring
 const REFRESH_EARLY_MS = 60 * 1000;
 // A plugin hook that doesn't settle in time fails, so a request never hangs on it
@@ -90,8 +91,9 @@ function loadConnections(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
       id,
       ref,
       name: p.name,
+      dir: p.pluginPath,
       label: (m.display_name || p.name).slice(0, 100),
-      description: typeof m.description === "string" ? m.description : "",
+      description: typeof m.description === "string" ? m.description.slice(0, 1000) : "",
       guests: m.guests === true,
       pkce: m.pkce !== false,
       env: Array.isArray(m.env) ? m.env.filter((e) => typeof e === "string") : [],
@@ -145,6 +147,18 @@ function startupWarnings(env = process.env) {
     s.problems.forEach((p) => out.push(`Connection '${c.id}': ${p}`));
     hook(c, "warnings", env).forEach((w) => out.push(`Connection '${c.id}': ${w}`));
   });
+  const base = env.CONNECTIONS_CALLBACK_BASE_URL;
+  if (base && connectionMap().size) {
+    let u = null;
+    try {
+      u = new URL(base);
+    } catch (err) {}
+    const root = (env.ROOT_PATH || "").replace(/\/+$/, "");
+    if (!u || !/^https?:$/.test(u.protocol))
+      out.push("CONNECTIONS_CALLBACK_BASE_URL must be a full http(s) URL, such as https://mmgis.example.com, or connection callbacks won't reach MMGIS.");
+    else if (root && u.pathname.replace(/\/+$/, "") !== root)
+      out.push(`CONNECTIONS_CALLBACK_BASE_URL should end with ROOT_PATH (${root}), or connection callbacks won't reach MMGIS.`);
+  }
   return out;
 }
 
@@ -205,7 +219,9 @@ function grantRecord(grant) {
 // Who a session-stored connection belongs to, so a different identity in the same browser session doesn't get it
 function ownerKey(principal) {
   if (!principal || principal.kind === "anonymous") return "guest";
-  if (principal.kind === "external") return `external:${principal.provider}:${principal.username}`;
+  // By subject: two people can share a username at one provider
+  if (principal.kind === "external")
+    return `external:${principal.provider}:${principal.subject != null ? principal.subject : principal.username}`;
   if (principal.kind === "user") return `user:${principal.userId}`;
   return null;
 }
@@ -226,8 +242,8 @@ async function readStored(req, principal, c) {
     if (!row) return null;
     const secrets = secretBox.open(row.data);
     if (!secrets) {
-      logger("warn", `A stored ${c.label} connection couldn't be decrypted (was SECRET changed?), so it was removed and the user has to connect again.`, "Connections");
-      await row.destroy();
+      // Kept, so putting the old SECRET back restores it; connecting again replaces it
+      logger("warn", `A stored ${c.label} connection couldn't be decrypted (was SECRET changed?), so the user has to connect again.`, "Connections");
       return null;
     }
     return {
@@ -239,21 +255,41 @@ async function readStored(req, principal, c) {
     };
   }
   if (where === "session") {
-    const sealed = req.session && req.session.connections && req.session.connections[c.id];
-    if (!sealed) return null;
+    const bag = req.session && req.session.connections;
+    // Own keys only: an id like "constructor" must not read Object.prototype
+    const sealed = bag && Object.prototype.hasOwnProperty.call(bag, c.id) ? bag[c.id] : null;
+    if (typeof sealed !== "string") return null;
     const record = secretBox.open(sealed);
     if (!record)
       logger("warn", `A ${c.label} connection in a session couldn't be decrypted (was SECRET changed?), so it was dropped.`, "Connections");
     const owner = ownerKey(principal);
     // A guest's connection only moves to an account at local sign-in (adoptSessionConnections)
     if (record && record.owner === "guest" && owner !== "guest") return null;
-    if (!record || owner == null || record.owner !== owner) {
+    // A request that began before a Disconnect still holds the session as it was then
+    const gone = disconnectedAt.get(sessionKey(req, c));
+    const stale = record && gone != null && !(Date.parse(record.connectedAt) > gone);
+    if (!record || owner == null || record.owner !== owner || stale) {
       delete req.session.connections[c.id];
       return null;
     }
     return { ...record, storage: "session" };
   }
   return null;
+}
+
+// When each browser session last disconnected a session-stored connection
+const disconnectedAt = new Map();
+const sessionKey = (req, c) => `${req.sessionID}|${c.id}`;
+
+// Runs fn after any earlier fn with the same key, so a read-then-write of one stored
+// connection isn't interleaved with another (one MMGIS server)
+const locks = new Map();
+function serialized(key, fn) {
+  const run = (locks.get(key) || Promise.resolve()).then(fn);
+  const tail = run.catch(() => {});
+  locks.set(key, tail);
+  tail.then(() => locks.get(key) === tail && locks.delete(key));
+  return run;
 }
 
 async function writeStored(req, principal, c, record) {
@@ -275,7 +311,11 @@ async function writeStored(req, principal, c, record) {
     return "account";
   }
   if (where === "session") {
-    sessionBag(req)[c.id] = secretBox.seal({ ...record, owner: ownerKey(principal), connectedAt: new Date().toISOString() });
+    sessionBag(req)[c.id] = secretBox.seal({
+      ...record,
+      owner: ownerKey(principal),
+      connectedAt: record.connectedAt || new Date().toISOString(),
+    });
     return "session";
   }
   throw new ConnectionRequiredError(c.id, "not_allowed", `Sign in to MMGIS to connect ${c.label}.`);
@@ -285,7 +325,12 @@ async function removeStored(req, principal, c) {
   forgetRefreshes(req, principal, c);
   if (storageFor(principal, c) === "account")
     await models().AuthConnection.destroy({ where: { user_id: principal.userId, connection: c.id } });
-  if (req.session && req.session.connections && req.session.connections[c.id])
+  if (req.sessionID) {
+    const now = Date.now();
+    for (const [k, at] of disconnectedAt) if (now - at > STATE_TTL_MS) disconnectedAt.delete(k);
+    disconnectedAt.set(sessionKey(req, c), now);
+  }
+  if (req.session && req.session.connections && Object.prototype.hasOwnProperty.call(req.session.connections, c.id))
     delete req.session.connections[c.id];
 }
 
@@ -302,7 +347,8 @@ async function adoptSessionConnections(req, principal) {
       // Never replace a connection the account already has with one found in the browser session
       const existing = await models().AuthConnection.findOne({ where: { user_id: principal.userId, connection: c.id }, attributes: ["id"] });
       if (existing) {
-        await revokeQuietly(c, record);
+        // In the background: a slow service shouldn't hold up sign-in. revokeQuietly never throws.
+        revokeQuietly(c, record);
         continue;
       }
       await writeStored(req, principal, c, record);
@@ -383,11 +429,17 @@ const errText = (err) => (err && err.message ? String(err.message).slice(0, 200)
 
 // A plugin's error with known secrets (codes, tokens, client secrets) taken out, for logging
 // The plugin's own env values, plus anything that looks like a credential
-const SECRET_NAME = /SECRET|PASSWORD|PASS$|TOKEN|_KEY$|^KEY$/i;
+const SECRET_NAME = /SECRET|PASSW|PASS$|PWD|TOKEN|APIKEY|(^|_)KEYS?($|_)|CREDENTIAL|PRIVATE/i;
 const envSecrets = (c, env = process.env) => [
   ...c.env.map((n) => env[n]),
   ...Object.keys(env)
-    .filter((n) => SECRET_NAME.test(n) && typeof env[n] === "string" && env[n].length >= 8)
+    .filter(
+      (n) =>
+        SECRET_NAME.test(n) &&
+        typeof env[n] === "string" &&
+        env[n].length >= 6 &&
+        !/^(true|false|\d+)$/i.test(env[n])
+    )
     .map((n) => env[n]),
 ];
 function scrubbed(err, secrets) {
@@ -403,8 +455,10 @@ function scrubbed(err, secrets) {
 
 // One refresh per refresh token: parallel requests (and ones still holding the old
 // token a moment later) share the result, so a rotating refresh token is used once.
-// Per process; several MMGIS instances can still race.
+// Per process: MMGIS runs as one server.
 const REFRESH_SHARE_MS = 30 * 1000;
+// A service that is down is asked again after this, not on every request
+const FAILED_REFRESH_SHARE_MS = 5 * 1000;
 const refreshing = new Map();
 
 // Refreshes of a grant the user has since replaced or removed are neither shared nor saved
@@ -437,41 +491,23 @@ function startRefresh(keys, c, record) {
   })();
   const forget = () => keys.forEach((k) => refreshing.get(k) === job && refreshing.delete(k));
   keys.forEach((k) => refreshing.set(k, job));
+  const forgetIn = (ms) => {
+    const t = setTimeout(forget, ms);
+    if (t.unref) t.unref();
+  };
   job.then(
-    () => {
-      const t = setTimeout(forget, REFRESH_SHARE_MS);
-      if (t.unref) t.unref();
-    },
-    forget
+    () => forgetIn(REFRESH_SHARE_MS),
+    (err) => (isTransient(err) ? forgetIn(FAILED_REFRESH_SHARE_MS) : forget())
   );
   return job;
 }
 
-// Several MMGIS servers can share one account's connection. Only the one that bumps the row
-// first refreshes; the others wait for its result, so a rotating refresh token is used once.
-const CLAIM_WAIT_MS = 10 * 1000;
-async function claimRefresh(req, principal, c, record) {
-  if (storageFor(principal, c) !== "account") return null;
-  const { AuthConnection } = models();
-  const row = await AuthConnection.findOne({ where: { user_id: principal.userId, connection: c.id } });
-  if (!row) return null;
-  const newer = async () => {
-    const latest = await readStored(req, principal, c).catch(() => null);
-    return latest && latest.refreshToken !== record.refreshToken ? latest : null;
-  };
-  const already = await newer();
-  if (already) return already;
-  const [claimed] = await AuthConnection.update(
-    { expires_at: row.expires_at },
-    { where: { id: row.id, updatedAt: row.updatedAt } }
-  );
-  if (claimed > 0) return null;
-  for (const until = Date.now() + CLAIM_WAIT_MS; Date.now() < until; ) {
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    const latest = await newer();
-    if (latest) return latest;
-  }
-  return null;
+// A refreshed grant nobody keeps (the user disconnected or reconnected meanwhile) is revoked once
+const orphaned = new WeakSet();
+function dropOrphan(c, job, fresh) {
+  if (orphaned.has(job)) return;
+  orphaned.add(job);
+  revokeQuietly(c, fresh);
 }
 
 async function refreshStored(req, principal, c, record, rejected) {
@@ -492,15 +528,23 @@ async function refreshStored(req, principal, c, record, rejected) {
     const shared = await job.catch(() => null);
     if (shared && shared.expiresAt != null && new Date(shared.expiresAt).getTime() - refreshEarlyMs(shared) <= Date.now())
       job = startRefresh([byGrant], c, record);
-  } else {
-    const other = await claimRefresh(req, principal, c, record);
-    if (other) return other;
-    job = refreshing.get(byGrant) || startRefresh([byGrant], c, record);
-  }
+  } else job = startRefresh([byGrant], c, record);
   const fresh = await job;
-  if (superseded.has(job)) return (await current(req, c.id)).record;
-  await writeStored(req, principal, c, fresh);
-  return fresh;
+  // Save it only if the connection is still the one refreshed: not disconnected, reconnected or saved by another request
+  return serialized(refreshScope(req, principal, c), async () => {
+    const now = await readStored(req, principal, c);
+    if (!superseded.has(job) && now && now.refreshToken === record.refreshToken) {
+      await writeStored(req, principal, c, { ...fresh, connectedAt: record.connectedAt });
+      return fresh;
+    }
+    if (!now) {
+      dropOrphan(c, job, fresh);
+      throw new ConnectionRequiredError(c.id, "not_connected", `Connect ${c.label} to continue.`);
+    }
+    if (superseded.has(job) && now.accessToken !== fresh.accessToken && now.refreshToken !== fresh.refreshToken)
+      dropOrphan(c, job, fresh);
+    return now;
+  });
 }
 
 // Refreshes the record, or drops it and asks the user to connect again.
@@ -512,9 +556,11 @@ async function renew(req, principal, c, record, rejected) {
     try {
       return await refreshStored(req, principal, c, record, rejected);
     } catch (err) {
+      if (err instanceof ConnectionRequiredError || isDbError(err)) throw err;
       if (isTransient(err)) {
         logger("warn", `Refreshing a ${c.label} token failed for now (${errText(scrubbed(err, [record.refreshToken, record.accessToken, ...envSecrets(c)]))}); the connection is kept.`, "Connections");
-        if (stillValid) return record;
+        // The refresh may have outlasted the token; only hand back one that still works
+        if (stillValid && expiresAt > Date.now()) return record;
         throw new ConnectionRequiredError(c.id, "unavailable", `${c.label} isn't responding. Try again in a moment.`);
       }
       // Another request may have saved a newer grant meanwhile; keep it
@@ -539,6 +585,17 @@ async function renew(req, principal, c, record, rejected) {
   throw new ConnectionRequiredError(c.id, "expired", `Your ${c.label} connection expired. Connect again to continue.`);
 }
 
+const isDbError = (err) => !!err && /^Sequelize/.test(String(err.name));
+
+// A database failure while reading or saving a connection: the user stays connected and can try again
+function readable(c, fn) {
+  return fn().catch((err) => {
+    if (err instanceof ConnectionRequiredError) throw err;
+    logger("error", `Reading or saving a ${c.label} connection failed.`, "Connections", null, err);
+    throw new ConnectionRequiredError(c.id, "unavailable", `MMGIS couldn't reach your ${c.label} connection. Try again in a moment.`);
+  });
+}
+
 async function current(req, id) {
   const c = getConnection(id);
   if (!c) throw new ConnectionRequiredError(String(id), "unknown", `No '${id}' connection is installed.`);
@@ -555,8 +612,10 @@ async function current(req, id) {
         ? "API tokens can't use service connections."
         : `Sign in to MMGIS to connect ${c.label}.`
     );
-  await adoptSessionConnections(req, principal);
-  const record = await readStored(req, principal, c);
+  const record = await readable(c, async () => {
+    await adoptSessionConnections(req, principal);
+    return readStored(req, principal, c);
+  });
   if (!record) throw new ConnectionRequiredError(c.id, "not_connected", `Connect ${c.label} to continue.`);
   return { c, principal, record };
 }
@@ -565,6 +624,9 @@ async function current(req, id) {
 // Throws ConnectionRequiredError when the user has to connect (again).
 async function token(req, id) {
   const { c, principal, record } = await current(req, id);
+  return readable(c, () => tokenFor(req, c, principal, record));
+}
+async function tokenFor(req, c, principal, record) {
   const expiresAt = record.expiresAt == null ? null : new Date(record.expiresAt).getTime();
   if (expiresAt == null || expiresAt - refreshEarlyMs(record) > Date.now()) return record.accessToken;
   const renewing = renew(req, principal, c, record, false);
@@ -582,7 +644,7 @@ async function token(req, id) {
 async function rejected(req, id, accessToken) {
   const { c, principal, record } = await current(req, id);
   if (accessToken != null && record.accessToken !== accessToken) return record.accessToken;
-  return (await renew(req, principal, c, record, true)).accessToken;
+  return readable(c, async () => (await renew(req, principal, c, record, true)).accessToken);
 }
 
 // For when the service is down or failing during a data call: the user stays connected
@@ -635,7 +697,9 @@ function callbackUrl(req, c) {
       "connections"
     );
   }
-  const origin = base ? base.replace(/\/+$/, "") : `${req.protocol}://${publicHost(req)}${rootPath()}`;
+  // req.protocol can come from X-Forwarded-Proto
+  const proto = req.protocol === "https" ? "https" : "http";
+  const origin = base ? base.replace(/\/+$/, "") : `${proto}://${publicHost(req)}${rootPath()}`;
   return `${origin}/api/connections/${c.id}/callback`;
 }
 
@@ -683,11 +747,13 @@ async function describe(req, principal, c) {
 // States already redeemed in this process
 const usedStates = new Map();
 
+// Counts only code exchanges that failed; a refused or stale callback reaches no service
 const flowLimiter = () =>
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 30,
     skipSuccessfulRequests: true,
+    requestWasSuccessful: (req) => !req.connectionExchangeFailed,
     message: { status: "failure", message: "Too many attempts, try again later." },
   });
 
@@ -696,8 +762,23 @@ const connectLimiter = () =>
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
+    skip: (req) => !getConnection(req.params.id),
     message: { status: "failure", message: "Too many attempts, try again later." },
   });
+
+// Connect and callback are page loads. A cross-site <img> or <script> pointing at them is
+// refused before it counts against the IP's limits. Browsers without Fetch Metadata send neither header.
+function navigationOnly(req, res, next) {
+  const site = req.get("sec-fetch-site");
+  const mode = req.get("sec-fetch-mode");
+  res.set("Cache-Control", "no-store");
+  if ((site === "cross-site" || site === "same-site") && mode && mode !== "navigate")
+    return res.status(403).send({ status: "failure", message: "Open this link in the browser." });
+  next();
+}
+
+// Text from a service, without control and bidirectional-override characters
+const plainText = (str) => String(str).replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, "");
 
 // The callback's query holds the OAuth code and state, so log without it
 function logReq(req) {
@@ -718,11 +799,17 @@ function renderResult(res, view) {
 function sameOriginOnly(req, res, next) {
   const site = req.get("sec-fetch-site");
   const origin = req.get("origin");
+  // The browser sets Sec-Fetch-Site itself; a proxy that rewrites Host would otherwise refuse it
+  if (site === "same-origin") return next();
   let foreign = site === "cross-site" || site === "same-site";
   if (!foreign && origin) {
     try {
       const host = new URL(origin).host;
-      foreign = host !== req.get("host") && host !== publicHost(req);
+      let baseHost = null;
+      try {
+        baseHost = new URL(process.env.CONNECTIONS_CALLBACK_BASE_URL).host;
+      } catch (err) {}
+      foreign = host !== req.get("host") && host !== publicHost(req) && host !== baseHost;
     } catch (err) {
       foreign = true;
     }
@@ -784,7 +871,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     }
   );
 
-  router.get("/:id/connect", connectLimiter(), authorize("site.view"), async (req, res) => {
+  router.get("/:id/connect", navigationOnly, connectLimiter(), authorize("site.view"), async (req, res) => {
     const c = getConnection(req.params.id);
     if (!c) return res.status(404).send({ status: "failure", message: "No such connection." });
     const principal = await principalOf(req);
@@ -833,7 +920,7 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     req.session.save(() => res.redirect(url));
   });
 
-  router.get("/:id/callback", limiter, authorize("site.view"), async (req, res) => {
+  router.get("/:id/callback", navigationOnly, limiter, authorize("site.view"), async (req, res) => {
     const c = getConnection(req.params.id);
     if (!c) return res.status(404).send({ status: "failure", message: "No such connection." });
     const states = req.session.connectionStates || {};
@@ -844,9 +931,9 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     if (!pending || pending.id !== c.id || Date.now() - pending.at > STATE_TTL_MS)
       return renderResult(res, { id: c.id, label: c.label, message: "This sign-in link has expired. Go back to MMGIS and click Connect again." });
     if (typeof req.query.error === "string" || typeof req.query.code !== "string") {
-      const detail = typeof req.query.error_description === "string" ? req.query.error_description.slice(0, 300) : "";
+      const detail = typeof req.query.error_description === "string" ? plainText(req.query.error_description).slice(0, 300) : "";
       if (typeof req.query.error === "string")
-        logger("warn", `Connecting '${c.id}': the service returned '${req.query.error.slice(0, 100)}'${detail ? `: ${detail}` : ""}.`, req.baseUrl + req.path, logReq(req));
+        logger("warn", `Connecting '${c.id}': the service returned '${plainText(req.query.error).slice(0, 100)}'${detail ? `: ${detail}` : ""}.`, req.baseUrl + req.path, logReq(req));
       return renderResult(res, { id: c.id, label: c.label, message: `${c.label} wasn't connected.${detail ? ` ${c.label} said: ${detail}` : ""}` });
     }
     // A state is redeemed once, even when two callbacks race and each saves its own copy of the session
@@ -890,13 +977,20 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
         if (!alive) await new Promise((resolve) => req.session.destroy(() => resolve()));
         return renderResult(res, { id: c.id, label: c.label, message: `You signed in or out while connecting ${c.label}. Go back to MMGIS and click Connect again.` });
       }
-      if (req.session.connectionStates)
-        req.session.connectionStates = Object.fromEntries(Object.entries(req.session.connectionStates).filter(([k]) => k !== state));
-      const replaced = await readStored(req, principal, c).catch(() => null);
-      forgetRefreshes(req, principal, c);
-      await writeStored(req, principal, c, record);
-      if (replaced && replaced.accessToken !== record.accessToken) revokeQuietly(c, replaced);
+      // Two tabs finishing a connect at once: the one saved second revokes the first
+      await serialized(refreshScope(req, principal, c), async () => {
+        if (storageFor(principal, c) === "session")
+          await new Promise((resolve, reject) => req.session.reload((err) => (err ? reject(err) : resolve())));
+        if (req.session.connectionStates)
+          req.session.connectionStates = Object.fromEntries(Object.entries(req.session.connectionStates).filter(([k]) => k !== state));
+        const replaced = await readStored(req, principal, c).catch(() => null);
+        forgetRefreshes(req, principal, c);
+        await writeStored(req, principal, c, record);
+        await new Promise((resolve) => req.session.save(() => resolve()));
+        if (replaced && replaced.accessToken !== record.accessToken) revokeQuietly(c, replaced);
+      });
     } catch (err) {
+      req.connectionExchangeFailed = true;
       logger(
         "error",
         `Connecting '${c.id}' (${c.ref}) failed.`,
@@ -921,8 +1015,11 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     if (!c) return res.status(404).send({ status: "failure", message: "No such connection." });
     try {
       const principal = await principalOf(req);
-      const record = await readStored(req, principal, c);
-      await removeStored(req, principal, c);
+      const record = await serialized(refreshScope(req, principal, c), async () => {
+        const stored = await readStored(req, principal, c);
+        await removeStored(req, principal, c);
+        return stored;
+      });
       // Save the removal (a guest's lives in the session) before telling the service; don't wait on it
       req.session.save(() => res.send({ status: "success" }));
       revokeQuietly(c, record);
@@ -936,7 +1033,32 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
   app.use(prefix, registerRouter(prefix, router));
 }
 
+// The grants stored for an account, read before it is deleted (the rows go with it)
+async function accountGrants(userId, options = {}) {
+  const rows = await models().AuthConnection.findAll({ where: { user_id: userId }, ...options });
+  return rows
+    .map((row) => ({ c: getConnection(row.connection), record: secretBox.open(row.data) }))
+    .filter((g) => g.c && g.record);
+}
+// Revokes them at each service, in the background
+function revokeGrants(grants) {
+  (grants || []).forEach((g) => revokeQuietly(g.c, g.record));
+}
+
+// An uncaught error MMGIS can keep running after: one raised by a connection plugin's own
+// timer or callback, or a network error nobody listened for. Anything else should end the process.
+const STRAY_NET_CODES = new Set([...TRANSIENT_CODES, "EPIPE", "EHOSTUNREACH", "ENETUNREACH", "ECONNABORTED"]);
+function isPluginFault(err) {
+  if (!err) return false;
+  if (STRAY_NET_CODES.has(err.code)) return true;
+  const stack = String(err.stack || "");
+  return allConnections().some((c) => c.dir && stack.includes(c.dir + path.sep));
+}
+
 module.exports = {
+  accountGrants,
+  revokeGrants,
+  isPluginFault,
   scrubbed,
   callbackUrl,
   DOCS_URL,

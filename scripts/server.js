@@ -44,6 +44,21 @@ process.on("unhandledRejection", (reason) => {
     reason instanceof Error ? reason : new Error(String(reason))
   );
 });
+// Connection plugins run in this process. A throw from a plugin's own timer or callback, or a
+// network error nobody listened for, shouldn't stop MMGIS for everyone; anything else still does.
+process.on("uncaughtException", (err) => {
+  const survivable = require("../API/connections").isPluginFault(err);
+  logger(
+    "error",
+    survivable
+      ? "Uncaught error from a connection plugin or a network socket; MMGIS keeps running."
+      : "Uncaught error; MMGIS is stopping.",
+    "server",
+    null,
+    err instanceof Error ? err : new Error(String(err))
+  );
+  if (!survivable) process.exit(1);
+});
 const { apilimiter, authLimiter, computeLimiter } = require("./rateLimiters");
 const compression = require("compression");
 

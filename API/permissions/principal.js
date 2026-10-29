@@ -110,8 +110,8 @@ async function userPrincipal(userId) {
 
 // identity: a normalized login-provider identity (see providers.js)
 async function externalPrincipal(identity) {
-  const { provider, username, groups: groupNames } = identity;
-  return cached(`external:${provider}:${username}:${groupNames.join(",")}`, async () => {
+  const { provider, subject, username, groups: groupNames } = identity;
+  return cached(`external:${provider}:${subject}:${username}:${groupNames.join(",")}`, async () => {
     const { AuthGroup } = models();
     const matched =
       groupNames.length > 0
@@ -132,6 +132,7 @@ async function externalPrincipal(identity) {
       provider,
       authenticated: true,
       userId: null,
+      subject,
       username,
       groupIds,
       bindings: await bindingsFor(subjects),

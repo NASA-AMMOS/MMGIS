@@ -17,6 +17,7 @@ const missions = require("../../../../../API/permissions/missions");
 const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
 const { RoleBinding } = require("../../../../../API/permissions/models");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
+const connections = require("../../../../../API/connections");
 const User = userModel.User;
 const {
   UserDefaults,
@@ -70,6 +71,7 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
 
 router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, next) {
   const id = parseInt(req.params.id);
+  let grants = [];
 
   if (isNaN(id)) {
     logger(
@@ -107,12 +109,15 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       });
       // A user's tokens act with that user's authority, so they go with the account
       await LongTermTokens.destroy({ where: { created_by_user_id: id }, transaction });
+      // Its connections go with it (cascade); read them first to revoke them at each service
+      grants = await connections.accountGrants(id, { transaction }).catch(() => []);
       // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile
       await User.destroy({ where: { id: id }, transaction });
       return true;
     })
     .then((deleted) => {
       if (!deleted) return;
+      connections.revokeGrants(grants);
       bindings.afterChange("user", id).catch(() => {});
       logger("info", `Successfully deleted user with id: '${id}'.`);
       res.send({

@@ -548,6 +548,8 @@ test.describe('token refresh', () => {
         globalThis.__refreshTest.fail = Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
         await expect(connections.token(req, 'svc')).rejects.toMatchObject({ reason: 'unavailable' });
         expect(req.session.connections.svc).toBeTruthy();
+        // A failed refresh is shared for a few seconds; start the next one now
+        connections.forgetRefreshes(req, req.principal, connections.getConnection('svc'));
         globalThis.__refreshTest.fail = Object.assign(new Error('invalid_grant'), { status: 400 });
         await expect(connections.token(req, 'svc')).rejects.toMatchObject({ reason: 'expired' });
         expect(req.session.connections.svc).toBeUndefined();
@@ -745,5 +747,363 @@ test.describe('authorization request checks', () => {
             expect(status).toBe(400);
             expect(globalThis.__arExchange).toBeNull();
         });
+    });
+});
+
+// A stand-in for the auth_connections table, so account storage runs without a database
+function fakeAccountTable() {
+    let n = 0;
+    const rows = [];
+    const t = { rows, down: false, delay: 5 };
+    const tick = async () => {
+        await new Promise((r) => setTimeout(r, t.delay));
+        if (t.down) throw Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5432'), { name: 'SequelizeConnectionRefusedError' });
+    };
+    const hit = (r, where) =>
+        Object.entries(where).every(([k, v]) => (k === 'updatedAt' ? new Date(r[k]).getTime() === new Date(v).getTime() : r[k] === v));
+    const stamp = () => new Date(Date.now() + ++n);
+    const row = (fields) => {
+        const r = { id: ++n, createdAt: new Date(), updatedAt: stamp(), ...fields };
+        r.update = async (f) => {
+            await tick();
+            Object.assign(r, f, { updatedAt: stamp() });
+            return r;
+        };
+        r.destroy = async () => {
+            await tick();
+            rows.splice(rows.indexOf(r), 1);
+        };
+        return r;
+    };
+    const matching = (where) => rows.filter((r) => hit(r, where));
+    t.model = {
+        findOne: async ({ where }) => (await tick(), matching(where)[0] || null),
+        findAll: async ({ where }) => (await tick(), matching(where)),
+        create: async (f) => {
+            await tick();
+            const r = row(f);
+            rows.push(r);
+            return r;
+        },
+        update: async (f, { where }) => {
+            await tick();
+            const m = matching(where);
+            m.forEach((r) => Object.assign(r, f, { updatedAt: stamp() }));
+            return [m.length];
+        },
+        destroy: async ({ where }) => {
+            await tick();
+            const m = matching(where);
+            m.forEach((r) => rows.splice(rows.indexOf(r), 1));
+            return m.length;
+        },
+    };
+    return t;
+}
+
+test.describe('lifecycle and failure handling', () => {
+    const models = require('../../API/connections/models');
+    let root;
+    let saved;
+    let savedModel;
+    const table = fakeAccountTable();
+    const JS = `module.exports = {
+    authorizeUrl: (a) => 'https://svc.example/auth?' + new URLSearchParams({ state: a.state, code_challenge: a.codeChallenge, code_challenge_method: a.codeChallengeMethod }),
+    exchange: async ({ code }) => {
+        await new Promise((r) => setTimeout(r, globalThis.__r2.exchangeDelay || 0));
+        return { accessToken: 'at-' + code, refreshToken: 'rt-' + code, expiresIn: 3600, account: 'acct' };
+    },
+    refresh: async ({ refreshToken }) => {
+        const t = globalThis.__r2;
+        t.refreshes.push(refreshToken);
+        await new Promise((r) => setTimeout(r, t.refreshDelay || 20));
+        if (t.fail) throw t.fail;
+        return { accessToken: 'fresh-' + t.refreshes.length, refreshToken: t.keep ? refreshToken : refreshToken + '+', expiresIn: 3600 };
+    },
+    revoke: async (g) => {
+        await new Promise((r) => setTimeout(r, globalThis.__r2.revokeDelay || 0));
+        globalThis.__r2.revoked.push(g.refreshToken || g.accessToken);
+    },
+    validate: (env) => (env.R2_LEAK ? ['leak ' + ['MAPBOX_APIKEY', 'PRIVATE_KEY_PEM', 'DB_PASSWD', 'CREDENTIALS', 'SHORTSEC_TOKEN'].map((n) => env[n]).join(' ')] : []),
+};`;
+    test.beforeAll(() => {
+        saved = process.env.SECRET;
+        process.env.SECRET = 'e'.repeat(32);
+        root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-connections-'));
+        writePlugin(root, 't', 'R2', { type: 'connection', connection: 'r2', guests: true, description: 'x'.repeat(5000) }, JS);
+        connections.loadConnections(root);
+        savedModel = models.AuthConnection;
+        models.AuthConnection = table.model;
+    });
+    test.afterAll(() => {
+        models.AuthConnection = savedModel;
+        fs.rmSync(root, { recursive: true, force: true });
+        connections.loadConnections(CORE_PLUGINS);
+        if (saved === undefined) delete process.env.SECRET;
+        else process.env.SECRET = saved;
+    });
+    test.beforeEach(() => {
+        globalThis.__r2 = { refreshes: [], revoked: [] };
+        table.rows.length = 0;
+        table.down = false;
+    });
+    const c = () => connections.getConnection('r2');
+    let sid = 0;
+    const user = (id = 7) => ({ principal: { kind: 'user', userId: id, authenticated: true }, session: {}, sessionID: `u-${id}` });
+    const guest = () => ({ principal: { kind: 'anonymous' }, session: {}, sessionID: `g-${++sid}` });
+    const copyOf = (req) => ({ ...req, session: JSON.parse(JSON.stringify(req.session)) });
+    async function put(req, grant) {
+        const record = connections.grantRecord(grant);
+        if (grant.expiresAt != null) record.expiresAt = new Date(grant.expiresAt).toISOString();
+        if (grant.issuedAt != null) record.issuedAt = new Date(grant.issuedAt).toISOString();
+        await connections.writeStored(req, req.principal, c(), record);
+        return req;
+    }
+    const netError = () => Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' });
+
+    test('concurrent refreshes of a non-rotating account token do not wait on each other', async () => {
+        globalThis.__r2.keep = true;
+        await put(user(), { accessToken: 'old', refreshToken: 'keep', expiresAt: Date.now() - 1000 });
+        const start = Date.now();
+        const tokens = await Promise.all([1, 2, 3].map(() => connections.token(user(), 'r2')));
+        expect(Date.now() - start).toBeLessThan(3000);
+        expect(globalThis.__r2.refreshes).toEqual(['keep']);
+        expect(new Set(tokens)).toEqual(new Set(['fresh-1']));
+    });
+
+    test('a refresh that outlives the token does not hand back the expired token', async () => {
+        Object.assign(globalThis.__r2, { refreshDelay: 800, fail: netError() });
+        const req = await put(guest(), { accessToken: 'soon', refreshToken: 'slow', expiresAt: Date.now() + 400, issuedAt: Date.now() - 3600 * 1000 });
+        await expect(connections.token(req, 'r2')).rejects.toMatchObject({ reason: 'unavailable' });
+    });
+
+    test('a service that is down is asked once, not on every request', async () => {
+        globalThis.__r2.fail = netError();
+        const req = await put(guest(), { accessToken: 'x', refreshToken: 'down', expiresAt: Date.now() - 1000 });
+        await expect(connections.token(req, 'r2')).rejects.toMatchObject({ reason: 'unavailable' });
+        await expect(connections.token(req, 'r2')).rejects.toMatchObject({ reason: 'unavailable' });
+        expect(globalThis.__r2.refreshes).toEqual(['down']);
+        expect(req.session.connections.r2).toBeTruthy();
+    });
+
+    test('a database outage reads as unavailable, not a raw error', async () => {
+        await put(user(), { accessToken: 'a', refreshToken: 'r', expiresIn: 3600 });
+        table.down = true;
+        await expect(connections.token(user(), 'r2')).rejects.toMatchObject({ reason: 'unavailable' });
+    });
+
+    test('a stored connection sealed with another SECRET is kept, in case SECRET is put back', async () => {
+        await put(user(), { accessToken: 'a', refreshToken: 'r', expiresIn: 3600 });
+        process.env.SECRET = 'f'.repeat(32);
+        try {
+            expect(await connections.readStored(user(), user().principal, c())).toBeNull();
+        } finally {
+            process.env.SECRET = 'e'.repeat(32);
+        }
+        expect(table.rows.length).toBe(1);
+        expect((await connections.readStored(user(), user().principal, c())).accessToken).toBe('a');
+    });
+
+    test('signing in does not wait for the revoke of a discarded guest grant', async () => {
+        const browser = await put(guest(), { accessToken: 'g', refreshToken: 'guest-grant', expiresIn: 3600 });
+        await put(user(), { accessToken: 'u', refreshToken: 'user-grant', expiresIn: 3600 });
+        globalThis.__r2.revokeDelay = 1500;
+        const signedIn = { ...user(), session: browser.session };
+        const start = Date.now();
+        await connections.adoptSessionConnections(signedIn, signedIn.principal);
+        expect(Date.now() - start).toBeLessThan(1000);
+        await expect.poll(() => globalThis.__r2.revoked, { timeout: 3000 }).toEqual(['guest-grant']);
+    });
+
+    test('a refresh that finishes after Disconnect does not bring the connection back', async () => {
+        globalThis.__r2.refreshDelay = 300;
+        const tab = await put(guest(), { accessToken: 'old', refreshToken: 'live', expiresAt: Date.now() - 1000 });
+        const inFlight = copyOf(tab);
+        const refreshing = connections.token(inFlight, 'r2');
+        await expect.poll(() => globalThis.__r2.refreshes.length, { timeout: 250, intervals: [5] }).toBe(1);
+        // Disconnect from another request of the same browser session
+        await connections.removeStored(copyOf(tab), tab.principal, c());
+        await expect(refreshing).rejects.toMatchObject({ reason: 'not_connected' });
+        expect(inFlight.session.connections.r2).toBeUndefined();
+        await expect.poll(() => globalThis.__r2.revoked, { timeout: 1000 }).toEqual(['live+']);
+        // A request that started before Disconnect doesn't keep using the old token
+        await expect(connections.token(copyOf(tab), 'r2')).rejects.toMatchObject({ reason: 'not_connected' });
+    });
+
+    test('an id like "constructor" does not read Object.prototype', async () => {
+        const seen = [];
+        const open = secretBox.open;
+        secretBox.open = (v) => (seen.push(typeof v), open(v));
+        try {
+            const req = guest();
+            req.session.connections = {};
+            expect(await connections.readStored(req, req.principal, { id: 'constructor', label: 'C', guests: true })).toBeNull();
+        } finally {
+            secretBox.open = open;
+        }
+        expect(seen).toEqual([]);
+    });
+
+    test('plugin text is scrubbed of more kinds of secret env values', () => {
+        const env = { R2_LEAK: '1', MAPBOX_APIKEY: 'pk.mapbox1', PRIVATE_KEY_PEM: '-----BEGIN-x', DB_PASSWD: 'hunter2x', CREDENTIALS: 'cr3dz!', SHORTSEC_TOKEN: 'sixsix', SITE_ACCESS: 'optional' };
+        const out = connections.setupStatus(c(), env).problems.join(' ');
+        for (const n of ['MAPBOX_APIKEY', 'PRIVATE_KEY_PEM', 'DB_PASSWD', 'CREDENTIALS', 'SHORTSEC_TOKEN']) expect(out).not.toContain(env[n]);
+    });
+
+    test('manifest text is capped', () => {
+        expect(c().description.length).toBeLessThanOrEqual(1000);
+    });
+
+    test('a forwarded protocol other than http(s) is not used in the callback URL', () => {
+        const req = { protocol: 'javascript', host: 'mmgis.example', get: () => undefined };
+        expect(connections.callbackUrl(req, c())).toBe('http://mmgis.example/api/connections/r2/callback');
+    });
+
+    test('a CONNECTIONS_CALLBACK_BASE_URL without a scheme or ROOT_PATH is warned about', () => {
+        const warn = (env) => connections.startupWarnings(env).filter((w) => /CONNECTIONS_CALLBACK_BASE_URL/.test(w));
+        expect(warn({ CONNECTIONS_CALLBACK_BASE_URL: 'mmgis.example' }).length).toBe(1);
+        expect(warn({ CONNECTIONS_CALLBACK_BASE_URL: 'https://mmgis.example', ROOT_PATH: '/mmgis' }).length).toBe(1);
+        expect(warn({ CONNECTIONS_CALLBACK_BASE_URL: 'https://mmgis.example/mmgis/', ROOT_PATH: '/mmgis' })).toEqual([]);
+        expect(warn({ CONNECTIONS_CALLBACK_BASE_URL: 'https://mmgis.example' })).toEqual([]);
+    });
+
+    test('external identities with the same username but different subjects do not share connections', () => {
+        const a = { kind: 'external', provider: 'sso', subject: '1', username: 'al' };
+        const b = { kind: 'external', provider: 'sso', subject: '2', username: 'al' };
+        expect(connections.ownerKey(a)).not.toBe(connections.ownerKey(b));
+    });
+
+    test("deleting an account revokes its connections at the service", async () => {
+        await put(user(9), { accessToken: 'a', refreshToken: 'doomed', expiresIn: 3600 });
+        const grants = await connections.accountGrants(9);
+        connections.revokeGrants(grants);
+        await expect.poll(() => globalThis.__r2.revoked, { timeout: 1000 }).toEqual(['doomed']);
+    });
+
+    test('a plugin fault outside its hook promise is recognised, other errors are not', () => {
+        const fromPlugin = new Error('boom');
+        fromPlugin.stack = `Error: boom\n    at Timeout._onTimeout (${path.join(root, 't', 'connections', 'R2', 'plugin.js')}:3:9)`;
+        expect(connections.isPluginFault(fromPlugin)).toBe(true);
+        expect(connections.isPluginFault(Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }))).toBe(true);
+        expect(connections.isPluginFault(new Error('a bug in MMGIS'))).toBe(false);
+        expect(connections.isPluginFault(null)).toBe(false);
+    });
+
+    test.describe('routes', () => {
+        async function withRoutes(fn) {
+            const express = require('express');
+            const session = require('express-session');
+            const app = express();
+            app.set('views', path.join(__dirname, '..', '..', 'views'));
+            app.set('view engine', 'pug');
+            app.use(session({ secret: 'test', resave: false, saveUninitialized: true })); // pragma: allowlist secret
+            app.use((req, res, next) => {
+                req.principal = req.get('x-test-user') ? { kind: 'user', userId: Number(req.get('x-test-user')), authenticated: true } : { kind: 'anonymous' };
+                next();
+            });
+            const allow = () => (req, res, next) => next();
+            allow.public = allow;
+            allow.inHandler = allow;
+            connections.mountConnectionRoutes(app, { registerRouter: (p, r) => r, authorize: allow, rootPath: '' });
+            const server = app.listen(0);
+            try {
+                await fn(`http://127.0.0.1:${server.address().port}/api/connections/r2`);
+            } finally {
+                server.close();
+            }
+        }
+        const connect = async (url, headers = {}) => {
+            const r = await fetch(`${url}/connect`, { redirect: 'manual', headers });
+            const cookie = headers.cookie || (r.headers.get('set-cookie') || '').split(';')[0];
+            const to = r.headers.get('location');
+            return { r, cookie, state: to ? new URL(to).searchParams.get('state') : null };
+        };
+
+        test('cross-site <img> requests do not use up the Connect and callback limits', async () => {
+            await withRoutes(async (url) => {
+                const img = { 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'no-cors', 'sec-fetch-dest': 'image' };
+                for (let i = 0; i < 110; i++) await fetch(`${url}/connect`, { redirect: 'manual', headers: img });
+                for (let i = 0; i < 40; i++) await fetch(`${url}/callback?state=${'0'.repeat(48)}&code=x`, { headers: img });
+                const { r, cookie, state } = await connect(url);
+                expect(r.status).toBe(302);
+                // fetch() sets its own Sec-Fetch-Mode, so send the service's redirect back with http.get
+                const back = await new Promise((resolve, reject) => {
+                    const u = new URL(`${url}/callback?state=${state}&code=c1`);
+                    require('http')
+                        .get({ host: u.hostname, port: u.port, path: u.pathname + u.search, headers: { cookie, 'sec-fetch-site': 'cross-site', 'sec-fetch-mode': 'navigate' } }, (res) => {
+                            res.resume();
+                            resolve(res.statusCode);
+                        })
+                        .on('error', reject);
+                });
+                expect(back).toBe(200);
+            });
+        });
+
+        test('refused callbacks do not use up the callback limit', async () => {
+            await withRoutes(async (url) => {
+                for (let i = 0; i < 40; i++) await fetch(`${url}/callback?state=${'0'.repeat(48)}&code=x`);
+                const { cookie, state } = await connect(url);
+                expect((await fetch(`${url}/callback?state=${state}&code=c1`, { headers: { cookie } })).status).toBe(200);
+            });
+        });
+
+        test('Connect and callback pages are not cached, and control characters from the service are not shown', async () => {
+            await withRoutes(async (url) => {
+                const { r, cookie, state } = await connect(url);
+                expect(r.headers.get('cache-control')).toContain('no-store');
+                const back = await fetch(`${url}/callback?state=${state}&error=access_denied&error_description=${encodeURIComponent('no\u202Eway\u0000 here')}`, { headers: { cookie } });
+                expect(back.headers.get('cache-control')).toContain('no-store');
+                const html = await back.text();
+                expect(html).toContain('noway here');
+                expect(html).not.toMatch(/[\u0000\u202E]/);
+            });
+        });
+
+        test('five more Connects in the same session keep an earlier sign-in going', async () => {
+            await withRoutes(async (url) => {
+                const first = await connect(url);
+                for (let i = 0; i < 5; i++) await connect(url, { cookie: first.cookie });
+                expect((await fetch(`${url}/callback?state=${first.state}&code=c1`, { headers: { cookie: first.cookie } })).status).toBe(200);
+            });
+        });
+
+        test('two Connects finishing at once revoke the grant that lost', async () => {
+            await withRoutes(async (url) => {
+                const headers = { 'x-test-user': '11' };
+                const a = await connect(url, headers);
+                const b = await connect(url, { ...headers, cookie: a.cookie });
+                globalThis.__r2.exchangeDelay = 200;
+                await Promise.all(
+                    [[a.state, 'c1'], [b.state, 'c2']].map(([state, code]) => fetch(`${url}/callback?state=${state}&code=${code}`, { headers: { ...headers, cookie: a.cookie } }))
+                );
+                const kept = await connections.readStored(user(11), user(11).principal, c());
+                expect(['rt-c1', 'rt-c2']).toContain(kept.refreshToken);
+                await expect.poll(() => globalThis.__r2.revoked, { timeout: 1000 }).toEqual([kept.refreshToken === 'rt-c1' ? 'rt-c2' : 'rt-c1']);
+            });
+        });
+    });
+});
+
+test.describe('sameOriginOnly behind a proxy', () => {
+    const run = (headers) => {
+        let status = 200;
+        let passed = false;
+        const req = { get: (h) => headers[h.toLowerCase()], protocol: 'https', headers };
+        const res = { status: (s) => ((status = s), res), send: () => res };
+        connections.sameOriginOnly(req, res, () => (passed = true));
+        return passed ? 200 : status;
+    };
+    test('a same-origin Disconnect is allowed when the proxy drops the port from Host', () => {
+        expect(run({ host: 'mmgis.example', origin: 'https://mmgis.example:8443', 'sec-fetch-site': 'same-origin' })).toBe(200);
+        const savedBase = process.env.CONNECTIONS_CALLBACK_BASE_URL;
+        process.env.CONNECTIONS_CALLBACK_BASE_URL = 'https://mmgis.example:8443/';
+        try {
+            expect(run({ host: 'mmgis.example', origin: 'https://mmgis.example:8443' })).toBe(200);
+            expect(run({ host: 'mmgis.example', origin: 'https://evil.example' })).toBe(403);
+        } finally {
+            if (savedBase === undefined) delete process.env.CONNECTIONS_CALLBACK_BASE_URL;
+            else process.env.CONNECTIONS_CALLBACK_BASE_URL = savedBase;
+        }
     });
 });
