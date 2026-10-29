@@ -15,9 +15,19 @@ body.mmgisScrollbar
     #setup
       | SETUP
     if SIGNED_IN_AS != null
-      .notAdmin
-        | Signed in as #[b= SIGNED_IN_AS], but this account can't manage anything in Configure. Sign in with an administrator account, or #[a(href=(ROOT_PATH || '/')) go to the map].
-        div.btn2(onClick='signOut()') Sign out
+      .notAdmin(role='status')
+        .notAdminBody
+          i.mdi.mdi-shield-alert-outline(aria-hidden='true')
+          div
+            .notAdminTitle Signed in as #[b= SIGNED_IN_AS]
+            .notAdminText This account can't manage anything in Configure. Sign in below with an administrator account.
+        .notAdminActions
+          a.notAdminMap(href=(ROOT_PATH || '/'))
+            i.mdi.mdi-map-outline(aria-hidden='true')
+            | Go to the map
+          button.notAdminSignOut(type='button' onClick='signOut()')
+            i.mdi.mdi-logout(aria-hidden='true')
+            | Sign out
     img(src=ROOT_PATH + 'public/images/logos/mmgis.png' alt='MMGIS' onClick='back()')
     span#msg.error
     form.box(name='form1')

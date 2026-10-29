@@ -221,29 +221,85 @@ img {
 .notAdmin {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 24px);
+  bottom: calc(100% + 20px);
   transform: translateX(-50%);
   width: 400px;
-  color: #d6d7db;
-  font-size: 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #2a2213;
+  border: 1px solid #5c4a1f;
+  border-left: 4px solid #f0b429;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px #111;
+  color: #cfc6b0;
+  font-family: "Source Sans Pro", sans-serif;
+  text-align: left;
+}
+.notAdminBody {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.notAdminBody > .mdi {
+  flex: none;
+  width: 20px;
+  color: #f0b429;
+  font-size: 20px;
   line-height: 20px;
-  text-align: center;
 }
-.notAdmin a {
-  color: #08aeea;
+.notAdminTitle {
+  color: #fff;
+  font-size: 15px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
 }
-.notAdmin .btn2 {
-  display: table;
-  margin: 10px auto 0;
-  padding: 6px 16px;
-  border-radius: 5px;
-  background: #36373a;
-  color: #dfdeee;
+.notAdminTitle b {
+  font-weight: 600;
+}
+.notAdminText {
+  font-size: 13.5px;
+  line-height: 19px;
+}
+.notAdminActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid #4a3d1d;
+}
+.notAdminActions a,
+.notAdminActions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
+  transition: background 0.2s;
 }
-.notAdmin .btn2:hover {
-  background: #08aeea;
-  color: #1a1a1a;
+.notAdminActions .mdi {
+  font-size: 16px;
+}
+.notAdminActions .notAdminMap {
+  color: #f0b429;
+  border-right: 1px solid #4a3d1d;
+}
+.notAdminActions .notAdminSignOut {
+  color: #e8e2d4;
+}
+.notAdminActions a:hover,
+.notAdminActions button:hover,
+.notAdminActions a:focus-visible,
+.notAdminActions button:focus-visible {
+  background: rgba(240, 180, 41, 0.12);
+  outline: none;
 }
 
 .providerLinks {
