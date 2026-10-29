@@ -1,7 +1,7 @@
 // Where a connection's grant is kept: encrypted against the MMGIS account, or in the browser session
 const logger = require("../logger");
 const secretBox = require("./secretBox");
-const { STATE_TTL_MS, withTimeout, ConnectionRequiredError } = require("./common");
+const { withTimeout, ConnectionRequiredError } = require("./common");
 const { getConnection } = require("./registry");
 
 function principalOf(req) {
@@ -109,7 +109,10 @@ async function readStored(req, principal, c) {
   return null;
 }
 
-// When each browser session last disconnected a session-stored connection
+// When each browser session last disconnected a session-stored connection. Kept as long as a
+// session can live (the cookie maxAge in scripts/server.js), since a request that began before
+// the Disconnect can save its older copy of the session at any point after it
+const DISCONNECT_MEMORY_MS = 24 * 60 * 60 * 1000;
 const disconnectedAt = new Map();
 const sessionKey = (req, c) => `${req.sessionID}|${c.id}`;
 
@@ -159,7 +162,7 @@ async function removeStored(req, principal, c) {
     await models().AuthConnection.destroy({ where: { user_id: principal.userId, connection: c.id } });
   if (req.sessionID) {
     const now = Date.now();
-    for (const [k, at] of disconnectedAt) if (now - at > STATE_TTL_MS) disconnectedAt.delete(k);
+    for (const [k, at] of disconnectedAt) if (now - at > DISCONNECT_MEMORY_MS) disconnectedAt.delete(k);
     disconnectedAt.set(sessionKey(req, c), now);
   }
   if (req.session && req.session.connections && Object.prototype.hasOwnProperty.call(req.session.connections, c.id))
