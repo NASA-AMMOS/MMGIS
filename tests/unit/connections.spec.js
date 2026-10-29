@@ -983,10 +983,38 @@ test.describe('lifecycle and failure handling', () => {
     test('a plugin fault outside its hook promise is recognised, other errors are not', () => {
         const fromPlugin = new Error('boom');
         fromPlugin.stack = `Error: boom\n    at Timeout._onTimeout (${path.join(root, 't', 'connections', 'R2', 'plugin.js')}:3:9)`;
-        expect(connections.isPluginFault(fromPlugin)).toBe(true);
-        expect(connections.isPluginFault(Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }))).toBe(true);
-        expect(connections.isPluginFault(new Error('a bug in MMGIS'))).toBe(false);
-        expect(connections.isPluginFault(null)).toBe(false);
+        const pluginFaults = require('../../API/pluginFaults');
+        expect(pluginFaults.isPluginFault(fromPlugin)).toBe(true);
+        expect(pluginFaults.pluginOf(fromPlugin).family).toBe('connection');
+        expect(pluginFaults.isPluginFault(Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }))).toBe(true);
+        expect(pluginFaults.isPluginFault(new Error('a bug in MMGIS'))).toBe(false);
+        expect(pluginFaults.isPluginFault(null)).toBe(false);
+    });
+
+    test('plugin faults cover every plugin family outside core, and never core code', () => {
+        const pluginFaults = require('../../API/pluginFaults');
+        const at = (dir) => Object.assign(new Error('boom'), { stack: `Error: boom\n    at Timeout._onTimeout (${path.join(dir, 'plugin.js')}:1:1)` });
+        const ext = path.join(root, 'ext');
+        try {
+            pluginFaults.register('auth', [path.join(ext, 'auth', 'Sso')]);
+            pluginFaults.register('backend', [path.join(ext, 'backend', 'Thing')]);
+            expect(pluginFaults.pluginOf(at(path.join(ext, 'auth', 'Sso')))).toEqual({ family: 'auth', dir: path.join(ext, 'auth', 'Sso') });
+            expect(pluginFaults.pluginOf(at(path.join(ext, 'backend', 'Thing'))).family).toBe('backend');
+            // A sibling folder whose name starts the same is not the plugin
+            expect(pluginFaults.isPluginFault(at(path.join(ext, 'backend', 'Thing2')))).toBe(false);
+            expect(pluginFaults.isPluginFault(at(path.join(__dirname, '..', '..', 'plugins', 'core', 'backend', 'Users')))).toBe(false);
+        } finally {
+            pluginFaults.register('auth', []);
+            pluginFaults.register('backend', []);
+        }
+    });
+
+    test('the split modules keep the public API', () => {
+        for (const name of ['token', 'rejected', 'unavailable', 'connectionRequired', 'ConnectionRequiredError', 'mountConnectionRoutes',
+            'loadConnections', 'getConnection', 'allConnections', 'setupStatus', 'startupWarnings', 'accountGrants', 'revokeGrants',
+            'adoptSessionConnections', 'carryGuestConnections', 'readStored', 'writeStored', 'removeStored', 'current', 'callbackUrl'])
+            expect(connections[name], name).toBeDefined();
+        expect(connections.ConnectionRequiredError).toBe(require('../../API/connections/common').ConnectionRequiredError);
     });
 
     test.describe('routes', () => {

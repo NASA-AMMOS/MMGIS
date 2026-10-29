@@ -78,9 +78,10 @@ function loadProviders(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
       );
       continue;
     }
-    found.set(id, { id, name: p.name, label: m.display_name || p.name, manifest: m, impl });
+    found.set(id, { id, name: p.name, label: m.display_name || p.name, manifest: m, impl, dir: p.pluginPath, core: p.container === "core" });
   }
   registry = found;
+  require("../pluginFaults").register("auth", Array.from(found.values()).filter((p) => !p.core).map((p) => p.dir));
   return availableProviders();
 }
 

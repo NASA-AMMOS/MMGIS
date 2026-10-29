@@ -3,6 +3,7 @@ const path = require("path");
 const semver = require("semver");
 
 const logger = require("./logger");
+const pluginFaults = require("./pluginFaults");
 const { discoverPlugins, checkPluginDependencies } = require("./pluginDiscovery");
 const { pluginScope } = require("./permissions/authorize");
 
@@ -26,6 +27,7 @@ function getBackendSetups(cb) {
   let setups = {};
   const setupManifests = {};
   const setupContainers = {};
+  const externalBackendDirs = {};
 
   // Single-pass scan of plugins/*/backend/ — discover via plugin.json,
   // then require the sibling plugin.js for lifecycle hooks.
@@ -77,6 +79,9 @@ function getBackendSetups(cb) {
     setups[plugin.name] = lifecycle;
     setupManifests[plugin.name] = plugin.manifest;
     setupContainers[plugin.name] = plugin.container;
+    if (plugin.container === "core") delete externalBackendDirs[plugin.name];
+    else externalBackendDirs[plugin.name] = plugin.pluginPath;
+    pluginFaults.register("backend", Object.values(externalBackendDirs));
     logger(
       "loaded",
       `Backend: ${plugin.name} from ${plugin.container}${
