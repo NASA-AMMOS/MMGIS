@@ -945,7 +945,7 @@ test.describe('lifecycle and failure handling', () => {
     });
 
     test('plugin text is scrubbed of more kinds of secret env values', () => {
-        const env = { R2_LEAK: '1', MAPBOX_APIKEY: 'pk.mapbox1', PRIVATE_KEY_PEM: '-----BEGIN-x', DB_PASSWD: 'hunter2x', CREDENTIALS: 'cr3dz!', SHORTSEC_TOKEN: 'sixsix', SITE_ACCESS: 'optional' };
+        const env = { R2_LEAK: '1', MAPBOX_APIKEY: 'pk.mapbox1', PRIVATE_KEY_PEM: '-----BEGIN-x', DB_PASSWD: 'hunter2x', CREDENTIALS: 'cr3dz!', SHORTSEC_TOKEN: 'sixsix', SITE_ACCESS: 'optional' }; // pragma: allowlist secret
         const out = connections.setupStatus(c(), env).problems.join(' ');
         for (const n of ['MAPBOX_APIKEY', 'PRIVATE_KEY_PEM', 'DB_PASSWD', 'CREDENTIALS', 'SHORTSEC_TOKEN']) expect(out).not.toContain(env[n]);
     });
