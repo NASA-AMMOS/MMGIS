@@ -67,7 +67,7 @@ async function plan({ dryRun = false } = {}) {
 
 // Viewing limits were only enforced for local-login sites that require login
 function isLegacyLocal() {
-  return siteAccess.isRequired() && !siteAccess.hasProvider("csso");
+  return siteAccess.isRequired() && !siteAccess.hasProvider("proxy");
 }
 
 async function userBindings(u, legacyLocal, missionScope, add) {

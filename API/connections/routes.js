@@ -118,7 +118,7 @@ const plainText = (str) => String(str).replace(/[\u0000-\u001f\u007f-\u009f\u200
 
 // The callback's query holds the OAuth code and state, so log without it
 function logReq(req) {
-  return { headers: req.headers, user: req.user, sessionID: req.sessionID, cssoSessionID: req.cssoSessionID };
+  return { headers: req.headers, user: req.user, sessionID: req.sessionID, proxySessionID: req.proxySessionID };
 }
 
 function renderResult(res, view) {

@@ -38,7 +38,7 @@ services:
       - DB_POOL_MAX               = var.db_pool_max
       - DB_POOL_TIMEOUT           = var.db_pool_timeout
       - DB_POOL_IDLE              = var.db_pool_idle
-      - CSSO_GROUPS               = var.csso_groups
+      - PROXY_GROUPS              = var.proxy_groups
       - VERBOSE_LOGGING           = var.verbose_logging
       - FRAME_ANCESTORS           = var.frame_ancestors
       - FRAME_SRC                 = var.frame_src

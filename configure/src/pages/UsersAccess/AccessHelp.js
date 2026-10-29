@@ -63,7 +63,7 @@ function AccessGuide({ roles }) {
           </div>
           <div className={c.item}>
             <SubjectTag type="group" name="Science team" />
-            <div>Everyone in the group. Members are added here or come from CSSO groups.</div>
+            <div>Everyone in the group. Members are added here or come from proxy groups.</div>
           </div>
           <div className={c.item}>
             <SubjectTag type="everyone" name="Everyone" />
@@ -152,9 +152,9 @@ function AccessGuide({ roles }) {
             <td>{yes}</td><td>{yes}</td><td>{yes}</td><td>{yes}</td>
           </tr>
           <tr>
-            <td><b>CSSO user</b> <span className={c.muted}>no MMGIS account</span></td>
+            <td><b>Proxy user</b> <span className={c.muted}>no MMGIS account</span></td>
             <td>{no}</td>
-            <td>{yes} <span className={c.muted}>matched by CSSO group name; when CSSO_GROUPS is set, they also need one of those groups to open the site</span></td>
+            <td>{yes} <span className={c.muted}>matched by proxy group name; when PROXY_GROUPS is set, they also need one of those groups to open the site</span></td>
             <td>{yes}</td><td>{yes}</td>
           </tr>
           <tr>
@@ -164,7 +164,7 @@ function AccessGuide({ roles }) {
         </tbody>
       </table>
       <div className={c.note}>On sites that require login, guests get nothing, whatever Everyone has.</div>
-      <div className={c.note}>Draw files belong to a username. A CSSO user and a local account with the same username share the same Draw files, so only reuse a CSSO username for a local account that belongs to the same person.</div>
+      <div className={c.note}>Draw files belong to a username. A proxy user and a local account with the same username share the same Draw files, so only reuse a proxy username for a local account that belongs to the same person.</div>
 
       <div className={c.rules}>
         <div className={c.rule}>

@@ -19,7 +19,7 @@ const { discoverPlugins } = require("../pluginDiscovery");
 const siteAccess = require("./siteAccess");
 
 // Ids of the shipped providers; only their own plugin folders may use them
-const BUILTIN_PROVIDERS = { local: "Local", csso: "CSSO" };
+const BUILTIN_PROVIDERS = { local: "Local", proxy: "Proxy" };
 const DOCS_URL = "https://nasa-ammos.github.io/MMGIS/contributing/auth-providers";
 const DEFAULT_PLUGINS_ROOT = path.join(__dirname, "..", "..", "plugins");
 
@@ -129,9 +129,9 @@ const providerWarnings = (ids = siteAccess.getProviders(), env = process.env) =>
     if (lp != null && (typeof lp !== "string" || !lp.startsWith("/")))
       out.push(`Auth provider '${p.id}': plugin.json "login_path" must start with "/", so no login button is shown.`);
   });
-  if (ids.includes("csso") && !ids.includes("local"))
+  if (ids.includes("proxy") && !ids.includes("local"))
     out.push(
-      'AUTH_PROVIDERS does not include local, so local admin accounts cannot sign in to /configure. Use ["csso","local"] to keep them.'
+      'AUTH_PROVIDERS does not include local, so local admin accounts cannot sign in to /configure. Use ["proxy","local"] to keep them.'
     );
   return out;
 };

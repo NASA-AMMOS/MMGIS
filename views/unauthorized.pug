@@ -90,7 +90,7 @@ head
     if user
       #reason Signed in as #{user}, but your account isn&apos;t in a group allowed on this site. Ask an administrator for access.
     #button
-      a#link(href='/ssologoutredirect')= user ? 'Sign out' : 'Turn around'
+      a#link(href=PROXY_LOGOUT_URL || '/ssologoutredirect')= user ? 'Sign out' : 'Turn around'
 #bottom
 footer
   script.

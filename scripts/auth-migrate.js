@@ -44,12 +44,22 @@ if (process.env.AUTH != null && process.env.AUTH !== "") {
     process.exit(1);
   }
   notes.push(
-    `Legacy AUTH=${legacyKey} found. Before upgrading, replace it with SITE_ACCESS=${legacy.SITE_ACCESS} and AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}.`
+    `Legacy AUTH=${legacyKey} found. Before upgrading, replace it with SITE_ACCESS=${legacy.SITE_ACCESS} and AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}${legacy.note ? ` and set ${legacy.note}` : ""}.`
   );
   delete process.env.AUTH;
   process.env.SITE_ACCESS = process.env.SITE_ACCESS || legacy.SITE_ACCESS;
   process.env.AUTH_PROVIDERS = process.env.AUTH_PROVIDERS || legacy.AUTH_PROVIDERS;
+  // AUTH=csso trusted the proxy headers on any request
+  if (legacyKey === "csso" && !process.env.PROXY_TRUST && !process.env.PROXY_SECRET && !process.env.CSSO_PROXY_SECRET)
+    process.env.PROXY_TRUST = "network";
 }
+if (dryRun)
+  Object.entries(siteAccess.RENAMED_ENVS).forEach(([from, to]) => {
+    if (process.env[from] == null || process.env[from] === "") return;
+    notes.push(`${from} has been renamed. Before upgrading, rename it to ${to}.`);
+    if (process.env[to] == null || process.env[to] === "") process.env[to] = process.env[from];
+    delete process.env[from];
+  });
 const errors = siteAccess.validate();
 if (errors.length) {
   console.error(errors.join("\n"));

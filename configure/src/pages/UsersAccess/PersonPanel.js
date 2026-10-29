@@ -51,7 +51,7 @@ export function PersonPanel({ user, ctx }) {
   const groupName = (id) => (groups.find((g) => String(g.id) === String(id)) || {}).name || `group ${id}`;
   const rows = bindings.map((b) => ({
     b,
-    removable: b.subject_type === "user" && b.source !== "csso",
+    removable: b.subject_type === "user" && b.source !== "proxy",
     via:
       b.subject_type === "user"
         ? sourceText(b)

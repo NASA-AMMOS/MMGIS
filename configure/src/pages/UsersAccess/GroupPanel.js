@@ -120,7 +120,7 @@ export function GroupPanel({ group, ctx }) {
       {group.source !== "local" && (
         <div className={`${c.section} ${c.hint}`}>
           Members come from {group.source.toUpperCase()}: anyone whose group claims include <b>{group.external_name}</b>.
-          {group.source === "csso" && " If CSSO_GROUPS is set, members must also be in one of those groups to open the map or Configure."}
+          {group.source === "proxy" && " If PROXY_GROUPS is set, members must also be in one of those groups to open the map or Configure."}
         </div>
       )}
       {group.source === "local" && (

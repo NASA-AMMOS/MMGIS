@@ -48,7 +48,7 @@ npm run plugins -- install MMGIS-Plugins
 | **interactions** | `plugins/<container>/interactions/` | Feature interaction handlers (Select, InfoOpen, etc.) |
 | **layertypes** | `plugins/<container>/layertypes/` | Layer renderers and their config/filter/time behavior (Vector, Tile, etc.) |
 | **layerattachments** | `plugins/<container>/layerattachments/` | Extras built from a host layer's data (Labels, PathGradient, etc.) |
-| **auth** | `plugins/core/auth/` | MMGIS sign-in providers selected by `AUTH_PROVIDERS` (Local, CSSO). Core only. See [Writing an Auth Provider](AuthProviders/AuthProviders.md) |
+| **auth** | `plugins/core/auth/` | MMGIS sign-in providers selected by `AUTH_PROVIDERS` (Local, Proxy). Core only. See [Writing an Auth Provider](AuthProviders/AuthProviders.md) |
 | **connections** | `plugins/<container>/connections/` | Outside services that tools use with each person's own account there (e.g. Earthdata; none in core yet). Not a way to sign in to MMGIS. See [Connections](Connections/Connections.md) |
 
 Each plugin directory contains a `plugin.json` manifest describing the plugin's metadata, paths, and optional dependencies. See [`plugins/README.md`](/plugins/README.md) for the full manifest reference, and the per-family `README.md` in `plugins/core/layertypes/` and `plugins/core/layerattachments/` for those contracts.

@@ -152,12 +152,12 @@ process.env.IS_DOCKER = isDocker ? "true" : "false";
 // Load the permissions.json file, which maps LDAP groups to permission sets.
 // This application has two permission sets: "users" and "admins".
 let permissions = {};
-permissions.users = process.env.CSSO_GROUPS
-  ? JSON.parse(process.env.CSSO_GROUPS)
+permissions.users = process.env.PROXY_GROUPS
+  ? JSON.parse(process.env.PROXY_GROUPS)
   : [];
 
-// The port your application runs on must only be exposed locally. The CSSO
-// proxy will run on a different port, which will be exposed externally.
+// The port your application runs on must only be exposed locally. The
+// authenticating proxy (AUTH_PROVIDERS proxy) will run on a different port, which will be exposed externally.
 const port = parseInt(process.env.PORT || "8888", 10);
 
 /** set the session for application */
@@ -284,8 +284,8 @@ connections
   .startupWarnings()
   .forEach((warning) => logger("warn", warning, "server"));
 
-// Identifies the request through the enabled login providers (e.g. CSSO)
-const cssoHandler = (req, res, next) => {
+// Identifies the request through the enabled login providers (e.g. proxy)
+const identityHandler = (req, res, next) => {
   // For this application, every HTTP request is a direct response to user
   // activity, so we can set the activity header to true on every response.
   res.set("X-Activity", "true");
@@ -299,12 +299,12 @@ const cssoHandler = (req, res, next) => {
       if (identity) {
         req.identity = identity;
         req.groups = Object.fromEntries(identity.groups.map((g) => [g, true]));
-        if (identity.provider === "csso" && req.groups[process.env.CSSO_LEAD_GROUP] === true)
+        if (identity.provider === "proxy" && req.groups[process.env.PROXY_LEAD_GROUP] === true)
           req.groups[req.leadGroupName] = true;
         req.user = identity.username;
-        if (identity.provider === "csso") {
-          req.cssoAuthenticated = true;
-          if (identity.session) req.cssoSessionID = identity.session;
+        if (identity.provider === "proxy") {
+          req.proxyAuthenticated = true;
+          if (identity.session) req.proxySessionID = identity.session;
         }
         next();
         return;
@@ -314,6 +314,12 @@ const cssoHandler = (req, res, next) => {
     })
     .catch(next);
 };
+
+// Where the proxy reports its session status and signs people out (frontend polling and Sign out)
+function proxyUrls() {
+  const c = require("../plugins/core/auth/Proxy/plugin.js").config();
+  return { status: c.statusUrl, logout: c.logoutUrl };
+}
 
 function sessionIdentity(req) {
   req.user = req.session.user || guestUsername;
@@ -365,7 +371,7 @@ function checkHeadersCodeInjection(req, res, next) {
   }
 }
 
-// Requires a signed-in principal (session user, CSSO user or token)
+// Requires a signed-in principal (session user, proxy user or token)
 function stopGuests(req, res, next) {
   ensurePrincipal(req)
     .then((principal) => {
@@ -377,14 +383,14 @@ function stopGuests(req, res, next) {
 
 /**
  * ensureGroup - Checks if user is in ANY of the allowed groups.
- * Only applies when the csso login provider is enabled.
+ * Only applies when the proxy login provider is enabled.
  *
  * @param {array} allowedGroups - An array of group names.
  * @return {function}
  */
 function ensureGroup(allowedGroups) {
   return (req, res, next) => {
-    if (!siteAccess.hasProvider("csso") || !req.cssoAuthenticated) {
+    if (!siteAccess.hasProvider("proxy") || !req.proxyAuthenticated) {
       next();
       return;
     }
@@ -404,7 +410,7 @@ function ensureGroup(allowedGroups) {
       return;
     }
 
-    res.render("unauthorized", { user: req.user });
+    res.render("unauthorized", { user: req.user, PROXY_LOGOUT_URL: proxyUrls().logout });
     return;
   };
 }
@@ -524,9 +530,9 @@ function ensureUser(options = {}) {
           return;
         }
         if (options.forbid) sendForbidden(req, res);
-        // Sites with no login form or login links sign in through their proxy (e.g. CSSO)
+        // Sites with no login form or login links sign in through their authenticating proxy
         else if (!siteAccess.hasProvider("local") && providers.loginLinks().length === 0)
-          res.render("unauthorized", { user: null });
+          res.render("unauthorized", { user: null, PROXY_LOGOUT_URL: proxyUrls().logout });
         else
           res.render("login", {
             user: req.user,
@@ -589,7 +595,7 @@ initAdjacentServersProxy(
 
 let s = {
   app: app,
-  cssoHandler,
+  identityHandler,
   setContentType,
   checkHeadersCodeInjection,
   stopGuests,
@@ -691,8 +697,8 @@ app.use(
 // Pug is used to render pages.
 app.set("view engine", "pug");
 
-// Ensure the CSSO handler runs on every request.
-app.use(cssoHandler);
+// Ensure the identity handler runs on every request.
+app.use(identityHandler);
 app.use(principalMiddleware);
 
 //app.use(logger('dev'));
@@ -802,7 +808,7 @@ setups.getBackendSetups(function (setups) {
     express.static(path.join(rootDir, "/Missions")),
   );
   app.get(s.ROOT_PATH + "/resetPassword", (req, res) => {
-    const user = req.cssoAuthenticated ? req.user : req.user || "";
+    const user = req.proxyAuthenticated ? req.user : req.user || "";
     res.render("../views/resetpassword.pug", {
       user: user,
       SITE_ACCESS: siteAccess.getSiteAccess(),
@@ -945,6 +951,8 @@ setups.getBackendSetups(function (setups) {
             LOGIN_PROVIDER: loginProvider,
             LOGIN_PER_REQUEST: String(p.kind === "external"),
             LOGOUT_URL: providers.logoutUrl(loginProvider) || "",
+            PROXY_STATUS_URL: proxyUrls().status,
+            PROXY_LOGOUT_URL: proxyUrls().logout,
             role: role,
             groups: JSON.stringify(groups),
             SITE_ACCESS: siteAccess.getSiteAccess(),

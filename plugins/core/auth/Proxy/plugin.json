@@ -1,15 +1,12 @@
 {
   "uuid": "3883d678-db37-402d-b756-a6118c44500a",
-  "id": "core-auth-csso",
-  "name": "CSSO",
-  "display_name": "Cloud Single Sign-On",
-  "description": "Identity headers from a Cloud Single Sign-On proxy in front of MMGIS (X-Sub, X-Groups, X-Session).",
-  "aliases": [
-    "csso"
-  ],
+  "id": "core-auth-proxy",
+  "name": "Proxy",
+  "display_name": "Authenticating proxy",
+  "description": "Identity headers from an authenticating reverse proxy in front of MMGIS (by default X-Sub, X-Groups and X-Session).",
   "version": "core",
   "type": "auth",
-  "provider": "csso",
+  "provider": "proxy",
   "tier": "core",
   "overridable": false,
   "required": true,

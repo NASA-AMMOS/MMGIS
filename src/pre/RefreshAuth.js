@@ -20,18 +20,20 @@ String.prototype.toHHMMSS = function () {
 //set interval that checks valid sso
 //every 4:30min checks if the token will expire in less than 5min
 //refreshes if the user moved their mouse in the past 20min
-if (mmgisglobal.SERVER == 'node' && mmgisglobal.authProviders.includes('csso')) {
+if (mmgisglobal.SERVER == 'node' && mmgisglobal.authProviders.includes('proxy') &&
+    window.mmgisglobal.PROXY_STATUS_URL !== 'off'
+) {
     console.log(
         '%cAUTH_REFRESH ON',
         'background: #006280; padding: 0px 4px 0px 4px;'
     )
     //Add your own login/logout redirects
-    // Guests on sites that allow them have no CSSO session to end
+    // Guests on sites that allow them have no proxy session to end
     var _refreshAuth_signedIn = false
     function ssologout() {
         if (mmgisglobal.SITE_ACCESS !== 'required' && !_refreshAuth_signedIn)
             return
-        window.location.href = '/ssologoutredirect'
+        window.location.href = window.mmgisglobal.PROXY_LOGOUT_URL || '/ssologoutredirect'
     }
     function ssologin() {
         window.location.href =
@@ -45,7 +47,7 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.authProviders.includes('csso')) 
 
     function ssorefresh() {
         var request = new XMLHttpRequest()
-        request.open('Post', '/ssostatus', true)
+        request.open('Post', window.mmgisglobal.PROXY_STATUS_URL || '/ssostatus', true)
         request.onload = function () {
             if (request.status >= 200 && request.status < 400) {
                 var result = request.responseText

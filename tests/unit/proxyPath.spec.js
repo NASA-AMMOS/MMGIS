@@ -46,12 +46,26 @@ test.describe('stripCredentials', () => {
     expect(r.headers.cookie).toBe('other=1');
   });
 
-  test('removes CSSO identity headers and the proxy secret', () => {
+  test('removes proxy identity headers and the proxy secret', () => {
     const r = fakeReq({
       'x-mmgis-proxy-secret': 's', 'x-sub': 'u', 'x-groups': 'g', 'x-session': 'x', accept: 'application/json',
     });
     stripCredentials(r);
     expect(Object.keys(r.headers)).toEqual(['accept']);
+  });
+
+  test('removes custom proxy identity header names too', () => {
+    const saved = { u: process.env.PROXY_USER_HEADER, k: process.env.PROXY_SECRET_HEADER };
+    process.env.PROXY_USER_HEADER = 'X-Forwarded-User';
+    process.env.PROXY_SECRET_HEADER = 'X-Edge-Key';
+    try {
+      const r = fakeReq({ 'x-forwarded-user': 'u', 'x-edge-key': 'k', 'x-sub': 'u', accept: 'application/json' });
+      stripCredentials(r);
+      expect(Object.keys(r.headers)).toEqual(['accept']);
+    } finally {
+      for (const [k, v] of [['PROXY_USER_HEADER', saved.u], ['PROXY_SECRET_HEADER', saved.k]])
+        v === undefined ? delete process.env[k] : (process.env[k] = v);
+    }
   });
 
   test('drops the cookie header when only MMGIS cookies were sent', () => {

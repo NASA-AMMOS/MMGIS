@@ -1,6 +1,6 @@
 /**
  * Unit tests for login provider plugins (plugins/core/auth/*).
- * Source: API/permissions/providers.js, plugins/core/auth/CSSO/plugin.js
+ * Source: API/permissions/providers.js, plugins/core/auth/Proxy/plugin.js
  */
 
 import { test, expect } from '@playwright/test';
@@ -10,7 +10,7 @@ const path = require('path');
 
 const providers = require(path.resolve(__dirname, '../../API/permissions/providers.js'));
 const siteAccess = require(path.resolve(__dirname, '../../API/permissions/siteAccess.js'));
-const csso = require(path.resolve(__dirname, '../../plugins/core/auth/CSSO/plugin.js'));
+const proxy = require(path.resolve(__dirname, '../../plugins/core/auth/Proxy/plugin.js'));
 const REAL_ROOT = path.resolve(__dirname, '../../plugins');
 
 function writePlugin(root, container, name, manifest, js = 'module.exports = {};') {
@@ -54,9 +54,9 @@ test.describe('provider discovery', () => {
     expect(providers.getProvider('local')).toBeNull();
   });
 
-  test('the shipped providers are local and csso', () => {
-    expect(providers.loadProviders(REAL_ROOT).sort()).toEqual(['csso', 'local']);
-    for (const id of ['local', 'csso']) {
+  test('the shipped providers are local and proxy', () => {
+    expect(providers.loadProviders(REAL_ROOT).sort()).toEqual(['local', 'proxy']);
+    for (const id of ['local', 'proxy']) {
       const m = providers.getProvider(id).manifest;
       expect(m).toMatchObject({ type: 'auth', tier: 'core', overridable: false, required: true });
     }
@@ -67,7 +67,30 @@ test.describe('AUTH_PROVIDERS validation against the registry', () => {
   test.beforeAll(() => providers.loadProviders(REAL_ROOT));
 
   test('accepts discovered providers', () => {
-    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local","csso"]' })).toEqual([]);
+    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local","proxy"]', PROXY_SECRET: 'x' })).toEqual([]); // pragma: allowlist secret
+  });
+
+  test('proxy refuses startup without PROXY_SECRET unless another trust mode is chosen', () => {
+    const v = (env) => siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["proxy","local"]', ...env });
+    expect(v({}).join()).toMatch(/PROXY_SECRET must be set.*PROXY_TRUST=network/);
+    expect(v({ PROXY_TRUST: 'secret' }).join()).toMatch(/PROXY_SECRET must be set/);
+    expect(v({ PROXY_TRUST: 'network' })).toEqual([]);
+    expect(v({ PROXY_TRUST: 'ips' }).join()).toMatch(/PROXY_TRUSTED_IPS/);
+    expect(v({ PROXY_TRUST: 'ips', PROXY_TRUSTED_IPS: '["10.0.0.5","10.1.0.0/16","::1"]' })).toEqual([]);
+    expect(v({ PROXY_TRUST: 'ips', PROXY_TRUSTED_IPS: '10.0.0.5, 10.1.0.0/16' })).toEqual([]);
+    for (const bad of ['["nope"]', '["10.0.0.0/33"]', '[]', '{}'])
+      expect(v({ PROXY_TRUST: 'ips', PROXY_TRUSTED_IPS: bad }).join()).toMatch(/PROXY_TRUSTED_IPS/);
+    expect(v({ PROXY_TRUST: 'bogus' }).join()).toMatch(/PROXY_TRUST must be one of/);
+  });
+
+  test('proxy validates header names, group format and URLs', () => {
+    const v = (env) => siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["proxy"]', PROXY_TRUST: 'network', ...env }).join();
+    expect(v({ PROXY_USER_HEADER: 'bad header' })).toMatch(/PROXY_USER_HEADER must be an HTTP header name/);
+    expect(v({ PROXY_GROUPS_HEADER: 'x-sub' })).toMatch(/must all be different/);
+    expect(v({ PROXY_GROUPS_FORMAT: 'xml' })).toMatch(/PROXY_GROUPS_FORMAT must be one of/);
+    expect(v({ PROXY_STATUS_URL: 'javascript:alert(1)' })).toMatch(/PROXY_STATUS_URL/);
+    expect(v({ PROXY_LOGOUT_URL: '//evil.example' })).toMatch(/PROXY_LOGOUT_URL/);
+    expect(v({ PROXY_STATUS_URL: 'off', PROXY_LOGOUT_URL: 'https://sso.example/logout' })).not.toMatch(/URL/);
   });
 
   test('unknown providers list what is available', () => {
@@ -75,15 +98,16 @@ test.describe('AUTH_PROVIDERS validation against the registry', () => {
       .toMatch(/unknown provider 'okta'\. Available: .*local/);
   });
 
-  test('csso warns when CSSO_PROXY_SECRET is unset', () => {
-    expect(providers.providerWarnings(['csso'], {}).join()).toMatch(/CSSO_PROXY_SECRET/);
-    expect(providers.providerWarnings(['csso', 'local'], { CSSO_PROXY_SECRET: 'x' })).toEqual([]);
+  test('proxy warns when it trusts the network, or when PROXY_SECRET is ignored', () => {
+    expect(providers.providerWarnings(['proxy', 'local'], { PROXY_TRUST: 'network' }).join()).toMatch(/PROXY_TRUST=network/);
+    expect(providers.providerWarnings(['proxy', 'local'], { PROXY_TRUST: 'ips', PROXY_SECRET: 'x' }).join()).toMatch(/PROXY_SECRET is set but ignored/); // pragma: allowlist secret
+    expect(providers.providerWarnings(['proxy', 'local'], { PROXY_SECRET: 'x' })).toEqual([]); // pragma: allowlist secret
     expect(providers.providerWarnings(['local'], {})).toEqual([]);
   });
 
-  test('csso without local warns that local admins lose /configure', () => {
-    expect(providers.providerWarnings(['csso'], { CSSO_PROXY_SECRET: 'x' }).join()).toMatch(/does not include local/);
-    expect(providers.providerWarnings(['csso', 'local'], { CSSO_PROXY_SECRET: 'x' })).toEqual([]);
+  test('proxy without local warns that local admins lose /configure', () => {
+    expect(providers.providerWarnings(['proxy'], { PROXY_SECRET: 'x' }).join()).toMatch(/does not include local/);
+    expect(providers.providerWarnings(['proxy', 'local'], { PROXY_SECRET: 'x' })).toEqual([]);
   });
 });
 
@@ -96,27 +120,81 @@ test.describe('identities', () => {
     });
   });
 
-  const req = (headers) => ({ get: (h) => headers[h] });
+  const req = (headers, remoteAddress = '203.0.113.9') => {
+    const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
+    return { get: (h) => lower[String(h).toLowerCase()], socket: { remoteAddress } };
+  };
   const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64');
-
-  test('csso reads X-Sub, true-valued X-Groups and X-Session', () => {
-    delete process.env.CSSO_PROXY_SECRET;
-    expect(csso.identify(req({}))).toBeNull();
-    expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-Groups': b64({ ops: true, old: false }), 'X-Session': 's1' })))
-      .toEqual({ subject: 'jdoe', username: 'jdoe', groups: ['ops'], session: 's1' });
-    expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-Groups': 'not base64 json' })).groups).toEqual([]);
-  });
-
-  test('csso only trusts headers carrying the proxy secret when one is set', () => {
-    process.env.CSSO_PROXY_SECRET = 'shh'; // pragma: allowlist secret
+  const PROXY_ENVS = ['PROXY_TRUST', 'PROXY_SECRET', 'PROXY_SECRET_HEADER', 'PROXY_TRUSTED_IPS', 'PROXY_USER_HEADER',
+    'PROXY_GROUPS_HEADER', 'PROXY_GROUPS_FORMAT', 'PROXY_SESSION_HEADER'];
+  const withProxyEnv = (env, fn) => {
+    const saved = Object.fromEntries(PROXY_ENVS.map((k) => [k, process.env[k]]));
+    PROXY_ENVS.forEach((k) => delete process.env[k]);
+    Object.assign(process.env, env);
     try {
-      expect(csso.identify(req({ 'X-Sub': 'jdoe' }))).toBeNull();
-      expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'nope' }))).toBeNull(); // pragma: allowlist secret
-      expect(csso.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'shh' })).subject).toBe('jdoe'); // pragma: allowlist secret
+      fn();
     } finally {
-      delete process.env.CSSO_PROXY_SECRET;
+      PROXY_ENVS.forEach((k) => (saved[k] === undefined ? delete process.env[k] : (process.env[k] = saved[k])));
     }
+  };
+
+  test('proxy (PROXY_TRUST=network) reads X-Sub, true-valued X-Groups and X-Session like AUTH=csso', () =>
+    withProxyEnv({ PROXY_TRUST: 'network' }, () => {
+      expect(proxy.identify(req({}))).toBeNull();
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-Groups': b64({ ops: true, old: false }), 'X-Session': 's1' })))
+        .toEqual({ subject: 'jdoe', username: 'jdoe', groups: ['ops'], session: 's1' });
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe' }))).toEqual({ subject: 'jdoe', username: 'jdoe', groups: [], session: null });
+    }));
+
+  test('proxy refuses an identity whose groups header cannot be read', () =>
+    withProxyEnv({ PROXY_TRUST: 'network' }, () => {
+      for (const bad of ['not base64 json', b64('ops'), b64(['ops']), b64(null), 'bnVsbA'])
+        expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-Groups': bad }))).toBeNull();
+    }));
+
+  test('proxy trusts nothing by default: the secret is required', () => {
+    withProxyEnv({}, () => {
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': '' }))).toBeNull();
+    });
+    withProxyEnv({ PROXY_SECRET: 'shh' }, () => { // pragma: allowlist secret
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe' }))).toBeNull();
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'nope' }))).toBeNull(); // pragma: allowlist secret
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'shhh' }))).toBeNull(); // pragma: allowlist secret
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'shh' })).subject).toBe('jdoe'); // pragma: allowlist secret
+    });
   });
+
+  test('PROXY_TRUST=ips only trusts the listed addresses and ranges', () =>
+    withProxyEnv({ PROXY_TRUST: 'ips', PROXY_TRUSTED_IPS: '["10.0.0.5","10.1.0.0/16","::1"]' }, () => {
+      const h = { 'X-Sub': 'jdoe' };
+      expect(proxy.identify(req(h, '10.0.0.5')).subject).toBe('jdoe');
+      expect(proxy.identify(req(h, '::ffff:10.1.2.3')).subject).toBe('jdoe');
+      expect(proxy.identify(req(h, '::1')).subject).toBe('jdoe');
+      expect(proxy.identify(req(h, '10.0.0.6'))).toBeNull();
+      expect(proxy.identify(req(h, '10.2.0.1'))).toBeNull();
+      expect(proxy.identify(req(h, ''))).toBeNull();
+      // The secret header does not stand in for the address
+      expect(proxy.identify(req({ ...h, 'X-MMGIS-Proxy-Secret': 'x' }, '198.51.100.1'))).toBeNull(); // pragma: allowlist secret
+    }));
+
+  test('header names and the groups format are configurable', () =>
+    withProxyEnv({
+      PROXY_SECRET: 'shh', PROXY_SECRET_HEADER: 'X-Edge-Key', PROXY_USER_HEADER: 'X-Forwarded-User', // pragma: allowlist secret
+      PROXY_GROUPS_HEADER: 'X-Forwarded-Groups', PROXY_GROUPS_FORMAT: 'list', PROXY_SESSION_HEADER: 'X-Edge-Session',
+    }, () => {
+      const h = { 'X-Edge-Key': 'shh', 'X-Forwarded-User': 'jdoe', 'X-Forwarded-Groups': 'ops, sci,,', 'X-Edge-Session': 'e1' }; // pragma: allowlist secret
+      expect(proxy.identify(req(h))).toEqual({ subject: 'jdoe', username: 'jdoe', groups: ['ops', 'sci'], session: 'e1' });
+      // The default names no longer identify anyone
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'shh' }))).toBeNull(); // pragma: allowlist secret
+      expect(proxy.identityHeaders()).toEqual(['x-forwarded-user', 'x-forwarded-groups', 'x-edge-session', 'x-edge-key']);
+    }));
+
+  test('PROXY_GROUPS_FORMAT=json accepts an object of booleans or an array of names', () =>
+    withProxyEnv({ PROXY_TRUST: 'network', PROXY_GROUPS_FORMAT: 'json' }, () => {
+      expect(proxy.identify(req({ 'X-Sub': 'a', 'X-Groups': '{"ops":true,"old":false}' })).groups).toEqual(['ops']);
+      expect(proxy.identify(req({ 'X-Sub': 'a', 'X-Groups': '["ops",3,"sci"]' })).groups).toEqual(['ops', 'sci']);
+      expect(proxy.identify(req({ 'X-Sub': 'a', 'X-Groups': b64({ ops: true }) }))).toBeNull();
+    }));
 });
 
 // In-memory stand-ins for the Sequelize models linkIdentity/syncGroups use
@@ -231,7 +309,7 @@ test.describe('provider group sync', () => {
         { id: 1, source: 'keycloak', external_name: 'm20-ops' },
         { id: 2, source: 'keycloak', external_name: 'm20-sci' },
         { id: 3, source: 'local', external_name: null },
-        { id: 4, source: 'csso', external_name: 'm20-ops' },
+        { id: 4, source: 'proxy', external_name: 'm20-ops' },
       ],
       members: [{ group_id: 2, user_id: 9 }, { group_id: 3, user_id: 9 }, { group_id: 4, user_id: 9 }],
     });

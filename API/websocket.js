@@ -118,11 +118,12 @@ const websocket = {
           return;
         }
 
-        // Header-based login providers (e.g. CSSO) identify the upgrade request itself
+        // Header-based login providers (e.g. proxy) identify the upgrade request itself
         const providerIdentity = () =>
           require("./permissions/providers")
             .identify({
               headers: request.headers,
+              socket: request.socket,
               get: (name) => request.headers[String(name).toLowerCase()],
             })
             .catch(() => null);

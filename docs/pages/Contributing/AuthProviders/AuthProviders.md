@@ -28,7 +28,7 @@ nav_order: 3
 
 A login provider answers "who is this?"; MMGIS roles, groups and grants decide what that person may do, whichever provider answered.
 
-`local` (MMGIS username/password accounts) and `csso` (a Cloud Single Sign-On proxy) ship with MMGIS. A new provider is a folder under `plugins/core/auth/` and is turned on by listing its id in [`AUTH_PROVIDERS`](/MMGIS/setup/envs). Nothing else in MMGIS needs to change: Configure > Users & Access, roles, mission and layer grants, groups and API tokens all work for its users.
+`local` (MMGIS username/password accounts) and `proxy` (an authenticating reverse proxy such as Cloud Single Sign-On) ship with MMGIS. A new provider is a folder under `plugins/core/auth/` and is turned on by listing its id in [`AUTH_PROVIDERS`](/MMGIS/setup/envs). Nothing else in MMGIS needs to change: Configure > Users & Access, roles, mission and layer grants, groups and API tokens all work for its users.
 
 ## Quick start
 
@@ -42,7 +42,7 @@ There are two kinds of provider. Pick one:
 
 | Kind | Hook | When | Examples |
 |---|---|---|---|
-| Per-request | `identify(req)` | Something in front of MMGIS (a proxy) has already logged the user in and sends who they are on every request. | `csso`, a trusted header proxy |
+| Per-request | `identify(req)` | Something in front of MMGIS (a proxy) has already logged the user in and sends who they are on every request. | `proxy`, a trusted header proxy |
 | Session | `routes(router, ctx)` + `ctx.completeLogin` | MMGIS shows a login page or redirects to an identity provider, then starts its own session. | a login form against a directory, OIDC, OAuth2, SAML |
 
 ## plugin.json
@@ -64,7 +64,7 @@ There are two kinds of provider. Pick one:
 | Field | Required | Meaning |
 |---|---|---|
 | `type` | yes | Always `"auth"`. |
-| `provider` | yes | The id used in `AUTH_PROVIDERS`, in group sources and in `/api/auth/<id>`. Lowercase letters, digits, `-` and `_`, starting with a letter. `local` and `csso` belong to the shipped providers. |
+| `provider` | yes | The id used in `AUTH_PROVIDERS`, in group sources and in `/api/auth/<id>`. Lowercase letters, digits, `-` and `_`, starting with a letter. `local` and `proxy` belong to the shipped providers. |
 | `tier`, `overridable` | yes | Must be `"core"` and `false`. Providers can't be overridden by external plugin containers. |
 | `display_name` | no | Shown on login buttons (`Log in with <display_name>`). Defaults to the folder name. |
 | `login_path` | no | Session providers: the route that starts a login, relative to `/api/auth/<id>`. When set, the login page, the Configure sign-in page and the in-app login modal show a button for it. |
@@ -318,7 +318,7 @@ Redirect flows are easiest to test with a production build (`npm run build`, the
 
 - Keep `local` in `AUTH_PROVIDERS` unless your provider's users include an administrator; local accounts are how `/configure` admins sign in.
 - A trusted-header provider must check a shared secret (or be reachable only through the proxy), because anyone who can reach MMGIS can send headers.
-- `CSSO_LEAD_GROUP` and `CSSO_GROUPS` only apply to `csso`.
+- `PROXY_LEAD_GROUP` and `PROXY_GROUPS` only apply to `proxy`.
 - Draw files belong to a username, so keep usernames unique across providers; `completeLogin` already refuses a username that another account has.
 
-Code: `API/permissions/providers.js` (loading, `completeLogin`, routes), `API/permissions/siteAccess.js` (`AUTH_PROVIDERS`), `plugins/core/auth/CSSO/plugin.js` (a per-request provider).
+Code: `API/permissions/providers.js` (loading, `completeLogin`, routes), `API/permissions/siteAccess.js` (`AUTH_PROVIDERS`), `plugins/core/auth/Proxy/plugin.js` (a per-request provider).

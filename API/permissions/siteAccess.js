@@ -7,7 +7,14 @@ const LEGACY_AUTH_REPLACEMENTS = {
   off: { SITE_ACCESS: "public", AUTH_PROVIDERS: '["local"]' },
   none: { SITE_ACCESS: "optional", AUTH_PROVIDERS: '["local"]' },
   local: { SITE_ACCESS: "required", AUTH_PROVIDERS: '["local"]' },
-  csso: { SITE_ACCESS: "required", AUTH_PROVIDERS: '["csso","local"]' },
+  csso: { SITE_ACCESS: "required", AUTH_PROVIDERS: '["proxy","local"]', note: "PROXY_TRUST=network (or PROXY_SECRET)" },
+};
+
+// The csso provider is now proxy; its ENVs are not read under the old names
+const RENAMED_ENVS = {
+  CSSO_GROUPS: "PROXY_GROUPS",
+  CSSO_LEAD_GROUP: "PROXY_LEAD_GROUP",
+  CSSO_PROXY_SECRET: "PROXY_SECRET",
 };
 
 function parseProviders(raw) {
@@ -50,10 +57,13 @@ function validate(env = process.env) {
     const legacy = key && LEGACY_AUTH_REPLACEMENTS[key];
     errors.push(
       legacy
-        ? `The AUTH ENV has been removed. Replace 'AUTH=${key}' with 'SITE_ACCESS=${legacy.SITE_ACCESS}' and 'AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}'.`
+        ? `The AUTH ENV has been removed. Replace 'AUTH=${key}' with 'SITE_ACCESS=${legacy.SITE_ACCESS}' and 'AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}'${legacy.note ? ` and set ${legacy.note}` : ""}.`
         : `The AUTH ENV has been removed. Unset AUTH and set SITE_ACCESS (public | optional | required) and AUTH_PROVIDERS instead.`
     );
   }
+  Object.entries(RENAMED_ENVS).forEach(([from, to]) => {
+    if (env[from] != null && env[from] !== "") errors.push(`${from} has been renamed. Use ${to} instead.`);
+  });
   if (!SITE_ACCESS_VALUES.includes(env.SITE_ACCESS))
     errors.push(
       `SITE_ACCESS must be set to one of: ${SITE_ACCESS_VALUES.join(" | ")}.`
@@ -103,6 +113,7 @@ const endUserLoginEnabled = () => !isPublic();
 module.exports = {
   SITE_ACCESS_VALUES,
   LEGACY_AUTH_REPLACEMENTS,
+  RENAMED_ENVS,
   parseProviders,
   validate,
   getSiteAccess,

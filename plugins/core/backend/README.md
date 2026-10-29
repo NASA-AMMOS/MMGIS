@@ -60,12 +60,12 @@ The same `s` is passed to every hook of every plugin.
 | `ensureAdmin(toLoginPage, denyLongTermTokens, allowGets, allowPosts, disallow)` | admin-only gate (see below) |
 | `ensureUser()` | any logged-in user; the usual gate for user-facing data |
 | `ensureUserForAdjacentServers()` | the adjacent-server variant: `GET` is open when `AUTH` is `off`/`none`, everything else needs admin |
-| `ensureGroup(...groups)` | membership in a CSSO group |
+| `ensureGroup(...groups)` | membership in a proxy group (`PROXY_GROUPS`) |
 | `stopGuests` | rejects guest sessions — put it *after* an `ensure*`, and mount it on the write route rather than the whole mount (see below) |
 | `checkHeadersCodeInjection` | header sanitation; include it on every mount |
 | `setContentType` | response content-type normalization; include it on every mount |
 | `permissions` | the group-permission lists used by `ensureGroup` |
-| `cssoHandler` | the CSSO auth handler, for plugins doing their own auth flows |
+| `identityHandler` | the login-provider identity handler (e.g. proxy), for plugins doing their own auth flows |
 | `swaggerUi`, `useSwaggerSchema` | serve your routes' OpenAPI schema into `/api-docs` |
 | `authorize(capability, resolver?)` | per-route permission check; every route declares one (see [Permissions](../../../docs/pages/Contributing/Permissions/Permissions.md)) |
 | `registerRouter(prefix, router)` | registers your router so startup can check that every route declares a permission |

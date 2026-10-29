@@ -36,7 +36,7 @@ plugins/                       # containers only — the CLI lives in /plugin-cl
 │   ├── interactions/          # Feature interaction handlers (Select, InfoOpen, etc.)
 │   ├── layertypes/            # Layer renderers (Vector, Tile, Model, etc.)
 │   ├── layerattachments/      # Per-feature extras (Labels, PathGradient, etc.)
-│   ├── auth/                  # MMGIS sign-in providers (Local, CSSO); core only
+│   ├── auth/                  # MMGIS sign-in providers (Local, Proxy); core only
 │   └── connections/           # Outside services tools use per person (none in core yet)
 └── <org--repo>/               # Installed from git (org--repo naming, gitignored)
     ├── tools/
@@ -173,7 +173,7 @@ Auth providers must be core plugins: they are only loaded from `plugins/core/aut
 
 An identity is `{ subject, username?, email?, groups?: string[], session? }`. `subject` is the provider's stable user id. `completeLogin` links `provider + subject` to an MMGIS account in `auth_identities`, creating the account on first login. It never links to an existing account by matching usernames. It then sets the user's membership of groups whose source is this provider to the reported `groups`.
 
-Shipped providers: `local` (`core/auth/Local`; its routes are served by the Users backend at `/api/users`) and `csso` (`core/auth/CSSO`). A new provider can use any other id.
+Shipped providers: `local` (`core/auth/Local`; its routes are served by the Users backend at `/api/users`) and `proxy` (`core/auth/Proxy`). A new provider can use any other id.
 
 ### Connections
 

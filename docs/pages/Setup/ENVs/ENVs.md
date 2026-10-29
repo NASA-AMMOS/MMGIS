@@ -34,14 +34,16 @@ The old `AUTH` variable has been removed. MMGIS refuses to start while `AUTH` is
 | `AUTH=off` | `SITE_ACCESS=public` `AUTH_PROVIDERS=["local"]` |
 | `AUTH=none` | `SITE_ACCESS=optional` `AUTH_PROVIDERS=["local"]` |
 | `AUTH=local` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["local"]` |
-| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["csso","local"]` |
+| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["proxy","local"]` `PROXY_TRUST=network` (or `PROXY_SECRET`) |
+
+The `csso` provider is now `proxy`, and its ENVs were renamed: `CSSO_GROUPS` → `PROXY_GROUPS`, `CSSO_LEAD_GROUP` → `PROXY_LEAD_GROUP`, `CSSO_PROXY_SECRET` → `PROXY_SECRET`. MMGIS refuses to start while an old name is set. A proxy that sends `X-Sub`, `X-Groups` and `X-Session` keeps working unchanged with the defaults below plus `PROXY_TRUST=network`, which is how `AUTH=csso` trusted it.
 
 #### `AUTH_PROVIDERS=`
 
 Login methods, as a JSON array or comma-separated list | string[] | default `["local"]`
 
 - _local:_ MMGIS username/password accounts. Keep it listed so `/configure` admins can always log in.
-- _csso:_ A Cloud Single Sign On service proxied in front of MMGIS. See `CSSO_PROXY_SECRET`.
+- _proxy:_ An authenticating reverse proxy in front of MMGIS (such as Cloud Single Sign On) that sends the user's identity in request headers. See `PROXY_TRUST`.
 
 Each provider is a core auth provider plugin under `plugins/core/auth/`. To add one, see [Writing an Auth Provider](/MMGIS/contributing/auth-providers).
 
@@ -142,7 +144,7 @@ If SITE_ACCESS=required and set to true, this allows all guests to the site to c
 
 #### `AUTH_LOCAL_LOGIN=`
 
-Which local accounts may log in with a username and password. `all`: any local account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin), for sites such as `AUTH_PROVIDERS=["csso","local"]` where everyone else logs in through the external provider. `admins` also turns off visitor sign-up, whatever `AUTH_LOCAL_ALLOW_SIGNUP` says. Any other value stops startup | string | default `all`
+Which local accounts may log in with a username and password. `all`: any local account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin), for sites such as `AUTH_PROVIDERS=["proxy","local"]` where everyone else logs in through the external provider. `admins` also turns off visitor sign-up, whatever `AUTH_LOCAL_ALLOW_SIGNUP` says. Any other value stops startup | string | default `all`
 
 #### `SETUP_CODE=`
 
@@ -153,13 +155,49 @@ While the site has no accounts, creating the first (SuperAdmin) account on `/con
 Public URL of this site, including any `ROOT_PATH`, used to build the address an outside service sends people back to after they connect it (`<url>/api/connections/<id>/callback`). Set it whenever MMGIS runs behind a reverse proxy that changes the host, port or protocol; without it MMGIS uses the request's `X-Forwarded-Host` or `Host`, which a client can spoof. It must be a full `http(s)://` URL ending with `ROOT_PATH`; MMGIS warns at startup otherwise. See [Connections](/MMGIS/contributing/connections) | string | default from the request
 
 
-#### `CSSO_GROUPS=`
+#### `PROXY_GROUPS=`
 
-A list of CSSO LDAP groups that have access | string[] | default `[]`
+With the `proxy` login provider, a list of proxy groups whose members may open the map and `/configure`. Replaces `CSSO_GROUPS` | string[] | default `[]`
 
-#### `CSSO_PROXY_SECRET=`
+#### `PROXY_TRUST=`
 
-Optional. If unset, CSSO works as before: MMGIS trusts the identity headers on every request and logs a startup warning, so MMGIS must only be reachable through the proxy. If set (with `AUTH_PROVIDERS` including `csso`), identity headers are only trusted on requests that also carry a matching `X-MMGIS-Proxy-Secret` header, so configure the proxy to add that header before setting this; otherwise every CSSO user is treated as logged out | string | default `''`
+How MMGIS knows a request's identity headers came from the `proxy` login provider's proxy. `secret`: the request must carry `PROXY_SECRET` in the `PROXY_SECRET_HEADER` header. `ips`: the request must come straight from an address in `PROXY_TRUSTED_IPS`. `network`: trust the headers on every request, as `AUTH=csso` did; MMGIS must then be reachable only through the proxy, and the proxy must remove those headers from what clients send. MMGIS refuses to start when `secret` has no `PROXY_SECRET` or `ips` has no valid `PROXY_TRUSTED_IPS` | string enum | default `secret`
+
+#### `PROXY_SECRET=`
+
+The shared secret the proxy adds to every request it forwards, in the `PROXY_SECRET_HEADER` header. Required when `PROXY_TRUST=secret`. Replaces `CSSO_PROXY_SECRET` | string | default `''`
+
+#### `PROXY_SECRET_HEADER=`
+
+Header that carries `PROXY_SECRET` | string | default `X-MMGIS-Proxy-Secret`
+
+#### `PROXY_TRUSTED_IPS=`
+
+With `PROXY_TRUST=ips`, the proxy's addresses or CIDR ranges, as a JSON array or comma list, e.g. `["10.0.0.5","10.1.0.0/16"]`. Checked against the connecting address, never `X-Forwarded-For` | string[] | default `[]`
+
+#### `PROXY_USER_HEADER=`
+
+Header with the signed-in user's name. A request without it is not signed in by the proxy | string | default `X-Sub`
+
+#### `PROXY_GROUPS_HEADER=`
+
+Header with the user's groups. A request without it is signed in with no groups; one whose groups can't be read is not signed in | string | default `X-Groups`
+
+#### `PROXY_GROUPS_FORMAT=`
+
+How `PROXY_GROUPS_HEADER` is written. `base64-json`: base64 of a JSON object whose `true` keys are the groups, as CSSO sends. `json`: the same object, or an array of group names, not base64-encoded. `list`: comma-separated names | string enum | default `base64-json`
+
+#### `PROXY_SESSION_HEADER=`
+
+Optional header with the proxy's session id, used as `sessionID` in MMGIS logs | string | default `X-Session`
+
+#### `PROXY_STATUS_URL=`
+
+Where the map checks every few minutes that the proxy session is still valid (POST); a failed check signs the user out through `PROXY_LOGOUT_URL`. `off` turns the check off, for proxies without such an endpoint | string | default `/ssostatus`
+
+#### `PROXY_LOGOUT_URL=`
+
+Where Sign out and the "not allowed" page send users signed in by the proxy | string | default `/ssologoutredirect`
 
 #### `VERBOSE_LOGGING=`
 
@@ -233,9 +271,9 @@ The path to a json config file that acts as the only configured mission for the 
 
 For local accounts, this is a list of usernames to be treated as leads (users with elevated permissions) | string[] | default `[]`
 
-#### `CSSO_LEAD_GROUP=`
+#### `PROXY_LEAD_GROUP=`
 
-LDAP group of leads (users with elevated permissions) | string | default `''`
+With the `proxy` login provider, the proxy group of leads (users with elevated permissions). Replaces `CSSO_LEAD_GROUP` | string | default `''`
 
 #### `ENABLE_MMGIS_WEBSOCKETS=`
 

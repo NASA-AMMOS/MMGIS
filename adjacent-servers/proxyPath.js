@@ -16,11 +16,13 @@ function routedPath(originalUrl) {
   return path.posix.normalize(p.replace(/\\/g, "/")).toLowerCase();
 }
 
-// Upstream servers never receive the caller's MMGIS token, session cookies or CSSO identity headers
+// Upstream servers never receive the caller's MMGIS token, session cookies or proxy identity headers
 const MMGIS_COOKIES = /^(MMGISSession|MMGISUser)=/;
-const IDENTITY_HEADERS = ["authorization", "x-mmgis-proxy-secret", "x-sub", "x-groups", "x-session"];
+const DEFAULT_IDENTITY_HEADERS = ["authorization", "x-mmgis-proxy-secret", "x-sub", "x-groups", "x-session"];
+const identityHeaders = () =>
+  new Set([...DEFAULT_IDENTITY_HEADERS, ...require("../plugins/core/auth/Proxy/plugin.js").identityHeaders()]);
 function stripCredentials(proxyReq) {
-  for (const h of IDENTITY_HEADERS) proxyReq.removeHeader(h);
+  for (const h of identityHeaders()) proxyReq.removeHeader(h);
   const cookie = proxyReq.getHeader("cookie");
   if (cookie == null) return;
   const kept = String(cookie)

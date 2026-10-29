@@ -12,7 +12,7 @@ const cs3Format = printf(({ level, body, label, timestamp, a, b, c }) => {
   return JSON.stringify({
     level: level,
     ts: timestamp,
-    caller: "build/csso_proxy.go:144",
+    caller: "build/proxy.go:144",
     msg: body.message,
     domain: hostname,
     sessionID: "d2aaf94b-2893-42a8-b0a0-b186129d7ed3",
@@ -92,7 +92,7 @@ const logger = function (level, message, caller, req, err) {
     msg: message,
     domain: req && req.headers && req.headers.host ? req.headers.host : "HOST",
     hostname: hostname,
-    sessionID: req && req.cssoSessionID ? req.cssoSessionID : "HOST",
+    sessionID: req && req.proxySessionID ? req.proxySessionID : "HOST",
     internalSessionID: req && req.sessionID ? req.sessionID : "HOST",
     user: req && req.user ? req.user : "HOST",
   };

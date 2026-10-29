@@ -105,7 +105,7 @@ All options are documented in `sample.env`. The critical ones:
 | `DB_USER`      | Database user                                        | `user`        |
 | `DB_PASS`      | Database password                                    | `password`    |
 | `PORT`         | Server port                                          | `8888`        |
-| `AUTH`         | Authentication mode (`off`, `none`, `local`, `csso`) | `none`        |
+| `SITE_ACCESS` / `AUTH_PROVIDERS` | Who may view (`public`, `optional`, `required`) / login methods (`local`, `proxy`); replace the removed `AUTH` | `optional` / `["local"]` |
 | `NODE_ENV`     | Environment (`development` or `production`)          | `development` |
 | `SECRET`       | Session secret                                       | `aSecretKey`  |
 | `MAIN_MISSION` | Auto-load a specific mission (skips landing page)    | _(empty)_     |

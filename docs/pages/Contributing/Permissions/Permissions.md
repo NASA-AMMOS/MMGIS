@@ -26,7 +26,7 @@ nav_order: 2
 
 ## In one sentence
 
-`s.authorize(capability, resolver)` is Express middleware: you name the **capability** a route needs and, with a **resolver**, **where in the request** the target mission or layer is; it works out **who is calling** (token, session, CSSO user or guest) and what they hold, then lets the request continue or answers 403.
+`s.authorize(capability, resolver)` is Express middleware: you name the **capability** a route needs and, with a **resolver**, **where in the request** the target mission or layer is; it works out **who is calling** (token, session, proxy user or guest) and what they hold, then lets the request continue or answers 403.
 
 ```javascript
 router.post(
@@ -94,7 +94,7 @@ Core plugins (`plugins/core/backend/*`) can `require("../../../../../API/permiss
 
 1. **Who is calling** (`ensurePrincipal`, cached on `req.principal`):
    - An `Authorization: Bearer <token>` header always wins over the session. A bad token, or a token sent inside another user's session, becomes `invalid_token` and never falls back to the session or guest access.
-   - Otherwise the signed-in session user, then a CSSO identity, then an anonymous guest.
+   - Otherwise the signed-in session user, then a proxy identity, then an anonymous guest.
    - The caller carries its role bindings: its own grants, its groups' grants and the audience grants (Everyone / Logged-in users).
 2. **`invalid_token` is refused** with `Unauthorized Token!`: HTTP 401 from the `s.ensureUser` site gate in front of the router, or 403 from `authorize` itself.
 3. **What is being acted on**: the resolver turns the request into a resource.
@@ -223,6 +223,6 @@ How some calls come out:
 |---|---|
 | `API/permissions/authorize.js` | `authorize`, `resolvers`, `can`, `missionNamesWith`, route registry |
 | `API/permissions/policy.js` | capabilities, roles, `can()` decision |
-| `API/permissions/principal.js` | who is calling (token, session, CSSO, guest) |
+| `API/permissions/principal.js` | who is calling (token, session, proxy, guest) |
 | `scripts/server.js` | the `s` object passed to plugins, startup route check |
 | `tests/unit/permissions-policy.spec.js`, `tests/unit/permissions-pluginRoutes.spec.js` | examples of expected behaviour |

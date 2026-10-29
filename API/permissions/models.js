@@ -24,13 +24,13 @@ const AuthGroup = sequelize.define(
   {
     name: { type: Sequelize.STRING, allowNull: false, unique: true },
     description: { type: Sequelize.TEXT, allowNull: true },
-    // local: managed in /configure; csso: membership comes from proxy X-Groups
+    // local: managed in /configure; proxy: membership comes from the proxy's groups header
     source: {
       type: Sequelize.STRING,
       allowNull: false,
       defaultValue: "local",
     },
-    // Group name as known by the external provider (e.g. CSSO group)
+    // Group name as known by the external provider (e.g. proxy group)
     external_name: { type: Sequelize.STRING, allowNull: true },
   },
   { timestamps: true }

@@ -74,7 +74,7 @@ var Login = {
     init: function () {
         if (window.mmgisglobal.SITE_ACCESS === 'public') return
         if (
-            (window.mmgisglobal.authProviders.includes('csso') ||
+            (window.mmgisglobal.authProviders.includes('proxy') ||
                 window.mmgisglobal.SITE_ACCESS === 'optional' ||
                 (window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) &&
             window.mmgisglobal.hasOwnProperty('user')
@@ -202,18 +202,18 @@ var Login = {
         // Sign in at page load from cookie if possible
         if (
             window.mmgisglobal.SITE_ACCESS !== 'public' &&
-            !window.mmgisglobal.authProviders.includes('csso') &&
+            !window.mmgisglobal.authProviders.includes('proxy') &&
             window.mmgisglobal.SKIP_CLIENT_INITIAL_LOGIN != 'true'
         ) {
             Login.initialLogin()
         }
     },
     // Logs the current user out. `onDone` is called after a non-redirecting
-    // logout completes (i.e. not for csso redirects or SITE_ACCESS=required reloads).
+    // logout completes (i.e. not for proxy redirects or SITE_ACCESS=required reloads).
     logout: function (onDone) {
-        if (Login.provider === 'csso' && Login.beganLoggedIn) {
+        if (Login.provider === 'proxy' && Login.beganLoggedIn) {
             Login.loggedIn = false
-            window.location.href = '/ssologoutredirect'
+            window.location.href = window.mmgisglobal.PROXY_LOGOUT_URL || '/ssologoutredirect'
             return
         }
         // Signed in on every request by a proxy: only the proxy can sign the user out

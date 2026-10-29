@@ -1,5 +1,5 @@
 // Resolves who is making a request (req.principal): anonymous, a session
-// user, a user identified per request by a login provider (e.g. CSSO), or a
+// user, a user identified per request by a login provider (e.g. proxy), or a
 // long-term token acting for its creator.
 const crypto = require("crypto");
 const { Op } = require("sequelize");

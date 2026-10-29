@@ -20,7 +20,7 @@ MMGIS no longer starts while `AUTH` is set, and it requires `SITE_ACCESS`. Repla
 | `AUTH=off` | `SITE_ACCESS=public` `AUTH_PROVIDERS=["local"]` |
 | `AUTH=none` | `SITE_ACCESS=optional` `AUTH_PROVIDERS=["local"]` |
 | `AUTH=local` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["local"]` |
-| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["csso","local"]` |
+| `AUTH=csso` | `SITE_ACCESS=required` `AUTH_PROVIDERS=["proxy","local"]` `PROXY_TRUST=network` (or `PROXY_SECRET`) |
 
 - `public`: anyone can view; end users don't log in. Admins still log in at `/configure`.
 - `optional`: anyone can view; users may log in (e.g. to save Draw files).
@@ -35,65 +35,69 @@ Compared request by request against the previous release on the same upgraded da
 - **`AUTH=off` → `public`**: visitors browse every mission without logging in, as before. Admins still log in at `/configure`. Draw stays unavailable, as before, because public sites have no end-user accounts.
 - **`AUTH=none` → `optional`**: guests browse as before, and logged-in users keep their mission access and Draw.
 - **`AUTH=local` → `required`**: logins, mission lists and `missions_viewing` limits behave as before. API calls from someone who isn't logged in now get a JSON `403` instead of an empty result or the login page.
-- **`AUTH=csso` → `required` + `["csso","local"]`**:
-  - The proxy's `X-Sub`, `X-Groups` and `X-Session` headers are read as before.
-  - `CSSO_GROUPS` still gates the map and `/configure`, and `CSSO_LEAD_GROUP` still maps to the lead group.
-  - On upgrade, every CSSO user can view every mission, as before.
-  - Draw files belong to a plain username, as before. A CSSO user and a local account with the same username share the same Draw files. Give local accounts names that don't match anyone's CSSO username unless they are the same person.
-  - Admins still log in to `/configure` with their local MMGIS account. Set `AUTH_LOCAL_LOGIN=admins` so only accounts with an admin role can log in locally. This needs `local` in `AUTH_PROVIDERS`; with `["csso"]` alone, password logins are refused and the site has no way to sign in as an administrator.
-  - Requests that reach MMGIS without the CSSO headers (i.e. not through the proxy) are now refused. Scripts that called MMGIS directly need a long-term token.
-  - `CSSO_PROXY_SECRET` is optional. Leave it unset to keep the previous behavior. Set it only after your proxy adds a matching `X-MMGIS-Proxy-Secret` header to every request; otherwise every CSSO user is treated as logged out.
+- **`AUTH=csso` → `required` + `["proxy","local"]`**: the `csso` provider is now called `proxy`, and its ENVs were renamed (`CSSO_GROUPS` → `PROXY_GROUPS`, `CSSO_LEAD_GROUP` → `PROXY_LEAD_GROUP`, `CSSO_PROXY_SECRET` → `PROXY_SECRET`). MMGIS refuses to start while an old name is set.
+  - The proxy's `X-Sub`, `X-Groups` and `X-Session` headers are read as before (the names can now be changed with `PROXY_USER_HEADER`, `PROXY_GROUPS_HEADER` and `PROXY_SESSION_HEADER`).
+  - The proxy must now prove the headers came from it. By default (`PROXY_TRUST=secret`) it sends `PROXY_SECRET` in an `X-MMGIS-Proxy-Secret` header, and MMGIS refuses to start without `PROXY_SECRET`. `PROXY_TRUST=network` trusts the headers on every request, as `AUTH=csso` did; `PROXY_TRUST=ips` trusts requests from `PROXY_TRUSTED_IPS`.
+  - `PROXY_GROUPS` still gates the map and `/configure`, and `PROXY_LEAD_GROUP` still maps to the lead group.
+  - On upgrade, every proxy user can view every mission, as before.
+  - Draw files belong to a plain username, as before. A proxy user and a local account with the same username share the same Draw files. Give local accounts names that don't match anyone's proxy username unless they are the same person.
+  - Admins still log in to `/configure` with their local MMGIS account. Set `AUTH_LOCAL_LOGIN=admins` so only accounts with an admin role can log in locally. This needs `local` in `AUTH_PROVIDERS`; with `["proxy"]` alone, password logins are refused and the site has no way to sign in as an administrator.
+  - Requests that reach MMGIS without the proxy headers (i.e. not through the proxy) are now refused. Scripts that called MMGIS directly need a long-term token.
 
 On every kind of site:
 
 - Mission admins no longer see the Users & Access page; see section 3.
-- Any logged-in local account can create long-term tokens through the API (`POST /api/longtermtoken/generate`). A token is read-only unless the account has an editing role or asks for a capability it already holds, such as `draw.use`. Only admins who can open Configure get the API Tokens page; there's no token UI for other users. CSSO users can't create tokens.
+- Any logged-in local account can create long-term tokens through the API (`POST /api/longtermtoken/generate`). A token is read-only unless the account has an editing role or asks for a capability it already holds, such as `draw.use`. Only admins who can open Configure get the API Tokens page; there's no token UI for other users. Proxy users can't create tokens.
 - Long-term tokens can't open the `/configure` page; they are for API calls.
 
 ### Upgrading an `AUTH=csso` site with env changes only
 
 No code or proxy changes are needed.
 
-1. In `.env` (or the container environment), replace `AUTH` and keep the CSSO settings:
+1. In `.env` (or the container environment), replace `AUTH` and rename the CSSO settings:
 
    ```bash
    # remove
    AUTH=csso
-   # add
-   SITE_ACCESS=required
-   AUTH_PROVIDERS=["csso","local"]
-   # keep as they are
    CSSO_GROUPS=[...]
    CSSO_LEAD_GROUP=...
+   CSSO_PROXY_SECRET=...        # if you had set it
+   # add
+   SITE_ACCESS=required
+   AUTH_PROVIDERS=["proxy","local"]
+   PROXY_GROUPS=[...]           # the old CSSO_GROUPS value
+   PROXY_LEAD_GROUP=...         # the old CSSO_LEAD_GROUP value
+   PROXY_TRUST=network          # trust the headers on every request, as AUTH=csso did
    # optional
    AUTH_LOCAL_LOGIN=admins      # only accounts with an admin role may log in with a password
-   CSSO_PROXY_SECRET=...        # only once the proxy sends a matching X-MMGIS-Proxy-Secret header
    ```
 
-   MMGIS refuses to start while `AUTH` is still set, and the error names the replacement.
+   Instead of `PROXY_TRUST=network`, prefer `PROXY_SECRET=...` (the default `PROXY_TRUST=secret`) once the proxy adds that value in an `X-MMGIS-Proxy-Secret` header to every request, or `PROXY_TRUST=ips` with `PROXY_TRUSTED_IPS` set to the proxy's addresses. The header names, `/ssostatus` and `/ssologoutredirect` keep their CSSO defaults.
+
+   MMGIS refuses to start while `AUTH` or an old `CSSO_*` name is still set, or while `PROXY_TRUST=secret` has no `PROXY_SECRET`, and the error names the fix.
 
 2. Start MMGIS. The first start imports the existing accounts once (see section 2; a `--dry-run` beforehand is optional):
    - `permission=111` accounts become SuperAdmin.
    - `permission=110` accounts become Mission Admin on the missions in their `missions_managing` list. A `110` account with no listed (or no existing) missions gets no role and can't manage anything in Configure until a SuperAdmin grants one.
-   - The Logged-in users audience gets Viewer site-wide, so every CSSO user still sees every mission.
+   - The Logged-in users audience gets Viewer site-wide, so every proxy user still sees every mission.
 
 3. Check:
-   - a CSSO user sees the same missions and Draw files as before;
-   - a user outside `CSSO_GROUPS` gets 403;
+   - a proxy user sees the same missions and Draw files as before;
+   - a user outside `PROXY_GROUPS` gets 403;
    - an admin logs in to `/configure` with their local account.
 
 4. To roll back, restore the database backup you took before upgrading (section 2), then the previous image and env. Changes made on this release are lost.
 
-What CSSO users and admins will notice:
+What proxy users and admins will notice:
 
-- **Unchanged:** the `X-Sub`, `X-Groups` and `X-Session` headers, `CSSO_GROUPS` gating of the map and `/configure`, `CSSO_LEAD_GROUP`, every mission visible, Draw files owned by username, Sign out through `/ssologoutredirect`, and local admin logins at `/configure`.
+- **Unchanged:** the `X-Sub`, `X-Groups` and `X-Session` headers, group gating of the map and `/configure` (now `PROXY_GROUPS`), the lead group (now `PROXY_LEAD_GROUP`), every mission visible, Draw files owned by username, Sign out through `/ssologoutredirect`, and local admin logins at `/configure`.
 - **Each request must come through the proxy.** The previous release copied `X-Sub` into the MMGIS session, so a later request without the headers still counted as that user. Now identity is read from the headers on every request; anything that reaches MMGIS directly (scripts, health checks behind the proxy) is treated as logged out and needs a long-term token.
-- **`X-Groups` is no longer required to identify the user**; `X-Sub` is enough. `CSSO_GROUPS` still decides who gets in.
+- **`X-Groups` is no longer required to identify the user**; `X-Sub` is enough. `PROXY_GROUPS` still decides who gets in. An `X-Groups` value that can't be decoded no longer causes a 500 error; the request is treated as not signed in.
 - **API calls without a login** get a JSON `403`.
-- **Configure:** Mission Admins no longer see the Users & Access page. Long-term tokens are scoped and can't open `/configure`. CSSO users can't create tokens.
+- **Configure:** Mission Admins no longer see the Users & Access page. Long-term tokens are scoped and can't open `/configure`. Proxy users can't create tokens.
 - **Local logins:** with the default `AUTH_LOCAL_LOGIN=all`, any local account can still log in with a password, as before.
-- **Startup log:** a warning while `CSSO_PROXY_SECRET` is unset; nothing else changes.
-- **New, optional:** CSSO groups can be given roles in **Configure → Users & Access** (for example Mission Admin for an LDAP group), so CSSO users can manage missions without a local account, and missions can be limited per group.
+- **Startup log:** a warning while `PROXY_TRUST=network`; nothing else changes.
+- **New, optional:** proxy groups can be given roles in **Configure → Users & Access** (for example Mission Admin for an LDAP group), so proxy users can manage missions without a local account, and missions can be limited per group.
 
 ## 2. Preview and import existing accounts
 
@@ -110,10 +114,10 @@ The import never changes usernames or password hashes, so every existing account
 | --- | --- |
 | `permission=111` | `superadmin` (global) |
 | `permission=110` + `missions_managing` | `mission_admin` on each listed mission |
-| `missions_viewing` list | `viewer` on each listed mission (only with `SITE_ACCESS=required` and no `csso`, the only sites where viewing lists applied) |
+| `missions_viewing` list | `viewer` on each listed mission (only with `SITE_ACCESS=required` and no `proxy`, the only sites where viewing lists applied) |
 | `missions_viewing` unset | `viewer` (global), same condition |
 | `SITE_ACCESS=public` or `optional` | `everyone` audience: `viewer` (global) |
-| `SITE_ACCESS=required` with `csso` | `authenticated` audience: `viewer` (global) |
+| `SITE_ACCESS=required` with `proxy` | `authenticated` audience: `viewer` (global) |
 
 The audience grant keeps every mission visible as before. A brand-new site gets it too, so on `public` and `optional` sites guests can see every mission until you remove or narrow it in **Configure → Users & Access**.
 

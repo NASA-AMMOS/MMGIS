@@ -45,7 +45,7 @@ export default function SiteWideTab({ ctx }) {
               const st = audienceState(a);
               return (
                 <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={<SubjectTag type={a} name={AUDIENCE_LABEL[a]} showKind={false} />} state={st} missions={missions}
-                  hint={a === "everyone" ? "Every logged-in user (including CSSO users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below. \"No access\" here only means this grant adds nothing: people keep any access from their own grants, their groups and their mission or layer roles." : "Every logged-in user, including CSSO users. Adds to what Everyone gets. \"No access\" here only means this grant adds nothing: logged-in users still get what Everyone allows, plus any access from their own grants, their groups and their mission or layer roles (see the People, Groups and Missions tabs)."}
+                  hint={a === "everyone" ? "Every logged-in user (including proxy users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below. \"No access\" here only means this grant adds nothing: people keep any access from their own grants, their groups and their mission or layer roles." : "Every logged-in user, including CSSO users. Adds to what Everyone gets. \"No access\" here only means this grant adds nothing: logged-in users still get what Everyone allows, plus any access from their own grants, their groups and their mission or layer roles (see the People, Groups and Missions tabs)."}
                   onSave={(mode, list) => setAudience(a, mode, list)} />
               );
             })}
@@ -75,10 +75,10 @@ const SITE_ACCESS_SUMMARY = {
     desc: "Visitors must log in to see anything. Guests only see the login page, so Everyone below works like Logged-in users.",
   },
 };
-const PROVIDER_LABEL = { local: "Local accounts", csso: "CSSO" };
+const PROVIDER_LABEL = { local: "Local accounts", proxy: "Proxy" };
 const PROVIDER_DESC = {
   local: "MMGIS usernames and passwords.",
-  csso: "Cloud Single Sign On proxied in front of MMGIS.",
+  proxy: "An authenticating proxy in front of MMGIS sends who is signed in.",
 };
 
 function SiteSetupCard() {
@@ -90,7 +90,7 @@ function SiteSetupCard() {
   const selfSignup = g.SELF_SIGNUP === "true";
   const loginDesc = [
     ...providers.map((p) => PROVIDER_DESC[p] || `The ${p} provider.`),
-    providers.includes("local") && !providers.includes("csso") ? "CSSO is off." : null,
+    providers.includes("local") && !providers.includes("proxy") ? "Proxy sign-in is off." : null,
     adminsOnly ? "Only accounts with an editing or admin role may log in with a local password." : null,
   ].filter(Boolean).join(" ");
   const accounts = selfSignup
