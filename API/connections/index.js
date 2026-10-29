@@ -5,7 +5,7 @@
 // Connection plugins live in plugins/<container>/connections/<Name>/ with a
 // plugin.json ("type": "connection", "connection": "<id>") and a plugin.js:
 //   authorizeUrl({ state, redirectUri, env, codeChallenge, codeChallengeMethod }) -> URL of the service's sign-in page
-//   exchange({ code, redirectUri, env, codeVerifier })      -> grant  (PKCE values only with "pkce": true)
+//   exchange({ code, redirectUri, env, codeVerifier })      -> grant  (PKCE is on unless "pkce": false)
 //   refresh({ refreshToken, env })        (optional)        -> grant
 //   revoke({ accessToken, refreshToken, env }) (optional)
 //   validate(env) / warnings(env)         (optional)        -> string[]
@@ -93,7 +93,7 @@ function loadConnections(pluginsRoot = DEFAULT_PLUGINS_ROOT) {
       label: (m.display_name || p.name).slice(0, 100),
       description: typeof m.description === "string" ? m.description : "",
       guests: m.guests === true,
-      pkce: m.pkce === true,
+      pkce: m.pkce !== false,
       env: Array.isArray(m.env) ? m.env.filter((e) => typeof e === "string") : [],
       manifest: m,
       impl,
@@ -639,6 +639,20 @@ function callbackUrl(req, c) {
   return `${origin}/api/connections/${c.id}/callback`;
 }
 
+// What a plugin's authorize URL lacks of the values core created for this sign-in, or null
+function authorizeUrlMissing(url, state, codeChallenge) {
+  let params;
+  try {
+    params = new URL(url).searchParams;
+  } catch (err) {
+    return "a valid URL";
+  }
+  if (params.get("state") !== state) return "the state parameter";
+  if (codeChallenge && (params.get("code_challenge") !== codeChallenge || params.get("code_challenge_method") !== "S256"))
+    return 'code_challenge and code_challenge_method=S256 (set "pkce": false for a service without PKCE)';
+  return null;
+}
+
 function sameSitePath(value) {
   const fallback = `${rootPath()}/`;
   if (typeof value !== "string" || value.length > 2048) return fallback;
@@ -718,6 +732,14 @@ function sameOriginOnly(req, res, next) {
 }
 
 function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root }) {
+  if (process.env.NODE_ENV === "production" && !process.env.CONNECTIONS_CALLBACK_BASE_URL && connectionMap().size) {
+    warnedCallbackBase = true;
+    logger(
+      "warn",
+      "CONNECTIONS_CALLBACK_BASE_URL is not set, so connection callback URLs are built from each request's X-Forwarded-Host/Host, which a client can spoof. Set it to this site's public URL (with ROOT_PATH).",
+      "connections"
+    );
+  }
   if (typeof root === "string") mountedRoot = root;
   const router = express.Router();
   const limiter = flowLimiter();
@@ -777,10 +799,14 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     req.session.connectionStates = Object.fromEntries(pending);
     // PKCE (RFC 7636), when the plugin asks for it
     const verifier = c.pkce ? crypto.randomBytes(32).toString("base64url") : null;
+    const codeChallenge = verifier ? crypto.createHash("sha256").update(verifier).digest("base64url") : null;
+    // The token request must repeat this exact redirect_uri (RFC 6749 4.1.3)
+    const redirectUri = callbackUrl(req, c);
     req.session.connectionStates[state] = {
       id: c.id,
       owner: ownerKey(principal),
       verifier,
+      redirectUri,
       at: Date.now(),
       mode: req.query.mode === "page" ? "page" : "tab",
       returnTo: sameSitePath(req.query.returnTo),
@@ -789,20 +815,21 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
     try {
       url = await withTimeout((async () => c.impl.authorizeUrl({
         state,
-        redirectUri: callbackUrl(req, c),
+        redirectUri,
         env: process.env,
-        ...(verifier
-          ? {
-              codeChallenge: crypto.createHash("sha256").update(verifier).digest("base64url"),
-              codeChallengeMethod: "S256",
-            }
-          : {}),
+        ...(verifier ? { codeChallenge, codeChallengeMethod: "S256" } : {}),
       }))(), "authorizeUrl()");
     } catch (err) {
       logger("error", `Connection '${c.id}': authorizeUrl() threw.`, req.originalUrl, req, scrubbed(err, envSecrets(c)));
     }
     if (typeof url !== "string" || !/^https?:\/\//i.test(url))
       return renderResult(res, { label: c.label, message: `${c.label} couldn't be reached. Try again later.` });
+    // Without state (and the PKCE challenge) the callback can't be tied to this sign-in
+    const missing = authorizeUrlMissing(url, state, codeChallenge);
+    if (missing) {
+      logger("error", `Connection '${c.id}': authorizeUrl() returned a URL without ${missing}, so the sign-in was not started.`, "Connections");
+      return renderResult(res, { label: c.label, message: `${c.label} couldn't be reached. Try again later.` });
+    }
     req.session.save(() => res.redirect(url));
   });
 
@@ -842,13 +869,16 @@ function mountConnectionRoutes(app, { registerRouter, authorize, rootPath: root 
           message: `You signed in or out while connecting ${c.label}. Go back to MMGIS and click Connect again.`,
         });
     }
+    // The service sends the browser back to the redirect_uri of the authorization request; another host means it didn't
+    if (typeof pending.redirectUri !== "string" || callbackUrl(req, c) !== pending.redirectUri)
+      return renderResult(res, { id: c.id, label: c.label, message: "This sign-in link has expired. Go back to MMGIS and click Connect again." });
     const uidAtStart = req.session.uid;
     let record;
     try {
       record = grantRecord(
         await withTimeout((async () => c.impl.exchange({
           code: req.query.code,
-          redirectUri: callbackUrl(req, c),
+          redirectUri: pending.redirectUri,
           env: process.env,
           ...(pending.verifier ? { codeVerifier: pending.verifier } : {}),
         }))(), "exchange()")
@@ -932,6 +962,7 @@ module.exports = {
   ConnectionRequiredError,
   mountConnectionRoutes,
   sameSitePath,
+  authorizeUrlMissing,
   ownerKey,
   withTimeout,
   sameOriginOnly,

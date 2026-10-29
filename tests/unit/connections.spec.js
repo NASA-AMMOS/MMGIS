@@ -648,3 +648,102 @@ test.describe('PKCE', () => {
         }
     });
 });
+
+test.describe('authorization request checks', () => {
+    async function withApp(manifest, js, fn) {
+        const express = require('express');
+        const session = require('express-session');
+        const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-connections-'));
+        writePlugin(root, 't', 'Ar', { type: 'connection', connection: 'ar', guests: true, ...manifest }, js);
+        const saved = process.env.SECRET;
+        process.env.SECRET = 'd'.repeat(32);
+        connections.loadConnections(root);
+        const app = express();
+        app.set('views', path.join(__dirname, '..', '..', 'views'));
+        app.set('view engine', 'pug');
+        app.use(session({ secret: 'test', resave: false, saveUninitialized: true })); // pragma: allowlist secret
+        app.use((req, res, next) => {
+            req.principal = { kind: 'anonymous' };
+            next();
+        });
+        const allow = () => (req, res, next) => next();
+        allow.public = allow;
+        allow.inHandler = allow;
+        connections.mountConnectionRoutes(app, { registerRouter: (p, r) => r, authorize: allow, rootPath: '' });
+        const server = app.listen(0);
+        try {
+            await fn(`http://127.0.0.1:${server.address().port}`);
+        } finally {
+            server.close();
+            fs.rmSync(root, { recursive: true, force: true });
+            connections.loadConnections(CORE_PLUGINS);
+            if (saved === undefined) delete process.env.SECRET;
+            else process.env.SECRET = saved;
+        }
+    }
+    const echoJs = (params) => `module.exports = {
+    authorizeUrl: (a) => 'https://svc.example/auth?' + new URLSearchParams(${params}),
+    exchange: async ({ redirectUri, codeVerifier }) => { globalThis.__arExchange = { redirectUri, codeVerifier }; return { accessToken: 'a' } },
+};`;
+
+    test('authorizeUrlMissing', () => {
+        expect(connections.authorizeUrlMissing('https://s/a?state=x&code_challenge=c&code_challenge_method=S256', 'x', 'c')).toBeNull();
+        expect(connections.authorizeUrlMissing('https://s/a?state=x', 'x', null)).toBeNull();
+        expect(connections.authorizeUrlMissing('https://s/a?state=y', 'x', null)).toMatch(/state/);
+        expect(connections.authorizeUrlMissing('https://s/a?state=x', 'x', 'c')).toMatch(/code_challenge/);
+        expect(connections.authorizeUrlMissing('https://s/a?state=x&code_challenge=c&code_challenge_method=plain', 'x', 'c')).toMatch(/code_challenge/);
+        expect(connections.authorizeUrlMissing('https://s/a?state=x&state=x2', 'x2', null)).toMatch(/state/);
+    });
+
+    test('PKCE is on unless the manifest sets "pkce": false', async () => {
+        await withApp({}, echoJs('{ state: a.state, code_challenge: a.codeChallenge, code_challenge_method: a.codeChallengeMethod }'), async (base) => {
+            const to = new URL((await fetch(`${base}/api/connections/ar/connect`, { redirect: 'manual' })).headers.get('location'));
+            expect(to.searchParams.get('code_challenge_method')).toBe('S256');
+        });
+        await withApp({ pkce: false }, echoJs('{ state: a.state, cc: String(a.codeChallenge) }'), async (base) => {
+            const start = await fetch(`${base}/api/connections/ar/connect`, { redirect: 'manual' });
+            const to = new URL(start.headers.get('location'));
+            expect(to.searchParams.get('cc')).toBe('undefined');
+            const cookie = start.headers.get('set-cookie').split(';')[0];
+            await fetch(`${base}/api/connections/ar/callback?state=${to.searchParams.get('state')}&code=c1`, { headers: { cookie } });
+            expect(globalThis.__arExchange.codeVerifier).toBeUndefined();
+        });
+    });
+
+    test('a sign-in is not started when the authorize URL drops state or the PKCE challenge', async () => {
+        for (const params of ['{}', '{ state: a.state }', '{ state: a.state, code_challenge: a.codeChallenge, code_challenge_method: "plain" }']) {
+            await withApp({}, echoJs(params), async (base) => {
+                const r = await fetch(`${base}/api/connections/ar/connect`, { redirect: 'manual' });
+                expect(r.status).not.toBe(302);
+                expect(await r.text()).toContain("couldn't be reached");
+            });
+        }
+    });
+
+    test('exchange() gets the redirect URI of the authorization request, and a callback on another host is refused', async () => {
+        const js = echoJs('{ state: a.state, redirect_uri: a.redirectUri, code_challenge: a.codeChallenge, code_challenge_method: a.codeChallengeMethod }');
+        await withApp({}, js, async (base) => {
+            const start = async () => {
+                const r = await fetch(`${base}/api/connections/ar/connect`, { redirect: 'manual' });
+                return { cookie: r.headers.get('set-cookie').split(';')[0], to: new URL(r.headers.get('location')) };
+            };
+            let { cookie, to } = await start();
+            globalThis.__arExchange = null;
+            const ok = await fetch(`${base}/api/connections/ar/callback?state=${to.searchParams.get('state')}&code=c1`, { headers: { cookie } });
+            expect(ok.status).toBe(200);
+            expect(globalThis.__arExchange.redirectUri).toBe(to.searchParams.get('redirect_uri'));
+            ({ cookie, to } = await start());
+            globalThis.__arExchange = null;
+            const http = require('http');
+            const status = await new Promise((resolve, reject) => {
+                const u = new URL(`${base}/api/connections/ar/callback?state=${to.searchParams.get('state')}&code=c2`);
+                http.get({ host: u.hostname, port: u.port, path: u.pathname + u.search, headers: { cookie, host: `localhost:${u.port}` } }, (res) => {
+                    res.resume();
+                    resolve(res.statusCode);
+                }).on('error', reject);
+            });
+            expect(status).toBe(400);
+            expect(globalThis.__arExchange).toBeNull();
+        });
+    });
+});

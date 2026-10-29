@@ -156,14 +156,15 @@ Put it in `plugins/<container>/connections/<Name>/` with a `plugin.json`:
 - `connection`: the id used everywhere else. Lowercase letters, digits, `-` or `_`, starting with a letter, and unique across installed plugins. MMGIS lowercases it, so `"Imagery"` becomes `imagery`.
 - `guests`: whether signed-out visitors may connect for their browser session. Defaults to `false`.
 - `env`: variables that must be set before anyone can connect. Configure lists the missing ones.
-- `pkce`: `true` to use PKCE (S256). MMGIS makes a verifier for each sign-in and passes `codeChallenge` and `codeChallengeMethod` to `authorizeUrl()` and `codeVerifier` to `exchange()`. Defaults to `false`.
+- `pkce`: whether to use PKCE (S256). Defaults to `true`: MMGIS makes a verifier for each sign-in and passes `codeChallenge` and `codeChallengeMethod` to `authorizeUrl()` and `codeVerifier` to `exchange()`. Set `false` only for a service that refuses PKCE requests.
+
+MMGIS refuses to start a sign-in when the URL from `authorizeUrl()` lacks the `state` it was given, or, with PKCE on, `code_challenge` and `code_challenge_method=S256`. The callback must arrive on the same host as the Connect request, and `exchange()` gets the same `redirectUri` that `authorizeUrl()` got.
 
 and a `plugin.js`:
 
 ```javascript
 module.exports = {
     // URL of the service's sign-in page (OAuth 2 authorization endpoint)
-    // With "pkce": true, also add code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod
     authorizeUrl({ state, redirectUri, env, codeChallenge, codeChallengeMethod }) {
         const u = new URL('https://imagery.example/oauth/authorize')
         u.search = new URLSearchParams({
@@ -171,12 +172,14 @@ module.exports = {
             response_type: 'code',
             redirect_uri: redirectUri,
             state,
+            code_challenge: codeChallenge,
+            code_challenge_method: codeChallengeMethod,
         })
         return u.toString()
     },
-    // Swap the code for tokens (with "pkce": true, send code_verifier: codeVerifier)
+    // Swap the code for tokens
     async exchange({ code, redirectUri, env, codeVerifier }) {
-        const body = await tokenRequest(env, { grant_type: 'authorization_code', code, redirect_uri: redirectUri })
+        const body = await tokenRequest(env, { grant_type: 'authorization_code', code, redirect_uri: redirectUri, code_verifier: codeVerifier })
         return { accessToken: body.access_token, refreshToken: body.refresh_token, expiresIn: body.expires_in, account: body.username }
     },
     // Optional
@@ -269,25 +272,34 @@ const grant = async (env, body) => ({
 });
 
 module.exports = {
-  authorizeUrl({ state, redirectUri, env }) {
+  authorizeUrl({ state, redirectUri, env, codeChallenge, codeChallengeMethod }) {
     const q = new URLSearchParams({
       client_id: env.EARTHDATA_CLIENT_ID,
       response_type: "code",
       redirect_uri: redirectUri,
       state,
+      code_challenge: codeChallenge,
+      code_challenge_method: codeChallengeMethod,
     });
     return `${baseUrl(env)}/oauth/authorize?${q.toString()}`;
   },
-  async exchange({ code, redirectUri, env }) {
-    return grant(env, await tokenRequest(env, { grant_type: "authorization_code", code, redirect_uri: redirectUri }));
+  async exchange({ code, redirectUri, env, codeVerifier }) {
+    return grant(
+      env,
+      await tokenRequest(env, { grant_type: "authorization_code", code, redirect_uri: redirectUri, code_verifier: codeVerifier })
+    );
   },
   async refresh({ refreshToken, env }) {
     return grant(env, await tokenRequest(env, { grant_type: "refresh_token", refresh_token: refreshToken }));
   },
-  async revoke({ accessToken, env }) {
-    await fetch(`${baseUrl(env)}/oauth/revoke?token=${encodeURIComponent(accessToken)}`, {
+  // RFC 7009: POST the token in a form body. Revoking the refresh token ends the whole grant.
+  async revoke({ accessToken, refreshToken, env }) {
+    await fetch(`${baseUrl(env)}/oauth/revoke`, {
       method: "POST",
-      headers: { Authorization: basicAuth(env) },
+      headers: { Authorization: basicAuth(env), "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(
+        refreshToken ? { token: refreshToken, token_type_hint: "refresh_token" } : { token: accessToken }
+      ).toString(),
     });
   },
   validate(env) {
