@@ -1049,10 +1049,11 @@ class GlobeRenderer {
             return undefined // Layer not in order array
         }
 
-        // Count how many tile layers should be BELOW this layer
-        // (tile layers with lower index in orderedLayerNames)
+        // Count how many tile layers should be BELOW this layer. The order
+        // runs top-first (as the 2D map's z-index does), so those are the
+        // ones after it.
         let tileBelowCount = 0
-        for (let i = 0; i < globalIndex; i++) {
+        for (let i = globalIndex + 1; i < orderedLayerNames.length; i++) {
             const checkName = orderedLayerNames[i]
             const checkLayer = this._layers[checkName]
             // Only imagery-backed layers occupy the imagery stack
@@ -1519,8 +1520,9 @@ class GlobeRenderer {
         // Reorder all visible tile layers
         const visibleTileLayers = []
 
-        // Collect all visible tile layers with their desired position
-        for (const name of orderedLayerNames) {
+        // Collect all visible tile layers, bottom first (the order runs
+        // top-first)
+        for (const name of [...orderedLayerNames].reverse()) {
             const layerInfo = this._layers[name]
             if (
                 layerInfo &&
