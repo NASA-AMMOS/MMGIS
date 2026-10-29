@@ -184,11 +184,19 @@ router.post("/update", authorize("accounts.manage"), function (req, res, next) {
     });
 });
 
+// Fields of the pre-role-binding API. Refused rather than ignored, so an old client learns its change didn't happen.
+const LEGACY_FIELDS = ["role", "missions_managing", "missions_viewing"];
+
 // Applies email, and `viewing` (null: every mission; a list: only those) as the user's own viewer grants.
 // Other roles are granted in Users & Access (/api/access).
 async function updateUser(req, id) {
   const actor = await ensurePrincipal(req);
   const body = req.body || {};
+  const legacy = LEGACY_FIELDS.filter((f) => Object.prototype.hasOwnProperty.call(body, f));
+  if (legacy.length)
+    throw new bindings.BindingError(
+      `${legacy.join(", ")} ${legacy.length > 1 ? "are" : "is"} no longer accepted: send viewing, and grant roles with /api/access/bindings/add.`
+    );
   const user = await User.findOne({ where: { id }, attributes: ["id"] });
   if (!user) throw new bindings.BindingError("User not found.");
 

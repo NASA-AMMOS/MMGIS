@@ -150,6 +150,10 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
     });
     return;
   }
+  if (req.body && Object.prototype.hasOwnProperty.call(req.body, "missions_viewing")) {
+    res.send({ status: "failure", message: "missions_viewing is no longer accepted: send viewing." });
+    return;
+  }
 
   // With admins-only local login, only an admin reaches here and stays signed in as themselves
   // Account managers creating someone else's account stay signed in as themselves

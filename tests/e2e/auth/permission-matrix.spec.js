@@ -351,7 +351,8 @@ test.describe.serial('Permission matrix', () => {
     await grant(admin, 'user', ids.grouped, 'data_admin', 'global');
     const roles = async () => (await bindingsOf(ids.grouped)).map((b) => b.role);
     expect(await roles()).toEqual(expect.arrayContaining(['layer_editor', 'data_admin']));
-    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.grouped, role: 'user' }))).toBe(true);
+    for (const b of (await bindingsOf(ids.grouped)).filter((x) => ['layer_editor', 'data_admin'].includes(x.role)))
+      expect(ok(await api(admin, 'POST', '/api/access/bindings/remove', { id: b.id }))).toBe(true);
     const left = await roles();
     expect(left).not.toContain('layer_editor');
     expect(left).not.toContain('data_admin');
@@ -386,27 +387,6 @@ test.describe.serial('Permission matrix', () => {
       await api(admin, 'POST', '/api/access/bindings/remove', { id: everyone.json.body.id });
     } finally {
       await api(admin, 'POST', '/api/access/groups/delete', { id: g.json.body.id });
-    }
-  });
-
-  test('legacy columns only go down when access is removed', async () => {
-    const name = `legacy_${RUN}`;
-    expect(ok(await api(admin, 'POST', '/api/users/signup', { username: name, password: PASSWORD, skipLogin: true, missions_viewing: null }))).toBe(true);
-    const entry = async () => (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.username === name);
-    const id = (await entry()).id;
-    try {
-      expect((await entry()).missions_viewing).toBeNull();
-      await grant(admin, 'user', id, 'viewer', 'mission', MISSION_A);
-      for (const b of (await bindingsOf(id)).filter((x) => x.role === 'viewer' && x.scope_type === 'global'))
-        expect(ok(await api(admin, 'POST', '/api/access/bindings/remove', { id: b.id }))).toBe(true);
-      const after = (await entry()).missions_viewing;
-      expect(after).toContain(MISSION_A);
-      expect(after).not.toContain(MISSION_B);
-      // Adding access back never raises the column again
-      await grant(admin, 'user', id, 'viewer', 'mission', MISSION_B);
-      expect((await entry()).missions_viewing).not.toContain(MISSION_B);
-    } finally {
-      await api(admin, 'DELETE', `/api/accounts/remove/${id}`);
     }
   });
 
@@ -562,8 +542,7 @@ test.describe.serial('Permission matrix', () => {
     const r = await api(admin, 'POST', '/api/accounts/update', {
       id: ids.madmin,
       email: `changed_${RUN}@example.test`,
-      role: 'mission_admin',
-      missions_managing: [`Missing_${RUN}`],
+      viewing: [`Missing_${RUN}`],
     });
     expect(ok(r)).toBe(false);
     expect((await bindingsOf(ids.madmin)).map((b) => b.id).sort()).toEqual(before);
@@ -576,7 +555,7 @@ test.describe.serial('Permission matrix', () => {
     const taken = `taken_${RUN}@example.test`;
     expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.viewer, email: taken }))).toBe(true);
     const before = (await bindingsOf(ids.madmin)).map((b) => b.id).sort();
-    const r = await api(admin, 'POST', '/api/accounts/update', { id: ids.madmin, email: taken, role: 'user' });
+    const r = await api(admin, 'POST', '/api/accounts/update', { id: ids.madmin, email: taken, viewing: [] });
     expect(ok(r)).toBe(false);
     expect((await bindingsOf(ids.madmin)).map((b) => b.id).sort()).toEqual(before);
     expect(ok(await initialView(users.madmin, MISSION_A))).toBe(true);
@@ -616,15 +595,9 @@ test.describe.serial('Permission matrix', () => {
     await grant(admin, 'user', ids.madmin, 'mission_admin', 'mission', MISSION_C);
     const rn = await api(admin, 'POST', '/api/configure/rename', { mission: MISSION_C, newName: renamed });
     expect(ok(rn), rn.text.slice(0, 200)).toBe(true);
-    const entry = async () =>
-      (await api(admin, 'GET', '/api/accounts/entries')).json.body.entries.find((e) => e.id === ids.madmin);
-    expect((await entry()).missions_managing).toEqual(expect.arrayContaining([MISSION_A, renamed]));
-    expect((await entry()).missions_managing).not.toContain(MISSION_C);
-    // Saving the account as shown keeps both assignments
-    const r = await api(admin, 'POST', '/api/accounts/update', {
-      id: ids.madmin, role: 'mission_admin', missions_managing: (await entry()).missions_managing,
-    });
-    expect(ok(r), r.text.slice(0, 200)).toBe(true);
+    const managing = (await bindingsOf(ids.madmin)).filter((b) => b.role === 'mission_admin').map((b) => b.mission);
+    expect(managing).toEqual(expect.arrayContaining([MISSION_A, renamed]));
+    expect(managing).not.toContain(MISSION_C);
     expect(ok(await initialView(users.madmin, renamed))).toBe(true);
     expect(ok(await initialView(users.madmin, MISSION_A))).toBe(true);
     await api(admin, 'POST', '/api/configure/destroy', { mission: renamed });
@@ -831,11 +804,17 @@ test.describe.serial('Permission matrix', () => {
     expect(JSON.stringify(r.json || {})).not.toMatch(/resetToken|reset_token/i);
   });
 
-  test('setting an account to User also removes a global Mission Admin grant', async () => {
+  test('account updates refuse the legacy role fields and change nothing', async () => {
     await grant(admin, 'user', ids.plain, 'mission_admin', 'global');
-    expect((await bindingsOf(ids.plain)).some((b) => b.role === 'mission_admin')).toBe(true);
-    expect(ok(await api(admin, 'POST', '/api/accounts/update', { id: ids.plain, role: 'user' }))).toBe(true);
-    expect((await bindingsOf(ids.plain)).some((b) => b.role === 'mission_admin')).toBe(false);
+    const before = (await bindingsOf(ids.plain)).map((b) => b.id).sort();
+    for (const legacy of [{ role: 'user' }, { missions_managing: [] }, { missions_viewing: null }]) {
+      const r = await api(admin, 'POST', '/api/accounts/update', { id: ids.plain, ...legacy });
+      expect(ok(r)).toBe(false);
+      expect(r.json.message).toContain('/api/access/bindings/add');
+    }
+    expect((await bindingsOf(ids.plain)).map((b) => b.id).sort()).toEqual(before);
+    for (const b of (await bindingsOf(ids.plain)).filter((x) => x.role === 'mission_admin'))
+      expect(ok(await api(admin, 'POST', '/api/access/bindings/remove', { id: b.id }))).toBe(true);
     expect(denied(await initialView(users.plain, MISSION_A))).toBe(true);
   });
 

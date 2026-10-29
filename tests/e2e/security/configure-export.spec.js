@@ -105,7 +105,7 @@ test.describe.serial("configure export", () => {
 
     const update = await json(
       await superadmin.post("/api/accounts/update", {
-        data: { id: userId, missions_viewing: [missionA] },
+        data: { id: userId, viewing: [missionA] },
       }),
     );
     if (update?.status !== "success") return;
