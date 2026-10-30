@@ -626,6 +626,8 @@ function clearLoginSession(req) {
   req.session.uid = null;
   req.session.token = null;
   delete req.session.provider;
+  // The proxy identity websocket upgrades fall back to; the next proxied request saves it again
+  delete req.session.proxyIdentity;
 }
 
 module.exports = { mountLocalRoutes, getUserGroups, clearLoginSession };

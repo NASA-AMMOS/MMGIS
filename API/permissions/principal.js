@@ -275,6 +275,8 @@ async function resolvePrincipal(req) {
         const ext = await externalPrincipal(req.identity);
         return {
           ...ext,
+          // The local account still owns what it creates (tokens), as with AUTH=csso
+          userId: p.userId,
           localUserId: p.userId,
           localUsername: p.username,
           groupIds: Array.from(new Set([...ext.groupIds, ...p.groupIds])),

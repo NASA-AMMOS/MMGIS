@@ -55,8 +55,12 @@ if (process.env.AUTH != null && process.env.AUTH !== "") {
     process.env[key] = legacy[key];
   }
   // AUTH=csso trusted the proxy headers on any request
-  if (legacyKey === "csso" && !process.env.PROXY_TRUST && !process.env.PROXY_SECRET && !process.env.CSSO_PROXY_SECRET)
+  if (legacyKey === "csso" && !process.env.PROXY_SECRET && !process.env.CSSO_PROXY_SECRET) {
+    const trust = process.env.PROXY_TRUST;
+    if (trust && trust.toLowerCase() !== "network")
+      notes.push(`PROXY_TRUST=${trust} is also set but ignored for this preview: PROXY_SECRET is empty, and AUTH=csso means PROXY_TRUST=network.`);
     process.env.PROXY_TRUST = "network";
+  }
 }
 if (dryRun)
   Object.entries(siteAccess.RENAMED_ENVS).forEach(([from, to]) => {
