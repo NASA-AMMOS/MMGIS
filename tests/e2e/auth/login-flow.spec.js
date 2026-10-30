@@ -18,7 +18,7 @@ import { TEST_ADMIN } from '../../fixtures/user-credentials.js';
 test.describe('Login Flow', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(
-      process.env.AUTH !== 'local',
+      process.env.MMGIS_TEST_SITE_ACCESS !== 'required',
       'SKIP: AUTH is not local — no login page'
     );
   });
@@ -36,12 +36,27 @@ test.describe('Login Flow', () => {
     await page.locator('#username').waitFor({ state: 'visible', timeout: 10000 });
     await page.fill('#username', TEST_ADMIN.username);
     await page.fill('#pwd', TEST_ADMIN.password);
+    // After login, the page reloads into the app instead of the login page.
+    // Only this first load is checked: an account keeps one saved login, so another
+    // suite signing in as the same account can sign this page out on its next reload
+    const appLoad = page.waitForResponse(
+      (r) =>
+        new URL(r.url()).pathname === '/' &&
+        r.request().method() === 'GET' &&
+        r.request().isNavigationRequest()
+    );
+    // The page reloads as soon as login succeeds, so the response is read on its way in
+    let loginBody = null;
+    await page.route('**/api/users/login', async (route) => {
+      const response = await route.fetch();
+      if (route.request().method() === 'POST' && loginBody === null)
+        loginBody = await response.json().catch(() => ({}));
+      await route.fulfill({ response });
+    });
     await page.click('#login');
-    // After login, should redirect away from the login page
-    await page.waitForLoadState('networkidle');
-    // Verify we are no longer on the login page (title changes or login elements disappear)
-    const title = await page.title();
-    expect(title).not.toContain('Login');
+    const appPage = await (await appLoad).text();
+    expect(loginBody && loginBody.status).toBe('success');
+    expect(appPage).not.toContain('<title>MMGIS / Login</title>');
   });
 
   test('login with invalid credentials shows error', async ({ page }) => {

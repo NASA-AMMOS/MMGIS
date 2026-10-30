@@ -66,7 +66,7 @@ npm start
 
 ## 4. Creating a Mission
 
-- **Via UI:** Navigate to `http://localhost:8888/configure`, create an admin account (the first user is automatically the Administrator), then click **"New Mission"**.
+- **Via UI:** Navigate to `http://localhost:8888/configure`, create an admin account (the first user is automatically the SuperAdmin; the form asks for the one-time setup code printed in the server log, or `SETUP_CODE` if set), then click **"New Mission"**.
 - **Reference Mission:** Check the **"Setup Reference Mission Demo"** checkbox when creating a new mission to prepopulate it with sample data.
 - **Note:** There is currently no CLI or API for mission creation — it requires the web UI.
 - **Tip:** If only one mission exists, the landing page auto-redirects to the map. Use `?forcelanding=true` in the URL to force the landing page to display.
@@ -105,7 +105,7 @@ All options are documented in `sample.env`. The critical ones:
 | `DB_USER`      | Database user                                        | `user`        |
 | `DB_PASS`      | Database password                                    | `password`    |
 | `PORT`         | Server port                                          | `8888`        |
-| `AUTH`         | Authentication mode (`off`, `none`, `local`, `csso`) | `none`        |
+| `SITE_ACCESS` / `AUTH_PROVIDERS` | Who may view (`public`, `optional`, `required`) / login methods (`local`, `proxy`); replace the removed `AUTH` | `optional` / `["local"]` |
 | `NODE_ENV`     | Environment (`development` or `production`)          | `development` |
 | `SECRET`       | Session secret                                       | `aSecretKey`  |
 | `MAIN_MISSION` | Auto-load a specific mission (skips landing page)    | _(empty)_     |

@@ -1,7 +1,8 @@
 /**
  * Aggregate per-plugin dependencies into generated build artifacts.
  *
- * Scans every tool, component, and backend plugin for an optional
+ * Scans every tool, component, backend, layer type, layer attachment, auth and connection
+ * plugin for an optional
  * `dependencies` block in its plugin.json manifest
  * and writes three files at the repo root:
  *
@@ -184,6 +185,17 @@ function gatherDependencies() {
         PLUGINS_ROOT, "layerattachments", "plugin.json",
         { loggerCategory: "PluginDeps" }
     );
+    // Login providers may need a client library (LDAP, OIDC, ...)
+    const allAuth = discoverPlugins(
+        PLUGINS_ROOT, "auth", "plugin.json",
+        { loggerCategory: "PluginDeps" }
+    );
+
+    // Connections may need an OAuth or HTTP client library
+    const allConnections = discoverPlugins(
+        PLUGINS_ROOT, "connections", "plugin.json",
+        { loggerCategory: "PluginDeps" }
+    );
 
     const pushManifest = (label, plugin, deps) => {
         if (!deps) return;
@@ -210,6 +222,12 @@ function gatherDependencies() {
     }
     for (const p of dedup(allBackends)) {
         pushManifest(`backend:${p.name}`, p, depsForBackend(p));
+    }
+    for (const p of dedup(allAuth)) {
+        pushManifest(`auth:${p.name}`, p, depsFromManifest(p.manifest));
+    }
+    for (const p of dedup(allConnections)) {
+        pushManifest(`connection:${p.name}`, p, depsFromManifest(p.manifest));
     }
     for (const p of dedup(allLayerTypes)) {
         pushManifest(`layertype:${p.name}`, p, depsFromManifest(p.manifest));

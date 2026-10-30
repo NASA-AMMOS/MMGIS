@@ -1,0 +1,205 @@
+#connectionsButton {
+    background: var(--color-a);
+    color: white;
+    text-align: center;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    line-height: 28px;
+    margin-left: 5px;
+    border-radius: 3px;
+    pointer-events: all;
+}
+#loginoutButton.menuOpen,
+#loginUser.menuOpen,
+#connectionsButton.menuOpen {
+    background: var(--color-mmgis) !important;
+    color: white;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+#loginoutButton.connectionsNeeded,
+#loginUser.connectionsNeeded,
+#connectionsButton.connectionsNeeded {
+    position: relative;
+}
+#loginoutButton.connectionsNeeded::after,
+#loginUser.connectionsNeeded::after,
+#connectionsButton.connectionsNeeded::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #f0a830;
+    border: 2px solid var(--color-a);
+}
+
+#connectionsMenu {
+    position: fixed;
+    z-index: 100000;
+    width: 300px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a2, #2b2d30);
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    color: var(--color-f, #dfdeee);
+    font-family: roboto, sans-serif;
+    font-size: 13px;
+    overflow: hidden;
+}
+.connectionsMenuSection {
+    padding: 10px 14px;
+}
+.connectionsMenuSection + .connectionsMenuSection {
+    border-top: 1px solid var(--color-a2, #2b2d30);
+}
+.connectionsMenuAccount {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 0;
+}
+.connectionsMenuAvatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+    border: 1px solid var(--color-a1);
+}
+.connectionsMenuAvatar.guest {
+    background: var(--color-a2, #3a3d44);
+    color: var(--color-a6, #b9bcc5);
+}
+.connectionsMenuAccount .connectionsMenuAction {
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: bold;
+}
+.connectionsMenuLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-a5, #8a8d96);
+    margin: 2px 0 6px;
+}
+.connectionsMenuUser {
+    font-weight: bold;
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.connectionsMenuSection .connectionsMenuRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+}
+.connectionsMenuRow.unavailable {
+    opacity: 0.55;
+}
+.connectionsMenuDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #f0a830;
+}
+.connectionsMenuRow.connected .connectionsMenuDot {
+    background: #3fbf6f;
+}
+.connectionsMenuRow.unavailable .connectionsMenuDot {
+    background: var(--color-a5, #8a8d96);
+}
+.connectionsMenuText {
+    flex: 1;
+    min-width: 0;
+}
+.connectionsMenuName {
+    font-weight: bold;
+}
+.connectionsMenuDetail {
+    font-size: 12px;
+    color: var(--color-a6, #a1a4ad);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.connectionsMenuAction {
+    background: transparent;
+    border: 1px solid var(--color-a5, #555);
+    color: inherit;
+    border-radius: 3px;
+    padding: 3px 9px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.connectionsMenuAction.primary {
+    background: var(--color-mmgis);
+    border-color: var(--color-mmgis);
+    color: white;
+}
+.connectionsMenuNote {
+    padding-top: 4px;
+    font-size: 11.5px;
+    color: var(--color-a5, #8a8d96);
+}
+
+.connectionsCard {
+    margin: 44px 16px 16px;
+    padding: 18px;
+    border: 1px solid var(--color-a2, #2b2d30);
+    border-left: 3px solid #f0a830;
+    border-radius: 4px;
+    background: var(--color-a1, #1f2124);
+    color: var(--color-f, #dfdeee);
+    font-family: roboto, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.connectionsCard.overlay {
+    margin: 8px;
+}
+.connectionsCardTitle {
+    font-weight: bold;
+    font-size: 15px;
+    margin-bottom: 6px;
+}
+.connectionsCard p {
+    margin: 0 0 12px;
+    color: var(--color-a6, #b4b7bf);
+}
+.connectionsCardButton {
+    background: var(--color-mmgis);
+    color: white;
+    border: 0;
+    border-radius: 3px;
+    padding: 7px 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.connectionsCardButton:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+.connectionsCardLink {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--color-mmgis);
+    cursor: pointer;
+    font: inherit;
+    text-decoration: underline;
+}
+.connectionsCardNote {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--color-a5, #8a8d96);
+}

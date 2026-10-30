@@ -63,37 +63,52 @@
     font-weight: 600;
     cursor: pointer;
     user-select: none;
-    background: var(--color-accent-active);
-    color: var(--color-c);
+    color: white;
     border: 1px solid var(--color-a1);
-    transition: background 0.15s, box-shadow 0.15s;
 }
 
 /* --- User account area --- */
+/* Line under the account / Services button while its menu is open */
+.menuOpen {
+    position: relative;
+    color: var(--color-mmgis);
+}
+
+.userAvatar.menuOpen {
+    color: white;
+}
+
+.menuOpen::before {
+    content: '';
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    bottom: -5px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--color-mmgis);
+}
+
+.needsConnection {
+    position: relative;
+}
+
+.needsConnection::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f0a830;
+    border: 2px solid var(--color-a);
+}
+
 .userArea {
     display: flex;
     align-items: center;
     margin-left: 4px;
-}
-
-.userWrapper {
-    position: relative;
-}
-
-.userCardName {
-    padding: 10px 14px 8px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--color-a5);
-}
-
-.userCardDivider {
-    height: 1px;
-    margin: 0 8px;
-    background: var(--color-a1);
 }
 
 /* Kebab menu trigger — override IconButton border for circular shape */

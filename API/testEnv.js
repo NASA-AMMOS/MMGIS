@@ -5,7 +5,8 @@ const test = (setupEnvs, port) => {
   let envSample = {
     SERVER: process.env.SERVER,
     PORT: port,
-    AUTH: process.env.AUTH,
+    SITE_ACCESS: process.env.SITE_ACCESS,
+    AUTH_PROVIDERS: process.env.AUTH_PROVIDERS,
     NODE_ENV: process.env.NODE_ENV,
     SECRET: process.env.SECRET ? "_redacted_" : null,
     VERBOSE_LOGGING: process.env.VERBOSE_LOGGING || false,
@@ -18,8 +19,8 @@ const test = (setupEnvs, port) => {
     DB_PASS: process.env.DB_PASS ? "_redacted_" : null,
     HIDE_CONFIG: process.env.HIDE_CONFIG || false,
     FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH || "",
-    CSSO_GROUPS: process.env.CSSO_GROUPS || [],
-    CSSO_LEAD_GROUP: process.env.CSSO_LEAD_GROUP || "",
+    PROXY_GROUPS: process.env.PROXY_GROUPS || [],
+    PROXY_LEAD_GROUP: process.env.PROXY_LEAD_GROUP || "",
     LEADS: process.env.LEADS || [],
   };
 

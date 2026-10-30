@@ -1,4 +1,5 @@
 const winston = require("winston");
+const util = require("util");
 const moment = require("moment");
 var os = require("os");
 const chalk = require("chalk");
@@ -11,7 +12,7 @@ const cs3Format = printf(({ level, body, label, timestamp, a, b, c }) => {
   return JSON.stringify({
     level: level,
     ts: timestamp,
-    caller: "build/csso_proxy.go:144",
+    caller: "build/proxy.go:144",
     msg: body.message,
     domain: hostname,
     sessionID: "d2aaf94b-2893-42a8-b0a0-b186129d7ed3",
@@ -32,9 +33,56 @@ const filelogger = winston.createLogger({
   ],
 });
 
+const SECRET_LOG_KEYS = new Set([
+  "password",
+  "setup_code",
+  "token",
+  "retypepassword",
+  "access_token",
+  "accesstoken",
+  "refresh_token",
+  "refreshtoken",
+  "id_token",
+  "client_secret",
+  "code_verifier",
+  "codeverifier",
+  "api_key",
+  "apikey",
+]);
+function redactSecrets(key, value) {
+  if (typeof key === "string" && SECRET_LOG_KEYS.has(key.toLowerCase()) && value != null)
+    return "_redacted_";
+  return value;
+}
+
+// Credentials that plugins and libraries put in error messages (URLs, headers, JSON)
+function redactCredentials(str) {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/\b(access_token|refresh_token|id_token|client_secret|code_verifier|code|password|token|api_?key)=[^\s&"',;]+/gi, "$1=_redacted_")
+    .replace(/(["']?\b(?:access_token|refresh_token|id_token|client_secret|code_verifier|password|api_?key)["']?\s*:\s*["']?)[^\s"',}]+/gi, "$1_redacted_")
+    .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/g, "$1 _redacted_");
+}
+
 function sanitizeForLog(str) {
   if (typeof str !== "string") return str;
   return str.replace(/\x1B\[[0-9;]*m/g, "").replace(/[\x00-\x08\x0B-\x1F\x7F]/g, " ");
+}
+
+// Copy of a request body/query for logging: passwords, tokens and setup codes redacted, long values cropped
+function cleanFields(fields, crop) {
+  const copy = JSON.parse(JSON.stringify(fields));
+  if (!copy || typeof copy !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(copy).map(([k, v]) => [
+      k,
+      SECRET_LOG_KEYS.has(String(k).toLowerCase()) && v
+        ? "_redacted_"
+        : JSON.stringify(v).length > crop
+          ? "[Too Long...]"
+          : v,
+    ])
+  );
 }
 
 const logger = function (level, message, caller, req, err) {
@@ -45,7 +93,7 @@ const logger = function (level, message, caller, req, err) {
     msg: message,
     domain: req && req.headers && req.headers.host ? req.headers.host : "HOST",
     hostname: hostname,
-    sessionID: req && req.cssoSessionID ? req.cssoSessionID : "HOST",
+    sessionID: req && req.proxySessionID ? req.proxySessionID : "HOST",
     internalSessionID: req && req.sessionID ? req.sessionID : "HOST",
     user: req && req.user ? req.user : "HOST",
   };
@@ -53,40 +101,31 @@ const logger = function (level, message, caller, req, err) {
   try {
     let crop = 512;
     if (req && req.body) {
-      let cleanBody = JSON.parse(JSON.stringify(req.body));
-      if (cleanBody.password) {
-        cleanBody.password = "_redacted_";
-      }
-      for (let k in cleanBody) {
-        if (JSON.stringify(cleanBody[k]).length > crop)
-          cleanBody[k] = "[Too Long...]";
-      }
+      const cleanBody = cleanFields(req.body, crop);
       if (Object.keys(cleanBody).length > 0) {
         log.req = log.req || {};
         log.req.body = cleanBody;
       }
     }
     if (req && req.query) {
-      let cleanQuery = JSON.parse(JSON.stringify(req.query));
-      if (cleanQuery.password) {
-        cleanQuery.password = "_redacted_";
-      }
-      for (let k in cleanQuery) {
-        if (JSON.stringify(cleanQuery[k]).length > crop)
-          cleanQuery[k] = "[Too Long...]";
-      }
+      const cleanQuery = cleanFields(req.query, crop);
       if (Object.keys(cleanQuery).length > 0) {
         log.req = log.req || {};
         log.req.query = cleanQuery;
       }
     }
     if (err) {
-      log.err = err;
+      log.err =
+        err instanceof Error
+          ? { name: err.name, message: redactCredentials(err.message), stack: redactCredentials(err.stack) }
+          : typeof err === "string"
+            ? redactCredentials(err)
+            : err;
     }
 
-    log.msg = sanitizeForLog(log.msg);
+    log.msg = sanitizeForLog(redactCredentials(log.msg));
     log.caller = sanitizeForLog(log.caller);
-    log = JSON.stringify(log);
+    log = JSON.stringify(log, redactSecrets);
   } catch (err2) {
     log.err = err2;
   }
@@ -117,13 +156,23 @@ const logger = function (level, message, caller, req, err) {
           chalk.black(chalk.bgHex("#009eff")("\r " + level + " "))
         );
     }
-    if (message) console.log(" ", sanitizeForLog(message));
+    if (message)
+      console.log(
+        " ",
+        sanitizeForLog(
+          redactCredentials(typeof message === "string" ? message : util.inspect(message))
+        ).replace(/\r/g, "").replace(/\n/g, "")
+      );
     if (caller && level != "success" && level != "info" && level != "loaded")
       console.log(
         "   Caller:",
-        sanitizeForLog(String(caller)).replace(/\n/g, "")
+        sanitizeForLog(String(caller)).replace(/\r/g, "").replace(/\n/g, "")
       );
-    if (err) console.log("   Error:", sanitizeForLog(err instanceof Error ? err.stack || String(err) : String(err)));
+    if (err)
+      console.log(
+        "   Error:",
+        sanitizeForLog(redactCredentials(err instanceof Error ? err.stack || String(err) : typeof err === "string" ? err : util.inspect(err)))
+      );
   } else {
     console.log(log);
   }
@@ -139,3 +188,6 @@ const logger = function (level, message, caller, req, err) {
 };
 
 module.exports = logger;
+module.exports.redactSecrets = redactSecrets;
+module.exports.redactCredentials = redactCredentials;
+module.exports.cleanFields = cleanFields;

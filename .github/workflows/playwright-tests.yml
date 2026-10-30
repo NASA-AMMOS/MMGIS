@@ -16,6 +16,11 @@ jobs:
     strategy:
       matrix:
         auth_mode: [off, local]
+        include:
+          - auth_mode: off
+            site_access: public
+          - auth_mode: local
+            site_access: required
 
     services:
       postgres:
@@ -23,7 +28,7 @@ jobs:
         env:
           POSTGRES_DB: mmgis-test
           POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
+          POSTGRES_PASSWORD: test_password # pragma: allowlist secret
         ports:
           - 5432:5432
         options: >-
@@ -57,11 +62,13 @@ jobs:
         run: pip install "titiler.application" "python-dotenv[cli]" uvicorn
 
       - name: Setup test environment
-        run: |
+        run: | # pragma: allowlist secret
           cp sample.env .env || touch .env
+          sed -i "/^SITE_ACCESS=/d;/^AUTH_PROVIDERS=/d" .env
           echo "NODE_ENV=test" >> .env
           echo "PORT=18888" >> .env
-          echo "AUTH=${{ matrix.auth_mode }}" >> .env
+          echo "SITE_ACCESS=${{ matrix.site_access }}" >> .env
+          echo 'AUTH_PROVIDERS=["local"]' >> .env
           echo "DB_HOST=localhost" >> .env
           echo "DB_PORT=5432" >> .env
           echo "DB_NAME=mmgis-test" >> .env
@@ -81,13 +88,27 @@ jobs:
       - name: Run Unit Tests
         run: npx playwright test tests/unit --project=chromium
         env:
-          AUTH: ${{ matrix.auth_mode }}
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
           PLAYWRIGHT_TEST_UNIT_ONLY: "true"
 
       - name: Run E2E API Tests
         run: npx playwright test tests/e2e/api tests/e2e/security tests/e2e/startup --project=chromium
         env:
-          AUTH: ${{ matrix.auth_mode }}
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+
+      - name: Run E2E Auth Tests
+        run: npx --no-install playwright test tests/e2e/auth --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+
+      - name: Check existing accounts survive the upgrade
+        if: matrix.site_access == 'required' && github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=200 origin ${{ github.base_ref }}
+          bash tests/migration/run-legacy-compat.sh origin/${{ github.base_ref }}
 
       - name: Upload test results
         if: always()

@@ -79,8 +79,8 @@ test.describe('Landing Page — Mission Selection', () => {
     }
 
     // Find and click the Reference-Mission link / card
-    const missionLink = page.locator('a, button, [class*="mission"], [class*="Mission"]')
-      .filter({ hasText: 'Reference-Mission' })
+    const missionLink = page.locator('[data-mission="Reference-Mission"]')
+      .or(page.locator('a, button, [class*="mission"], [class*="Mission"]').filter({ hasText: 'Reference-Mission' }))
       .first();
 
     if (!(await missionLink.isVisible({ timeout: 5000 }).catch(() => false))) {
@@ -133,6 +133,37 @@ test.describe('Landing Page — Mission Selection', () => {
     // We intentionally do NOT check console errors here because navigating to a
     // nonexistent mission is expected to produce various console errors from
     // failed resource loads and missing config data.
+  });
+
+  test('a mission that is not available shows a note on the landing page', async ({ page }) => {
+    if (process.env.MAIN_MISSION) {
+      test.skip(true, 'SKIP: MAIN_MISSION is set — unavailable missions fall back to it');
+      return;
+    }
+    await page.goto('/?mission=NonExistentMission');
+    const landing = page.locator('.landingPage');
+    const shown = await landing.waitFor({ timeout: 30000 }).then(() => true, () => false);
+    if (!shown) {
+      test.skip(true, 'SKIP: landing page not shown (sign-in required first)');
+      return;
+    }
+
+    // Same wording for unknown and restricted missions, so it never says whether one exists
+    const note = page.locator('.landingPage .unavailable');
+    await expect(note).toBeVisible();
+    await expect(note).toContainText("NonExistentMission isn't available");
+
+    const signedIn = await page.evaluate(() => {
+      const u = window.mmgisglobal.user;
+      return u != null && u !== 'guest' && u !== '';
+    });
+    const guestOnOptional = !signedIn && process.env.MMGIS_TEST_SITE_ACCESS === 'optional';
+    await expect(note.locator('.signin')).toHaveCount(guestOnOptional ? 1 : 0);
+    if (signedIn) await expect(note).toContainText('to your account');
+    else if (guestOnOptional) await expect(note).toContainText('to guests');
+
+    await note.locator('.dismiss').click();
+    await expect(note).toHaveCount(0);
   });
 
   // --------------------------------------------------------------------------

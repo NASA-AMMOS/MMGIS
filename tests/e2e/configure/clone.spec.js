@@ -25,9 +25,12 @@ async function safeJson(response) {
   }
 }
 
-const CLONE_MISSION_NAME = 'Clone-Test-E2E';
+// Unique per run so a folder left by an interrupted run can't block the clone
+const CLONE_MISSION_NAME = `Clone-Test-E2E-${Date.now()}`;
 
 test.describe('Config /clone — mission cloning', () => {
+  // The tests share one cloned mission, so they must run in order in one worker
+  test.describe.configure({ mode: 'serial' });
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   let sessionCookie;

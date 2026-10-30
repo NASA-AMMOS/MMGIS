@@ -2,6 +2,8 @@ import { test, expect, request as apiRequest } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
+import { loginHeaders } from '../../helpers/auth.js';
+
 const { updateLayerTypes } = require('../../../API/updateTools');
 
 /**
@@ -11,21 +13,9 @@ const { updateLayerTypes } = require('../../../API/updateTools');
  * which `placement.path` could never resolve to it and every later addLayer
  * under that header failed with "Path specified in 'placement.path' not found".
  * A plugin layer type that `extends: "header"` must behave the same way.
- *
- * Runs under AUTH=off only. The Configure API needs an admin login in either
- * mode, and /api/users/login allows 10 logins per 15 minutes per IP
- * (scripts/rateLimiters.js). In the AUTH=local job the other specs already go
- * past that limit: a login in missions-viewing.spec.js fails and its tests are
- * retried. One more login here makes that failure happen one test earlier, so
- * one more of its tests does not run. addLayer does not depend on the AUTH mode.
  */
 
 test.describe('Configure API — addLayer header sublayers', () => {
-  test.skip(
-    process.env.AUTH === 'local',
-    'SKIP: the AUTH=local job already goes past the login rate limit; one more login here makes a missions-viewing.spec.js login fail one test earlier',
-  );
-
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
   /** Admin request context shared by the tests (one login per worker). */
@@ -37,6 +27,7 @@ test.describe('Configure API — addLayer header sublayers', () => {
     api = await apiRequest.newContext({ baseURL });
     const login = await api
       .post('/api/users/login', {
+        headers: loginHeaders(),
         data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
       })
       .then((res) => res.json())

@@ -36,7 +36,7 @@ async function isLoginPage(response) {
 }
 
 test.describe('ENV Variable Behavior', () => {
-  const authMode = process.env.AUTH || 'off';
+  const authMode = process.env.MMGIS_TEST_SITE_ACCESS || 'public';
 
   test('healthcheck works regardless of AUTH mode', async ({ request }) => {
     const res = await request.get(`${BASE}/api/utils/healthcheck`, { timeout: 10000 });
@@ -47,15 +47,15 @@ test.describe('ENV Variable Behavior', () => {
 
     // In AUTH=local mode, unauthenticated requests return the HTML login page
     // instead of the actual healthcheck response. Both prove the server is up.
-    if (authMode === 'off') {
+    if (authMode === 'public') {
       expect(text.toLowerCase()).toMatch(/alive|ok|success|healthy|well/);
     }
     // AUTH=local: a 200 response with a non-empty body is sufficient proof
   });
 
   test('AUTH=off: no login page is shown', async ({ page, request }) => {
-    if (authMode !== 'off') {
-      test.skip(true, `SKIP: Current AUTH mode is "${authMode}", not "off"`);
+    if (authMode !== 'public') {
+      test.skip(true, `SKIP: Current SITE_ACCESS is "${authMode}", not "public"`);
       return;
     }
 
@@ -76,8 +76,8 @@ test.describe('ENV Variable Behavior', () => {
   });
 
   test('AUTH=local: login page is shown for unauthenticated users', async ({ page, request }) => {
-    if (authMode !== 'local') {
-      test.skip(true, `SKIP: Current AUTH mode is "${authMode}", not "local"`);
+    if (authMode !== 'required') {
+      test.skip(true, `SKIP: Current SITE_ACCESS is "${authMode}", not "required"`);
       return;
     }
 
@@ -96,14 +96,14 @@ test.describe('ENV Variable Behavior', () => {
   });
 
   test('AUTH=local: API endpoints return login page instead of JSON', async ({ request }) => {
-    if (authMode !== 'local') {
-      test.skip(true, `SKIP: Current AUTH mode is "${authMode}", not "local"`);
+    if (authMode !== 'required') {
+      test.skip(true, `SKIP: Current SITE_ACCESS is "${authMode}", not "required"`);
       return;
     }
 
     const res = await request.get(`${BASE}/api/configure/missions`, { timeout: 10000 });
-    // Server should respond (not hang)
-    expect(res.status()).toBe(200);
+    // Server should respond (not hang); guests get nothing on a login-required site
+    expect([200, 403]).toContain(res.status());
 
     // In AUTH=local the body is likely an HTML login page, not JSON
     const body = await safeJson(res);
@@ -145,16 +145,17 @@ test.describe('ENV Variable Behavior', () => {
 
   test('missions endpoint reflects current AUTH mode', async ({ request }) => {
     const res = await request.get(`${BASE}/api/configure/missions`, { timeout: 10000 });
-    expect(res.status()).toBe(200);
+    if (authMode === 'required') expect(res.status()).toBe(403);
+    else expect(res.status()).toBe(200);
 
     const body = await safeJson(res);
 
-    if (authMode === 'off') {
+    if (authMode === 'public') {
       // AUTH=off: should get a JSON response with missions array
       if (body && body.missions) {
         expect(Array.isArray(body.missions)).toBe(true);
       }
-    } else if (authMode === 'local') {
+    } else if (authMode === 'required') {
       // AUTH=local: may get JSON (if token exists) or HTML login page
       if (!body) {
         // HTML login page returned — this is expected

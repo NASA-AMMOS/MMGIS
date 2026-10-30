@@ -851,3 +851,50 @@ test.describe('validateMetaconfig - the Configure form a manifest declares', () 
         expect(errs.length).toBe(2);
     });
 });
+
+test.describe('validatePluginConfig — connections', () => {
+    const tool = (connections) => ({ name: 'T', type: 'tool', paths: { T: 'x' }, connections });
+
+    test('a tool may declare connection plugins', () => {
+        expect(validatePluginConfig(tool([{ plugin: 'c/connections/X', required: true }]), 'T', 'tool')).toEqual([]);
+    });
+
+    test('malformed tool connections are rejected', () => {
+        for (const bad of ['c/connections/X', ['x'], [{ plugin: 'c/tools/X' }], [{ plugin: 'c/connections/X', required: 'yes' }]])
+            expect(validatePluginConfig(tool(bad), 'T', 'tool').join(' ')).toContain("'connections' must be");
+    });
+
+    test('connection and auth plugins are known types', () => {
+        expect(validatePluginConfig({ name: 'E', type: 'connection', connection: 'imagery', guests: true, env: [] }, 'E', 'connection')).toEqual([]);
+        expect(validatePluginConfig({ name: 'L', type: 'auth', provider: 'local' }, 'L', 'auth')).toEqual([]);
+    });
+
+    test('documented auth manifest fields are known', () => {
+        // Unknown fields are logged, not returned
+        const unknownFields = (m) => {
+            const lines = [];
+            const log = console.log;
+            console.log = (...args) => lines.push(args.join(' '));
+            try {
+                validatePluginConfig(m, 'P', 'auth');
+            } finally {
+                console.log = log;
+            }
+            return lines.filter((l) => l.includes('unknown top-level field'));
+        };
+        const m = { name: 'P', type: 'auth', provider: 'p', login_path: '/login', login_url: 'https://x', login_label: 'Log in', logout_url: 'https://x/out' };
+        expect(unknownFields(m)).toEqual([]);
+        expect(unknownFields({ ...m, login_lable: 'typo' }).join(' ')).toContain("'login_lable'");
+    });
+
+    test('a connection env must be a list of names', () => {
+        for (const env of ['X_ID', [1], [''], { X: 1 }])
+            expect(validatePluginConfig({ name: 'E', type: 'connection', connection: 'imagery', env }, 'E', 'connection').join(' ')).toContain("'env' must be");
+        expect(validatePluginConfig({ name: 'E', type: 'connection', connection: 'imagery', env: ['X_ID'] }, 'E', 'connection')).toEqual([]);
+    });
+
+    test('a connection id must start with a letter', () => {
+        expect(validatePluginConfig({ name: 'E', type: 'connection', connection: '1bad' }, 'E', 'connection').join(' ')).toContain("'connection' must be");
+        expect(validatePluginConfig({ name: 'E', type: 'connection' }, 'E', 'connection').join(' ')).toContain("'connection' must be");
+    });
+});

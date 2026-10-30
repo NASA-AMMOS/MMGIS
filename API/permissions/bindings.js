@@ -1,0 +1,235 @@
+// Role binding management shared by the Access and Accounts routes
+const { Op } = require("sequelize");
+const { sequelize } = require("../connection");
+const policy = require("./policy");
+const missions = require("./missions");
+const { invalidate } = require("./principal");
+
+function models() {
+  const permissionModels = require("./models");
+  const { User } = require("../../plugins/core/backend/Users/models/user");
+  return { ...permissionModels, User };
+}
+
+class BindingError extends Error {}
+
+async function describe(row) {
+  const b = row.get ? row.get({ plain: true }) : row;
+  return {
+    ...b,
+    mission: b.mission_uuid ? await missions.nameForUUID(b.mission_uuid) : null,
+  };
+}
+
+const SUPERADMIN_WHERE = { subject_type: "user", role: "superadmin", scope_type: "global" };
+
+// Serializes changes that can remove a direct SuperAdmin: the SuperAdmin rows stay
+// locked until fn's transaction commits, so concurrent removals see each other
+function withSuperAdminLock(fn) {
+  const { RoleBinding } = models();
+  return sequelize.transaction(async (transaction) => {
+    const rows = await RoleBinding.findAll({
+      where: SUPERADMIN_WHERE,
+      lock: transaction.LOCK.UPDATE,
+      transaction,
+    });
+    const superAdmins = await existingUserIds(rows, transaction);
+    return fn({ transaction, rows, superAdmins });
+  });
+}
+
+// Ids of the accounts that still exist among these SuperAdmin rows
+async function existingUserIds(rows, transaction) {
+  const ids = Array.from(new Set(rows.filter((r) => /^[1-9][0-9]*$/.test(r.subject_id)).map((r) => parseInt(r.subject_id))));
+  if (ids.length === 0) return [];
+  const users = await models().User.findAll({ where: { id: ids }, attributes: ["id"], raw: true, transaction });
+  const existing = new Set(users.map((u) => u.id));
+  return ids.filter((id) => existing.has(id));
+}
+
+// Users whose effective superadmin comes from a direct global binding
+async function superAdminUserIds() {
+  const { RoleBinding } = models();
+  const rows = await RoleBinding.findAll({
+    where: SUPERADMIN_WHERE,
+    attributes: ["subject_id"],
+    raw: true,
+  });
+  return existingUserIds(rows);
+}
+
+// After a grant change: cached principals are rebuilt on their next request
+async function afterChange() {
+  invalidate();
+}
+
+// actor: principal performing the change
+async function addBinding(actor, input) {
+  const { RoleBinding, AuthGroup, User } = models();
+  const { subject_type, role, scope_type } = input;
+  let subject_id = String(input.subject_id);
+  if (subject_type === "user" || subject_type === "group") {
+    if (!/^[1-9][0-9]*$/.test(subject_id))
+      throw new BindingError(`Invalid ${subject_type} id.`);
+    subject_id = String(parseInt(subject_id));
+  }
+  if (!policy.SUBJECT_TYPES.includes(subject_type)) throw new BindingError("Invalid subject type.");
+  if (!policy.ROLES[role]) throw new BindingError("Invalid role.");
+  if (!policy.ROLES[role].scopes.includes(scope_type))
+    throw new BindingError(`Role '${role}' cannot be bound at '${scope_type}' scope.`);
+  if (subject_type === "audience" && !policy.AUDIENCES.includes(subject_id))
+    throw new BindingError("Invalid audience.");
+  if (subject_type === "audience" && role !== "viewer")
+    throw new BindingError("Audiences may only be granted the viewer role.");
+  if (subject_type === "audience" && subject_id === "anonymous")
+    throw new BindingError("New grants to 'anonymous' are not allowed. Grant 'everyone' instead.");
+  if (role === "superadmin" && subject_type !== "user")
+    throw new BindingError("SuperAdmin can only be granted to individual users.");
+  if (role === "superadmin" && actor && actor.kind === "token")
+    throw new BindingError("SuperAdmin can only be granted from a signed-in session, not with a token.");
+  if (subject_type === "user" && !(await User.findOne({ where: { id: parseInt(subject_id) }, attributes: ["id"] })))
+    throw new BindingError("User not found.");
+  if (subject_type === "group" && !(await AuthGroup.findOne({ where: { id: parseInt(subject_id) } })))
+    throw new BindingError("Group not found.");
+
+  let mission_uuid = null;
+  let layer_uuid = null;
+  if (scope_type !== "global") {
+    mission_uuid = await missions.uuidForName(input.mission);
+    if (!mission_uuid) throw new BindingError("Mission not found.");
+  }
+  let layerChain = [];
+  if (scope_type === "layer") {
+    layer_uuid = input.layer_uuid != null ? String(input.layer_uuid) : null;
+    const config = await missions.latestConfig(input.mission);
+    layerChain = layer_uuid && config ? missions.layerChain(config.layers, layer_uuid) : null;
+    if (!layerChain) throw new BindingError("Layer not found in mission.");
+  }
+  // Nobody grants more than they hold; a grant on a folder covers its children
+  const resource = mission_uuid ? { mission: mission_uuid, layers: layerChain } : null;
+  for (const cap of policy.ROLES[role].capabilities)
+    if (!policy.can(actor, cap, policy.MISSION_SCOPED.has(cap) ? resource : null))
+      throw new BindingError("You cannot grant a role with more access than your own.");
+
+  const create = (transaction) =>
+    RoleBinding.findOrCreate({
+      where: { subject_type, subject_id, role, scope_type, mission_uuid, layer_uuid },
+      defaults: { source: "local", created_by_user_id: actor.userId || null },
+      transaction,
+    });
+  let row;
+  // Serialized with account deletion, so a SuperAdmin grant never outlives its account
+  if (role === "superadmin")
+    await withSuperAdminLock(async ({ transaction }) => {
+      if (!(await User.findOne({ where: { id: parseInt(subject_id) }, attributes: ["id"], transaction })))
+        throw new BindingError("User not found.");
+      [row] = await create(transaction);
+    });
+  else [row] = await create();
+  await afterChange(subject_type, subject_id);
+  return describe(row);
+}
+
+// Whether the actor holds every capability of a role at a binding's scope
+async function holdsRoleAt(actor, role, mission_uuid, layer_uuid) {
+  let resource = null;
+  if (mission_uuid) {
+    let layers = [];
+    if (layer_uuid) {
+      const name = await missions.nameForUUID(mission_uuid);
+      const config = name ? await missions.latestConfig(name) : null;
+      layers = (config && missions.layerChain(config.layers, layer_uuid)) || [String(layer_uuid)];
+    }
+    resource = { mission: mission_uuid, layers };
+  }
+  return policy.ROLES[role].capabilities.every((cap) =>
+    policy.can(actor, cap, policy.MISSION_SCOPED.has(cap) ? resource : null)
+  );
+}
+
+// Nobody removes a grant they couldn't have made
+async function assertCanRemove(actor, row) {
+  if (row.role === "superadmin" && !policy.isSuperAdmin(actor))
+    throw new BindingError("Only SuperAdmins may remove SuperAdmin access.");
+  if (policy.ROLES[row.role] && !(await holdsRoleAt(actor, row.role, row.mission_uuid, row.layer_uuid)))
+    throw new BindingError("You cannot remove a role with more access than your own.");
+}
+
+// Checks a batch before any of it is removed, so a refusal leaves nothing half-done
+async function assertCanRemoveIds(actor, ids) {
+  const { RoleBinding } = models();
+  const rows = await RoleBinding.findAll({ where: { id: ids.map((i) => parseInt(i)) } });
+  for (const row of rows) await assertCanRemove(actor, row);
+}
+
+async function removeBinding(actor, id) {
+  const { RoleBinding } = models();
+  const row = await RoleBinding.findOne({ where: { id: parseInt(id) } });
+  if (!row) throw new BindingError("Binding not found.");
+  await assertCanRemove(actor, row);
+  const { subject_type, subject_id } = row;
+  if (row.role === "superadmin" && row.subject_type === "user" && row.scope_type === "global") {
+    await withSuperAdminLock(async ({ transaction, rows, superAdmins }) => {
+      const locked = rows.find((r) => r.id === row.id);
+      if (!locked) throw new BindingError("Binding not found.");
+      const others = superAdmins.filter((u) => u !== parseInt(subject_id));
+      const rowsForUser = rows.filter((r) => String(r.subject_id) === String(subject_id)).length;
+      if (others.length === 0 && rowsForUser <= 1)
+        throw new BindingError("There must always be at least one SuperAdmin.");
+      await locked.destroy({ transaction });
+    });
+  } else await row.destroy();
+  await afterChange(subject_type, subject_id);
+}
+
+async function listBindings(where = {}) {
+  const { RoleBinding } = models();
+  const rows = await RoleBinding.findAll({ where, order: [["id", "ASC"]] });
+  return Promise.all(rows.map(describe));
+}
+
+// Replaces a user's mission-scoped bindings of one role (Users page helper)
+async function setUserMissionRole(actor, userId, role, missionNames) {
+  const { RoleBinding } = models();
+  const existing = await RoleBinding.findAll({
+    where: { subject_type: "user", subject_id: String(userId), role, scope_type: "mission" },
+  });
+  const wanted = new Set(missionNames || []);
+  for (const row of existing) {
+    const name = await missions.nameForUUID(row.mission_uuid);
+    if (wanted.has(name)) wanted.delete(name);
+    else await removeBinding(actor, row.id);
+  }
+  for (const m of wanted)
+    await addBinding(actor, { subject_type: "user", subject_id: userId, role, scope_type: "mission", mission: m });
+}
+
+// Initial bindings for a newly created local account. Not actor-checked:
+// callers have already authorized account creation.
+async function seedNewUser(userId, { superadmin = false, missionsViewing = null } = {}) {
+  const { RoleBinding } = models();
+  const base = { subject_type: "user", subject_id: String(userId), source: "local" };
+  const rows = [];
+  if (superadmin) rows.push({ ...base, role: "superadmin", scope_type: "global" });
+  else if (missionsViewing == null) rows.push({ ...base, role: "viewer", scope_type: "global" });
+  else
+    for (const name of missionsViewing) {
+      const uuid = await missions.uuidForName(name);
+      if (uuid) rows.push({ ...base, role: "viewer", scope_type: "mission", mission_uuid: uuid });
+    }
+  if (rows.length) await RoleBinding.bulkCreate(rows);
+  await afterChange("user", userId);
+}
+
+module.exports = {
+  BindingError,
+  seedNewUser,
+  addBinding,
+  assertCanRemoveIds,
+  removeBinding,
+  listBindings,
+  setUserMissionRole,
+  superAdminUserIds,
+  withSuperAdminLock,
+  afterChange,
+};

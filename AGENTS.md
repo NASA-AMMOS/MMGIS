@@ -33,7 +33,10 @@ Docker: `docker build -t mmgis . && docker-compose up -d`
 - **PostGIS required**: PostgreSQL must have PostGIS extension installed. `init-db.js` creates it.
 - **ENV triple-update**: When modifying environment variables, update `.env`, `sample.env`, AND `docs/pages/Setup/ENVs/ENVs.md`.
 - **No raw SQL for data**: Use application APIs and UI workflows — never bypass the application layer with direct SQL.
-- **Admin auth always required**: CMS endpoints (`/api/configure/*`) require admin session even when `AUTH=off`.
+- **Every API route declares its permission**: use `s.authorize(capability, resolver)` (or `authorize.public` / `authorize.inHandler`); never `ensureAdmin`/`stopGuests` in new code. Guide: [docs/pages/Contributing/Permissions/Permissions.md](./docs/pages/Contributing/Permissions/Permissions.md).
+- **Login providers** (`AUTH_PROVIDERS`) are plugins in `plugins/core/auth/<Name>/`. Guide with worked examples: [docs/pages/Contributing/AuthProviders/AuthProviders.md](./docs/pages/Contributing/AuthProviders/AuthProviders.md).
+- **Service connections** (Earthdata etc., never MMGIS sign-in) are plugins in `plugins/<container>/connections/<Name>/`; tools declare them in `plugin.json` `"connections"`. Guide: [docs/pages/Contributing/Connections/Connections.md](./docs/pages/Contributing/Connections/Connections.md).
+- **Admin auth always required**: CMS endpoints (`/api/configure/*`) require an authorized session even when `SITE_ACCESS=public`.
 - **Database safety**: Never `DROP DATABASE` in app code. Test DBs only: `mmgis-test`, `mmgis-stac-test`.
 - **Reference Mission**: New features needing specific config/data should be added to a Reference Mission blueprint. See [blueprints/README.md](./blueprints/README.md).
 - **Design system placement**: Generic UI components → `src/design-system/`. MMGIS-specific UI → `src/essence/Basics/UserInterface_/`.
@@ -49,13 +52,13 @@ Express 5.2 backend (Node.js 22+) with PostgreSQL/PostGIS, Sequelize ORM, and We
 - **Tool lifecycle**: Each tool implements `make()` (open) and `destroy()` (close) in `plugins/core/tools/ToolName/`
 - **Layer types**: vector, tile, data, model, image, vectortile, velocity, video, header, query
 - **Backend pattern**: Each feature is a module in `plugins/core/backend/FeatureName/` with `plugin.json` (metadata/manifest), `plugin.js` (lifecycle hooks, registers routes), `routes/` (Express handlers), `models/` (Sequelize definitions)
-- **Plugin system**: Unified `/plugins/` directory. Core plugins live in `plugins/core/{tools,backend,components}/`. External plugins go in `plugins/<container>/` (auto-gitignored).
+- **Plugin system**: Unified `/plugins/` directory. Core plugins live in `plugins/core/{tools,backend,components,interactions,layertypes,layerattachments,auth,connections}/`. External plugins go in `plugins/<container>/` (auto-gitignored).
 
 ## Project Structure (Abbreviated)
 
 ```
 MMGIS/
-├── plugins/core/         # Core plugins: tools/, backend/, components/
+├── plugins/core/         # Core plugins: tools/, backend/, components/, interactions/, layertypes/, layerattachments/, auth/, connections/
 ├── src/essence/          # Frontend: Basics/ (singletons), Helpers/, services/
 ├── src/design-system/    # Generic reusable UI components & theming
 ├── configure/            # Separate React admin app (own npm install + build)
