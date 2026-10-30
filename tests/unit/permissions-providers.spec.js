@@ -142,8 +142,16 @@ test.describe('identities', () => {
     withProxyEnv({ PROXY_TRUST: 'network' }, () => {
       expect(proxy.identify(req({}))).toBeNull();
       expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-Groups': b64({ ops: true, old: false }), 'X-Session': 's1' })))
-        .toEqual({ subject: 'jdoe', username: 'jdoe', groups: ['ops'], session: 's1' });
-      expect(proxy.identify(req({ 'X-Sub': 'jdoe' }))).toEqual({ subject: 'jdoe', username: 'jdoe', groups: [], session: null });
+        .toEqual({ subject: 'jdoe', username: 'jdoe', groups: ['ops'], strictGroups: ['ops'], session: 's1' });
+      expect(proxy.identify(req({ 'X-Sub': 'jdoe' }))).toEqual({ subject: 'jdoe', username: 'jdoe', groups: [], strictGroups: [], session: null });
+    }));
+
+  test('like AUTH=csso, any truthy group value is membership; only true counts as strict (lead)', () =>
+    withProxyEnv({ PROXY_TRUST: 'network' }, () => {
+      const id = proxy.identify(req({ 'X-Sub': 'a', 'X-Groups': b64({ A: 'true', B: 1, C: { m: true }, D: false, E: 0, F: '', L: true }) }));
+      expect(id.groups).toEqual(['A', 'B', 'C', 'L']);
+      expect(id.strictGroups).toEqual(['L']);
+      expect(providers.normalizeIdentity('proxy', id).strictGroups).toEqual(['L']);
     }));
 
   test('proxy refuses an identity whose groups header cannot be read', () =>
@@ -183,7 +191,7 @@ test.describe('identities', () => {
       PROXY_GROUPS_HEADER: 'X-Forwarded-Groups', PROXY_GROUPS_FORMAT: 'list', PROXY_SESSION_HEADER: 'X-Edge-Session',
     }, () => {
       const h = { 'X-Edge-Key': 'shh', 'X-Forwarded-User': 'jdoe', 'X-Forwarded-Groups': 'ops, sci,,', 'X-Edge-Session': 'e1' }; // pragma: allowlist secret
-      expect(proxy.identify(req(h))).toEqual({ subject: 'jdoe', username: 'jdoe', groups: ['ops', 'sci'], session: 'e1' });
+      expect(proxy.identify(req(h))).toEqual({ subject: 'jdoe', username: 'jdoe', groups: ['ops', 'sci'], strictGroups: ['ops', 'sci'], session: 'e1' });
       // The default names no longer identify anyone
       expect(proxy.identify(req({ 'X-Sub': 'jdoe', 'X-MMGIS-Proxy-Secret': 'shh' }))).toBeNull(); // pragma: allowlist secret
       expect(proxy.identityHeaders()).toEqual(['x-forwarded-user', 'x-forwarded-groups', 'x-edge-session', 'x-edge-key']);

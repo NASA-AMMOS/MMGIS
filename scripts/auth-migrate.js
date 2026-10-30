@@ -47,8 +47,13 @@ if (process.env.AUTH != null && process.env.AUTH !== "") {
     `Legacy AUTH=${legacyKey} found. Before upgrading, replace it with SITE_ACCESS=${legacy.SITE_ACCESS} and AUTH_PROVIDERS=${legacy.AUTH_PROVIDERS}${legacy.note ? ` and set ${legacy.note}` : ""}.`
   );
   delete process.env.AUTH;
-  process.env.SITE_ACCESS = process.env.SITE_ACCESS || legacy.SITE_ACCESS;
-  process.env.AUTH_PROVIDERS = process.env.AUTH_PROVIDERS || legacy.AUTH_PROVIDERS;
+  // The site still runs on AUTH, so preview what AUTH means, not other values left in .env
+  for (const key of ["SITE_ACCESS", "AUTH_PROVIDERS"]) {
+    const set = process.env[key];
+    if (set != null && set !== "" && set !== legacy[key])
+      notes.push(`${key}=${set} is also set but ignored for this preview; AUTH=${legacyKey} means ${key}=${legacy[key]}.`);
+    process.env[key] = legacy[key];
+  }
   // AUTH=csso trusted the proxy headers on any request
   if (legacyKey === "csso" && !process.env.PROXY_TRUST && !process.env.PROXY_SECRET && !process.env.CSSO_PROXY_SECRET)
     process.env.PROXY_TRUST = "network";

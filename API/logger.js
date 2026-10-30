@@ -35,6 +35,7 @@ const filelogger = winston.createLogger({
 
 const SECRET_LOG_KEYS = new Set([
   "password",
+  "setup_code",
   "token",
   "retypepassword",
   "access_token",
@@ -68,14 +69,14 @@ function sanitizeForLog(str) {
   return str.replace(/\x1B\[[0-9;]*m/g, "").replace(/[\x00-\x08\x0B-\x1F\x7F]/g, " ");
 }
 
-// Copy of a request body/query for logging: passwords redacted, long values cropped
+// Copy of a request body/query for logging: passwords, tokens and setup codes redacted, long values cropped
 function cleanFields(fields, crop) {
   const copy = JSON.parse(JSON.stringify(fields));
   if (!copy || typeof copy !== "object") return {};
   return Object.fromEntries(
     Object.entries(copy).map(([k, v]) => [
       k,
-      k === "password" && v
+      SECRET_LOG_KEYS.has(String(k).toLowerCase()) && v
         ? "_redacted_"
         : JSON.stringify(v).length > crop
           ? "[Too Long...]"
@@ -189,3 +190,4 @@ const logger = function (level, message, caller, req, err) {
 module.exports = logger;
 module.exports.redactSecrets = redactSecrets;
 module.exports.redactCredentials = redactCredentials;
+module.exports.cleanFields = cleanFields;

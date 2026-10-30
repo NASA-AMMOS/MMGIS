@@ -83,7 +83,7 @@ No code or proxy changes are needed.
 
 3. Check:
    - a proxy user sees the same missions and Draw files as before;
-   - a user outside `PROXY_GROUPS` gets 403;
+   - a user outside `PROXY_GROUPS` gets the "not allowed" page on the map and `/configure` (an HTTP 200 page, as before; the JSON API is not gated by `PROXY_GROUPS`, before or after);
    - an admin logs in to `/configure` with their local account.
 
 4. To roll back, restore the database backup you took before upgrading (section 2), then the previous image and env. Changes made on this release are lost.

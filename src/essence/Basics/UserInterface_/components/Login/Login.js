@@ -213,7 +213,12 @@ var Login = {
     logout: function (onDone) {
         if (Login.provider === 'proxy' && Login.beganLoggedIn) {
             Login.loggedIn = false
-            window.location.href = window.mmgisglobal.PROXY_LOGOUT_URL || '/ssologoutredirect'
+            const toProxy = () => {
+                window.location.href =
+                    window.mmgisglobal.PROXY_LOGOUT_URL || '/ssologoutredirect'
+            }
+            // Also end any local MMGIS sign-in (e.g. an admin) made behind the proxy
+            calls.api('logout', {}, toProxy, toProxy)
             return
         }
         // Signed in on every request by a proxy: only the proxy can sign the user out

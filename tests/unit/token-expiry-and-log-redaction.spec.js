@@ -7,7 +7,7 @@
 import { test, expect } from '@playwright/test';
 
 const { expiryFrom } = require('../../plugins/core/backend/LongTermToken/routes/longtermtokens');
-const { redactSecrets } = require('../../API/logger');
+const { redactSecrets, cleanFields } = require('../../API/logger');
 
 test.describe('Long-term token period', () => {
   test('never and omitted have no expiry', () => {
@@ -53,4 +53,9 @@ test.describe('Log redaction', () => {
   test('leaves null secrets and other fields alone', () => {
     expect(stringify({ password: null, user: 'u' })).toEqual({ password: null, user: 'u' });
   });
+});
+
+test('logged request bodies redact setup codes, tokens and passwords', () => {
+  const out = cleanFields({ username: 'admin', password: 'p', setup_code: 'abc', token: 't', note: 'ok' }, 1000); // pragma: allowlist secret
+  expect(out).toEqual({ username: 'admin', password: '_redacted_', setup_code: '_redacted_', token: '_redacted_', note: 'ok' }); // pragma: allowlist secret
 });

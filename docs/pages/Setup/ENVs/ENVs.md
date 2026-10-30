@@ -181,7 +181,7 @@ Header with the signed-in user's name. A request without it is not signed in by 
 
 #### `PROXY_GROUPS_HEADER=`
 
-Header with the user's groups. A request without it is signed in with no groups; one whose groups can't be read is not signed in | string | default `X-Groups`
+Header with the user's groups. A request without it is signed in with no groups; one whose groups can't be read is not signed in. As with `AUTH=csso`, any truthy value counts as membership, but the lead group (`PROXY_LEAD_GROUP`) needs exactly `true` | string | default `X-Groups`
 
 #### `PROXY_GROUPS_FORMAT=`
 
@@ -197,7 +197,15 @@ Where the map checks every few minutes that the proxy session is still valid (PO
 
 #### `PROXY_LOGOUT_URL=`
 
-Where Sign out and the "not allowed" page send users signed in by the proxy | string | default `/ssologoutredirect`
+Where Sign out and the "not allowed" page send users signed in by the proxy. Sign out also ends any local MMGIS sign-in made behind the proxy | string | default `/ssologoutredirect`
+
+#### `PROXY_LOGIN_URL=`
+
+The proxy's sign-in redirect the map can send users to (`?redirect=<current page>` is appended) | string | default `/ssologinredirect`
+
+#### `PROXY_REFRESH_URL=`
+
+Where the map POSTs to extend the proxy session when it is about to time out | string | default `/ssorefreshtimeout`
 
 #### `VERBOSE_LOGGING=`
 

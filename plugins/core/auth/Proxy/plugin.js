@@ -24,6 +24,8 @@ function config(env = process.env) {
     sessionHeader: setting(env.PROXY_SESSION_HEADER, "X-Session"),
     statusUrl: setting(env.PROXY_STATUS_URL, "/ssostatus"),
     logoutUrl: setting(env.PROXY_LOGOUT_URL, "/ssologoutredirect"),
+    loginUrl: setting(env.PROXY_LOGIN_URL, "/ssologinredirect"),
+    refreshUrl: setting(env.PROXY_REFRESH_URL, "/ssorefreshtimeout"),
   };
 }
 
@@ -79,23 +81,34 @@ function proxyTrusted(req, c) {
   return sent.length === expected.length && crypto.timingSafeEqual(sent, expected);
 }
 
-// The user's groups, or null when the header can't be read (the request is then not trusted)
+// The user's groups, or null when the header can't be read (the request is then not trusted).
+// Like AUTH=csso, any truthy value is membership; "strict" holds the groups whose value is exactly
+// true, which is what the lead group (PROXY_LEAD_GROUP) needs.
 function parseGroups(header, format) {
-  if (header === undefined) return [];
-  if (format === "list")
-    return String(header)
+  if (header === undefined) return { groups: [], strict: [] };
+  if (format === "list") {
+    const names = String(header)
       .split(",")
       .map((g) => g.trim())
       .filter(Boolean);
+    return { groups: names, strict: names };
+  }
   let groups;
   try {
     groups = JSON.parse(format === "json" ? header : Buffer.from(header, "base64").toString("ascii"));
   } catch (err) {
     return null;
   }
-  if (Array.isArray(groups)) return format === "json" ? groups.filter((g) => typeof g === "string") : null;
+  if (Array.isArray(groups)) {
+    if (format !== "json") return null;
+    const names = groups.filter((g) => typeof g === "string");
+    return { groups: names, strict: names };
+  }
   if (groups === null || typeof groups !== "object") return null;
-  return Object.keys(groups).filter((g) => groups[g] === true);
+  return {
+    groups: Object.keys(groups).filter((g) => !!groups[g]),
+    strict: Object.keys(groups).filter((g) => groups[g] === true),
+  };
 }
 
 module.exports = {
@@ -109,12 +122,13 @@ module.exports = {
     const c = config();
     const sub = req.get(c.userHeader);
     if (sub === undefined || !proxyTrusted(req, c)) return null;
-    const groups = parseGroups(req.get(c.groupsHeader), c.groupsFormat);
-    if (groups === null) return null;
+    const parsed = parseGroups(req.get(c.groupsHeader), c.groupsFormat);
+    if (parsed === null) return null;
     return {
       subject: sub,
       username: sub,
-      groups,
+      groups: parsed.groups,
+      strictGroups: parsed.strict,
       session: req.get(c.sessionHeader) || null,
     };
   },
@@ -138,7 +152,8 @@ module.exports = {
       errors.push("PROXY_USER_HEADER, PROXY_GROUPS_HEADER, PROXY_SESSION_HEADER and PROXY_SECRET_HEADER must all be different headers.");
     if (c.statusUrl !== "off" && !URL_VALUE.test(c.statusUrl))
       errors.push('PROXY_STATUS_URL must be a path starting with "/", an http(s) URL, or off.');
-    if (!URL_VALUE.test(c.logoutUrl)) errors.push('PROXY_LOGOUT_URL must be a path starting with "/" or an http(s) URL.');
+    for (const [k, v] of [["PROXY_LOGOUT_URL", c.logoutUrl], ["PROXY_LOGIN_URL", c.loginUrl], ["PROXY_REFRESH_URL", c.refreshUrl]])
+      if (!URL_VALUE.test(v)) errors.push(`${k} must be a path starting with "/" or an http(s) URL.`);
     return errors;
   },
   warnings(env) {

@@ -170,11 +170,14 @@ function getfile(req, res, next) {
     Table.findAll({
       where: {
         id: req.body.id,
-        //file_owner is req.user or public is '1'
-        [Sequelize.Op.or]: {
-          file_owner: req.user,
-          public: "1",
-        },
+        // file_owner is req.user, public is '1', or the caller is a lead (who also lists private files)
+        [Sequelize.Op.or]: [
+          { file_owner: req.user },
+          { public: "1" },
+          ...(req.leadGroupName != null && req.groups != null && req.groups[req.leadGroupName] === true
+            ? [{ public: "0" }]
+            : []),
+        ],
       },
     })
       .then(async (file) => {

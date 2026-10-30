@@ -268,7 +268,21 @@ async function resolvePrincipal(req) {
     // Sessions started through a login provider follow that provider; the rest are local logins
     const allowed =
       p && (session.provider ? siteAccess.hasProvider(session.provider) : localAccountAllowed(p));
-    if (allowed) return p;
+    if (allowed) {
+      // Signed in locally while the proxy also identifies the request: like AUTH=csso, the
+      // proxy user stays the identity and the local account's access is added on top
+      if (req.identity && req.identity.provider === "proxy") {
+        const ext = await externalPrincipal(req.identity);
+        return {
+          ...ext,
+          localUserId: p.userId,
+          localUsername: p.username,
+          groupIds: Array.from(new Set([...ext.groupIds, ...p.groupIds])),
+          bindings: [...ext.bindings, ...p.bindings],
+        };
+      }
+      return p;
+    }
     req.staleSession = true;
   }
   if (req.identity) return externalPrincipal(req.identity);

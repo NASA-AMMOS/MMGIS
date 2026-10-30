@@ -37,7 +37,9 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.authProviders.includes('proxy') 
     }
     function ssologin() {
         window.location.href =
-            '/ssologinredirect?redirect=' + window.location.href
+            (window.mmgisglobal.PROXY_LOGIN_URL || '/ssologinredirect') +
+            '?redirect=' +
+            window.location.href
     }
 
     mmgisglobal.lastInteraction = Math.floor(Date.now() / 1000)
@@ -84,7 +86,11 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.authProviders.includes('proxy') 
                         result.inactivity_timeout
                     ) {
                         var refresh = new XMLHttpRequest()
-                        refresh.open('Post', '/ssorefreshtimeout', true)
+                        refresh.open(
+                            'Post',
+                            window.mmgisglobal.PROXY_REFRESH_URL || '/ssorefreshtimeout',
+                            true
+                        )
                         refresh.onload = function () {
                             if (refresh.status >= 200 && refresh.status < 400) {
                                 var result = refresh.responseText

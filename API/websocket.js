@@ -128,6 +128,22 @@ const websocket = {
             })
             .catch(() => null);
 
+        // A proxy that leaves its identity headers off websocket upgrades: use the proxy
+        // identity this session's last proxied request carried (as AUTH=csso did)
+        const savedProxyIdentity = (s) => {
+          const saved = s && s.proxyIdentity;
+          if (!saved || typeof saved.username !== "string" || saved.username === "") return null;
+          if (!siteAccess.hasProvider("proxy")) return null;
+          return {
+            provider: "proxy",
+            subject: String(saved.subject || saved.username),
+            username: saved.username,
+            email: null,
+            groups: Array.isArray(saved.groups) ? saved.groups.filter((g) => typeof g === "string") : [],
+            session: saved.session != null ? String(saved.session) : null,
+          };
+        };
+
         const completeUpgrade = async () => {
           const identity = await providerIdentity();
           // The session as stored now, so logouts and ended sessions apply to open sockets
@@ -141,12 +157,14 @@ const websocket = {
               store.get(request.sessionID, (err, s) => resolve(err || !s ? {} : s));
             });
           // Resolved again on every broadcast, so removed access and deleted accounts apply at once
-          const viewer = async () =>
-            require("./permissions/principal").resolvePrincipal({
+          const viewer = async () => {
+            const session = await currentSession();
+            return require("./permissions/principal").resolvePrincipal({
               headers: request.headers,
-              session: await currentSession(),
-              identity: identity || undefined,
+              session,
+              identity: identity || savedProxyIdentity(session) || undefined,
             });
+          };
           const p = await viewer();
 
           // Guests are allowed unless SITE_ACCESS=required; a deleted account's session is a guest

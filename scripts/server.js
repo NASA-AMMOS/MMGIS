@@ -299,11 +299,21 @@ const identityHandler = (req, res, next) => {
       if (identity) {
         req.identity = identity;
         req.groups = Object.fromEntries(identity.groups.map((g) => [g, true]));
-        if (identity.provider === "proxy" && req.groups[process.env.PROXY_LEAD_GROUP] === true)
+        if (identity.provider === "proxy" && (identity.strictGroups || identity.groups).includes(process.env.PROXY_LEAD_GROUP))
           req.groups[req.leadGroupName] = true;
         req.user = identity.username;
         if (identity.provider === "proxy") {
           req.proxyAuthenticated = true;
+          // Remembered for websocket upgrades that arrive without the proxy headers
+          if (req.session) {
+            const saved = {
+              subject: identity.subject,
+              username: identity.username,
+              groups: identity.groups,
+              session: identity.session,
+            };
+            if (JSON.stringify(req.session.proxyIdentity) !== JSON.stringify(saved)) req.session.proxyIdentity = saved;
+          }
           if (identity.session) req.proxySessionID = identity.session;
         }
         next();
@@ -318,7 +328,7 @@ const identityHandler = (req, res, next) => {
 // Where the proxy reports its session status and signs people out (frontend polling and Sign out)
 function proxyUrls() {
   const c = require("../plugins/core/auth/Proxy/plugin.js").config();
-  return { status: c.statusUrl, logout: c.logoutUrl };
+  return { status: c.statusUrl, logout: c.logoutUrl, login: c.loginUrl, refresh: c.refreshUrl };
 }
 
 function sessionIdentity(req) {
@@ -953,6 +963,8 @@ setups.getBackendSetups(function (setups) {
             LOGOUT_URL: providers.logoutUrl(loginProvider) || "",
             PROXY_STATUS_URL: proxyUrls().status,
             PROXY_LOGOUT_URL: proxyUrls().logout,
+            PROXY_LOGIN_URL: proxyUrls().login,
+            PROXY_REFRESH_URL: proxyUrls().refresh,
             role: role,
             groups: JSON.stringify(groups),
             SITE_ACCESS: siteAccess.getSiteAccess(),

@@ -9,7 +9,7 @@
 //                          ctx.completeLogin(req, identity) starts a session
 //   validate(env)          -> string[]  problems that refuse startup
 //   warnings(env)          -> string[]  problems logged at startup
-// An identity is { subject, username?, email?, groups?: string[], session? }.
+// An identity is { subject, username?, email?, groups?: string[], strictGroups?: string[], session? }.
 const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
@@ -149,6 +149,9 @@ function normalizeIdentity(provider, raw) {
     email: typeof raw.email === "string" ? raw.email : null,
     groups,
     session: raw.session != null ? String(raw.session) : null,
+    ...(Array.isArray(raw.strictGroups)
+      ? { strictGroups: raw.strictGroups.filter((g) => typeof g === "string" && g !== "") }
+      : {}),
   };
 }
 
