@@ -1013,6 +1013,37 @@ test.describe('lifecycle and failure handling', () => {
         await expect.poll(() => globalThis.__r2.revoked, { timeout: 3000 }).toEqual(['guest-grant']);
     });
 
+    const proxyUser = (subject) => ({ principal: { kind: 'external', provider: 'proxy', subject, username: subject }, session: {}, sessionID: `p-${subject}` });
+    const proxyWithLocal = (subject, id = 7) => ({ ...user(id), principal: { ...proxyUser(subject).principal, userId: id, localUserId: id } });
+
+    test("a proxy user's connection moves to the local account they sign in to", async () => {
+        const browser = await put(proxyUser('carol'), { accessToken: 'p', refreshToken: 'carol-grant', expiresIn: 3600 });
+        const signedIn = { ...proxyWithLocal('carol'), session: browser.session };
+        await connections.adoptSessionConnections(signedIn, signedIn.principal);
+        expect(table.rows.length).toBe(1);
+        expect((await connections.readStored(signedIn, signedIn.principal, c())).accessToken).toBe('p');
+        await new Promise((r) => setImmediate(r));
+        expect(globalThis.__r2.revoked).toEqual([]);
+    });
+
+    test("another proxy user's connection is not adopted at local sign-in, and is revoked", async () => {
+        const browser = await put(proxyUser('dave'), { accessToken: 'd', refreshToken: 'dave-grant', expiresIn: 3600 });
+        const signedIn = { ...proxyWithLocal('carol'), session: browser.session };
+        await connections.adoptSessionConnections(signedIn, signedIn.principal);
+        expect(table.rows.length).toBe(0);
+        expect(signedIn.session.connections).toBeUndefined();
+        await expect.poll(() => globalThis.__r2.revoked, { timeout: 3000 }).toEqual(['dave-grant']);
+    });
+
+    test("a proxy user's session connection does not replace the local account's own", async () => {
+        await put(user(), { accessToken: 'u', refreshToken: 'user-grant', expiresIn: 3600 });
+        const browser = await put(proxyUser('carol'), { accessToken: 'p', refreshToken: 'carol-grant', expiresIn: 3600 });
+        const signedIn = { ...proxyWithLocal('carol'), session: browser.session };
+        await connections.adoptSessionConnections(signedIn, signedIn.principal);
+        expect((await connections.readStored(signedIn, signedIn.principal, c())).accessToken).toBe('u');
+        await expect.poll(() => globalThis.__r2.revoked, { timeout: 3000 }).toEqual(['carol-grant']);
+    });
+
     test('a refresh that finishes after Disconnect does not bring the connection back', async () => {
         globalThis.__r2.refreshDelay = 300;
         const tab = await put(guest(), { accessToken: 'old', refreshToken: 'live', expiresAt: Date.now() - 1000 });

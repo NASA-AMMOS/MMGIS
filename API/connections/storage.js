@@ -172,15 +172,23 @@ async function removeStored(req, principal, c) {
     delete req.session.connections[c.id];
 }
 
-// A guest's connections become the account's once they sign in
+// A guest's connections become the account's once they sign in, as do the proxy user's
+// when that proxy user also signs in locally
 async function adoptSessionConnections(req, principal) {
   const bag = req.session && req.session.connections;
   if (!principal || (principal.kind !== "user" && principal.kind !== "external") || principal.userId == null || !bag) return;
+  const adoptable = new Set(["guest"]);
+  if (principal.kind === "external") adoptable.add(ownerKey({ ...principal, userId: null }));
   for (const id of Object.keys(bag)) {
     const c = getConnection(id);
     const record = secretBox.open(bag[id]);
     delete bag[id];
-    if (!c || !record || record.owner !== "guest") continue;
+    if (!c || !record) continue;
+    if (!adoptable.has(record.owner)) {
+      // Another identity's grant in this session: MMGIS forgets it, so the service must too
+      if (record.owner !== ownerKey(principal)) revokeQuietly(c, record);
+      continue;
+    }
     try {
       // Never replace a connection the account already has with one found in the browser session
       const existing = await models().AuthConnection.findOne({ where: { user_id: principal.userId, connection: c.id }, attributes: ["id"] });
