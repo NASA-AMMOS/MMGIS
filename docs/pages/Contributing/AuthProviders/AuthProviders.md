@@ -92,7 +92,7 @@ module.exports = {
 
 - `identify` runs on every HTTP request and websocket connection, for each enabled provider in `AUTH_PROVIDERS` order. The first provider that returns an identity wins. A signed-in MMGIS session takes precedence over it.
 - `validate(env)` and `warnings(env)` get `process.env` and must return an array of strings synchronously (an empty array means no problems). Anything else, or an exception, is reported at startup under your provider id.
-- If `identify(req)` throws, the error is logged under your provider id and the request is treated as not identified.
+- If `identify(req)` throws, or takes longer than 5 seconds, the error is logged under your provider id and the request is treated as not identified.
 - Read your provider's settings from `env` and name them `<PROVIDERID>_*` (for example `MYPROVIDER_URL`). Document them in `docs/pages/Setup/ENVs/ENVs.md` and `sample.env`.
 - Every route you mount must declare its permission, usually `ctx.authorize.public("...")` for login pages; startup lists routes that don't. See [Backend Permissions](/MMGIS/contributing/permissions).
 - JSON and URL-encoded bodies are already parsed into `req.body`, and `req.session` is the MMGIS session.

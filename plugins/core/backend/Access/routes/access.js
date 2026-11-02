@@ -1,5 +1,9 @@
 const express = require("express");
 const router = express.Router();
+
+// Cookie-authenticated changes must come from MMGIS's own pages
+const { sameOriginOnly } = require("../../../../../API/connections/routes");
+router.use((req, res, next) => (req.method === "GET" || req.method === "HEAD" ? next() : sameOriginOnly(req, res, next)));
 const logger = require("../../../../../API/logger");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");

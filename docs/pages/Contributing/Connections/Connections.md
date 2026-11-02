@@ -172,8 +172,8 @@ module.exports = {
             response_type: 'code',
             redirect_uri: redirectUri,
             state,
-            code_challenge: codeChallenge,
-            code_challenge_method: codeChallengeMethod,
+            // Only when PKCE is on (the default); with pkce: false both are undefined
+            ...(codeChallenge ? { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod } : {}),
         })
         return u.toString()
     },
@@ -278,8 +278,8 @@ module.exports = {
       response_type: "code",
       redirect_uri: redirectUri,
       state,
-      code_challenge: codeChallenge,
-      code_challenge_method: codeChallengeMethod,
+      // Only when PKCE is on (the default); with pkce: false both are undefined
+      ...(codeChallenge ? { code_challenge: codeChallenge, code_challenge_method: codeChallengeMethod } : {}),
     });
     return `${baseUrl(env)}/oauth/authorize?${q.toString()}`;
   },

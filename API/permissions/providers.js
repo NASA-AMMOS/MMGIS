@@ -17,6 +17,7 @@ const { rateLimit } = require("express-rate-limit");
 const logger = require("../logger");
 const { discoverPlugins } = require("../pluginDiscovery");
 const siteAccess = require("./siteAccess");
+const { withTimeout } = require("../connections/common");
 
 // Ids of the shipped providers; only their own plugin folders may use them
 const BUILTIN_PROVIDERS = { local: "Local", proxy: "Proxy" };
@@ -155,15 +156,18 @@ function normalizeIdentity(provider, raw) {
   };
 }
 
+// identify runs on every request, so a hung provider must not hold requests open
+const IDENTIFY_TIMEOUT_MS = 5000;
+
 // The first enabled provider that recognizes this request, or null
 async function identify(req) {
   for (const p of enabledProviders()) {
     if (typeof p.impl.identify !== "function") continue;
     let raw;
     try {
-      raw = await p.impl.identify(req);
+      raw = await withTimeout(p.impl.identify(req), "identify(req)", IDENTIFY_TIMEOUT_MS);
     } catch (err) {
-      logger("error", `Auth provider '${p.id}': identify(req) threw; treating the request as not identified.`, "AuthProviders", req, err);
+      logger("error", `Auth provider '${p.id}': identify(req) ${err && err.code === "ETIMEDOUT" ? `took over ${IDENTIFY_TIMEOUT_MS / 1000} s` : "threw"}; treating the request as not identified.`, "AuthProviders", req, err);
       continue;
     }
     const identity = normalizeIdentity(p.id, raw);

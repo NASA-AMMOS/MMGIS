@@ -102,6 +102,8 @@ async function readStored(req, principal, c) {
     const gone = disconnectedAt.get(sessionKey(req, c));
     const stale = record && gone != null && !(Date.parse(record.connectedAt) > gone);
     if (!record || owner == null || record.owner !== owner || stale) {
+      // Another identity's grant in this session: MMGIS forgets it, so the service must too
+      if (record && !stale && owner != null && record.owner !== owner) revokeQuietly(c, record);
       delete req.session.connections[c.id];
       return null;
     }
@@ -217,7 +219,7 @@ function carryGuestConnections(req, res, next) {
 }
 
 async function revokeQuietly(c, record) {
-  if (typeof c.impl.revoke !== "function" || !record) return;
+  if (!c.impl || typeof c.impl.revoke !== "function" || !record) return;
   try {
     await withTimeout(
       (async () => c.impl.revoke({ accessToken: record.accessToken, refreshToken: record.refreshToken, env: process.env }))(),

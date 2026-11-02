@@ -34,7 +34,7 @@ function freshAddress() {
   return `127.1.${Math.floor(n / 250)}.${(n % 250) + 2}`;
 }
 
-function api(who, method, url, body, { bearer, localAddress, withSession } = {}) {
+function api(who, method, url, body, { bearer, localAddress, withSession, headers } = {}) {
   const target = new URL(baseURL + url);
   const payload = body ? JSON.stringify(body) : null;
   return new Promise((resolve, reject) => {
@@ -52,6 +52,7 @@ function api(who, method, url, body, { bearer, localAddress, withSession } = {})
           ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
           ...(who && who.cookie && (!bearer || withSession) ? { Cookie: who.cookie } : {}),
           ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+          ...(headers || {}),
         },
       },
       (res) => {
@@ -373,6 +374,25 @@ test.describe.serial('Permission matrix', () => {
     const r = await api(admin, 'POST', '/api/configure/clone', { existingMission: MISSION_A });
     expect(ok(r)).toBe(false);
     expect(ok(await api(admin, 'GET', '/api/configure/missions'))).toBe(true);
+  });
+
+  test("another site can't use an admin's cookie to change access, accounts or tokens", async () => {
+    const evil = { headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' } };
+    const sa = { subject_type: 'user', subject_id: ids.madmin, role: 'superadmin', scope_type: 'global' };
+    for (const [url, body] of [
+      ['/api/access/bindings/add', sa],
+      ['/api/access/groups/create', { name: `evil_${RUN}` }],
+      ['/api/accounts/update', { id: ids.madmin, permission: '111' }],
+      ['/api/longtermtoken/generate', { period: 'never' }],
+    ]) {
+      const r = await api(admin, 'POST', url, body, evil);
+      expect(r.status, url).toBe(403);
+    }
+    // The same requests from MMGIS's own pages, or without browser headers, still work
+    expect(ok(await api(admin, 'GET', '/api/access/groups', null, evil))).toBe(true);
+    const same = await api(admin, 'POST', '/api/access/groups/create', { name: `same_${RUN}` }, { headers: { 'Sec-Fetch-Site': 'same-origin' } });
+    expect(ok(same)).toBe(true);
+    await api(admin, 'POST', '/api/access/groups/delete', { id: same.json.body.id });
   });
 
   test('SuperAdmin is only granted to users, and audiences only to everyone or logged-in users', async () => {

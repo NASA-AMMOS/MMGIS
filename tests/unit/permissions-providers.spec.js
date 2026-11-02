@@ -325,3 +325,26 @@ test.describe('provider group sync', () => {
     expect(m.AuthGroupMember.rows.map((r) => r.group_id).sort()).toEqual([1, 3, 4]);
   });
 });
+
+test.describe('identify', () => {
+  test('a provider whose identify() never settles is skipped after 5 s instead of holding the request', async () => {
+    test.setTimeout(20000);
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-auth-'));
+    const saved = process.env.AUTH_PROVIDERS;
+    try {
+      writePlugin(root, 'core', 'Hang', coreManifest('hang'), 'module.exports = { identify: () => new Promise(() => {}) };');
+      writePlugin(root, 'core', 'Ok', coreManifest('ok'), 'module.exports = { identify: () => ({ subject: "u1", username: "u1" }) };');
+      providers.loadProviders(root);
+      process.env.AUTH_PROVIDERS = '["hang","ok"]';
+      const started = Date.now();
+      const id = await providers.identify({ headers: {}, get: () => undefined, socket: {} });
+      expect(id && id.provider).toBe('ok');
+      expect(Date.now() - started).toBeLessThan(10000);
+    } finally {
+      if (saved === undefined) delete process.env.AUTH_PROVIDERS;
+      else process.env.AUTH_PROVIDERS = saved;
+      fs.rmSync(root, { recursive: true, force: true });
+      providers.loadProviders(REAL_ROOT);
+    }
+  });
+});

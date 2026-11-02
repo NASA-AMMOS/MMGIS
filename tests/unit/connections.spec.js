@@ -343,6 +343,16 @@ test.describe('session connections belong to the identity that made them', () =>
         expect(await connections.readStored(req, alice, c)).toBeNull();
     });
 
+    test("another identity's grant dropped from the session is also revoked at the service", async () => {
+        const revoked = [];
+        const svc = { ...c, impl: { revoke: async (t) => revoked.push(t.refreshToken) } };
+        const req = { session: {} };
+        await connections.writeStored(req, alice, svc, { ...rec, refreshToken: 'rt' });
+        expect(await connections.readStored(req, bob, svc)).toBeNull();
+        await new Promise((r) => setImmediate(r));
+        expect(revoked).toEqual(['rt']);
+    });
+
     test('a guest does not get a signed-in identity\'s connection after sign-out', async () => {
         const req = { session: {} };
         await connections.writeStored(req, alice, c, rec);
