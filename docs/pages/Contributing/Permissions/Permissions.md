@@ -103,7 +103,7 @@ Core plugins (`plugins/core/backend/*`) can `require("../../../../../API/permiss
    - an object, or an array of objects that must all pass.
 4. **The decision** (`policy.can`):
    - Guests get nothing on `SITE_ACCESS=required` sites.
-   - A token must include the capability in its scopes, and a mission-limited token only reaches its missions (plus read-only site-wide routes).
+   - A token must include the capability in its scopes, and a mission-limited token only reaches its missions (plus read-only site-wide routes). Token creation adds `site.view` to any token asked for with `mission.view`, since `/api/configure/get` checks both.
    - A mission capability with no mission in the resource needs a **site-wide** grant.
    - Baseline capabilities need no grant: everyone, guests included, has `site.view` and the data read capabilities (guests get nothing on `SITE_ACCESS=required` sites); signed-in users also have `draw.use`, and local accounts `tokens.create`.
    - Otherwise a grant must cover a scope from the resource upwards: layer → parent folders → mission → site-wide. Any layer grant also lets the caller view that mission.

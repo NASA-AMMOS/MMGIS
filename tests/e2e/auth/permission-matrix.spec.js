@@ -515,6 +515,21 @@ test.describe.serial('Permission matrix', () => {
     expect(ok(await api(users.plain, 'POST', '/api/longtermtoken/clear', { id: row.id }))).toBe(true);
   });
 
+  test('a mission.view token also gets site.view, so it can read its mission\'s config', async () => {
+    const gen = await api(users.madmin, 'POST', '/api/longtermtoken/generate', {
+      name: `mv_${RUN}`, period: '86400000', scopes: ['mission.view'], missions: [MISSION_A],
+    });
+    expect(ok(gen), gen.text.slice(0, 200)).toBe(true);
+    expect(gen.json.body.scopes).toEqual(['site.view', 'mission.view']);
+    const token = gen.json.body.token;
+    const viaToken = await getConfig(null, MISSION_A, { bearer: token });
+    expect(readable(viaToken), viaToken.text.slice(0, 200)).toBe(true);
+    expect(denied(await getConfig(null, MISSION_B, { bearer: token }))).toBe(true);
+    const row = (await api(users.madmin, 'GET', '/api/longtermtoken/get')).json.tokens.find((t) => t.name === `mv_${RUN}`);
+    expect(row.scopes).toEqual(['site.view', 'mission.view']);
+    expect(ok(await api(users.madmin, 'POST', '/api/longtermtoken/clear', { id: row.id }))).toBe(true);
+  });
+
   test('write tokens are limited to their missions and to the creator\'s live access', async () => {
     const gen = await api(users.madmin, 'POST', '/api/longtermtoken/generate', {
       name: `rw_${RUN}`, period: '86400000', scopes: null, missions: [MISSION_A],

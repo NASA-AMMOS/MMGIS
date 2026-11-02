@@ -101,6 +101,9 @@ async function resolveRequest(principal, body) {
         throw new TokenError("Tokens cannot manage tokens.");
       if (!holds(cap)) throw new TokenError(`You do not have '${cap}'.`);
     }
+    // Mission routes sit behind the site-wide ones (missions list, config), so viewing a mission needs site.view too
+    if (scopes.includes("mission.view") && !scopes.includes("site.view") && holds("site.view"))
+      scopes.unshift("site.view");
   } else if (!policy.isSuperAdmin(principal) && !hasAnyWrite(principal)) {
     scopes = policy.READ_CAPABILITIES.filter(holds);
   }
@@ -212,3 +215,4 @@ module.exports = router;
 module.exports.TOKEN_PREFIX = TOKEN_PREFIX;
 module.exports.expiryFrom = expiryFrom;
 module.exports.TokenError = TokenError;
+module.exports.resolveRequest = resolveRequest;

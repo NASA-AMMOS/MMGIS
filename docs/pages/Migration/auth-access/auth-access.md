@@ -150,6 +150,7 @@ Roles are granted to users, to groups, or to the `authenticated` / `everyone` au
 - A password reset revokes all of the account's tokens.
 - New tokens are shown once and stored hashed. Existing tokens keep working and are converted to hashed storage on first use.
 - Tokens can be read-only or carry the creator's access, optionally limited to some missions, and can expire or be revoked.
+- A token asked for with `mission.view` is also given `site.view`, because mission configs and the missions list are reached through site-wide routes. It's added to the token's stored scopes.
 - A token never exceeds what its creator can currently do: demoting or deleting the creator narrows or removes it immediately.
 - Any logged-in local account can create tokens. A token is read-only by default and never carries more than the account can do itself.
 
