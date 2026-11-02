@@ -219,7 +219,7 @@ function capabilitiesOf(principal) {
     } else if (can(principal, cap, null)) out.add(cap);
   });
   // Tokens belong to an account, so provider users without one can't create them
-  if (principal.kind === "external") out.delete("tokens.create");
+  if (principal.kind === "external" && principal.userId == null) out.delete("tokens.create");
   return Array.from(out);
 }
 function layerRootsAny(principal, cap) {

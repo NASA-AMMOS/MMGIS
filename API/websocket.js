@@ -2,6 +2,22 @@ const WebSocket = require("isomorphic-ws");
 const logger = require("./logger");
 const siteAccess = require("./permissions/siteAccess");
 
+// A proxy that leaves its identity headers off websocket upgrades: use the proxy
+// identity this session's last proxied request carried (as AUTH=csso did)
+function savedProxyIdentity(s) {
+  const saved = s && s.proxyIdentity;
+  if (!saved || typeof saved.username !== "string" || saved.username === "") return null;
+  if (!siteAccess.hasProvider("proxy")) return null;
+  return {
+    provider: "proxy",
+    subject: String(saved.subject || saved.username),
+    username: saved.username,
+    email: null,
+    groups: Array.isArray(saved.groups) ? saved.groups.filter((g) => typeof g === "string") : [],
+    session: saved.session != null ? String(saved.session) : null,
+  };
+}
+
 const websocket = {
   wss: null,
   broadcast: function (data, isBinary) {
@@ -128,22 +144,6 @@ const websocket = {
             })
             .catch(() => null);
 
-        // A proxy that leaves its identity headers off websocket upgrades: use the proxy
-        // identity this session's last proxied request carried (as AUTH=csso did)
-        const savedProxyIdentity = (s) => {
-          const saved = s && s.proxyIdentity;
-          if (!saved || typeof saved.username !== "string" || saved.username === "") return null;
-          if (!siteAccess.hasProvider("proxy")) return null;
-          return {
-            provider: "proxy",
-            subject: String(saved.subject || saved.username),
-            username: saved.username,
-            email: null,
-            groups: Array.isArray(saved.groups) ? saved.groups.filter((g) => typeof g === "string") : [],
-            session: saved.session != null ? String(saved.session) : null,
-          };
-        };
-
         const completeUpgrade = async () => {
           const identity = await providerIdentity();
           // The session as stored now, so logouts and ended sessions apply to open sockets
@@ -202,4 +202,4 @@ const websocket = {
   },
 };
 
-module.exports = { websocket };
+module.exports = { websocket, savedProxyIdentity };

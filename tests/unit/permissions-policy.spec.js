@@ -549,4 +549,10 @@ test.describe('provider users and tokens', () => {
     expect(capabilitiesOf(ext)).toContain('draw.use');
     expect(capabilitiesOf(user([]))).toContain('tokens.create');
   });
+
+  test('a local account signed in behind the proxy is offered tokens.create, as can() allows', () => {
+    const mixed = { kind: 'external', provider: 'proxy', authenticated: true, userId: 4, bindings: [] };
+    expect(can(mixed, 'tokens.create')).toBe(true);
+    expect(capabilitiesOf(mixed)).toContain('tokens.create');
+  });
 });

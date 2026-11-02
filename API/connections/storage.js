@@ -11,7 +11,8 @@ function principalOf(req) {
 // "account": stored against the MMGIS user; "session": this browser session only
 function storageFor(principal, c) {
   if (!principal) return null;
-  if (principal.kind === "user" && principal.userId != null) return "account";
+  // A local account signed in behind a proxy (kind "external" with a userId) keeps its account connections
+  if ((principal.kind === "user" || principal.kind === "external") && principal.userId != null) return "account";
   if (principal.kind === "external") return "session";
   if (principal.kind === "anonymous" && c.guests) return "session";
   return null;
@@ -52,9 +53,9 @@ function grantRecord(grant) {
 function ownerKey(principal) {
   if (!principal || principal.kind === "anonymous") return "guest";
   // By subject: two people can share a username at one provider
-  if (principal.kind === "external")
+  if (principal.kind === "external" && principal.userId == null)
     return `external:${principal.provider}:${principal.subject != null ? principal.subject : principal.username}`;
-  if (principal.kind === "user") return `user:${principal.userId}`;
+  if (principal.kind === "user" || principal.kind === "external") return `user:${principal.userId}`;
   return null;
 }
 
@@ -172,7 +173,7 @@ async function removeStored(req, principal, c) {
 // A guest's connections become the account's once they sign in
 async function adoptSessionConnections(req, principal) {
   const bag = req.session && req.session.connections;
-  if (!principal || principal.kind !== "user" || principal.userId == null || !bag) return;
+  if (!principal || (principal.kind !== "user" && principal.kind !== "external") || principal.userId == null || !bag) return;
   for (const id of Object.keys(bag)) {
     const c = getConnection(id);
     const record = secretBox.open(bag[id]);

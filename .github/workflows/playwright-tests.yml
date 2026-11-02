@@ -125,3 +125,79 @@ jobs:
           name: test-results-${{ matrix.auth_mode }}
           path: test-results/
           retention-days: 7
+
+  # The proxy login provider (the replacement for AUTH=csso), with the headers a
+  # reverse proxy would add, under legacy network trust and the default secret trust.
+  proxy:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        proxy_trust: [network, secret]
+
+    services:
+      postgres:
+        image: postgis/postgis:13-3.1
+        env:
+          POSTGRES_DB: mmgis-test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password # pragma: allowlist secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Setup test environment
+        run: | # pragma: allowlist secret
+          cp sample.env .env || touch .env
+          sed -i "/^SITE_ACCESS=/d;/^AUTH_PROVIDERS=/d;/^PROXY_/d" .env
+          echo "NODE_ENV=test" >> .env
+          echo "PORT=18888" >> .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_NAME=mmgis-test" >> .env
+          echo "DB_USER=test_user" >> .env
+          echo "DB_PASS=test_password" >> .env
+          echo "DB_USER_TEST=test_user" >> .env
+          echo "DB_PASS_TEST=test_password" >> .env
+          echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
+          echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
+          echo "HIDE_CONFIG=false" >> .env
+          echo "SECRET=ci-test-session-secret-not-for-production" >> .env
+
+      - name: Run E2E Proxy Provider Tests
+        run: npx --no-install playwright test tests/e2e/proxy --project=chromium
+        env:
+          SITE_ACCESS: required
+          AUTH_PROVIDERS: '["proxy","local"]'
+          PROXY_TRUST: ${{ matrix.proxy_trust }}
+          PROXY_SECRET: ${{ matrix.proxy_trust == 'secret' && 'ci-test-proxy-secret-not-for-production' || '' }} # pragma: allowlist secret
+          PROXY_GROUPS: '["mmgis-users"]'
+          PROXY_LEAD_GROUP: mmgis-leads
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-proxy-${{ matrix.proxy_trust }}
+          path: playwright-report/
+          retention-days: 30

@@ -173,6 +173,7 @@ test.describe('storageFor', () => {
         expect(connections.storageFor({ kind: 'user', userId: 3 }, guestsNo)).toBe('account');
         expect(connections.storageFor({ kind: 'user', userId: null }, guestsNo)).toBeNull();
         expect(connections.storageFor({ kind: 'external' }, guestsNo)).toBe('session');
+        expect(connections.storageFor({ kind: 'external', userId: 3 }, guestsNo)).toBe('account');
         expect(connections.storageFor({ kind: 'anonymous' }, guestsOk)).toBe('session');
         expect(connections.storageFor({ kind: 'anonymous' }, guestsNo)).toBeNull();
         expect(connections.storageFor({ kind: 'token', userId: 3 }, guestsOk)).toBeNull();
