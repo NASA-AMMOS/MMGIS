@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Long Term Tokens API', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
-  test.skip(process.env.AUTH === 'off', 'SKIP: Requires AUTH != off for token management');
+  test.skip(process.env.MMGIS_TEST_SITE_ACCESS === 'public', 'SKIP: Requires SITE_ACCESS != public for token management');
 
   test('create token, list, delete, verify revoked', async ({ request }) => {
     const uniqueName = `testtoken${Date.now()}`;

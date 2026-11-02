@@ -24,7 +24,7 @@ const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 test.describe('Signup Flow', () => {
   test.beforeEach(async ({ page }) => {
     test.skip(
-      process.env.AUTH !== 'local',
+      process.env.MMGIS_TEST_SITE_ACCESS !== 'required',
       'SKIP: AUTH is not local — no signup'
     );
   });

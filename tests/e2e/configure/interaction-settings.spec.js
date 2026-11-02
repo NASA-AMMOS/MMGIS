@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { loginHeaders } from '../../helpers/auth.js';
 
 /**
  * E2E test for an interaction's settings form.
@@ -76,6 +77,7 @@ test.describe('Configure CMS — interaction settings', () => {
   async function openLayersTab(page) {
     await page.request.post(`${baseURL}/api/users/login`, {
       data: { username: 'test_admin', password: 'TestAdmin1!' }, // pragma: allowlist secret
+      headers: loginHeaders(),
     });
 
     await page.goto('/configure');

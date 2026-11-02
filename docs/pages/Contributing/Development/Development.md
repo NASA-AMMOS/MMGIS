@@ -129,15 +129,16 @@ The s parameter is an object containing the app and middleware. A common form to
 ```javascript
 onceInit: (s) => {
   s.app.use(
-    "/API/example",
-    s.ensureUser(),
+    s.ROOT_PATH + "/api/example",
+    s.ensureUser({ forbid: true }),
     s.checkHeadersCodeInjection,
     s.setContentType,
-    s.stopGuests,
-    importedRouter
+    s.registerRouter("/api/example", importedRouter)
   );
 };
 ```
+
+Every route in `importedRouter` must declare the permission it needs with `s.authorize(...)`, for example `router.get("/:mission", s.authorize("mission.view", s.resolvers.mission("params.mission")), handler)`. See [Backend Permissions](/MMGIS/contributing/permissions) for how to choose a capability and resolver.
 
 `envs` help document which environment values the backend uses and logs errors if required environment variables aren't set. Variables that end with `_HOST` are for URLs and upon start up they'll be pinged and there status will be logged.
 

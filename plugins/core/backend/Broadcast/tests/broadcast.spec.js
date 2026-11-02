@@ -26,7 +26,7 @@ test.describe('Broadcast API', () => {
       const body = await response.json();
       expect(body.status).toBe('failure');
     } else {
-      // AUTH=local may redirect to the login page
+      // SITE_ACCESS=required may redirect to the login page
       expect(response.ok()).toBeTruthy();
     }
   });
@@ -35,7 +35,7 @@ test.describe('Broadcast API', () => {
     // The request fixture keeps the session cookie after login
     const setCookie = await loginAsAdmin(request);
     if (!setCookie) {
-      test.skip(true, 'SKIP: could not log in as admin (AUTH=off has no login)');
+      test.skip(true, 'SKIP: could not log in as admin (no local login in this access mode)');
       return;
     }
 
@@ -51,13 +51,13 @@ test.describe('Broadcast API', () => {
     expect(body.status).toBe('failure');
     expect(body.message).toContain('layerName');
 
-    // Missing mission
+    // Missing mission: the mission-scoped permission check refuses it
     response = await request.post(`${baseURL}/api/broadcast/layerUpdate`, {
       data: { layerName: 'some-layer' },
     });
+    expect(response.status()).toBe(403);
     body = await response.json();
     expect(body.status).toBe('failure');
-    expect(body.message).toContain('mission');
 
     // Valid single layer
     response = await request.post(`${baseURL}/api/broadcast/layerUpdate`, {

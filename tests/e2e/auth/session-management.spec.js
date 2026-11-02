@@ -9,15 +9,15 @@ import { test, expect } from '@playwright/test';
  *   - Unauthenticated requests return the login page (HTML) or 401
  *   - Logout invalidates the session
  *
- * All tests are skipped when AUTH=off (no session management).
+ * All tests are skipped unless SITE_ACCESS=required.
  */
 
 const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
 test.describe('Session Management', () => {
   test.skip(
-    process.env.AUTH !== 'local',
-    'SKIP: AUTH is not local — no session management'
+    process.env.MMGIS_TEST_SITE_ACCESS !== 'required',
+    'SKIP: SITE_ACCESS is not required — no session management'
   );
 
   test('login via API sets a session cookie', async ({ request }) => {
@@ -77,7 +77,7 @@ test.describe('Session Management', () => {
 
   test('unauthenticated request to protected endpoint returns login page or error', async ({ request }) => {
     // Make a request without any session/cookie to a protected endpoint
-    // In AUTH=local, ensureUser() renders the login page (HTML response)
+    // With SITE_ACCESS=required, ensureUser() renders the login page (HTML response)
     const response = await request.get(`${baseURL}/api/utils/versions`, {
       headers: { Accept: 'application/json' },
     });
@@ -87,7 +87,7 @@ test.describe('Session Management', () => {
     const body = await response.json().catch(() => null);
 
     if (body === null) {
-      // Got HTML (login page) — expected behavior for AUTH=local
+      // Got HTML (login page) — expected behavior for SITE_ACCESS=required
       expect(contentType).toMatch(/text\/html/i);
     } else {
       // Got JSON — could be an error response or the endpoint is unprotected

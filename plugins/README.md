@@ -1,6 +1,6 @@
 # MMGIS Plugin System
 
-MMGIS uses a plugin-based architecture for tools, backend modules, and components. Plugins are organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`.
+MMGIS uses a plugin-based architecture for tools, backend modules, components, interactions, layer types, layer attachments, auth providers and service connections. Plugins are organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`.
 
 ## Table of Contents
 
@@ -35,14 +35,17 @@ plugins/                       # containers only — the CLI lives in /plugin-cl
 │   ├── components/            # UI components (OperationsClock, etc.)
 │   ├── interactions/          # Feature interaction handlers (Select, InfoOpen, etc.)
 │   ├── layertypes/            # Layer renderers (Vector, Tile, Model, etc.)
-│   └── layerattachments/      # Per-feature extras (Labels, PathGradient, etc.)
+│   ├── layerattachments/      # Per-feature extras (Labels, PathGradient, etc.)
+│   ├── auth/                  # MMGIS sign-in providers (Local, Proxy); core only
+│   └── connections/           # Outside services tools use per person (none in core yet)
 └── <org--repo>/               # Installed from git (org--repo naming, gitignored)
     ├── tools/
     ├── backend/
     ├── components/
     ├── interactions/
     ├── layertypes/
-    └── layerattachments/
+    ├── layerattachments/
+    └── connections/
 ```
 
 ## Key Files
@@ -148,6 +151,49 @@ Server-side Express modules. Have `plugin.json` (metadata) + `plugin.js` (lifecy
 **Required manifest fields**: `name` (recommended but optional — backends are keyed by directory name).
 
 The server contract — the `s` setup object, lifecycle ordering, choosing an auth gate, `envs`, models and migrations — is documented in [`core/backend/README.md`](./core/backend/README.md).
+
+### Auth Providers
+
+**Full guide with worked examples: [Writing an Auth Provider](../docs/pages/Contributing/AuthProviders/AuthProviders.md).**
+
+Login providers selected by the `AUTH_PROVIDERS` ENV. A provider only answers "who is this?"; roles, groups and role bindings decide what that person may do, whichever provider answered. Directory is `auth/`, manifest type is `"type": "auth"`.
+
+Auth providers must be core plugins: they are only loaded from `plugins/core/auth/` and their `plugin.json` must set `"tier": "core"` and `"overridable": false`. Providers found in any other container are refused at startup with an error.
+
+**Required manifest fields**: `provider` (the lowercase id used in `AUTH_PROVIDERS`), `tier: "core"`, `overridable: false`. Optional: `display_name`, `login_path` (adds a login button that links to `/api/auth/<provider><login_path>`), `login_label` and `logout_url`.
+
+`plugin.js` may export any of:
+
+| Export | Purpose |
+|---|---|
+| `identify(req)` | Per-request login (e.g. headers from a proxy). Returns an identity or `null`. |
+| `routes(router, ctx)` | Login/callback routes, mounted at `/api/auth/<provider>`. Every route must declare a permission (`ctx.authorize.public(...)` for login pages). Call `ctx.completeLogin(req, identity)` to start a session. `ctx` is `{ authorize, logger, LinkError, returnTo, completeLogin }`, and failed responses (status 400 or higher) are rate-limited. |
+| `validate(env)` | Returns configuration problems (`string[]`) that refuse startup. |
+| `warnings(env)` | Returns configuration problems (`string[]`) logged at startup. |
+
+An identity is `{ subject, username?, email?, groups?: string[], session? }`. `subject` is the provider's stable user id. `completeLogin` links `provider + subject` to an MMGIS account in `auth_identities`, creating the account on first login. It never links to an existing account by matching usernames. It then sets the user's membership of groups whose source is this provider to the reported `groups`.
+
+Shipped providers: `local` (`core/auth/Local`; its routes are served by the Users backend at `/api/users`) and `proxy` (`core/auth/Proxy`). A new provider can use any other id.
+
+### Connections
+
+**Full guide: [Connections](../docs/pages/Contributing/Connections/Connections.md).**
+
+Outside services, such as Earthdata, that tools use with each person's own account there. A connection never signs anyone in to MMGIS: auth providers answer "who is this?", connections add an outside credential for someone who is already here (or for a guest, for their browser session, when the connection allows guests). Directory is `connections/`, manifest type is `"type": "connection"`. Connections can live in any container.
+
+**Required manifest fields**: `connection` (the lowercase id tools and `s.connections.token(req, id)` use). Optional: `display_name`, `guests` (`true` lets guests connect for their browser session), `pkce` (`true` for core-managed PKCE) and `env` (ENV names the connection needs, shown in Configure → Users & Access → Services).
+
+`plugin.js` exports:
+
+| Export | Purpose |
+|---|---|
+| `authorizeUrl({ state, redirectUri, env, codeChallenge, codeChallengeMethod })` | Required. The service's sign-in URL, opened in a new tab. `codeChallenge*` are set with `"pkce": true`. |
+| `exchange({ code, redirectUri, env, codeVerifier })` | Required. `codeVerifier` is set with `"pkce": true`. Trades the callback's code for `{ accessToken, refreshToken?, expiresIn?, account? }`. |
+| `refresh({ refreshToken, env })` | Optional. Renews an expired access token. |
+| `revoke({ accessToken, refreshToken, env })` | Optional. Called on Disconnect. |
+| `validate(env)` / `warnings(env)` | Optional. Setup problems (`string[]`) shown in Configure and logged at startup. |
+
+Tools declare what they need with a top-level `"connections": [{ "plugin": "<container>/connections/<Name>", "required": true }]` in their own `plugin.json`. Core ships no connections yet; the guide has a worked Earthdata example.
 
 ### Components
 
@@ -345,6 +391,8 @@ So the normal flow for a third-party plugin is: `create … --container my-plugi
 | layertype | `activate` (regenerates `src/pre/layertypes.js`) | a layer's `type` must be your `typeId` |
 | layerattachment | `activate` (regenerates `src/pre/layerattachments.js`) | a layer must fill in your `configPath` — the Configure tab your manifest's `config.tab` names, which should be an **existing** tab (`Attachment - Markers`, `Attachment - Paths`, …) unless you mean to add one |
 | backend | nothing to generate | restart the server; `plugin.js` mounts your routes |
+| auth | nothing to generate | add its id to `AUTH_PROVIDERS` and restart |
+| connection | nothing to generate | set its `env` and restart; a tool must list it in `connections` in its `plugin.json` |
 
 `create` runs `activate` for you, so this bites on the *second* change — adding a module key, renaming a path — not the first.
 
@@ -798,7 +846,7 @@ Standard package metadata. `author` can be a string or `{ name, email, url }`. `
 |-------|------|-------------|
 | `toolbarPriority` | `number` | Position in toolbar (lower = first). Core tools use 1–4 for the ones that lead the bar, then 101–102, then 1001–1002 — the gaps are room to insert, so pick a band rather than a number near one you want to sit beside |
 | `expandable` | `boolean` | Whether the tool panel can expand to full width |
-| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel. `true` gives a standard framed floating panel (header + close). `"custom"` renders a chrome-less panel and lets the tool manage its own DOM inside `#toolContentSeparated_<Name>` — use this when the tool draws its own window/overlay (e.g. Identifier) |
+| `separatedTool` | `boolean\|string` | Renders the tool separately from the main tool panel. `true` gives a standard framed floating panel (header + close). `"custom"` renders a chrome-less panel and lets the tool manage its own DOM. MMGIS passes `toolContentSeparated_<Name>` to `make()`, but that container is hidden, so draw the tool's UI elsewhere (on the map, or in an element the tool adds) — use this when the tool draws its own window/overlay (e.g. Identifier) |
 | `hasVars` | `boolean` | Plugin reads per-mission config variables from `config.rows` |
 | `config` | `object` | Defines the configuration UI shown in the configure page. Has `rows[]` with form field definitions |
 | `kinds` | `object` | Sub-types or modes for the tool (used by Kinds tool) |

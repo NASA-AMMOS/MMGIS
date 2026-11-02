@@ -324,9 +324,10 @@ function SepToolButton({ tool, isActive }) {
             require('../../../ToolController_/ToolController_').default
         const tM = ToolController_.toolModules[tool.name + 'Tool']
         if (!tM) return
-        if (tM.made === false) ToolController_.openTool(tool.name)
+        // A tool showing its connect card is active but not made yet
+        if (tM.made === false && !isActive) ToolController_.openTool(tool.name)
         else ToolController_.closeTool(tool.name)
-    }, [tool])
+    }, [tool, isActive])
 
     const button = (
         <div

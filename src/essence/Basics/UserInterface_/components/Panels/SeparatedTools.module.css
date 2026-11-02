@@ -44,6 +44,16 @@
     display: none !important;
 }
 
+/* Custom tools have no panel of their own until connected, so show the connect card in one */
+.panelCustom.panelVisible:has(:global(.connectionsCard)) {
+    display: flex !important;
+    width: 260px;
+    max-height: none;
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.88);
+    border: 1px solid var(--color-a1);
+    pointer-events: auto;
+}
+
 .header {
     display: flex;
     align-items: center;

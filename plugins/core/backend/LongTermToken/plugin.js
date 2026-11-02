@@ -7,10 +7,10 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/longtermtoken",
-      s.ensureAdmin(false, true),
+      s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      router
+      s.registerRouter("/api/longtermtoken", router)
     );
   },
   //Once the server starts

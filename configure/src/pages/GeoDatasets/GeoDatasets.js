@@ -26,6 +26,8 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -41,6 +43,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import UploadIcon from "@mui/icons-material/Upload";
 import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 import ShapeLineIcon from "@mui/icons-material/ShapeLine";
 import ControlPointDuplicateIcon from "@mui/icons-material/ControlPointDuplicate";
 import QueryStatsIcon from "@mui/icons-material/QueryStats";
@@ -114,8 +117,32 @@ const useStyles = makeStyles((theme) => ({
       color: `${theme.palette.swatches.p[13]}`,
     },
   },
+  toolbarBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    margin: "32px 32px 0px 32px",
+    padding: "12px 16px",
+    background: theme.palette.swatches.grey[850],
+    borderRadius: "4px",
+    boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
+  },
+  field: {
+    "& .MuiInputBase-root": {
+      height: "34px",
+      fontSize: "14px",
+      background: theme.palette.swatches.grey[1000],
+    },
+  },
+  search: { width: "320px" },
+  grow: { flex: 1 },
+  barButton: {
+    height: "34px",
+    whiteSpace: "nowrap",
+    padding: "0px 16px !important",
+  },
   tableInner: {
-    margin: "32px",
+    margin: "0px 32px 32px 32px",
     width: "calc(100% - 64px) !important",
     boxShadow: "0px 1px 7px 0px rgba(0, 0, 0, 0.2)",
   },
@@ -162,11 +189,6 @@ const useStyles = makeStyles((theme) => ({
       background: "#c43541 !important",
       color: `${theme.palette.swatches.grey[900]} !important`,
     },
-  },
-  addButton: {
-    whiteSpace: "nowrap",
-    padding: "5px 20px !important",
-    margin: "0px 10px !important",
   },
   badge: {
     "& > span": {
@@ -291,7 +313,6 @@ EnhancedTableHead.propTypes = {
 
 function EnhancedTableToolbar(props) {
   const c = useStyles();
-  const dispatch = useDispatch();
 
   return (
     <Toolbar className={c.topbar}>
@@ -318,17 +339,6 @@ function EnhancedTableToolbar(props) {
           {`1) Create a New GeoDataset. 2) Set a Vector Layer URL to 'geodatasets:{geodataset_name}'`}
         </Typography>
       </div>
-
-      <Button
-        variant="contained"
-        className={c.addButton}
-        endIcon={<AddIcon />}
-        onClick={() => {
-          dispatch(setModal({ name: "newGeoDataset" }));
-        }}
-      >
-        New GeoDataset
-      </Button>
     </Toolbar>
   );
 }
@@ -355,7 +365,19 @@ export default function GeoDatasets() {
   const c = useStyles();
 
   const dispatch = useDispatch();
-  const geodatasets = useSelector((state) => state.core.geodatasets);
+  const allGeodatasets = useSelector((state) => state.core.geodatasets);
+  const [search, setSearch] = React.useState("");
+  const geodatasets = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allGeodatasets;
+    return allGeodatasets.filter((g) =>
+      [g.name, g.filename].some((v) =>
+        String(v || "")
+          .toLowerCase()
+          .includes(q),
+      ),
+    );
+  }, [allGeodatasets, search]);
 
   const queryGeoDatasets = () => {
     calls.api(
@@ -476,6 +498,37 @@ export default function GeoDatasets() {
         <Paper className={c.GeoDatasetsInner}>
           <EnhancedTableToolbar />
           <TableContainer className={c.table}>
+            <div className={c.toolbarBox}>
+              <TextField
+                size="small"
+                className={`${c.field} ${c.search}`}
+                placeholder="Search by name or filename"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <span className={c.grow} />
+              <Button
+                variant="contained"
+                disableElevation
+                className={c.barButton}
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  dispatch(setModal({ name: "newGeoDataset" }));
+                }}
+              >
+                New GeoDataset
+              </Button>
+            </div>
             <Table
               className={c.tableInner}
               sx={{ minWidth: 750 }}

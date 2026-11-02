@@ -13,6 +13,7 @@ import {
 } from "../../../core/ConfigureStore";
 
 import ToolModal from "./Modals/ToolModal/ToolModal";
+import { useConnectionsSetup, ToolConnections } from "../../../core/Connections";
 
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
@@ -94,6 +95,7 @@ export default function Tools() {
   const toolConfiguration = useSelector(
     (state) => state.core.toolConfiguration
   );
+  const connectionsSetup = useConnectionsSetup();
 
   useEffect(() => {
     if (mission != null)
@@ -179,6 +181,11 @@ export default function Tools() {
                   <div className={c.cardContentBody}>
                     {tConfig.descriptionFull?.title}
                   </div>
+                  <ToolConnections
+                    toolConfig={tConfig}
+                    setup={connectionsSetup}
+                    style={{ marginTop: "8px" }}
+                  />
                 </div>
               </div>
             </Grid>

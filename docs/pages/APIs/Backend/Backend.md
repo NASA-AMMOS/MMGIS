@@ -11,9 +11,19 @@ An incomplete list of supported backend endpoints. See more in [Configure REST A
 
 ## Users Endpoints
 
+Signup, login and password reset belong to the Local login provider and are served at `/api/auth/local/<route>`. The same routes stay at `/api/users/<route>` for existing clients.
+
 ### POST /api/users/login
 
+Also `POST /api/auth/local/login`.
+
 ### POST /api/users/signup
+
+Also `POST /api/auth/local/signup`.
+
+### POST /api/users/resetPassword
+
+Also `POST /api/auth/local/resetPassword`.
 
 ---
 
