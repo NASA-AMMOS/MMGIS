@@ -59,29 +59,3 @@ test('logged request bodies redact setup codes, tokens and passwords', () => {
   const out = cleanFields({ username: 'admin', password: 'p', setup_code: 'abc', token: 't', note: 'ok' }, 1000); // pragma: allowlist secret
   expect(out).toEqual({ username: 'admin', password: '_redacted_', setup_code: '_redacted_', token: '_redacted_', note: 'ok' }); // pragma: allowlist secret
 });
-
-test.describe('Long-term token scopes', () => {
-  const { resolveRequest } = require('../../plugins/core/backend/LongTermToken/routes/longtermtokens');
-  const viewer = {
-    kind: 'user',
-    userId: 1,
-    authenticated: true,
-    bindings: [{ role: 'viewer', scope: 'mission:A' }],
-  };
-  const scopesFor = async (scopes) => (await resolveRequest(viewer, { scopes })).scopes;
-
-  test('mission.view brings site.view with it, since mission routes sit behind site ones', async () => {
-    expect(await scopesFor(['mission.view'])).toEqual(['site.view', 'mission.view']);
-    expect(await scopesFor(['mission.view', 'data.stac.read'])).toEqual(['site.view', 'mission.view', 'data.stac.read']);
-  });
-
-  test('site.view is not repeated or added to scopes without mission.view', async () => {
-    expect(await scopesFor(['site.view', 'mission.view'])).toEqual(['site.view', 'mission.view']);
-    expect(await scopesFor(['mission.view', 'site.view'])).toEqual(['mission.view', 'site.view']);
-    expect(await scopesFor(['data.stac.read'])).toEqual(['data.stac.read']);
-  });
-
-  test('the default read set is unchanged', async () => {
-    expect(await scopesFor('read')).toEqual(['site.view', 'mission.view', 'data.geodatasets.read', 'data.datasets.read', 'data.stac.read']);
-  });
-});

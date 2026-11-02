@@ -117,6 +117,27 @@ function getManagedMissions(req) {
   return missionNamesWith(req, "mission.config.edit");
 }
 
+// Mission config reads: the site, or a token that may only view some missions (no site.view)
+function siteOrMissionView(reason) {
+  const mw = (req, res, next) => {
+    const deny = () => res.status(403).send({ status: "failure", message: "Unauthorized" });
+    ensurePrincipal(req)
+      .then((principal) => {
+        if (principal.kind === "invalid_token") return deny();
+        if (policy.can(principal, "site.view")) return next();
+        const viewable = policy.missionsWith(principal, "mission.view");
+        if (viewable == null || viewable.length > 0) return next();
+        deny();
+      })
+      .catch((err) => {
+        logger("error", "Failed to check mission viewing permissions.", req.originalUrl, req, err);
+        deny();
+      });
+  };
+  mw.__access = { capability: "site.view | mission.view", resolver: `in handler: ${reason}` };
+  return mw;
+}
+
 // Guards config loads by mission.view
 function checkMissionViewingPermission(req, res, next) {
   const mission = req.query.mission || (req.body && req.body.mission);
@@ -398,7 +419,7 @@ function get(req, res, next, cb, options) {
 }
 router.get(
   "/get",
-  authorize.inHandler("site.view", "mission.view per requested mission"),
+  siteOrMissionView("mission.view per requested mission"),
   checkMissionViewingPermission,
   requireAdminForVersion,
   function (req, res, next) {
@@ -920,7 +941,7 @@ if (fullAccess)
     upsert(req, res, next);
   });
 
-router.get("/missions", authorize.inHandler("site.view", "lists only viewable missions"), function (req, res, next) {
+router.get("/missions", siteOrMissionView("lists only viewable missions"), function (req, res, next) {
   const viewablePromise = getViewableMissions(req).catch((err) => {
     logger(
       "error",
