@@ -45,7 +45,7 @@ export default function SiteWideTab({ ctx }) {
               const st = audienceState(a);
               return (
                 <AudienceCard key={`${a}-${st.mode}-${st.list.slice().sort().join(",")}`} title={<SubjectTag type={a} name={AUDIENCE_LABEL[a]} showKind={false} />} state={st} missions={missions}
-                  hint={a === "everyone" ? "Every logged-in user (including proxy users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below. \"No access\" here only means this grant adds nothing: people keep any access from their own grants, their groups and their mission or layer roles." : "Every logged-in user, including CSSO users. Adds to what Everyone gets. \"No access\" here only means this grant adds nothing: logged-in users still get what Everyone allows, plus any access from their own grants, their groups and their mission or layer roles (see the People, Groups and Missions tabs)."}
+                  hint={a === "everyone" ? "Every logged-in user (including proxy users), plus guests when SITE_ACCESS is public or optional. Logged-in users always get at least this access, whatever is set below. \"No access\" here only means this grant adds nothing: people keep any access from their own grants, their groups and their mission or layer roles." : "Every logged-in user, including proxy users. Adds to what Everyone gets. \"No access\" here only means this grant adds nothing: logged-in users still get what Everyone allows, plus any access from their own grants, their groups and their mission or layer roles (see the People, Groups and Missions tabs)."}
                   onSave={(mode, list) => setAudience(a, mode, list)} />
               );
             })}

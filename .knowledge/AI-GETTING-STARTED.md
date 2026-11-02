@@ -30,7 +30,7 @@ node scripts/init-db.js
 # 5. Start the server in development mode
 npm start
 # Or explicitly:
-# PORT=8888 AUTH=none NODE_ENV=development node scripts/server.js
+# PORT=8888 SITE_ACCESS=optional NODE_ENV=development node scripts/server.js
 ```
 
 ---
@@ -120,7 +120,7 @@ All options are documented in `sample.env`. The critical ones:
 - **`cross-env` availability:** Some npm scripts (e.g., `start:prod`) use `cross-env`, which is listed as a dependency but may cause issues in certain environments. As an alternative, set environment variables directly:
 
   ```bash
-  PORT=8888 AUTH=none NODE_ENV=production node scripts/server.js
+  PORT=8888 SITE_ACCESS=optional NODE_ENV=production node scripts/server.js
   ```
 
 - **PostGIS extension required:** The PostGIS extension must be enabled in your PostgreSQL instance. The `init-db.js` script attempts to create it (`CREATE EXTENSION postgis;`), but the PostgreSQL instance must have PostGIS installed for this to succeed.

@@ -28,6 +28,8 @@ MMGIS no longer starts while `AUTH` is set, and it requires `SITE_ACCESS`. Repla
 
 Other providers (LDAP, OIDC, and so on) can be added as plugins; see [Writing an Auth Provider](/MMGIS/contributing/auth-providers).
 
+Earlier `sample.env` files also set `CSSO_GROUPS` and `CSSO_LEAD_GROUP` on every site. Delete those lines even if the site never used CSSO: MMGIS refuses to start while either is set. CSSO sites move their values to `PROXY_GROUPS` and `PROXY_LEAD_GROUP` instead (see below).
+
 ### What to expect for each previous setup
 
 Compared request by request against the previous release on the same upgraded database:

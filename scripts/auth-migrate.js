@@ -5,7 +5,7 @@
  *
  *   npm run auth:migrate -- --dry-run   Report what would happen. Writes nothing.
  *   npm run auth:migrate                Apply (the server also does this on first start).
- *   npm run auth:migrate -- --end-sessions  Sign everyone out (run before rolling back).
+ *   npm run auth:migrate -- --end-sessions  Sign everyone out.
  *
  * The dry run may be run before upgrading, against the old .env: a legacy AUTH
  * value is translated to its SITE_ACCESS / AUTH_PROVIDERS replacement.
@@ -83,8 +83,7 @@ async function main() {
   const { User } = require("../plugins/core/backend/Users/models/user");
   const permissionModels = require("../API/permissions/models");
 
-  // The previous release trusts the permission saved in each session, so a rollback
-  // must not keep sessions from this release
+  // Ends every stored session, so everyone signs in again
   if (endSessions) {
     const [, result] = await sequelize.query('DELETE FROM "session"');
     console.log(`Ended ${result && result.rowCount != null ? result.rowCount : "all"} session(s). Everyone signs in again.`);
@@ -123,7 +122,7 @@ async function main() {
     mode: dryRun ? "dry-run (no changes written)" : result.skipped ? "already imported (no changes)" : "applied",
     // Only known values are echoed, never raw ENV contents
     siteAccess: siteAccess.SITE_ACCESS_VALUES[siteAccess.SITE_ACCESS_VALUES.indexOf(siteAccess.getSiteAccess())] || null,
-    providers: providers.availableProviders().filter((p) => siteAccess.getProviders().includes(p)),
+    providers: siteAccess.getProviders().filter((p) => providers.availableProviders().includes(p)),
     alreadyImported: imported,
     users: users.length,
     bindings: result.bindings.length,

@@ -8,16 +8,20 @@
 
 The MMGIS Docker image still runs as an unprivileged user by default, but its default uid/gid changes from `1000` to `10001`, and it now works for any uid set with Compose `user: "<uid>:<gid>"`. This lets each deployment run the container as the existing host owner of its `Missions` directory without `chown`, ACLs, root or a custom image build.
 
+Authentication and access are reworked. The `AUTH` ENV is replaced by `SITE_ACCESS` (`public`, `optional`, `required`) and `AUTH_PROVIDERS` (login-provider plugins such as `local` and `proxy`; `csso` is renamed to `proxy`). Access is granted with roles at global, mission and layer scope to accounts, groups and audiences, managed on Configure's new Users & Access page. Long-term tokens can be limited to missions and capabilities. Existing accounts, passwords, sessions and tokens are kept, and their access is imported once. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
+
 ### Compatibility
 
 - **Mission configurations: No changes.**
-- **End users: No changes.**
-- **Deployments: Breaking for some Docker deployments.** See the migration guide below.
+- **End users: Mostly unchanged.** Login and mission access behave as before; admins manage access on the new Users & Access page.
+- **Deployments: Breaking.** `AUTH` and the `CSSO_*` ENVs must be replaced, and some Docker deployments need changes. See the migration guide below.
 
 ### Migration Guide
 
 - **Breaking (Deployments): Back up the database before upgrading; downgrading means restoring that backup.** Accounts' access is imported once from the legacy `users.permission`, `missions_managing` and `missions_viewing` columns into role bindings. After that the columns are left as they were and are no longer read or updated, so running an older release on the upgraded database is not supported. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
 - **Breaking (API): `/api/accounts/update` and `/api/users/signup` take `viewing`** (null: every mission; a list: only those) instead of `missions_viewing`. `/api/accounts/update` refuses requests that still send `role`, `missions_managing` or `missions_viewing`; grant roles with `/api/access/bindings/add`. `/api/accounts/entries` no longer returns `missions_managing` or `missions_viewing`.
+- **Breaking (API): changed responses for scripts.** `/api/configure/user-permissions` no longer returns `permission`; it returns `role`, `superadmin` and `capabilities`. `/api/longtermtoken/get` no longer returns `created_by_permission` or `created_by_missions`. `/api/longtermtoken/generate` takes `period` as milliseconds or `"never"`; strings such as `"1d"` are refused.
+- **Breaking (Deployments): `AUTH` and `CSSO_*` ENVs removed.** MMGIS refuses to start while `AUTH`, `CSSO_GROUPS`, `CSSO_LEAD_GROUP` or `CSSO_PROXY_SECRET` is set. Earlier `sample.env` files set the `CSSO_*` lines on every site, so delete them even if the site never used CSSO. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
 - **Breaking (Deployments): Default container uid/gid is now `10001`.** Sites that chowned `./Missions` / `./ssl` to `1000` after 5.4.0 should either set `user: "1000:1000"` on the `mmgis` service or chown to `10001`. Sites that build their own image with `--build-arg APP_UID/APP_GID` are unaffected.
 - **Breaking (Deployments): `_docker-entrypoint.sh` removed.** Compose files or scripts that set `entrypoint`/`command` to `./_docker-entrypoint.sh` should use `npm run start:prod-docker` instead (or drop the override).
 - **Added (Deployments): Run as any uid.** Set `user: "<uid>:<gid>"` (numeric host ids, e.g. from `stat -c '%u:%g' ./Missions`) on the `mmgis` service. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`, or file logs in `API/logs`; stdout logging is unaffected).
