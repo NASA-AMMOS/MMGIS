@@ -79,7 +79,11 @@ var Login = {
                 (window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local'))) &&
             window.mmgisglobal.hasOwnProperty('user')
         ) {
-            this.username = window.mmgisglobal.user
+            // The page template HTML-escapes the name; keep the raw name so it's escaped once where shown
+            this.username = new DOMParser().parseFromString(
+                String(window.mmgisglobal.user),
+                'text/html'
+            ).documentElement.textContent
             if (this.username != 'guest') {
                 this.loggedIn = true
                 this.beganLoggedIn = true
@@ -122,7 +126,7 @@ var Login = {
                 'text-transform': 'uppercase',
                 'transition': 'opacity 0.2s ease-out'
             })
-            .html(Login.loggedIn ? Login.username[0] : ''))
+            .text(Login.loggedIn ? Login.username[0] : ''))
 
         if (Login.loggedIn) {
             if (window._tippyLoginUser && window._tippyLoginUser[0])
@@ -132,7 +136,7 @@ var Login = {
                     content: Login.username,
                     placement: 'bottom-end',
                     theme: 'blue',
-                    allowHTML: true,
+                    allowHTML: false,
                 })
         }
 
@@ -662,7 +666,7 @@ function loginSuccess(data, ignoreError, fromModal) {
                 display: 'block',
                 background: Login.loggedIn ? 'var(--color-a)' : 'transparent',
             })
-            .html(Login.username[0])
+            .text(Login.username[0])
 
         if (Login.loggedIn) {
             if (window._tippyLoginUser && window._tippyLoginUser[0])
@@ -672,7 +676,7 @@ function loginSuccess(data, ignoreError, fromModal) {
                     content: Login.username,
                     placement: 'bottom-end',
                     theme: 'blue',
-                    allowHTML: true,
+                    allowHTML: false,
                 })
         }
         document.dispatchEvent(new CustomEvent('mmgis:loginchange'))

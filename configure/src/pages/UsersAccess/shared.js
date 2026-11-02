@@ -104,6 +104,21 @@ export const EFFECTIVE_ROWS = [
   { label: "Manage everyone's tokens", caps: ["tokens.manage"] },
 ];
 
+// Lets a clickable table row be focused with Tab and opened with Enter or Space
+export function rowActivate(fn) {
+  return {
+    tabIndex: 0,
+    onClick: fn,
+    onKeyDown: (e) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        fn();
+      }
+    },
+  };
+}
+
 export function api(call, data) {
   return new Promise((resolve, reject) =>
     calls.api(call, data, resolve, (res) => reject(res || {}))
@@ -211,7 +226,7 @@ export function GroupedGrantsTable({ sections, expanded, onToggle, roles, layerP
           const Arrow = open ? KeyboardArrowDownIcon : KeyboardArrowRightIcon;
           return (
             <React.Fragment key={sec.key}>
-              <TableRow className={c.subjectRow} onClick={() => onToggle(sec.key)} aria-expanded={open}>
+              <TableRow className={c.subjectRow} {...rowActivate(() => onToggle(sec.key))} aria-expanded={open}>
                 <TableCell>
                   <span className={c.subjectCell}>
                     <Arrow fontSize="small" />

@@ -10,7 +10,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import AddIcon from "@mui/icons-material/Add";
 import { useStyles } from "./styles";
-import { SubjectTag, api } from "./shared";
+import { SubjectTag, api, rowActivate } from "./shared";
 import { ProviderCheckDialog } from "./GroupPanel";
 import { useRemembered } from "./hooks";
 
@@ -62,7 +62,7 @@ export default function GroupsTab({ ctx }) {
                 {groups.map((g) => {
                   const own = bindings.filter((b) => b.subject_type === "group" && String(b.subject_id) === String(g.id));
                   return (
-                    <TableRow key={g.id} className={c.clickRow} onClick={() => setPanel({ type: "group", id: g.id })}>
+                    <TableRow key={g.id} className={c.clickRow} {...rowActivate(() => setPanel({ type: "group", id: g.id }))}>
                       <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
                       <TableCell>{g.source === "local" ? g.members.length : `from ${g.source.toUpperCase()} (${g.external_name})`}</TableCell>
                       <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.scope_type === "layer" ? `${b.mission || "?"} › ${(allLayerPaths[b.mission] || {})[b.layer_uuid] || "folder"}` : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>

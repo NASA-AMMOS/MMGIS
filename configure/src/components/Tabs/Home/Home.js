@@ -130,6 +130,12 @@ export default function Home() {
     perms.missions_managing === null ||
     (Array.isArray(perms.missions_managing) &&
       perms.missions_managing.includes(mission));
+  // missions_layer_editing: null means every mission
+  const canEditLayers =
+    permsLoaded &&
+    (perms.missions_layer_editing === null ||
+      (Array.isArray(perms.missions_layer_editing) &&
+        perms.missions_layer_editing.includes(mission)));
 
   useEffect(() => {
     // Detect development mode via window.mmgisglobal
@@ -244,16 +250,18 @@ export default function Home() {
                 <BrowserUpdatedIcon fontSize="medium" />
               </IconButton>
             </Tooltip>
-            <Tooltip title={"Upload Config.JSON"} placement="bottom" arrow>
-              <IconButton
-                className={c.uploadIcon}
-                title="Upload"
-                aria-label="upload"
-                onClick={handleUpload}
-              >
-                <UploadIcon fontSize="medium" />
-              </IconButton>
-            </Tooltip>
+            {canEditWholeMission && (
+              <Tooltip title={"Upload Config.JSON"} placement="bottom" arrow>
+                <IconButton
+                  className={c.uploadIcon}
+                  title="Upload"
+                  aria-label="upload"
+                  onClick={handleUpload}
+                >
+                  <UploadIcon fontSize="medium" />
+                </IconButton>
+              </Tooltip>
+            )}
             {can("mission.create") && (
               <Tooltip title={"Clone Mission"} placement="bottom" arrow>
                 <IconButton
@@ -314,10 +322,9 @@ export default function Home() {
         </div>
         {permsLoaded && !canEditWholeMission && (
           <div className={c.limitNote}>
-            You can edit the layers you have access to here, but Save Changes
-            and the version history need Mission Admin on this mission. Ask a
-            Mission Admin to save your changes, or update layers through the
-            API.
+            {canEditLayers
+              ? "You can edit the layers you have access to through the API, but saving this page, uploading a configuration and the version history need Mission Admin on this mission."
+              : "You can view this mission's configuration, but saving it, uploading a configuration and the version history need Mission Admin on this mission."}
           </div>
         )}
         {permsLoaded && canEditWholeMission && (

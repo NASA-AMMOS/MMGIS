@@ -98,6 +98,14 @@ jobs:
           SITE_ACCESS: ${{ matrix.site_access }}
           AUTH_PROVIDERS: local
 
+      # Plugin suites call routes without signing in, so they run on the public site
+      - name: Run Backend Plugin Tests
+        if: matrix.site_access == 'public'
+        run: npx --no-install playwright test plugins/core/backend --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+
       - name: Run E2E Auth Tests
         run: npx --no-install playwright test tests/e2e/auth --project=chromium
         env:

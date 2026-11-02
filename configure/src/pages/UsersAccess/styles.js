@@ -118,10 +118,10 @@ export const useStyles = makeStyles((theme) => ({
       color: `${theme.palette.swatches.p[13]}`,
     },
   },
-  clickRow: { cursor: "pointer", "&:hover": { background: theme.palette.swatches.grey[800] } },
+  clickRow: { cursor: "pointer", "&:hover, &:focus-visible": { background: theme.palette.swatches.grey[800] }, "&:focus-visible": { outline: `2px solid ${theme.palette.swatches.p[0]}`, outlineOffset: "-2px" } },
   muted: { opacity: 0.6 },
   roleText: { fontWeight: "bold" },
-  subjectRow: { cursor: "pointer", "&& td": { background: theme.palette.swatches.grey[900] }, "&:hover td": { background: theme.palette.swatches.grey[800] } },
+  subjectRow: { cursor: "pointer", "&& td": { background: theme.palette.swatches.grey[900] }, "&:hover td, &:focus-visible td": { background: theme.palette.swatches.grey[800] }, "&:focus-visible": { outline: `2px solid ${theme.palette.swatches.p[0]}`, outlineOffset: "-2px" } },
   subjectCell: { display: "flex", alignItems: "center", gap: "4px" },
   childRow: { "& td:first-child": { borderRight: "none" } },
   badge: {

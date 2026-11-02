@@ -13,7 +13,7 @@ import TablePagination from "@mui/material/TablePagination";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import { useStyles } from "./styles";
-import { SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, SiteRoleBadges, MissionList } from "./shared";
+import { SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, SiteRoleBadges, MissionList, rowActivate } from "./shared";
 import { useRemembered, useOnChange } from "./hooks";
 
 // Every account, with its site role and what it can view and edit
@@ -75,7 +75,7 @@ export default function PeopleTab({ ctx }) {
               <TableBody>
                 {pageRows.map(({ u, s }) => {
                   return (
-                    <TableRow key={u.id} className={c.clickRow} onClick={() => setPanel({ type: "user", id: u.id })}>
+                    <TableRow key={u.id} className={c.clickRow} {...rowActivate(() => setPanel({ type: "user", id: u.id }))}>
                       <TableCell className={c.roleText}>{u.username}</TableCell>
                       <TableCell className={u.email ? "" : c.muted}>{u.email || "No email"}</TableCell>
                       <TableCell><SiteRoleBadges siteRoles={s.siteRoles} roles={roles} /></TableCell>
