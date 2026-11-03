@@ -62,6 +62,8 @@ const rootDir = `${__dirname}/..`;
 ///////////////////////////
 const app = express();
 
+app.use((req, res, next) => (req.originalUrl.includes("#") ? res.sendStatus(400) : next()));
+
 const isDocker = utils.isDocker();
 process.env.IS_DOCKER = isDocker ? "true" : "false";
 
