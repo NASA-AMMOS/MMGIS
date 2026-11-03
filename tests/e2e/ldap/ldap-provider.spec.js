@@ -116,11 +116,13 @@ test.describe('LDAP login provider', () => {
     }
   });
 
-  test('a directory username that is already a local account gets a 409', async () => {
+  test('a directory username that is already a local account gets a 409 that does not name the other account', async () => {
     const ctx = await context();
     const res = await ldapLogin(ctx, clash);
     expect(res.status()).toBe(409);
-    expect((await res.json()).message).toMatch(/already belongs to another account.*administrator/);
+    const { message } = await res.json();
+    expect(message).toMatch(/Ask an administrator/);
+    expect(message).not.toMatch(/already|belongs|test_admin/);
     expect((await me(ctx)).authenticated).toBe(false);
   });
 

@@ -312,7 +312,7 @@ module.exports = {
         res.send({ status: "success", username: user.username, provider: "ldap", groups: [] });
       } catch (err) {
         if (err instanceof ctx.LinkError)
-          return res.status(409).send({ status: "failure", message: `${err.message} Ask an administrator.` });
+          return res.status(409).send({ status: "failure", message: err.userMessage });
         ctx.logger("error", "LDAP login failed.", "Ldap", req, err);
         res.status(500).send({ status: "failure", message: "Login failed." });
       }

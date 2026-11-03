@@ -71,7 +71,7 @@ The login page, Configure sign-in and the in-app login modal share one username/
 - **LDAP and local accounts:** a switch above the form ("<LDAP_DISPLAY_NAME> | MMGIS account"). The first provider in `AUTH_PROVIDERS` is the default, and the browser remembers the last choice. The password only goes to the selected provider. Sign-up only appears on the MMGIS account tab.
 - **`AUTH_LOCAL_LOGIN=admins`:** local accounts are only offered at Configure sign-in.
 - `LDAP_USERNAME_LABEL` names the username field, and `LDAP_PASSWORD_HELP_URL` adds a "Reset your <name> password" link to your organization's password page (MMGIS can't reset directory passwords).
-- Errors say which provider failed: wrong username or password, directory unavailable, an expired Active Directory password, or a username that already belongs to an MMGIS account.
+- Errors say which provider failed: wrong username or password, directory unavailable, an expired Active Directory password, or a sign-in that can't be used with MMGIS yet (see below).
 - Once signed in, the account bubble's tooltip says which provider was used.
 
 ## Groups and roles
@@ -83,7 +83,7 @@ Groups are reported by name (`cn=science-team,ou=groups,...` is `science-team`).
 ## Accounts
 
 - The first LDAP login creates an MMGIS account, linked by `LDAP_SUBJECT_ATTRIBUTE` (`entryUUID`, or `objectGUID` on Active Directory), so renames and moves in the directory keep the same account.
-- A directory username that already belongs to an MMGIS account (for example a local account) is refused with a message to ask an administrator; MMGIS never takes over an existing account.
+- A directory username that already belongs to an MMGIS account (for example a local account) is refused. The user only sees "This sign-in can't be used with MMGIS yet. Ask an administrator.", so the page never reveals that the username is taken; the server log records a warning with the provider, subject and reason. MMGIS never takes over an existing account.
 - LDAP accounts have no MMGIS password, so Users & Access can't generate a password reset link for them.
 - Removing `ldap` from `AUTH_PROVIDERS` ends LDAP sessions and API tokens; the accounts, groups and grants are kept.
 - Someone disabled in the directory can't sign in again, but an existing MMGIS session (up to its normal lifetime) and their API tokens keep working until an admin removes the account or its tokens.

@@ -116,7 +116,7 @@ An identity is:
 **Session providers.** `await ctx.completeLogin(req, identity)`:
 
 - finds the account linked to this provider + subject, or creates one on first login (with a random password, so it can only sign in through the provider, and the identity's email if no other account uses it);
-- throws `ctx.LinkError` when the username already belongs to another account (for example a local account). Respond `409` with `err.message`. MMGIS never takes over an existing account;
+- throws `ctx.LinkError` when the username already belongs to another account (for example a local account). Respond `409` with `err.userMessage`, a generic message that doesn't reveal whether another account has that username; `completeLogin` writes the details (`err.message`) to the server log. MMGIS never takes over an existing account;
 - sets the person's membership of groups whose source is this provider to exactly the reported `groups`, adding and removing as needed;
 - starts a fresh session (new session id) and returns `{ id, username }`.
 
@@ -270,7 +270,7 @@ module.exports = {
         });
         res.send({ status: "success", username: user.username, provider: "directory" });
       } catch (err) {
-        if (err instanceof ctx.LinkError) return res.status(409).send({ status: "failure", message: err.message });
+        if (err instanceof ctx.LinkError) return res.status(409).send({ status: "failure", message: err.userMessage });
         ctx.logger("error", "Directory login failed.", "Directory", req, err);
         res.status(500).send({ status: "failure", message: "Login failed." });
       }

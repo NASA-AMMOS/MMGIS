@@ -183,7 +183,13 @@ async function identify(req) {
 
 ////// Accounts for session-based (redirect) providers
 
-class LinkError extends Error {}
+// err.message has the details for the server log; providers show users only err.userMessage
+class LinkError extends Error {
+  constructor(message) {
+    super(message);
+    this.userMessage = "This sign-in can't be used with MMGIS yet. Ask an administrator.";
+  }
+}
 
 function accountModels() {
   const { AuthIdentity, AuthGroup, AuthGroupMember } = require("./models");
@@ -273,7 +279,14 @@ async function syncGroups(userId, identity, m = accountModels()) {
 
 async function completeLogin(req, identity) {
   if (!identity) throw new LinkError("The provider did not return an identity.");
-  const user = await linkIdentity(identity);
+  let user;
+  try {
+    user = await linkIdentity(identity);
+  } catch (err) {
+    if (err instanceof LinkError)
+      logger("warn", `Refused ${identity.provider} login (subject '${identity.subject}'): ${err.message}`, "AuthProviders", req);
+    throw err;
+  }
   await syncGroups(user.id, identity);
   require("./principal").invalidate();
   await new Promise((resolve, reject) =>

@@ -239,6 +239,9 @@ test.describe('account linking', () => {
     const m = fakeModels({ users: [existing] });
     await expect(providers.linkIdentity(identity({ subject: 'x', username: 'admin' }), m))
       .rejects.toThrow(/already belongs to another account/);
+    const err = await providers.linkIdentity(identity({ subject: 'x', username: 'admin' }), m).catch((e) => e);
+    expect(err).toBeInstanceOf(providers.LinkError);
+    expect(err.userMessage).not.toMatch(/'admin'|already|belongs/);
     expect(m.User.rows).toEqual([{ id: 1, username: 'admin', password: '$2a$10$unchangedhash' }]);
     expect(m.AuthIdentity.rows).toHaveLength(0);
   });
