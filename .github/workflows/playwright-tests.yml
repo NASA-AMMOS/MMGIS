@@ -116,7 +116,10 @@ jobs:
         if: matrix.site_access == 'required' && github.event_name == 'pull_request'
         run: |
           git fetch --no-tags --depth=200 origin ${{ github.base_ref }}
-          bash tests/migration/run-legacy-compat.sh origin/${{ github.base_ref }}
+          # Seed with the last release before the auth refactor (the commit before scripts/auth-migrate.js was added)
+          added=$(git log --diff-filter=A --format=%H -1 origin/${{ github.base_ref }} -- scripts/auth-migrate.js)
+          if [ -n "$added" ]; then legacy="$added^"; else legacy=origin/${{ github.base_ref }}; fi
+          bash tests/migration/run-legacy-compat.sh "$legacy"
 
       - name: Upload test results
         if: always()
