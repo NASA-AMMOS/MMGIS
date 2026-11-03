@@ -85,6 +85,7 @@ Groups are reported by name (`cn=science-team,ou=groups,...` is `science-team`).
 - The first LDAP login creates an MMGIS account, linked by `LDAP_SUBJECT_ATTRIBUTE` (`entryUUID`, or `objectGUID` on Active Directory), so renames and moves in the directory keep the same account.
 - A directory username that already belongs to an MMGIS account (for example a local account) is refused. The user only sees "This sign-in can't be used with MMGIS yet. Ask an administrator.", so the page never reveals that the username is taken; the server log records a warning with the provider, subject and reason. MMGIS never takes over an existing account.
 - LDAP accounts have no MMGIS password, so Users & Access can't generate a password reset link for them.
+- With `AUTH_PROVIDERS=["ldap"]`, local accounts, including a SuperAdmin created at setup, can't sign in anywhere. To keep a local admin, use `["ldap","local"]` with `AUTH_LOCAL_LOGIN=admins`: the local option then only appears on Configure sign-in. To drop local entirely, first sign in once with LDAP, then, while local is still enabled, grant that LDAP account SuperAdmin (or an LDAP group an admin role) in Users & Access.
 - Removing `ldap` from `AUTH_PROVIDERS` ends LDAP sessions and API tokens; the accounts, groups and grants are kept.
 - Someone disabled in the directory can't sign in again, but an existing MMGIS session (up to its normal lifetime) and their API tokens keep working until an admin removes the account or its tokens.
 
