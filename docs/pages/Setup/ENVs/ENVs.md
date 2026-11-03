@@ -44,6 +44,9 @@ Login methods, as a JSON array or comma-separated list | string[] | default `["l
 
 - _local:_ MMGIS username/password accounts. Keep it listed so `/configure` admins can always log in.
 - _proxy:_ An authenticating reverse proxy in front of MMGIS (such as Cloud Single Sign On) that sends the user's identity in request headers. See `PROXY_TRUST`.
+- _ldap:_ Username and password checked against an LDAP directory (OpenLDAP, Active Directory, ...). See `LDAP_URL` and [LDAP Login](/MMGIS/setup/ldap).
+
+When more than one listed provider takes a username and password (`local`, `ldap`), the login page, Configure sign-in and the in-app login modal show a switch above the form; the first one listed is selected by default. With `AUTH_LOCAL_LOGIN=admins`, local accounts are only offered at Configure sign-in.
 
 Each provider is a core auth provider plugin under `plugins/core/auth/`. To add one, see [Writing an Auth Provider](/MMGIS/contributing/auth-providers).
 
@@ -206,6 +209,90 @@ The proxy's sign-in redirect the map can send users to (`?redirect=<current page
 #### `PROXY_REFRESH_URL=`
 
 Where the map POSTs to extend the proxy session when it is about to time out | string | default `/ssorefreshtimeout`
+
+#### `LDAP_URL=`
+
+With the `ldap` login provider, the directory's address: `ldaps://host:636`, or `ldap://host:389` with `LDAP_STARTTLS=true`. MMGIS refuses to start with a plain `ldap://` URL unless `LDAP_STARTTLS` or `LDAP_ALLOW_INSECURE` is `true`. The certificate must match the host name in the URL | string | default `''`
+
+#### `LDAP_STARTTLS=`
+
+Upgrade an `ldap://` connection to TLS before sending anything. If the upgrade fails, the login fails | boolean | default `false`
+
+#### `LDAP_TLS_CA=`
+
+Path of a PEM file with the CA certificate(s) that signed the directory's certificate, for directories with an internal CA. Without it, Node's bundled public CAs are trusted. Certificate checks are never turned off | string | default `''`
+
+#### `LDAP_ALLOW_INSECURE=`
+
+Allow `ldap://` without StartTLS, so passwords cross the network unencrypted. Only for local testing; MMGIS warns at startup while it is set | boolean | default `false`
+
+#### `LDAP_BIND_DN=`
+
+DN of a read-only service account MMGIS signs in as to search for people (and groups), e.g. `cn=mmgis-svc,ou=services,dc=example,dc=org`. Leave empty to search anonymously, or when using `LDAP_USER_DN_TEMPLATE` | string | default `''`
+
+#### `LDAP_BIND_PASSWORD=`
+
+Password of `LDAP_BIND_DN`. Required with it | string | default `''`
+
+#### `LDAP_USER_SEARCH_BASE=`
+
+Where people's entries are searched for (whole subtree), e.g. `ou=people,dc=example,dc=org`. Either this or `LDAP_USER_DN_TEMPLATE` is required. The search must match exactly one entry | string | default `''`
+
+#### `LDAP_USER_SEARCH_FILTER=`
+
+Filter that finds a person by the username they typed, which replaces `{{username}}` (escaped). Active Directory: `(sAMAccountName={{username}})` | string | default `(uid={{username}})`
+
+#### `LDAP_USER_DN_TEMPLATE=`
+
+Sign in as the person directly, without a service account or search: their DN with `{{username}}`, e.g. `uid={{username}},ou=people,dc=example,dc=org`, or an Active Directory `{{username}}@corp.example.org` (then also set `LDAP_USER_SEARCH_BASE` so MMGIS can read their entry) | string | default `''`
+
+#### `LDAP_SUBJECT_ATTRIBUTE=`
+
+Attribute with a permanent id for the person; MMGIS links accounts by it, so renames and moves keep the same account. Active Directory: `objectGUID`. `dn` uses the DN, which changes on renames | string | default `entryUUID`
+
+#### `LDAP_USERNAME_ATTRIBUTE=`
+
+Attribute used as the MMGIS username of a new account. Active Directory: `sAMAccountName`. Falls back to what the person typed | string | default `uid`
+
+#### `LDAP_EMAIL_ATTRIBUTE=`
+
+Attribute with the person's email | string | default `mail`
+
+#### `LDAP_GROUPS_ATTRIBUTE=`
+
+Attribute on the person listing their groups as DNs (Active Directory, or OpenLDAP with the memberof overlay). Each group is reported by its first name component, e.g. `cn=science-team,ou=groups,...` is `science-team`; use that name for groups with **Members from LDAP**. Ignored when `LDAP_GROUP_SEARCH_BASE` is set | string | default `memberOf`
+
+#### `LDAP_GROUP_SEARCH_BASE=`
+
+Find groups by searching here instead of reading `LDAP_GROUPS_ATTRIBUTE`, e.g. `ou=groups,dc=example,dc=org` | string | default `''`
+
+#### `LDAP_GROUP_SEARCH_FILTER=`
+
+Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username}}` what they typed. posixGroup groups: `(memberUid={{username}})` | string | default `(member={{dn}})`
+
+#### `LDAP_GROUP_NAME_ATTRIBUTE=`
+
+Attribute holding a found group's name | string | default `cn`
+
+#### `LDAP_TIMEOUT_MS=`
+
+How long to wait for the directory to connect and for each operation before the login fails with "unavailable" | number | default `5000`
+
+#### `LDAP_DISPLAY_NAME=`
+
+What the login form calls the directory, e.g. `JPL Directory`: the switch tab or banner, error messages and the signed-in tooltip | string | default `LDAP`
+
+#### `LDAP_USERNAME_LABEL=`
+
+Label of the username field when signing in with LDAP, e.g. `JPL username` | string | default `Username`
+
+#### `LDAP_LOGIN_HINT=`
+
+Short hint shown with the LDAP form, e.g. `Use the same username and password as your email.` | string | default `''`
+
+#### `LDAP_PASSWORD_HELP_URL=`
+
+Your organization's password reset page, linked under the LDAP form as "Reset your <LDAP_DISPLAY_NAME> password". MMGIS can't reset directory passwords. Hidden when empty | string | default `''`
 
 #### `VERBOSE_LOGGING=`
 

@@ -15,6 +15,18 @@ function login() {
     return;
   }
 
+  if (!LoginForms.isLocal()) {
+    LoginForms.submit(
+      document.getElementById("username").value,
+      document.getElementById("pwd").value,
+      function (message) {
+        document.getElementById("msg").innerText = message;
+        document.getElementById("msg").style.opacity = 1;
+      }
+    );
+    return;
+  }
+
   $.ajax({
     type: "POST",
     url: "api/users/login",
@@ -120,6 +132,7 @@ function setupLogin() {
 }
 
 $(document).ready(function () {
+  LoginForms.init();
   $(document).on("keypress", function (e) {
     if (e.which == 13) {
       login();
@@ -134,6 +147,8 @@ $(document).ready(function () {
       if (data.status == "success") {
         if (data.has == false) {
           setup = true;
+          // The first administrator is always a local account
+          LoginForms.onlyLocal();
           $("#setup").css("opacity", "1");
           $("#pwd_retype, #pwd_retype_label").css("display", "block");
           $("#setup_code, #setup_code_label").css("display", "block");

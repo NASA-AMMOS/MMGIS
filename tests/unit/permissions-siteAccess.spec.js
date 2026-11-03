@@ -97,7 +97,7 @@ test.describe('AUTH_PROVIDERS parsing', () => {
   });
 
   test('a provider without a plugin is unknown and points to the guide', () => {
-    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["ldap"]' }).join()).toMatch(/unknown provider 'ldap'.*contributing\/auth-providers/);
+    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["oidc"]' }).join()).toMatch(/unknown provider 'oidc'.*contributing\/auth-providers/);
   });
 
   test('unknown providers are rejected', () => {

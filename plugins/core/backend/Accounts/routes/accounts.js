@@ -19,7 +19,8 @@ const bindings = require("../../../../../API/permissions/bindings");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
 const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { RoleBinding } = require("../../../../../API/permissions/models");
+const { RoleBinding, AuthIdentity } = require("../../../../../API/permissions/models");
+const providers = require("../../../../../API/permissions/providers");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
 const connections = require("../../../../../API/connections");
 const User = userModel.User;
@@ -337,8 +338,20 @@ router.post("/generateResetPasswordLink", authorize("accounts.manage"), function
     },
   };
 
-  User.update(toUpdateTo, updateObj)
-    .then(() => {
+  // Accounts created by a login provider sign in through it; a local password would get around it
+  AuthIdentity.findOne({ where: { user_id: id }, attributes: ["provider"], raw: true })
+    .then((link) => {
+      if (link) {
+        res.send({
+          status: "failure",
+          message: `This account signs in with ${providers.providerLabel(link.provider) || link.provider}, so it has no MMGIS password to reset.`,
+        });
+        return null;
+      }
+      return User.update(toUpdateTo, updateObj).then(() => true);
+    })
+    .then((updated) => {
+      if (!updated) return null;
       res.send({
         status: "success",
         message: `Successfully generated a password reset token for user with id: '${id}'.`,

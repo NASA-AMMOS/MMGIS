@@ -54,9 +54,9 @@ test.describe('provider discovery', () => {
     expect(providers.getProvider('local')).toBeNull();
   });
 
-  test('the shipped providers are local and proxy', () => {
-    expect(providers.loadProviders(REAL_ROOT).sort()).toEqual(['local', 'proxy']);
-    for (const id of ['local', 'proxy']) {
+  test('the shipped providers are ldap, local and proxy', () => {
+    expect(providers.loadProviders(REAL_ROOT).sort()).toEqual(['ldap', 'local', 'proxy']);
+    for (const id of ['ldap', 'local', 'proxy']) {
       const m = providers.getProvider(id).manifest;
       expect(m).toMatchObject({ type: 'auth', tier: 'core', overridable: false, required: true });
     }
@@ -278,6 +278,63 @@ test.describe('login links and returnTo', () => {
       ]);
       expect(providers.logoutUrl('labelled')).toBe('https://idp.test/out');
       expect(providers.logoutUrl('button')).toBeNull();
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+      providers.loadProviders(REAL_ROOT);
+    }
+  });
+});
+
+test.describe('login forms', () => {
+  const saved = {};
+  test.beforeEach(() => {
+    for (const k of ['AUTH_LOCAL_LOGIN', 'LDAP_DISPLAY_NAME', 'LDAP_USERNAME_LABEL', 'LDAP_LOGIN_HINT', 'LDAP_PASSWORD_HELP_URL']) {
+      saved[k] = process.env[k];
+      delete process.env[k];
+    }
+    providers.loadProviders(REAL_ROOT);
+  });
+  test.afterEach(() => {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+
+  test('form providers share the form in AUTH_PROVIDERS order and get no login button', () => {
+    process.env.LDAP_DISPLAY_NAME = 'JPL Directory';
+    process.env.LDAP_USERNAME_LABEL = 'JPL username';
+    process.env.LDAP_LOGIN_HINT = 'Same as your email.';
+    process.env.LDAP_PASSWORD_HELP_URL = 'https://password.example.org';
+    expect(providers.loginForms(['ldap', 'local', 'proxy'])).toEqual([
+      { id: 'ldap', title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as your email.', helpUrl: 'https://password.example.org', icon: 'card-account-details-outline', path: 'api/auth/ldap/login' },
+      { id: 'local', title: 'MMGIS account', usernameLabel: 'Username', hint: '', helpUrl: '', icon: 'account-key-outline', path: 'api/auth/local/login' },
+    ]);
+    expect(providers.loginForms(['local', 'ldap']).map((f) => f.id)).toEqual(['local', 'ldap']);
+    expect(providers.loginLinks(['ldap', 'local'])).toEqual([]);
+    expect(providers.providerLabel('ldap')).toBe('JPL Directory');
+    expect(providers.providerLabel('proxy')).toBe('Authenticating proxy');
+  });
+
+  test('with AUTH_LOCAL_LOGIN=admins, local accounts are only offered at Configure sign-in', () => {
+    process.env.AUTH_LOCAL_LOGIN = 'admins';
+    expect(providers.loginForms(['ldap', 'local']).map((f) => f.id)).toEqual(['ldap']);
+    const configure = providers.loginForms(['ldap', 'local'], { configure: true });
+    expect(configure.map((f) => f.id)).toEqual(['ldap', 'local']);
+    expect(configure[1].hint).toMatch(/admin role/);
+  });
+
+  test('wording from a provider is sanitized: non-http help links and bad icons are dropped', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-auth-'));
+    try {
+      writePlugin(root, 'core', 'Form', { ...coreManifest('form'), display_name: 'Form Dir', login_path: '/login', login_form: true, login_icon: 'bad icon"' },
+        'module.exports = { loginForm: () => ({ helpUrl: "javascript:alert(1)", usernameLabel: "  " }) };');
+      writePlugin(root, 'core', 'Throws', { ...coreManifest('throws'), login_path: '/login', login_form: true }, 'module.exports = { loginForm: () => { throw new Error("x") } };');
+      providers.loadProviders(root);
+      expect(providers.loginForms(['form', 'throws'])).toEqual([
+        { id: 'form', title: 'Form Dir', usernameLabel: 'Username', hint: '', helpUrl: '', icon: 'account-outline', path: 'api/auth/form/login' },
+        { id: 'throws', title: 'Throws', usernameLabel: 'Username', hint: '', helpUrl: '', icon: 'account-outline', path: 'api/auth/throws/login' },
+      ]);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
       providers.loadProviders(REAL_ROOT);

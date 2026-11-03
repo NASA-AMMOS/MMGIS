@@ -16,6 +16,7 @@ nav_order: 3
 - [plugin.js hooks](#pluginjs-hooks)
 - [Identities, accounts and groups](#identities-accounts-and-groups)
 - [The ctx object](#the-ctx-object)
+- [Login form providers](#login-form-providers)
 - [Login buttons, returnTo and sign out](#login-buttons-returnto-and-sign-out)
 - [Example: proxy header provider](#example-proxy-header-provider)
 - [Example: login form provider](#example-login-form-provider)
@@ -28,7 +29,7 @@ nav_order: 3
 
 A login provider answers "who is this?"; MMGIS roles, groups and grants decide what that person may do, whichever provider answered.
 
-`local` (MMGIS username/password accounts) and `proxy` (an authenticating reverse proxy such as Cloud Single Sign-On) ship with MMGIS. A new provider is a folder under `plugins/core/auth/` and is turned on by listing its id in [`AUTH_PROVIDERS`](/MMGIS/setup/envs). Nothing else in MMGIS needs to change: Configure > Users & Access, roles, mission and layer grants, groups and API tokens all work for its users.
+`local` (MMGIS username/password accounts), `ldap` (a directory, see [LDAP Login](/MMGIS/setup/ldap)) and `proxy` (an authenticating reverse proxy such as Cloud Single Sign-On) ship with MMGIS. A new provider is a folder under `plugins/core/auth/` and is turned on by listing its id in [`AUTH_PROVIDERS`](/MMGIS/setup/envs). Nothing else in MMGIS needs to change: Configure > Users & Access, roles, mission and layer grants, groups and API tokens all work for its users.
 
 ## Quick start
 
@@ -67,7 +68,9 @@ There are two kinds of provider. Pick one:
 | `provider` | yes | The id used in `AUTH_PROVIDERS`, in group sources and in `/api/auth/<id>`. Lowercase letters, digits, `-` and `_`, starting with a letter. `local` and `proxy` belong to the shipped providers. |
 | `tier`, `overridable` | yes | Must be `"core"` and `false`. Providers can't be overridden by external plugin containers. |
 | `display_name` | no | Shown on login buttons (`Log in with <display_name>`). Defaults to the folder name. |
-| `login_path` | no | Session providers: the route that starts a login, relative to `/api/auth/<id>`. When set, the login page, the Configure sign-in page and the in-app login modal show a button for it. |
+| `login_path` | no | Session providers: the route that starts a login, relative to `/api/auth/<id>`. When set, the login page, the Configure sign-in page and the in-app login modal show a button for it (or, with `login_form`, post their form to it). |
+| `login_form` | no | `true` for providers that take a username and password: instead of a button, the shared login form posts to `login_path` (see [Login form providers](#login-form-providers)). |
+| `login_icon` | no | A [Material Design Icons](https://pictogrammers.com/library/mdi/) name (e.g. `card-account-details-outline`) shown on the form's provider switch and banner. |
 | `login_url` | no | Per-request providers: a login page outside MMGIS (for example the proxy's), linked as is. Use it instead of `login_path`. |
 | `login_label` | no | Text of that button. |
 | `logout_url` | no | Where the main site's **Sign out** sends the browser after ending the MMGIS session, e.g. your identity provider's logout page. Per-request providers need it, because MMGIS can't end a proxy's login. |
@@ -87,6 +90,8 @@ module.exports = {
   validate(env) { return []; },
   // Problems logged at startup, as strings.
   warnings(env) { return []; },
+  // Login form providers: the form's wording, usually from your ENVs. Every field is optional.
+  loginForm(env) { return { title, usernameLabel, hint, helpUrl }; },
 };
 ```
 
@@ -134,6 +139,17 @@ An identity is:
 There's no database handle or config object; read settings from `process.env`.
 
 **Rate limiting is automatic.** Each provider's routes share a limit of 10 failed responses (status 400 or higher) per IP per 15 minutes, like local login. So answer bad credentials with `401`, not `200`; successful logins and redirects don't count.
+
+## Login form providers
+
+A provider whose `plugin.json` sets `"login_form": true` and a `login_path` shares MMGIS's username/password form on the login page, Configure sign-in and the in-app modal; it doesn't serve a login page of its own.
+
+- **Layout.** With one form provider that isn't `local`, the form shows a "Sign in with <title>" banner. With several (for example `ldap` and `local`), it shows a switch; the first in `AUTH_PROVIDERS` is the default and the browser remembers the last choice. The password is only sent to the selected provider. With `AUTH_LOCAL_LOGIN=admins`, `local` is only offered at Configure sign-in.
+- **Wording.** `loginForm(env)` returns `title` (the tab and banner name, default `display_name`), `usernameLabel` (default `Username`), `hint` (shown with the form) and `helpUrl` (an http(s) page, linked as "Reset your <title> password"). Read them from `<PROVIDERID>_*` ENVs so each site can name the provider its own way. `GET /api/auth` returns them as `loginForms`.
+- **Request.** The form sends `POST /api/auth/<id><login_path>` with a JSON body `{ "username", "password" }`.
+- **Response.** On success call `ctx.completeLogin` and answer `{ "status": "success", "username", "provider": "<id>" }`; the page then reloads (login page, Configure) or the modal closes. On failure answer `{ "status": "failure", "message" }` with `400` (missing input), `401` (wrong credentials; counts towards the rate limit), `409` (`ctx.LinkError`) or `503` (the backend is unreachable). The message is shown as is, so name the provider in it.
+
+`plugins/core/auth/Ldap/plugin.js` is a complete example.
 
 ## Login buttons, returnTo and sign out
 
@@ -201,7 +217,7 @@ Enable it with `AUTH_PROVIDERS=["local","proxyheader"]` and `PROXYHEADER_SECRET=
 
 ## Example: login form provider
 
-A username/password form checked against a directory. Here the directory is a JSON file so the example runs as is; replace `checkPassword` with your LDAP or HTTP call.
+A username/password check against a directory, shown in the shared login form. Here the directory is a JSON file so the example runs as is; replace `checkPassword` with your own call. For LDAP, use the shipped `ldap` provider.
 
 `plugins/core/auth/Directory/plugin.json`
 
@@ -213,7 +229,9 @@ A username/password form checked against a directory. Here the directory is a JS
   "provider": "directory",
   "tier": "core",
   "overridable": false,
-  "login_path": "/login"
+  "login_path": "/login",
+  "login_form": true,
+  "login_icon": "card-account-details-outline"
 }
 ```
 
@@ -233,41 +251,33 @@ function checkPassword(username, password) {
   return a.length === b.length && crypto.timingSafeEqual(a, b) ? person : null;
 }
 
-const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-const page = (returnTo, message = "") => `<!doctype html><title>Directory login</title>
-<form method="post">
-  <p>${escape(message)}</p>
-  <input type="hidden" name="returnTo" value="${escape(returnTo)}">
-  <label>Username <input name="username" autocomplete="username"></label>
-  <label>Password <input name="password" type="password" autocomplete="current-password"></label>
-  <button>Log in</button>
-</form>`;
-
 module.exports = {
   routes(router, ctx) {
-    router.get("/login", ctx.authorize.public("directory login page"), (req, res) => {
-      res.send(page(ctx.returnTo(req.query.returnTo)));
-    });
-
     router.post("/login", ctx.authorize.public("directory login"), async (req, res) => {
-      const returnTo = ctx.returnTo(req.body.returnTo);
-      const person = checkPassword(req.body.username, req.body.password);
+      const { username, password } = req.body || {};
+      if (!username || !password)
+        return res.status(400).send({ status: "failure", message: "Enter your username and password." });
+      const person = checkPassword(username, password);
       // 401 so failed attempts count towards the rate limit
-      if (!person) return res.status(401).send(page(returnTo, "Invalid username or password."));
+      if (!person)
+        return res.status(401).send({ status: "failure", message: "Invalid Directory username or password." });
       try {
-        await ctx.completeLogin(req, {
+        const user = await ctx.completeLogin(req, {
           subject: person.id,
           username: person.username,
           email: person.email,
           groups: person.groups,
         });
-        res.redirect(returnTo);
+        res.send({ status: "success", username: user.username, provider: "directory" });
       } catch (err) {
-        if (err instanceof ctx.LinkError) return res.status(409).send(page(returnTo, err.message));
+        if (err instanceof ctx.LinkError) return res.status(409).send({ status: "failure", message: err.message });
         ctx.logger("error", "Directory login failed.", "Directory", req, err);
-        res.status(500).send(page(returnTo, "Login failed."));
+        res.status(500).send({ status: "failure", message: "Login failed." });
       }
     });
+  },
+  loginForm(env) {
+    return { title: env.DIRECTORY_DISPLAY_NAME || "Directory", hint: env.DIRECTORY_LOGIN_HINT };
   },
   validate(env) {
     return env.DIRECTORY_FILE && fs.existsSync(env.DIRECTORY_FILE)
@@ -277,7 +287,7 @@ module.exports = {
 };
 ```
 
-Enable it with `AUTH_PROVIDERS=["local","directory"]` and `DIRECTORY_FILE=/path/to/people.json`. The login page and the in-app modal now show **Log in with Directory**.
+Enable it with `AUTH_PROVIDERS=["directory","local"]` and `DIRECTORY_FILE=/path/to/people.json`. The login page, Configure sign-in and the in-app modal now show a **Directory | MMGIS account** switch above the form. Without `"login_form": true`, the provider would instead get a **Log in with Directory** button and would have to serve its own login page at `GET /login`.
 
 ## Redirect (OIDC / OAuth2) providers
 
@@ -297,7 +307,7 @@ Declare both with `ctx.authorize.public(...)`, set `"login_path": "/login"`, and
 - **Coexistence:** local accounts still log in with your provider enabled.
 - **Removal:** take the id out of `AUTH_PROVIDERS` and restart: its routes return 404 and its sessions and tokens stop working. Its accounts, groups and grants are kept.
 - **Websockets:** scripted websocket clients must send an `Origin` header, or MMGIS closes the connection (the reason is only in the server log).
-- **Unit tests:** see `tests/unit/permissions-providers.spec.js` for loading a provider from a temporary plugins folder.
+- **Unit tests:** see `tests/unit/permissions-providers.spec.js` for loading a provider from a temporary plugins folder, and `tests/unit/ldap-provider.spec.js` for testing against a fake backend.
 
 Redirect flows are easiest to test with a production build (`npm run build`, then `NODE_ENV=production npm start`). In development the map is served on a different port (PORT+1) from the API, so redirects back to `/` land on the API port.
 
@@ -321,4 +331,4 @@ Redirect flows are easiest to test with a production build (`npm run build`, the
 - `PROXY_LEAD_GROUP` and `PROXY_GROUPS` only apply to `proxy`.
 - Draw files belong to a username, so keep usernames unique across providers; `completeLogin` already refuses a username that another account has.
 
-Code: `API/permissions/providers.js` (loading, `completeLogin`, routes), `API/permissions/siteAccess.js` (`AUTH_PROVIDERS`), `plugins/core/auth/Proxy/plugin.js` (a per-request provider).
+Code: `API/permissions/providers.js` (loading, `completeLogin`, `loginForms`, routes), `API/permissions/siteAccess.js` (`AUTH_PROVIDERS`), `plugins/core/auth/Proxy/plugin.js` (a per-request provider), `plugins/core/auth/Ldap/plugin.js` (a login form provider), `views/mixins/loginForms.pug` and `public/loginForms.js` (the shared form).

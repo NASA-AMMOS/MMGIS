@@ -1,0 +1,19 @@
+{
+  "uuid": "940736d8-2372-445a-b522-0cde5a340886",
+  "id": "core-auth-ldap",
+  "name": "Ldap",
+  "display_name": "LDAP",
+  "description": "Username/password login checked against an LDAP directory (OpenLDAP, Active Directory, ...) at /api/auth/ldap/login.",
+  "version": "core",
+  "type": "auth",
+  "provider": "ldap",
+  "tier": "core",
+  "overridable": false,
+  "required": true,
+  "login_path": "/login",
+  "login_form": true,
+  "login_icon": "card-account-details-outline",
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

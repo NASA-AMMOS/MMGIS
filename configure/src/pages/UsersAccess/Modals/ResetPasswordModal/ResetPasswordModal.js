@@ -275,7 +275,7 @@ const ResetPasswordModal = (props) => {
         } else {
           dispatch(
             setSnackBarText({
-              text: `Failed to generate a password reset link for '${modal.row.username}'.`,
+              text: res?.message || `Failed to generate a password reset link for '${modal.row.username}'.`,
               severity: "error",
             })
           );
@@ -284,7 +284,7 @@ const ResetPasswordModal = (props) => {
       (res) => {
         dispatch(
           setSnackBarText({
-            text: `Failed to generate a password reset link for '${modal.row.username}'.`,
+            text: res?.message || `Failed to generate a password reset link for '${modal.row.username}'.`,
             severity: "error",
           })
         );

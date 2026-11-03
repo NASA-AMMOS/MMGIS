@@ -5,13 +5,18 @@ html(lang='en')
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     link(rel='shortcut icon' href=ROOT_PATH + 'public/images/logos/logo.png')
     link(type='text/css' rel='stylesheet' href=ROOT_PATH + 'public/login.css')
+    link(type='text/css' rel='stylesheet' href=ROOT_PATH + 'public/fonts/materialdesignicons/css/materialdesignicons.min.css')
     script.
       allowSignup = #{AUTH_LOCAL_ALLOW_SIGNUP}
     script(type='text/javascript' src=ROOT_PATH + 'public/jquery.min.js')
+    script(type='text/javascript' src=ROOT_PATH + 'public/loginForms.js')
     script(type='text/javascript' src=ROOT_PATH + 'public/login.js')
     style.
       @font-face { font-family: "Source Sans Pro"; src: url(#{ROOT_PATH}public/fonts/sourcesanspro/SourceSansPro-Regular.ttf); }
       body { background-image: url(#{ROOT_PATH}public/images/contours.png) !important; }
+  include mixins/loginForms.pug
+  - const forms = LOGIN_FORMS || []
+  - const hasLocal = forms.some((f) => f.id === 'local')
   body.mmgisScrollbar
     .header
       img(src=ROOT_PATH + 'public/images/logos/local_login_brand.png' alt='Branding' style='left: 44px; transform: unset; height: 60px; opacity: 0.5;')
@@ -22,14 +27,18 @@ html(lang='en')
         h4
           | Log in
           span to your account.
-        if !LOCAL_LOGIN
+        if forms.length === 0
           h5 Choose how to log in.
+        else if forms.length > 1
+          h5 Choose your account type.
+        else if !hasLocal
         else if AUTH_LOCAL_ALLOW_SIGNUP
           h5 If you do not have an account,<br>sign up or request one from your administrator.
         else
           h5 If you do not have an account,<br>request one from your administrator.
-        if LOCAL_LOGIN
-          label#username_label.fieldLabel(for="username") Username
+        if forms.length
+          +loginProviders(forms)
+          label#username_label.fieldLabel(for="username")= forms[0].usernameLabel
           input#username(type='text' name='username' autocomplete='off')
           label#email_label.fieldLabel(for="email") Email
           input#email(type='text' name='email' autocomplete='off')
@@ -39,12 +48,13 @@ html(lang='en')
           div#pwd_description Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.
           label#pwd_retype_label.fieldLabel(for="pwd_retype") Retype Password
           input#pwd_retype(type='password' name='password' autocomplete='off')
+          +loginHelp()
           div#login.btn1(onClick='login()' title='Log in to MMGIS!') Log In
           div#toggleWrapper
             div#toggle(onClick='toggle()') Or Sign Up
         if LOGIN_LINKS && LOGIN_LINKS.length
           .providerLinks
-            if LOCAL_LOGIN
+            if forms.length
               .providerOr or
             each link in LOGIN_LINKS
               a.providerBtn(href=link.url || (ROOT_PATH + link.path + '?returnTo=' + encodeURIComponent(RETURN_TO)))= link.label

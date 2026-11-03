@@ -24,6 +24,7 @@ var modalFormSignIn =
   "<img id='loginModalLogo' src='" + mmgisLogoURL + "' alt='MMGIS' />" +
   "<div id='loginModalHeading'><span id='loginModalTitle'>Log in</span> <span id='loginModalTitleRest'>to your account.</span></div>" +
   "<div id='loginModalLead'></div>" +
+  "<div id='loginModalProviders'></div>" +
   "<form id='loginForm' accept-charset='UTF-8'>" +
     "<div class='field'>" +
       "<label id='loginUsernameLabel' for='loginUsernameInput'>Username</label>" +
@@ -41,12 +42,14 @@ var modalFormSignIn =
       "<input id='loginPasswordInput' name='password' type='password' autocomplete='off'>" +
       "<i id='loginPasswordInputIcon' style='opacity: 0;'></i>" +
       "<div id='loginPasswordDescription' class='loginFieldDescription' style='display: none'>Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.</div>" +
+      "<div id='loginModalHint' class='loginFieldDescription' style='display: none'></div>" +
     "</div>" +
     "<div id='loginRetypePassword' class='field' style='display: none'>" +
       "<label for='loginRetypePasswordInput'>Retype Password</label>" +
       "<input id='loginRetypePasswordInput' name='retypepassword' type='password' autocomplete='off'>" +
       "<i id='loginRetypePasswordInputIcon' style='opacity: 0;'></i>" +
     "</div>" +
+    "<a id='loginModalHelp' target='_blank' rel='noopener noreferrer' style='display: none'><span></span><i class='mdi mdi-open-in-new' aria-hidden='true'></i></a>" +
     "<input id='loginSubmit' type='submit' name='Submit' value='Log In'></input>" +
     "<div id='loginInUpToggleWrapper'><div id='loginInUpToggle' role='button' tabindex='0'>or sign up</div></div>" +
   "</form>" +
@@ -71,6 +74,11 @@ var Login = {
     providerLogoutUrl: null,
     providerPerRequest: false,
     providerLinks: null,
+    // Providers that take a username and password in the modal's form (GET /api/auth loginForms)
+    loginForms: null,
+    activeForm: null,
+    // What the signed-in provider is called, e.g. "JPL Directory"
+    providerTitle: null,
     init: function () {
         if (window.mmgisglobal.SITE_ACCESS === 'public') return
         if (
@@ -95,6 +103,7 @@ var Login = {
             this.provider = loginProvider
             this.providerPerRequest = window.mmgisglobal.loginPerRequest === 'true'
             this.providerLogoutUrl = window.mmgisglobal.logoutUrl || null
+            Login.fetchAuth(() => Login.updateTooltip())
         }
 
         Login.loginBar = $('<div>')
@@ -128,17 +137,7 @@ var Login = {
             })
             .text(Login.loggedIn ? Login.username[0] : ''))
 
-        if (Login.loggedIn) {
-            if (window._tippyLoginUser && window._tippyLoginUser[0])
-                window._tippyLoginUser[0].setContent(Login.username)
-            else
-                window._tippyLoginUser = tippy('#loginUser', {
-                    content: Login.username,
-                    placement: 'bottom-end',
-                    theme: 'blue',
-                    allowHTML: false,
-                })
-        }
+        if (Login.loggedIn) Login.updateTooltip()
 
         //Show signup for admins
         if (
@@ -251,6 +250,7 @@ var Login = {
             // Then end the login at the provider too
             const providerLogoutUrl = Login.providerLogoutUrl
             Login.provider = null
+            Login.providerTitle = null
             Login.providerLogoutUrl = null
             if (providerLogoutUrl) {
                 window.location.href = providerLogoutUrl
@@ -294,6 +294,7 @@ var Login = {
                 Login.provider = d.provider || null
                 Login.providerLogoutUrl = d.logoutUrl || null
                 Login.providerPerRequest = d.perRequest === true
+                if (Login.provider) Login.fetchAuth(() => Login.updateTooltip())
 
                 loginSuccess(d)
             },
@@ -319,14 +320,160 @@ var Login = {
         $('#loginSubmit').val(signUp ? 'Sign Up' : 'Log In')
         $('#loginInUpToggle').html(signUp ? 'or log in' : 'or sign up')
     },
-    // Buttons for providers whose plugin.json sets "login_path"
+    // Who the user is, and the provider they signed in with
+    updateTooltip: function () {
+        if (!Login.loggedIn || !Login.username) return
+        const content =
+            Login.provider && Login.providerTitle
+                ? `${Login.username} · signed in with ${Login.providerTitle}`
+                : Login.username
+        if (window._tippyLoginUser && window._tippyLoginUser[0])
+            window._tippyLoginUser[0].setContent(content)
+        else
+            window._tippyLoginUser = tippy('#loginUser', {
+                content: content,
+                placement: 'bottom-end',
+                theme: 'blue',
+                allowHTML: false,
+            })
+    },
+    // GET /api/auth once: the login forms, login buttons and provider names
+    fetchAuth: function (done) {
+        if (Login.providerLinks) {
+            if (done) done()
+            return
+        }
+        const root = window.mmgisglobal.ROOT_PATH ? window.mmgisglobal.ROOT_PATH + '/' : ''
+        $.ajax({
+            type: 'GET',
+            url: `${root}api/auth`,
+            xhrFields: { withCredentials: true },
+            success: (d) => {
+                Login.providerLinks = (d && d.loginLinks) || []
+                Login.loginForms = (d && d.loginForms) || []
+                const p = ((d && d.providers) || []).find((x) => x.id === Login.provider)
+                if (p) Login.providerTitle = p.label
+                if (done) done()
+            },
+        })
+    },
+    // The provider switch (several form providers) or banner (one that isn't local accounts)
+    renderForms: function () {
+        if (!Login.loginForms) return
+        const forms = Login.loginForms
+        const el = $('#loginModalProviders').empty()
+        if (Login.signUp) {
+            // Admins create local accounts
+            Login.selectForm(null)
+            return
+        }
+        if (forms.length === 0) {
+            $('#loginModal #loginForm').hide()
+            $('#loginModalLead').text('Choose how to log in.')
+            return
+        }
+        $('#loginModal #loginForm').show()
+        if (forms.length > 1) {
+            $('#loginModalLead').text('Choose your account type.')
+            const tabs = $('<div>')
+                .addClass('loginProviders')
+                .attr({ role: 'tablist', 'aria-label': 'Account type' })
+            forms.forEach((f) => {
+                tabs.append(
+                    $('<button>')
+                        .addClass('loginProvider')
+                        .attr({ type: 'button', role: 'tab', 'data-id': f.id })
+                        .append($('<i>').addClass(`mdi mdi-${f.icon}`).attr('aria-hidden', 'true'))
+                        .append($('<span>').text(f.title))
+                        .on('click', () => Login.selectForm(f.id, true))
+                )
+            })
+            el.append(tabs)
+        } else if (forms[0].id !== 'local') {
+            $('#loginModalLead').text('')
+            const f = forms[0]
+            const text = $('<div>')
+                .append($('<small>').text('Sign in with'))
+                .append($('<b>').text(f.title))
+            if (f.hint) text.append($('<span>').text(f.hint))
+            el.append(
+                $('<div>')
+                    .addClass('loginBanner')
+                    .append($('<i>').addClass(`mdi mdi-${f.icon}`).attr('aria-hidden', 'true'))
+                    .append(text)
+            )
+        }
+        let remembered = null
+        try {
+            remembered = localStorage.getItem('mmgisLoginProvider')
+        } catch (err) {}
+        Login.selectForm(remembered)
+    },
+    selectForm: function (id, remember) {
+        const forms = Login.loginForms || []
+        const form = Login.signUp ? null : forms.find((f) => f.id === id) || forms[0] || null
+        Login.activeForm = form
+        $('#loginModalProviders .loginProvider').each(function () {
+            const on = form != null && $(this).attr('data-id') === form.id
+            $(this).toggleClass('active', on).attr('aria-selected', on ? 'true' : 'false')
+        })
+        $('#loginUsernameLabel').text(form ? form.usernameLabel : 'Username')
+        // A single provider shows its hint in the banner instead
+        const hint = form && forms.length > 1 ? form.hint : ''
+        $('#loginModalHint').text(hint).css('display', hint ? 'block' : 'none')
+        if (form && form.helpUrl)
+            $('#loginModalHelp')
+                .attr('href', form.helpUrl)
+                .css('display', 'flex')
+                .find('span')
+                .text(`Reset your ${form.title} password`)
+        else $('#loginModalHelp').css('display', 'none')
+        // Sign-up is only for local accounts
+        const local = form == null || form.id === 'local'
+        $('#loginModal #loginInUpToggle').toggle(
+            local && (Login.signUp || window.mmgisglobal.SELF_SIGNUP !== 'false')
+        )
+        if (remember && form) {
+            try {
+                localStorage.setItem('mmgisLoginProvider', form.id)
+            } catch (err) {}
+        }
+    },
+    // Signs in with a provider other than local accounts (JSON POST to its login_path)
+    formProviderLogin: function (values) {
+        const root = window.mmgisglobal.ROOT_PATH ? window.mmgisglobal.ROOT_PATH + '/' : ''
+        const form = Login.activeForm
+        $.ajax({
+            type: 'POST',
+            url: `${root}${form.path}`,
+            contentType: 'application/json',
+            data: JSON.stringify({ username: values.username, password: values.password }),
+            xhrFields: { withCredentials: true },
+            success: (d) => {
+                if (d && d.status === 'success') {
+                    Login.username = d.username
+                    window.mmgisglobal.user = d.username
+                    window.mmgisglobal.groups = d.groups || []
+                    Login.provider = d.provider || form.id
+                    Login.providerTitle = form.title
+                    Login.providerLogoutUrl = d.logoutUrl || null
+                    Login.providerPerRequest = false
+                    loginSuccess(d, false, true)
+                } else Toast.error((d && d.message) || 'Login failed.')
+            },
+            error: (xhr) => {
+                Toast.error((xhr && xhr.responseJSON && xhr.responseJSON.message) || 'Login failed.')
+            },
+        })
+    },
+    // Buttons for providers whose plugin.json sets "login_path" and not "login_form"
     renderProviderLinks: function () {
         const root = window.mmgisglobal.ROOT_PATH ? window.mmgisglobal.ROOT_PATH + '/' : ''
         const draw = (links) => {
             const el = $('#loginProviderLinks').empty()
             if (!links || links.length === 0) return
             const returnTo = window.location.pathname + window.location.search
-            if (window.mmgisglobal.authProviders.includes('local'))
+            if ((Login.loginForms || []).length > 0)
                 el.append($('<div>').addClass('loginProviderOr').text('or'))
             links.forEach((link) => {
                 el.append(
@@ -337,15 +484,9 @@ var Login = {
                 )
             })
         }
-        if (Login.providerLinks) return draw(Login.providerLinks)
-        $.ajax({
-            type: 'GET',
-            url: `${root}api/auth`,
-            xhrFields: { withCredentials: true },
-            success: (d) => {
-                Login.providerLinks = (d && d.loginLinks) || []
-                draw(Login.providerLinks)
-            },
+        Login.fetchAuth(() => {
+            Login.renderForms()
+            draw(Login.providerLinks)
         })
     },
     createModal: function () {
@@ -384,6 +525,7 @@ var Login = {
         $('#loginModal #loginInUpToggle').on('click', function () {
             $('#loginErrorMessage').animate({ opacity: '0' }, 500)
             Login.setSignUpView(!Login.signUp)
+            Login.renderForms()
         })
 
         $('#loginUsernameInput').on('change paste keyup', function () {
@@ -475,7 +617,9 @@ var Login = {
             values['mission'] = L_.mission
 
             if (!Login.signUp) {
-                if (validate.username && validate.password) {
+                if (validate.username && validate.password && Login.activeForm && Login.activeForm.id !== 'local') {
+                    Login.formProviderLogin(values)
+                } else if (validate.username && validate.password) {
                     calls.api(
                         'login',
                         values,
@@ -668,17 +812,7 @@ function loginSuccess(data, ignoreError, fromModal) {
             })
             .text(Login.username[0])
 
-        if (Login.loggedIn) {
-            if (window._tippyLoginUser && window._tippyLoginUser[0])
-                window._tippyLoginUser[0].setContent(Login.username)
-            else
-                window._tippyLoginUser = tippy('#loginUser', {
-                    content: Login.username,
-                    placement: 'bottom-end',
-                    theme: 'blue',
-                    allowHTML: false,
-                })
-        }
+        if (Login.loggedIn) Login.updateTooltip()
         document.dispatchEvent(new CustomEvent('mmgis:loginchange'))
     } else {
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'

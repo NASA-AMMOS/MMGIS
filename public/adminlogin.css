@@ -335,3 +335,129 @@ img {
   color: #1a1a1a;
   outline: none;
 }
+
+/* Provider switch, single-provider banner, hint and help link above/below the shared form */
+.loginProviders.multiple {
+  display: flex;
+  gap: 4px;
+  width: 342px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 18px;
+  padding: 4px;
+  background: #121d23;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px rgba(8, 174, 234, 0.5) inset;
+}
+.loginProviders.single {
+  display: none;
+}
+.loginProvider {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #a1a4ad;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.loginProvider span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loginProvider:hover,
+.loginProvider:focus-visible {
+  color: #ececec;
+  outline: none;
+}
+.loginProvider.active {
+  background: #0c3546;
+  color: #ffffff;
+  box-shadow: 0 0 0 1.5px #08aeea inset;
+}
+.loginProvider.active .mdi {
+  color: #08aeea;
+}
+.loginBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 342px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 18px;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 8px;
+  background: #13252e;
+  border: 1px solid rgba(8, 174, 234, 0.45);
+  border-left: 4px solid #08aeea;
+}
+.loginBanner > .mdi {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0c3546;
+  color: #08aeea;
+  font-size: 22px;
+}
+.loginBanner small {
+  display: block;
+  color: #b4b7bf;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.loginBanner b {
+  display: block;
+  color: #ffffff;
+  font-size: 17px;
+}
+.loginBanner span {
+  display: block;
+  margin-top: 2px;
+  color: #b4b7bf;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.loginHint {
+  display: none;
+  width: 342px;
+  max-width: 100%;
+  margin: -8px auto 14px;
+  text-align: left;
+  color: #a1a4ad;
+  font-style: italic;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.loginHelp {
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 342px;
+  max-width: 100%;
+  margin: 0 auto 10px;
+  color: #7fd3f5;
+  font-size: 13px;
+  text-decoration: none;
+}
+.loginHelp:hover,
+.loginHelp:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}

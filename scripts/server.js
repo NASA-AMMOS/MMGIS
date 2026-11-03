@@ -437,7 +437,7 @@ function renderAdminLogin(req, res, principal) {
   res.render("adminlogin", {
     user: req.user,
     SIGNED_IN_AS: signedIn ? principal.username || req.user || "" : null,
-    LOCAL_LOGIN: siteAccess.hasProvider("local"),
+    LOGIN_FORMS: providers.loginForms(undefined, { configure: true }),
     LOGIN_LINKS: providers.loginLinks(),
     RETURN_TO: providers.returnTo(req.originalUrl),
     VERSION: configurePackageJson.version,
@@ -541,12 +541,12 @@ function ensureUser(options = {}) {
         }
         if (options.forbid) sendForbidden(req, res);
         // Sites with no login form or login links sign in through their authenticating proxy
-        else if (!siteAccess.hasProvider("local") && providers.loginLinks().length === 0)
+        else if (providers.loginForms().length === 0 && providers.loginLinks().length === 0)
           res.render("unauthorized", { user: null, PROXY_LOGOUT_URL: proxyUrls().logout });
         else
           res.render("login", {
             user: req.user,
-            LOCAL_LOGIN: siteAccess.hasProvider("local"),
+            LOGIN_FORMS: providers.loginForms(),
             LOGIN_LINKS: providers.loginLinks(),
             RETURN_TO: providers.returnTo(req.originalUrl),
             CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",

@@ -212,3 +212,87 @@ jobs:
           name: playwright-report-proxy-${{ matrix.proxy_trust }}
           path: playwright-report/
           retention-days: 30
+
+  ldap:
+    # The LDAP login provider against a real OpenLDAP directory, over LDAPS and StartTLS
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        transport: [ldaps, starttls]
+
+    services:
+      postgres:
+        image: postgis/postgis:13-3.1
+        env:
+          POSTGRES_DB: mmgis-test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password # pragma: allowlist secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install plugin dependencies
+        run: node scripts/resolve-plugin-deps.js && node scripts/install-plugin-deps.js
+
+      - name: Install Playwright Browsers
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Start OpenLDAP
+        run: tests/e2e/ldap/openldap/start.sh "$RUNNER_TEMP/ldap"
+
+      - name: Setup test environment
+        run: | # pragma: allowlist secret
+          cp sample.env .env || touch .env
+          sed -i "/^SITE_ACCESS=/d;/^AUTH_PROVIDERS=/d;/^LDAP_/d" .env
+          echo "NODE_ENV=test" >> .env
+          echo "PORT=18888" >> .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_NAME=mmgis-test" >> .env
+          echo "DB_USER=test_user" >> .env
+          echo "DB_PASS=test_password" >> .env
+          echo "DB_USER_TEST=test_user" >> .env
+          echo "DB_PASS_TEST=test_password" >> .env
+          echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
+          echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
+          echo "HIDE_CONFIG=false" >> .env
+          echo "SECRET=ci-test-session-secret-not-for-production" >> .env
+
+      - name: Run E2E LDAP Provider Tests
+        run: npx --no-install playwright test tests/e2e/ldap --project=chromium
+        env:
+          SITE_ACCESS: optional
+          AUTH_PROVIDERS: '["ldap","local"]'
+          LDAP_URL: ${{ matrix.transport == 'ldaps' && 'ldaps://localhost:3636' || 'ldap://localhost:3389' }}
+          LDAP_STARTTLS: ${{ matrix.transport == 'starttls' && 'true' || 'false' }}
+          LDAP_TLS_CA: ${{ runner.temp }}/ldap/ca.pem
+          LDAP_BIND_DN: cn=mmgis-svc,ou=services,dc=example,dc=org
+          LDAP_BIND_PASSWORD: svc-test-password # pragma: allowlist secret
+          LDAP_USER_SEARCH_BASE: ou=people,dc=example,dc=org
+          LDAP_GROUP_SEARCH_BASE: ou=groups,dc=example,dc=org
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-ldap-${{ matrix.transport }}
+          path: playwright-report/
+          retention-days: 30

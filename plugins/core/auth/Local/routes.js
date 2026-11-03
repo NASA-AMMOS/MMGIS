@@ -32,6 +32,7 @@ const policy = require("../../../../API/permissions/policy");
 const bindings = require("../../../../API/permissions/bindings");
 const setupCode = require("../../../../API/permissions/setupCode");
 const { LongTermTokens } = require("../../backend/LongTermToken/models/longtermtokens");
+const { AuthIdentity } = require("../../../../API/permissions/models");
 
 // Same message whether the username or the email is taken
 const SIGNUP_UNAVAILABLE =
@@ -542,7 +543,12 @@ router.post("/resetPassword", resetLimiter, authorize.public("login and account 
         "token",
       ],
     })
-      .then((user) => {
+      .then(async (user) => {
+        // Accounts created by a login provider sign in through it, never with a local password
+        if (user && (await AuthIdentity.count({ where: { user_id: user.id } })) > 0) {
+          res.send({ status: "failure", message: "This account signs in through its login provider." });
+          return null;
+        }
         if (user) {
           if (
             user.reset_token_expiration == null ||

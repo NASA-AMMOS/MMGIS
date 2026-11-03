@@ -9,6 +9,9 @@
 //                          ctx.completeLogin(req, identity) starts a session
 //   validate(env)          -> string[]  problems that refuse startup
 //   warnings(env)          -> string[]  problems logged at startup
+//   loginForm(env)         -> { title?, usernameLabel?, hint?, helpUrl? }  wording of the
+//                          shared username/password form, for providers whose
+//                          plugin.json sets "login_form": true
 // An identity is { subject, username?, email?, groups?: string[], strictGroups?: string[], session? }.
 const path = require("path");
 const crypto = require("crypto");
@@ -128,11 +131,13 @@ const providerWarnings = (ids = siteAccess.getProviders(), env = process.env) =>
   enabledProviders(ids).forEach((p) => {
     const lp = p.manifest.login_path;
     if (lp != null && (typeof lp !== "string" || !lp.startsWith("/")))
-      out.push(`Auth provider '${p.id}': plugin.json "login_path" must start with "/", so no login button is shown.`);
+      out.push(
+        `Auth provider '${p.id}': plugin.json "login_path" must start with "/", so no login ${p.manifest.login_form === true ? "form" : "button"} is shown.`
+      );
   });
-  if (ids.includes("proxy") && !ids.includes("local"))
+  if (!ids.includes("local"))
     out.push(
-      'AUTH_PROVIDERS does not include local, so local admin accounts cannot sign in to /configure. Use ["proxy","local"] to keep them.'
+      `AUTH_PROVIDERS does not include local, so local admin accounts cannot sign in to /configure. Use ${JSON.stringify([...ids, "local"])} to keep them.`
     );
   return out;
 };
@@ -294,13 +299,63 @@ function returnTo(value, fallback = `${rootPath()}/`) {
   return value;
 }
 
-// Login entry points that the login page, Configure sign-in and the in-app modal show.
-// "login_path" (a route of the provider) gets returnTo appended; "login_url" (e.g. a
-// proxy's own login page, for per-request providers) is linked as is.
+const isFormProvider = (p) =>
+  p.manifest.login_form === true && typeof p.manifest.login_path === "string" && p.manifest.login_path.startsWith("/");
+
+const ICON_NAME = /^[a-z0-9-]+$/;
+const HTTP_URL = /^https?:\/\/\S+$/i;
+const text = (v, fallback = "") => (typeof v === "string" && v.trim() !== "" ? v.trim() : fallback);
+
+function formWording(p) {
+  if (typeof p.impl.loginForm !== "function") return {};
+  try {
+    const w = p.impl.loginForm(process.env);
+    return w && typeof w === "object" ? w : {};
+  } catch (err) {
+    logger("error", `Auth provider '${p.id}': loginForm(env) threw; using its default wording.`, "AuthProviders", null, err);
+    return {};
+  }
+}
+
+// The providers that take a username and password in the shared form on the login page,
+// Configure sign-in and the in-app modal, in AUTH_PROVIDERS order. With AUTH_LOCAL_LOGIN=admins,
+// local accounts are only offered at Configure sign-in (configure: true).
+function loginForms(ids = siteAccess.getProviders(), { configure = false } = {}) {
+  const out = [];
+  enabledProviders(ids).forEach((p) => {
+    if (!isFormProvider(p)) return;
+    if (p.id === "local" && siteAccess.localAdminsOnly() && !configure) return;
+    const w = formWording(p);
+    const helpUrl = text(w.helpUrl);
+    out.push({
+      id: p.id,
+      title: text(w.title, p.label),
+      usernameLabel: text(w.usernameLabel, "Username"),
+      hint: text(w.hint),
+      helpUrl: HTTP_URL.test(helpUrl) ? helpUrl : "",
+      icon: ICON_NAME.test(p.manifest.login_icon || "") ? p.manifest.login_icon : "account-outline",
+      path: `api/auth/${p.id}${p.manifest.login_path}`,
+    });
+  });
+  return out;
+}
+
+// The name people know a provider by: its login form title, else its display_name
+function providerLabel(id) {
+  const p = getProvider(id);
+  if (!p) return null;
+  return isFormProvider(p) ? text(formWording(p).title, p.label) : p.label;
+}
+
+// Login buttons that the login page, Configure sign-in and the in-app modal show for
+// providers that don't use the shared form. "login_path" (a route of the provider) gets
+// returnTo appended; "login_url" (e.g. a proxy's own login page, for per-request
+// providers) is linked as is.
 function loginLinks(ids = siteAccess.getProviders()) {
   const out = [];
   enabledProviders(ids).forEach((p) => {
     const m = p.manifest;
+    if (m.login_form === true) return;
     const label = m.login_label || `Log in with ${p.label}`;
     if (typeof m.login_path === "string" && m.login_path.startsWith("/"))
       out.push({ id: p.id, label, path: `api/auth/${p.id}${m.login_path}` });
@@ -334,7 +389,8 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   list.get("/", apilimiter, authorize.public("lists the enabled login providers"), (req, res) => {
     res.send({
       status: "success",
-      providers: enabledProviders().map((p) => ({ id: p.id, label: p.label })),
+      providers: enabledProviders().map((p) => ({ id: p.id, label: providerLabel(p.id) })),
+      loginForms: loginForms(),
       loginLinks: loginLinks(),
     });
   });
@@ -373,6 +429,8 @@ module.exports = {
   syncGroups,
   completeLogin,
   returnTo,
+  loginForms,
+  providerLabel,
   loginLinks,
   logoutUrl,
   mountProviderRoutes,

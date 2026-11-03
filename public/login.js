@@ -12,7 +12,16 @@ function login() {
     return;
   }
 
-  if (toggleState === "login") {
+  if (toggleState === "login" && !LoginForms.isLocal()) {
+    LoginForms.submit(
+      document.getElementById("username").value,
+      document.getElementById("pwd").value,
+      function (message) {
+        document.getElementById("msg").innerText = message;
+        document.getElementById("msg").style.opacity = 1;
+      }
+    );
+  } else if (toggleState === "login") {
     $.ajax({
       type: "POST",
       url: "api/users/login",
@@ -126,7 +135,14 @@ function toggle() {
 }
 
 $(document).ready(function () {
-  if (allowSignup === true && document.getElementById("toggleWrapper"))
+  // Sign-up is only for local accounts
+  LoginForms.init(function (form) {
+    const wrapper = document.getElementById("toggleWrapper");
+    if (!wrapper) return;
+    if (form.id !== "local" && toggleState === "signup") toggle();
+    wrapper.style.display = allowSignup === true && form.id === "local" ? "flex" : "none";
+  });
+  if (allowSignup === true && LoginForms.isLocal() && document.getElementById("toggleWrapper"))
     document.getElementById("toggleWrapper").style.display = "flex";
   $(document).on("keypress", function (e) {
     if (e.which === 13) {
