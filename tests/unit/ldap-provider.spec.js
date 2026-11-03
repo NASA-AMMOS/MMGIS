@@ -113,12 +113,12 @@ test.describe('LDAP login', () => {
   });
 
   test('a rejected service account or missing subject attribute throws (the route answers 503)', async () => {
-    await expect(authenticate('alice', 'right', config({ ...base, LDAP_BIND_PASSWORD: 'nope' }), fakeClient([alice]))).rejects.toThrow(/LDAP_BIND_DN/);
+    await expect(authenticate('alice', 'right', config({ ...base, LDAP_BIND_PASSWORD: 'nope' }), fakeClient([alice]))).rejects.toThrow(/LDAP_BIND_DN/); // pragma: allowlist secret
     await expect(authenticate('alice', 'right', config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'objectGUID' }), fakeClient([alice]))).rejects.toThrow(/objectGUID/);
   });
 
   test('Active Directory "password expired" is told apart from a wrong password', async () => {
-    const expired = { ...alice, password: 'other', adCode: '532' };
+    const expired = { ...alice, password: 'other', adCode: '532' }; // pragma: allowlist secret
     await expect(authenticate('alice', 'right', config(base), fakeClient([expired]))).rejects.toBeInstanceOf(PasswordExpiredError);
   });
 });
@@ -152,7 +152,7 @@ test.describe('LDAP settings', () => {
 
   test('the login form wording comes from the site settings', () => {
     expect(ldap.loginForm({})).toEqual({ title: 'LDAP', usernameLabel: 'Username', hint: '', helpUrl: '' });
-    expect(ldap.loginForm({ LDAP_DISPLAY_NAME: 'JPL Directory', LDAP_USERNAME_LABEL: 'JPL username', LDAP_LOGIN_HINT: 'Same as email.', LDAP_PASSWORD_HELP_URL: 'https://pw.example.org' }))
+    expect(ldap.loginForm({ LDAP_DISPLAY_NAME: 'JPL Directory', LDAP_USERNAME_LABEL: 'JPL username', LDAP_LOGIN_HINT: 'Same as email.', LDAP_PASSWORD_HELP_URL: 'https://pw.example.org' })) // pragma: allowlist secret
       .toEqual({ title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as email.', helpUrl: 'https://pw.example.org' });
   });
 });

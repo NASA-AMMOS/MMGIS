@@ -56,7 +56,7 @@ test.describe('LDAP login provider', () => {
   test('empty and wrong passwords are refused without signing in', async () => {
     const ctx = await context();
     expect((await ldapLogin(ctx, { username: alice.username, password: '' })).status()).toBe(400);
-    const wrong = await ldapLogin(ctx, { username: alice.username, password: 'not-the-password' });
+    const wrong = await ldapLogin(ctx, { username: alice.username, password: 'not-the-password' }); // pragma: allowlist secret
     expect(wrong.status()).toBe(401);
     expect((await wrong.json()).message).toMatch(/Invalid .* username or password/);
     // Filter metacharacters are escaped, so a wildcard matches nobody

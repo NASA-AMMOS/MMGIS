@@ -305,7 +305,7 @@ test.describe('login forms', () => {
     process.env.LDAP_DISPLAY_NAME = 'JPL Directory';
     process.env.LDAP_USERNAME_LABEL = 'JPL username';
     process.env.LDAP_LOGIN_HINT = 'Same as your email.';
-    process.env.LDAP_PASSWORD_HELP_URL = 'https://password.example.org';
+    process.env.LDAP_PASSWORD_HELP_URL = 'https://password.example.org'; // pragma: allowlist secret
     expect(providers.loginForms(['ldap', 'local', 'proxy'])).toEqual([
       { id: 'ldap', title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as your email.', helpUrl: 'https://password.example.org', icon: 'card-account-details-outline', path: 'api/auth/ldap/login' },
       { id: 'local', title: 'MMGIS account', usernameLabel: 'Username', hint: '', helpUrl: '', icon: 'account-key-outline', path: 'api/auth/local/login' },
