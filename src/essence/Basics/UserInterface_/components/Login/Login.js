@@ -252,6 +252,7 @@ var Login = {
             Login.provider = null
             Login.providerTitle = null
             Login.providerLogoutUrl = null
+            window.mmgisglobal.accountTitle = null
             if (providerLogoutUrl) {
                 window.location.href = providerLogoutUrl
                 return
@@ -327,6 +328,7 @@ var Login = {
             Login.provider && Login.providerTitle
                 ? `${Login.username} · signed in with ${Login.providerTitle}`
                 : Login.username
+        window.mmgisglobal.accountTitle = content
         $('#loginUser').attr('title', content)
     },
     // GET /api/auth once: the login forms, login buttons and provider names

@@ -123,6 +123,7 @@ function TopBar({ userInterface }) {
     const [mapOpen, setMapOpen] = useState(true)
     const [globeOpen, setGlobeOpen] = useState(false)
     const [username, setUsername] = useState(null)
+    const [accountTitle, setAccountTitle] = useState(null)
 
     useEffect(() => {
         const el = topBarLeftRef.current
@@ -161,8 +162,10 @@ function TopBar({ userInterface }) {
         function syncUser() {
             if (window.mmgisglobal && window.mmgisglobal.user && window.mmgisglobal.user !== 'guest') {
                 setUsername(window.mmgisglobal.user)
+                setAccountTitle(window.mmgisglobal.accountTitle || null)
             } else {
                 setUsername(null)
+                setAccountTitle(null)
             }
         }
         syncUser()
@@ -391,7 +394,7 @@ function TopBar({ userInterface }) {
                                 <div
                                     id="accountButton"
                                     className={`${styles.userAvatar} ${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
-                                    title={username}
+                                    title={accountTitle || username}
                                     style={{ background: Connections_.avatarColor(username) }}
                                     onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
                                 >
