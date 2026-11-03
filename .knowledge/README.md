@@ -21,6 +21,7 @@ Detailed documentation lives in `docs/pages/` — not duplicated here:
 - **Database**: `docs/pages/Database/`
 - **Environment variables**: `docs/pages/Setup/ENVs/ENVs.md`
 - **Configure page**: `docs/pages/Configure/`
+- **Administrator agent guide** (non-coding role, projections, lunar DEM walkthrough): `docs/pages/Configure/Administrator_Agent/Administrator_Agent.md`
 - **Migration**: `docs/pages/Migration/`
 - **Route permissions (`authorize`)**: `docs/pages/Contributing/Permissions/Permissions.md`
 - **Writing a login provider (`AUTH_PROVIDERS`)**: `docs/pages/Contributing/AuthProviders/AuthProviders.md`
