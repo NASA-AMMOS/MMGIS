@@ -9,7 +9,7 @@
 //                          ctx.completeLogin(req, identity) starts a session
 //   validate(env)          -> string[]  problems that refuse startup
 //   warnings(env)          -> string[]  problems logged at startup
-//   loginForm(env)         -> { title?, usernameLabel?, hint?, helpUrl? }  wording of the
+//   loginForm(env)         -> { title?, usernameLabel?, hint? }  wording of the
 //                          shared username/password form, for providers whose
 //                          plugin.json sets "login_form": true
 // An identity is { subject, username?, email?, groups?: string[], strictGroups?: string[], session? }.
@@ -316,7 +316,6 @@ const isFormProvider = (p) =>
   p.manifest.login_form === true && typeof p.manifest.login_path === "string" && p.manifest.login_path.startsWith("/");
 
 const ICON_NAME = /^[a-z0-9-]+$/;
-const HTTP_URL = /^https?:\/\/\S+$/i;
 const text = (v, fallback = "") => (typeof v === "string" && v.trim() !== "" ? v.trim() : fallback);
 
 function formWording(p) {
@@ -339,13 +338,11 @@ function loginForms(ids = siteAccess.getProviders(), { configure = false } = {})
     if (!isFormProvider(p)) return;
     if (p.id === "local" && siteAccess.localAdminsOnly() && !configure) return;
     const w = formWording(p);
-    const helpUrl = text(w.helpUrl);
     out.push({
       id: p.id,
       title: text(w.title, p.label),
       usernameLabel: text(w.usernameLabel, "Username"),
       hint: text(w.hint),
-      helpUrl: HTTP_URL.test(helpUrl) ? helpUrl : "",
       icon: ICON_NAME.test(p.manifest.login_icon || "") ? p.manifest.login_icon : "account-outline",
       path: `api/auth/${p.id}${p.manifest.login_path}`,
     });

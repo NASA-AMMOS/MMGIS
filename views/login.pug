@@ -48,7 +48,7 @@ html(lang='en')
           div#pwd_description Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.
           label#pwd_retype_label.fieldLabel(for="pwd_retype") Retype Password
           input#pwd_retype(type='password' name='password' autocomplete='off')
-          +loginHelp()
+          +loginHint()
           div#login.btn1(onClick='login()' title='Log in to MMGIS!') Log In
           div#toggleWrapper
             div#toggle(onClick='toggle()') Or Sign Up

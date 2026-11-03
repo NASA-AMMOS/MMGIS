@@ -49,8 +49,7 @@ var modalFormSignIn =
       "<input id='loginRetypePasswordInput' name='retypepassword' type='password' autocomplete='off'>" +
       "<i id='loginRetypePasswordInputIcon' style='opacity: 0;'></i>" +
     "</div>" +
-    "<a id='loginModalHelp' target='_blank' rel='noopener noreferrer' style='display: none'><span></span><i class='mdi mdi-open-in-new' aria-hidden='true'></i></a>" +
-    "<input id='loginSubmit' type='submit' name='Submit' value='Log In'></input>" +
+        "<input id='loginSubmit' type='submit' name='Submit' value='Log In'></input>" +
     "<div id='loginInUpToggleWrapper'><div id='loginInUpToggle' role='button' tabindex='0'>or sign up</div></div>" +
   "</form>" +
   "<div id='loginProviderLinks'></div>" +
@@ -415,13 +414,6 @@ var Login = {
         // A single provider shows its hint in the banner instead
         const hint = form && forms.length > 1 ? form.hint : ''
         $('#loginModalHint').text(hint).css('display', hint ? 'block' : 'none')
-        if (form && form.helpUrl)
-            $('#loginModalHelp')
-                .attr('href', form.helpUrl)
-                .css('display', 'flex')
-                .find('span')
-                .text(`Reset your ${form.title} password`)
-        else $('#loginModalHelp').css('display', 'none')
         // Sign-up is only for local accounts
         const local = form == null || form.id === 'local'
         $('#loginModal #loginInUpToggle').toggle(

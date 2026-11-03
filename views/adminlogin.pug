@@ -47,7 +47,7 @@ body.mmgisScrollbar
       input#pwd_retype(type='password' name='password' autocomplete='off')
       label#setup_code_label.fieldLabel(for='setup_code') Setup Code
       input#setup_code(type='text' name='setup_code' placeholder='See the server log' autocomplete='off' spellcheck='false')
-      +loginHelp()
+      +loginHint()
       div.btn1(onClick='login()') Sign in
       if LOGIN_LINKS && LOGIN_LINKS.length
         .providerLinks

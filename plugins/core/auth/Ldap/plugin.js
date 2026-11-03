@@ -9,7 +9,6 @@ const { Client, InvalidCredentialsError, SizeLimitExceededError } = require("lda
 
 const setting = (v, fallback = "") => (v != null && String(v).trim() !== "" ? String(v).trim() : fallback);
 const isTrue = (v) => String(v).trim().toLowerCase() === "true";
-const HTTP_URL = /^https?:\/\/\S+$/i;
 const MAX_USERNAME = 256;
 
 function config(env = process.env) {
@@ -35,7 +34,6 @@ function config(env = process.env) {
     displayName: setting(env.LDAP_DISPLAY_NAME, "LDAP"),
     usernameLabel: setting(env.LDAP_USERNAME_LABEL, "Username"),
     hint: setting(env.LDAP_LOGIN_HINT),
-    helpUrl: setting(env.LDAP_PASSWORD_HELP_URL),
   };
 }
 
@@ -270,7 +268,6 @@ function validate(env) {
       errors.push("LDAP_TLS_CA must be the path of a readable PEM file.");
     }
   }
-  if (c.helpUrl && !HTTP_URL.test(c.helpUrl)) errors.push("LDAP_PASSWORD_HELP_URL must be an http(s) URL.");
   if (setting(env.LDAP_TIMEOUT_MS) && String(c.timeoutMs) !== setting(env.LDAP_TIMEOUT_MS))
     errors.push("LDAP_TIMEOUT_MS must be a whole number of milliseconds.");
   return errors;
@@ -320,7 +317,7 @@ module.exports = {
   },
   loginForm(env) {
     const c = config(env);
-    return { title: c.displayName, usernameLabel: c.usernameLabel, hint: c.hint, helpUrl: c.helpUrl };
+    return { title: c.displayName, usernameLabel: c.usernameLabel, hint: c.hint };
   },
   validate,
   warnings,

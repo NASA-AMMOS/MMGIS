@@ -290,10 +290,6 @@ Label of the username field when signing in with LDAP, e.g. `JPL username` | str
 
 Short hint shown with the LDAP form, e.g. `Use the same username and password as your email.` | string | default `''`
 
-#### `LDAP_PASSWORD_HELP_URL=`
-
-Your organization's password reset page, linked under the LDAP form as "Reset your <LDAP_DISPLAY_NAME> password". MMGIS can't reset directory passwords. Hidden when empty | string | default `''`
-
 #### `VERBOSE_LOGGING=`
 
 Potentially logs a bunch of extra stuff for development purposes | bool | default `false`

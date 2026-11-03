@@ -444,20 +444,3 @@ img {
   font-size: 12.5px;
   line-height: 1.4;
 }
-.loginHelp {
-  display: none;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  width: 342px;
-  max-width: 100%;
-  margin: 0 auto 10px;
-  color: #7fd3f5;
-  font-size: 13px;
-  text-decoration: none;
-}
-.loginHelp:hover,
-.loginHelp:focus-visible {
-  text-decoration: underline;
-  outline: none;
-}

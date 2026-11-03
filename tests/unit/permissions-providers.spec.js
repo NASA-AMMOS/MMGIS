@@ -291,7 +291,7 @@ test.describe('login links and returnTo', () => {
 test.describe('login forms', () => {
   const saved = {};
   test.beforeEach(() => {
-    for (const k of ['AUTH_LOCAL_LOGIN', 'LDAP_DISPLAY_NAME', 'LDAP_USERNAME_LABEL', 'LDAP_LOGIN_HINT', 'LDAP_PASSWORD_HELP_URL']) {
+    for (const k of ['AUTH_LOCAL_LOGIN', 'LDAP_DISPLAY_NAME', 'LDAP_USERNAME_LABEL', 'LDAP_LOGIN_HINT']) {
       saved[k] = process.env[k];
       delete process.env[k];
     }
@@ -308,10 +308,9 @@ test.describe('login forms', () => {
     process.env.LDAP_DISPLAY_NAME = 'JPL Directory';
     process.env.LDAP_USERNAME_LABEL = 'JPL username';
     process.env.LDAP_LOGIN_HINT = 'Same as your email.';
-    process.env.LDAP_PASSWORD_HELP_URL = 'https://password.example.org'; // pragma: allowlist secret
     expect(providers.loginForms(['ldap', 'local', 'proxy'])).toEqual([
-      { id: 'ldap', title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as your email.', helpUrl: 'https://password.example.org', icon: 'card-account-details-outline', path: 'api/auth/ldap/login' },
-      { id: 'local', title: 'MMGIS account', usernameLabel: 'Username', hint: '', helpUrl: '', icon: 'account-key-outline', path: 'api/auth/local/login' },
+      { id: 'ldap', title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as your email.', icon: 'card-account-details-outline', path: 'api/auth/ldap/login' },
+      { id: 'local', title: 'MMGIS account', usernameLabel: 'Username', hint: '', icon: 'account-key-outline', path: 'api/auth/local/login' },
     ]);
     expect(providers.loginForms(['local', 'ldap']).map((f) => f.id)).toEqual(['local', 'ldap']);
     expect(providers.loginLinks(['ldap', 'local'])).toEqual([]);
@@ -327,16 +326,16 @@ test.describe('login forms', () => {
     expect(configure[1].hint).toMatch(/admin role/);
   });
 
-  test('wording from a provider is sanitized: non-http help links and bad icons are dropped', () => {
+  test('wording from a provider is sanitized: blank labels fall back and bad icons are dropped', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-auth-'));
     try {
       writePlugin(root, 'core', 'Form', { ...coreManifest('form'), display_name: 'Form Dir', login_path: '/login', login_form: true, login_icon: 'bad icon"' },
-        'module.exports = { loginForm: () => ({ helpUrl: "javascript:alert(1)", usernameLabel: "  " }) };');
+        'module.exports = { loginForm: () => ({ usernameLabel: "  " }) };');
       writePlugin(root, 'core', 'Throws', { ...coreManifest('throws'), login_path: '/login', login_form: true }, 'module.exports = { loginForm: () => { throw new Error("x") } };');
       providers.loadProviders(root);
       expect(providers.loginForms(['form', 'throws'])).toEqual([
-        { id: 'form', title: 'Form Dir', usernameLabel: 'Username', hint: '', helpUrl: '', icon: 'account-outline', path: 'api/auth/form/login' },
-        { id: 'throws', title: 'Throws', usernameLabel: 'Username', hint: '', helpUrl: '', icon: 'account-outline', path: 'api/auth/throws/login' },
+        { id: 'form', title: 'Form Dir', usernameLabel: 'Username', hint: '', icon: 'account-outline', path: 'api/auth/form/login' },
+        { id: 'throws', title: 'Throws', usernameLabel: 'Username', hint: '', icon: 'account-outline', path: 'api/auth/throws/login' },
       ]);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });

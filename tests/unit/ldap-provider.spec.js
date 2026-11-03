@@ -145,14 +145,13 @@ test.describe('LDAP settings', () => {
     expect(problems({ LDAP_URL: 'ldaps://x', LDAP_USER_DN_TEMPLATE: '{{username}}@corp' })).toMatch(/isn't a DN/);
     expect(problems({ ...base, LDAP_BIND_PASSWORD: '' })).toMatch(/LDAP_BIND_PASSWORD is empty/);
     expect(problems({ ...base, LDAP_TLS_CA: '/no/such/ca.pem' })).toMatch(/LDAP_TLS_CA/);
-    expect(problems({ ...base, LDAP_PASSWORD_HELP_URL: 'javascript:alert(1)' })).toMatch(/http\(s\)/);
     expect(problems({ ...base, LDAP_TIMEOUT_MS: 'soon' })).toMatch(/LDAP_TIMEOUT_MS/);
     expect(problems({ ...base, LDAP_GROUP_SEARCH_BASE: 'ou=g', LDAP_GROUP_SEARCH_FILTER: '(member=x)' })).toMatch(/LDAP_GROUP_SEARCH_FILTER/);
   });
 
   test('the login form wording comes from the site settings', () => {
-    expect(ldap.loginForm({})).toEqual({ title: 'LDAP', usernameLabel: 'Username', hint: '', helpUrl: '' });
-    expect(ldap.loginForm({ LDAP_DISPLAY_NAME: 'JPL Directory', LDAP_USERNAME_LABEL: 'JPL username', LDAP_LOGIN_HINT: 'Same as email.', LDAP_PASSWORD_HELP_URL: 'https://pw.example.org' })) // pragma: allowlist secret
-      .toEqual({ title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as email.', helpUrl: 'https://pw.example.org' });
+    expect(ldap.loginForm({})).toEqual({ title: 'LDAP', usernameLabel: 'Username', hint: '' });
+    expect(ldap.loginForm({ LDAP_DISPLAY_NAME: 'JPL Directory', LDAP_USERNAME_LABEL: 'JPL username', LDAP_LOGIN_HINT: 'Same as email.' })) // pragma: allowlist secret
+      .toEqual({ title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as email.' });
   });
 });

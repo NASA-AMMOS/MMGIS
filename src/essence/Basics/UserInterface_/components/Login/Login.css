@@ -370,17 +370,3 @@
     font-size: 12.5px;
     line-height: 1.35;
 }
-#loginModalHelp {
-    align-items: center;
-    justify-content: flex-end;
-    gap: 4px;
-    margin: 0 0 10px;
-    color: #7fd3f5;
-    font-size: 13px;
-    text-decoration: none;
-}
-#loginModalHelp:hover,
-#loginModalHelp:focus-visible {
-    text-decoration: underline;
-    outline: none;
-}

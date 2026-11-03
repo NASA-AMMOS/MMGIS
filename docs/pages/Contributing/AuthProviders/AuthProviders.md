@@ -91,7 +91,7 @@ module.exports = {
   // Problems logged at startup, as strings.
   warnings(env) { return []; },
   // Login form providers: the form's wording, usually from your ENVs. Every field is optional.
-  loginForm(env) { return { title, usernameLabel, hint, helpUrl }; },
+  loginForm(env) { return { title, usernameLabel, hint }; },
 };
 ```
 
@@ -145,7 +145,7 @@ There's no database handle or config object; read settings from `process.env`.
 A provider whose `plugin.json` sets `"login_form": true` and a `login_path` shares MMGIS's username/password form on the login page, Configure sign-in and the in-app modal; it doesn't serve a login page of its own.
 
 - **Layout.** With one form provider that isn't `local`, the form shows a "Sign in with <title>" banner. With several (for example `ldap` and `local`), it shows a switch; the first in `AUTH_PROVIDERS` is the default and the browser remembers the last choice. The password is only sent to the selected provider. With `AUTH_LOCAL_LOGIN=admins`, `local` is only offered at Configure sign-in.
-- **Wording.** `loginForm(env)` returns `title` (the tab and banner name, default `display_name`), `usernameLabel` (default `Username`), `hint` (shown with the form) and `helpUrl` (an http(s) page, linked as "Reset your <title> password"). Read them from `<PROVIDERID>_*` ENVs so each site can name the provider its own way. `GET /api/auth` returns them as `loginForms`.
+- **Wording.** `loginForm(env)` returns `title` (the tab and banner name, default `display_name`), `usernameLabel` (default `Username`), and `hint` (shown with the form). Read them from `<PROVIDERID>_*` ENVs so each site can name the provider its own way. `GET /api/auth` returns them as `loginForms`.
 - **Request.** The form sends `POST /api/auth/<id><login_path>` with a JSON body `{ "username", "password" }`.
 - **Response.** On success call `ctx.completeLogin` and answer `{ "status": "success", "username", "provider": "<id>" }`; the page then reloads (login page, Configure) or the modal closes. On failure answer `{ "status": "failure", "message" }` with `400` (missing input), `401` (wrong credentials; counts towards the rate limit), `409` (`ctx.LinkError`) or `503` (the backend is unreachable). The message is shown as is, so name the provider in it.
 

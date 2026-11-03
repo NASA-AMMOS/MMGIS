@@ -13,7 +13,6 @@ const LoginForms = (function () {
     title: b.dataset.title,
     label: b.dataset.label,
     hint: b.dataset.hint,
-    help: b.dataset.help,
     path: b.dataset.path,
   });
 
@@ -33,14 +32,6 @@ const LoginForms = (function () {
     if (hint) {
       hint.textContent = all.length > 1 ? active.hint || "" : "";
       hint.style.display = hint.textContent ? "block" : "none";
-    }
-    const help = document.getElementById("loginHelp");
-    if (help) {
-      if (active.help) {
-        help.href = active.help;
-        document.getElementById("loginHelpText").textContent = `Reset your ${active.title} password`;
-        help.style.display = "flex";
-      } else help.style.display = "none";
     }
     if (remember) {
       try {
