@@ -327,15 +327,7 @@ var Login = {
             Login.provider && Login.providerTitle
                 ? `${Login.username} · signed in with ${Login.providerTitle}`
                 : Login.username
-        if (window._tippyLoginUser && window._tippyLoginUser[0])
-            window._tippyLoginUser[0].setContent(content)
-        else
-            window._tippyLoginUser = tippy('#loginUser', {
-                content: content,
-                placement: 'bottom-end',
-                theme: 'blue',
-                allowHTML: false,
-            })
+        $('#loginUser').attr('title', content)
     },
     // GET /api/auth once: the login forms, login buttons and provider names
     fetchAuth: function (done) {
