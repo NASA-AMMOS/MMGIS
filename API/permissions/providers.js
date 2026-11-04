@@ -207,8 +207,9 @@ const reservedUsername = (name) => {
   return n === "group" || n === "guest" || n.startsWith("~deleted~");
 };
 
-// Usernames are shown in pages (e.g. Draw's "by <owner>"); markup characters there would be script
-const unsafeUsername = (name) => /[\u0000-\u001f\u007f<>"`\\]/.test(String(name));
+// Usernames are shown in pages (e.g. Draw's "by <owner>"); markup characters there would be script.
+// Draw's shared-editor lists are comma-separated, so "smith, john" would make "smith" and "john" editors
+const unsafeUsername = (name) => /[\u0000-\u001f\u007f<>"`\\,]/.test(String(name));
 
 class LinkError extends Error {
   constructor(message, userMessage) {
@@ -677,7 +678,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       if (m.AuthMeta && (await m.AuthMeta.destroy({ where: { key: relinkKey(identity.provider, user.id) } })) > 0)
         logger("info", `Auth provider '${identity.provider}': ${user.username} signed in with its existing link, so its pending relink was dropped.`, "AuthProviders");
       // Drawings and other content are keyed by username, so a rename at the provider isn't copied
-      if (identity.username !== user.username)
+      if (link.username !== identity.username && identity.username !== user.username)
         logger(
           "info",
           `Auth provider '${identity.provider}' now calls account ${user.id} '${identity.username}'; it keeps its MMGIS username '${user.username}'.`,
@@ -756,7 +757,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
   if (reservedUsername(identity.username))
     throw new LinkError(`The username '${identity.username}' is reserved in MMGIS.`);
   if (unsafeUsername(identity.username))
-    throw new LinkError(`The username ${JSON.stringify(identity.username)} contains < > " \` \\ or control characters, which MMGIS usernames can't.`);
+    throw new LinkError(`The username ${JSON.stringify(identity.username)} contains a comma, < > " \` \\ or control characters, which MMGIS usernames can't (if LDAP_USERNAME_ATTRIBUTE is e.g. cn, use uid or sAMAccountName).`);
   const taken = m.usernameTaken
     ? await m.usernameTaken(identity.username)
     : await m.User.findOne({ where: { username: identity.username }, attributes: ["id"], raw: true });
@@ -896,7 +897,11 @@ const groupsUnreadLogged = new Set();
 const providerDown = new Map();
 // A connection or TLS failure or a timeout, not an error about one person's entry
 const unreachable = (err) =>
-  !!err && (/^(ETIMEDOUT|ECONN|EHOST|ENET|ENOTFOUND|EAI_|EPIPE|ERR_TLS|CERT_|UNABLE_TO_|DEPTH_ZERO|SELF_SIGNED)/.test(String(err.code || "")) || /connection|socket|timed? ?out/i.test(String(err.message || "")));
+  !!err &&
+  (/^(ETIMEDOUT|ECONN|EHOST|ENET|ENOTFOUND|EAI_|EPIPE|ERR_TLS|CERT_|UNABLE_TO_|DEPTH_ZERO|SELF_SIGNED|UND_ERR_CONNECT)/.test(String(err.code || "")) ||
+    /connection|socket|timed? ?out/i.test(String(err.message || "")) ||
+    // e.g. fetch's "fetch failed", with the network error as its cause
+    (!!err.cause && err.cause !== err && unreachable(err.cause)));
 const downNow = (providerId, ms) => Date.now() - (providerDown.get(providerId) || -Infinity) < ms;
 
 // Re-reads a provider-linked account through the provider's lookup(subject) at most every

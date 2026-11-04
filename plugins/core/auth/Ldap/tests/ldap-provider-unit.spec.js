@@ -260,6 +260,39 @@ test.describe('LDAP login', () => {
     }
   });
 
+  test("a service account that isn't an entry (OpenLDAP's rootDN) is looked up once and doesn't block people sharing its name", async () => {
+    serviceNames.clear();
+    const svc = { ...alice, dn: 'uid=svc,ou=people,dc=example,dc=org', entry: { ...alice.entry, dn: 'uid=svc,ou=people,dc=example,dc=org', uid: 'svc', entryUUID: 's2' } };
+    const log = [];
+    const inner = fakeClient([svc], log);
+    const client = () => {
+      const cl = inner();
+      const search = cl.search;
+      cl.search = async (b, opts) => {
+        if (opts.scope === 'base' && b === base.LDAP_BIND_DN) {
+          log.push(`search ${b} base`);
+          throw new NoSuchObjectError('No such object');
+        }
+        return search(b, opts);
+      };
+      return cl;
+    };
+    const why = [];
+    for (let i = 0; i < 2; i++) expect(await authenticate('svc', 'right', config(base), client, (r) => why.push(r))).toMatchObject({ username: 'svc' });
+    expect(why).toEqual([]);
+    expect(log.filter((l) => l === `search ${base.LDAP_BIND_DN} base`)).toHaveLength(1);
+    expect(await authenticate('svc', 'guess', config({ ...base, LDAP_USER_DN_TEMPLATE: 'cn={{username}},dc=example,dc=org' }), client, (r) => why.push(r))).toBeNull();
+    expect(why[0]).toMatch(/is, or shares its name with, LDAP_BIND_DN/);
+  });
+
+  test('an empty password is refused without asking the directory', async () => {
+    const log = [];
+    const why = [];
+    expect(await authenticate('alice', '', config(base), fakeClient([alice], log), (r) => why.push(r))).toBeNull();
+    expect(why).toEqual(['no password was given']);
+    expect(log).toEqual([]);
+  });
+
   test("while the service account's other names can't be read, names sharing its stem are refused", async () => {
     serviceNames.clear();
     const log = [];

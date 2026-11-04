@@ -196,7 +196,7 @@ router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login an
     return;
   }
   if (providers.unsafeUsername(req.body.username)) {
-    res.send({ status: "failure", message: "Usernames can't contain < > \" ` \\ or control characters." });
+    res.send({ status: "failure", message: "Usernames can't contain commas, < > \" ` \\ or control characters." });
     return;
   }
 

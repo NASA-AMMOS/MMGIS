@@ -292,7 +292,7 @@ Report groups found under `LDAP_GROUP_SEARCH_BASE` by this attribute (e.g. `cn`)
 
 #### `LDAP_TIMEOUT_MS=`
 
-How long to wait for the directory to connect and for each operation before the login fails with "unavailable". A recheck between logins may take up to 5 times this; a person's request waits at most 5 s for it, and a slower one applies once it ends | number | default `5000`
+How long to wait for the directory to connect and for each operation before the login fails with "unavailable". A recheck between logins may take up to 5 times this; a person's request waits at most 5 s for it (1 s while the directory has just been found unreachable), and a slower one applies once it ends | number | default `5000`
 
 #### `LDAP_DISPLAY_NAME=`
 

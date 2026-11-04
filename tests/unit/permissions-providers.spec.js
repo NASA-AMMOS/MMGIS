@@ -366,9 +366,9 @@ test.describe('account linking', () => {
     expect(providers.unsafeUsername('alice')).toBe(false);
   });
 
-  test('never creates an account whose username has markup or control characters', async () => {
+  test('never creates an account whose username has markup, commas (Draw editor lists) or control characters', async () => {
     const m = fakeModels();
-    for (const username of ['evil<img src=x onerror=alert(1)>', 'a"b', 'a`b', 'a\nb'])
+    for (const username of ['evil<img src=x onerror=alert(1)>', 'a"b', 'a`b', 'a\nb', 'smith, john'])
       await expect(providers.linkIdentity(identity({ subject: `s-${username}`, username }), m)).rejects.toThrow(/can't/);
     expect(m.User.rows).toHaveLength(0);
   });

@@ -371,6 +371,11 @@ async function learnServiceNames(client, c) {
       entries = (await client.search(base, { scope: "sub", filter, attributes, sizeLimit: 2 })).searchEntries;
     }
   } catch (err) {
+    // e.g. OpenLDAP's rootDN (cn=admin,…), which isn't an entry: it has no other names
+    if (isDn(c.bindDn) && err instanceof NoSuchObjectError) {
+      serviceNames.set(key, { names: new Set([normalizeDn(c.bindDn)]), sams: new Set() });
+      return;
+    }
     // Tried again at the next sign-in; until then names sharing its stem are refused
     return `couldn't read the service account's own entry (${explain(err)}), so until it can, MMGIS refuses sign-ins under names like LDAP_BIND_DN`;
   }
@@ -466,6 +471,8 @@ async function authenticate(username, password, c = config(), createClient = new
     refused(reason);
     return null;
   };
+  // Some directories take a bind with no password as an anonymous one that succeeds
+  if (!password) return refuse("no password was given");
   // Wrong passwords sent to it could lock the account every search and recheck needs
   const serviceAccount = (name) =>
     isServiceAccount(c, name) ? `${name} is, or shares its name with, LDAP_BIND_DN, the service account, which can't sign in to MMGIS (its password isn't tried)` : null;
@@ -784,7 +791,10 @@ async function selfCheck(c = config(), createClient = newClient) {
 }
 
 const validUsername = (u) =>
-  typeof u === "string" && u.trim() !== "" && u.length <= MAX_USERNAME && !/[\u0000-\u001f\u007f]/.test(u);
+  typeof u === "string" && u.trim() !== "" && u.length <= MAX_USERNAME && !/[\u0000-\u001f\u007f]/.test(u.trim());
+
+// e.g. someone in hundreds of AD groups, on one log line at every sign-in
+const shortList = (items, max = 20) => items.slice(0, max).join(" | ") + (items.length > max ? ` | … ${items.length - max} more` : "");
 
 ////// Startup checks
 
@@ -929,7 +939,7 @@ module.exports = {
         const user = await ctx.completeLogin(req, identity);
         ctx.logger(
           "info",
-          `${user.username} logged in with LDAP. Directory groups: ${identity.groups.length ? identity.groups.join(" | ") : "none"}.${
+          `${user.username} logged in with LDAP. Directory groups: ${identity.groups.length ? shortList(identity.groups) : "none"}.${
             identity.groupsLeftOut && identity.groupsLeftOut.length
               ? ` Left out, having no ${config().groupNameAttribute} (LDAP_GROUP_NAME_ATTRIBUTE): ${identity.groupsLeftOut.join(" | ")}.`
               : ""

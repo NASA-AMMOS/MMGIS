@@ -448,6 +448,7 @@ var Login = {
         // A directory that doesn't answer takes up to LDAP_TIMEOUT_MS
         const button = $('#loginSubmit')
         if (button.prop('disabled')) return
+        const label = button.val()
         button.prop('disabled', true).val('Signing in…')
         $.ajax({
             type: 'POST',
@@ -455,7 +456,7 @@ var Login = {
             contentType: 'application/json',
             data: JSON.stringify({ username: values.username, password: values.password }),
             xhrFields: { withCredentials: true },
-            complete: () => button.prop('disabled', false).val('Log In'),
+            complete: () => button.prop('disabled', false).val(label),
             success: (d) => {
                 if (d && d.status === 'success') {
                     Login.username = d.username
