@@ -189,10 +189,24 @@ async function identify(req) {
 const reservedUsername = (name) => String(name).normalize("NFKC").trim().toLowerCase() === "group";
 
 class LinkError extends Error {
-  constructor(message) {
+  constructor(message, userMessage) {
     super(message);
-    this.userMessage = "This sign-in can't be used with MMGIS yet. Ask an administrator.";
+    // The same for every refusal, so it doesn't reveal which usernames have accounts
+    this.userMessage =
+      userMessage ||
+      (siteAccess.localAdminsOnly()
+        ? "This sign-in can't be used with MMGIS yet. Ask an administrator."
+        : "This sign-in can't be used with MMGIS yet. Ask an administrator, and if you also have an MMGIS account, keep signing in with it for now.");
   }
+}
+
+// "account 3 'sci01'", so log lines name the person the way Users & Access does
+async function who(m, userId) {
+  const u =
+    m.User && typeof m.User.findOne === "function"
+      ? await m.User.findOne({ where: { id: userId }, attributes: ["username"], raw: true }).catch(() => null)
+      : null;
+  return u && u.username ? `account ${userId} '${u.username}'` : `account ${userId}`;
 }
 
 function accountModels() {
@@ -412,10 +426,17 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     const holder = taken.id != null && m.AuthIdentity.findOne
       ? await m.AuthIdentity.findOne({ where: { user_id: taken.id, provider: identity.provider }, raw: true })
       : null;
+    if (holder)
+      throw new LinkError(
+        `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}' (renamed there). Don't relink it to this entry; this person can't sign in while that account holds the name.`
+      );
+    const adminsOnly = siteAccess.localAdminsOnly();
     throw new LinkError(
-      holder
-        ? `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}' (renamed there). Don't relink it to this entry; this person can't sign in while that account holds the name.`
-        : `The username '${identity.username}' already belongs to account ${taken.id}, which doesn't sign in with ${identity.provider} yet. If it is this person's, allow a ${identity.provider} relink on account ${taken.id}; until then they can keep using its MMGIS password.`
+      `The username '${identity.username}' already belongs to account ${taken.id}, which doesn't sign in with ${identity.provider} yet. If it is this person's, allow a ${identity.provider} relink on account ${taken.id}${
+        adminsOnly
+          ? `. AUTH_LOCAL_LOGIN=admins stops it signing in with its MMGIS password meanwhile, unless it holds an admin role.`
+          : `; until then they can keep using its MMGIS password.`
+      }`
     );
   }
   // Random password: the account can only be used through its provider
@@ -463,7 +484,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
 async function syncGroups(userId, identity, m = accountModels()) {
   const groups = await m.AuthGroup.findAll({
     where: { source: identity.provider },
-    attributes: ["id", "external_name"],
+    attributes: ["id", "name", "external_name"],
     raw: true,
   });
   if (groups.length === 0) return false;
@@ -482,10 +503,14 @@ async function syncGroups(userId, identity, m = accountModels()) {
   const add = [...want].filter((id) => !have.has(id));
   // So a group renamed or moved in the directory, which silently stops matching, shows up in the log
   if (remove.length > 0 || add.length > 0) {
-    const names = (ids) => ids.map((id) => `'${groups.find((g) => g.id === id).external_name}'`).join(", ");
+    const names = (ids) =>
+      ids
+        .map((id) => groups.find((g) => g.id === id))
+        .map((g) => `'${g.external_name}'${g.name ? ` (MMGIS group '${g.name}')` : ""}`)
+        .join(", ");
     logger(
       "info",
-      `Auth provider '${identity.provider}': account ${userId}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}. Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.`,
+      `Auth provider '${identity.provider}': ${await who(m, userId)}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}. Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.`,
       "AuthProviders"
     );
   }
@@ -531,7 +556,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     try {
       found = await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS);
     } catch (err) {
-      logger("warn", `Auth provider '${providerId}': couldn't recheck account ${userId}; it keeps its access until the next check.`, "AuthProviders", null, err);
+      logger("warn", `Auth provider '${providerId}': couldn't recheck ${await who(m, userId)}; it keeps its access until the next check.`, "AuthProviders", null, err);
       return "failed";
     }
     // e.g. LDAP without a service account: nothing can be read between logins
@@ -545,11 +570,11 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     // So People shows a rename before the person's next login, and a newcomer with the old name isn't mistaken for them
     if (identity && identity.username && identity.username !== now.username) {
       await m.AuthIdentity.update({ username: identity.username }, { where: { user_id: userId, provider: providerId, subject: link.subject } });
-      logger("info", `Auth provider '${providerId}': account ${userId} is now '${identity.username}' there (was '${now.username}').`, "AuthProviders");
+      logger("info", `Auth provider '${providerId}': ${await who(m, userId)} is now '${identity.username}' there (was '${now.username}').`, "AuthProviders");
     }
     if (changed || !identity) require("./principal").invalidate();
     if (!identity)
-      logger("info", `Auth provider '${providerId}' no longer has account ${userId} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
+      logger("info", `Auth provider '${providerId}' no longer has ${await who(m, userId)} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
     return identity ? "ok" : "missing";
   })().catch((err) => {
     rechecks.delete(key);
