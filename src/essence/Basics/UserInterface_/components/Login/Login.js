@@ -433,7 +433,11 @@ var Login = {
     showError: function (message, status) {
         const text =
             (Login.loginForms || []).length > 1 && (!status || status === 401)
-                ? `${message} Using a different account type? Choose it above.`
+                ? `${message} ${
+                      !Login.activeForm || Login.activeForm.id === 'local'
+                          ? 'If your account was moved to another sign-in, choose it above.'
+                          : 'If you sign in with an MMGIS password, choose MMGIS account above; otherwise ask an administrator.'
+                  }`
                 : message
         $('#loginErrorMessage').stop(true).text(text).css('opacity', '1')
     },
@@ -441,12 +445,17 @@ var Login = {
     formProviderLogin: function (values) {
         const root = window.mmgisglobal.ROOT_PATH ? window.mmgisglobal.ROOT_PATH + '/' : ''
         const form = Login.activeForm
+        // A directory that doesn't answer takes up to LDAP_TIMEOUT_MS
+        const button = $('#loginSubmit')
+        if (button.prop('disabled')) return
+        button.prop('disabled', true).val('Signing in…')
         $.ajax({
             type: 'POST',
             url: `${root}${form.path}`,
             contentType: 'application/json',
             data: JSON.stringify({ username: values.username, password: values.password }),
             xhrFields: { withCredentials: true },
+            complete: () => button.prop('disabled', false).val('Log In'),
             success: (d) => {
                 if (d && d.status === 'success') {
                     Login.username = d.username

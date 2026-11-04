@@ -57,7 +57,13 @@ const LoginForms = (function () {
 
   // A wrong password may just be the wrong account type; other failures (status 409, 503) aren't
   const failed = (message, status) =>
-    buttons().length > 1 && (!status || status === 401) ? `${message} Using a different account type? Choose it above.` : message;
+    buttons().length > 1 && (!status || status === 401) ? `${message} ${otherType(active)}` : message;
+
+  // e.g. a relinked person still on the MMGIS account tab, or a renamed one on the directory's
+  function otherType(form) {
+    if (!form || form.id === "local") return "If your account was moved to another sign-in, choose it above.";
+    return `If you sign in with an MMGIS password, choose MMGIS account above; otherwise ask an administrator.`;
+  }
 
   // Shows only the local account form, e.g. while creating the first administrator
   function onlyLocal() {
@@ -70,7 +76,24 @@ const LoginForms = (function () {
   // Local accounts, or no provider switch at all
   const isLocal = () => !active || active.id === "local";
 
-  function submit(username, password, done) {
+  // Shown while a sign-in is running: a directory that doesn't answer takes up to LDAP_TIMEOUT_MS
+  let busy = false;
+  function submit(username, password, done, button) {
+    if (busy) return;
+    busy = true;
+    const label = button ? button.textContent : null;
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Signing in…";
+    }
+    const finish = (message) => {
+      busy = false;
+      if (button) {
+        button.disabled = false;
+        button.textContent = label;
+      }
+      done(message);
+    };
     $.ajax({
       type: "POST",
       url: active.path,
@@ -81,10 +104,10 @@ const LoginForms = (function () {
           remember();
           document.cookie = "MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
           window.location.reload();
-        } else done(failed((data && data.message) || "Login failed."));
+        } else finish(failed((data && data.message) || "Login failed."));
       },
       error: function (xhr) {
-        done(failed((xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.", xhr && xhr.status));
+        finish(failed((xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.", xhr && xhr.status));
       },
     });
   }
@@ -96,6 +119,7 @@ const LoginForms = (function () {
     submit: submit,
     remember: remember,
     failed: failed,
+    otherType: otherType,
     current: () => active,
   };
 })();

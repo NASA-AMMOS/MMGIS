@@ -387,9 +387,26 @@ test.describe('LDAP login provider', () => {
     await expect(page.locator('.loginProvider.active')).toHaveAttribute('data-id', 'ldap');
     await signIn(clash.username, clash.password);
     await expect(page.locator('#msg')).toContainText('Ask an administrator');
-    await expect(page.locator('#msg')).not.toContainText('different account type');
+    await expect(page.locator('#msg')).not.toContainText('choose MMGIS account above');
     await signIn('ldap_nobody_ui', ['wrong', 'pw'].join('-'));
-    await expect(page.locator('#msg')).toContainText('different account type');
+    await expect(page.locator('#msg')).toContainText('choose MMGIS account above');
+  });
+
+  test('the sign-in button says it is signing in until the directory answers', async ({ page }) => {
+    await page.goto(`${baseURL}/configure`);
+    await expect(page.locator('.loginProvider.active')).toHaveAttribute('data-id', 'ldap');
+    await page.route('**/api/auth/ldap/login', async (route) => {
+      await new Promise((r) => setTimeout(r, 1500));
+      await route.continue();
+    });
+    await page.fill('#username', 'ldap_nobody_ui');
+    await page.fill('#pwd', ['wrong', 'pw'].join('-'));
+    await page.click('button.btn1');
+    await expect(page.locator('button.btn1')).toBeDisabled();
+    await expect(page.locator('button.btn1')).toHaveText('Signing in…');
+    await expect(page.locator('#msg')).toContainText('choose MMGIS account above');
+    await expect(page.locator('button.btn1')).toBeEnabled();
+    await expect(page.locator('button.btn1')).toHaveText('Sign in');
   });
 
   test('an admin can let one directory login claim an existing local account', async () => {

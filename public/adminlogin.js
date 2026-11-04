@@ -23,7 +23,8 @@ function login() {
       function (message) {
         document.getElementById("msg").innerText = message;
         document.getElementById("msg").style.opacity = 1;
-      }
+      },
+      document.querySelector("button.btn1")
     );
     return;
   }
