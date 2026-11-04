@@ -320,7 +320,13 @@ async function findClaim(identity, m) {
     if (v.subject ? v.subject !== identity.subject : !sameUsername(v.username, identity.username)) continue;
     // A value that isn't a permanent ID (e.g. cn) may be another entry's too
     const p = getProvider(identity.provider);
-    if (v.subject && v.dn && p && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent() && !(identity.dn && identity.dn.toLowerCase() === v.dn.toLowerCase())) continue;
+    if (v.subject && v.dn && p && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent() && !(identity.dn && identity.dn.toLowerCase() === v.dn.toLowerCase())) {
+      // Refused rather than given a new account, which would then hold the subject the relink is waiting for
+      if (m.AuthMeta.update) await m.AuthMeta.update({ value: { ...v, stale: { dn: identity.dn || null, at: new Date().toISOString() } } }, { where: { key: r.key } });
+      throw new LinkError(
+        `The ${identity.provider} relink for account ${r.key.split(":").pop()} is pinned to ${v.dn}, but '${identity.username}' signs in from ${identity.dn || "another entry"} with the same subject '${identity.subject}', so it may be a different entry. If it's the same person after a rename, allow the relink again.`
+      );
+    }
     return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by, dn: v.dn };
   }
   return null;
@@ -444,9 +450,20 @@ const settingPrefix = (providerId) => `subject_setting:${providerId}:`;
 const SETTING_FRESH_MS = 3 * 60e3;
 let settingBeat = null;
 
+// Heartbeats are timed by the database's clock, so hosts whose clocks differ agree on their age
+let dbClockOffset = 0;
+const dbNow = () => Date.now() + dbClockOffset;
+async function syncDbClock(m) {
+  const db = m.AuthMeta && m.AuthMeta.sequelize;
+  if (!db || typeof db.query !== "function") return;
+  const [row] = await db.query("SELECT NOW() AS now", { type: db.QueryTypes.SELECT }).catch(() => []);
+  if (row && row.now) dbClockOffset = new Date(row.now).getTime() - Date.now();
+}
+
 async function beatSetting(p, m, now) {
+  await syncDbClock(m);
   const key = settingPrefix(p.id) + now;
-  const value = { at: new Date().toISOString() };
+  const value = { at: new Date(dbNow()).toISOString() };
   if (await m.AuthMeta.findOne({ where: { key }, raw: true })) await m.AuthMeta.update({ value }, { where: { key } });
   else await m.AuthMeta.create({ key, value }).catch(() => {});
 }
@@ -493,7 +510,7 @@ async function otherSettings(p, m, fresh = false) {
 async function readOtherSettings(p, m, now, log) {
   const rows = await m.AuthMeta.findAll({ where: { key: { [Op.like]: `${settingPrefix(p.id)}%` } }, raw: true });
   const others = rows
-    .filter((r) => r.key !== settingPrefix(p.id) + now && Date.now() - Date.parse(r.value && r.value.at) < SETTING_FRESH_MS)
+    .filter((r) => r.key !== settingPrefix(p.id) + now && dbNow() - Date.parse(r.value && r.value.at) < SETTING_FRESH_MS)
     .map((r) => r.key.slice(settingPrefix(p.id).length));
   if (others.length && log)
     logger(
@@ -593,7 +610,8 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     // Its value didn't change with the setting (e.g. uid to cn), and an admin pinned this entry to that account again
     const claim = await findClaim(identity, m);
     // A non-unique attribute (e.g. cn) may give another entry the same value, so it must be the entry the admin was shown
-    const shown = claim && claim.dn && identity.dn && claim.dn.toLowerCase() === identity.dn.toLowerCase();
+    // Unpinned (no service account to look it up): it matched the username, whose own password was checked
+    const shown = claim && (!claim.dn || (identity.dn && claim.dn.toLowerCase() === identity.dn.toLowerCase()));
     const claimed = shown && claim.userId === link.user_id ? await claimRelink(identity, m) : null;
     if (claimed) return claimed;
     throw new LinkError(

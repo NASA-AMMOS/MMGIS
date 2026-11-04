@@ -455,17 +455,9 @@ async function authenticate(username, password, c = config(), createClient = new
     const subject = subjectOf(entry, c);
     if (!subject) throw new UnusableEntryError(`${entry.dn} has no ${c.subjectAttribute} (LDAP_SUBJECT_ATTRIBUTE).`);
     // A value that isn't a permanent ID (e.g. cn) may be another entry's too, which would sign in to the same account
-    if (!PERMANENT_SUBJECT.test(c.subjectAttribute) && c.bindDn && c.searchBase) {
-      await bindService(client, c);
-      const shared = await client
-        .search(c.searchBase, { scope: "sub", filter: `(&${subjectFilter(c, subject)}${peopleFilter(c)})`, attributes: ["dn"], sizeLimit: 2 })
-        .then((r) => r.searchEntries.length > 1)
-        .catch((err) => {
-          if (err instanceof SizeLimitExceededError) return true;
-          if (err instanceof NoSuchObjectError) return false;
-          throw err;
-        });
-      if (shared)
+    if (!PERMANENT_SUBJECT.test(c.subjectAttribute) && c.searchBase) {
+      if (c.bindDn) await bindService(client, c);
+      if (await sharedSubject(client, c, subject))
         throw new UnusableEntryError(`${entry.dn} shares its ${c.subjectAttribute} '${subject}' (LDAP_SUBJECT_ATTRIBUTE) with another entry, so MMGIS can't tell them apart; use a permanent ID such as entryUUID.`);
     }
     const name = values(entry, c.usernameAttribute)[0];
@@ -601,6 +593,18 @@ async function locate(subject, c = config(), createClient = newClient) {
 // The entry a username belongs to, read with the service account, so an admin can check who a
 // relink will go to: { subject, dn }, null when no single entry has it, undefined without a
 // service account; throws when the directory can't be reached
+// A value that isn't a permanent ID (e.g. cn) may be another entry's too
+function sharedSubject(client, c, subject) {
+  return client
+    .search(c.searchBase, { scope: "sub", filter: `(&${subjectFilter(c, subject)}${peopleFilter(c)})`, attributes: ["dn"], sizeLimit: 2 })
+    .then((r) => r.searchEntries.length > 1)
+    .catch((err) => {
+      if (err instanceof SizeLimitExceededError) return true;
+      if (err instanceof NoSuchObjectError) return false;
+      throw err;
+    });
+}
+
 async function findSubject(username, c = config(), createClient = newClient) {
   if (!c.bindDn || !c.searchBase) return undefined;
   const client = createClient(c);
@@ -608,7 +612,11 @@ async function findSubject(username, c = config(), createClient = newClient) {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     await bindService(client, c);
     const found = await findUser(client, c, stripDomain(String(username).normalize("NFKC").trim(), c));
-    return found.entry ? { subject: subjectOf(found.entry, c), dn: found.entry.dn } : null;
+    if (!found.entry) return null;
+    const subject = subjectOf(found.entry, c);
+    // Its sign-in would be refused
+    const shared = !!subject && !PERMANENT_SUBJECT.test(c.subjectAttribute) && (await sharedSubject(client, c, subject));
+    return { subject, dn: found.entry.dn, ...(shared ? { shared } : {}) };
   } finally {
     await client.unbind().catch(() => {});
   }
@@ -729,6 +737,10 @@ function validate(env) {
     );
   if (c.searchBase && !/^\(.*\{\{username\}\}.*\)$/.test(c.searchFilter))
     errors.push("LDAP_USER_SEARCH_FILTER must be a parenthesized filter containing {{username}}, e.g. (uid={{username}}).");
+  if (!PERMANENT_SUBJECT.test(c.subjectAttribute) && !c.searchBase)
+    errors.push(
+      `LDAP_SUBJECT_ATTRIBUTE=${c.subjectAttribute} isn't a permanent entry ID, and without LDAP_USER_SEARCH_BASE MMGIS can't check that no other entry shares a person's value, so anyone given it would sign in as them. Use a permanent ID such as entryUUID or objectGUID, or set LDAP_USER_SEARCH_BASE.`
+    );
   if (c.bindDn && !c.bindPassword) errors.push("LDAP_BIND_DN is set but LDAP_BIND_PASSWORD is empty.");
   if (!c.bindDn && c.bindPassword) errors.push("LDAP_BIND_PASSWORD is set but LDAP_BIND_DN is empty.");
   if (c.groupSearchBase && !/\{\{(dn|username)\}\}/.test(c.groupSearchFilter))

@@ -260,7 +260,7 @@ Active Directory NetBIOS domain, e.g. `CORP`. A leading `CORP\` is then removed 
 
 #### `LDAP_SUBJECT_ATTRIBUTE=`
 
-Attribute with a permanent id for the person; MMGIS links accounts by it, so renames and moves keep the same account. Active Directory: `objectGUID`. `dn` uses the DN, which changes on renames. Don't use an attribute that can change, such as `uid`, `sAMAccountName`, `userPrincipalName` or `mail`: when it changes, that person's next sign-in creates a new, empty account, so MMGIS warns at startup about anything but a permanent ID. Changing this setting (e.g. between `entryUUID`/`objectGUID` and `dn`) on a site with LDAP accounts signs them all out and stops their API tokens until each is relinked; startup logs how many, so keep a local SuperAdmin for this | string | default `entryUUID`
+Attribute with a permanent id for the person; MMGIS links accounts by it, so renames and moves keep the same account. Active Directory: `objectGUID`. `dn` uses the DN, which changes on renames. Don't use an attribute that can change, such as `uid`, `sAMAccountName`, `userPrincipalName` or `mail`: when it changes, that person's next sign-in creates a new, empty account, so MMGIS warns at startup about anything but a permanent ID. Anything but a permanent ID also needs `LDAP_USER_SEARCH_BASE`, and a sign-in whose value another entry shares is refused. Changing this setting (e.g. between `entryUUID`/`objectGUID` and `dn`) on a site with LDAP accounts signs them all out and stops their API tokens until each is relinked; startup logs how many, so keep a local SuperAdmin for this | string | default `entryUUID`
 
 #### `LDAP_USERNAME_ATTRIBUTE=`
 

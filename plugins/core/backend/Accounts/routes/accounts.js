@@ -442,6 +442,8 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     // Unpinned, any entry later given this username could claim it
     if (target && !target.subject)
       return fail(`${target.dn || `'${username}'`} has no value for ${provider}'s subject attribute (e.g. LDAP_SUBJECT_ATTRIBUTE), so it can't sign in. Fix the entry or the setting first.`);
+    if (target && target.shared)
+      return fail(`${target.dn} shares its ${provider} subject value '${target.subject}' with another entry, so its sign-in is refused. Remove the duplicate value, or use a permanent ID (e.g. LDAP_SUBJECT_ATTRIBUTE=entryUUID), first.`);
     // The account's own entry still being there (even disabled or in a leavers' OU) means this is someone else
     // A subject stored under another subject setting can't be looked up under this one
     if (target && known && known.subject && known.subject !== target.subject && providers.linkFits(provider, known)) {

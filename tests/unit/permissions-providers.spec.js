@@ -705,12 +705,30 @@ test.describe('provider rechecks', () => {
         });
       const other = pinned();
       const mallory = await providers.linkIdentity({ provider: 'ldap', subject: 'dave', dn: 'uid=mallory,ou=people', username: 'mallory', groups: [] }, other).catch((e) => e);
-      expect(mallory && mallory.id).not.toBe(9070);
+      expect(mallory).toBeInstanceOf(providers.LinkError);
+      expect(other.User.rows).toHaveLength(1);
       expect(other.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9070')).toBe(true);
       expect((await providers.linkIdentity({ provider: 'ldap', subject: 'dave', dn: 'UID=dave,ou=people', username: 'dave', groups: [] }, pinned())).id).toBe(9070);
     } finally {
       ldap.subjectSetting = realSetting;
       ldap.subjectPermanent = realPermanent;
+    }
+  });
+
+  test('without a service account, an unpinned relink lets an account linked under another subject setting sign in again', async () => {
+    const realSetting = ldap.subjectSetting;
+    try {
+      ldap.subjectSetting = () => 'cn';
+      const expires_at = new Date(Date.now() + 3600e3).toISOString();
+      const m = fakeModels({
+        users: [{ id: 9080, username: 'carol' }],
+        links: [{ provider: 'ldap', subject: 'carol', subject_setting: 'uid', username: 'carol', user_id: 9080 }],
+        meta: [{ key: 'relink:ldap:9080', value: { username: 'carol', expires_at } }],
+      });
+      expect((await providers.linkIdentity({ provider: 'ldap', subject: 'carol', dn: 'uid=carol,ou=people', username: 'carol', groups: [] }, m)).id).toBe(9080);
+      expect(m.AuthIdentity.rows[0].subject_setting).toBe('cn');
+    } finally {
+      ldap.subjectSetting = realSetting;
     }
   });
 

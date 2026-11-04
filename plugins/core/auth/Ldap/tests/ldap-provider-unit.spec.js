@@ -342,6 +342,9 @@ test.describe('LDAP settings', () => {
   test('a valid search or direct-bind setup has no problems', () => {
     expect(ldap.validate(base)).toEqual([]);
     expect(ldap.validate({ LDAP_URL: 'ldap://x:389', LDAP_STARTTLS: 'true', LDAP_USER_DN_TEMPLATE: 'uid={{username}},dc=x' })).toEqual([]);
+    // Nothing could check that no other entry shares a person's value
+    expect(problems({ LDAP_URL: 'ldaps://x:636', LDAP_USER_DN_TEMPLATE: 'uid={{username}},dc=x', LDAP_SUBJECT_ATTRIBUTE: 'mail' })).toMatch(/isn't a permanent entry ID, and without LDAP_USER_SEARCH_BASE/);
+    expect(ldap.validate({ LDAP_URL: 'ldaps://x:636', LDAP_USER_DN_TEMPLATE: 'uid={{username}},dc=x', LDAP_SUBJECT_ATTRIBUTE: 'dn' })).toEqual([]);
   });
 
   test('passwords never cross the network unencrypted unless explicitly allowed', () => {
