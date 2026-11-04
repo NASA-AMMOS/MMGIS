@@ -14,23 +14,23 @@ include mixins/loginForms.pug
 - const forms = LOGIN_FORMS || []
 body.mmgisScrollbar
   #backIcon.mdi.mdi-keyboard-backspace.mdi-18px
+  if SIGNED_IN_AS != null
+    .notAdmin(role='status')
+      .notAdminBody
+        i.mdi.mdi-shield-alert-outline(aria-hidden='true')
+        div
+          .notAdminTitle Signed in as #[b= SIGNED_IN_AS]
+          .notAdminText This account can't manage anything in Configure. Sign in below with an administrator account.
+      .notAdminActions
+        a.notAdminMap(href=(ROOT_PATH || '/'))
+          i.mdi.mdi-map-outline(aria-hidden='true')
+          | Go to the map
+        button.notAdminSignOut(type='button' onClick='signOut()')
+          i.mdi.mdi-logout(aria-hidden='true')
+          | Sign out
   .container
     #setup
       | SETUP
-    if SIGNED_IN_AS != null
-      .notAdmin(role='status')
-        .notAdminBody
-          i.mdi.mdi-shield-alert-outline(aria-hidden='true')
-          div
-            .notAdminTitle Signed in as #[b= SIGNED_IN_AS]
-            .notAdminText This account can't manage anything in Configure. Sign in below with an administrator account.
-        .notAdminActions
-          a.notAdminMap(href=(ROOT_PATH || '/'))
-            i.mdi.mdi-map-outline(aria-hidden='true')
-            | Go to the map
-          button.notAdminSignOut(type='button' onClick='signOut()')
-            i.mdi.mdi-logout(aria-hidden='true')
-            | Sign out
     img(src=ROOT_PATH + 'public/images/logos/mmgis.png' alt='MMGIS' onClick='back()')
     span#msg.error(role='alert' aria-live='assertive')
     form.box(name='form1')

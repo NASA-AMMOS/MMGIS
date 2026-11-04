@@ -5,13 +5,22 @@ html {
   margin: 0;
 }
 
+/* Centers the banner and card together, and scrolls instead of clipping when they don't fit */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24px 0;
+}
+
 .container {
   margin: 0;
-  top: 50%;
-  left: 50%;
-  position: absolute;
+  position: relative;
+  flex: none;
   text-align: center;
-  transform: translateX(-50%) translateY(-50%);
   background-color: #1c1c1c;
   border-top: 4px solid #08aeea;
   border-radius: 10px;
@@ -220,11 +229,10 @@ img {
 }
 
 .notAdmin {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 20px);
-  transform: translateX(-50%);
+  flex: none;
   width: 400px;
+  max-width: 100%;
+  margin-bottom: 20px;
   box-sizing: border-box;
   overflow: hidden;
   background: #2a2213;
