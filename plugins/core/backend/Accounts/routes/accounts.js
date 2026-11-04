@@ -374,28 +374,6 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     ).map((b) => parseInt(b.subject_id));
     if (superAdmins.includes(id) && !policy.isSuperAdmin(actor))
       return fail("Only SuperAdmins may allow relinking a SuperAdmin account.");
-    // Keep a SuperAdmin who signs in with an MMGIS password, for when the provider is down
-    if (superAdmins.includes(id)) {
-      const linked = new Set(
-        (await AuthIdentity.findAll({ where: { user_id: superAdmins }, attributes: ["user_id"], raw: true })).map((l) => l.user_id)
-      );
-      // Another SuperAdmin's pending relink counts as linked, so two relinks can't move every one
-      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
-        const u = parseInt(r.key.split(":").pop(), 10);
-        if (u !== id && r.value && Date.parse(r.value.expires_at) > Date.now()) linked.add(u);
-      }
-      const local = superAdmins.filter((u) => !linked.has(u));
-      if (local.length === 1 && local[0] === id)
-        return fail("This is the only SuperAdmin that signs in with an MMGIS password. Make another one first, so someone can still sign in if the login provider is down.");
-    }
-    for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: `relink:${provider}:%` } }, raw: true }))
-      if (
-        r.key !== key &&
-        r.value &&
-        Date.parse(r.value.expires_at) > Date.now() &&
-        providers.sameUsername(r.value.username, username)
-      )
-        return fail(`Another account is already waiting for the ${provider} login '${username}'. Cancel that relink first.`);
     // Pin the claim to the entry that has this username now, so a look-alike entry made later can't take it
     let target;
     try {
@@ -405,25 +383,44 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       return fail(`Couldn't reach ${provider} to look up '${username}'. Try again later.`);
     }
     if (target === null) return fail(`${provider} has no single entry with the username '${username}'.`);
-    // A login of an entry already linked elsewhere goes to that account, so this claim would never happen
-    if (target) {
-      const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true });
-      if (other && other.user_id === id)
-        return fail(`'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`);
-      if (other) {
-        const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true });
-        return fail(`${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`);
-      }
-    }
-    if (target)
-      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: `relink:${provider}:%` } }, raw: true }))
-        if (r.key !== key && r.value && r.value.subject === target.subject && Date.parse(r.value.expires_at) > Date.now())
-          return fail(`Another account is already waiting for ${target.dn}. Cancel that relink first.`);
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
-    await AuthMeta.upsert({
-      key,
-      value: { username, subject: target ? target.subject : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username },
+    // Checked and saved under the SuperAdmin lock, so two relinks allowed at once can't move every local SuperAdmin
+    const refusal = await bindings.withSuperAdminLock(async ({ transaction, superAdmins: current }) => {
+      const pending = (await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true, transaction })).filter(
+        (r) => r.key !== key && r.value && Date.parse(r.value.expires_at) > Date.now()
+      );
+      // Keep a SuperAdmin who signs in with an MMGIS password, for when the provider is down
+      if (current.includes(id)) {
+        const linked = new Set(
+          (await AuthIdentity.findAll({ where: { user_id: current }, attributes: ["user_id"], raw: true, transaction })).map((l) => l.user_id)
+        );
+        // Another SuperAdmin's pending relink counts as linked, so two relinks can't move every one
+        for (const r of pending) linked.add(parseInt(r.key.split(":").pop(), 10));
+        const local = current.filter((u) => !linked.has(u));
+        if (local.length === 1 && local[0] === id)
+          return "This is the only SuperAdmin that signs in with an MMGIS password. Make another one first, so someone can still sign in if the login provider is down.";
+      }
+      const sameProvider = pending.filter((r) => r.key.startsWith(`relink:${provider}:`));
+      if (sameProvider.some((r) => providers.sameUsername(r.value.username, username)))
+        return `Another account is already waiting for the ${provider} login '${username}'. Cancel that relink first.`;
+      // A login of an entry already linked elsewhere goes to that account, so this claim would never happen
+      if (target) {
+        const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true, transaction });
+        if (other && other.user_id === id) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;
+        if (other) {
+          const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
+          return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`;
+        }
+        if (sameProvider.some((r) => r.value.subject === target.subject))
+          return `Another account is already waiting for ${target.dn}. Cancel that relink first.`;
+      }
+      await AuthMeta.upsert(
+        { key, value: { username, subject: target ? target.subject : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username } },
+        { transaction }
+      );
+      return null;
     });
+    if (refusal) return fail(refusal);
     // Attempts refused before the admin got to this account no longer block the person
     resetFailedLogins(username);
     resetFailedLogins(user.username);

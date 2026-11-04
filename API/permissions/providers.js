@@ -490,7 +490,16 @@ function stillLinked(userId, providerId, m, force = false) {
   if ((ms === 0 && !force) || !p || typeof p.impl.lookup !== "function") return Promise.resolve(true);
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
-  if (!force && hit && Date.now() - hit.at < ms) return hit.result;
+  if (!force && hit && Date.now() - hit.at < ms) {
+    if (!hit.missing) return hit.result;
+    // Another process may have signed the person in again (a relink or a restored entry) since
+    return (async () => {
+      m = m || accountModels();
+      const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
+      const since = link && link.last_login_at ? new Date(link.last_login_at).getTime() : 0;
+      return since > hit.at ? stillLinked(userId, providerId, m, true) : false;
+    })();
+  }
   const result = (async () => {
     m = m || accountModels();
     const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
@@ -522,7 +531,9 @@ function stillLinked(userId, providerId, m, force = false) {
     rechecks.delete(key);
     throw err;
   });
-  rechecks.set(key, { at: Date.now(), result });
+  const entry = { at: Date.now(), result };
+  rechecks.set(key, entry);
+  result.then((ok) => (entry.missing = !ok), () => {});
   return result;
 }
 

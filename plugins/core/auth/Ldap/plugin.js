@@ -197,6 +197,8 @@ const rejectedServiceAccounts = new Map();
 function explain(err) {
   const msg = String((err && err.message) || err);
   const text = `${(err && err.code) || ""} ${msg}`;
+  if (/CERT_HAS_EXPIRED|CERT_NOT_YET_VALID|certificate has expired|certificate is not yet valid/i.test(text))
+    return `${msg}. The directory's TLS certificate is outside its validity dates; the directory admins need to renew it (changing LDAP_TLS_CA won't help).`;
   if (/CERT|SELF_SIGNED|UNABLE_TO_VERIFY|local issuer|ALTNAME/i.test(text))
     return `${msg}. The directory's TLS certificate isn't trusted: set LDAP_TLS_CA to the CA that signed it, and use the host name on the certificate in LDAP_URL.`;
   if (/ECONNREFUSED/.test(text)) return `${msg}. Nothing answered at LDAP_URL: check the host and port (ldaps:// is usually 636, ldap:// 389).`;

@@ -550,6 +550,16 @@ test.describe('provider rechecks', () => {
     expect(gone.message).toMatch(/allow a relink/);
   });
 
+  test('an account another process found missing is checked again once it has signed in since', async () => {
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'back', user_id: 9030, last_login_at: null }] });
+    ldap.lookup = async () => null;
+    expect(await providers.stillLinked(9030, 'ldap', m)).toBe(false);
+    ldap.lookup = async () => ({ username: 'back', groups: [] });
+    expect(await providers.stillLinked(9030, 'ldap', m)).toBe(false);
+    m.AuthIdentity.rows[0].last_login_at = new Date(Date.now() + 1000);
+    expect(await providers.stillLinked(9030, 'ldap', m)).toBe(true);
+  });
+
   test('a directory that cannot be reached keeps access and groups', async () => {
     const m = models(9001);
     ldap.lookup = async () => { throw new Error('down'); };

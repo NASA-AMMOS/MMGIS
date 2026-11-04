@@ -176,6 +176,7 @@ test.describe('LDAP login', () => {
   test('connection errors say which setting to check', () => {
     expect(explain(Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN' }))).toMatch(/LDAP_TLS_CA/);
     expect(explain(Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:636'), { code: 'ECONNREFUSED' }))).toMatch(/host and port/);
+    expect(explain(Object.assign(new Error('certificate has expired'), { code: 'CERT_HAS_EXPIRED' }))).toMatch(/renew/);
     expect(explain(new NoSuchObjectError('No such object'))).toMatch(/LDAP_USER_SEARCH_BASE/);
   });
 
