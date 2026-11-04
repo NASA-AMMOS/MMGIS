@@ -149,6 +149,10 @@ Whether visitors may create their own local accounts. With `SITE_ACCESS=required
 
 Failed logins allowed for one account per 15 minutes, counted across all addresses and login forms (local and username/password providers such as LDAP). Further attempts for that account are refused until the window passes. With a directory behind MMGIS, keep it below the directory's account lockout threshold, so typos and password guessing are stopped by MMGIS before the directory locks the account. Separately, each address is limited to 10 failed logins per 15 minutes | number | default `5`
 
+#### `AUTH_RECHECK_MINUTES=`
+
+How often MMGIS rereads a provider-linked account (for example LDAP) from its provider while that account has a session or uses an API token. Directory group changes then update the person's roles, and a person deleted or disabled in the directory loses their sessions and tokens, within this many minutes instead of at their next login. If the directory can't be reached, access stays as it was until a later check. LDAP needs `LDAP_BIND_DN` for this; with `LDAP_USER_DN_TEMPLATE` alone, changes apply at the next login. `0` turns rechecking off | number | default `15`
+
 #### `AUTH_LOCAL_LOGIN=`
 
 Which local accounts may log in with a username and password. `all`: any local account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin), for sites such as `AUTH_PROVIDERS=["proxy","local"]` where everyone else logs in through the external provider. `admins` also turns off visitor sign-up, whatever `AUTH_LOCAL_ALLOW_SIGNUP` says. Any other value stops startup | string | default `all`

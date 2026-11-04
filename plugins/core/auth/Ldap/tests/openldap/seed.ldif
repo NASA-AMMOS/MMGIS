@@ -43,3 +43,9 @@ dn: cn=science-team,ou=groups,dc=example,dc=org
 objectClass: groupOfNames
 cn: science-team
 member: uid=ldap_alice,ou=people,dc=example,dc=org
+
+# The recheck test adds and removes ldap_bob here
+dn: cn=recheck-team,ou=groups,dc=example,dc=org
+objectClass: groupOfNames
+cn: recheck-team
+member: uid=test_admin,ou=people,dc=example,dc=org

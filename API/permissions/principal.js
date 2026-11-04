@@ -2,7 +2,7 @@
 // user, a user identified per request by a login provider (e.g. proxy), or a
 // long-term token acting for its creator.
 const crypto = require("crypto");
-const { Op, Sequelize } = require("sequelize");
+const { Op } = require("sequelize");
 const logger = require("../logger");
 const siteAccess = require("./siteAccess");
 const { scopeKey } = require("./policy");
@@ -116,14 +116,7 @@ async function externalPrincipal(identity) {
     const matched =
       groupNames.length > 0
         ? await AuthGroup.findAll({
-            where: {
-              source: provider,
-              [Op.and]: [
-                Sequelize.where(Sequelize.fn("lower", Sequelize.col("external_name")), {
-                  [Op.in]: groupNames.map((g) => String(g).toLowerCase()),
-                }),
-              ],
-            },
+            where: { source: provider, external_name: groupNames },
             attributes: ["id"],
             raw: true,
           })
@@ -226,7 +219,9 @@ async function accountAllowed(p) {
     raw: true,
   });
   if (links.length === 0) return localAccountAllowed(p);
-  return links.some((l) => siteAccess.hasProvider(l.provider));
+  for (const l of links)
+    if (siteAccess.hasProvider(l.provider) && (await require("./providers").stillLinked(p.userId, l.provider))) return true;
+  return false;
 }
 
 async function tokenPrincipal(authorization) {
@@ -234,8 +229,11 @@ async function tokenPrincipal(authorization) {
   if (!raw) return null;
   const row = await findToken(raw);
   if (!row || row.created_by_user_id == null || tokenExpired(row)) return null;
+  const owner = await userPrincipal(row.created_by_user_id);
+  if (!owner || !(await accountAllowed(owner))) return null;
+  // Read again: the provider recheck in accountAllowed may have changed the owner's groups
   const creator = await userPrincipal(row.created_by_user_id);
-  if (!creator || !(await accountAllowed(creator))) return null;
+  if (!creator) return null;
   const { LongTermTokens } = models();
   if (
     !row.last_used_at ||
@@ -271,10 +269,13 @@ async function resolvePrincipal(req) {
   }
   const session = req.session || {};
   if (session.uid != null) {
-    const p = await userPrincipal(session.uid);
     // Sessions started through a login provider follow that provider; the rest are local logins
-    const allowed =
-      p && (session.provider ? siteAccess.hasProvider(session.provider) : localAccountAllowed(p));
+    const linked =
+      !session.provider ||
+      (siteAccess.hasProvider(session.provider) &&
+        (await require("./providers").stillLinked(session.uid, session.provider)));
+    const p = linked ? await userPrincipal(session.uid) : null;
+    const allowed = p && (session.provider ? true : localAccountAllowed(p));
     if (allowed) {
       // Signed in locally while the proxy also identifies the request: like AUTH=csso, the
       // proxy user stays the identity and the local account's access is added on top

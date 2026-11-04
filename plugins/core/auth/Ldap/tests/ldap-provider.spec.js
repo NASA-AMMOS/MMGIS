@@ -28,6 +28,21 @@ async function context() {
   return newRequest.newContext({ baseURL, extraHTTPHeaders: { 'X-Forwarded-For': `10.77.0.${ip}` } });
 }
 const ldapLogin = (ctx, body) => ctx.post('/api/auth/ldap/login', { data: body });
+
+// Changes the fixture directory (openldap/start.sh) as its admin; false when that container isn't here
+const container = process.env.LDAP_CONTAINER || 'mmgis-test-ldap';
+function directoryAdmin(ldif) {
+  const { execFileSync } = require('child_process');
+  const adminPassword = ['admin', 'test', 'password'].join('-');
+  try {
+    execFileSync('docker', ['exec', '-i', container, 'ldapmodify', '-x', '-H', 'ldap://localhost', '-D', 'cn=admin,dc=example,dc=org', '-w', adminPassword], { input: ldif, stdio: ['pipe', 'ignore', 'pipe'] });
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+const recheckTeam = (change) =>
+  `dn: cn=recheck-team,ou=groups,dc=example,dc=org\nchangetype: modify\n${change}: member\nmember: uid=ldap_bob,ou=people,dc=example,dc=org\n`;
 async function me(ctx) {
   return (await (await ctx.get('/api/access/me')).json()).body;
 }
@@ -39,6 +54,8 @@ async function adminContext() {
 }
 
 test.describe('LDAP login provider', () => {
+  // In order on one worker: the tests share ldap_alice and ldap_bob, and the recheck test changes their groups
+  test.describe.configure({ mode: 'default' });
   test.skip(!enabled, 'SKIP: the ldap login provider is not enabled');
 
   test('the shared form lists LDAP first, with no separate login button', async () => {
@@ -111,6 +128,37 @@ test.describe('LDAP login provider', () => {
       const members = groups.find((g) => g.id === created.body.id).members.map((m) => m.username);
       expect(members).toEqual([alice.username]);
     } finally {
+      await adminCtx.post('/api/access/bindings/remove', { data: { id: bound.body.id } });
+      await adminCtx.post('/api/access/groups/delete', { data: { id: created.body.id } });
+    }
+  });
+
+  test('directory group changes reach existing sessions without signing in again', async () => {
+    const recheckMinutes = parseFloat(process.env.AUTH_RECHECK_MINUTES);
+    test.skip(!(recheckMinutes > 0 && recheckMinutes <= 0.1), 'SKIP: needs the server started with AUTH_RECHECK_MINUTES=0.05');
+    const wait = () => new Promise((r) => setTimeout(r, recheckMinutes * 60 * 1000 + 1000));
+    const adminCtx = await adminContext();
+    const created = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-recheck-${Date.now()}`, source: 'ldap', external_name: 'cn=recheck-team,ou=groups,dc=example,dc=org' } })).json();
+    const bound = await (await adminCtx.post('/api/access/bindings/add', {
+      data: { subject_type: 'group', subject_id: created.body.id, role: 'data_admin', scope_type: 'global' },
+    })).json();
+    let added = false;
+    try {
+      const bobCtx = await context();
+      expect((await ldapLogin(bobCtx, bob)).status()).toBe(200);
+      expect((await me(bobCtx)).role).toBe('user');
+      added = directoryAdmin(recheckTeam('add'));
+      test.skip(!added, `SKIP: can't change the fixture directory (docker container ${container})`);
+      await wait();
+      expect((await me(bobCtx)).role).toBe('data_admin');
+      expect(directoryAdmin(recheckTeam('delete'))).toBe(true);
+      added = false;
+      await wait();
+      const after = await me(bobCtx);
+      expect(after.authenticated).not.toBe(false);
+      expect(after.role).toBe('user');
+    } finally {
+      if (added) directoryAdmin(recheckTeam('delete'));
       await adminCtx.post('/api/access/bindings/remove', { data: { id: bound.body.id } });
       await adminCtx.post('/api/access/groups/delete', { data: { id: created.body.id } });
     }

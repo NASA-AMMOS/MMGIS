@@ -92,11 +92,14 @@ module.exports = {
   warnings(env) { return []; },
   // Login form providers: the form's wording, usually from your ENVs. Every field is optional.
   loginForm(env) { return { title, usernameLabel, hint }; },
+  // Session providers: the account's current identity, for rechecking existing sessions and tokens.
+  lookup(subject) { return { subject, username, email, groups }; },
 };
 ```
 
 - `identify` runs on every HTTP request and websocket connection, for each enabled provider in `AUTH_PROVIDERS` order. The first provider that returns an identity wins. A signed-in MMGIS session takes precedence over it.
 - `validate(env)` and `warnings(env)` get `process.env` and must return an array of strings synchronously (an empty array means no problems). Anything else, or an exception, is reported at startup under your provider id.
+- `lookup(subject)` lets MMGIS reread a linked account every `AUTH_RECHECK_MINUTES` while it has a session or uses an API token. Return the identity as at login (its groups update the account's provider groups), `null` once the account is gone or disabled (its sessions and tokens stop working and its provider groups are removed), or `undefined` when you can't tell (nothing changes). If it throws or takes longer than 5 seconds, the account keeps its access until the next check. Without `lookup`, changes apply at the next login. `identify` providers don't need it: they are asked on every request.
 - If `identify(req)` throws, or takes longer than 5 seconds, the error is logged under your provider id and the request is treated as not identified.
 - Read your provider's settings from `env` and name them `<PROVIDERID>_*` (for example `MYPROVIDER_URL`). Document them in `docs/pages/Setup/ENVs/ENVs.md` and `sample.env`.
 - Every route you mount must declare its permission, usually `ctx.authorize.public("...")` for login pages; startup lists routes that don't. See [Backend Permissions](/MMGIS/contributing/permissions).

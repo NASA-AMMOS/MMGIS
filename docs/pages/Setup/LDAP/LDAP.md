@@ -100,7 +100,7 @@ By default MMGIS reads the person's `memberOf` attribute (Active Directory, or O
 
 On Active Directory, `memberOf` only lists groups the person is directly in. To include nested groups, search with the in-chain rule: `LDAP_GROUP_SEARCH_BASE=DC=corp,...` and `LDAP_GROUP_SEARCH_FILTER=(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))`. A person's primary group (usually `Domain Users`) appears in neither, so map a regular group instead.
 
-Groups are reported by their full DN in lowercase, e.g. `cn=science-team,ou=groups,dc=example,dc=org`, so two groups called `admins` in different OUs can't be confused and someone who can create groups in their own OU can't take another group's role. In Configure > Users & Access > Groups, create a group with **Members from LDAP** and the group's DN as its external name (capitalization and spaces after commas don't matter), then give the group a role. Membership is updated at every login, and the server log lists the groups the directory reported for each login. To use plain names instead, set `LDAP_GROUP_SEARCH_BASE` to the one OU that holds your MMGIS groups and `LDAP_GROUP_NAME_ATTRIBUTE=cn`.
+Groups are reported by their full DN in lowercase, e.g. `cn=science-team,ou=groups,dc=example,dc=org`, so two groups called `admins` in different OUs can't be confused and someone who can create groups in their own OU can't take another group's role. In Configure > Users & Access > Groups, create a group with **Members from LDAP** and the group's DN as its external name, then give the group a role. Names must match exactly, including case, so copy the DN from the server log: it lists the groups the directory reported at each login (`Directory groups: …`). Membership is updated at every login and every `AUTH_RECHECK_MINUTES`. To use plain names instead, set `LDAP_GROUP_SEARCH_BASE` to the one OU that holds your MMGIS groups and `LDAP_GROUP_NAME_ATTRIBUTE=cn`.
 
 ## Accounts
 
@@ -109,7 +109,7 @@ Groups are reported by their full DN in lowercase, e.g. `cn=science-team,ou=grou
 - LDAP accounts have no MMGIS password, so Users & Access can't generate a password reset link for them.
 - With `AUTH_PROVIDERS=["ldap"]`, local accounts, including a SuperAdmin created at setup, can't sign in anywhere. To keep a local admin, use `["ldap","local"]` with `AUTH_LOCAL_LOGIN=admins`: the local option then only appears on Configure sign-in. To drop local entirely, first sign in once with LDAP, then, while local is still enabled, grant that LDAP account SuperAdmin (or an LDAP group an admin role) in Users & Access.
 - Removing `ldap` from `AUTH_PROVIDERS` ends LDAP sessions and API tokens; the accounts, groups and grants are kept.
-- Someone disabled in the directory can't sign in again, but an existing MMGIS session (up to its normal lifetime) and their API tokens keep working until an admin removes the account or its tokens.
+- Existing sessions and API tokens are rechecked against the directory every `AUTH_RECHECK_MINUTES` (default 15) with the service account. Group changes update roles, and someone deleted, disabled (Active Directory) or locked (OpenLDAP ppolicy) loses their sessions and tokens and their LDAP group roles. While the directory can't be reached, access stays as it was. Without `LDAP_BIND_DN` (only `LDAP_USER_DN_TEMPLATE`), MMGIS can't read the directory between logins, so changes apply at the next login; remove the person's tokens in Users & Access when offboarding.
 
 ## Troubleshooting
 

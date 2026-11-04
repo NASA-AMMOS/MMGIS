@@ -209,3 +209,36 @@ test.describe('LDAP settings', () => {
       .toEqual({ title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as email.' });
   });
 });
+
+test.describe('Rechecking existing sessions and tokens', () => {
+  const { lookup, subjectFilter, authenticate: auth } = ldap._internal;
+  const byUuid = (entries) => () => ({
+    async startTLS() {},
+    async bind(dn, password) {
+      if (dn !== base.LDAP_BIND_DN || password !== base.LDAP_BIND_PASSWORD) throw new InvalidCredentialsError('Invalid credentials');
+    },
+    async search(searchBase, opts) {
+      const m = /^\(entryUUID=(.*)\)$/.exec(opts.filter);
+      return { searchEntries: entries.filter((e) => m && e.entryUUID === m[1]) };
+    },
+    async unbind() {},
+  });
+
+  test('the subject filter finds the entry subjectOf read, including AD objectGUIDs', () => {
+    const buf = Buffer.from('00112233445566778899aabbccddeeff', 'hex');
+    const escaped = Array.from(buf, (b) => '\\' + b.toString(16).padStart(2, '0')).join('');
+    expect(subjectFilter(config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'objectGUID' }), guidString(buf))).toBe(`(objectGUID=${escaped})`);
+    expect(subjectFilter(config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'entryUUID' }), 'a*)')).toBe('(entryUUID=a\\2a\\29)');
+  });
+
+  test('reports current groups, null once the entry is gone or disabled, undefined without a service account', async () => {
+    const c = config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'entryUUID' });
+    const found = await lookup('e1', c, byUuid([alice.entry]));
+    expect(found.username).toBe('alice');
+    expect(found.groups).toEqual((await auth('alice', 'right', c, fakeClient([alice]))).groups);
+    expect(await lookup('gone', c, byUuid([alice.entry]))).toBeNull();
+    expect(await lookup('e1', c, byUuid([{ ...alice.entry, userAccountControl: '514' }]))).toBeNull();
+    expect(await lookup('e1', c, byUuid([{ ...alice.entry, pwdAccountLockedTime: '000001010000Z' }]))).toBeNull();
+    expect(await lookup('e1', config({ ...base, LDAP_BIND_DN: '' }), byUuid([alice.entry]))).toBeUndefined();
+  });
+});

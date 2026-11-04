@@ -257,11 +257,8 @@ async function syncGroups(userId, identity, m = accountModels()) {
     raw: true,
   });
   if (groups.length === 0) return;
-  // Directory group names and DNs are case-insensitive, so "Science-Team" matches "science-team"
-  const reported = new Set(identity.groups.map((g) => String(g).toLowerCase()));
-  const want = new Set(
-    groups.filter((g) => g.external_name != null && reported.has(g.external_name.toLowerCase())).map((g) => g.id)
-  );
+  const reported = new Set(identity.groups);
+  const want = new Set(groups.filter((g) => reported.has(g.external_name)).map((g) => g.id));
   const have = new Set(
     (
       await m.AuthGroupMember.findAll({
@@ -276,7 +273,50 @@ async function syncGroups(userId, identity, m = accountModels()) {
   if (remove.length > 0)
     await m.AuthGroupMember.destroy({ where: { user_id: userId, group_id: remove } });
   if (add.length > 0)
-    await m.AuthGroupMember.bulkCreate(add.map((group_id) => ({ group_id, user_id: userId })));
+    // ignoreDuplicates: two logins, or a login and a recheck, can sync the same person at once
+    await m.AuthGroupMember.bulkCreate(add.map((group_id) => ({ group_id, user_id: userId })), { ignoreDuplicates: true });
+}
+
+const recheckMs = () => {
+  const n = parseFloat(process.env.AUTH_RECHECK_MINUTES);
+  return (Number.isFinite(n) && n >= 0 ? n : 15) * 60 * 1000;
+};
+const rechecks = new Map();
+
+// Re-reads a provider-linked account through the provider's lookup(subject) at most every
+// AUTH_RECHECK_MINUTES, so directory changes reach existing sessions and tokens. Resolves false
+// once the provider says the account is gone; keeps access when the provider can't be reached.
+function stillLinked(userId, providerId, m) {
+  const p = getProvider(providerId);
+  const ms = recheckMs();
+  if (ms === 0 || !p || typeof p.impl.lookup !== "function") return Promise.resolve(true);
+  const key = `${providerId}:${userId}`;
+  const hit = rechecks.get(key);
+  if (hit && Date.now() - hit.at < ms) return hit.result;
+  const result = (async () => {
+    m = m || accountModels();
+    const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
+    if (!link) return true;
+    let found;
+    try {
+      found = await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS);
+    } catch (err) {
+      logger("warn", `Auth provider '${providerId}': couldn't recheck account ${userId}; it keeps its access until the next check.`, "AuthProviders", null, err);
+      return true;
+    }
+    if (found === undefined) return true;
+    const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
+    await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
+    require("./principal").invalidate();
+    if (!identity)
+      logger("info", `Auth provider '${providerId}' no longer has account ${userId} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
+    return identity != null;
+  })().catch((err) => {
+    rechecks.delete(key);
+    throw err;
+  });
+  rechecks.set(key, { at: Date.now(), result });
+  return result;
 }
 
 // The legacy lead group (LEADS) a login response reports, as a page reload does
@@ -296,6 +336,7 @@ async function completeLogin(req, identity) {
     throw err;
   }
   await syncGroups(user.id, identity);
+  rechecks.set(`${identity.provider}:${user.id}`, { at: Date.now(), result: Promise.resolve(true) });
   require("./principal").invalidate();
   await new Promise((resolve, reject) =>
     req.session.regenerate((err) => (err ? reject(err) : resolve()))
@@ -446,6 +487,7 @@ module.exports = {
   LinkError,
   linkIdentity,
   syncGroups,
+  stillLinked,
   completeLogin,
   leadGroups,
   returnTo,

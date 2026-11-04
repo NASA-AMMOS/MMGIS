@@ -110,6 +110,26 @@ function subjectOf(entry, c) {
 
 const isBinaryAttribute = (name) => /^(objectguid|objectsid)$/i.test(name);
 
+const hexEscape = (buf) => Array.from(buf, (b) => `\\${b.toString(16).padStart(2, "0")}`).join("");
+
+// The search filter matching a stored subject, the reverse of subjectOf
+function subjectFilter(c, subject) {
+  const a = c.subjectAttribute;
+  if (/^objectguid$/i.test(a) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subject)) {
+    const h = subject.replace(/-/g, "");
+    const swap = (s) => s.match(/../g).reverse().join("");
+    const bytes = Buffer.from(swap(h.slice(0, 8)) + swap(h.slice(8, 12)) + swap(h.slice(12, 16)) + h.slice(16), "hex");
+    return `(${a}=${hexEscape(bytes)})`;
+  }
+  if (isBinaryAttribute(a) && /^([0-9a-f]{2})+$/i.test(subject)) return `(${a}=${hexEscape(Buffer.from(subject, "hex"))})`;
+  return `(${a}=${escapeFilter(subject)})`;
+}
+
+// Active Directory's "account disabled" flag and OpenLDAP ppolicy's lock
+const STATE_ATTRIBUTES = ["userAccountControl", "pwdAccountLockedTime"];
+const accountDisabled = (entry) =>
+  (parseInt(values(entry, "userAccountControl")[0], 10) & 2) !== 0 || values(entry, "pwdAccountLockedTime").length > 0;
+
 function userAttributes(c) {
   const attrs = [c.subjectAttribute, c.usernameAttribute, c.emailAttribute];
   if (!c.groupSearchBase) attrs.push(c.groupsAttribute);
@@ -305,6 +325,42 @@ async function authenticate(username, password, c = config(), createClient = new
   }
 }
 
+// The person's current identity, read with the service account, for rechecking existing sessions
+// and tokens: null when the entry is gone or disabled, undefined when there's no service account
+// to read it with; throws when the directory can't be reached
+async function lookup(subject, c = config(), createClient = newClient) {
+  if (!c.bindDn || !c.searchBase) return undefined;
+  const attributes = [...userAttributes(c), ...STATE_ATTRIBUTES];
+  const explicitBufferAttributes = attributes.filter(isBinaryAttribute);
+  const client = createClient(c);
+  try {
+    if (c.startTls) await client.startTLS(startTlsOptions(c));
+    await bindService(client, c);
+    let entries;
+    try {
+      ({ searchEntries: entries } =
+        c.subjectAttribute.toLowerCase() === "dn"
+          ? await client.search(subject, { scope: "base", filter: "(objectClass=*)", attributes, explicitBufferAttributes })
+          : await client.search(c.searchBase, { scope: "sub", filter: subjectFilter(c, subject), attributes, explicitBufferAttributes, sizeLimit: 2 }));
+    } catch (err) {
+      if (err instanceof NoSuchObjectError) return null;
+      throw err;
+    }
+    if (entries.length !== 1 || accountDisabled(entries[0])) return null;
+    const entry = entries[0];
+    const name = values(entry, c.usernameAttribute)[0];
+    const email = values(entry, c.emailAttribute)[0];
+    return {
+      subject,
+      username: name != null ? String(name) : undefined,
+      email: email != null ? String(email) : undefined,
+      groups: await groupsOf(client, c, entry, name != null ? String(name) : ""),
+    };
+  } finally {
+    await client.unbind().catch(() => {});
+  }
+}
+
 // Checks the settings at startup without anyone's password, so a wrong service account,
 // certificate or search base shows in the log right away; returns what was checked
 async function selfCheck(c = config(), createClient = newClient) {
@@ -455,8 +511,9 @@ module.exports = {
     const c = config(env);
     return { title: c.displayName, usernameLabel: c.usernameLabel, hint: c.hint };
   },
+  lookup: (subject) => lookup(subject),
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, selfCheck, explain, PasswordExpiredError },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, selfCheck, explain, PasswordExpiredError },
 };

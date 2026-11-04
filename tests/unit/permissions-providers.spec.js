@@ -383,6 +383,12 @@ test.describe('provider group sync', () => {
     await providers.syncGroups(9, identity({ subject: 's', groups: ['m20-ops', 'unmapped'] }), m);
     expect(m.AuthGroupMember.rows.map((r) => r.group_id).sort()).toEqual([1, 3, 4]);
   });
+
+  test('group names match exactly, including case', async () => {
+    const m = fakeModels({ groups: [{ id: 1, source: 'keycloak', external_name: 'm20-ops' }], members: [] });
+    await providers.syncGroups(9, identity({ subject: 's', groups: ['M20-Ops'] }), m);
+    expect(m.AuthGroupMember.rows).toEqual([]);
+  });
 });
 
 test.describe('identify', () => {
