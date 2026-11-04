@@ -419,7 +419,11 @@ test.describe('LDAP login provider', () => {
       expect(preview).toMatchObject({ status: 'success', body: { dn, preview: true } });
       expect((await entries()).find((e) => e.id === account.id).relink).toBeFalsy();
       expect((await ldapLogin(await context(), { username, password })).status()).toBe(409);
-      const allowed = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap' } })).json();
+      // Confirming refuses when the username now finds a different entry from the one shown
+      const moved = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', dn: `uid=${username},ou=contractors,dc=example,dc=org` } })).json();
+      expect(moved).toMatchObject({ status: 'failure', message: expect.stringContaining('as shown') });
+      expect((await entries()).find((e) => e.id === account.id).relink).toBeFalsy();
+      const allowed = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', dn: dn.toUpperCase() } })).json();
       expect(allowed.status).toBe('success');
       // Pinned to the directory entry that has the username now
       expect(allowed.body.dn).toBe(dn);
@@ -430,6 +434,9 @@ test.describe('LDAP login provider', () => {
       expect(after.id).toBe(account.id);
       expect(after.sign_ins).toEqual([expect.objectContaining({ provider: 'ldap' })]);
       expect(after.relink).toBeNull();
+      // A preview gives the same refusal the relink would
+      const again = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', preview: true } })).json();
+      expect(again).toMatchObject({ status: 'failure', message: expect.stringContaining('nothing to relink') });
       // Whoever was signed in with the local password is signed out
       expect((await me(localSession)).authenticated).toBe(false);
       // Now linked to LDAP, so its old local password no longer signs in

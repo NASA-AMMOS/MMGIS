@@ -69,8 +69,8 @@ export function PersonPanel({ user, ctx }) {
   useEffect(() => setRelinkName(""), [user.id]);
   const providerLogin = (user.sign_ins || []).find((l) => relinkProviders.includes(l.provider));
   const relinkAs = relinkName.trim() || (providerLogin && providerLogin.username) || user.username;
-  const relink = (provider, cancel = false) =>
-    api(cancel ? "account_cancel_relink" : "account_allow_relink", { id: user.id, provider, username: relinkAs })
+  const relink = (provider, cancel = false, shownDn) =>
+    api(cancel ? "account_cancel_relink" : "account_allow_relink", { id: user.id, provider, username: relinkAs, ...(shownDn ? { dn: shownDn } : {}) })
       .then((res) => {
         const dn = res && res.body && res.body.dn;
         notify(cancel ? "Relink cancelled." : `Relink allowed${dn ? ` for ${dn}` : ""}.`, "success");
@@ -97,7 +97,7 @@ export function PersonPanel({ user, ctx }) {
           : ""
       }`,
       action: "Allow",
-      onConfirm: () => relink(p),
+      onConfirm: () => relink(p, false, dn),
     });
 
   const trimmedEmail = email.trim();

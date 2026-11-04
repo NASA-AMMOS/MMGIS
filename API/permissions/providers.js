@@ -724,7 +724,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       );
     if (still)
       throw new LinkError(
-        `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
+        `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so to let this person in, create an account for them under another username (e.g. '${identity.username}2') and allow its relink as '${identity.username}'.`
       );
     throw new LinkError(
       `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and that account's old entry is gone. Only allow a relink on that account if this is the same person: the directory may have given the name to someone new.`
@@ -757,17 +757,25 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       : null;
     if (holder)
       throw new LinkError(
-        `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}' (renamed there). Don't relink it to this entry; this person can't sign in while that account holds the name.`
+        `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}' (renamed there). Don't relink it to this entry. To let this person in under another MMGIS username, create an account for them (e.g. '${identity.username}2') and allow its relink as '${identity.username}'.`
       );
     const adminsOnly = siteAccess.localAdminsOnly();
+    const lapsed = taken.id != null && m.AuthMeta ? await m.AuthMeta.findOne({ where: { key: relinkKey(identity.provider, taken.id) }, raw: true }) : null;
     throw new LinkError(
-      `The username '${identity.username}' already belongs to account ${taken.id}, which doesn't sign in with ${identity.provider} yet. If it is this person's, allow a relink to ${identity.provider} on account ${taken.id}${
+      `The username '${identity.username}' already belongs to account ${taken.id}, which doesn't sign in with ${identity.provider} yet.${
+        lapsed && lapsed.value && lapsed.value.expires_at && !(Date.parse(lapsed.value.expires_at) > Date.now()) ? ` Its relink expired at ${lapsed.value.expires_at}.` : ""
+      } If it is this person's, allow a relink to ${identity.provider} on account ${taken.id}${
         adminsOnly
           ? `. AUTH_LOCAL_LOGIN=admins stops it signing in with its MMGIS password meanwhile, unless it holds an admin role.`
           : `; until then they can keep using its MMGIS password.`
       }`
     );
   }
+  // e.g. during a directory migration, when renamed people would otherwise get new, empty accounts before their relink
+  if (process.env.AUTH_PROVIDER_NEW_ACCOUNTS === "false")
+    throw new LinkError(
+      `'${identity.username}' has no MMGIS account, and AUTH_PROVIDER_NEW_ACCOUNTS=false stops ${identity.provider} sign-ins from creating one. Allow a relink on their existing account (entering '${identity.username}' as the username at the provider), or create an account for them and allow its relink.`
+    );
   // Random password: the account can only be used through its provider
   const fields = { username: identity.username, password: crypto.randomBytes(32).toString("hex") };
   // Email is optional and unique, so one already in use is left off

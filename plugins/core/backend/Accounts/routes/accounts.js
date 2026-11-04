@@ -373,6 +373,7 @@ router.post("/updateDefaults", authorize("accounts.manage"), function (req, res)
 // Lets the next login through a provider with this account's username take the account over,
 // once, within RELINK_HOURS. For accounts whose provider identity changed (directory rebuild) or
 // local accounts moving to a provider. Both take { id, provider }.
+const PREVIEWED = Symbol("previewed");
 const relinkFail = (res, message, status = 200) => res.status(status).send({ status: "failure", message });
 
 // The account and provider a relink request is about, or undefined after answering with the problem
@@ -395,8 +396,11 @@ router.post("/cancelRelink", apilimiter, authorize("accounts.manage"), async fun
   try {
     const r = await relinkRequest(req, res, { cancel: true });
     if (!r) return;
+    const row = await AuthMeta.findOne({ where: { key: r.key }, raw: true });
     if (!(await AuthMeta.destroy({ where: { key: r.key } })))
       return void res.send({ status: "failure", message: "No relink is pending for this account (it may have been used or expired)." });
+    if (!row || !row.value || !(Date.parse(row.value.expires_at) > Date.now()))
+      return void res.send({ status: "failure", message: "No relink is pending for this account: it had expired." });
     logger("info", `'${r.actor.username}' cancelled the ${r.provider} relink for account ${r.id} '${r.user.username}'.`, "accounts", req);
     res.send({ status: "success", message: "Relink cancelled." });
   } catch (err) {
@@ -439,10 +443,13 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       logger("error", `Couldn't look up '${username}' at ${provider} to allow a relink.`, "accounts", req, err);
       return fail(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Try again later.`);
     }
-    if (target === null) return fail(`${provider} has no single entry with the username '${username}'.`);
+    if (target === null) return fail(`${provider} has no single entry with the username '${username}'. If their directory username changed, enter the new one under "Username at the provider" and try again.`);
     // Unpinned, any entry later given this username could claim it
     if (target && !target.subject)
       return fail(`${target.dn || `'${username}'`} has no value for ${provider}'s subject attribute (e.g. LDAP_SUBJECT_ATTRIBUTE), so it can't sign in. Fix the entry or the setting first.`);
+    // The admin confirmed the entry the preview showed, not one given this username since
+    if (req.body.preview !== true && typeof req.body.dn === "string" && req.body.dn !== "" && !(target && target.dn && providers.sameFolded(target.dn, req.body.dn)))
+      return fail(`'${username}' is now ${target && target.dn ? target.dn : "a different entry"} in ${provider}, not ${req.body.dn} as shown. Check that it's the same person, then try again.`);
     if (target && target.shared)
       return fail(`${target.dn} shares its ${provider} subject value '${target.subject}' with another entry, so its sign-in is refused. Remove the duplicate value, or use a permanent ID (e.g. LDAP_SUBJECT_ATTRIBUTE=entryUUID), first.`);
     // The account's own entry still being there (even disabled or in a leavers' OU) means this is someone else
@@ -469,8 +476,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
           `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`
         );
     }
-    // Shows the admin which entry would claim the account before they confirm
-    if (req.body.preview === true) return void res.send({ status: "success", message: "Relink can be allowed.", body: { provider, username, dn: target ? target.dn : null, preview: true } });
+    const preview = req.body.preview === true;
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
     // Checked and saved under the SuperAdmin lock, so two relinks allowed at once can't move every local SuperAdmin
     const refusal = await bindings.withSuperAdminLock(async ({ transaction, superAdmins: current }) => {
@@ -514,12 +520,15 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         if (sameProvider.some((r) => r.value.subject === target.subject))
           return `Another account is already waiting for ${target.dn}. Cancel that relink first.`;
       }
+      // Shows the admin which entry would claim the account before they confirm, after every refusal above
+      if (preview) return PREVIEWED;
       await AuthMeta.upsert(
         { key, value: { username, subject: target ? target.subject : undefined, subject_setting: target ? providers.subjectSettingOf(provider) || undefined : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username } },
         { transaction }
       );
       return null;
     });
+    if (refusal === PREVIEWED) return void res.send({ status: "success", message: "Relink can be allowed.", body: { provider, username, dn: target ? target.dn : null, preview: true } });
     if (refusal) return fail(refusal);
     // Attempts refused before the admin got to this account no longer block the person
     resetFailedLogins(username);

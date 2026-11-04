@@ -321,6 +321,19 @@ test.describe('account linking', () => {
     expect(m.AuthIdentity.rows[0]).toMatchObject({ username: 'renamed', last_login_at: expect.any(Date) });
   });
 
+  test('AUTH_PROVIDER_NEW_ACCOUNTS=false refuses a first sign-in but keeps existing links working', async () => {
+    const m = fakeModels();
+    const first = await providers.linkIdentity(identity({ subject: 'sub-1', username: 'kc_user' }), m);
+    process.env.AUTH_PROVIDER_NEW_ACCOUNTS = 'false';
+    try {
+      await expect(providers.linkIdentity(identity({ subject: 'sub-2', username: 'newcomer' }), m)).rejects.toThrow(/AUTH_PROVIDER_NEW_ACCOUNTS=false/);
+      expect(m.User.rows).toHaveLength(1);
+      expect((await providers.linkIdentity(identity({ subject: 'sub-1', username: 'kc_user' }), m)).id).toBe(first.id);
+    } finally {
+      delete process.env.AUTH_PROVIDER_NEW_ACCOUNTS;
+    }
+  });
+
   test('a subject or username longer than MMGIS can store is refused, not a server error', async () => {
     const m = fakeModels();
     await expect(providers.linkIdentity(identity({ subject: 'x'.repeat(256), username: 'long' }), m)).rejects.toThrow(providers.LinkError);

@@ -72,8 +72,8 @@ export default function PeopleTab({ ctx }) {
               <span className={c.barHint}>Every account, its site role and what it can view and edit. Click a row for details.</span>
               <span className={c.grow} />
               {(relinkCount > 0 || onlyRelink) && (
-                <Button variant={onlyRelink ? "contained" : "outlined"} disableElevation className={c.barButton} onClick={() => setOnlyRelink(!onlyRelink)} title="Only accounts whose provider entry is gone or was linked under an old subject setting, with no usable relink pending">
-                  Needs relink ({relinkCount})
+                <Button variant={onlyRelink ? "contained" : "outlined"} disableElevation className={c.barButton} onClick={() => setOnlyRelink(!onlyRelink)} title="Only linked accounts that can't sign in: their provider entry is gone (people who left, or entries moved or renamed) or they were linked under an old subject setting, with no usable relink pending">
+                  Not found / needs relink ({relinkCount})
                 </Button>
               )}
               {linkedProviders.length > 0 && (
