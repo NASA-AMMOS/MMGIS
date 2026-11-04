@@ -238,7 +238,7 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect(found.groups).toEqual((await auth('alice', 'right', c, fakeClient([alice]))).groups);
     expect(await lookup('gone', c, byUuid([alice.entry]))).toBeNull();
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, userAccountControl: '514' }]))).toBeNull();
-    expect(await lookup('e1', c, byUuid([{ ...alice.entry, pwdAccountLockedTime: '000001010000Z' }]))).toBeNull();
+    expect(await lookup('e1', c, byUuid([{ ...alice.entry, pwdAccountLockedTime: '000001010000Z' }]))).toBeNull(); // pragma: allowlist secret
     expect(await lookup('e1', config({ ...base, LDAP_BIND_DN: '' }), byUuid([alice.entry]))).toBeUndefined();
   });
 });
