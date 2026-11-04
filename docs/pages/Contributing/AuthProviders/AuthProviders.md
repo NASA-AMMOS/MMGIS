@@ -149,7 +149,7 @@ There's no database handle or config object; read settings from `process.env`.
 
 ## Login form providers
 
-A provider whose `plugin.json` sets `"login_form": true` and a `login_path` shares MMGIS's username/password form on the login page, Configure sign-in and the in-app modal; it doesn't serve a login page of its own.
+A provider whose `plugin.json` sets `"login_form": true` and a `login_path` shares MMGIS's username/password form on the login page, Configure sign-in and the in-app modal; it doesn't serve a login page of its own. MMGIS refuses posts to that `login_path` from other sites (login CSRF); a provider's other routes, such as a SAML or OIDC `form_post` callback, aren't checked and must validate their own `state`.
 
 - **Layout.** With one form provider that isn't `local`, the form shows a "Sign in with <title>" banner. With several (for example `ldap` and `local`), it shows a switch; the first in `AUTH_PROVIDERS` is the default and the browser remembers the last choice. The password is only sent to the selected provider. With `AUTH_LOCAL_LOGIN=admins`, `local` is only offered at Configure sign-in.
 - **Wording.** `loginForm(env)` returns `title` (the tab and banner name, default `display_name`), `usernameLabel` (default `Username`), and `hint` (shown with the form). Read them from `<PROVIDERID>_*` ENVs so each site can name the provider its own way. `GET /api/auth` returns them as `loginForms`.

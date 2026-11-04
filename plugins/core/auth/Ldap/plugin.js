@@ -400,7 +400,7 @@ async function authenticate(username, password, c = config(), createClient = new
       const bind = await bindAs(client, entry.dn, password);
       if (!bind.ok) return refuse(`${bind.reason} for ${entry.dn}`);
       // Group searches run as the service account, as the user search did
-      if (c.groupSearchBase && c.bindDn) await client.bind(c.bindDn, c.bindPassword);
+      if (c.groupSearchBase && c.bindDn) await bindService(client, c);
     }
     const subject = subjectOf(entry, c);
     if (!subject) throw new Error(`The directory entry has no ${c.subjectAttribute} (LDAP_SUBJECT_ATTRIBUTE).`);
@@ -411,7 +411,7 @@ async function authenticate(username, password, c = config(), createClient = new
       username: name != null ? String(name) : username,
       email: email != null ? String(email) : undefined,
       // The directory's username, as at recheck, so group filters don't depend on how it was typed
-      groups: await groupsOf(client, c, entry, name != null ? String(name) : username),
+      groups: await groupsOf(client, c, entry, name != null ? String(name) : ""),
     };
   } finally {
     await client.unbind().catch(() => {});

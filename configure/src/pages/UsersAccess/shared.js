@@ -639,6 +639,9 @@ export const PEOPLE_COLUMNS = [
 
 // Provider-linked accounts sign in only through their provider; the rest with an MMGIS password
 export const signInText = (u) =>
+  signInBase(u) +
+  (u.relink ? ` (relink to ${u.relink.provider} ${u.relink.stale ? "stale" : "pending"})` : "");
+const signInBase = (u) =>
   (u.sign_ins || []).length
     ? u.sign_ins
         .map(

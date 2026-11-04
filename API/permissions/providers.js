@@ -186,7 +186,7 @@ async function identify(req) {
 
 // err.message has the details for the server log; providers show users only err.userMessage
 // Draw keeps group-shared and master files under the owner "group"
-// and a deleted account's files under "~deleted~<id>"
+// and a deleted account's files under "~deleted~<id>~<random>"
 const reservedUsername = (name) => {
   const n = String(name).normalize("NFKC").trim().toLowerCase();
   return n === "group" || n.startsWith("~deleted~");
@@ -409,6 +409,10 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       attributes: ["user_id", "username", "subject"],
       raw: true,
     })).find((l) => l.username && sameUsername(l.username, identity.username));
+  if (sameName && sameName.subject === identity.subject)
+    throw new LinkError(
+      `'${identity.username}' was linked to account ${sameName.user_id} by another sign-in at the same moment; signing in again works.`
+    );
   if (sameName) {
     // If that account's own entry is still there, the name was handed to someone new: a relink would give them the account
     const still = await locateSubject(identity.provider, sameName.subject).catch(() => undefined);
@@ -762,14 +766,18 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   });
   const base = `${rootPath()}/api/auth`;
   app.use(base, registerRouter(base, list));
-  // Login POSTs from other sites are refused, so a page can't sign a visitor in to someone else's account
+  // Posts to the shared login form's route from other sites are refused, so a page can't sign a visitor in to
+  // someone else's account; other routes (e.g. a SAML or OIDC form_post callback) check their own state
   const { sameOriginOnly } = require("../connections/routes");
 
   enabledProviders().forEach((p) => {
     if (typeof p.impl.routes !== "function") return;
     const prefix = `${base}/${p.id}`;
     const router = express.Router();
-    router.use((req, res, next) => (req.method === "POST" ? sameOriginOnly(req, res, next) : next()));
+    if (p.manifest.login_form === true && typeof p.manifest.login_path === "string")
+      router.use(p.manifest.login_path, (req, res, next) =>
+        req.method === "POST" ? sameOriginOnly(req, res, next) : next()
+      );
     p.impl.routes(router, {
       authorize,
       logger,

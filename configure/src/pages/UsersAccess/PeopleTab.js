@@ -44,7 +44,7 @@ export default function PeopleTab({ ctx }) {
     const q = search.toLowerCase();
     const key = (PEOPLE_COLUMNS.find((col) => col[0] === peopleSort.by) || PEOPLE_COLUMNS[0])[2];
     return summaries
-      .filter(({ u }) => !q || u.username.toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q))
+      .filter(({ u }) => !q || [u.username, u.email || "", signInText(u)].some((t) => t.toLowerCase().includes(q)))
       .sort((a, b) => {
         const ka = key(a);
         const kb = key(b);
@@ -61,7 +61,7 @@ export default function PeopleTab({ ctx }) {
               <TextField
                 size="small"
                 className={`${c.field} ${c.search}`}
-                placeholder="Search by username or email"
+                placeholder="Search username, email or sign-in (e.g. not found)"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }}

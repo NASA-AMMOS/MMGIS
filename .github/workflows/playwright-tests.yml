@@ -86,7 +86,7 @@ jobs:
       # No manual init-db / server start / curl steps needed.
 
       - name: Run Unit Tests
-        run: npx playwright test tests/unit plugins/core/auth/Ldap/tests/ldap-provider-unit.spec.js --project=chromium
+        run: npx playwright test tests/unit plugins/core/auth/Ldap/tests/ldap-provider-unit.spec.js plugins/core/auth/Local/tests --project=chromium
         env:
           SITE_ACCESS: ${{ matrix.site_access }}
           AUTH_PROVIDERS: local

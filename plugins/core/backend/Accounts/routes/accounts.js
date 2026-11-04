@@ -145,7 +145,12 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       grants = await connections.accountGrants(id, { transaction }).catch(() => []);
       // Drawings are kept under the username, so the next account given that name (e.g. a reused directory name) mustn't get them
       const gone = await User.findOne({ where: { id }, attributes: ["username"], raw: true, transaction });
-      if (gone) await Userfiles.update({ file_owner: `~deleted~${id}` }, { where: { file_owner: gone.username }, transaction });
+      // Random suffix: a downgraded MMGIS, which doesn't reserve "~deleted~", mustn't let a guessable signup claim them
+      if (gone)
+        await Userfiles.update(
+          { file_owner: `~deleted~${id}~${crypto.randomBytes(8).toString("hex")}` },
+          { where: { file_owner: gone.username }, transaction }
+        );
       // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile
       await User.destroy({ where: { id: id }, transaction });
       return true;
