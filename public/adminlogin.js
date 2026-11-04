@@ -1,3 +1,4 @@
+/* global $, LoginForms */
 let setup = false;
 
 function login() {
@@ -59,7 +60,8 @@ function login() {
     error: function (xhr) {
       //error
       document.getElementById("msg").innerText = LoginForms.failed(
-        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error."
+        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.",
+          xhr && xhr.status
       );
       document.getElementById("msg").style.opacity = 1;
     },

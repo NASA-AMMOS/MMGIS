@@ -62,7 +62,7 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
       for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
         const [, provider, userId] = r.key.split(":");
         if (r.value && Date.parse(r.value.expires_at) > Date.now())
-          relinks[userId] = { provider, expires_at: r.value.expires_at };
+          relinks[userId] = { provider, username: r.value.username, dn: r.value.dn, expires_at: r.value.expires_at };
       }
       const byUser = {};
       for (const b of userBindings)
@@ -395,7 +395,9 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     // A login of an entry already linked elsewhere goes to that account, so this claim would never happen
     if (target) {
       const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true });
-      if (other && other.user_id !== id) {
+      if (other && other.user_id === id)
+        return fail(`'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`);
+      if (other) {
         const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true });
         return fail(`${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`);
       }

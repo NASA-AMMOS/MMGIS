@@ -429,9 +429,10 @@ var Login = {
         } catch (err) {}
     },
     // Shown in the modal, like the login page; a failure may just be the wrong account type
-    showError: function (message) {
+    // (status 409, 503 aren't a wrong account type)
+    showError: function (message, status) {
         const text =
-            (Login.loginForms || []).length > 1
+            (Login.loginForms || []).length > 1 && (!status || status === 401)
                 ? `${message} Using a different account type? Choose it above.`
                 : message
         $('#loginErrorMessage').stop(true).text(text).css('opacity', '1')
@@ -460,7 +461,10 @@ var Login = {
                 } else Login.showError((d && d.message) || 'Login failed.')
             },
             error: (xhr) => {
-                Login.showError((xhr && xhr.responseJSON && xhr.responseJSON.message) || 'Login failed.')
+                Login.showError(
+                    (xhr && xhr.responseJSON && xhr.responseJSON.message) || 'Login failed.',
+                    xhr && xhr.status
+                )
             },
         })
     },

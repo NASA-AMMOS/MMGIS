@@ -203,7 +203,7 @@ test.describe('LDAP login provider', () => {
       expect(allowed.status).toBe('success');
       // Pinned to the directory entry that has the username now
       expect(allowed.body.dn).toBe(dn);
-      expect((await entries()).find((e) => e.id === account.id).relink).toMatchObject({ provider: 'ldap' });
+      expect((await entries()).find((e) => e.id === account.id).relink).toMatchObject({ provider: 'ldap', username, dn });
 
       expect((await ldapLogin(await context(), { username, password })).status()).toBe(200);
       const after = (await entries()).find((e) => e.username === username);

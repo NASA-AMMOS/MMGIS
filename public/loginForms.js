@@ -1,4 +1,5 @@
 /* global $ */
+/* exported LoginForms */
 // The provider switch above the username/password form on the login page and Configure
 // sign-in (views/mixins/loginForms.pug). Each .loginProvider button carries its provider's
 // wording; local accounts keep their own login code, other providers get a JSON POST.
@@ -54,9 +55,9 @@ const LoginForms = (function () {
     } catch (err) {}
   }
 
-  // A failed sign-in may just be the wrong account type
-  const failed = (message) =>
-    buttons().length > 1 ? `${message} Using a different account type? Choose it above.` : message;
+  // A wrong password may just be the wrong account type; other failures (status 409, 503) aren't
+  const failed = (message, status) =>
+    buttons().length > 1 && (!status || status === 401) ? `${message} Using a different account type? Choose it above.` : message;
 
   // Shows only the local account form, e.g. while creating the first administrator
   function onlyLocal() {

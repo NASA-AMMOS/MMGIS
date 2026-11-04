@@ -279,7 +279,8 @@ async function groupsOf(client, c, entry, username) {
       paged: { pageSize: 500 },
     }));
   } catch (err) {
-    if (err instanceof SizeLimitExceededError)
+    if (err instanceof SizeLimitExceededError) err.tooManyGroups = true;
+    if (err.tooManyGroups)
       err.message = `${err.message}. The person is in more groups than the directory returns to the service account; raise its size limit or narrow LDAP_GROUP_SEARCH_FILTER`;
     err.message = `Searching LDAP_GROUP_SEARCH_BASE for groups failed: ${err.message}`;
     throw err;
@@ -336,7 +337,8 @@ async function authenticate(username, password, c = config(), createClient = new
       subject,
       username: name != null ? String(name) : username,
       email: email != null ? String(email) : undefined,
-      groups: await groupsOf(client, c, entry, username),
+      // The directory's username, as at recheck, so group filters don't depend on how it was typed
+      groups: await groupsOf(client, c, entry, name != null ? String(name) : username),
     };
   } finally {
     await client.unbind().catch(() => {});
@@ -518,6 +520,11 @@ module.exports = {
           return res.status(401).send({ status: "failure", message: `Your ${name} password has expired.` });
         }
         ctx.logger("error", `LDAP login could not reach or read the directory: ${explain(err)}`, "Ldap", req, err);
+        if (err.tooManyGroups)
+          return res.status(503).send({
+            status: "failure",
+            message: `MMGIS can't read all of your ${name} groups. Ask an administrator to raise the directory's size limit.`,
+          });
         return res.status(503).send({ status: "failure", message: `${name} is unavailable. Try again later.` });
       }
       // 401 so failed attempts count towards the rate limit

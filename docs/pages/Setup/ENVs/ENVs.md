@@ -280,7 +280,7 @@ Find groups by searching here instead of reading `LDAP_GROUPS_ATTRIBUTE`, e.g. `
 
 #### `LDAP_GROUP_SEARCH_FILTER=`
 
-Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username}}` what they typed. posixGroup groups: `(memberUid={{username}})`. Active Directory with nested groups: `(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))` | string | default `(member={{dn}})`
+Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username}}` the person's `LDAP_USERNAME_ATTRIBUTE` value (not what they typed, so `alice@corp` and `alice` get the same groups). posixGroup groups: `(memberUid={{username}})`. Active Directory with nested groups: `(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))` | string | default `(member={{dn}})`
 
 #### `LDAP_GROUP_NAME_ATTRIBUTE=`
 

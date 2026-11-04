@@ -210,6 +210,7 @@ function accountModels() {
         attributes: ["id"],
         raw: true,
       }),
+    // connect-pg-simple's session table has no model; Local's password reset ends sessions the same way
     endSessionsOf: (userId) =>
       sequelize.query(`DELETE FROM "session" WHERE sess->>'uid' = :uid`, { replacements: { uid: String(userId) } }),
   };
@@ -317,6 +318,18 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
   }
   const claimed = await claimRelink(identity, m);
   if (claimed) return claimed;
+  // A recreated directory entry with a new ID but the old name: the account it belonged to needs a relink
+  const sameName =
+    m.AuthIdentity.findAll &&
+    (await m.AuthIdentity.findAll({
+      where: { provider: identity.provider },
+      attributes: ["user_id", "username"],
+      raw: true,
+    })).find((l) => l.username && sameUsername(l.username, identity.username));
+  if (sameName)
+    throw new LinkError(
+      `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID; allow a relink on that account if this is the same person.`
+    );
   const taken = m.usernameTaken
     ? await m.usernameTaken(identity.username)
     : await m.User.findOne({ where: { username: identity.username }, attributes: ["id"], raw: true });

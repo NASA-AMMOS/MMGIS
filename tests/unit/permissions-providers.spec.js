@@ -270,6 +270,12 @@ test.describe('account linking', () => {
     expect(await providers.linkIdentity(identity({ subject: 'race', username: 'dora' }), m)).toMatchObject({ id: 100, username: 'dora' });
   });
 
+  test('a recreated entry with a new ID but the name of a linked account is refused, not given a new empty account', async () => {
+    const m = fakeModels({ users: [{ id: 1, username: 'bob' }], links: [{ provider: 'keycloak', subject: 'old', username: 'Robert', user_id: 1 }] });
+    await expect(providers.linkIdentity(identity({ subject: 'new', username: 'robert' }), m)).rejects.toThrow(/already signs in to account 1/);
+    expect(m.User.rows).toHaveLength(1);
+  });
+
   test('a relink is refused once expired, for another username, or for another provider', async () => {
     const past = new Date(Date.now() - 1000).toISOString();
     await expect(providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), relinkModels({ expires_at: past }))).rejects.toThrow(providers.LinkError);
