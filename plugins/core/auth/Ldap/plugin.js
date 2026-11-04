@@ -133,6 +133,8 @@ const accountDisabled = (entry) =>
 function userAttributes(c) {
   const attrs = [c.subjectAttribute, c.usernameAttribute, c.emailAttribute];
   if (!c.groupSearchBase) attrs.push(c.groupsAttribute);
+  // To check a UPN-template bind found the same entry
+  if (c.userDnTemplate && !c.userDnTemplate.includes("=")) attrs.push("userPrincipalName");
   return attrs.filter((a) => a.toLowerCase() !== "dn");
 }
 
@@ -288,6 +290,12 @@ async function groupsOf(client, c, entry, username) {
   });
 }
 
+// A DN template is compared as a DN; a UPN template (alice@corp.example.org) by userPrincipalName
+function isBoundEntry(entry, boundAs) {
+  if (boundAs.includes("=")) return normalizeDn(entry.dn) === normalizeDn(boundAs);
+  return values(entry, "userPrincipalName").some((u) => String(u).toLowerCase() === boundAs.toLowerCase());
+}
+
 // The person's identity if the password is right, null if it isn't (refused(reason) says why);
 // throws when the directory can't be reached or doesn't answer as configured
 async function authenticate(username, password, c = config(), createClient = newClient, refused = () => {}) {
@@ -305,6 +313,11 @@ async function authenticate(username, password, c = config(), createClient = new
       if (!bind.ok) return refuse(`${bind.reason} for ${dn} (if nobody can sign in, check LDAP_USER_DN_TEMPLATE)`);
       entry = c.searchBase ? (await findUser(client, c, username)).entry : await readEntry(client, c, dn);
       if (!entry) throw new Error("Signed in to the directory but could not read the person's entry.");
+      // The password was checked for dn, so the identity must come from that same entry
+      if (!isBoundEntry(entry, dn))
+        return refuse(
+          `the password is right for ${dn}, but LDAP_USER_SEARCH_FILTER found a different entry, ${entry.dn} (make LDAP_USER_DN_TEMPLATE and LDAP_USER_SEARCH_FILTER name the same attribute)`
+        );
     } else {
       if (c.bindDn) await bindService(client, c);
       const found = await findUser(client, c, username);

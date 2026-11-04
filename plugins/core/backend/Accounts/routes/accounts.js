@@ -380,7 +380,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         r.key !== key &&
         r.value &&
         Date.parse(r.value.expires_at) > Date.now() &&
-        String(r.value.username).toLowerCase() === username.toLowerCase()
+        providers.sameUsername(r.value.username, username)
       )
         return fail(`Another account is already waiting for the ${provider} login '${username}'. Cancel that relink first.`);
     // Pin the claim to the entry that has this username now, so a look-alike entry made later can't take it
@@ -392,6 +392,14 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       return fail(`Couldn't reach ${provider} to look up '${username}'. Try again later.`);
     }
     if (target === null) return fail(`${provider} has no single entry with the username '${username}'.`);
+    // A login of an entry already linked elsewhere goes to that account, so this claim would never happen
+    if (target) {
+      const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true });
+      if (other && other.user_id !== id) {
+        const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true });
+        return fail(`${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`);
+      }
+    }
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
     await AuthMeta.upsert({
       key,

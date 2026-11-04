@@ -114,6 +114,22 @@ test.describe('LDAP login', () => {
     expect(log).toEqual([`bind ${alice.dn}`, `search ${alice.dn} (objectClass=*)`, 'unbind']);
   });
 
+  test('direct mode with a search base refuses when the search finds a different entry than the bound one', async () => {
+    const mallory = { dn: 'cn=alice,ou=people,dc=example,dc=org', password: 'mallory', entry: { dn: 'cn=alice,ou=people,dc=example,dc=org', entryUUID: 'm1', uid: 'mallory' } }; // pragma: allowlist secret
+    const env = { ...base, LDAP_USER_DN_TEMPLATE: 'cn={{username}},ou=people,dc=example,dc=org' };
+    const why = [];
+    expect(await authenticate('alice', 'mallory', config(env), fakeClient([alice, mallory]), (r) => why.push(r))).toBeNull();
+    expect(why[0]).toMatch(/found a different entry/);
+    const same = { ...base, LDAP_USER_DN_TEMPLATE: 'uid={{username}},ou=people,dc=example,dc=org' };
+    expect((await authenticate('alice', 'right', config(same), fakeClient([alice]))).subject).toBe('e1');
+    // A UPN template is matched by userPrincipalName
+    const upn = { ...base, LDAP_USER_DN_TEMPLATE: '{{username}}@corp.example.org' };
+    const binder = { dn: 'alice@corp.example.org', password: 'right', entry: {} }; // pragma: allowlist secret
+    const withUpn = { ...alice, entry: { ...alice.entry, userPrincipalName: 'Alice@corp.example.org' } };
+    expect((await authenticate('alice', 'right', config(upn), fakeClient([withUpn, binder]))).subject).toBe('e1');
+    expect(await authenticate('alice', 'right', config(upn), fakeClient([alice, binder]))).toBeNull();
+  });
+
   test('StartTLS runs before anything else is sent', async () => {
     const log = [];
     await authenticate('alice', 'right', config({ ...base, LDAP_URL: 'ldap://x', LDAP_STARTTLS: 'true' }), fakeClient([alice], log));

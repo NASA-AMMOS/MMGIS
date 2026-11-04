@@ -25,29 +25,41 @@ const accountKey = (username) =>
     .replace(/^[^\\]*\\/, '')
     .replace(/@.*$/, '');
 
-// Failed logins per account and login form, from any address, so MMGIS stops before a directory
-// locks the account. Only wrong credentials count: a 401, or a 200 with res.locals.loginFailed.
-// Forms count separately so directory failures can't lock out a local (recovery) account.
+// Failed logins per account and login form, so MMGIS stops before a directory locks the account.
+// Only wrong credentials count: a 401, or a 200 with res.locals.loginFailed. Forms count
+// separately so directory failures can't lock out a local (recovery) account.
+// Provider forms count from any address: the directory would lock the account at its own limit anyway.
+// The local form has no directory to protect, so it counts per address, with a ceiling 10x higher
+// across addresses; nobody can then lock a local SuperAdmin out with a handful of requests.
 // Counts are kept in each server process's memory.
+const failedLoginLimiter = (limit, keyGenerator) =>
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit,
+    keyGenerator,
+    skip: (req) => !(req.body && typeof req.body.username === 'string' && req.body.username.trim() !== ''),
+    skipSuccessfulRequests: true,
+    requestWasSuccessful: (req, res) => res.statusCode !== 401 && !res.locals.loginFailed,
+    message: { status: 'failure', message: 'Too many failed sign-ins for this account. Try again in 15 minutes.' },
+  });
 const accountLimiters = new Map();
 function accountLimiterFor(form) {
   if (!accountLimiters.has(form)) {
-    const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      limit: () => failedLoginLimit(),
-      keyGenerator: (req) => accountKey(req.body.username),
-      skip: (req) => !(req.body && typeof req.body.username === 'string' && req.body.username.trim() !== ''),
-      skipSuccessfulRequests: true,
-      requestWasSuccessful: (req, res) => res.statusCode !== 401 && !res.locals.loginFailed,
-      message: { status: 'failure', message: 'Too many failed sign-ins for this account. Try again in 15 minutes.' },
-    });
+    const byAccount = (req) => accountKey(req.body.username);
+    const limiters =
+      form === 'local'
+        ? [
+            failedLoginLimiter(() => 10 * failedLoginLimit(), byAccount),
+            failedLoginLimiter(() => failedLoginLimit(), (req) => `${byAccount(req)}|${req.ip}`),
+          ]
+        : [failedLoginLimiter(() => failedLoginLimit(), byAccount)];
     // Mounted on both /api/users/login and /api/auth/local/login, so count each request once
     const once = (req, res, next) => {
       if (req.accountLimited) return next();
       req.accountLimited = true;
-      return limiter(req, res, next);
+      return limiters[0](req, res, (err) => (err || !limiters[1] ? next(err) : limiters[1](req, res, next)));
     };
-    once.resetKey = limiter.resetKey;
+    once.resetKey = (key) => limiters.forEach((l) => l.resetKey(key));
     accountLimiters.set(form, once);
   }
   return accountLimiters.get(form);

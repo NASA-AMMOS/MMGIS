@@ -74,7 +74,7 @@ AUTH_PROVIDERS=["ldap","local"]
 LDAP_URL=ldaps://dc1.corp.example.org:636
 LDAP_USER_DN_TEMPLATE={{username}}@corp.example.org
 LDAP_USER_SEARCH_BASE=OU=Users,DC=corp,DC=example,DC=org
-LDAP_USER_SEARCH_FILTER=(sAMAccountName={{username}})
+LDAP_USER_SEARCH_FILTER=(userPrincipalName={{username}}@corp.example.org)
 LDAP_SUBJECT_ATTRIBUTE=objectGUID
 LDAP_USERNAME_ATTRIBUTE=sAMAccountName
 ```
@@ -124,6 +124,7 @@ If the directory rejects the service account, MMGIS stops using it for 5 minutes
 |---|---|
 | MMGIS refuses to start with an `LDAP_*` error | A required setting is missing or malformed; the message names it. |
 | "<name> is unavailable" | MMGIS couldn't reach the directory, the TLS certificate didn't verify, the service account was rejected (MMGIS then waits 5 minutes before trying it again), a search base doesn't exist, or the entry had no `LDAP_SUBJECT_ATTRIBUTE`. The server log has the reason and the setting to check. |
+| "Invalid <name> username or password" and the log says "found a different entry" | With both `LDAP_USER_DN_TEMPLATE` and `LDAP_USER_SEARCH_BASE`, the search must find the entry the password was checked against (same DN, or for a `{{username}}@domain` template the same `userPrincipalName`). Make the template and `LDAP_USER_SEARCH_FILTER` use the same attribute, e.g. `(userPrincipalName={{username}}@corp.example.org)`. |
 | "Invalid <name> username or password" for everyone | The server log says why each login was refused. Check `LDAP_USER_SEARCH_BASE`/`LDAP_USER_SEARCH_FILTER` (or `LDAP_USER_DN_TEMPLATE`) and that the service account may read people. |
 | "Invalid <name> username or password" for `CORP\alice` or `alice@corp...` | Set `LDAP_USERNAME_DOMAIN=CORP`, and use a `LDAP_USER_SEARCH_FILTER` that also matches `userPrincipalName` (see the Active Directory example). |
 | Groups don't apply | The group's external name must be the directory group's DN (or its `LDAP_GROUP_NAME_ATTRIBUTE` value). The login line in the server log lists the groups the directory reported; if it says `none`, check whether your directory has `memberOf`, or set `LDAP_GROUP_SEARCH_BASE`. |

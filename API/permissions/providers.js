@@ -263,7 +263,7 @@ async function claimRelink(identity, m) {
     );
     // A local password it had is no longer known to anyone
     await m.User.update(
-      { password: crypto.randomBytes(32).toString("hex") },
+      { password: crypto.randomBytes(32).toString("hex"), token: null },
       { where: { id: user.id }, transaction, individualHooks: true }
     );
     return true;
@@ -605,6 +605,7 @@ module.exports = {
   RELINK_HOURS,
   relinkKey,
   relinkTarget,
+  sameUsername,
   syncGroups,
   stillLinked,
   completeLogin,

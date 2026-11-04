@@ -187,6 +187,7 @@ test.describe('LDAP login provider', () => {
     test.skip(!added, `SKIP: can't change the fixture directory (docker container ${container})`);
     const adminCtx = await adminContext();
     let accountId;
+    let otherId;
     try {
       const entries = async () => (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries;
       const made = await (await adminCtx.post('/api/users/signup', { data: { username, email: `${username}@example.org`, password: localPassword, skipLogin: true } })).json();
@@ -214,7 +215,16 @@ test.describe('LDAP login provider', () => {
       // Now linked to LDAP, so its old local password no longer signs in
       const local = await (await (await context()).post('/api/users/login', { data: { username, password: localPassword, skipLogin: true } })).json();
       expect(local.status).not.toBe('success');
+
+      // That entry now signs in to this account, so another account can't be offered to it
+      const other = await (await adminCtx.post('/api/users/signup', { data: { username: `${username}_b`, email: `${username}_b@example.org`, password: localPassword, skipLogin: true } })).json();
+      expect(other.status).toBe('success');
+      otherId = (await entries()).find((e) => e.username === `${username}_b`).id;
+      const refused = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: otherId, provider: 'ldap', username } })).json();
+      expect(refused.status).toBe('failure');
+      expect(refused.message).toContain(`already signs in to account ${account.id}`);
     } finally {
+      if (otherId) await adminCtx.delete(`/api/accounts/remove/${otherId}`);
       if (accountId) await adminCtx.delete(`/api/accounts/remove/${accountId}`);
       directoryAdmin(`dn: ${dn}\nchangetype: delete\n`);
     }
