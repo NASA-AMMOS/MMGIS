@@ -524,6 +524,7 @@ async function lookup(subject, c = config(), createClient = newClient) {
     const groupsLeftOut = [];
     return {
       subject,
+      dn: entry.dn,
       username: name != null ? String(name) : undefined,
       email: email != null ? String(email) : undefined,
       groups: await groupsOf(client, c, entry, name != null ? String(name) : "", groupsLeftOut),

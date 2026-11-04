@@ -170,8 +170,11 @@ export function PersonPanel({ user, ctx }) {
                     {user.relink.stale.setting
                       ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that this relink was allowed under an old ${user.relink.provider.toUpperCase()} subject setting, so it won't take effect.`
                       : user.relink.stale.gone
-                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that the ${user.relink.provider.toUpperCase()} entry this relink is pinned to is gone, so it won't take effect.`
-                      : `On ${new Date(user.relink.stale.at).toLocaleString()}, '${user.relink.username || user.username}' signed in from a different ${user.relink.provider.toUpperCase()} entry, so this relink won't take effect.`} If the directory changed since it was allowed, cancel it and allow it again.
+                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that the ${user.relink.provider.toUpperCase()} entry this relink is pinned to is gone. It still works if that entry comes back, until it expires.`
+                      : `On ${new Date(user.relink.stale.at).toLocaleString()}, a sign-in from a different ${user.relink.provider.toUpperCase()} entry was refused. This relink still works for ${user.relink.dn || "the entry it is pinned to"} until it expires.`}{" "}
+                    {user.relink.stale.setting
+                      ? "If the directory changed since it was allowed, cancel it and allow it again."
+                      : "Cancel it if that entry shouldn't get this account; if the person's entry changed since it was allowed, cancel it and allow it again."}
                   </Typography>
                 )}
                 <Button size="small" onClick={() => relink(user.relink.provider, true)}>Cancel relink</Button>

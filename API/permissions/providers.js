@@ -322,7 +322,7 @@ async function findClaim(identity, m) {
     const p = getProvider(identity.provider);
     if (v.subject && v.dn && p && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent() && !(identity.dn && identity.dn.toLowerCase() === v.dn.toLowerCase())) {
       // Refused rather than given a new account, which would then hold the subject the relink is waiting for
-      if (m.AuthMeta.update) await m.AuthMeta.update({ value: { ...v, stale: { dn: identity.dn || null, at: new Date().toISOString() } } }, { where: { key: r.key } });
+      await markStale(m, r.key, v, { dn: identity.dn || null, at: new Date().toISOString() });
       throw new LinkError(
         `The ${identity.provider} relink for account ${r.key.split(":").pop()} is pinned to ${v.dn}, but '${identity.username}' signs in from ${identity.dn || "another entry"} with the same subject '${identity.subject}', so it may be a different entry. If it's the same person after a rename, allow the relink again.`
       );
@@ -330,6 +330,14 @@ async function findClaim(identity, m) {
     return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by, dn: v.dn };
   }
   return null;
+}
+
+// Unless an admin allowed or cancelled it again since it was read
+async function markStale(m, key, v, stale) {
+  if (!m.AuthMeta.update) return;
+  const now = await m.AuthMeta.findOne({ where: { key }, raw: true });
+  if (!now || !now.value || now.value.expires_at !== v.expires_at) return;
+  await m.AuthMeta.update({ value: { ...now.value, stale } }, { where: { key } });
 }
 
 // A relink pinned to an entry, while the same username now signs in from another one (the directory was
@@ -344,10 +352,7 @@ async function flagStaleClaims(identity, m) {
     const v = r.value;
     if (!v || !v.subject || v.subject === identity.subject || !(Date.parse(v.expires_at) > Date.now())) continue;
     if (!sameUsername(v.username, identity.username)) continue;
-    await m.AuthMeta.update(
-      { value: { ...v, stale: { subject: identity.subject, at: new Date().toISOString() } } },
-      { where: { key: r.key } }
-    );
+    await markStale(m, r.key, v, { subject: identity.subject, at: new Date().toISOString() });
     logger(
       "warn",
       `The ${identity.provider} relink for account ${r.key.split(":").pop()} is pinned to ${v.dn || `subject '${v.subject}'`}, but '${identity.username}' now signs in as subject '${identity.subject}'. If the directory changed since the relink was allowed, allow it again.`,
@@ -469,26 +474,31 @@ async function beatSetting(p, m, now) {
 }
 
 // Each process notes its subject setting every minute, so processes sharing a database on different ones are noticed
+// Also started when the server starts, in case the database was down then and the startup checks never ran
+function startSettingBeat() {
+  if (settingBeat) return;
+  settingBeat = setInterval(() => {
+    for (const q of enabledProviders()) {
+      const s = subjectSetting(q);
+      if (s != null) beatSetting(q, accountModels(), s).catch(() => {});
+    }
+  }, 60e3);
+  if (settingBeat.unref) settingBeat.unref();
+}
+
 async function recordSetting(p, m) {
   const now = subjectSetting(p);
   if (now == null || !m.AuthMeta) return;
-  const others = await otherSettings(p, m, true);
+  // Started first, so a database error below doesn't leave this process unseen by the others
+  startSettingBeat();
+  const others = await otherSettings(p, m, true).catch(() => []);
   if (others.length)
     logger(
       "warn",
       `Auth provider '${p.id}': this process uses the subject setting '${now}' (e.g. LDAP_SUBJECT_ATTRIBUTE), but another MMGIS process on this database used ${others.map((o) => `'${o}'`).join(", ")} in the last ${SETTING_FRESH_MS / 60e3} minutes. If every process was just restarted with '${now}', this clears up within ${SETTING_FRESH_MS / 60e3} minutes; otherwise give every process the same setting.`,
       "AuthProviders"
     );
-  await beatSetting(p, m, now);
-  if (!settingBeat) {
-    settingBeat = setInterval(() => {
-      for (const q of enabledProviders()) {
-        const s = subjectSetting(q);
-        if (s != null) beatSetting(q, accountModels(), s).catch(() => {});
-      }
-    }, 60e3);
-    if (settingBeat.unref) settingBeat.unref();
-  }
+  await beatSetting(p, m, now).catch((err) => logger("warn", `Auth provider '${p.id}': couldn't record this process's subject setting yet; it retries every minute.`, "AuthProviders", null, err));
 }
 
 const settingChecks = new WeakMap();
@@ -672,6 +682,15 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       throw new LinkError(
         `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and ${identity.provider} couldn't say whether that account's entry (subject '${sameName.subject}') still exists. Check before allowing a relink: if it does, the name was reused by someone else.`
       );
+    // The same entry, its value only re-cased (e.g. uid ldap_alice to Ldap_Alice), which the directory matches either way
+    if (still && still.dn && identity.dn && still.dn.toLowerCase() === identity.dn.toLowerCase() && !retried) {
+      await m.AuthIdentity.update(
+        { subject: identity.subject, ...(subjectSetting(provider) != null ? { subject_setting: subjectSetting(provider) } : {}) },
+        { where: { user_id: sameName.user_id, provider: identity.provider, subject: sameName.subject } }
+      );
+      logger("info", `Account ${sameName.user_id}'s ${identity.provider} subject changed from '${sameName.subject}' to '${identity.subject}' at the same entry, ${identity.dn}.`, "AuthProviders");
+      return linkIdentity(identity, m, true);
+    }
     if (still)
       throw new LinkError(
         `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
@@ -1189,6 +1208,7 @@ module.exports = {
   reportedGroups,
   warnUnmatchableGroups,
   warnUnfitSubjects,
+  startSettingBeat,
   relinkUsername,
   resetFailures,
   relinkTarget,

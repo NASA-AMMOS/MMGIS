@@ -452,6 +452,9 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         return fail(
           `Couldn't tell whether '${user.username}''s own ${provider} entry (subject '${known.subject}') still exists, so ${target.dn} may be a different person. Check that ${provider} can be reached and its service account can read the whole directory, then try again.`
         );
+      // The same entry with its value re-cased: its next sign-in updates the link
+      if (old && old.dn && target.dn && old.dn.toLowerCase() === target.dn.toLowerCase())
+        return fail(`${target.dn} is '${user.username}''s own entry, with its subject value only re-cased; its next ${provider} sign-in updates the link, so there is nothing to relink.`);
       if (old)
         return fail(
           `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`

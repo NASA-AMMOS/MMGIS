@@ -20,7 +20,9 @@ let setup = {
       s.registerRouter("/api/access", router)
     );
   },
-  onceStarted: (s) => {},
+  onceStarted: (s) => {
+    require("../../../../API/permissions/providers").startSettingBeat();
+  },
   onceSynced: async (s) => {
     try {
       await permissionModels.up();

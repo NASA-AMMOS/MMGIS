@@ -732,6 +732,27 @@ test.describe('provider rechecks', () => {
     }
   });
 
+  test('a subject value re-cased at the same entry keeps signing in to its account; another entry does not', async () => {
+    const realLocate = ldap.locate;
+    try {
+      const models = () =>
+        fakeModels({
+          users: [{ id: 9090, username: 'ldap_alice' }],
+          links: [{ provider: 'ldap', subject: 'ldap_alice', username: 'ldap_alice', user_id: 9090 }],
+        });
+      const alice = { provider: 'ldap', subject: 'Ldap_Alice', dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] };
+      ldap.locate = async () => ({ dn: 'UID=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
+      const m = models();
+      expect((await providers.linkIdentity(alice, m)).id).toBe(9090);
+      expect(m.AuthIdentity.rows).toHaveLength(1);
+      expect(m.AuthIdentity.rows[0].subject).toBe('Ldap_Alice');
+      ldap.locate = async () => ({ dn: 'uid=ldap_alice,ou=leavers', username: 'ldap_alice' });
+      await expect(providers.linkIdentity(alice, models())).rejects.toThrow(/name was reused/);
+    } finally {
+      ldap.locate = realLocate;
+    }
+  });
+
   test('a leaver found again after a subject setting change keeps its leaver warning', async () => {
     const realSetting = ldap.subjectSetting;
     try {
