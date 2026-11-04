@@ -12,8 +12,12 @@ test.describe('Local login refusals', () => {
 
   test('a link to a provider no longer in AUTH_PROVIDERS does not refuse the local password', async () => {
     const { Op } = require('sequelize');
-    const enabled = require(path.resolve(__dirname, '../../../../../API/permissions/providers.js')).availableProviders()[0];
-    const rows = [{ user_id: 7, provider: 'retired-provider' }];
+    const providers = require(path.resolve(__dirname, '../../../../../API/permissions/providers.js'));
+    // An installed provider left out of AUTH_PROVIDERS (the unit environment enables only local)
+    expect(providers.availableProviders()).toContain('ldap');
+    expect(providers.enabledProviders().map((p) => p.id)).not.toContain('ldap');
+    const enabled = providers.enabledProviders()[0].id;
+    const rows = [{ user_id: 7, provider: 'ldap' }];
     const models = {
       AuthIdentity: {
         count: async ({ where }) => rows.filter((r) => r.user_id === where.user_id && where.provider[Op.in].includes(r.provider)).length,

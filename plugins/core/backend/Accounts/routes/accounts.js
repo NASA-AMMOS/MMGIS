@@ -531,7 +531,7 @@ router.post("/generateResetPasswordLink", authorize("accounts.manage"), function
 
   // Accounts linked to an enabled login provider sign in through it; a local password would get around it.
   // Once that provider is removed from AUTH_PROVIDERS, a reset link is the way back in.
-  AuthIdentity.findOne({ where: { user_id: id, provider: { [Op.in]: providers.availableProviders() } }, attributes: ["provider"], raw: true })
+  AuthIdentity.findOne({ where: { user_id: id, provider: { [Op.in]: providers.enabledProviders().map((p) => p.id) } }, attributes: ["provider"], raw: true })
     .then((link) => {
       if (link) {
         res.send({
