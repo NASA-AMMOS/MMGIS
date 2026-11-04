@@ -223,19 +223,18 @@ function localAccountAllowed(p) {
   return !siteAccess.localAdminsOnly() || require("./policy").isAdministrator(p);
 }
 
-// Accounts linked to an enabled login provider follow that provider; the rest (including ones whose
-// provider was removed from AUTH_PROVIDERS) are local accounts
-async function accountAllowed(p) {
-  const links = (
-    await models().AuthIdentity.findAll({
-      where: { user_id: p.userId },
-      attributes: ["provider"],
-      raw: true,
-    })
-  ).filter((l) => siteAccess.hasProvider(l.provider));
-  if (links.length === 0) return localAccountAllowed(p);
-  for (const l of links)
-    if (siteAccess.hasProvider(l.provider) && (await require("./providers").stillLinked(p.userId, l.provider))) return true;
+// Accounts linked to an enabled login provider follow that provider. An account whose links are all
+// to providers removed from AUTH_PROVIDERS counts as a local account only for a local session (it
+// got one with an MMGIS password, e.g. from a reset link); its tokens stay off until a provider is back
+async function accountAllowed(p, localSession = false) {
+  const links = await models().AuthIdentity.findAll({
+    where: { user_id: p.userId },
+    attributes: ["provider"],
+    raw: true,
+  });
+  const enabled = links.filter((l) => siteAccess.hasProvider(l.provider));
+  if (links.length === 0 || (enabled.length === 0 && localSession)) return localAccountAllowed(p);
+  for (const l of enabled) if (await require("./providers").stillLinked(p.userId, l.provider)) return true;
   return false;
 }
 
@@ -292,7 +291,7 @@ async function resolvePrincipal(req) {
     let p = linked ? await userPrincipal(session.uid) : null;
     // A local session of an account that has since been linked to an enabled provider (or whose
     // provider came back) follows that provider's rechecks, like the account's tokens
-    const allowed = p && (session.provider ? true : await accountAllowed(p));
+    const allowed = p && (session.provider ? true : await accountAllowed(p, true));
     // Read again: that recheck may have changed the account's groups
     if (allowed && !session.provider) p = (await userPrincipal(session.uid)) || p;
     if (allowed) {

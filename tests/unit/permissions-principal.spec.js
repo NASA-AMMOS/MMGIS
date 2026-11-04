@@ -70,6 +70,22 @@ test.beforeEach(() => principal.invalidate());
 
 const proxyIdentity = { provider: 'proxy', subject: 'jdoe', username: 'jdoe', groups: [], session: 's1' };
 
+test.describe('accounts linked only to a provider that is not enabled', () => {
+  test('keep a local session (from a reset link) but not their API tokens', async () => {
+    const orig = fakeModels.AuthIdentity.findAll;
+    fakeModels.AuthIdentity.findAll = async ({ where }) => (where.user_id === 1 ? [{ provider: 'ldap' }] : []);
+    try {
+      const viaToken = await principal.resolvePrincipal({ headers: { authorization: 'Bearer mmgis-unit-test-token-value' }, session: {} });
+      expect(viaToken.kind).toBe('invalid_token');
+      const viaSession = await principal.resolvePrincipal({ headers: {}, session: { uid: 1 } });
+      expect(viaSession.authenticated).toBe(true);
+      expect(viaSession.username).toBe('admin');
+    } finally {
+      fakeModels.AuthIdentity.findAll = orig;
+    }
+  });
+});
+
 test.describe('groups of a provider that is not enabled', () => {
   test('grant nothing, while local groups still do', async () => {
     const orig = { members: fakeModels.AuthGroupMember.findAll, groups: fakeModels.AuthGroup.findAll };
