@@ -568,7 +568,7 @@ async function syncGroups(userId, identity, m = accountModels()) {
         .join(", ");
     logger(
       "info",
-      `Auth provider '${identity.provider}': ${await who(m, userId)}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}. Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.`,
+      `Auth provider '${identity.provider}': ${await who(m, userId)}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}.${remove.length && identity.subject ? " Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access." : ""}`,
       "AuthProviders"
     );
   }

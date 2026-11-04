@@ -578,6 +578,9 @@ export const pushTo = (map, k, v) => {
   map.get(k).push(v);
 };
 
+// Groups of a provider that's not in AUTH_PROVIDERS give their members nothing
+export const providerOn = (source) => source === "local" || (window.mmgisglobal?.authProviders || []).includes(source);
+
 // One pass over bindings/groups so People stays fast with thousands of accounts
 export function indexBindings(bindings, groups) {
   const byUser = new Map();
@@ -589,7 +592,7 @@ export function indexBindings(bindings, groups) {
     else if (b.subject_type === "audience" && ["everyone", "authenticated"].includes(b.subject_id)) audience.push(b);
   });
   const groupsOf = new Map();
-  groups.forEach((g) => g.members.forEach((m) => pushTo(groupsOf, String(m.id), g)));
+  groups.filter((g) => providerOn(g.source)).forEach((g) => g.members.forEach((m) => pushTo(groupsOf, String(m.id), g)));
   return { byUser, byGroup, audience, groupsOf };
 }
 

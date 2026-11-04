@@ -19,7 +19,7 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { useStyles } from "./styles";
-import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES, signInText } from "./shared";
+import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES, signInText, providerOn } from "./shared";
 
 export function PersonPanel({ user, ctx }) {
   const c = useStyles();
@@ -233,7 +233,10 @@ export function PersonPanel({ user, ctx }) {
             <TableBody>
               {memberOf.map((g) => (
                 <TableRow key={g.id}>
-                  <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
+                  <TableCell>
+                    <SubjectTag type="group" name={g.name} showKind={false} />
+                    {!providerOn(g.source) && <span className={c.muted}> (gives nothing while {g.source} is off)</span>}
+                  </TableCell>
                   <TableCell align="right">
                     {g.source === "local" && (
                       <Tooltip title="Remove from group" placement="left" arrow>

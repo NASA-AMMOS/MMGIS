@@ -44,7 +44,7 @@ export default function PeopleTab({ ctx }) {
     const q = search.toLowerCase();
     const key = (PEOPLE_COLUMNS.find((col) => col[0] === peopleSort.by) || PEOPLE_COLUMNS[0])[2];
     return summaries
-      .filter(({ u }) => !q || [u.username, u.email || "", signInText(u)].some((t) => t.toLowerCase().includes(q)))
+      .filter(({ u, s }) => !q || [u.username, u.email || "", signInText(u), ...s.groupNames].some((t) => t.toLowerCase().includes(q)))
       .sort((a, b) => {
         const ka = key(a);
         const kb = key(b);

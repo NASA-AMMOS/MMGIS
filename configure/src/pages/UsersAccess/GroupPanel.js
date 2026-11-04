@@ -18,7 +18,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { useStyles } from "./styles";
-import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead } from "./shared";
+import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead, providerOn } from "./shared";
 
 // Provider users have no account row, so check what one would get from a username and group claims
 export function ProviderCheckDialog({ open, providers, roles, onClose }) {
@@ -85,7 +85,7 @@ export function GroupPanel({ group, ctx }) {
     api("access_groups_update", { id: group.id, name: name.trim(), ...(group.source !== "local" ? { external_name: externalName.trim() } : {}) })
       .then(() => { notify("Group updated.", "success"); refresh(); })
       .catch((res) => notify(res.message || "Failed to update group.", "error"));
-  const providerOn = group.source === "local" || (window.mmgisglobal?.authProviders || []).includes(group.source);
+  const on = providerOn(group.source);
   return (
     <>
       <PanelHeader
@@ -100,7 +100,7 @@ export function GroupPanel({ group, ctx }) {
           },
         ]}
       />
-      {!providerOn && (
+      {!on && (
         <div className={`${c.section} ${c.hint}`} style={{ color: "#a8572e" }}>
           {group.source.toUpperCase()} isn't in AUTH_PROVIDERS on this site, so this group gives its members nothing right now; the members listed are from before it was removed.
         </div>
@@ -121,6 +121,16 @@ export function GroupPanel({ group, ctx }) {
         <div className={`${c.section} ${c.hint}`}>
           Members come from {group.source.toUpperCase()}: anyone whose group claims include <b>{group.external_name}</b>.
           {group.source === "proxy" && " If PROXY_GROUPS is set, members must also be in one of those groups to open the map or Configure."}
+        </div>
+      )}
+      {group.source !== "local" && (
+        <div className={c.section}>
+          <Typography className={c.sectionTitle}>Members ({group.members.length})</Typography>
+          <div className={c.muted}>
+            {group.members.length === 0
+              ? "None yet: people show up here as they sign in or are rechecked."
+              : group.members.map((m) => m.username).sort((a, b) => a.localeCompare(b)).join(", ")}
+          </div>
         </div>
       )}
       {group.source === "local" && (
