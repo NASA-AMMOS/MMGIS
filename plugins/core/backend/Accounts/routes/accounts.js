@@ -455,7 +455,9 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         );
       // The same entry with its value re-cased: its next sign-in updates the link
       const anywhere =
-        old && target.dn && providers.sameFolded(known.subject, target.subject) ? await providers.locateAnywhere(provider, known.subject).catch(() => undefined) : undefined;
+        old && target.dn && (providers.sameFolded(known.subject, target.subject) || (old.dn && providers.sameFolded(old.dn, target.dn)))
+          ? await providers.locateAnywhere(provider, known.subject).catch(() => undefined)
+          : undefined;
       // Only re-cased (e.g. uid ldap_alice to Ldap_Alice) at the same DN: the admin decides whether it's the same person
       if (old && target.dn && providers.sameFolded(known.subject, target.subject) && anywhere === undefined)
         return fail(

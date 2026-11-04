@@ -525,7 +525,7 @@ async function lookup(subject, c = config(), createClient = newClient) {
     return {
       subject,
       // The entry's own value, which the directory may have matched without case
-      current: subjectOf(entry, c),
+      current: values(entry, c.subjectAttribute).map(String).includes(String(subject)) ? subject : subjectOf(entry, c),
       dn: entry.dn,
       username: name != null ? String(name) : undefined,
       email: email != null ? String(email) : undefined,
