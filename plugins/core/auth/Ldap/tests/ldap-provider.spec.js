@@ -435,6 +435,10 @@ test.describe('LDAP login provider', () => {
       const preview = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', preview: true } })).json();
       expect(preview).toMatchObject({ status: 'success', body: { dn, preview: true } });
       expect((await entries()).find((e) => e.id === account.id).relink).toBeFalsy();
+      // Form-encoded, preview arrives as "true": still only a preview
+      const formPreview = await (await adminCtx.post('/api/accounts/allowRelink', { form: { id: String(account.id), provider: 'ldap', preview: 'true' } })).json();
+      expect(formPreview).toMatchObject({ status: 'success', body: { preview: true } });
+      expect((await entries()).find((e) => e.id === account.id).relink).toBeFalsy();
       expect((await ldapLogin(await context(), { username, password })).status()).toBe(409);
       // Confirming refuses when the username now finds a different entry from the one shown
       const moved = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', dn: `uid=${username},ou=contractors,dc=example,dc=org` } })).json();

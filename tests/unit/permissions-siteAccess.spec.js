@@ -88,6 +88,9 @@ test.describe('AUTH_PROVIDERS parsing', () => {
     expect(siteAccess.parseProviders('["local","proxy"]')).toEqual(['local', 'proxy']);
     expect(siteAccess.parseProviders('"proxy"')).toEqual(['proxy']);
     expect(siteAccess.parseProviders('local, Proxy,local')).toEqual(['local', 'proxy']);
+    // Brackets without quotes, e.g. [local,ldap]
+    expect(siteAccess.parseProviders('[local, ldap]')).toEqual(['local', 'ldap']);
+    expect(siteAccess.parseProviders("['local','ldap']")).toEqual(['local', 'ldap']);
   });
 
   test('rejects non-array JSON', () => {

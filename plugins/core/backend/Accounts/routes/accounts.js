@@ -374,6 +374,8 @@ router.post("/updateDefaults", authorize("accounts.manage"), function (req, res)
 // once, within RELINK_HOURS. For accounts whose provider identity changed (directory rebuild) or
 // local accounts moving to a provider. Both take { id, provider }.
 const PREVIEWED = Symbol("previewed");
+// A form-encoded body sends "true", which must still only preview
+const wantsPreview = (body) => body.preview === true || body.preview === "true";
 const relinkFail = (res, message, status = 200) => res.status(status).send({ status: "failure", message });
 
 // The account and provider a relink request is about, or undefined after answering with the problem
@@ -421,7 +423,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     let username = String(req.body.username == null || req.body.username === "" ? fallback : req.body.username)
       .normalize("NFKC")
       .trim();
-    if (username === "" || username.length > 256 || /[\u0000-\u001f\u007f]/.test(username))
+    if (username === "" || username.length > 255 || /[\u0000-\u001f\u007f]/.test(username))
       return fail("Enter the person's username at the login provider.");
     username = providers.relinkUsername(provider, username);
     if (username === "") return fail("Enter the person's username at the login provider.");
@@ -448,7 +450,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     if (target && !target.subject)
       return fail(`${target.dn || `'${username}'`} has no value for ${provider}'s subject attribute (e.g. LDAP_SUBJECT_ATTRIBUTE), so it can't sign in. Fix the entry or the setting first.`);
     // The admin confirmed the entry the preview showed, not one given this username since
-    if (req.body.preview !== true && typeof req.body.dn === "string" && req.body.dn !== "" && !(target && target.dn && providers.sameFolded(target.dn, req.body.dn)))
+    if (!wantsPreview(req.body) && typeof req.body.dn === "string" && req.body.dn !== "" && !(target && target.dn && providers.sameFolded(target.dn, req.body.dn)))
       return fail(`'${username}' is now ${target && target.dn ? target.dn : "a different entry"} in ${provider}, not ${req.body.dn} as shown. Check that it's the same person, then try again.`);
     if (target && target.shared)
       return fail(`${target.dn} shares its ${provider} subject value '${target.subject}' with another entry, so its sign-in is refused. Remove the duplicate value, or use a permanent ID (e.g. LDAP_SUBJECT_ATTRIBUTE=entryUUID), first.`);
@@ -476,7 +478,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
           `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`
         );
     }
-    const preview = req.body.preview === true;
+    const preview = wantsPreview(req.body);
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
     // Checked and saved under the SuperAdmin lock, so two relinks allowed at once can't move every local SuperAdmin
     const refusal = await bindings.withSuperAdminLock(async ({ transaction, superAdmins: current }) => {

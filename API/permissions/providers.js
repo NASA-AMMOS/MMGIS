@@ -327,7 +327,16 @@ async function findClaim(identity, m) {
     if (!r.key.startsWith(`relink:${identity.provider}:`)) continue;
     const v = r.value;
     // Flagged under another subject setting: People says it won't take effect until a check unflags it
-    if (!v || (v.stale && v.stale.setting) || !(Date.parse(v.expires_at) > Date.now())) continue;
+    if (!v || (v.stale && v.stale.setting)) continue;
+    if (!(Date.parse(v.expires_at) > Date.now())) {
+      if (v.subject ? pinnedTo(v, identity) : sameUsername(v.username, identity.username))
+        logger(
+          "warn",
+          `Auth provider '${identity.provider}': the relink for account ${r.key.split(":").pop()} expired at ${v.expires_at}, so '${identity.username}' didn't take it over. If they should, allow the relink again (and delete any account this sign-in created for them).`,
+          "AuthProviders"
+        );
+      continue;
+    }
     // A pin from under another subject setting may now be a different entry's value
     if (v.subject && v.subject_setting && v.subject_setting !== subjectSetting(getProvider(identity.provider))) continue;
     // Only the entry the admin was shown may claim it, whatever it is called by now

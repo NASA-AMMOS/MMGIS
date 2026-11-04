@@ -23,9 +23,10 @@ function parseProviders(raw) {
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
+    // e.g. [local,ldap] without quotes
     parsed = String(raw)
       .split(",")
-      .map((p) => p.trim())
+      .map((p) => p.replace(/^[\s\["']+|[\s\]"']+$/g, ""))
       .filter(Boolean);
   }
   if (typeof parsed === "string") parsed = [parsed];
