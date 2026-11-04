@@ -359,7 +359,9 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     if (!r) return;
     const { id, provider, user, key, actor } = r;
     // The person's username at the provider, when it differs from their MMGIS username
-    const username = String(req.body.username == null || req.body.username === "" ? user.username : req.body.username)
+    const known = await AuthIdentity.findOne({ where: { user_id: id, provider }, attributes: ["username"], raw: true });
+    const fallback = (known && known.username) || user.username;
+    const username = String(req.body.username == null || req.body.username === "" ? fallback : req.body.username)
       .normalize("NFKC")
       .trim();
     if (username === "" || username.length > 256 || /[\u0000-\u001f\u007f]/.test(username))
@@ -441,7 +443,12 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
 router.post("/recheckLinked", apilimiter, authorize("accounts.manage"), async function (req, res) {
   try {
     const result = await providers.recheckLinked();
-    logger("info", `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found.`, "accounts", req);
+    logger(
+      result.failed ? "warn" : "info",
+      `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found${result.failed ? `, ${result.failed} couldn't be checked (see the earlier warnings)` : ""}.`,
+      "accounts",
+      req
+    );
     res.send({ status: "success", body: result });
   } catch (err) {
     logger("error", "Failed to recheck provider-linked accounts.", req.originalUrl, req, err);

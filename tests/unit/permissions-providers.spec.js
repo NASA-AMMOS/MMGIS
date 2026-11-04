@@ -333,7 +333,7 @@ test.describe('account linking', () => {
     const existing = { id: 1, username: 'admin', password: '$2a$10$unchangedhash' };
     const m = fakeModels({ users: [existing] });
     await expect(providers.linkIdentity(identity({ subject: 'x', username: 'admin' }), m))
-      .rejects.toThrow(/already belongs to another account/);
+      .rejects.toThrow(/already belongs to account .* allow a \w+ relink/);
     const err = await providers.linkIdentity(identity({ subject: 'x', username: 'admin' }), m).catch((e) => e);
     expect(err).toBeInstanceOf(providers.LinkError);
     expect(err.userMessage).not.toMatch(/'admin'|already|belongs/);
@@ -535,7 +535,9 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
     expect(await providers.stillLinked(9011, 'ldap', m)).toBe(false);
     m.AuthMeta.rows.length = 0;
-    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1 });
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1, failed: 0 });
+    ldap.lookup = async () => { throw new Error('directory down'); };
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 0, failed: 2 });
     expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
   });
 
@@ -548,6 +550,9 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async () => null;
     const gone = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
     expect(gone.message).toMatch(/allow a relink/);
+    ldap.lookup = async () => { throw new Error('directory down'); };
+    const unknown = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
+    expect(unknown.message).toMatch(/couldn't say whether .* Check before allowing a relink/);
   });
 
   test('an account another process found missing is checked again once it has signed in since', async () => {

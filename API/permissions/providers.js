@@ -378,7 +378,11 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     const p = getProvider(identity.provider);
     let still = null;
     if (p && typeof p.impl.lookup === "function")
-      still = await withTimeout(p.impl.lookup(sameName.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS).catch(() => null);
+      still = await withTimeout(p.impl.lookup(sameName.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS).catch(() => undefined);
+    if (still === undefined)
+      throw new LinkError(
+        `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and ${identity.provider} couldn't say whether that account's entry (subject '${sameName.subject}') still exists. Check before allowing a relink: if it does, the name was reused by someone else.`
+      );
     if (still)
       throw new LinkError(
         `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
@@ -402,7 +406,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     throw new LinkError(
       holder
         ? `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}' (renamed there). Don't relink it to this entry; this person can't sign in while that account holds the name.`
-        : `The username '${identity.username}' already belongs to another account.`
+        : `The username '${identity.username}' already belongs to account ${taken.id}, which doesn't sign in with ${identity.provider} yet. If it is this person's, allow a ${identity.provider} relink on account ${taken.id}; until then they can keep using its MMGIS password.`
     );
   }
   // Random password: the account can only be used through its provider
@@ -467,6 +471,15 @@ async function syncGroups(userId, identity, m = accountModels()) {
   );
   const remove = [...have].filter((id) => !want.has(id));
   const add = [...want].filter((id) => !have.has(id));
+  // So a group renamed or moved in the directory, which silently stops matching, shows up in the log
+  if (remove.length > 0 || add.length > 0) {
+    const names = (ids) => ids.map((id) => `'${groups.find((g) => g.id === id).external_name}'`).join(", ");
+    logger(
+      "info",
+      `Auth provider '${identity.provider}': account ${userId}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}. Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.`,
+      "AuthProviders"
+    );
+  }
   if (remove.length > 0)
     await m.AuthGroupMember.destroy({ where: { user_id: userId, group_id: remove } });
   if (add.length > 0)
@@ -484,10 +497,11 @@ const rechecks = new Map();
 // Re-reads a provider-linked account through the provider's lookup(subject) at most every
 // AUTH_RECHECK_MINUTES, so directory changes reach existing sessions and tokens. Resolves false
 // once the provider says the account is gone; keeps access when the provider can't be reached.
-function stillLinked(userId, providerId, m, force = false) {
+// With detail, resolves to "ok", "missing" or "failed" (the provider couldn't be asked) instead.
+function stillLinked(userId, providerId, m, force = false, detail = false) {
   const p = getProvider(providerId);
   const ms = recheckMs();
-  if ((ms === 0 && !force) || !p || typeof p.impl.lookup !== "function") return Promise.resolve(true);
+  if ((ms === 0 && !force) || !p || typeof p.impl.lookup !== "function") return Promise.resolve(detail ? "ok" : true);
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
   if (!force && hit && Date.now() - hit.at < ms) {
@@ -500,21 +514,21 @@ function stillLinked(userId, providerId, m, force = false) {
       return since > hit.at ? stillLinked(userId, providerId, m, true) : false;
     })();
   }
-  const result = (async () => {
+  const status = (async () => {
     m = m || accountModels();
     const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
-    if (!link) return true;
+    if (!link) return "ok";
     let found;
     try {
       found = await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS);
     } catch (err) {
       logger("warn", `Auth provider '${providerId}': couldn't recheck account ${userId}; it keeps its access until the next check.`, "AuthProviders", null, err);
-      return true;
+      return "failed";
     }
-    if (found === undefined) return true;
+    if (found === undefined) return "failed";
     // A relink during the lookup replaced the subject; that login already synced the new one
     const now = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
-    if (!now || now.subject !== link.subject) return true;
+    if (!now || now.subject !== link.subject) return "ok";
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
     await markMissing(m, providerId, userId, !identity, link.subject);
@@ -526,15 +540,16 @@ function stillLinked(userId, providerId, m, force = false) {
     if (changed || !identity) require("./principal").invalidate();
     if (!identity)
       logger("info", `Auth provider '${providerId}' no longer has account ${userId} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
-    return identity != null;
+    return identity ? "ok" : "missing";
   })().catch((err) => {
     rechecks.delete(key);
     throw err;
   });
+  const result = status.then((s) => s !== "missing");
   const entry = { at: Date.now(), result };
   rechecks.set(key, entry);
   result.then((ok) => (entry.missing = !ok), () => {});
-  return result;
+  return detail ? status : result;
 }
 
 // Rechecks every provider-linked account now, including ones nobody has used since a directory change,
@@ -545,15 +560,16 @@ async function recheckLinked(m = accountModels()) {
     return p && typeof p.impl.lookup === "function";
   });
   let next = 0;
-  let missing = 0;
+  const counts = { ok: 0, missing: 0, failed: 0 };
   const worker = async () => {
     while (next < links.length) {
       const l = links[next++];
-      if (!(await stillLinked(l.user_id, l.provider, m, true))) missing++;
+      counts[await stillLinked(l.user_id, l.provider, m, true, true)]++;
     }
   };
   await Promise.all(Array.from({ length: Math.min(8, links.length) }, worker));
-  return { checked: links.length, missing };
+  // failed: the provider couldn't be asked (unreachable, or its service account was refused)
+  return { checked: links.length, missing: counts.missing, failed: counts.failed };
 }
 
 // The legacy lead group (LEADS) a login response reports, as a page reload does

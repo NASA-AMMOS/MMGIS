@@ -24,7 +24,12 @@ export default function PeopleTab({ ctx }) {
     api("account_recheck_linked", {})
       .then((res) => {
         const r = (res && res.body) || {};
-        notify(`Checked ${r.checked} provider-linked accounts: ${r.missing} not found.`, r.missing ? "warning" : "success");
+        notify(
+          r.failed
+            ? `Couldn't check ${r.failed} of ${r.checked} provider-linked accounts: the login provider is unreachable or refused its service account (see the server log). ${r.missing} not found.`
+            : `Checked ${r.checked} provider-linked accounts: ${r.missing} not found.`,
+          r.missing || r.failed ? "warning" : "success"
+        );
         refresh();
       })
       .catch((res) => notify(res.message || "Failed to check the linked accounts.", "error"));
