@@ -223,6 +223,15 @@ const inTransaction = (m, fn) => (m.transaction ? m.transaction(fn) : fn(undefin
 // { username (at the provider), subject (when the provider could look it up), expires_at, by }.
 const RELINK_HOURS = 24;
 const relinkKey = (provider, userId) => `relink:${provider}:${userId}`;
+// Set while a recheck finds the account's entry gone, so admins can tell leavers from active people
+const missingKey = (provider, userId) => `missing:${provider}:${userId}`;
+async function markMissing(m, provider, userId, gone, subject) {
+  if (!m.AuthMeta) return;
+  const key = missingKey(provider, userId);
+  if (!gone) return m.AuthMeta.destroy({ where: { key } });
+  if (!(await m.AuthMeta.findOne({ where: { key }, raw: true })))
+    await m.AuthMeta.create({ key, value: { since: new Date().toISOString(), subject } });
+}
 const sameUsername = (a, b) =>
   String(a).normalize("NFKC").toLowerCase() === String(b).normalize("NFKC").toLowerCase();
 
@@ -251,6 +260,7 @@ async function claimRelink(identity, m) {
   const claimed = await inTransaction(m, async (transaction) => {
     // Single use, even when two logins race for it
     if (!(await m.AuthMeta.destroy({ where: { key: claim.key }, transaction }))) return false;
+    await m.AuthMeta.destroy({ where: { key: missingKey(identity.provider, user.id) }, transaction });
     await m.AuthIdentity.destroy({ where: { user_id: user.id, provider: identity.provider }, transaction });
     await m.AuthIdentity.create(
       {
@@ -280,6 +290,12 @@ async function claimRelink(identity, m) {
   return user;
 }
 
+// A provider group's external name as the provider reports it, e.g. a DN in LDAP's canonical form
+function groupName(providerId, name) {
+  const p = getProvider(providerId);
+  return p && typeof p.impl.groupName === "function" && typeof name === "string" ? p.impl.groupName(name) : name;
+}
+
 // The provider's entry for a username, so an admin can see who a relink would go to:
 // { subject, dn } or null when the provider has none, undefined when it can't look people up
 async function relinkTarget(providerId, username) {
@@ -306,6 +322,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
         { username: identity.username, last_login_at: new Date() },
         { where: { provider: identity.provider, subject: identity.subject } }
       );
+      await markMissing(m, identity.provider, user.id, false);
       // Drawings and other content are keyed by username, so a rename at the provider isn't copied
       if (identity.username !== user.username)
         logger(
@@ -440,6 +457,7 @@ function stillLinked(userId, providerId, m) {
     if (!now || now.subject !== link.subject) return true;
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
+    await markMissing(m, providerId, userId, !identity, link.subject);
     if (changed || !identity) require("./principal").invalidate();
     if (!identity)
       logger("info", `Auth provider '${providerId}' no longer has account ${userId} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
@@ -621,6 +639,8 @@ module.exports = {
   linkIdentity,
   RELINK_HOURS,
   relinkKey,
+  missingKey,
+  groupName,
   relinkTarget,
   sameUsername,
   syncGroups,

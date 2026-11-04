@@ -67,7 +67,8 @@ export function PersonPanel({ user, ctx }) {
   const relinkProviders = String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local");
   const [relinkName, setRelinkName] = useState("");
   useEffect(() => setRelinkName(""), [user.id]);
-  const relinkAs = relinkName.trim() || user.username;
+  const providerLogin = (user.sign_ins || []).find((l) => relinkProviders.includes(l.provider));
+  const relinkAs = relinkName.trim() || (providerLogin && providerLogin.username) || user.username;
   const relink = (provider, cancel = false) =>
     api(cancel ? "account_cancel_relink" : "account_allow_relink", { id: user.id, provider, username: relinkAs })
       .then((res) => {
@@ -79,7 +80,11 @@ export function PersonPanel({ user, ctx }) {
   const askRelink = (p) =>
     ctx.askConfirm({
       title: `Allow ${p.toUpperCase()} relink?`,
-      text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}' takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.`,
+      text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}' takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.${
+        providerLogin && providerLogin.missing_since
+          ? ` Its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled on ${new Date(providerLogin.missing_since).toLocaleDateString()}: if '${relinkAs}' is now someone else, don't allow this.`
+          : ""
+      }`,
       action: "Allow",
       onConfirm: () => relink(p),
     });

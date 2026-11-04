@@ -58,6 +58,11 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
           username: l.username,
           last_login_at: l.last_login_at,
         });
+      const missing = {};
+      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "missing:%" } }, raw: true }))
+        missing[r.key.slice("missing:".length)] = r.value && r.value.since;
+      for (const [userId, list] of Object.entries(signIns))
+        list.forEach((l) => (l.missing_since = missing[`${l.provider}:${userId}`] || null));
       const relinks = {};
       for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
         const [, provider, userId] = r.key.split(":");
@@ -131,7 +136,10 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       });
       // A user's tokens act with that user's authority, so they go with the account
       await LongTermTokens.destroy({ where: { created_by_user_id: id }, transaction });
-      await AuthMeta.destroy({ where: { key: { [Op.like]: `relink:%:${id}` } }, transaction });
+      await AuthMeta.destroy({
+        where: { [Op.or]: [{ key: { [Op.like]: `relink:%:${id}` } }, { key: { [Op.like]: `missing:%:${id}` } }] },
+        transaction,
+      });
       // Its connections go with it (cascade); read them first to revoke them at each service
       grants = await connections.accountGrants(id, { transaction }).catch(() => []);
       // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile

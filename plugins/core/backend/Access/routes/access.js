@@ -104,7 +104,7 @@ router.post("/groups/create", manage, async (req, res) => {
       name,
       description: req.body.description || null,
       source,
-      external_name: source !== "local" ? req.body.external_name || name : null,
+      external_name: source !== "local" ? providers.groupName(source, req.body.external_name || name) : null,
     });
     invalidate();
     res.send({ status: "success", body: group });
@@ -131,6 +131,7 @@ router.post("/groups/update", manage, async (req, res) => {
     ["name", "description", "external_name"].forEach((k) => {
       if (req.body[k] !== undefined) set[k] = req.body[k];
     });
+    if (set.external_name != null && group.source !== "local") set.external_name = providers.groupName(group.source, set.external_name);
     // Pointing a provider group elsewhere grants its roles to new people
     if (set.external_name !== undefined && set.external_name !== group.external_name)
       await assertHoldsGroupRoles(await ensurePrincipal(req), group.id);

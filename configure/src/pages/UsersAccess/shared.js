@@ -641,7 +641,11 @@ export const PEOPLE_COLUMNS = [
 export const signInText = (u) =>
   (u.sign_ins || []).length
     ? u.sign_ins
-        .map((l) => (l.username && l.username !== u.username ? `${l.provider} (as ${l.username})` : l.provider))
+        .map(
+          (l) =>
+            (l.username && l.username !== u.username ? `${l.provider} (as ${l.username})` : l.provider) +
+            (l.missing_since ? ` (not found in ${l.provider} since ${new Date(l.missing_since).toLocaleDateString()})` : "")
+        )
         .join(", ")
     : "MMGIS account";
 export const lastProviderLogin = (u) =>

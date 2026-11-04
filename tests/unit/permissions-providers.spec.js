@@ -515,6 +515,17 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async () => null;
     expect(await providers.stillLinked(9002, 'ldap', m)).toBe(false);
     expect(m.AuthGroupMember.rows).toEqual([]);
+    // Shown in People until the entry is back
+    expect(m.AuthMeta.rows).toMatchObject([{ key: 'missing:ldap:9002', value: { since: expect.any(String), subject: 'old' } }]);
+    m.User.rows.push({ id: 9002, username: 'back' });
+    await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'old', username: 'back' }), m);
+    expect(m.AuthMeta.rows).toEqual([]);
+  });
+
+  test('LDAP group DNs typed in another case or spacing are saved in the form LDAP reports', () => {
+    expect(providers.groupName('ldap', 'CN=Ops, OU=Groups,DC=Example,DC=org')).toBe('cn=ops,ou=groups,dc=example,dc=org');
+    expect(providers.groupName('ldap', 'Science Team')).toBe('Science Team');
+    expect(providers.groupName('local', 'CN=Ops')).toBe('CN=Ops');
   });
 
   test('a relink during the lookup is not undone by the old subject coming back empty', async () => {

@@ -564,6 +564,8 @@ module.exports = {
     const c = config(env);
     return { title: c.displayName, usernameLabel: c.usernameLabel, hint: c.hint };
   },
+  // Group DNs are matched in the form groupsOf reports them
+  groupName: (name) => (!config().groupNameAttribute && name.includes("=") ? normalizeDn(name.trim()) : name),
   lookup: (subject) => lookup(subject),
   findSubject: (username) => findSubject(username),
   validate,
