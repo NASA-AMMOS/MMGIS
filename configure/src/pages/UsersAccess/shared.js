@@ -631,9 +631,21 @@ export const PEOPLE_COLUMNS = [
   ["admin", "Mission Admin", (r) => r.s.missionAdmin.length],
   ["layer", "Layer Editor", (r) => r.s.layerEditor.length],
   ["groups", "Groups", (r) => r.s.groupNames.join(", ").toLowerCase()],
+  ["signin", "Signs in with", (r) => signInText(r.u)],
+  ["lastlogin", "Last provider login", (r) => lastProviderLogin(r.u) || ""],
   ["created", "Created", (r) => r.u.createdAt || ""],
   ["updated", "Updated", (r) => r.u.updatedAt || ""],
 ];
+
+// Provider-linked accounts sign in only through their provider; the rest with an MMGIS password
+export const signInText = (u) =>
+  (u.sign_ins || []).length
+    ? u.sign_ins
+        .map((l) => (l.username && l.username !== u.username ? `${l.provider} (as ${l.username})` : l.provider))
+        .join(", ")
+    : "MMGIS account";
+export const lastProviderLogin = (u) =>
+  (u.sign_ins || []).map((l) => l.last_login_at).filter(Boolean).sort().pop();
 
 export const dateText = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 

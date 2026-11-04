@@ -215,6 +215,7 @@ function fakeModels({ users = [], links = [], groups = [], members = [] } = {}) 
     findAll: async ({ where }) => rows.filter((r) => match(r, where)),
     create: async (r) => { const row = { id: rows.length + 100, ...r }; rows.push(row); return row; },
     bulkCreate: async (list) => list.forEach((r) => rows.push(r)),
+    update: async (fields, { where }) => rows.filter((r) => match(r, where)).forEach((r) => Object.assign(r, fields)),
     destroy: async ({ where }) => { for (let i = rows.length - 1; i >= 0; i--) if (match(rows[i], where)) rows.splice(i, 1); },
   });
   return { User: table(users), AuthIdentity: table(links), AuthGroup: table(groups), AuthGroupMember: table(members) };
@@ -232,6 +233,9 @@ test.describe('account linking', () => {
     const again = await providers.linkIdentity(identity({ subject: 'sub-1', username: 'renamed' }), m);
     expect(again.id).toBe(first.id);
     expect(m.User.rows).toHaveLength(1);
+    // The rename is recorded on the link; the MMGIS username, which drawings are keyed by, stays
+    expect(m.User.rows[0].username).toBe('kc_user');
+    expect(m.AuthIdentity.rows[0]).toMatchObject({ username: 'renamed', last_login_at: expect.any(Date) });
   });
 
   test('never takes over an existing account with the same username', async () => {

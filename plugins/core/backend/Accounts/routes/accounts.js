@@ -47,6 +47,16 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
         attributes: ["subject_id", "role", "scope_type"],
         raw: true,
       });
+      const signIns = {};
+      for (const l of await AuthIdentity.findAll({
+        attributes: ["user_id", "provider", "username", "last_login_at"],
+        raw: true,
+      }))
+        (signIns[l.user_id] = signIns[l.user_id] || []).push({
+          provider: l.provider,
+          username: l.username,
+          last_login_at: l.last_login_at,
+        });
       const byUser = {};
       for (const b of userBindings)
         (byUser[b.subject_id] = byUser[b.subject_id] || []).push({
@@ -59,6 +69,7 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
           entries: users.map((u) => ({
             ...u,
             role: policy.accountRole(byUser[String(u.id)] || []),
+            sign_ins: signIns[u.id] || [],
           })),
         },
       });

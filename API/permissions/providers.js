@@ -210,7 +210,20 @@ async function linkIdentity(identity, m = accountModels()) {
       attributes: ["id", "username"],
       raw: true,
     });
-    if (user) return user;
+    if (user) {
+      await m.AuthIdentity.update(
+        { username: identity.username, last_login_at: new Date() },
+        { where: { provider: identity.provider, subject: identity.subject } }
+      );
+      // Drawings and other content are keyed by username, so a rename at the provider isn't copied
+      if (identity.username !== user.username)
+        logger(
+          "info",
+          `Auth provider '${identity.provider}' now calls account ${user.id} '${identity.username}'; it keeps its MMGIS username '${user.username}'.`,
+          "AuthProviders"
+        );
+      return user;
+    }
   }
   const taken = await m.User.findOne({
     where: { username: identity.username },
@@ -243,6 +256,8 @@ async function linkIdentity(identity, m = accountModels()) {
   await m.AuthIdentity.create({
     provider: identity.provider,
     subject: identity.subject,
+    username: identity.username,
+    last_login_at: new Date(),
     user_id: created.id,
   });
   return { id: created.id, username: created.username };

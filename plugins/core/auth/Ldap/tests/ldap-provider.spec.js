@@ -100,7 +100,11 @@ test.describe('LDAP login provider', () => {
     expect((await ldapLogin(again, alice)).status()).toBe(200);
     const adminCtx = await adminContext();
     const entries = (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries;
-    expect(entries.filter((e) => e.username === alice.username)).toHaveLength(1);
+    const mine = entries.filter((e) => e.username === alice.username);
+    expect(mine).toHaveLength(1);
+    // Users & Access shows that the account signs in through LDAP, and when it last did
+    expect(mine[0].sign_ins).toEqual([expect.objectContaining({ provider: 'ldap', username: alice.username })]);
+    expect(Date.now() - new Date(mine[0].sign_ins[0].last_login_at).getTime()).toBeLessThan(60000);
   });
 
   test('directory groups give roles through groups with Members from LDAP', async () => {

@@ -13,7 +13,7 @@ import TablePagination from "@mui/material/TablePagination";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import { useStyles } from "./styles";
-import { SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, SiteRoleBadges, MissionList, rowActivate } from "./shared";
+import { SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, signInText, lastProviderLogin, SiteRoleBadges, MissionList, rowActivate } from "./shared";
 import { useRemembered, useOnChange } from "./hooks";
 
 // Every account, with its site role and what it can view and edit
@@ -83,6 +83,8 @@ export default function PeopleTab({ ctx }) {
                       <TableCell>{s.missionAdmin.length ? <MissionList items={s.missionAdmin} /> : <span className={c.muted}>—</span>}</TableCell>
                       <TableCell>{s.layerEditor.length ? <MissionList items={s.layerEditor} /> : <span className={c.muted}>—</span>}</TableCell>
                       <TableCell>{s.groupNames.length ? s.groupNames.map((n, i) => <React.Fragment key={n}>{i > 0 && ", "}<SubjectTag type="group" name={n} showKind={false} /></React.Fragment>) : <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell className={(u.sign_ins || []).length ? "" : c.muted}>{signInText(u)}</TableCell>
+                      <TableCell className={c.muted}>{dateText(lastProviderLogin(u))}</TableCell>
                       <TableCell className={c.muted}>{dateText(u.createdAt)}</TableCell>
                       <TableCell className={c.muted}>{dateText(u.updatedAt)}</TableCell>
                     </TableRow>
