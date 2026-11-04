@@ -579,6 +579,10 @@ export const pushTo = (map, k, v) => {
 };
 
 // Groups of a provider that's not in AUTH_PROVIDERS give their members nothing
+// From the server: each enabled provider's name and whether it offers relinking
+const providerInfo = () => window.mmgisglobal?.authProviderInfo || [];
+export const providerName = (id) => (providerInfo().find((p) => p.id === id) || {}).label || String(id).toUpperCase();
+export const relinkProviders = () => providerInfo().filter((p) => p.relink).map((p) => p.id);
 export const providerOn = (source) => source === "local" || (window.mmgisglobal?.authProviders || []).includes(source);
 
 // One pass over bindings/groups so People stays fast with thousands of accounts
@@ -651,13 +655,13 @@ export const relinkPending = (u) =>
 // Provider-linked accounts sign in only through their provider; the rest with an MMGIS password
 export const signInText = (u) =>
   signInBase(u) +
-  (u.relink ? ` (relink to ${u.relink.provider} ${u.relink.stale ? "stale" : "pending"})` : "");
+  (u.relink ? ` (relink to ${providerName(u.relink.provider)} ${u.relink.stale ? "stale" : "pending"})` : "");
 const signInBase = (u) =>
   (u.sign_ins || []).length
     ? u.sign_ins
         .map(
           (l) =>
-            (l.username && l.username !== u.username ? `${l.provider} (as ${l.username})` : l.provider) +
+            (l.username && l.username !== u.username ? `${providerName(l.provider)} (as ${l.username})` : providerName(l.provider)) +
             (l.missing_reason === "subject"
               ? ` (linked under an old subject setting; relink)`
               : l.missing_since

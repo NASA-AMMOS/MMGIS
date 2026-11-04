@@ -10,7 +10,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import AddIcon from "@mui/icons-material/Add";
 import { useStyles } from "./styles";
-import { SubjectTag, api, rowActivate } from "./shared";
+import { SubjectTag, api, rowActivate, providerName } from "./shared";
 import { ProviderCheckDialog } from "./GroupPanel";
 import { useRemembered } from "./hooks";
 
@@ -31,11 +31,11 @@ export default function GroupsTab({ ctx }) {
               {providers.length > 0 && (
                 <Select size="small" className={c.field} value={newGroup.source} onChange={(e) => setNewGroup({ ...newGroup, source: e.target.value })}>
                   <MenuItem value="local">Members managed here</MenuItem>
-                  {providers.map((p) => <MenuItem key={p} value={p}>Members from {p.toUpperCase()}</MenuItem>)}
+                  {providers.map((p) => <MenuItem key={p} value={p}>Members from {providerName(p)}</MenuItem>)}
                 </Select>
               )}
               {newGroup.source !== "local" && (
-                <TextField size="small" className={c.field} placeholder={`${newGroup.source.toUpperCase()} group, as logged at sign-in`} value={newGroup.external_name} onChange={(e) => setNewGroup({ ...newGroup, external_name: e.target.value })} />
+                <TextField size="small" className={c.field} placeholder={`${providerName(newGroup.source)} group, as logged at sign-in`} value={newGroup.external_name} onChange={(e) => setNewGroup({ ...newGroup, external_name: e.target.value })} />
               )}
               <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} disabled={!newGroup.name.trim()} onClick={() =>
                 api("access_groups_create", { name: newGroup.name, source: newGroup.source, external_name: newGroup.external_name || undefined })
@@ -70,7 +70,7 @@ export default function GroupsTab({ ctx }) {
                   return (
                     <TableRow key={g.id} className={c.clickRow} {...rowActivate(() => setPanel({ type: "group", id: g.id }))}>
                       <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
-                      <TableCell>{g.source === "local" ? g.members.length : `${g.members.length} from ${g.source.toUpperCase()} (${g.external_name})`}</TableCell>
+                      <TableCell>{g.source === "local" ? g.members.length : `${g.members.length} from ${providerName(g.source)} (${g.external_name})`}</TableCell>
                       <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.scope_type === "layer" ? `${b.mission || "?"} › ${(allLayerPaths[b.mission] || {})[b.layer_uuid] || "folder"}` : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
                   );

@@ -389,6 +389,8 @@ async function relinkRequest(req, res, { cancel = false } = {}) {
   const known = cancel ? providers.availableProviders() : providers.enabledProviders().map((p) => p.id);
   if (provider === "local" || !known.includes(provider))
     return void relinkFail(res, `'${provider}' isn't an enabled login provider.`);
+  if (!cancel && !providers.providerInfo().some((p) => p.id === provider && p.relink))
+    return void relinkFail(res, `'${provider}' doesn't support relinking (its plugin.json doesn't set "relink": true).`);
   const user = await User.findOne({ where: { id }, attributes: ["id", "username"], raw: true });
   if (!user) return void relinkFail(res, "User not found.");
   return { id, provider, user, key: providers.relinkKey(provider, id), actor: await ensurePrincipal(req) };

@@ -19,7 +19,7 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { useStyles } from "./styles";
-import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES, signInText, providerOn, missingText } from "./shared";
+import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES, signInText, providerOn, missingText, providerName, relinkProviders as allowedRelinks } from "./shared";
 
 export function PersonPanel({ user, ctx }) {
   const c = useStyles();
@@ -64,10 +64,11 @@ export function PersonPanel({ user, ctx }) {
   const memberOf = groups.filter((g) => g.members.some((m) => m.id === user.id));
   const myTokens = tokens.filter((t) => t.created_by_user_id === user.id);
 
-  const relinkProviders = String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local");
+  const relinkProviders = allowedRelinks();
+  const linkedProviders = String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local");
   const [relinkName, setRelinkName] = useState("");
   useEffect(() => setRelinkName(""), [user.id]);
-  const providerLogin = (user.sign_ins || []).find((l) => relinkProviders.includes(l.provider));
+  const providerLogin = (user.sign_ins || []).find((l) => linkedProviders.includes(l.provider));
   const relinkAs = relinkName.trim() || (providerLogin && providerLogin.username) || user.username;
   const relink = (provider, cancel = false, shownDn) =>
     api(cancel ? "account_cancel_relink" : "account_allow_relink", { id: user.id, provider, username: relinkAs, ...(shownDn ? { dn: shownDn } : {}) })
@@ -84,16 +85,16 @@ export function PersonPanel({ user, ctx }) {
       .catch((res) => notify(res.message || "Failed.", "error"));
   const confirmRelink = (p, dn) =>
     ctx.askConfirm({
-      title: `Allow ${p.toUpperCase()} relink?`,
-      text: `${dn ? `'${relinkAs}' is ${dn} in ${p.toUpperCase()}. ` : ""}For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}'${dn ? " from that entry" : ""} takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.${
+      title: `Allow ${providerName(p)} relink?`,
+      text: `${dn ? `'${relinkAs}' is ${dn} in ${providerName(p)}. ` : ""}For the next 24 hours, the next ${providerName(p)} login as '${relinkAs}'${dn ? " from that entry" : ""} takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${providerName(p)}. If someone else used this account, revoke its API tokens too.${
         providerLogin && providerLogin.missing_reason === "subject"
           ? ` It was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so it needs this relink to sign in again.${
               providerLogin.missing_was_gone
-                ? ` Before that, its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled at ${missingText(providerLogin.missing_since)}: if '${relinkAs}' is now someone else, don't allow this.`
+                ? ` Before that, its ${providerName(providerLogin.provider)} entry was deleted or disabled at ${missingText(providerLogin.missing_since)}: if '${relinkAs}' is now someone else, don't allow this.`
                 : ""
             }`
           : providerLogin && providerLogin.missing_since
-          ? ` Its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled at ${missingText(providerLogin.missing_since)}: if '${relinkAs}' is now someone else, don't allow this.`
+          ? ` Its ${providerName(providerLogin.provider)} entry was deleted or disabled at ${missingText(providerLogin.missing_since)}: if '${relinkAs}' is now someone else, don't allow this.`
           : ""
       }`,
       action: "Allow",
@@ -168,15 +169,15 @@ export function PersonPanel({ user, ctx }) {
             {user.relink ? (
               <>
                 <Typography variant="body2">
-                  The next {user.relink.provider.toUpperCase()} login as '{user.relink.username || user.username}'{user.relink.dn ? ` (${user.relink.dn})` : ""} can claim this account until {new Date(user.relink.expires_at).toLocaleString()}.
+                  The next {providerName(user.relink.provider)} login as '{user.relink.username || user.username}'{user.relink.dn ? ` (${user.relink.dn})` : ""} can claim this account until {new Date(user.relink.expires_at).toLocaleString()}.
                 </Typography>
                 {user.relink.stale && (
                   <Typography variant="body2" style={{ color: "#a8572e" }}>
                     {user.relink.stale.setting
-                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that this relink was allowed under an old ${user.relink.provider.toUpperCase()} subject setting, so it won't take effect.`
+                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that this relink was allowed under an old ${providerName(user.relink.provider)} subject setting, so it won't take effect.`
                       : user.relink.stale.gone
-                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that the ${user.relink.provider.toUpperCase()} entry this relink is pinned to is gone. It still works if that entry comes back, until it expires.`
-                      : `On ${new Date(user.relink.stale.at).toLocaleString()}, a sign-in from a different ${user.relink.provider.toUpperCase()} entry was refused. This relink still works for ${user.relink.dn || "the entry it is pinned to"} until it expires.`}{" "}
+                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that the ${providerName(user.relink.provider)} entry this relink is pinned to is gone. It still works if that entry comes back, until it expires.`
+                      : `On ${new Date(user.relink.stale.at).toLocaleString()}, a sign-in from a different ${providerName(user.relink.provider)} entry was refused. This relink still works for ${user.relink.dn || "the entry it is pinned to"} until it expires.`}{" "}
                     {user.relink.stale.setting
                       ? "If the directory changed since it was allowed, cancel it and allow it again."
                       : "Cancel it if that entry shouldn't get this account; if the person's entry changed since it was allowed, cancel it and allow it again."}
@@ -195,7 +196,7 @@ export function PersonPanel({ user, ctx }) {
               />
               {relinkProviders.map((p) => (
                 <Button key={p} variant="outlined" size="small" onClick={() => askRelink(p)}>
-                  Allow {p.toUpperCase()} relink
+                  Allow {providerName(p)} relink
                 </Button>
               ))}
               </>
@@ -276,7 +277,7 @@ export function PersonPanel({ user, ctx }) {
         <div className={c.hint}>Everything this person can do, combining their own access, their groups and the audiences.</div>
         {(user.sign_ins || []).length > 0 && user.sign_ins.every((l) => l.missing_since && providerOn(l.provider)) && (
           <div className={c.hint} style={{ color: "#b71c1c" }}>
-            Can't sign in or use API tokens now: {user.sign_ins.map((l) => (l.missing_reason === "subject" ? `linked under an old ${l.provider.toUpperCase()} subject setting` : `not found in ${l.provider.toUpperCase()} since ${missingText(l.missing_since)}`)).join(", ")}. This access applies again only if {user.sign_ins.some((l) => l.missing_reason === "subject") ? "the subject setting is changed back" : "that entry comes back"} or the account is relinked.
+            Can't sign in or use API tokens now: {user.sign_ins.map((l) => (l.missing_reason === "subject" ? `linked under an old ${providerName(l.provider)} subject setting` : `not found in ${providerName(l.provider)} since ${missingText(l.missing_since)}`)).join(", ")}. This access applies again only if {user.sign_ins.some((l) => l.missing_reason === "subject") ? "the subject setting is changed back" : "that entry comes back"} or the account is relinked.
           </div>
         )}
         <Table size="small" className={c.table}>

@@ -18,7 +18,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { useStyles } from "./styles";
-import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead, providerOn } from "./shared";
+import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead, providerOn, providerName } from "./shared";
 
 // Provider users have no account row, so check what one would get from a username and group claims
 export function ProviderCheckDialog({ open, providers, roles, onClose }) {
@@ -43,7 +43,7 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
-            {providers.map((p) => <MenuItem key={p} value={p}>{p.toUpperCase()}</MenuItem>)}
+            {providers.map((p) => <MenuItem key={p} value={p}>{providerName(p)}</MenuItem>)}
           </Select>
           <TextField size="small" sx={{ flex: 1 }} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
@@ -53,13 +53,13 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
           <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>
             {result.reported !== undefined && (
               <div style={{ marginBottom: 8 }}>
-                <b>Groups {provider.toUpperCase()} reports now:</b>
+                <b>Groups {providerName(provider)} reports now:</b>
                 {result.reported.length ? result.reported.map((g) => <div key={g} style={{ fontFamily: "monospace", fontSize: 13, wordBreak: "break-all" }}>{g}</div>) : " none"}
               </div>
             )}
             {result.note && <div className={c.hint}>{result.note}</div>}
             {result.reported === undefined && !groupClaims.trim() && (
-              <div className={c.hint}>{provider.toUpperCase()} can't look people up here, so this checked no groups. Enter their groups to check those.</div>
+              <div className={c.hint}>{providerName(provider)} can't look people up here, so this checked no groups. Enter their groups to check those.</div>
             )}
             <div><b>Site role:</b> <RoleBadge role={result.role || "user"} roles={roles} /></div>
             <div><b>Can view:</b> {viewing === null ? "All missions" : viewing && viewing.length ? viewing.join(", ") : "No missions"}</div>
@@ -112,7 +112,7 @@ export function GroupPanel({ group, ctx }) {
       />
       {!on && (
         <div className={`${c.section} ${c.hint}`} style={{ color: "#a8572e" }}>
-          {group.source.toUpperCase()} isn't in AUTH_PROVIDERS on this site, so this group gives its members nothing right now; the members listed are from before it was removed.
+          {providerName(group.source)} isn't in AUTH_PROVIDERS on this site, so this group gives its members nothing right now; the members listed are from before it was removed.
         </div>
       )}
       <div className={c.section}>
@@ -120,7 +120,7 @@ export function GroupPanel({ group, ctx }) {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <TextField size="small" label="Name" InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && changed && name.trim()) saveGroup(); }} />
           {group.source !== "local" && (
-            <TextField size="small" label={`${group.source.toUpperCase()} group name`} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={externalName} onChange={(e) => setExternalName(e.target.value)} />
+            <TextField size="small" label={`${providerName(group.source)} group name`} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={externalName} onChange={(e) => setExternalName(e.target.value)} />
           )}
           <Button variant="outlined" size="small" disabled={!changed || !name.trim() || (group.source !== "local" && !externalName.trim())} onClick={saveGroup}>
             Save
@@ -129,7 +129,7 @@ export function GroupPanel({ group, ctx }) {
       </div>
       {group.source !== "local" && (
         <div className={`${c.section} ${c.hint}`}>
-          Members come from {group.source.toUpperCase()}: anyone whose group claims include <b>{group.external_name}</b>.
+          Members come from {providerName(group.source)}: anyone whose group claims include <b>{group.external_name}</b>.
           {group.source === "proxy" && " If PROXY_GROUPS is set, members must also be in one of those groups to open the map or Configure."}
         </div>
       )}

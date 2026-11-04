@@ -1205,6 +1205,14 @@ function providerLabel(id) {
   return isFormProvider(p) ? text(formWording(p).title, p.label) : p.label;
 }
 
+// What Users & Access shows for each enabled provider: its name, and whether its plugin.json opts
+// in to "Allow relink" ("relink": true)
+function providerInfo(ids = siteAccess.getProviders()) {
+  return enabledProviders(ids)
+    .filter((p) => p.id !== "local")
+    .map((p) => ({ id: p.id, label: providerLabel(p.id), relink: p.manifest.relink === true }));
+}
+
 // Login buttons that the login page, Configure sign-in and the in-app modal show for
 // providers that don't use the shared form. "login_path" (a route of the provider) gets
 // returnTo appended; "login_url" (e.g. a proxy's own login page, for per-request
@@ -1344,6 +1352,7 @@ module.exports = {
   returnTo,
   loginForms,
   providerLabel,
+  providerInfo,
   loginLinks,
   logoutUrl,
   mountProviderRoutes,

@@ -43,7 +43,7 @@ function fixtureRoot() {
     const real = path.join(REAL_ROOT, 'core', 'auth', name);
     writePlugin(fixture, 'core', name, JSON.parse(fs.readFileSync(path.join(real, 'plugin.json'), 'utf8')), `module.exports = require(${JSON.stringify(path.join(real, 'plugin.js'))});`);
   }
-  writePlugin(fixture, 'core', 'Dir', { ...coreManifest('dir'), display_name: 'Directory', login_path: '/login', login_form: true, login_icon: 'card-account-details-outline' }, DIR_PLUGIN);
+  writePlugin(fixture, 'core', 'Dir', { ...coreManifest('dir'), display_name: 'Directory', login_path: '/login', login_form: true, login_icon: 'card-account-details-outline', relink: true }, DIR_PLUGIN);
   return fixture;
 }
 test.afterAll(() => fixture && fs.rmSync(fixture, { recursive: true, force: true }));
@@ -501,6 +501,13 @@ test.describe('login forms', () => {
     expect(providers.loginLinks(['dir', 'local'])).toEqual([]);
     expect(providers.providerLabel('dir')).toBe('Example Directory');
     expect(providers.providerLabel('proxy')).toBe('Authenticating proxy');
+  });
+
+  test('only providers whose plugin.json sets "relink": true offer relinking', () => {
+    expect(providers.providerInfo(['dir', 'local', 'proxy'])).toEqual([
+      { id: 'dir', label: 'Directory', relink: true },
+      { id: 'proxy', label: 'Authenticating proxy', relink: false },
+    ]);
   });
 
   test('with AUTH_LOCAL_LOGIN=admins, local accounts are only offered at Configure sign-in', () => {
