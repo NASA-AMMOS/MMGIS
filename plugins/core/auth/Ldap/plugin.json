@@ -16,7 +16,7 @@
   "relink": true,
   "dependencies": {
     "npm": {
-      "ldapts": "^8.2.0"
+      "ldapts": "^9.2.0"
     }
   },
   "ci": {
