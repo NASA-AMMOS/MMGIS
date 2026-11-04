@@ -245,6 +245,13 @@ function usernameTaken(username) {
   );
 }
 
+// Whether any account is linked to a provider other than local, enabled or not (siteAccess.selfSignupAllowed)
+async function refreshProviderAccounts(m = accountModels()) {
+  const exist = (await m.AuthIdentity.count({ where: { provider: { [Op.ne]: "local" } } })) > 0;
+  siteAccess.setProviderAccounts(exist);
+  return exist;
+}
+
 function accountModels() {
   const { AuthIdentity, AuthGroup, AuthGroupMember, AuthMeta } = require("./models");
   const { User } = require("../../plugins/core/backend/Users/models/user");
@@ -563,6 +570,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
         delete fields.email;
         created = await m.User.create(fields, { transaction });
       }
+      siteAccess.setProviderAccounts(true);
       await m.AuthIdentity.create(
         {
           provider: identity.provider,
@@ -909,6 +917,10 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   });
   const base = `${rootPath()}/api/auth`;
   app.use(base, registerRouter(base, list));
+  refreshProviderAccounts().catch((err) => {
+    if (!/relation "auth_identities" does not exist/.test(err.message))
+      logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a restart.", "AuthProviders", null, err);
+  });
   warnUnmatchableGroups().catch((err) => {
     // A new database gets its tables after this runs, and then has no groups to check
     if (/relation "auth_groups" does not exist/.test(err.message)) return;
@@ -972,6 +984,7 @@ module.exports = {
   recheckLinked,
   fillGroups,
   fillsOnlyAtSignIn,
+  refreshProviderAccounts,
   completeLogin,
   leadGroups,
   returnTo,

@@ -40,12 +40,19 @@ const localAdminsOnly = () => process.env.AUTH_LOCAL_LOGIN === "admins";
 const allowSignupSetting = () =>
   process.env.AUTH_LOCAL_ALLOW_SIGNUP === true || process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true";
 
-// Whether visitors may create their own local accounts. Alongside another provider (ldap, proxy) only
-// with AUTH_LOCAL_ALLOW_SIGNUP, so nobody can register a directory user's username before they sign in
+// Whether accounts linked to another provider exist in the database, even if that provider isn't enabled here
+let providerAccounts = false;
+const setProviderAccounts = (exist) => {
+  providerAccounts = !!exist;
+};
+
+// Whether visitors may create their own local accounts. Alongside another provider (ldap, proxy), or once
+// any account is linked to one, only with AUTH_LOCAL_ALLOW_SIGNUP, so nobody can register a directory
+// user's username before they sign in, including while that provider is out of AUTH_PROVIDERS
 const selfSignupAllowed = () =>
   hasProvider("local") &&
   !localAdminsOnly() &&
-  ((isOptional() && (getProviders().length === 1 || allowSignupSetting())) ||
+  ((isOptional() && ((getProviders().length === 1 && !providerAccounts) || allowSignupSetting())) ||
     (isRequired() && allowSignupSetting()));
 
 // Returns a list of human-readable problems with the current ENV (empty if valid)
@@ -128,5 +135,6 @@ module.exports = {
   endUserLoginEnabled,
   localAdminsOnly,
   selfSignupAllowed,
+  setProviderAccounts,
   LOCAL_LOGIN_VALUES,
 };

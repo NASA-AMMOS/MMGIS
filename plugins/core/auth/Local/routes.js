@@ -152,8 +152,11 @@ router.post("/first_signup", signupLimiter, authorize.public("login and account 
     });
 });
 
-router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login and account self-service"), function (req, res, next) {
+router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login and account self-service"), async function (req, res, next) {
   const accountManager = policy.can(req.principal, "accounts.manage");
+  // Another process may have linked the first provider account since this one started
+  if (!accountManager && siteAccess.selfSignupAllowed())
+    await providers.refreshProviderAccounts().catch((err) => logger("error", "Couldn't check for provider-linked accounts.", "signup", req, err));
   const selfSignup = siteAccess.selfSignupAllowed();
   if (!accountManager && !selfSignup) {
     res.send({
