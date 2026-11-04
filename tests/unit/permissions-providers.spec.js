@@ -340,9 +340,9 @@ test.describe('account linking', () => {
     expect(m.User.rows).toHaveLength(0);
   });
 
-  test("never creates an account named 'group', which Draw uses for shared files", async () => {
+  test("never creates an account named 'group' (Draw's shared files) or 'guest' (signed-out visitors)", async () => {
     const m = fakeModels();
-    for (const username of ['group', ' Group ', 'ＧＲＯＵＰ'])
+    for (const username of ['group', ' Group ', 'ＧＲＯＵＰ', 'guest', 'GUEST'])
       await expect(providers.linkIdentity(identity({ subject: `s-${username}`, username }), m)).rejects.toThrow(/reserved/);
     expect(m.User.rows).toHaveLength(0);
     expect(m.AuthIdentity.rows).toHaveLength(0);

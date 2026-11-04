@@ -199,10 +199,10 @@ async function identify(req) {
 
 // err.message has the details for the server log; providers show users only err.userMessage
 // Draw keeps group-shared and master files under the owner "group"
-// and a deleted account's files under "~deleted~<id>~<random>"
+// and a deleted account's files under "~deleted~<id>~<random>"; signed-out visitors' session user is "guest"
 const reservedUsername = (name) => {
   const n = String(name).normalize("NFKC").trim().replace(/\u0130/g, "I").toLowerCase();
-  return n === "group" || n.startsWith("~deleted~");
+  return n === "group" || n === "guest" || n.startsWith("~deleted~");
 };
 
 // Usernames are shown in pages (e.g. Draw's "by <owner>"); markup characters there would be script
@@ -385,7 +385,7 @@ function groupName(providerId, name) {
 async function reportedGroups(providerId, username) {
   const p = enabledProviders().find((x) => x.id === providerId);
   if (!p || typeof p.impl.findSubject !== "function" || typeof p.impl.lookup !== "function") return undefined;
-  const target = await p.impl.findSubject(relinkUsername(providerId, username));
+  const target = await withTimeout(p.impl.findSubject(relinkUsername(providerId, username)), "findSubject(username)", lookupTimeout(p));
   if (!target) return target;
   const found = await withTimeout(p.impl.lookup(target.subject), "lookup(subject)", lookupTimeout(p));
   return found ? found.groups || [] : found;
@@ -451,7 +451,7 @@ function relinkUsername(providerId, username) {
 async function relinkTarget(providerId, username) {
   const p = enabledProviders().find((x) => x.id === providerId);
   if (!p || typeof p.impl.findSubject !== "function") return undefined;
-  return p.impl.findSubject(username);
+  return withTimeout(p.impl.findSubject(username), "findSubject(username)", lookupTimeout(p));
 }
 
 // Finds the account linked to provider+subject, creating one on first login.
@@ -903,7 +903,11 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   });
   const base = `${rootPath()}/api/auth`;
   app.use(base, registerRouter(base, list));
-  warnUnmatchableGroups().catch((err) => logger("error", "Couldn't check the login providers' group names.", "AuthProviders", null, err));
+  warnUnmatchableGroups().catch((err) => {
+    // A new database gets its tables after this runs, and then has no groups to check
+    if (/relation "auth_groups" does not exist/.test(err.message)) return;
+    logger("error", "Couldn't check the login providers' group names.", "AuthProviders", null, err);
+  });
   // Posts to the shared login form's route from other sites are refused, so a page can't sign a visitor in to
   // someone else's account; other routes (e.g. a SAML or OIDC form_post callback) check their own state
   const { sameOriginOnly } = require("../connections/routes");

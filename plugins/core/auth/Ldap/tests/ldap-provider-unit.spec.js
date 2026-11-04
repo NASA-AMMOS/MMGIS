@@ -112,6 +112,8 @@ test.describe('LDAP escaping', () => {
       // A DN saved before switching to names can never match, so it's refused (and flagged at startup and in sync logs)
       expect(() => ldap.groupName('cn=science-team,ou=groups,dc=x')).toThrow(/enter just the group's cn/);
       expect(ldap.groupName('a=b')).toBe('a=b');
+      expect(ldap.groupName(' science-team ')).toBe('science-team');
+      expect(() => ldap.groupName('cn=science-team')).toThrow(/enter just the group's cn/);
       const savedProviders = process.env.AUTH_PROVIDERS;
       process.env.AUTH_PROVIDERS = '["ldap","local"]';
       try {
@@ -484,6 +486,29 @@ test.describe('Whether an old entry still exists (locate)', () => {
   test('a binary subject attribute MMGIS cannot search for again is refused, not signed out at every recheck', async () => {
     const photo = { ...alice, entry: { ...alice.entry, jpegPhoto: Buffer.from('9f8102ff', 'hex') } };
     await expect(authenticate('alice', 'right', config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'jpegPhoto' }), fakeClient([photo]))).rejects.toThrow(/holds binary values/);
+  });
+
+  test('the startup check warns when no person has the subject or username attribute', async () => {
+    const fake = () => ({
+      async bind() {},
+      async search(dn, opts) {
+        if (/entryUUUID=\*/.test(opts.filter)) return { searchEntries: [] };
+        if (opts.sizeLimit === 1) throw new SizeLimitExceededError('Size limit exceeded');
+        return { searchEntries: [{ dn }] };
+      },
+      async unbind() {},
+    });
+    const typo = await selfCheck(config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'entryUUUID' }), fake);
+    expect(typo.warnings.join(' ')).toMatch(/has the attribute entryUUUID \(LDAP_SUBJECT_ATTRIBUTE\)/);
+    expect((await selfCheck(config(base), fake)).warnings).toEqual([]);
+  });
+
+  test('an attribute that can change is warned about as the subject', () => {
+    const permanent = (env) => ldap.warnings({ ...base, ...env }).filter((w) => /isn't a permanent entry ID/.test(w));
+    expect(permanent({ LDAP_SUBJECT_ATTRIBUTE: 'uid' })).toHaveLength(1);
+    expect(permanent({ LDAP_SUBJECT_ATTRIBUTE: 'sAMAccountName' })).toHaveLength(1);
+    expect(permanent({})).toHaveLength(0);
+    expect(permanent({ LDAP_SUBJECT_ATTRIBUTE: 'objectGUID' })).toHaveLength(0);
   });
 
   test('the startup check warns when the service account cannot read the directory root', async () => {

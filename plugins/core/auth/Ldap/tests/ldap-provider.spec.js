@@ -187,6 +187,18 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('Check a provider user with no groups lists the groups the directory reports now', async () => {
+    test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to look people up');
+    const adminCtx = await adminContext();
+    const found = await (await adminCtx.get(`/api/access/effective?provider=ldap&username=${alice.username}`)).json();
+    expect(found.status).toBe('success');
+    expect(found.body.reported).toContain('cn=science-team,ou=groups,dc=example,dc=org');
+    const typed = await (await adminCtx.get(`/api/access/effective?provider=ldap&username=${alice.username}&groups=cn%3Dother,ou%3Dgroups,dc%3Dexample,dc%3Dorg`)).json();
+    expect(typed.body.reported).toBeUndefined();
+    const nobody = await (await adminCtx.get('/api/access/effective?provider=ldap&username=nobody-here')).json();
+    expect(nobody.message).toMatch(/no single entry/);
+  });
+
   test('pointing a directory group at another directory group fills it from people already signed in', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
     expect((await ldapLogin(await context(), alice)).status()).toBe(200);

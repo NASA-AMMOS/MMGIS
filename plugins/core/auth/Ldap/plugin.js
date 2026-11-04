@@ -613,6 +613,26 @@ async function selfCheck(c = config(), createClient = newClient) {
       }
       checked.push(`${name} exists`);
     }
+    // A misspelled subject or username attribute passes everything above and then fails every sign-in
+    if (c.bindDn && c.searchBase) {
+      const anyMatch = async (filter) => {
+        try {
+          const { searchEntries } = await client.search(c.searchBase, { scope: "sub", filter, attributes: ["1.1"], sizeLimit: 1 });
+          return searchEntries.length > 0;
+        } catch (err) {
+          if (err instanceof SizeLimitExceededError) return true;
+          if (err instanceof ResultCodeError) return undefined;
+          throw err;
+        }
+      };
+      const people = peopleFilter(c);
+      if (await anyMatch(people))
+        for (const [name, attr] of [["LDAP_SUBJECT_ATTRIBUTE", c.subjectAttribute], ["LDAP_USERNAME_ATTRIBUTE", c.usernameAttribute]]) {
+          if (attr.toLowerCase() === "dn") continue;
+          if ((await anyMatch(`(&${people}(${attr}=*))`)) === false)
+            checked.warnings.push(`no entry that LDAP_USER_SEARCH_FILTER finds under LDAP_USER_SEARCH_BASE has the attribute ${attr} (${name}), so every LDAP sign-in will fail. Check its spelling.`);
+        }
+    }
     // locate(subject) searches from there, so a leaver moved out of LDAP_USER_SEARCH_BASE still counts
     const root = c.bindDn && c.searchBase && c.subjectAttribute.toLowerCase() !== "dn" ? await searchRoot(client, c).catch(() => null) : undefined;
     if (root === null)
@@ -703,6 +723,10 @@ function warnings(env) {
     );
   if (c.groupNameAttribute && !c.groupSearchBase)
     out.push(`LDAP_GROUP_NAME_ATTRIBUTE=${c.groupNameAttribute} has no effect without LDAP_GROUP_SEARCH_BASE: groups read from ${c.groupsAttribute} are reported by their full DN.`);
+  if (!/^(dn|entryuuid|objectguid|objectsid|nsuniqueid|ipauniqueid|guid)$/i.test(c.subjectAttribute))
+    out.push(
+      `LDAP_SUBJECT_ATTRIBUTE=${c.subjectAttribute} isn't a permanent entry ID: if it changes (a rename, a new email address), that person's next sign-in creates a new, empty MMGIS account instead of using theirs, and whoever is later given the old value signs in as that account. Prefer entryUUID or objectGUID.`
+    );
   if (c.subjectAttribute.toLowerCase() === "dn")
     out.push(
       "LDAP_SUBJECT_ATTRIBUTE=dn: a person's DN changes when they are renamed or moved, which then creates a new MMGIS account, and whoever is later given a leaver's DN signs in as the leaver's account, roles and drawings included. Prefer entryUUID or objectGUID."
@@ -778,11 +802,12 @@ module.exports = {
   groupName: (name) => {
     const c = config();
     if (c.groupNameAttribute && c.groupSearchBase) {
-      if (/^\s*[A-Za-z][\w.-]*=[^,]*[^\\],\s*[A-Za-z][\w.-]*=/.test(name))
+      const rdn = new RegExp(`^\\s*(cn|ou|o|dc|uid|${c.groupNameAttribute.replace(/[^\w.-]/g, "")})\\s*=`, "i");
+      if (/^\s*[A-Za-z][\w.-]*=[^,]*[^\\],\s*[A-Za-z][\w.-]*=/.test(name) || rdn.test(name))
         throw new Error(
           `LDAP_GROUP_NAME_ATTRIBUTE=${c.groupNameAttribute} reports groups by their ${c.groupNameAttribute}, not their DN, so enter just the group's ${c.groupNameAttribute} (e.g. science-team), as listed under "Directory groups" in the server log at each LDAP sign-in.`
         );
-      return name.normalize("NFC");
+      return name.normalize("NFC").trim();
     }
     if (!name.includes("="))
       throw new Error(

@@ -57,6 +57,7 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
                 {result.reported.length ? result.reported.map((g) => <div key={g} style={{ fontFamily: "monospace", fontSize: 13, wordBreak: "break-all" }}>{g}</div>) : " none"}
               </div>
             )}
+            {result.note && <div className={c.hint}>{result.note}</div>}
             {result.reported === undefined && !groupClaims.trim() && (
               <div className={c.hint}>{provider.toUpperCase()} can't look people up here, so this checked no groups. Enter their groups to check those.</div>
             )}

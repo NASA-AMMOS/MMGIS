@@ -10,7 +10,8 @@ const missions = require("../../../../../API/permissions/missions");
 const bindings = require("../../../../../API/permissions/bindings");
 const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
 const { invalidate, userPrincipal, externalPrincipal } = require("../../../../../API/permissions/principal");
-const { AuthGroup, AuthGroupMember } = require("../../../../../API/permissions/models");
+const { AuthGroup, AuthGroupMember, AuthIdentity } = require("../../../../../API/permissions/models");
+const Sequelize = require("sequelize");
 const { User } = require("../../Users/models/user");
 const providers = require("../../../../../API/permissions/providers");
 const siteAccess = require("../../../../../API/permissions/siteAccess");
@@ -252,7 +253,20 @@ router.get("/effective", manage, async (req, res) => {
         logger("error", `Couldn't look up '${username}' at ${provider} to check their access.`, "access", req, err);
         throw new bindings.BindingError(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Enter their groups instead.`);
       }
-      if (reported === null) throw new bindings.BindingError(`${provider} has no single entry with the username '${username}', or it's disabled.`);
+      if (reported === null)
+        throw new bindings.BindingError(`${provider} has no single entry with the username '${username}', or it's disabled or left out by its user search filter.`);
+    }
+    // The access shown is a sign-in with no account yet; an account already holding the name changes that
+    let note;
+    if (reported !== undefined) {
+      const name = providers.relinkUsername(String(req.query.provider), String(req.query.username)).toLowerCase();
+      const holder = await User.findOne({ where: Sequelize.where(Sequelize.fn("lower", Sequelize.col("username")), name), attributes: ["id", "username"], raw: true });
+      if (holder) {
+        const linked = await AuthIdentity.findOne({ where: { user_id: holder.id, provider: String(req.query.provider) }, raw: true });
+        note = linked
+          ? `MMGIS account '${holder.username}' signs in as this person, and its own grants (see People) add to what's shown here.`
+          : `Account '${holder.username}' already has this username, so this person's ${req.query.provider} sign-in is refused until that account is relinked (People > Allow relink) or deleted. What's shown leaves out that account's own grants.`;
+      }
     }
     const principal = req.query.provider
       ? await externalPrincipal({
@@ -280,7 +294,7 @@ router.get("/effective", manage, async (req, res) => {
       : [];
     res.send({
       status: "success",
-      body: { ...(await summarize(principal)), bindings: detailed, groups, reported },
+      body: { ...(await summarize(principal)), bindings: detailed, groups, reported, note },
     });
   } catch (err) {
     fail(res, err, "Failed to get effective access.");
