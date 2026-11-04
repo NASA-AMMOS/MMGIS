@@ -445,7 +445,7 @@ async function groupsOf(client, c, entry, username, leftOut = []) {
   } catch (err) {
     if (err instanceof SizeLimitExceededError) err.tooManyGroups = true;
     if (err.tooManyGroups)
-      err.message = `${err.message}. The person is in more groups than the directory returns to the service account; raise its size limit or narrow LDAP_GROUP_SEARCH_FILTER`;
+      err.message = `${(err.message || "").trim() || "the directory's size limit was exceeded (code 4)"}. The person is in more groups than the directory returns to the service account; raise its size limit or narrow LDAP_GROUP_SEARCH_FILTER`;
     err.message = `Searching LDAP_GROUP_SEARCH_BASE for groups failed: ${err.message}`;
     throw err;
   }
@@ -922,7 +922,7 @@ module.exports = {
           ctx.logger("warn", `LDAP login for '${username}' refused: ${err.message} If every sign-in gets this, LDAP_SUBJECT_ATTRIBUTE doesn't suit this directory.`, "Ldap", req);
           return res.status(403).send({ status: "failure", message: `Your ${name} entry can't be used with MMGIS. Ask an administrator.` });
         }
-        ctx.logger("error", `LDAP login could not reach or read the directory: ${explain(err)}`, "Ldap", req, err);
+        ctx.logger("error", `LDAP login could not ${err.tooManyGroups ? "read all of the person's groups" : "reach or read the directory"}: ${explain(err)}`, "Ldap", req, err);
         if (err.tooManyGroups)
           return res.status(503).send({
             status: "failure",
