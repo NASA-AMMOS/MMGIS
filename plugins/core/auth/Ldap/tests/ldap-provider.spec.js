@@ -173,6 +173,7 @@ test.describe('LDAP login provider', () => {
   });
 
   test('a new directory group fills in from people already signed in', async () => {
+    test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
     expect((await ldapLogin(await context(), alice)).status()).toBe(200);
     const adminCtx = await adminContext();
     const created = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-fill-${Date.now()}`, source: 'ldap', external_name: 'cn=science-team,ou=groups,dc=example,dc=org' } })).json();
@@ -187,6 +188,7 @@ test.describe('LDAP login provider', () => {
   });
 
   test('pointing a directory group at another directory group fills it from people already signed in', async () => {
+    test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
     expect((await ldapLogin(await context(), alice)).status()).toBe(200);
     const adminCtx = await adminContext();
     const created = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-repoint-${Date.now()}`, source: 'ldap', external_name: 'cn=nobody-here,ou=groups,dc=example,dc=org' } })).json();
@@ -203,6 +205,7 @@ test.describe('LDAP login provider', () => {
   });
 
   test('directory group changes reach existing sessions without signing in again', async () => {
+    test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
     const recheckMinutes = parseFloat(process.env.AUTH_RECHECK_MINUTES);
     test.skip(!(recheckMinutes > 0 && recheckMinutes <= 0.1), 'SKIP: needs the server started with AUTH_RECHECK_MINUTES=0.05');
     const wait = () => new Promise((r) => setTimeout(r, recheckMinutes * 60 * 1000 + 1000));
@@ -314,6 +317,7 @@ test.describe('LDAP login provider', () => {
   });
 
   test('an admin can let one directory login claim an existing local account', async () => {
+    test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
     const username = `ldap_relink_${Date.now()}`;
     const password = ['relink', 'test', 'password'].join('-');
     const localPassword = ['Local', 'Pass', '1!x'].join('');

@@ -130,6 +130,19 @@ test.describe('LDAP login', () => {
     expect(log).toEqual([`bind ${base.LDAP_BIND_DN}`, `search ${base.LDAP_USER_SEARCH_BASE} (uid=alice)`, `bind ${alice.dn}`, 'unbind']);
   });
 
+  test('wrong passwords count per directory entry, whichever name reached it', async () => {
+    const { TooManyFailuresError, entryFailures } = require('../plugin')._internal;
+    entryFailures.clear();
+    try {
+      for (let i = 0; i < 5; i++) expect(await authenticate('alice', 'wrong', config(base), fakeClient([alice]))).toBeNull();
+      await expect(authenticate('alice', 'right', config(base), fakeClient([alice]))).rejects.toBeInstanceOf(TooManyFailuresError);
+      entryFailures.clear();
+      expect(await authenticate('alice', 'right', config(base), fakeClient([alice]))).not.toBeNull();
+    } finally {
+      entryFailures.clear();
+    }
+  });
+
   test('wrong passwords, unknown and ambiguous usernames are all "not signed in"', async () => {
     const twin = { ...alice, dn: 'uid=alice,ou=other,dc=example,dc=org', entry: { ...alice.entry, dn: 'uid=alice,ou=other,dc=example,dc=org' } };
     expect(await authenticate('alice', 'wrong', config(base), fakeClient([alice]))).toBeNull();
@@ -312,8 +325,8 @@ test.describe('Rechecking existing sessions and tokens', () => {
       if (dn !== base.LDAP_BIND_DN || password !== base.LDAP_BIND_PASSWORD) throw new InvalidCredentialsError('Invalid credentials');
     },
     async search(searchBase, opts) {
-      const m = /^\(entryUUID=(.*)\)$/.exec(opts.filter);
-      return { searchEntries: entries.filter((e) => m && e.entryUUID === m[1]) };
+      const terms = [...opts.filter.matchAll(/\(([A-Za-z]+)=([^()]*)\)/g)];
+      return { searchEntries: entries.filter((e) => terms.length && terms.every(([, a, v]) => (v === '*' ? e[a] != null : e[a] === v))) };
     },
     async unbind() {},
   });
@@ -331,6 +344,10 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect(found.username).toBe('alice');
     expect(found.groups).toEqual((await auth('alice', 'right', c, fakeClient([alice]))).groups);
     expect(await lookup('gone', c, byUuid([alice.entry]))).toBeNull();
+    // Someone LDAP_USER_SEARCH_FILTER no longer lets sign in is gone too
+    const staffOnly = config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(uid={{username}})(ou=staff))' });
+    expect(await lookup('e1', staffOnly, byUuid([alice.entry]))).toBeNull();
+    expect((await lookup('e1', staffOnly, byUuid([{ ...alice.entry, ou: 'staff' }]))).username).toBe('alice');
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, userAccountControl: '514' }]))).toBeNull();
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, pwdAccountLockedTime: '000001010000Z' }]))).toBeNull(); // pragma: allowlist secret
     // A ppolicy lockout after failed passwords ends by itself, so it doesn't count as disabled

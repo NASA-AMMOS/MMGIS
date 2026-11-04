@@ -179,6 +179,27 @@ function userAttributes(c) {
 
 // The password was right but the directory says it must be changed (Active Directory)
 class PasswordExpiredError extends Error {}
+class TooManyFailuresError extends Error {}
+
+// Wrong passwords per directory entry, so every name that reaches one entry (uid, mail, UPN) shares one
+// AUTH_MAX_FAILED_LOGINS allowance, and nobody else's typos count against it. Kept in this process's memory.
+const FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const entryFailures = new Map();
+const failureLimit = () => {
+  const n = parseInt(process.env.AUTH_MAX_FAILED_LOGINS, 10);
+  return Number.isInteger(n) && n > 0 ? n : 5;
+};
+function entryLocked(dn) {
+  const f = entryFailures.get(normalizeDn(dn));
+  if (f && f.until > Date.now() && f.count >= failureLimit()) throw new TooManyFailuresError(`${dn} had ${f.count} wrong passwords`);
+}
+function entryFailed(dn) {
+  const now = Date.now();
+  if (entryFailures.size > 10000) for (const [k, f] of entryFailures) if (f.until <= now) entryFailures.delete(k);
+  const key = normalizeDn(dn);
+  const f = entryFailures.get(key);
+  entryFailures.set(key, f && f.until > now ? { count: f.count + 1, until: f.until } : { count: 1, until: now + FAILURE_WINDOW_MS });
+}
 
 // Active Directory says why it refused a bind in the message, e.g. "data 533"
 function adCode(err) {
@@ -387,7 +408,10 @@ async function authenticate(username, password, c = config(), createClient = new
     let entry;
     if (c.userDnTemplate) {
       const dn = fill(c.userDnTemplate, { username: escapeDn(username) });
+      entryLocked(dn);
       const bind = await bindAs(client, dn, password);
+      if (!bind.ok) entryFailed(dn);
+      else entryFailures.delete(normalizeDn(dn));
       if (!bind.ok) return refuse(`${bind.reason} for ${dn} (if nobody can sign in, check LDAP_USER_DN_TEMPLATE)`);
       entry = c.searchBase ? (await findUser(client, c, username)).entry : await readEntry(client, c, dn);
       if (!entry) throw new Error("Signed in to the directory but could not read the person's entry.");
@@ -403,7 +427,10 @@ async function authenticate(username, password, c = config(), createClient = new
       const found = await findUser(client, c, username);
       if (!found.entry) return refuse(found.reason);
       entry = found.entry;
+      entryLocked(entry.dn);
       const bind = await bindAs(client, entry.dn, password);
+      if (!bind.ok) entryFailed(entry.dn);
+      else entryFailures.delete(normalizeDn(entry.dn));
       if (!bind.ok) return refuse(`${bind.reason} for ${entry.dn}`);
       // Group searches run as the service account, as the user search did
       if (c.groupSearchBase && c.bindDn) await bindService(client, c);
@@ -423,6 +450,9 @@ async function authenticate(username, password, c = config(), createClient = new
     await client.unbind().catch(() => {});
   }
 }
+
+// LDAP_USER_SEARCH_FILTER for anyone, so a recheck drops whoever the filter no longer lets sign in
+const peopleFilter = (c) => fill(c.searchFilter, { username: "*" });
 
 // With LDAP_SUBJECT_ATTRIBUTE=dn, a stored subject that isn't a DN (one saved under entryUUID/objectGUID
 // before the setting changed) names no entry
@@ -446,8 +476,8 @@ async function lookup(subject, c = config(), createClient = newClient) {
     try {
       ({ searchEntries: entries } =
         byDn
-          ? await client.search(subject, { scope: "base", filter: "(objectClass=*)", attributes, explicitBufferAttributes })
-          : await client.search(c.searchBase, { scope: "sub", filter: subjectFilter(c, subject), attributes, explicitBufferAttributes, sizeLimit: 2 }));
+          ? await client.search(subject, { scope: "base", filter: peopleFilter(c), attributes, explicitBufferAttributes })
+          : await client.search(c.searchBase, { scope: "sub", filter: `(&${subjectFilter(c, subject)}${peopleFilter(c)})`, attributes, explicitBufferAttributes, sizeLimit: 2 }));
     } catch (err) {
       if (byDn ? noDnEntry(err) : err instanceof NoSuchObjectError) return null;
       throw err;
@@ -691,6 +721,10 @@ module.exports = {
       try {
         identity = await authenticate(username, body.password, c, newClient, (r) => (reason = r));
       } catch (err) {
+        if (err instanceof TooManyFailuresError) {
+          ctx.logger("warn", `LDAP login for '${username}' refused: ${err.message} in the last 15 minutes (AUTH_MAX_FAILED_LOGINS).`, "Ldap", req);
+          return res.status(429).send({ status: "failure", message: "Too many failed sign-ins for this account. Try again in 15 minutes." });
+        }
         if (err instanceof PasswordExpiredError) {
           ctx.logger("warn", `LDAP login for '${username}' refused: password expired.`, "Ldap", req);
           // 403, not 401: the password was right, so it doesn't count toward AUTH_MAX_FAILED_LOGINS
@@ -753,5 +787,5 @@ module.exports = {
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, TooManyFailuresError, entryFailures },
 };

@@ -16,16 +16,18 @@ const failedLoginLimit = () => {
   return Number.isInteger(n) && n > 0 ? n : 5;
 };
 
-// "CORP\\Alice", "alice@corp.example.org", fullwidth "ａｌｉｃｅ" and "alİce" count as "alice"
-// (directories match the dotted capital İ as i)
-const accountKey = (username) =>
-  String(username)
+// "CORP\\Alice", fullwidth "ａｌｉｃｅ" and "alİce" count as "alice" (directories match the dotted capital
+// İ as i); on the local form "alice@corp.example.org" does too. Provider forms keep "@domain", since
+// alice@one.org and alice@two.org can be two people; LDAP also counts per directory entry.
+const accountKey = (username, form = 'local') => {
+  const key = String(username)
     .normalize('NFKC')
     .trim()
     .replace(/\u0130/g, 'I')
     .toLowerCase()
-    .replace(/^[^\\]*\\/, '')
-    .replace(/@.*$/, '');
+    .replace(/^[^\\]*\\/, '');
+  return form === 'local' ? key.replace(/@.*$/, '') : key;
+};
 
 // Failed logins per account and login form, so MMGIS stops before a directory locks the account.
 // Only wrong credentials count: a 401, or a 200 with res.locals.loginFailed. Forms count
@@ -48,7 +50,7 @@ const failedLoginLimiter = (limit, keyGenerator) =>
 const accountLimiters = new Map();
 function accountLimiterFor(form) {
   if (!accountLimiters.has(form)) {
-    const byAccount = (req) => accountKey(req.body.username);
+    const byAccount = (req) => accountKey(req.body.username, form);
     const limiters =
       form === 'local'
         ? [
@@ -72,7 +74,7 @@ const accountLimiter = accountLimiterFor('local');
 // Clears an account's failed logins on every provider form and the local per-account ceiling
 // (not local per-address counts), e.g. once an admin fixed why it was refused
 function resetFailedLogins(username) {
-  accountLimiters.forEach((l) => l.resetKey(accountKey(username)));
+  accountLimiters.forEach((l, form) => l.resetKey(accountKey(username, form)));
 }
 
 // Account admins creating accounts through /signup are not limited

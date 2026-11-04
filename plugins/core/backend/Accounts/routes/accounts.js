@@ -382,6 +382,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     if (username === "" || username.length > 256 || /[\u0000-\u001f\u007f]/.test(username))
       return fail("Enter the person's username at the login provider.");
     username = providers.relinkUsername(provider, username);
+    if (username === "") return fail("Enter the person's username at the login provider.");
     // The account's grants carry over, so a SuperAdmin account can only be handed over by a SuperAdmin
     const superAdmins = (
       await RoleBinding.findAll({

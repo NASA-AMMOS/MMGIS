@@ -33,6 +33,8 @@ test.describe('Rate limiting configuration', () => {
     expect(accountKey('ＣＯＲＰ\\ｌdap_Bob')).toBe('ldap_bob');
     expect(accountKey(' Alice@corp.example.org ')).toBe('alice');
     expect(accountKey('ldap_alİce')).toBe('ldap_alice');
+    expect(accountKey(' Alice@corp.example.org ', 'ldap')).toBe('alice@corp.example.org');
+    expect(accountKey('CORP\\Alice', 'ldap')).toBe('alice');
     expect(accountLimiterFor('local')).toBe(accountLimiter);
     expect(accountLimiterFor('ldap')).not.toBe(accountLimiter);
   });

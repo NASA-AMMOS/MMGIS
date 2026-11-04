@@ -206,7 +206,7 @@ const reservedUsername = (name) => {
 };
 
 // Usernames are shown in pages (e.g. Draw's "by <owner>"); markup characters there would be script
-const unsafeUsername = (name) => /[\u0000-\u001f\u007f<>"`]/.test(String(name));
+const unsafeUsername = (name) => /[\u0000-\u001f\u007f<>"`\\]/.test(String(name));
 
 class LinkError extends Error {
   constructor(message, userMessage) {
@@ -257,6 +257,15 @@ function accountModels() {
     AuthMeta,
     transaction: (fn) => sequelize.transaction(fn),
     usernameTaken,
+    // A new account from a provider gets the same "Default for new accounts" viewing a local sign-up does
+    seedNewUser: async (userId) => {
+      const { getDefaultMissionsViewing } = require("../../plugins/core/backend/Users/models/userdefaults");
+      const missionsViewing = await getDefaultMissionsViewing().catch((err) => {
+        logger("error", "Failed to read the default viewing missions for a new account.", "AuthProviders", null, err);
+        return null;
+      });
+      await require("./bindings").seedNewUser(userId, { missionsViewing });
+    },
     // connect-pg-simple's session table has no model; Local's password reset ends sessions the same way
     endSessionsOf: (userId) =>
       sequelize.query(`DELETE FROM "session" WHERE sess->>'uid' = :uid`, { replacements: { uid: String(userId) } }),
@@ -476,7 +485,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
   if (reservedUsername(identity.username))
     throw new LinkError(`The username '${identity.username}' is reserved in MMGIS.`);
   if (unsafeUsername(identity.username))
-    throw new LinkError(`The username ${JSON.stringify(identity.username)} contains < > " \` or control characters, which MMGIS usernames can't.`);
+    throw new LinkError(`The username ${JSON.stringify(identity.username)} contains < > " \` \\ or control characters, which MMGIS usernames can't.`);
   const taken = m.usernameTaken
     ? await m.usernameTaken(identity.username)
     : await m.User.findOne({ where: { username: identity.username }, attributes: ["id"], raw: true });
@@ -509,7 +518,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     if (!emailTaken) fields.email = identity.email;
   }
   try {
-    return await inTransaction(m, async (transaction) => {
+    const made = await inTransaction(m, async (transaction) => {
       let created;
       try {
         created = await m.User.create(fields, { transaction });
@@ -530,6 +539,8 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       );
       return { id: created.id, username: created.username };
     });
+    if (m.seedNewUser) await m.seedNewUser(made.id);
+    return made;
   } catch (err) {
     // Two first logins of the same person at once: the other one created the account
     if (!retried && err.name === "SequelizeUniqueConstraintError") return linkIdentity(identity, m, true);
