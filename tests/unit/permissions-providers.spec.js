@@ -558,6 +558,7 @@ test.describe('provider rechecks', () => {
     savedProviders = process.env.AUTH_PROVIDERS;
     process.env.AUTH_PROVIDERS = '["ldap","local"]';
   });
+  test.beforeEach(() => providers.forgetRechecks());
   test.afterAll(() => {
     ldap.lookup = lookup;
     if (savedProviders === undefined) delete process.env.AUTH_PROVIDERS;
@@ -942,6 +943,23 @@ test.describe('provider rechecks', () => {
     await lookedUp;
     await new Promise((r) => setTimeout(r, 50));
     expect(await providers.stillLinked(9017, 'ldap', m)).toBe(false);
+  });
+
+  test('once a recheck finds the provider down, other people\'s requests stop waiting for theirs until it answers again', async () => {
+    ldap.lookup = async () => { throw new Error('directory down'); };
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'first', user_id: 9018 }, { provider: 'ldap', subject: 'next', user_id: 9019 }, { provider: 'ldap', subject: 'back', user_id: 9020 }] });
+    expect(await providers.stillLinked(9018, 'ldap', m)).toBe(true);
+    let ended;
+    const lookedUp = new Promise((r) => (ended = r));
+    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 1500)), ended(), { username: 'next', groups: [] });
+    const started = Date.now();
+    expect(await providers.stillLinked(9019, 'ldap', m)).toBe(true);
+    expect(Date.now() - started).toBeLessThan(500);
+    await lookedUp;
+    await new Promise((r) => setTimeout(r, 50));
+    // It answered, so a removal applies to the request again
+    ldap.lookup = async () => null;
+    expect(await providers.stillLinked(9020, 'ldap', m)).toBe(false);
   });
 
   test('a group change during a check of every account queues one more check after it', async () => {

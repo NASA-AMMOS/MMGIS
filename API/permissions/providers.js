@@ -888,6 +888,9 @@ const recheckMs = () => {
   return (Number.isFinite(n) && n >= 0 ? n : 15) * 60 * 1000;
 };
 const rechecks = new Map();
+// When a provider's last recheck couldn't reach it: other people's requests then don't wait for theirs
+const providerDown = new Map();
+const downNow = (providerId, ms) => Date.now() - (providerDown.get(providerId) || -Infinity) < ms;
 
 // Re-reads a provider-linked account through the provider's lookup(subject) at most every
 // AUTH_RECHECK_MINUTES, so directory changes reach existing sessions and tokens. Resolves false
@@ -907,7 +910,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
   if (!force && !detail && hit && Date.now() - hit.at < ms) {
-    if (!hit.missing) return requestWait(hit.result);
+    if (!hit.missing) return downNow(providerId, ms) ? Promise.resolve(true) : requestWait(hit.result);
     // Another process may have signed the person in again (a relink or a restored entry) since
     return (async () => {
       m = m || accountModels();
@@ -937,8 +940,10 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
         null,
         err
       );
+      providerDown.set(providerId, Date.now());
       return "failed";
     }
+    providerDown.delete(providerId);
     // e.g. LDAP without a service account: nothing can be read between logins
     if (found === undefined) return "unsupported";
     // A relink during the lookup replaced the subject; that login already synced the new one
@@ -972,7 +977,8 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
   rechecks.set(key, entry);
   result.then((ok) => (entry.missing = !ok), () => {});
   if (detail) return status;
-  return force ? result : requestWait(result);
+  if (force) return result;
+  return downNow(providerId, ms) ? Promise.resolve(true) : requestWait(result);
 }
 
 // Rechecks every provider-linked account now, including ones nobody has used since a directory change,
@@ -1287,6 +1293,8 @@ module.exports = {
   sameUsername,
   syncGroups,
   stillLinked,
+  // For tests: forget which accounts and providers were rechecked
+  forgetRechecks: () => (rechecks.clear(), providerDown.clear()),
   recheckLinked,
   fillGroups,
   fillsOnlyAtSignIn,
