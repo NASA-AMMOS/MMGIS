@@ -82,7 +82,11 @@ export function PersonPanel({ user, ctx }) {
       title: `Allow ${p.toUpperCase()} relink?`,
       text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}' takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.${
         providerLogin && providerLogin.missing_reason === "subject"
-          ? ` It was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so it needs this relink to sign in again.`
+          ? ` It was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so it needs this relink to sign in again.${
+              providerLogin.missing_was_gone
+                ? ` Before that, its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled on ${new Date(providerLogin.missing_since).toLocaleDateString()}: if '${relinkAs}' is now someone else, don't allow this.`
+                : ""
+            }`
           : providerLogin && providerLogin.missing_since
           ? ` Its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled on ${new Date(providerLogin.missing_since).toLocaleDateString()}: if '${relinkAs}' is now someone else, don't allow this.`
           : ""
@@ -163,7 +167,9 @@ export function PersonPanel({ user, ctx }) {
                 </Typography>
                 {user.relink.stale && (
                   <Typography variant="body2" style={{ color: "#a8572e" }}>
-                    {user.relink.stale.gone
+                    {user.relink.stale.setting
+                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that this relink was allowed under an old ${user.relink.provider.toUpperCase()} subject setting, so it won't take effect.`
+                      : user.relink.stale.gone
                       ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that the ${user.relink.provider.toUpperCase()} entry this relink is pinned to is gone, so it won't take effect.`
                       : `On ${new Date(user.relink.stale.at).toLocaleString()}, '${user.relink.username || user.username}' signed in from a different ${user.relink.provider.toUpperCase()} entry, so this relink won't take effect.`} If the directory changed since it was allowed, cancel it and allow it again.
                   </Typography>

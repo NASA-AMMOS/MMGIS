@@ -68,6 +68,7 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
           l.missing_since = (gone && gone.since) || null;
           // "subject": linked under a different subject setting, not a leaver
           l.missing_reason = (gone && gone.reason) || null;
+          l.missing_was_gone = !!(gone && gone.was_gone);
         });
       const relinks = {};
       for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
@@ -144,7 +145,16 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       const heirName = String(req.query.drawings_to == null ? "" : req.query.drawings_to).trim();
       if (heirName !== "") {
         // Matched as usernames are elsewhere (case, Unicode forms)
-        heir = (await User.findAll({ attributes: ["id", "username"], raw: true, transaction })).find((u) => providers.sameUsername(u.username, heirName));
+        // Older sites can have names differing only in case
+        const { match, alike } = providers.matchUsername(await User.findAll({ attributes: ["id", "username"], raw: true, transaction }), heirName);
+        heir = match;
+        if (!heir && alike.length > 1) {
+          res.send({
+            status: "failure",
+            message: `More than one account is named like '${heirName}' (${alike.map((u) => `'${u.username}'`).join(", ")}); type the one to give the drawings to exactly.`,
+          });
+          return null;
+        }
         if (!heir || heir.id === id) {
           res.send({ status: "failure", message: `There's no other account named '${heirName}' to give the drawings to.` });
           return null;
@@ -479,7 +489,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
           return `Another account is already waiting for ${target.dn}. Cancel that relink first.`;
       }
       await AuthMeta.upsert(
-        { key, value: { username, subject: target ? target.subject : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username } },
+        { key, value: { username, subject: target ? target.subject : undefined, subject_setting: target ? providers.subjectSettingOf(provider) || undefined : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username } },
         { transaction }
       );
       return null;

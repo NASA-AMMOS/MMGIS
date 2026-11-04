@@ -586,6 +586,76 @@ test.describe('provider rechecks', () => {
     expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9016').value.stale).toBeUndefined();
   });
 
+  test('after a subject setting change a matching value neither signs in, rechecks nor claims a relink as the old account', async () => {
+    const realSetting = ldap.subjectSetting;
+    const realLocate = ldap.locate;
+    let looked = 0;
+    try {
+      ldap.subjectSetting = () => 'uid';
+      ldap.lookup = async () => (looked++, { username: 'mallory', groups: ['cn=admins'] });
+      ldap.locate = async () => ({ username: 'mallory' });
+      const expires_at = new Date(Date.now() + 3600e3).toISOString();
+      const m = fakeModels({
+        users: [{ id: 9030, username: 'victim' }, { id: 9031, username: 'pinned' }],
+        links: [{ provider: 'ldap', subject: 'old-uuid', subject_setting: 'entryuuid', username: 'victim', user_id: 9030 }],
+        meta: [{ key: 'relink:ldap:9031', value: { username: 'pinned', subject: 'pin-uuid', subject_setting: 'entryuuid', expires_at } }],
+      });
+      await expect(providers.linkIdentity({ provider: 'ldap', subject: 'old-uuid', username: 'mallory', groups: [] }, m)).rejects.toThrow(/different subject setting/);
+      expect(m.AuthIdentity.rows[0].subject_setting).toBe('entryuuid');
+      expect(await providers.stillLinked(9030, 'ldap', m, true, true)).toBe('missing');
+      expect(looked).toBe(0);
+      expect(m.AuthMeta.rows.find((r) => r.key === 'missing:ldap:9030').value.reason).toBe('subject');
+      const claimed = await providers.linkIdentity({ provider: 'ldap', subject: 'pin-uuid', username: 'mallory', groups: [] }, m).catch((e) => e);
+      expect(claimed && claimed.id).not.toBe(9031);
+      expect((await providers.recheckLinked(m)).staleRelinks).toBe(1);
+      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9031').value.stale).toMatchObject({ setting: true });
+    } finally {
+      ldap.subjectSetting = realSetting;
+      ldap.locate = realLocate;
+    }
+  });
+
+  test('a leaver found again after a subject setting change keeps its leaver warning', async () => {
+    const realSetting = ldap.subjectSetting;
+    try {
+      ldap.subjectSetting = () => 'uid';
+      const m = fakeModels({
+        users: [{ id: 9040, username: 'leaver' }],
+        links: [{ provider: 'ldap', subject: 'old-uuid', subject_setting: 'entryuuid', username: 'leaver', user_id: 9040 }],
+        meta: [{ key: 'missing:ldap:9040', value: { since: '2026-01-01T00:00:00.000Z', subject: 'old-uuid' } }],
+      });
+      expect(await providers.stillLinked(9040, 'ldap', m, true, true)).toBe('missing');
+      expect(m.AuthMeta.rows.find((r) => r.key === 'missing:ldap:9040').value).toMatchObject({ since: '2026-01-01T00:00:00.000Z', reason: 'subject', was_gone: true });
+    } finally {
+      ldap.subjectSetting = realSetting;
+    }
+  });
+
+  test('pending relinks are not each asked about while every lookup in the pass failed', async () => {
+    const realLocate = ldap.locate;
+    let located = 0;
+    try {
+      const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9041 }] });
+      m.AuthMeta.rows.push({ key: 'relink:ldap:9042', value: { username: 'x', subject: 'x', expires_at: new Date(Date.now() + 3600e3).toISOString() } });
+      ldap.lookup = async () => { throw new Error('directory hangs'); };
+      ldap.locate = async () => (located++, null);
+      expect(await providers.recheckLinked(m)).toMatchObject({ failed: 1, staleRelinks: 0 });
+      expect(located).toBe(0);
+    } finally {
+      ldap.locate = realLocate;
+    }
+  });
+
+  test('a username typed for another account prefers the exact name and refuses an ambiguous folded one', () => {
+    const rows = [{ id: 1, username: 'Dana' }, { id: 2, username: 'dana' }, { id: 3, username: 'Ève' }];
+    expect(providers.matchUsername(rows, 'dana').match.id).toBe(2);
+    expect(providers.matchUsername(rows, 'Dana').match.id).toBe(1);
+    expect(providers.matchUsername(rows, 'DANA')).toMatchObject({ match: null });
+    expect(providers.matchUsername(rows, 'DANA').alike).toHaveLength(2);
+    expect(providers.matchUsername(rows, 'Ève'.normalize('NFD')).match.id).toBe(3);
+    expect(providers.matchUsername(rows, 'ève').match.id).toBe(3);
+  });
+
   test('a recheck waits as long as the provider says its lookup may take, not just 5 s', async () => {
     ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 5300)), null);
     const m = fakeModels({ links: [{ provider: 'ldap', subject: 'slow', user_id: 9015 }] });

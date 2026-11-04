@@ -281,9 +281,13 @@ async function markMissing(m, provider, userId, gone, subject, reason) {
   const key = missingKey(provider, userId);
   if (!gone) return m.AuthMeta.destroy({ where: { key } });
   const marked = await m.AuthMeta.findOne({ where: { key }, raw: true });
-  // Keeps when it went missing; the reason can change, e.g. a leaver found after a subject setting change
+  // Keeps when it went missing; the reason can change, e.g. a leaver found after a subject setting change,
+  // which still needs the leaver warning: its username may now be someone else's
   if (marked && (marked.value || {}).reason !== reason)
-    return m.AuthMeta.update({ value: { ...marked.value, reason } }, { where: { key } });
+    return m.AuthMeta.update(
+      { value: { ...marked.value, reason, ...(reason === "subject" && !(marked.value || {}).reason ? { was_gone: true } : {}) } },
+      { where: { key } }
+    );
   if (!marked)
     // Another recheck (or process) may have marked it at the same moment
     await m.AuthMeta.create({ key, value: { since: new Date().toISOString(), subject, reason } }).catch((err) => {
@@ -293,6 +297,11 @@ async function markMissing(m, provider, userId, gone, subject, reason) {
 // Directories match the dotted capital İ as i, which toLowerCase() alone turns into i + U+0307
 const fold = (s) => String(s).normalize("NFKC").replace(/\u0130/g, "I").toLowerCase();
 const sameUsername = (a, b) => fold(a) === fold(b);
+// The exact name wins; otherwise a case- or Unicode-folded match, but only if it's the only one
+function matchUsername(rows, name) {
+  const alike = rows.filter((r) => sameUsername(r.username, name));
+  return { match: rows.find((r) => r.username === name) || (alike.length === 1 ? alike[0] : null), alike };
+}
 
 async function findClaim(identity, m) {
   if (!m.AuthMeta) return null;
@@ -303,6 +312,8 @@ async function findClaim(identity, m) {
   for (const r of rows) {
     const v = r.value;
     if (!v || !(Date.parse(v.expires_at) > Date.now())) continue;
+    // A pin from under another subject setting may now be a different entry's value
+    if (v.subject && v.subject_setting && v.subject_setting !== subjectSetting(getProvider(identity.provider))) continue;
     // Only the entry the admin was shown may claim it, whatever it is called by now
     if (v.subject ? v.subject !== identity.subject : !sameUsername(v.username, identity.username)) continue;
     return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by };
@@ -506,6 +517,12 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     where: { provider: identity.provider, subject: identity.subject },
     raw: true,
   });
+  // Under another subject setting the same value can belong to a different entry
+  const linkProvider = link && getProvider(identity.provider);
+  if (linkProvider && !subjectFits(linkProvider, link))
+    throw new LinkError(
+      `'${identity.username}' has the ${identity.provider} subject '${identity.subject}' of account ${link.user_id}, but that account was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so this may be a different entry. Change the setting back, or allow a relink on that account.`
+    );
   if (link) {
     const user = await m.User.findOne({
       where: { id: link.user_id },
@@ -514,7 +531,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     });
     if (user) {
       await m.AuthIdentity.update(
-        { username: identity.username, last_login_at: new Date(), subject_setting: subjectSetting(getProvider(identity.provider)) },
+        { username: identity.username, last_login_at: new Date() },
         { where: { provider: identity.provider, subject: identity.subject } }
       );
       await markMissing(m, identity.provider, user.id, false);
@@ -731,7 +748,8 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!link) return "ok";
     let found;
     try {
-      found = await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", lookupTimeout(p));
+      // Under another subject setting the stored value may now name a different entry
+      found = subjectFits(p, link) ? await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", lookupTimeout(p)) : null;
     } catch (err) {
       logger(
         "warn",
@@ -750,9 +768,6 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
     await markMissing(m, providerId, userId, !identity, link.subject, !identity && !subjectFits(p, link) ? "subject" : undefined);
-    // Found under the current setting, so that's the one it's linked under
-    if (identity && !link.subject_setting && subjectSetting(p) != null && m.AuthIdentity.update)
-      await m.AuthIdentity.update({ subject_setting: subjectSetting(p) }, { where: { user_id: userId, provider: providerId } });
     // So People shows a rename before the person's next login, and a newcomer with the old name isn't mistaken for them
     if (identity && identity.username && identity.username !== now.username) {
       await m.AuthIdentity.update({ username: identity.username }, { where: { user_id: userId, provider: providerId, subject: link.subject } });
@@ -822,10 +837,14 @@ async function recheckAllNow(m) {
   });
   let next = 0;
   const counts = { ok: 0, missing: 0, failed: 0, unsupported: 0 };
+  const answered = new Set();
+  const failedAt = new Set();
   const worker = async () => {
     while (next < links.length) {
       const l = links[next++];
-      counts[await stillLinked(l.user_id, l.provider, m, true, true).catch(() => "failed")]++;
+      const status = await stillLinked(l.user_id, l.provider, m, true, true).catch(() => "failed");
+      counts[status]++;
+      (status === "failed" ? failedAt : answered).add(l.provider);
     }
   };
   await Promise.all(Array.from({ length: Math.min(8, links.length) }, worker));
@@ -836,8 +855,18 @@ async function recheckAllNow(m) {
       const v = r.value;
       const providerId = r.key.split(":")[1];
       if (!v || !v.subject || v.stale || !(Date.parse(v.expires_at) > Date.now()) || !siteAccess.hasProvider(providerId)) continue;
-      if ((await locateSubject(providerId, v.subject).catch(() => undefined)) !== null) continue;
-      await m.AuthMeta.update({ value: { ...v, stale: { gone: true, at: new Date().toISOString() } } }, { where: { key: r.key } });
+      // Every lookup failed this pass (e.g. the directory hangs): asking again per relink would only wait out each timeout
+      if (failedAt.has(providerId) && !answered.has(providerId)) continue;
+      const setting = subjectSetting(getProvider(providerId));
+      const oldSetting = !!(v.subject_setting && setting != null && v.subject_setting !== setting);
+      if (!oldSetting && (await locateSubject(providerId, v.subject).catch(() => undefined)) !== null) continue;
+      // An admin may have cancelled or allowed it again while the directory was asked
+      const now = await m.AuthMeta.findOne({ where: { key: r.key }, raw: true });
+      if (!now || !now.value || now.value.subject !== v.subject || now.value.expires_at !== v.expires_at) continue;
+      await m.AuthMeta.update(
+        { value: { ...v, stale: { [oldSetting ? "setting" : "gone"]: true, at: new Date().toISOString() } } },
+        { where: { key: r.key } }
+      );
       staleRelinks++;
     }
   // failed: the provider couldn't be asked (unreachable, or its service account was refused)
@@ -988,10 +1017,6 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
     siteAccess.setProviderAccounts(true);
     logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a check succeeds (at the next sign-up attempt, account deletion or restart).", "AuthProviders", null, err);
   });
-  warnUnfitSubjects().catch((err) => {
-    if (/relation "auth_identities" does not exist/.test(err.message)) return;
-    logger("error", "Couldn't check the login providers' linked accounts.", "AuthProviders", null, err);
-  });
   warnUnmatchableGroups().catch((err) => {
     // A new database gets its tables after this runs, and then has no groups to check
     if (/relation "auth_groups" does not exist/.test(err.message)) return;
@@ -1051,6 +1076,8 @@ module.exports = {
   resetFailures,
   relinkTarget,
   locateSubject,
+  matchUsername,
+  subjectSettingOf: (providerId) => subjectSetting(getProvider(providerId)),
   sameUsername,
   syncGroups,
   stillLinked,
