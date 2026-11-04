@@ -82,9 +82,6 @@ function readEnv(file) {
   return env;
 }
 
-// Playwright options passed through after "--", e.g. --project=chromium
-const OPTION = /^--[a-z][\w-]*(=[\w.@/:-]+)?$/;
-
 function run(relDir, variant = "", extra = []) {
   const wanted = path.relative(ROOT, path.resolve(ROOT, relDir || "")).split(path.sep).join("/");
   const runs = list().filter((r) => r.dir === wanted);
@@ -92,8 +89,6 @@ function run(relDir, variant = "", extra = []) {
   // Take the folder and variant from the plugin manifests rather than from the command line
   const picked = runs.find((r) => r.variant === variant);
   if (!picked) fail(`${wanted} has no ci variant '${variant}' (it has: ${runs.map((r) => r.variant || "(none)").join(", ")})`);
-  const bad = extra.find((a) => !OPTION.test(a));
-  if (bad !== undefined) fail(`'${bad}' isn't a --option or --option=value to pass to Playwright`);
   const dir = path.join(ROOT, picked.dir);
   const ci = ciOf(dir);
   const envFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mmgis-plugin-ci-")), "env");
