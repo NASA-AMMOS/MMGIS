@@ -81,6 +81,15 @@ test.describe('LDAP login provider', () => {
     expect((await me(ctx)).authenticated).toBe(false);
   });
 
+  test('requests refused for other reasons than wrong credentials do not use up the address limit', async () => {
+    const ctx = await context();
+    for (let i = 0; i < 6; i++) {
+      expect((await ldapLogin(ctx, { username: `empty_${i}`, password: '' })).status()).toBe(400);
+      expect((await ldapLogin(ctx, clash)).status()).toBe(409);
+    }
+    expect((await ldapLogin(ctx, bob)).status()).toBe(200);
+  });
+
   test('a directory user signs in, keeps one account across logins, and signs out', async () => {
     const ctx = await context();
     const res = await ldapLogin(ctx, alice);

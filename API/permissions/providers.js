@@ -657,12 +657,14 @@ function logoutUrl(id) {
   return typeof url === "string" && url !== "" ? url : null;
 }
 
-// Only failed responses (status >= 400) count, so a provider answers bad credentials with 401
+// Per address. Only wrong credentials count (a 401, or res.locals.loginFailed), so malformed
+// requests, refused account links and directory outages can't lock out everyone behind one address
 const providerLimiter = () =>
   rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
     skipSuccessfulRequests: true,
+    requestWasSuccessful: (req, res) => res.statusCode !== 401 && !res.locals.loginFailed,
     message: { status: "failure", message: "Too many attempts. Try again in 15 minutes." },
   });
 
