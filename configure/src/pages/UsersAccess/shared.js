@@ -661,7 +661,7 @@ const signInBase = (u) =>
             (l.missing_reason === "subject"
               ? ` (linked under an old subject setting; relink)`
               : l.missing_since
-              ? ` (not found since ${new Date(l.missing_since).toLocaleDateString()})`
+              ? ` (not found since ${missingText(l.missing_since)})`
               : "")
         )
         .join(", ")
@@ -669,6 +669,8 @@ const signInBase = (u) =>
 export const lastProviderLogin = (u) =>
   (u.sign_ins || []).map((l) => l.last_login_at).filter(Boolean).sort().pop();
 
+// With the time: a directory switch and the check before it are often on the same day
+export const missingText = (d) => new Date(d).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
 export const dateText = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 
 export function SiteRoleBadges({ siteRoles, roles }) {

@@ -19,7 +19,7 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { useStyles } from "./styles";
-import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES, signInText, providerOn } from "./shared";
+import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES, signInText, providerOn, missingText } from "./shared";
 
 export function PersonPanel({ user, ctx }) {
   const c = useStyles();
@@ -89,11 +89,11 @@ export function PersonPanel({ user, ctx }) {
         providerLogin && providerLogin.missing_reason === "subject"
           ? ` It was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so it needs this relink to sign in again.${
               providerLogin.missing_was_gone
-                ? ` Before that, its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled on ${new Date(providerLogin.missing_since).toLocaleDateString()}: if '${relinkAs}' is now someone else, don't allow this.`
+                ? ` Before that, its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled at ${missingText(providerLogin.missing_since)}: if '${relinkAs}' is now someone else, don't allow this.`
                 : ""
             }`
           : providerLogin && providerLogin.missing_since
-          ? ` Its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled on ${new Date(providerLogin.missing_since).toLocaleDateString()}: if '${relinkAs}' is now someone else, don't allow this.`
+          ? ` Its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled at ${missingText(providerLogin.missing_since)}: if '${relinkAs}' is now someone else, don't allow this.`
           : ""
       }`,
       action: "Allow",
@@ -276,7 +276,7 @@ export function PersonPanel({ user, ctx }) {
         <div className={c.hint}>Everything this person can do, combining their own access, their groups and the audiences.</div>
         {(user.sign_ins || []).length > 0 && user.sign_ins.every((l) => l.missing_since && providerOn(l.provider)) && (
           <div className={c.hint} style={{ color: "#b71c1c" }}>
-            Can't sign in or use API tokens now: {user.sign_ins.map((l) => (l.missing_reason === "subject" ? `linked under an old ${l.provider.toUpperCase()} subject setting` : `not found in ${l.provider.toUpperCase()} since ${new Date(l.missing_since).toLocaleDateString()}`)).join(", ")}. This access applies again only if {user.sign_ins.some((l) => l.missing_reason === "subject") ? "the subject setting is changed back" : "that entry comes back"} or the account is relinked.
+            Can't sign in or use API tokens now: {user.sign_ins.map((l) => (l.missing_reason === "subject" ? `linked under an old ${l.provider.toUpperCase()} subject setting` : `not found in ${l.provider.toUpperCase()} since ${missingText(l.missing_since)}`)).join(", ")}. This access applies again only if {user.sign_ins.some((l) => l.missing_reason === "subject") ? "the subject setting is changed back" : "that entry comes back"} or the account is relinked.
           </div>
         )}
         <Table size="small" className={c.table}>
