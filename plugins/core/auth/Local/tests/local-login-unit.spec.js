@@ -14,10 +14,11 @@ test.describe('Local login refusals', { tag: '@unit' }, () => {
     const { Op } = require('sequelize');
     const providers = require(path.resolve(__dirname, '../../../../../API/permissions/providers.js'));
     // An installed provider left out of AUTH_PROVIDERS (the unit environment enables only local)
-    expect(providers.availableProviders()).toContain('ldap');
-    expect(providers.enabledProviders().map((p) => p.id)).not.toContain('ldap');
-    const enabled = providers.enabledProviders()[0].id;
-    const rows = [{ user_id: 7, provider: 'ldap' }];
+    const enabledIds = providers.enabledProviders().map((p) => p.id);
+    const off = providers.availableProviders().find((id) => !enabledIds.includes(id));
+    expect(off).toBeTruthy();
+    const enabled = enabledIds[0];
+    const rows = [{ user_id: 7, provider: off }];
     const models = {
       AuthIdentity: {
         count: async ({ where }) => rows.filter((r) => r.user_id === where.user_id && where.provider[Op.in].includes(r.provider)).length,

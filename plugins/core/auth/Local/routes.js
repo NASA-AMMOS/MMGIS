@@ -8,8 +8,14 @@ const {
   unusableLegacyToken,
 } = require("../../../../API/permissions/principal");
 
-// AUTH_LOCAL_LOGIN=admins: only accounts holding an admin role may log in locally
-const LOCAL_ADMINS_ONLY = "Only administrators may log in with a local account on this site.";
+// AUTH_LOCAL_LOGIN=admins: only accounts holding an admin role may log in locally. They get the
+// wrong-password message, so a refusal doesn't confirm a guessed password.
+const LOCAL_ADMINS_ONLY = "Invalid username or password.";
+function sendRefusal(req, res, user, refusal) {
+  if (refusal === LOCAL_ADMINS_ONLY)
+    logger("warn", `Local sign-in refused for '${user.username}': AUTH_LOCAL_LOGIN=admins and the account holds no editing or admin role.`, "login", req);
+  res.send({ status: "failure", message: refusal });
+}
 // Why this account may not sign in with a local password, or null if it may
 async function localLoginRefusal(userId, models = { AuthIdentity }) {
   // Accounts linked to an enabled login provider sign in through it (e.g. a local account relinked to LDAP)
@@ -433,7 +439,7 @@ router.post("/login", sameOriginOnly, loginUsername, authLimiter, accountLimiter
             });
           };
           return localLoginRefusal(user.id).then((refusal) => {
-            if (refusal) return res.send({ status: "failure", message: refusal });
+            if (refusal) return sendRefusal(req, res, user, refusal);
             // A session that is not already this user's gets a new id
             if (String(req.session.uid) === String(user.id)) signIn();
             else
@@ -534,7 +540,7 @@ router.post("/login", sameOriginOnly, loginUsername, authLimiter, accountLimiter
             if (!result) return pass(err, result, again);
             localLoginRefusal(user.id)
               .then((refusal) =>
-                refusal ? res.send({ status: "failure", message: refusal }) : pass(err, result, again)
+                refusal ? sendRefusal(req, res, user, refusal) : pass(err, result, again)
               )
               .catch(() => res.send({ status: "failure", message: "Login failed." }));
           });
