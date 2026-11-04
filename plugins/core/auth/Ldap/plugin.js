@@ -341,6 +341,45 @@ async function bindService(client, c) {
   }
 }
 
+// The service account's own names (DN, userPrincipalName, sAMAccountName), so it's recognised
+// whichever form LDAP_BIND_DN and LDAP_USER_DN_TEMPLATE use; read once it has signed in
+const serviceNames = new Map();
+const isDn = (name) => /^[^=,@\\]+=/.test(String(name).trim());
+const foldName = (name) => (isDn(name) ? normalizeDn(name) : String(name).trim().toLowerCase());
+const samOf = (name) => (!isDn(name) && String(name).includes("\\") ? String(name).split("\\").pop().trim().toLowerCase() : null);
+
+async function learnServiceNames(client, c) {
+  const key = `${c.url}\n${c.bindDn}`;
+  if (serviceNames.has(key)) return;
+  const attributes = ["userPrincipalName", "sAMAccountName"];
+  let entries;
+  try {
+    if (isDn(c.bindDn)) entries = (await client.search(c.bindDn, { scope: "base", filter: "(objectClass=*)", attributes })).searchEntries;
+    else {
+      const base = c.searchBase ? (await searchRoot(client, c).catch(() => null)) || c.searchBase : null;
+      if (!base) return void serviceNames.set(key, { names: new Set(), sams: new Set() });
+      const filter = samOf(c.bindDn) ? `(sAMAccountName=${escapeFilter(samOf(c.bindDn))})` : `(userPrincipalName=${escapeFilter(c.bindDn.trim())})`;
+      entries = (await client.search(base, { scope: "sub", filter, attributes, sizeLimit: 2 })).searchEntries;
+    }
+  } catch (err) {
+    return; // tried again at the next sign-in
+  }
+  const entry = entries.length === 1 ? entries[0] : null;
+  serviceNames.set(key, {
+    names: new Set(entry ? [normalizeDn(entry.dn), ...values(entry, "userPrincipalName").map(foldName)] : []),
+    sams: new Set(entry ? values(entry, "sAMAccountName").map((v) => String(v).trim().toLowerCase()) : []),
+  });
+}
+
+function isServiceAccount(c, name) {
+  if (!c.bindDn || !name) return false;
+  const known = serviceNames.get(`${c.url}\n${c.bindDn}`);
+  const n = foldName(name);
+  if (n === foldName(c.bindDn)) return true;
+  if (!known) return false;
+  return known.names.has(n) || (!!samOf(name) && (known.sams.has(samOf(name)) || samOf(name) === samOf(c.bindDn)));
+}
+
 // { entry } or { reason } when exactly one entry doesn't match
 async function findUser(client, c, username) {
   const filter = fill(c.searchFilter, { username: escapeFilter(username) });
@@ -417,16 +456,19 @@ async function authenticate(username, password, c = config(), createClient = new
     return null;
   };
   // Wrong passwords sent to it could lock the account every search and recheck needs
-  const serviceAccount = (dn) =>
-    c.bindDn && c.bindDn.includes("=") && normalizeDn(dn) === normalizeDn(c.bindDn)
-      ? `${dn} is LDAP_BIND_DN, the service account, which can't sign in to MMGIS (its password isn't tried)`
-      : null;
+  const serviceAccount = (name) =>
+    isServiceAccount(c, name) ? `${name} is LDAP_BIND_DN, the service account, which can't sign in to MMGIS (its password isn't tried)` : null;
   const client = createClient(c);
   try {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     let entry;
     if (c.userDnTemplate) {
       const dn = fill(c.userDnTemplate, { username: escapeDn(username) });
+      // e.g. a {{username}}@domain template and a DN in LDAP_BIND_DN: only the directory knows they're one account
+      if (c.bindDn && !serviceNames.has(`${c.url}\n${c.bindDn}`)) {
+        await bindService(client, c);
+        await learnServiceNames(client, c);
+      }
       if (serviceAccount(dn)) return refuse(serviceAccount(dn));
       if (entryLocked(dn)) return refuse(entryLocked(dn));
       const bind = await bindAs(client, dn, password);
@@ -446,7 +488,10 @@ async function authenticate(username, password, c = config(), createClient = new
       // Groups are read as the service account, as at rechecks, where people may not read the group OU
       if (c.bindDn) await bindService(client, c);
     } else {
-      if (c.bindDn) await bindService(client, c);
+      if (c.bindDn) {
+        await bindService(client, c);
+        await learnServiceNames(client, c);
+      }
       const found = await findUser(client, c, username);
       if (!found.entry) return refuse(found.reason);
       entry = found.entry;
@@ -652,6 +697,7 @@ async function selfCheck(c = config(), createClient = newClient) {
     }
     if (c.bindDn) {
       await bindService(client, c);
+      await learnServiceNames(client, c);
       checked.push("the service account signed in");
     }
     // Without a service account, directories usually only allow searches once the person has signed in
@@ -681,12 +727,15 @@ async function selfCheck(c = config(), createClient = newClient) {
       const people = peopleFilter(c);
       if (await anyMatch(people))
         for (const [name, attr, effect] of [
-          ["LDAP_SUBJECT_ATTRIBUTE", c.subjectAttribute, "every LDAP sign-in will fail"],
-          ["LDAP_USERNAME_ATTRIBUTE", c.usernameAttribute, "each new MMGIS account is named (for good) by how its person typed their first sign-in"],
+          ["LDAP_SUBJECT_ATTRIBUTE", c.subjectAttribute, "every LDAP sign-in will fail. Check its spelling."],
+          ["LDAP_USERNAME_ATTRIBUTE", c.usernameAttribute, "each new MMGIS account is named (for good) by how its person typed their first sign-in. Check its spelling."],
+          ...(c.groupSearchBase
+            ? []
+            : [["LDAP_GROUPS_ATTRIBUTE", c.groupsAttribute, "no LDAP group gives anyone a role. Check its spelling; if the directory doesn't keep it (OpenLDAP needs the memberof overlay), set LDAP_GROUP_SEARCH_BASE to find groups by their members instead."]]),
         ]) {
           if (attr.toLowerCase() === "dn") continue;
           if ((await anyMatch(`(&${people}(${attr}=*))`)) === false)
-            checked.warnings.push(`no entry that LDAP_USER_SEARCH_FILTER finds under LDAP_USER_SEARCH_BASE has the attribute ${attr} (${name}), so ${effect}. Check its spelling.`);
+            checked.warnings.push(`no entry that LDAP_USER_SEARCH_FILTER finds under LDAP_USER_SEARCH_BASE has the attribute ${attr} (${name}), so ${effect}`);
         }
     }
     // locate(subject) searches from there, so a leaver moved out of LDAP_USER_SEARCH_BASE still counts
@@ -914,5 +963,5 @@ module.exports = {
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, UnusableEntryError, entryFailures, peopleFilter },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, UnusableEntryError, entryFailures, peopleFilter, serviceNames },
 };

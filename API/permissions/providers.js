@@ -321,6 +321,8 @@ async function findClaim(identity, m) {
     raw: true,
   });
   for (const r of rows) {
+    // LIKE reads _ in a provider id as any character
+    if (!r.key.startsWith(`relink:${identity.provider}:`)) continue;
     const v = r.value;
     // Flagged under another subject setting: People says it won't take effect until a check unflags it
     if (!v || (v.stale && v.stale.setting) || !(Date.parse(v.expires_at) > Date.now())) continue;
@@ -359,6 +361,8 @@ async function flagStaleClaims(identity, m) {
     raw: true,
   });
   for (const r of rows) {
+    // LIKE reads _ in a provider id as any character
+    if (!r.key.startsWith(`relink:${identity.provider}:`)) continue;
     const v = r.value;
     if (!v || !v.subject || pinnedTo(v, identity) || !(Date.parse(v.expires_at) > Date.now())) continue;
     if (!sameUsername(v.username, identity.username)) continue;
@@ -530,7 +534,7 @@ async function otherSettings(p, m, fresh = false) {
 async function readOtherSettings(p, m, now, log) {
   const rows = await m.AuthMeta.findAll({ where: { key: { [Op.like]: `${settingPrefix(p.id)}%` } }, raw: true });
   const others = rows
-    .filter((r) => r.key !== settingPrefix(p.id) + now && dbNow() - Date.parse(r.value && r.value.at) < SETTING_FRESH_MS)
+    .filter((r) => r.key.startsWith(settingPrefix(p.id)) && r.key !== settingPrefix(p.id) + now && dbNow() - Date.parse(r.value && r.value.at) < SETTING_FRESH_MS)
     .map((r) => r.key.slice(settingPrefix(p.id).length));
   if (others.length && log)
     logger(

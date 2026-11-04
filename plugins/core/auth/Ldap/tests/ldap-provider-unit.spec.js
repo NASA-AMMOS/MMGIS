@@ -8,7 +8,7 @@ const path = require('path');
 const { InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError, InvalidDNSyntaxError } = require('ldapts');
 
 const ldap = require(path.resolve(__dirname, '../plugin.js'));
-const { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, selfCheck, explain, PasswordExpiredError } = ldap._internal;
+const { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, selfCheck, explain, PasswordExpiredError, serviceNames } = ldap._internal;
 
 const base = {
   LDAP_URL: 'ldaps://ldap.example.org',
@@ -148,7 +148,8 @@ test.describe('LDAP login', () => {
     const log = [];
     const id = await authenticate('alice', 'right', config(base), fakeClient([alice], log));
     expect(id).toEqual({ subject: 'e1', dn: expect.any(String), username: 'alice', email: 'alice@example.org', groups: ['cn=science-team,ou=groups,dc=example,dc=org', 'cn=ops\\, east,ou=groups,dc=example,dc=org'], groupsLeftOut: [] });
-    expect(log).toEqual([`bind ${base.LDAP_BIND_DN}`, `search ${base.LDAP_USER_SEARCH_BASE} (uid=alice)`, `bind ${alice.dn}`, 'unbind']);
+    // The service account's own entry is read once, for its other names
+    expect(log).toEqual([`bind ${base.LDAP_BIND_DN}`, ...(log[1].startsWith(`search ${base.LDAP_BIND_DN}`) ? [log[1]] : []), `search ${base.LDAP_USER_SEARCH_BASE} (uid=alice)`, `bind ${alice.dn}`, 'unbind']);
   });
 
   test('wrong passwords count per directory entry, whichever name reached it', async () => {
@@ -218,9 +219,45 @@ test.describe('LDAP login', () => {
     expect(log.filter((l) => l.startsWith('bind'))).toEqual([`bind ${base.LDAP_BIND_DN}`]);
     const direct = { ...base, LDAP_USER_DN_TEMPLATE: 'cn={{username}},dc=example,dc=org' };
     const dlog = [];
+    serviceNames.clear();
     expect(await authenticate('svc', base.LDAP_BIND_PASSWORD, config(direct), fakeClient([svc], dlog), (r) => why.push(r))).toBeNull();
     expect(why[1]).toMatch(/service account/);
-    expect(dlog.some((l) => l.startsWith('bind'))).toBe(false);
+    // Only the service account's own sign-in, made to learn its other names
+    expect(dlog.filter((l) => l.startsWith('bind'))).toEqual([`bind ${base.LDAP_BIND_DN}`]);
+  });
+
+  test('the service account is refused whichever form (DN, UPN, DOMAIN\\name) LDAP_BIND_DN and the template use', async () => {
+    const svcEntry = { dn: 'CN=mmgis-svc,OU=Service Accounts,DC=corp,DC=example,DC=org', userPrincipalName: 'mmgis-svc@corp.example.org', sAMAccountName: 'mmgis-svc', objectGUID: Buffer.alloc(16, 1) };
+    const ad = (svcBind, log) => () => ({
+      async startTLS() {},
+      async bind(dn, password) {
+        log.push(`bind ${dn}`);
+        if (dn === svcBind && password === 'svcpw') return; // pragma: allowlist secret
+        throw new InvalidCredentialsError('80090308: LdapErr: DSID-0C09044E, comment: AcceptSecurityContext error, data 52e, v4563');
+      },
+      async search(b, opts) {
+        if (opts.scope === 'base') return { searchEntries: b.toLowerCase() === svcEntry.dn.toLowerCase() ? [svcEntry] : [] };
+        return { searchEntries: /(userPrincipalName=mmgis-svc@corp\.example\.org|sAMAccountName=mmgis-svc)\)/i.test(opts.filter) ? [svcEntry] : [] };
+      },
+      async unbind() {},
+    });
+    const cases = [
+      ['UPN bind name, search mode', 'mmgis-svc@corp.example.org', { LDAP_USER_SEARCH_BASE: 'DC=corp,DC=example,DC=org', LDAP_USER_SEARCH_FILTER: '(sAMAccountName={{username}})' }],
+      ['DN bind name, UPN template', svcEntry.dn, { LDAP_USER_DN_TEMPLATE: '{{username}}@corp.example.org' }],
+      ['UPN bind name, UPN template', 'mmgis-svc@corp.example.org', { LDAP_USER_DN_TEMPLATE: '{{username}}@CORP.example.org' }],
+      ['DN bind name, DOMAIN\\name template', svcEntry.dn, { LDAP_USER_DN_TEMPLATE: 'CORP\\{{username}}' }],
+      ['DOMAIN\\name bind name, search mode', 'CORP\\mmgis-svc', { LDAP_USER_SEARCH_BASE: 'OU=Staff,DC=corp,DC=example,DC=org', LDAP_USER_SEARCH_FILTER: '(sAMAccountName={{username}})' }],
+    ];
+    for (const [name, bindDn, env] of cases) {
+      serviceNames.clear();
+      const log = [];
+      const why = [];
+      const c = config({ LDAP_URL: 'ldaps://dc.corp.example.org', LDAP_BIND_DN: bindDn, LDAP_BIND_PASSWORD: 'svcpw', LDAP_SUBJECT_ATTRIBUTE: 'objectGUID', ...env }); // pragma: allowlist secret
+      for (let i = 0; i < 3; i++) expect(await authenticate('mmgis-svc', `guess${i}`, c, ad(bindDn, log), (r) => why.push(r)), name).toBeNull();
+      expect(why.length, name).toBe(3);
+      for (const w of why) expect(w, name).toMatch(/is LDAP_BIND_DN, the service account/);
+      expect(log.filter((l) => l !== `bind ${bindDn}`), name).toEqual([]);
+    }
   });
 
   test('filter metacharacters in the username are escaped, so a wildcard matches nobody', async () => {

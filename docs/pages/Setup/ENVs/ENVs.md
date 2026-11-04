@@ -240,7 +240,7 @@ Allow `ldap://` without StartTLS, so passwords cross the network unencrypted. On
 
 #### `LDAP_BIND_DN=`
 
-DN of a read-only service account MMGIS signs in as to search for people (and groups), e.g. `cn=mmgis-svc,ou=services,dc=example,dc=org`. Leave empty to search anonymously, or when using `LDAP_USER_DN_TEMPLATE` | string | default `''`
+DN of a read-only service account MMGIS signs in as to search for people (and groups), e.g. `cn=mmgis-svc,ou=services,dc=example,dc=org`. On Active Directory a UPN (`mmgis-svc@corp.example.org`) or `CORP\mmgis-svc` works too. Nobody can sign in to MMGIS as this account, in any of those forms, so wrong passwords sent to it can't lock it. Leave empty to search anonymously, or when using `LDAP_USER_DN_TEMPLATE` | string | default `''`
 
 #### `LDAP_BIND_PASSWORD=`
 
