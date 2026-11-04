@@ -168,6 +168,16 @@ const IDENTIFY_TIMEOUT_MS = 5000;
 const lookupTimeout = (p) =>
   Math.max(IDENTIFY_TIMEOUT_MS, (typeof p.impl.lookupTimeoutMs === "function" && Number(p.impl.lookupTimeoutMs())) || 0);
 
+// A person's request waits at most 5 s for a recheck, keeping its access meanwhile; a slower one applies once it ends
+function requestWait(result) {
+  let timer;
+  const meanwhile = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(true), IDENTIFY_TIMEOUT_MS);
+    if (timer.unref) timer.unref();
+  });
+  return Promise.race([result, meanwhile]).finally(() => clearTimeout(timer));
+}
+
 // The first enabled provider that recognizes this request, or null
 async function identify(req) {
   for (const p of enabledProviders()) {
@@ -594,13 +604,13 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
   if (!force && !detail && hit && Date.now() - hit.at < ms) {
-    if (!hit.missing) return hit.result;
+    if (!hit.missing) return requestWait(hit.result);
     // Another process may have signed the person in again (a relink or a restored entry) since
     return (async () => {
       m = m || accountModels();
       const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
       const since = link && link.last_login_at ? new Date(link.last_login_at).getTime() : 0;
-      return since > hit.at ? stillLinked(userId, providerId, m, true) : false;
+      return since > hit.at ? requestWait(stillLinked(userId, providerId, m, true)) : false;
     })();
   }
   const status = (async () => {
@@ -649,7 +659,8 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
   const entry = { at: Date.now(), result };
   rechecks.set(key, entry);
   result.then((ok) => (entry.missing = !ok), () => {});
-  return detail ? status : result;
+  if (detail) return status;
+  return force ? result : requestWait(result);
 }
 
 // Rechecks every provider-linked account now, including ones nobody has used since a directory change,

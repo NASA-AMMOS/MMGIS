@@ -103,6 +103,9 @@ test.describe('LDAP escaping', () => {
       process.env.LDAP_GROUP_SEARCH_BASE = 'OU=Groups,DC=x';
       expect(ldap.groupName('CN=Data-Admins,OU=Groups,DC=x')).toBe('cn=data-admins,ou=groups,dc=x');
       expect(() => ldap.groupName('cn=editors,ou=teams,dc=x')).toThrow(/only finds groups under LDAP_GROUP_SEARCH_BASE/);
+    // An escaped comma keeps "ou=groups" inside the group's own name, so its parent is dc=x
+    expect(() => ldap.groupName('cn=a\\,ou=groups,dc=x')).toThrow(/only finds groups under LDAP_GROUP_SEARCH_BASE/);
+    expect(ldap.groupName('cn=a\\\\,ou=groups,dc=x')).toBe('cn=a\\\\,ou=groups,dc=x');
       process.env.LDAP_GROUP_NAME_ATTRIBUTE = 'cn';
       process.env.LDAP_GROUP_SEARCH_BASE = 'ou=groups,dc=x';
       expect(ldap.groupName('Data-Admins')).toBe('Data-Admins');

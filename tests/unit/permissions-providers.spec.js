@@ -569,6 +569,19 @@ test.describe('provider rechecks', () => {
     expect(await providers.stillLinked(9015, 'ldap', m, true)).toBe(false);
   });
 
+  test("a person's request waits at most 5 s for a slow recheck, whose result still applies when it ends", async () => {
+    let ended;
+    const lookedUp = new Promise((r) => (ended = r));
+    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 5300)), ended(), null);
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'slower', user_id: 9017 }] });
+    const started = Date.now();
+    expect(await providers.stillLinked(9017, 'ldap', m)).toBe(true);
+    expect(Date.now() - started).toBeLessThan(5250);
+    await lookedUp;
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await providers.stillLinked(9017, 'ldap', m)).toBe(false);
+  });
+
   test('a group change during a check of every account queues one more check after it', async () => {
     const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9013 }] });
     let calls = 0;

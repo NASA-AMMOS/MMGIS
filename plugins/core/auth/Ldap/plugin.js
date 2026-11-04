@@ -63,6 +63,12 @@ const fill = (template, values) =>
 
 // "CN=Science Team, OU=Groups,DC=corp" -> "cn=science team,ou=groups,dc=corp", so one group always
 // reads the same however the directory spaces, capitalizes, escapes (\, and \2c alike) or composes it (é)
+// dn is inside base: it ends with ",base" at an unescaped comma (normalizeDn escapes "\\" as "\\\\")
+function underBase(dn, base) {
+  if (!dn.endsWith(`,${base}`)) return false;
+  return dn.slice(0, dn.length - base.length - 1).match(/\\*$/)[0].length % 2 === 0;
+}
+
 function normalizeDn(dn) {
   const s = String(dn);
   const rdns = [];
@@ -735,7 +741,7 @@ module.exports = {
     const dn = normalizeDn(name.trim());
     // Groups are only searched for under LDAP_GROUP_SEARCH_BASE, so one elsewhere would never have members
     const base = c.groupSearchBase && normalizeDn(c.groupSearchBase);
-    if (base && dn !== base && !dn.endsWith(`,${base}`))
+    if (base && dn !== base && !underBase(dn, base))
       throw new Error(`MMGIS only finds groups under LDAP_GROUP_SEARCH_BASE (${c.groupSearchBase}), so ${dn} would never have members. Widen LDAP_GROUP_SEARCH_BASE to include it.`);
     return dn;
   },
