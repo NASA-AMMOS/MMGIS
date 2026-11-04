@@ -416,12 +416,18 @@ async function authenticate(username, password, c = config(), createClient = new
     refused(reason);
     return null;
   };
+  // Wrong passwords sent to it could lock the account every search and recheck needs
+  const serviceAccount = (dn) =>
+    c.bindDn && c.bindDn.includes("=") && normalizeDn(dn) === normalizeDn(c.bindDn)
+      ? `${dn} is LDAP_BIND_DN, the service account, which can't sign in to MMGIS (its password isn't tried)`
+      : null;
   const client = createClient(c);
   try {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     let entry;
     if (c.userDnTemplate) {
       const dn = fill(c.userDnTemplate, { username: escapeDn(username) });
+      if (serviceAccount(dn)) return refuse(serviceAccount(dn));
       if (entryLocked(dn)) return refuse(entryLocked(dn));
       const bind = await bindAs(client, dn, password);
       if (!bind.ok) entryFailed(dn);
@@ -444,6 +450,7 @@ async function authenticate(username, password, c = config(), createClient = new
       const found = await findUser(client, c, username);
       if (!found.entry) return refuse(found.reason);
       entry = found.entry;
+      if (serviceAccount(entry.dn)) return refuse(serviceAccount(entry.dn));
       if (entryLocked(entry.dn)) return refuse(entryLocked(entry.dn));
       const bind = await bindAs(client, entry.dn, password);
       if (!bind.ok) entryFailed(entry.dn);

@@ -309,6 +309,11 @@ function matchUsername(rows, name) {
 const foldValue = (v) => String(v).normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
 const sameFolded = (a, b) => foldValue(a) === foldValue(b);
 
+// The pinned subject is this entry's, even if a multi-valued attribute now lists it after another value
+const pinnedTo = (v, identity) =>
+  v.subject === identity.subject ||
+  (!!v.dn && !!identity.dn && sameFolded(v.dn, identity.dn) && (identity.subjects || []).includes(v.subject));
+
 async function findClaim(identity, m) {
   if (!m.AuthMeta) return null;
   const rows = await m.AuthMeta.findAll({
@@ -322,7 +327,7 @@ async function findClaim(identity, m) {
     // A pin from under another subject setting may now be a different entry's value
     if (v.subject && v.subject_setting && v.subject_setting !== subjectSetting(getProvider(identity.provider))) continue;
     // Only the entry the admin was shown may claim it, whatever it is called by now
-    if (v.subject ? v.subject !== identity.subject : !sameUsername(v.username, identity.username)) continue;
+    if (v.subject ? !pinnedTo(v, identity) : !sameUsername(v.username, identity.username)) continue;
     // A value that isn't a permanent ID (e.g. cn) may be another entry's too
     const p = getProvider(identity.provider);
     if (v.subject && v.dn && p && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent() && !(identity.dn && identity.dn.toLowerCase() === v.dn.toLowerCase())) {
@@ -355,7 +360,7 @@ async function flagStaleClaims(identity, m) {
   });
   for (const r of rows) {
     const v = r.value;
-    if (!v || !v.subject || v.subject === identity.subject || !(Date.parse(v.expires_at) > Date.now())) continue;
+    if (!v || !v.subject || pinnedTo(v, identity) || !(Date.parse(v.expires_at) > Date.now())) continue;
     if (!sameUsername(v.username, identity.username)) continue;
     await markStale(m, r.key, v, { subject: identity.subject, at: new Date().toISOString() });
     logger(

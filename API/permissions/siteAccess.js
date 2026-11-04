@@ -79,6 +79,8 @@ function validate(env = process.env) {
     );
   if (env.AUTH_LOCAL_LOGIN != null && env.AUTH_LOCAL_LOGIN !== "" && !LOCAL_LOGIN_VALUES.includes(env.AUTH_LOCAL_LOGIN))
     errors.push(`AUTH_LOCAL_LOGIN must be one of: ${LOCAL_LOGIN_VALUES.join(" | ")}.`);
+  if (env.AUTH_PROVIDER_NEW_ACCOUNTS != null && env.AUTH_PROVIDER_NEW_ACCOUNTS !== "" && !["true", "false"].includes(env.AUTH_PROVIDER_NEW_ACCOUNTS))
+    errors.push("AUTH_PROVIDER_NEW_ACCOUNTS must be true or false.");
   const providers = parseProviders(env.AUTH_PROVIDERS);
   if (providers == null || providers.length === 0) {
     errors.push(`AUTH_PROVIDERS must be a JSON array, e.g. ["local"].`);

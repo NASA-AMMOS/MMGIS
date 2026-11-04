@@ -70,6 +70,14 @@ test.describe('AUTH_PROVIDERS validation against the registry', () => {
     expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local","proxy"]', PROXY_SECRET: 'x' })).toEqual([]); // pragma: allowlist secret
   });
 
+  test('AUTH_PROVIDER_NEW_ACCOUNTS accepts only true or false, so a misspelt pause is not ignored', () => {
+    const v = (value) => siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local"]', AUTH_PROVIDER_NEW_ACCOUNTS: value });
+    expect(v('false')).toEqual([]);
+    expect(v('true')).toEqual([]);
+    expect(v('')).toEqual([]);
+    for (const bad of ['FALSE', '0', 'no']) expect(v(bad).join()).toMatch(/AUTH_PROVIDER_NEW_ACCOUNTS must be true or false/);
+  });
+
   test('proxy refuses startup without PROXY_SECRET unless another trust mode is chosen', () => {
     const v = (env) => siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["proxy","local"]', ...env });
     expect(v({}).join()).toMatch(/PROXY_SECRET must be set.*PROXY_TRUST=network/);
@@ -830,6 +838,32 @@ test.describe('provider rechecks', () => {
       expect(m.User.rows).toHaveLength(1);
     } finally {
       ldap.locate = realLocate;
+    }
+  });
+
+  test('a relink pinned to one of an entry\'s values is claimed after the values are reordered, by that entry only', async () => {
+    const realPermanent = ldap.subjectPermanent;
+    try {
+      ldap.subjectPermanent = () => false;
+      const pinned = () =>
+        fakeModels({
+          users: [{ id: 9099, username: 'carl' }],
+          meta: [{ key: 'relink:ldap:9099', value: { username: 'carl', subject: 'carl@example.org', dn: 'uid=carl,ou=people', by: 'admin', expires_at: new Date(Date.now() + 60000).toISOString() } }],
+        });
+      const carl = { provider: 'ldap', subject: 'carl2@example.org', subjects: ['carl2@example.org', 'carl@example.org'], dn: 'UID=carl,ou=people', username: 'carl', groups: [] };
+      const m = pinned();
+      expect((await providers.linkIdentity(carl, m)).id).toBe(9099);
+      expect(m.AuthMeta.rows).toEqual([]);
+      // Another entry listing carl's pinned value doesn't claim carl's account
+      const other = pinned();
+      expect((await providers.linkIdentity({ ...carl, dn: 'uid=mallory,ou=people', username: 'mallory' }, other)).id).not.toBe(9099);
+      expect(other.AuthMeta.rows).toEqual([expect.objectContaining({ key: 'relink:ldap:9099' })]);
+      // Nor does an entry at another DN with carl's username, which marks the relink stale instead
+      const moved = pinned();
+      await expect(providers.linkIdentity({ ...carl, dn: 'uid=carl,ou=contractors' }, moved)).rejects.toThrow(providers.LinkError);
+      expect(moved.AuthMeta.rows[0].value.stale).toMatchObject({ subject: 'carl2@example.org' });
+    } finally {
+      ldap.subjectPermanent = realPermanent;
     }
   });
 

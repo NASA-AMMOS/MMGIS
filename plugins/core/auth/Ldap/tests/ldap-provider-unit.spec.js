@@ -209,6 +209,20 @@ test.describe('LDAP login', () => {
     expect(await authenticate('alice', 'right', config(base), fakeClient([alice, twin, twin]))).toBeNull();
   });
 
+  test('the service account is refused without its password being tried', async () => {
+    const svc = { dn: base.LDAP_BIND_DN, password: base.LDAP_BIND_PASSWORD, entry: { dn: 'CN=svc,DC=example,DC=org', entryUUID: 's1', uid: 'svc' } }; // pragma: allowlist secret
+    const log = [];
+    const why = [];
+    expect(await authenticate('svc', 'guess', config({ ...base, LDAP_USER_SEARCH_BASE: 'dc=example,dc=org' }), fakeClient([alice, svc], log), (r) => why.push(r))).toBeNull();
+    expect(why[0]).toMatch(/is LDAP_BIND_DN, the service account/);
+    expect(log.filter((l) => l.startsWith('bind'))).toEqual([`bind ${base.LDAP_BIND_DN}`]);
+    const direct = { ...base, LDAP_USER_DN_TEMPLATE: 'cn={{username}},dc=example,dc=org' };
+    const dlog = [];
+    expect(await authenticate('svc', base.LDAP_BIND_PASSWORD, config(direct), fakeClient([svc], dlog), (r) => why.push(r))).toBeNull();
+    expect(why[1]).toMatch(/service account/);
+    expect(dlog.some((l) => l.startsWith('bind'))).toBe(false);
+  });
+
   test('filter metacharacters in the username are escaped, so a wildcard matches nobody', async () => {
     const log = [];
     expect(await authenticate('*', 'right', config(base), fakeClient([alice], log))).toBeNull();

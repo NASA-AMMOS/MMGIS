@@ -147,7 +147,7 @@ Whether visitors may create their own local accounts. With `SITE_ACCESS=required
 
 #### `AUTH_PROVIDER_NEW_ACCOUNTS=`
 
-Whether a first sign-in through a login provider such as `ldap` or `proxy` creates an MMGIS account. When `false`, only accounts that already sign in with that provider, or have a relink allowed, can sign in; everyone else is refused and told to ask an administrator, and the server log says to allow a relink or create their account first. Set it to `false` while moving to a new directory, so people whose directory username changed don't get new, empty accounts before their relink | boolean | default `true`
+Whether a first sign-in through a login provider such as `ldap` or `proxy` creates an MMGIS account. When `false`, only accounts that already sign in with that provider, or have a relink allowed, can sign in; everyone else is refused and told to ask an administrator, and the server log says to allow a relink or create their account first. Set it to `false` while moving to a new directory, so people whose directory username changed don't get new, empty accounts before their relink. Any value other than `true` or `false` stops startup | boolean | default `true`
 
 #### `AUTH_MAX_FAILED_LOGINS=`
 
