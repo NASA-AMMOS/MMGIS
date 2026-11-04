@@ -945,9 +945,13 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
       // Matched by a value that isn't first (e.g. an alias): only under the same directory username, so another entry's alias doesn't keep a leaver in
       if (found && found.first && found.first !== link.subject && !permanent && !sameUsername(found.username, link.username)) found = null;
     } catch (err) {
+      // Already not found (e.g. a leaver): it has no provider access to keep
+      const missing = m.AuthMeta ? await m.AuthMeta.findOne({ where: { key: missingKey(providerId, userId) }, raw: true }).catch(() => null) : null;
       logger(
         "warn",
-        `Auth provider '${providerId}': couldn't recheck ${await who(m, userId)}${err && err.code === "ETIMEDOUT" ? ` (no answer within ${lookupTimeout(p) / 1000} s)` : ""}; it keeps its access until the next check.`,
+        `Auth provider '${providerId}': couldn't recheck ${await who(m, userId)}${err && err.code === "ETIMEDOUT" ? ` (no answer within ${lookupTimeout(p) / 1000} s)` : ""}; ${
+          missing ? "it stays not found, without its sessions, tokens or provider groups, until a check finds it" : "it keeps its access until the next check"
+        }.`,
         "AuthProviders",
         null,
         err

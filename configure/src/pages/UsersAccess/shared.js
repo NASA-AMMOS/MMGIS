@@ -644,6 +644,10 @@ export const PEOPLE_COLUMNS = [
 export const needsRelink = (u) =>
   (!u.relink || u.relink.stale) && (u.sign_ins || []).some((l) => l.missing_since || l.missing_reason === "subject");
 
+// Allowed but not yet used: still on the worklist until the person signs in
+export const relinkPending = (u) =>
+  !!u.relink && !u.relink.stale && (u.sign_ins || []).some((l) => l.missing_since || l.missing_reason === "subject");
+
 // Provider-linked accounts sign in only through their provider; the rest with an MMGIS password
 export const signInText = (u) =>
   signInBase(u) +

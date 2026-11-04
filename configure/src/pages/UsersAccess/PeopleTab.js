@@ -13,7 +13,7 @@ import TablePagination from "@mui/material/TablePagination";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import { useStyles } from "./styles";
-import { api, SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, signInText, needsRelink, lastProviderLogin, SiteRoleBadges, MissionList, rowActivate } from "./shared";
+import { api, SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, signInText, needsRelink, relinkPending, lastProviderLogin, SiteRoleBadges, MissionList, rowActivate } from "./shared";
 import { useRemembered, useOnChange } from "./hooks";
 
 // Every account, with its site role and what it can view and edit
@@ -37,6 +37,7 @@ export default function PeopleTab({ ctx }) {
   const [search, setSearch] = useRemembered(remember, "peopleSearch", "");
   const [onlyRelink, setOnlyRelink] = useRemembered(remember, "peopleOnlyRelink", false);
   const relinkCount = useMemo(() => users.filter(needsRelink).length, [users]);
+  const pendingCount = useMemo(() => users.filter(relinkPending).length, [users]);
   const [peopleSort, setPeopleSort] = useRemembered(remember, "peopleSort", { by: "username", dir: "asc" });
   const [peoplePage, setPeoplePage] = useRemembered(remember, "peoplePage", 0);
   const [peoplePerPage, setPeoplePerPage] = useRemembered(remember, "peoplePerPage", 25);
@@ -46,7 +47,7 @@ export default function PeopleTab({ ctx }) {
     const q = search.toLowerCase();
     const key = (PEOPLE_COLUMNS.find((col) => col[0] === peopleSort.by) || PEOPLE_COLUMNS[0])[2];
     return summaries
-      .filter(({ u }) => !onlyRelink || needsRelink(u))
+      .filter(({ u }) => !onlyRelink || needsRelink(u) || relinkPending(u))
       .filter(({ u, s }) => !q || [u.username, u.email || "", signInText(u), ...s.groupNames].some((t) => t.toLowerCase().includes(q)))
       .sort((a, b) => {
         const ka = key(a);
@@ -71,9 +72,9 @@ export default function PeopleTab({ ctx }) {
               />
               <span className={c.barHint}>Every account, its site role and what it can view and edit. Click a row for details.</span>
               <span className={c.grow} />
-              {(relinkCount > 0 || onlyRelink) && (
-                <Button variant={onlyRelink ? "contained" : "outlined"} disableElevation className={c.barButton} onClick={() => setOnlyRelink(!onlyRelink)} title="Only linked accounts that can't sign in: their provider entry is gone (people who left, or entries moved or renamed) or they were linked under an old subject setting, with no usable relink pending">
-                  Not found / needs relink ({relinkCount})
+              {(relinkCount > 0 || pendingCount > 0 || onlyRelink) && (
+                <Button variant={onlyRelink ? "contained" : "outlined"} disableElevation className={c.barButton} onClick={() => setOnlyRelink(!onlyRelink)} title="Only linked accounts that can't sign in: their provider entry is gone (people who left, or entries moved or renamed) or they were linked under an old subject setting. Those with a relink allowed stay listed, as pending, until the person signs in">
+                  Not found / needs relink ({relinkCount}{pendingCount ? `, ${pendingCount} pending` : ""})
                 </Button>
               )}
               {linkedProviders.length > 0 && (
