@@ -80,10 +80,22 @@ test.describe('accounts linked only to a provider that is not enabled', () => {
       const viaSession = await principal.resolvePrincipal({ headers: {}, session: { uid: 1 } });
       expect(viaSession.authenticated).toBe(true);
       expect(viaSession.username).toBe('admin');
+      expect(await principal.tokensOffFor(1)).toEqual(['ldap']);
+      expect(await principal.tokensOffFor(2)).toEqual([]);
     } finally {
       fakeModels.AuthIdentity.findAll = orig;
     }
   });
+});
+
+test('an account with an enabled provider link besides a disabled one follows the enabled one', async () => {
+  const orig = fakeModels.AuthIdentity.findAll;
+  fakeModels.AuthIdentity.findAll = async ({ where }) => (where.user_id === 1 ? [{ provider: 'ldap' }, { provider: 'proxy' }] : []);
+  try {
+    expect(await principal.tokensOffFor(1)).toEqual([]);
+  } finally {
+    fakeModels.AuthIdentity.findAll = orig;
+  }
 });
 
 test.describe('groups of a provider that is not enabled', () => {

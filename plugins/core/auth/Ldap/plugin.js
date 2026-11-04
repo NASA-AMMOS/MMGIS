@@ -146,7 +146,7 @@ function subjectFilter(c, subject) {
   return `(${a}=${escapeFilter(subject)})`;
 }
 
-// Active Directory's "account disabled" flag and expiry, OpenLDAP ppolicy's lock, 389 DS / FreeIPA's lock
+// Active Directory's "account disabled" flag and expiry, OpenLDAP ppolicy's administrative lock, 389 DS / FreeIPA's lock
 const STATE_ATTRIBUTES = ["userAccountControl", "accountExpires", "pwdAccountLockedTime", "nsAccountLock"];
 // accountExpires counts 100 ns steps since 1601; 0 and 2^63-1 mean never
 const AD_EPOCH_OFFSET_MS = 11644473600000;
@@ -157,7 +157,8 @@ function adExpired(entry) {
 }
 const accountDisabled = (entry) =>
   (parseInt(values(entry, "userAccountControl")[0], 10) & 2) !== 0 ||
-  values(entry, "pwdAccountLockedTime").length > 0 ||
+  // Only ppolicy's administrative lock: a timestamp is a lockout after failed passwords, which ends by itself
+  values(entry, "pwdAccountLockedTime").some((v) => String(v) === "000001010000Z") ||
   values(entry, "nsAccountLock").some((v) => String(v).toLowerCase() === "true") ||
   adExpired(entry);
 
@@ -653,6 +654,8 @@ function warnings(env) {
 }
 
 module.exports = {
+  // A lookup is up to five directory operations (connect, TLS, service bind, user and group search)
+  lookupTimeoutMs: () => 5 * config().timeoutMs,
   routes(router, ctx) {
     const startup = config();
     selfCheck(startup).then(
@@ -722,7 +725,12 @@ module.exports = {
       throw new Error(
         `LDAP reports groups by DN, so enter the group's DN (e.g. cn=${name.trim() || "science-team"},ou=groups,dc=example,dc=org), as listed under "Directory groups" in the server log at each LDAP sign-in.`
       );
-    return normalizeDn(name.trim());
+    const dn = normalizeDn(name.trim());
+    // Groups are only searched for under LDAP_GROUP_SEARCH_BASE, so one elsewhere would never have members
+    const base = c.groupSearchBase && normalizeDn(c.groupSearchBase);
+    if (base && dn !== base && !dn.endsWith(`,${base}`))
+      throw new Error(`MMGIS only finds groups under LDAP_GROUP_SEARCH_BASE (${c.groupSearchBase}), so ${dn} would never have members. Widen LDAP_GROUP_SEARCH_BASE to include it.`);
+    return dn;
   },
   lookup: (subject) => lookup(subject),
   locate: (subject) => locate(subject),

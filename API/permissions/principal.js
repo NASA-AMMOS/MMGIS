@@ -226,16 +226,21 @@ function localAccountAllowed(p) {
 // Accounts linked to an enabled login provider follow that provider. An account whose links are all
 // to providers removed from AUTH_PROVIDERS counts as a local account only for a local session (it
 // got one with an MMGIS password, e.g. from a reset link); its tokens stay off until a provider is back
+const providerLinks = (userId) =>
+  models().AuthIdentity.findAll({ where: { user_id: userId }, attributes: ["provider"], raw: true });
+
 async function accountAllowed(p, localSession = false) {
-  const links = await models().AuthIdentity.findAll({
-    where: { user_id: p.userId },
-    attributes: ["provider"],
-    raw: true,
-  });
+  const links = await providerLinks(p.userId);
   const enabled = links.filter((l) => siteAccess.hasProvider(l.provider));
   if (links.length === 0 || (enabled.length === 0 && localSession)) return localAccountAllowed(p);
   for (const l of enabled) if (await require("./providers").stillLinked(p.userId, l.provider)) return true;
   return false;
+}
+
+// The providers of an account that are all out of AUTH_PROVIDERS, so its tokens can't work for now; else []
+async function tokensOffFor(userId) {
+  const links = await providerLinks(userId);
+  return links.some((l) => siteAccess.hasProvider(l.provider)) ? [] : [...new Set(links.map((l) => l.provider))];
 }
 
 async function tokenPrincipal(authorization) {
@@ -355,5 +360,6 @@ module.exports = {
   tokenExpired,
   unusableLegacyToken,
   scrubLegacyTokenColumn,
+  tokensOffFor,
   siteAccess,
 };

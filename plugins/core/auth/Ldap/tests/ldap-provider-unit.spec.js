@@ -91,6 +91,9 @@ test.describe('LDAP escaping', () => {
       delete process.env.LDAP_GROUP_SEARCH_BASE;
       expect(ldap.groupName('CN=Data-Admins,OU=Groups,DC=x')).toBe('cn=data-admins,ou=groups,dc=x');
       expect(() => ldap.groupName('data-admins')).toThrow(/enter the group's DN/);
+      process.env.LDAP_GROUP_SEARCH_BASE = 'OU=Groups,DC=x';
+      expect(ldap.groupName('CN=Data-Admins,OU=Groups,DC=x')).toBe('cn=data-admins,ou=groups,dc=x');
+      expect(() => ldap.groupName('cn=editors,ou=teams,dc=x')).toThrow(/only finds groups under LDAP_GROUP_SEARCH_BASE/);
       process.env.LDAP_GROUP_NAME_ATTRIBUTE = 'cn';
       process.env.LDAP_GROUP_SEARCH_BASE = 'ou=groups,dc=x';
       expect(ldap.groupName('Data-Admins')).toBe('Data-Admins');
@@ -314,6 +317,8 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect(await lookup('gone', c, byUuid([alice.entry]))).toBeNull();
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, userAccountControl: '514' }]))).toBeNull();
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, pwdAccountLockedTime: '000001010000Z' }]))).toBeNull(); // pragma: allowlist secret
+    // A ppolicy lockout after failed passwords ends by itself, so it doesn't count as disabled
+    expect((await lookup('e1', c, byUuid([{ ...alice.entry, pwdAccountLockedTime: '20261104063000Z' }]))).username).toBe('alice'); // pragma: allowlist secret
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, nsAccountLock: 'TRUE' }]))).toBeNull();
     // Active Directory accountExpires: 100 ns steps since 1601; 0 and 2^63-1 mean never
     const filetime = (ms) => String((ms + 11644473600000) * 10000);

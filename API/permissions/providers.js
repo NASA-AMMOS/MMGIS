@@ -164,6 +164,9 @@ function normalizeIdentity(provider, raw) {
 
 // identify runs on every request, so a hung provider must not hold requests open
 const IDENTIFY_TIMEOUT_MS = 5000;
+// lookup and locate may take longer when the provider says its own operations do
+const lookupTimeout = (p) =>
+  Math.max(IDENTIFY_TIMEOUT_MS, (typeof p.impl.lookupTimeoutMs === "function" && Number(p.impl.lookupTimeoutMs())) || 0);
 
 // The first enabled provider that recognizes this request, or null
 async function identify(req) {
@@ -375,7 +378,7 @@ async function locateSubject(providerId, subject) {
   const fns = p ? [p.impl.lookup, p.impl.locate].filter((f) => typeof f === "function") : [];
   let unknown = fns.length === 0;
   for (const fn of fns) {
-    const found = await withTimeout(fn(subject), "locate(subject)", IDENTIFY_TIMEOUT_MS).catch(() => undefined);
+    const found = await withTimeout(fn(subject), "locate(subject)", lookupTimeout(p)).catch(() => undefined);
     if (found) return found;
     if (found === undefined) unknown = true;
   }
@@ -409,6 +412,9 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
         { where: { provider: identity.provider, subject: identity.subject } }
       );
       await markMissing(m, identity.provider, user.id, false);
+      // Its own entry still signs in, so a relink allowed for it isn't needed; left pending, a newcomer given its name could claim it
+      if (m.AuthMeta && (await m.AuthMeta.destroy({ where: { key: relinkKey(identity.provider, user.id) } })) > 0)
+        logger("info", `Auth provider '${identity.provider}': ${user.username} signed in with its existing link, so its pending relink was dropped.`, "AuthProviders");
       // Drawings and other content are keyed by username, so a rename at the provider isn't copied
       if (identity.username !== user.username)
         logger(
@@ -571,7 +577,14 @@ const rechecks = new Map();
 function stillLinked(userId, providerId, m, force = false, detail = false) {
   const p = getProvider(providerId);
   const ms = recheckMs();
-  if ((ms === 0 && !force) || !p || typeof p.impl.lookup !== "function") return Promise.resolve(detail ? "ok" : true);
+  if (!p || typeof p.impl.lookup !== "function") return Promise.resolve(detail ? "ok" : true);
+  // With rechecks off the directory isn't asked, but an admin's Check linked accounts still applies
+  if (ms === 0 && !force)
+    return (async () => {
+      m = m || accountModels();
+      const gone = !!(m.AuthMeta && (await m.AuthMeta.findOne({ where: { key: missingKey(providerId, userId) }, raw: true })));
+      return detail ? (gone ? "missing" : "ok") : !gone;
+    })();
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
   if (!force && !detail && hit && Date.now() - hit.at < ms) {
@@ -590,9 +603,15 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!link) return "ok";
     let found;
     try {
-      found = await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS);
+      found = await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", lookupTimeout(p));
     } catch (err) {
-      logger("warn", `Auth provider '${providerId}': couldn't recheck ${await who(m, userId)}; it keeps its access until the next check.`, "AuthProviders", null, err);
+      logger(
+        "warn",
+        `Auth provider '${providerId}': couldn't recheck ${await who(m, userId)}${err && err.code === "ETIMEDOUT" ? ` (no answer within ${lookupTimeout(p) / 1000} s)` : ""}; it keeps its access until the next check.`,
+        "AuthProviders",
+        null,
+        err
+      );
       return "failed";
     }
     // e.g. LDAP without a service account: nothing can be read between logins
@@ -612,10 +631,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!identity)
       logger(
         "info",
-        `Auth provider '${providerId}' no longer has ${await who(m, userId)} (subject '${link.subject}'); ` +
-          (recheckMs() === 0
-            ? "its open sessions and API tokens keep working until they end, because AUTH_RECHECK_MINUTES=0 turns rechecks off."
-            : "its sessions and API tokens stop working."),
+        `Auth provider '${providerId}' no longer has ${await who(m, userId)} (subject '${link.subject}'); its sessions and API tokens stop working.`,
         "AuthProviders"
       );
     return identity ? "ok" : "missing";
@@ -662,7 +678,7 @@ function fillGroups(providerId, m = accountModels()) {
 
 async function recheckAllNow(m) {
   const links = (await m.AuthIdentity.findAll({ attributes: ["user_id", "provider"], raw: true })).filter((l) => {
-    const p = getProvider(l.provider);
+    const p = siteAccess.hasProvider(l.provider) && getProvider(l.provider);
     return p && typeof p.impl.lookup === "function";
   });
   let next = 0;

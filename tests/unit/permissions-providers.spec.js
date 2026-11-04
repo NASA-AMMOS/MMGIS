@@ -258,6 +258,13 @@ test.describe('account linking', () => {
     expect((await providers.linkIdentity(identity({ subject: 'expected', username: 'carol' }), m)).id).toBe(1);
   });
 
+  test('a login through the existing link drops a relink allowed for that account', async () => {
+    const m = relinkModels();
+    expect((await providers.linkIdentity(identity({ subject: 'old', username: 'carol' }), m)).id).toBe(1);
+    expect(m.AuthMeta.rows).toEqual([]);
+    await expect(providers.linkIdentity(identity({ subject: 'newcomer', username: 'carol' }), m)).rejects.toThrow(providers.LinkError);
+  });
+
   test('a concurrent first login that loses the race uses the account the other one created', async () => {
     const m = fakeModels();
     const create = m.User.create;
@@ -517,13 +524,19 @@ test.describe('identify', () => {
 });
 
 test.describe('provider rechecks', () => {
-  let ldap, lookup;
+  let ldap, lookup, savedProviders;
   test.beforeAll(() => {
     providers.loadProviders(REAL_ROOT);
     ldap = providers.getProvider('ldap').impl;
     lookup = ldap.lookup;
+    savedProviders = process.env.AUTH_PROVIDERS;
+    process.env.AUTH_PROVIDERS = '["ldap","local"]';
   });
-  test.afterAll(() => (ldap.lookup = lookup));
+  test.afterAll(() => {
+    ldap.lookup = lookup;
+    if (savedProviders === undefined) delete process.env.AUTH_PROVIDERS;
+    else process.env.AUTH_PROVIDERS = savedProviders;
+  });
   const models = (userId) =>
     fakeModels({
       groups: [{ id: 1, source: 'ldap', external_name: 'cn=ops,ou=groups,dc=example,dc=org' }],
@@ -550,6 +563,12 @@ test.describe('provider rechecks', () => {
     expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
   });
 
+  test('a recheck waits as long as the provider says its lookup may take, not just 5 s', async () => {
+    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 5300)), null);
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'slow', user_id: 9015 }] });
+    expect(await providers.stillLinked(9015, 'ldap', m, true)).toBe(false);
+  });
+
   test('a group change during a check of every account queues one more check after it', async () => {
     const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9013 }] });
     let calls = 0;
@@ -569,6 +588,24 @@ test.describe('provider rechecks', () => {
     await first;
     await again;
     expect(calls).toBe(2);
+  });
+
+  test('with rechecks off, an account Check linked accounts found gone loses access without asking the directory again', async () => {
+    const saved = process.env.AUTH_RECHECK_MINUTES;
+    process.env.AUTH_RECHECK_MINUTES = '0';
+    let calls = 0;
+    ldap.lookup = async () => (calls++, null);
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'gone', user_id: 9016 }] });
+    try {
+      expect(await providers.stillLinked(9016, 'ldap', m)).toBe(true);
+      expect(calls).toBe(0);
+      expect(await providers.recheckLinked(m)).toMatchObject({ checked: 1, missing: 1 });
+      expect(await providers.stillLinked(9016, 'ldap', m)).toBe(false);
+      expect(calls).toBe(1);
+    } finally {
+      if (saved === undefined) delete process.env.AUTH_RECHECK_MINUTES;
+      else process.env.AUTH_RECHECK_MINUTES = saved;
+    }
   });
 
   test('a group change starts no check while rechecks are off', async () => {

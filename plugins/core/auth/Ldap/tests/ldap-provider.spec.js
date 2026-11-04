@@ -233,6 +233,34 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('with rechecks off, Check linked accounts still cuts off a leaver it finds gone', async () => {
+    test.skip(process.env.AUTH_RECHECK_MINUTES !== '0', 'SKIP: needs the server started with AUTH_RECHECK_MINUTES=0');
+    const uid = `ldap_leaver_${Date.now()}`;
+    const password = ['leaver', 'test', 'password'].join('-');
+    const dn = `uid=${uid},ou=people,dc=example,dc=org`;
+    const added = directoryAdmin(`dn: ${dn}\nchangetype: add\nobjectClass: inetOrgPerson\nuid: ${uid}\ncn: Leaver\nsn: Leaver\nuserPassword: ${password}\n`);
+    test.skip(!added, `SKIP: can't change the fixture directory (docker container ${container})`);
+    let deleted = false;
+    try {
+      const ctx = await context();
+      expect((await ldapLogin(ctx, { username: uid, password })).status()).toBe(200);
+      const minted = await (await ctx.post('/api/longtermtoken/generate', { data: { name: 'leaver', period: 'never' } })).json();
+      expect(minted.status).toBe('success');
+      const withToken = await newRequest.newContext({ baseURL, extraHTTPHeaders: { Authorization: `Bearer ${minted.body.token}` } });
+      expect((await me(withToken)).username).toBe(uid);
+      deleted = directoryAdmin(`dn: ${dn}\nchangetype: delete\n`);
+      expect(deleted).toBe(true);
+      // Rechecks are off, so nothing changes until an admin checks
+      expect((await me(ctx)).username).toBe(uid);
+      const adminCtx = await adminContext();
+      expect((await (await adminCtx.post('/api/accounts/recheckLinked')).json()).body.missing).toBeGreaterThanOrEqual(1);
+      expect((await me(ctx)).authenticated).toBe(false);
+      expect((await me(withToken)).username).not.toBe(uid);
+    } finally {
+      if (!deleted) directoryAdmin(`dn: ${dn}\nchangetype: delete\n`);
+    }
+  });
+
   test('a directory username that is already a local account gets a 409 that does not name the other account', async () => {
     const ctx = await context();
     const res = await ldapLogin(ctx, clash);
