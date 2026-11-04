@@ -207,6 +207,8 @@ test.describe('LDAP settings', () => {
     expect(problems({ ...base, LDAP_URL: 'ldap://x' })).toMatch(/unencrypted/);
     expect(problems({ ...base, LDAP_URL: 'ldap://x', LDAP_ALLOW_INSECURE: 'true' })).toBe('');
     expect(ldap.warnings({ ...base, LDAP_URL: 'ldap://x', LDAP_ALLOW_INSECURE: 'true' }).join()).toMatch(/unencrypted/);
+    expect(ldap.warnings({ ...base, LDAP_GROUP_NAME_ATTRIBUTE: 'cn' }).join()).toMatch(/no effect without LDAP_GROUP_SEARCH_BASE/);
+    expect(ldap.warnings({ ...base, LDAP_GROUP_NAME_ATTRIBUTE: 'cn', LDAP_GROUP_SEARCH_BASE: 'ou=g' }).join()).not.toMatch(/no effect/);
     expect(problems({ ...base, LDAP_STARTTLS: 'true' })).toMatch(/already encrypted/);
   });
 

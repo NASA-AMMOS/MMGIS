@@ -539,6 +539,17 @@ test.describe('provider rechecks', () => {
     expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
   });
 
+  test('a new entry given a name whose old entry still exists is refused without suggesting a relink', async () => {
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'old-bob', username: 'bob', user_id: 9020 }] });
+    ldap.lookup = async (subject) => (subject === 'old-bob' ? { username: 'bob_renamed', groups: [] } : null);
+    const err = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
+    expect(err).toBeInstanceOf(providers.LinkError);
+    expect(err.message).toMatch(/still exists as 'bob_renamed'.*don't relink/);
+    ldap.lookup = async () => null;
+    const gone = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
+    expect(gone.message).toMatch(/allow a relink/);
+  });
+
   test('a directory that cannot be reached keeps access and groups', async () => {
     const m = models(9001);
     ldap.lookup = async () => { throw new Error('down'); };

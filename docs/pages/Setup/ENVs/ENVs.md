@@ -284,7 +284,7 @@ Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username
 
 #### `LDAP_GROUP_NAME_ATTRIBUTE=`
 
-Report groups found under `LDAP_GROUP_SEARCH_BASE` by this attribute (e.g. `cn`) instead of their DN. Only use it when nobody untrusted can create groups under that base, since groups with the same name become one MMGIS group | string | default `''` (the DN)
+Report groups found under `LDAP_GROUP_SEARCH_BASE` by this attribute (e.g. `cn`) instead of their DN. Only use it when nobody untrusted can create groups under that base, since groups with the same name become one MMGIS group. Has no effect without `LDAP_GROUP_SEARCH_BASE` (groups read from `LDAP_GROUPS_ATTRIBUTE` are always full DNs) | string | default `''` (the DN)
 
 #### `LDAP_TIMEOUT_MS=`
 

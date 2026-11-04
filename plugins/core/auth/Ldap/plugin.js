@@ -515,6 +515,8 @@ function warnings(env) {
   const out = [];
   if (c.allowInsecure && !c.startTls && /^ldap:/i.test(c.url))
     out.push("LDAP_ALLOW_INSECURE=true: LDAP passwords cross the network unencrypted. Use it only for local testing.");
+  if (c.groupNameAttribute && !c.groupSearchBase)
+    out.push(`LDAP_GROUP_NAME_ATTRIBUTE=${c.groupNameAttribute} has no effect without LDAP_GROUP_SEARCH_BASE: groups read from ${c.groupsAttribute} are reported by their full DN.`);
   if (c.subjectAttribute.toLowerCase() === "dn")
     out.push("LDAP_SUBJECT_ATTRIBUTE=dn: a person's DN changes when they are renamed or moved, which then creates a new MMGIS account.");
   return out;
@@ -580,7 +582,10 @@ module.exports = {
     return { title: c.displayName, usernameLabel: c.usernameLabel, hint: c.hint };
   },
   // Group DNs are matched in the form groupsOf reports them
-  groupName: (name) => (!config().groupNameAttribute && name.includes("=") ? normalizeDn(name.trim()) : name),
+  groupName: (name) => {
+    const c = config();
+    return !(c.groupNameAttribute && c.groupSearchBase) && name.includes("=") ? normalizeDn(name.trim()) : name;
+  },
   lookup: (subject) => lookup(subject),
   findSubject: (username) => findSubject(username),
   validate,

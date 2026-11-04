@@ -370,13 +370,23 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     m.AuthIdentity.findAll &&
     (await m.AuthIdentity.findAll({
       where: { provider: identity.provider },
-      attributes: ["user_id", "username"],
+      attributes: ["user_id", "username", "subject"],
       raw: true,
     })).find((l) => l.username && sameUsername(l.username, identity.username));
-  if (sameName)
+  if (sameName) {
+    // If that account's own entry is still there, the name was handed to someone new: a relink would give them the account
+    const p = getProvider(identity.provider);
+    let still = null;
+    if (p && typeof p.impl.lookup === "function")
+      still = await withTimeout(p.impl.lookup(sameName.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS).catch(() => null);
+    if (still)
+      throw new LinkError(
+        `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
+      );
     throw new LinkError(
       `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID; allow a relink on that account if this is the same person.`
     );
+  }
   // MMGIS stores both in 255-character columns
   if (identity.subject.length > 255 || identity.username.length > 255)
     throw new LinkError(`The ${identity.subject.length > 255 ? "subject" : "username"} is longer than the 255 characters MMGIS can store.`);
@@ -385,10 +395,16 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
   const taken = m.usernameTaken
     ? await m.usernameTaken(identity.username)
     : await m.User.findOne({ where: { username: identity.username }, attributes: ["id"], raw: true });
-  if (taken)
+  if (taken) {
+    const holder = taken.id != null && m.AuthIdentity.findOne
+      ? await m.AuthIdentity.findOne({ where: { user_id: taken.id, provider: identity.provider }, raw: true })
+      : null;
     throw new LinkError(
-      `The username '${identity.username}' already belongs to another account.`
+      holder
+        ? `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}' (renamed there). Don't relink it to this entry; this person can't sign in while that account holds the name.`
+        : `The username '${identity.username}' already belongs to another account.`
     );
+  }
   // Random password: the account can only be used through its provider
   const fields = { username: identity.username, password: crypto.randomBytes(32).toString("hex") };
   // Email is optional and unique, so one already in use is left off
