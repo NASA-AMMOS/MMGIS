@@ -5,6 +5,9 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="${1:-$HERE/.run}"
 NAME="${LDAP_CONTAINER:-mmgis-test-ldap}"
+docker rm -f "$NAME" >/dev/null 2>&1 || true
+# slapd takes ownership of the mounted certificates, so a previous run's may only be removable from a container
+rm -rf "$OUT/certs" 2>/dev/null || docker run --rm --entrypoint rm -v "$OUT:/out" osixia/openldap:1.5.0 -rf /out/certs
 mkdir -p "$OUT/certs"
 cd "$OUT/certs"
 openssl req -x509 -newkey rsa:2048 -nodes -days 2 -subj "/CN=MMGIS test CA" -keyout ca.key -out ca.crt 2>/dev/null
@@ -16,7 +19,6 @@ openssl x509 -req -in ldap.csr -CA ca.crt -CAkey ca.key -CAcreateserial -days 2 
 openssl dhparam -out dhparam.pem 1024 2>/dev/null
 chmod 644 ./*
 cp ca.crt "$OUT/ca.pem"
-docker rm -f "$NAME" >/dev/null 2>&1 || true
 docker run -d --name "$NAME" -p 3389:389 -p 3636:636 \
   -e LDAP_ORGANISATION="MMGIS Test" -e LDAP_DOMAIN=example.org -e LDAP_ADMIN_PASSWORD=admin-test-password \
   -e LDAP_TLS_CRT_FILENAME=ldap.crt -e LDAP_TLS_KEY_FILENAME=ldap.key -e LDAP_TLS_CA_CRT_FILENAME=ca.crt \

@@ -21,6 +21,33 @@ function writePlugin(root, container, name, manifest, js = 'module.exports = {};
 }
 const coreManifest = (provider) => ({ name: provider, type: 'auth', provider, tier: 'core', overridable: false });
 
+// The shipped Local and Proxy providers plus 'dir', a stand-in directory provider with every optional hook,
+// so these tests of the shared provider code don't depend on any one directory plugin
+const DIR_PLUGIN = `module.exports = {
+  loginForm: (env) => ({ title: env.DIR_DISPLAY_NAME, usernameLabel: env.DIR_USERNAME_LABEL, hint: env.DIR_LOGIN_HINT }),
+  lookupTimeoutMs: () => 25000,
+  subjectFits: () => true,
+  subjectSetting: () => 'entryuuid',
+  subjectPermanent: () => true,
+  groupName: (name) => String(name).split(',').map((p) => p.trim().toLowerCase()).join(','),
+  relinkUsername: (name) => String(name).normalize('NFKC').trim(),
+  lookup: async () => undefined,
+  locate: async () => undefined,
+  findSubject: async () => undefined,
+};`;
+let fixture = null;
+function fixtureRoot() {
+  if (fixture) return fixture;
+  fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'mmgis-auth-'));
+  for (const name of ['Local', 'Proxy']) {
+    const real = path.join(REAL_ROOT, 'core', 'auth', name);
+    writePlugin(fixture, 'core', name, JSON.parse(fs.readFileSync(path.join(real, 'plugin.json'), 'utf8')), `module.exports = require(${JSON.stringify(path.join(real, 'plugin.js'))});`);
+  }
+  writePlugin(fixture, 'core', 'Dir', { ...coreManifest('dir'), display_name: 'Directory', login_path: '/login', login_form: true, login_icon: 'card-account-details-outline' }, DIR_PLUGIN);
+  return fixture;
+}
+test.afterAll(() => fixture && fs.rmSync(fixture, { recursive: true, force: true }));
+
 test.describe('provider discovery', () => {
   let root;
   test.beforeAll(() => {
@@ -54,9 +81,10 @@ test.describe('provider discovery', () => {
     expect(providers.getProvider('local')).toBeNull();
   });
 
-  test('the shipped providers are ldap, local and proxy', () => {
-    expect(providers.loadProviders(REAL_ROOT).sort()).toEqual(['ldap', 'local', 'proxy']);
-    for (const id of ['ldap', 'local', 'proxy']) {
+  test('the shipped providers include local and proxy, and all are core and required', () => {
+    const shipped = providers.loadProviders(REAL_ROOT);
+    expect(shipped).toEqual(expect.arrayContaining(['local', 'proxy']));
+    for (const id of shipped) {
       const m = providers.getProvider(id).manifest;
       expect(m).toMatchObject({ type: 'auth', tier: 'core', overridable: false, required: true });
     }
@@ -448,11 +476,11 @@ test.describe('login links and returnTo', () => {
 test.describe('login forms', () => {
   const saved = {};
   test.beforeEach(() => {
-    for (const k of ['AUTH_LOCAL_LOGIN', 'LDAP_DISPLAY_NAME', 'LDAP_USERNAME_LABEL', 'LDAP_LOGIN_HINT']) {
+    for (const k of ['AUTH_LOCAL_LOGIN', 'DIR_DISPLAY_NAME', 'DIR_USERNAME_LABEL', 'DIR_LOGIN_HINT']) {
       saved[k] = process.env[k];
       delete process.env[k];
     }
-    providers.loadProviders(REAL_ROOT);
+    providers.loadProviders(fixtureRoot());
   });
   test.afterEach(() => {
     for (const [k, v] of Object.entries(saved)) {
@@ -462,24 +490,24 @@ test.describe('login forms', () => {
   });
 
   test('form providers share the form in AUTH_PROVIDERS order and get no login button', () => {
-    process.env.LDAP_DISPLAY_NAME = 'JPL Directory';
-    process.env.LDAP_USERNAME_LABEL = 'JPL username';
-    process.env.LDAP_LOGIN_HINT = 'Same as your email.';
-    expect(providers.loginForms(['ldap', 'local', 'proxy'])).toEqual([
-      { id: 'ldap', title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as your email.', icon: 'card-account-details-outline', path: 'api/auth/ldap/login' },
+    process.env.DIR_DISPLAY_NAME = 'JPL Directory';
+    process.env.DIR_USERNAME_LABEL = 'JPL username';
+    process.env.DIR_LOGIN_HINT = 'Same as your email.';
+    expect(providers.loginForms(['dir', 'local', 'proxy'])).toEqual([
+      { id: 'dir', title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as your email.', icon: 'card-account-details-outline', path: 'api/auth/dir/login' },
       { id: 'local', title: 'MMGIS account', usernameLabel: 'Username', hint: '', icon: 'account-key-outline', path: 'api/auth/local/login' },
     ]);
-    expect(providers.loginForms(['local', 'ldap']).map((f) => f.id)).toEqual(['local', 'ldap']);
-    expect(providers.loginLinks(['ldap', 'local'])).toEqual([]);
-    expect(providers.providerLabel('ldap')).toBe('JPL Directory');
+    expect(providers.loginForms(['local', 'dir']).map((f) => f.id)).toEqual(['local', 'dir']);
+    expect(providers.loginLinks(['dir', 'local'])).toEqual([]);
+    expect(providers.providerLabel('dir')).toBe('JPL Directory');
     expect(providers.providerLabel('proxy')).toBe('Authenticating proxy');
   });
 
   test('with AUTH_LOCAL_LOGIN=admins, local accounts are only offered at Configure sign-in', () => {
     process.env.AUTH_LOCAL_LOGIN = 'admins';
-    expect(providers.loginForms(['ldap', 'local']).map((f) => f.id)).toEqual(['ldap']);
-    const configure = providers.loginForms(['ldap', 'local'], { configure: true });
-    expect(configure.map((f) => f.id)).toEqual(['ldap', 'local']);
+    expect(providers.loginForms(['dir', 'local']).map((f) => f.id)).toEqual(['dir']);
+    const configure = providers.loginForms(['dir', 'local'], { configure: true });
+    expect(configure.map((f) => f.id)).toEqual(['dir', 'local']);
     expect(configure[1].hint).toMatch(/admin role/);
   });
 
@@ -496,7 +524,7 @@ test.describe('login forms', () => {
       ]);
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
-      providers.loadProviders(REAL_ROOT);
+      providers.loadProviders(fixtureRoot());
     }
   });
 });
@@ -572,123 +600,123 @@ test.describe('identify', () => {
 });
 
 test.describe('provider rechecks', () => {
-  let ldap, lookup, savedProviders;
+  let dir, lookup, savedProviders;
   test.beforeAll(() => {
-    providers.loadProviders(REAL_ROOT);
-    ldap = providers.getProvider('ldap').impl;
-    lookup = ldap.lookup;
+    providers.loadProviders(fixtureRoot());
+    dir = providers.getProvider('dir').impl;
+    lookup = dir.lookup;
     savedProviders = process.env.AUTH_PROVIDERS;
-    process.env.AUTH_PROVIDERS = '["ldap","local"]';
+    process.env.AUTH_PROVIDERS = '["dir","local"]';
   });
   test.beforeEach(() => providers.forgetRechecks());
   test.afterAll(() => {
-    ldap.lookup = lookup;
+    dir.lookup = lookup;
     if (savedProviders === undefined) delete process.env.AUTH_PROVIDERS;
     else process.env.AUTH_PROVIDERS = savedProviders;
   });
   const models = (userId) =>
     fakeModels({
-      groups: [{ id: 1, source: 'ldap', external_name: 'cn=ops,ou=groups,dc=example,dc=org' }],
+      groups: [{ id: 1, source: 'dir', external_name: 'cn=ops,ou=groups,dc=example,dc=org' }],
       members: [{ group_id: 1, user_id: userId }],
-      links: [{ provider: 'ldap', subject: 'old', user_id: userId }],
+      links: [{ provider: 'dir', subject: 'old', user_id: userId }],
     });
 
   test('an account already not found stays refused while its recheck fails (directory down)', async () => {
     const m = models(9020);
-    ldap.lookup = async () => null;
-    expect(await providers.stillLinked(9020, 'ldap', m)).toBe(false);
+    dir.lookup = async () => null;
+    expect(await providers.stillLinked(9020, 'dir', m)).toBe(false);
     providers.forgetRechecks();
-    ldap.lookup = async () => { throw Object.assign(new Error('connect ETIMEDOUT'), { code: 'ETIMEDOUT' }); };
-    expect(await providers.stillLinked(9020, 'ldap', m)).toBe(false);
-    expect(await providers.stillLinked(9020, 'ldap', m, true, true)).toBe('failed');
+    dir.lookup = async () => { throw Object.assign(new Error('connect ETIMEDOUT'), { code: 'ETIMEDOUT' }); };
+    expect(await providers.stillLinked(9020, 'dir', m)).toBe(false);
+    expect(await providers.stillLinked(9020, 'dir', m, true, true)).toBe('failed');
     // One still linked keeps its access through the same failure
     const n = models(9021);
     providers.forgetRechecks();
-    expect(await providers.stillLinked(9021, 'ldap', n)).toBe(true);
+    expect(await providers.stillLinked(9021, 'dir', n)).toBe(true);
   });
 
   test('checking every linked account asks the directory now, even about accounts checked a moment ago', async () => {
     const m = fakeModels({
       links: [
-        { provider: 'ldap', subject: 'here', user_id: 9010 },
-        { provider: 'ldap', subject: 'gone', user_id: 9011 },
+        { provider: 'dir', subject: 'here', user_id: 9010 },
+        { provider: 'dir', subject: 'gone', user_id: 9011 },
         { provider: 'local-only', subject: 'x', user_id: 9012 },
       ],
     });
-    ldap.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
-    expect(await providers.stillLinked(9011, 'ldap', m)).toBe(false);
+    dir.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
+    expect(await providers.stillLinked(9011, 'dir', m)).toBe(false);
     m.AuthMeta.rows.length = 0;
     expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1, failed: 0, unsupported: 0, staleRelinks: 0 });
-    ldap.lookup = async () => { throw new Error('directory down'); };
+    dir.lookup = async () => { throw new Error('directory down'); };
     expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 0, failed: 2, unsupported: 0, staleRelinks: 0 });
-    ldap.lookup = async () => undefined;
+    dir.lookup = async () => undefined;
     expect(await providers.recheckLinked(m)).toEqual({ checked: 0, missing: 0, failed: 0, unsupported: 2, staleRelinks: 0 });
-    expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
+    expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:dir:9011']);
   });
 
   test('checking every linked account flags a pending relink whose pinned entry is gone', async () => {
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9013 }] });
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'here', user_id: 9013 }] });
     const expires_at = new Date(Date.now() + 3600e3).toISOString();
     m.AuthMeta.rows.push(
-      { key: 'relink:ldap:9014', value: { username: 'gone', subject: 'gone', expires_at } },
-      { key: 'relink:ldap:9016', value: { username: 'here', subject: 'here', expires_at } }
+      { key: 'relink:dir:9014', value: { username: 'gone', subject: 'gone', expires_at } },
+      { key: 'relink:dir:9016', value: { username: 'here', subject: 'here', expires_at } }
     );
-    const realLocate = ldap.locate;
-    ldap.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
-    ldap.locate = async () => { throw new Error('directory down'); };
+    const realLocate = dir.locate;
+    dir.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
+    dir.locate = async () => { throw new Error('directory down'); };
     expect((await providers.recheckLinked(m)).staleRelinks).toBe(0);
-    ldap.locate = async () => null;
+    dir.locate = async () => null;
     expect((await providers.recheckLinked(m)).staleRelinks).toBe(1);
-    ldap.locate = realLocate;
-    expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9014').value.stale).toMatchObject({ gone: true });
-    expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9016').value.stale).toBeUndefined();
+    dir.locate = realLocate;
+    expect(m.AuthMeta.rows.find((r) => r.key === 'relink:dir:9014').value.stale).toMatchObject({ gone: true });
+    expect(m.AuthMeta.rows.find((r) => r.key === 'relink:dir:9016').value.stale).toBeUndefined();
   });
 
   test('after a subject setting change a matching value neither signs in, rechecks nor claims a relink as the old account', async () => {
-    const realSetting = ldap.subjectSetting;
-    const realLocate = ldap.locate;
+    const realSetting = dir.subjectSetting;
+    const realLocate = dir.locate;
     let looked = 0;
     try {
-      ldap.subjectSetting = () => 'uid';
-      ldap.lookup = async () => (looked++, { username: 'mallory', groups: ['cn=admins'] });
-      ldap.locate = async () => ({ username: 'mallory' });
+      dir.subjectSetting = () => 'uid';
+      dir.lookup = async () => (looked++, { username: 'mallory', groups: ['cn=admins'] });
+      dir.locate = async () => ({ username: 'mallory' });
       const expires_at = new Date(Date.now() + 3600e3).toISOString();
       const m = fakeModels({
         users: [{ id: 9030, username: 'victim' }, { id: 9031, username: 'pinned' }],
-        links: [{ provider: 'ldap', subject: 'old-uuid', subject_setting: 'entryuuid', username: 'victim', user_id: 9030 }],
-        meta: [{ key: 'relink:ldap:9031', value: { username: 'pinned', subject: 'pin-uuid', subject_setting: 'entryuuid', expires_at } }],
+        links: [{ provider: 'dir', subject: 'old-uuid', subject_setting: 'entryuuid', username: 'victim', user_id: 9030 }],
+        meta: [{ key: 'relink:dir:9031', value: { username: 'pinned', subject: 'pin-uuid', subject_setting: 'entryuuid', expires_at } }],
       });
-      await expect(providers.linkIdentity({ provider: 'ldap', subject: 'old-uuid', username: 'mallory', groups: [] }, m)).rejects.toThrow(/different subject setting/);
+      await expect(providers.linkIdentity({ provider: 'dir', subject: 'old-uuid', username: 'mallory', groups: [] }, m)).rejects.toThrow(/different subject setting/);
       expect(m.AuthIdentity.rows[0].subject_setting).toBe('entryuuid');
-      expect(await providers.stillLinked(9030, 'ldap', m, true, true)).toBe('missing');
+      expect(await providers.stillLinked(9030, 'dir', m, true, true)).toBe('missing');
       expect(looked).toBe(0);
-      expect(m.AuthMeta.rows.find((r) => r.key === 'missing:ldap:9030').value.reason).toBe('subject');
-      const claimed = await providers.linkIdentity({ provider: 'ldap', subject: 'pin-uuid', username: 'mallory', groups: [] }, m).catch((e) => e);
+      expect(m.AuthMeta.rows.find((r) => r.key === 'missing:dir:9030').value.reason).toBe('subject');
+      const claimed = await providers.linkIdentity({ provider: 'dir', subject: 'pin-uuid', username: 'mallory', groups: [] }, m).catch((e) => e);
       expect(claimed && claimed.id).not.toBe(9031);
       expect((await providers.recheckLinked(m)).staleRelinks).toBe(1);
-      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9031').value.stale).toMatchObject({ setting: true });
+      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:dir:9031').value.stale).toMatchObject({ setting: true });
     } finally {
-      ldap.subjectSetting = realSetting;
-      ldap.locate = realLocate;
+      dir.subjectSetting = realSetting;
+      dir.locate = realLocate;
     }
   });
 
   test('after a subject setting change that kept the value, only that account\'s own fresh relink lets it sign in', async () => {
-    const realSetting = ldap.subjectSetting;
+    const realSetting = dir.subjectSetting;
     try {
-      ldap.subjectSetting = () => 'cn';
+      dir.subjectSetting = () => 'cn';
       const expires_at = new Date(Date.now() + 3600e3).toISOString();
       const m = fakeModels({
         users: [{ id: 9050, username: 'carol' }, { id: 9051, username: 'other' }],
-        links: [{ provider: 'ldap', subject: 'carol', subject_setting: 'uid', username: 'carol', user_id: 9050 }],
-        meta: [{ key: 'relink:ldap:9051', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', expires_at } }],
+        links: [{ provider: 'dir', subject: 'carol', subject_setting: 'uid', username: 'carol', user_id: 9050 }],
+        meta: [{ key: 'relink:dir:9051', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', expires_at } }],
       });
-      const carol = { provider: 'ldap', subject: 'carol', dn: 'uid=carol,ou=people', username: 'carol', groups: [] };
+      const carol = { provider: 'dir', subject: 'carol', dn: 'uid=carol,ou=people', username: 'carol', groups: [] };
       await expect(providers.linkIdentity(carol, m)).rejects.toThrow(/different subject setting/);
-      expect(m.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9051')).toBe(true);
+      expect(m.AuthMeta.rows.some((r) => r.key === 'relink:dir:9051')).toBe(true);
       // Allow relink refuses a second account waiting for the same entry
       m.AuthMeta.rows.splice(0);
-      const own = { key: 'relink:ldap:9050', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', dn: 'UID=carol,ou=people', expires_at, stale: { setting: true } } };
+      const own = { key: 'relink:dir:9050', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', dn: 'UID=carol,ou=people', expires_at, stale: { setting: true } } };
       m.AuthMeta.rows.push(own);
       await expect(providers.linkIdentity(carol, m)).rejects.toThrow(/different subject setting/);
       delete own.value.stale;
@@ -696,259 +724,259 @@ test.describe('provider rechecks', () => {
       await expect(providers.linkIdentity({ ...carol, dn: 'uid=eve,ou=people' }, m)).rejects.toThrow(/different subject setting/);
       expect((await providers.linkIdentity(carol, m)).id).toBe(9050);
       expect(m.AuthIdentity.rows.find((l) => l.user_id === 9050).subject_setting).toBe('cn');
-      expect(m.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9050')).toBe(false);
+      expect(m.AuthMeta.rows.some((r) => r.key === 'relink:dir:9050')).toBe(false);
     } finally {
-      ldap.subjectSetting = realSetting;
+      dir.subjectSetting = realSetting;
     }
   });
 
   test('while another process uses another subject setting, rechecks still run but leave its flags alone', async () => {
-    const realSetting = ldap.subjectSetting;
+    const realSetting = dir.subjectSetting;
     let looked = 0;
     try {
-      ldap.subjectSetting = () => 'entryuuid';
-      ldap.lookup = async (subject) => (looked++, subject === 'u-1' ? { username: 'erin', groups: [] } : null);
+      dir.subjectSetting = () => 'entryuuid';
+      dir.lookup = async (subject) => (looked++, subject === 'u-1' ? { username: 'erin', groups: [] } : null);
       const at = new Date().toISOString();
       const expires_at = new Date(Date.now() + 3600e3).toISOString();
       const m = fakeModels({
         users: [{ id: 9060, username: 'erin' }, { id: 9062, username: 'gone' }, { id: 9063, username: 'gil' }],
         links: [
-          { provider: 'ldap', subject: 'u-1', subject_setting: 'entryuuid', username: 'erin', user_id: 9060 },
-          { provider: 'ldap', subject: 'u-2', subject_setting: 'entryuuid', username: 'gone', user_id: 9062 },
+          { provider: 'dir', subject: 'u-1', subject_setting: 'entryuuid', username: 'erin', user_id: 9060 },
+          { provider: 'dir', subject: 'u-2', subject_setting: 'entryuuid', username: 'gone', user_id: 9062 },
         ],
         meta: [
-          { key: 'subject_setting:ldap:uid', value: { at } },
-          { key: 'missing:ldap:9060', value: { since: at, subject: 'u-1', reason: 'subject' } },
-          { key: 'relink:ldap:9063', value: { username: 'gil', subject: 'gil', subject_setting: 'uid', expires_at } },
+          { key: 'subject_setting:dir:uid', value: { at } },
+          { key: 'missing:dir:9060', value: { since: at, subject: 'u-1', reason: 'subject' } },
+          { key: 'relink:dir:9063', value: { username: 'gil', subject: 'gil', subject_setting: 'uid', expires_at } },
         ],
       });
-      expect(await providers.stillLinked(9060, 'ldap', m, true, true)).toBe('ok');
-      expect(m.AuthMeta.rows.some((r) => r.key === 'missing:ldap:9060')).toBe(true);
-      expect(await providers.stillLinked(9062, 'ldap', m, true, true)).toBe('missing');
+      expect(await providers.stillLinked(9060, 'dir', m, true, true)).toBe('ok');
+      expect(m.AuthMeta.rows.some((r) => r.key === 'missing:dir:9060')).toBe(true);
+      expect(await providers.stillLinked(9062, 'dir', m, true, true)).toBe('missing');
       expect(looked).toBe(2);
       expect((await providers.recheckLinked(m)).staleRelinks).toBe(0);
-      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9063').value).not.toHaveProperty('stale');
+      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:dir:9063').value).not.toHaveProperty('stale');
     } finally {
-      ldap.subjectSetting = realSetting;
+      dir.subjectSetting = realSetting;
     }
   });
 
   test('a relink flagged under another subject setting is unflagged once that setting is back', async () => {
-    const realSetting = ldap.subjectSetting;
+    const realSetting = dir.subjectSetting;
     try {
-      ldap.subjectSetting = () => 'entryuuid';
+      dir.subjectSetting = () => 'entryuuid';
       const expires_at = new Date(Date.now() + 3600e3).toISOString();
       const m = fakeModels({
         users: [{ id: 9061, username: 'frank' }],
-        meta: [{ key: 'relink:ldap:9061', value: { username: 'frank', subject: 'f-1', subject_setting: 'entryuuid', expires_at, stale: { setting: true } } }],
+        meta: [{ key: 'relink:dir:9061', value: { username: 'frank', subject: 'f-1', subject_setting: 'entryuuid', expires_at, stale: { setting: true } } }],
       });
       expect((await providers.recheckLinked(m)).staleRelinks).toBe(0);
-      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9061').value).not.toHaveProperty('stale');
+      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:dir:9061').value).not.toHaveProperty('stale');
     } finally {
-      ldap.subjectSetting = realSetting;
+      dir.subjectSetting = realSetting;
     }
   });
 
   test('under a subject attribute that is not a permanent ID, only the entry the admin was shown claims a pinned relink', async () => {
-    const realSetting = ldap.subjectSetting;
-    const realPermanent = ldap.subjectPermanent;
+    const realSetting = dir.subjectSetting;
+    const realPermanent = dir.subjectPermanent;
     try {
-      ldap.subjectSetting = () => 'cn';
-      ldap.subjectPermanent = () => false;
+      dir.subjectSetting = () => 'cn';
+      dir.subjectPermanent = () => false;
       const expires_at = new Date(Date.now() + 3600e3).toISOString();
       const pinned = () =>
         fakeModels({
           users: [{ id: 9070, username: 'dave' }],
-          meta: [{ key: 'relink:ldap:9070', value: { username: 'dave', subject: 'dave', subject_setting: 'cn', dn: 'uid=dave,ou=people', expires_at } }],
+          meta: [{ key: 'relink:dir:9070', value: { username: 'dave', subject: 'dave', subject_setting: 'cn', dn: 'uid=dave,ou=people', expires_at } }],
         });
       const other = pinned();
-      const mallory = await providers.linkIdentity({ provider: 'ldap', subject: 'dave', dn: 'uid=mallory,ou=people', username: 'mallory', groups: [] }, other).catch((e) => e);
+      const mallory = await providers.linkIdentity({ provider: 'dir', subject: 'dave', dn: 'uid=mallory,ou=people', username: 'mallory', groups: [] }, other).catch((e) => e);
       expect(mallory).toBeInstanceOf(providers.LinkError);
       expect(other.User.rows).toHaveLength(1);
-      expect(other.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9070')).toBe(true);
-      expect((await providers.linkIdentity({ provider: 'ldap', subject: 'dave', dn: 'UID=dave,ou=people', username: 'dave', groups: [] }, pinned())).id).toBe(9070);
+      expect(other.AuthMeta.rows.some((r) => r.key === 'relink:dir:9070')).toBe(true);
+      expect((await providers.linkIdentity({ provider: 'dir', subject: 'dave', dn: 'UID=dave,ou=people', username: 'dave', groups: [] }, pinned())).id).toBe(9070);
     } finally {
-      ldap.subjectSetting = realSetting;
-      ldap.subjectPermanent = realPermanent;
+      dir.subjectSetting = realSetting;
+      dir.subjectPermanent = realPermanent;
     }
   });
 
   test('without a service account, an unpinned relink lets an account linked under another subject setting sign in again', async () => {
-    const realSetting = ldap.subjectSetting;
+    const realSetting = dir.subjectSetting;
     try {
-      ldap.subjectSetting = () => 'cn';
+      dir.subjectSetting = () => 'cn';
       const expires_at = new Date(Date.now() + 3600e3).toISOString();
       const m = fakeModels({
         users: [{ id: 9080, username: 'carol' }],
-        links: [{ provider: 'ldap', subject: 'carol', subject_setting: 'uid', username: 'carol', user_id: 9080 }],
-        meta: [{ key: 'relink:ldap:9080', value: { username: 'carol', expires_at } }],
+        links: [{ provider: 'dir', subject: 'carol', subject_setting: 'uid', username: 'carol', user_id: 9080 }],
+        meta: [{ key: 'relink:dir:9080', value: { username: 'carol', expires_at } }],
       });
-      expect((await providers.linkIdentity({ provider: 'ldap', subject: 'carol', dn: 'uid=carol,ou=people', username: 'carol', groups: [] }, m)).id).toBe(9080);
+      expect((await providers.linkIdentity({ provider: 'dir', subject: 'carol', dn: 'uid=carol,ou=people', username: 'carol', groups: [] }, m)).id).toBe(9080);
       expect(m.AuthIdentity.rows[0].subject_setting).toBe('cn');
     } finally {
-      ldap.subjectSetting = realSetting;
+      dir.subjectSetting = realSetting;
     }
   });
 
   test('a subject value re-cased at the same entry needs a relink; another entry is refused as a reused name', async () => {
-    const realLocate = ldap.locate;
-    const realPermanent = ldap.subjectPermanent;
+    const realLocate = dir.locate;
+    const realPermanent = dir.subjectPermanent;
     try {
-      ldap.subjectPermanent = () => false;
+      dir.subjectPermanent = () => false;
       const models = () =>
         fakeModels({
           users: [{ id: 9090, username: 'ldap_alice' }],
-          links: [{ provider: 'ldap', subject: 'ldap_alice', username: 'ldap_alice', user_id: 9090 }],
+          links: [{ provider: 'dir', subject: 'ldap_alice', username: 'ldap_alice', user_id: 9090 }],
         });
-      const alice = { provider: 'ldap', subject: 'Ldap_Alice', dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] };
-      ldap.locate = async () => ({ dn: 'UID=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
+      const alice = { provider: 'dir', subject: 'Ldap_Alice', dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] };
+      dir.locate = async () => ({ dn: 'UID=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
       const m = models();
       // The directory matches either case, so a newcomer looks the same: an admin decides
       await expect(providers.linkIdentity(alice, m)).rejects.toThrow(/except for letter case/);
-      m.AuthMeta.rows.push({ key: 'relink:ldap:9090', value: { username: 'ldap_alice', subject: 'Ldap_Alice', dn: 'uid=Ldap_Alice,ou=people', expires_at: new Date(Date.now() + 3600e3).toISOString() } });
+      m.AuthMeta.rows.push({ key: 'relink:dir:9090', value: { username: 'ldap_alice', subject: 'Ldap_Alice', dn: 'uid=Ldap_Alice,ou=people', expires_at: new Date(Date.now() + 3600e3).toISOString() } });
       expect((await providers.linkIdentity(alice, m)).id).toBe(9090);
       expect(m.AuthIdentity.rows).toHaveLength(1);
       expect(m.AuthIdentity.rows[0].subject).toBe('Ldap_Alice');
-      ldap.locate = async () => ({ dn: 'uid=ldap_alice,ou=leavers', username: 'ldap_alice' });
+      dir.locate = async () => ({ dn: 'uid=ldap_alice,ou=leavers', username: 'ldap_alice' });
       await expect(providers.linkIdentity(alice, models())).rejects.toThrow(/name was reused/);
       // Its old value found at this entry too, but the value itself is different (e.g. a second cn)
-      ldap.locate = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
+      dir.locate = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
       await expect(providers.linkIdentity({ ...alice, subject: 'Mallory' }, models())).rejects.toThrow(/name was reused/);
       expect(providers.sameFolded('Alice  Directory', '\uff21lice directory ')).toBe(true);
       // The search base finds only the new entry, but the old one still exists elsewhere (e.g. moved to leavers)
-      ldap.lookup = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] });
-      ldap.locate = async () => ({});
+      dir.lookup = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] });
+      dir.locate = async () => ({});
       await expect(providers.linkIdentity(alice, models())).rejects.toThrow(/name was reused/);
     } finally {
-      ldap.subjectPermanent = realPermanent;
-      ldap.locate = realLocate;
+      dir.subjectPermanent = realPermanent;
+      dir.locate = realLocate;
     }
   });
 
   test('under a subject attribute that is not a permanent ID, a re-cased value under a new username gets no twin account', async () => {
-    const realPermanent = ldap.subjectPermanent;
+    const realPermanent = dir.subjectPermanent;
     try {
-      ldap.subjectPermanent = () => false;
+      dir.subjectPermanent = () => false;
       const m = fakeModels({
         users: [{ id: 9095, username: 'ldap_bob' }],
-        links: [{ provider: 'ldap', subject: 'Bob Directory', username: 'ldap_bob', user_id: 9095 }],
+        links: [{ provider: 'dir', subject: 'Bob Directory', username: 'ldap_bob', user_id: 9095 }],
       });
-      await expect(providers.linkIdentity({ provider: 'ldap', subject: 'bob directory', dn: 'uid=bob2,ou=people', username: 'bob2', groups: [] }, m)).rejects.toThrow(/except for letter case/);
+      await expect(providers.linkIdentity({ provider: 'dir', subject: 'bob directory', dn: 'uid=bob2,ou=people', username: 'bob2', groups: [] }, m)).rejects.toThrow(/except for letter case/);
       expect(m.User.rows).toHaveLength(1);
     } finally {
-      ldap.subjectPermanent = realPermanent;
+      dir.subjectPermanent = realPermanent;
     }
   });
 
   test('a recheck that finds the stored value only without case treats the account as gone', async () => {
-    const realPermanent = ldap.subjectPermanent;
+    const realPermanent = dir.subjectPermanent;
     try {
-      ldap.subjectPermanent = () => false;
-      ldap.lookup = async (subject) => ({ subject, current: 'dave leaver', dn: 'uid=dave_new,ou=people', username: 'dave_new', groups: ['cn=science-team'] });
+      dir.subjectPermanent = () => false;
+      dir.lookup = async (subject) => ({ subject, current: 'dave leaver', dn: 'uid=dave_new,ou=people', username: 'dave_new', groups: ['cn=science-team'] });
       const m = fakeModels({
         users: [{ id: 9097, username: 'dave_old' }],
-        links: [{ provider: 'ldap', subject: 'Dave Leaver', username: 'dave_old', user_id: 9097 }],
+        links: [{ provider: 'dir', subject: 'Dave Leaver', username: 'dave_old', user_id: 9097 }],
       });
-      expect(await providers.stillLinked(9097, 'ldap', m, true, true)).toBe('missing');
+      expect(await providers.stillLinked(9097, 'dir', m, true, true)).toBe('missing');
       expect(m.AuthIdentity.rows[0].username).toBe('dave_old');
     } finally {
-      ldap.subjectPermanent = realPermanent;
+      dir.subjectPermanent = realPermanent;
     }
   });
 
   test('a sign-in whose first subject value changed reuses the link made under another of its values', async () => {
-    const realLocate = ldap.locate;
+    const realLocate = dir.locate;
     try {
       const m = fakeModels({
         users: [{ id: 9098, username: 'dave' }],
-        links: [{ provider: 'ldap', subject: 'dave@example.org', username: 'dave', user_id: 9098 }],
+        links: [{ provider: 'dir', subject: 'dave@example.org', username: 'dave', user_id: 9098 }],
       });
-      const dave = { provider: 'ldap', subject: 'dave.alias@example.org', subjects: ['dave.alias@example.org', 'dave@example.org'], dn: 'uid=dave,ou=people', username: 'dave', groups: [] };
-      ldap.locate = async () => ({ dn: 'uid=dave,ou=people' });
+      const dave = { provider: 'dir', subject: 'dave.alias@example.org', subjects: ['dave.alias@example.org', 'dave@example.org'], dn: 'uid=dave,ou=people', username: 'dave', groups: [] };
+      dir.locate = async () => ({ dn: 'uid=dave,ou=people' });
       expect((await providers.linkIdentity(dave, m)).id).toBe(9098);
       expect(m.User.rows).toHaveLength(1);
       // Another person's entry given dave's old value as an alias
       await expect(providers.linkIdentity({ ...dave, username: 'carol', dn: 'uid=carol,ou=people' }, m)).rejects.toThrow(/also has 'dave@example.org'/);
       // Found elsewhere, so it isn't this entry's link
-      ldap.locate = async () => ({ dn: 'uid=mallory,ou=people' });
-      await expect(providers.linkIdentity({ ...dave, dn: 'uid=dave2,ou=people' }, m)).rejects.toThrow(/different ldap entry/);
+      dir.locate = async () => ({ dn: 'uid=mallory,ou=people' });
+      await expect(providers.linkIdentity({ ...dave, dn: 'uid=dave2,ou=people' }, m)).rejects.toThrow(/different dir entry/);
       expect(m.User.rows).toHaveLength(1);
     } finally {
-      ldap.locate = realLocate;
+      dir.locate = realLocate;
     }
   });
 
   test('a relink pinned to one of an entry\'s values is claimed after the values are reordered, by that entry only', async () => {
-    const realPermanent = ldap.subjectPermanent;
+    const realPermanent = dir.subjectPermanent;
     try {
-      ldap.subjectPermanent = () => false;
+      dir.subjectPermanent = () => false;
       const pinned = () =>
         fakeModels({
           users: [{ id: 9099, username: 'carl' }],
-          meta: [{ key: 'relink:ldap:9099', value: { username: 'carl', subject: 'carl@example.org', dn: 'uid=carl,ou=people', by: 'admin', expires_at: new Date(Date.now() + 60000).toISOString() } }],
+          meta: [{ key: 'relink:dir:9099', value: { username: 'carl', subject: 'carl@example.org', dn: 'uid=carl,ou=people', by: 'admin', expires_at: new Date(Date.now() + 60000).toISOString() } }],
         });
-      const carl = { provider: 'ldap', subject: 'carl2@example.org', subjects: ['carl2@example.org', 'carl@example.org'], dn: 'UID=carl,ou=people', username: 'carl', groups: [] };
+      const carl = { provider: 'dir', subject: 'carl2@example.org', subjects: ['carl2@example.org', 'carl@example.org'], dn: 'UID=carl,ou=people', username: 'carl', groups: [] };
       const m = pinned();
       expect((await providers.linkIdentity(carl, m)).id).toBe(9099);
       expect(m.AuthMeta.rows).toEqual([]);
       // Another entry listing carl's pinned value doesn't claim carl's account
       const other = pinned();
       expect((await providers.linkIdentity({ ...carl, dn: 'uid=mallory,ou=people', username: 'mallory' }, other)).id).not.toBe(9099);
-      expect(other.AuthMeta.rows).toEqual([expect.objectContaining({ key: 'relink:ldap:9099' })]);
+      expect(other.AuthMeta.rows).toEqual([expect.objectContaining({ key: 'relink:dir:9099' })]);
       // Nor does an entry at another DN with carl's username, which marks the relink stale instead
       const moved = pinned();
       await expect(providers.linkIdentity({ ...carl, dn: 'uid=carl,ou=contractors' }, moved)).rejects.toThrow(providers.LinkError);
       expect(moved.AuthMeta.rows[0].value.stale).toMatchObject({ subject: 'carl2@example.org' });
     } finally {
-      ldap.subjectPermanent = realPermanent;
+      dir.subjectPermanent = realPermanent;
     }
   });
 
   test('a recheck matching a leaver\'s value as another person\'s alias treats the account as gone', async () => {
-    const realPermanent = ldap.subjectPermanent;
+    const realPermanent = dir.subjectPermanent;
     try {
-      ldap.subjectPermanent = () => false;
-      ldap.lookup = async (subject) => ({ subject, current: subject, first: 'carol@example.org', dn: 'uid=carol,ou=people', username: 'carol', groups: [] });
+      dir.subjectPermanent = () => false;
+      dir.lookup = async (subject) => ({ subject, current: subject, first: 'carol@example.org', dn: 'uid=carol,ou=people', username: 'carol', groups: [] });
       const m = fakeModels({
         users: [{ id: 9099, username: 'alice' }],
-        links: [{ provider: 'ldap', subject: 'alice@example.org', username: 'alice', user_id: 9099 }],
+        links: [{ provider: 'dir', subject: 'alice@example.org', username: 'alice', user_id: 9099 }],
       });
-      expect(await providers.stillLinked(9099, 'ldap', m, true, true)).toBe('missing');
-      ldap.lookup = async (subject) => ({ subject, current: subject, first: 'alias@example.org', dn: 'uid=alice,ou=people', username: 'alice', groups: [] });
-      expect(await providers.stillLinked(9099, 'ldap', m, true, true)).not.toBe('missing');
+      expect(await providers.stillLinked(9099, 'dir', m, true, true)).toBe('missing');
+      dir.lookup = async (subject) => ({ subject, current: subject, first: 'alias@example.org', dn: 'uid=alice,ou=people', username: 'alice', groups: [] });
+      expect(await providers.stillLinked(9099, 'dir', m, true, true)).not.toBe('missing');
     } finally {
-      ldap.subjectPermanent = realPermanent;
+      dir.subjectPermanent = realPermanent;
     }
   });
 
   test('a leaver found again after a subject setting change keeps its leaver warning', async () => {
-    const realSetting = ldap.subjectSetting;
+    const realSetting = dir.subjectSetting;
     try {
-      ldap.subjectSetting = () => 'uid';
+      dir.subjectSetting = () => 'uid';
       const m = fakeModels({
         users: [{ id: 9040, username: 'leaver' }],
-        links: [{ provider: 'ldap', subject: 'old-uuid', subject_setting: 'entryuuid', username: 'leaver', user_id: 9040 }],
-        meta: [{ key: 'missing:ldap:9040', value: { since: '2026-01-01T00:00:00.000Z', subject: 'old-uuid' } }],
+        links: [{ provider: 'dir', subject: 'old-uuid', subject_setting: 'entryuuid', username: 'leaver', user_id: 9040 }],
+        meta: [{ key: 'missing:dir:9040', value: { since: '2026-01-01T00:00:00.000Z', subject: 'old-uuid' } }],
       });
-      expect(await providers.stillLinked(9040, 'ldap', m, true, true)).toBe('missing');
-      expect(m.AuthMeta.rows.find((r) => r.key === 'missing:ldap:9040').value).toMatchObject({ since: '2026-01-01T00:00:00.000Z', reason: 'subject', was_gone: true });
+      expect(await providers.stillLinked(9040, 'dir', m, true, true)).toBe('missing');
+      expect(m.AuthMeta.rows.find((r) => r.key === 'missing:dir:9040').value).toMatchObject({ since: '2026-01-01T00:00:00.000Z', reason: 'subject', was_gone: true });
     } finally {
-      ldap.subjectSetting = realSetting;
+      dir.subjectSetting = realSetting;
     }
   });
 
   test('pending relinks are not each asked about while every lookup in the pass failed', async () => {
-    const realLocate = ldap.locate;
+    const realLocate = dir.locate;
     let located = 0;
     try {
-      const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9041 }] });
-      m.AuthMeta.rows.push({ key: 'relink:ldap:9042', value: { username: 'x', subject: 'x', expires_at: new Date(Date.now() + 3600e3).toISOString() } });
-      ldap.lookup = async () => { throw new Error('directory hangs'); };
-      ldap.locate = async () => (located++, null);
+      const m = fakeModels({ links: [{ provider: 'dir', subject: 'here', user_id: 9041 }] });
+      m.AuthMeta.rows.push({ key: 'relink:dir:9042', value: { username: 'x', subject: 'x', expires_at: new Date(Date.now() + 3600e3).toISOString() } });
+      dir.lookup = async () => { throw new Error('directory hangs'); };
+      dir.locate = async () => (located++, null);
       expect(await providers.recheckLinked(m)).toMatchObject({ failed: 1, staleRelinks: 0 });
       expect(located).toBe(0);
     } finally {
-      ldap.locate = realLocate;
+      dir.locate = realLocate;
     }
   });
 
@@ -963,57 +991,57 @@ test.describe('provider rechecks', () => {
   });
 
   test('a recheck waits as long as the provider says its lookup may take, not just 5 s', async () => {
-    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 5300)), null);
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'slow', user_id: 9015 }] });
-    expect(await providers.stillLinked(9015, 'ldap', m, true)).toBe(false);
+    dir.lookup = async () => (await new Promise((r) => setTimeout(r, 5300)), null);
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'slow', user_id: 9015 }] });
+    expect(await providers.stillLinked(9015, 'dir', m, true)).toBe(false);
   });
 
   test("a person's request waits at most 5 s for a slow recheck, whose result still applies when it ends", async () => {
     let ended;
     const lookedUp = new Promise((r) => (ended = r));
-    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 5300)), ended(), null);
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'slower', user_id: 9017 }] });
+    dir.lookup = async () => (await new Promise((r) => setTimeout(r, 5300)), ended(), null);
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'slower', user_id: 9017 }] });
     const started = Date.now();
-    expect(await providers.stillLinked(9017, 'ldap', m)).toBe(true);
+    expect(await providers.stillLinked(9017, 'dir', m)).toBe(true);
     expect(Date.now() - started).toBeLessThan(5250);
     await lookedUp;
     await new Promise((r) => setTimeout(r, 50));
-    expect(await providers.stillLinked(9017, 'ldap', m)).toBe(false);
+    expect(await providers.stillLinked(9017, 'dir', m)).toBe(false);
   });
 
   test('once a recheck finds the provider down, other people\'s requests wait at most 1 s for theirs, so a removal still applies if it answers', async () => {
     // An error about one entry (e.g. its group search) doesn't count as the directory being down
-    ldap.lookup = async () => { throw new Error('Size limit exceeded'); };
-    const m0 = fakeModels({ links: [{ provider: 'ldap', subject: 'odd', user_id: 9021 }, { provider: 'ldap', subject: 'waits', user_id: 9022 }] });
-    expect(await providers.stillLinked(9021, 'ldap', m0)).toBe(true);
-    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 300)), null);
-    expect(await providers.stillLinked(9022, 'ldap', m0)).toBe(false);
-    ldap.lookup = async () => { throw Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:3636'), { code: 'ECONNREFUSED' }); };
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'first', user_id: 9018 }, { provider: 'ldap', subject: 'next', user_id: 9019 }, { provider: 'ldap', subject: 'back', user_id: 9020 }] });
-    expect(await providers.stillLinked(9018, 'ldap', m)).toBe(true);
+    dir.lookup = async () => { throw new Error('Size limit exceeded'); };
+    const m0 = fakeModels({ links: [{ provider: 'dir', subject: 'odd', user_id: 9021 }, { provider: 'dir', subject: 'waits', user_id: 9022 }] });
+    expect(await providers.stillLinked(9021, 'dir', m0)).toBe(true);
+    dir.lookup = async () => (await new Promise((r) => setTimeout(r, 300)), null);
+    expect(await providers.stillLinked(9022, 'dir', m0)).toBe(false);
+    dir.lookup = async () => { throw Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:3636'), { code: 'ECONNREFUSED' }); };
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'first', user_id: 9018 }, { provider: 'dir', subject: 'next', user_id: 9019 }, { provider: 'dir', subject: 'back', user_id: 9020 }] });
+    expect(await providers.stillLinked(9018, 'dir', m)).toBe(true);
     let ended;
     const lookedUp = new Promise((r) => (ended = r));
-    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 1500)), ended(), { username: 'next', groups: [] });
+    dir.lookup = async () => (await new Promise((r) => setTimeout(r, 1500)), ended(), { username: 'next', groups: [] });
     const started = Date.now();
-    expect(await providers.stillLinked(9019, 'ldap', m)).toBe(true);
+    expect(await providers.stillLinked(9019, 'dir', m)).toBe(true);
     expect(Date.now() - started).toBeLessThan(1400);
     // A person the directory removed is still refused at once if it answers
-    ldap.lookup = async () => null;
-    const m2 = fakeModels({ links: [{ provider: 'ldap', subject: 'gone', user_id: 9023 }] });
-    expect(await providers.stillLinked(9023, 'ldap', m2)).toBe(false);
+    dir.lookup = async () => null;
+    const m2 = fakeModels({ links: [{ provider: 'dir', subject: 'gone', user_id: 9023 }] });
+    expect(await providers.stillLinked(9023, 'dir', m2)).toBe(false);
     await lookedUp;
     await new Promise((r) => setTimeout(r, 50));
     // It answered, so a removal applies to the request again
-    ldap.lookup = async () => null;
-    expect(await providers.stillLinked(9020, 'ldap', m)).toBe(false);
+    dir.lookup = async () => null;
+    expect(await providers.stillLinked(9020, 'dir', m)).toBe(false);
   });
 
   test('a group change during a check of every account queues one more check after it', async () => {
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9013 }] });
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'here', user_id: 9013 }] });
     let calls = 0;
     let release;
     const gate = new Promise((r) => (release = r));
-    ldap.lookup = async () => {
+    dir.lookup = async () => {
       calls++;
       if (calls === 1) await gate;
       return { username: 'here', groups: [] };
@@ -1033,13 +1061,13 @@ test.describe('provider rechecks', () => {
     const saved = process.env.AUTH_RECHECK_MINUTES;
     process.env.AUTH_RECHECK_MINUTES = '0';
     let calls = 0;
-    ldap.lookup = async () => (calls++, null);
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'gone', user_id: 9016 }] });
+    dir.lookup = async () => (calls++, null);
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'gone', user_id: 9016 }] });
     try {
-      expect(await providers.stillLinked(9016, 'ldap', m)).toBe(true);
+      expect(await providers.stillLinked(9016, 'dir', m)).toBe(true);
       expect(calls).toBe(0);
       expect(await providers.recheckLinked(m)).toMatchObject({ checked: 1, missing: 1 });
-      expect(await providers.stillLinked(9016, 'ldap', m)).toBe(false);
+      expect(await providers.stillLinked(9016, 'dir', m)).toBe(false);
       expect(calls).toBe(1);
     } finally {
       if (saved === undefined) delete process.env.AUTH_RECHECK_MINUTES;
@@ -1051,9 +1079,9 @@ test.describe('provider rechecks', () => {
     const saved = process.env.AUTH_RECHECK_MINUTES;
     process.env.AUTH_RECHECK_MINUTES = '0';
     let calls = 0;
-    ldap.lookup = async () => (calls++, { username: 'here', groups: [] });
+    dir.lookup = async () => (calls++, { username: 'here', groups: [] });
     try {
-      expect(await providers.fillGroups('ldap', fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9014 }] }))).toBeUndefined();
+      expect(await providers.fillGroups('dir', fakeModels({ links: [{ provider: 'dir', subject: 'here', user_id: 9014 }] }))).toBeUndefined();
       expect(calls).toBe(0);
     } finally {
       if (saved === undefined) delete process.env.AUTH_RECHECK_MINUTES;
@@ -1062,94 +1090,93 @@ test.describe('provider rechecks', () => {
   });
 
   test('a new entry given a name whose old entry still exists is refused without suggesting a relink', async () => {
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'old-bob', username: 'bob', user_id: 9020 }] });
-    const realLocate = ldap.locate;
-    ldap.locate = (subject) => ldap.lookup(subject);
-    ldap.lookup = async (subject) => (subject === 'old-bob' ? { username: 'bob_renamed', groups: [] } : null);
-    const err = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'old-bob', username: 'bob', user_id: 9020 }] });
+    const realLocate = dir.locate;
+    dir.locate = (subject) => dir.lookup(subject);
+    dir.lookup = async (subject) => (subject === 'old-bob' ? { username: 'bob_renamed', groups: [] } : null);
+    const err = await providers.linkIdentity(providers.normalizeIdentity('dir', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
     expect(err).toBeInstanceOf(providers.LinkError);
     expect(err.message).toMatch(/still exists as 'bob_renamed'.*don't relink/);
-    ldap.lookup = async () => null;
-    const gone = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
+    dir.lookup = async () => null;
+    const gone = await providers.linkIdentity(providers.normalizeIdentity('dir', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
     expect(gone.message).toMatch(/allow a relink/);
-    ldap.lookup = async () => { throw new Error('directory down'); };
-    const unknown = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
+    dir.lookup = async () => { throw new Error('directory down'); };
+    const unknown = await providers.linkIdentity(providers.normalizeIdentity('dir', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
     expect(unknown.message).toMatch(/couldn't say whether .* Check before allowing a relink/);
     // A service account that can't search the root: what lookup still finds under the search base counts
-    ldap.locate = async () => { throw new Error('No such object'); };
-    ldap.lookup = async (subject) => (subject === 'old-bob' ? { username: 'bob_renamed', groups: [] } : null);
-    expect(await providers.locateSubject('ldap', 'old-bob')).toMatchObject({ username: 'bob_renamed' });
-    ldap.lookup = async () => null;
-    expect(await providers.locateSubject('ldap', 'old-bob')).toBeUndefined();
-    ldap.locate = async () => null;
-    expect(await providers.locateSubject('ldap', 'old-bob')).toBeNull();
-    ldap.locate = realLocate;
+    dir.locate = async () => { throw new Error('No such object'); };
+    dir.lookup = async (subject) => (subject === 'old-bob' ? { username: 'bob_renamed', groups: [] } : null);
+    expect(await providers.locateSubject('dir', 'old-bob')).toMatchObject({ username: 'bob_renamed' });
+    dir.lookup = async () => null;
+    expect(await providers.locateSubject('dir', 'old-bob')).toBeUndefined();
+    dir.locate = async () => null;
+    expect(await providers.locateSubject('dir', 'old-bob')).toBeNull();
+    dir.locate = realLocate;
   });
 
   test('a reused name is refused while the old entry exists anywhere, e.g. moved to a leavers OU', async () => {
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'old-carol', username: 'carol', user_id: 9040 }] });
-    ldap.lookup = async () => null;
-    const realLocate = ldap.locate;
-    ldap.locate = async (subject) => (subject === 'old-carol' ? { dn: 'uid=carol,ou=disabled,dc=example,dc=org', username: 'carol' } : null);
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'old-carol', username: 'carol', user_id: 9040 }] });
+    dir.lookup = async () => null;
+    const realLocate = dir.locate;
+    dir.locate = async (subject) => (subject === 'old-carol' ? { dn: 'uid=carol,ou=disabled,dc=example,dc=org', username: 'carol' } : null);
     try {
-      const err = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-carol', username: 'carol' }), m).catch((e) => e);
+      const err = await providers.linkIdentity(providers.normalizeIdentity('dir', { subject: 'new-carol', username: 'carol' }), m).catch((e) => e);
       expect(err.message).toMatch(/still exists at uid=carol,ou=disabled.*don't relink/);
     } finally {
-      ldap.locate = realLocate;
+      dir.locate = realLocate;
     }
   });
 
   test('an account another process found missing is checked again once it has signed in since', async () => {
-    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'back', user_id: 9030, last_login_at: null }] });
-    ldap.lookup = async () => null;
-    expect(await providers.stillLinked(9030, 'ldap', m)).toBe(false);
-    ldap.lookup = async () => ({ username: 'back', groups: [] });
-    expect(await providers.stillLinked(9030, 'ldap', m)).toBe(false);
+    const m = fakeModels({ links: [{ provider: 'dir', subject: 'back', user_id: 9030, last_login_at: null }] });
+    dir.lookup = async () => null;
+    expect(await providers.stillLinked(9030, 'dir', m)).toBe(false);
+    dir.lookup = async () => ({ username: 'back', groups: [] });
+    expect(await providers.stillLinked(9030, 'dir', m)).toBe(false);
     m.AuthIdentity.rows[0].last_login_at = new Date(Date.now() + 1000);
-    expect(await providers.stillLinked(9030, 'ldap', m)).toBe(true);
+    expect(await providers.stillLinked(9030, 'dir', m)).toBe(true);
   });
 
   test('a directory that cannot be reached keeps access and groups', async () => {
     const m = models(9001);
-    ldap.lookup = async () => { throw new Error('down'); };
-    expect(await providers.stillLinked(9001, 'ldap', m)).toBe(true);
+    dir.lookup = async () => { throw new Error('down'); };
+    expect(await providers.stillLinked(9001, 'dir', m)).toBe(true);
     expect(m.AuthGroupMember.rows).toHaveLength(1);
   });
 
   test('an entry the directory no longer has loses access and its provider groups', async () => {
     const m = models(9002);
-    ldap.lookup = async () => null;
-    expect(await providers.stillLinked(9002, 'ldap', m)).toBe(false);
+    dir.lookup = async () => null;
+    expect(await providers.stillLinked(9002, 'dir', m)).toBe(false);
     expect(m.AuthGroupMember.rows).toEqual([]);
     // Shown in People until the entry is back
-    expect(m.AuthMeta.rows).toMatchObject([{ key: 'missing:ldap:9002', value: { since: expect.any(String), subject: 'old' } }]);
+    expect(m.AuthMeta.rows).toMatchObject([{ key: 'missing:dir:9002', value: { since: expect.any(String), subject: 'old' } }]);
     m.User.rows.push({ id: 9002, username: 'back' });
-    await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'old', username: 'back' }), m);
+    await providers.linkIdentity(providers.normalizeIdentity('dir', { subject: 'old', username: 'back' }), m);
     expect(m.AuthMeta.rows).toEqual([]);
   });
 
   test('a rename in the directory is recorded at the recheck, before the next login', async () => {
     const m = models(9004);
     m.AuthIdentity.rows[0] = { ...m.AuthIdentity.rows[0], username: 'alice' };
-    ldap.lookup = async () => ({ username: 'alice_r', groups: ['cn=ops,ou=groups,dc=example,dc=org'] });
-    expect(await providers.stillLinked(9004, 'ldap', m)).toBe(true);
+    dir.lookup = async () => ({ username: 'alice_r', groups: ['cn=ops,ou=groups,dc=example,dc=org'] });
+    expect(await providers.stillLinked(9004, 'dir', m)).toBe(true);
     expect(m.AuthIdentity.rows[0]).toMatchObject({ subject: 'old', username: 'alice_r' });
     expect(m.AuthGroupMember.rows).toHaveLength(1);
   });
 
-  test('LDAP group DNs typed in another case or spacing are saved in the form LDAP reports', () => {
-    expect(providers.groupName('ldap', 'CN=Ops, OU=Groups,DC=Example,DC=org')).toBe('cn=ops,ou=groups,dc=example,dc=org');
-    expect(() => providers.groupName('ldap', 'Science Team')).toThrow(/enter the group's DN/);
+  test("group names typed by an admin are saved in the provider's own form (its groupName hook)", () => {
+    expect(providers.groupName('dir', 'CN=Ops, OU=Groups,DC=Example,DC=org')).toBe('cn=ops,ou=groups,dc=example,dc=org');
     expect(providers.groupName('local', 'CN=Ops')).toBe('CN=Ops');
   });
 
   test('a relink during the lookup is not undone by the old subject coming back empty', async () => {
     const m = models(9003);
-    ldap.lookup = async () => {
+    dir.lookup = async () => {
       m.AuthIdentity.rows[0] = { ...m.AuthIdentity.rows[0], subject: 'new' };
       return null;
     };
-    expect(await providers.stillLinked(9003, 'ldap', m)).toBe(true);
+    expect(await providers.stillLinked(9003, 'dir', m)).toBe(true);
     expect(m.AuthGroupMember.rows).toHaveLength(1);
   });
 });

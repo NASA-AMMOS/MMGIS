@@ -188,4 +188,4 @@ If the directory rejects the service account, MMGIS stops using it for 5 minutes
 | "Invalid <name> username or password" for `CORP\alice` or `alice@corp...` | Set `LDAP_USERNAME_DOMAIN=CORP`, and use a `LDAP_USER_SEARCH_FILTER` that also matches `userPrincipalName` (see the Active Directory example). |
 | Groups don't apply | The group's external name must be the directory group's DN (or its `LDAP_GROUP_NAME_ATTRIBUTE` value). The login line in the server log lists the groups the directory reported; if it says `none`, check whether your directory has `memberOf`, or set `LDAP_GROUP_SEARCH_BASE`. |
 
-To try it locally, `plugins/core/auth/Ldap/tests/openldap/start.sh` starts an OpenLDAP container with test users; `plugins/core/auth/Ldap/tests/ldap-provider.spec.js` shows the matching settings.
+To try it locally, `npm run test:plugins:ci -- plugins/core/auth/Ldap ldaps` (or `starttls`) starts an OpenLDAP container with test users (`plugins/core/auth/Ldap/tests/openldap/start.sh`) and runs the LDAP tests against it; `plugins/core/auth/Ldap/tests/ci.sh` shows the matching settings.

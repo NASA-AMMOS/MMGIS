@@ -13,6 +13,15 @@
   "login_path": "/login",
   "login_form": true,
   "login_icon": "card-account-details-outline",
+  "dependencies": {
+    "npm": {
+      "ldapts": "^8.2.0"
+    }
+  },
+  "ci": {
+    "script": "tests/ci.sh",
+    "variants": ["ldaps", "starttls"]
+  },
   "author": "NASA-AMMOS/MMGIS",
   "license": "Apache-2.0",
   "repository": "https://github.com/NASA-AMMOS/MMGIS"

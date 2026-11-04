@@ -10,6 +10,10 @@
   "tier": "core",
   "overridable": false,
   "required": true,
+  "ci": {
+    "script": "tests/ci.sh",
+    "variants": ["network", "secret"]
+  },
   "author": "NASA-AMMOS/MMGIS",
   "license": "Apache-2.0",
   "repository": "https://github.com/NASA-AMMOS/MMGIS"
