@@ -574,7 +574,7 @@ router.post("/resetPassword", resetLimiter, authorize.public("login and account 
     })
       .then(async (user) => {
         // Accounts created by a login provider sign in through it, never with a local password
-        if (user && (await AuthIdentity.count({ where: { user_id: user.id } })) > 0) {
+        if (user && (await AuthIdentity.count({ where: { user_id: user.id, provider: { [Op.in]: providers.enabledProviders().map((p) => p.id) } } })) > 0) {
           res.send({ status: "failure", message: "This account signs in through its login provider." });
           return null;
         }
