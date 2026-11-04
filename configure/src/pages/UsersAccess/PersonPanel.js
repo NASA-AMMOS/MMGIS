@@ -256,6 +256,11 @@ export function PersonPanel({ user, ctx }) {
       <div className={c.section}>
         <Typography className={c.sectionTitle}>Effective access</Typography>
         <div className={c.hint}>Everything this person can do, combining their own access, their groups and the audiences.</div>
+        {(user.sign_ins || []).length > 0 && user.sign_ins.every((l) => l.missing_since && providerOn(l.provider)) && (
+          <div className={c.hint} style={{ color: "#b71c1c" }}>
+            Can't sign in or use API tokens now: not found in {user.sign_ins.map((l) => `${l.provider.toUpperCase()} since ${new Date(l.missing_since).toLocaleDateString()}`).join(", ")}. This access applies again only if that entry comes back or the account is relinked.
+          </div>
+        )}
         <Table size="small" className={c.table}>
           <TableBody>
             {EFFECTIVE_ROWS.map((r) => {

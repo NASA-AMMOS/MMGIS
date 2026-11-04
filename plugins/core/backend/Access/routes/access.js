@@ -110,8 +110,8 @@ router.post("/groups/create", manage, async (req, res) => {
       external_name: external,
     });
     invalidate();
-    if (source !== "local") fillProviderGroups(source);
-    res.send({ status: "success", body: group });
+    const note = source !== "local" ? await fillProviderGroups(group) : undefined;
+    res.send({ status: "success", body: group, note });
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
       return res.send({ status: "failure", message: "A group with that name already exists." });
@@ -119,13 +119,22 @@ router.post("/groups/create", manage, async (req, res) => {
   }
 });
 
-// A new or renamed provider group gets its members from the people already signed in, not only at their next sign-in
-function fillProviderGroups(source) {
+// A new or renamed provider group gets its members from the people already signed in, not only at their next sign-in.
+// Resolves to a note for the admin when that can't happen now, or another group already maps the same provider group.
+async function fillProviderGroups(group) {
+  const source = group.source;
+  const notes = [];
+  const same = await AuthGroup.findAll({ where: { source, external_name: group.external_name, id: { [Sequelize.Op.ne]: group.id } }, attributes: ["name"], order: [["name", "ASC"]], raw: true });
+  if (same.length)
+    notes.push(`${same.length === 1 ? "Group" : "Groups"} ${same.map((g) => `'${g.name}'`).join(", ")} also ${same.length === 1 ? "gets its" : "get their"} members from ${group.external_name}, so the roles of all of them apply to those people.`);
+  if (providers.fillsOnlyAtSignIn(source))
+    notes.push("Rechecks are off (AUTH_RECHECK_MINUTES=0), so this group fills as its members sign in. To fill it now, click Check linked accounts in People.");
   const warn = (err) => logger("warn", "Couldn't fill a provider group from its directory now; click Check linked accounts in People once it can be reached, or members join at their next sign-in or recheck.", "access", null, err);
   providers
     .fillGroups(source)
     .then((r) => r && r.failed > 0 && warn(new Error(`${r.failed} linked account(s) couldn't be checked`)))
     .catch(warn);
+  return notes.length ? notes.join(" ") : undefined;
 }
 
 async function assertHoldsGroupRoles(actor, groupId) {
@@ -153,8 +162,8 @@ router.post("/groups/update", manage, async (req, res) => {
     const repointed = group.source !== "local" && set.external_name !== undefined && set.external_name !== group.external_name;
     await group.update(set);
     invalidate();
-    if (repointed) fillProviderGroups(group.source);
-    res.send({ status: "success", body: group });
+    const note = repointed ? await fillProviderGroups(group) : undefined;
+    res.send({ status: "success", body: group, note });
   } catch (err) {
     fail(res, err, "Failed to update group.");
   }

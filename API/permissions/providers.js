@@ -741,6 +741,12 @@ function recheckLinked(m = accountModels(), again = false) {
 
 // Fills a new or repointed group of providerId from the accounts already linked to it; resolves
 // undefined when rechecks are off (AUTH_RECHECK_MINUTES=0) or that provider can't look accounts up
+// True when fillGroups skips providerId only because rechecks are off (AUTH_RECHECK_MINUTES=0)
+function fillsOnlyAtSignIn(providerId) {
+  const p = siteAccess.hasProvider(providerId) && getProvider(providerId);
+  return !!p && typeof p.impl.lookup === "function" && recheckMs() === 0;
+}
+
 function fillGroups(providerId, m = accountModels()) {
   const p = siteAccess.hasProvider(providerId) && getProvider(providerId);
   if (recheckMs() === 0 || !p || typeof p.impl.lookup !== "function") return Promise.resolve(undefined);
@@ -965,6 +971,7 @@ module.exports = {
   stillLinked,
   recheckLinked,
   fillGroups,
+  fillsOnlyAtSignIn,
   completeLogin,
   leadGroups,
   returnTo,

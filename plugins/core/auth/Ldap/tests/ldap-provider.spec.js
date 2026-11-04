@@ -174,6 +174,7 @@ test.describe('LDAP login provider', () => {
 
   test('a new directory group fills in from people already signed in', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
+    test.skip(process.env.AUTH_RECHECK_MINUTES === '0', 'SKIP: with rechecks off, groups fill at sign-in or Check linked accounts');
     expect((await ldapLogin(await context(), alice)).status()).toBe(200);
     const adminCtx = await adminContext();
     const created = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-fill-${Date.now()}`, source: 'ldap', external_name: 'cn=science-team,ou=groups,dc=example,dc=org' } })).json();
@@ -184,6 +185,23 @@ test.describe('LDAP login provider', () => {
       await expect.poll(members, { timeout: 15000 }).toContain(alice.username);
     } finally {
       await adminCtx.post('/api/access/groups/delete', { data: { id: created.body.id } });
+    }
+  });
+
+  test('creating a directory group says why it may stay empty and names another group mapping the same DN', async () => {
+    const adminCtx = await adminContext();
+    const dn = `cn=dup-${Date.now()},ou=groups,dc=example,dc=org`;
+    const ids = [];
+    try {
+      const first = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-dup-a-${Date.now()}`, source: 'ldap', external_name: dn } })).json();
+      ids.push(first.body.id);
+      const second = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-dup-b-${Date.now()}`, source: 'ldap', external_name: dn.toUpperCase() } })).json();
+      ids.push(second.body.id);
+      expect(second.note).toContain(`Group '${first.body.name}' also gets its members from ${dn}`);
+      if (process.env.AUTH_RECHECK_MINUTES === '0') expect(second.note).toMatch(/Rechecks are off .* Check linked accounts/);
+      else expect(second.note).not.toMatch(/Rechecks are off/);
+    } finally {
+      for (const id of ids) await adminCtx.post('/api/access/groups/delete', { data: { id } });
     }
   });
 
@@ -201,6 +219,7 @@ test.describe('LDAP login provider', () => {
 
   test('pointing a directory group at another directory group fills it from people already signed in', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
+    test.skip(process.env.AUTH_RECHECK_MINUTES === '0', 'SKIP: with rechecks off, groups fill at sign-in or Check linked accounts');
     expect((await ldapLogin(await context(), alice)).status()).toBe(200);
     const adminCtx = await adminContext();
     const created = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-repoint-${Date.now()}`, source: 'ldap', external_name: 'cn=nobody-here,ou=groups,dc=example,dc=org' } })).json();

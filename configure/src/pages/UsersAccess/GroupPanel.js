@@ -93,7 +93,7 @@ export function GroupPanel({ group, ctx }) {
   const changed = name.trim() !== group.name || (group.source !== "local" && externalName.trim() !== (group.external_name || ""));
   const saveGroup = () =>
     api("access_groups_update", { id: group.id, name: name.trim(), ...(group.source !== "local" ? { external_name: externalName.trim() } : {}) })
-      .then(() => { notify("Group updated.", "success"); refresh(); })
+      .then((res) => { notify(res.note ? `Group updated. ${res.note}` : "Group updated.", res.note ? "warning" : "success"); refresh(); })
       .catch((res) => notify(res.message || "Failed to update group.", "error"));
   const on = providerOn(group.source);
   return (
@@ -138,7 +138,7 @@ export function GroupPanel({ group, ctx }) {
           <Typography className={c.sectionTitle}>Members ({group.members.length})</Typography>
           <div className={c.muted}>
             {group.members.length === 0
-              ? "None right now: people show up here as they sign in or are rechecked. If it had members before, the group may have been renamed or moved at the provider; Check a provider user, with a former member's username and no groups, lists the groups reported for them now."
+              ? "None right now: people show up here as they sign in or are rechecked (with AUTH_RECHECK_MINUTES=0, click Check linked accounts in People). If it had members before, the group may have been renamed or moved at the provider; Check a provider user, with a former member's username and no groups, lists the groups reported for them now."
               : group.members.map((m) => m.username).sort((a, b) => a.localeCompare(b)).join(", ")}
           </div>
         </div>
