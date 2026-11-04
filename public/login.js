@@ -35,6 +35,7 @@ function login() {
           (data.hasOwnProperty("status") && data.status === "success")
         ) {
           //success
+          LoginForms.remember();
           document.cookie = "MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
           document.cookie = `MMGISUser=${JSON.stringify({
             username: data.username,
@@ -44,14 +45,15 @@ function login() {
         } else {
           //error
           document.getElementById("msg").innerText =
-            (data && data.message) || "Invalid username or password";
+            LoginForms.failed((data && data.message) || "Invalid username or password");
           document.getElementById("msg").style.opacity = 1;
         }
       },
       error: function (xhr) {
         //error
-        document.getElementById("msg").innerText =
-          (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.";
+        document.getElementById("msg").innerText = LoginForms.failed(
+          (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error."
+        );
         document.getElementById("msg").style.opacity = 1;
       },
     });
@@ -112,6 +114,7 @@ function toggle() {
     document.getElementById("pwd_description").style.display = "block";
     document.getElementById("pwd_retype_label").style.display = "block";
     document.getElementById("pwd_retype").style.display = "block";
+    document.getElementById("pwd").setAttribute("autocomplete", "new-password");
 
     toggleState = "signup";
   } else {
@@ -128,7 +131,7 @@ function toggle() {
     document.getElementById("pwd_retype_label").style.display = "none";
 
     document.getElementById("pwd_retype").style.display = "none";
-
+    document.getElementById("pwd").setAttribute("autocomplete", "current-password");
 
     toggleState = "login";
   }
@@ -145,7 +148,8 @@ $(document).ready(function () {
   if (allowSignup === true && LoginForms.isLocal() && document.getElementById("toggleWrapper"))
     document.getElementById("toggleWrapper").style.display = "flex";
   $(document).on("keypress", function (e) {
-    if (e.which === 13) {
+    // Enter on a button already clicks it
+    if (e.which === 13 && !$(e.target).is("button")) {
       login();
     }
   });

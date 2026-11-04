@@ -40,6 +40,7 @@ function login() {
         (data.hasOwnProperty("status") && data.status == "success")
       ) {
         //success
+        LoginForms.remember();
         document.cookie =
           "MMGISUser=" +
           JSON.stringify({
@@ -49,15 +50,17 @@ function login() {
         location.reload();
       } else {
         //error
-        document.getElementById("msg").innerText =
-          (data && data.message) || "Invalid username or password.";
+        document.getElementById("msg").innerText = LoginForms.failed(
+          (data && data.message) || "Invalid username or password."
+        );
         document.getElementById("msg").style.opacity = 1;
       }
     },
     error: function (xhr) {
       //error
-      document.getElementById("msg").innerText =
-        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.";
+      document.getElementById("msg").innerText = LoginForms.failed(
+        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error."
+      );
       document.getElementById("msg").style.opacity = 1;
     },
   });
@@ -134,7 +137,8 @@ function setupLogin() {
 $(document).ready(function () {
   LoginForms.init();
   $(document).on("keypress", function (e) {
-    if (e.which == 13) {
+    // Enter on a button already clicks it
+    if (e.which == 13 && !$(e.target).is("button")) {
       login();
     }
   });

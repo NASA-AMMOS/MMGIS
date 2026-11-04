@@ -240,11 +240,15 @@ Where people's entries are searched for (whole subtree), e.g. `ou=people,dc=exam
 
 #### `LDAP_USER_SEARCH_FILTER=`
 
-Filter that finds a person by the username they typed, which replaces `{{username}}` (escaped). Active Directory: `(sAMAccountName={{username}})` | string | default `(uid={{username}})`
+Filter that finds a person by the username they typed, which replaces `{{username}}` (escaped). Active Directory: `(sAMAccountName={{username}})`, or `(|(sAMAccountName={{username}})(userPrincipalName={{username}}))` to also accept `alice@corp.example.org` | string | default `(uid={{username}})`
 
 #### `LDAP_USER_DN_TEMPLATE=`
 
 Sign in as the person directly, without a service account or search: their DN with `{{username}}`, e.g. `uid={{username}},ou=people,dc=example,dc=org`, or an Active Directory `{{username}}@corp.example.org` (then also set `LDAP_USER_SEARCH_BASE` so MMGIS can read their entry) | string | default `''`
+
+#### `LDAP_USERNAME_DOMAIN=`
+
+Active Directory NetBIOS domain, e.g. `CORP`. A leading `CORP\` is then removed from what people type (any case), so `CORP\alice` signs in as `alice`. Other domains are left as typed | string | default `''`
 
 #### `LDAP_SUBJECT_ATTRIBUTE=`
 
@@ -268,7 +272,7 @@ Find groups by searching here instead of reading `LDAP_GROUPS_ATTRIBUTE`, e.g. `
 
 #### `LDAP_GROUP_SEARCH_FILTER=`
 
-Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username}}` what they typed. posixGroup groups: `(memberUid={{username}})` | string | default `(member={{dn}})`
+Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username}}` what they typed. posixGroup groups: `(memberUid={{username}})`. Active Directory with nested groups: `(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))` | string | default `(member={{dn}})`
 
 #### `LDAP_GROUP_NAME_ATTRIBUTE=`
 

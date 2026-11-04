@@ -16,7 +16,7 @@ const LoginForms = (function () {
     path: b.dataset.path,
   });
 
-  function select(id, remember) {
+  function select(id) {
     const all = buttons();
     const button = all.find((b) => b.dataset.id === id) || all[0];
     if (!button) return;
@@ -33,28 +33,35 @@ const LoginForms = (function () {
       hint.textContent = all.length > 1 ? active.hint || "" : "";
       hint.style.display = hint.textContent ? "block" : "none";
     }
-    if (remember) {
-      try {
-        localStorage.setItem(KEY, active.id);
-      } catch (err) {}
-    }
     onChange(active);
   }
 
   function init(changed) {
     if (typeof changed === "function") onChange = changed;
-    buttons().forEach((b) => b.addEventListener("click", () => select(b.dataset.id, true)));
+    buttons().forEach((b) => b.addEventListener("click", () => select(b.dataset.id)));
     let remembered = null;
     try {
       remembered = localStorage.getItem(KEY);
     } catch (err) {}
-    select(remembered, false);
+    select(remembered);
   }
+
+  // Only a successful sign-in is remembered, so a shared browser doesn't keep someone else's mistaken choice
+  function remember() {
+    if (!active || buttons().length < 2) return;
+    try {
+      localStorage.setItem(KEY, active.id);
+    } catch (err) {}
+  }
+
+  // A failed sign-in may just be the wrong account type
+  const failed = (message) =>
+    buttons().length > 1 ? `${message} Using a different account type? Choose it above.` : message;
 
   // Shows only the local account form, e.g. while creating the first administrator
   function onlyLocal() {
     document.querySelectorAll(".loginProviders, .loginBanner").forEach((el) => (el.style.display = "none"));
-    select("local", false);
+    select("local");
     const label = document.getElementById("username_label");
     if (label) label.textContent = "Username";
   }
@@ -70,15 +77,24 @@ const LoginForms = (function () {
       data: JSON.stringify({ username: username, password: password }),
       success: function (data) {
         if (data && data.status === "success") {
+          remember();
           document.cookie = "MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
           window.location.reload();
-        } else done((data && data.message) || "Login failed.");
+        } else done(failed((data && data.message) || "Login failed."));
       },
       error: function (xhr) {
-        done((xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.");
+        done(failed((xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error."));
       },
     });
   }
 
-  return { init: init, onlyLocal: onlyLocal, isLocal: isLocal, submit: submit, current: () => active };
+  return {
+    init: init,
+    onlyLocal: onlyLocal,
+    isLocal: isLocal,
+    submit: submit,
+    remember: remember,
+    failed: failed,
+    current: () => active,
+  };
 })();

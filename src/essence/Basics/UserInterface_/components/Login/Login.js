@@ -28,32 +28,32 @@ var modalFormSignIn =
   "<form id='loginForm' accept-charset='UTF-8'>" +
     "<div class='field'>" +
       "<label id='loginUsernameLabel' for='loginUsernameInput'>Username</label>" +
-      "<input id='loginUsernameInput' name='username' type='text' autocomplete='off'>" +
+      "<input id='loginUsernameInput' name='username' type='text' autocomplete='username' autocapitalize='none' spellcheck='false'>" +
       "<i id='loginUsernameInputIcon' style='opacity: 0;'></i>" +
     "</div>" +
     "<div id='loginEmail' class='field' style='display: none'>" +
       "<label for='loginEmailInput'>Email</label>" +
-      "<input id='loginEmailInput' placeholder='name" + emailSuffix + "' name='email' type='text' autocomplete='off'>" +
+      "<input id='loginEmailInput' placeholder='name" + emailSuffix + "' name='email' type='text' autocomplete='email'>" +
       "<i id='loginEmailInputIcon' style='opacity: 0;'></i>" +
       "<div class='loginFieldDescription'>An email is optional.</div>" +
     "</div>" +
     "<div class='field'>" +
       "<label for='loginPasswordInput'>Password</label>" +
-      "<input id='loginPasswordInput' name='password' type='password' autocomplete='off'>" +
+      "<input id='loginPasswordInput' name='password' type='password' autocomplete='current-password'>" +
       "<i id='loginPasswordInputIcon' style='opacity: 0;'></i>" +
       "<div id='loginPasswordDescription' class='loginFieldDescription' style='display: none'>Must be at least 8 characters long and contain at least: 1 uppercase letter, 1 lowercase letter, 1 number and 1 symbol.</div>" +
       "<div id='loginModalHint' class='loginFieldDescription' style='display: none'></div>" +
     "</div>" +
     "<div id='loginRetypePassword' class='field' style='display: none'>" +
       "<label for='loginRetypePasswordInput'>Retype Password</label>" +
-      "<input id='loginRetypePasswordInput' name='retypepassword' type='password' autocomplete='off'>" +
+      "<input id='loginRetypePasswordInput' name='retypepassword' type='password' autocomplete='new-password'>" +
       "<i id='loginRetypePasswordInputIcon' style='opacity: 0;'></i>" +
     "</div>" +
         "<input id='loginSubmit' type='submit' name='Submit' value='Log In'></input>" +
     "<div id='loginInUpToggleWrapper'><div id='loginInUpToggle' role='button' tabindex='0'>or sign up</div></div>" +
   "</form>" +
   "<div id='loginProviderLinks'></div>" +
-  "<div id='loginErrorMessage' style='opacity: 0;'>Invalid username or password</div>";
+  "<div id='loginErrorMessage' role='alert' aria-live='assertive' style='opacity: 0;'>Invalid username or password</div>";
 
 var validate = {
     username: false,
@@ -317,6 +317,7 @@ var Login = {
         $('#loginEmail').css({ display: signUp ? 'block' : 'none' })
         $('#loginRetypePassword').css({ display: signUp ? 'block' : 'none' })
         $('#loginPasswordDescription').css({ display: signUp ? 'block' : 'none' })
+        $('#loginPasswordInput').attr('autocomplete', signUp ? 'new-password' : 'current-password')
         $('#loginSubmit').val(signUp ? 'Sign Up' : 'Log In')
         $('#loginInUpToggle').html(signUp ? 'or log in' : 'or sign up')
     },
@@ -375,10 +376,10 @@ var Login = {
                 tabs.append(
                     $('<button>')
                         .addClass('loginProvider')
-                        .attr({ type: 'button', role: 'tab', 'data-id': f.id })
+                        .attr({ type: 'button', role: 'tab', 'data-id': f.id, title: f.title })
                         .append($('<i>').addClass(`mdi mdi-${f.icon}`).attr('aria-hidden', 'true'))
                         .append($('<span>').text(f.title))
-                        .on('click', () => Login.selectForm(f.id, true))
+                        .on('click', () => Login.selectForm(f.id))
                 )
             })
             el.append(tabs)
@@ -402,7 +403,7 @@ var Login = {
         } catch (err) {}
         Login.selectForm(remembered)
     },
-    selectForm: function (id, remember) {
+    selectForm: function (id) {
         const forms = Login.loginForms || []
         const form = Login.signUp ? null : forms.find((f) => f.id === id) || forms[0] || null
         Login.activeForm = form
@@ -419,11 +420,21 @@ var Login = {
         $('#loginModal #loginInUpToggle').toggle(
             local && (Login.signUp || window.mmgisglobal.SELF_SIGNUP !== 'false')
         )
-        if (remember && form) {
-            try {
-                localStorage.setItem('mmgisLoginProvider', form.id)
-            } catch (err) {}
-        }
+    },
+    // Only a successful sign-in is remembered, so a shared browser doesn't keep someone else's mistaken choice
+    rememberForm: function () {
+        if (!Login.activeForm || (Login.loginForms || []).length < 2) return
+        try {
+            localStorage.setItem('mmgisLoginProvider', Login.activeForm.id)
+        } catch (err) {}
+    },
+    // Shown in the modal, like the login page; a failure may just be the wrong account type
+    showError: function (message) {
+        const text =
+            (Login.loginForms || []).length > 1
+                ? `${message} Using a different account type? Choose it above.`
+                : message
+        $('#loginErrorMessage').stop(true).text(text).css('opacity', '1')
     },
     // Signs in with a provider other than local accounts (JSON POST to its login_path)
     formProviderLogin: function (values) {
@@ -444,11 +455,12 @@ var Login = {
                     Login.providerTitle = form.title
                     Login.providerLogoutUrl = d.logoutUrl || null
                     Login.providerPerRequest = false
+                    Login.rememberForm()
                     loginSuccess(d, false, true)
-                } else Toast.error((d && d.message) || 'Login failed.')
+                } else Login.showError((d && d.message) || 'Login failed.')
             },
             error: (xhr) => {
-                Toast.error((xhr && xhr.responseJSON && xhr.responseJSON.message) || 'Login failed.')
+                Login.showError((xhr && xhr.responseJSON && xhr.responseJSON.message) || 'Login failed.')
             },
         })
     },
@@ -613,10 +625,11 @@ var Login = {
                             Login.username = values.username
                             window.mmgisglobal.user = Login.username
                             window.mmgisglobal.groups = d.groups
+                            Login.rememberForm()
                             loginSuccess(d, false, true)
                         },
                         function (d) {
-                            Toast.error(
+                            Login.showError(
                                 (d && d.message) || 'Invalid username or password.'
                             )
                         }
@@ -712,13 +725,46 @@ var Login = {
         })
     },
     openModal: function () {
+        Login.opener = document.activeElement
         this.createModal()
+        $('#loginModal').attr({ role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'loginModalHeading' })
+        // Esc closes; Tab stays inside the dialog
+        $('#loginModalWrapper').on('keydown', function (e) {
+            if (e.key === 'Escape') {
+                e.preventDefault()
+                Login.closeModal()
+                return
+            }
+            if (e.key !== 'Tab') return
+            const focusable = $('#loginModal')
+                .find('input, button, a[href], [tabindex="0"]')
+                .filter(':visible')
+                .toArray()
+            if (focusable.length === 0) return
+            const first = focusable[0]
+            const last = focusable[focusable.length - 1]
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault()
+                last.focus()
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault()
+                first.focus()
+            } else if (!$('#loginModal')[0].contains(document.activeElement)) {
+                e.preventDefault()
+                first.focus()
+            }
+        })
         setTimeout(() => {
             $('#loginModalWrapper').addClass('active')
+            const input = $('#loginUsernameInput:visible')
+            if (input.length) input.trigger('focus')
+            else $('#loginModal').find('a[href], button').filter(':visible').first().trigger('focus')
         }, 100)
     },
     closeModal: function () {
         $('#loginModalWrapper').removeClass('active')
+        if (Login.opener && document.body.contains(Login.opener)) Login.opener.focus()
+        Login.opener = null
         setTimeout(() => {
             Login.removeModal()
         }, 250)

@@ -34,7 +34,14 @@ function config(env = process.env) {
     displayName: setting(env.LDAP_DISPLAY_NAME, "LDAP"),
     usernameLabel: setting(env.LDAP_USERNAME_LABEL, "Username"),
     hint: setting(env.LDAP_LOGIN_HINT),
+    domain: setting(env.LDAP_USERNAME_DOMAIN),
   };
+}
+
+// "CORP\\alice" -> "alice" when LDAP_USERNAME_DOMAIN=CORP (Windows-style sign-in)
+function stripDomain(username, c) {
+  const prefix = c.domain ? `${c.domain.toLowerCase()}\\` : null;
+  return prefix && username.toLowerCase().startsWith(prefix) ? username.slice(prefix.length) : username;
 }
 
 ////// Escaping user input into filters (RFC 4515) and DNs (RFC 4514)
@@ -293,7 +300,7 @@ module.exports = {
         return res.status(400).send({ status: "failure", message: "Enter your username and password." });
       let identity;
       try {
-        identity = await authenticate(body.username.trim(), body.password, c);
+        identity = await authenticate(stripDomain(body.username.trim(), c), body.password, c);
       } catch (err) {
         if (err instanceof PasswordExpiredError)
           return res.status(401).send({ status: "failure", message: `Your ${name} password has expired.` });
@@ -306,7 +313,9 @@ module.exports = {
       try {
         const user = await ctx.completeLogin(req, identity);
         ctx.logger("info", `${user.username} logged in with LDAP.`, "Ldap", req);
-        res.send({ status: "success", username: user.username, provider: "ldap", groups: [] });
+        // The same legacy lead group (LEADS) a page reload reports
+        const { getUserGroups } = require("../Local/routes.js");
+        res.send({ status: "success", username: user.username, provider: "ldap", groups: getUserGroups(user.username, req.leadGroupName) });
       } catch (err) {
         if (err instanceof ctx.LinkError)
           return res.status(409).send({ status: "failure", message: err.userMessage });
@@ -322,5 +331,5 @@ module.exports = {
   validate,
   warnings,
   // For tests
-  _internal: { config, escapeFilter, escapeDn, firstRdnValue, guidString, authenticate, PasswordExpiredError },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, firstRdnValue, guidString, authenticate, PasswordExpiredError },
 };

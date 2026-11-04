@@ -32,7 +32,7 @@ body.mmgisScrollbar
             i.mdi.mdi-logout(aria-hidden='true')
             | Sign out
     img(src=ROOT_PATH + 'public/images/logos/mmgis.png' alt='MMGIS' onClick='back()')
-    span#msg.error
+    span#msg.error(role='alert' aria-live='assertive')
     form.box(name='form1')
       h4
         | Admin
@@ -40,15 +40,15 @@ body.mmgisScrollbar
       h5#signInTitle Sign in to your account.
       +loginProviders(forms)
       label#username_label.fieldLabel(for='username')= forms.length ? forms[0].usernameLabel : 'Username'
-      input#username(type='text' name='username' autocomplete='off')
+      input#username(type='text' name='username' autocomplete='username' autocapitalize='none' spellcheck='false')
       label.fieldLabel(for='pwd') Password
-      input#pwd(type='password' name='password' autocomplete='off')
+      input#pwd(type='password' name='password' autocomplete='current-password')
       label#pwd_retype_label.fieldLabel(for='pwd_retype') Retype Password
-      input#pwd_retype(type='password' name='password' autocomplete='off')
+      input#pwd_retype(type='password' name='password' autocomplete='new-password')
       label#setup_code_label.fieldLabel(for='setup_code') Setup Code
       input#setup_code(type='text' name='setup_code' placeholder='See the server log' autocomplete='off' spellcheck='false')
       +loginHint()
-      div.btn1(onClick='login()') Sign in
+      button.btn1(type='button' onClick='login()') Sign in
       if LOGIN_LINKS && LOGIN_LINKS.length
         .providerLinks
           .providerOr or

@@ -47,6 +47,26 @@ LDAP_GROUP_SEARCH_BASE=ou=groups,dc=example,dc=org
 LDAP_DISPLAY_NAME=Example Directory
 ```
 
+Active Directory with a service account. People can type `alice`, `alice@corp.example.org` or `CORP\alice`, and nested groups count:
+
+```
+AUTH_PROVIDERS=["ldap","local"]
+AUTH_LOCAL_LOGIN=admins
+LDAP_URL=ldaps://dc1.corp.example.org:636
+LDAP_TLS_CA=/etc/mmgis/corp-ca.pem
+LDAP_BIND_DN=CN=mmgis-svc,OU=Service Accounts,DC=corp,DC=example,DC=org
+LDAP_BIND_PASSWORD=...
+LDAP_USER_SEARCH_BASE=DC=corp,DC=example,DC=org
+LDAP_USER_SEARCH_FILTER=(&(objectCategory=person)(objectClass=user)(|(sAMAccountName={{username}})(userPrincipalName={{username}})))
+LDAP_USERNAME_DOMAIN=CORP
+LDAP_SUBJECT_ATTRIBUTE=objectGUID
+LDAP_USERNAME_ATTRIBUTE=sAMAccountName
+LDAP_GROUP_SEARCH_BASE=DC=corp,DC=example,DC=org
+LDAP_GROUP_SEARCH_FILTER=(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))
+LDAP_DISPLAY_NAME=CORP account
+LDAP_USERNAME_LABEL=CORP username
+```
+
 Active Directory, signing in as the person (no service account):
 
 ```
@@ -68,7 +88,7 @@ LDAP_USERNAME_ATTRIBUTE=sAMAccountName
 The login page, Configure sign-in and the in-app login modal share one username/password form:
 
 - **Only LDAP** (or LDAP plus a proxy): a "Sign in with <LDAP_DISPLAY_NAME>" banner above the form, with `LDAP_LOGIN_HINT` under it.
-- **LDAP and local accounts:** a switch above the form ("<LDAP_DISPLAY_NAME> | MMGIS account"). The first provider in `AUTH_PROVIDERS` is the default, and the browser remembers the last choice. The password only goes to the selected provider. Sign-up only appears on the MMGIS account tab.
+- **LDAP and local accounts:** a switch above the form ("<LDAP_DISPLAY_NAME> | MMGIS account"). The first provider in `AUTH_PROVIDERS` is the default, and the browser remembers the provider of the last successful sign-in. After a failed sign-in, the error suggests choosing another account type. The password only goes to the selected provider. Sign-up only appears on the MMGIS account tab.
 - **`AUTH_LOCAL_LOGIN=admins`:** local accounts are only offered at Configure sign-in.
 - `LDAP_USERNAME_LABEL` names the username field. MMGIS doesn't offer a way to reset directory passwords; people use their organization's usual process.
 - Errors say which provider failed: wrong username or password, directory unavailable, an expired Active Directory password, or a sign-in that can't be used with MMGIS yet (see below).
@@ -77,6 +97,8 @@ The login page, Configure sign-in and the in-app login modal share one username/
 ## Groups and roles
 
 By default MMGIS reads the person's `memberOf` attribute (Active Directory, or OpenLDAP with the memberof overlay). Without it, set `LDAP_GROUP_SEARCH_BASE` to search for groups whose `member` is the person, or `LDAP_GROUP_SEARCH_FILTER=(memberUid={{username}})` for posixGroup groups.
+
+On Active Directory, `memberOf` only lists groups the person is directly in. To include nested groups, search with the in-chain rule: `LDAP_GROUP_SEARCH_BASE=DC=corp,...` and `LDAP_GROUP_SEARCH_FILTER=(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))`. A person's primary group (usually `Domain Users`) appears in neither, so map a regular group instead.
 
 Groups are reported by name (`cn=science-team,ou=groups,...` is `science-team`). In Configure > Users & Access > Groups, create a group with **Members from LDAP** and that name, then give the group a role. Membership is updated at every login.
 
@@ -96,6 +118,7 @@ Groups are reported by name (`cn=science-team,ou=groups,...` is `science-team`).
 | MMGIS refuses to start with an `LDAP_*` error | A required setting is missing or malformed; the message names it. |
 | "<name> is unavailable" | MMGIS couldn't reach the directory, the TLS certificate didn't verify, the service account was rejected, or the entry had no `LDAP_SUBJECT_ATTRIBUTE`. The server log has the reason. |
 | "Invalid <name> username or password" for everyone | Check `LDAP_USER_SEARCH_BASE`/`LDAP_USER_SEARCH_FILTER` (or `LDAP_USER_DN_TEMPLATE`) and that the service account may read people. |
+| "Invalid <name> username or password" for `CORP\alice` or `alice@corp...` | Set `LDAP_USERNAME_DOMAIN=CORP`, and use a `LDAP_USER_SEARCH_FILTER` that also matches `userPrincipalName` (see the Active Directory example). |
 | Groups don't apply | The group's external name must equal the directory group's name; check whether your directory has `memberOf`, or set `LDAP_GROUP_SEARCH_BASE`. |
 
 To try it locally, `tests/e2e/ldap/openldap/start.sh` starts an OpenLDAP container with test users; `tests/e2e/ldap/ldap-provider.spec.js` shows the matching settings.

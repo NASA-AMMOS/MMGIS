@@ -102,7 +102,7 @@ a:hover {
 .error {
   text-align: center;
   width: 337px;
-  height: 20px;
+  min-height: 20px;
   padding: 2px;
   border: 0;
   border-radius: 5px;
@@ -111,7 +111,8 @@ a:hover {
   top: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
-  white-space: nowrap;
+  /* Longer provider messages wrap instead of running off the card */
+  white-space: normal;
   display: flex;
   justify-content: center;
   color: #d6d7db;

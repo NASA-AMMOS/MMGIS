@@ -8,7 +8,7 @@ const path = require('path');
 const { InvalidCredentialsError, SizeLimitExceededError } = require('ldapts');
 
 const ldap = require(path.resolve(__dirname, '../../plugins/core/auth/Ldap/plugin.js'));
-const { config, escapeFilter, escapeDn, firstRdnValue, guidString, authenticate, PasswordExpiredError } = ldap._internal;
+const { config, stripDomain, escapeFilter, escapeDn, firstRdnValue, guidString, authenticate, PasswordExpiredError } = ldap._internal;
 
 const base = {
   LDAP_URL: 'ldaps://ldap.example.org',
@@ -61,6 +61,15 @@ test.describe('LDAP escaping', () => {
     expect(escapeDn('a,b+c"d<e>f;g=h\\i')).toBe('a\\,b\\+c\\"d\\<e\\>f\\;g\\=h\\\\i');
     expect(escapeDn(' #lead trail ')).toBe('\\ #lead trail\\ ');
     expect(escapeDn('#x')).toBe('\\#x');
+  });
+
+  test('LDAP_USERNAME_DOMAIN removes only that Windows domain prefix', () => {
+    const c = config({ ...base, LDAP_USERNAME_DOMAIN: 'CORP' });
+    expect(stripDomain('CORP\\alice', c)).toBe('alice');
+    expect(stripDomain('corp\\alice', c)).toBe('alice');
+    expect(stripDomain('OTHER\\alice', c)).toBe('OTHER\\alice');
+    expect(stripDomain('alice@corp.example.org', c)).toBe('alice@corp.example.org');
+    expect(stripDomain('CORP\\alice', config(base))).toBe('CORP\\alice');
   });
 
   test('group DNs become their first name component', () => {

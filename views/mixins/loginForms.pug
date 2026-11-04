@@ -4,7 +4,7 @@ mixin loginProviders(forms)
   if forms.length
     .loginProviders(class=forms.length > 1 ? 'multiple' : 'single' role=forms.length > 1 ? 'tablist' : null aria-label='Account type')
       each f, i in forms
-        button.loginProvider(type='button' role='tab' class=i === 0 ? 'active' : null aria-selected=i === 0 ? 'true' : 'false' data-id=f.id data-title=f.title data-label=f.usernameLabel data-hint=f.hint data-path=f.path)
+        button.loginProvider(type='button' role='tab' class=i === 0 ? 'active' : null aria-selected=i === 0 ? 'true' : 'false' data-id=f.id data-title=f.title data-label=f.usernameLabel data-hint=f.hint data-path=f.path title=f.title)
           i.mdi(class='mdi-' + f.icon aria-hidden='true')
           span= f.title
     if forms.length === 1 && forms[0].id !== 'local'

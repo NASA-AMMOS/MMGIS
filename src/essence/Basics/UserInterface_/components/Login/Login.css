@@ -22,6 +22,9 @@
 #loginModal {
     width: 400px;
     max-width: calc(100vw - 24px);
+    /* Scrolls instead of being cut off when zoomed in or on short screens */
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
     position: absolute;
     left: 50%;
     top: 50%;
