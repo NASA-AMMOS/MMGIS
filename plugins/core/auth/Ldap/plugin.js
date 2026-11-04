@@ -5,7 +5,8 @@
 // stable id and syncs the person's directory groups.
 const fs = require("fs");
 const net = require("net");
-const { Client, InvalidCredentialsError, SizeLimitExceededError } = require("ldapts");
+const crypto = require("crypto");
+const { Client, InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError, ResultCodeError } = require("ldapts");
 
 const setting = (v, fallback = "") => (v != null && String(v).trim() !== "" ? String(v).trim() : fallback);
 const isTrue = (v) => String(v).trim().toLowerCase() === "true";
@@ -120,8 +121,46 @@ function userAttributes(c) {
 // The password was right but the directory says it must be changed (Active Directory)
 class PasswordExpiredError extends Error {}
 
+// Active Directory says why it refused a bind in the message, e.g. "data 533"
+function adCode(err) {
+  const m = /\bdata ([0-9a-f]{3})\b/i.exec(String((err && err.message) || ""));
+  return m ? m[1].toLowerCase() : null;
+}
+
 function isPasswordExpired(err) {
-  return /\bdata (532|773)\b/.test(String((err && err.message) || ""));
+  return ["532", "773"].includes(adCode(err));
+}
+
+const AD_REASONS = {
+  525: "no such user",
+  "52e": "wrong password",
+  530: "not allowed to sign in at this time",
+  531: "not allowed to sign in from this computer",
+  533: "account disabled",
+  701: "account expired",
+  775: "account locked",
+};
+
+// After the directory rejects the service account, MMGIS stops trying it for a while:
+// retrying at every login would lock the account (Active Directory locks after a few bad binds)
+const SERVICE_RETRY_MS = 5 * 60 * 1000;
+const rejectedServiceAccounts = new Map();
+const serviceKey = (c) => crypto.createHash("sha256").update(`${c.url}\n${c.bindDn}\n${c.bindPassword}`).digest("hex");
+
+// Adds what to check to a connection or search error, for the server log
+function explain(err) {
+  const msg = String((err && err.message) || err);
+  const text = `${(err && err.code) || ""} ${msg}`;
+  if (/CERT|SELF_SIGNED|UNABLE_TO_VERIFY|local issuer|ALTNAME/i.test(text))
+    return `${msg}. The directory's TLS certificate isn't trusted: set LDAP_TLS_CA to the CA that signed it, and use the host name on the certificate in LDAP_URL.`;
+  if (/ECONNREFUSED/.test(text)) return `${msg}. Nothing answered at LDAP_URL: check the host and port (ldaps:// is usually 636, ldap:// 389).`;
+  if (/ENOTFOUND|EAI_AGAIN/.test(text)) return `${msg}. LDAP_URL's host name doesn't resolve.`;
+  if (/wrong version number|ECONNRESET|packet length/i.test(text))
+    return `${msg}. Check that ldaps:// points at the TLS port (usually 636) and ldap:// at the plain port (389, with LDAP_STARTTLS=true).`;
+  if (/timeout|timed out|ETIMEDOUT/i.test(text)) return `${msg}. The directory didn't answer within LDAP_TIMEOUT_MS.`;
+  if (err instanceof NoSuchObjectError)
+    return `${msg}. A search base doesn't exist, or the service account can't read it: check LDAP_USER_SEARCH_BASE and LDAP_GROUP_SEARCH_BASE.`;
+  return msg;
 }
 
 ////// Login
@@ -147,17 +186,30 @@ function newClient(c) {
   return new Client(options);
 }
 
+// { ok } or { ok: false, reason } when the directory refuses the password
 async function bindAs(client, dn, password) {
   try {
     await client.bind(dn, password);
-    return true;
+    return { ok: true };
   } catch (err) {
     if (!(err instanceof InvalidCredentialsError)) throw err;
     if (isPasswordExpired(err)) throw new PasswordExpiredError("password expired");
-    return false;
+    return { ok: false, reason: AD_REASONS[adCode(err)] || "the directory refused the password" };
   }
 }
 
+async function bindService(client, c) {
+  const key = serviceKey(c);
+  if (Date.now() - (rejectedServiceAccounts.get(key) || 0) < SERVICE_RETRY_MS)
+    throw new Error("The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD; MMGIS retries it at most every 5 minutes so the account isn't locked.");
+  const bind = await bindAs(client, c.bindDn, c.bindPassword);
+  if (!bind.ok) {
+    rejectedServiceAccounts.set(key, Date.now());
+    throw new Error(`The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD (${bind.reason}). MMGIS won't retry it for 5 minutes so the account isn't locked.`);
+  }
+}
+
+// { entry } or { reason } when exactly one entry doesn't match
 async function findUser(client, c, username) {
   const filter = fill(c.searchFilter, { username: escapeFilter(username) });
   let result;
@@ -171,10 +223,13 @@ async function findUser(client, c, username) {
     });
   } catch (err) {
     // More than one match: treat as no match rather than guess
-    if (err instanceof SizeLimitExceededError) return null;
+    if (err instanceof SizeLimitExceededError) return { reason: `more than one entry under LDAP_USER_SEARCH_BASE matches ${filter}` };
     throw err;
   }
-  return result.searchEntries.length === 1 ? result.searchEntries[0] : null;
+  if (result.searchEntries.length === 1) return { entry: result.searchEntries[0] };
+  return {
+    reason: `no entry under LDAP_USER_SEARCH_BASE matches ${filter} (if nobody can sign in, check LDAP_USER_SEARCH_BASE and LDAP_USER_SEARCH_FILTER)`,
+  };
 }
 
 async function readEntry(client, c, dn) {
@@ -190,35 +245,47 @@ async function readEntry(client, c, dn) {
 // Groups are reported by DN: two groups named "admins" in different OUs must not become one MMGIS group
 async function groupsOf(client, c, entry, username) {
   if (!c.groupSearchBase) return values(entry, c.groupsAttribute).map((v) => normalizeDn(v));
-  const { searchEntries } = await client.search(c.groupSearchBase, {
-    scope: "sub",
-    filter: fill(c.groupSearchFilter, { dn: escapeFilter(entry.dn), username: escapeFilter(username) }),
-    attributes: c.groupNameAttribute ? [c.groupNameAttribute] : ["dn"],
-  });
+  let searchEntries;
+  try {
+    ({ searchEntries } = await client.search(c.groupSearchBase, {
+      scope: "sub",
+      filter: fill(c.groupSearchFilter, { dn: escapeFilter(entry.dn), username: escapeFilter(username) }),
+      attributes: c.groupNameAttribute ? [c.groupNameAttribute] : ["dn"],
+    }));
+  } catch (err) {
+    err.message = `Searching LDAP_GROUP_SEARCH_BASE for groups failed: ${err.message}`;
+    throw err;
+  }
   return searchEntries.map((g) => {
     const name = c.groupNameAttribute ? values(g, c.groupNameAttribute)[0] : null;
     return name != null ? String(name) : normalizeDn(g.dn);
   });
 }
 
-// The person's identity if the password is right, null if it isn't; throws when the
-// directory can't be reached or doesn't answer as configured
-async function authenticate(username, password, c = config(), createClient = newClient) {
+// The person's identity if the password is right, null if it isn't (refused(reason) says why);
+// throws when the directory can't be reached or doesn't answer as configured
+async function authenticate(username, password, c = config(), createClient = newClient, refused = () => {}) {
+  const refuse = (reason) => {
+    refused(reason);
+    return null;
+  };
   const client = createClient(c);
   try {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     let entry;
     if (c.userDnTemplate) {
       const dn = fill(c.userDnTemplate, { username: escapeDn(username) });
-      if (!(await bindAs(client, dn, password))) return null;
-      entry = c.searchBase ? await findUser(client, c, username) : await readEntry(client, c, dn);
+      const bind = await bindAs(client, dn, password);
+      if (!bind.ok) return refuse(`${bind.reason} for ${dn} (if nobody can sign in, check LDAP_USER_DN_TEMPLATE)`);
+      entry = c.searchBase ? (await findUser(client, c, username)).entry : await readEntry(client, c, dn);
       if (!entry) throw new Error("Signed in to the directory but could not read the person's entry.");
     } else {
-      if (c.bindDn && !(await bindAs(client, c.bindDn, c.bindPassword)))
-        throw new Error("The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD.");
-      entry = await findUser(client, c, username);
-      if (!entry) return null;
-      if (!(await bindAs(client, entry.dn, password))) return null;
+      if (c.bindDn) await bindService(client, c);
+      const found = await findUser(client, c, username);
+      if (!found.entry) return refuse(found.reason);
+      entry = found.entry;
+      const bind = await bindAs(client, entry.dn, password);
+      if (!bind.ok) return refuse(`${bind.reason} for ${entry.dn}`);
       // Group searches run as the service account, as the user search did
       if (c.groupSearchBase && c.bindDn) await client.bind(c.bindDn, c.bindPassword);
     }
@@ -235,6 +302,41 @@ async function authenticate(username, password, c = config(), createClient = new
   } finally {
     await client.unbind().catch(() => {});
   }
+}
+
+// Checks the settings at startup without anyone's password, so a wrong service account,
+// certificate or search base shows in the log right away; returns what was checked
+async function selfCheck(c = config(), createClient = newClient) {
+  const client = createClient(c);
+  const checked = [`connected to ${c.url}`];
+  try {
+    if (c.startTls) await client.startTLS(startTlsOptions(c));
+    try {
+      await client.search("", { scope: "base", filter: "(objectClass=*)", attributes: ["supportedLDAPVersion"] });
+    } catch (err) {
+      // The directory answered, it just won't show its root entry anonymously
+      if (!(err instanceof ResultCodeError)) throw err;
+    }
+    if (c.bindDn) {
+      await bindService(client, c);
+      checked.push("the service account signed in");
+    }
+    // Without a service account, directories usually only allow searches once the person has signed in
+    const bases = c.bindDn || !c.userDnTemplate ? [["LDAP_USER_SEARCH_BASE", c.searchBase], ["LDAP_GROUP_SEARCH_BASE", c.groupSearchBase]] : [];
+    for (const [name, dn] of bases) {
+      if (!dn) continue;
+      try {
+        await client.search(dn, { scope: "base", filter: "(objectClass=*)", attributes: ["objectClass"] });
+      } catch (err) {
+        err.message = `${name} (${dn}): ${err.message}`;
+        throw err;
+      }
+      checked.push(`${name} exists`);
+    }
+  } finally {
+    await client.unbind().catch(() => {});
+  }
+  return checked;
 }
 
 const validUsername = (u) =>
@@ -274,11 +376,16 @@ function validate(env) {
   if (c.groupSearchBase && !/\{\{(dn|username)\}\}/.test(c.groupSearchFilter))
     errors.push("LDAP_GROUP_SEARCH_FILTER must contain {{dn}} or {{username}}, e.g. (member={{dn}}).");
   if (c.ca) {
+    let pem = null;
     try {
-      fs.accessSync(c.ca, fs.constants.R_OK);
+      pem = fs.readFileSync(c.ca, "utf8");
     } catch (err) {
       errors.push("LDAP_TLS_CA must be the path of a readable PEM file.");
     }
+    if (pem != null && !pem.includes("-----BEGIN CERTIFICATE-----"))
+      errors.push(
+        "LDAP_TLS_CA isn't a PEM certificate (text starting with -----BEGIN CERTIFICATE-----). Convert a binary .cer file with: openssl x509 -inform der -in ca.cer -out ca.pem"
+      );
   }
   if (setting(env.LDAP_TIMEOUT_MS) && String(c.timeoutMs) !== setting(env.LDAP_TIMEOUT_MS))
     errors.push("LDAP_TIMEOUT_MS must be a whole number of milliseconds.");
@@ -297,24 +404,35 @@ function warnings(env) {
 
 module.exports = {
   routes(router, ctx) {
+    const startup = config();
+    selfCheck(startup).then(
+      (checked) => ctx.logger("info", `LDAP settings check passed: ${checked.join(", ")}.`, "Ldap"),
+      (err) => ctx.logger("error", `LDAP settings check failed: ${explain(err)}`, "Ldap", null, err)
+    );
     router.post("/login", ctx.authorize.public("LDAP directory login"), async (req, res) => {
       const c = config();
       const name = c.displayName;
       const body = req.body || {};
       if (!validUsername(body.username) || typeof body.password !== "string" || body.password === "")
         return res.status(400).send({ status: "failure", message: "Enter your username and password." });
+      const username = stripDomain(body.username.trim(), c);
       let identity;
+      let reason = "";
       try {
-        identity = await authenticate(stripDomain(body.username.trim(), c), body.password, c);
+        identity = await authenticate(username, body.password, c, newClient, (r) => (reason = r));
       } catch (err) {
-        if (err instanceof PasswordExpiredError)
+        if (err instanceof PasswordExpiredError) {
+          ctx.logger("warn", `LDAP login for '${username}' refused: password expired.`, "Ldap", req);
           return res.status(401).send({ status: "failure", message: `Your ${name} password has expired.` });
-        ctx.logger("error", `LDAP login could not reach or read the directory: ${err && err.message}`, "Ldap", req, err);
+        }
+        ctx.logger("error", `LDAP login could not reach or read the directory: ${explain(err)}`, "Ldap", req, err);
         return res.status(503).send({ status: "failure", message: `${name} is unavailable. Try again later.` });
       }
       // 401 so failed attempts count towards the rate limit
-      if (!identity)
+      if (!identity) {
+        ctx.logger("warn", `LDAP login for '${username}' refused: ${reason}.`, "Ldap", req);
         return res.status(401).send({ status: "failure", message: `Invalid ${name} username or password.` });
+      }
       try {
         const user = await ctx.completeLogin(req, identity);
         ctx.logger(
@@ -339,5 +457,5 @@ module.exports = {
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, PasswordExpiredError },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, selfCheck, explain, PasswordExpiredError },
 };

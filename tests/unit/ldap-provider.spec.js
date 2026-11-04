@@ -5,10 +5,10 @@
 
 import { test, expect } from '@playwright/test';
 const path = require('path');
-const { InvalidCredentialsError, SizeLimitExceededError } = require('ldapts');
+const { InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError } = require('ldapts');
 
 const ldap = require(path.resolve(__dirname, '../../plugins/core/auth/Ldap/plugin.js'));
-const { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, PasswordExpiredError } = ldap._internal;
+const { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, selfCheck, explain, PasswordExpiredError } = ldap._internal;
 
 const base = {
   LDAP_URL: 'ldaps://ldap.example.org',
@@ -129,6 +129,49 @@ test.describe('LDAP login', () => {
     const expired = { ...alice, password: 'other', adCode: '532' }; // pragma: allowlist secret
     await expect(authenticate('alice', 'right', config(base), fakeClient([expired]))).rejects.toBeInstanceOf(PasswordExpiredError);
   });
+
+  test('a rejected service account is not retried at every login, so the directory does not lock it', async () => {
+    const env = { ...base, LDAP_BIND_PASSWORD: 'wrong-for-lockout-test' }; // pragma: allowlist secret
+    await expect(authenticate('alice', 'right', config(env), fakeClient([alice]))).rejects.toThrow(/won't retry it for 5 minutes/);
+    const log = [];
+    await expect(authenticate('alice', 'right', config(env), fakeClient([alice], log))).rejects.toThrow(/at most every 5 minutes/);
+    expect(log.filter((l) => l.startsWith('bind'))).toEqual([]);
+  });
+
+  test('the reason a login was refused is reported for the server log', async () => {
+    const reasons = [];
+    const why = (r) => reasons.push(r);
+    const twin = { ...alice, dn: 'uid=alice,ou=other,dc=example,dc=org', entry: { ...alice.entry, dn: 'uid=alice,ou=other,dc=example,dc=org' } };
+    await authenticate('alice', 'wrong', config(base), fakeClient([alice]), why);
+    await authenticate('nobody', 'right', config(base), fakeClient([alice]), why);
+    await authenticate('alice', 'right', config(base), fakeClient([alice, twin, twin]), why);
+    await authenticate('alice', 'right', config(base), fakeClient([{ ...alice, password: 'x', adCode: '533' }]), why); // pragma: allowlist secret
+    expect(reasons[0]).toMatch(/refused the password for uid=alice/);
+    expect(reasons[1]).toMatch(/no entry under LDAP_USER_SEARCH_BASE matches \(uid=nobody\)/);
+    expect(reasons[2]).toMatch(/more than one entry/);
+    expect(reasons[3]).toMatch(/account disabled/);
+  });
+
+  test('connection errors say which setting to check', () => {
+    expect(explain(Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN' }))).toMatch(/LDAP_TLS_CA/);
+    expect(explain(Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:636'), { code: 'ECONNREFUSED' }))).toMatch(/host and port/);
+    expect(explain(new NoSuchObjectError('No such object'))).toMatch(/LDAP_USER_SEARCH_BASE/);
+  });
+
+  test('the startup check signs in the service account and finds the search bases, without anyone\'s password', async () => {
+    const log = [];
+    const checked = await selfCheck(config({ ...base, LDAP_USER_SEARCH_BASE: alice.dn }), fakeClient([alice], log));
+    expect(checked).toEqual(['connected to ldaps://ldap.example.org', 'the service account signed in', 'LDAP_USER_SEARCH_BASE exists']);
+    const missing = () => ({
+      async bind() {},
+      async search(dn) {
+        if (dn) throw new NoSuchObjectError('No such object');
+        return { searchEntries: [] };
+      },
+      async unbind() {},
+    });
+    await expect(selfCheck(config(base), missing)).rejects.toThrow(/LDAP_USER_SEARCH_BASE \(ou=people/);
+  });
 });
 
 test.describe('LDAP settings', () => {
@@ -153,6 +196,9 @@ test.describe('LDAP settings', () => {
     expect(problems({ LDAP_URL: 'ldaps://x', LDAP_USER_DN_TEMPLATE: '{{username}}@corp' })).toMatch(/isn't a DN/);
     expect(problems({ ...base, LDAP_BIND_PASSWORD: '' })).toMatch(/LDAP_BIND_PASSWORD is empty/);
     expect(problems({ ...base, LDAP_TLS_CA: '/no/such/ca.pem' })).toMatch(/LDAP_TLS_CA/);
+    const notPem = path.join(require('os').tmpdir(), `mmgis-ldap-not-pem-${process.pid}.cer`);
+    require('fs').writeFileSync(notPem, Buffer.from([0x30, 0x82, 0x01]));
+    expect(problems({ ...base, LDAP_TLS_CA: notPem })).toMatch(/isn't a PEM certificate/);
     expect(problems({ ...base, LDAP_TIMEOUT_MS: 'soon' })).toMatch(/LDAP_TIMEOUT_MS/);
     expect(problems({ ...base, LDAP_GROUP_SEARCH_BASE: 'ou=g', LDAP_GROUP_SEARCH_FILTER: '(member=x)' })).toMatch(/LDAP_GROUP_SEARCH_FILTER/);
   });

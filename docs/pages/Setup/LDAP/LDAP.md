@@ -113,11 +113,15 @@ Groups are reported by their full DN in lowercase, e.g. `cn=science-team,ou=grou
 
 ## Troubleshooting
 
+At startup MMGIS checks the settings without anyone's password: it connects, signs in the service account and looks up `LDAP_USER_SEARCH_BASE` and `LDAP_GROUP_SEARCH_BASE`. The server log then says `LDAP settings check passed: ...` or `LDAP settings check failed: ...` with the setting to fix. Every refused login is logged too, with the reason, e.g. `no entry under LDAP_USER_SEARCH_BASE matches (uid=alice)`, `wrong password`, or, on Active Directory, `account disabled`, `account locked` or `account expired`. The person only sees "Invalid <name> username or password".
+
+If the directory rejects the service account, MMGIS stops using it for 5 minutes instead of retrying at every login, so the directory doesn't lock the account. LDAP login answers "unavailable" meanwhile.
+
 | Message | Cause |
 |---|---|
 | MMGIS refuses to start with an `LDAP_*` error | A required setting is missing or malformed; the message names it. |
-| "<name> is unavailable" | MMGIS couldn't reach the directory, the TLS certificate didn't verify, the service account was rejected, or the entry had no `LDAP_SUBJECT_ATTRIBUTE`. The server log has the reason. |
-| "Invalid <name> username or password" for everyone | Check `LDAP_USER_SEARCH_BASE`/`LDAP_USER_SEARCH_FILTER` (or `LDAP_USER_DN_TEMPLATE`) and that the service account may read people. |
+| "<name> is unavailable" | MMGIS couldn't reach the directory, the TLS certificate didn't verify, the service account was rejected (MMGIS then waits 5 minutes before trying it again), a search base doesn't exist, or the entry had no `LDAP_SUBJECT_ATTRIBUTE`. The server log has the reason and the setting to check. |
+| "Invalid <name> username or password" for everyone | The server log says why each login was refused. Check `LDAP_USER_SEARCH_BASE`/`LDAP_USER_SEARCH_FILTER` (or `LDAP_USER_DN_TEMPLATE`) and that the service account may read people. |
 | "Invalid <name> username or password" for `CORP\alice` or `alice@corp...` | Set `LDAP_USERNAME_DOMAIN=CORP`, and use a `LDAP_USER_SEARCH_FILTER` that also matches `userPrincipalName` (see the Active Directory example). |
 | Groups don't apply | The group's external name must be the directory group's DN (or its `LDAP_GROUP_NAME_ATTRIBUTE` value). The login line in the server log lists the groups the directory reported; if it says `none`, check whether your directory has `memberOf`, or set `LDAP_GROUP_SEARCH_BASE`. |
 
