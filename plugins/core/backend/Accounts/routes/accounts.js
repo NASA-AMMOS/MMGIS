@@ -146,7 +146,10 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       if (heirName !== "") {
         // Matched as usernames are elsewhere (case, Unicode forms)
         // Older sites can have names differing only in case
-        const { match, alike } = providers.matchUsername(await User.findAll({ attributes: ["id", "username"], raw: true, transaction }), heirName);
+        const { match, alike } = providers.matchUsername(
+          (await User.findAll({ attributes: ["id", "username"], raw: true, transaction })).filter((u) => u.id !== id),
+          heirName
+        );
         heir = match;
         if (!heir && alike.length > 1) {
           res.send({
@@ -408,7 +411,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     if (!r) return;
     const { id, provider, user, key, actor } = r;
     // The person's username at the provider, when it differs from their MMGIS username
-    const known = await AuthIdentity.findOne({ where: { user_id: id, provider }, attributes: ["username", "subject"], raw: true });
+    const known = await AuthIdentity.findOne({ where: { user_id: id, provider }, attributes: ["username", "subject", "subject_setting"], raw: true });
     const fallback = (known && known.username) || user.username;
     let username = String(req.body.username == null || req.body.username === "" ? fallback : req.body.username)
       .normalize("NFKC")
@@ -436,8 +439,12 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       return fail(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Try again later.`);
     }
     if (target === null) return fail(`${provider} has no single entry with the username '${username}'.`);
+    // Unpinned, any entry later given this username could claim it
+    if (target && !target.subject)
+      return fail(`${target.dn || `'${username}'`} has no value for ${provider}'s subject attribute (e.g. LDAP_SUBJECT_ATTRIBUTE), so it can't sign in. Fix the entry or the setting first.`);
     // The account's own entry still being there (even disabled or in a leavers' OU) means this is someone else
-    if (target && known && known.subject && known.subject !== target.subject) {
+    // A subject stored under another subject setting can't be looked up under this one
+    if (target && known && known.subject && known.subject !== target.subject && providers.linkFits(provider, known)) {
       const old = await providers.locateSubject(provider, known.subject).catch(() => undefined);
       if (old === undefined)
         return fail(
@@ -479,9 +486,10 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         }
       }
       if (target) {
-        const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true, transaction });
-        if (other && other.user_id === id) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;
-        if (other) {
+        const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id", "subject", "subject_setting"], raw: true, transaction });
+        // Its own link from under another subject setting (e.g. uid to cn kept the value) still needs this relink
+        if (other && other.user_id === id && providers.linkFits(provider, other)) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;
+        if (other && other.user_id !== id) {
           const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
           return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first (which also removes its own roles and API tokens), giving its drawings to '${user.username}'.`;
         }

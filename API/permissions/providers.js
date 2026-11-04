@@ -311,7 +311,8 @@ async function findClaim(identity, m) {
   });
   for (const r of rows) {
     const v = r.value;
-    if (!v || !(Date.parse(v.expires_at) > Date.now())) continue;
+    // Flagged under another subject setting: People says it won't take effect until a check unflags it
+    if (!v || (v.stale && v.stale.setting) || !(Date.parse(v.expires_at) > Date.now())) continue;
     // A pin from under another subject setting may now be a different entry's value
     if (v.subject && v.subject_setting && v.subject_setting !== subjectSetting(getProvider(identity.provider))) continue;
     // Only the entry the admin was shown may claim it, whatever it is called by now
@@ -435,10 +436,57 @@ function subjectFits(p, link) {
   return typeof p.impl.subjectFits !== "function" || p.impl.subjectFits(link.subject) !== false;
 }
 
+const settingKey = (providerId) => `subject_setting:${providerId}`;
+
+// So processes sharing a database on different subject settings don't keep undoing each other's rechecks
+async function recordSetting(p, m) {
+  const now = subjectSetting(p);
+  if (now == null || !m.AuthMeta) return;
+  const row = await m.AuthMeta.findOne({ where: { key: settingKey(p.id) }, raw: true });
+  const before = row && row.value && row.value.setting;
+  if (before && before !== now)
+    logger(
+      "error",
+      `Auth provider '${p.id}': this process uses the subject setting '${now}' (e.g. LDAP_SUBJECT_ATTRIBUTE), but the last MMGIS process to start on this database used '${before}'. Every process sharing a database must use the same one: stop them all, change it, then start them. Until then, processes still on '${before}' skip their rechecks of ${p.id} accounts.`,
+      "AuthProviders"
+    );
+  if (row) await m.AuthMeta.update({ value: { setting: now } }, { where: { key: settingKey(p.id) } });
+  else await m.AuthMeta.create({ key: settingKey(p.id), value: { setting: now } }).catch(() => {});
+}
+
+const settingChecks = new WeakMap();
+async function outdatedSetting(p, m) {
+  const now = subjectSetting(p);
+  if (now == null || !m.AuthMeta) return false;
+  const seen = settingChecks.get(m) || new Map();
+  settingChecks.set(m, seen);
+  let c = seen.get(p.id);
+  if (!c || Date.now() - c.at > 60000) {
+    // Shared, so the parallel rechecks of one pass read and log it once
+    c = { at: Date.now(), outdated: readOutdated(p, m, now) };
+    seen.set(p.id, c);
+  }
+  return c.outdated;
+}
+
+async function readOutdated(p, m, now) {
+  const row = await m.AuthMeta.findOne({ where: { key: settingKey(p.id) }, raw: true });
+  const latest = row && row.value && row.value.setting;
+  const outdated = !!latest && latest !== now;
+  if (outdated)
+    logger(
+      "error",
+      `Auth provider '${p.id}': another MMGIS process on this database has since started with the subject setting '${latest}' (e.g. LDAP_SUBJECT_ATTRIBUTE), but this one uses '${now}', so this one skips its rechecks until it is restarted with the same setting.`,
+      "AuthProviders"
+    );
+  return outdated;
+}
+
 // At startup, so a changed subject setting doesn't silently sign out every linked account
 async function warnUnfitSubjects(m = accountModels()) {
   for (const p of enabledProviders()) {
     if (typeof p.impl.subjectFits !== "function" && typeof p.impl.subjectSetting !== "function") continue;
+    await recordSetting(p, m);
     const links = await m.AuthIdentity.findAll({ where: { provider: p.id }, attributes: ["user_id", "subject", "subject_setting"], raw: true });
     const unfit = links.filter((l) => !subjectFits(p, l));
     if (unfit.length === 0) continue;
@@ -519,10 +567,15 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
   });
   // Under another subject setting the same value can belong to a different entry
   const linkProvider = link && getProvider(identity.provider);
-  if (linkProvider && !subjectFits(linkProvider, link))
+  if (linkProvider && !subjectFits(linkProvider, link)) {
+    // Its value didn't change with the setting (e.g. uid to cn), and an admin pinned this entry to that account again
+    const claim = await findClaim(identity, m);
+    const claimed = claim && claim.userId === link.user_id ? await claimRelink(identity, m) : null;
+    if (claimed) return claimed;
     throw new LinkError(
-      `'${identity.username}' has the ${identity.provider} subject '${identity.subject}' of account ${link.user_id}, but that account was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so this may be a different entry. Change the setting back, or allow a relink on that account.`
+      `'${identity.username}' has the ${identity.provider} subject '${identity.subject}' of account ${link.user_id}, but that account was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so this may be a different entry. Change the setting back; or, only if this is that account's own entry, allow a relink on it.`
     );
+  }
   if (link) {
     const user = await m.User.findOne({
       where: { id: link.user_id },
@@ -565,6 +618,12 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       `'${identity.username}' was linked to account ${sameName.user_id} by another sign-in at the same moment; signing in again works.`
     );
   if (sameName) {
+    // Its subject was stored under another setting, so it can't be looked up under this one
+    const provider = getProvider(identity.provider);
+    if (provider && !subjectFits(provider, sameName))
+      throw new LinkError(
+        `'${identity.username}' already signs in to account ${sameName.user_id}, which was linked under a different ${identity.provider} subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE). Change the setting back, or allow a relink on that account.`
+      );
     // If that account's own entry is still there, the name was handed to someone new: a relink would give them the account
     const still = await locateSubject(identity.provider, sameName.subject).catch(() => undefined);
     if (still === undefined)
@@ -574,11 +633,6 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     if (still)
       throw new LinkError(
         `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
-      );
-    const provider = getProvider(identity.provider);
-    if (provider && !subjectFits(provider, sameName))
-      throw new LinkError(
-        `'${identity.username}' already signs in to account ${sameName.user_id}, which was linked under a different ${identity.provider} subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE). Change the setting back, or allow a relink on that account.`
       );
     throw new LinkError(
       `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and that account's old entry is gone. Only allow a relink on that account if this is the same person: the directory may have given the name to someone new.`
@@ -746,6 +800,8 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     m = m || accountModels();
     const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
     if (!link) return "ok";
+    // It would undo the marks of a process started since on another subject setting
+    if (await outdatedSetting(p, m)) return "failed";
     let found;
     try {
       // Under another subject setting the stored value may now name a different entry
@@ -857,12 +913,22 @@ async function recheckAllNow(m) {
       const r = relinks[nextRelink++];
       const v = r.value;
       const providerId = r.key.split(":")[1];
-      if (!v || !v.subject || v.stale || !(Date.parse(v.expires_at) > Date.now()) || !siteAccess.hasProvider(providerId)) continue;
-      // Every lookup failed this pass (e.g. the directory hangs): asking again per relink would only wait out each timeout
-      if (failedAt.has(providerId) && !answered.has(providerId)) continue;
+      if (!v || !v.subject || !(Date.parse(v.expires_at) > Date.now()) || !siteAccess.hasProvider(providerId)) continue;
       const setting = subjectSetting(getProvider(providerId));
       const oldSetting = !!(v.subject_setting && setting != null && v.subject_setting !== setting);
-      if (!oldSetting && (await locateSubject(providerId, v.subject).catch(() => undefined)) !== null) continue;
+      if (v.stale) {
+        // Flagged under another subject setting that is back now (e.g. a reverted change or a rolling restart)
+        if (v.stale.setting && !oldSetting) {
+          const { stale, ...fresh } = v;
+          await m.AuthMeta.update({ value: fresh }, { where: { key: r.key } });
+        }
+        continue;
+      }
+      if (!oldSetting) {
+        // Every lookup failed this pass (e.g. the directory hangs): asking again per relink would only wait out each timeout
+        if (failedAt.has(providerId) && !answered.has(providerId)) continue;
+        if ((await locateSubject(providerId, v.subject).catch(() => undefined)) !== null) continue;
+      }
       // An admin may have cancelled or allowed it again while the directory was asked
       const now = await m.AuthMeta.findOne({ where: { key: r.key }, raw: true });
       if (!now || !now.value || now.value.subject !== v.subject || now.value.expires_at !== v.expires_at) continue;
@@ -1083,6 +1149,10 @@ module.exports = {
   locateSubject,
   matchUsername,
   subjectSettingOf: (providerId) => subjectSetting(getProvider(providerId)),
+  linkFits: (providerId, link) => {
+    const p = getProvider(providerId);
+    return !p || subjectFits(p, link);
+  },
   sameUsername,
   syncGroups,
   stillLinked,

@@ -615,6 +615,68 @@ test.describe('provider rechecks', () => {
     }
   });
 
+  test('after a subject setting change that kept the value, only that account\'s own fresh relink lets it sign in', async () => {
+    const realSetting = ldap.subjectSetting;
+    try {
+      ldap.subjectSetting = () => 'cn';
+      const expires_at = new Date(Date.now() + 3600e3).toISOString();
+      const m = fakeModels({
+        users: [{ id: 9050, username: 'carol' }, { id: 9051, username: 'other' }],
+        links: [{ provider: 'ldap', subject: 'carol', subject_setting: 'uid', username: 'carol', user_id: 9050 }],
+        meta: [{ key: 'relink:ldap:9051', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', expires_at } }],
+      });
+      const carol = { provider: 'ldap', subject: 'carol', username: 'carol', groups: [] };
+      await expect(providers.linkIdentity(carol, m)).rejects.toThrow(/different subject setting/);
+      expect(m.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9051')).toBe(true);
+      // Allow relink refuses a second account waiting for the same entry
+      m.AuthMeta.rows.splice(0);
+      const own = { key: 'relink:ldap:9050', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', expires_at, stale: { setting: true } } };
+      m.AuthMeta.rows.push(own);
+      await expect(providers.linkIdentity(carol, m)).rejects.toThrow(/different subject setting/);
+      delete own.value.stale;
+      expect((await providers.linkIdentity(carol, m)).id).toBe(9050);
+      expect(m.AuthIdentity.rows.find((l) => l.user_id === 9050).subject_setting).toBe('cn');
+      expect(m.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9050')).toBe(false);
+    } finally {
+      ldap.subjectSetting = realSetting;
+    }
+  });
+
+  test('a process whose subject setting a later process replaced skips its rechecks', async () => {
+    const realSetting = ldap.subjectSetting;
+    let looked = 0;
+    try {
+      ldap.subjectSetting = () => 'entryuuid';
+      ldap.lookup = async () => (looked++, null);
+      const m = fakeModels({
+        users: [{ id: 9060, username: 'erin' }],
+        links: [{ provider: 'ldap', subject: 'u-1', subject_setting: 'entryuuid', username: 'erin', user_id: 9060 }],
+        meta: [{ key: 'subject_setting:ldap', value: { setting: 'uid' } }],
+      });
+      expect(await providers.stillLinked(9060, 'ldap', m, true, true)).toBe('failed');
+      expect(looked).toBe(0);
+      expect(m.AuthMeta.rows.some((r) => r.key.startsWith('missing:'))).toBe(false);
+    } finally {
+      ldap.subjectSetting = realSetting;
+    }
+  });
+
+  test('a relink flagged under another subject setting is unflagged once that setting is back', async () => {
+    const realSetting = ldap.subjectSetting;
+    try {
+      ldap.subjectSetting = () => 'entryuuid';
+      const expires_at = new Date(Date.now() + 3600e3).toISOString();
+      const m = fakeModels({
+        users: [{ id: 9061, username: 'frank' }],
+        meta: [{ key: 'relink:ldap:9061', value: { username: 'frank', subject: 'f-1', subject_setting: 'entryuuid', expires_at, stale: { setting: true } } }],
+      });
+      expect((await providers.recheckLinked(m)).staleRelinks).toBe(0);
+      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9061').value).not.toHaveProperty('stale');
+    } finally {
+      ldap.subjectSetting = realSetting;
+    }
+  });
+
   test('a leaver found again after a subject setting change keeps its leaver warning', async () => {
     const realSetting = ldap.subjectSetting;
     try {
