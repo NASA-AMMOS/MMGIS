@@ -251,6 +251,16 @@ test.describe('account linking', () => {
     await expect(providers.linkIdentity(identity({ subject: 'newer', username: 'carol' }), m)).rejects.toThrow(providers.LinkError);
   });
 
+  test('a relink is cancelled, not claimed, if its account became a SuperAdmin after it was allowed', async () => {
+    const m = { ...relinkModels(), isSuperAdmin: async (id) => id === 1 };
+    await expect(providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), m)).rejects.toThrow(/became a SuperAdmin/);
+    expect(m.AuthMeta.rows).toEqual([]);
+    expect(m.AuthIdentity.rows).toEqual([expect.objectContaining({ subject: 'old', user_id: 1 })]);
+    // Allowed while it was already one (only a SuperAdmin can do that): claimed as usual
+    const ok = { ...relinkModels({ superadmin: true }), isSuperAdmin: async (id) => id === 1 };
+    expect((await providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), ok)).id).toBe(1);
+  });
+
   test('a relink can name a different username at the provider, and signs the old login out', async () => {
     const ended = [];
     const m = { ...relinkModels({ username: 'Carol.Smith' }), endSessionsOf: async (id) => ended.push(id) };
@@ -582,6 +592,20 @@ test.describe('provider rechecks', () => {
       members: [{ group_id: 1, user_id: userId }],
       links: [{ provider: 'ldap', subject: 'old', user_id: userId }],
     });
+
+  test('an account already not found stays refused while its recheck fails (directory down)', async () => {
+    const m = models(9020);
+    ldap.lookup = async () => null;
+    expect(await providers.stillLinked(9020, 'ldap', m)).toBe(false);
+    providers.forgetRechecks();
+    ldap.lookup = async () => { throw Object.assign(new Error('connect ETIMEDOUT'), { code: 'ETIMEDOUT' }); };
+    expect(await providers.stillLinked(9020, 'ldap', m)).toBe(false);
+    expect(await providers.stillLinked(9020, 'ldap', m, true, true)).toBe('failed');
+    // One still linked keeps its access through the same failure
+    const n = models(9021);
+    providers.forgetRechecks();
+    expect(await providers.stillLinked(9021, 'ldap', n)).toBe(true);
+  });
 
   test('checking every linked account asks the directory now, even about accounts checked a moment ago', async () => {
     const m = fakeModels({

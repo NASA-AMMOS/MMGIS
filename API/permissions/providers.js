@@ -171,10 +171,10 @@ const lookupTimeout = (p) =>
   Math.max(IDENTIFY_TIMEOUT_MS, (typeof p.impl.lookupTimeoutMs === "function" && Number(p.impl.lookupTimeoutMs())) || 0);
 
 // A person's request waits at most 5 s for a recheck, keeping its access meanwhile; a slower one applies once it ends
-function requestWait(result, waitMs = IDENTIFY_TIMEOUT_MS) {
+function requestWait(result, waitMs = IDENTIFY_TIMEOUT_MS, meanwhileValue = true) {
   let timer;
   const meanwhile = new Promise((resolve) => {
-    timer = setTimeout(() => resolve(true), waitMs);
+    timer = setTimeout(() => resolve(meanwhileValue), waitMs);
     if (timer.unref) timer.unref();
   });
   return Promise.race([result, meanwhile]).finally(() => clearTimeout(timer));
@@ -264,6 +264,7 @@ function accountModels() {
     AuthMeta,
     transaction: (fn) => sequelize.transaction(fn),
     usernameTaken,
+    isSuperAdmin: async (userId) => (await require("./bindings").superAdminUserIds()).includes(Number(userId)),
     // connect-pg-simple's session table has no model; Local's password reset ends sessions the same way
     endSessionsOf: (userId) =>
       sequelize.query(`DELETE FROM "session" WHERE sess->>'uid' = :uid`, { replacements: { uid: String(userId) } }),
@@ -340,7 +341,7 @@ async function findClaim(identity, m) {
         `The ${identity.provider} relink for account ${r.key.split(":").pop()} is pinned to ${v.dn}, but '${identity.username}' signs in from ${identity.dn || "another entry"} with the same subject '${identity.subject}', so it may be a different entry. If it's the same person after a rename, allow the relink again.`
       );
     }
-    return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by, dn: v.dn };
+    return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by, dn: v.dn, superadmin: !!v.superadmin };
   }
   return null;
 }
@@ -385,6 +386,13 @@ async function claimRelink(identity, m) {
   }
   const user = await m.User.findOne({ where: { id: claim.userId }, attributes: ["id", "username"], raw: true });
   if (!user) return null;
+  // Made a SuperAdmin after the relink was allowed: whoever allowed it didn't hand over a SuperAdmin
+  if (!claim.superadmin && m.isSuperAdmin && (await m.isSuperAdmin(user.id))) {
+    await m.AuthMeta.destroy({ where: { key: claim.key } });
+    throw new LinkError(
+      `The ${identity.provider} relink for account ${user.id} '${user.username}' was cancelled: the account became a SuperAdmin after '${claim.by}' allowed it. If '${identity.username}' should take it over, a SuperAdmin can allow the relink again.`
+    );
+  }
   const claimed = await inTransaction(m, async (transaction) => {
     // Single use, even when two logins race for it
     if (!(await m.AuthMeta.destroy({ where: { key: claim.key }, transaction }))) return false;
@@ -906,7 +914,7 @@ const downNow = (providerId, ms) => Date.now() - (providerDown.get(providerId) |
 
 // Re-reads a provider-linked account through the provider's lookup(subject) at most every
 // AUTH_RECHECK_MINUTES, so directory changes reach existing sessions and tokens. Resolves false
-// once the provider says the account is gone; keeps access when the provider can't be reached.
+// once the provider says the account is gone; keeps access when the provider can't be reached, unless it was already gone.
 // With detail, resolves to "ok", "missing", "failed" (the provider couldn't be asked) or "unsupported" instead.
 function stillLinked(userId, providerId, m, force = false, detail = false) {
   const p = getProvider(providerId);
@@ -922,7 +930,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
   if (!force && !detail && hit && Date.now() - hit.at < ms) {
-    if (!hit.missing) return requestWait(hit.result, downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS);
+    if (!hit.missing) return Promise.resolve(hit.wasMissing).then((gone) => requestWait(hit.result, downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS, !gone));
     // Another process may have signed the person in again (a relink or a restored entry) since
     return (async () => {
       m = m || accountModels();
@@ -931,8 +939,10 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
       return since > hit.at ? requestWait(stillLinked(userId, providerId, m, true), downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS) : false;
     })();
   }
+  m = m || accountModels();
+  // Already not found (e.g. a leaver): an unanswered or failed recheck mustn't give its access back
+  const wasMissing = (async () => !!(m.AuthMeta && (await m.AuthMeta.findOne({ where: { key: missingKey(providerId, userId) }, raw: true }))))().catch(() => false);
   const status = (async () => {
-    m = m || accountModels();
     const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
     if (!link) return "ok";
     let found;
@@ -945,8 +955,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
       // Matched by a value that isn't first (e.g. an alias): only under the same directory username, so another entry's alias doesn't keep a leaver in
       if (found && found.first && found.first !== link.subject && !permanent && !sameUsername(found.username, link.username)) found = null;
     } catch (err) {
-      // Already not found (e.g. a leaver): it has no provider access to keep
-      const missing = m.AuthMeta ? await m.AuthMeta.findOne({ where: { key: missingKey(providerId, userId) }, raw: true }).catch(() => null) : null;
+      const missing = await wasMissing;
       logger(
         "warn",
         `Auth provider '${providerId}': couldn't recheck ${await who(m, userId)}${err && err.code === "ETIMEDOUT" ? ` (no answer within ${lookupTimeout(p) / 1000} s)` : ""}; ${
@@ -992,13 +1001,13 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     rechecks.delete(key);
     throw err;
   });
-  const result = status.then((s) => s !== "missing");
-  const entry = { at: Date.now(), result };
+  const result = status.then(async (s) => s !== "missing" && !(s === "failed" && (await wasMissing)));
+  const entry = { at: Date.now(), result, wasMissing };
   rechecks.set(key, entry);
   result.then((ok) => (entry.missing = !ok), () => {});
   if (detail) return status;
   if (force) return result;
-  return requestWait(result, downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS);
+  return wasMissing.then((gone) => requestWait(result, downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS, !gone));
 }
 
 // Rechecks every provider-linked account now, including ones nobody has used since a directory change,

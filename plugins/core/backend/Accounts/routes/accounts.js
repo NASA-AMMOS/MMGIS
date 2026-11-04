@@ -523,7 +523,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       // Shows the admin which entry would claim the account before they confirm, after every refusal above
       if (preview) return PREVIEWED;
       await AuthMeta.upsert(
-        { key, value: { username, subject: target ? target.subject : undefined, subject_setting: target ? providers.subjectSettingOf(provider) || undefined : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username } },
+        { key, value: { username, subject: target ? target.subject : undefined, subject_setting: target ? providers.subjectSettingOf(provider) || undefined : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username, superadmin: current.includes(id) || undefined } },
         { transaction }
       );
       return null;
