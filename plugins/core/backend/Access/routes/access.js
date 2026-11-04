@@ -110,7 +110,7 @@ router.post("/groups/create", manage, async (req, res) => {
       external_name: external,
     });
     invalidate();
-    const note = source !== "local" ? await fillProviderGroups(group) : undefined;
+    const note = source !== "local" ? await fillProviderGroups(group).catch(noteFailed) : undefined;
     res.send({ status: "success", body: group, note });
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
@@ -121,6 +121,12 @@ router.post("/groups/create", manage, async (req, res) => {
 
 // A new or renamed provider group gets its members from the people already signed in, not only at their next sign-in.
 // Resolves to a note for the admin when that can't happen now, or another group already maps the same provider group.
+// The group is saved by then, so a failed note mustn't report the save as failed
+const noteFailed = (err) => {
+  logger("warn", "Couldn't check a provider group's members from its directory.", "access", null, err);
+  return undefined;
+};
+
 async function fillProviderGroups(group) {
   const source = group.source;
   const notes = [];
@@ -162,7 +168,7 @@ router.post("/groups/update", manage, async (req, res) => {
     const repointed = group.source !== "local" && set.external_name !== undefined && set.external_name !== group.external_name;
     await group.update(set);
     invalidate();
-    const note = repointed ? await fillProviderGroups(group) : undefined;
+    const note = repointed ? await fillProviderGroups(group).catch(noteFailed) : undefined;
     res.send({ status: "success", body: group, note });
   } catch (err) {
     fail(res, err, "Failed to update group.");
@@ -253,28 +259,37 @@ router.get("/effective", manage, async (req, res) => {
     }
     // With no groups typed, ask the provider which groups it reports for that person now
     let reported;
+    let target;
     if (req.query.provider && !String(req.query.groups || "").trim()) {
       const provider = String(req.query.provider);
       const username = String(req.query.username).trim();
       try {
-        reported = await providers.reportedGroups(provider, username);
+        target = await providers.reportedGroups(provider, username);
       } catch (err) {
         logger("error", `Couldn't look up '${username}' at ${provider} to check their access.`, "access", req, err);
         throw new bindings.BindingError(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Enter their groups instead.`);
       }
-      if (reported === null)
+      if (target) reported = target.groups;
+      if (target === null)
         throw new bindings.BindingError(`${provider} has no single entry with the username '${username}', or it's disabled or left out by its user search filter.`);
     }
     // The access shown is a sign-in with no account yet; an account already holding the name changes that
+    // Accounts follow the directory entry, not its username: a renamed person keeps their account, and a
+    // newcomer given a leaver's username is refused
     let note;
-    if (reported !== undefined) {
-      const name = providers.relinkUsername(String(req.query.provider), String(req.query.username)).toLowerCase();
-      const holder = await User.findOne({ where: Sequelize.where(Sequelize.fn("lower", Sequelize.col("username")), name), attributes: ["id", "username"], raw: true });
-      if (holder) {
-        const linked = await AuthIdentity.findOne({ where: { user_id: holder.id, provider: String(req.query.provider) }, raw: true });
-        note = linked
-          ? `MMGIS account '${holder.username}' signs in as this person, and its own grants (see People) add to what's shown here.`
-          : `Account '${holder.username}' already has this username, so this person's ${req.query.provider} sign-in is refused until that account is relinked (People > Allow relink) or deleted. What's shown leaves out that account's own grants.`;
+    if (target) {
+      const provider = String(req.query.provider);
+      const owner = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true });
+      const account = owner && (await User.findOne({ where: { id: owner.user_id }, attributes: ["username"], raw: true }));
+      if (account) note = `MMGIS account '${account.username}' signs in as this person, and its own grants (see People) add to what's shown here.`;
+      else {
+        const taken = await providers.usernameTaken(providers.relinkUsername(provider, String(req.query.username)));
+        const holder = taken && (await User.findOne({ where: { id: taken.id }, attributes: ["id", "username"], raw: true }));
+        const linked = holder && (await AuthIdentity.findOne({ where: { user_id: holder.id, provider }, raw: true }));
+        if (linked)
+          note = `Account '${holder.username}' is linked to a different ${provider} entry that had this username, so this person's sign-in is refused. Don't relink it to them if that entry still exists (the name was reused); the server log at their sign-in says which. What's shown leaves out that account's own grants.`;
+        else if (holder)
+          note = `Account '${holder.username}' already has this username, so this person's ${provider} sign-in is refused until that account is relinked (People > Allow relink) or deleted. What's shown leaves out that account's own grants.`;
       }
     }
     const principal = req.query.provider

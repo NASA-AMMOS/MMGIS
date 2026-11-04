@@ -143,7 +143,7 @@ Test-specific database password. Required by test infrastructure for least-privi
 
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
-Whether visitors may create their own local accounts. With `SITE_ACCESS=required`, only when this is true. With `SITE_ACCESS=optional`, visitors may always sign up while `local` is the only provider; once another provider such as `ldap` or `proxy` is enabled, or any account is linked to one (even while it's out of `AUTH_PROVIDERS`), only when this is true, so nobody can register a directory user's username before that person first signs in | boolean | default `false`
+Whether visitors may create their own local accounts. With `SITE_ACCESS=required`, only when this is true. With `SITE_ACCESS=optional`, visitors may always sign up while `local` is the only provider; once another provider such as `ldap` or `proxy` is enabled, or any account is linked to one (even while it's out of `AUTH_PROVIDERS`; after deleting the last such account, restart to reopen sign-up), only when this is true, so nobody can register a directory user's username before that person first signs in | boolean | default `false`
 
 #### `AUTH_MAX_FAILED_LOGINS=`
 

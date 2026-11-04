@@ -627,10 +627,13 @@ async function selfCheck(c = config(), createClient = newClient) {
       };
       const people = peopleFilter(c);
       if (await anyMatch(people))
-        for (const [name, attr] of [["LDAP_SUBJECT_ATTRIBUTE", c.subjectAttribute], ["LDAP_USERNAME_ATTRIBUTE", c.usernameAttribute]]) {
+        for (const [name, attr, effect] of [
+          ["LDAP_SUBJECT_ATTRIBUTE", c.subjectAttribute, "every LDAP sign-in will fail"],
+          ["LDAP_USERNAME_ATTRIBUTE", c.usernameAttribute, "each new MMGIS account is named (for good) by how its person typed their first sign-in"],
+        ]) {
           if (attr.toLowerCase() === "dn") continue;
           if ((await anyMatch(`(&${people}(${attr}=*))`)) === false)
-            checked.warnings.push(`no entry that LDAP_USER_SEARCH_FILTER finds under LDAP_USER_SEARCH_BASE has the attribute ${attr} (${name}), so every LDAP sign-in will fail. Check its spelling.`);
+            checked.warnings.push(`no entry that LDAP_USER_SEARCH_FILTER finds under LDAP_USER_SEARCH_BASE has the attribute ${attr} (${name}), so ${effect}. Check its spelling.`);
         }
     }
     // locate(subject) searches from there, so a leaver moved out of LDAP_USER_SEARCH_BASE still counts

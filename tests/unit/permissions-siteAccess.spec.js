@@ -147,6 +147,8 @@ test.describe('AUTH_LOCAL_LOGIN', () => {
 });
 
 test.describe('Self sign-up', () => {
+  // Other specs in this worker link provider accounts through the shared module
+  test.beforeEach(() => siteAccess.setProviderAccounts(false));
   const cases = [
     [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local' }, true],
     [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local', AUTH_LOCAL_LOGIN: 'admins' }, false],
@@ -162,7 +164,9 @@ test.describe('Self sign-up', () => {
     test(`${JSON.stringify(env)} -> ${expected}`, () => {
       const full = { AUTH_LOCAL_LOGIN: undefined, AUTH_LOCAL_ALLOW_SIGNUP: undefined, ...env };
       withEnv(full, () => expect(siteAccess.selfSignupAllowed()).toBe(expected));
-    });  test('stays closed on a local-only optional site once accounts are linked to another provider', () => {
+    });
+
+  test('stays closed on a local-only optional site once accounts are linked to another provider', () => {
     try {
       siteAccess.setProviderAccounts(true);
       withEnv({ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local', AUTH_LOCAL_LOGIN: undefined, AUTH_LOCAL_ALLOW_SIGNUP: undefined }, () => expect(siteAccess.selfSignupAllowed()).toBe(false));

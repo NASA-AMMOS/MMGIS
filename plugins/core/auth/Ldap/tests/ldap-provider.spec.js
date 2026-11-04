@@ -217,6 +217,28 @@ test.describe('LDAP login provider', () => {
     expect(nobody.message).toMatch(/no single entry/);
   });
 
+  test('Check a provider user follows the directory entry after a rename and a reused username', async () => {
+    test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to look people up');
+    const name = `ldap_reuse_${Date.now()}`;
+    const password = ['reuse', 'test', 'password'].join('-');
+    const dn = (uid) => `uid=${uid},ou=people,dc=example,dc=org`;
+    const entry = (uid) => `dn: ${dn(uid)}\nchangetype: add\nobjectClass: inetOrgPerson\nuid: ${uid}\ncn: ${uid}\nsn: ${uid}\nuserPassword: ${password}\n`;
+    test.skip(!directoryAdmin(entry(name)), 'SKIP: needs the fixture directory container to change entries');
+    try {
+      expect((await ldapLogin(await context(), { username: name, password })).status()).toBe(200);
+      expect(directoryAdmin(`dn: ${dn(name)}\nchangetype: modrdn\nnewrdn: uid=${name}_moved\ndeleteoldrdn: 1\n`)).toBe(true);
+      expect(directoryAdmin(entry(name))).toBe(true);
+      const adminCtx = await adminContext();
+      const check = async (username) => (await (await adminCtx.get(`/api/access/effective?provider=ldap&username=${username}`)).json()).body;
+      expect((await check(`${name}_moved`)).note).toContain(`MMGIS account '${name}' signs in as this person`);
+      expect((await check(name)).note).toMatch(/linked to a different ldap entry .* sign-in is refused/);
+      expect((await ldapLogin(await context(), { username: name, password })).status()).toBe(409);
+    } finally {
+      directoryAdmin(`dn: ${dn(name)}\nchangetype: delete\n`);
+      directoryAdmin(`dn: ${dn(`${name}_moved`)}\nchangetype: delete\n`);
+    }
+  });
+
   test('pointing a directory group at another directory group fills it from people already signed in', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
     test.skip(process.env.AUTH_RECHECK_MINUTES === '0', 'SKIP: with rechecks off, groups fill at sign-in or Check linked accounts');

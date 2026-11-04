@@ -387,15 +387,16 @@ function groupName(providerId, name) {
   }
 }
 
-// The groups the provider reports for a username right now, so an admin can find a group's new name after a
-// move: an array, null when it has no such person, undefined when it can't look people up
+// The entry the provider has for a username right now and the groups it reports, so an admin can find a
+// group's new name after a move: { subject, groups }, null when it has no such person, undefined when it
+// can't look people up
 async function reportedGroups(providerId, username) {
   const p = enabledProviders().find((x) => x.id === providerId);
   if (!p || typeof p.impl.findSubject !== "function" || typeof p.impl.lookup !== "function") return undefined;
   const target = await withTimeout(p.impl.findSubject(relinkUsername(providerId, username)), "findSubject(username)", lookupTimeout(p));
   if (!target) return target;
   const found = await withTimeout(p.impl.lookup(target.subject), "lookup(subject)", lookupTimeout(p));
-  return found ? found.groups || [] : found;
+  return found ? { subject: target.subject, groups: found.groups || [] } : found;
 }
 
 // Why a saved group name can never match what the provider now reports (e.g. after a setting changed its form), or null
@@ -623,11 +624,15 @@ async function syncGroups(userId, identity, m = accountModels()) {
     const unmatched = [...reported].filter((g) => !used.has(g)).slice(0, 10);
     // A name in a form the provider no longer reports (e.g. a DN after switching to plain names) isn't a rename
     const problem = remove.map((id) => groups.find((g) => g.id === id)).map((g) => groupNameProblem(identity.provider, g.external_name)).find(Boolean);
+    // A group renamed or moved there that the person is still in is reported under its new name, so
+    // without an unmatched name this is an ordinary membership change
     const hint = !remove.length || !identity.subject
       ? ""
       : problem
         ? ` That group's name can never match what ${identity.provider} reports now: ${problem}`
-        : ` Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.${unmatched.length ? ` Groups reported now that no MMGIS group uses: ${unmatched.map((g) => `'${g}'`).join(", ")}.` : ""}`;
+        : unmatched.length
+          ? ` Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access. Groups reported now that no MMGIS group uses: ${unmatched.map((g) => `'${g}'`).join(", ")}.`
+          : "";
     logger(
       "info",
       `Auth provider '${identity.provider}': ${await who(m, userId)}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}.${hint}`,
@@ -747,13 +752,14 @@ function recheckLinked(m = accountModels(), again = false) {
   return recheckQueued;
 }
 
-// Fills a new or repointed group of providerId from the accounts already linked to it; resolves
-// undefined when rechecks are off (AUTH_RECHECK_MINUTES=0) or that provider can't look accounts up
 // True when fillGroups skips providerId only because rechecks are off (AUTH_RECHECK_MINUTES=0)
 function fillsOnlyAtSignIn(providerId) {
   const p = siteAccess.hasProvider(providerId) && getProvider(providerId);
   return !!p && typeof p.impl.lookup === "function" && recheckMs() === 0;
 }
+
+// Fills a new or repointed group of providerId from the accounts already linked to it; resolves
+// undefined when rechecks are off (AUTH_RECHECK_MINUTES=0) or that provider can't look accounts up
 
 function fillGroups(providerId, m = accountModels()) {
   const p = siteAccess.hasProvider(providerId) && getProvider(providerId);
@@ -918,8 +924,9 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   const base = `${rootPath()}/api/auth`;
   app.use(base, registerRouter(base, list));
   refreshProviderAccounts().catch((err) => {
-    if (!/relation "auth_identities" does not exist/.test(err.message))
-      logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a restart.", "AuthProviders", null, err);
+    if (/relation "auth_identities" does not exist/.test(err.message)) return;
+    siteAccess.setProviderAccounts(true);
+    logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a restart.", "AuthProviders", null, err);
   });
   warnUnmatchableGroups().catch((err) => {
     // A new database gets its tables after this runs, and then has no groups to check
