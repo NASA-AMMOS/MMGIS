@@ -454,13 +454,17 @@ async function authenticate(username, password, c = config(), createClient = new
   }
 }
 
-// LDAP_USER_SEARCH_FILTER for anyone, so a recheck drops whoever the filter no longer lets sign in. In an
-// extensible (uid:caseExactMatch:=) or ~= <= >= term a * isn't a wildcard, so that term becomes (uid=*).
+// LDAP_USER_SEARCH_FILTER for anyone, so a recheck drops whoever the filter no longer lets sign in. A
+// negated {{username}} term says nothing about anyone, and in an extensible (uid:caseExactMatch:=) or
+// ~= <= >= term a * isn't a wildcard, so that term becomes (uid=*).
+const PLACEHOLDER_TERM = String.raw`\(([A-Za-z0-9.;-]*)(?::[^()=]*)?(?::=|~=|<=|>=|=)[^()]*\{\{username\}\}[^()]*\)`;
 const peopleFilter = (c) =>
   fill(
-    c.searchFilter.replace(/\(([A-Za-z0-9.;-]*)(?::[^()=]*)?(?::=|~=|<=|>=)[^()]*\{\{username\}\}[^()]*\)/g, (_, attr) => (attr ? `(${attr}=*)` : "(objectClass=*)")),
+    c.searchFilter
+      .replace(new RegExp(String.raw`\(!\s*${PLACEHOLDER_TERM}\s*\)`, "g"), "(objectClass=*)")
+      .replace(/\(([A-Za-z0-9.;-]*)(?::[^()=]*)?(?::=|~=|<=|>=)[^()]*\{\{username\}\}[^()]*\)/g, (_, attr) => (attr ? `(${attr}=*)` : "(objectClass=*)")),
     { username: "*" }
-  );
+  ).replace(/\*{2,}/g, "*");
 
 // With LDAP_SUBJECT_ATTRIBUTE=dn, a stored subject that isn't a DN (one saved under entryUUID/objectGUID
 // before the setting changed) names no entry
@@ -791,8 +795,9 @@ module.exports = {
   relinkUsername: (name) => stripDomain(String(name).normalize("NFKC").trim(), config()),
   resetFailures: ({ username, dn }) => {
     const c = config();
-    const entryDn = dn || (c.userDnTemplate && username ? fill(c.userDnTemplate, { username: escapeDn(username) }) : null);
-    if (entryDn) entryFailures.delete(normalizeDn(entryDn));
+    // Direct bind counts under the filled template (e.g. alice@corp.example.org), search mode under the entry DN
+    if (dn) entryFailures.delete(normalizeDn(dn));
+    if (c.userDnTemplate && username) entryFailures.delete(normalizeDn(fill(c.userDnTemplate, { username: escapeDn(username) })));
   },
   lookup: (subject) => lookup(subject),
   locate: (subject) => locate(subject),

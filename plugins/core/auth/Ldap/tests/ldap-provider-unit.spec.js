@@ -152,6 +152,17 @@ test.describe('LDAP login', () => {
       await expect(authenticate('alice', 'right', config(base), fakeClient([alice]))).rejects.toBeInstanceOf(TooManyFailuresError);
       plugin.resetFailures({ username: 'alice', dn: 'UID=alice,ou=people,dc=example,dc=org' });
       expect(await authenticate('alice', 'right', config(base), fakeClient([alice]))).not.toBeNull();
+      // A UPN-style template counts under the filled template, not the entry DN a pinned relink names
+      entryFailures.set('alice@corp.example.org', { count: 5, until: Date.now() + 60000 });
+      const prev = process.env.LDAP_USER_DN_TEMPLATE;
+      process.env.LDAP_USER_DN_TEMPLATE = '{{username}}@corp.example.org';
+      try {
+        plugin.resetFailures({ username: 'alice', dn: 'cn=Alice Smith,ou=people,dc=example,dc=org' });
+      } finally {
+        if (prev === undefined) delete process.env.LDAP_USER_DN_TEMPLATE;
+        else process.env.LDAP_USER_DN_TEMPLATE = prev;
+      }
+      expect(entryFailures.has('alice@corp.example.org')).toBe(false);
     } finally {
       entryFailures.clear();
     }
@@ -373,6 +384,10 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(|(uid={{username}})(mail={{username}}@example.org))' }))).toBe('(|(uid=*)(mail=*@example.org))');
     expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(sAMAccountName={{username}})(!(userAccountControl:1.2.840.113556.1.4.803:=2)))' }))).toBe('(&(sAMAccountName=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))');
     expect((await lookup('e1', config({ ...base, LDAP_USER_SEARCH_FILTER: '(uid:caseExactMatch:={{username}})' }), byUuid([alice.entry]))).username).toBe('alice');
+    // Wildcards next to {{username}} stay one wildcard, and a negated {{username}} term excludes nobody
+    expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(uid={{username}}*)(cn=*{{username}}*))' }))).toBe('(&(uid=*)(cn=*))');
+    expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(uid={{username}})(!(description:={{username}})))' }))).toBe('(&(uid=*)(objectClass=*))');
+    expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(uid={{username}})(!(ou=contractors)))' }))).toBe('(&(uid=*)(!(ou=contractors)))');
     const staffOnly = config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(uid={{username}})(ou=staff))' });
     expect(await lookup('e1', staffOnly, byUuid([alice.entry]))).toBeNull();
     expect((await lookup('e1', staffOnly, byUuid([{ ...alice.entry, ou: 'staff' }]))).username).toBe('alice');
