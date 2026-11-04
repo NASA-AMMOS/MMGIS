@@ -239,6 +239,29 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('Check a provider user shows a pending relink allowed under another username', async () => {
+    test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to look people up');
+    const name = `ldap_pending_${Date.now()}`;
+    const password = ['pending', 'test', 'password'].join('-');
+    const dn = `uid=${name},ou=people,dc=example,dc=org`;
+    test.skip(!directoryAdmin(`dn: ${dn}\nchangetype: add\nobjectClass: inetOrgPerson\nuid: ${name}\ncn: ${name}\nsn: ${name}\nuserPassword: ${password}\n`), 'SKIP: needs the fixture directory container to change entries');
+    try {
+      const adminCtx = await adminContext();
+      const local = `${name}_local`;
+      const made = await (await adminCtx.post('/api/users/signup', { data: { username: local, email: `${local}@example.org`, password: ['Local', 'Pass', '1!x'].join(''), skipLogin: true } })).json();
+      expect(made.status).toBe('success');
+      const account = (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries.find((e) => e.username === local);
+      expect((await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', username: name } })).json()).status).toBe('success');
+      const check = (await (await adminCtx.get(`/api/access/effective?provider=ldap&username=${name}`)).json()).body;
+      expect(check.note).toContain(`next sign-in takes over account '${local}'`);
+      expect((await ldapLogin(await context(), { username: name, password })).status()).toBe(200);
+      const after = (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries.find((e) => e.id === account.id);
+      expect(after.sign_ins).toEqual([expect.objectContaining({ provider: 'ldap' })]);
+    } finally {
+      directoryAdmin(`dn: ${dn}\nchangetype: delete\n`);
+    }
+  });
+
   test('pointing a directory group at another directory group fills it from people already signed in', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to read the directory between logins');
     test.skip(process.env.AUTH_RECHECK_MINUTES === '0', 'SKIP: with rechecks off, groups fill at sign-in or Check linked accounts');

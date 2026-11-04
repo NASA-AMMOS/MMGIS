@@ -20,6 +20,8 @@ async function localLoginRefusal(userId, models = { AuthIdentity }) {
   return null;
 }
 const bcrypt = require("bcryptjs");
+// Compared against when no account has the username, so an unknown name takes as long as a wrong password
+const NO_ACCOUNT_HASH = bcrypt.hashSync("no account", bcrypt.genSaltSync());
 
 const logger = require("../../../../API/logger");
 const {
@@ -469,10 +471,12 @@ router.post("/login", sameOriginOnly, loginUsername, authLimiter, accountLimiter
       .then((user) => {
         if (!user) {
           res.locals.loginFailed = true;
-          res.send({
-            status: "failure",
-            message: "Invalid username or password.",
-          });
+          bcrypt.compare(String(req.body.password || ""), NO_ACCOUNT_HASH, () =>
+            res.send({
+              status: "failure",
+              message: "Invalid username or password.",
+            })
+          );
         } else {
           function pass(err, result, again) {
             if (result) {

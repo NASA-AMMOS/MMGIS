@@ -396,7 +396,9 @@ async function reportedGroups(providerId, username) {
   const target = await withTimeout(p.impl.findSubject(relinkUsername(providerId, username)), "findSubject(username)", lookupTimeout(p));
   if (!target) return target;
   const found = await withTimeout(p.impl.lookup(target.subject), "lookup(subject)", lookupTimeout(p));
-  return found ? { subject: target.subject, username: found.username, groups: found.groups || [] } : found;
+  return found
+    ? { subject: target.subject, username: found.username, groups: found.groups || [], groupsLeftOut: found.groupsLeftOut || [] }
+    : found;
 }
 
 // Why a saved group name can never match what the provider now reports (e.g. after a setting changed its form), or null
@@ -978,6 +980,7 @@ module.exports = {
   linkIdentity,
   RELINK_HOURS,
   relinkKey,
+  findClaim,
   missingKey,
   groupName,
   groupNameProblem,

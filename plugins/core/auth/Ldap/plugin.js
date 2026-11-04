@@ -11,6 +11,9 @@ const setting = (v, fallback = "") => (v != null && String(v).trim() !== "" ? St
 const isTrue = (v) => String(v).trim().toLowerCase() === "true";
 const MAX_USERNAME = 255;
 
+// dn is how groups are reported without it
+const groupNameAttribute = (v) => (/^dn$/i.test(v) ? "" : v);
+
 function config(env = process.env) {
   const timeout = Number(setting(env.LDAP_TIMEOUT_MS, "5000"));
   return {
@@ -29,8 +32,7 @@ function config(env = process.env) {
     groupsAttribute: setting(env.LDAP_GROUPS_ATTRIBUTE, "memberOf"),
     groupSearchBase: setting(env.LDAP_GROUP_SEARCH_BASE),
     groupSearchFilter: setting(env.LDAP_GROUP_SEARCH_FILTER, "(member={{dn}})"),
-    // dn is how groups are reported without it
-    groupNameAttribute: /^dn$/i.test(setting(env.LDAP_GROUP_NAME_ATTRIBUTE)) ? "" : setting(env.LDAP_GROUP_NAME_ATTRIBUTE),
+    groupNameAttribute: groupNameAttribute(setting(env.LDAP_GROUP_NAME_ATTRIBUTE)),
     timeoutMs: Number.isInteger(timeout) && timeout > 0 ? timeout : 5000,
     displayName: setting(env.LDAP_DISPLAY_NAME, "LDAP"),
     usernameLabel: setting(env.LDAP_USERNAME_LABEL, "Username"),
@@ -506,11 +508,13 @@ async function lookup(subject, c = config(), createClient = newClient) {
     const entry = entries[0];
     const name = values(entry, c.usernameAttribute)[0];
     const email = values(entry, c.emailAttribute)[0];
+    const groupsLeftOut = [];
     return {
       subject,
       username: name != null ? String(name) : undefined,
       email: email != null ? String(email) : undefined,
-      groups: await groupsOf(client, c, entry, name != null ? String(name) : ""),
+      groups: await groupsOf(client, c, entry, name != null ? String(name) : "", groupsLeftOut),
+      groupsLeftOut,
     };
   } finally {
     await client.unbind().catch(() => {});

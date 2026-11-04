@@ -283,19 +283,25 @@ router.get("/effective", manage, async (req, res) => {
       const account = owner && (await User.findOne({ where: { id: owner.user_id }, attributes: ["username"], raw: true }));
       if (account) note = `MMGIS account '${account.username}' signs in as this person, and its own grants (see People) add to what's shown here.`;
       else {
-        const taken = await // New accounts are named by the directory, so an alias typed here (mail, UPN) checks the real name
-        providers.usernameTaken(target.username || providers.relinkUsername(provider, String(req.query.username)));
+        // New accounts are named by the directory, so an alias typed here (mail, UPN) checks the real name
+        const name = target.username || providers.relinkUsername(provider, String(req.query.username));
+        // As at sign-in: a pending relink (whichever account it's on) comes before a username clash
+        const claim = await providers.findClaim({ provider, subject: target.subject, username: name }, { AuthMeta });
+        const claimed = claim && (await User.findOne({ where: { id: claim.userId }, attributes: ["username"], raw: true }));
+        const taken = !claimed && (await providers.usernameTaken(name));
         const holder = taken && (await User.findOne({ where: { id: taken.id }, attributes: ["id", "username"], raw: true }));
         const linked = holder && (await AuthIdentity.findOne({ where: { user_id: holder.id, provider }, raw: true }));
-        const relink = holder && (await AuthMeta.findOne({ where: { key: providers.relinkKey(provider, holder.id) }, raw: true }));
-        const pending = relink && relink.value && Date.parse(relink.value.expires_at) > Date.now() && (!relink.value.subject || relink.value.subject === target.subject);
-        if (pending)
-          note = `A relink is pending: this person's next sign-in takes over account '${holder.username}', and its own grants (see People) add to what's shown here.`;
+        if (claimed)
+          note = `A relink is pending: this person's next sign-in takes over account '${claimed.username}', and its own grants (see People) add to what's shown here.`;
         else if (linked)
           note = `Account '${holder.username}' is linked to a different ${provider} entry that had this username, so this person's sign-in is refused. Don't relink it to them if that entry still exists (the name was reused); the server log at their sign-in says which. What's shown leaves out that account's own grants.`;
         else if (holder)
           note = `Account '${holder.username}' already has this username, so this person's ${provider} sign-in is refused until that account is relinked (People > Allow relink) or deleted. What's shown leaves out that account's own grants.`;
       }
+    }
+    if (target && target.groupsLeftOut && target.groupsLeftOut.length) {
+      const left = `Left out, having no group name attribute (LDAP_GROUP_NAME_ATTRIBUTE): ${target.groupsLeftOut.join(" | ")}.`;
+      note = note ? `${note} ${left}` : left;
     }
     const principal = req.query.provider
       ? await externalPrincipal({
