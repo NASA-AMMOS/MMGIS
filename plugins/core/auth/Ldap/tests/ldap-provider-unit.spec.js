@@ -485,6 +485,22 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect(subjectFilter(config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'entryUUID' }), 'a*)')).toBe('(entryUUID=a\\2a\\29)');
   });
 
+  test('a recheck of someone in more groups than the directory returns reports no groups, not an outage', async () => {
+    const { SizeLimitExceededError } = require('ldapts');
+    const c = config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'entryUUID', LDAP_GROUP_SEARCH_BASE: 'ou=groups,dc=example,dc=org' });
+    const people = byUuid([alice.entry]);
+    const found = await lookup('e1', c, () => ({
+      ...people(),
+      async search(b, opts) {
+        if (b === 'ou=groups,dc=example,dc=org') throw new SizeLimitExceededError('Size Limit Exceeded');
+        return people().search(b, opts);
+      },
+    }));
+    expect(found.username).toBe('alice');
+    expect(found.groups).toEqual([]);
+    expect(found.groupsUnread).toMatch(/more groups than the directory returns/);
+  });
+
   test('reports current groups, null once the entry is gone or disabled, undefined without a service account', async () => {
     const c = config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'entryUUID' });
     const found = await lookup('e1', c, byUuid([alice.entry]));

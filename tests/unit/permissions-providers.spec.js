@@ -945,7 +945,7 @@ test.describe('provider rechecks', () => {
     expect(await providers.stillLinked(9017, 'ldap', m)).toBe(false);
   });
 
-  test('once a recheck finds the provider down, other people\'s requests stop waiting for theirs until it answers again', async () => {
+  test('once a recheck finds the provider down, other people\'s requests wait at most 1 s for theirs, so a removal still applies if it answers', async () => {
     // An error about one entry (e.g. its group search) doesn't count as the directory being down
     ldap.lookup = async () => { throw new Error('Size limit exceeded'); };
     const m0 = fakeModels({ links: [{ provider: 'ldap', subject: 'odd', user_id: 9021 }, { provider: 'ldap', subject: 'waits', user_id: 9022 }] });
@@ -960,7 +960,11 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 1500)), ended(), { username: 'next', groups: [] });
     const started = Date.now();
     expect(await providers.stillLinked(9019, 'ldap', m)).toBe(true);
-    expect(Date.now() - started).toBeLessThan(500);
+    expect(Date.now() - started).toBeLessThan(1400);
+    // A person the directory removed is still refused at once if it answers
+    ldap.lookup = async () => null;
+    const m2 = fakeModels({ links: [{ provider: 'ldap', subject: 'gone', user_id: 9023 }] });
+    expect(await providers.stillLinked(9023, 'ldap', m2)).toBe(false);
     await lookedUp;
     await new Promise((r) => setTimeout(r, 50));
     // It answered, so a removal applies to the request again

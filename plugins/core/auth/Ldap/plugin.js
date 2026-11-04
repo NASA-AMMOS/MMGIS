@@ -368,7 +368,8 @@ async function learnServiceNames(client, c) {
       entries = (await client.search(base, { scope: "sub", filter, attributes, sizeLimit: 2 })).searchEntries;
     }
   } catch (err) {
-    return; // tried again at the next sign-in
+    // Tried again at the next sign-in; until then names sharing its stem are refused
+    return `couldn't read the service account's own entry (${explain(err)}), so it is recognised only by LDAP_BIND_DN and names like it`;
   }
   const entry = entries.length === 1 ? entries[0] : null;
   serviceNames.set(key, {
@@ -583,6 +584,16 @@ async function lookup(subject, c = config(), createClient = newClient) {
     const name = values(entry, c.usernameAttribute)[0];
     const email = values(entry, c.emailAttribute)[0];
     const groupsLeftOut = [];
+    let groups;
+    let groupsUnread;
+    try {
+      groups = await groupsOf(client, c, entry, name != null ? String(name) : "", groupsLeftOut);
+    } catch (err) {
+      if (!err.tooManyGroups) throw err;
+      // The directory answered: their directory groups can't be confirmed, so they give no roles until they can
+      groups = [];
+      groupsUnread = err.message;
+    }
     return {
       subject,
       // The entry's own value, which the directory may have matched without case
@@ -591,8 +602,9 @@ async function lookup(subject, c = config(), createClient = newClient) {
       dn: entry.dn,
       username: name != null ? String(name) : undefined,
       email: email != null ? String(email) : undefined,
-      groups: await groupsOf(client, c, entry, name != null ? String(name) : "", groupsLeftOut),
+      groups,
       groupsLeftOut,
+      ...(groupsUnread ? { groupsUnread } : {}),
     };
   } finally {
     await client.unbind().catch(() => {});
@@ -704,7 +716,8 @@ async function selfCheck(c = config(), createClient = newClient) {
     }
     if (c.bindDn) {
       await bindService(client, c);
-      await learnServiceNames(client, c);
+      const unread = await learnServiceNames(client, c);
+      if (unread) checked.warnings.push(unread);
       checked.push("the service account signed in");
     }
     // Without a service account, directories usually only allow searches once the person has signed in

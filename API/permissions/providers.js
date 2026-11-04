@@ -171,10 +171,10 @@ const lookupTimeout = (p) =>
   Math.max(IDENTIFY_TIMEOUT_MS, (typeof p.impl.lookupTimeoutMs === "function" && Number(p.impl.lookupTimeoutMs())) || 0);
 
 // A person's request waits at most 5 s for a recheck, keeping its access meanwhile; a slower one applies once it ends
-function requestWait(result) {
+function requestWait(result, waitMs = IDENTIFY_TIMEOUT_MS) {
   let timer;
   const meanwhile = new Promise((resolve) => {
-    timer = setTimeout(() => resolve(true), IDENTIFY_TIMEOUT_MS);
+    timer = setTimeout(() => resolve(true), waitMs);
     if (timer.unref) timer.unref();
   });
   return Promise.race([result, meanwhile]).finally(() => clearTimeout(timer));
@@ -888,7 +888,8 @@ const recheckMs = () => {
   return (Number.isFinite(n) && n >= 0 ? n : 15) * 60 * 1000;
 };
 const rechecks = new Map();
-// When a provider's last recheck couldn't reach it: other people's requests then don't wait for theirs
+// When a provider's last recheck couldn't reach it: other people's requests then wait only DOWN_WAIT_MS for theirs
+const DOWN_WAIT_MS = 1000;
 const providerDown = new Map();
 // A connection or TLS failure or a timeout, not an error about one person's entry
 const unreachable = (err) =>
@@ -913,7 +914,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
   if (!force && !detail && hit && Date.now() - hit.at < ms) {
-    if (!hit.missing) return downNow(providerId, ms) ? Promise.resolve(true) : requestWait(hit.result);
+    if (!hit.missing) return requestWait(hit.result, downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS);
     // Another process may have signed the person in again (a relink or a restored entry) since
     return (async () => {
       m = m || accountModels();
@@ -954,6 +955,8 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!now || now.subject !== link.subject) return "ok";
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
+    if (identity && found.groupsUnread)
+      logger("warn", `Auth provider '${providerId}': couldn't read the groups of ${await who(m, userId)} (${found.groupsUnread}); its provider groups give it no roles until they can be read.`, "AuthProviders");
     // A process on another subject setting flagged it for that setting: leave that to it
     const flagged = identity && (await otherSettings(p, m)).length > 0 && (await m.AuthMeta.findOne({ where: { key: missingKey(providerId, userId) }, raw: true }));
     if (!(flagged && flagged.value && flagged.value.reason === "subject"))
@@ -981,7 +984,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
   result.then((ok) => (entry.missing = !ok), () => {});
   if (detail) return status;
   if (force) return result;
-  return downNow(providerId, ms) ? Promise.resolve(true) : requestWait(result);
+  return requestWait(result, downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS);
 }
 
 // Rechecks every provider-linked account now, including ones nobody has used since a directory change,
