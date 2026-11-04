@@ -165,6 +165,8 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       if (!deleted) return;
       connections.revokeGrants(grants);
       bindings.afterChange("user", id).catch(() => {});
+      // Deleting the last provider-linked account reopens visitor sign-up where only local is enabled
+      providers.refreshProviderAccounts().catch(() => {});
       logger("info", `Successfully deleted user with id: '${id}'.`);
       res.send({
         status: "success",

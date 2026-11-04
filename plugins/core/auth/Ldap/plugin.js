@@ -29,7 +29,8 @@ function config(env = process.env) {
     groupsAttribute: setting(env.LDAP_GROUPS_ATTRIBUTE, "memberOf"),
     groupSearchBase: setting(env.LDAP_GROUP_SEARCH_BASE),
     groupSearchFilter: setting(env.LDAP_GROUP_SEARCH_FILTER, "(member={{dn}})"),
-    groupNameAttribute: setting(env.LDAP_GROUP_NAME_ATTRIBUTE),
+    // dn is how groups are reported without it
+    groupNameAttribute: /^dn$/i.test(setting(env.LDAP_GROUP_NAME_ATTRIBUTE)) ? "" : setting(env.LDAP_GROUP_NAME_ATTRIBUTE),
     timeoutMs: Number.isInteger(timeout) && timeout > 0 ? timeout : 5000,
     displayName: setting(env.LDAP_DISPLAY_NAME, "LDAP"),
     usernameLabel: setting(env.LDAP_USERNAME_LABEL, "Username"),
@@ -367,7 +368,7 @@ async function readEntry(client, c, dn) {
 }
 
 // Groups are reported by DN: two groups named "admins" in different OUs must not become one MMGIS group
-async function groupsOf(client, c, entry, username) {
+async function groupsOf(client, c, entry, username, leftOut = []) {
   if (!c.groupSearchBase) return values(entry, c.groupsAttribute).map((v) => normalizeDn(v));
   let searchEntries;
   try {
@@ -385,9 +386,12 @@ async function groupsOf(client, c, entry, username) {
     err.message = `Searching LDAP_GROUP_SEARCH_BASE for groups failed: ${err.message}`;
     throw err;
   }
-  return searchEntries.map((g) => {
-    const name = c.groupNameAttribute ? values(g, c.groupNameAttribute)[0] : null;
-    return name != null ? String(name).normalize("NFC") : normalizeDn(g.dn);
+  // A group without LDAP_GROUP_NAME_ATTRIBUTE is left out: Users & Access only takes names in that mode
+  return searchEntries.flatMap((g) => {
+    if (!c.groupNameAttribute) return [normalizeDn(g.dn)];
+    const name = values(g, c.groupNameAttribute)[0];
+    if (name == null) leftOut.push(normalizeDn(g.dn));
+    return name != null ? [String(name).normalize("NFC")] : [];
   });
 }
 
@@ -444,12 +448,14 @@ async function authenticate(username, password, c = config(), createClient = new
     if (!subject) throw new Error(`The directory entry has no ${c.subjectAttribute} (LDAP_SUBJECT_ATTRIBUTE).`);
     const name = values(entry, c.usernameAttribute)[0];
     const email = values(entry, c.emailAttribute)[0];
+    const groupsLeftOut = [];
     return {
       subject,
       username: name != null ? String(name) : username,
       email: email != null ? String(email) : undefined,
       // The directory's username, as at recheck, so group filters don't depend on how it was typed
-      groups: await groupsOf(client, c, entry, name != null ? String(name) : ""),
+      groups: await groupsOf(client, c, entry, name != null ? String(name) : "", groupsLeftOut),
+      groupsLeftOut,
     };
   } finally {
     await client.unbind().catch(() => {});
@@ -784,7 +790,11 @@ module.exports = {
         const user = await ctx.completeLogin(req, identity);
         ctx.logger(
           "info",
-          `${user.username} logged in with LDAP. Directory groups: ${identity.groups.length ? identity.groups.join(" | ") : "none"}.`,
+          `${user.username} logged in with LDAP. Directory groups: ${identity.groups.length ? identity.groups.join(" | ") : "none"}.${
+            identity.groupsLeftOut && identity.groupsLeftOut.length
+              ? ` Left out, having no ${config().groupNameAttribute} (LDAP_GROUP_NAME_ATTRIBUTE): ${identity.groupsLeftOut.join(" | ")}.`
+              : ""
+          }`,
           "Ldap",
           req
         );

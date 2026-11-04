@@ -10,7 +10,7 @@ const missions = require("../../../../../API/permissions/missions");
 const bindings = require("../../../../../API/permissions/bindings");
 const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
 const { invalidate, userPrincipal, externalPrincipal } = require("../../../../../API/permissions/principal");
-const { AuthGroup, AuthGroupMember, AuthIdentity } = require("../../../../../API/permissions/models");
+const { AuthGroup, AuthGroupMember, AuthIdentity, AuthMeta } = require("../../../../../API/permissions/models");
 const Sequelize = require("sequelize");
 const { User } = require("../../Users/models/user");
 const providers = require("../../../../../API/permissions/providers");
@@ -283,10 +283,15 @@ router.get("/effective", manage, async (req, res) => {
       const account = owner && (await User.findOne({ where: { id: owner.user_id }, attributes: ["username"], raw: true }));
       if (account) note = `MMGIS account '${account.username}' signs in as this person, and its own grants (see People) add to what's shown here.`;
       else {
-        const taken = await providers.usernameTaken(providers.relinkUsername(provider, String(req.query.username)));
+        const taken = await // New accounts are named by the directory, so an alias typed here (mail, UPN) checks the real name
+        providers.usernameTaken(target.username || providers.relinkUsername(provider, String(req.query.username)));
         const holder = taken && (await User.findOne({ where: { id: taken.id }, attributes: ["id", "username"], raw: true }));
         const linked = holder && (await AuthIdentity.findOne({ where: { user_id: holder.id, provider }, raw: true }));
-        if (linked)
+        const relink = holder && (await AuthMeta.findOne({ where: { key: providers.relinkKey(provider, holder.id) }, raw: true }));
+        const pending = relink && relink.value && Date.parse(relink.value.expires_at) > Date.now() && (!relink.value.subject || relink.value.subject === target.subject);
+        if (pending)
+          note = `A relink is pending: this person's next sign-in takes over account '${holder.username}', and its own grants (see People) add to what's shown here.`;
+        else if (linked)
           note = `Account '${holder.username}' is linked to a different ${provider} entry that had this username, so this person's sign-in is refused. Don't relink it to them if that entry still exists (the name was reused); the server log at their sign-in says which. What's shown leaves out that account's own grants.`;
         else if (holder)
           note = `Account '${holder.username}' already has this username, so this person's ${provider} sign-in is refused until that account is relinked (People > Allow relink) or deleted. What's shown leaves out that account's own grants.`;
@@ -295,7 +300,7 @@ router.get("/effective", manage, async (req, res) => {
     const principal = req.query.provider
       ? await externalPrincipal({
           provider: String(req.query.provider),
-          username: String(req.query.username || ""),
+          username: String(req.query.username || "").trim(),
           // One group per line; a line with "=" is one DN, other lines may list names separated by commas
           groups:
             reported ||

@@ -120,6 +120,12 @@ test.describe('LDAP escaping', () => {
         const providers = require('../../../../../API/permissions/providers');
         expect(providers.groupNameProblem('ldap', 'cn=science-team,ou=groups,dc=x')).toMatch(/not their DN/);
         expect(providers.groupNameProblem('ldap', 'science-team')).toBeNull();
+        // LDAP_GROUP_NAME_ATTRIBUTE=dn reports groups by DN, as when it's unset
+        process.env.LDAP_GROUP_NAME_ATTRIBUTE = 'dn';
+        expect(ldap.groupName('CN=Data-Admins,OU=Groups,DC=x')).toBe('cn=data-admins,ou=groups,dc=x');
+        // A DN saved in another form (e.g. by an older MMGIS process) matches nobody, so it's flagged
+        expect(providers.groupNameProblem('ldap', 'CN=Data-Admins,OU=Groups,DC=x')).toMatch(/reports it as cn=data-admins,ou=groups,dc=x/);
+        expect(providers.groupNameProblem('ldap', 'cn=data-admins,ou=groups,dc=x')).toBeNull();
       } finally {
         if (savedProviders === undefined) delete process.env.AUTH_PROVIDERS;
         else process.env.AUTH_PROVIDERS = savedProviders;
@@ -141,7 +147,7 @@ test.describe('LDAP login', () => {
   test('search mode: service account finds the person, their password is checked by binding as them', async () => {
     const log = [];
     const id = await authenticate('alice', 'right', config(base), fakeClient([alice], log));
-    expect(id).toEqual({ subject: 'e1', username: 'alice', email: 'alice@example.org', groups: ['cn=science-team,ou=groups,dc=example,dc=org', 'cn=ops\\, east,ou=groups,dc=example,dc=org'] });
+    expect(id).toEqual({ subject: 'e1', username: 'alice', email: 'alice@example.org', groups: ['cn=science-team,ou=groups,dc=example,dc=org', 'cn=ops\\, east,ou=groups,dc=example,dc=org'], groupsLeftOut: [] });
     expect(log).toEqual([`bind ${base.LDAP_BIND_DN}`, `search ${base.LDAP_USER_SEARCH_BASE} (uid=alice)`, `bind ${alice.dn}`, 'unbind']);
   });
 

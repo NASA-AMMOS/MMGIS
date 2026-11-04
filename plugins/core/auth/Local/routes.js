@@ -158,7 +158,7 @@ router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login an
   if (!accountManager)
     await providers.refreshProviderAccounts().catch((err) => {
       siteAccess.setProviderAccounts(true);
-      logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a restart.", "signup", req, err);
+      logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a check succeeds (at the next sign-up attempt, account deletion or restart).", "signup", req, err);
     });
   const selfSignup = siteAccess.selfSignupAllowed();
   if (!accountManager && !selfSignup) {

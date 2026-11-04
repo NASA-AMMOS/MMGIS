@@ -396,14 +396,15 @@ async function reportedGroups(providerId, username) {
   const target = await withTimeout(p.impl.findSubject(relinkUsername(providerId, username)), "findSubject(username)", lookupTimeout(p));
   if (!target) return target;
   const found = await withTimeout(p.impl.lookup(target.subject), "lookup(subject)", lookupTimeout(p));
-  return found ? { subject: target.subject, groups: found.groups || [] } : found;
+  return found ? { subject: target.subject, username: found.username, groups: found.groups || [] } : found;
 }
 
 // Why a saved group name can never match what the provider now reports (e.g. after a setting changed its form), or null
 function groupNameProblem(providerId, name) {
   try {
-    groupName(providerId, name);
-    return null;
+    const reported = groupName(providerId, name);
+    // e.g. written by an older MMGIS process, which didn't put names in this form
+    return reported === name ? null : `It's saved as ${name}, but ${providerId} reports it as ${reported}.`;
   } catch (err) {
     return err.message;
   }
@@ -898,11 +899,12 @@ function logoutUrl(id) {
 }
 
 // Per address. Only wrong credentials count (a 401, or res.locals.loginFailed), so malformed
-// requests, refused account links and directory outages can't lock out everyone behind one address
+// requests, refused account links and directory outages can't lock out everyone behind one address,
+// and the ceiling is 10x the per-account one so colleagues' typos behind one NAT or VPN don't either
 const providerLimiter = () =>
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    limit: () => 10 * require("../../scripts/rateLimiters").failedLoginLimit(),
     skipSuccessfulRequests: true,
     requestWasSuccessful: (req, res) => res.statusCode !== 401 && !res.locals.loginFailed,
     message: { status: "failure", message: "Too many attempts. Try again in 15 minutes." },
@@ -926,7 +928,7 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   refreshProviderAccounts().catch((err) => {
     if (/relation "auth_identities" does not exist/.test(err.message)) return;
     siteAccess.setProviderAccounts(true);
-    logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a restart.", "AuthProviders", null, err);
+    logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a check succeeds (at the next sign-up attempt, account deletion or restart).", "AuthProviders", null, err);
   });
   warnUnmatchableGroups().catch((err) => {
     // A new database gets its tables after this runs, and then has no groups to check

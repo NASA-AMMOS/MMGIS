@@ -5,9 +5,12 @@ const apilimiter = rateLimit({
   max: 3000, // limit each IP to 3000 requests per windowMs
 });
 
+// Per address; only wrong credentials count, so people sharing one NAT or VPN can all sign in
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (req, res) => res.statusCode !== 401 && !res.locals.loginFailed,
   message: { status: 'failure', message: 'Too many attempts. Try again in 15 minutes.' },
 });
 
@@ -105,4 +108,4 @@ const computeLimiter = rateLimit({
   message: { status: 'failure', message: 'Rate limit exceeded.' },
 });
 
-module.exports = { apilimiter, authLimiter, accountLimiter, accountLimiterFor, resetFailedLogins, accountKey, signupLimiter, resetLimiter, computeLimiter };
+module.exports = { apilimiter, authLimiter, failedLoginLimit, accountLimiter, accountLimiterFor, resetFailedLogins, accountKey, signupLimiter, resetLimiter, computeLimiter };

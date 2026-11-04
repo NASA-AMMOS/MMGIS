@@ -59,7 +59,7 @@ Instance type | string enum | default `production`
 
 #### `TRUST_PROXY=`
 
-Which proxies in front of MMGIS to trust for the client's IP address (`X-Forwarded-For`), used by rate limits and logs. A number trusts that many proxies, `false` trusts none and uses the direct connection's address, and other values (such as `loopback` or a list of addresses) are passed to Express's `trust proxy` setting. Set it to `false` when browsers reach MMGIS directly, or a client can pick its own IP and get around per-IP rate limits.
+Which proxies in front of MMGIS to trust for the client's IP address (`X-Forwarded-For`), used by rate limits and logs. A number trusts that many proxies, `false` trusts none and uses the direct connection's address, and other values (such as `loopback` or a list of addresses) are passed to Express's `trust proxy` setting. Set it to `false` when browsers reach MMGIS directly, or a client can pick its own IP and get around per-IP rate limits. Everyone behind one NAT, VPN or proxy shares an address, and so shares its failed-login budget: 10 wrong passwords per 15 minutes on the local form, and 10 × `AUTH_MAX_FAILED_LOGINS` on a provider's.
 
 **Type**: number, boolean or string | **Default**: `1`
 
@@ -143,7 +143,7 @@ Test-specific database password. Required by test infrastructure for least-privi
 
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
-Whether visitors may create their own local accounts. With `SITE_ACCESS=required`, only when this is true. With `SITE_ACCESS=optional`, visitors may always sign up while `local` is the only provider; once another provider such as `ldap` or `proxy` is enabled, or any account is linked to one (even while it's out of `AUTH_PROVIDERS`; after deleting the last such account, restart to reopen sign-up), only when this is true, so nobody can register a directory user's username before that person first signs in | boolean | default `false`
+Whether visitors may create their own local accounts. With `SITE_ACCESS=required`, only when this is true. With `SITE_ACCESS=optional`, visitors may always sign up while `local` is the only provider; once another provider such as `ldap` or `proxy` is enabled, or any account is linked to one (even while it's out of `AUTH_PROVIDERS`; it reopens once the last such account is deleted), only when this is true, so nobody can register a directory user's username before that person first signs in | boolean | default `false`
 
 #### `AUTH_MAX_FAILED_LOGINS=`
 
@@ -284,7 +284,7 @@ Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username
 
 #### `LDAP_GROUP_NAME_ATTRIBUTE=`
 
-Report groups found under `LDAP_GROUP_SEARCH_BASE` by this attribute (e.g. `cn`) instead of their DN. Only use it when nobody untrusted can create groups under that base, since groups with the same name become one MMGIS group. Has no effect without `LDAP_GROUP_SEARCH_BASE` (groups read from `LDAP_GROUPS_ATTRIBUTE` are always full DNs) | string | default `''` (the DN)
+Report groups found under `LDAP_GROUP_SEARCH_BASE` by this attribute (e.g. `cn`) instead of their DN. Only use it when nobody untrusted can create groups under that base, since groups with the same name become one MMGIS group. Groups without this attribute are left out (the login log names them), and `dn` means the DN. Has no effect without `LDAP_GROUP_SEARCH_BASE` (groups read from `LDAP_GROUPS_ATTRIBUTE` are always full DNs) | string | default `''` (the DN)
 
 #### `LDAP_TIMEOUT_MS=`
 
