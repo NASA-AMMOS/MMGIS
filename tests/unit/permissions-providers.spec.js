@@ -798,6 +798,45 @@ test.describe('provider rechecks', () => {
     }
   });
 
+  test('a sign-in whose first subject value changed reuses the link made under another of its values', async () => {
+    const realLocate = ldap.locate;
+    try {
+      const m = fakeModels({
+        users: [{ id: 9098, username: 'dave' }],
+        links: [{ provider: 'ldap', subject: 'dave@example.org', username: 'dave', user_id: 9098 }],
+      });
+      const dave = { provider: 'ldap', subject: 'dave.alias@example.org', subjects: ['dave.alias@example.org', 'dave@example.org'], dn: 'uid=dave,ou=people', username: 'dave', groups: [] };
+      ldap.locate = async () => ({ dn: 'uid=dave,ou=people' });
+      expect((await providers.linkIdentity(dave, m)).id).toBe(9098);
+      expect(m.User.rows).toHaveLength(1);
+      // Another person's entry given dave's old value as an alias
+      await expect(providers.linkIdentity({ ...dave, username: 'carol', dn: 'uid=carol,ou=people' }, m)).rejects.toThrow(/also has 'dave@example.org'/);
+      // Found elsewhere, so it isn't this entry's link
+      ldap.locate = async () => ({ dn: 'uid=mallory,ou=people' });
+      await expect(providers.linkIdentity({ ...dave, dn: 'uid=dave2,ou=people' }, m)).rejects.toThrow(/different ldap entry/);
+      expect(m.User.rows).toHaveLength(1);
+    } finally {
+      ldap.locate = realLocate;
+    }
+  });
+
+  test('a recheck matching a leaver\'s value as another person\'s alias treats the account as gone', async () => {
+    const realPermanent = ldap.subjectPermanent;
+    try {
+      ldap.subjectPermanent = () => false;
+      ldap.lookup = async (subject) => ({ subject, current: subject, first: 'carol@example.org', dn: 'uid=carol,ou=people', username: 'carol', groups: [] });
+      const m = fakeModels({
+        users: [{ id: 9099, username: 'alice' }],
+        links: [{ provider: 'ldap', subject: 'alice@example.org', username: 'alice', user_id: 9099 }],
+      });
+      expect(await providers.stillLinked(9099, 'ldap', m, true, true)).toBe('missing');
+      ldap.lookup = async (subject) => ({ subject, current: subject, first: 'alias@example.org', dn: 'uid=alice,ou=people', username: 'alice', groups: [] });
+      expect(await providers.stillLinked(9099, 'ldap', m, true, true)).not.toBe('missing');
+    } finally {
+      ldap.subjectPermanent = realPermanent;
+    }
+  });
+
   test('a leaver found again after a subject setting change keeps its leaver warning', async () => {
     const realSetting = ldap.subjectSetting;
     try {

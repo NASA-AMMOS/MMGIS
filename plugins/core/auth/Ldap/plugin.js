@@ -466,6 +466,8 @@ async function authenticate(username, password, c = config(), createClient = new
     return {
       subject,
       dn: entry.dn,
+      // Every value, so a link made under one that's no longer first (e.g. reordered mail values) still matches
+      ...(!PERMANENT_SUBJECT.test(c.subjectAttribute) ? { subjects: values(entry, c.subjectAttribute).map(String) } : {}),
       username: name != null ? String(name) : username,
       email: email != null ? String(email) : undefined,
       // The directory's username, as at recheck, so group filters don't depend on how it was typed
@@ -526,6 +528,7 @@ async function lookup(subject, c = config(), createClient = newClient) {
       subject,
       // The entry's own value, which the directory may have matched without case
       current: values(entry, c.subjectAttribute).map(String).includes(String(subject)) ? subject : subjectOf(entry, c),
+      first: subjectOf(entry, c),
       dn: entry.dn,
       username: name != null ? String(name) : undefined,
       email: email != null ? String(email) : undefined,
@@ -594,9 +597,6 @@ async function locate(subject, c = config(), createClient = newClient) {
   }
 }
 
-// The entry a username belongs to, read with the service account, so an admin can check who a
-// relink will go to: { subject, dn }, null when no single entry has it, undefined without a
-// service account; throws when the directory can't be reached
 // A value that isn't a permanent ID (e.g. cn) may be another entry's too
 function sharedSubject(client, c, subject) {
   return client
@@ -609,6 +609,9 @@ function sharedSubject(client, c, subject) {
     });
 }
 
+// The entry a username belongs to, read with the service account, so an admin can check who a
+// relink will go to: { subject, dn }, null when no single entry has it, undefined without a
+// service account; throws when the directory can't be reached
 async function findSubject(username, c = config(), createClient = newClient) {
   if (!c.bindDn || !c.searchBase) return undefined;
   const client = createClient(c);
@@ -808,6 +811,10 @@ module.exports = {
       const c = config();
       const name = c.displayName;
       const body = req.body || {};
+      if (typeof body.username === "string" && body.username.length > MAX_USERNAME) {
+        ctx.logger("info", `Refused ${name} login: the username is ${body.username.length} characters, more than ${MAX_USERNAME}.`, "Ldap");
+        return res.status(400).send({ status: "failure", message: `Usernames can be at most ${MAX_USERNAME} characters.` });
+      }
       if (!validUsername(body.username) || typeof body.password !== "string" || body.password === "")
         return res.status(400).send({ status: "failure", message: "Enter your username and password." });
       // NFKC, so fullwidth look-alikes the directory treats as the same person are also one account to MMGIS

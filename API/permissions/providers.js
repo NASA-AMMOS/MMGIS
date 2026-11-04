@@ -157,6 +157,7 @@ function normalizeIdentity(provider, raw) {
     groups,
     session: raw.session != null ? String(raw.session) : null,
     ...(typeof raw.dn === "string" && raw.dn !== "" ? { dn: raw.dn } : {}),
+    ...(Array.isArray(raw.subjects) ? { subjects: raw.subjects.map(String).filter((v) => v !== "") } : {}),
     ...(Array.isArray(raw.strictGroups)
       ? { strictGroups: raw.strictGroups.filter((g) => typeof g === "string" && g !== "") }
       : {}),
@@ -625,6 +626,18 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     where: { provider: identity.provider, subject: identity.subject },
     raw: true,
   });
+  // Linked under another of this entry's values, which still finds only this entry
+  if (!link && identity.dn && identity.subjects && identity.subjects.length > 1 && m.AuthIdentity.findAll) {
+    const others = identity.subjects.filter((v) => v !== identity.subject);
+    const other = (await m.AuthIdentity.findAll({ where: { provider: identity.provider }, attributes: ["user_id", "subject", "username"], raw: true })).find((l) => others.includes(l.subject));
+    // Someone else's old value may be this entry's alias now (e.g. a leaver's mail)
+    if (other && !sameUsername(other.username, identity.username))
+      throw new LinkError(
+        `'${identity.username}' (${identity.dn}) also has '${other.subject}', the ${identity.provider} subject of account ${other.user_id} ('${other.username}'). If it's the same person after a rename, allow a relink on account ${other.user_id}; if it's someone else, remove that value from their entry or delete account ${other.user_id} (giving its drawings to whoever should keep them).`
+      );
+    const at = other ? await locateAnywhere(identity.provider, other.subject).catch(() => undefined) : undefined;
+    if (at && at.dn && sameFolded(at.dn, identity.dn)) return linkIdentity({ ...identity, subject: other.subject, subjects: undefined }, m, retried);
+  }
   // Under another subject setting the same value can belong to a different entry
   const linkProvider = link && getProvider(identity.provider);
   if (linkProvider && !subjectFits(linkProvider, link)) {
@@ -895,7 +908,10 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
       // Under another subject setting the stored value may now name a different entry
       found = subjectFits(p, link) ? await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", lookupTimeout(p)) : null;
       // Matched only without case (e.g. a newcomer given a leaver's cn re-cased): a sign-in from it is refused too
-      if (found && found.current && found.current !== link.subject && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent()) found = null;
+      const permanent = typeof p.impl.subjectPermanent !== "function" || p.impl.subjectPermanent();
+      if (found && found.current && found.current !== link.subject && !permanent) found = null;
+      // Matched by a value that isn't first (e.g. an alias): only under the same directory username, so another entry's alias doesn't keep a leaver in
+      if (found && found.first && found.first !== link.subject && !permanent && !sameUsername(found.username, link.username)) found = null;
     } catch (err) {
       logger(
         "warn",
@@ -972,7 +988,6 @@ function fillsOnlyAtSignIn(providerId) {
 
 // Fills a new or repointed group of providerId from the accounts already linked to it; resolves
 // undefined when rechecks are off (AUTH_RECHECK_MINUTES=0) or that provider can't look accounts up
-
 function fillGroups(providerId, m = accountModels()) {
   const p = siteAccess.hasProvider(providerId) && getProvider(providerId);
   if (recheckMs() === 0 || !p || typeof p.impl.lookup !== "function") return Promise.resolve(undefined);
