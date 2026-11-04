@@ -241,17 +241,32 @@ router.get("/effective", manage, async (req, res) => {
       if (!String(req.query.username || "").trim())
         throw new bindings.BindingError("Enter a username.");
     }
+    // With no groups typed, ask the provider which groups it reports for that person now
+    let reported;
+    if (req.query.provider && !String(req.query.groups || "").trim()) {
+      const provider = String(req.query.provider);
+      const username = String(req.query.username).trim();
+      try {
+        reported = await providers.reportedGroups(provider, username);
+      } catch (err) {
+        logger("error", `Couldn't look up '${username}' at ${provider} to check their access.`, "access", req, err);
+        throw new bindings.BindingError(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Enter their groups instead.`);
+      }
+      if (reported === null) throw new bindings.BindingError(`${provider} has no single entry with the username '${username}', or it's disabled.`);
+    }
     const principal = req.query.provider
       ? await externalPrincipal({
           provider: String(req.query.provider),
           username: String(req.query.username || ""),
           // One group per line; a line with "=" is one DN, other lines may list names separated by commas
-          groups: String(req.query.groups || "")
-            .split(/[\n;]/)
-            .flatMap((line) => (line.includes("=") ? [line] : line.split(",")))
-            .map((g) => g.trim())
-            .filter((g) => g)
-            .map((g) => providers.groupName(String(req.query.provider), g)),
+          groups:
+            reported ||
+            String(req.query.groups || "")
+              .split(/[\n;]/)
+              .flatMap((line) => (line.includes("=") ? [line] : line.split(",")))
+              .map((g) => g.trim())
+              .filter((g) => g)
+              .map((g) => providers.groupName(String(req.query.provider), g)),
         })
       : await userPrincipal(parseInt(req.query.user_id));
     if (!principal) throw new bindings.BindingError("User not found.");
@@ -265,7 +280,7 @@ router.get("/effective", manage, async (req, res) => {
       : [];
     res.send({
       status: "success",
-      body: { ...(await summarize(principal)), bindings: detailed, groups },
+      body: { ...(await summarize(principal)), bindings: detailed, groups, reported },
     });
   } catch (err) {
     fail(res, err, "Failed to get effective access.");

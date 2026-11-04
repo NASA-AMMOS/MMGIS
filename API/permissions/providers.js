@@ -380,6 +380,17 @@ function groupName(providerId, name) {
   }
 }
 
+// The groups the provider reports for a username right now, so an admin can find a group's new name after a
+// move: an array, null when it has no such person, undefined when it can't look people up
+async function reportedGroups(providerId, username) {
+  const p = enabledProviders().find((x) => x.id === providerId);
+  if (!p || typeof p.impl.findSubject !== "function" || typeof p.impl.lookup !== "function") return undefined;
+  const target = await p.impl.findSubject(relinkUsername(providerId, username));
+  if (!target) return target;
+  const found = await withTimeout(p.impl.lookup(target.subject), "lookup(subject)", lookupTimeout(p));
+  return found ? found.groups || [] : found;
+}
+
 // Why a saved group name can never match what the provider now reports (e.g. after a setting changed its form), or null
 function groupNameProblem(providerId, name) {
   try {
@@ -600,13 +611,15 @@ async function syncGroups(userId, identity, m = accountModels()) {
         .map((id) => groups.find((g) => g.id === id))
         .map((g) => `'${g.external_name}'${g.name ? ` (MMGIS group '${g.name}')` : ""}`)
         .join(", ");
+    const used = new Set(groups.map((g) => g.external_name));
+    const unmatched = [...reported].filter((g) => !used.has(g)).slice(0, 10);
     // A name in a form the provider no longer reports (e.g. a DN after switching to plain names) isn't a rename
     const problem = remove.map((id) => groups.find((g) => g.id === id)).map((g) => groupNameProblem(identity.provider, g.external_name)).find(Boolean);
     const hint = !remove.length || !identity.subject
       ? ""
       : problem
         ? ` That group's name can never match what ${identity.provider} reports now: ${problem}`
-        : " Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.";
+        : ` Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.${unmatched.length ? ` Groups reported now that no MMGIS group uses: ${unmatched.map((g) => `'${g}'`).join(", ")}.` : ""}`;
     logger(
       "info",
       `Auth provider '${identity.provider}': ${await who(m, userId)}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}.${hint}`,
@@ -937,6 +950,7 @@ module.exports = {
   missingKey,
   groupName,
   groupNameProblem,
+  reportedGroups,
   warnUnmatchableGroups,
   relinkUsername,
   resetFailures,

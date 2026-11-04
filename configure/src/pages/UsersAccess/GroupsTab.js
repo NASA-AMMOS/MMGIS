@@ -26,7 +26,7 @@ export default function GroupsTab({ ctx }) {
   return (
     <>
           <div className={c.pane}>
-            <div className={`${c.bar} ${c.toolbarBox}`}>
+            <div className={`${c.bar} ${c.toolbarBox}`} style={{ flexWrap: "wrap" }}>
               <TextField size="small" className={c.field} placeholder="New group name" value={newGroup.name} onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} />
               {providers.length > 0 && (
                 <Select size="small" className={c.field} value={newGroup.source} onChange={(e) => setNewGroup({ ...newGroup, source: e.target.value })}>

@@ -39,7 +39,7 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
       <DialogTitle>Check a provider user</DialogTitle>
       <DialogContent>
         <div className={c.hint} style={{ marginBottom: 12 }}>
-          Enter a username and the group names their login provider sends, one per line (LDAP group DNs as they are), to see the access they would get.
+          Enter a username and the group names their login provider sends, one per line (LDAP group DNs as they are), to see the access they would get. Leave the groups empty to ask the provider which groups it reports for that person now (LDAP needs LDAP_BIND_DN for this), e.g. to find a group's new DN after it was moved.
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
@@ -51,6 +51,15 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
         {error && <div className={c.hint} style={{ color: "#a8572e", marginTop: 12 }}>{error}</div>}
         {result && (
           <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>
+            {result.reported !== undefined && (
+              <div style={{ marginBottom: 8 }}>
+                <b>Groups {provider.toUpperCase()} reports now:</b>
+                {result.reported.length ? result.reported.map((g) => <div key={g} style={{ fontFamily: "monospace", fontSize: 13, wordBreak: "break-all" }}>{g}</div>) : " none"}
+              </div>
+            )}
+            {result.reported === undefined && !groupClaims.trim() && (
+              <div className={c.hint}>{provider.toUpperCase()} can't look people up here, so this checked no groups. Enter their groups to check those.</div>
+            )}
             <div><b>Site role:</b> <RoleBadge role={result.role || "user"} roles={roles} /></div>
             <div><b>Can view:</b> {viewing === null ? "All missions" : viewing && viewing.length ? viewing.join(", ") : "No missions"}</div>
             {["mission.config.edit", "mission.layer.edit"].map((cap) => {
@@ -128,7 +137,7 @@ export function GroupPanel({ group, ctx }) {
           <Typography className={c.sectionTitle}>Members ({group.members.length})</Typography>
           <div className={c.muted}>
             {group.members.length === 0
-              ? "None yet: people show up here as they sign in or are rechecked."
+              ? "None right now: people show up here as they sign in or are rechecked. If it had members before, the group may have been renamed or moved at the provider; Check a provider user, with a former member's username and no groups, lists the groups reported for them now."
               : group.members.map((m) => m.username).sort((a, b) => a.localeCompare(b)).join(", ")}
           </div>
         </div>
