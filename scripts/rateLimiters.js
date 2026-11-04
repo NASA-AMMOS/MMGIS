@@ -8,7 +8,32 @@ const apilimiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
-  message: { status: 'failure', message: 'Too many attempts, try again later.' },
+  message: { status: 'failure', message: 'Too many attempts. Try again in 15 minutes.' },
+});
+
+const failedLoginLimit = () => {
+  const n = parseInt(process.env.AUTH_MAX_FAILED_LOGINS, 10);
+  return Number.isInteger(n) && n > 0 ? n : 5;
+};
+
+// "CORP\\Alice" and "alice@corp.example.org" count as "alice"
+const accountKey = (req) =>
+  String(req.body.username)
+    .trim()
+    .toLowerCase()
+    .replace(/^[^\\]*\\/, '')
+    .replace(/@.*$/, '');
+
+// Failed logins per account, from any address, so MMGIS stops before a directory locks the account.
+// A route that answers a failed login with 200 sets res.locals.loginFailed.
+const accountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: () => failedLoginLimit(),
+  keyGenerator: accountKey,
+  skip: (req) => !(req.body && typeof req.body.username === 'string' && req.body.username.trim() !== ''),
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (req, res) => res.statusCode < 400 && !res.locals.loginFailed,
+  message: { status: 'failure', message: 'Too many failed sign-ins for this account. Try again in 15 minutes.' },
 });
 
 // Account admins creating accounts through /signup are not limited
@@ -39,4 +64,4 @@ const computeLimiter = rateLimit({
   message: { status: 'failure', message: 'Rate limit exceeded.' },
 });
 
-module.exports = { apilimiter, authLimiter, signupLimiter, resetLimiter, computeLimiter };
+module.exports = { apilimiter, authLimiter, accountLimiter, signupLimiter, resetLimiter, computeLimiter };

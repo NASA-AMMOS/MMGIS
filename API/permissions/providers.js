@@ -396,14 +396,14 @@ const providerLimiter = () =>
     windowMs: 15 * 60 * 1000,
     max: 10,
     skipSuccessfulRequests: true,
-    message: { status: "failure", message: "Too many attempts, try again later." },
+    message: { status: "failure", message: "Too many attempts. Try again in 15 minutes." },
   });
 
 // Mounts GET /api/auth (the login entry points) and each enabled provider's routes at /api/auth/<id>
 function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root }) {
   if (typeof root === "string") mountedRoot = root;
   const list = express.Router();
-  const { apilimiter } = require("../../scripts/rateLimiters");
+  const { apilimiter, accountLimiter } = require("../../scripts/rateLimiters");
   list.get("/", apilimiter, authorize.public("lists the enabled login providers"), (req, res) => {
     res.send({
       status: "success",
@@ -427,7 +427,7 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
       completeLogin: (req, raw) => completeLogin(req, normalizeIdentity(p.id, raw)),
       sessionGroups: (req, username) => leadGroups(username, req.leadGroupName),
     });
-    app.use(prefix, providerLimiter(), registerRouter(prefix, router));
+    app.use(prefix, providerLimiter(), accountLimiter, registerRouter(prefix, router));
   });
 }
 

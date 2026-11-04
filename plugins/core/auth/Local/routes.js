@@ -19,6 +19,7 @@ const bcrypt = require("bcryptjs");
 const logger = require("../../../../API/logger");
 const {
   authLimiter,
+  accountLimiter,
   signupLimiter,
   resetLimiter,
 } = require("../../../../scripts/rateLimiters");
@@ -318,7 +319,7 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
 /**
  * User login
  */
-router.post("/login", authLimiter, authorize.public("login and account self-service"), function (req, res) {
+router.post("/login", authLimiter, accountLimiter, authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;
@@ -435,6 +436,7 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
     })
       .then((user) => {
         if (!user) {
+          res.locals.loginFailed = true;
           res.send({
             status: "failure",
             message: "Invalid username or password.",
@@ -483,6 +485,7 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
                 });
               return;
             } else {
+              res.locals.loginFailed = true;
               res.send({
                 status: "failure",
                 message: "Invalid username or password.",

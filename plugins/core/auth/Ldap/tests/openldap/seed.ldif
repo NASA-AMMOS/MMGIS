@@ -1,4 +1,4 @@
-# Test directory for tests/e2e/ldap. Passwords are test-only.
+# Test directory for the LDAP provider tests (../ldap-provider.spec.js). Passwords are test-only.
 dn: ou=people,dc=example,dc=org
 objectClass: organizationalUnit
 ou: people

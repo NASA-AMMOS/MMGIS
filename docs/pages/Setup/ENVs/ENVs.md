@@ -145,6 +145,10 @@ Test-specific database password. Required by test infrastructure for least-privi
 
 If SITE_ACCESS=required and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
 
+#### `AUTH_MAX_FAILED_LOGINS=`
+
+Failed logins allowed for one account per 15 minutes, counted across all addresses and login forms (local and username/password providers such as LDAP). Further attempts for that account are refused until the window passes. With a directory behind MMGIS, keep it below the directory's account lockout threshold, so typos and password guessing are stopped by MMGIS before the directory locks the account. Separately, each address is limited to 10 failed logins per 15 minutes | number | default `5`
+
 #### `AUTH_LOCAL_LOGIN=`
 
 Which local accounts may log in with a username and password. `all`: any local account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin), for sites such as `AUTH_PROVIDERS=["proxy","local"]` where everyone else logs in through the external provider. `admins` also turns off visitor sign-up, whatever `AUTH_LOCAL_ALLOW_SIGNUP` says. Any other value stops startup | string | default `all`

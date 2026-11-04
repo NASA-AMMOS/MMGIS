@@ -145,7 +145,6 @@ const AD_REASONS = {
 // retrying at every login would lock the account (Active Directory locks after a few bad binds)
 const SERVICE_RETRY_MS = 5 * 60 * 1000;
 const rejectedServiceAccounts = new Map();
-const serviceKey = (c) => crypto.createHash("sha256").update(`${c.url}\n${c.bindDn}\n${c.bindPassword}`).digest("hex");
 
 // Adds what to check to a connection or search error, for the server log
 function explain(err) {
@@ -199,12 +198,14 @@ async function bindAs(client, dn, password) {
 }
 
 async function bindService(client, c) {
-  const key = serviceKey(c);
-  if (Date.now() - (rejectedServiceAccounts.get(key) || 0) < SERVICE_RETRY_MS)
+  const key = `${c.url}\n${c.bindDn}`;
+  const rejected = rejectedServiceAccounts.get(key);
+  // A changed LDAP_BIND_PASSWORD is tried straight away
+  if (rejected && rejected.password === c.bindPassword && Date.now() - rejected.at < SERVICE_RETRY_MS)
     throw new Error("The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD; MMGIS retries it at most every 5 minutes so the account isn't locked.");
   const bind = await bindAs(client, c.bindDn, c.bindPassword);
   if (!bind.ok) {
-    rejectedServiceAccounts.set(key, Date.now());
+    rejectedServiceAccounts.set(key, { at: Date.now(), password: c.bindPassword });
     throw new Error(`The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD (${bind.reason}). MMGIS won't retry it for 5 minutes so the account isn't locked.`);
   }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts an OpenLDAP container for tests/e2e/ldap on ports 3389 (ldap, StartTLS) and 3636 (ldaps),
+# Starts an OpenLDAP container for the LDAP provider tests on ports 3389 (ldap, StartTLS) and 3636 (ldaps),
 # with a fresh test CA (written to $OUT/ca.pem) because the image's own certificate has expired.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"

@@ -40,6 +40,8 @@ tests/
 └── test-db-clean.js            # Database cleanup utility (npm run test:clean)
 ```
 
+A plugin's own tests and fixtures live inside the plugin, in `plugins/<container>/<kind>/<Name>/tests/` (for example `plugins/core/auth/Ldap/tests/`), so the plugin stays self-contained. Playwright picks up `plugins/**/tests/*.spec.js`. `tests/` is for tests that span several plugins or the core.
+
 ## Prerequisites
 
 - **PostgreSQL** with **PostGIS** extension

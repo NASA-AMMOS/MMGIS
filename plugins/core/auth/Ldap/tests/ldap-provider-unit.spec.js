@@ -1,13 +1,13 @@
 /**
  * Unit tests for the LDAP login provider (plugins/core/auth/Ldap).
- * The directory is a fake client; tests/e2e/ldap runs against a real OpenLDAP.
+ * The directory is a fake client; ldap-provider.spec.js runs against a real OpenLDAP.
  */
 
 import { test, expect } from '@playwright/test';
 const path = require('path');
 const { InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError } = require('ldapts');
 
-const ldap = require(path.resolve(__dirname, '../../plugins/core/auth/Ldap/plugin.js'));
+const ldap = require(path.resolve(__dirname, '../plugin.js'));
 const { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, selfCheck, explain, PasswordExpiredError } = ldap._internal;
 
 const base = {

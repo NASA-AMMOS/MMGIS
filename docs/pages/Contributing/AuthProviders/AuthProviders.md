@@ -308,7 +308,7 @@ Declare both with `ctx.authorize.public(...)`, set `"login_path": "/login"`, and
 - **Coexistence:** local accounts still log in with your provider enabled.
 - **Removal:** take the id out of `AUTH_PROVIDERS` and restart: its routes return 404 and its sessions and tokens stop working. Its accounts, groups and grants are kept.
 - **Websockets:** scripted websocket clients must send an `Origin` header, or MMGIS closes the connection (the reason is only in the server log).
-- **Unit tests:** see `tests/unit/permissions-providers.spec.js` for loading a provider from a temporary plugins folder, and `tests/unit/ldap-provider.spec.js` for testing against a fake backend.
+- **Unit tests:** see `tests/unit/permissions-providers.spec.js` for loading a provider from a temporary plugins folder, and `plugins/core/auth/Ldap/tests/ldap-provider-unit.spec.js` for testing against a fake backend. Keep a provider's tests and fixtures in its own `tests/` folder (`plugins/core/auth/<Name>/tests/`), as the Ldap and Proxy providers do; `plugins/**/tests/*.spec.js` is picked up by Playwright.
 
 Redirect flows are easiest to test with a production build (`npm run build`, then `NODE_ENV=production npm start`). In development the map is served on a different port (PORT+1) from the API, so redirects back to `/` land on the API port.
 

@@ -2,13 +2,13 @@ import { test, expect, request as newRequest } from '@playwright/test';
 
 /**
  * E2E tests for the LDAP login provider against a real OpenLDAP directory
- * (tests/e2e/ldap/openldap/start.sh), with AUTH_PROVIDERS=["ldap","local"].
+ * (openldap/start.sh next to this file), with AUTH_PROVIDERS=["ldap","local"].
  *
- *   tests/e2e/ldap/openldap/start.sh /tmp/ldap
+ *   plugins/core/auth/Ldap/tests/openldap/start.sh /tmp/ldap
  *   SITE_ACCESS=optional AUTH_PROVIDERS='["ldap","local"]' LDAP_URL=ldaps://localhost:3636 \
  *   LDAP_TLS_CA=/tmp/ldap/ca.pem LDAP_BIND_DN=cn=mmgis-svc,ou=services,dc=example,dc=org \
  *   LDAP_BIND_PASSWORD=svc-test-password LDAP_USER_SEARCH_BASE=ou=people,dc=example,dc=org \
- *   LDAP_GROUP_SEARCH_BASE=ou=groups,dc=example,dc=org npx playwright test tests/e2e/ldap
+ *   LDAP_GROUP_SEARCH_BASE=ou=groups,dc=example,dc=org npx playwright test plugins/core/auth/Ldap/tests
  *
  * Skipped unless the ldap provider is enabled.
  */
@@ -135,6 +135,20 @@ test.describe('LDAP login provider', () => {
     const res = await (await adminCtx.post('/api/accounts/generateResetPasswordLink', { data: { id: account.id } })).json();
     expect(res.status).toBe('failure');
     expect(res.message).toMatch(/signs in with .*no MMGIS password/);
+  });
+
+  test('failed logins are limited per account, whatever address or domain prefix they come with', async () => {
+    const probe = `lockout_probe_${Date.now()}`;
+    for (let i = 0; i < 5; i++) {
+      const ctx = await context();
+      const name = i % 2 ? `CORP\\${probe}` : probe;
+      expect((await ldapLogin(ctx, { username: name, password: 'not-the-password' })).status()).toBe(401); // pragma: allowlist secret
+    }
+    const blocked = await ldapLogin(await context(), { username: probe.toUpperCase(), password: 'not-the-password' }); // pragma: allowlist secret
+    expect(blocked.status()).toBe(429);
+    expect((await blocked.json()).message).toMatch(/this account/);
+    // Other accounts are unaffected
+    expect((await ldapLogin(await context(), { username: bob.username, password: bob.password })).status()).toBe(200);
   });
 
   test('local accounts still log in alongside LDAP', async () => {
