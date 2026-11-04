@@ -94,7 +94,7 @@ jobs:
 
       # Every plugin's tests tagged @unit, wherever the plugin lives
       - name: Run Plugin Unit Tests
-        run: npx playwright test plugins --grep @unit --project=chromium
+        run: npm run test:plugins:unit -- --project=chromium
         env:
           SITE_ACCESS: ${{ matrix.site_access }}
           AUTH_PROVIDERS: local

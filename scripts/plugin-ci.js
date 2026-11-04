@@ -13,10 +13,10 @@
  *   node scripts/plugin-ci.js list                 JSON matrix of every plugin's runs
  *   node scripts/plugin-ci.js run <plugin dir> [variant] [-- playwright args]
  */
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const { spawnSync } = require("child_process");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const PLUGINS = path.join(ROOT, "plugins");
@@ -82,19 +82,29 @@ function readEnv(file) {
   return env;
 }
 
+// Playwright options passed through after "--", e.g. --project=chromium
+const OPTION = /^--[a-z][\w-]*(=[\w.@/:-]+)?$/;
+
 function run(relDir, variant = "", extra = []) {
-  const dir = path.resolve(ROOT, relDir || "");
-  if (!relDir || path.relative(PLUGINS, dir).startsWith("..")) fail("run needs a plugin folder under plugins/");
+  const wanted = path.relative(ROOT, path.resolve(ROOT, relDir || "")).split(path.sep).join("/");
+  const runs = list().filter((r) => r.dir === wanted);
+  if (!runs.length) fail("run needs a plugin folder under plugins/ whose plugin.json has a \"ci\" entry");
+  // Take the folder and variant from the plugin manifests rather than from the command line
+  const picked = runs.find((r) => r.variant === variant);
+  if (!picked) fail(`${wanted} has no ci variant '${variant}' (it has: ${runs.map((r) => r.variant || "(none)").join(", ")})`);
+  const bad = extra.find((a) => !OPTION.test(a));
+  if (bad !== undefined) fail(`'${bad}' isn't a --option or --option=value to pass to Playwright`);
+  const dir = path.join(ROOT, picked.dir);
   const ci = ciOf(dir);
-  if (!ci) fail(`${relDir}/plugin.json has no "ci" entry`);
-  if (!ci.variants.includes(variant)) fail(`${relDir} has no ci variant '${variant}' (it has: ${ci.variants.map((v) => v || "(none)").join(", ")})`);
   const envFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "mmgis-plugin-ci-")), "env");
   fs.writeFileSync(envFile, "");
-  const setup = spawnSync(ci.script, variant ? [variant] : [], { cwd: ROOT, stdio: "inherit", env: { ...process.env, MMGIS_CI_ENV: envFile } });
-  if (setup.status !== 0) fail(`${path.relative(ROOT, ci.script)} ${variant} failed${setup.error ? `: ${setup.error.message}` : ""}`);
+  const setup = spawnSync(ci.script, picked.variant ? [picked.variant] : [], { cwd: ROOT, stdio: "inherit", env: { ...process.env, MMGIS_CI_ENV: envFile } });
+  if (setup.status !== 0) fail(`${path.relative(ROOT, ci.script)} ${picked.variant} failed${setup.error ? ": " + setup.error.message : ""}`);
   const env = readEnv(envFile);
-  console.log(`[plugin-ci] ${relDir}${variant ? ` (${variant})` : ""} with ${Object.keys(env).join(", ") || "no extra ENVs"}`);
-  const tests = spawnSync("npx", ["--no-install", "playwright", "test", path.join(relDir, "tests"), "--grep-invert", "@unit", ...extra], {
+  const label = picked.variant ? `${picked.dir} (${picked.variant})` : picked.dir;
+  console.log(`[plugin-ci] ${label} with ${Object.keys(env).join(", ") || "no extra ENVs"}`);
+  const playwright = require.resolve("@playwright/test/cli");
+  const tests = spawnSync(process.execPath, [playwright, "test", path.join(picked.dir, "tests"), "--grep-invert", "@unit", ...extra], {
     cwd: ROOT,
     stdio: "inherit",
     env: { ...process.env, ...env },
@@ -103,7 +113,7 @@ function run(relDir, variant = "", extra = []) {
 }
 
 const [cmd, ...args] = process.argv.slice(2);
-if (cmd === "list") console.log(JSON.stringify(list()));
+if (cmd === "list") process.stdout.write(`${JSON.stringify(list())}\n`);
 else if (cmd === "run") {
   const dash = args.indexOf("--");
   const pos = dash === -1 ? args : args.slice(0, dash);
