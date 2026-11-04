@@ -100,11 +100,13 @@ router.post("/groups/create", manage, async (req, res) => {
       providers.availableProviders().includes(req.body.source)
         ? req.body.source
         : "local";
+    const external = source !== "local" ? providers.groupName(source, req.body.external_name || name) : null;
+    if (external && external.length > 255) throw new bindings.BindingError("The provider group name can be at most 255 characters.");
     const group = await AuthGroup.create({
       name,
       description: req.body.description || null,
       source,
-      external_name: source !== "local" ? providers.groupName(source, req.body.external_name || name) : null,
+      external_name: external,
     });
     invalidate();
     res.send({ status: "success", body: group });
@@ -132,6 +134,8 @@ router.post("/groups/update", manage, async (req, res) => {
       if (req.body[k] !== undefined) set[k] = req.body[k];
     });
     if (set.external_name != null && group.source !== "local") set.external_name = providers.groupName(group.source, set.external_name);
+    if (set.external_name != null && String(set.external_name).length > 255)
+      throw new bindings.BindingError("The provider group name can be at most 255 characters.");
     // Pointing a provider group elsewhere grants its roles to new people
     if (set.external_name !== undefined && set.external_name !== group.external_name)
       await assertHoldsGroupRoles(await ensurePrincipal(req), group.id);

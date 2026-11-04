@@ -308,6 +308,21 @@ test.describe('account linking', () => {
     expect(m.AuthIdentity.rows[0]).toMatchObject({ username: 'renamed', last_login_at: expect.any(Date) });
   });
 
+  test('a subject or username longer than MMGIS can store is refused, not a server error', async () => {
+    const m = fakeModels();
+    await expect(providers.linkIdentity(identity({ subject: 'x'.repeat(256), username: 'long' }), m)).rejects.toThrow(providers.LinkError);
+    await expect(providers.linkIdentity(identity({ subject: 's', username: 'u'.repeat(256) }), m)).rejects.toThrow(providers.LinkError);
+    expect(m.User.rows).toHaveLength(0);
+  });
+
+  test("never creates an account named 'group', which Draw uses for shared files", async () => {
+    const m = fakeModels();
+    for (const username of ['group', ' Group ', 'ＧＲＯＵＰ'])
+      await expect(providers.linkIdentity(identity({ subject: `s-${username}`, username }), m)).rejects.toThrow(/reserved/);
+    expect(m.User.rows).toHaveLength(0);
+    expect(m.AuthIdentity.rows).toHaveLength(0);
+  });
+
   test('never takes over an existing account with the same username', async () => {
     const existing = { id: 1, username: 'admin', password: '$2a$10$unchangedhash' };
     const m = fakeModels({ users: [existing] });
@@ -520,6 +535,15 @@ test.describe('provider rechecks', () => {
     m.User.rows.push({ id: 9002, username: 'back' });
     await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'old', username: 'back' }), m);
     expect(m.AuthMeta.rows).toEqual([]);
+  });
+
+  test('a rename in the directory is recorded at the recheck, before the next login', async () => {
+    const m = models(9004);
+    m.AuthIdentity.rows[0] = { ...m.AuthIdentity.rows[0], username: 'alice' };
+    ldap.lookup = async () => ({ username: 'alice_r', groups: ['cn=ops,ou=groups,dc=example,dc=org'] });
+    expect(await providers.stillLinked(9004, 'ldap', m)).toBe(true);
+    expect(m.AuthIdentity.rows[0]).toMatchObject({ subject: 'old', username: 'alice_r' });
+    expect(m.AuthGroupMember.rows).toHaveLength(1);
   });
 
   test('LDAP group DNs typed in another case or spacing are saved in the form LDAP reports', () => {

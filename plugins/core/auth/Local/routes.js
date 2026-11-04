@@ -178,8 +178,7 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
     return;
   }
 
-  // Draw keeps group-shared and master files under the owner "group"
-  if (String(req.body.username).trim().toLowerCase() === "group") {
+  if (providers.reservedUsername(req.body.username)) {
     res.send({
       status: "failure",
       message: "That username is reserved.",

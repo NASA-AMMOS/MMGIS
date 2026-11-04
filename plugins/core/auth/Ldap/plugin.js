@@ -10,7 +10,7 @@ const { Client, InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectErr
 
 const setting = (v, fallback = "") => (v != null && String(v).trim() !== "" ? String(v).trim() : fallback);
 const isTrue = (v) => String(v).trim().toLowerCase() === "true";
-const MAX_USERNAME = 256;
+const MAX_USERNAME = 255;
 
 function config(env = process.env) {
   const timeout = Number(setting(env.LDAP_TIMEOUT_MS, "5000"));
@@ -63,25 +63,40 @@ const fill = (template, values) =>
   template.replace(/\{\{(username|dn)\}\}/g, (m, key) => (values[key] != null ? values[key] : m));
 
 // "CN=Science Team, OU=Groups,DC=corp" -> "cn=science team,ou=groups,dc=corp", so one group always
-// reads the same however the directory spaces or capitalizes it
+// reads the same however the directory spaces, capitalizes or escapes it (\, and \2c alike)
 function normalizeDn(dn) {
-  const rdns = [];
-  let cur = "";
   const s = String(dn);
+  const rdns = [];
+  let avas = [];
+  let type = null;
+  let bytes = [];
+  const text = (str) => bytes.push(...Buffer.from(str, "utf8"));
+  const endAva = () => {
+    const value = Buffer.from(bytes).toString("utf8").trim().toLowerCase();
+    avas.push(type == null ? value : `${type.trim().toLowerCase()}=${value.replace(/[\\,+"<>;]/g, "\\$&").replace(/^[ #]/, "\\$&")}`);
+    type = null;
+    bytes = [];
+  };
   for (let i = 0; i < s.length; i++) {
-    if (s[i] === "\\") {
-      cur += s.slice(i, i + 2);
-      i++;
-    } else if (s[i] === ",") {
-      rdns.push(cur);
-      cur = "";
-    } else cur += s[i];
+    const ch = s[i];
+    if (ch === "\\" && /^[0-9a-fA-F]{2}$/.test(s.slice(i + 1, i + 3))) {
+      bytes.push(parseInt(s.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else if (ch === "\\" && i + 1 < s.length) text(s[++i]);
+    else if (ch === "=" && type == null) {
+      type = Buffer.from(bytes).toString("utf8");
+      bytes = [];
+    } else if (ch === "+" || ch === ",") {
+      endAva();
+      if (ch === ",") {
+        rdns.push(avas.join("+"));
+        avas = [];
+      }
+    } else text(ch);
   }
-  rdns.push(cur);
-  return rdns
-    .map((r) => r.trim().replace(/^([^=]*?)\s*=\s*/, "$1="))
-    .join(",")
-    .toLowerCase();
+  endAva();
+  rdns.push(avas.join("+"));
+  return rdns.join(",");
 }
 
 ////// Directory entries

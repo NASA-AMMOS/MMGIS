@@ -185,6 +185,9 @@ async function identify(req) {
 ////// Accounts for session-based (redirect) providers
 
 // err.message has the details for the server log; providers show users only err.userMessage
+// Draw keeps group-shared and master files under the owner "group"
+const reservedUsername = (name) => String(name).normalize("NFKC").trim().toLowerCase() === "group";
+
 class LinkError extends Error {
   constructor(message) {
     super(message);
@@ -347,6 +350,11 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     throw new LinkError(
       `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID; allow a relink on that account if this is the same person.`
     );
+  // MMGIS stores both in 255-character columns
+  if (identity.subject.length > 255 || identity.username.length > 255)
+    throw new LinkError(`The ${identity.subject.length > 255 ? "subject" : "username"} is longer than the 255 characters MMGIS can store.`);
+  if (reservedUsername(identity.username))
+    throw new LinkError(`The username '${identity.username}' is reserved in MMGIS.`);
   const taken = m.usernameTaken
     ? await m.usernameTaken(identity.username)
     : await m.User.findOne({ where: { username: identity.username }, attributes: ["id"], raw: true });
@@ -357,7 +365,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
   // Random password: the account can only be used through its provider
   const fields = { username: identity.username, password: crypto.randomBytes(32).toString("hex") };
   // Email is optional and unique, so one already in use is left off
-  if (identity.email) {
+  if (identity.email && identity.email.length <= 255) {
     const emailTaken = await m.User.findOne({
       where: { email: identity.email },
       attributes: ["id"],
@@ -458,6 +466,11 @@ function stillLinked(userId, providerId, m) {
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
     await markMissing(m, providerId, userId, !identity, link.subject);
+    // So People shows a rename before the person's next login, and a newcomer with the old name isn't mistaken for them
+    if (identity && identity.username && identity.username !== now.username) {
+      await m.AuthIdentity.update({ username: identity.username }, { where: { user_id: userId, provider: providerId, subject: link.subject } });
+      logger("info", `Auth provider '${providerId}': account ${userId} is now '${identity.username}' there (was '${now.username}').`, "AuthProviders");
+    }
     if (changed || !identity) require("./principal").invalidate();
     if (!identity)
       logger("info", `Auth provider '${providerId}' no longer has account ${userId} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
@@ -636,6 +649,7 @@ module.exports = {
   normalizeIdentity,
   identify,
   LinkError,
+  reservedUsername,
   linkIdentity,
   RELINK_HOURS,
   relinkKey,
