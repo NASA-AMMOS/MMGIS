@@ -109,6 +109,7 @@ router.post("/groups/create", manage, async (req, res) => {
       external_name: external,
     });
     invalidate();
+    if (source !== "local") fillProviderGroups();
     res.send({ status: "success", body: group });
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
@@ -116,6 +117,11 @@ router.post("/groups/create", manage, async (req, res) => {
     fail(res, err, "Failed to create group.");
   }
 });
+
+// A new or renamed provider group gets its members from the people already signed in, not only at their next sign-in
+function fillProviderGroups() {
+  providers.recheckLinked().catch((err) => logger("warn", "Couldn't recheck linked accounts for a provider group.", "access", null, err));
+}
 
 async function assertHoldsGroupRoles(actor, groupId) {
   const groupBindings = await bindings.listBindings({ subject_type: "group", subject_id: String(groupId) });
@@ -139,8 +145,10 @@ router.post("/groups/update", manage, async (req, res) => {
     // Pointing a provider group elsewhere grants its roles to new people
     if (set.external_name !== undefined && set.external_name !== group.external_name)
       await assertHoldsGroupRoles(await ensurePrincipal(req), group.id);
+    const repointed = group.source !== "local" && set.external_name !== undefined && set.external_name !== group.external_name;
     await group.update(set);
     invalidate();
+    if (repointed) fillProviderGroups();
     res.send({ status: "success", body: group });
   } catch (err) {
     fail(res, err, "Failed to update group.");

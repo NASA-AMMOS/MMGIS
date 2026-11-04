@@ -172,6 +172,20 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('a new directory group fills in from people already signed in', async () => {
+    expect((await ldapLogin(await context(), alice)).status()).toBe(200);
+    const adminCtx = await adminContext();
+    const created = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-fill-${Date.now()}`, source: 'ldap', external_name: 'cn=science-team,ou=groups,dc=example,dc=org' } })).json();
+    expect(created.status).toBe('success');
+    try {
+      const members = async () =>
+        (await (await adminCtx.get('/api/access/groups')).json()).body.find((g) => g.id === created.body.id).members.map((m) => m.username);
+      await expect.poll(members, { timeout: 15000 }).toContain(alice.username);
+    } finally {
+      await adminCtx.post('/api/access/groups/delete', { data: { id: created.body.id } });
+    }
+  });
+
   test('directory group changes reach existing sessions without signing in again', async () => {
     const recheckMinutes = parseFloat(process.env.AUTH_RECHECK_MINUTES);
     test.skip(!(recheckMinutes > 0 && recheckMinutes <= 0.1), 'SKIP: needs the server started with AUTH_RECHECK_MINUTES=0.05');
