@@ -103,8 +103,11 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
 });
 
 router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, next) {
+  if (req.query.drawings_to && req.principal && req.principal.kind === "token")
+    return void res.status(403).send({ status: "failure", message: "Giving drawings to another account can only be done from a signed-in session." });
   const id = parseInt(req.params.id);
   let grants = [];
+  let heirUsername = null;
 
   if (isNaN(id)) {
     logger(
@@ -138,12 +141,15 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       }
       // Drawings can go to another account, e.g. the one this person is about to be relinked to
       let heir = null;
-      if (req.query.drawings_to != null && req.query.drawings_to !== "") {
-        heir = await User.findOne({ where: { username: String(req.query.drawings_to) }, attributes: ["id", "username"], raw: true, transaction });
+      const heirName = String(req.query.drawings_to == null ? "" : req.query.drawings_to).trim();
+      if (heirName !== "") {
+        // Matched as usernames are elsewhere (case, Unicode forms)
+        heir = (await User.findAll({ attributes: ["id", "username"], raw: true, transaction })).find((u) => providers.sameUsername(u.username, heirName));
         if (!heir || heir.id === id) {
-          res.send({ status: "failure", message: `There's no other account named '${req.query.drawings_to}' to give the drawings to.` });
+          res.send({ status: "failure", message: `There's no other account named '${heirName}' to give the drawings to.` });
           return null;
         }
+        heirUsername = heir.username;
       }
       await RoleBinding.destroy({
         where: { subject_type: "user", subject_id: String(id) },
@@ -181,7 +187,7 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       bindings.afterChange("user", id).catch(() => {});
       // Deleting the last provider-linked account reopens visitor sign-up where only local is enabled
       providers.refreshProviderAccounts().catch(() => {});
-      logger("info", `Successfully deleted user with id: '${id}'${req.query.drawings_to ? `, giving its drawings to '${req.query.drawings_to}'` : ""}.`);
+      logger("info", `Successfully deleted user with id: '${id}'${heirUsername ? `, giving its drawings to '${heirUsername}'` : ""}.`);
       res.send({
         status: "success",
         message: `Successfully deleted user with id: '${id}'.`,
@@ -459,7 +465,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         const other = others.find((o) => providers.sameUsername(o.username, username));
         if (other) {
           const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
-          return `The ${provider} login '${username}' already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first, giving its drawings to '${user.username}'.`;
+          return `The ${provider} login '${username}' already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first (which also removes its own roles and API tokens), giving its drawings to '${user.username}'.`;
         }
       }
       if (target) {
@@ -467,7 +473,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         if (other && other.user_id === id) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;
         if (other) {
           const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
-          return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first, giving its drawings to '${user.username}'.`;
+          return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first (which also removes its own roles and API tokens), giving its drawings to '${user.username}'.`;
         }
         if (sameProvider.some((r) => r.value.subject === target.subject))
           return `Another account is already waiting for ${target.dn}. Cancel that relink first.`;

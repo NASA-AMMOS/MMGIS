@@ -283,7 +283,11 @@ async function markMissing(m, provider, userId, gone, subject, reason) {
   if (!m.AuthMeta) return;
   const key = missingKey(provider, userId);
   if (!gone) return m.AuthMeta.destroy({ where: { key } });
-  if (!(await m.AuthMeta.findOne({ where: { key }, raw: true })))
+  const marked = await m.AuthMeta.findOne({ where: { key }, raw: true });
+  // Keeps when it went missing; the reason can change, e.g. a leaver found after a subject setting change
+  if (marked && (marked.value || {}).reason !== reason)
+    return m.AuthMeta.update({ value: { ...marked.value, reason } }, { where: { key } });
+  if (!marked)
     // Another recheck (or process) may have marked it at the same moment
     await m.AuthMeta.create({ key, value: { since: new Date().toISOString(), subject, reason } }).catch((err) => {
       if (err.name !== "SequelizeUniqueConstraintError") throw err;
@@ -548,6 +552,11 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     if (still)
       throw new LinkError(
         `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
+      );
+    const provider = getProvider(identity.provider);
+    if (provider && !subjectFits(provider, sameName.subject))
+      throw new LinkError(
+        `'${identity.username}' already signs in to account ${sameName.user_id}, which was linked under a different ${identity.provider} subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE). Change the setting back, or allow a relink on that account.`
       );
     throw new LinkError(
       `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and that account's old entry is gone. Only allow a relink on that account if this is the same person: the directory may have given the name to someone new.`

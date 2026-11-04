@@ -688,7 +688,7 @@ function validate(env) {
   }
   if (protocol !== "ldap:" && protocol !== "ldaps:")
     errors.push(
-      /[\s,]/.test(String(c.url || "").trim())
+      /[\s,;]/.test(String(c.url || "").trim())
         ? "LDAP_URL must be a single ldap:// or ldaps:// URL; MMGIS doesn't fail over between directory hosts."
         : "LDAP_URL must be set to the directory's address, e.g. ldaps://ldap.example.org:636."
     );
@@ -788,7 +788,7 @@ module.exports = {
           return res.status(403).send({ status: "failure", message: `Your ${name} password has expired. Change it, then sign in again.` });
         }
         if (err instanceof UnusableEntryError) {
-          ctx.logger("warn", `LDAP login for '${username}' refused: ${err.message}`, "Ldap", req);
+          ctx.logger("warn", `LDAP login for '${username}' refused: ${err.message} If every sign-in gets this, LDAP_SUBJECT_ATTRIBUTE doesn't suit this directory.`, "Ldap", req);
           return res.status(403).send({ status: "failure", message: `Your ${name} entry can't be used with MMGIS. Ask an administrator.` });
         }
         ctx.logger("error", `LDAP login could not reach or read the directory: ${explain(err)}`, "Ldap", req, err);

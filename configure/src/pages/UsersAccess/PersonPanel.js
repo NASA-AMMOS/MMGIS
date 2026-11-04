@@ -82,7 +82,7 @@ export function PersonPanel({ user, ctx }) {
       title: `Allow ${p.toUpperCase()} relink?`,
       text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}' takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.${
         providerLogin && providerLogin.missing_reason === "subject"
-          ? ` It was linked under a different LDAP_SUBJECT_ATTRIBUTE, so it needs this relink to sign in again.`
+          ? ` It was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so it needs this relink to sign in again.`
           : providerLogin && providerLogin.missing_since
           ? ` Its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled on ${new Date(providerLogin.missing_since).toLocaleDateString()}: if '${relinkAs}' is now someone else, don't allow this.`
           : ""
@@ -260,7 +260,7 @@ export function PersonPanel({ user, ctx }) {
         <div className={c.hint}>Everything this person can do, combining their own access, their groups and the audiences.</div>
         {(user.sign_ins || []).length > 0 && user.sign_ins.every((l) => l.missing_since && providerOn(l.provider)) && (
           <div className={c.hint} style={{ color: "#b71c1c" }}>
-            Can't sign in or use API tokens now: not found in {user.sign_ins.map((l) => `${l.provider.toUpperCase()} since ${new Date(l.missing_since).toLocaleDateString()}`).join(", ")}. This access applies again only if that entry comes back or the account is relinked.
+            Can't sign in or use API tokens now: {user.sign_ins.map((l) => (l.missing_reason === "subject" ? `linked under an old ${l.provider.toUpperCase()} subject setting` : `not found in ${l.provider.toUpperCase()} since ${new Date(l.missing_since).toLocaleDateString()}`)).join(", ")}. This access applies again only if that entry comes back or the account is relinked.
           </div>
         )}
         <Table size="small" className={c.table}>
