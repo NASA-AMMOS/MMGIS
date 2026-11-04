@@ -414,6 +414,11 @@ test.describe('LDAP login provider', () => {
       expect((await (await localSession.post('/api/users/login', { data: { username, password: localPassword } })).json()).status).toBe('success');
       expect((await me(localSession)).authenticated).toBe(true);
 
+      // A preview names the entry without allowing anything
+      const preview = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', preview: true } })).json();
+      expect(preview).toMatchObject({ status: 'success', body: { dn, preview: true } });
+      expect((await entries()).find((e) => e.id === account.id).relink).toBeFalsy();
+      expect((await ldapLogin(await context(), { username, password })).status()).toBe(409);
       const allowed = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap' } })).json();
       expect(allowed.status).toBe('success');
       // Pinned to the directory entry that has the username now

@@ -469,6 +469,8 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
           `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`
         );
     }
+    // Shows the admin which entry would claim the account before they confirm
+    if (req.body.preview === true) return void res.send({ status: "success", message: "Relink can be allowed.", body: { provider, username, dn: target ? target.dn : null, preview: true } });
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
     // Checked and saved under the SuperAdmin lock, so two relinks allowed at once can't move every local SuperAdmin
     const refusal = await bindings.withSuperAdminLock(async ({ transaction, superAdmins: current }) => {

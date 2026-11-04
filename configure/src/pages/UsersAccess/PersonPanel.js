@@ -77,10 +77,15 @@ export function PersonPanel({ user, ctx }) {
         refresh();
       })
       .catch((res) => notify(res.message || "Failed.", "error"));
+  // Looked up first, so the confirmation names the entry that would take the account over
   const askRelink = (p) =>
+    api("account_allow_relink", { id: user.id, provider: p, username: relinkAs, preview: true })
+      .then((res) => confirmRelink(p, res && res.body && res.body.dn))
+      .catch((res) => notify(res.message || "Failed.", "error"));
+  const confirmRelink = (p, dn) =>
     ctx.askConfirm({
       title: `Allow ${p.toUpperCase()} relink?`,
-      text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}' takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.${
+      text: `${dn ? `'${relinkAs}' is ${dn} in ${p.toUpperCase()}. ` : ""}For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}'${dn ? " from that entry" : ""} takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.${
         providerLogin && providerLogin.missing_reason === "subject"
           ? ` It was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so it needs this relink to sign in again.${
               providerLogin.missing_was_gone

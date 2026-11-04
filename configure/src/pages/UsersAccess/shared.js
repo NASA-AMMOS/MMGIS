@@ -640,6 +640,10 @@ export const PEOPLE_COLUMNS = [
   ["updated", "Updated", (r) => r.u.updatedAt || ""],
 ];
 
+// Linked accounts that can't sign in until a relink is allowed (or allowed again)
+export const needsRelink = (u) =>
+  (!u.relink || u.relink.stale) && (u.sign_ins || []).some((l) => l.missing_since || l.missing_reason === "subject");
+
 // Provider-linked accounts sign in only through their provider; the rest with an MMGIS password
 export const signInText = (u) =>
   signInBase(u) +
@@ -653,7 +657,7 @@ const signInBase = (u) =>
             (l.missing_reason === "subject"
               ? ` (linked under an old subject setting; relink)`
               : l.missing_since
-              ? ` (not found in ${l.provider} since ${new Date(l.missing_since).toLocaleDateString()})`
+              ? ` (not found since ${new Date(l.missing_since).toLocaleDateString()})`
               : "")
         )
         .join(", ")

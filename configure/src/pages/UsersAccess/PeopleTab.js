@@ -13,7 +13,7 @@ import TablePagination from "@mui/material/TablePagination";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import { useStyles } from "./styles";
-import { api, SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, signInText, lastProviderLogin, SiteRoleBadges, MissionList, rowActivate } from "./shared";
+import { api, SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, signInText, needsRelink, lastProviderLogin, SiteRoleBadges, MissionList, rowActivate } from "./shared";
 import { useRemembered, useOnChange } from "./hooks";
 
 // Every account, with its site role and what it can view and edit
@@ -35,6 +35,8 @@ export default function PeopleTab({ ctx }) {
       .catch((res) => notify(res.message || "Failed to check the linked accounts.", "error"));
   const c = useStyles();
   const [search, setSearch] = useRemembered(remember, "peopleSearch", "");
+  const [onlyRelink, setOnlyRelink] = useRemembered(remember, "peopleOnlyRelink", false);
+  const relinkCount = useMemo(() => users.filter(needsRelink).length, [users]);
   const [peopleSort, setPeopleSort] = useRemembered(remember, "peopleSort", { by: "username", dir: "asc" });
   const [peoplePage, setPeoplePage] = useRemembered(remember, "peoplePage", 0);
   const [peoplePerPage, setPeoplePerPage] = useRemembered(remember, "peoplePerPage", 25);
@@ -44,6 +46,7 @@ export default function PeopleTab({ ctx }) {
     const q = search.toLowerCase();
     const key = (PEOPLE_COLUMNS.find((col) => col[0] === peopleSort.by) || PEOPLE_COLUMNS[0])[2];
     return summaries
+      .filter(({ u }) => !onlyRelink || needsRelink(u))
       .filter(({ u, s }) => !q || [u.username, u.email || "", signInText(u), ...s.groupNames].some((t) => t.toLowerCase().includes(q)))
       .sort((a, b) => {
         const ka = key(a);
@@ -51,8 +54,8 @@ export default function PeopleTab({ ctx }) {
         const cmp = ka < kb ? -1 : ka > kb ? 1 : a.u.username.localeCompare(b.u.username);
         return peopleSort.dir === "asc" ? cmp : -cmp;
       });
-  }, [summaries, search, peopleSort]);
-  useOnChange(() => setPeoplePage(0), [search, peopleSort, peoplePerPage]);
+  }, [summaries, search, peopleSort, onlyRelink]);
+  useOnChange(() => setPeoplePage(0), [search, peopleSort, peoplePerPage, onlyRelink]);
   const pageIndex = Math.min(peoplePage, Math.max(0, Math.ceil(peopleRows.length / peoplePerPage) - 1));
   const pageRows = peopleRows.slice(pageIndex * peoplePerPage, (pageIndex + 1) * peoplePerPage);
   return (
@@ -68,6 +71,11 @@ export default function PeopleTab({ ctx }) {
               />
               <span className={c.barHint}>Every account, its site role and what it can view and edit. Click a row for details.</span>
               <span className={c.grow} />
+              {(relinkCount > 0 || onlyRelink) && (
+                <Button variant={onlyRelink ? "contained" : "outlined"} disableElevation className={c.barButton} onClick={() => setOnlyRelink(!onlyRelink)} title="Only accounts whose provider entry is gone or was linked under an old subject setting, with no usable relink pending">
+                  Needs relink ({relinkCount})
+                </Button>
+              )}
               {linkedProviders.length > 0 && (
                 <Button variant="outlined" className={c.barButton} onClick={recheckLinked} title="Ask the login providers about every linked account now, e.g. after a directory migration">
                   Check linked accounts
