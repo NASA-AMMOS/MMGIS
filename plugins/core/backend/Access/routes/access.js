@@ -307,13 +307,13 @@ router.get("/effective", manage, async (req, res) => {
       ? await externalPrincipal({
           provider: String(req.query.provider),
           username: String(req.query.username || "").trim(),
-          // One group per line; a line with "=" is one DN (which may hold escaped , and ;), other lines may
-          // list names separated by commas or semicolons
+          // Groups are separated by newlines or unescaped semicolons; a group with "=" is one DN (keeping its
+          // escaped "\," and "\;"), others may list names separated by commas
           groups:
             reported ||
             String(req.query.groups || "")
-              .split("\n")
-              .flatMap((line) => (line.includes("=") ? [line] : line.split(/[,;]/)))
+              .split(/\n|(?<=(?:^|[^\\])(?:\\\\)*);/)
+              .flatMap((g) => (g.includes("=") ? [g] : g.split(",")))
               .map((g) => g.trim())
               .filter((g) => g)
               .map((g) => providers.groupName(String(req.query.provider), g)),

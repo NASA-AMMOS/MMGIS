@@ -217,6 +217,28 @@ test.describe('LDAP login provider', () => {
     expect(nobody.message).toMatch(/no single entry/);
   });
 
+  test('Check a provider user splits typed DNs at newlines and unescaped semicolons only', async () => {
+    const adminCtx = await adminContext();
+    const stamp = Date.now();
+    const dns = [`cn=Research\\;Ops ${stamp},ou=groups,dc=example,dc=org`, `cn=semi-${stamp},ou=groups,dc=example,dc=org`];
+    const ids = [];
+    try {
+      for (const [i, dn] of dns.entries()) {
+        const created = await (await adminCtx.post('/api/access/groups/create', { data: { name: `ldap-semi-${i}-${stamp}`, source: 'ldap', external_name: dn } })).json();
+        expect(created.status).toBe('success');
+        ids.push(created.body.id);
+      }
+      const check = async (typed) =>
+        (await (await adminCtx.get(`/api/access/effective?provider=ldap&username=${alice.username}&groups=${encodeURIComponent(typed)}`)).json()).body.groups.map((g) => g.id).sort();
+      const both = [...ids].sort();
+      expect(await check(dns.join(';'))).toEqual(both);
+      expect(await check(dns.join('\n'))).toEqual(both);
+      expect(await check(dns[0])).toEqual([ids[0]]);
+    } finally {
+      for (const id of ids) await adminCtx.post('/api/access/groups/delete', { data: { id } });
+    }
+  });
+
   test('Check a provider user follows the directory entry after a rename and a reused username', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to look people up');
     const name = `ldap_reuse_${Date.now()}`;
