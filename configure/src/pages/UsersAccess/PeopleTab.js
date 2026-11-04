@@ -13,12 +13,21 @@ import TablePagination from "@mui/material/TablePagination";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import { useStyles } from "./styles";
-import { SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, signInText, lastProviderLogin, SiteRoleBadges, MissionList, rowActivate } from "./shared";
+import { api, SubjectTag, indexBindings, summarizeUser, PEOPLE_COLUMNS, dateText, signInText, lastProviderLogin, SiteRoleBadges, MissionList, rowActivate } from "./shared";
 import { useRemembered, useOnChange } from "./hooks";
 
 // Every account, with its site role and what it can view and edit
 export default function PeopleTab({ ctx }) {
-  const { roles, users, groups, bindings, dispatch, setPanel, remember } = ctx;
+  const { roles, users, groups, bindings, dispatch, setPanel, remember, notify, refresh } = ctx;
+  const linkedProviders = String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local");
+  const recheckLinked = () =>
+    api("account_recheck_linked", {})
+      .then((res) => {
+        const r = (res && res.body) || {};
+        notify(`Checked ${r.checked} provider-linked accounts: ${r.missing} not found.`, r.missing ? "warning" : "success");
+        refresh();
+      })
+      .catch((res) => notify(res.message || "Failed to check the linked accounts.", "error"));
   const c = useStyles();
   const [search, setSearch] = useRemembered(remember, "peopleSearch", "");
   const [peopleSort, setPeopleSort] = useRemembered(remember, "peopleSort", { by: "username", dir: "asc" });
@@ -54,6 +63,11 @@ export default function PeopleTab({ ctx }) {
               />
               <span className={c.barHint}>Every account, its site role and what it can view and edit. Click a row for details.</span>
               <span className={c.grow} />
+              {linkedProviders.length > 0 && (
+                <Button variant="outlined" className={c.barButton} onClick={recheckLinked} title="Ask the login providers about every linked account now, e.g. after a directory migration">
+                  Check linked accounts
+                </Button>
+              )}
               <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => dispatch(setModal({ name: "newUser" }))}>New user</Button>
             </div>
             <Table size="small" className={c.table} stickyHeader>

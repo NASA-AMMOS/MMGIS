@@ -67,7 +67,7 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
       for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
         const [, provider, userId] = r.key.split(":");
         if (r.value && Date.parse(r.value.expires_at) > Date.now())
-          relinks[userId] = { provider, username: r.value.username, dn: r.value.dn, expires_at: r.value.expires_at };
+          relinks[userId] = { provider, username: r.value.username, dn: r.value.dn, expires_at: r.value.expires_at, stale: r.value.stale || null };
       }
       const byUser = {};
       for (const b of userBindings)
@@ -437,6 +437,18 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
   } catch (err) {
     logger("error", "Failed to allow relinking.", req.originalUrl, req, err);
     fail("Failed to allow relinking.");
+  }
+});
+
+// Asks each login provider about every account linked to it, e.g. after a directory migration
+router.post("/recheckLinked", apilimiter, authorize("accounts.manage"), async function (req, res) {
+  try {
+    const result = await providers.recheckLinked();
+    logger("info", `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found.`, "accounts", req);
+    res.send({ status: "success", body: result });
+  } catch (err) {
+    logger("error", "Failed to recheck provider-linked accounts.", req.originalUrl, req, err);
+    res.send({ status: "failure", message: "Failed to check the linked accounts." });
   }
 });
 

@@ -159,6 +159,11 @@ export function PersonPanel({ user, ctx }) {
                 <Typography variant="body2">
                   The next {user.relink.provider.toUpperCase()} login as '{user.relink.username || user.username}'{user.relink.dn ? ` (${user.relink.dn})` : ""} can claim this account until {new Date(user.relink.expires_at).toLocaleString()}.
                 </Typography>
+                {user.relink.stale && (
+                  <Typography variant="body2" style={{ color: "#a8572e" }}>
+                    On {new Date(user.relink.stale.at).toLocaleString()}, '{user.relink.username || user.username}' signed in from a different {user.relink.provider.toUpperCase()} entry, so this relink won't take effect. If the directory changed since it was allowed, cancel it and allow it again.
+                  </Typography>
+                )}
                 <Button size="small" onClick={() => relink(user.relink.provider, true)}>Cancel relink</Button>
               </>
             ) : (
@@ -166,7 +171,7 @@ export function PersonPanel({ user, ctx }) {
               <TextField
                 size="small"
                 label="Username at the provider"
-                placeholder={user.username}
+                placeholder={(providerLogin && providerLogin.username) || user.username}
                 value={relinkName}
                 onChange={(e) => setRelinkName(e.target.value)}
               />

@@ -234,6 +234,10 @@ const c = {
     type: "POST",
     url: "api/accounts/cancelRelink",
   },
+  account_recheck_linked: {
+    type: "POST",
+    url: "api/accounts/recheckLinked",
+  },
   account_reset_password_link: {
     type: "POST",
     url: "api/accounts/generateResetPasswordLink",

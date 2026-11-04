@@ -39,7 +39,7 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
       <DialogTitle>Check a provider user</DialogTitle>
       <DialogContent>
         <div className={c.hint} style={{ marginBottom: 12 }}>
-          Enter a username and the group names their login provider sends, separated by commas, to see the access they would get.
+          Enter a username and the group names their login provider sends, one per line (LDAP group DNs as they are), to see the access they would get.
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
@@ -47,7 +47,7 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
           </Select>
           <TextField size="small" sx={{ flex: 1 }} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
-        <TextField size="small" fullWidth placeholder="Groups, e.g. science-team, ops" value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim()) check(); }} />
+        <TextField size="small" fullWidth multiline minRows={2} placeholder={"Groups, one per line, e.g.\ncn=science-team,ou=groups,dc=example,dc=org"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) check(); }} />
         {error && <div className={c.hint} style={{ color: "#a8572e", marginTop: 12 }}>{error}</div>}
         {result && (
           <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>

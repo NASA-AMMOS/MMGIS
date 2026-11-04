@@ -254,10 +254,37 @@ async function findClaim(identity, m) {
   return null;
 }
 
+// A relink pinned to an entry, while the same username now signs in from another one (the directory was
+// rebuilt after the relink was allowed): flag it, so People and the log say to allow it again
+async function flagStaleClaims(identity, m) {
+  if (!m.AuthMeta || !m.AuthMeta.update) return;
+  const rows = await m.AuthMeta.findAll({
+    where: { key: { [Op.like]: `relink:${identity.provider}:%` } },
+    raw: true,
+  });
+  for (const r of rows) {
+    const v = r.value;
+    if (!v || !v.subject || v.subject === identity.subject || !(Date.parse(v.expires_at) > Date.now())) continue;
+    if (!sameUsername(v.username, identity.username)) continue;
+    await m.AuthMeta.update(
+      { value: { ...v, stale: { subject: identity.subject, at: new Date().toISOString() } } },
+      { where: { key: r.key } }
+    );
+    logger(
+      "warn",
+      `The ${identity.provider} relink for account ${r.key.split(":").pop()} is pinned to ${v.dn || `subject '${v.subject}'`}, but '${identity.username}' now signs in as subject '${identity.subject}'. If the directory changed since the relink was allowed, allow it again.`,
+      "AuthProviders"
+    );
+  }
+}
+
 // The account this login takes over through a pending relink, or null
 async function claimRelink(identity, m) {
   const claim = await findClaim(identity, m);
-  if (!claim) return null;
+  if (!claim) {
+    await flagStaleClaims(identity, m);
+    return null;
+  }
   const user = await m.User.findOne({ where: { id: claim.userId }, attributes: ["id", "username"], raw: true });
   if (!user) return null;
   const claimed = await inTransaction(m, async (transaction) => {
@@ -441,13 +468,13 @@ const rechecks = new Map();
 // Re-reads a provider-linked account through the provider's lookup(subject) at most every
 // AUTH_RECHECK_MINUTES, so directory changes reach existing sessions and tokens. Resolves false
 // once the provider says the account is gone; keeps access when the provider can't be reached.
-function stillLinked(userId, providerId, m) {
+function stillLinked(userId, providerId, m, force = false) {
   const p = getProvider(providerId);
   const ms = recheckMs();
-  if (ms === 0 || !p || typeof p.impl.lookup !== "function") return Promise.resolve(true);
+  if ((ms === 0 && !force) || !p || typeof p.impl.lookup !== "function") return Promise.resolve(true);
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
-  if (hit && Date.now() - hit.at < ms) return hit.result;
+  if (!force && hit && Date.now() - hit.at < ms) return hit.result;
   const result = (async () => {
     m = m || accountModels();
     const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
@@ -481,6 +508,25 @@ function stillLinked(userId, providerId, m) {
   });
   rechecks.set(key, { at: Date.now(), result });
   return result;
+}
+
+// Rechecks every provider-linked account now, including ones nobody has used since a directory change,
+// so People shows which entries are gone
+async function recheckLinked(m = accountModels()) {
+  const links = (await m.AuthIdentity.findAll({ attributes: ["user_id", "provider"], raw: true })).filter((l) => {
+    const p = getProvider(l.provider);
+    return p && typeof p.impl.lookup === "function";
+  });
+  let next = 0;
+  let missing = 0;
+  const worker = async () => {
+    while (next < links.length) {
+      const l = links[next++];
+      if (!(await stillLinked(l.user_id, l.provider, m, true))) missing++;
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(8, links.length) }, worker));
+  return { checked: links.length, missing };
 }
 
 // The legacy lead group (LEADS) a login response reports, as a page reload does
@@ -659,6 +705,7 @@ module.exports = {
   sameUsername,
   syncGroups,
   stillLinked,
+  recheckLinked,
   completeLogin,
   leadGroups,
   returnTo,

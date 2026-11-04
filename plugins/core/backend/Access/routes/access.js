@@ -233,10 +233,13 @@ router.get("/effective", manage, async (req, res) => {
       ? await externalPrincipal({
           provider: String(req.query.provider),
           username: String(req.query.username || ""),
+          // One group per line; a line with "=" is one DN, other lines may list names separated by commas
           groups: String(req.query.groups || "")
-            .split(",")
+            .split(/[\n;]/)
+            .flatMap((line) => (line.includes("=") ? [line] : line.split(",")))
             .map((g) => g.trim())
-            .filter((g) => g),
+            .filter((g) => g)
+            .map((g) => providers.groupName(String(req.query.provider), g)),
         })
       : await userPrincipal(parseInt(req.query.user_id));
     if (!principal) throw new bindings.BindingError("User not found.");

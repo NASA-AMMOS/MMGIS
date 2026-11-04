@@ -216,7 +216,7 @@ function fakeModels({ users = [], links = [], groups = [], members = [], meta = 
   const table = (rows) => ({
     rows,
     findOne: async ({ where }) => rows.find((r) => match(r, where)) || null,
-    findAll: async ({ where }) => rows.filter((r) => match(r, where)),
+    findAll: async ({ where } = {}) => rows.filter((r) => !where || match(r, where)),
     create: async (r) => { const row = { id: rows.length + 100, ...r }; rows.push(row); return row; },
     bulkCreate: async (list) => list.forEach((r) => rows.push(r)),
     update: async (fields, { where }) => rows.filter((r) => match(r, where)).forEach((r) => Object.assign(r, fields)),
@@ -274,6 +274,12 @@ test.describe('account linking', () => {
     const m = fakeModels({ users: [{ id: 1, username: 'bob' }], links: [{ provider: 'keycloak', subject: 'old', username: 'Robert', user_id: 1 }] });
     await expect(providers.linkIdentity(identity({ subject: 'new', username: 'robert' }), m)).rejects.toThrow(/already signs in to account 1/);
     expect(m.User.rows).toHaveLength(1);
+  });
+
+  test('a relink pinned to an entry the same username no longer signs in from is flagged as stale', async () => {
+    const m = relinkModels({ subject: 'before-rebuild' });
+    await expect(providers.linkIdentity(identity({ subject: 'after-rebuild', username: 'carol' }), m)).rejects.toThrow(providers.LinkError);
+    expect(m.AuthMeta.rows[0].value).toMatchObject({ subject: 'before-rebuild', stale: { subject: 'after-rebuild', at: expect.any(String) } });
   });
 
   test('a relink pinned to an entry is claimed by that entry even after it was renamed', async () => {
@@ -517,6 +523,21 @@ test.describe('provider rechecks', () => {
       members: [{ group_id: 1, user_id: userId }],
       links: [{ provider: 'ldap', subject: 'old', user_id: userId }],
     });
+
+  test('checking every linked account asks the directory now, even about accounts checked a moment ago', async () => {
+    const m = fakeModels({
+      links: [
+        { provider: 'ldap', subject: 'here', user_id: 9010 },
+        { provider: 'ldap', subject: 'gone', user_id: 9011 },
+        { provider: 'local-only', subject: 'x', user_id: 9012 },
+      ],
+    });
+    ldap.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
+    expect(await providers.stillLinked(9011, 'ldap', m)).toBe(false);
+    m.AuthMeta.rows.length = 0;
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1 });
+    expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
+  });
 
   test('a directory that cannot be reached keeps access and groups', async () => {
     const m = models(9001);
