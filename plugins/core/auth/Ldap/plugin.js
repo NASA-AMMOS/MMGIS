@@ -758,6 +758,8 @@ function warnings(env) {
 module.exports = {
   // A lookup is up to five directory operations (connect, TLS, service bind, user and group search)
   lookupTimeoutMs: () => 5 * config().timeoutMs,
+  // A DN stored before a switch to entryUUID/objectGUID, or an ID stored before a switch to dn
+  subjectFits: (subject) => (config().subjectAttribute.toLowerCase() === "dn") !== notADn(subject),
   routes(router, ctx) {
     const startup = config();
     selfCheck(startup).then(

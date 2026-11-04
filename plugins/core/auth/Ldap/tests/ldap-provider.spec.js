@@ -472,6 +472,27 @@ test.describe('LDAP login provider', () => {
     expect((await shared()).public_editors || []).not.toContain(alice.username);
   });
 
+  test('deleting an account can give its drawings to another account', async () => {
+    const adminCtx = await adminContext();
+    const ctx = await context();
+    expect((await ldapLogin(ctx, alice)).status()).toBe(200);
+    const name = `alice interim ${Date.now()}`;
+    expect((await (await ctx.post('/api/files/make', { data: { file_name: name, intent: 'all' } })).json()).status).toBe('success');
+    const heir = `heir_${Date.now()}`;
+    const heirPassword = ['Heir', 'Pass', '1!x'].join('');
+    expect((await (await adminCtx.post('/api/users/signup', { data: { username: heir, email: `${heir}@example.org`, password: heirPassword, skipLogin: true } })).json()).status).toBe('success');
+    const id = (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries.find((e) => e.username === alice.username).id;
+    const refused = await (await adminCtx.delete(`/api/accounts/remove/${id}?drawings_to=nobody-${Date.now()}`)).json();
+    expect(refused.status).toBe('failure');
+    expect((await me(ctx)).authenticated).toBe(true);
+    expect((await (await adminCtx.delete(`/api/accounts/remove/${id}?drawings_to=${heir}`)).json()).status).toBe('success');
+    const heirCtx = await context();
+    expect((await (await heirCtx.post('/api/users/login', { data: { username: heir, password: heirPassword } })).json()).status).toBe('success');
+    const files = (await (await heirCtx.post('/api/files/getfiles', { data: {} })).json()).body.filter((f) => f.file_name === name);
+    expect(files).toHaveLength(1);
+    expect(files[0].file_owner).toBe(heir);
+  });
+
   test('LDAP accounts get no MMGIS password reset link', async () => {
     const ctx = await context();
     expect((await ldapLogin(ctx, alice)).status()).toBe(200);

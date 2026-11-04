@@ -650,7 +650,11 @@ const signInBase = (u) =>
         .map(
           (l) =>
             (l.username && l.username !== u.username ? `${l.provider} (as ${l.username})` : l.provider) +
-            (l.missing_since ? ` (not found in ${l.provider} since ${new Date(l.missing_since).toLocaleDateString()})` : "")
+            (l.missing_reason === "subject"
+              ? ` (linked under an old subject setting; relink)`
+              : l.missing_since
+              ? ` (not found in ${l.provider} since ${new Date(l.missing_since).toLocaleDateString()})`
+              : "")
         )
         .join(", ")
     : "MMGIS account";

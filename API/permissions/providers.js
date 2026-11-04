@@ -279,13 +279,13 @@ const RELINK_HOURS = 24;
 const relinkKey = (provider, userId) => `relink:${provider}:${userId}`;
 // Set while a recheck finds the account's entry gone, so admins can tell leavers from active people
 const missingKey = (provider, userId) => `missing:${provider}:${userId}`;
-async function markMissing(m, provider, userId, gone, subject) {
+async function markMissing(m, provider, userId, gone, subject, reason) {
   if (!m.AuthMeta) return;
   const key = missingKey(provider, userId);
   if (!gone) return m.AuthMeta.destroy({ where: { key } });
   if (!(await m.AuthMeta.findOne({ where: { key }, raw: true })))
     // Another recheck (or process) may have marked it at the same moment
-    await m.AuthMeta.create({ key, value: { since: new Date().toISOString(), subject } }).catch((err) => {
+    await m.AuthMeta.create({ key, value: { since: new Date().toISOString(), subject, reason } }).catch((err) => {
       if (err.name !== "SequelizeUniqueConstraintError") throw err;
     });
 }
@@ -409,6 +409,31 @@ function groupNameProblem(providerId, name) {
     return reported === name ? null : `It's saved as ${name}, but ${providerId} reports it as ${reported}.`;
   } catch (err) {
     return err.message;
+  }
+}
+
+// False when a stored subject can't be one under the provider's current settings (e.g. LDAP_SUBJECT_ATTRIBUTE changed)
+const subjectFits = (p, subject) => typeof p.impl.subjectFits !== "function" || p.impl.subjectFits(subject) !== false;
+
+// At startup, so a changed subject setting doesn't silently sign out every linked account
+async function warnUnfitSubjects(m = accountModels()) {
+  for (const p of enabledProviders()) {
+    if (typeof p.impl.subjectFits !== "function") continue;
+    const links = await m.AuthIdentity.findAll({ where: { provider: p.id }, attributes: ["user_id", "subject"], raw: true });
+    const unfit = links.filter((l) => !subjectFits(p, l.subject));
+    if (unfit.length === 0) continue;
+    const superAdmins = await require("./bindings").superAdminUserIds();
+    const linkedIds = new Set((await m.AuthIdentity.findAll({ attributes: ["user_id"], raw: true })).map((l) => l.user_id));
+    const unfitIds = new Set(unfit.map((l) => l.user_id));
+    const localAdmin = siteAccess.getProviders().includes("local") && superAdmins.some((id) => !linkedIds.has(id));
+    const strandedAdmins = superAdmins.filter((id) => unfitIds.has(id)).length;
+    logger(
+      localAdmin ? "warn" : "error",
+      `Auth provider '${p.id}': ${unfit.length} of its ${links.length} linked accounts were linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so their sessions and API tokens end at their next recheck and their sign-ins are refused until each is relinked in Users & Access > People. To keep them, change the setting back.${
+        strandedAdmins ? ` ${strandedAdmins} of them ${strandedAdmins === 1 ? "is a SuperAdmin" : "are SuperAdmins"}.` : ""
+      }${localAdmin ? "" : " No SuperAdmin can sign in with an MMGIS password here, so nobody may be able to allow those relinks: enable local and keep a local SuperAdmin first."}`,
+      "AuthProviders"
+    );
   }
 }
 
@@ -709,7 +734,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!now || now.subject !== link.subject) return "ok";
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
-    await markMissing(m, providerId, userId, !identity, link.subject);
+    await markMissing(m, providerId, userId, !identity, link.subject, !identity && !subjectFits(p, link.subject) ? "subject" : undefined);
     // So People shows a rename before the person's next login, and a newcomer with the old name isn't mistaken for them
     if (identity && identity.username && identity.username !== now.username) {
       await m.AuthIdentity.update({ username: identity.username }, { where: { user_id: userId, provider: providerId, subject: link.subject } });
@@ -934,6 +959,10 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
     siteAccess.setProviderAccounts(true);
     logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a check succeeds (at the next sign-up attempt, account deletion or restart).", "AuthProviders", null, err);
   });
+  warnUnfitSubjects().catch((err) => {
+    if (/relation "auth_identities" does not exist/.test(err.message)) return;
+    logger("error", "Couldn't check the login providers' linked accounts.", "AuthProviders", null, err);
+  });
   warnUnmatchableGroups().catch((err) => {
     // A new database gets its tables after this runs, and then has no groups to check
     if (/relation "auth_groups" does not exist/.test(err.message)) return;
@@ -988,6 +1017,7 @@ module.exports = {
   groupNameProblem,
   reportedGroups,
   warnUnmatchableGroups,
+  warnUnfitSubjects,
   relinkUsername,
   resetFailures,
   relinkTarget,

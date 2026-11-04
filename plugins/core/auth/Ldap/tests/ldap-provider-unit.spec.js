@@ -357,6 +357,21 @@ test.describe('LDAP settings', () => {
     expect(problems({ ...base, LDAP_STARTTLS: 'true' })).toMatch(/already encrypted/);
   });
 
+  test('a subject stored under another LDAP_SUBJECT_ATTRIBUTE is told apart', () => {
+    const saved = process.env.LDAP_SUBJECT_ATTRIBUTE;
+    try {
+      delete process.env.LDAP_SUBJECT_ATTRIBUTE;
+      expect(ldap.subjectFits('a5e38d5c-6c61-1041-92de-b7aaf50b266a')).toBe(true);
+      expect(ldap.subjectFits('uid=ldap_alice,ou=people,dc=example,dc=org')).toBe(false);
+      process.env.LDAP_SUBJECT_ATTRIBUTE = 'dn';
+      expect(ldap.subjectFits('uid=ldap_alice,ou=people,dc=example,dc=org')).toBe(true);
+      expect(ldap.subjectFits('a5e38d5c-6c61-1041-92de-b7aaf50b266a')).toBe(false);
+    } finally {
+      if (saved === undefined) delete process.env.LDAP_SUBJECT_ATTRIBUTE;
+      else process.env.LDAP_SUBJECT_ATTRIBUTE = saved;
+    }
+  });
+
   test('missing or malformed settings refuse startup', () => {
     expect(problems({})).toMatch(/LDAP_URL must be set/);
     expect(problems({ ...base, LDAP_URL: 'ldaps://dc1:636 ldaps://dc2:636' })).toMatch(/single ldap:\/\/ or ldaps:\/\/ URL/);

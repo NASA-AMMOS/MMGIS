@@ -61,9 +61,14 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
         });
       const missing = {};
       for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "missing:%" } }, raw: true }))
-        missing[r.key.slice("missing:".length)] = r.value && r.value.since;
+        missing[r.key.slice("missing:".length)] = r.value || {};
       for (const [userId, list] of Object.entries(signIns))
-        list.forEach((l) => (l.missing_since = missing[`${l.provider}:${userId}`] || null));
+        list.forEach((l) => {
+          const gone = missing[`${l.provider}:${userId}`];
+          l.missing_since = (gone && gone.since) || null;
+          // "subject": linked under a different subject setting, not a leaver
+          l.missing_reason = (gone && gone.reason) || null;
+        });
       const relinks = {};
       for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
         const [, provider, userId] = r.key.split(":");
@@ -131,6 +136,15 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
         });
         return null;
       }
+      // Drawings can go to another account, e.g. the one this person is about to be relinked to
+      let heir = null;
+      if (req.query.drawings_to != null && req.query.drawings_to !== "") {
+        heir = await User.findOne({ where: { username: String(req.query.drawings_to) }, attributes: ["id", "username"], raw: true, transaction });
+        if (!heir || heir.id === id) {
+          res.send({ status: "failure", message: `There's no other account named '${req.query.drawings_to}' to give the drawings to.` });
+          return null;
+        }
+      }
       await RoleBinding.destroy({
         where: { subject_type: "user", subject_id: String(id) },
         transaction,
@@ -148,7 +162,7 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       // Random suffix: a downgraded MMGIS, which doesn't reserve "~deleted~", mustn't let a guessable signup claim them
       if (gone)
         await Userfiles.update(
-          { file_owner: `~deleted~${id}~${crypto.randomBytes(8).toString("hex")}` },
+          { file_owner: heir ? heir.username : `~deleted~${id}~${crypto.randomBytes(8).toString("hex")}` },
           { where: { file_owner: gone.username }, transaction }
         );
       // Nor edit the files others shared with this one
@@ -167,7 +181,7 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       bindings.afterChange("user", id).catch(() => {});
       // Deleting the last provider-linked account reopens visitor sign-up where only local is enabled
       providers.refreshProviderAccounts().catch(() => {});
-      logger("info", `Successfully deleted user with id: '${id}'.`);
+      logger("info", `Successfully deleted user with id: '${id}'${req.query.drawings_to ? `, giving its drawings to '${req.query.drawings_to}'` : ""}.`);
       res.send({
         status: "success",
         message: `Successfully deleted user with id: '${id}'.`,
@@ -445,7 +459,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         const other = others.find((o) => providers.sameUsername(o.username, username));
         if (other) {
           const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
-          return `The ${provider} login '${username}' already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`;
+          return `The ${provider} login '${username}' already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first, giving its drawings to '${user.username}'.`;
         }
       }
       if (target) {
@@ -453,7 +467,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         if (other && other.user_id === id) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;
         if (other) {
           const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
-          return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`;
+          return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first, giving its drawings to '${user.username}'.`;
         }
         if (sameProvider.some((r) => r.value.subject === target.subject))
           return `Another account is already waiting for ${target.dn}. Cancel that relink first.`;

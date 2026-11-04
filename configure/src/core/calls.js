@@ -331,7 +331,7 @@ function api(call, data, success, error) {
     });
     delete data.urlReplacements;
   }
-  if (c[call].type === "POST" && data?.forceParams != null) {
+  if ((c[call].type === "POST" || c[call].type === "DELETE") && data?.forceParams != null) {
     url += `?${new URLSearchParams(data.forceParams)}`;
     delete data.forceParams;
   }

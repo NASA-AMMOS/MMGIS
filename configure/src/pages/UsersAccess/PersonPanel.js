@@ -81,7 +81,9 @@ export function PersonPanel({ user, ctx }) {
     ctx.askConfirm({
       title: `Allow ${p.toUpperCase()} relink?`,
       text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}' takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.${
-        providerLogin && providerLogin.missing_since
+        providerLogin && providerLogin.missing_reason === "subject"
+          ? ` It was linked under a different LDAP_SUBJECT_ATTRIBUTE, so it needs this relink to sign in again.`
+          : providerLogin && providerLogin.missing_since
           ? ` Its ${providerLogin.provider.toUpperCase()} entry was deleted or disabled on ${new Date(providerLogin.missing_since).toLocaleDateString()}: if '${relinkAs}' is now someone else, don't allow this.`
           : ""
       }`,
