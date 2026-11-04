@@ -39,7 +39,12 @@ export default function GroupsTab({ ctx }) {
               )}
               <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} disabled={!newGroup.name.trim()} onClick={() =>
                 api("access_groups_create", { name: newGroup.name, source: newGroup.source, external_name: newGroup.external_name || undefined })
-                  .then(() => { setNewGroup({ name: "", source: "local", external_name: "" }); refresh(); })
+                  .then(() => {
+                    setNewGroup({ name: "", source: "local", external_name: "" });
+                    refresh();
+                    // The server fills a provider group from the directory in the background
+                    if (newGroup.source !== "local") setTimeout(refresh, 4000);
+                  })
                   .catch((res) => notify(res.message || "Failed to create group.", "error"))
               }>Create group</Button>
               {providers.length > 0 && (

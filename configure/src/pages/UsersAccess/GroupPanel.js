@@ -102,7 +102,7 @@ export function GroupPanel({ group, ctx }) {
       />
       {!providerOn && (
         <div className={`${c.section} ${c.hint}`} style={{ color: "#a8572e" }}>
-          {group.source.toUpperCase()} isn't in AUTH_PROVIDERS on this site, so nobody can be a member of this group right now.
+          {group.source.toUpperCase()} isn't in AUTH_PROVIDERS on this site, so this group gives its members nothing right now; the members listed are from before it was removed.
         </div>
       )}
       <div className={c.section}>

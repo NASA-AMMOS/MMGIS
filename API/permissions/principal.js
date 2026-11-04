@@ -78,7 +78,7 @@ async function cached(key, build) {
 
 async function userPrincipal(userId) {
   return cached(`user:${userId}`, async () => {
-    const { User, AuthGroupMember } = models();
+    const { User, AuthGroup, AuthGroupMember } = models();
     const user = await User.findOne({
       where: { id: userId },
       attributes: ["id", "username"],
@@ -90,7 +90,19 @@ async function userPrincipal(userId) {
       attributes: ["group_id"],
       raw: true,
     });
-    const groupIds = memberships.map((m) => m.group_id);
+    // Groups whose members come from a provider that isn't in AUTH_PROVIDERS grant nothing until it's back
+    const groupIds =
+      memberships.length > 0
+        ? (
+            await AuthGroup.findAll({
+              where: { id: memberships.map((m) => m.group_id) },
+              attributes: ["id", "source"],
+              raw: true,
+            })
+          )
+            .filter((g) => g.source === "local" || siteAccess.hasProvider(g.source))
+            .map((g) => g.id)
+        : [];
     const subjects = [
       ["user", user.id],
       ["audience", "authenticated"],
@@ -211,13 +223,16 @@ function localAccountAllowed(p) {
   return !siteAccess.localAdminsOnly() || require("./policy").isAdministrator(p);
 }
 
-// Accounts created by a login provider follow that provider; the rest are local accounts
+// Accounts linked to an enabled login provider follow that provider; the rest (including ones whose
+// provider was removed from AUTH_PROVIDERS) are local accounts
 async function accountAllowed(p) {
-  const links = await models().AuthIdentity.findAll({
-    where: { user_id: p.userId },
-    attributes: ["provider"],
-    raw: true,
-  });
+  const links = (
+    await models().AuthIdentity.findAll({
+      where: { user_id: p.userId },
+      attributes: ["provider"],
+      raw: true,
+    })
+  ).filter((l) => siteAccess.hasProvider(l.provider));
   if (links.length === 0) return localAccountAllowed(p);
   for (const l of links)
     if (siteAccess.hasProvider(l.provider) && (await require("./providers").stillLinked(p.userId, l.provider))) return true;
@@ -269,13 +284,17 @@ async function resolvePrincipal(req) {
   }
   const session = req.session || {};
   if (session.uid != null) {
-    // Sessions started through a login provider follow that provider; the rest are local logins
+    // Sessions started through a login provider follow that provider
     const linked =
       !session.provider ||
       (siteAccess.hasProvider(session.provider) &&
         (await require("./providers").stillLinked(session.uid, session.provider)));
-    const p = linked ? await userPrincipal(session.uid) : null;
-    const allowed = p && (session.provider ? true : localAccountAllowed(p));
+    let p = linked ? await userPrincipal(session.uid) : null;
+    // A local session of an account that has since been linked to an enabled provider (or whose
+    // provider came back) follows that provider's rechecks, like the account's tokens
+    const allowed = p && (session.provider ? true : await accountAllowed(p));
+    // Read again: that recheck may have changed the account's groups
+    if (allowed && !session.provider) p = (await userPrincipal(session.uid)) || p;
     if (allowed) {
       // Signed in locally while the proxy also identifies the request: like AUTH=csso, the
       // proxy user stays the identity and the local account's access is added on top

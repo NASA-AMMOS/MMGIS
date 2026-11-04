@@ -550,6 +550,41 @@ test.describe('provider rechecks', () => {
     expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
   });
 
+  test('a group change during a check of every account queues one more check after it', async () => {
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9013 }] });
+    let calls = 0;
+    let release;
+    const gate = new Promise((r) => (release = r));
+    ldap.lookup = async () => {
+      calls++;
+      if (calls === 1) await gate;
+      return { username: 'here', groups: [] };
+    };
+    const first = providers.recheckLinked(m);
+    expect(providers.recheckLinked(m)).toBe(first);
+    const again = providers.recheckLinked(m, true);
+    expect(again).not.toBe(first);
+    expect(providers.recheckLinked(m, true)).toBe(again);
+    release();
+    await first;
+    await again;
+    expect(calls).toBe(2);
+  });
+
+  test('a group change starts no check while rechecks are off', async () => {
+    const saved = process.env.AUTH_RECHECK_MINUTES;
+    process.env.AUTH_RECHECK_MINUTES = '0';
+    let calls = 0;
+    ldap.lookup = async () => (calls++, { username: 'here', groups: [] });
+    try {
+      expect(await providers.fillGroups('ldap', fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9014 }] }))).toBeUndefined();
+      expect(calls).toBe(0);
+    } finally {
+      if (saved === undefined) delete process.env.AUTH_RECHECK_MINUTES;
+      else process.env.AUTH_RECHECK_MINUTES = saved;
+    }
+  });
+
   test('a new entry given a name whose old entry still exists is refused without suggesting a relink', async () => {
     const m = fakeModels({ links: [{ provider: 'ldap', subject: 'old-bob', username: 'bob', user_id: 9020 }] });
     const realLocate = ldap.locate;

@@ -397,7 +397,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       target = await providers.relinkTarget(provider, username);
     } catch (err) {
       logger("error", `Couldn't look up '${username}' at ${provider} to allow a relink.`, "accounts", req, err);
-      return fail(`Couldn't reach ${provider} to look up '${username}'. Try again later.`);
+      return fail(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Try again later.`);
     }
     if (target === null) return fail(`${provider} has no single entry with the username '${username}'.`);
     // The account's own entry still being there (even disabled or in a leavers' OU) means this is someone else

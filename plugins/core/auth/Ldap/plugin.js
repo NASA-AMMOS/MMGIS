@@ -6,7 +6,7 @@
 const fs = require("fs");
 const net = require("net");
 const crypto = require("crypto");
-const { Client, InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError, ResultCodeError } = require("ldapts");
+const { Client, InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError, InvalidDNSyntaxError, ResultCodeError } = require("ldapts");
 
 const setting = (v, fallback = "") => (v != null && String(v).trim() !== "" ? String(v).trim() : fallback);
 const isTrue = (v) => String(v).trim().toLowerCase() === "true";
@@ -418,6 +418,11 @@ async function authenticate(username, password, c = config(), createClient = new
   }
 }
 
+// With LDAP_SUBJECT_ATTRIBUTE=dn, a stored subject that isn't a DN (one saved under entryUUID/objectGUID
+// before the setting changed) names no entry
+const notADn = (subject) => !/^[^=,]+=/.test(String(subject));
+const noDnEntry = (err) => err instanceof NoSuchObjectError || err instanceof InvalidDNSyntaxError;
+
 // The person's current identity, read with the service account, for rechecking existing sessions
 // and tokens: null when the entry is gone or disabled, undefined when there's no service account
 // to read it with; throws when the directory can't be reached
@@ -429,14 +434,16 @@ async function lookup(subject, c = config(), createClient = newClient) {
   try {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     await bindService(client, c);
+    const byDn = c.subjectAttribute.toLowerCase() === "dn";
+    if (byDn && notADn(subject)) return null;
     let entries;
     try {
       ({ searchEntries: entries } =
-        c.subjectAttribute.toLowerCase() === "dn"
+        byDn
           ? await client.search(subject, { scope: "base", filter: "(objectClass=*)", attributes, explicitBufferAttributes })
           : await client.search(c.searchBase, { scope: "sub", filter: subjectFilter(c, subject), attributes, explicitBufferAttributes, sizeLimit: 2 }));
     } catch (err) {
-      if (err instanceof NoSuchObjectError) return null;
+      if (byDn ? noDnEntry(err) : err instanceof NoSuchObjectError) return null;
       throw err;
     }
     if (entries.length !== 1 || accountDisabled(entries[0])) return null;
@@ -486,6 +493,7 @@ async function locate(subject, c = config(), createClient = newClient) {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     await bindService(client, c);
     const byDn = c.subjectAttribute.toLowerCase() === "dn";
+    if (byDn && notADn(subject)) return null;
     const root = byDn ? null : await searchRoot(client, c);
     if (!byDn && !root) throw new Error("No naming context in the directory's root DSE holds LDAP_USER_SEARCH_BASE, so MMGIS can't search outside it.");
     let entries;
@@ -495,7 +503,7 @@ async function locate(subject, c = config(), createClient = newClient) {
           ? await client.search(subject, { scope: "base", filter: "(objectClass=*)", attributes })
           : await client.search(root, { scope: "sub", filter: subjectFilter(c, subject), attributes, sizeLimit: 2 }));
     } catch (err) {
-      if (byDn && err instanceof NoSuchObjectError) return null;
+      if (byDn && noDnEntry(err)) return null;
       // Several entries with this subject: it still exists, however ambiguously
       if (err instanceof SizeLimitExceededError) return {};
       // e.g. a service account that can't read the root, which says nothing about the entry

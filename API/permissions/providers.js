@@ -339,7 +339,7 @@ async function claimRelink(identity, m) {
     );
     // A local password it had is no longer known to anyone
     await m.User.update(
-      { password: crypto.randomBytes(32).toString("hex"), token: null },
+      { password: crypto.randomBytes(32).toString("hex"), token: null, reset_token: null, reset_token_expiration: null },
       { where: { id: user.id }, transaction, individualHooks: true }
     );
     return true;
@@ -610,7 +610,14 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     }
     if (changed || !identity) require("./principal").invalidate();
     if (!identity)
-      logger("info", `Auth provider '${providerId}' no longer has ${await who(m, userId)} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
+      logger(
+        "info",
+        `Auth provider '${providerId}' no longer has ${await who(m, userId)} (subject '${link.subject}'); ` +
+          (recheckMs() === 0
+            ? "its open sessions and API tokens keep working until they end, because AUTH_RECHECK_MINUTES=0 turns rechecks off."
+            : "its sessions and API tokens stop working."),
+        "AuthProviders"
+      );
     return identity ? "ok" : "missing";
   })().catch((err) => {
     rechecks.delete(key);
@@ -627,9 +634,30 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
 // so People shows which entries are gone
 // One run per process at a time, so a second click while a slow directory answers doesn't double its load
 let recheckingAll = null;
-function recheckLinked(m = accountModels()) {
-  if (!recheckingAll) recheckingAll = recheckAllNow(m).finally(() => (recheckingAll = null));
-  return recheckingAll;
+let recheckQueued = null;
+// again: a run already under way may have passed accounts before a change they need, so queue one more after it
+function recheckLinked(m = accountModels(), again = false) {
+  if (!recheckingAll) {
+    recheckingAll = recheckAllNow(m).finally(() => (recheckingAll = null));
+    return recheckingAll;
+  }
+  if (!again) return recheckingAll;
+  if (!recheckQueued)
+    recheckQueued = recheckingAll
+      .catch(() => {})
+      .then(() => {
+        recheckQueued = null;
+        return recheckLinked(m);
+      });
+  return recheckQueued;
+}
+
+// Fills a new or repointed group of providerId from the accounts already linked to it; resolves
+// undefined when rechecks are off (AUTH_RECHECK_MINUTES=0) or that provider can't look accounts up
+function fillGroups(providerId, m = accountModels()) {
+  const p = siteAccess.hasProvider(providerId) && getProvider(providerId);
+  if (recheckMs() === 0 || !p || typeof p.impl.lookup !== "function") return Promise.resolve(undefined);
+  return recheckLinked(m, true);
 }
 
 async function recheckAllNow(m) {
@@ -839,6 +867,7 @@ module.exports = {
   syncGroups,
   stillLinked,
   recheckLinked,
+  fillGroups,
   completeLogin,
   leadGroups,
   returnTo,

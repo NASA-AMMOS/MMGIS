@@ -5,7 +5,7 @@
 
 import { test, expect } from '@playwright/test';
 const path = require('path');
-const { InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError } = require('ldapts');
+const { InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError, InvalidDNSyntaxError } = require('ldapts');
 
 const ldap = require(path.resolve(__dirname, '../plugin.js'));
 const { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, selfCheck, explain, PasswordExpiredError } = ldap._internal;
@@ -333,6 +333,18 @@ test.describe('Whether an old entry still exists (locate)', () => {
     const search = async () => { throw new NoSuchObjectError('No such object'); };
     await expect(locate('e1', config(env), client(search))).rejects.toBeInstanceOf(NoSuchObjectError);
     expect(await locate('uid=a,ou=people,dc=example,dc=org', config({ ...env, LDAP_SUBJECT_ATTRIBUTE: 'dn' }), client(search))).toBeNull();
+  });
+
+  test('after a switch to LDAP_SUBJECT_ATTRIBUTE=dn, a subject saved as an entryUUID names no entry', async () => {
+    const { lookup } = ldap._internal;
+    const dn = config({ ...env, LDAP_SUBJECT_ATTRIBUTE: 'dn' });
+    let searched = 0;
+    const search = async () => { searched++; throw new InvalidDNSyntaxError('invalid DN'); };
+    expect(await locate('5fc958d8-1c2b-4f3a-9d1e-0123456789ab', dn, client(search))).toBeNull();
+    expect(await lookup('5fc958d8-1c2b-4f3a-9d1e-0123456789ab', dn, client(search))).toBeNull();
+    expect(searched).toBe(0);
+    expect(await locate('uid=a,ou=people,dc=example,dc=org', dn, client(search))).toBeNull();
+    expect(await lookup('uid=a,ou=people,dc=example,dc=org', dn, client(search))).toBeNull();
   });
 
   test('several entries with the subject still count as present', async () => {
