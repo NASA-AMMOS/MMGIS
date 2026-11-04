@@ -261,6 +261,24 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('a deleted account\'s drawings do not go to the next account with its username', async () => {
+    const adminCtx = await adminContext();
+    const ctx = await context();
+    expect((await ldapLogin(ctx, alice)).status()).toBe(200);
+    const name = `alice private ${Date.now()}`;
+    const made = await (await ctx.post('/api/files/make', { data: { file_name: name, intent: 'all' } })).json();
+    expect(made.status).toBe('success');
+    const files = async (c) => (await (await c.post('/api/files/getfiles', { data: {} })).json()).body.filter((f) => f.file_name === name);
+    const [file] = await files(ctx);
+    expect((await (await ctx.post('/api/files/change', { data: { id: file.id, public: '0' } })).json()).status).toBe('success');
+    expect(await files(ctx)).toHaveLength(1);
+    const id = (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries.find((e) => e.username === alice.username).id;
+    expect((await (await adminCtx.delete(`/api/accounts/remove/${id}`)).json()).status).toBe('success');
+    const next = await context();
+    expect((await ldapLogin(next, alice)).status()).toBe(200);
+    expect(await files(next)).toHaveLength(0);
+  });
+
   test('LDAP accounts get no MMGIS password reset link', async () => {
     const ctx = await context();
     expect((await ldapLogin(ctx, alice)).status()).toBe(200);

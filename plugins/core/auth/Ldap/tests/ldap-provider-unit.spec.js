@@ -339,6 +339,24 @@ test.describe('Whether an old entry still exists (locate)', () => {
     expect(err.message).toMatch(/LDAP_BIND_DN's password has expired/);
   });
 
+  test('without a dc= suffix the directory\'s naming context is searched, and unknown without one', async () => {
+    const corp = { ...env, LDAP_USER_SEARCH_BASE: 'ou=people,o=corp' };
+    const searched = [];
+    const search = (contexts) => async (dn, opts) => {
+      searched.push(dn);
+      if (dn === '') return { searchEntries: [{ dn: '', namingContexts: contexts }] };
+      return { searchEntries: [{ ...alice.entry, dn: 'uid=alice,ou=leavers,o=corp' }] };
+    };
+    expect(await locate('e1', config(corp), client(search(['o=other', 'o=corp'])))).toMatchObject({ dn: 'uid=alice,ou=leavers,o=corp' });
+    expect(searched).toEqual(['', 'o=corp']);
+    await expect(locate('e1', config(corp), client(search(['o=other'])))).rejects.toThrow(/naming context/);
+  });
+
+  test('a binary subject attribute MMGIS cannot search for again is refused, not signed out at every recheck', async () => {
+    const photo = { ...alice, entry: { ...alice.entry, jpegPhoto: Buffer.from('9f8102ff', 'hex') } };
+    await expect(authenticate('alice', 'right', config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'jpegPhoto' }), fakeClient([photo]))).rejects.toThrow(/holds binary values/);
+  });
+
   test('the startup check warns when the service account cannot read the directory root', async () => {
     const fake = () => ({
       async bind() {},

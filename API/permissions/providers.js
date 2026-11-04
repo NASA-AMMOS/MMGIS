@@ -186,7 +186,11 @@ async function identify(req) {
 
 // err.message has the details for the server log; providers show users only err.userMessage
 // Draw keeps group-shared and master files under the owner "group"
-const reservedUsername = (name) => String(name).normalize("NFKC").trim().toLowerCase() === "group";
+// and a deleted account's files under "~deleted~<id>"
+const reservedUsername = (name) => {
+  const n = String(name).normalize("NFKC").trim().toLowerCase();
+  return n === "group" || n.startsWith("~deleted~");
+};
 
 class LinkError extends Error {
   constructor(message, userMessage) {

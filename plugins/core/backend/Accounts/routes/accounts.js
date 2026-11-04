@@ -22,6 +22,7 @@ const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
 const { RoleBinding, AuthIdentity, AuthMeta } = require("../../../../../API/permissions/models");
 const providers = require("../../../../../API/permissions/providers");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
+const { Userfiles } = require("../../Draw/models/userfiles");
 const connections = require("../../../../../API/connections");
 const { apilimiter, resetFailedLogins } = require("../../../../../scripts/rateLimiters");
 const User = userModel.User;
@@ -142,6 +143,9 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       });
       // Its connections go with it (cascade); read them first to revoke them at each service
       grants = await connections.accountGrants(id, { transaction }).catch(() => []);
+      // Drawings are kept under the username, so the next account given that name (e.g. a reused directory name) mustn't get them
+      const gone = await User.findOne({ where: { id }, attributes: ["username"], raw: true, transaction });
+      if (gone) await Userfiles.update({ file_owner: `~deleted~${id}` }, { where: { file_owner: gone.username }, transaction });
       // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile
       await User.destroy({ where: { id: id }, transaction });
       return true;

@@ -119,7 +119,13 @@ function subjectOf(entry, c) {
   if (c.subjectAttribute.toLowerCase() === "dn") return entry.dn;
   const v = values(entry, c.subjectAttribute)[0];
   if (v == null) return null;
-  if (Buffer.isBuffer(v)) return v.length === 16 && /^objectguid$/i.test(c.subjectAttribute) ? guidString(v) : v.toString("hex");
+  if (Buffer.isBuffer(v)) {
+    if (v.length === 16 && /^objectguid$/i.test(c.subjectAttribute)) return guidString(v);
+    // Rechecks would search for the hex as text, find nothing and sign everyone out
+    if (!isBinaryAttribute(c.subjectAttribute))
+      throw new Error(`LDAP_SUBJECT_ATTRIBUTE ${c.subjectAttribute} holds binary values, which MMGIS can't search for again at rechecks. Use entryUUID, or objectGUID on Active Directory.`);
+    return v.toString("hex");
+  }
   return String(v);
 }
 
@@ -384,6 +390,8 @@ async function authenticate(username, password, c = config(), createClient = new
         return refuse(
           `the password is right for ${dn}, but LDAP_USER_SEARCH_FILTER found a different entry, ${entry.dn} (make LDAP_USER_DN_TEMPLATE and LDAP_USER_SEARCH_FILTER name the same attribute)`
         );
+      // Groups are read as the service account, as at rechecks, where people may not read the group OU
+      if (c.bindDn) await bindService(client, c);
     } else {
       if (c.bindDn) await bindService(client, c);
       const found = await findUser(client, c, username);
@@ -453,6 +461,20 @@ function directoryRoot(base) {
   return i > 0 ? rdns.slice(i).join(",") : base;
 }
 
+// Where locate searches: the dc= suffix of LDAP_USER_SEARCH_BASE, else the directory's naming context
+// that holds it (e.g. o=corp); null when neither is known
+async function searchRoot(client, c) {
+  const root = directoryRoot(c.searchBase);
+  if (root !== c.searchBase) return root;
+  const { searchEntries } = await client.search("", { scope: "base", filter: "(objectClass=*)", attributes: ["namingContexts"] });
+  const base = normalizeDn(c.searchBase);
+  const holding = values(searchEntries[0] || {}, "namingContexts")
+    .map(String)
+    .filter((n) => base === normalizeDn(n) || base.endsWith(`,${normalizeDn(n)}`))
+    .sort((a, b) => a.length - b.length);
+  return holding[0] || null;
+}
+
 // Whether an entry with this subject still exists anywhere in the directory, even disabled or moved
 // out of LDAP_USER_SEARCH_BASE (e.g. to a leavers' OU): { dn, username }, null when it doesn't,
 // undefined without a service account; throws when the directory can't be reached or searched from the root
@@ -464,12 +486,14 @@ async function locate(subject, c = config(), createClient = newClient) {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     await bindService(client, c);
     const byDn = c.subjectAttribute.toLowerCase() === "dn";
+    const root = byDn ? null : await searchRoot(client, c);
+    if (!byDn && !root) throw new Error("No naming context in the directory's root DSE holds LDAP_USER_SEARCH_BASE, so MMGIS can't search outside it.");
     let entries;
     try {
       ({ searchEntries: entries } =
         byDn
           ? await client.search(subject, { scope: "base", filter: "(objectClass=*)", attributes })
-          : await client.search(directoryRoot(c.searchBase), { scope: "sub", filter: subjectFilter(c, subject), attributes, sizeLimit: 2 }));
+          : await client.search(root, { scope: "sub", filter: subjectFilter(c, subject), attributes, sizeLimit: 2 }));
     } catch (err) {
       if (byDn && err instanceof NoSuchObjectError) return null;
       // Several entries with this subject: it still exists, however ambiguously
@@ -532,10 +556,10 @@ async function selfCheck(c = config(), createClient = newClient) {
       checked.push(`${name} exists`);
     }
     // locate(subject) searches from there, so a leaver moved out of LDAP_USER_SEARCH_BASE still counts
-    const root = c.bindDn && c.searchBase ? directoryRoot(c.searchBase) : null;
-    if (root && root === c.searchBase && c.subjectAttribute.toLowerCase() !== "dn")
+    const root = c.bindDn && c.searchBase && c.subjectAttribute.toLowerCase() !== "dn" ? await searchRoot(client, c).catch(() => null) : undefined;
+    if (root === null)
       checked.warnings.push(
-        `LDAP_USER_SEARCH_BASE (${root}) has no dc= suffix to search from, so a person moved out of it counts as gone when an admin allows a relink to a different entry. Check the old entry yourself before allowing one.`
+        `LDAP_USER_SEARCH_BASE (${c.searchBase}) has no dc= suffix and the directory names no naming context holding it, so MMGIS can't tell whether a person moved out of it still exists, and refuses relinks to a different entry.`
       );
     else if (root)
       try {
@@ -614,7 +638,9 @@ function warnings(env) {
   if (c.groupNameAttribute && !c.groupSearchBase)
     out.push(`LDAP_GROUP_NAME_ATTRIBUTE=${c.groupNameAttribute} has no effect without LDAP_GROUP_SEARCH_BASE: groups read from ${c.groupsAttribute} are reported by their full DN.`);
   if (c.subjectAttribute.toLowerCase() === "dn")
-    out.push("LDAP_SUBJECT_ATTRIBUTE=dn: a person's DN changes when they are renamed or moved, which then creates a new MMGIS account.");
+    out.push(
+      "LDAP_SUBJECT_ATTRIBUTE=dn: a person's DN changes when they are renamed or moved, which then creates a new MMGIS account, and whoever is later given a leaver's DN signs in as the leaver's account, roles and drawings included. Prefer entryUUID or objectGUID."
+    );
   return out;
 }
 
