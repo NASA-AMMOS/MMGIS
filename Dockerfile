@@ -30,7 +30,7 @@ COPY python-environment.yml ./
 # Node.js
 #############################
 
-RUN dnf module install -y nodejs:20
+RUN dnf module install -y nodejs:22
 
 #############################
 # Python (micromamba)
@@ -113,7 +113,7 @@ RUN dnf -y update && \
     dnf -y install ca-certificates curl && \
     update-ca-trust enable && \
     update-ca-trust extract && \
-    dnf module install -y nodejs:20 && \
+    dnf module install -y nodejs:22 && \
     dnf clean all
 
 ARG PUBLIC_URL_ARG=
