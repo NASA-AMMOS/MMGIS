@@ -29,7 +29,7 @@ function config(env = process.env) {
     groupsAttribute: setting(env.LDAP_GROUPS_ATTRIBUTE, "memberOf"),
     groupSearchBase: setting(env.LDAP_GROUP_SEARCH_BASE),
     groupSearchFilter: setting(env.LDAP_GROUP_SEARCH_FILTER, "(member={{dn}})"),
-    groupNameAttribute: setting(env.LDAP_GROUP_NAME_ATTRIBUTE, "cn"),
+    groupNameAttribute: setting(env.LDAP_GROUP_NAME_ATTRIBUTE),
     timeoutMs: Number.isInteger(timeout) && timeout > 0 ? timeout : 5000,
     displayName: setting(env.LDAP_DISPLAY_NAME, "LDAP"),
     usernameLabel: setting(env.LDAP_USERNAME_LABEL, "Username"),
@@ -61,22 +61,26 @@ function escapeDn(value) {
 const fill = (template, values) =>
   template.replace(/\{\{(username|dn)\}\}/g, (m, key) => (values[key] != null ? values[key] : m));
 
-// "cn=science-team,ou=groups,dc=example,dc=org" -> "science-team"; anything that isn't a DN is returned as is
-function firstRdnValue(dn) {
+// "CN=Science Team, OU=Groups,DC=corp" -> "cn=science team,ou=groups,dc=corp", so one group always
+// reads the same however the directory spaces or capitalizes it
+function normalizeDn(dn) {
+  const rdns = [];
+  let cur = "";
   const s = String(dn);
-  let i = 0;
-  let eq = -1;
-  for (; i < s.length; i++) {
-    const c = s[i];
-    if (c === "\\") i++;
-    else if (c === "=" && eq < 0) eq = i;
-    else if (c === "," || c === "+") break;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === "\\") {
+      cur += s.slice(i, i + 2);
+      i++;
+    } else if (s[i] === ",") {
+      rdns.push(cur);
+      cur = "";
+    } else cur += s[i];
   }
-  if (eq < 0) return s;
-  return s
-    .slice(eq + 1, i)
-    .trim()
-    .replace(/\\([0-9a-fA-F]{2})|\\(.)/g, (m, hex, ch) => (hex ? String.fromCharCode(parseInt(hex, 16)) : ch));
+  rdns.push(cur);
+  return rdns
+    .map((r) => r.trim().replace(/^([^=]*?)\s*=\s*/, "$1="))
+    .join(",")
+    .toLowerCase();
 }
 
 ////// Directory entries
@@ -183,16 +187,17 @@ async function readEntry(client, c, dn) {
   return searchEntries[0] || null;
 }
 
+// Groups are reported by DN: two groups named "admins" in different OUs must not become one MMGIS group
 async function groupsOf(client, c, entry, username) {
-  if (!c.groupSearchBase) return values(entry, c.groupsAttribute).map((v) => firstRdnValue(v));
+  if (!c.groupSearchBase) return values(entry, c.groupsAttribute).map((v) => normalizeDn(v));
   const { searchEntries } = await client.search(c.groupSearchBase, {
     scope: "sub",
     filter: fill(c.groupSearchFilter, { dn: escapeFilter(entry.dn), username: escapeFilter(username) }),
-    attributes: [c.groupNameAttribute],
+    attributes: c.groupNameAttribute ? [c.groupNameAttribute] : ["dn"],
   });
   return searchEntries.map((g) => {
-    const name = values(g, c.groupNameAttribute)[0];
-    return name != null ? String(name) : firstRdnValue(g.dn);
+    const name = c.groupNameAttribute ? values(g, c.groupNameAttribute)[0] : null;
+    return name != null ? String(name) : normalizeDn(g.dn);
   });
 }
 
@@ -312,7 +317,12 @@ module.exports = {
         return res.status(401).send({ status: "failure", message: `Invalid ${name} username or password.` });
       try {
         const user = await ctx.completeLogin(req, identity);
-        ctx.logger("info", `${user.username} logged in with LDAP.`, "Ldap", req);
+        ctx.logger(
+          "info",
+          `${user.username} logged in with LDAP. Directory groups: ${identity.groups.length ? identity.groups.join(" | ") : "none"}.`,
+          "Ldap",
+          req
+        );
         res.send({ status: "success", username: user.username, provider: "ldap", groups: ctx.sessionGroups(req, user.username) });
       } catch (err) {
         if (err instanceof ctx.LinkError)
@@ -329,5 +339,5 @@ module.exports = {
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, firstRdnValue, guidString, authenticate, PasswordExpiredError },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, PasswordExpiredError },
 };

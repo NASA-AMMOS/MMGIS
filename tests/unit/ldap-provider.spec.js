@@ -8,7 +8,7 @@ const path = require('path');
 const { InvalidCredentialsError, SizeLimitExceededError } = require('ldapts');
 
 const ldap = require(path.resolve(__dirname, '../../plugins/core/auth/Ldap/plugin.js'));
-const { config, stripDomain, escapeFilter, escapeDn, firstRdnValue, guidString, authenticate, PasswordExpiredError } = ldap._internal;
+const { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, authenticate, PasswordExpiredError } = ldap._internal;
 
 const base = {
   LDAP_URL: 'ldaps://ldap.example.org',
@@ -72,11 +72,10 @@ test.describe('LDAP escaping', () => {
     expect(stripDomain('CORP\\alice', config(base))).toBe('CORP\\alice');
   });
 
-  test('group DNs become their first name component', () => {
-    expect(firstRdnValue('cn=science-team,ou=groups,dc=example,dc=org')).toBe('science-team');
-    expect(firstRdnValue('CN=Ops\\2C East,OU=Groups,DC=corp')).toBe('Ops, East');
-    expect(firstRdnValue('cn=a\\,b,dc=x')).toBe('a,b');
-    expect(firstRdnValue('plain-name')).toBe('plain-name');
+  test('group DNs are compared lowercased and without spaces, so same-named groups in different OUs stay apart', () => {
+    expect(normalizeDn('CN=Science Team, OU=Groups ,DC=corp')).toBe('cn=science team,ou=groups,dc=corp');
+    expect(normalizeDn('cn = a\\,b,dc=x')).toBe('cn=a\\,b,dc=x');
+    expect(normalizeDn('cn=admins,ou=a,dc=x')).not.toBe(normalizeDn('cn=admins,ou=b,dc=x'));
   });
 
   test('Active Directory objectGUIDs are formatted like AD shows them', () => {
@@ -89,7 +88,7 @@ test.describe('LDAP login', () => {
   test('search mode: service account finds the person, their password is checked by binding as them', async () => {
     const log = [];
     const id = await authenticate('alice', 'right', config(base), fakeClient([alice], log));
-    expect(id).toEqual({ subject: 'e1', username: 'alice', email: 'alice@example.org', groups: ['science-team', 'Ops, East'] });
+    expect(id).toEqual({ subject: 'e1', username: 'alice', email: 'alice@example.org', groups: ['cn=science-team,ou=groups,dc=example,dc=org', 'cn=ops\\2c east,ou=groups,dc=example,dc=org'] });
     expect(log).toEqual([`bind ${base.LDAP_BIND_DN}`, `search ${base.LDAP_USER_SEARCH_BASE} (uid=alice)`, `bind ${alice.dn}`, 'unbind']);
   });
 

@@ -89,7 +89,7 @@ test.describe('LDAP login provider', () => {
   test('directory groups give roles through groups with Members from LDAP', async () => {
     const adminCtx = await adminContext();
     const name = `ldap-science-${Date.now()}`;
-    const created = await (await adminCtx.post('/api/access/groups/create', { data: { name, source: 'ldap', external_name: 'science-team' } })).json();
+    const created = await (await adminCtx.post('/api/access/groups/create', { data: { name, source: 'ldap', external_name: 'cn=science-team,ou=groups,dc=example,dc=org' } })).json();
     expect(created.status).toBe('success');
     const bound = await (await adminCtx.post('/api/access/bindings/add', {
       data: { subject_type: 'group', subject_id: created.body.id, role: 'data_admin', scope_type: 'global' },

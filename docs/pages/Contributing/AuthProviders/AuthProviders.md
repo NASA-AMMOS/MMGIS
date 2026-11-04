@@ -122,7 +122,7 @@ An identity is:
 
 **Per-request providers** create no account. Their users don't appear in People and can't hold a grant of their own; they get access through groups (matched on every request) and the Everyone / Logged-in users audiences.
 
-**Groups.** A provider's groups only matter for groups an admin has created in Users & Access with **Members from <PROVIDER>** and an external name equal to the reported group. Other reported groups are ignored; MMGIS never creates groups on its own. For session providers, membership changes at the provider apply at the next login; a new grant to a group applies at the next request.
+**Groups.** A provider's groups only matter for groups an admin has created in Users & Access with **Members from <PROVIDER>** and an external name equal to the reported group, ignoring capitalization. Other reported groups are ignored; MMGIS never creates groups on its own. For session providers, membership changes at the provider apply at the next login; a new grant to a group applies at the next request.
 
 ## The ctx object
 

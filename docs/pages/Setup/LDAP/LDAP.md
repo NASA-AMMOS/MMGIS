@@ -100,7 +100,7 @@ By default MMGIS reads the person's `memberOf` attribute (Active Directory, or O
 
 On Active Directory, `memberOf` only lists groups the person is directly in. To include nested groups, search with the in-chain rule: `LDAP_GROUP_SEARCH_BASE=DC=corp,...` and `LDAP_GROUP_SEARCH_FILTER=(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))`. A person's primary group (usually `Domain Users`) appears in neither, so map a regular group instead.
 
-Groups are reported by name (`cn=science-team,ou=groups,...` is `science-team`). In Configure > Users & Access > Groups, create a group with **Members from LDAP** and that name, then give the group a role. Membership is updated at every login.
+Groups are reported by their full DN in lowercase, e.g. `cn=science-team,ou=groups,dc=example,dc=org`, so two groups called `admins` in different OUs can't be confused and someone who can create groups in their own OU can't take another group's role. In Configure > Users & Access > Groups, create a group with **Members from LDAP** and the group's DN as its external name (capitalization and spaces after commas don't matter), then give the group a role. Membership is updated at every login, and the server log lists the groups the directory reported for each login. To use plain names instead, set `LDAP_GROUP_SEARCH_BASE` to the one OU that holds your MMGIS groups and `LDAP_GROUP_NAME_ATTRIBUTE=cn`.
 
 ## Accounts
 
@@ -119,6 +119,6 @@ Groups are reported by name (`cn=science-team,ou=groups,...` is `science-team`).
 | "<name> is unavailable" | MMGIS couldn't reach the directory, the TLS certificate didn't verify, the service account was rejected, or the entry had no `LDAP_SUBJECT_ATTRIBUTE`. The server log has the reason. |
 | "Invalid <name> username or password" for everyone | Check `LDAP_USER_SEARCH_BASE`/`LDAP_USER_SEARCH_FILTER` (or `LDAP_USER_DN_TEMPLATE`) and that the service account may read people. |
 | "Invalid <name> username or password" for `CORP\alice` or `alice@corp...` | Set `LDAP_USERNAME_DOMAIN=CORP`, and use a `LDAP_USER_SEARCH_FILTER` that also matches `userPrincipalName` (see the Active Directory example). |
-| Groups don't apply | The group's external name must equal the directory group's name; check whether your directory has `memberOf`, or set `LDAP_GROUP_SEARCH_BASE`. |
+| Groups don't apply | The group's external name must be the directory group's DN (or its `LDAP_GROUP_NAME_ATTRIBUTE` value). The login line in the server log lists the groups the directory reported; if it says `none`, check whether your directory has `memberOf`, or set `LDAP_GROUP_SEARCH_BASE`. |
 
 To try it locally, `tests/e2e/ldap/openldap/start.sh` starts an OpenLDAP container with test users; `tests/e2e/ldap/ldap-provider.spec.js` shows the matching settings.

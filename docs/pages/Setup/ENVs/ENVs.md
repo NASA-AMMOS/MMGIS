@@ -264,7 +264,7 @@ Attribute with the person's email | string | default `mail`
 
 #### `LDAP_GROUPS_ATTRIBUTE=`
 
-Attribute on the person listing their groups as DNs (Active Directory, or OpenLDAP with the memberof overlay). Each group is reported by its first name component, e.g. `cn=science-team,ou=groups,...` is `science-team`; use that name for groups with **Members from LDAP**. Ignored when `LDAP_GROUP_SEARCH_BASE` is set | string | default `memberOf`
+Attribute on the person listing their groups as DNs (Active Directory, or OpenLDAP with the memberof overlay). Each group is reported by its full DN in lowercase, e.g. `cn=science-team,ou=groups,dc=example,dc=org`; use that as the external name of groups with **Members from LDAP**. Ignored when `LDAP_GROUP_SEARCH_BASE` is set | string | default `memberOf`
 
 #### `LDAP_GROUP_SEARCH_BASE=`
 
@@ -276,7 +276,7 @@ Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username
 
 #### `LDAP_GROUP_NAME_ATTRIBUTE=`
 
-Attribute holding a found group's name | string | default `cn`
+Report groups found under `LDAP_GROUP_SEARCH_BASE` by this attribute (e.g. `cn`) instead of their DN. Only use it when nobody untrusted can create groups under that base, since groups with the same name become one MMGIS group | string | default `''` (the DN)
 
 #### `LDAP_TIMEOUT_MS=`
 
