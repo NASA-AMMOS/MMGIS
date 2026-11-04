@@ -137,6 +137,8 @@ function subjectOf(entry, c) {
   return String(v);
 }
 
+// Values no other entry can have (a DN is unique at any one time)
+const PERMANENT_SUBJECT = /^(dn|entryuuid|objectguid|objectsid|nsuniqueid|ipauniqueid|guid)$/i;
 const isBinaryAttribute = (name) => /^(objectguid|objectsid)$/i.test(name);
 
 const hexEscape = (buf) => Array.from(buf, (b) => `\\${b.toString(16).padStart(2, "0")}`).join("");
@@ -452,11 +454,26 @@ async function authenticate(username, password, c = config(), createClient = new
     }
     const subject = subjectOf(entry, c);
     if (!subject) throw new UnusableEntryError(`${entry.dn} has no ${c.subjectAttribute} (LDAP_SUBJECT_ATTRIBUTE).`);
+    // A value that isn't a permanent ID (e.g. cn) may be another entry's too, which would sign in to the same account
+    if (!PERMANENT_SUBJECT.test(c.subjectAttribute) && c.bindDn && c.searchBase) {
+      await bindService(client, c);
+      const shared = await client
+        .search(c.searchBase, { scope: "sub", filter: `(&${subjectFilter(c, subject)}${peopleFilter(c)})`, attributes: ["dn"], sizeLimit: 2 })
+        .then((r) => r.searchEntries.length > 1)
+        .catch((err) => {
+          if (err instanceof SizeLimitExceededError) return true;
+          if (err instanceof NoSuchObjectError) return false;
+          throw err;
+        });
+      if (shared)
+        throw new UnusableEntryError(`${entry.dn} shares its ${c.subjectAttribute} '${subject}' (LDAP_SUBJECT_ATTRIBUTE) with another entry, so MMGIS can't tell them apart; use a permanent ID such as entryUUID.`);
+    }
     const name = values(entry, c.usernameAttribute)[0];
     const email = values(entry, c.emailAttribute)[0];
     const groupsLeftOut = [];
     return {
       subject,
+      dn: entry.dn,
       username: name != null ? String(name) : username,
       email: email != null ? String(email) : undefined,
       // The directory's username, as at recheck, so group filters don't depend on how it was typed
@@ -744,7 +761,7 @@ function warnings(env) {
     );
   if (c.groupNameAttribute && !c.groupSearchBase)
     out.push(`LDAP_GROUP_NAME_ATTRIBUTE=${c.groupNameAttribute} has no effect without LDAP_GROUP_SEARCH_BASE: groups read from ${c.groupsAttribute} are reported by their full DN.`);
-  if (!/^(dn|entryuuid|objectguid|objectsid|nsuniqueid|ipauniqueid|guid)$/i.test(c.subjectAttribute))
+  if (!PERMANENT_SUBJECT.test(c.subjectAttribute))
     out.push(
       `LDAP_SUBJECT_ATTRIBUTE=${c.subjectAttribute} isn't a permanent entry ID: if it changes (a rename, a new email address), that person's next sign-in creates a new, empty MMGIS account instead of using theirs, and whoever is later given the old value signs in as that account. Prefer entryUUID or objectGUID.`
     );
@@ -761,6 +778,7 @@ module.exports = {
   // A DN stored before a switch to entryUUID/objectGUID, or an ID stored before a switch to dn
   subjectFits: (subject) => (config().subjectAttribute.toLowerCase() === "dn") !== notADn(subject),
   subjectSetting: () => config().subjectAttribute.toLowerCase(),
+  subjectPermanent: () => PERMANENT_SUBJECT.test(config().subjectAttribute),
   routes(router, ctx) {
     const startup = config();
     selfCheck(startup).then(

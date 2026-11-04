@@ -156,6 +156,7 @@ function normalizeIdentity(provider, raw) {
     email: typeof raw.email === "string" ? raw.email : null,
     groups,
     session: raw.session != null ? String(raw.session) : null,
+    ...(typeof raw.dn === "string" && raw.dn !== "" ? { dn: raw.dn } : {}),
     ...(Array.isArray(raw.strictGroups)
       ? { strictGroups: raw.strictGroups.filter((g) => typeof g === "string" && g !== "") }
       : {}),
@@ -317,7 +318,10 @@ async function findClaim(identity, m) {
     if (v.subject && v.subject_setting && v.subject_setting !== subjectSetting(getProvider(identity.provider))) continue;
     // Only the entry the admin was shown may claim it, whatever it is called by now
     if (v.subject ? v.subject !== identity.subject : !sameUsername(v.username, identity.username)) continue;
-    return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by };
+    // A value that isn't a permanent ID (e.g. cn) may be another entry's too
+    const p = getProvider(identity.provider);
+    if (v.subject && v.dn && p && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent() && !(identity.dn && identity.dn.toLowerCase() === v.dn.toLowerCase())) continue;
+    return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by, dn: v.dn };
   }
   return null;
 }
@@ -436,50 +440,68 @@ function subjectFits(p, link) {
   return typeof p.impl.subjectFits !== "function" || p.impl.subjectFits(link.subject) !== false;
 }
 
-const settingKey = (providerId) => `subject_setting:${providerId}`;
+const settingPrefix = (providerId) => `subject_setting:${providerId}:`;
+const SETTING_FRESH_MS = 3 * 60e3;
+let settingBeat = null;
 
-// So processes sharing a database on different subject settings don't keep undoing each other's rechecks
+async function beatSetting(p, m, now) {
+  const key = settingPrefix(p.id) + now;
+  const value = { at: new Date().toISOString() };
+  if (await m.AuthMeta.findOne({ where: { key }, raw: true })) await m.AuthMeta.update({ value }, { where: { key } });
+  else await m.AuthMeta.create({ key, value }).catch(() => {});
+}
+
+// Each process notes its subject setting every minute, so processes sharing a database on different ones are noticed
 async function recordSetting(p, m) {
   const now = subjectSetting(p);
   if (now == null || !m.AuthMeta) return;
-  const row = await m.AuthMeta.findOne({ where: { key: settingKey(p.id) }, raw: true });
-  const before = row && row.value && row.value.setting;
-  if (before && before !== now)
+  const others = await otherSettings(p, m, true);
+  if (others.length)
     logger(
-      "error",
-      `Auth provider '${p.id}': this process uses the subject setting '${now}' (e.g. LDAP_SUBJECT_ATTRIBUTE), but the last MMGIS process to start on this database used '${before}'. Every process sharing a database must use the same one: stop them all, change it, then start them. Until then, processes still on '${before}' skip their rechecks of ${p.id} accounts.`,
+      "warn",
+      `Auth provider '${p.id}': this process uses the subject setting '${now}' (e.g. LDAP_SUBJECT_ATTRIBUTE), but another MMGIS process on this database used ${others.map((o) => `'${o}'`).join(", ")} in the last ${SETTING_FRESH_MS / 60e3} minutes. If every process was just restarted with '${now}', this clears up within ${SETTING_FRESH_MS / 60e3} minutes; otherwise give every process the same setting.`,
       "AuthProviders"
     );
-  if (row) await m.AuthMeta.update({ value: { setting: now } }, { where: { key: settingKey(p.id) } });
-  else await m.AuthMeta.create({ key: settingKey(p.id), value: { setting: now } }).catch(() => {});
+  await beatSetting(p, m, now);
+  if (!settingBeat) {
+    settingBeat = setInterval(() => {
+      for (const q of enabledProviders()) {
+        const s = subjectSetting(q);
+        if (s != null) beatSetting(q, accountModels(), s).catch(() => {});
+      }
+    }, 60e3);
+    if (settingBeat.unref) settingBeat.unref();
+  }
 }
 
 const settingChecks = new WeakMap();
-async function outdatedSetting(p, m) {
+// Subject settings other than this one's that a process on this database used in the last few minutes
+async function otherSettings(p, m, fresh = false) {
   const now = subjectSetting(p);
-  if (now == null || !m.AuthMeta) return false;
-  const seen = settingChecks.get(m) || new Map();
-  settingChecks.set(m, seen);
-  let c = seen.get(p.id);
-  if (!c || Date.now() - c.at > 60000) {
-    // Shared, so the parallel rechecks of one pass read and log it once
-    c = { at: Date.now(), outdated: readOutdated(p, m, now) };
-    seen.set(p.id, c);
-  }
-  return c.outdated;
+  if (now == null || !m.AuthMeta) return [];
+  const seen = settingChecks.get(m.AuthMeta) || new Map();
+  settingChecks.set(m.AuthMeta, seen);
+  const c = seen.get(p.id);
+  if (fresh) return readOtherSettings(p, m, now, false);
+  if (c && c.now === now && Date.now() - c.at < 60e3) return c.others;
+  // Shared, so the parallel rechecks of one pass read and log it once
+  const others = readOtherSettings(p, m, now, true);
+  seen.set(p.id, { at: Date.now(), now, others });
+  return others;
 }
 
-async function readOutdated(p, m, now) {
-  const row = await m.AuthMeta.findOne({ where: { key: settingKey(p.id) }, raw: true });
-  const latest = row && row.value && row.value.setting;
-  const outdated = !!latest && latest !== now;
-  if (outdated)
+async function readOtherSettings(p, m, now, log) {
+  const rows = await m.AuthMeta.findAll({ where: { key: { [Op.like]: `${settingPrefix(p.id)}%` } }, raw: true });
+  const others = rows
+    .filter((r) => r.key !== settingPrefix(p.id) + now && Date.now() - Date.parse(r.value && r.value.at) < SETTING_FRESH_MS)
+    .map((r) => r.key.slice(settingPrefix(p.id).length));
+  if (others.length && log)
     logger(
       "error",
-      `Auth provider '${p.id}': another MMGIS process on this database has since started with the subject setting '${latest}' (e.g. LDAP_SUBJECT_ATTRIBUTE), but this one uses '${now}', so this one skips its rechecks until it is restarted with the same setting.`,
+      `Auth provider '${p.id}': another MMGIS process on this database uses the subject setting ${others.map((o) => `'${o}'`).join(", ")} (e.g. LDAP_SUBJECT_ATTRIBUTE), but this one uses '${now}'. Give every process the same setting. Until then, neither process clears the accounts or relinks the other flags for its setting; rechecks still end access for people who left.`,
       "AuthProviders"
     );
-  return outdated;
+  return others;
 }
 
 // At startup, so a changed subject setting doesn't silently sign out every linked account
@@ -570,7 +592,9 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
   if (linkProvider && !subjectFits(linkProvider, link)) {
     // Its value didn't change with the setting (e.g. uid to cn), and an admin pinned this entry to that account again
     const claim = await findClaim(identity, m);
-    const claimed = claim && claim.userId === link.user_id ? await claimRelink(identity, m) : null;
+    // A non-unique attribute (e.g. cn) may give another entry the same value, so it must be the entry the admin was shown
+    const shown = claim && claim.dn && identity.dn && claim.dn.toLowerCase() === identity.dn.toLowerCase();
+    const claimed = shown && claim.userId === link.user_id ? await claimRelink(identity, m) : null;
     if (claimed) return claimed;
     throw new LinkError(
       `'${identity.username}' has the ${identity.provider} subject '${identity.subject}' of account ${link.user_id}, but that account was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so this may be a different entry. Change the setting back; or, only if this is that account's own entry, allow a relink on it.`
@@ -800,8 +824,6 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     m = m || accountModels();
     const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
     if (!link) return "ok";
-    // It would undo the marks of a process started since on another subject setting
-    if (await outdatedSetting(p, m)) return "failed";
     let found;
     try {
       // Under another subject setting the stored value may now name a different entry
@@ -823,7 +845,10 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!now || now.subject !== link.subject) return "ok";
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
-    await markMissing(m, providerId, userId, !identity, link.subject, !identity && !subjectFits(p, link) ? "subject" : undefined);
+    // A process on another subject setting flagged it for that setting: leave that to it
+    const flagged = identity && (await otherSettings(p, m)).length > 0 && (await m.AuthMeta.findOne({ where: { key: missingKey(providerId, userId) }, raw: true }));
+    if (!(flagged && flagged.value && flagged.value.reason === "subject"))
+      await markMissing(m, providerId, userId, !identity, link.subject, !identity && !subjectFits(p, link) ? "subject" : undefined);
     // So People shows a rename before the person's next login, and a newcomer with the old name isn't mistaken for them
     if (identity && identity.username && identity.username !== now.username) {
       await m.AuthIdentity.update({ username: identity.username }, { where: { user_id: userId, provider: providerId, subject: link.subject } });
@@ -916,6 +941,9 @@ async function recheckAllNow(m) {
       if (!v || !v.subject || !(Date.parse(v.expires_at) > Date.now()) || !siteAccess.hasProvider(providerId)) continue;
       const setting = subjectSetting(getProvider(providerId));
       const oldSetting = !!(v.subject_setting && setting != null && v.subject_setting !== setting);
+      // While processes use two subject settings, which one is right is the admin's call
+      const mixed = (oldSetting || (v.stale && v.stale.setting)) && (await otherSettings(getProvider(providerId), m)).length > 0;
+      if (mixed) continue;
       if (v.stale) {
         // Flagged under another subject setting that is back now (e.g. a reverted change or a rolling restart)
         if (v.stale.setting && !oldSetting) {

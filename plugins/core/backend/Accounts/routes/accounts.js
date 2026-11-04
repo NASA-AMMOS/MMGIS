@@ -491,6 +491,8 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         if (other && other.user_id === id && providers.linkFits(provider, other)) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;
         if (other && other.user_id !== id) {
           const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
+          if (!providers.linkFits(provider, other))
+            return `${target.dn} has the same ${provider} subject as account ${other.user_id}${owner ? ` '${owner.username}'` : ""}, which was linked under an old subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE). If that account is this entry's, allow its relink instead; otherwise relink that account to its own entry first.`;
           return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first (which also removes its own roles and API tokens), giving its drawings to '${user.username}'.`;
         }
         if (sameProvider.some((r) => r.value.subject === target.subject))

@@ -147,7 +147,7 @@ test.describe('LDAP login', () => {
   test('search mode: service account finds the person, their password is checked by binding as them', async () => {
     const log = [];
     const id = await authenticate('alice', 'right', config(base), fakeClient([alice], log));
-    expect(id).toEqual({ subject: 'e1', username: 'alice', email: 'alice@example.org', groups: ['cn=science-team,ou=groups,dc=example,dc=org', 'cn=ops\\, east,ou=groups,dc=example,dc=org'], groupsLeftOut: [] });
+    expect(id).toEqual({ subject: 'e1', dn: expect.any(String), username: 'alice', email: 'alice@example.org', groups: ['cn=science-team,ou=groups,dc=example,dc=org', 'cn=ops\\, east,ou=groups,dc=example,dc=org'], groupsLeftOut: [] });
     expect(log).toEqual([`bind ${base.LDAP_BIND_DN}`, `search ${base.LDAP_USER_SEARCH_BASE} (uid=alice)`, `bind ${alice.dn}`, 'unbind']);
   });
 

@@ -625,15 +625,17 @@ test.describe('provider rechecks', () => {
         links: [{ provider: 'ldap', subject: 'carol', subject_setting: 'uid', username: 'carol', user_id: 9050 }],
         meta: [{ key: 'relink:ldap:9051', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', expires_at } }],
       });
-      const carol = { provider: 'ldap', subject: 'carol', username: 'carol', groups: [] };
+      const carol = { provider: 'ldap', subject: 'carol', dn: 'uid=carol,ou=people', username: 'carol', groups: [] };
       await expect(providers.linkIdentity(carol, m)).rejects.toThrow(/different subject setting/);
       expect(m.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9051')).toBe(true);
       // Allow relink refuses a second account waiting for the same entry
       m.AuthMeta.rows.splice(0);
-      const own = { key: 'relink:ldap:9050', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', expires_at, stale: { setting: true } } };
+      const own = { key: 'relink:ldap:9050', value: { username: 'carol', subject: 'carol', subject_setting: 'cn', dn: 'UID=carol,ou=people', expires_at, stale: { setting: true } } };
       m.AuthMeta.rows.push(own);
       await expect(providers.linkIdentity(carol, m)).rejects.toThrow(/different subject setting/);
       delete own.value.stale;
+      // Another entry with the same cn
+      await expect(providers.linkIdentity({ ...carol, dn: 'uid=eve,ou=people' }, m)).rejects.toThrow(/different subject setting/);
       expect((await providers.linkIdentity(carol, m)).id).toBe(9050);
       expect(m.AuthIdentity.rows.find((l) => l.user_id === 9050).subject_setting).toBe('cn');
       expect(m.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9050')).toBe(false);
@@ -642,20 +644,32 @@ test.describe('provider rechecks', () => {
     }
   });
 
-  test('a process whose subject setting a later process replaced skips its rechecks', async () => {
+  test('while another process uses another subject setting, rechecks still run but leave its flags alone', async () => {
     const realSetting = ldap.subjectSetting;
     let looked = 0;
     try {
       ldap.subjectSetting = () => 'entryuuid';
-      ldap.lookup = async () => (looked++, null);
+      ldap.lookup = async (subject) => (looked++, subject === 'u-1' ? { username: 'erin', groups: [] } : null);
+      const at = new Date().toISOString();
+      const expires_at = new Date(Date.now() + 3600e3).toISOString();
       const m = fakeModels({
-        users: [{ id: 9060, username: 'erin' }],
-        links: [{ provider: 'ldap', subject: 'u-1', subject_setting: 'entryuuid', username: 'erin', user_id: 9060 }],
-        meta: [{ key: 'subject_setting:ldap', value: { setting: 'uid' } }],
+        users: [{ id: 9060, username: 'erin' }, { id: 9062, username: 'gone' }, { id: 9063, username: 'gil' }],
+        links: [
+          { provider: 'ldap', subject: 'u-1', subject_setting: 'entryuuid', username: 'erin', user_id: 9060 },
+          { provider: 'ldap', subject: 'u-2', subject_setting: 'entryuuid', username: 'gone', user_id: 9062 },
+        ],
+        meta: [
+          { key: 'subject_setting:ldap:uid', value: { at } },
+          { key: 'missing:ldap:9060', value: { since: at, subject: 'u-1', reason: 'subject' } },
+          { key: 'relink:ldap:9063', value: { username: 'gil', subject: 'gil', subject_setting: 'uid', expires_at } },
+        ],
       });
-      expect(await providers.stillLinked(9060, 'ldap', m, true, true)).toBe('failed');
-      expect(looked).toBe(0);
-      expect(m.AuthMeta.rows.some((r) => r.key.startsWith('missing:'))).toBe(false);
+      expect(await providers.stillLinked(9060, 'ldap', m, true, true)).toBe('ok');
+      expect(m.AuthMeta.rows.some((r) => r.key === 'missing:ldap:9060')).toBe(true);
+      expect(await providers.stillLinked(9062, 'ldap', m, true, true)).toBe('missing');
+      expect(looked).toBe(2);
+      expect((await providers.recheckLinked(m)).staleRelinks).toBe(0);
+      expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9063').value).not.toHaveProperty('stale');
     } finally {
       ldap.subjectSetting = realSetting;
     }
@@ -674,6 +688,29 @@ test.describe('provider rechecks', () => {
       expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9061').value).not.toHaveProperty('stale');
     } finally {
       ldap.subjectSetting = realSetting;
+    }
+  });
+
+  test('under a subject attribute that is not a permanent ID, only the entry the admin was shown claims a pinned relink', async () => {
+    const realSetting = ldap.subjectSetting;
+    const realPermanent = ldap.subjectPermanent;
+    try {
+      ldap.subjectSetting = () => 'cn';
+      ldap.subjectPermanent = () => false;
+      const expires_at = new Date(Date.now() + 3600e3).toISOString();
+      const pinned = () =>
+        fakeModels({
+          users: [{ id: 9070, username: 'dave' }],
+          meta: [{ key: 'relink:ldap:9070', value: { username: 'dave', subject: 'dave', subject_setting: 'cn', dn: 'uid=dave,ou=people', expires_at } }],
+        });
+      const other = pinned();
+      const mallory = await providers.linkIdentity({ provider: 'ldap', subject: 'dave', dn: 'uid=mallory,ou=people', username: 'mallory', groups: [] }, other).catch((e) => e);
+      expect(mallory && mallory.id).not.toBe(9070);
+      expect(other.AuthMeta.rows.some((r) => r.key === 'relink:ldap:9070')).toBe(true);
+      expect((await providers.linkIdentity({ provider: 'ldap', subject: 'dave', dn: 'UID=dave,ou=people', username: 'dave', groups: [] }, pinned())).id).toBe(9070);
+    } finally {
+      ldap.subjectSetting = realSetting;
+      ldap.subjectPermanent = realPermanent;
     }
   });
 
