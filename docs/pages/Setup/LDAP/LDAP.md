@@ -82,6 +82,7 @@ LDAP_SUBJECT_ATTRIBUTE=objectGUID
 LDAP_USERNAME_ATTRIBUTE=sAMAccountName
 ```
 
+- **One directory address.** `LDAP_URL` takes a single URL; MMGIS doesn't fail over between hosts, so point it at a load-balanced name if the directory has one.
 - **Encryption is required.** `ldaps://`, or `ldap://` with `LDAP_STARTTLS=true`. The certificate must chain to a trusted CA (`LDAP_TLS_CA` for internal CAs) and match the host name in `LDAP_URL`; MMGIS never turns these checks off. `LDAP_ALLOW_INSECURE=true` allows plain `ldap://` for local testing only.
 - **`LDAP_BIND_PASSWORD`** can come from the environment like `DB_PASS`. Inject it at runtime (Docker or Kubernetes secrets), keep `.env` readable only by MMGIS, and ask for a read-only account.
 - Usernames are escaped before they go into filters and DNs, empty passwords are refused before contacting the directory, and a search must match exactly one person.

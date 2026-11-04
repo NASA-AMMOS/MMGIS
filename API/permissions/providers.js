@@ -507,6 +507,8 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       attributes: ["user_id", "username", "subject"],
       raw: true,
     })).find((l) => l.username && sameUsername(l.username, identity.username));
+  // Another sign-in linked this entry a moment ago; looking again finds that link
+  if (sameName && sameName.subject === identity.subject && !retried) return linkIdentity(identity, m, true);
   if (sameName && sameName.subject === identity.subject)
     throw new LinkError(
       `'${identity.username}' was linked to account ${sameName.user_id} by another sign-in at the same moment; signing in again works.`

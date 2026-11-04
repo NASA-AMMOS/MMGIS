@@ -248,6 +248,8 @@ test.describe('LDAP login', () => {
   test('a rejected service account or missing subject attribute throws (the route answers 503)', async () => {
     await expect(authenticate('alice', 'right', config({ ...base, LDAP_BIND_PASSWORD: 'nope' }), fakeClient([alice]))).rejects.toThrow(/LDAP_BIND_DN/); // pragma: allowlist secret
     await expect(authenticate('alice', 'right', config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'objectGUID' }), fakeClient([alice]))).rejects.toThrow(/objectGUID/);
+    // That one entry can't be used; it's not reported as the directory being down
+    await expect(authenticate('alice', 'right', config({ ...base, LDAP_SUBJECT_ATTRIBUTE: 'objectGUID' }), fakeClient([alice]))).rejects.toBeInstanceOf(ldap._internal.UnusableEntryError);
   });
 
   test('Active Directory "password expired" is told apart from a wrong password', async () => {
@@ -310,6 +312,7 @@ test.describe('LDAP login', () => {
     expect(explain(Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN' }))).toMatch(/LDAP_TLS_CA/);
     expect(explain(Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:636'), { code: 'ECONNREFUSED' }))).toMatch(/host and port/);
     expect(explain(Object.assign(new Error('certificate has expired'), { code: 'CERT_HAS_EXPIRED' }))).toMatch(/renew/);
+    expect(explain(new Error('Connection closed before message response was received. Message type: ExtendedRequest (0x77)'))).toMatch(/ldap:\/\/ at the plain port/);
     expect(ldap._internal.directoryRoot('ou=people,ou=staff,dc=example,dc=org')).toBe('dc=example,dc=org');
     expect(ldap._internal.directoryRoot('ou=people,o=corp')).toBe('ou=people,o=corp');
     expect(ldap._internal.directoryRoot('dc=example,dc=org')).toBe('dc=example,dc=org');
@@ -356,6 +359,7 @@ test.describe('LDAP settings', () => {
 
   test('missing or malformed settings refuse startup', () => {
     expect(problems({})).toMatch(/LDAP_URL must be set/);
+    expect(problems({ ...base, LDAP_URL: 'ldaps://dc1:636 ldaps://dc2:636' })).toMatch(/single ldap:\/\/ or ldaps:\/\/ URL/);
     expect(problems({ LDAP_URL: 'ldaps://x' })).toMatch(/LDAP_USER_SEARCH_BASE .* or LDAP_USER_DN_TEMPLATE/);
     expect(problems({ ...base, LDAP_USER_SEARCH_FILTER: 'uid=x' })).toMatch(/LDAP_USER_SEARCH_FILTER/);
     expect(problems({ LDAP_URL: 'ldaps://x', LDAP_USER_DN_TEMPLATE: '{{username}}@corp' })).toMatch(/isn't a DN/);

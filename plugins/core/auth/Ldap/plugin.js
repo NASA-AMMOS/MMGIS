@@ -182,6 +182,8 @@ function userAttributes(c) {
 
 // The password was right but the directory says it must be changed (Active Directory)
 class PasswordExpiredError extends Error {}
+// The directory answered, but this person's entry lacks something MMGIS needs
+class UnusableEntryError extends Error {}
 
 // Wrong passwords per directory entry, so every name that reaches one entry (uid, mail, UPN) shares one
 // AUTH_MAX_FAILED_LOGINS allowance, and nobody else's typos count against it. Kept in this process's memory.
@@ -247,6 +249,8 @@ function explain(err) {
   if (/ENOTFOUND|EAI_AGAIN/.test(text)) return `${msg}. LDAP_URL's host name doesn't resolve.`;
   if (/wrong version number|ECONNRESET|packet length/i.test(text))
     return `${msg}. Check that ldaps:// points at the TLS port (usually 636) and ldap:// at the plain port (389, with LDAP_STARTTLS=true).`;
+  if (/ExtendedRequest/.test(text))
+    return `${msg}. The directory closed the connection at StartTLS: LDAP_STARTTLS=true needs ldap:// at the plain port (usually 389); for the TLS port (636) use ldaps:// without LDAP_STARTTLS.`;
   if (/timeout|timed out|ETIMEDOUT/i.test(text)) return `${msg}. The directory didn't answer within LDAP_TIMEOUT_MS.`;
   if (err instanceof NoSuchObjectError)
     return `${msg}. A search base doesn't exist, or the service account can't read it: check LDAP_USER_SEARCH_BASE and LDAP_GROUP_SEARCH_BASE.`;
@@ -447,7 +451,7 @@ async function authenticate(username, password, c = config(), createClient = new
       if (c.groupSearchBase && c.bindDn) await bindService(client, c);
     }
     const subject = subjectOf(entry, c);
-    if (!subject) throw new Error(`The directory entry has no ${c.subjectAttribute} (LDAP_SUBJECT_ATTRIBUTE).`);
+    if (!subject) throw new UnusableEntryError(`${entry.dn} has no ${c.subjectAttribute} (LDAP_SUBJECT_ATTRIBUTE).`);
     const name = values(entry, c.usernameAttribute)[0];
     const email = values(entry, c.emailAttribute)[0];
     const groupsLeftOut = [];
@@ -683,7 +687,11 @@ function validate(env) {
     // reported below
   }
   if (protocol !== "ldap:" && protocol !== "ldaps:")
-    errors.push("LDAP_URL must be set to the directory's address, e.g. ldaps://ldap.example.org:636.");
+    errors.push(
+      /[\s,]/.test(String(c.url || "").trim())
+        ? "LDAP_URL must be a single ldap:// or ldaps:// URL; MMGIS doesn't fail over between directory hosts."
+        : "LDAP_URL must be set to the directory's address, e.g. ldaps://ldap.example.org:636."
+    );
   if (protocol === "ldaps:" && c.startTls)
     errors.push("LDAP_STARTTLS=true is for ldap:// URLs; an ldaps:// URL is already encrypted.");
   if (protocol === "ldap:" && !c.startTls && !c.allowInsecure)
@@ -777,6 +785,10 @@ module.exports = {
           // 403, not 401: the password was right, so it doesn't count toward AUTH_MAX_FAILED_LOGINS
           return res.status(403).send({ status: "failure", message: `Your ${name} password has expired. Change it, then sign in again.` });
         }
+        if (err instanceof UnusableEntryError) {
+          ctx.logger("warn", `LDAP login for '${username}' refused: ${err.message}`, "Ldap", req);
+          return res.status(403).send({ status: "failure", message: `Your ${name} entry can't be used with MMGIS. Ask an administrator.` });
+        }
         ctx.logger("error", `LDAP login could not reach or read the directory: ${explain(err)}`, "Ldap", req, err);
         if (err.tooManyGroups)
           return res.status(503).send({
@@ -851,5 +863,5 @@ module.exports = {
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, entryFailures, peopleFilter },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, UnusableEntryError, entryFailures, peopleFilter },
 };
