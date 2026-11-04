@@ -260,6 +260,22 @@ test.describe('LDAP login', () => {
     }
   });
 
+  test("while the service account's other names can't be read, names sharing its stem are refused", async () => {
+    serviceNames.clear();
+    const log = [];
+    const why = [];
+    const client = () => ({
+      async startTLS() {},
+      async bind(dn) { log.push(`bind ${dn}`); if (dn !== 'CN=mmgis-svc,OU=Svc,DC=corp,DC=org') throw new InvalidCredentialsError('Invalid credentials'); },
+      async search() { throw new Error('Insufficient access'); },
+      async unbind() {},
+    });
+    const c = config({ LDAP_URL: 'ldaps://dc', LDAP_BIND_DN: 'CN=mmgis-svc,OU=Svc,DC=corp,DC=org', LDAP_BIND_PASSWORD: 'svcpw', LDAP_USER_DN_TEMPLATE: '{{username}}@corp.org', LDAP_SUBJECT_ATTRIBUTE: 'dn' }); // pragma: allowlist secret
+    expect(await authenticate('MMGIS-svc', 'guess', c, client, (r) => why.push(r))).toBeNull();
+    expect(why[0]).toMatch(/service account/);
+    expect(log.filter((l) => !l.startsWith('bind CN=mmgis-svc'))).toEqual([]);
+  });
+
   test('filter metacharacters in the username are escaped, so a wildcard matches nobody', async () => {
     const log = [];
     expect(await authenticate('*', 'right', config(base), fakeClient([alice], log))).toBeNull();

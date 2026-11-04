@@ -133,6 +133,7 @@ function renderResult(res, view) {
   });
 }
 
+// Refuses only requests a browser marks as from another site: curl and scripts send no Origin and pass
 function sameOriginOnly(req, res, next) {
   const site = req.get("sec-fetch-site");
   const origin = req.get("origin");

@@ -346,6 +346,12 @@ async function bindService(client, c) {
 const serviceNames = new Map();
 const isDn = (name) => /^[^=,@\\]+=/.test(String(name).trim());
 const foldName = (name) => (isDn(name) ? normalizeDn(name) : String(name).trim().toLowerCase());
+// e.g. mmgis-svc for cn=mmgis-svc,…, mmgis-svc@corp… and CORP\mmgis-svc
+const stemOf = (name) => {
+  const s = String(name).trim();
+  if (isDn(s)) return normalizeDn(s).split(",")[0].split("=").slice(1).join("=");
+  return s.split("\\").pop().split("@")[0].toLowerCase();
+};
 const samOf = (name) => (!isDn(name) && String(name).includes("\\") ? String(name).split("\\").pop().trim().toLowerCase() : null);
 
 async function learnServiceNames(client, c) {
@@ -376,7 +382,8 @@ function isServiceAccount(c, name) {
   const known = serviceNames.get(`${c.url}\n${c.bindDn}`);
   const n = foldName(name);
   if (n === foldName(c.bindDn)) return true;
-  if (!known) return false;
+  // Its other names couldn't be read: refuse whatever shares its stem
+  if (!known || known.names.size === 0) return stemOf(name) === stemOf(c.bindDn);
   return known.names.has(n) || (!!samOf(name) && (known.sams.has(samOf(name)) || samOf(name) === samOf(c.bindDn)));
 }
 

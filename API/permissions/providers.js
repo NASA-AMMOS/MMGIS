@@ -890,6 +890,9 @@ const recheckMs = () => {
 const rechecks = new Map();
 // When a provider's last recheck couldn't reach it: other people's requests then don't wait for theirs
 const providerDown = new Map();
+// A connection or TLS failure or a timeout, not an error about one person's entry
+const unreachable = (err) =>
+  !!err && (/^(ETIMEDOUT|ECONN|EHOST|ENET|ENOTFOUND|EAI_|EPIPE|ERR_TLS|CERT_|UNABLE_TO_|DEPTH_ZERO|SELF_SIGNED)/.test(String(err.code || "")) || /connection|socket|timed? ?out/i.test(String(err.message || "")));
 const downNow = (providerId, ms) => Date.now() - (providerDown.get(providerId) || -Infinity) < ms;
 
 // Re-reads a provider-linked account through the provider's lookup(subject) at most every
@@ -940,7 +943,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
         null,
         err
       );
-      providerDown.set(providerId, Date.now());
+      if (unreachable(err)) providerDown.set(providerId, Date.now());
       return "failed";
     }
     providerDown.delete(providerId);

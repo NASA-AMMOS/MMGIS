@@ -946,7 +946,13 @@ test.describe('provider rechecks', () => {
   });
 
   test('once a recheck finds the provider down, other people\'s requests stop waiting for theirs until it answers again', async () => {
-    ldap.lookup = async () => { throw new Error('directory down'); };
+    // An error about one entry (e.g. its group search) doesn't count as the directory being down
+    ldap.lookup = async () => { throw new Error('Size limit exceeded'); };
+    const m0 = fakeModels({ links: [{ provider: 'ldap', subject: 'odd', user_id: 9021 }, { provider: 'ldap', subject: 'waits', user_id: 9022 }] });
+    expect(await providers.stillLinked(9021, 'ldap', m0)).toBe(true);
+    ldap.lookup = async () => (await new Promise((r) => setTimeout(r, 300)), null);
+    expect(await providers.stillLinked(9022, 'ldap', m0)).toBe(false);
+    ldap.lookup = async () => { throw Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:3636'), { code: 'ECONNREFUSED' }); };
     const m = fakeModels({ links: [{ provider: 'ldap', subject: 'first', user_id: 9018 }, { provider: 'ldap', subject: 'next', user_id: 9019 }, { provider: 'ldap', subject: 'back', user_id: 9020 }] });
     expect(await providers.stillLinked(9018, 'ldap', m)).toBe(true);
     let ended;
