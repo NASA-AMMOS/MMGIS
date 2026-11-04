@@ -341,13 +341,15 @@ router.post("/updateDefaults", authorize("accounts.manage"), function (req, res)
 const relinkFail = (res, message, status = 200) => res.status(status).send({ status: "failure", message });
 
 // The account and provider a relink request is about, or undefined after answering with the problem
-async function relinkRequest(req, res) {
+// Cancelling also works for a provider since removed from AUTH_PROVIDERS, so a claim can't wait for it to return
+async function relinkRequest(req, res, { cancel = false } = {}) {
   if (req.principal && req.principal.kind === "token")
     return void relinkFail(res, "Relinking can only be changed from a signed-in session.", 403);
   const id = parseInt(req.body.id);
   const provider = String(req.body.provider || "");
   if (isNaN(id)) return void relinkFail(res, "Account id is missing.");
-  if (provider === "local" || !providers.enabledProviders().some((p) => p.id === provider))
+  const known = cancel ? providers.availableProviders() : providers.enabledProviders().map((p) => p.id);
+  if (provider === "local" || !known.includes(provider))
     return void relinkFail(res, `'${provider}' isn't an enabled login provider.`);
   const user = await User.findOne({ where: { id }, attributes: ["id", "username"], raw: true });
   if (!user) return void relinkFail(res, "User not found.");
@@ -356,7 +358,7 @@ async function relinkRequest(req, res) {
 
 router.post("/cancelRelink", apilimiter, authorize("accounts.manage"), async function (req, res) {
   try {
-    const r = await relinkRequest(req, res);
+    const r = await relinkRequest(req, res, { cancel: true });
     if (!r) return;
     await AuthMeta.destroy({ where: { key: r.key } });
     logger("info", `'${r.actor.username}' cancelled the ${r.provider} relink for account ${r.id} '${r.user.username}'.`, "accounts", req);
@@ -435,6 +437,15 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       if (sameProvider.some((r) => providers.sameUsername(r.value.username, username)))
         return `Another account is already waiting for the ${provider} login '${username}'. Cancel that relink first.`;
       // A login of an entry already linked elsewhere goes to that account, so this claim would never happen
+      // Without a lookup (direct bind with no service account), the username last seen at login stands in for the entry
+      if (target === undefined) {
+        const others = await AuthIdentity.findAll({ where: { provider, user_id: { [Op.ne]: id } }, attributes: ["user_id", "username"], raw: true, transaction });
+        const other = others.find((o) => providers.sameUsername(o.username, username));
+        if (other) {
+          const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
+          return `The ${provider} login '${username}' already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`;
+        }
+      }
       if (target) {
         const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true, transaction });
         if (other && other.user_id === id) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;

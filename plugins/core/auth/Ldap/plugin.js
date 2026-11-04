@@ -179,10 +179,10 @@ function userAttributes(c) {
 
 // The password was right but the directory says it must be changed (Active Directory)
 class PasswordExpiredError extends Error {}
-class TooManyFailuresError extends Error {}
 
 // Wrong passwords per directory entry, so every name that reaches one entry (uid, mail, UPN) shares one
 // AUTH_MAX_FAILED_LOGINS allowance, and nobody else's typos count against it. Kept in this process's memory.
+// A locked entry gets the same answer as a wrong password, so the lock doesn't reveal that the name exists.
 const FAILURE_WINDOW_MS = 15 * 60 * 1000;
 const entryFailures = new Map();
 const failureLimit = () => {
@@ -191,7 +191,9 @@ const failureLimit = () => {
 };
 function entryLocked(dn) {
   const f = entryFailures.get(normalizeDn(dn));
-  if (f && f.until > Date.now() && f.count >= failureLimit()) throw new TooManyFailuresError(`${dn} had ${f.count} wrong passwords`);
+  return f && f.until > Date.now() && f.count >= failureLimit()
+    ? `${dn} had ${f.count} wrong passwords in the last 15 minutes (AUTH_MAX_FAILED_LOGINS), so the password wasn't tried`
+    : null;
 }
 function entryFailed(dn) {
   const now = Date.now();
@@ -408,7 +410,7 @@ async function authenticate(username, password, c = config(), createClient = new
     let entry;
     if (c.userDnTemplate) {
       const dn = fill(c.userDnTemplate, { username: escapeDn(username) });
-      entryLocked(dn);
+      if (entryLocked(dn)) return refuse(entryLocked(dn));
       const bind = await bindAs(client, dn, password);
       if (!bind.ok) entryFailed(dn);
       else entryFailures.delete(normalizeDn(dn));
@@ -430,7 +432,7 @@ async function authenticate(username, password, c = config(), createClient = new
       const found = await findUser(client, c, username);
       if (!found.entry) return refuse(found.reason);
       entry = found.entry;
-      entryLocked(entry.dn);
+      if (entryLocked(entry.dn)) return refuse(entryLocked(entry.dn));
       const bind = await bindAs(client, entry.dn, password);
       if (!bind.ok) entryFailed(entry.dn);
       else entryFailures.delete(normalizeDn(entry.dn));
@@ -733,10 +735,6 @@ module.exports = {
       try {
         identity = await authenticate(username, body.password, c, newClient, (r) => (reason = r));
       } catch (err) {
-        if (err instanceof TooManyFailuresError) {
-          ctx.logger("warn", `LDAP login for '${username}' refused: ${err.message} in the last 15 minutes (AUTH_MAX_FAILED_LOGINS).`, "Ldap", req);
-          return res.status(429).send({ status: "failure", message: "Too many failed sign-ins for this account. Try again in 15 minutes." });
-        }
         if (err instanceof PasswordExpiredError) {
           ctx.logger("warn", `LDAP login for '${username}' refused: password expired.`, "Ldap", req);
           // 403, not 401: the password was right, so it doesn't count toward AUTH_MAX_FAILED_LOGINS
@@ -779,7 +777,13 @@ module.exports = {
   // Group DNs are matched in the form groupsOf reports them; a plain name would never match one
   groupName: (name) => {
     const c = config();
-    if (c.groupNameAttribute && c.groupSearchBase) return name.normalize("NFC");
+    if (c.groupNameAttribute && c.groupSearchBase) {
+      if (/^\s*[A-Za-z][\w.-]*=[^,]*[^\\],\s*[A-Za-z][\w.-]*=/.test(name))
+        throw new Error(
+          `LDAP_GROUP_NAME_ATTRIBUTE=${c.groupNameAttribute} reports groups by their ${c.groupNameAttribute}, not their DN, so enter just the group's ${c.groupNameAttribute} (e.g. science-team), as listed under "Directory groups" in the server log at each LDAP sign-in.`
+        );
+      return name.normalize("NFC");
+    }
     if (!name.includes("="))
       throw new Error(
         `LDAP reports groups by DN, so enter the group's DN (e.g. cn=${name.trim() || "science-team"},ou=groups,dc=example,dc=org), as listed under "Directory groups" in the server log at each LDAP sign-in.`
@@ -805,5 +809,5 @@ module.exports = {
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, TooManyFailuresError, entryFailures, peopleFilter },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, entryFailures, peopleFilter },
 };

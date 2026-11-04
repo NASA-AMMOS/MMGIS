@@ -380,6 +380,34 @@ function groupName(providerId, name) {
   }
 }
 
+// Why a saved group name can never match what the provider now reports (e.g. after a setting changed its form), or null
+function groupNameProblem(providerId, name) {
+  try {
+    groupName(providerId, name);
+    return null;
+  } catch (err) {
+    return err.message;
+  }
+}
+
+// At startup, so groups saved in a form the provider no longer reports don't silently lose every member
+async function warnUnmatchableGroups(m = accountModels()) {
+  for (const p of enabledProviders()) {
+    if (typeof p.impl.groupName !== "function") continue;
+    const groups = await m.AuthGroup.findAll({ where: { source: p.id }, attributes: ["name", "external_name"], raw: true });
+    const bad = groups.map((g) => ({ g, problem: groupNameProblem(p.id, g.external_name) })).filter((x) => x.problem);
+    if (bad.length === 0) continue;
+    logger(
+      "warn",
+      `Auth provider '${p.id}': ${bad.length} of its groups can never have members, so they grant nothing: ${bad
+        .slice(0, 5)
+        .map((x) => `'${x.g.name}' (${x.g.external_name})`)
+        .join(", ")}${bad.length > 5 ? ", …" : ""}. ${bad[0].problem} Update their external names in Users & Access > Groups.`,
+      "AuthProviders"
+    );
+  }
+}
+
 // Whether the entry with this subject still exists at the provider, even disabled or moved where logins
 // aren't searched: truthy if lookup or locate(subject) finds it, null when both say it's gone,
 // undefined when that can't be told (no hooks, or one failed and the other found nothing)
@@ -572,9 +600,16 @@ async function syncGroups(userId, identity, m = accountModels()) {
         .map((id) => groups.find((g) => g.id === id))
         .map((g) => `'${g.external_name}'${g.name ? ` (MMGIS group '${g.name}')` : ""}`)
         .join(", ");
+    // A name in a form the provider no longer reports (e.g. a DN after switching to plain names) isn't a rename
+    const problem = remove.map((id) => groups.find((g) => g.id === id)).map((g) => groupNameProblem(identity.provider, g.external_name)).find(Boolean);
+    const hint = !remove.length || !identity.subject
+      ? ""
+      : problem
+        ? ` That group's name can never match what ${identity.provider} reports now: ${problem}`
+        : " Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access.";
     logger(
       "info",
-      `Auth provider '${identity.provider}': ${await who(m, userId)}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}.${remove.length && identity.subject ? " Groups are matched by their exact name, so a group renamed or moved there needs its name updated in Users & Access." : ""}`,
+      `Auth provider '${identity.provider}': ${await who(m, userId)}${remove.length ? ` left ${names(remove)}` : ""}${remove.length && add.length ? " and" : ""}${add.length ? ` joined ${names(add)}` : ""}.${hint}`,
       "AuthProviders"
     );
   }
@@ -855,6 +890,7 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   });
   const base = `${rootPath()}/api/auth`;
   app.use(base, registerRouter(base, list));
+  warnUnmatchableGroups().catch((err) => logger("error", "Couldn't check the login providers' group names.", "AuthProviders", null, err));
   // Posts to the shared login form's route from other sites are refused, so a page can't sign a visitor in to
   // someone else's account; other routes (e.g. a SAML or OIDC form_post callback) check their own state
   const { sameOriginOnly } = require("../connections/routes");
@@ -900,6 +936,8 @@ module.exports = {
   relinkKey,
   missingKey,
   groupName,
+  groupNameProblem,
+  warnUnmatchableGroups,
   relinkUsername,
   resetFailures,
   relinkTarget,

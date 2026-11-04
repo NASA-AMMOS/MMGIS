@@ -109,6 +109,19 @@ test.describe('LDAP escaping', () => {
       process.env.LDAP_GROUP_NAME_ATTRIBUTE = 'cn';
       process.env.LDAP_GROUP_SEARCH_BASE = 'ou=groups,dc=x';
       expect(ldap.groupName('Data-Admins')).toBe('Data-Admins');
+      // A DN saved before switching to names can never match, so it's refused (and flagged at startup and in sync logs)
+      expect(() => ldap.groupName('cn=science-team,ou=groups,dc=x')).toThrow(/enter just the group's cn/);
+      expect(ldap.groupName('a=b')).toBe('a=b');
+      const savedProviders = process.env.AUTH_PROVIDERS;
+      process.env.AUTH_PROVIDERS = '["ldap","local"]';
+      try {
+        const providers = require('../../../../../API/permissions/providers');
+        expect(providers.groupNameProblem('ldap', 'cn=science-team,ou=groups,dc=x')).toMatch(/not their DN/);
+        expect(providers.groupNameProblem('ldap', 'science-team')).toBeNull();
+      } finally {
+        if (savedProviders === undefined) delete process.env.AUTH_PROVIDERS;
+        else process.env.AUTH_PROVIDERS = savedProviders;
+      }
     } finally {
       for (const [k, v] of [['LDAP_GROUP_NAME_ATTRIBUTE', saved.a], ['LDAP_GROUP_SEARCH_BASE', saved.b]])
         if (v === undefined) delete process.env[k];
@@ -131,11 +144,16 @@ test.describe('LDAP login', () => {
   });
 
   test('wrong passwords count per directory entry, whichever name reached it', async () => {
-    const { TooManyFailuresError, entryFailures } = require('../plugin')._internal;
+    const { entryFailures } = require('../plugin')._internal;
     entryFailures.clear();
     try {
       for (let i = 0; i < 5; i++) expect(await authenticate('alice', 'wrong', config(base), fakeClient([alice]))).toBeNull();
-      await expect(authenticate('alice', 'right', config(base), fakeClient([alice]))).rejects.toBeInstanceOf(TooManyFailuresError);
+      // Refused like a wrong password, without trying it, so the lock doesn't show that alice exists
+      let reason = '';
+      const log = [];
+      expect(await authenticate('alice', 'right', config(base), fakeClient([alice], log), (r) => (reason = r))).toBeNull();
+      expect(reason).toMatch(/had 5 wrong passwords/);
+      expect(log).not.toContain(`bind ${alice.dn}`);
       entryFailures.clear();
       expect(await authenticate('alice', 'right', config(base), fakeClient([alice]))).not.toBeNull();
     } finally {
@@ -145,11 +163,11 @@ test.describe('LDAP login', () => {
 
   test('allowing a relink clears that entry\'s wrong-password count', async () => {
     const plugin = require('../plugin');
-    const { TooManyFailuresError, entryFailures } = plugin._internal;
+    const { entryFailures } = plugin._internal;
     entryFailures.clear();
     try {
       for (let i = 0; i < 5; i++) await authenticate('alice', 'wrong', config(base), fakeClient([alice]));
-      await expect(authenticate('alice', 'right', config(base), fakeClient([alice]))).rejects.toBeInstanceOf(TooManyFailuresError);
+      expect(await authenticate('alice', 'right', config(base), fakeClient([alice]))).toBeNull();
       plugin.resetFailures({ username: 'alice', dn: 'UID=alice,ou=people,dc=example,dc=org' });
       expect(await authenticate('alice', 'right', config(base), fakeClient([alice]))).not.toBeNull();
       // A UPN-style template counts under the filled template, not the entry DN a pinned relink names
