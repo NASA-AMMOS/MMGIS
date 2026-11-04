@@ -87,7 +87,7 @@ export const useStyles = makeStyles((theme) => ({
     wordBreak: "break-word",
   },
   audienceHint: { maxWidth: "900px", fontSize: "14px", lineHeight: "20px", opacity: 0.85, marginBottom: "14px" },
-  bar: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" },
+  bar: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", marginBottom: "12px" },
   grow: { flex: 1 },
   hint: { fontSize: "13px", opacity: 0.75, marginBottom: "12px" },
   // People table
