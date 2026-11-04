@@ -850,8 +850,11 @@ async function recheckAllNow(m) {
   await Promise.all(Array.from({ length: Math.min(8, links.length) }, worker));
   // A pending relink pinned to an entry that's gone can never be claimed; flag it now rather than at a failed sign-in
   let staleRelinks = 0;
-  if (m.AuthMeta && m.AuthMeta.update)
-    for (const r of await m.AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
+  const relinks = m.AuthMeta && m.AuthMeta.update ? await m.AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true }) : [];
+  let nextRelink = 0;
+  const relinkWorker = async () => {
+    while (nextRelink < relinks.length) {
+      const r = relinks[nextRelink++];
       const v = r.value;
       const providerId = r.key.split(":")[1];
       if (!v || !v.subject || v.stale || !(Date.parse(v.expires_at) > Date.now()) || !siteAccess.hasProvider(providerId)) continue;
@@ -869,6 +872,8 @@ async function recheckAllNow(m) {
       );
       staleRelinks++;
     }
+  };
+  await Promise.all(Array.from({ length: Math.min(8, relinks.length) }, relinkWorker));
   // failed: the provider couldn't be asked (unreachable, or its service account was refused)
   return { checked: links.length - counts.unsupported, missing: counts.missing, failed: counts.failed, unsupported: counts.unsupported, staleRelinks };
 }

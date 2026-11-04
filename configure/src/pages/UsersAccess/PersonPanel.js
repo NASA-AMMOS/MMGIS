@@ -268,7 +268,7 @@ export function PersonPanel({ user, ctx }) {
         <div className={c.hint}>Everything this person can do, combining their own access, their groups and the audiences.</div>
         {(user.sign_ins || []).length > 0 && user.sign_ins.every((l) => l.missing_since && providerOn(l.provider)) && (
           <div className={c.hint} style={{ color: "#b71c1c" }}>
-            Can't sign in or use API tokens now: {user.sign_ins.map((l) => (l.missing_reason === "subject" ? `linked under an old ${l.provider.toUpperCase()} subject setting` : `not found in ${l.provider.toUpperCase()} since ${new Date(l.missing_since).toLocaleDateString()}`)).join(", ")}. This access applies again only if that entry comes back or the account is relinked.
+            Can't sign in or use API tokens now: {user.sign_ins.map((l) => (l.missing_reason === "subject" ? `linked under an old ${l.provider.toUpperCase()} subject setting` : `not found in ${l.provider.toUpperCase()} since ${new Date(l.missing_since).toLocaleDateString()}`)).join(", ")}. This access applies again only if {user.sign_ins.some((l) => l.missing_reason === "subject") ? "the subject setting is changed back" : "that entry comes back"} or the account is relinked.
           </div>
         )}
         <Table size="small" className={c.table}>
