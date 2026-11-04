@@ -114,6 +114,10 @@
     line-height: 1.4;
 }
 
+#loginModalHint {
+    text-align: center;
+}
+
 #loginSubmit[type='submit'] {
     display: block;
     box-sizing: border-box;

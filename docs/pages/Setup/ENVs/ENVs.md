@@ -296,11 +296,11 @@ How long to wait for the directory to connect and for each operation before the 
 
 #### `LDAP_DISPLAY_NAME=`
 
-What the login form calls the directory, e.g. `JPL Directory`: the switch tab or banner, error messages and the signed-in tooltip | string | default `LDAP`
+What the login form calls the directory, e.g. `Example Directory`: the switch tab or banner, error messages and the signed-in tooltip | string | default `LDAP`
 
 #### `LDAP_USERNAME_LABEL=`
 
-Label of the username field when signing in with LDAP, e.g. `JPL username` | string | default `Username`
+Label of the username field when signing in with LDAP, e.g. `Example username` | string | default `Username`
 
 #### `LDAP_LOGIN_HINT=`
 

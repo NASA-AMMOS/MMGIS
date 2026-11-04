@@ -76,7 +76,7 @@ var Login = {
     // Providers that take a username and password in the modal's form (GET /api/auth loginForms)
     loginForms: null,
     activeForm: null,
-    // What the signed-in provider is called, e.g. "JPL Directory"
+    // What the signed-in provider is called, e.g. "Example Directory"
     providerTitle: null,
     init: function () {
         if (window.mmgisglobal.SITE_ACCESS === 'public') return

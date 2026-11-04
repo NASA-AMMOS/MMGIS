@@ -492,8 +492,8 @@ test.describe('LDAP settings', { tag: '@unit' }, () => {
 
   test('the login form wording comes from the site settings', () => {
     expect(ldap.loginForm({})).toEqual({ title: 'LDAP', usernameLabel: 'Username', hint: '' });
-    expect(ldap.loginForm({ LDAP_DISPLAY_NAME: 'JPL Directory', LDAP_USERNAME_LABEL: 'JPL username', LDAP_LOGIN_HINT: 'Same as email.' })) // pragma: allowlist secret
-      .toEqual({ title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as email.' });
+    expect(ldap.loginForm({ LDAP_DISPLAY_NAME: 'Example Directory', LDAP_USERNAME_LABEL: 'Example username', LDAP_LOGIN_HINT: 'Same as email.' })) // pragma: allowlist secret
+      .toEqual({ title: 'Example Directory', usernameLabel: 'Example username', hint: 'Same as email.' });
   });
 });
 

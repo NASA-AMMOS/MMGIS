@@ -490,16 +490,16 @@ test.describe('login forms', () => {
   });
 
   test('form providers share the form in AUTH_PROVIDERS order and get no login button', () => {
-    process.env.DIR_DISPLAY_NAME = 'JPL Directory';
-    process.env.DIR_USERNAME_LABEL = 'JPL username';
+    process.env.DIR_DISPLAY_NAME = 'Example Directory';
+    process.env.DIR_USERNAME_LABEL = 'Example username';
     process.env.DIR_LOGIN_HINT = 'Same as your email.';
     expect(providers.loginForms(['dir', 'local', 'proxy'])).toEqual([
-      { id: 'dir', title: 'JPL Directory', usernameLabel: 'JPL username', hint: 'Same as your email.', icon: 'card-account-details-outline', path: 'api/auth/dir/login' },
+      { id: 'dir', title: 'Example Directory', usernameLabel: 'Example username', hint: 'Same as your email.', icon: 'card-account-details-outline', path: 'api/auth/dir/login' },
       { id: 'local', title: 'MMGIS account', usernameLabel: 'Username', hint: '', icon: 'account-key-outline', path: 'api/auth/local/login' },
     ]);
     expect(providers.loginForms(['local', 'dir']).map((f) => f.id)).toEqual(['local', 'dir']);
     expect(providers.loginLinks(['dir', 'local'])).toEqual([]);
-    expect(providers.providerLabel('dir')).toBe('JPL Directory');
+    expect(providers.providerLabel('dir')).toBe('Example Directory');
     expect(providers.providerLabel('proxy')).toBe('Authenticating proxy');
   });
 
