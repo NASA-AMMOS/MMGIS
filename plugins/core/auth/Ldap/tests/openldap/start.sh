@@ -23,12 +23,21 @@ docker run -d --name "$NAME" -p 3389:389 -p 3636:636 \
   -e LDAP_TLS_DH_PARAM_FILENAME=dhparam.pem -e LDAP_TLS_VERIFY_CLIENT=never \
   -v "$OUT/certs:/container/service/slapd/assets/certs" \
   osixia/openldap:1.5.0 >/dev/null
-for i in $(seq 1 60); do
-  if docker exec "$NAME" ldapsearch -x -H ldap://localhost -b dc=example,dc=org -D cn=admin,dc=example,dc=org -w admin-test-password -s base >/dev/null 2>&1; then break; fi
+# The image starts slapd once to bootstrap, then restarts it, so wait for it to answer several times in a row
+ok=0
+for i in $(seq 1 90); do
+  if docker exec "$NAME" ldapsearch -x -H ldap://localhost -b dc=example,dc=org -D cn=admin,dc=example,dc=org -w admin-test-password -s base >/dev/null 2>&1; then
+    ok=$((ok + 1)); [ "$ok" -ge 3 ] && break
+  else
+    ok=0
+  fi
   sleep 1
 done
+[ "$ok" -ge 3 ] || { echo "OpenLDAP didn't start" >&2; docker logs "$NAME" 2>&1 | tail -20 >&2; exit 1; }
 docker cp "$HERE/seed.ldif" "$NAME:/tmp/seed.ldif"
 docker cp "$HERE/acl.ldif" "$NAME:/tmp/acl.ldif"
-docker exec "$NAME" ldapadd -x -H ldap://localhost -D cn=admin,dc=example,dc=org -w admin-test-password -f /tmp/seed.ldif >/dev/null
-docker exec "$NAME" ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f /tmp/acl.ldif >/dev/null
+retry() { for i in $(seq 1 10); do "$@" && return 0; sleep 2; done; return 1; }
+retry docker exec "$NAME" ldapadd -c -x -H ldap://localhost -D cn=admin,dc=example,dc=org -w admin-test-password -f /tmp/seed.ldif >/dev/null 2>&1 \
+  || docker exec "$NAME" ldapsearch -x -H ldap://localhost -b ou=people,dc=example,dc=org -D cn=admin,dc=example,dc=org -w admin-test-password -s base >/dev/null
+retry docker exec "$NAME" ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f /tmp/acl.ldif >/dev/null
 echo "OpenLDAP ready: ldap://localhost:3389 (StartTLS), ldaps://localhost:3636, CA $OUT/ca.pem"
