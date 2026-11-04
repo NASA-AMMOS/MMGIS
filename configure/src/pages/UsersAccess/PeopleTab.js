@@ -27,7 +27,7 @@ export default function PeopleTab({ ctx }) {
         notify(
           r.failed
             ? `Couldn't check ${r.failed} of ${r.checked} provider-linked accounts: the login provider is unreachable or refused its service account (see the server log). ${r.missing} not found.`
-            : `Checked ${r.checked} provider-linked accounts: ${r.missing} not found.${r.unsupported ? ` ${r.unsupported} can't be checked between logins (no service account, e.g. LDAP_BIND_DN).` : ""}`,
+            : `Checked ${r.checked} provider-linked accounts: ${r.missing} not found.${r.unsupported ? ` ${r.unsupported} can't be checked between logins (the provider can't look them up, e.g. LDAP without LDAP_BIND_DN and LDAP_USER_SEARCH_BASE).` : ""}`,
           r.missing || r.failed ? "warning" : "success"
         );
         refresh();

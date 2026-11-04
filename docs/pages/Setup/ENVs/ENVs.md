@@ -151,7 +151,7 @@ Failed logins allowed for one account on one login form (local, or a username/pa
 
 #### `AUTH_RECHECK_MINUTES=`
 
-How often MMGIS rereads a provider-linked account (for example LDAP) from its provider while that account has a session or uses an API token. Directory group changes then update the person's roles, and a person deleted or disabled in the directory loses their sessions and tokens, within this many minutes instead of at their next login. If the directory can't be reached, access stays as it was until a later check. LDAP needs `LDAP_BIND_DN` for this; with `LDAP_USER_DN_TEMPLATE` alone, changes apply at the next login. `0` turns rechecking off; an account that **Check linked accounts** in Users & Access > People then finds gone still loses its sessions and tokens | number | default `15`
+How often MMGIS rereads a provider-linked account (for example LDAP) from its provider while that account has a session or uses an API token. Directory group changes then update the person's roles, and a person deleted or disabled in the directory loses their sessions and tokens, within this many minutes instead of at their next login. If the directory can't be reached, access stays as it was until a later check. LDAP needs `LDAP_BIND_DN` and `LDAP_USER_SEARCH_BASE` for this; without them, changes apply at the next login. `0` turns rechecking off; an account that **Check linked accounts** in Users & Access > People then finds gone still loses its sessions and tokens | number | default `15`
 
 #### `AUTH_LOCAL_LOGIN=`
 

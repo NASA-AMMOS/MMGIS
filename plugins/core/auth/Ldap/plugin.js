@@ -5,7 +5,6 @@
 // stable id and syncs the person's directory groups.
 const fs = require("fs");
 const net = require("net");
-const crypto = require("crypto");
 const { Client, InvalidCredentialsError, SizeLimitExceededError, NoSuchObjectError, InvalidDNSyntaxError, ResultCodeError } = require("ldapts");
 
 const setting = (v, fallback = "") => (v != null && String(v).trim() !== "" ? String(v).trim() : fallback);
@@ -612,6 +611,10 @@ function validate(env) {
     errors.push("Set LDAP_USER_SEARCH_BASE (to search for people) or LDAP_USER_DN_TEMPLATE (to sign in as them directly).");
   if (c.userDnTemplate && !c.userDnTemplate.includes("{{username}}"))
     errors.push("LDAP_USER_DN_TEMPLATE must contain {{username}}.");
+  if (c.userDnTemplate && c.userDnTemplate.includes("\\{{username}}"))
+    errors.push(
+      "LDAP_USER_DN_TEMPLATE can't be DOMAIN\\{{username}}: MMGIS has to find the entry it signed in as. Use the UPN form ({{username}}@corp.example.org) with LDAP_USER_SEARCH_BASE, or a DN; LDAP_USERNAME_DOMAIN lets people still type DOMAIN\\name."
+    );
   if (c.userDnTemplate && !c.searchBase && !c.userDnTemplate.includes("="))
     errors.push(
       "LDAP_USER_DN_TEMPLATE isn't a DN (e.g. {{username}}@corp.example.org), so MMGIS can't read the person's entry from it. Also set LDAP_USER_SEARCH_BASE."
@@ -644,6 +647,10 @@ function warnings(env) {
   const out = [];
   if (c.allowInsecure && !c.startTls && /^ldap:/i.test(c.url))
     out.push("LDAP_ALLOW_INSECURE=true: LDAP passwords cross the network unencrypted. Use it only for local testing.");
+  if (c.bindDn && !c.searchBase)
+    out.push(
+      "LDAP_BIND_DN is set without LDAP_USER_SEARCH_BASE, so MMGIS can't look people up between logins: sessions and tokens aren't rechecked (changes apply at the next login) and relinks match on the username alone. Set LDAP_USER_SEARCH_BASE to turn both on."
+    );
   if (c.groupNameAttribute && !c.groupSearchBase)
     out.push(`LDAP_GROUP_NAME_ATTRIBUTE=${c.groupNameAttribute} has no effect without LDAP_GROUP_SEARCH_BASE: groups read from ${c.groupsAttribute} are reported by their full DN.`);
   if (c.subjectAttribute.toLowerCase() === "dn")
@@ -732,6 +739,8 @@ module.exports = {
       throw new Error(`MMGIS only finds groups under LDAP_GROUP_SEARCH_BASE (${c.groupSearchBase}), so ${dn} would never have members. Widen LDAP_GROUP_SEARCH_BASE to include it.`);
     return dn;
   },
+  // The username as login reads it, so a relink typed as CORP\\alice waits for alice
+  relinkUsername: (name) => stripDomain(String(name).normalize("NFKC").trim(), config()),
   lookup: (subject) => lookup(subject),
   locate: (subject) => locate(subject),
   findSubject: (username) => findSubject(username),

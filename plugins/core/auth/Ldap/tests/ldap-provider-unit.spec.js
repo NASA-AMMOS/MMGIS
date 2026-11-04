@@ -70,6 +70,15 @@ test.describe('LDAP escaping', () => {
     expect(stripDomain('OTHER\\alice', c)).toBe('OTHER\\alice');
     expect(stripDomain('alice@corp.example.org', c)).toBe('alice@corp.example.org');
     expect(stripDomain('CORP\\alice', config(base))).toBe('CORP\\alice');
+    // A relink typed the way people sign in waits for the username their logins report
+    const before = process.env.LDAP_USERNAME_DOMAIN;
+    process.env.LDAP_USERNAME_DOMAIN = 'CORP';
+    try {
+      expect(ldap.relinkUsername(' CORP\\alice ')).toBe('alice');
+    } finally {
+      if (before === undefined) delete process.env.LDAP_USERNAME_DOMAIN;
+      else process.env.LDAP_USERNAME_DOMAIN = before;
+    }
   });
 
   test('group DNs are compared lowercased and without spaces, so same-named groups in different OUs stay apart', () => {
@@ -263,6 +272,10 @@ test.describe('LDAP settings', () => {
     expect(problems({ ...base, LDAP_URL: 'ldap://x', LDAP_ALLOW_INSECURE: 'true' })).toBe('');
     expect(ldap.warnings({ ...base, LDAP_URL: 'ldap://x', LDAP_ALLOW_INSECURE: 'true' }).join()).toMatch(/unencrypted/);
     expect(ldap.warnings({ ...base, LDAP_GROUP_NAME_ATTRIBUTE: 'cn' }).join()).toMatch(/no effect without LDAP_GROUP_SEARCH_BASE/);
+    const templateOnly = { LDAP_URL: 'ldaps://x:636', LDAP_USER_DN_TEMPLATE: 'uid={{username}},dc=x' };
+    expect(ldap.warnings({ ...templateOnly, LDAP_BIND_DN: 'cn=svc,dc=x', LDAP_BIND_PASSWORD: 'p' }).join()).toMatch(/without LDAP_USER_SEARCH_BASE/); // pragma: allowlist secret
+    expect(ldap.warnings(templateOnly).join()).not.toMatch(/without LDAP_USER_SEARCH_BASE/);
+    expect(problems({ ...templateOnly, LDAP_USER_DN_TEMPLATE: 'CORP\\{{username}}' })).toMatch(/can't be DOMAIN/);
     expect(ldap.warnings({ ...base, LDAP_GROUP_NAME_ATTRIBUTE: 'cn', LDAP_GROUP_SEARCH_BASE: 'ou=g' }).join()).not.toMatch(/no effect/);
     expect(problems({ ...base, LDAP_STARTTLS: 'true' })).toMatch(/already encrypted/);
   });

@@ -376,11 +376,12 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     // The person's username at the provider, when it differs from their MMGIS username
     const known = await AuthIdentity.findOne({ where: { user_id: id, provider }, attributes: ["username", "subject"], raw: true });
     const fallback = (known && known.username) || user.username;
-    const username = String(req.body.username == null || req.body.username === "" ? fallback : req.body.username)
+    let username = String(req.body.username == null || req.body.username === "" ? fallback : req.body.username)
       .normalize("NFKC")
       .trim();
     if (username === "" || username.length > 256 || /[\u0000-\u001f\u007f]/.test(username))
       return fail("Enter the person's username at the login provider.");
+    username = providers.relinkUsername(provider, username);
     // The account's grants carry over, so a SuperAdmin account can only be handed over by a SuperAdmin
     const superAdmins = (
       await RoleBinding.findAll({

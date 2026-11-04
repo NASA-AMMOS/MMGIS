@@ -233,6 +233,33 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('a relink typed as DOMAIN\\name waits for the name people sign in with', async () => {
+    const domain = process.env.LDAP_USERNAME_DOMAIN;
+    test.skip(!domain, 'SKIP: needs the server started with LDAP_USERNAME_DOMAIN');
+    const username = `ldap_dom_${Date.now()}`;
+    const password = ['dom', 'test', 'password'].join('-');
+    const dn = `uid=${username},ou=people,dc=example,dc=org`;
+    const added = directoryAdmin(`dn: ${dn}\nchangetype: add\nobjectClass: inetOrgPerson\nuid: ${username}\ncn: Dom\nsn: Dom\nuserPassword: ${password}\n`);
+    test.skip(!added, `SKIP: can't change the fixture directory (docker container ${container})`);
+    try {
+      const adminCtx = await adminContext();
+      const entries = async () => (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries;
+      const local = `${username}_local`;
+      const made = await (await adminCtx.post('/api/users/signup', { data: { username: local, email: `${local}@example.org`, password: ['Local', 'test', '1!'].join('-'), skipLogin: true } })).json();
+      expect(made.status).toBe('success');
+      const account = (await entries()).find((e) => e.username === local);
+      const allowed = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap', username: `${domain}\\${username}` } })).json();
+      expect(allowed.status).toBe('success');
+      expect((await entries()).find((e) => e.id === account.id).relink).toMatchObject({ username });
+      expect((await ldapLogin(await context(), { username: `${domain}\\${username}`, password })).status()).toBe(200);
+      const after = (await entries()).find((e) => e.id === account.id);
+      expect(after.sign_ins).toEqual([expect.objectContaining({ provider: 'ldap' })]);
+      expect((await entries()).some((e) => e.username === username)).toBe(false);
+    } finally {
+      directoryAdmin(`dn: ${dn}\nchangetype: delete\n`);
+    }
+  });
+
   test('with rechecks off, Check linked accounts still cuts off a leaver it finds gone', async () => {
     test.skip(process.env.AUTH_RECHECK_MINUTES !== '0', 'SKIP: needs the server started with AUTH_RECHECK_MINUTES=0');
     const uid = `ldap_leaver_${Date.now()}`;

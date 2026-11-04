@@ -387,6 +387,12 @@ async function locateSubject(providerId, subject) {
 
 // The provider's entry for a username, so an admin can see who a relink would go to:
 // { subject, dn } or null when the provider has none, undefined when it can't look people up
+// The username a relink waits for, in the form the provider's logins report it
+function relinkUsername(providerId, username) {
+  const p = getProvider(providerId);
+  return p && typeof p.impl.relinkUsername === "function" ? p.impl.relinkUsername(username) : username;
+}
+
 async function relinkTarget(providerId, username) {
   const p = enabledProviders().find((x) => x.id === providerId);
   if (!p || typeof p.impl.findSubject !== "function") return undefined;
@@ -877,6 +883,7 @@ module.exports = {
   relinkKey,
   missingKey,
   groupName,
+  relinkUsername,
   relinkTarget,
   locateSubject,
   sameUsername,
