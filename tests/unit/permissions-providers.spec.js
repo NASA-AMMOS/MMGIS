@@ -560,12 +560,30 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
     expect(await providers.stillLinked(9011, 'ldap', m)).toBe(false);
     m.AuthMeta.rows.length = 0;
-    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1, failed: 0, unsupported: 0 });
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1, failed: 0, unsupported: 0, staleRelinks: 0 });
     ldap.lookup = async () => { throw new Error('directory down'); };
-    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 0, failed: 2, unsupported: 0 });
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 0, failed: 2, unsupported: 0, staleRelinks: 0 });
     ldap.lookup = async () => undefined;
-    expect(await providers.recheckLinked(m)).toEqual({ checked: 0, missing: 0, failed: 0, unsupported: 2 });
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 0, missing: 0, failed: 0, unsupported: 2, staleRelinks: 0 });
     expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
+  });
+
+  test('checking every linked account flags a pending relink whose pinned entry is gone', async () => {
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'here', user_id: 9013 }] });
+    const expires_at = new Date(Date.now() + 3600e3).toISOString();
+    m.AuthMeta.rows.push(
+      { key: 'relink:ldap:9014', value: { username: 'gone', subject: 'gone', expires_at } },
+      { key: 'relink:ldap:9016', value: { username: 'here', subject: 'here', expires_at } }
+    );
+    const realLocate = ldap.locate;
+    ldap.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
+    ldap.locate = async () => { throw new Error('directory down'); };
+    expect((await providers.recheckLinked(m)).staleRelinks).toBe(0);
+    ldap.locate = async () => null;
+    expect((await providers.recheckLinked(m)).staleRelinks).toBe(1);
+    ldap.locate = realLocate;
+    expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9014').value.stale).toMatchObject({ gone: true });
+    expect(m.AuthMeta.rows.find((r) => r.key === 'relink:ldap:9016').value.stale).toBeUndefined();
   });
 
   test('a recheck waits as long as the provider says its lookup may take, not just 5 s', async () => {

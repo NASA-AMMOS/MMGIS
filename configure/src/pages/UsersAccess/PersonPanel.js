@@ -163,7 +163,9 @@ export function PersonPanel({ user, ctx }) {
                 </Typography>
                 {user.relink.stale && (
                   <Typography variant="body2" style={{ color: "#a8572e" }}>
-                    On {new Date(user.relink.stale.at).toLocaleString()}, '{user.relink.username || user.username}' signed in from a different {user.relink.provider.toUpperCase()} entry, so this relink won't take effect. If the directory changed since it was allowed, cancel it and allow it again.
+                    {user.relink.stale.gone
+                      ? `On ${new Date(user.relink.stale.at).toLocaleString()}, Check linked accounts found that the ${user.relink.provider.toUpperCase()} entry this relink is pinned to is gone, so it won't take effect.`
+                      : `On ${new Date(user.relink.stale.at).toLocaleString()}, '${user.relink.username || user.username}' signed in from a different ${user.relink.provider.toUpperCase()} entry, so this relink won't take effect.`} If the directory changed since it was allowed, cancel it and allow it again.
                   </Typography>
                 )}
                 <Button size="small" onClick={() => relink(user.relink.provider, true)}>Cancel relink</Button>

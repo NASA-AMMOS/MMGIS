@@ -213,10 +213,7 @@ class LinkError extends Error {
     super(message);
     // The same for every refusal, so it doesn't reveal which usernames have accounts
     this.userMessage =
-      userMessage ||
-      (siteAccess.hasProvider("local") && !siteAccess.localAdminsOnly()
-        ? "This sign-in can't be used with MMGIS yet. Ask an administrator, and if you also have an MMGIS account, keep signing in with it for now."
-        : "This sign-in can't be used with MMGIS yet. Ask an administrator.");
+      userMessage || "This sign-in can't be used with MMGIS yet. Ask an administrator.";
   }
 }
 
@@ -357,6 +354,7 @@ async function claimRelink(identity, m) {
         subject: identity.subject,
         username: identity.username,
         last_login_at: new Date(),
+        subject_setting: subjectSetting(getProvider(identity.provider)),
         user_id: user.id,
       },
       { transaction }
@@ -417,14 +415,21 @@ function groupNameProblem(providerId, name) {
 }
 
 // False when a stored subject can't be one under the provider's current settings (e.g. LDAP_SUBJECT_ATTRIBUTE changed)
-const subjectFits = (p, subject) => typeof p.impl.subjectFits !== "function" || p.impl.subjectFits(subject) !== false;
+const subjectSetting = (p) => (p && typeof p.impl.subjectSetting === "function" ? String(p.impl.subjectSetting()) : null);
+// Whether a link was made under the provider's current subject setting; links from before subject_setting was
+// recorded fall back to the subject's form
+function subjectFits(p, link) {
+  const now = subjectSetting(p);
+  if (now != null && link.subject_setting) return link.subject_setting === now;
+  return typeof p.impl.subjectFits !== "function" || p.impl.subjectFits(link.subject) !== false;
+}
 
 // At startup, so a changed subject setting doesn't silently sign out every linked account
 async function warnUnfitSubjects(m = accountModels()) {
   for (const p of enabledProviders()) {
-    if (typeof p.impl.subjectFits !== "function") continue;
-    const links = await m.AuthIdentity.findAll({ where: { provider: p.id }, attributes: ["user_id", "subject"], raw: true });
-    const unfit = links.filter((l) => !subjectFits(p, l.subject));
+    if (typeof p.impl.subjectFits !== "function" && typeof p.impl.subjectSetting !== "function") continue;
+    const links = await m.AuthIdentity.findAll({ where: { provider: p.id }, attributes: ["user_id", "subject", "subject_setting"], raw: true });
+    const unfit = links.filter((l) => !subjectFits(p, l));
     if (unfit.length === 0) continue;
     const superAdmins = await require("./bindings").superAdminUserIds();
     const linkedIds = new Set((await m.AuthIdentity.findAll({ attributes: ["user_id"], raw: true })).map((l) => l.user_id));
@@ -509,7 +514,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     });
     if (user) {
       await m.AuthIdentity.update(
-        { username: identity.username, last_login_at: new Date() },
+        { username: identity.username, last_login_at: new Date(), subject_setting: subjectSetting(getProvider(identity.provider)) },
         { where: { provider: identity.provider, subject: identity.subject } }
       );
       await markMissing(m, identity.provider, user.id, false);
@@ -533,7 +538,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     m.AuthIdentity.findAll &&
     (await m.AuthIdentity.findAll({
       where: { provider: identity.provider },
-      attributes: ["user_id", "username", "subject"],
+      attributes: ["user_id", "username", "subject", "subject_setting"],
       raw: true,
     })).find((l) => l.username && sameUsername(l.username, identity.username));
   // Another sign-in linked this entry a moment ago; looking again finds that link
@@ -554,7 +559,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
         `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
       );
     const provider = getProvider(identity.provider);
-    if (provider && !subjectFits(provider, sameName.subject))
+    if (provider && !subjectFits(provider, sameName))
       throw new LinkError(
         `'${identity.username}' already signs in to account ${sameName.user_id}, which was linked under a different ${identity.provider} subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE). Change the setting back, or allow a relink on that account.`
       );
@@ -617,6 +622,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
           subject: identity.subject,
           username: identity.username,
           last_login_at: new Date(),
+          subject_setting: subjectSetting(getProvider(identity.provider)),
           user_id: created.id,
         },
         { transaction }
@@ -743,7 +749,10 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!now || now.subject !== link.subject) return "ok";
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
-    await markMissing(m, providerId, userId, !identity, link.subject, !identity && !subjectFits(p, link.subject) ? "subject" : undefined);
+    await markMissing(m, providerId, userId, !identity, link.subject, !identity && !subjectFits(p, link) ? "subject" : undefined);
+    // Found under the current setting, so that's the one it's linked under
+    if (identity && !link.subject_setting && subjectSetting(p) != null && m.AuthIdentity.update)
+      await m.AuthIdentity.update({ subject_setting: subjectSetting(p) }, { where: { user_id: userId, provider: providerId } });
     // So People shows a rename before the person's next login, and a newcomer with the old name isn't mistaken for them
     if (identity && identity.username && identity.username !== now.username) {
       await m.AuthIdentity.update({ username: identity.username }, { where: { user_id: userId, provider: providerId, subject: link.subject } });
@@ -820,8 +829,19 @@ async function recheckAllNow(m) {
     }
   };
   await Promise.all(Array.from({ length: Math.min(8, links.length) }, worker));
+  // A pending relink pinned to an entry that's gone can never be claimed; flag it now rather than at a failed sign-in
+  let staleRelinks = 0;
+  if (m.AuthMeta && m.AuthMeta.update)
+    for (const r of await m.AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
+      const v = r.value;
+      const providerId = r.key.split(":")[1];
+      if (!v || !v.subject || v.stale || !(Date.parse(v.expires_at) > Date.now()) || !siteAccess.hasProvider(providerId)) continue;
+      if ((await locateSubject(providerId, v.subject).catch(() => undefined)) !== null) continue;
+      await m.AuthMeta.update({ value: { ...v, stale: { gone: true, at: new Date().toISOString() } } }, { where: { key: r.key } });
+      staleRelinks++;
+    }
   // failed: the provider couldn't be asked (unreachable, or its service account was refused)
-  return { checked: links.length - counts.unsupported, missing: counts.missing, failed: counts.failed, unsupported: counts.unsupported };
+  return { checked: links.length - counts.unsupported, missing: counts.missing, failed: counts.failed, unsupported: counts.unsupported, staleRelinks };
 }
 
 // The legacy lead group (LEADS) a login response reports, as a page reload does

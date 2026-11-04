@@ -484,6 +484,10 @@ test.describe('LDAP login provider', () => {
     const id = (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries.find((e) => e.username === alice.username).id;
     const refused = await (await adminCtx.delete(`/api/accounts/remove/${id}?drawings_to=nobody-${Date.now()}`)).json();
     expect(refused.status).toBe('failure');
+    const minted = await (await adminCtx.post('/api/longtermtoken/generate', { data: { name: 'heir', period: 'never' } })).json();
+    const withToken = await newRequest.newContext({ baseURL, extraHTTPHeaders: { Authorization: `Bearer ${minted.body.token}` } });
+    expect((await withToken.delete(`/api/accounts/remove/${id}?drawings_to=${heir}`)).status()).toBe(403);
+    await withToken.dispose();
     expect((await me(ctx)).authenticated).toBe(true);
     expect((await (await adminCtx.delete(`/api/accounts/remove/${id}?drawings_to=${heir}`)).json()).status).toBe('success');
     const heirCtx = await context();

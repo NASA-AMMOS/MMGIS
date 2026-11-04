@@ -508,7 +508,7 @@ router.post("/recheckLinked", apilimiter, authorize("accounts.manage"), async fu
     const result = await providers.recheckLinked();
     logger(
       result.failed ? "warn" : "info",
-      `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found${result.failed ? `, ${result.failed} couldn't be checked (see the earlier warnings)` : ""}${result.unsupported ? `; ${result.unsupported} can't be checked between logins (their provider has no service account, e.g. LDAP without LDAP_BIND_DN)` : ""}.`,
+      `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found${result.failed ? `, ${result.failed} couldn't be checked (see the earlier warnings)` : ""}${result.unsupported ? `; ${result.unsupported} can't be checked between logins (their provider has no service account, e.g. LDAP without LDAP_BIND_DN)` : ""}${result.staleRelinks ? `; ${result.staleRelinks} pending relinks are pinned to entries that are gone (allow them again)` : ""}.`,
       "accounts",
       req
     );

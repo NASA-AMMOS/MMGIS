@@ -760,6 +760,7 @@ module.exports = {
   lookupTimeoutMs: () => 5 * config().timeoutMs,
   // A DN stored before a switch to entryUUID/objectGUID, or an ID stored before a switch to dn
   subjectFits: (subject) => (config().subjectAttribute.toLowerCase() === "dn") !== notADn(subject),
+  subjectSetting: () => config().subjectAttribute.toLowerCase(),
   routes(router, ctx) {
     const startup = config();
     selfCheck(startup).then(
