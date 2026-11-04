@@ -147,7 +147,7 @@ Whether visitors may create their own local accounts. With `SITE_ACCESS=required
 
 #### `AUTH_MAX_FAILED_LOGINS=`
 
-Failed logins allowed for one account per 15 minutes, counted across all addresses and login forms (local and username/password providers such as LDAP). Further attempts for that account are refused until the window passes. With a directory behind MMGIS, keep it below the directory's account lockout threshold, so typos and password guessing are stopped by MMGIS before the directory locks the account. Separately, each address is limited to 10 failed logins per 15 minutes | number | default `5`
+Failed logins allowed for one account on one login form (local, or a username/password provider such as LDAP) per 15 minutes, counted across all addresses. Only wrong usernames or passwords count; an unreachable directory or a refused account link doesn't. Further attempts for that account on that form are refused until the window passes, so directory failures never lock out a local account. Usernames are compared ignoring case, Unicode look-alikes, `DOMAIN\` and `@domain`. Counts are kept in each server process, so with several processes the limit applies per process. With a directory behind MMGIS, keep it below the directory's account lockout threshold, so typos and password guessing are stopped by MMGIS before the directory locks the account. Separately, each address is limited to 10 failed logins per 15 minutes | number | default `5`
 
 #### `AUTH_RECHECK_MINUTES=`
 

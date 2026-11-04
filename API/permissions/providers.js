@@ -16,6 +16,7 @@
 const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
+const { Op } = require("sequelize");
 const { rateLimit } = require("express-rate-limit");
 const logger = require("../logger");
 const { discoverPlugins } = require("../pluginDiscovery");
@@ -194,41 +195,101 @@ class LinkError extends Error {
 function accountModels() {
   const { AuthIdentity, AuthGroup, AuthGroupMember, AuthMeta } = require("./models");
   const { User } = require("../../plugins/core/backend/Users/models/user");
-  return { User, AuthIdentity, AuthGroup, AuthGroupMember, AuthMeta };
+  const { sequelize } = require("../connection");
+  return {
+    User,
+    AuthIdentity,
+    AuthGroup,
+    AuthGroupMember,
+    AuthMeta,
+    transaction: (fn) => sequelize.transaction(fn),
+    // Usernames differing only in case would be two accounts for one directory person
+    usernameTaken: (username) =>
+      User.findOne({
+        where: sequelize.where(sequelize.fn("lower", sequelize.col("username")), String(username).toLowerCase()),
+        attributes: ["id"],
+        raw: true,
+      }),
+    endSessionsOf: (userId) =>
+      sequelize.query(`DELETE FROM "session" WHERE sess->>'uid' = :uid`, { replacements: { uid: String(userId) } }),
+  };
 }
 
+const inTransaction = (m, fn) => (m.transaction ? m.transaction(fn) : fn(undefined));
+
 // An admin can let the next login through a provider claim an existing account, e.g. after
-// a directory rebuild gave everyone new subjects. Stored in auth_meta under relinkKey().
+// a directory rebuild gave everyone new subjects. Stored in auth_meta under relinkKey() as
+// { username (at the provider), subject (when the provider could look it up), expires_at, by }.
 const RELINK_HOURS = 24;
 const relinkKey = (provider, userId) => `relink:${provider}:${userId}`;
+const sameUsername = (a, b) =>
+  String(a).normalize("NFKC").toLowerCase() === String(b).normalize("NFKC").toLowerCase();
 
-async function claimRelink(identity, userId, m) {
-  if (!m.AuthMeta) return false;
-  const key = relinkKey(identity.provider, userId);
-  const claim = await m.AuthMeta.findOne({ where: { key }, raw: true });
-  const v = claim && claim.value;
-  if (!v || v.username !== identity.username || !(Date.parse(v.expires_at) > Date.now())) return false;
-  // Single use, even when two logins race for it
-  if (!(await m.AuthMeta.destroy({ where: { key } }))) return false;
-  await m.AuthIdentity.destroy({ where: { user_id: userId, provider: identity.provider } });
-  await m.AuthIdentity.create({
-    provider: identity.provider,
-    subject: identity.subject,
-    username: identity.username,
-    last_login_at: new Date(),
-    user_id: userId,
+async function findClaim(identity, m) {
+  if (!m.AuthMeta) return null;
+  const rows = await m.AuthMeta.findAll({
+    where: { key: { [Op.like]: `relink:${identity.provider}:%` } },
+    raw: true,
   });
+  for (const r of rows) {
+    const v = r.value;
+    if (!v || !(Date.parse(v.expires_at) > Date.now()) || !sameUsername(v.username, identity.username)) continue;
+    // Only the entry the admin was shown may claim it
+    if (v.subject && v.subject !== identity.subject) continue;
+    return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by };
+  }
+  return null;
+}
+
+// The account this login takes over through a pending relink, or null
+async function claimRelink(identity, m) {
+  const claim = await findClaim(identity, m);
+  if (!claim) return null;
+  const user = await m.User.findOne({ where: { id: claim.userId }, attributes: ["id", "username"], raw: true });
+  if (!user) return null;
+  const claimed = await inTransaction(m, async (transaction) => {
+    // Single use, even when two logins race for it
+    if (!(await m.AuthMeta.destroy({ where: { key: claim.key }, transaction }))) return false;
+    await m.AuthIdentity.destroy({ where: { user_id: user.id, provider: identity.provider }, transaction });
+    await m.AuthIdentity.create(
+      {
+        provider: identity.provider,
+        subject: identity.subject,
+        username: identity.username,
+        last_login_at: new Date(),
+        user_id: user.id,
+      },
+      { transaction }
+    );
+    // A local password it had is no longer known to anyone
+    await m.User.update(
+      { password: crypto.randomBytes(32).toString("hex") },
+      { where: { id: user.id }, transaction, individualHooks: true }
+    );
+    return true;
+  });
+  if (!claimed) return null;
+  // Whoever is still signed in through the old login (a local password, or the replaced entry) is signed out
+  if (m.endSessionsOf) await m.endSessionsOf(user.id);
   logger(
     "warn",
-    `Account ${userId} '${identity.username}' is now linked to ${identity.provider} subject '${identity.subject}', as allowed by '${v.by}'.`,
+    `Account ${user.id} '${user.username}' is now linked to ${identity.provider} '${identity.username}' (subject '${identity.subject}'), as allowed by '${claim.by}'.`,
     "AuthProviders"
   );
-  return true;
+  return user;
+}
+
+// The provider's entry for a username, so an admin can see who a relink would go to:
+// { subject, dn } or null when the provider has none, undefined when it can't look people up
+async function relinkTarget(providerId, username) {
+  const p = enabledProviders().find((x) => x.id === providerId);
+  if (!p || typeof p.impl.findSubject !== "function") return undefined;
+  return p.impl.findSubject(username);
 }
 
 // Finds the account linked to provider+subject, creating one on first login.
-// Never links to, or changes, an existing account by matching its username.
-async function linkIdentity(identity, m = accountModels()) {
+// Never links to, or changes, an existing account by matching its username, unless an admin allowed a relink.
+async function linkIdentity(identity, m = accountModels(), retried = false) {
   const link = await m.AuthIdentity.findOne({
     where: { provider: identity.provider, subject: identity.subject },
     raw: true,
@@ -254,13 +315,11 @@ async function linkIdentity(identity, m = accountModels()) {
       return user;
     }
   }
-  const taken = await m.User.findOne({
-    where: { username: identity.username },
-    attributes: ["id"],
-    raw: true,
-  });
-  if (taken && (await claimRelink(identity, taken.id, m)))
-    return { id: taken.id, username: identity.username };
+  const claimed = await claimRelink(identity, m);
+  if (claimed) return claimed;
+  const taken = m.usernameTaken
+    ? await m.usernameTaken(identity.username)
+    : await m.User.findOne({ where: { username: identity.username }, attributes: ["id"], raw: true });
   if (taken)
     throw new LinkError(
       `The username '${identity.username}' already belongs to another account.`
@@ -276,22 +335,33 @@ async function linkIdentity(identity, m = accountModels()) {
     });
     if (!emailTaken) fields.email = identity.email;
   }
-  let created;
   try {
-    created = await m.User.create(fields);
+    return await inTransaction(m, async (transaction) => {
+      let created;
+      try {
+        created = await m.User.create(fields, { transaction });
+      } catch (err) {
+        if (!fields.email || err.name !== "SequelizeValidationError") throw err;
+        delete fields.email;
+        created = await m.User.create(fields, { transaction });
+      }
+      await m.AuthIdentity.create(
+        {
+          provider: identity.provider,
+          subject: identity.subject,
+          username: identity.username,
+          last_login_at: new Date(),
+          user_id: created.id,
+        },
+        { transaction }
+      );
+      return { id: created.id, username: created.username };
+    });
   } catch (err) {
-    if (!fields.email || err.name !== "SequelizeValidationError") throw err;
-    delete fields.email;
-    created = await m.User.create(fields);
+    // Two first logins of the same person at once: the other one created the account
+    if (!retried && err.name === "SequelizeUniqueConstraintError") return linkIdentity(identity, m, true);
+    throw err;
   }
-  await m.AuthIdentity.create({
-    provider: identity.provider,
-    subject: identity.subject,
-    username: identity.username,
-    last_login_at: new Date(),
-    user_id: created.id,
-  });
-  return { id: created.id, username: created.username };
 }
 
 // Sets the user's membership of groups sourced from this provider to exactly
@@ -490,7 +560,7 @@ const providerLimiter = () =>
 function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root }) {
   if (typeof root === "string") mountedRoot = root;
   const list = express.Router();
-  const { apilimiter, accountLimiter } = require("../../scripts/rateLimiters");
+  const { apilimiter, accountLimiterFor } = require("../../scripts/rateLimiters");
   list.get("/", apilimiter, authorize.public("lists the enabled login providers"), (req, res) => {
     res.send({
       status: "success",
@@ -514,7 +584,7 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
       completeLogin: (req, raw) => completeLogin(req, normalizeIdentity(p.id, raw)),
       sessionGroups: (req, username) => leadGroups(username, req.leadGroupName),
     });
-    app.use(prefix, providerLimiter(), accountLimiter, registerRouter(prefix, router));
+    app.use(prefix, providerLimiter(), accountLimiterFor(p.id), registerRouter(prefix, router));
   });
 }
 
@@ -534,6 +604,7 @@ module.exports = {
   linkIdentity,
   RELINK_HOURS,
   relinkKey,
+  relinkTarget,
   syncGroups,
   stillLinked,
   completeLogin,

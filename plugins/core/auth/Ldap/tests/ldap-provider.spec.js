@@ -194,9 +194,14 @@ test.describe('LDAP login provider', () => {
       const account = (await entries()).find((e) => e.username === username);
       accountId = account.id;
       expect((await ldapLogin(await context(), { username, password })).status()).toBe(409);
+      const localSession = await context();
+      expect((await (await localSession.post('/api/users/login', { data: { username, password: localPassword } })).json()).status).toBe('success');
+      expect((await me(localSession)).authenticated).toBe(true);
 
       const allowed = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap' } })).json();
       expect(allowed.status).toBe('success');
+      // Pinned to the directory entry that has the username now
+      expect(allowed.body.dn).toBe(dn);
       expect((await entries()).find((e) => e.id === account.id).relink).toMatchObject({ provider: 'ldap' });
 
       expect((await ldapLogin(await context(), { username, password })).status()).toBe(200);
@@ -204,6 +209,8 @@ test.describe('LDAP login provider', () => {
       expect(after.id).toBe(account.id);
       expect(after.sign_ins).toEqual([expect.objectContaining({ provider: 'ldap' })]);
       expect(after.relink).toBeNull();
+      // Whoever was signed in with the local password is signed out
+      expect((await me(localSession)).authenticated).toBe(false);
       // Now linked to LDAP, so its old local password no longer signs in
       const local = await (await (await context()).post('/api/users/login', { data: { username, password: localPassword, skipLogin: true } })).json();
       expect(local.status).not.toBe('success');

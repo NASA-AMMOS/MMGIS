@@ -248,6 +248,7 @@ async function findUser(client, c, username) {
     throw err;
   }
   if (result.searchEntries.length === 1) return { entry: result.searchEntries[0] };
+  if (result.searchEntries.length > 1) return { reason: `more than one entry under LDAP_USER_SEARCH_BASE matches ${filter}` };
   return {
     reason: `no entry under LDAP_USER_SEARCH_BASE matches ${filter} (if nobody can sign in, check LDAP_USER_SEARCH_BASE and LDAP_USER_SEARCH_FILTER)`,
   };
@@ -272,8 +273,12 @@ async function groupsOf(client, c, entry, username) {
       scope: "sub",
       filter: fill(c.groupSearchFilter, { dn: escapeFilter(entry.dn), username: escapeFilter(username) }),
       attributes: c.groupNameAttribute ? [c.groupNameAttribute] : ["dn"],
+      // Pages, so people in more groups than the server's size limit (e.g. AD's 1000) can still sign in
+      paged: { pageSize: 500 },
     }));
   } catch (err) {
+    if (err instanceof SizeLimitExceededError)
+      err.message = `${err.message}. The person is in more groups than the directory returns to the service account; raise its size limit or narrow LDAP_GROUP_SEARCH_FILTER`;
     err.message = `Searching LDAP_GROUP_SEARCH_BASE for groups failed: ${err.message}`;
     throw err;
   }
@@ -356,6 +361,22 @@ async function lookup(subject, c = config(), createClient = newClient) {
       email: email != null ? String(email) : undefined,
       groups: await groupsOf(client, c, entry, name != null ? String(name) : ""),
     };
+  } finally {
+    await client.unbind().catch(() => {});
+  }
+}
+
+// The entry a username belongs to, read with the service account, so an admin can check who a
+// relink will go to: { subject, dn }, null when no single entry has it, undefined without a
+// service account; throws when the directory can't be reached
+async function findSubject(username, c = config(), createClient = newClient) {
+  if (!c.bindDn || !c.searchBase) return undefined;
+  const client = createClient(c);
+  try {
+    if (c.startTls) await client.startTLS(startTlsOptions(c));
+    await bindService(client, c);
+    const found = await findUser(client, c, stripDomain(String(username).normalize("NFKC").trim(), c));
+    return found.entry ? { subject: subjectOf(found.entry, c), dn: found.entry.dn } : null;
   } finally {
     await client.unbind().catch(() => {});
   }
@@ -472,7 +493,8 @@ module.exports = {
       const body = req.body || {};
       if (!validUsername(body.username) || typeof body.password !== "string" || body.password === "")
         return res.status(400).send({ status: "failure", message: "Enter your username and password." });
-      const username = stripDomain(body.username.trim(), c);
+      // NFKC, so fullwidth look-alikes the directory treats as the same person are also one account to MMGIS
+      const username = stripDomain(body.username.normalize("NFKC").trim(), c);
       let identity;
       let reason = "";
       try {
@@ -512,8 +534,9 @@ module.exports = {
     return { title: c.displayName, usernameLabel: c.usernameLabel, hint: c.hint };
   },
   lookup: (subject) => lookup(subject),
+  findSubject: (username) => findSubject(username),
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, selfCheck, explain, PasswordExpiredError },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, findSubject, selfCheck, explain, PasswordExpiredError },
 };

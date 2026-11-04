@@ -16,25 +16,48 @@ const failedLoginLimit = () => {
   return Number.isInteger(n) && n > 0 ? n : 5;
 };
 
-// "CORP\\Alice" and "alice@corp.example.org" count as "alice"
-const accountKey = (req) =>
-  String(req.body.username)
+// "CORP\\Alice", "alice@corp.example.org" and fullwidth "ａｌｉｃｅ" count as "alice"
+const accountKey = (username) =>
+  String(username)
+    .normalize('NFKC')
     .trim()
     .toLowerCase()
     .replace(/^[^\\]*\\/, '')
     .replace(/@.*$/, '');
 
-// Failed logins per account, from any address, so MMGIS stops before a directory locks the account.
-// A route that answers a failed login with 200 sets res.locals.loginFailed.
-const accountLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: () => failedLoginLimit(),
-  keyGenerator: accountKey,
-  skip: (req) => !(req.body && typeof req.body.username === 'string' && req.body.username.trim() !== ''),
-  skipSuccessfulRequests: true,
-  requestWasSuccessful: (req, res) => res.statusCode < 400 && !res.locals.loginFailed,
-  message: { status: 'failure', message: 'Too many failed sign-ins for this account. Try again in 15 minutes.' },
-});
+// Failed logins per account and login form, from any address, so MMGIS stops before a directory
+// locks the account. Only wrong credentials count: a 401, or a 200 with res.locals.loginFailed.
+// Forms count separately so directory failures can't lock out a local (recovery) account.
+// Counts are kept in each server process's memory.
+const accountLimiters = new Map();
+function accountLimiterFor(form) {
+  if (!accountLimiters.has(form)) {
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      limit: () => failedLoginLimit(),
+      keyGenerator: (req) => accountKey(req.body.username),
+      skip: (req) => !(req.body && typeof req.body.username === 'string' && req.body.username.trim() !== ''),
+      skipSuccessfulRequests: true,
+      requestWasSuccessful: (req, res) => res.statusCode !== 401 && !res.locals.loginFailed,
+      message: { status: 'failure', message: 'Too many failed sign-ins for this account. Try again in 15 minutes.' },
+    });
+    // Mounted on both /api/users/login and /api/auth/local/login, so count each request once
+    const once = (req, res, next) => {
+      if (req.accountLimited) return next();
+      req.accountLimited = true;
+      return limiter(req, res, next);
+    };
+    once.resetKey = limiter.resetKey;
+    accountLimiters.set(form, once);
+  }
+  return accountLimiters.get(form);
+}
+const accountLimiter = accountLimiterFor('local');
+
+// Clears an account's failed logins on every form, e.g. once an admin fixed why it was refused
+function resetFailedLogins(username) {
+  accountLimiters.forEach((l) => l.resetKey(accountKey(username)));
+}
 
 // Account admins creating accounts through /signup are not limited
 function skipAccountAdmins(req) {
@@ -64,4 +87,4 @@ const computeLimiter = rateLimit({
   message: { status: 'failure', message: 'Rate limit exceeded.' },
 });
 
-module.exports = { apilimiter, authLimiter, accountLimiter, signupLimiter, resetLimiter, computeLimiter };
+module.exports = { apilimiter, authLimiter, accountLimiter, accountLimiterFor, resetFailedLogins, accountKey, signupLimiter, resetLimiter, computeLimiter };

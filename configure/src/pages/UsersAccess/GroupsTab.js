@@ -64,7 +64,7 @@ export default function GroupsTab({ ctx }) {
                   return (
                     <TableRow key={g.id} className={c.clickRow} {...rowActivate(() => setPanel({ type: "group", id: g.id }))}>
                       <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
-                      <TableCell>{g.source === "local" ? g.members.length : `from ${g.source.toUpperCase()} (${g.external_name})`}</TableCell>
+                      <TableCell>{g.source === "local" ? g.members.length : `${g.members.length} from ${g.source.toUpperCase()} (${g.external_name})`}</TableCell>
                       <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.scope_type === "layer" ? `${b.mission || "?"} › ${(allLayerPaths[b.mission] || {})[b.layer_uuid] || "folder"}` : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>
                     </TableRow>
                   );

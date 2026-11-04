@@ -207,8 +207,12 @@ test.describe('identities', () => {
 
 // In-memory stand-ins for the Sequelize models linkIdentity/syncGroups use
 function fakeModels({ users = [], links = [], groups = [], members = [], meta = [] } = {}) {
+  const { Op } = require('sequelize');
+  const like = (pattern) => new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*')}$`);
   const match = (row, where) =>
-    Object.entries(where).every(([k, v]) => (Array.isArray(v) ? v.includes(row[k]) : row[k] === v));
+    Object.entries(where).every(([k, v]) =>
+      Array.isArray(v) ? v.includes(row[k]) : v && v[Op.like] ? like(v[Op.like]).test(row[k]) : row[k] === v
+    );
   const table = (rows) => ({
     rows,
     findOne: async ({ where }) => rows.find((r) => match(r, where)) || null,
@@ -237,6 +241,33 @@ test.describe('account linking', () => {
     expect(m.AuthIdentity.rows).toEqual([expect.objectContaining({ provider: 'keycloak', subject: 'new', user_id: 1 })]);
     expect(m.AuthMeta.rows).toEqual([]);
     await expect(providers.linkIdentity(identity({ subject: 'newer', username: 'carol' }), m)).rejects.toThrow(providers.LinkError);
+  });
+
+  test('a relink can name a different username at the provider, and signs the old login out', async () => {
+    const ended = [];
+    const m = { ...relinkModels({ username: 'Carol.Smith' }), endSessionsOf: async (id) => ended.push(id) };
+    const user = await providers.linkIdentity(identity({ subject: 'new', username: 'carol.smith' }), m);
+    expect(user).toMatchObject({ id: 1, username: 'carol' });
+    expect(ended).toEqual([1]);
+    expect(m.User.rows[0].password).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test('a relink pinned to a subject is refused for any other entry with that username', async () => {
+    const m = relinkModels({ subject: 'expected' });
+    await expect(providers.linkIdentity(identity({ subject: 'planted', username: 'carol' }), m)).rejects.toThrow(providers.LinkError);
+    expect((await providers.linkIdentity(identity({ subject: 'expected', username: 'carol' }), m)).id).toBe(1);
+  });
+
+  test('a concurrent first login that loses the race uses the account the other one created', async () => {
+    const m = fakeModels();
+    const create = m.User.create;
+    m.User.create = async (r) => {
+      m.User.create = create;
+      await create(r);
+      await m.AuthIdentity.create({ provider: 'keycloak', subject: 'race', username: r.username, user_id: 100 });
+      throw Object.assign(new Error('duplicate'), { name: 'SequelizeUniqueConstraintError' });
+    };
+    expect(await providers.linkIdentity(identity({ subject: 'race', username: 'dora' }), m)).toMatchObject({ id: 100, username: 'dora' });
   });
 
   test('a relink is refused once expired, for another username, or for another provider', async () => {

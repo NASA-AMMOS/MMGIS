@@ -23,6 +23,7 @@ const { RoleBinding, AuthIdentity, AuthMeta } = require("../../../../../API/perm
 const providers = require("../../../../../API/permissions/providers");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
 const connections = require("../../../../../API/connections");
+const { resetFailedLogins } = require("../../../../../scripts/rateLimiters");
 const User = userModel.User;
 const {
   UserDefaults,
@@ -130,6 +131,7 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       });
       // A user's tokens act with that user's authority, so they go with the account
       await LongTermTokens.destroy({ where: { created_by_user_id: id }, transaction });
+      await AuthMeta.destroy({ where: { key: { [Op.like]: `relink:%:${id}` } }, transaction });
       // Its connections go with it (cascade); read them first to revoke them at each service
       grants = await connections.accountGrants(id, { transaction }).catch(() => []);
       // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile
@@ -332,23 +334,63 @@ router.post("/allowRelink", authorize("accounts.manage"), async function (req, r
       logger("info", `'${actor.username}' cancelled the ${provider} relink for account ${id} '${user.username}'.`, "accounts", req);
       return res.send({ status: "success", message: "Relink cancelled." });
     }
+    // The person's username at the provider, when it differs from their MMGIS username
+    const username = String(req.body.username == null || req.body.username === "" ? user.username : req.body.username)
+      .normalize("NFKC")
+      .trim();
+    if (username === "" || username.length > 256 || /[\u0000-\u001f\u007f]/.test(username))
+      return fail("Enter the person's username at the login provider.");
     // The account's grants carry over, so a SuperAdmin account can only be handed over by a SuperAdmin
-    const superAdmin = await RoleBinding.findOne({
-      where: { subject_type: "user", subject_id: String(id), role: "superadmin", scope_type: "global" },
-      attributes: ["id"],
-      raw: true,
-    });
-    if (superAdmin && !policy.isSuperAdmin(actor))
+    const superAdmins = (
+      await RoleBinding.findAll({
+        where: { subject_type: "user", role: "superadmin", scope_type: "global" },
+        attributes: ["subject_id"],
+        raw: true,
+      })
+    ).map((b) => parseInt(b.subject_id));
+    if (superAdmins.includes(id) && !policy.isSuperAdmin(actor))
       return fail("Only SuperAdmins may allow relinking a SuperAdmin account.");
+    // Keep a SuperAdmin who signs in with an MMGIS password, for when the provider is down
+    if (superAdmins.includes(id)) {
+      const linked = new Set(
+        (await AuthIdentity.findAll({ where: { user_id: superAdmins }, attributes: ["user_id"], raw: true })).map((l) => l.user_id)
+      );
+      const local = superAdmins.filter((u) => !linked.has(u));
+      if (local.length === 1 && local[0] === id)
+        return fail("This is the only SuperAdmin that signs in with an MMGIS password. Make another one first, so someone can still sign in if the login provider is down.");
+    }
+    for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: `relink:${provider}:%` } }, raw: true }))
+      if (
+        r.key !== key &&
+        r.value &&
+        Date.parse(r.value.expires_at) > Date.now() &&
+        String(r.value.username).toLowerCase() === username.toLowerCase()
+      )
+        return fail(`Another account is already waiting for the ${provider} login '${username}'. Cancel that relink first.`);
+    // Pin the claim to the entry that has this username now, so a look-alike entry made later can't take it
+    let target;
+    try {
+      target = await providers.relinkTarget(provider, username);
+    } catch (err) {
+      logger("error", `Couldn't look up '${username}' at ${provider} to allow a relink.`, "accounts", req, err);
+      return fail(`Couldn't reach ${provider} to look up '${username}'. Try again later.`);
+    }
+    if (target === null) return fail(`${provider} has no single entry with the username '${username}'.`);
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
-    await AuthMeta.upsert({ key, value: { username: user.username, expires_at, by: actor.username } });
+    await AuthMeta.upsert({
+      key,
+      value: { username, subject: target ? target.subject : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username },
+    });
+    // Attempts refused before the admin got to this account no longer block the person
+    resetFailedLogins(username);
+    resetFailedLogins(user.username);
     logger(
       "warn",
-      `'${actor.username}' allowed the next ${provider} login as '${user.username}' to claim account ${id} until ${expires_at}.`,
+      `'${actor.username}' allowed the next ${provider} login as '${username}'${target ? ` (${target.dn}, subject '${target.subject}')` : ""} to claim account ${id} '${user.username}' until ${expires_at}.`,
       "accounts",
       req
     );
-    res.send({ status: "success", message: "Relink allowed.", body: { provider, expires_at } });
+    res.send({ status: "success", message: "Relink allowed.", body: { provider, username, dn: target ? target.dn : null, expires_at } });
   } catch (err) {
     logger("error", "Failed to allow relinking.", req.originalUrl, req, err);
     fail("Failed to allow relinking.");

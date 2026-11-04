@@ -27,4 +27,12 @@ test.describe('Rate limiting configuration', () => {
     expect(apilimiter).not.toBe(computeLimiter);
     expect(authLimiter).not.toBe(computeLimiter);
   });
+
+  test('failed logins count per form and per normalized account', () => {
+    const { accountKey, accountLimiterFor, accountLimiter } = require('../../scripts/rateLimiters');
+    expect(accountKey('ＣＯＲＰ\\ｌdap_Bob')).toBe('ldap_bob');
+    expect(accountKey(' Alice@corp.example.org ')).toBe('alice');
+    expect(accountLimiterFor('local')).toBe(accountLimiter);
+    expect(accountLimiterFor('ldap')).not.toBe(accountLimiter);
+  });
 });

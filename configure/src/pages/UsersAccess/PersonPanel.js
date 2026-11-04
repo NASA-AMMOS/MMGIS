@@ -65,17 +65,21 @@ export function PersonPanel({ user, ctx }) {
   const myTokens = tokens.filter((t) => t.created_by_user_id === user.id);
 
   const relinkProviders = String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local");
+  const [relinkName, setRelinkName] = useState("");
+  useEffect(() => setRelinkName(""), [user.id]);
+  const relinkAs = relinkName.trim() || user.username;
   const relink = (provider, cancel = false) =>
-    api("account_allow_relink", { id: user.id, provider, cancel })
-      .then(() => {
-        notify(cancel ? "Relink cancelled." : "Relink allowed.", "success");
+    api("account_allow_relink", { id: user.id, provider, cancel, username: relinkAs })
+      .then((res) => {
+        const dn = res && res.body && res.body.dn;
+        notify(cancel ? "Relink cancelled." : `Relink allowed${dn ? ` for ${dn}` : ""}.`, "success");
         refresh();
       })
       .catch((res) => notify(res.message || "Failed.", "error"));
   const askRelink = (p) =>
     ctx.askConfirm({
       title: `Allow ${p.toUpperCase()} relink?`,
-      text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${user.username}' takes over this account, keeping its roles, grants, tokens and drawings. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}.`,
+      text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${relinkAs}' takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}. If someone else used this account, revoke its API tokens too.`,
       action: "Allow",
       onConfirm: () => relink(p),
     });
@@ -148,16 +152,25 @@ export function PersonPanel({ user, ctx }) {
             {user.relink ? (
               <>
                 <Typography variant="body2">
-                  The next {user.relink.provider.toUpperCase()} login as '{user.username}' can claim this account until {new Date(user.relink.expires_at).toLocaleString()}.
+                  The next {user.relink.provider.toUpperCase()} login as '{user.relink.username || user.username}'{user.relink.dn ? ` (${user.relink.dn})` : ""} can claim this account until {new Date(user.relink.expires_at).toLocaleString()}.
                 </Typography>
                 <Button size="small" onClick={() => relink(user.relink.provider, true)}>Cancel relink</Button>
               </>
             ) : (
-              relinkProviders.map((p) => (
+              <>
+              <TextField
+                size="small"
+                label="Username at the provider"
+                placeholder={user.username}
+                value={relinkName}
+                onChange={(e) => setRelinkName(e.target.value)}
+              />
+              {relinkProviders.map((p) => (
                 <Button key={p} variant="outlined" size="small" onClick={() => askRelink(p)}>
                   Allow {p.toUpperCase()} relink
                 </Button>
-              ))
+              ))}
+              </>
             )}
           </div>
         )}
