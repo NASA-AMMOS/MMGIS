@@ -333,7 +333,7 @@ test.describe('account linking', () => {
     const existing = { id: 1, username: 'admin', password: '$2a$10$unchangedhash' };
     const m = fakeModels({ users: [existing] });
     await expect(providers.linkIdentity(identity({ subject: 'x', username: 'admin' }), m))
-      .rejects.toThrow(/already belongs to account .* allow a \w+ relink/);
+      .rejects.toThrow(/already belongs to account .* allow a relink to \w+/);
     const err = await providers.linkIdentity(identity({ subject: 'x', username: 'admin' }), m).catch((e) => e);
     expect(err).toBeInstanceOf(providers.LinkError);
     expect(err.userMessage).not.toMatch(/'admin'|already|belongs/);
@@ -557,6 +557,14 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async () => { throw new Error('directory down'); };
     const unknown = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
     expect(unknown.message).toMatch(/couldn't say whether .* Check before allowing a relink/);
+    // A service account that can't search the root: what lookup still finds under the search base counts
+    ldap.locate = async () => { throw new Error('No such object'); };
+    ldap.lookup = async (subject) => (subject === 'old-bob' ? { username: 'bob_renamed', groups: [] } : null);
+    expect(await providers.locateSubject('ldap', 'old-bob')).toMatchObject({ username: 'bob_renamed' });
+    ldap.lookup = async () => null;
+    expect(await providers.locateSubject('ldap', 'old-bob')).toBeUndefined();
+    ldap.locate = async () => null;
+    expect(await providers.locateSubject('ldap', 'old-bob')).toBeNull();
     ldap.locate = realLocate;
   });
 

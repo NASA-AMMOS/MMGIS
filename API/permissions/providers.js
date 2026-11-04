@@ -194,9 +194,9 @@ class LinkError extends Error {
     // The same for every refusal, so it doesn't reveal which usernames have accounts
     this.userMessage =
       userMessage ||
-      (siteAccess.localAdminsOnly()
-        ? "This sign-in can't be used with MMGIS yet. Ask an administrator."
-        : "This sign-in can't be used with MMGIS yet. Ask an administrator, and if you also have an MMGIS account, keep signing in with it for now.");
+      (siteAccess.hasProvider("local") && !siteAccess.localAdminsOnly()
+        ? "This sign-in can't be used with MMGIS yet. Ask an administrator, and if you also have an MMGIS account, keep signing in with it for now."
+        : "This sign-in can't be used with MMGIS yet. Ask an administrator.");
   }
 }
 
@@ -343,17 +343,23 @@ function groupName(providerId, name) {
   return p && typeof p.impl.groupName === "function" && typeof name === "string" ? p.impl.groupName(name) : name;
 }
 
-// The provider's entry for a username, so an admin can see who a relink would go to:
-// { subject, dn } or null when the provider has none, undefined when it can't look people up
 // Whether the entry with this subject still exists at the provider, even disabled or moved where logins
-// aren't searched (provider locate(subject), else lookup): truthy, null when gone, undefined when unknown
+// aren't searched: truthy if lookup or locate(subject) finds it, null when both say it's gone,
+// undefined when that can't be told (no hooks, or one failed and the other found nothing)
 async function locateSubject(providerId, subject) {
   const p = getProvider(providerId);
-  const fn = p && (typeof p.impl.locate === "function" ? p.impl.locate : typeof p.impl.lookup === "function" ? p.impl.lookup : null);
-  if (!fn) return undefined;
-  return withTimeout(fn(subject), "locate(subject)", IDENTIFY_TIMEOUT_MS);
+  const fns = p ? [p.impl.lookup, p.impl.locate].filter((f) => typeof f === "function") : [];
+  let unknown = fns.length === 0;
+  for (const fn of fns) {
+    const found = await withTimeout(fn(subject), "locate(subject)", IDENTIFY_TIMEOUT_MS).catch(() => undefined);
+    if (found) return found;
+    if (found === undefined) unknown = true;
+  }
+  return unknown ? undefined : null;
 }
 
+// The provider's entry for a username, so an admin can see who a relink would go to:
+// { subject, dn } or null when the provider has none, undefined when it can't look people up
 async function relinkTarget(providerId, username) {
   const p = enabledProviders().find((x) => x.id === providerId);
   if (!p || typeof p.impl.findSubject !== "function") return undefined;
@@ -432,7 +438,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       );
     const adminsOnly = siteAccess.localAdminsOnly();
     throw new LinkError(
-      `The username '${identity.username}' already belongs to account ${taken.id}, which doesn't sign in with ${identity.provider} yet. If it is this person's, allow a ${identity.provider} relink on account ${taken.id}${
+      `The username '${identity.username}' already belongs to account ${taken.id}, which doesn't sign in with ${identity.provider} yet. If it is this person's, allow a relink to ${identity.provider} on account ${taken.id}${
         adminsOnly
           ? `. AUTH_LOCAL_LOGIN=admins stops it signing in with its MMGIS password meanwhile, unless it holds an admin role.`
           : `; until then they can keep using its MMGIS password.`
@@ -589,7 +595,14 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
 
 // Rechecks every provider-linked account now, including ones nobody has used since a directory change,
 // so People shows which entries are gone
-async function recheckLinked(m = accountModels()) {
+// One run per process at a time, so a second click while a slow directory answers doesn't double its load
+let recheckingAll = null;
+function recheckLinked(m = accountModels()) {
+  if (!recheckingAll) recheckingAll = recheckAllNow(m).finally(() => (recheckingAll = null));
+  return recheckingAll;
+}
+
+async function recheckAllNow(m) {
   const links = (await m.AuthIdentity.findAll({ attributes: ["user_id", "provider"], raw: true })).filter((l) => {
     const p = getProvider(l.provider);
     return p && typeof p.impl.lookup === "function";

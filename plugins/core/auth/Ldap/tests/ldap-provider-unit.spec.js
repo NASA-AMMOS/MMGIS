@@ -167,6 +167,22 @@ test.describe('LDAP login', () => {
     expect(log.filter((l) => l === `bind ${base.LDAP_BIND_DN}`)).toHaveLength(1);
   });
 
+  test('a service bind that times out fails the logins waiting on it instead of letting them all bind', async () => {
+    const env = { ...base, LDAP_BIND_PASSWORD: 'timeout-then-wrong' }; // pragma: allowlist secret
+    const log = [];
+    let first = true;
+    const flaky = () => {
+      const c = fakeClient([alice], log)();
+      return { ...c, async bind(dn, pw) {
+        if (dn === base.LDAP_BIND_DN && first) { first = false; log.push(`bind ${dn}`); await new Promise((r) => setTimeout(r, 20)); throw new Error('timeout'); }
+        return c.bind(dn, pw);
+      } };
+    };
+    const results = await Promise.allSettled(Array.from({ length: 10 }, () => authenticate('alice', 'right', config(env), flaky)));
+    expect(results.every((r) => r.status === 'rejected')).toBe(true);
+    expect(log.filter((l) => l === `bind ${base.LDAP_BIND_DN}`)).toHaveLength(1);
+  });
+
   test('concurrent logins with a working service password all go ahead', async () => {
     const results = await Promise.all(Array.from({ length: 4 }, () => authenticate('alice', 'right', config(base), fakeClient([alice]))));
     expect(results.every((r) => r && r.subject)).toBe(true);
@@ -199,7 +215,8 @@ test.describe('LDAP login', () => {
   test('the startup check signs in the service account and finds the search bases, without anyone\'s password', async () => {
     const log = [];
     const checked = await selfCheck(config({ ...base, LDAP_USER_SEARCH_BASE: alice.dn }), fakeClient([alice], log));
-    expect(checked).toEqual(['connected to ldaps://ldap.example.org', 'the service account signed in', 'LDAP_USER_SEARCH_BASE exists']);
+    expect([...checked]).toEqual(['connected to ldaps://ldap.example.org', 'the service account signed in', 'LDAP_USER_SEARCH_BASE exists', 'the directory root dc=example,dc=org is readable']);
+    expect(checked.warnings).toEqual([]);
     const missing = () => ({
       async bind() {},
       async search(dn) {
@@ -286,5 +303,52 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect((await lookup('e1', c, byUuid([{ ...alice.entry, accountExpires: filetime(Date.now() + 60000) }]))).username).toBe('alice');
     expect((await lookup('e1', c, byUuid([{ ...alice.entry, accountExpires: '9223372036854775807' }]))).username).toBe('alice');
     expect(await lookup('e1', config({ ...base, LDAP_BIND_DN: '' }), byUuid([alice.entry]))).toBeUndefined();
+  });
+});
+
+test.describe('Whether an old entry still exists (locate)', () => {
+  const { locate } = ldap._internal;
+  const client = (search) => () => ({ async bind() {}, search, async unbind() {} });
+  const env = { ...base, LDAP_BIND_PASSWORD: 'locate-test' }; // pragma: allowlist secret
+
+  test('a root the service account cannot search is unknown, not gone', async () => {
+    const search = async () => { throw new NoSuchObjectError('No such object'); };
+    await expect(locate('e1', config(env), client(search))).rejects.toBeInstanceOf(NoSuchObjectError);
+    expect(await locate('uid=a,ou=people,dc=example,dc=org', config({ ...env, LDAP_SUBJECT_ATTRIBUTE: 'dn' }), client(search))).toBeNull();
+  });
+
+  test('several entries with the subject still count as present', async () => {
+    const two = async () => ({ searchEntries: [alice.entry, alice.entry] });
+    expect(await locate('e1', config(env), client(two))).toMatchObject({ dn: alice.dn });
+    const many = async () => { throw new SizeLimitExceededError('Size limit exceeded'); };
+    expect(await locate('e1', config(env), client(many))).toBeTruthy();
+    expect(await locate('e1', config(env), client(async () => ({ searchEntries: [] })))).toBeNull();
+  });
+
+  test('an expired service-account password is not reported as the person\'s', async () => {
+    const svcExpired = () => ({
+      async bind(dn) {
+        if (dn === base.LDAP_BIND_DN)
+          throw new InvalidCredentialsError('80090308: LdapErr: DSID-0C09044E, comment: AcceptSecurityContext error, data 532, v4563');
+      },
+      async search() { return { searchEntries: [alice.entry] }; },
+      async unbind() {},
+    });
+    const err = await authenticate('alice', 'right', config({ ...base, LDAP_BIND_PASSWORD: 'svc-expired' }), svcExpired).catch((e) => e); // pragma: allowlist secret
+    expect(err).not.toBeInstanceOf(PasswordExpiredError);
+    expect(err.message).toMatch(/LDAP_BIND_DN's password has expired/);
+  });
+
+  test('the startup check warns when the service account cannot read the directory root', async () => {
+    const fake = () => ({
+      async bind() {},
+      async search(dn) {
+        if (dn === 'dc=example,dc=org') throw new NoSuchObjectError('No such object');
+        return { searchEntries: [{ dn }] };
+      },
+      async unbind() {},
+    });
+    const checked = await selfCheck(config({ ...base, LDAP_BIND_PASSWORD: 'root-test' }), fake); // pragma: allowlist secret
+    expect(checked.warnings.join(' ')).toMatch(/can't search the directory root dc=example,dc=org/);
   });
 });

@@ -254,21 +254,30 @@ async function bindService(client, c) {
   const key = `${c.url}\n${c.bindDn}`;
   for (;;) {
     const rejected = rejectedServiceAccounts.get(key);
-    // Keyed on the password too, so a process whose settings change (tests) retries at once
+    // Keyed on the password too, so a new password is tried at once (a probe of the old one isn't awaited)
     if (rejected && rejected.password === c.bindPassword && Date.now() - rejected.at < SERVICE_RETRY_MS)
       throw new Error("The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD; MMGIS retries it at most every 5 minutes so the account isn't locked.");
     if (trustedServiceAccounts.get(key) === c.bindPassword) break;
     const probe = serviceProbes.get(key);
     if (!probe || probe.password !== c.bindPassword) break;
-    // The directory being unreachable says nothing about the password, so then everyone tries
-    if ((await probe.done) === "error") break;
+    // A probe that couldn't reach the directory fails its waiters the same way, rather than releasing them all to bind at once
+    const result = await probe.done;
+    if (result.outcome === "error") throw result.err;
   }
   const probing = trustedServiceAccounts.get(key) !== c.bindPassword && !serviceProbes.has(key);
   let finish = () => {};
   if (probing) serviceProbes.set(key, { password: c.bindPassword, done: new Promise((r) => (finish = r)) });
   let outcome = "error";
+  let failure;
   try {
-    const bind = await bindAs(client, c.bindDn, c.bindPassword);
+    let bind;
+    try {
+      bind = await bindAs(client, c.bindDn, c.bindPassword);
+    } catch (err) {
+      // The service account's password, not the person's, so it mustn't read as theirs having expired
+      if (!(err instanceof PasswordExpiredError)) throw err;
+      bind = { ok: false, reason: "LDAP_BIND_DN's password has expired" };
+    }
     if (!bind.ok) {
       outcome = "rejected";
       trustedServiceAccounts.delete(key);
@@ -277,10 +286,13 @@ async function bindService(client, c) {
     }
     outcome = "ok";
     trustedServiceAccounts.set(key, c.bindPassword);
+  } catch (err) {
+    failure = err;
+    throw err;
   } finally {
     if (probing) {
       serviceProbes.delete(key);
-      finish(outcome);
+      finish({ outcome, err: failure });
     }
   }
 }
@@ -443,7 +455,7 @@ function directoryRoot(base) {
 
 // Whether an entry with this subject still exists anywhere in the directory, even disabled or moved
 // out of LDAP_USER_SEARCH_BASE (e.g. to a leavers' OU): { dn, username }, null when it doesn't,
-// undefined without a service account; throws when the directory can't be reached
+// undefined without a service account; throws when the directory can't be reached or searched from the root
 async function locate(subject, c = config(), createClient = newClient) {
   if (!c.bindDn || !c.searchBase) return undefined;
   const attributes = [c.usernameAttribute];
@@ -451,17 +463,21 @@ async function locate(subject, c = config(), createClient = newClient) {
   try {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     await bindService(client, c);
+    const byDn = c.subjectAttribute.toLowerCase() === "dn";
     let entries;
     try {
       ({ searchEntries: entries } =
-        c.subjectAttribute.toLowerCase() === "dn"
+        byDn
           ? await client.search(subject, { scope: "base", filter: "(objectClass=*)", attributes })
           : await client.search(directoryRoot(c.searchBase), { scope: "sub", filter: subjectFilter(c, subject), attributes, sizeLimit: 2 }));
     } catch (err) {
-      if (err instanceof NoSuchObjectError) return null;
+      if (byDn && err instanceof NoSuchObjectError) return null;
+      // Several entries with this subject: it still exists, however ambiguously
+      if (err instanceof SizeLimitExceededError) return {};
+      // e.g. a service account that can't read the root, which says nothing about the entry
       throw err;
     }
-    if (entries.length !== 1) return null;
+    if (entries.length === 0) return null;
     const name = values(entries[0], c.usernameAttribute)[0];
     return { dn: entries[0].dn, username: name != null ? String(name) : undefined };
   } finally {
@@ -490,6 +506,7 @@ async function findSubject(username, c = config(), createClient = newClient) {
 async function selfCheck(c = config(), createClient = newClient) {
   const client = createClient(c);
   const checked = [`connected to ${c.url}`];
+  checked.warnings = [];
   try {
     if (c.startTls) await client.startTLS(startTlsOptions(c));
     try {
@@ -514,6 +531,22 @@ async function selfCheck(c = config(), createClient = newClient) {
       }
       checked.push(`${name} exists`);
     }
+    // locate(subject) searches from there, so a leaver moved out of LDAP_USER_SEARCH_BASE still counts
+    const root = c.bindDn && c.searchBase ? directoryRoot(c.searchBase) : null;
+    if (root && root === c.searchBase && c.subjectAttribute.toLowerCase() !== "dn")
+      checked.warnings.push(
+        `LDAP_USER_SEARCH_BASE (${root}) has no dc= suffix to search from, so a person moved out of it counts as gone when an admin allows a relink to a different entry. Check the old entry yourself before allowing one.`
+      );
+    else if (root)
+      try {
+        await client.search(root, { scope: "base", filter: "(objectClass=*)", attributes: ["objectClass"] });
+        checked.push(`the directory root ${root} is readable`);
+      } catch (err) {
+        if (!(err instanceof ResultCodeError)) throw err;
+        checked.warnings.push(
+          `the service account can't search the directory root ${root} (${err.message}), so MMGIS can't tell whether a person moved out of LDAP_USER_SEARCH_BASE still exists, and refuses relinks to a different entry. Give it read access to the whole directory.`
+        );
+      }
   } finally {
     await client.unbind().catch(() => {});
   }
@@ -589,7 +622,10 @@ module.exports = {
   routes(router, ctx) {
     const startup = config();
     selfCheck(startup).then(
-      (checked) => ctx.logger("info", `LDAP settings check passed: ${checked.join(", ")}.`, "Ldap"),
+      (checked) => {
+        ctx.logger("info", `LDAP settings check passed: ${checked.join(", ")}.`, "Ldap");
+        for (const w of checked.warnings) ctx.logger("warn", `LDAP settings check: ${w}`, "Ldap");
+      },
       (err) => ctx.logger("error", `LDAP settings check failed: ${explain(err)}`, "Ldap", null, err)
     );
     router.post("/login", ctx.authorize.public("LDAP directory login"), async (req, res) => {

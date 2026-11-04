@@ -388,6 +388,10 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     // The account's own entry still being there (even disabled or in a leavers' OU) means this is someone else
     if (target && known && known.subject && known.subject !== target.subject) {
       const old = await providers.locateSubject(provider, known.subject).catch(() => undefined);
+      if (old === undefined)
+        return fail(
+          `Couldn't tell whether '${user.username}''s own ${provider} entry (subject '${known.subject}') still exists, so ${target.dn} may be a different person. Check that ${provider} can be reached and its service account can read the whole directory, then try again.`
+        );
       if (old)
         return fail(
           `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`

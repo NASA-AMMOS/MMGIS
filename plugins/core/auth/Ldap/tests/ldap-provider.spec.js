@@ -82,13 +82,13 @@ test.describe('LDAP login provider', () => {
   });
 
   test('a login posted from another site is refused', async () => {
-  const ctx = await context();
-  const res = await ctx.post('/api/auth/ldap/login', { data: bob, headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' } });
-  expect(res.status()).toBe(403);
-  expect((await ldapLogin(ctx, bob)).status()).toBe(200);
-});
+    const ctx = await context();
+    const res = await ctx.post('/api/auth/ldap/login', { data: bob, headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' } });
+    expect(res.status()).toBe(403);
+    expect((await ldapLogin(ctx, bob)).status()).toBe(200);
+  });
 
-test('requests refused for other reasons than wrong credentials do not use up the address limit', async () => {
+  test('requests refused for other reasons than wrong credentials do not use up the address limit', async () => {
     const ctx = await context();
     for (let i = 0; i < 6; i++) {
       expect((await ldapLogin(ctx, { username: `empty_${i}`, password: '' })).status()).toBe(400);
