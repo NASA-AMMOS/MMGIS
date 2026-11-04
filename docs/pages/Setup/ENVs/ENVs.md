@@ -320,7 +320,7 @@ Sets "SameSite=None; Secure" on the login cookie. Useful when using SITE_ACCESS=
 
 #### `CORS_ORIGINS=`
 
-Comma-separated origins allowed for cross-origin HTTP requests and websockets. When unset, only same-origin requests are allowed. | comma-separated origins | default `""`
+Comma-separated origins allowed for cross-origin HTTP requests and websockets. When unset, only same-origin requests are allowed. These origins may also post MMGIS's login and sign-up forms, which refuse other sites. | comma-separated origins | default `""`
 
 **Upgrade note:** Cross-origin browser clients that previously relied on wildcard CORS must set this to a comma-separated list of their allowed origins.
 

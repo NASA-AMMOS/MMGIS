@@ -358,7 +358,7 @@ async function groupsOf(client, c, entry, username) {
   }
   return searchEntries.map((g) => {
     const name = c.groupNameAttribute ? values(g, c.groupNameAttribute)[0] : null;
-    return name != null ? String(name) : normalizeDn(g.dn);
+    return name != null ? String(name).normalize("NFC") : normalizeDn(g.dn);
   });
 }
 
@@ -709,7 +709,7 @@ module.exports = {
   // Group DNs are matched in the form groupsOf reports them; a plain name would never match one
   groupName: (name) => {
     const c = config();
-    if (c.groupNameAttribute && c.groupSearchBase) return name;
+    if (c.groupNameAttribute && c.groupSearchBase) return name.normalize("NFC");
     if (!name.includes("="))
       throw new Error(
         `LDAP reports groups by DN, so enter the group's DN (e.g. cn=${name.trim() || "science-team"},ou=groups,dc=example,dc=org), as listed under "Directory groups" in the server log at each LDAP sign-in.`

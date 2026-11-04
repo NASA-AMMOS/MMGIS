@@ -12,8 +12,8 @@ const {
 const LOCAL_ADMINS_ONLY = "Only administrators may log in with a local account on this site.";
 // Why this account may not sign in with a local password, or null if it may
 async function localLoginRefusal(userId, models = { AuthIdentity }) {
-  // Accounts linked to a login provider sign in through it (e.g. a local account relinked to LDAP)
-  if ((await models.AuthIdentity.count({ where: { user_id: userId } })) > 0)
+  // Accounts linked to an enabled login provider sign in through it (e.g. a local account relinked to LDAP)
+  if ((await models.AuthIdentity.count({ where: { user_id: userId, provider: { [Op.in]: providers.availableProviders() } } })) > 0)
     return "This account signs in through its login provider.";
   if (siteAccess.localAdminsOnly() && !policy.isAdministrator(await userPrincipal(userId)))
     return LOCAL_ADMINS_ONLY;

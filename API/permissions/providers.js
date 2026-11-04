@@ -217,11 +217,16 @@ async function who(m, userId) {
 function usernameTaken(username) {
   const { User } = require("../../plugins/core/backend/Users/models/user");
   const { sequelize } = require("../connection");
-  const folded = sequelize.fn(
-    "lower",
-    sequelize.fn("replace", sequelize.fn("normalize", sequelize.col("username"), sequelize.literal("NFKC")), "\u0130", "I")
+  // Both sides fold in Postgres, so its lower() and JavaScript's can't disagree (e.g. on a final sigma)
+  const folded = (v) =>
+    sequelize.fn("lower", sequelize.fn("replace", sequelize.fn("normalize", v, sequelize.literal("NFKC")), "\u0130", "I"));
+  const name = String(username);
+  // The exact name first, so a log naming the holder names the right account
+  return User.findOne({ where: { username: name }, attributes: ["id"], raw: true }).then(
+    (exact) =>
+      exact ||
+      User.findOne({ where: sequelize.where(folded(sequelize.col("username")), folded(name)), attributes: ["id"], raw: true })
   );
-  return User.findOne({ where: sequelize.where(folded, fold(username)), attributes: ["id"], raw: true });
 }
 
 function accountModels() {

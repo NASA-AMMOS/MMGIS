@@ -93,6 +93,14 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('sign-up refuses usernames that differ from an existing one only in case or Unicode form', async () => {
+    const adminCtx = await adminContext();
+    for (const username of ['TEST_ADMIN', 'ｔｅｓｔ＿ａｄｍｉｎ', 'test_admİn']) {
+      const made = await (await adminCtx.post('/api/users/signup', { data: { username, email: `twin${Date.now()}@example.org`, password: ['twin', 'test', 'password'].join('-'), skipLogin: true } })).json();
+      expect(made.status).toBe('failure');
+    }
+  });
+
   test('requests refused for other reasons than wrong credentials do not use up the address limit', async () => {
     const ctx = await context();
     for (let i = 0; i < 6; i++) {

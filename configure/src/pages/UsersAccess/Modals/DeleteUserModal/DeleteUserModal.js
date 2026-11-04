@@ -281,7 +281,7 @@ const DeleteUserModal = (props) => {
         />
         <Typography
           className={c.subtitle2}
-        >{`Enter '${modal?.row?.username}' above and click 'Delete' to confirm the permanent deletion of this user's account.`}</Typography>
+        >{`Enter '${modal?.row?.username}' above and click 'Delete' to confirm the permanent deletion of this user's account. Their private drawings will no longer belong to anyone, including a later account with the same username.`}</Typography>
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <Button
