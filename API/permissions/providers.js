@@ -233,7 +233,10 @@ async function markMissing(m, provider, userId, gone, subject) {
   const key = missingKey(provider, userId);
   if (!gone) return m.AuthMeta.destroy({ where: { key } });
   if (!(await m.AuthMeta.findOne({ where: { key }, raw: true })))
-    await m.AuthMeta.create({ key, value: { since: new Date().toISOString(), subject } });
+    // Another recheck (or process) may have marked it at the same moment
+    await m.AuthMeta.create({ key, value: { since: new Date().toISOString(), subject } }).catch((err) => {
+      if (err.name !== "SequelizeUniqueConstraintError") throw err;
+    });
 }
 const sameUsername = (a, b) =>
   String(a).normalize("NFKC").toLowerCase() === String(b).normalize("NFKC").toLowerCase();
@@ -328,6 +331,15 @@ function groupName(providerId, name) {
 
 // The provider's entry for a username, so an admin can see who a relink would go to:
 // { subject, dn } or null when the provider has none, undefined when it can't look people up
+// Whether the entry with this subject still exists at the provider, even disabled or moved where logins
+// aren't searched (provider locate(subject), else lookup): truthy, null when gone, undefined when unknown
+async function locateSubject(providerId, subject) {
+  const p = getProvider(providerId);
+  const fn = p && (typeof p.impl.locate === "function" ? p.impl.locate : typeof p.impl.lookup === "function" ? p.impl.lookup : null);
+  if (!fn) return undefined;
+  return withTimeout(fn(subject), "locate(subject)", IDENTIFY_TIMEOUT_MS);
+}
+
 async function relinkTarget(providerId, username) {
   const p = enabledProviders().find((x) => x.id === providerId);
   if (!p || typeof p.impl.findSubject !== "function") return undefined;
@@ -375,20 +387,17 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     })).find((l) => l.username && sameUsername(l.username, identity.username));
   if (sameName) {
     // If that account's own entry is still there, the name was handed to someone new: a relink would give them the account
-    const p = getProvider(identity.provider);
-    let still = null;
-    if (p && typeof p.impl.lookup === "function")
-      still = await withTimeout(p.impl.lookup(sameName.subject), "lookup(subject)", IDENTIFY_TIMEOUT_MS).catch(() => undefined);
+    const still = await locateSubject(identity.provider, sameName.subject).catch(() => undefined);
     if (still === undefined)
       throw new LinkError(
         `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and ${identity.provider} couldn't say whether that account's entry (subject '${sameName.subject}') still exists. Check before allowing a relink: if it does, the name was reused by someone else.`
       );
     if (still)
       throw new LinkError(
-        `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
+        `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
       );
     throw new LinkError(
-      `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID; allow a relink on that account if this is the same person.`
+      `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and that account's old entry is gone. Only allow a relink on that account if this is the same person: the directory may have given the name to someone new.`
     );
   }
   // MMGIS stores both in 255-character columns
@@ -497,14 +506,14 @@ const rechecks = new Map();
 // Re-reads a provider-linked account through the provider's lookup(subject) at most every
 // AUTH_RECHECK_MINUTES, so directory changes reach existing sessions and tokens. Resolves false
 // once the provider says the account is gone; keeps access when the provider can't be reached.
-// With detail, resolves to "ok", "missing" or "failed" (the provider couldn't be asked) instead.
+// With detail, resolves to "ok", "missing", "failed" (the provider couldn't be asked) or "unsupported" instead.
 function stillLinked(userId, providerId, m, force = false, detail = false) {
   const p = getProvider(providerId);
   const ms = recheckMs();
   if ((ms === 0 && !force) || !p || typeof p.impl.lookup !== "function") return Promise.resolve(detail ? "ok" : true);
   const key = `${providerId}:${userId}`;
   const hit = rechecks.get(key);
-  if (!force && hit && Date.now() - hit.at < ms) {
+  if (!force && !detail && hit && Date.now() - hit.at < ms) {
     if (!hit.missing) return hit.result;
     // Another process may have signed the person in again (a relink or a restored entry) since
     return (async () => {
@@ -525,7 +534,8 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
       logger("warn", `Auth provider '${providerId}': couldn't recheck account ${userId}; it keeps its access until the next check.`, "AuthProviders", null, err);
       return "failed";
     }
-    if (found === undefined) return "failed";
+    // e.g. LDAP without a service account: nothing can be read between logins
+    if (found === undefined) return "unsupported";
     // A relink during the lookup replaced the subject; that login already synced the new one
     const now = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
     if (!now || now.subject !== link.subject) return "ok";
@@ -560,16 +570,16 @@ async function recheckLinked(m = accountModels()) {
     return p && typeof p.impl.lookup === "function";
   });
   let next = 0;
-  const counts = { ok: 0, missing: 0, failed: 0 };
+  const counts = { ok: 0, missing: 0, failed: 0, unsupported: 0 };
   const worker = async () => {
     while (next < links.length) {
       const l = links[next++];
-      counts[await stillLinked(l.user_id, l.provider, m, true, true)]++;
+      counts[await stillLinked(l.user_id, l.provider, m, true, true).catch(() => "failed")]++;
     }
   };
   await Promise.all(Array.from({ length: Math.min(8, links.length) }, worker));
   // failed: the provider couldn't be asked (unreachable, or its service account was refused)
-  return { checked: links.length, missing: counts.missing, failed: counts.failed };
+  return { checked: links.length - counts.unsupported, missing: counts.missing, failed: counts.failed, unsupported: counts.unsupported };
 }
 
 // The legacy lead group (LEADS) a login response reports, as a page reload does
@@ -710,11 +720,14 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   });
   const base = `${rootPath()}/api/auth`;
   app.use(base, registerRouter(base, list));
+  // Login POSTs from other sites are refused, so a page can't sign a visitor in to someone else's account
+  const { sameOriginOnly } = require("../connections/routes");
 
   enabledProviders().forEach((p) => {
     if (typeof p.impl.routes !== "function") return;
     const prefix = `${base}/${p.id}`;
     const router = express.Router();
+    router.use((req, res, next) => (req.method === "POST" ? sameOriginOnly(req, res, next) : next()));
     p.impl.routes(router, {
       authorize,
       logger,
@@ -747,6 +760,7 @@ module.exports = {
   missingKey,
   groupName,
   relinkTarget,
+  locateSubject,
   sameUsername,
   syncGroups,
   stillLinked,

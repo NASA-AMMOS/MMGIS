@@ -535,14 +535,18 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async (subject) => (subject === 'here' ? { username: 'here', groups: [] } : null);
     expect(await providers.stillLinked(9011, 'ldap', m)).toBe(false);
     m.AuthMeta.rows.length = 0;
-    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1, failed: 0 });
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 1, failed: 0, unsupported: 0 });
     ldap.lookup = async () => { throw new Error('directory down'); };
-    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 0, failed: 2 });
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 2, missing: 0, failed: 2, unsupported: 0 });
+    ldap.lookup = async () => undefined;
+    expect(await providers.recheckLinked(m)).toEqual({ checked: 0, missing: 0, failed: 0, unsupported: 2 });
     expect(m.AuthMeta.rows.map((r) => r.key)).toEqual(['missing:ldap:9011']);
   });
 
   test('a new entry given a name whose old entry still exists is refused without suggesting a relink', async () => {
     const m = fakeModels({ links: [{ provider: 'ldap', subject: 'old-bob', username: 'bob', user_id: 9020 }] });
+    const realLocate = ldap.locate;
+    ldap.locate = (subject) => ldap.lookup(subject);
     ldap.lookup = async (subject) => (subject === 'old-bob' ? { username: 'bob_renamed', groups: [] } : null);
     const err = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
     expect(err).toBeInstanceOf(providers.LinkError);
@@ -553,6 +557,20 @@ test.describe('provider rechecks', () => {
     ldap.lookup = async () => { throw new Error('directory down'); };
     const unknown = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-bob', username: 'bob' }), m).catch((e) => e);
     expect(unknown.message).toMatch(/couldn't say whether .* Check before allowing a relink/);
+    ldap.locate = realLocate;
+  });
+
+  test('a reused name is refused while the old entry exists anywhere, e.g. moved to a leavers OU', async () => {
+    const m = fakeModels({ links: [{ provider: 'ldap', subject: 'old-carol', username: 'carol', user_id: 9040 }] });
+    ldap.lookup = async () => null;
+    const realLocate = ldap.locate;
+    ldap.locate = async (subject) => (subject === 'old-carol' ? { dn: 'uid=carol,ou=disabled,dc=example,dc=org', username: 'carol' } : null);
+    try {
+      const err = await providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new-carol', username: 'carol' }), m).catch((e) => e);
+      expect(err.message).toMatch(/still exists at uid=carol,ou=disabled.*don't relink/);
+    } finally {
+      ldap.locate = realLocate;
+    }
   });
 
   test('an account another process found missing is checked again once it has signed in since', async () => {

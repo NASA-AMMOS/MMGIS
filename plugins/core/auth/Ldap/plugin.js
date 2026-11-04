@@ -192,6 +192,10 @@ const AD_REASONS = {
 // retrying at every login would lock the account (Active Directory locks after a few bad binds)
 const SERVICE_RETRY_MS = 5 * 60 * 1000;
 const rejectedServiceAccounts = new Map();
+// Until a service password is known to work, one bind tries it and concurrent callers wait for that
+// result, so a burst of logins or rechecks can't send the directory several wrong passwords at once
+const trustedServiceAccounts = new Map();
+const serviceProbes = new Map();
 
 // Adds what to check to a connection or search error, for the server log
 function explain(err) {
@@ -248,14 +252,36 @@ async function bindAs(client, dn, password) {
 
 async function bindService(client, c) {
   const key = `${c.url}\n${c.bindDn}`;
-  const rejected = rejectedServiceAccounts.get(key);
-  // Keyed on the password too, so a process whose settings change (tests) retries at once
-  if (rejected && rejected.password === c.bindPassword && Date.now() - rejected.at < SERVICE_RETRY_MS)
-    throw new Error("The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD; MMGIS retries it at most every 5 minutes so the account isn't locked.");
-  const bind = await bindAs(client, c.bindDn, c.bindPassword);
-  if (!bind.ok) {
-    rejectedServiceAccounts.set(key, { at: Date.now(), password: c.bindPassword });
-    throw new Error(`The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD (${bind.reason}). MMGIS won't retry it for 5 minutes so the account isn't locked.`);
+  for (;;) {
+    const rejected = rejectedServiceAccounts.get(key);
+    // Keyed on the password too, so a process whose settings change (tests) retries at once
+    if (rejected && rejected.password === c.bindPassword && Date.now() - rejected.at < SERVICE_RETRY_MS)
+      throw new Error("The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD; MMGIS retries it at most every 5 minutes so the account isn't locked.");
+    if (trustedServiceAccounts.get(key) === c.bindPassword) break;
+    const probe = serviceProbes.get(key);
+    if (!probe || probe.password !== c.bindPassword) break;
+    // The directory being unreachable says nothing about the password, so then everyone tries
+    if ((await probe.done) === "error") break;
+  }
+  const probing = trustedServiceAccounts.get(key) !== c.bindPassword && !serviceProbes.has(key);
+  let finish = () => {};
+  if (probing) serviceProbes.set(key, { password: c.bindPassword, done: new Promise((r) => (finish = r)) });
+  let outcome = "error";
+  try {
+    const bind = await bindAs(client, c.bindDn, c.bindPassword);
+    if (!bind.ok) {
+      outcome = "rejected";
+      trustedServiceAccounts.delete(key);
+      rejectedServiceAccounts.set(key, { at: Date.now(), password: c.bindPassword });
+      throw new Error(`The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD (${bind.reason}). MMGIS won't retry it for 5 minutes so the account isn't locked.`);
+    }
+    outcome = "ok";
+    trustedServiceAccounts.set(key, c.bindPassword);
+  } finally {
+    if (probing) {
+      serviceProbes.delete(key);
+      finish(outcome);
+    }
   }
 }
 
@@ -403,6 +429,41 @@ async function lookup(subject, c = config(), createClient = newClient) {
       email: email != null ? String(email) : undefined,
       groups: await groupsOf(client, c, entry, name != null ? String(name) : ""),
     };
+  } finally {
+    await client.unbind().catch(() => {});
+  }
+}
+
+// The directory root LDAP_USER_SEARCH_BASE sits in (its dc= suffix), which also holds moved-out entries
+function directoryRoot(base) {
+  const rdns = String(base).split(/(?<!\\),/).map((r) => r.trim());
+  const i = rdns.findIndex((r, k) => rdns.slice(k).every((x) => /^dc=/i.test(x)));
+  return i > 0 ? rdns.slice(i).join(",") : base;
+}
+
+// Whether an entry with this subject still exists anywhere in the directory, even disabled or moved
+// out of LDAP_USER_SEARCH_BASE (e.g. to a leavers' OU): { dn, username }, null when it doesn't,
+// undefined without a service account; throws when the directory can't be reached
+async function locate(subject, c = config(), createClient = newClient) {
+  if (!c.bindDn || !c.searchBase) return undefined;
+  const attributes = [c.usernameAttribute];
+  const client = createClient(c);
+  try {
+    if (c.startTls) await client.startTLS(startTlsOptions(c));
+    await bindService(client, c);
+    let entries;
+    try {
+      ({ searchEntries: entries } =
+        c.subjectAttribute.toLowerCase() === "dn"
+          ? await client.search(subject, { scope: "base", filter: "(objectClass=*)", attributes })
+          : await client.search(directoryRoot(c.searchBase), { scope: "sub", filter: subjectFilter(c, subject), attributes, sizeLimit: 2 }));
+    } catch (err) {
+      if (err instanceof NoSuchObjectError) return null;
+      throw err;
+    }
+    if (entries.length !== 1) return null;
+    const name = values(entries[0], c.usernameAttribute)[0];
+    return { dn: entries[0].dn, username: name != null ? String(name) : undefined };
   } finally {
     await client.unbind().catch(() => {});
   }
@@ -589,9 +650,10 @@ module.exports = {
     return !(c.groupNameAttribute && c.groupSearchBase) && name.includes("=") ? normalizeDn(name.trim()) : name;
   },
   lookup: (subject) => lookup(subject),
+  locate: (subject) => locate(subject),
   findSubject: (username) => findSubject(username),
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, findSubject, selfCheck, explain, PasswordExpiredError },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError },
 };

@@ -359,7 +359,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     if (!r) return;
     const { id, provider, user, key, actor } = r;
     // The person's username at the provider, when it differs from their MMGIS username
-    const known = await AuthIdentity.findOne({ where: { user_id: id, provider }, attributes: ["username"], raw: true });
+    const known = await AuthIdentity.findOne({ where: { user_id: id, provider }, attributes: ["username", "subject"], raw: true });
     const fallback = (known && known.username) || user.username;
     const username = String(req.body.username == null || req.body.username === "" ? fallback : req.body.username)
       .normalize("NFKC")
@@ -385,6 +385,14 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       return fail(`Couldn't reach ${provider} to look up '${username}'. Try again later.`);
     }
     if (target === null) return fail(`${provider} has no single entry with the username '${username}'.`);
+    // The account's own entry still being there (even disabled or in a leavers' OU) means this is someone else
+    if (target && known && known.subject && known.subject !== target.subject) {
+      const old = await providers.locateSubject(provider, known.subject).catch(() => undefined);
+      if (old)
+        return fail(
+          `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`
+        );
+    }
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
     // Checked and saved under the SuperAdmin lock, so two relinks allowed at once can't move every local SuperAdmin
     const refusal = await bindings.withSuperAdminLock(async ({ transaction, superAdmins: current }) => {
@@ -445,7 +453,7 @@ router.post("/recheckLinked", apilimiter, authorize("accounts.manage"), async fu
     const result = await providers.recheckLinked();
     logger(
       result.failed ? "warn" : "info",
-      `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found${result.failed ? `, ${result.failed} couldn't be checked (see the earlier warnings)` : ""}.`,
+      `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found${result.failed ? `, ${result.failed} couldn't be checked (see the earlier warnings)` : ""}${result.unsupported ? `; ${result.unsupported} can't be checked between logins (their provider has no service account, e.g. LDAP without LDAP_BIND_DN)` : ""}.`,
       "accounts",
       req
     );

@@ -159,6 +159,19 @@ test.describe('LDAP login', () => {
     expect(log.filter((l) => l.startsWith('bind'))).toEqual([]);
   });
 
+  test('concurrent logins send a wrong service password to the directory only once', async () => {
+    const env = { ...base, LDAP_BIND_PASSWORD: 'wrong-for-burst-test' }; // pragma: allowlist secret
+    const log = [];
+    const results = await Promise.allSettled(Array.from({ length: 8 }, () => authenticate('alice', 'right', config(env), fakeClient([alice], log))));
+    expect(results.every((r) => r.status === 'rejected')).toBe(true);
+    expect(log.filter((l) => l === `bind ${base.LDAP_BIND_DN}`)).toHaveLength(1);
+  });
+
+  test('concurrent logins with a working service password all go ahead', async () => {
+    const results = await Promise.all(Array.from({ length: 4 }, () => authenticate('alice', 'right', config(base), fakeClient([alice]))));
+    expect(results.every((r) => r && r.subject)).toBe(true);
+  });
+
   test('the reason a login was refused is reported for the server log', async () => {
     const reasons = [];
     const why = (r) => reasons.push(r);
@@ -177,6 +190,9 @@ test.describe('LDAP login', () => {
     expect(explain(Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN' }))).toMatch(/LDAP_TLS_CA/);
     expect(explain(Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:636'), { code: 'ECONNREFUSED' }))).toMatch(/host and port/);
     expect(explain(Object.assign(new Error('certificate has expired'), { code: 'CERT_HAS_EXPIRED' }))).toMatch(/renew/);
+    expect(ldap._internal.directoryRoot('ou=people,ou=staff,dc=example,dc=org')).toBe('dc=example,dc=org');
+    expect(ldap._internal.directoryRoot('ou=people,o=corp')).toBe('ou=people,o=corp');
+    expect(ldap._internal.directoryRoot('dc=example,dc=org')).toBe('dc=example,dc=org');
     expect(explain(new NoSuchObjectError('No such object'))).toMatch(/LDAP_USER_SEARCH_BASE/);
   });
 
