@@ -154,6 +154,8 @@ test.describe('Self sign-up', () => {
     [{ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'local', AUTH_LOCAL_ALLOW_SIGNUP: 'true' }, true],
     [{ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'proxy,local', AUTH_LOCAL_ALLOW_SIGNUP: 'true', AUTH_LOCAL_LOGIN: 'admins' }, false],
     [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'proxy' }, false],
+    [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'ldap,local' }, false],
+    [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'ldap,local', AUTH_LOCAL_ALLOW_SIGNUP: 'true' }, true],
     [{ SITE_ACCESS: 'public', AUTH_PROVIDERS: 'local' }, false],
   ];
   for (const [env, expected] of cases)

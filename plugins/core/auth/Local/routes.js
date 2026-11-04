@@ -77,10 +77,12 @@ async function revokeTokensOf(userId) {
 }
 
 function mountLocalRoutes(router) {
+// Setup stays open until a SuperAdmin exists, so an LDAP or proxy user signing in first can't close it
 router.post("/has", authorize.public("login and account self-service"), function (req, res, next) {
-  User.count()
-    .then((count) => {
-      res.send({ status: "success", has: count !== 0 });
+  bindings
+    .superAdminUserIds()
+    .then((ids) => {
+      res.send({ status: "success", has: ids.length !== 0 });
     })
     .catch((err) => {
       res.send({ status: "failure" });
@@ -97,9 +99,10 @@ router.post("/first_signup", signupLimiter, authorize.public("login and account 
     return;
   }
 
-  User.count()
-    .then((count) => {
-      if (count === 0) {
+  bindings
+    .superAdminUserIds()
+    .then((ids) => {
+      if (ids.length === 0) {
         setupCode.ensure();
         if (!setupCode.consume(req.body.setup_code)) {
           logger("warn", "First account sign-up rejected: wrong or missing setup code.", req.originalUrl, req);

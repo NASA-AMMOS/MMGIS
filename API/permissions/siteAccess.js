@@ -37,14 +37,16 @@ function parseProviders(raw) {
 const LOCAL_LOGIN_VALUES = ["all", "admins"];
 const localAdminsOnly = () => process.env.AUTH_LOCAL_LOGIN === "admins";
 
-// Whether visitors may create their own local accounts
+const allowSignupSetting = () =>
+  process.env.AUTH_LOCAL_ALLOW_SIGNUP === true || process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true";
+
+// Whether visitors may create their own local accounts. Alongside another provider (ldap, proxy) only
+// with AUTH_LOCAL_ALLOW_SIGNUP, so nobody can register a directory user's username before they sign in
 const selfSignupAllowed = () =>
   hasProvider("local") &&
   !localAdminsOnly() &&
-  (isOptional() ||
-    (isRequired() &&
-      (process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
-        process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true")));
+  ((isOptional() && (getProviders().length === 1 || allowSignupSetting())) ||
+    (isRequired() && allowSignupSetting()));
 
 // Returns a list of human-readable problems with the current ENV (empty if valid)
 function validate(env = process.env) {

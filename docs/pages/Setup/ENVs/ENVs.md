@@ -143,7 +143,7 @@ Test-specific database password. Required by test infrastructure for least-privi
 
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
-If SITE_ACCESS=required and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
+Whether visitors may create their own local accounts. With `SITE_ACCESS=required`, only when this is true. With `SITE_ACCESS=optional`, visitors may always sign up while `local` is the only provider; once another provider such as `ldap` or `proxy` is enabled, only when this is true, so nobody can register a directory user's username before that person first signs in | boolean | default `false`
 
 #### `AUTH_MAX_FAILED_LOGINS=`
 
@@ -155,7 +155,7 @@ Which local accounts may log in with a username and password. `all`: any local a
 
 #### `SETUP_CODE=`
 
-While the site has no accounts, creating the first (SuperAdmin) account on `/configure` requires a one-time setup code. If unset, the server generates a random code on each start and prints it in its log (not in the log files); the code works once. Set this to choose the code yourself, for scripted installs or several replicas behind one URL. It has no effect once an account exists | string | default `null`
+While the site has no SuperAdmin, creating the first (SuperAdmin) account on `/configure` requires a one-time setup code. If unset, the server generates a random code on each start and prints it in its log (not in the log files); the code works once. Set this to choose the code yourself, for scripted installs or several replicas behind one URL. It has no effect once a SuperAdmin exists, so accounts created earlier by a login provider such as LDAP don't close setup | string | default `null`
 
 #### `CONNECTIONS_CALLBACK_BASE_URL=`
 

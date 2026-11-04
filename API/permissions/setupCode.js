@@ -1,7 +1,7 @@
 /**
  * One-time setup code that gates creating the first account on an empty site.
  *
- * While no accounts exist, the server prints a random code to its log and
+ * While no SuperAdmin exists, the server prints a random code to its log and
  * /api/users/first_signup only succeeds when that code is supplied, so only
  * someone who can read the server's output can claim the first SuperAdmin.
  * Only a hash of the code is kept, it is consumed on first successful use and
@@ -49,7 +49,7 @@ function announce(code) {
   const out = [
     "",
     RULE,
-    "  MMGIS has no accounts yet.",
+    "  MMGIS has no SuperAdmin yet.",
     "  Open /configure and create the first (SuperAdmin) account",
     code
       ? `  with this one-time setup code:  ${String(code).replace(/[\r\n]/g, "")}`
