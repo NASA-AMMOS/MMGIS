@@ -257,15 +257,6 @@ function accountModels() {
     AuthMeta,
     transaction: (fn) => sequelize.transaction(fn),
     usernameTaken,
-    // A new account from a provider gets the same "Default for new accounts" viewing a local sign-up does
-    seedNewUser: async (userId) => {
-      const { getDefaultMissionsViewing } = require("../../plugins/core/backend/Users/models/userdefaults");
-      const missionsViewing = await getDefaultMissionsViewing().catch((err) => {
-        logger("error", "Failed to read the default viewing missions for a new account.", "AuthProviders", null, err);
-        return null;
-      });
-      await require("./bindings").seedNewUser(userId, { missionsViewing });
-    },
     // connect-pg-simple's session table has no model; Local's password reset ends sessions the same way
     endSessionsOf: (userId) =>
       sequelize.query(`DELETE FROM "session" WHERE sess->>'uid' = :uid`, { replacements: { uid: String(userId) } }),
@@ -404,14 +395,20 @@ async function locateSubject(providerId, subject) {
   return unknown ? undefined : null;
 }
 
-// The provider's entry for a username, so an admin can see who a relink would go to:
-// { subject, dn } or null when the provider has none, undefined when it can't look people up
+// Clears the provider's own failed-login count for the entry an admin just allowed a relink to
+function resetFailures(providerId, target) {
+  const p = enabledProviders().find((x) => x.id === providerId);
+  if (p && typeof p.impl.resetFailures === "function") p.impl.resetFailures(target);
+}
+
 // The username a relink waits for, in the form the provider's logins report it
 function relinkUsername(providerId, username) {
   const p = getProvider(providerId);
   return p && typeof p.impl.relinkUsername === "function" ? p.impl.relinkUsername(username) : username;
 }
 
+// The provider's entry for a username, so an admin can see who a relink would go to:
+// { subject, dn } or null when the provider has none, undefined when it can't look people up
 async function relinkTarget(providerId, username) {
   const p = enabledProviders().find((x) => x.id === providerId);
   if (!p || typeof p.impl.findSubject !== "function") return undefined;
@@ -518,7 +515,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     if (!emailTaken) fields.email = identity.email;
   }
   try {
-    const made = await inTransaction(m, async (transaction) => {
+    return await inTransaction(m, async (transaction) => {
       let created;
       try {
         created = await m.User.create(fields, { transaction });
@@ -539,8 +536,6 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       );
       return { id: created.id, username: created.username };
     });
-    if (m.seedNewUser) await m.seedNewUser(made.id);
-    return made;
   } catch (err) {
     // Two first logins of the same person at once: the other one created the account
     if (!retried && err.name === "SequelizeUniqueConstraintError") return linkIdentity(identity, m, true);
@@ -906,6 +901,7 @@ module.exports = {
   missingKey,
   groupName,
   relinkUsername,
+  resetFailures,
   relinkTarget,
   locateSubject,
   sameUsername,

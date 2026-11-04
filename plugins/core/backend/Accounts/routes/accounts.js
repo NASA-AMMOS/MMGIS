@@ -455,6 +455,7 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
     // Attempts refused before the admin got to this account no longer block the person
     resetFailedLogins(username);
     resetFailedLogins(user.username);
+    providers.resetFailures(provider, { username, dn: target ? target.dn : undefined });
     logger(
       "warn",
       `'${actor.username}' allowed the next ${provider} login as '${username}'${target ? ` (${target.dn}, subject '${target.subject}')` : ""} to claim account ${id} '${user.username}' until ${expires_at}.`,

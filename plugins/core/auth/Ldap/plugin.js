@@ -413,7 +413,10 @@ async function authenticate(username, password, c = config(), createClient = new
       if (!bind.ok) entryFailed(dn);
       else entryFailures.delete(normalizeDn(dn));
       if (!bind.ok) return refuse(`${bind.reason} for ${dn} (if nobody can sign in, check LDAP_USER_DN_TEMPLATE)`);
-      entry = c.searchBase ? (await findUser(client, c, username)).entry : await readEntry(client, c, dn);
+      const found = c.searchBase ? await findUser(client, c, username) : { entry: await readEntry(client, c, dn) };
+      entry = found.entry;
+      // Someone LDAP_USER_SEARCH_FILTER leaves out is refused like in search mode, not told the directory is down
+      if (!entry && found.reason) return refuse(`${found.reason}, though the password for ${dn} was accepted`);
       if (!entry) throw new Error("Signed in to the directory but could not read the person's entry.");
       // The password was checked for dn, so the identity must come from that same entry
       if (!isBoundEntry(entry, dn))
@@ -451,8 +454,13 @@ async function authenticate(username, password, c = config(), createClient = new
   }
 }
 
-// LDAP_USER_SEARCH_FILTER for anyone, so a recheck drops whoever the filter no longer lets sign in
-const peopleFilter = (c) => fill(c.searchFilter, { username: "*" });
+// LDAP_USER_SEARCH_FILTER for anyone, so a recheck drops whoever the filter no longer lets sign in. In an
+// extensible (uid:caseExactMatch:=) or ~= <= >= term a * isn't a wildcard, so that term becomes (uid=*).
+const peopleFilter = (c) =>
+  fill(
+    c.searchFilter.replace(/\(([A-Za-z0-9.;-]*)(?::[^()=]*)?(?::=|~=|<=|>=)[^()]*\{\{username\}\}[^()]*\)/g, (_, attr) => (attr ? `(${attr}=*)` : "(objectClass=*)")),
+    { username: "*" }
+  );
 
 // With LDAP_SUBJECT_ATTRIBUTE=dn, a stored subject that isn't a DN (one saved under entryUUID/objectGUID
 // before the setting changed) names no entry
@@ -781,11 +789,16 @@ module.exports = {
   },
   // The username as login reads it, so a relink typed as CORP\\alice waits for alice
   relinkUsername: (name) => stripDomain(String(name).normalize("NFKC").trim(), config()),
+  resetFailures: ({ username, dn }) => {
+    const c = config();
+    const entryDn = dn || (c.userDnTemplate && username ? fill(c.userDnTemplate, { username: escapeDn(username) }) : null);
+    if (entryDn) entryFailures.delete(normalizeDn(entryDn));
+  },
   lookup: (subject) => lookup(subject),
   locate: (subject) => locate(subject),
   findSubject: (username) => findSubject(username),
   validate,
   warnings,
   // For tests
-  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, TooManyFailuresError, entryFailures },
+  _internal: { config, stripDomain, escapeFilter, escapeDn, normalizeDn, guidString, subjectFilter, authenticate, lookup, locate, directoryRoot, findSubject, selfCheck, explain, PasswordExpiredError, TooManyFailuresError, entryFailures, peopleFilter },
 };

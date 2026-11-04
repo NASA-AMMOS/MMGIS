@@ -143,6 +143,27 @@ test.describe('LDAP login', () => {
     }
   });
 
+  test('allowing a relink clears that entry\'s wrong-password count', async () => {
+    const plugin = require('../plugin');
+    const { TooManyFailuresError, entryFailures } = plugin._internal;
+    entryFailures.clear();
+    try {
+      for (let i = 0; i < 5; i++) await authenticate('alice', 'wrong', config(base), fakeClient([alice]));
+      await expect(authenticate('alice', 'right', config(base), fakeClient([alice]))).rejects.toBeInstanceOf(TooManyFailuresError);
+      plugin.resetFailures({ username: 'alice', dn: 'UID=alice,ou=people,dc=example,dc=org' });
+      expect(await authenticate('alice', 'right', config(base), fakeClient([alice]))).not.toBeNull();
+    } finally {
+      entryFailures.clear();
+    }
+  });
+
+  test('direct bind: someone the user filter leaves out is refused, not told the directory is down', async () => {
+    let reason = '';
+    const c = config({ ...base, LDAP_USER_DN_TEMPLATE: 'uid={{username}},ou=people,dc=example,dc=org', LDAP_USER_SEARCH_FILTER: '(&(uid={{username}})(mail=*))' });
+    expect(await authenticate('alice', 'right', c, fakeClient([alice]), (r) => (reason = r))).toBeNull();
+    expect(reason).toMatch(/no entry under LDAP_USER_SEARCH_BASE matches .*password for uid=alice.* was accepted/);
+  });
+
   test('wrong passwords, unknown and ambiguous usernames are all "not signed in"', async () => {
     const twin = { ...alice, dn: 'uid=alice,ou=other,dc=example,dc=org', entry: { ...alice.entry, dn: 'uid=alice,ou=other,dc=example,dc=org' } };
     expect(await authenticate('alice', 'wrong', config(base), fakeClient([alice]))).toBeNull();
@@ -345,6 +366,13 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect(found.groups).toEqual((await auth('alice', 'right', c, fakeClient([alice]))).groups);
     expect(await lookup('gone', c, byUuid([alice.entry]))).toBeNull();
     // Someone LDAP_USER_SEARCH_FILTER no longer lets sign in is gone too
+    // In extensible and ~= terms * is literal, so they're checked for presence instead
+    const { peopleFilter } = require('../plugin')._internal;
+    expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(uid:caseExactMatch:={{username}})(objectClass=person))' }))).toBe('(&(uid=*)(objectClass=person))');
+    expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(uid~={{username}})' }))).toBe('(uid=*)');
+    expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(|(uid={{username}})(mail={{username}}@example.org))' }))).toBe('(|(uid=*)(mail=*@example.org))');
+    expect(peopleFilter(config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(sAMAccountName={{username}})(!(userAccountControl:1.2.840.113556.1.4.803:=2)))' }))).toBe('(&(sAMAccountName=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))');
+    expect((await lookup('e1', config({ ...base, LDAP_USER_SEARCH_FILTER: '(uid:caseExactMatch:={{username}})' }), byUuid([alice.entry]))).username).toBe('alice');
     const staffOnly = config({ ...base, LDAP_USER_SEARCH_FILTER: '(&(uid={{username}})(ou=staff))' });
     expect(await lookup('e1', staffOnly, byUuid([alice.entry]))).toBeNull();
     expect((await lookup('e1', staffOnly, byUuid([{ ...alice.entry, ou: 'staff' }]))).username).toBe('alice');

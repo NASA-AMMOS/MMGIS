@@ -234,15 +234,6 @@ test.describe('account linking', () => {
       meta: [{ key: 'relink:keycloak:1', value: { username: 'carol', by: 'admin', expires_at: new Date(Date.now() + 60000).toISOString(), ...value } }],
     });
 
-  test('a new account from a provider gets the default viewing; a relinked one keeps its own', async () => {
-    const seeded = [];
-    const m = { ...relinkModels(), seedNewUser: async (id) => seeded.push(id) };
-    await providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), m);
-    expect(seeded).toEqual([]);
-    const user = await providers.linkIdentity(identity({ subject: 'fresh', username: 'erin' }), m);
-    expect(seeded).toEqual([user.id]);
-  });
-
   test('an allowed relink lets the next login with that username claim the account, once', async () => {
     const m = relinkModels();
     const user = await providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), m);
