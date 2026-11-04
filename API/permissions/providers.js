@@ -332,7 +332,7 @@ async function findClaim(identity, m) {
     if (v.subject ? !pinnedTo(v, identity) : !sameUsername(v.username, identity.username)) continue;
     // A value that isn't a permanent ID (e.g. cn) may be another entry's too
     const p = getProvider(identity.provider);
-    if (v.subject && v.dn && p && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent() && !(identity.dn && identity.dn.toLowerCase() === v.dn.toLowerCase())) {
+    if (v.subject && v.dn && p && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent() && !(identity.dn && sameFolded(identity.dn, v.dn))) {
       // Refused rather than given a new account, which would then hold the subject the relink is waiting for
       await markStale(m, r.key, v, { dn: identity.dn || null, at: new Date().toISOString() });
       throw new LinkError(
@@ -654,7 +654,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     const claim = await findClaim(identity, m);
     // A non-unique attribute (e.g. cn) may give another entry the same value, so it must be the entry the admin was shown
     // Unpinned (no service account to look it up): it matched the username, whose own password was checked
-    const shown = claim && (!claim.dn || (identity.dn && claim.dn.toLowerCase() === identity.dn.toLowerCase()));
+    const shown = claim && (!claim.dn || (identity.dn && sameFolded(claim.dn, identity.dn)));
     const claimed = shown && claim.userId === link.user_id ? await claimRelink(identity, m) : null;
     if (claimed) return claimed;
     throw new LinkError(
@@ -764,9 +764,11 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     const holder = taken.id != null && m.AuthIdentity.findOne
       ? await m.AuthIdentity.findOne({ where: { user_id: taken.id, provider: identity.provider }, raw: true })
       : null;
+    // A concurrent first sign-in of this same entry created it since the checks above
+    if (holder && holder.subject === identity.subject && !retried) return linkIdentity(identity, m, true);
     if (holder)
       throw new LinkError(
-        `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}' (renamed there). Don't relink it to this entry. To let this person in under another MMGIS username, create an account for them (e.g. '${identity.username}2') and allow its relink as '${identity.username}'.`
+        `The username '${identity.username}' belongs to account ${taken.id}, which signs in with ${identity.provider} as '${holder.username}'${sameUsername(holder.username, identity.username) ? ` under another ${identity.provider} ID` : " (renamed there)"}. Don't relink it to this entry. To let this person in under another MMGIS username, create an account for them (e.g. '${identity.username}2') and allow its relink as '${identity.username}'.`
       );
     const adminsOnly = siteAccess.localAdminsOnly();
     const lapsed = taken.id != null && m.AuthMeta ? await m.AuthMeta.findOne({ where: { key: relinkKey(identity.provider, taken.id) }, raw: true }) : null;
@@ -890,6 +892,7 @@ const recheckMs = () => {
 const rechecks = new Map();
 // When a provider's last recheck couldn't reach it: other people's requests then wait only DOWN_WAIT_MS for theirs
 const DOWN_WAIT_MS = 1000;
+const groupsUnreadLogged = new Set();
 const providerDown = new Map();
 // A connection or TLS failure or a timeout, not an error about one person's entry
 const unreachable = (err) =>
@@ -920,7 +923,7 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
       m = m || accountModels();
       const link = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
       const since = link && link.last_login_at ? new Date(link.last_login_at).getTime() : 0;
-      return since > hit.at ? requestWait(stillLinked(userId, providerId, m, true)) : false;
+      return since > hit.at ? requestWait(stillLinked(userId, providerId, m, true), downNow(providerId, ms) ? DOWN_WAIT_MS : IDENTIFY_TIMEOUT_MS) : false;
     })();
   }
   const status = (async () => {
@@ -955,7 +958,9 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     if (!now || now.subject !== link.subject) return "ok";
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
     const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
-    if (identity && found.groupsUnread)
+    // Logged when it starts, not at every recheck
+    if (!(identity && found.groupsUnread)) groupsUnreadLogged.delete(key);
+    else if (!groupsUnreadLogged.has(key) && groupsUnreadLogged.add(key))
       logger("warn", `Auth provider '${providerId}': couldn't read the groups of ${await who(m, userId)} (${found.groupsUnread}); its provider groups give it no roles until they can be read.`, "AuthProviders");
     // A process on another subject setting flagged it for that setting: leave that to it
     const flagged = identity && (await otherSettings(p, m)).length > 0 && (await m.AuthMeta.findOne({ where: { key: missingKey(providerId, userId) }, raw: true }));
@@ -1101,6 +1106,8 @@ async function completeLogin(req, identity) {
     throw err;
   }
   await syncGroups(user.id, identity);
+  // The provider answered
+  providerDown.delete(identity.provider);
   rechecks.set(`${identity.provider}:${user.id}`, { at: Date.now(), result: Promise.resolve(true) });
   require("./principal").invalidate();
   await new Promise((resolve, reject) =>
@@ -1300,7 +1307,7 @@ module.exports = {
   syncGroups,
   stillLinked,
   // For tests: forget which accounts and providers were rechecked
-  forgetRechecks: () => (rechecks.clear(), providerDown.clear()),
+  forgetRechecks: () => (rechecks.clear(), providerDown.clear(), groupsUnreadLogged.clear()),
   recheckLinked,
   fillGroups,
   fillsOnlyAtSignIn,

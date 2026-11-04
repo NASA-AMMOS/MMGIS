@@ -285,6 +285,18 @@ test.describe('account linking', () => {
     expect(await providers.linkIdentity(identity({ subject: 'race', username: 'dora' }), m)).toMatchObject({ id: 100, username: 'dora' });
   });
 
+  test('a concurrent first login that sees the account only once the other one has created it uses that account', async () => {
+    const m = fakeModels();
+    m.usernameTaken = async (username) => {
+      delete m.usernameTaken;
+      const user = await m.User.create({ username });
+      await m.AuthIdentity.create({ provider: 'keycloak', subject: 'race2', username, user_id: user.id });
+      return { id: user.id };
+    };
+    expect(await providers.linkIdentity(identity({ subject: 'race2', username: 'dora' }), m)).toMatchObject({ id: 100, username: 'dora' });
+    expect(m.User.rows).toHaveLength(1);
+  });
+
   test('a recreated entry with a new ID but the name of a linked account is refused, not given a new empty account', async () => {
     const m = fakeModels({ users: [{ id: 1, username: 'bob' }], links: [{ provider: 'keycloak', subject: 'old', username: 'Robert', user_id: 1 }] });
     await expect(providers.linkIdentity(identity({ subject: 'new', username: 'robert' }), m)).rejects.toThrow(/already signs in to account 1/);

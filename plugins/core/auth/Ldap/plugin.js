@@ -349,7 +349,7 @@ const foldName = (name) => (isDn(name) ? normalizeDn(name) : String(name).trim()
 // e.g. mmgis-svc for cn=mmgis-svc,…, mmgis-svc@corp… and CORP\mmgis-svc
 const stemOf = (name) => {
   const s = String(name).trim();
-  if (isDn(s)) return normalizeDn(s).split(",")[0].split("=").slice(1).join("=");
+  if (isDn(s)) return normalizeDn(s).split(/(?<!\\),/)[0].split("=").slice(1).join("=");
   return s.split("\\").pop().split("@")[0].toLowerCase();
 };
 const samOf = (name) => (!isDn(name) && String(name).includes("\\") ? String(name).split("\\").pop().trim().toLowerCase() : null);
@@ -363,13 +363,16 @@ async function learnServiceNames(client, c) {
     if (isDn(c.bindDn)) entries = (await client.search(c.bindDn, { scope: "base", filter: "(objectClass=*)", attributes })).searchEntries;
     else {
       const base = c.searchBase ? (await searchRoot(client, c).catch(() => null)) || c.searchBase : null;
-      if (!base) return void serviceNames.set(key, { names: new Set(), sams: new Set() });
+      if (!base) {
+        serviceNames.set(key, { names: new Set(), sams: new Set() });
+        return "without LDAP_USER_SEARCH_BASE MMGIS can't look up the service account's other names, so it refuses sign-ins under names like LDAP_BIND_DN";
+      }
       const filter = samOf(c.bindDn) ? `(sAMAccountName=${escapeFilter(samOf(c.bindDn))})` : `(userPrincipalName=${escapeFilter(c.bindDn.trim())})`;
       entries = (await client.search(base, { scope: "sub", filter, attributes, sizeLimit: 2 })).searchEntries;
     }
   } catch (err) {
     // Tried again at the next sign-in; until then names sharing its stem are refused
-    return `couldn't read the service account's own entry (${explain(err)}), so it is recognised only by LDAP_BIND_DN and names like it`;
+    return `couldn't read the service account's own entry (${explain(err)}), so until it can, MMGIS refuses sign-ins under names like LDAP_BIND_DN`;
   }
   const entry = entries.length === 1 ? entries[0] : null;
   serviceNames.set(key, {
@@ -465,7 +468,7 @@ async function authenticate(username, password, c = config(), createClient = new
   };
   // Wrong passwords sent to it could lock the account every search and recheck needs
   const serviceAccount = (name) =>
-    isServiceAccount(c, name) ? `${name} is LDAP_BIND_DN, the service account, which can't sign in to MMGIS (its password isn't tried)` : null;
+    isServiceAccount(c, name) ? `${name} is, or shares its name with, LDAP_BIND_DN, the service account, which can't sign in to MMGIS (its password isn't tried)` : null;
   const client = createClient(c);
   try {
     if (c.startTls) await client.startTLS(startTlsOptions(c));

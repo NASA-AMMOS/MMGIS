@@ -215,7 +215,7 @@ test.describe('LDAP login', () => {
     const log = [];
     const why = [];
     expect(await authenticate('svc', 'guess', config({ ...base, LDAP_USER_SEARCH_BASE: 'dc=example,dc=org' }), fakeClient([alice, svc], log), (r) => why.push(r))).toBeNull();
-    expect(why[0]).toMatch(/is LDAP_BIND_DN, the service account/);
+    expect(why[0]).toMatch(/is, or shares its name with, LDAP_BIND_DN, the service account/);
     expect(log.filter((l) => l.startsWith('bind'))).toEqual([`bind ${base.LDAP_BIND_DN}`]);
     const direct = { ...base, LDAP_USER_DN_TEMPLATE: 'cn={{username}},dc=example,dc=org' };
     const dlog = [];
@@ -255,7 +255,7 @@ test.describe('LDAP login', () => {
       const c = config({ LDAP_URL: 'ldaps://dc.corp.example.org', LDAP_BIND_DN: bindDn, LDAP_BIND_PASSWORD: 'svcpw', LDAP_SUBJECT_ATTRIBUTE: 'objectGUID', ...env }); // pragma: allowlist secret
       for (let i = 0; i < 3; i++) expect(await authenticate('mmgis-svc', `guess${i}`, c, ad(bindDn, log), (r) => why.push(r)), name).toBeNull();
       expect(why.length, name).toBe(3);
-      for (const w of why) expect(w, name).toMatch(/is LDAP_BIND_DN, the service account/);
+      for (const w of why) expect(w, name).toMatch(/is, or shares its name with, LDAP_BIND_DN, the service account/);
       expect(log.filter((l) => l !== `bind ${bindDn}`), name).toEqual([]);
     }
   });
