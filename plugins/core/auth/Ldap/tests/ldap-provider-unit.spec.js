@@ -478,7 +478,8 @@ test.describe('Whether an old entry still exists (locate)', () => {
 
   test('several entries with the subject still count as present', async () => {
     const two = async () => ({ searchEntries: [alice.entry, alice.entry] });
-    expect(await locate('e1', config(env), client(two))).toMatchObject({ dn: alice.dn });
+    // Present, but naming either one's DN would pass it off as that entry
+    expect(await locate('e1', config(env), client(two))).toEqual({});
     const many = async () => { throw new SizeLimitExceededError('Size limit exceeded'); };
     expect(await locate('e1', config(env), client(many))).toBeTruthy();
     expect(await locate('e1', config(env), client(async () => ({ searchEntries: [] })))).toBeNull();

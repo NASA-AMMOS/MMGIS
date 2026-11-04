@@ -584,6 +584,7 @@ async function locate(subject, c = config(), createClient = newClient) {
       throw err;
     }
     if (entries.length === 0) return null;
+    if (entries.length > 1) return {};
     const name = values(entries[0], c.usernameAttribute)[0];
     return { dn: entries[0].dn, username: name != null ? String(name) : undefined };
   } finally {

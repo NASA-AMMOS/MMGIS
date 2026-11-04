@@ -304,6 +304,8 @@ function matchUsername(rows, name) {
   return { match: rows.find((r) => r.username === name) || (alike.length === 1 ? alike[0] : null), alike };
 }
 
+const sameFolded = (a, b) => String(a).normalize("NFC").toLowerCase() === String(b).normalize("NFC").toLowerCase();
+
 async function findClaim(identity, m) {
   if (!m.AuthMeta) return null;
   const rows = await m.AuthMeta.findAll({
@@ -587,6 +589,13 @@ async function locateSubject(providerId, subject) {
   return unknown ? undefined : null;
 }
 
+// Only the directory-wide search: one entry anywhere with the subject, {} for several, null for none, undefined if it can't say
+async function locateAnywhere(providerId, subject) {
+  const p = getProvider(providerId);
+  if (!p || typeof p.impl.locate !== "function") return undefined;
+  return withTimeout(p.impl.locate(subject), "locate(subject)", lookupTimeout(p));
+}
+
 // Clears the provider's own failed-login count for the entry an admin just allowed a relink to
 function resetFailures(providerId, target) {
   const p = enabledProviders().find((x) => x.id === providerId);
@@ -683,14 +692,12 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
         `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and ${identity.provider} couldn't say whether that account's entry (subject '${sameName.subject}') still exists. Check before allowing a relink: if it does, the name was reused by someone else.`
       );
     // The same entry, its value only re-cased (e.g. uid ldap_alice to Ldap_Alice), which the directory matches either way
-    if (still && still.dn && identity.dn && still.dn.toLowerCase() === identity.dn.toLowerCase() && !retried) {
-      await m.AuthIdentity.update(
-        { subject: identity.subject, ...(subjectSetting(provider) != null ? { subject_setting: subjectSetting(provider) } : {}) },
-        { where: { user_id: sameName.user_id, provider: identity.provider, subject: sameName.subject } }
+    // Only re-cased at what looks like the same entry: still possibly a newcomer, since the directory compares it without case
+    const anywhere = still && identity.dn && sameFolded(sameName.subject, identity.subject) ? await locateAnywhere(identity.provider, sameName.subject).catch(() => undefined) : undefined;
+    if (anywhere && anywhere.dn && sameFolded(anywhere.dn, identity.dn))
+      throw new LinkError(
+        `'${identity.username}' (subject '${identity.subject}') matches account ${sameName.user_id}'s subject '${sameName.subject}' except for letter case, at ${identity.dn}. If it's the same person, allow a relink on account ${sameName.user_id}; if the directory gave the value to someone new, don't.`
       );
-      logger("info", `Account ${sameName.user_id}'s ${identity.provider} subject changed from '${sameName.subject}' to '${identity.subject}' at the same entry, ${identity.dn}.`, "AuthProviders");
-      return linkIdentity(identity, m, true);
-    }
     if (still)
       throw new LinkError(
         `'${identity.username}' (subject '${identity.subject}') is a different ${identity.provider} entry from account ${sameName.user_id}'s, which still exists${still.dn ? ` at ${still.dn}` : ""}${still.username ? ` as '${still.username}'` : ""}. The name was reused: don't relink account ${sameName.user_id} to it. MMGIS usernames don't change, so this person can't sign in while account ${sameName.user_id} holds the name.`
@@ -698,6 +705,17 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     throw new LinkError(
       `'${identity.username}' already signs in to account ${sameName.user_id} with a different ${identity.provider} ID, and that account's old entry is gone. Only allow a relink on that account if this is the same person: the directory may have given the name to someone new.`
     );
+  }
+  // e.g. a rename that also re-cased a cn: the directory still matches the old link, so a new account would be its twin
+  const linking = getProvider(identity.provider);
+  if (linking && typeof linking.impl.subjectPermanent === "function" && !linking.impl.subjectPermanent() && m.AuthIdentity.findAll) {
+    const twin = (await m.AuthIdentity.findAll({ where: { provider: identity.provider }, attributes: ["user_id", "subject"], raw: true })).find(
+      (l) => l.subject !== identity.subject && sameFolded(l.subject, identity.subject)
+    );
+    if (twin)
+      throw new LinkError(
+        `'${identity.username}' (subject '${identity.subject}') matches account ${twin.user_id}'s subject '${twin.subject}' except for letter case${identity.dn ? `, at ${identity.dn}` : ""}. If it's the same person, allow a relink on account ${twin.user_id}; if the directory gave the value to someone new, don't.`
+      );
   }
   // MMGIS stores both in 255-character columns
   if (identity.subject.length > 255 || identity.username.length > 255)
@@ -1213,7 +1231,9 @@ module.exports = {
   resetFailures,
   relinkTarget,
   locateSubject,
+  locateAnywhere,
   matchUsername,
+  sameFolded,
   subjectSettingOf: (providerId) => subjectSetting(getProvider(providerId)),
   linkFits: (providerId, link) => {
     const p = getProvider(providerId);

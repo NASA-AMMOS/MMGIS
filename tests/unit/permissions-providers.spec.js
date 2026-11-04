@@ -732,7 +732,7 @@ test.describe('provider rechecks', () => {
     }
   });
 
-  test('a subject value re-cased at the same entry keeps signing in to its account; another entry does not', async () => {
+  test('a subject value re-cased at the same entry needs a relink; another entry is refused as a reused name', async () => {
     const realLocate = ldap.locate;
     try {
       const models = () =>
@@ -743,13 +743,38 @@ test.describe('provider rechecks', () => {
       const alice = { provider: 'ldap', subject: 'Ldap_Alice', dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] };
       ldap.locate = async () => ({ dn: 'UID=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
       const m = models();
+      // The directory matches either case, so a newcomer looks the same: an admin decides
+      await expect(providers.linkIdentity(alice, m)).rejects.toThrow(/except for letter case/);
+      m.AuthMeta.rows.push({ key: 'relink:ldap:9090', value: { username: 'ldap_alice', subject: 'Ldap_Alice', dn: 'uid=Ldap_Alice,ou=people', expires_at: new Date(Date.now() + 3600e3).toISOString() } });
       expect((await providers.linkIdentity(alice, m)).id).toBe(9090);
       expect(m.AuthIdentity.rows).toHaveLength(1);
       expect(m.AuthIdentity.rows[0].subject).toBe('Ldap_Alice');
       ldap.locate = async () => ({ dn: 'uid=ldap_alice,ou=leavers', username: 'ldap_alice' });
       await expect(providers.linkIdentity(alice, models())).rejects.toThrow(/name was reused/);
+      // Its old value found at this entry too, but the value itself is different (e.g. a second cn)
+      ldap.locate = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
+      await expect(providers.linkIdentity({ ...alice, subject: 'Mallory' }, models())).rejects.toThrow(/name was reused/);
+      // The search base finds only the new entry, but the old one still exists elsewhere (e.g. moved to leavers)
+      ldap.lookup = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] });
+      ldap.locate = async () => ({});
+      await expect(providers.linkIdentity(alice, models())).rejects.toThrow(/name was reused/);
     } finally {
       ldap.locate = realLocate;
+    }
+  });
+
+  test('under a subject attribute that is not a permanent ID, a re-cased value under a new username gets no twin account', async () => {
+    const realPermanent = ldap.subjectPermanent;
+    try {
+      ldap.subjectPermanent = () => false;
+      const m = fakeModels({
+        users: [{ id: 9095, username: 'ldap_bob' }],
+        links: [{ provider: 'ldap', subject: 'Bob Directory', username: 'ldap_bob', user_id: 9095 }],
+      });
+      await expect(providers.linkIdentity({ provider: 'ldap', subject: 'bob directory', dn: 'uid=bob2,ou=people', username: 'bob2', groups: [] }, m)).rejects.toThrow(/except for letter case/);
+      expect(m.User.rows).toHaveLength(1);
+    } finally {
+      ldap.subjectPermanent = realPermanent;
     }
   });
 

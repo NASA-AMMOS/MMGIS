@@ -395,7 +395,8 @@ router.post("/cancelRelink", apilimiter, authorize("accounts.manage"), async fun
   try {
     const r = await relinkRequest(req, res, { cancel: true });
     if (!r) return;
-    await AuthMeta.destroy({ where: { key: r.key } });
+    if (!(await AuthMeta.destroy({ where: { key: r.key } })))
+      return void res.send({ status: "failure", message: "No relink is pending for this account (it may have been used or expired)." });
     logger("info", `'${r.actor.username}' cancelled the ${r.provider} relink for account ${r.id} '${r.user.username}'.`, "accounts", req);
     res.send({ status: "success", message: "Relink cancelled." });
   } catch (err) {
@@ -453,9 +454,11 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
           `Couldn't tell whether '${user.username}''s own ${provider} entry (subject '${known.subject}') still exists, so ${target.dn} may be a different person. Check that ${provider} can be reached and its service account can read the whole directory, then try again.`
         );
       // The same entry with its value re-cased: its next sign-in updates the link
-      if (old && old.dn && target.dn && old.dn.toLowerCase() === target.dn.toLowerCase())
-        return fail(`${target.dn} is '${user.username}''s own entry, with its subject value only re-cased; its next ${provider} sign-in updates the link, so there is nothing to relink.`);
-      if (old)
+      const anywhere =
+        old && target.dn && providers.sameFolded(known.subject, target.subject) ? await providers.locateAnywhere(provider, known.subject).catch(() => undefined) : undefined;
+      // Only re-cased (e.g. uid ldap_alice to Ldap_Alice) at the same DN: the admin decides whether it's the same person
+      const recased = anywhere && anywhere.dn && providers.sameFolded(anywhere.dn, target.dn);
+      if (old && !recased)
         return fail(
           `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`
         );
