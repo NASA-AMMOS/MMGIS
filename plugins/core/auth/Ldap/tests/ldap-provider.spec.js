@@ -101,6 +101,12 @@ test.describe('LDAP login provider', () => {
     }
   });
 
+  test('a local login with a non-string username is refused before the failed-login limits', async () => {
+    const ctx = await context();
+    const res = await ctx.post('/api/users/login', { data: { username: [admin.username], password: admin.password } });
+    expect(res.status()).toBe(400);
+  });
+
   test('requests refused for other reasons than wrong credentials do not use up the address limit', async () => {
     const ctx = await context();
     for (let i = 0; i < 6; i++) {
@@ -285,11 +291,20 @@ test.describe('LDAP login provider', () => {
     const [file] = await files(ctx);
     expect((await (await ctx.post('/api/files/change', { data: { id: file.id, public: '0' } })).json()).status).toBe('success');
     expect(await files(ctx)).toHaveLength(1);
+    const bobCtx = await context();
+    expect((await ldapLogin(bobCtx, bob)).status()).toBe(200);
+    const sharedName = `bob shared ${Date.now()}`;
+    expect((await (await bobCtx.post('/api/files/make', { data: { file_name: sharedName, intent: 'all' } })).json()).status).toBe('success');
+    const shared = async () => (await (await bobCtx.post('/api/files/getfiles', { data: {} })).json()).body.find((f) => f.file_name === sharedName);
+    const change = { id: (await shared()).id, public: '1', publicity_type: 'list_edit', public_editors: alice.username };
+    expect((await (await bobCtx.post('/api/files/change', { data: change })).json()).status).toBe('success');
+    expect((await shared()).public_editors).toContain(alice.username);
     const id = (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries.find((e) => e.username === alice.username).id;
     expect((await (await adminCtx.delete(`/api/accounts/remove/${id}`)).json()).status).toBe('success');
     const next = await context();
     expect((await ldapLogin(next, alice)).status()).toBe(200);
     expect(await files(next)).toHaveLength(0);
+    expect((await shared()).public_editors || []).not.toContain(alice.username);
   });
 
   test('LDAP accounts get no MMGIS password reset link', async () => {

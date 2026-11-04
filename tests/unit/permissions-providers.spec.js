@@ -321,6 +321,13 @@ test.describe('account linking', () => {
     expect(m.User.rows).toHaveLength(0);
   });
 
+  test('never creates an account whose username has markup or control characters', async () => {
+    const m = fakeModels();
+    for (const username of ['evil<img src=x onerror=alert(1)>', 'a"b', 'a`b', 'a\nb'])
+      await expect(providers.linkIdentity(identity({ subject: `s-${username}`, username }), m)).rejects.toThrow(/can't/);
+    expect(m.User.rows).toHaveLength(0);
+  });
+
   test("never creates an account named 'group', which Draw uses for shared files", async () => {
     const m = fakeModels();
     for (const username of ['group', ' Group ', 'ＧＲＯＵＰ'])

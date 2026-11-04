@@ -10,7 +10,7 @@ const { sameOriginOnly } = require("../../../../../API/connections/routes");
 router.use((req, res, next) => (req.method === "GET" || req.method === "HEAD" ? next() : sameOriginOnly(req, res, next)));
 const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
-const { Op } = require("sequelize");
+const { Op, fn, col } = require("sequelize");
 
 const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
@@ -150,6 +150,12 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
         await Userfiles.update(
           { file_owner: `~deleted~${id}~${crypto.randomBytes(8).toString("hex")}` },
           { where: { file_owner: gone.username }, transaction }
+        );
+      // Nor edit the files others shared with this one
+      if (gone)
+        await Userfiles.update(
+          { public_editors: fn("array_remove", col("public_editors"), gone.username) },
+          { where: { public_editors: { [Op.contains]: [gone.username] } }, transaction }
         );
       // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile
       await User.destroy({ where: { id: id }, transaction });

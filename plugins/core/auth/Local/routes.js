@@ -187,6 +187,10 @@ router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login an
     });
     return;
   }
+  if (providers.unsafeUsername(req.body.username)) {
+    res.send({ status: "failure", message: "Usernames can't contain < > \" ` or control characters." });
+    return;
+  }
 
   if (!isStrongPassword(req.body.password)) {
     res.send({
@@ -326,7 +330,22 @@ router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login an
  * User login
  */
 // Refuses posts from other sites (login CSRF), also at the /api/users/login alias the login forms use
-router.post("/login", sameOriginOnly, authLimiter, accountLimiter, authorize.public("login and account self-service"), function (req, res) {
+// The account limiter counts the name the handler signs in with, so a saved login's (MMGISUser cookie) is
+// resolved first; a non-string name (["admin"], username[]=) would match the account but skip the limiter
+function loginUsername(req, res, next) {
+  if (!req.body) req.body = {};
+  if (req.body.username == null || req.body.username === "") {
+    try {
+      const saved = JSON.parse(String(req.cookies.MMGISUser || "").replace(/}undefined$/, "}"));
+      if (saved && typeof saved.username === "string") req.body.username = saved.username;
+    } catch (err) {}
+  }
+  if (req.body.username != null && typeof req.body.username !== "string")
+    return res.status(400).send({ status: "failure", message: "Invalid username or password." });
+  next();
+}
+
+router.post("/login", sameOriginOnly, loginUsername, authLimiter, accountLimiter, authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;

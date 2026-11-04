@@ -192,6 +192,9 @@ const reservedUsername = (name) => {
   return n === "group" || n.startsWith("~deleted~");
 };
 
+// Usernames are shown in pages (e.g. Draw's "by <owner>"); markup characters there would be script
+const unsafeUsername = (name) => /[\u0000-\u001f\u007f<>"`]/.test(String(name));
+
 class LinkError extends Error {
   constructor(message, userMessage) {
     super(message);
@@ -450,6 +453,8 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     throw new LinkError(`The ${identity.subject.length > 255 ? "subject" : "username"} is longer than the 255 characters MMGIS can store.`);
   if (reservedUsername(identity.username))
     throw new LinkError(`The username '${identity.username}' is reserved in MMGIS.`);
+  if (unsafeUsername(identity.username))
+    throw new LinkError(`The username ${JSON.stringify(identity.username)} contains < > " \` or control characters, which MMGIS usernames can't.`);
   const taken = m.usernameTaken
     ? await m.usernameTaken(identity.username)
     : await m.User.findOne({ where: { username: identity.username }, attributes: ["id"], raw: true });
@@ -821,6 +826,7 @@ module.exports = {
   identify,
   LinkError,
   reservedUsername,
+  unsafeUsername,
   usernameTaken,
   linkIdentity,
   RELINK_HOURS,
