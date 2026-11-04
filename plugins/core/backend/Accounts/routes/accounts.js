@@ -23,7 +23,7 @@ const { RoleBinding, AuthIdentity, AuthMeta } = require("../../../../../API/perm
 const providers = require("../../../../../API/permissions/providers");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
 const connections = require("../../../../../API/connections");
-const { resetFailedLogins } = require("../../../../../scripts/rateLimiters");
+const { apilimiter, resetFailedLogins } = require("../../../../../scripts/rateLimiters");
 const User = userModel.User;
 const {
   UserDefaults,
@@ -314,26 +314,42 @@ router.post("/updateDefaults", authorize("accounts.manage"), function (req, res)
 
 // Lets the next login through a provider with this account's username take the account over,
 // once, within RELINK_HOURS. For accounts whose provider identity changed (directory rebuild) or
-// local accounts moving to a provider. { id, provider } allows; { id, provider, cancel: true } cancels.
-router.post("/allowRelink", authorize("accounts.manage"), async function (req, res) {
-  const fail = (message, status = 200) => res.status(status).send({ status: "failure", message });
+// local accounts moving to a provider. Both take { id, provider }.
+const relinkFail = (res, message, status = 200) => res.status(status).send({ status: "failure", message });
+
+// The account and provider a relink request is about, or undefined after answering with the problem
+async function relinkRequest(req, res) {
+  if (req.principal && req.principal.kind === "token")
+    return void relinkFail(res, "Relinking can only be changed from a signed-in session.", 403);
+  const id = parseInt(req.body.id);
+  const provider = String(req.body.provider || "");
+  if (isNaN(id)) return void relinkFail(res, "Account id is missing.");
+  if (provider === "local" || !providers.enabledProviders().some((p) => p.id === provider))
+    return void relinkFail(res, `'${provider}' isn't an enabled login provider.`);
+  const user = await User.findOne({ where: { id }, attributes: ["id", "username"], raw: true });
+  if (!user) return void relinkFail(res, "User not found.");
+  return { id, provider, user, key: providers.relinkKey(provider, id), actor: await ensurePrincipal(req) };
+}
+
+router.post("/cancelRelink", apilimiter, authorize("accounts.manage"), async function (req, res) {
   try {
-    if (req.principal && req.principal.kind === "token")
-      return fail("Relinking can only be allowed from a signed-in session.", 403);
-    const id = parseInt(req.body.id);
-    const provider = String(req.body.provider || "");
-    if (isNaN(id)) return fail("Account id is missing.");
-    if (provider === "local" || !providers.enabledProviders().some((p) => p.id === provider))
-      return fail(`'${provider}' isn't an enabled login provider.`);
-    const user = await User.findOne({ where: { id }, attributes: ["id", "username"], raw: true });
-    if (!user) return fail("User not found.");
-    const key = providers.relinkKey(provider, id);
-    const actor = await ensurePrincipal(req);
-    if (req.body.cancel) {
-      await AuthMeta.destroy({ where: { key } });
-      logger("info", `'${actor.username}' cancelled the ${provider} relink for account ${id} '${user.username}'.`, "accounts", req);
-      return res.send({ status: "success", message: "Relink cancelled." });
-    }
+    const r = await relinkRequest(req, res);
+    if (!r) return;
+    await AuthMeta.destroy({ where: { key: r.key } });
+    logger("info", `'${r.actor.username}' cancelled the ${r.provider} relink for account ${r.id} '${r.user.username}'.`, "accounts", req);
+    res.send({ status: "success", message: "Relink cancelled." });
+  } catch (err) {
+    logger("error", "Failed to cancel relinking.", req.originalUrl, req, err);
+    relinkFail(res, "Failed to cancel relinking.");
+  }
+});
+
+router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async function (req, res) {
+  const fail = (message, status = 200) => relinkFail(res, message, status);
+  try {
+    const r = await relinkRequest(req, res);
+    if (!r) return;
+    const { id, provider, user, key, actor } = r;
     // The person's username at the provider, when it differs from their MMGIS username
     const username = String(req.body.username == null || req.body.username === "" ? user.username : req.body.username)
       .normalize("NFKC")

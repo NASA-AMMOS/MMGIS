@@ -69,7 +69,7 @@ export function PersonPanel({ user, ctx }) {
   useEffect(() => setRelinkName(""), [user.id]);
   const relinkAs = relinkName.trim() || user.username;
   const relink = (provider, cancel = false) =>
-    api("account_allow_relink", { id: user.id, provider, cancel, username: relinkAs })
+    api(cancel ? "account_cancel_relink" : "account_allow_relink", { id: user.id, provider, username: relinkAs })
       .then((res) => {
         const dn = res && res.body && res.body.dn;
         notify(cancel ? "Relink cancelled." : `Relink allowed${dn ? ` for ${dn}` : ""}.`, "success");
