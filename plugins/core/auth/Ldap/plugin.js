@@ -313,9 +313,7 @@ module.exports = {
       try {
         const user = await ctx.completeLogin(req, identity);
         ctx.logger("info", `${user.username} logged in with LDAP.`, "Ldap", req);
-        // The same legacy lead group (LEADS) a page reload reports
-        const { getUserGroups } = require("../Local/routes.js");
-        res.send({ status: "success", username: user.username, provider: "ldap", groups: getUserGroups(user.username, req.leadGroupName) });
+        res.send({ status: "success", username: user.username, provider: "ldap", groups: ctx.sessionGroups(req, user.username) });
       } catch (err) {
         if (err instanceof ctx.LinkError)
           return res.status(409).send({ status: "failure", message: err.userMessage });

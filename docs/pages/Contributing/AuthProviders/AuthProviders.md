@@ -132,6 +132,7 @@ An identity is:
 |---|---|
 | `ctx.completeLogin(req, identity)` | Links the account, syncs groups and starts the session (see above). Returns a promise. |
 | `ctx.LinkError` | The error class `completeLogin` throws on a username clash. |
+| `ctx.sessionGroups(req, username)` | The legacy lead group list (`LEADS`) to return as `groups` in a login response, as a page reload reports it. |
 | `ctx.returnTo(value)` | Returns `value` if it's a same-site path (`/...`), otherwise the site root. Use it on any "where to go after login" value. |
 | `ctx.authorize` | The permission helpers; use `ctx.authorize.public("reason")` on login routes. |
 | `ctx.logger` | `logger(level, message, caller, req, err)`. |
@@ -147,7 +148,7 @@ A provider whose `plugin.json` sets `"login_form": true` and a `login_path` shar
 - **Layout.** With one form provider that isn't `local`, the form shows a "Sign in with <title>" banner. With several (for example `ldap` and `local`), it shows a switch; the first in `AUTH_PROVIDERS` is the default and the browser remembers the last choice. The password is only sent to the selected provider. With `AUTH_LOCAL_LOGIN=admins`, `local` is only offered at Configure sign-in.
 - **Wording.** `loginForm(env)` returns `title` (the tab and banner name, default `display_name`), `usernameLabel` (default `Username`), and `hint` (shown with the form). Read them from `<PROVIDERID>_*` ENVs so each site can name the provider its own way. `GET /api/auth` returns them as `loginForms`.
 - **Request.** The form sends `POST /api/auth/<id><login_path>` with a JSON body `{ "username", "password" }`.
-- **Response.** On success call `ctx.completeLogin` and answer `{ "status": "success", "username", "provider": "<id>" }`; the page then reloads (login page, Configure) or the modal closes. On failure answer `{ "status": "failure", "message" }` with `400` (missing input), `401` (wrong credentials; counts towards the rate limit), `409` (`ctx.LinkError`) or `503` (the backend is unreachable). The message is shown as is, so name the provider in it.
+- **Response.** On success call `ctx.completeLogin` and answer `{ "status": "success", "username", "provider": "<id>", "groups": ctx.sessionGroups(req, username) }`; the page then reloads (login page, Configure) or the modal closes. On failure answer `{ "status": "failure", "message" }` with `400` (missing input), `401` (wrong credentials; counts towards the rate limit), `409` (`ctx.LinkError`) or `503` (the backend is unreachable). The message is shown as is, so name the provider in it.
 
 `plugins/core/auth/Ldap/plugin.js` is a complete example.
 

@@ -2,7 +2,7 @@
 // user, a user identified per request by a login provider (e.g. proxy), or a
 // long-term token acting for its creator.
 const crypto = require("crypto");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const logger = require("../logger");
 const siteAccess = require("./siteAccess");
 const { scopeKey } = require("./policy");
@@ -116,7 +116,14 @@ async function externalPrincipal(identity) {
     const matched =
       groupNames.length > 0
         ? await AuthGroup.findAll({
-            where: { source: provider, external_name: groupNames },
+            where: {
+              source: provider,
+              [Op.and]: [
+                Sequelize.where(Sequelize.fn("lower", Sequelize.col("external_name")), {
+                  [Op.in]: groupNames.map((g) => String(g).toLowerCase()),
+                }),
+              ],
+            },
             attributes: ["id"],
             raw: true,
           })

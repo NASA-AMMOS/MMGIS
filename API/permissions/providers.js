@@ -257,8 +257,10 @@ async function syncGroups(userId, identity, m = accountModels()) {
     raw: true,
   });
   if (groups.length === 0) return;
+  // Directory group names and DNs are case-insensitive, so "Science-Team" matches "science-team"
+  const reported = new Set(identity.groups.map((g) => String(g).toLowerCase()));
   const want = new Set(
-    groups.filter((g) => identity.groups.includes(g.external_name)).map((g) => g.id)
+    groups.filter((g) => g.external_name != null && reported.has(g.external_name.toLowerCase())).map((g) => g.id)
   );
   const have = new Set(
     (
@@ -275,6 +277,12 @@ async function syncGroups(userId, identity, m = accountModels()) {
     await m.AuthGroupMember.destroy({ where: { user_id: userId, group_id: remove } });
   if (add.length > 0)
     await m.AuthGroupMember.bulkCreate(add.map((group_id) => ({ group_id, user_id: userId })));
+}
+
+// The legacy lead group (LEADS) a login response reports, as a page reload does
+function leadGroups(username, leadGroupName) {
+  const leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
+  return leads.indexOf(username) != -1 ? [leadGroupName] : [];
 }
 
 async function completeLogin(req, identity) {
@@ -417,6 +425,7 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
       LinkError,
       returnTo: (value) => returnTo(value),
       completeLogin: (req, raw) => completeLogin(req, normalizeIdentity(p.id, raw)),
+      sessionGroups: (req, username) => leadGroups(username, req.leadGroupName),
     });
     app.use(prefix, providerLimiter(), registerRouter(prefix, router));
   });
@@ -438,6 +447,7 @@ module.exports = {
   linkIdentity,
   syncGroups,
   completeLogin,
+  leadGroups,
   returnTo,
   loginForms,
   providerLabel,

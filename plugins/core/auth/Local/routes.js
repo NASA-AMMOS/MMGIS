@@ -618,14 +618,7 @@ router.post("/resetPassword", resetLimiter, authorize.public("login and account 
 
 }
 
-function getUserGroups(user, leadGroupName) {
-  let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
-  let groups = {};
-  if (leads.indexOf(user) != -1) {
-    groups[leadGroupName] = true;
-  }
-  return Object.keys(groups);
-}
+const getUserGroups = (user, leadGroupName) => providers.leadGroups(user, leadGroupName);
 
 function clearLoginSession(req) {
   req.session.user = "guest";
