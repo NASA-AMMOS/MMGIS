@@ -10,9 +10,14 @@ const {
 
 // AUTH_LOCAL_LOGIN=admins: only accounts holding an admin role may log in locally
 const LOCAL_ADMINS_ONLY = "Only administrators may log in with a local account on this site.";
-async function localLoginAllowed(userId) {
-  if (!siteAccess.localAdminsOnly()) return true;
-  return policy.isAdministrator(await userPrincipal(userId));
+// Why this account may not sign in with a local password, or null if it may
+async function localLoginRefusal(userId) {
+  // Accounts linked to a login provider sign in through it (e.g. a local account relinked to LDAP)
+  if ((await AuthIdentity.count({ where: { user_id: userId } })) > 0)
+    return "This account signs in through its login provider.";
+  if (siteAccess.localAdminsOnly() && !policy.isAdministrator(await userPrincipal(userId)))
+    return LOCAL_ADMINS_ONLY;
+  return null;
 }
 const bcrypt = require("bcryptjs");
 
@@ -401,8 +406,8 @@ router.post("/login", authLimiter, accountLimiter, authorize.public("login and a
               });
             });
           };
-          return localLoginAllowed(user.id).then((allowed) => {
-            if (!allowed) return res.send({ status: "failure", message: LOCAL_ADMINS_ONLY });
+          return localLoginRefusal(user.id).then((refusal) => {
+            if (refusal) return res.send({ status: "failure", message: refusal });
             // A session that is not already this user's gets a new id
             if (String(req.session.uid) === String(user.id)) signIn();
             else
@@ -499,9 +504,9 @@ router.post("/login", authLimiter, accountLimiter, authorize.public("login and a
 
           bcrypt.compare(req.body.password, user.password, (err, result, again) => {
             if (!result) return pass(err, result, again);
-            localLoginAllowed(user.id)
-              .then((allowed) =>
-                allowed ? pass(err, result, again) : res.send({ status: "failure", message: LOCAL_ADMINS_ONLY })
+            localLoginRefusal(user.id)
+              .then((refusal) =>
+                refusal ? res.send({ status: "failure", message: refusal }) : pass(err, result, again)
               )
               .catch(() => res.send({ status: "failure", message: "Login failed." }));
           });

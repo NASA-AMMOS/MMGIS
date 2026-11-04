@@ -192,9 +192,38 @@ class LinkError extends Error {
 }
 
 function accountModels() {
-  const { AuthIdentity, AuthGroup, AuthGroupMember } = require("./models");
+  const { AuthIdentity, AuthGroup, AuthGroupMember, AuthMeta } = require("./models");
   const { User } = require("../../plugins/core/backend/Users/models/user");
-  return { User, AuthIdentity, AuthGroup, AuthGroupMember };
+  return { User, AuthIdentity, AuthGroup, AuthGroupMember, AuthMeta };
+}
+
+// An admin can let the next login through a provider claim an existing account, e.g. after
+// a directory rebuild gave everyone new subjects. Stored in auth_meta under relinkKey().
+const RELINK_HOURS = 24;
+const relinkKey = (provider, userId) => `relink:${provider}:${userId}`;
+
+async function claimRelink(identity, userId, m) {
+  if (!m.AuthMeta) return false;
+  const key = relinkKey(identity.provider, userId);
+  const claim = await m.AuthMeta.findOne({ where: { key }, raw: true });
+  const v = claim && claim.value;
+  if (!v || v.username !== identity.username || !(Date.parse(v.expires_at) > Date.now())) return false;
+  // Single use, even when two logins race for it
+  if (!(await m.AuthMeta.destroy({ where: { key } }))) return false;
+  await m.AuthIdentity.destroy({ where: { user_id: userId, provider: identity.provider } });
+  await m.AuthIdentity.create({
+    provider: identity.provider,
+    subject: identity.subject,
+    username: identity.username,
+    last_login_at: new Date(),
+    user_id: userId,
+  });
+  logger(
+    "warn",
+    `Account ${userId} '${identity.username}' is now linked to ${identity.provider} subject '${identity.subject}', as allowed by '${v.by}'.`,
+    "AuthProviders"
+  );
+  return true;
 }
 
 // Finds the account linked to provider+subject, creating one on first login.
@@ -230,6 +259,8 @@ async function linkIdentity(identity, m = accountModels()) {
     attributes: ["id"],
     raw: true,
   });
+  if (taken && (await claimRelink(identity, taken.id, m)))
+    return { id: taken.id, username: identity.username };
   if (taken)
     throw new LinkError(
       `The username '${identity.username}' already belongs to another account.`
@@ -501,6 +532,8 @@ module.exports = {
   identify,
   LinkError,
   linkIdentity,
+  RELINK_HOURS,
+  relinkKey,
   syncGroups,
   stillLinked,
   completeLogin,

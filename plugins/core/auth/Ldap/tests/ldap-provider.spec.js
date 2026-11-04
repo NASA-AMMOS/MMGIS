@@ -178,6 +178,41 @@ test.describe('LDAP login provider', () => {
     expect((await me(ctx)).authenticated).toBe(false);
   });
 
+  test('an admin can let one directory login claim an existing local account', async () => {
+    const username = `ldap_relink_${Date.now()}`;
+    const password = ['relink', 'test', 'password'].join('-');
+    const localPassword = ['Local', 'Pass', '1!x'].join('');
+    const dn = `uid=${username},ou=people,dc=example,dc=org`;
+    const added = directoryAdmin(`dn: ${dn}\nchangetype: add\nobjectClass: inetOrgPerson\nuid: ${username}\ncn: Relink\nsn: Relink\nuserPassword: ${password}\n`);
+    test.skip(!added, `SKIP: can't change the fixture directory (docker container ${container})`);
+    const adminCtx = await adminContext();
+    let accountId;
+    try {
+      const entries = async () => (await (await adminCtx.get('/api/accounts/entries')).json()).body.entries;
+      const made = await (await adminCtx.post('/api/users/signup', { data: { username, email: `${username}@example.org`, password: localPassword, skipLogin: true } })).json();
+      expect(made.status).toBe('success');
+      const account = (await entries()).find((e) => e.username === username);
+      accountId = account.id;
+      expect((await ldapLogin(await context(), { username, password })).status()).toBe(409);
+
+      const allowed = await (await adminCtx.post('/api/accounts/allowRelink', { data: { id: account.id, provider: 'ldap' } })).json();
+      expect(allowed.status).toBe('success');
+      expect((await entries()).find((e) => e.id === account.id).relink).toMatchObject({ provider: 'ldap' });
+
+      expect((await ldapLogin(await context(), { username, password })).status()).toBe(200);
+      const after = (await entries()).find((e) => e.username === username);
+      expect(after.id).toBe(account.id);
+      expect(after.sign_ins).toEqual([expect.objectContaining({ provider: 'ldap' })]);
+      expect(after.relink).toBeNull();
+      // Now linked to LDAP, so its old local password no longer signs in
+      const local = await (await (await context()).post('/api/users/login', { data: { username, password: localPassword, skipLogin: true } })).json();
+      expect(local.status).not.toBe('success');
+    } finally {
+      if (accountId) await adminCtx.delete(`/api/accounts/remove/${accountId}`);
+      directoryAdmin(`dn: ${dn}\nchangetype: delete\n`);
+    }
+  });
+
   test('LDAP accounts get no MMGIS password reset link', async () => {
     const ctx = await context();
     expect((await ldapLogin(ctx, alice)).status()).toBe(200);

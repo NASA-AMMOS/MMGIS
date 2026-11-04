@@ -206,7 +206,7 @@ test.describe('identities', () => {
 });
 
 // In-memory stand-ins for the Sequelize models linkIdentity/syncGroups use
-function fakeModels({ users = [], links = [], groups = [], members = [] } = {}) {
+function fakeModels({ users = [], links = [], groups = [], members = [], meta = [] } = {}) {
   const match = (row, where) =>
     Object.entries(where).every(([k, v]) => (Array.isArray(v) ? v.includes(row[k]) : row[k] === v));
   const table = (rows) => ({
@@ -216,13 +216,39 @@ function fakeModels({ users = [], links = [], groups = [], members = [] } = {}) 
     create: async (r) => { const row = { id: rows.length + 100, ...r }; rows.push(row); return row; },
     bulkCreate: async (list) => list.forEach((r) => rows.push(r)),
     update: async (fields, { where }) => rows.filter((r) => match(r, where)).forEach((r) => Object.assign(r, fields)),
-    destroy: async ({ where }) => { for (let i = rows.length - 1; i >= 0; i--) if (match(rows[i], where)) rows.splice(i, 1); },
+    destroy: async ({ where }) => { let n = 0; for (let i = rows.length - 1; i >= 0; i--) if (match(rows[i], where)) { rows.splice(i, 1); n++; } return n; },
   });
-  return { User: table(users), AuthIdentity: table(links), AuthGroup: table(groups), AuthGroupMember: table(members) };
+  return { User: table(users), AuthIdentity: table(links), AuthGroup: table(groups), AuthGroupMember: table(members), AuthMeta: table(meta) };
 }
 const identity = (o) => providers.normalizeIdentity('keycloak', o);
 
 test.describe('account linking', () => {
+  const relinkModels = (value) =>
+    fakeModels({
+      users: [{ id: 1, username: 'carol' }],
+      links: [{ provider: 'keycloak', subject: 'old', user_id: 1 }],
+      meta: [{ key: 'relink:keycloak:1', value: { username: 'carol', by: 'admin', expires_at: new Date(Date.now() + 60000).toISOString(), ...value } }],
+    });
+
+  test('an allowed relink lets the next login with that username claim the account, once', async () => {
+    const m = relinkModels();
+    const user = await providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), m);
+    expect(user.id).toBe(1);
+    expect(m.AuthIdentity.rows).toEqual([expect.objectContaining({ provider: 'keycloak', subject: 'new', user_id: 1 })]);
+    expect(m.AuthMeta.rows).toEqual([]);
+    await expect(providers.linkIdentity(identity({ subject: 'newer', username: 'carol' }), m)).rejects.toThrow(providers.LinkError);
+  });
+
+  test('a relink is refused once expired, for another username, or for another provider', async () => {
+    const past = new Date(Date.now() - 1000).toISOString();
+    await expect(providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), relinkModels({ expires_at: past }))).rejects.toThrow(providers.LinkError);
+    const other = relinkModels({ username: 'someone_else' });
+    await expect(providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), other)).rejects.toThrow(providers.LinkError);
+    const m = relinkModels();
+    await expect(providers.linkIdentity(providers.normalizeIdentity('ldap', { subject: 'new', username: 'carol' }), m)).rejects.toThrow(providers.LinkError);
+    expect(m.AuthIdentity.rows).toEqual([expect.objectContaining({ subject: 'old' })]);
+  });
+
   test('first login creates an account and a link; later logins reuse it', async () => {
     const m = fakeModels();
     const first = await providers.linkIdentity(identity({ subject: 'sub-1', username: 'kc_user' }), m);

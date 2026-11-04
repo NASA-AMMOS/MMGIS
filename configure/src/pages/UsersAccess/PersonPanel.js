@@ -19,7 +19,7 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import { useStyles } from "./styles";
-import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES } from "./shared";
+import { AUDIENCE_LABEL, SubjectTag, EFFECTIVE_ROWS, api, GrantsTable, sourceText, MissionMultiSelect, PickButton, PanelHeader, SectionHead, VIEW_ROLES, signInText } from "./shared";
 
 export function PersonPanel({ user, ctx }) {
   const c = useStyles();
@@ -63,6 +63,22 @@ export function PersonPanel({ user, ctx }) {
   useEffect(() => setEmail(user.email || ""), [user.id, user.email]);
   const memberOf = groups.filter((g) => g.members.some((m) => m.id === user.id));
   const myTokens = tokens.filter((t) => t.created_by_user_id === user.id);
+
+  const relinkProviders = String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local");
+  const relink = (provider, cancel = false) =>
+    api("account_allow_relink", { id: user.id, provider, cancel })
+      .then(() => {
+        notify(cancel ? "Relink cancelled." : "Relink allowed.", "success");
+        refresh();
+      })
+      .catch((res) => notify(res.message || "Failed.", "error"));
+  const askRelink = (p) =>
+    ctx.askConfirm({
+      title: `Allow ${p.toUpperCase()} relink?`,
+      text: `For the next 24 hours, the next ${p.toUpperCase()} login as '${user.username}' takes over this account, keeping its roles, grants, tokens and drawings. Use it when the directory gave this person a new ID, or to move a local account to ${p.toUpperCase()}.`,
+      action: "Allow",
+      onConfirm: () => relink(p),
+    });
 
   const trimmedEmail = email.trim();
   // A blank field removes the email
@@ -126,6 +142,25 @@ export function PersonPanel({ user, ctx }) {
             Save
           </Button>
         </div>
+        {relinkProviders.length > 0 && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+            <Typography variant="body2">Signs in with {signInText(user)}.</Typography>
+            {user.relink ? (
+              <>
+                <Typography variant="body2">
+                  The next {user.relink.provider.toUpperCase()} login as '{user.username}' can claim this account until {new Date(user.relink.expires_at).toLocaleString()}.
+                </Typography>
+                <Button size="small" onClick={() => relink(user.relink.provider, true)}>Cancel relink</Button>
+              </>
+            ) : (
+              relinkProviders.map((p) => (
+                <Button key={p} variant="outlined" size="small" onClick={() => askRelink(p)}>
+                  Allow {p.toUpperCase()} relink
+                </Button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className={c.section}>

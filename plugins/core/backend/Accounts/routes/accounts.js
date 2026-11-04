@@ -19,7 +19,7 @@ const bindings = require("../../../../../API/permissions/bindings");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
 const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { RoleBinding, AuthIdentity } = require("../../../../../API/permissions/models");
+const { RoleBinding, AuthIdentity, AuthMeta } = require("../../../../../API/permissions/models");
 const providers = require("../../../../../API/permissions/providers");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
 const connections = require("../../../../../API/connections");
@@ -57,6 +57,12 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
           username: l.username,
           last_login_at: l.last_login_at,
         });
+      const relinks = {};
+      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
+        const [, provider, userId] = r.key.split(":");
+        if (r.value && Date.parse(r.value.expires_at) > Date.now())
+          relinks[userId] = { provider, expires_at: r.value.expires_at };
+      }
       const byUser = {};
       for (const b of userBindings)
         (byUser[b.subject_id] = byUser[b.subject_id] || []).push({
@@ -70,6 +76,7 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
             ...u,
             role: policy.accountRole(byUser[String(u.id)] || []),
             sign_ins: signIns[u.id] || [],
+            relink: relinks[u.id] || null,
           })),
         },
       });
@@ -301,6 +308,51 @@ router.post("/updateDefaults", authorize("accounts.manage"), function (req, res)
         message: "Failed to update account defaults.",
       });
     });
+});
+
+// Lets the next login through a provider with this account's username take the account over,
+// once, within RELINK_HOURS. For accounts whose provider identity changed (directory rebuild) or
+// local accounts moving to a provider. { id, provider } allows; { id, provider, cancel: true } cancels.
+router.post("/allowRelink", authorize("accounts.manage"), async function (req, res) {
+  const fail = (message, status = 200) => res.status(status).send({ status: "failure", message });
+  try {
+    if (req.principal && req.principal.kind === "token")
+      return fail("Relinking can only be allowed from a signed-in session.", 403);
+    const id = parseInt(req.body.id);
+    const provider = String(req.body.provider || "");
+    if (isNaN(id)) return fail("Account id is missing.");
+    if (provider === "local" || !providers.enabledProviders().some((p) => p.id === provider))
+      return fail(`'${provider}' isn't an enabled login provider.`);
+    const user = await User.findOne({ where: { id }, attributes: ["id", "username"], raw: true });
+    if (!user) return fail("User not found.");
+    const key = providers.relinkKey(provider, id);
+    const actor = await ensurePrincipal(req);
+    if (req.body.cancel) {
+      await AuthMeta.destroy({ where: { key } });
+      logger("info", `'${actor.username}' cancelled the ${provider} relink for account ${id} '${user.username}'.`, "accounts", req);
+      return res.send({ status: "success", message: "Relink cancelled." });
+    }
+    // The account's grants carry over, so a SuperAdmin account can only be handed over by a SuperAdmin
+    const superAdmin = await RoleBinding.findOne({
+      where: { subject_type: "user", subject_id: String(id), role: "superadmin", scope_type: "global" },
+      attributes: ["id"],
+      raw: true,
+    });
+    if (superAdmin && !policy.isSuperAdmin(actor))
+      return fail("Only SuperAdmins may allow relinking a SuperAdmin account.");
+    const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
+    await AuthMeta.upsert({ key, value: { username: user.username, expires_at, by: actor.username } });
+    logger(
+      "warn",
+      `'${actor.username}' allowed the next ${provider} login as '${user.username}' to claim account ${id} until ${expires_at}.`,
+      "accounts",
+      req
+    );
+    res.send({ status: "success", message: "Relink allowed.", body: { provider, expires_at } });
+  } catch (err) {
+    logger("error", "Failed to allow relinking.", req.originalUrl, req, err);
+    fail("Failed to allow relinking.");
+  }
 });
 
 router.post("/generateResetPasswordLink", authorize("accounts.manage"), function (req, res, next) {
