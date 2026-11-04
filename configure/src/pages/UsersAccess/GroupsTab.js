@@ -35,7 +35,7 @@ export default function GroupsTab({ ctx }) {
                 </Select>
               )}
               {newGroup.source !== "local" && (
-                <TextField size="small" className={c.field} placeholder={`${newGroup.source.toUpperCase()} group name`} value={newGroup.external_name} onChange={(e) => setNewGroup({ ...newGroup, external_name: e.target.value })} />
+                <TextField size="small" className={c.field} placeholder={`${newGroup.source.toUpperCase()} group, as logged at sign-in`} value={newGroup.external_name} onChange={(e) => setNewGroup({ ...newGroup, external_name: e.target.value })} />
               )}
               <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} disabled={!newGroup.name.trim()} onClick={() =>
                 api("access_groups_create", { name: newGroup.name, source: newGroup.source, external_name: newGroup.external_name || undefined })

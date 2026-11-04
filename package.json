@@ -49,7 +49,7 @@
     "plugins": "node plugin-cli/cli.js",
     "plugins:install": "node scripts/resolve-plugin-deps.js && node scripts/install-plugin-deps.js",
     "test": "playwright test",
-    "test:unit": "cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true playwright test tests/unit",
+    "test:unit": "cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true playwright test tests/unit plugins/.*-unit.spec.js",
     "test:ci": "cross-env PLAYWRIGHT_TEST_UNIT_ONLY=true playwright test tests/ci",
     "test:e2e": "cross-env DB_NAME=mmgis-test playwright test tests/e2e",
     "test:e2e:api": "cross-env DB_NAME=mmgis-test playwright test tests/e2e/api",

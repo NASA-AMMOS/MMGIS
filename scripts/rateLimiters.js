@@ -16,11 +16,13 @@ const failedLoginLimit = () => {
   return Number.isInteger(n) && n > 0 ? n : 5;
 };
 
-// "CORP\\Alice", "alice@corp.example.org" and fullwidth "ａｌｉｃｅ" count as "alice"
+// "CORP\\Alice", "alice@corp.example.org", fullwidth "ａｌｉｃｅ" and "alİce" count as "alice"
+// (directories match the dotted capital İ as i)
 const accountKey = (username) =>
   String(username)
     .normalize('NFKC')
     .trim()
+    .replace(/\u0130/g, 'I')
     .toLowerCase()
     .replace(/^[^\\]*\\/, '')
     .replace(/@.*$/, '');

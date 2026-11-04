@@ -86,6 +86,11 @@ test.describe('LDAP login provider', () => {
     const res = await ctx.post('/api/auth/ldap/login', { data: bob, headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' } });
     expect(res.status()).toBe(403);
     expect((await ldapLogin(ctx, bob)).status()).toBe(200);
+    // The shared form's local option posts to /api/users/login, so that alias is refused too
+    for (const path of ['/api/users/login', '/api/auth/local/login']) {
+      const local = await (await context()).post(path, { data: admin, headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' } });
+      expect(local.status()).toBe(403);
+    }
   });
 
   test('requests refused for other reasons than wrong credentials do not use up the address limit', async () => {

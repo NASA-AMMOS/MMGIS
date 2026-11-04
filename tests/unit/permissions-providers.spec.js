@@ -621,7 +621,7 @@ test.describe('provider rechecks', () => {
 
   test('LDAP group DNs typed in another case or spacing are saved in the form LDAP reports', () => {
     expect(providers.groupName('ldap', 'CN=Ops, OU=Groups,DC=Example,DC=org')).toBe('cn=ops,ou=groups,dc=example,dc=org');
-    expect(providers.groupName('ldap', 'Science Team')).toBe('Science Team');
+    expect(() => providers.groupName('ldap', 'Science Team')).toThrow(/enter the group's DN/);
     expect(providers.groupName('local', 'CN=Ops')).toBe('CN=Ops');
   });
 

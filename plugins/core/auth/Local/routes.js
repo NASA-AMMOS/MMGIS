@@ -39,6 +39,8 @@ const bindings = require("../../../../API/permissions/bindings");
 const setupCode = require("../../../../API/permissions/setupCode");
 const { LongTermTokens } = require("../../backend/LongTermToken/models/longtermtokens");
 const { AuthIdentity } = require("../../../../API/permissions/models");
+// Required lazily: connections/routes loads the provider registry, which loads this file
+const sameOriginOnly = (req, res, next) => require("../../../../API/connections/routes").sameOriginOnly(req, res, next);
 
 // Same message whether the username or the email is taken
 const SIGNUP_UNAVAILABLE =
@@ -150,7 +152,7 @@ router.post("/first_signup", signupLimiter, authorize.public("login and account 
     });
 });
 
-router.post("/signup", signupLimiter, authorize.public("login and account self-service"), function (req, res, next) {
+router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login and account self-service"), function (req, res, next) {
   const accountManager = policy.can(req.principal, "accounts.manage");
   const selfSignup = siteAccess.selfSignupAllowed();
   if (!accountManager && !selfSignup) {
@@ -203,12 +205,9 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
     token: null,
   };
 
-  //Make sure user doesn't already exit
-  User.findOne({
-    where: {
-      username: newUser.username,
-    },
-  })
+  // Make sure no account has this username, in any case or Unicode form
+  providers
+    .usernameTaken(newUser.username)
     .then(async (user) => {
       if (user == null) {
         // SuperAdmins may override the site default for what the new account can view
@@ -326,7 +325,8 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
 /**
  * User login
  */
-router.post("/login", authLimiter, accountLimiter, authorize.public("login and account self-service"), function (req, res) {
+// Refuses posts from other sites (login CSRF), also at the /api/users/login alias the login forms use
+router.post("/login", sameOriginOnly, authLimiter, accountLimiter, authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;

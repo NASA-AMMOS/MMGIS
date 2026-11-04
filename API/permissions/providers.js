@@ -188,7 +188,7 @@ async function identify(req) {
 // Draw keeps group-shared and master files under the owner "group"
 // and a deleted account's files under "~deleted~<id>~<random>"
 const reservedUsername = (name) => {
-  const n = String(name).normalize("NFKC").trim().toLowerCase();
+  const n = String(name).normalize("NFKC").trim().replace(/\u0130/g, "I").toLowerCase();
   return n === "group" || n.startsWith("~deleted~");
 };
 
@@ -213,6 +213,17 @@ async function who(m, userId) {
   return u && u.username ? `account ${userId} '${u.username}'` : `account ${userId}`;
 }
 
+// Usernames differing only in case or Unicode form ("josé" composed or not) would be look-alike accounts
+function usernameTaken(username) {
+  const { User } = require("../../plugins/core/backend/Users/models/user");
+  const { sequelize } = require("../connection");
+  const folded = sequelize.fn(
+    "lower",
+    sequelize.fn("replace", sequelize.fn("normalize", sequelize.col("username"), sequelize.literal("NFKC")), "\u0130", "I")
+  );
+  return User.findOne({ where: sequelize.where(folded, fold(username)), attributes: ["id"], raw: true });
+}
+
 function accountModels() {
   const { AuthIdentity, AuthGroup, AuthGroupMember, AuthMeta } = require("./models");
   const { User } = require("../../plugins/core/backend/Users/models/user");
@@ -224,13 +235,7 @@ function accountModels() {
     AuthGroupMember,
     AuthMeta,
     transaction: (fn) => sequelize.transaction(fn),
-    // Usernames differing only in case would be two accounts for one directory person
-    usernameTaken: (username) =>
-      User.findOne({
-        where: sequelize.where(sequelize.fn("lower", sequelize.col("username")), String(username).toLowerCase()),
-        attributes: ["id"],
-        raw: true,
-      }),
+    usernameTaken,
     // connect-pg-simple's session table has no model; Local's password reset ends sessions the same way
     endSessionsOf: (userId) =>
       sequelize.query(`DELETE FROM "session" WHERE sess->>'uid' = :uid`, { replacements: { uid: String(userId) } }),
@@ -256,8 +261,9 @@ async function markMissing(m, provider, userId, gone, subject) {
       if (err.name !== "SequelizeUniqueConstraintError") throw err;
     });
 }
-const sameUsername = (a, b) =>
-  String(a).normalize("NFKC").toLowerCase() === String(b).normalize("NFKC").toLowerCase();
+// Directories match the dotted capital İ as i, which toLowerCase() alone turns into i + U+0307
+const fold = (s) => String(s).normalize("NFKC").replace(/\u0130/g, "I").toLowerCase();
+const sameUsername = (a, b) => fold(a) === fold(b);
 
 async function findClaim(identity, m) {
   if (!m.AuthMeta) return null;
@@ -342,9 +348,15 @@ async function claimRelink(identity, m) {
 }
 
 // A provider group's external name as the provider reports it, e.g. a DN in LDAP's canonical form
+// A provider may throw to refuse a name that can never match; the message is shown to the admin
 function groupName(providerId, name) {
   const p = getProvider(providerId);
-  return p && typeof p.impl.groupName === "function" && typeof name === "string" ? p.impl.groupName(name) : name;
+  if (!(p && typeof p.impl.groupName === "function" && typeof name === "string")) return name;
+  try {
+    return p.impl.groupName(name);
+  } catch (err) {
+    throw new (require("./bindings").BindingError)(err.message);
+  }
 }
 
 // Whether the entry with this subject still exists at the provider, even disabled or moved where logins
@@ -804,6 +816,7 @@ module.exports = {
   identify,
   LinkError,
   reservedUsername,
+  usernameTaken,
   linkIdentity,
   RELINK_HOURS,
   relinkKey,

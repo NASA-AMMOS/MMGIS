@@ -63,7 +63,7 @@ const fill = (template, values) =>
   template.replace(/\{\{(username|dn)\}\}/g, (m, key) => (values[key] != null ? values[key] : m));
 
 // "CN=Science Team, OU=Groups,DC=corp" -> "cn=science team,ou=groups,dc=corp", so one group always
-// reads the same however the directory spaces, capitalizes or escapes it (\, and \2c alike)
+// reads the same however the directory spaces, capitalizes, escapes (\, and \2c alike) or composes it (é)
 function normalizeDn(dn) {
   const s = String(dn);
   const rdns = [];
@@ -72,7 +72,7 @@ function normalizeDn(dn) {
   let bytes = [];
   const text = (str) => bytes.push(...Buffer.from(str, "utf8"));
   const endAva = () => {
-    const value = Buffer.from(bytes).toString("utf8").trim().toLowerCase();
+    const value = Buffer.from(bytes).toString("utf8").normalize("NFC").trim().toLowerCase();
     avas.push(type == null ? value : `${type.trim().toLowerCase()}=${value.replace(/[\\,+"<>;]/g, "\\$&").replace(/^[ #]/, "\\$&")}`);
     type = null;
     bytes = [];
@@ -706,10 +706,15 @@ module.exports = {
     const c = config(env);
     return { title: c.displayName, usernameLabel: c.usernameLabel, hint: c.hint };
   },
-  // Group DNs are matched in the form groupsOf reports them
+  // Group DNs are matched in the form groupsOf reports them; a plain name would never match one
   groupName: (name) => {
     const c = config();
-    return !(c.groupNameAttribute && c.groupSearchBase) && name.includes("=") ? normalizeDn(name.trim()) : name;
+    if (c.groupNameAttribute && c.groupSearchBase) return name;
+    if (!name.includes("="))
+      throw new Error(
+        `LDAP reports groups by DN, so enter the group's DN (e.g. cn=${name.trim() || "science-team"},ou=groups,dc=example,dc=org), as listed under "Directory groups" in the server log at each LDAP sign-in.`
+      );
+    return normalizeDn(name.trim());
   },
   lookup: (subject) => lookup(subject),
   locate: (subject) => locate(subject),

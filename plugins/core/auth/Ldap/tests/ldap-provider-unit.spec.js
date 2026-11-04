@@ -80,7 +80,25 @@ test.describe('LDAP escaping', () => {
     expect(normalizeDn('cn=Weird\\2c Group\\2bx,dc=x')).toBe('cn=weird\\, group\\+x,dc=x');
     expect(normalizeDn('cn=Gr\\c3\\bcne,dc=x')).toBe('cn=grüne,dc=x');
     expect(normalizeDn('cn=a+uid=B,dc=x')).toBe('cn=a+uid=b,dc=x');
+    expect(normalizeDn('uid=jose\u0301,dc=x')).toBe(normalizeDn('uid=jos\u00e9,dc=x'));
     expect(normalizeDn('cn=admins,ou=a,dc=x')).not.toBe(normalizeDn('cn=admins,ou=b,dc=x'));
+  });
+
+  test('groupName refuses plain names while groups are reported by DN', () => {
+    const saved = { a: process.env.LDAP_GROUP_NAME_ATTRIBUTE, b: process.env.LDAP_GROUP_SEARCH_BASE };
+    try {
+      delete process.env.LDAP_GROUP_NAME_ATTRIBUTE;
+      delete process.env.LDAP_GROUP_SEARCH_BASE;
+      expect(ldap.groupName('CN=Data-Admins,OU=Groups,DC=x')).toBe('cn=data-admins,ou=groups,dc=x');
+      expect(() => ldap.groupName('data-admins')).toThrow(/enter the group's DN/);
+      process.env.LDAP_GROUP_NAME_ATTRIBUTE = 'cn';
+      process.env.LDAP_GROUP_SEARCH_BASE = 'ou=groups,dc=x';
+      expect(ldap.groupName('Data-Admins')).toBe('Data-Admins');
+    } finally {
+      for (const [k, v] of [['LDAP_GROUP_NAME_ATTRIBUTE', saved.a], ['LDAP_GROUP_SEARCH_BASE', saved.b]])
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+    }
   });
 
   test('Active Directory objectGUIDs are formatted like AD shows them', () => {
