@@ -734,7 +734,9 @@ test.describe('provider rechecks', () => {
 
   test('a subject value re-cased at the same entry needs a relink; another entry is refused as a reused name', async () => {
     const realLocate = ldap.locate;
+    const realPermanent = ldap.subjectPermanent;
     try {
+      ldap.subjectPermanent = () => false;
       const models = () =>
         fakeModels({
           users: [{ id: 9090, username: 'ldap_alice' }],
@@ -754,11 +756,13 @@ test.describe('provider rechecks', () => {
       // Its old value found at this entry too, but the value itself is different (e.g. a second cn)
       ldap.locate = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice' });
       await expect(providers.linkIdentity({ ...alice, subject: 'Mallory' }, models())).rejects.toThrow(/name was reused/);
+      expect(providers.sameFolded('Alice  Directory', '\uff21lice directory ')).toBe(true);
       // The search base finds only the new entry, but the old one still exists elsewhere (e.g. moved to leavers)
       ldap.lookup = async () => ({ dn: 'uid=Ldap_Alice,ou=people', username: 'Ldap_Alice', groups: [] });
       ldap.locate = async () => ({});
       await expect(providers.linkIdentity(alice, models())).rejects.toThrow(/name was reused/);
     } finally {
+      ldap.subjectPermanent = realPermanent;
       ldap.locate = realLocate;
     }
   });
@@ -773,6 +777,22 @@ test.describe('provider rechecks', () => {
       });
       await expect(providers.linkIdentity({ provider: 'ldap', subject: 'bob directory', dn: 'uid=bob2,ou=people', username: 'bob2', groups: [] }, m)).rejects.toThrow(/except for letter case/);
       expect(m.User.rows).toHaveLength(1);
+    } finally {
+      ldap.subjectPermanent = realPermanent;
+    }
+  });
+
+  test('a recheck that finds the stored value only without case treats the account as gone', async () => {
+    const realPermanent = ldap.subjectPermanent;
+    try {
+      ldap.subjectPermanent = () => false;
+      ldap.lookup = async (subject) => ({ subject, current: 'dave leaver', dn: 'uid=dave_new,ou=people', username: 'dave_new', groups: ['cn=science-team'] });
+      const m = fakeModels({
+        users: [{ id: 9097, username: 'dave_old' }],
+        links: [{ provider: 'ldap', subject: 'Dave Leaver', username: 'dave_old', user_id: 9097 }],
+      });
+      expect(await providers.stillLinked(9097, 'ldap', m, true, true)).toBe('missing');
+      expect(m.AuthIdentity.rows[0].username).toBe('dave_old');
     } finally {
       ldap.subjectPermanent = realPermanent;
     }

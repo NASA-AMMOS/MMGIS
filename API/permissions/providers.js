@@ -304,7 +304,9 @@ function matchUsername(rows, name) {
   return { match: rows.find((r) => r.username === name) || (alike.length === 1 ? alike[0] : null), alike };
 }
 
-const sameFolded = (a, b) => String(a).normalize("NFC").toLowerCase() === String(b).normalize("NFC").toLowerCase();
+// As directories usually match names: without case, Unicode compatibility forms or extra spaces
+const foldValue = (v) => String(v).normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+const sameFolded = (a, b) => foldValue(a) === foldValue(b);
 
 async function findClaim(identity, m) {
   if (!m.AuthMeta) return null;
@@ -693,7 +695,16 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       );
     // The same entry, its value only re-cased (e.g. uid ldap_alice to Ldap_Alice), which the directory matches either way
     // Only re-cased at what looks like the same entry: still possibly a newcomer, since the directory compares it without case
-    const anywhere = still && identity.dn && sameFolded(sameName.subject, identity.subject) ? await locateAnywhere(identity.provider, sameName.subject).catch(() => undefined) : undefined;
+    // A DN is unique whatever its case, so a re-cased DN subject is the same entry
+    if (subjectSetting(provider) === "dn" && sameFolded(sameName.subject, identity.subject) && !retried) {
+      await m.AuthIdentity.update({ subject: identity.subject }, { where: { user_id: sameName.user_id, provider: identity.provider, subject: sameName.subject } });
+      return linkIdentity(identity, m, true);
+    }
+    const anywhere = still && identity.dn && sameFolded(sameName.subject, identity.subject) && provider && typeof provider.impl.subjectPermanent === "function" && !provider.impl.subjectPermanent() ? await locateAnywhere(identity.provider, sameName.subject).catch(() => undefined) : undefined;
+    if (anywhere === undefined && still && identity.dn && sameFolded(sameName.subject, identity.subject) && typeof provider.impl.subjectPermanent === "function" && !provider.impl.subjectPermanent())
+      throw new LinkError(
+        `'${identity.username}' (subject '${identity.subject}') matches account ${sameName.user_id}'s subject '${sameName.subject}' except for letter case or spacing, but ${identity.provider} couldn't search the whole directory to tell whether it's the same entry. Check that its service account can read the directory root, then allow a relink on account ${sameName.user_id} if it's the same person.`
+      );
     if (anywhere && anywhere.dn && sameFolded(anywhere.dn, identity.dn))
       throw new LinkError(
         `'${identity.username}' (subject '${identity.subject}') matches account ${sameName.user_id}'s subject '${sameName.subject}' except for letter case, at ${identity.dn}. If it's the same person, allow a relink on account ${sameName.user_id}; if the directory gave the value to someone new, don't.`
@@ -714,7 +725,7 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
     );
     if (twin)
       throw new LinkError(
-        `'${identity.username}' (subject '${identity.subject}') matches account ${twin.user_id}'s subject '${twin.subject}' except for letter case${identity.dn ? `, at ${identity.dn}` : ""}. If it's the same person, allow a relink on account ${twin.user_id}; if the directory gave the value to someone new, don't.`
+        `'${identity.username}' (subject '${identity.subject}') matches account ${twin.user_id}'s subject '${twin.subject}' except for letter case${identity.dn ? `, at ${identity.dn}` : ""}. If it's the same person, allow a relink on account ${twin.user_id}. If the directory gave the value to someone new, don't: they can sign in once the directory gives them a different value, or account ${twin.user_id} is deleted (giving its drawings to whoever should keep them).`
       );
   }
   // MMGIS stores both in 255-character columns
@@ -883,6 +894,8 @@ function stillLinked(userId, providerId, m, force = false, detail = false) {
     try {
       // Under another subject setting the stored value may now name a different entry
       found = subjectFits(p, link) ? await withTimeout(p.impl.lookup(link.subject), "lookup(subject)", lookupTimeout(p)) : null;
+      // Matched only without case (e.g. a newcomer given a leaver's cn re-cased): a sign-in from it is refused too
+      if (found && found.current && found.current !== link.subject && typeof p.impl.subjectPermanent === "function" && !p.impl.subjectPermanent()) found = null;
     } catch (err) {
       logger(
         "warn",

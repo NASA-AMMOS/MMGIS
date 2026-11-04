@@ -457,6 +457,10 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       const anywhere =
         old && target.dn && providers.sameFolded(known.subject, target.subject) ? await providers.locateAnywhere(provider, known.subject).catch(() => undefined) : undefined;
       // Only re-cased (e.g. uid ldap_alice to Ldap_Alice) at the same DN: the admin decides whether it's the same person
+      if (old && target.dn && providers.sameFolded(known.subject, target.subject) && anywhere === undefined)
+        return fail(
+          `${target.dn}'s subject '${target.subject}' matches '${user.username}''s '${known.subject}' except for letter case or spacing, but ${provider} couldn't search the whole directory to tell whether it's the same entry. Check that its service account can read the directory root, then try again.`
+        );
       const recased = anywhere && anywhere.dn && providers.sameFolded(anywhere.dn, target.dn);
       if (old && !recased)
         return fail(

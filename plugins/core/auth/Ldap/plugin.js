@@ -524,6 +524,8 @@ async function lookup(subject, c = config(), createClient = newClient) {
     const groupsLeftOut = [];
     return {
       subject,
+      // The entry's own value, which the directory may have matched without case
+      current: subjectOf(entry, c),
       dn: entry.dn,
       username: name != null ? String(name) : undefined,
       email: email != null ? String(email) : undefined,
