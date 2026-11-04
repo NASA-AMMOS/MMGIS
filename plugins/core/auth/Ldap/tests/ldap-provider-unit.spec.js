@@ -54,7 +54,7 @@ const alice = {
   },
 };
 
-test.describe('LDAP escaping', () => {
+test.describe('LDAP escaping', { tag: '@unit' }, () => {
   test('usernames are escaped in filters (RFC 4515) and DNs (RFC 4514)', () => {
     expect(escapeFilter('a*)(uid=*')).toBe('a\\2a\\29\\28uid=\\2a');
     expect(escapeFilter('back\\slash\0')).toBe('back\\5cslash\\00');
@@ -143,7 +143,7 @@ test.describe('LDAP escaping', () => {
   });
 });
 
-test.describe('LDAP login', () => {
+test.describe('LDAP login', { tag: '@unit' }, () => {
   test('search mode: service account finds the person, their password is checked by binding as them', async () => {
     const log = [];
     const id = await authenticate('alice', 'right', config(base), fakeClient([alice], log));
@@ -436,7 +436,7 @@ test.describe('LDAP login', () => {
   });
 });
 
-test.describe('LDAP settings', () => {
+test.describe('LDAP settings', { tag: '@unit' }, () => {
   const problems = (env) => ldap.validate(env).join('\n');
 
   test('a valid search or direct-bind setup has no problems', () => {
@@ -497,7 +497,7 @@ test.describe('LDAP settings', () => {
   });
 });
 
-test.describe('Rechecking existing sessions and tokens', () => {
+test.describe('Rechecking existing sessions and tokens', { tag: '@unit' }, () => {
   const { lookup, subjectFilter, authenticate: auth } = ldap._internal;
   const byUuid = (entries) => () => ({
     async startTLS() {},
@@ -569,7 +569,7 @@ test.describe('Rechecking existing sessions and tokens', () => {
   });
 });
 
-test.describe('Whether an old entry still exists (locate)', () => {
+test.describe('Whether an old entry still exists (locate)', { tag: '@unit' }, () => {
   const { locate } = ldap._internal;
   const client = (search) => () => ({ async bind() {}, search, async unbind() {} });
   const env = { ...base, LDAP_BIND_PASSWORD: 'locate-test' }; // pragma: allowlist secret

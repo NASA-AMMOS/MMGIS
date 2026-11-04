@@ -42,6 +42,9 @@ tests/
 
 A plugin's own tests and fixtures live inside the plugin, in `plugins/<container>/<kind>/<Name>/tests/` (for example `plugins/core/auth/Ldap/tests/`), so the plugin stays self-contained. Playwright picks up `plugins/**/tests/*.spec.js`. `tests/` is for tests that span several plugins or the core.
 
+- **Unit tests** (no server or database): tag them `@unit`, e.g. `test.describe('My plugin', { tag: '@unit' }, ...)`. `npm run test:plugins:unit` and CI run every plugin's `@unit` tests, so a new plugin needs no CI change.
+- **Tests that need an outside service or settings** (a directory, a proxy): skip themselves when those settings are missing (`test.skip(!process.env.LDAP_URL, ...)`), so `playwright test plugins` works anywhere. Keep the service's setup script in the plugin (e.g. `plugins/core/auth/Ldap/tests/openldap/start.sh`) and give it its own CI job.
+
 ## Prerequisites
 
 - **PostgreSQL** with **PostGIS** extension
@@ -62,6 +65,7 @@ The test infrastructure automatically:
 npm test              # Unit + E2E (all suites)
 npm run test:e2e      # All E2E suites
 npm run test:unit     # Unit tests only (fast, no server needed)
+npm run test:plugins:unit  # Plugins' @unit tests
 ```
 
 ### Run Targeted E2E Suites
