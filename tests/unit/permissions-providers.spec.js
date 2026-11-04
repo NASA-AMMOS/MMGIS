@@ -276,6 +276,13 @@ test.describe('account linking', () => {
     expect(m.User.rows).toHaveLength(1);
   });
 
+  test('a relink pinned to an entry is claimed by that entry even after it was renamed', async () => {
+    const m = relinkModels({ subject: 'new' });
+    expect((await providers.linkIdentity(identity({ subject: 'new', username: 'carol2' }), m)).id).toBe(1);
+    const other = relinkModels({ subject: 'new' });
+    await expect(providers.linkIdentity(identity({ subject: 'look-alike', username: 'carol' }), other)).rejects.toThrow(providers.LinkError);
+  });
+
   test('a relink is refused once expired, for another username, or for another provider', async () => {
     const past = new Date(Date.now() - 1000).toISOString();
     await expect(providers.linkIdentity(identity({ subject: 'new', username: 'carol' }), relinkModels({ expires_at: past }))).rejects.toThrow(providers.LinkError);
@@ -478,5 +485,45 @@ test.describe('identify', () => {
       fs.rmSync(root, { recursive: true, force: true });
       providers.loadProviders(REAL_ROOT);
     }
+  });
+});
+
+test.describe('provider rechecks', () => {
+  let ldap, lookup;
+  test.beforeAll(() => {
+    providers.loadProviders(REAL_ROOT);
+    ldap = providers.getProvider('ldap').impl;
+    lookup = ldap.lookup;
+  });
+  test.afterAll(() => (ldap.lookup = lookup));
+  const models = (userId) =>
+    fakeModels({
+      groups: [{ id: 1, source: 'ldap', external_name: 'cn=ops,ou=groups,dc=example,dc=org' }],
+      members: [{ group_id: 1, user_id: userId }],
+      links: [{ provider: 'ldap', subject: 'old', user_id: userId }],
+    });
+
+  test('a directory that cannot be reached keeps access and groups', async () => {
+    const m = models(9001);
+    ldap.lookup = async () => { throw new Error('down'); };
+    expect(await providers.stillLinked(9001, 'ldap', m)).toBe(true);
+    expect(m.AuthGroupMember.rows).toHaveLength(1);
+  });
+
+  test('an entry the directory no longer has loses access and its provider groups', async () => {
+    const m = models(9002);
+    ldap.lookup = async () => null;
+    expect(await providers.stillLinked(9002, 'ldap', m)).toBe(false);
+    expect(m.AuthGroupMember.rows).toEqual([]);
+  });
+
+  test('a relink during the lookup is not undone by the old subject coming back empty', async () => {
+    const m = models(9003);
+    ldap.lookup = async () => {
+      m.AuthIdentity.rows[0] = { ...m.AuthIdentity.rows[0], subject: 'new' };
+      return null;
+    };
+    expect(await providers.stillLinked(9003, 'ldap', m)).toBe(true);
+    expect(m.AuthGroupMember.rows).toHaveLength(1);
   });
 });

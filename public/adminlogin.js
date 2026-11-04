@@ -61,7 +61,7 @@ function login() {
       //error
       document.getElementById("msg").innerText = LoginForms.failed(
         (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.",
-          xhr && xhr.status
+        xhr && xhr.status
       );
       document.getElementById("msg").style.opacity = 1;
     },

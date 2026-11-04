@@ -255,6 +255,12 @@ test.describe('Rechecking existing sessions and tokens', () => {
     expect(await lookup('gone', c, byUuid([alice.entry]))).toBeNull();
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, userAccountControl: '514' }]))).toBeNull();
     expect(await lookup('e1', c, byUuid([{ ...alice.entry, pwdAccountLockedTime: '000001010000Z' }]))).toBeNull(); // pragma: allowlist secret
+    expect(await lookup('e1', c, byUuid([{ ...alice.entry, nsAccountLock: 'TRUE' }]))).toBeNull();
+    // Active Directory accountExpires: 100 ns steps since 1601; 0 and 2^63-1 mean never
+    const filetime = (ms) => String((ms + 11644473600000) * 10000);
+    expect(await lookup('e1', c, byUuid([{ ...alice.entry, accountExpires: filetime(Date.now() - 60000) }]))).toBeNull();
+    expect((await lookup('e1', c, byUuid([{ ...alice.entry, accountExpires: filetime(Date.now() + 60000) }]))).username).toBe('alice');
+    expect((await lookup('e1', c, byUuid([{ ...alice.entry, accountExpires: '9223372036854775807' }]))).username).toBe('alice');
     expect(await lookup('e1', config({ ...base, LDAP_BIND_DN: '' }), byUuid([alice.entry]))).toBeUndefined();
   });
 });

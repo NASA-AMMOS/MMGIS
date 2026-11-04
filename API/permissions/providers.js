@@ -234,9 +234,9 @@ async function findClaim(identity, m) {
   });
   for (const r of rows) {
     const v = r.value;
-    if (!v || !(Date.parse(v.expires_at) > Date.now()) || !sameUsername(v.username, identity.username)) continue;
-    // Only the entry the admin was shown may claim it
-    if (v.subject && v.subject !== identity.subject) continue;
+    if (!v || !(Date.parse(v.expires_at) > Date.now())) continue;
+    // Only the entry the admin was shown may claim it, whatever it is called by now
+    if (v.subject ? v.subject !== identity.subject : !sameUsername(v.username, identity.username)) continue;
     return { key: r.key, userId: parseInt(r.key.split(":").pop(), 10), by: v.by };
   }
   return null;
@@ -378,14 +378,14 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
 }
 
 // Sets the user's membership of groups sourced from this provider to exactly
-// the groups the provider reported
+// the groups the provider reported; resolves whether anything changed
 async function syncGroups(userId, identity, m = accountModels()) {
   const groups = await m.AuthGroup.findAll({
     where: { source: identity.provider },
     attributes: ["id", "external_name"],
     raw: true,
   });
-  if (groups.length === 0) return;
+  if (groups.length === 0) return false;
   const reported = new Set(identity.groups);
   const want = new Set(groups.filter((g) => reported.has(g.external_name)).map((g) => g.id));
   const have = new Set(
@@ -404,6 +404,7 @@ async function syncGroups(userId, identity, m = accountModels()) {
   if (add.length > 0)
     // ignoreDuplicates: two logins, or a login and a recheck, can sync the same person at once
     await m.AuthGroupMember.bulkCreate(add.map((group_id) => ({ group_id, user_id: userId })), { ignoreDuplicates: true });
+  return remove.length > 0 || add.length > 0;
 }
 
 const recheckMs = () => {
@@ -434,9 +435,12 @@ function stillLinked(userId, providerId, m) {
       return true;
     }
     if (found === undefined) return true;
+    // A relink during the lookup replaced the subject; that login already synced the new one
+    const now = await m.AuthIdentity.findOne({ where: { user_id: userId, provider: providerId }, raw: true });
+    if (!now || now.subject !== link.subject) return true;
     const identity = normalizeIdentity(providerId, found && { ...found, subject: link.subject });
-    await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
-    require("./principal").invalidate();
+    const changed = await syncGroups(userId, identity || { provider: providerId, groups: [] }, m);
+    if (changed || !identity) require("./principal").invalidate();
     if (!identity)
       logger("info", `Auth provider '${providerId}' no longer has account ${userId} (subject '${link.subject}'); its sessions and API tokens stop working.`, "AuthProviders");
     return identity != null;

@@ -84,7 +84,7 @@ const LoginForms = (function () {
         } else done(failed((data && data.message) || "Login failed."));
       },
       error: function (xhr) {
-        done(failed((xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error."));
+        done(failed((xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.", xhr && xhr.status));
       },
     });
   }

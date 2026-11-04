@@ -125,10 +125,20 @@ function subjectFilter(c, subject) {
   return `(${a}=${escapeFilter(subject)})`;
 }
 
-// Active Directory's "account disabled" flag and OpenLDAP ppolicy's lock
-const STATE_ATTRIBUTES = ["userAccountControl", "pwdAccountLockedTime"];
+// Active Directory's "account disabled" flag and expiry, OpenLDAP ppolicy's lock, 389 DS / FreeIPA's lock
+const STATE_ATTRIBUTES = ["userAccountControl", "accountExpires", "pwdAccountLockedTime", "nsAccountLock"];
+// accountExpires counts 100 ns steps since 1601; 0 and 2^63-1 mean never
+const AD_EPOCH_OFFSET_MS = 11644473600000;
+function adExpired(entry) {
+  const v = String(values(entry, "accountExpires")[0] || "");
+  if (!/^\d+$/.test(v) || v === "0" || v === "9223372036854775807") return false;
+  return Number(v) / 10000 - AD_EPOCH_OFFSET_MS < Date.now();
+}
 const accountDisabled = (entry) =>
-  (parseInt(values(entry, "userAccountControl")[0], 10) & 2) !== 0 || values(entry, "pwdAccountLockedTime").length > 0;
+  (parseInt(values(entry, "userAccountControl")[0], 10) & 2) !== 0 ||
+  values(entry, "pwdAccountLockedTime").length > 0 ||
+  values(entry, "nsAccountLock").some((v) => String(v).toLowerCase() === "true") ||
+  adExpired(entry);
 
 function userAttributes(c) {
   const attrs = [c.subjectAttribute, c.usernameAttribute, c.emailAttribute];
@@ -222,7 +232,7 @@ async function bindAs(client, dn, password) {
 async function bindService(client, c) {
   const key = `${c.url}\n${c.bindDn}`;
   const rejected = rejectedServiceAccounts.get(key);
-  // A changed LDAP_BIND_PASSWORD is tried straight away
+  // Keyed on the password too, so a process whose settings change (tests) retries at once
   if (rejected && rejected.password === c.bindPassword && Date.now() - rejected.at < SERVICE_RETRY_MS)
     throw new Error("The directory rejected LDAP_BIND_DN / LDAP_BIND_PASSWORD; MMGIS retries it at most every 5 minutes so the account isn't locked.");
   const bind = await bindAs(client, c.bindDn, c.bindPassword);
@@ -517,7 +527,8 @@ module.exports = {
       } catch (err) {
         if (err instanceof PasswordExpiredError) {
           ctx.logger("warn", `LDAP login for '${username}' refused: password expired.`, "Ldap", req);
-          return res.status(401).send({ status: "failure", message: `Your ${name} password has expired.` });
+          // 403, not 401: the password was right, so it doesn't count toward AUTH_MAX_FAILED_LOGINS
+          return res.status(403).send({ status: "failure", message: `Your ${name} password has expired. Change it, then sign in again.` });
         }
         ctx.logger("error", `LDAP login could not reach or read the directory: ${explain(err)}`, "Ldap", req, err);
         if (err.tooManyGroups)

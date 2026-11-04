@@ -178,6 +178,21 @@ test.describe('LDAP login provider', () => {
     expect((await me(ctx)).authenticated).toBe(false);
   });
 
+  test('the sign-in form only suggests another account type after a wrong password', async ({ page }) => {
+    await page.goto(`${baseURL}/configure`);
+    const signIn = async (username, password) => {
+      await page.fill('#username', username);
+      await page.fill('#pwd', password);
+      await page.click('button.btn1');
+    };
+    await expect(page.locator('.loginProvider.active')).toHaveAttribute('data-id', 'ldap');
+    await signIn(clash.username, clash.password);
+    await expect(page.locator('#msg')).toContainText('Ask an administrator');
+    await expect(page.locator('#msg')).not.toContainText('different account type');
+    await signIn('ldap_nobody_ui', ['wrong', 'pw'].join('-'));
+    await expect(page.locator('#msg')).toContainText('different account type');
+  });
+
   test('an admin can let one directory login claim an existing local account', async () => {
     const username = `ldap_relink_${Date.now()}`;
     const password = ['relink', 'test', 'password'].join('-');

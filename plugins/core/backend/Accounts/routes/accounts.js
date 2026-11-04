@@ -371,6 +371,11 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
       const linked = new Set(
         (await AuthIdentity.findAll({ where: { user_id: superAdmins }, attributes: ["user_id"], raw: true })).map((l) => l.user_id)
       );
+      // Another SuperAdmin's pending relink counts as linked, so two relinks can't move every one
+      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
+        const u = parseInt(r.key.split(":").pop(), 10);
+        if (u !== id && r.value && Date.parse(r.value.expires_at) > Date.now()) linked.add(u);
+      }
       const local = superAdmins.filter((u) => !linked.has(u));
       if (local.length === 1 && local[0] === id)
         return fail("This is the only SuperAdmin that signs in with an MMGIS password. Make another one first, so someone can still sign in if the login provider is down.");
@@ -402,6 +407,10 @@ router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async func
         return fail(`${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. Delete that account first if this one should take it over.`);
       }
     }
+    if (target)
+      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: `relink:${provider}:%` } }, raw: true }))
+        if (r.key !== key && r.value && r.value.subject === target.subject && Date.parse(r.value.expires_at) > Date.now())
+          return fail(`Another account is already waiting for ${target.dn}. Cancel that relink first.`);
     const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
     await AuthMeta.upsert({
       key,

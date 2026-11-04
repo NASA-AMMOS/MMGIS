@@ -28,7 +28,8 @@ const accountKey = (username) =>
 // Failed logins per account and login form, so MMGIS stops before a directory locks the account.
 // Only wrong credentials count: a 401, or a 200 with res.locals.loginFailed. Forms count
 // separately so directory failures can't lock out a local (recovery) account.
-// Provider forms count from any address: the directory would lock the account at its own limit anyway.
+// Provider forms count from any address, so MMGIS stops before the directory locks the account
+// everywhere; deliberately, that lets someone who knows a username keep it off that form for a while.
 // The local form has no directory to protect, so it counts per address, with a ceiling 10x higher
 // across addresses; nobody can then lock a local SuperAdmin out with a handful of requests.
 // Counts are kept in each server process's memory.
@@ -66,7 +67,8 @@ function accountLimiterFor(form) {
 }
 const accountLimiter = accountLimiterFor('local');
 
-// Clears an account's failed logins on every form, e.g. once an admin fixed why it was refused
+// Clears an account's failed logins on every provider form and the local per-account ceiling
+// (not local per-address counts), e.g. once an admin fixed why it was refused
 function resetFailedLogins(username) {
   accountLimiters.forEach((l) => l.resetKey(accountKey(username)));
 }
