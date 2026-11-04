@@ -202,6 +202,16 @@ test.describe('LDAP login', { tag: '@unit' }, () => {
     expect(reason).toMatch(/no entry under LDAP_USER_SEARCH_BASE matches .*password for uid=alice.* was accepted/);
   });
 
+  test('direct bind: the entry is searched as the service account, not as the person', async () => {
+    const log = [];
+    serviceNames.clear();
+    const c = config({ ...base, LDAP_USER_DN_TEMPLATE: 'uid={{username}},ou=people,dc=example,dc=org' });
+    expect(await authenticate('alice', 'right', c, fakeClient([alice], log))).toBeTruthy();
+    const binds = log.slice(0, log.findIndex((l) => l.startsWith('search ou=people')));
+    expect(binds.filter((l) => l.startsWith('bind')).slice(-1)).toEqual([`bind ${base.LDAP_BIND_DN}`]);
+    expect(binds).toContain(`bind ${alice.dn}`);
+  });
+
   test('wrong passwords, unknown and ambiguous usernames are all "not signed in"', async () => {
     const twin = { ...alice, dn: 'uid=alice,ou=other,dc=example,dc=org', entry: { ...alice.entry, dn: 'uid=alice,ou=other,dc=example,dc=org' } };
     expect(await authenticate('alice', 'wrong', config(base), fakeClient([alice]))).toBeNull();

@@ -493,6 +493,8 @@ async function authenticate(username, password, c = config(), createClient = new
       if (!bind.ok) entryFailed(dn);
       else entryFailures.delete(normalizeDn(dn));
       if (!bind.ok) return refuse(`${bind.reason} for ${dn} (if nobody can sign in, check LDAP_USER_DN_TEMPLATE)`);
+      // The entry is read, and groups searched, as the service account, as at rechecks: people may not search the OUs
+      if (c.bindDn) await bindService(client, c);
       const found = c.searchBase ? await findUser(client, c, username) : { entry: await readEntry(client, c, dn) };
       entry = found.entry;
       // Someone LDAP_USER_SEARCH_FILTER leaves out is refused like in search mode, not told the directory is down
@@ -503,8 +505,6 @@ async function authenticate(username, password, c = config(), createClient = new
         return refuse(
           `the password is right for ${dn}, but LDAP_USER_SEARCH_FILTER found a different entry, ${entry.dn} (make LDAP_USER_DN_TEMPLATE and LDAP_USER_SEARCH_FILTER name the same attribute)`
         );
-      // Groups are read as the service account, as at rechecks, where people may not read the group OU
-      if (c.bindDn) await bindService(client, c);
     } else {
       if (c.bindDn) {
         await bindService(client, c);
