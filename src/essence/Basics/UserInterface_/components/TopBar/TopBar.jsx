@@ -404,11 +404,6 @@ function TopBar({ userInterface }) {
                                     onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
                                 >
                                     {username[0].toUpperCase()}
-                                    {accountProvider && (
-                                        <span className={styles.providerBadge} aria-hidden="true">
-                                            <i className={`mdi mdi-${accountProvider.icon}`} />
-                                        </span>
-                                    )}
                                 </div>
                             ) : (
                                 <IconButton
