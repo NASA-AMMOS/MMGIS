@@ -606,9 +606,29 @@ export function summarizeUser(u, idx) {
   const myGroups = idx.groupsOf.get(String(u.id)) || [];
   // Everything that reaches this person: own grants, their groups and the audiences
   const reaching = own.concat(...myGroups.map((g) => idx.byGroup.get(String(g.id)) || []), idx.audience);
-  let siteRoles = own.filter((b) => b.scope_type === "global" && b.role !== "viewer").map((b) => b.role);
-  if (!siteRoles.length) siteRoles = own.some((b) => b.role === "mission_admin") ? ["mission_admin"] : ["user"];
-  siteRoles = [...new Set(siteRoles)].sort((a, b) => (SITE_ROLE_RANK[a] ?? 9) - (SITE_ROLE_RANK[b] ?? 9));
+  // Site role: own grants plus those through groups and audiences; SuperAdmin is never given through a group
+  const sources = [
+    [null, own],
+    ...myGroups.map((g) => [
+      { type: "group", name: g.source === "local" ? g.name : `${g.name} (${providerName(g.source)})`, provider: g.source !== "local" },
+      idx.byGroup.get(String(g.id)) || [],
+    ]),
+    ...idx.audience.map((b) => [{ type: "audience", name: AUDIENCE_LABEL[b.subject_id] }, [b]]),
+  ];
+  const siteRoleFrom = {};
+  const note = (role, via) => {
+    const f = (siteRoleFrom[role] = siteRoleFrom[role] || { own: false, via: [] });
+    if (!via) f.own = true;
+    else if (!f.via.some((v) => v.name === via.name)) f.via.push(via);
+  };
+  sources.forEach(([via, bs]) =>
+    bs.filter((b) => b.scope_type === "global" && b.role !== "viewer" && (!via || b.role !== "superadmin")).forEach((b) => note(b.role, via))
+  );
+  if (!Object.keys(siteRoleFrom).length)
+    sources.forEach(([via, bs]) => bs.some((b) => b.role === "mission_admin") && note("mission_admin", via));
+  const siteRoles = Object.keys(siteRoleFrom).length
+    ? Object.keys(siteRoleFrom).sort((a, b) => (SITE_ROLE_RANK[a] ?? 9) - (SITE_ROLE_RANK[b] ?? 9))
+    : ["user"];
   const viewAll = reaching.some((b) => b.scope_type === "global" && VIEW_ROLES.has(b.role));
   const viewList = viewAll ? [] : [...new Set(reaching.filter((b) => b.scope_type !== "global" && VIEW_ROLES.has(b.role) && b.mission).map((b) => b.mission))].sort();
   const scoped = (role) => {
@@ -623,6 +643,7 @@ export function summarizeUser(u, idx) {
   };
   return {
     siteRoles,
+    siteRoleFrom,
     viewAll,
     viewList,
     missionAdmin: scoped("mission_admin"),
@@ -678,13 +699,27 @@ export const lastProviderLogin = (u) =>
 export const missingText = (d) => new Date(d).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
 export const dateText = (d) => (d ? new Date(d).toLocaleDateString() : "—");
 
-export function SiteRoleBadges({ siteRoles, roles }) {
+// Roles that reach the account only through a group or audience carry its icon and name the source
+export function SiteRoleBadges({ siteRoles, siteRoleFrom = {}, roles }) {
   const c = useStyles();
-  return siteRoles.map((r) => (
-    <span key={r} className={`${c.badge} ${c[`badge_${r}`] || c.badge_user}`}>
-      {r === "user" ? "User" : (roles[r] && roles[r].label) || r}
-    </span>
-  ));
+  return siteRoles.map((r) => {
+    const f = siteRoleFrom[r];
+    const label = r === "user" ? "User" : (roles[r] && roles[r].label) || r;
+    if (!f || !f.via.length) return <span key={r} className={`${c.badge} ${c[`badge_${r}`] || c.badge_user}`}>{label}</span>;
+    const Icon = f.via.some((v) => v.type === "group") ? GroupsIcon : PublicIcon;
+    const names = f.via.map((v) => (v.type === "group" ? `group ${v.name}` : v.name)).join(", ");
+    const title =
+      (f.own ? `Directly on the account, and from ${names}.` : `From ${names}.`) +
+      (f.via.some((v) => v.provider) ? " Directory group membership is as of their last sign-in or recheck." : "");
+    return (
+      <Tooltip key={r} title={title} arrow>
+        <span className={`${c.badge} ${c[`badge_${r}`] || c.badge_user}`}>
+          {!f.own && <Icon className={c.badgeIcon} />}
+          {label}
+        </span>
+      </Tooltip>
+    );
+  });
 }
 
 export function MissionList({ items }) {

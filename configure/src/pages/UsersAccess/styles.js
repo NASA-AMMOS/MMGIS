@@ -193,6 +193,7 @@ export const useStyles = makeStyles((theme) => ({
   badge_data_admin: { background: theme.palette.accent.tertiary, color: "white" },
   badge_superadmin: { background: theme.palette.swatches.r[2], color: "white" },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
+  badgeIcon: { fontSize: "16px !important", verticalAlign: "-3px", marginRight: "4px" },
   // Pagination footer: continues the table's shadow on the sides and bottom only,
   // and sits above the table so it covers the table's bottom shadow
   bottomBar: {

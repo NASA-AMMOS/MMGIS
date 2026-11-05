@@ -106,7 +106,7 @@ export default function PeopleTab({ ctx }) {
                     <TableRow key={u.id} className={c.clickRow} {...rowActivate(() => setPanel({ type: "user", id: u.id }))}>
                       <TableCell className={c.roleText}>{u.username}</TableCell>
                       <TableCell className={u.email ? "" : c.muted}>{u.email || "No email"}</TableCell>
-                      <TableCell><SiteRoleBadges siteRoles={s.siteRoles} roles={roles} /></TableCell>
+                      <TableCell><SiteRoleBadges siteRoles={s.siteRoles} siteRoleFrom={s.siteRoleFrom} roles={roles} /></TableCell>
                       <TableCell>{s.viewAll ? <b>All</b> : s.viewList.length ? <MissionList items={s.viewList} /> : <span className={c.muted}>None</span>}</TableCell>
                       <TableCell>{s.missionAdmin.length ? <MissionList items={s.missionAdmin} /> : <span className={c.muted}>—</span>}</TableCell>
                       <TableCell>{s.layerEditor.length ? <MissionList items={s.layerEditor} /> : <span className={c.muted}>—</span>}</TableCell>
