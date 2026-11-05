@@ -131,7 +131,7 @@ function sourceText(from) {
   return AUDIENCE_TEXT[from.name] || from.name;
 }
 
-// One row per place, role and source; layer grants on a mission are counted
+// One row per place, role and source; layer grants are counted unless the role covers the whole mission
 function grantRows(grants) {
   const rows = new Map();
   (grants || [])
@@ -139,8 +139,9 @@ function grantRows(grants) {
     .forEach((g) => {
       const where = g.scope === "global" ? "Site-wide" : g.mission || "A removed mission";
       const key = [where, g.role, g.from.type, g.from.name].join("\u0000");
-      const row = rows.get(key) || { ...g, where, layers: 0 };
+      const row = rows.get(key) || { ...g, where, layers: 0, wholeMission: false };
       if (g.scope === "layer") row.layers++;
+      else row.wholeMission = true;
       rows.set(key, row);
     });
   return [...rows.values()].sort((a, b) => rank(b.role) - rank(a.role) || (a.where === "Site-wide" ? -1 : b.where === "Site-wide" ? 1 : a.where.localeCompare(b.where)));
@@ -167,8 +168,9 @@ export default function AccountMenu() {
   );
 
   // The site root: Configure lives at <root>/configure
-  const path = window.location.pathname.split("/");
-  const siteRoot = path.slice(0, path.length - 1).join("/") || "/";
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  if (segments[segments.length - 1] === "configure") segments.pop();
+  const siteRoot = `/${segments.map((s) => `${s}/`).join("")}`;
   const signout = () => {
     calls.api(
       "logout",
@@ -231,7 +233,7 @@ export default function AccountMenu() {
                   <div className={c.grant} key={i}>
                     <div className={c.grantTop}>
                       <span className={c.where}>{g.where}</span>
-                      {roleBadge(g.role, c.chip, `${g.label}${g.layers ? ` · ${g.layers} layer${g.layers > 1 ? "s" : ""}` : ""}`)}
+                      {roleBadge(g.role, c.chip, `${g.label}${g.layers && !g.wholeMission ? ` · ${g.layers} layer${g.layers > 1 ? "s" : ""}` : ""}`)}
                     </div>
                     <div className={c.detail}>{sourceText(g.from)}</div>
                   </div>
