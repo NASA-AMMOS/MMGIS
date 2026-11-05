@@ -165,7 +165,7 @@ function generateMarkup() {
 
 // These layers are a bit different and we need to account for that.
 // Either they have no map data or not initial data
-const quasiLayers = ['model', 'query']
+const quasiLayers = ['model', 'query', '3dtiles']
 const DEPTH_SIZE = 13
 const INDENT_COLOR = 'var(--color-a)'
 

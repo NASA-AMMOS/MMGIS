@@ -67,12 +67,18 @@ export default {
                 missionUrl = false
             }
 
-            //If there's only one listed mission, go straight to it
+            //If there's only one listed mission, go straight to it — unless
+            //the URL names a mission (e.g. a hidden one, reachable by URL)
             const opts = getLandingOptions()
             const listed = missions.filter((m) =>
                 isListedMission(m, missionsMeta, opts)
             )
-            if (listed.length == 1 && !forceLanding && !unavailable)
+            if (
+                listed.length == 1 &&
+                !forceLanding &&
+                !unavailable &&
+                missionUrl == false
+            )
                 missionUrl = listed[0]
         }
 

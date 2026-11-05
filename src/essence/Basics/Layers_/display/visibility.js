@@ -108,7 +108,11 @@ export async function toggleLayerHelper(
 
     if (!LayerTypeRegistry.isStructural(s.type)) {
         if (on) {
+            // Globe-only types (3dtiles, model) have no 2D map layer, and
+            // Leaflet's hasLayer throws on undefined, which would skip the
+            // globe toggle below.
             if (
+                L_.layers.layer[s.name] &&
                 L_.Map_.map.hasLayer(L_.layers.layer[s.name]) &&
                 globeOnly != true
             ) {
