@@ -296,7 +296,7 @@ How long to wait for the directory to connect and for each operation before the 
 
 #### `LDAP_DISPLAY_NAME=`
 
-What the login form calls the directory, e.g. `Example Directory`: the switch tab or banner, error messages and the signed-in tooltip | string | default `LDAP`
+What the login form calls the directory, e.g. `Example Directory`: the switch tab or banner, error messages and the account menu's "Signed in with …" | string | default `LDAP`
 
 #### `LDAP_USERNAME_LABEL=`
 

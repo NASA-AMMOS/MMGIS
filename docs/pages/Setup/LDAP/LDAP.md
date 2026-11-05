@@ -98,7 +98,7 @@ The login page, Configure sign-in and the in-app login modal share one username/
 - **`AUTH_LOCAL_LOGIN=admins`:** local accounts are only offered at Configure sign-in.
 - `LDAP_USERNAME_LABEL` names the username field. MMGIS doesn't offer a way to reset directory passwords; people use their organization's usual process.
 - Errors say which provider failed: wrong username or password, directory unavailable, an expired Active Directory password, or a sign-in that can't be used with MMGIS yet (see below).
-- Once signed in, the account bubble's tooltip says which provider was used.
+- Once signed in, the account bubble carries the provider's icon, and its menu says "Signed in with <LDAP_DISPLAY_NAME>".
 
 ## Groups and roles
 

@@ -1191,11 +1191,16 @@ function loginForms(ids = siteAccess.getProviders(), { configure = false } = {})
       title: text(w.title, p.label),
       usernameLabel: text(w.usernameLabel, "Username"),
       hint: text(w.hint),
-      icon: ICON_NAME.test(p.manifest.login_icon || "") ? p.manifest.login_icon : "account-outline",
+      icon: providerIcon(p),
       path: `api/auth/${p.id}${p.manifest.login_path}`,
     });
   });
   return out;
+}
+
+// The provider's icon (plugin.json login_icon, an mdi name)
+function providerIcon(p) {
+  return ICON_NAME.test(p.manifest.login_icon || "") ? p.manifest.login_icon : "account-outline";
 }
 
 // The name people know a provider by: its login form title, else its display_name
@@ -1258,7 +1263,7 @@ function mountProviderRoutes(app, { registerRouter, authorize, rootPath: root })
   list.get("/", apilimiter, authorize.public("lists the enabled login providers"), (req, res) => {
     res.send({
       status: "success",
-      providers: enabledProviders().map((p) => ({ id: p.id, label: providerLabel(p.id) })),
+      providers: enabledProviders().map((p) => ({ id: p.id, label: providerLabel(p.id), icon: providerIcon(p) })),
       loginForms: loginForms(),
       loginLinks: loginLinks(),
     });

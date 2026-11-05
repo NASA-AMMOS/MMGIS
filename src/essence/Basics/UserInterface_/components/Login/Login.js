@@ -78,6 +78,8 @@ var Login = {
     activeForm: null,
     // What the signed-in provider is called, e.g. "Example Directory"
     providerTitle: null,
+    // Its icon (an mdi name), shown as a badge on the account avatar
+    providerIcon: null,
     init: function () {
         if (window.mmgisglobal.SITE_ACCESS === 'public') return
         if (
@@ -102,7 +104,7 @@ var Login = {
             this.provider = loginProvider
             this.providerPerRequest = window.mmgisglobal.loginPerRequest === 'true'
             this.providerLogoutUrl = window.mmgisglobal.logoutUrl || null
-            Login.fetchAuth(() => Login.updateTooltip())
+            Login.fetchAuth(() => Login.updateAccountProvider())
         }
 
         Login.loginBar = $('<div>')
@@ -136,7 +138,7 @@ var Login = {
             })
             .text(Login.loggedIn ? Login.username[0] : ''))
 
-        if (Login.loggedIn) Login.updateTooltip()
+        if (Login.loggedIn) Login.updateAccountProvider()
 
         //Show signup for admins
         if (
@@ -250,8 +252,9 @@ var Login = {
             const providerLogoutUrl = Login.providerLogoutUrl
             Login.provider = null
             Login.providerTitle = null
+            Login.providerIcon = null
             Login.providerLogoutUrl = null
-            window.mmgisglobal.accountTitle = null
+            Login.updateAccountProvider()
             if (providerLogoutUrl) {
                 window.location.href = providerLogoutUrl
                 return
@@ -294,7 +297,7 @@ var Login = {
                 Login.provider = d.provider || null
                 Login.providerLogoutUrl = d.logoutUrl || null
                 Login.providerPerRequest = d.perRequest === true
-                if (Login.provider) Login.fetchAuth(() => Login.updateTooltip())
+                if (Login.provider) Login.fetchAuth(() => Login.updateAccountProvider())
 
                 loginSuccess(d)
             },
@@ -321,15 +324,17 @@ var Login = {
         $('#loginSubmit').val(signUp ? 'Sign Up' : 'Log In')
         $('#loginInUpToggle').html(signUp ? 'or log in' : 'or sign up')
     },
-    // Who the user is, and the provider they signed in with
-    updateTooltip: function () {
-        if (!Login.loggedIn || !Login.username) return
-        const content =
-            Login.provider && Login.providerTitle
-                ? `${Login.username} · signed in with ${Login.providerTitle}`
-                : Login.username
-        window.mmgisglobal.accountTitle = content
-        $('#loginUser').attr('title', content)
+    // The provider the user signed in with, for the account avatar's badge and menu (null for local accounts)
+    signedInWith: function () {
+        if (!Login.loggedIn || !Login.provider || Login.provider === 'local' || !Login.providerTitle) return null
+        return {
+            title: Login.providerTitle,
+            icon: /^[a-z0-9-]+$/.test(Login.providerIcon || '') ? Login.providerIcon : 'account-outline',
+        }
+    },
+    updateAccountProvider: function () {
+        window.mmgisglobal.accountProvider = Login.signedInWith()
+        document.dispatchEvent(new CustomEvent('mmgis:accountprovider'))
     },
     // GET /api/auth once: the login forms, login buttons and provider names
     fetchAuth: function (done) {
@@ -346,7 +351,10 @@ var Login = {
                 Login.providerLinks = (d && d.loginLinks) || []
                 Login.loginForms = (d && d.loginForms) || []
                 const p = ((d && d.providers) || []).find((x) => x.id === Login.provider)
-                if (p) Login.providerTitle = p.label
+                if (p) {
+                    Login.providerTitle = p.label
+                    Login.providerIcon = p.icon || null
+                }
                 if (done) done()
             },
         })
@@ -464,6 +472,7 @@ var Login = {
                     window.mmgisglobal.groups = d.groups || []
                     Login.provider = d.provider || form.id
                     Login.providerTitle = form.title
+                    Login.providerIcon = form.icon || null
                     Login.providerLogoutUrl = d.logoutUrl || null
                     Login.providerPerRequest = false
                     Login.rememberForm()
@@ -858,7 +867,7 @@ function loginSuccess(data, ignoreError, fromModal) {
             })
             .text(Login.username[0])
 
-        if (Login.loggedIn) Login.updateTooltip()
+        if (Login.loggedIn) Login.updateAccountProvider()
         document.dispatchEvent(new CustomEvent('mmgis:loginchange'))
     } else {
         document.cookie = 'MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;'
