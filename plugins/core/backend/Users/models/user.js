@@ -18,6 +18,7 @@ var User = sequelize.define(
       type: Sequelize.STRING,
       unique: true,
       allowNull: false,
+      validate: { len: [0, 255] },
     },
     email: {
       type: Sequelize.STRING,

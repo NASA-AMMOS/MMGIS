@@ -108,4 +108,13 @@ const computeLimiter = rateLimit({
   message: { status: 'failure', message: 'Rate limit exceeded.' },
 });
 
-module.exports = { apilimiter, authLimiter, failedLoginLimit, accountLimiter, accountLimiterFor, resetFailedLogins, accountKey, signupLimiter, resetLimiter, computeLimiter };
+// The users table stores usernames in 255 characters; anything longer is refused before any lookup or limiter works on it
+const MAX_USERNAME = 255;
+function rejectLongUsername(req, res, next) {
+  const u = req.body && req.body.username;
+  if (typeof u === 'string' && u.length > MAX_USERNAME)
+    return res.status(400).send({ status: 'failure', message: `Usernames can be at most ${MAX_USERNAME} characters.` });
+  next();
+}
+
+module.exports = { MAX_USERNAME, rejectLongUsername, apilimiter, authLimiter, failedLoginLimit, accountLimiter, accountLimiterFor, resetFailedLogins, accountKey, signupLimiter, resetLimiter, computeLimiter };

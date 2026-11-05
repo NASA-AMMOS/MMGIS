@@ -192,6 +192,7 @@ export function PersonPanel({ user, ctx }) {
                 label="Username at the provider"
                 placeholder={(providerLogin && providerLogin.username) || user.username}
                 value={relinkName}
+                inputProps={{ maxLength: 255 }}
                 onChange={(e) => setRelinkName(e.target.value)}
               />
               {relinkProviders.map((p) => (

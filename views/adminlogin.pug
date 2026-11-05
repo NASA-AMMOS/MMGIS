@@ -40,7 +40,7 @@ body.mmgisScrollbar
       h5#signInTitle Sign in to your account.
       +loginProviders(forms)
       label#username_label.fieldLabel(for='username')= forms.length ? forms[0].usernameLabel : 'Username'
-      input#username(type='text' name='username' autocomplete='username' autocapitalize='none' spellcheck='false')
+      input#username(type='text' name='username' maxlength='255' autocomplete='username' autocapitalize='none' spellcheck='false')
       label.fieldLabel(for='pwd') Password
       input#pwd(type='password' name='password' autocomplete='current-password')
       label#pwd_retype_label.fieldLabel(for='pwd_retype') Retype Password

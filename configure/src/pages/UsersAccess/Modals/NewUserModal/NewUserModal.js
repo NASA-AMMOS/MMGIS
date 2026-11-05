@@ -312,6 +312,7 @@ const NewUserModal = (props) => {
           value={userName}
           inputProps={{
             autoComplete: "off",
+            maxLength: 255,
           }}
           onChange={(e) => {
             setUserName(e.target.value);

@@ -61,7 +61,7 @@ process.on("uncaughtException", (err) => {
   );
   if (!survivable) process.exit(1);
 });
-const { apilimiter, authLimiter, computeLimiter } = require("./rateLimiters");
+const { apilimiter, authLimiter, computeLimiter, rejectLongUsername } = require("./rateLimiters");
 const compression = require("compression");
 
 const session = require("express-session");
@@ -746,6 +746,7 @@ app.use((req, res, next) => {
   if (req.body === undefined) req.body = {};
   next();
 });
+app.use(rejectLongUsername);
 
 app.use(cookieParser());
 
