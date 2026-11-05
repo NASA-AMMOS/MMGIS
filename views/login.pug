@@ -39,7 +39,7 @@ html(lang='en')
         if forms.length
           +loginProviders(forms)
           label#username_label.fieldLabel(for="username")= forms[0].usernameLabel
-          input#username(type='text' name='username' maxlength='255' autocomplete='username' autocapitalize='none' spellcheck='false')
+          input#username(type='text' name='username' autocomplete='username' autocapitalize='none' spellcheck='false')
           label#email_label.fieldLabel(for="email") Email
           input#email(type='text' name='email' autocomplete='email')
           div#email_description An email is optional.

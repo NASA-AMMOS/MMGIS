@@ -746,7 +746,6 @@ app.use((req, res, next) => {
   if (req.body === undefined) req.body = {};
   next();
 });
-app.use(rejectLongUsername);
 
 app.use(cookieParser());
 
@@ -759,6 +758,8 @@ app.use((req, res, next) => {
   })(req, res, next);
 });
 // app.set('Origin', false);
+// After CORS, so allowed cross-origin pages can read the refusal
+app.use(rejectLongUsername);
 
 /*Require all dynamic backend setup scripts
 and return functions that bulk run their functions

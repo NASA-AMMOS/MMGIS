@@ -51,7 +51,7 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
               {providers.map((p) => <MenuItem key={p} value={p}>{providerName(p)}</MenuItem>)}
             </Select>
           )}
-          <TextField size="small" sx={{ flex: 1 }} autoFocus inputProps={{ maxLength: 255 }} placeholder={providers.length > 1 ? "Username" : `${providerName(provider)} username`} value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && provider) void check(); }} />
+          <TextField size="small" sx={{ flex: 1 }} autoFocus placeholder={providers.length > 1 ? "Username" : `${providerName(provider)} username`} value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && provider) void check(); }} />
         </div>
         <TextField size="small" fullWidth multiline minRows={2} placeholder={providerGroups(provider).group_example ? `Groups, one per line, e.g.\n${providerGroups(provider).group_example}` : "Groups, one per line"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) void check(); }} />
         {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}

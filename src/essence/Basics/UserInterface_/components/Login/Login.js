@@ -28,7 +28,7 @@ var modalFormSignIn =
   "<form id='loginForm' accept-charset='UTF-8'>" +
     "<div class='field'>" +
       "<label id='loginUsernameLabel' for='loginUsernameInput'>Username</label>" +
-      "<input id='loginUsernameInput' name='username' type='text' maxlength='255' autocomplete='username' autocapitalize='none' spellcheck='false'>" +
+      "<input id='loginUsernameInput' name='username' type='text' autocomplete='username' autocapitalize='none' spellcheck='false'>" +
       "<i id='loginUsernameInputIcon' style='opacity: 0;'></i>" +
     "</div>" +
     "<div id='loginEmail' class='field' style='display: none'>" +

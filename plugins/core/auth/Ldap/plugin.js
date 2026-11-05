@@ -793,7 +793,7 @@ async function selfCheck(c = config(), createClient = newClient) {
 }
 
 const validUsername = (u) =>
-  typeof u === "string" && u.trim() !== "" && u.length <= MAX_USERNAME && !/[\u0000-\u001f\u007f]/.test(u.trim());
+  typeof u === "string" && u.trim() !== "" && [...u].length <= MAX_USERNAME && !/[\u0000-\u001f\u007f]/.test(u.trim());
 
 // e.g. someone in hundreds of AD groups, on one log line at every sign-in
 const shortList = (items, max = 20) => items.slice(0, max).join(" | ") + (items.length > max ? ` | … ${items.length - max} more` : "");
@@ -902,8 +902,8 @@ module.exports = {
       const c = config();
       const name = c.displayName;
       const body = req.body || {};
-      if (typeof body.username === "string" && body.username.length > MAX_USERNAME) {
-        ctx.logger("info", `Refused ${name} login: the username is ${body.username.length} characters, more than ${MAX_USERNAME}.`, "Ldap");
+      if (typeof body.username === "string" && [...body.username].length > MAX_USERNAME) {
+        ctx.logger("info", `Refused ${name} login: the username is ${[...body.username].length} characters, more than ${MAX_USERNAME}.`, "Ldap");
         return res.status(400).send({ status: "failure", message: `Usernames can be at most ${MAX_USERNAME} characters.` });
       }
       if (!validUsername(body.username) || typeof body.password !== "string" || body.password === "")

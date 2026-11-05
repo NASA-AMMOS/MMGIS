@@ -117,7 +117,7 @@ function NewGroupDialog({ providers, groups, draft, setDraft, onClose, onCreated
             <div className={c.lookupBox}>
               <div className={c.hint} style={{ marginBottom: 8 }}>Not sure what to enter? Look up someone in the group and pick it from their groups:</div>
               <div style={{ display: "flex", gap: 8 }}>
-                <TextField size="small" sx={{ width: 240 }} placeholder="Username" inputProps={{ maxLength: 255 }} value={lookupUser} onChange={(e) => setLookupUser(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && lookupUser.trim()) void findGroups(); }} />
+                <TextField size="small" sx={{ width: 240 }} placeholder="Username" value={lookupUser} onChange={(e) => setLookupUser(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && lookupUser.trim()) void findGroups(); }} />
                 <Button variant="outlined" disabled={!lookupUser.trim()} onClick={findGroups}>Look up</Button>
               </div>
               {lookup && lookup.unavailable && <div className={c.help}>{name} can't look people up with its current settings, so enter the group yourself.</div>}

@@ -769,8 +769,9 @@ async function linkIdentity(identity, m = accountModels(), retried = false) {
       );
   }
   // MMGIS stores both in 255-character columns
-  if (identity.subject.length > 255 || identity.username.length > 255)
-    throw new LinkError(`The ${identity.subject.length > 255 ? "subject" : "username"} is longer than the 255 characters MMGIS can store.`);
+  const chars = (s) => [...s].length;
+  if (chars(identity.subject) > 255 || chars(identity.username) > 255)
+    throw new LinkError(`The ${chars(identity.subject) > 255 ? "subject" : "username"} is longer than the 255 characters MMGIS can store.`);
   if (reservedUsername(identity.username))
     throw new LinkError(`The username '${identity.username}' is reserved in MMGIS.`);
   if (unsafeUsername(identity.username))

@@ -7,7 +7,7 @@
 
 import { test, expect } from '@playwright/test';
 
-const { apilimiter, authLimiter, computeLimiter, rejectLongUsername, MAX_USERNAME } = require('../../scripts/rateLimiters');
+const { apilimiter, authLimiter, computeLimiter, rejectLongUsername, usernameTooLong, MAX_USERNAME } = require('../../scripts/rateLimiters');
 
 test.describe('Rate limiting configuration', () => {
   test('authLimiter config has 10 max attempts per 15 min window', () => {
@@ -60,5 +60,10 @@ test.describe('Rate limiting configuration', () => {
     let passed = false;
     rejectLongUsername({}, {}, () => { passed = true; });
     expect(passed).toBe(true);
+    // Characters as PostgreSQL counts them: 254 + one emoji fits varchar(255)
+    expect(usernameTooLong(`${'a'.repeat(254)}\u{1F600}`)).toBe(false);
+    expect(usernameTooLong(`${'a'.repeat(255)}\u{1F600}`)).toBe(true);
+    expect(usernameTooLong('\u{1F600}'.repeat(255))).toBe(false);
+    expect(usernameTooLong('\u{1F600}'.repeat(256))).toBe(true);
   });
 });

@@ -110,11 +110,13 @@ const computeLimiter = rateLimit({
 
 // The users table stores usernames in 255 characters; anything longer is refused before any lookup or limiter works on it
 const MAX_USERNAME = 255;
+// Counted as PostgreSQL does, in characters: an emoji is one, though its JS .length is 2
+const usernameTooLong = (u) =>
+  typeof u === 'string' && u.length > MAX_USERNAME && (u.length > 2 * MAX_USERNAME || [...u].length > MAX_USERNAME);
 function rejectLongUsername(req, res, next) {
-  const u = req.body && req.body.username;
-  if (typeof u === 'string' && u.length > MAX_USERNAME)
+  if (usernameTooLong(req.body && req.body.username))
     return res.status(400).send({ status: 'failure', message: `Usernames can be at most ${MAX_USERNAME} characters.` });
   next();
 }
 
-module.exports = { MAX_USERNAME, rejectLongUsername, apilimiter, authLimiter, failedLoginLimit, accountLimiter, accountLimiterFor, resetFailedLogins, accountKey, signupLimiter, resetLimiter, computeLimiter };
+module.exports = { MAX_USERNAME, usernameTooLong, rejectLongUsername, apilimiter, authLimiter, failedLoginLimit, accountLimiter, accountLimiterFor, resetFailedLogins, accountKey, signupLimiter, resetLimiter, computeLimiter };

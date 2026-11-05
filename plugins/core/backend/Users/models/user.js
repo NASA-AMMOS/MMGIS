@@ -18,7 +18,12 @@ var User = sequelize.define(
       type: Sequelize.STRING,
       unique: true,
       allowNull: false,
-      validate: { len: [0, 255] },
+      validate: {
+        // In characters, as PostgreSQL counts them (an emoji's JS .length is 2)
+        atMost255(v) {
+          if (v != null && [...String(v)].length > 255) throw new Error("Usernames can be at most 255 characters.");
+        },
+      },
     },
     email: {
       type: Sequelize.STRING,
