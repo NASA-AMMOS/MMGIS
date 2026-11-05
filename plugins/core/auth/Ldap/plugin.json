@@ -1,0 +1,32 @@
+{
+  "uuid": "940736d8-2372-445a-b522-0cde5a340886",
+  "id": "core-auth-ldap",
+  "name": "Ldap",
+  "display_name": "LDAP",
+  "description": "Username/password login checked against an LDAP directory (OpenLDAP, Active Directory, ...) at /api/auth/ldap/login.",
+  "version": "core",
+  "type": "auth",
+  "provider": "ldap",
+  "tier": "core",
+  "overridable": false,
+  "required": true,
+  "login_path": "/login",
+  "login_form": true,
+  "login_icon": "card-account-details-outline",
+  "relink": true,
+  "group_label": "group DN",
+  "group_hint": "The group's full DN, as the directory reports it (with LDAP_GROUP_NAME_ATTRIBUTE set, that attribute's value instead).",
+  "group_example": "cn=science-team,ou=groups,dc=example,dc=org",
+  "dependencies": {
+    "npm": {
+      "ldapts": "^9.2.0"
+    }
+  },
+  "ci": {
+    "script": "tests/ci.sh",
+    "variants": ["ldaps", "starttls"]
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

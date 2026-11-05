@@ -10,7 +10,7 @@ const { sameOriginOnly } = require("../../../../../API/connections/routes");
 router.use((req, res, next) => (req.method === "GET" || req.method === "HEAD" ? next() : sameOriginOnly(req, res, next)));
 const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
 const crypto = require("crypto");
-const { Op } = require("sequelize");
+const { Op, fn, col } = require("sequelize");
 
 const logger = require("../../../../../API/logger");
 const userModel = require("../../Users/models/user");
@@ -19,9 +19,12 @@ const bindings = require("../../../../../API/permissions/bindings");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
 const { ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { RoleBinding } = require("../../../../../API/permissions/models");
+const { RoleBinding, AuthIdentity, AuthMeta } = require("../../../../../API/permissions/models");
+const providers = require("../../../../../API/permissions/providers");
 const { LongTermTokens } = require("../../LongTermToken/models/longtermtokens");
+const { Userfiles } = require("../../Draw/models/userfiles");
 const connections = require("../../../../../API/connections");
+const { apilimiter, resetFailedLogins } = require("../../../../../scripts/rateLimiters");
 const User = userModel.User;
 const {
   UserDefaults,
@@ -46,6 +49,33 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
         attributes: ["subject_id", "role", "scope_type"],
         raw: true,
       });
+      const signIns = {};
+      for (const l of await AuthIdentity.findAll({
+        attributes: ["user_id", "provider", "username", "last_login_at"],
+        raw: true,
+      }))
+        (signIns[l.user_id] = signIns[l.user_id] || []).push({
+          provider: l.provider,
+          username: l.username,
+          last_login_at: l.last_login_at,
+        });
+      const missing = {};
+      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "missing:%" } }, raw: true }))
+        missing[r.key.slice("missing:".length)] = r.value || {};
+      for (const [userId, list] of Object.entries(signIns))
+        list.forEach((l) => {
+          const gone = missing[`${l.provider}:${userId}`];
+          l.missing_since = (gone && gone.since) || null;
+          // "subject": linked under a different subject setting, not a leaver
+          l.missing_reason = (gone && gone.reason) || null;
+          l.missing_was_gone = !!(gone && gone.was_gone);
+        });
+      const relinks = {};
+      for (const r of await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true })) {
+        const [, provider, userId] = r.key.split(":");
+        if (r.value && Date.parse(r.value.expires_at) > Date.now())
+          relinks[userId] = { provider, username: r.value.username, dn: r.value.dn, expires_at: r.value.expires_at, stale: r.value.stale || null };
+      }
       const byUser = {};
       for (const b of userBindings)
         (byUser[b.subject_id] = byUser[b.subject_id] || []).push({
@@ -58,6 +88,8 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
           entries: users.map((u) => ({
             ...u,
             role: policy.accountRole(byUser[String(u.id)] || []),
+            sign_ins: signIns[u.id] || [],
+            relink: relinks[u.id] || null,
           })),
         },
       });
@@ -72,8 +104,11 @@ router.get("/entries", authorize("accounts.manage"), function (req, res) {
 });
 
 router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, next) {
+  if (req.query.drawings_to && req.principal && req.principal.kind === "token")
+    return void res.status(403).send({ status: "failure", message: "Giving drawings to another account can only be done from a signed-in session." });
   const id = parseInt(req.params.id);
   let grants = [];
+  let heirUsername = null;
 
   if (isNaN(id)) {
     logger(
@@ -105,14 +140,56 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
         });
         return null;
       }
+      // Drawings can go to another account, e.g. the one this person is about to be relinked to
+      let heir = null;
+      const heirName = String(req.query.drawings_to == null ? "" : req.query.drawings_to).trim();
+      if (heirName !== "") {
+        // Matched as usernames are elsewhere (case, Unicode forms)
+        // Older sites can have names differing only in case
+        const { match, alike } = providers.matchUsername(
+          (await User.findAll({ attributes: ["id", "username"], raw: true, transaction })).filter((u) => u.id !== id),
+          heirName
+        );
+        heir = match;
+        if (!heir && alike.length > 1) {
+          res.send({
+            status: "failure",
+            message: `More than one account is named like '${heirName}' (${alike.map((u) => `'${u.username}'`).join(", ")}); type the one to give the drawings to exactly.`,
+          });
+          return null;
+        }
+        if (!heir || heir.id === id) {
+          res.send({ status: "failure", message: `There's no other account named '${heirName}' to give the drawings to.` });
+          return null;
+        }
+        heirUsername = heir.username;
+      }
       await RoleBinding.destroy({
         where: { subject_type: "user", subject_id: String(id) },
         transaction,
       });
       // A user's tokens act with that user's authority, so they go with the account
       await LongTermTokens.destroy({ where: { created_by_user_id: id }, transaction });
+      await AuthMeta.destroy({
+        where: { [Op.or]: [{ key: { [Op.like]: `relink:%:${id}` } }, { key: { [Op.like]: `missing:%:${id}` } }] },
+        transaction,
+      });
       // Its connections go with it (cascade); read them first to revoke them at each service
       grants = await connections.accountGrants(id, { transaction }).catch(() => []);
+      // Drawings are kept under the username, so the next account given that name (e.g. a reused directory name) mustn't get them
+      const gone = await User.findOne({ where: { id }, attributes: ["username"], raw: true, transaction });
+      // Random suffix: a downgraded MMGIS, which doesn't reserve "~deleted~", mustn't let a guessable signup claim them
+      if (gone)
+        await Userfiles.update(
+          { file_owner: heir ? heir.username : `~deleted~${id}~${crypto.randomBytes(8).toString("hex")}` },
+          { where: { file_owner: gone.username }, transaction }
+        );
+      // Nor edit the files others shared with this one
+      if (gone)
+        await Userfiles.update(
+          { public_editors: fn("array_remove", col("public_editors"), gone.username) },
+          { where: { public_editors: { [Op.contains]: [gone.username] } }, transaction }
+        );
       // Inside the lock, so a SuperAdmin grant can't be added for the account meanwhile
       await User.destroy({ where: { id: id }, transaction });
       return true;
@@ -121,7 +198,9 @@ router.delete("/remove/:id", authorize("accounts.manage"), function (req, res, n
       if (!deleted) return;
       connections.revokeGrants(grants);
       bindings.afterChange("user", id).catch(() => {});
-      logger("info", `Successfully deleted user with id: '${id}'.`);
+      // Deleting the last provider-linked account reopens visitor sign-up where only local is enabled
+      providers.refreshProviderAccounts().catch(() => {});
+      logger("info", `Successfully deleted user with id: '${id}'${heirUsername ? `, giving its drawings to '${heirUsername}'` : ""}.`);
       res.send({
         status: "success",
         message: `Successfully deleted user with id: '${id}'.`,
@@ -291,6 +370,204 @@ router.post("/updateDefaults", authorize("accounts.manage"), function (req, res)
     });
 });
 
+// Lets the next login through a provider with this account's username take the account over,
+// once, within RELINK_HOURS. For accounts whose provider identity changed (directory rebuild) or
+// local accounts moving to a provider. Both take { id, provider }.
+const PREVIEWED = Symbol("previewed");
+// A form-encoded body sends "true", which must still only preview
+const wantsPreview = (body) => body.preview === true || body.preview === "true";
+const relinkFail = (res, message, status = 200) => res.status(status).send({ status: "failure", message });
+
+// The account and provider a relink request is about, or undefined after answering with the problem
+// Cancelling also works for a provider since removed from AUTH_PROVIDERS, so a claim can't wait for it to return
+async function relinkRequest(req, res, { cancel = false } = {}) {
+  if (req.principal && req.principal.kind === "token")
+    return void relinkFail(res, "Relinking can only be changed from a signed-in session.", 403);
+  const id = parseInt(req.body.id);
+  const provider = String(req.body.provider || "");
+  if (isNaN(id)) return void relinkFail(res, "Account id is missing.");
+  const known = cancel ? providers.availableProviders() : providers.enabledProviders().map((p) => p.id);
+  if (provider === "local" || !known.includes(provider))
+    return void relinkFail(res, `'${provider}' isn't an enabled login provider.`);
+  if (!cancel && !providers.providerInfo().some((p) => p.id === provider && p.relink))
+    return void relinkFail(res, `'${provider}' doesn't support relinking (its plugin.json doesn't set "relink": true).`);
+  const user = await User.findOne({ where: { id }, attributes: ["id", "username"], raw: true });
+  if (!user) return void relinkFail(res, "User not found.");
+  return { id, provider, user, key: providers.relinkKey(provider, id), actor: await ensurePrincipal(req) };
+}
+
+router.post("/cancelRelink", apilimiter, authorize("accounts.manage"), async function (req, res) {
+  try {
+    const r = await relinkRequest(req, res, { cancel: true });
+    if (!r) return;
+    const row = await AuthMeta.findOne({ where: { key: r.key }, raw: true });
+    if (!(await AuthMeta.destroy({ where: { key: r.key } })))
+      return void res.send({ status: "failure", message: "No relink is pending for this account (it may have been used or expired)." });
+    if (!row || !row.value || !(Date.parse(row.value.expires_at) > Date.now()))
+      return void res.send({ status: "failure", message: "No relink is pending for this account: it had expired." });
+    logger("info", `'${r.actor.username}' cancelled the ${r.provider} relink for account ${r.id} '${r.user.username}'.`, "accounts", req);
+    res.send({ status: "success", message: "Relink cancelled." });
+  } catch (err) {
+    logger("error", "Failed to cancel relinking.", req.originalUrl, req, err);
+    relinkFail(res, "Failed to cancel relinking.");
+  }
+});
+
+router.post("/allowRelink", apilimiter, authorize("accounts.manage"), async function (req, res) {
+  const fail = (message, status = 200) => relinkFail(res, message, status);
+  try {
+    const r = await relinkRequest(req, res);
+    if (!r) return;
+    const { id, provider, user, key, actor } = r;
+    // The person's username at the provider, when it differs from their MMGIS username
+    const known = await AuthIdentity.findOne({ where: { user_id: id, provider }, attributes: ["username", "subject", "subject_setting"], raw: true });
+    const fallback = (known && known.username) || user.username;
+    let username = String(req.body.username == null || req.body.username === "" ? fallback : req.body.username)
+      .normalize("NFKC")
+      .trim();
+    if (username === "" || username.length > 255 || /[\u0000-\u001f\u007f]/.test(username))
+      return fail("Enter the person's username at the login provider.");
+    username = providers.relinkUsername(provider, username);
+    if (username === "") return fail("Enter the person's username at the login provider.");
+    // The account's grants carry over, so a SuperAdmin account can only be handed over by a SuperAdmin
+    const superAdmins = (
+      await RoleBinding.findAll({
+        where: { subject_type: "user", role: "superadmin", scope_type: "global" },
+        attributes: ["subject_id"],
+        raw: true,
+      })
+    ).map((b) => parseInt(b.subject_id));
+    if (superAdmins.includes(id) && !policy.isSuperAdmin(actor))
+      return fail("Only SuperAdmins may allow relinking a SuperAdmin account.");
+    // Pin the claim to the entry that has this username now, so a look-alike entry made later can't take it
+    let target;
+    try {
+      target = await providers.relinkTarget(provider, username);
+    } catch (err) {
+      logger("error", `Couldn't look up '${username}' at ${provider} to allow a relink.`, "accounts", req, err);
+      return fail(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Try again later.`);
+    }
+    if (target === null) return fail(`${provider} has no single entry with the username '${username}'. If their directory username changed, enter the new one under "Username at the provider" and try again.`);
+    // Unpinned, any entry later given this username could claim it
+    if (target && !target.subject)
+      return fail(`${target.dn || `'${username}'`} has no value for ${provider}'s subject attribute (e.g. LDAP_SUBJECT_ATTRIBUTE), so it can't sign in. Fix the entry or the setting first.`);
+    // The admin confirmed the entry the preview showed, not one given this username since
+    if (!wantsPreview(req.body) && typeof req.body.dn === "string" && req.body.dn !== "" && !(target && target.dn && providers.sameFolded(target.dn, req.body.dn)))
+      return fail(`'${username}' is now ${target && target.dn ? target.dn : "a different entry"} in ${provider}, not ${req.body.dn} as shown. Check that it's the same person, then try again.`);
+    if (target && target.shared)
+      return fail(`${target.dn} shares its ${provider} subject value '${target.subject}' with another entry, so its sign-in is refused. Remove the duplicate value, or use a permanent ID (e.g. LDAP_SUBJECT_ATTRIBUTE=entryUUID), first.`);
+    // The account's own entry still being there (even disabled or in a leavers' OU) means this is someone else
+    // A subject stored under another subject setting can't be looked up under this one
+    if (target && known && known.subject && known.subject !== target.subject && providers.linkFits(provider, known)) {
+      const old = await providers.locateSubject(provider, known.subject).catch(() => undefined);
+      if (old === undefined)
+        return fail(
+          `Couldn't tell whether '${user.username}''s own ${provider} entry (subject '${known.subject}') still exists, so ${target.dn} may be a different person. Check that ${provider} can be reached and its service account can read the whole directory, then try again.`
+        );
+      // The same entry with its value re-cased: its next sign-in updates the link
+      const anywhere =
+        old && target.dn && (providers.sameFolded(known.subject, target.subject) || (old.dn && providers.sameFolded(old.dn, target.dn)))
+          ? await providers.locateAnywhere(provider, known.subject).catch(() => undefined)
+          : undefined;
+      // Only re-cased (e.g. uid ldap_alice to Ldap_Alice) at the same DN: the admin decides whether it's the same person
+      if (old && target.dn && providers.sameFolded(known.subject, target.subject) && anywhere === undefined)
+        return fail(
+          `${target.dn}'s subject '${target.subject}' matches '${user.username}''s '${known.subject}' except for letter case or spacing, but ${provider} couldn't search the whole directory to tell whether it's the same entry. Check that its service account can read the directory root, then try again.`
+        );
+      const recased = anywhere && anywhere.dn && providers.sameFolded(anywhere.dn, target.dn);
+      if (old && !recased)
+        return fail(
+          `'${user.username}' already has its own ${provider} entry${old.dn ? `, ${old.dn}` : ""}, which still exists, so ${target.dn} is a different person. If it really is the same person, delete the old entry in the directory first.`
+        );
+    }
+    const preview = wantsPreview(req.body);
+    const expires_at = new Date(Date.now() + providers.RELINK_HOURS * 3600000).toISOString();
+    // Checked and saved under the SuperAdmin lock, so two relinks allowed at once can't move every local SuperAdmin
+    const refusal = await bindings.withSuperAdminLock(async ({ transaction, superAdmins: current }) => {
+      const pending = (await AuthMeta.findAll({ where: { key: { [Op.like]: "relink:%" } }, raw: true, transaction })).filter(
+        (r) => r.key !== key && r.value && Date.parse(r.value.expires_at) > Date.now()
+      );
+      // Keep a SuperAdmin who signs in with an MMGIS password, for when the provider is down
+      if (current.includes(id)) {
+        const linked = new Set(
+          (await AuthIdentity.findAll({ where: { user_id: current }, attributes: ["user_id"], raw: true, transaction })).map((l) => l.user_id)
+        );
+        // Another SuperAdmin's pending relink counts as linked, so two relinks can't move every one
+        for (const r of pending) linked.add(parseInt(r.key.split(":").pop(), 10));
+        const local = current.filter((u) => !linked.has(u));
+        if (local.length === 1 && local[0] === id)
+          return "This is the only SuperAdmin that signs in with an MMGIS password. Make another one first, so someone can still sign in if the login provider is down.";
+      }
+      const sameProvider = pending.filter((r) => r.key.startsWith(`relink:${provider}:`));
+      if (sameProvider.some((r) => providers.sameUsername(r.value.username, username)))
+        return `Another account is already waiting for the ${provider} login '${username}'. Cancel that relink first.`;
+      // A login of an entry already linked elsewhere goes to that account, so this claim would never happen
+      // Without a lookup (direct bind with no service account), the username last seen at login stands in for the entry
+      if (target === undefined) {
+        const others = await AuthIdentity.findAll({ where: { provider, user_id: { [Op.ne]: id } }, attributes: ["user_id", "username"], raw: true, transaction });
+        const other = others.find((o) => providers.sameUsername(o.username, username));
+        if (other) {
+          const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
+          return `The ${provider} login '${username}' already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first (which also removes its own roles and API tokens), giving its drawings to '${user.username}'.`;
+        }
+      }
+      if (target) {
+        const other = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id", "subject", "subject_setting"], raw: true, transaction });
+        // Its own link from under another subject setting (e.g. uid to cn kept the value) still needs this relink
+        if (other && other.user_id === id && providers.linkFits(provider, other)) return `'${user.username}' already signs in with ${target.dn}, so there is nothing to relink.`;
+        if (other && other.user_id !== id) {
+          const owner = await User.findOne({ where: { id: other.user_id }, attributes: ["username"], raw: true, transaction });
+          if (!providers.linkFits(provider, other))
+            return `${target.dn} has the same ${provider} subject as account ${other.user_id}${owner ? ` '${owner.username}'` : ""}, which was linked under an old subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE). If that account is this entry's, allow its relink instead; otherwise relink that account to its own entry first.`;
+          return `${target.dn} already signs in to account ${other.user_id}${owner ? ` '${owner.username}'` : ""}. If this one should take it over, delete that account first (which also removes its own roles and API tokens), giving its drawings to '${user.username}'.`;
+        }
+        if (sameProvider.some((r) => r.value.subject === target.subject))
+          return `Another account is already waiting for ${target.dn}. Cancel that relink first.`;
+      }
+      // Shows the admin which entry would claim the account before they confirm, after every refusal above
+      if (preview) return PREVIEWED;
+      await AuthMeta.upsert(
+        { key, value: { username, subject: target ? target.subject : undefined, subject_setting: target ? providers.subjectSettingOf(provider) || undefined : undefined, dn: target ? target.dn : undefined, expires_at, by: actor.username, superadmin: current.includes(id) || undefined } },
+        { transaction }
+      );
+      return null;
+    });
+    if (refusal === PREVIEWED) return void res.send({ status: "success", message: "Relink can be allowed.", body: { provider, username, dn: target ? target.dn : null, preview: true } });
+    if (refusal) return fail(refusal);
+    // Attempts refused before the admin got to this account no longer block the person
+    resetFailedLogins(username);
+    resetFailedLogins(user.username);
+    providers.resetFailures(provider, { username, dn: target ? target.dn : undefined });
+    logger(
+      "warn",
+      `'${actor.username}' allowed the next ${provider} login as '${username}'${target ? ` (${target.dn}, subject '${target.subject}')` : ""} to claim account ${id} '${user.username}' until ${expires_at}.`,
+      "accounts",
+      req
+    );
+    res.send({ status: "success", message: "Relink allowed.", body: { provider, username, dn: target ? target.dn : null, expires_at } });
+  } catch (err) {
+    logger("error", "Failed to allow relinking.", req.originalUrl, req, err);
+    fail("Failed to allow relinking.");
+  }
+});
+
+// Asks each login provider about every account linked to it, e.g. after a directory migration
+router.post("/recheckLinked", apilimiter, authorize("accounts.manage"), async function (req, res) {
+  try {
+    const result = await providers.recheckLinked();
+    logger(
+      result.failed ? "warn" : "info",
+      `Rechecked ${result.checked} provider-linked accounts; ${result.missing} not found${result.failed ? `, ${result.failed} couldn't be checked (see the earlier warnings)` : ""}${result.unsupported ? `; ${result.unsupported} can't be checked between logins (their provider has no service account, e.g. LDAP without LDAP_BIND_DN)` : ""}${result.staleRelinks ? `; ${result.staleRelinks} pending relinks are pinned to entries that are gone (allow them again)` : ""}.`,
+      "accounts",
+      req
+    );
+    res.send({ status: "success", body: result });
+  } catch (err) {
+    logger("error", "Failed to recheck provider-linked accounts.", req.originalUrl, req, err);
+    res.send({ status: "failure", message: "Failed to check the linked accounts." });
+  }
+});
+
 router.post("/generateResetPasswordLink", authorize("accounts.manage"), function (req, res, next) {
   // A reset link can sign in as its account, so it needs more than a token's scopes
   if (req.principal && req.principal.kind === "token") {
@@ -337,8 +614,21 @@ router.post("/generateResetPasswordLink", authorize("accounts.manage"), function
     },
   };
 
-  User.update(toUpdateTo, updateObj)
-    .then(() => {
+  // Accounts linked to an enabled login provider sign in through it; a local password would get around it.
+  // Once that provider is removed from AUTH_PROVIDERS, a reset link is the way back in.
+  AuthIdentity.findOne({ where: { user_id: id, provider: { [Op.in]: providers.enabledProviders().map((p) => p.id) } }, attributes: ["provider"], raw: true })
+    .then((link) => {
+      if (link) {
+        res.send({
+          status: "failure",
+          message: `This account signs in with ${providers.providerLabel(link.provider) || link.provider}, so it has no MMGIS password to reset.`,
+        });
+        return null;
+      }
+      return User.update(toUpdateTo, updateObj).then(() => true);
+    })
+    .then((updated) => {
+      if (!updated) return null;
       res.send({
         status: "success",
         message: `Successfully generated a password reset token for user with id: '${id}'.`,

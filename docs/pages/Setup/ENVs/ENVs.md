@@ -44,6 +44,9 @@ Login methods, as a JSON array or comma-separated list | string[] | default `["l
 
 - _local:_ MMGIS username/password accounts. Keep it listed so `/configure` admins can always log in.
 - _proxy:_ An authenticating reverse proxy in front of MMGIS (such as Cloud Single Sign On) that sends the user's identity in request headers. See `PROXY_TRUST`.
+- _ldap:_ Username and password checked against an LDAP directory (OpenLDAP, Active Directory, ...). See `LDAP_URL` and [LDAP Login](/MMGIS/setup/ldap).
+
+When more than one listed provider takes a username and password (`local`, `ldap`), the login page, Configure sign-in and the in-app login modal show a switch above the form; the first one listed is selected by default. With `AUTH_LOCAL_LOGIN=admins`, local accounts are only offered at Configure sign-in.
 
 Each provider is a core auth provider plugin under `plugins/core/auth/`. To add one, see [Writing an Auth Provider](/MMGIS/contributing/auth-providers).
 
@@ -56,7 +59,7 @@ Instance type | string enum | default `production`
 
 #### `TRUST_PROXY=`
 
-Which proxies in front of MMGIS to trust for the client's IP address (`X-Forwarded-For`), used by rate limits and logs. A number trusts that many proxies, `false` trusts none and uses the direct connection's address, and other values (such as `loopback` or a list of addresses) are passed to Express's `trust proxy` setting. Set it to `false` when browsers reach MMGIS directly, or a client can pick its own IP and get around per-IP rate limits.
+Which proxies in front of MMGIS to trust for the client's IP address (`X-Forwarded-For`), used by rate limits and logs. A number trusts that many proxies, `false` trusts none and uses the direct connection's address, and other values (such as `loopback` or a list of addresses) are passed to Express's `trust proxy` setting. Set it to `false` when browsers reach MMGIS directly, or a client can pick its own IP and get around per-IP rate limits. Everyone behind one NAT, VPN or proxy shares an address, and so shares its failed-login budget: 10 wrong passwords per 15 minutes on the local form, and 10 × `AUTH_MAX_FAILED_LOGINS` on a provider's.
 
 **Type**: number, boolean or string | **Default**: `1`
 
@@ -140,7 +143,19 @@ Test-specific database password. Required by test infrastructure for least-privi
 
 #### `AUTH_LOCAL_ALLOW_SIGNUP=`
 
-If SITE_ACCESS=required and set to true, this allows all guests to the site to create user accounts otherwise, they just see a login page with no signup section | boolean | default `false`
+Whether visitors may create their own local accounts. With `SITE_ACCESS=required`, only when this is true. With `SITE_ACCESS=optional`, visitors may always sign up while `local` is the only provider; once another provider such as `ldap` or `proxy` is enabled, or any account is linked to one (even while it's out of `AUTH_PROVIDERS`; it reopens once the last such account is deleted), only when this is true, so nobody can register a directory user's username before that person first signs in | boolean | default `false`
+
+#### `AUTH_PROVIDER_NEW_ACCOUNTS=`
+
+Whether a first sign-in through a login provider such as `ldap` or `proxy` creates an MMGIS account. When `false`, only accounts that already sign in with that provider, or have a relink allowed, can sign in; everyone else is refused and told to ask an administrator, and the server log says to allow a relink or create their account first. Set it to `false` while moving to a new directory, so people whose directory username changed don't get new, empty accounts before their relink. Any value other than `true` or `false` stops startup | boolean | default `true`
+
+#### `AUTH_MAX_FAILED_LOGINS=`
+
+Failed logins allowed for one account on one login form (local, or a username/password provider such as LDAP) per 15 minutes. Provider forms count across all addresses, so MMGIS stops before the directory locks the person's account everywhere; the cost is that anyone who knows a username can keep that person off the provider form for 15 minutes with this many wrong passwords, so set it as high as the directory's lockout threshold allows (see the per-process note below). The local form counts per address, with a ceiling of 10 times this across all addresses (50 by default), so locking a local SuperAdmin out of the local form for 15 minutes takes that many wrong passwords; sessions already signed in are unaffected. Only wrong usernames or passwords count; an unreachable directory or a refused account link doesn't. A sign-in counts while it's in progress and stops counting once it succeeds, so this many simultaneous sign-ins for one account (e.g. a script signing in in parallel) can get "too many failed sign-ins" even with the right password. Further attempts for that account on that form are refused until the window passes, so directory failures never lock out a local account. Usernames are compared ignoring case, Unicode look-alikes and `DOMAIN\` (and `@domain` on the local form). LDAP also counts wrong passwords per directory entry, so every name that reaches one entry (uid, mail, UPN) shares one allowance and nobody else's typos count against it; once it's used up, that entry gets the same "invalid username or password" answer as a wrong password (its password isn't tried), so the limit doesn't reveal which names exist. Counts are kept in each server process, so with several processes (replicas behind a load balancer, pm2 or Kubernetes) the limit applies per process, and the directory can see that many times as many wrong passwords. With a directory behind MMGIS, keep this times the number of processes below the directory's account lockout threshold (e.g. at most 2 for 3 processes and a threshold of 7), so typos and password guessing are stopped by MMGIS before the directory locks the account. Separately, each address is limited to 10 × this many wrong usernames or passwords per 15 minutes on each provider's form | number | default `5`
+
+#### `AUTH_RECHECK_MINUTES=`
+
+How often MMGIS rereads a provider-linked account (for example LDAP) from its provider while that account has a session or uses an API token. Directory group changes then update the person's roles, and a person deleted or disabled in the directory loses their sessions and tokens, within this many minutes instead of at their next login. If the directory can't be reached, access stays as it was until a later check: accounts already found gone stay refused. LDAP needs `LDAP_BIND_DN` and `LDAP_USER_SEARCH_BASE` for this; without them, changes apply at the next login. `0` turns rechecking off; **Check linked accounts** in Users & Access > People then still applies group changes, and an account it finds gone loses its sessions and tokens, until the person signs in again or a later check finds them | number | default `15`
 
 #### `AUTH_LOCAL_LOGIN=`
 
@@ -148,7 +163,7 @@ Which local accounts may log in with a username and password. `all`: any local a
 
 #### `SETUP_CODE=`
 
-While the site has no accounts, creating the first (SuperAdmin) account on `/configure` requires a one-time setup code. If unset, the server generates a random code on each start and prints it in its log (not in the log files); the code works once. Set this to choose the code yourself, for scripted installs or several replicas behind one URL. It has no effect once an account exists | string | default `null`
+While the site has no SuperAdmin, creating the first (SuperAdmin) account on `/configure` requires a one-time setup code. If unset, the server generates a random code on each start and prints it in its log (not in the log files); the code works once. Set this to choose the code yourself, for scripted installs or several replicas behind one URL. It has no effect once a SuperAdmin exists, so accounts created earlier by a login provider such as LDAP don't close setup | string | default `null`
 
 #### `CONNECTIONS_CALLBACK_BASE_URL=`
 
@@ -207,6 +222,90 @@ The proxy's sign-in redirect the map can send users to (`?redirect=<current page
 
 Where the map POSTs to extend the proxy session when it is about to time out | string | default `/ssorefreshtimeout`
 
+#### `LDAP_URL=`
+
+With the `ldap` login provider, the directory's address: `ldaps://host:636`, or `ldap://host:389` with `LDAP_STARTTLS=true`. MMGIS refuses to start with a plain `ldap://` URL unless `LDAP_STARTTLS` or `LDAP_ALLOW_INSECURE` is `true`. The certificate must match the host name in the URL | string | default `''`
+
+#### `LDAP_STARTTLS=`
+
+Upgrade an `ldap://` connection to TLS before sending anything. If the upgrade fails, the login fails | boolean | default `false`
+
+#### `LDAP_TLS_CA=`
+
+Path of a PEM file with the CA certificate(s) that signed the directory's certificate, for directories with an internal CA. Without it, Node's bundled public CAs are trusted. Certificate checks are never turned off | string | default `''`
+
+#### `LDAP_ALLOW_INSECURE=`
+
+Allow `ldap://` without StartTLS, so passwords cross the network unencrypted. Only for local testing; MMGIS warns at startup while it is set | boolean | default `false`
+
+#### `LDAP_BIND_DN=`
+
+DN of a read-only service account MMGIS signs in as to search for people (and groups), e.g. `cn=mmgis-svc,ou=services,dc=example,dc=org`. On Active Directory a UPN (`mmgis-svc@corp.example.org`) or `CORP\mmgis-svc` works too. Nobody can sign in to MMGIS as this account, in any of those forms, so wrong passwords sent to it can't lock it. Leave empty to search anonymously, or when using `LDAP_USER_DN_TEMPLATE` | string | default `''`
+
+#### `LDAP_BIND_PASSWORD=`
+
+Password of `LDAP_BIND_DN`. Required with it | string | default `''`
+
+#### `LDAP_USER_SEARCH_BASE=`
+
+Where people's entries are searched for (whole subtree), e.g. `ou=people,dc=example,dc=org`. Either this or `LDAP_USER_DN_TEMPLATE` is required. The search must match exactly one entry | string | default `''`
+
+#### `LDAP_USER_SEARCH_FILTER=`
+
+Filter that finds a person by the username they typed, which replaces `{{username}}` (escaped). Active Directory: `(sAMAccountName={{username}})`, or `(|(sAMAccountName={{username}})(userPrincipalName={{username}}))` to also accept `alice@corp.example.org` | string | default `(uid={{username}})`
+
+#### `LDAP_USER_DN_TEMPLATE=`
+
+Sign in as the person directly, without a service account or search: their DN with `{{username}}`, e.g. `uid={{username}},ou=people,dc=example,dc=org`, or an Active Directory `{{username}}@corp.example.org` (then also set `LDAP_USER_SEARCH_BASE` so MMGIS can read their entry) | string | default `''`
+
+#### `LDAP_USERNAME_DOMAIN=`
+
+Active Directory NetBIOS domain, e.g. `CORP`. A leading `CORP\` is then removed from what people type (any case), so `CORP\alice` signs in as `alice`. Other domains are left as typed | string | default `''`
+
+#### `LDAP_SUBJECT_ATTRIBUTE=`
+
+Attribute with a permanent id for the person; MMGIS links accounts by it, so renames and moves keep the same account. Active Directory: `objectGUID`. `dn` uses the DN, which changes on renames. Don't use an attribute that can change, such as `uid`, `sAMAccountName`, `userPrincipalName` or `mail`: when it changes, that person's next sign-in creates a new, empty account, so MMGIS warns at startup about anything but a permanent ID. Anything but a permanent ID also needs `LDAP_USER_SEARCH_BASE`, and a sign-in whose value another entry shares is refused, so anyone who can set that attribute on another entry (e.g. a directory admin for one OU) can lock a person out. And a newcomer given a leaver's value (in any letter case, since directories usually compare these without case) signs in to the leaver's account. Prefer `entryUUID` or `objectGUID`. Changing this setting (e.g. between `entryUUID`/`objectGUID` and `dn`) on a site with LDAP accounts signs them all out and stops their API tokens until each is relinked; startup logs how many, so keep a local SuperAdmin for this | string | default `entryUUID`
+
+#### `LDAP_USERNAME_ATTRIBUTE=`
+
+Attribute used as the MMGIS username of a new account. Active Directory: `sAMAccountName`. Falls back to what the person typed | string | default `uid`
+
+#### `LDAP_EMAIL_ATTRIBUTE=`
+
+Attribute with the person's email | string | default `mail`
+
+#### `LDAP_GROUPS_ATTRIBUTE=`
+
+Attribute on the person listing their groups as DNs (Active Directory, or OpenLDAP with the memberof overlay). Each group is reported by its full DN in lowercase, e.g. `cn=science-team,ou=groups,dc=example,dc=org`; enter that as the group DN of groups made with **New group** > **From a LDAP group**. Ignored when `LDAP_GROUP_SEARCH_BASE` is set | string | default `memberOf`
+
+#### `LDAP_GROUP_SEARCH_BASE=`
+
+Find groups by searching here instead of reading `LDAP_GROUPS_ATTRIBUTE`, e.g. `ou=groups,dc=example,dc=org` | string | default `''`
+
+#### `LDAP_GROUP_SEARCH_FILTER=`
+
+Filter for `LDAP_GROUP_SEARCH_BASE`; `{{dn}}` is the person's DN and `{{username}}` the person's `LDAP_USERNAME_ATTRIBUTE` value (not what they typed, so `alice@corp` and `alice` get the same groups). posixGroup groups: `(memberUid={{username}})`. Active Directory with nested groups: `(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{dn}}))` | string | default `(member={{dn}})`
+
+#### `LDAP_GROUP_NAME_ATTRIBUTE=`
+
+Report groups found under `LDAP_GROUP_SEARCH_BASE` by this attribute (e.g. `cn`) instead of their DN. Only use it when nobody untrusted can create groups under that base, since groups with the same name become one MMGIS group. Groups without this attribute are left out (the login log names them), and `dn` means the DN. Has no effect without `LDAP_GROUP_SEARCH_BASE` (groups read from `LDAP_GROUPS_ATTRIBUTE` are always full DNs) | string | default `''` (the DN)
+
+#### `LDAP_TIMEOUT_MS=`
+
+How long to wait for the directory to connect and for each operation before the login fails with "unavailable". A recheck between logins may take up to 5 times this; a person's request waits at most 5 s for it (1 s while the directory has just been found unreachable), and a slower one applies once it ends | number | default `5000`
+
+#### `LDAP_DISPLAY_NAME=`
+
+What the login form calls the directory, e.g. `Example Directory`: the switch tab or banner, error messages and the account menu's "Signed in with …" | string | default `LDAP`
+
+#### `LDAP_USERNAME_LABEL=`
+
+Label of the username field when signing in with LDAP, e.g. `Example username` | string | default `Username`
+
+#### `LDAP_LOGIN_HINT=`
+
+Short hint shown with the LDAP form, e.g. `Use the same username and password as your email.` | string | default `''`
+
 #### `VERBOSE_LOGGING=`
 
 Potentially logs a bunch of extra stuff for development purposes | bool | default `false`
@@ -225,7 +324,7 @@ Sets "SameSite=None; Secure" on the login cookie. Useful when using SITE_ACCESS=
 
 #### `CORS_ORIGINS=`
 
-Comma-separated origins allowed for cross-origin HTTP requests and websockets. When unset, only same-origin requests are allowed. | comma-separated origins | default `""`
+Comma-separated origins allowed for cross-origin HTTP requests and websockets. When unset, only same-origin requests are allowed. These origins may also post MMGIS's login and sign-up forms, which refuse other sites. | comma-separated origins | default `""`
 
 **Upgrade note:** Cross-origin browser clients that previously relied on wildcard CORS must set this to a comma-separated list of their allowed origins.
 

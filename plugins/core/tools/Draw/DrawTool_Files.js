@@ -21,6 +21,9 @@ import { saveAs } from 'file-saver'
 
 import calls from '@pre/calls'
 
+// For values written into single-quoted attributes
+const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/'/g, '&apos;').replace(/</g, '&lt;')
+
 var DrawTool = null
 var Files = {
     init: function (tool) {
@@ -378,7 +381,7 @@ var Files = {
             // prettier-ignore
             var markup = [
                 "<div class='flexbetween' style='height: 30px; line-height: 30px;'>",
-                    "<div class='drawToolFileSelector flexbetween' file_id='" + file.id + "' file_owner='" + file.file_owner + "' file_intent='" + file.intent + "'>",
+                    "<div class='drawToolFileSelector flexbetween' file_id='" + file.id + "' file_owner='" + attr(file.file_owner) + "' file_intent='" + attr(file.intent) + "'>",
                     "<div class='drawToolIntentColor' style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                     "<div class='drawToolFileInfo'>",
                         "<i title='Owned by you!' class='drawToolFileOwner mdi" + (file.is_master ? ' mdi-account-tie' : isAllEdit ? ' mdi-account-group' : isListEdit ? ' mdi-account-multiple' : (ownedByUser) ? ' mdi-account' : '' ) + " mdi-18px " + ( (file.is_master || ownedByUser || isAllEdit || isListEdit) ? 'alwaysShow' : '' )  + "' style='pointer-events: " + ( (ownedByUser) ? 'all' : 'none' ) + "' file_id='" + file.id + "'></i>",
@@ -970,7 +973,7 @@ var Files = {
 
             // prettier-ignore
             const modalContentEditable = [
-                "<div class='drawToolFileEditOn' file_id='" + fileId + "'  file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
+                "<div class='drawToolFileEditOn' file_id='" + fileId + "'  file_owner='" + attr(file.file_owner) + "' file_name='" + attr(file.file_name) + "'>",
                     "<div id='drawToolFileEditOnHeading'>",
                         "<div>",
                             "<i class='mdi mdi-file mdi-36px'></i>",
@@ -979,7 +982,7 @@ var Files = {
                             "</div>",
                         "</div>",
                         "<div>",
-                            `<div id="drawToolFileEditOnHeadingOwner">by ${file.file_owner}${ownedByUser ? ' (you)' : ''}</div>`,
+                            `<div id="drawToolFileEditOnHeadingOwner">by ${safeHTML(file.file_owner)}${ownedByUser ? ' (you)' : ''}</div>`,
                             "<select id='drawToolFileEditOnPublicityDropdown' class='ui dropdown dropdown_2 unsetMaxWidth'>",
                                 `<option value='private' ${file.public == '0' ? 'selected' : ''}>Private</option>`,
                                 `<option value='public read_only' ${file.public == '1' && file.publicity_type != 'list_edit' && file.publicity_type != 'all_edit' ? 'selected' : ''}>Public - Read-Only</option>`,
@@ -1052,7 +1055,7 @@ var Files = {
 
             // prettier-ignore
             const modalContent = [
-                "<div class='drawToolFileEditOn' file_id='" + fileId + "' file_owner='" + file.file_owner + "' file_name='" + file.file_name + "'>",
+                "<div class='drawToolFileEditOn' file_id='" + fileId + "' file_owner='" + attr(file.file_owner) + "' file_name='" + attr(file.file_name) + "'>",
                     "<div id='drawToolFileEditOnHeading'>",
                         "<div>",
                             "<i class='mdi mdi-file mdi-36px'></i>",
@@ -1061,7 +1064,7 @@ var Files = {
                             "</div>",
                         "</div>",
                         "<div>",
-                            `<div id="drawToolFileEditOnHeadingOwner">by ${file.file_owner}</div>`,
+                            `<div id="drawToolFileEditOnHeadingOwner">by ${safeHTML(file.file_owner)}</div>`,
                         "</div>",
                     "</div>",
                     "<div class='drawToolFileEditOnDates'>",

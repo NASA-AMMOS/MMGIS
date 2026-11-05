@@ -61,6 +61,7 @@ plugins/                       # containers only — the CLI lives in /plugin-cl
 | `API/updateTools.js` | Build-time tool/component discovery → generates `src/pre/tools.js` |
 | `API/setups.js` | Runtime backend discovery → loads `plugin.js` lifecycle hooks |
 | `scripts/resolve-plugin-deps.js` | Aggregates plugin dependencies for build |
+| `scripts/plugin-ci.js` | Runs the tests of plugins that declare `"ci"` in `plugin.json` (an outside service or settings their tests need), in CI and locally |
 
 ## Quick Start
 

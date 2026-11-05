@@ -88,6 +88,9 @@ test.describe('AUTH_PROVIDERS parsing', () => {
     expect(siteAccess.parseProviders('["local","proxy"]')).toEqual(['local', 'proxy']);
     expect(siteAccess.parseProviders('"proxy"')).toEqual(['proxy']);
     expect(siteAccess.parseProviders('local, Proxy,local')).toEqual(['local', 'proxy']);
+    // Brackets without quotes, e.g. [local,ldap]
+    expect(siteAccess.parseProviders('[local, ldap]')).toEqual(['local', 'ldap']);
+    expect(siteAccess.parseProviders("['local','ldap']")).toEqual(['local', 'ldap']);
   });
 
   test('rejects non-array JSON', () => {
@@ -97,7 +100,7 @@ test.describe('AUTH_PROVIDERS parsing', () => {
   });
 
   test('a provider without a plugin is unknown and points to the guide', () => {
-    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["ldap"]' }).join()).toMatch(/unknown provider 'ldap'.*contributing\/auth-providers/);
+    expect(siteAccess.validate({ SITE_ACCESS: 'required', AUTH_PROVIDERS: '["oidc"]' }).join()).toMatch(/unknown provider 'oidc'.*contributing\/auth-providers/);
   });
 
   test('unknown providers are rejected', () => {
@@ -147,6 +150,8 @@ test.describe('AUTH_LOCAL_LOGIN', () => {
 });
 
 test.describe('Self sign-up', () => {
+  // Other specs in this worker link provider accounts through the shared module
+  test.beforeEach(() => siteAccess.setProviderAccounts(false));
   const cases = [
     [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local' }, true],
     [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local', AUTH_LOCAL_LOGIN: 'admins' }, false],
@@ -154,6 +159,8 @@ test.describe('Self sign-up', () => {
     [{ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'local', AUTH_LOCAL_ALLOW_SIGNUP: 'true' }, true],
     [{ SITE_ACCESS: 'required', AUTH_PROVIDERS: 'proxy,local', AUTH_LOCAL_ALLOW_SIGNUP: 'true', AUTH_LOCAL_LOGIN: 'admins' }, false],
     [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'proxy' }, false],
+    [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'ldap,local' }, false],
+    [{ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'ldap,local', AUTH_LOCAL_ALLOW_SIGNUP: 'true' }, true],
     [{ SITE_ACCESS: 'public', AUTH_PROVIDERS: 'local' }, false],
   ];
   for (const [env, expected] of cases)
@@ -161,4 +168,14 @@ test.describe('Self sign-up', () => {
       const full = { AUTH_LOCAL_LOGIN: undefined, AUTH_LOCAL_ALLOW_SIGNUP: undefined, ...env };
       withEnv(full, () => expect(siteAccess.selfSignupAllowed()).toBe(expected));
     });
+
+  test('stays closed on a local-only optional site once accounts are linked to another provider', () => {
+    try {
+      siteAccess.setProviderAccounts(true);
+      withEnv({ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local', AUTH_LOCAL_LOGIN: undefined, AUTH_LOCAL_ALLOW_SIGNUP: undefined }, () => expect(siteAccess.selfSignupAllowed()).toBe(false));
+      withEnv({ SITE_ACCESS: 'optional', AUTH_PROVIDERS: 'local', AUTH_LOCAL_LOGIN: undefined, AUTH_LOCAL_ALLOW_SIGNUP: 'true' }, () => expect(siteAccess.selfSignupAllowed()).toBe(true));
+    } finally {
+      siteAccess.setProviderAccounts(false);
+    }
+  });
 });

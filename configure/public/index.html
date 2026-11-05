@@ -18,6 +18,11 @@
         .replace(/&quot;|[\[\]"' ]/g, "")
         .split(",")
         .filter(Boolean);
+      try {
+        mmgisglobal.authProviderInfo = JSON.parse(decodeURIComponent("#{AUTH_PROVIDER_INFO}"));
+      } catch (e) {
+        mmgisglobal.authProviderInfo = [];
+      }
       mmgisglobal.AUTH_LOCAL_ALLOW_SIGNUP = "#{AUTH_LOCAL_ALLOW_SIGNUP}";
       mmgisglobal.AUTH_LOCAL_LOGIN = "#{AUTH_LOCAL_LOGIN}";
       mmgisglobal.SELF_SIGNUP = "#{SELF_SIGNUP}";

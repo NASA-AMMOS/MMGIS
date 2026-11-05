@@ -123,6 +123,7 @@ function TopBar({ userInterface }) {
     const [mapOpen, setMapOpen] = useState(true)
     const [globeOpen, setGlobeOpen] = useState(false)
     const [username, setUsername] = useState(null)
+    const [accountProvider, setAccountProvider] = useState(null)
 
     useEffect(() => {
         const el = topBarLeftRef.current
@@ -161,13 +162,19 @@ function TopBar({ userInterface }) {
         function syncUser() {
             if (window.mmgisglobal && window.mmgisglobal.user && window.mmgisglobal.user !== 'guest') {
                 setUsername(window.mmgisglobal.user)
+                setAccountProvider(window.mmgisglobal.accountProvider || null)
             } else {
                 setUsername(null)
+                setAccountProvider(null)
             }
         }
         syncUser()
         const interval = setInterval(syncUser, 2000)
-        return () => clearInterval(interval)
+        document.addEventListener('mmgis:accountprovider', syncUser)
+        return () => {
+            clearInterval(interval)
+            document.removeEventListener('mmgis:accountprovider', syncUser)
+        }
     }, [])
 
     // Hide the jQuery #loginDiv and #loginoutButton since we handle user UI in React now
@@ -391,7 +398,8 @@ function TopBar({ userInterface }) {
                                 <div
                                     id="accountButton"
                                     className={`${styles.userAvatar} ${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
-                                    title={username}
+                                    role="button"
+                                    aria-label={`Account: ${username}${accountProvider ? `, signed in with ${accountProvider.title}` : ''}`}
                                     style={{ background: Connections_.avatarColor(username) }}
                                     onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
                                 >

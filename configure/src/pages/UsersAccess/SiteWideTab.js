@@ -50,7 +50,7 @@ export default function SiteWideTab({ ctx }) {
               );
             })}
             <AudienceCard key={`defaults-${defaults == null ? "all" : defaults.slice().sort().join(",")}`} title="Default for new accounts" missions={missions}
-              hint="What a newly created account can view. Doesn't change existing accounts."
+              hint="What a newly created local account can view. Accounts a login provider creates get only what their groups and the Logged-in users audience give. Doesn't change existing accounts."
               state={{ mode: defaults == null ? "all" : defaults.length === 0 ? "none" : "selected", list: defaults || [] }}
               onSave={(mode, list) =>
                 api("account_update_defaults", { missions_viewing: mode === "all" ? null : mode === "none" ? [] : list })

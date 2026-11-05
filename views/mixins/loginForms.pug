@@ -1,0 +1,20 @@
+//- The provider switch (or, for a single non-local provider, a banner) above the shared
+//- username/password form. public/loginForms.js reads each provider's wording from the buttons.
+mixin loginProviders(forms)
+  if forms.length
+    .loginProviders(class=forms.length > 1 ? 'multiple' : 'single' role=forms.length > 1 ? 'tablist' : null aria-label='Account type')
+      each f, i in forms
+        button.loginProvider(type='button' role='tab' class=i === 0 ? 'active' : null aria-selected=i === 0 ? 'true' : 'false' data-id=f.id data-title=f.title data-label=f.usernameLabel data-hint=f.hint data-path=f.path title=f.title)
+          i.mdi(class='mdi-' + f.icon aria-hidden='true')
+          span= f.title
+    if forms.length === 1 && forms[0].id !== 'local'
+      .loginBanner
+        i.mdi(class='mdi-' + forms[0].icon aria-hidden='true')
+        div
+          small Sign in with
+          b= forms[0].title
+          if forms[0].hint
+            span= forms[0].hint
+
+mixin loginHint()
+  .loginHint#loginHint

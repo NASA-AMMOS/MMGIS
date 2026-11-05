@@ -70,6 +70,59 @@ test.beforeEach(() => principal.invalidate());
 
 const proxyIdentity = { provider: 'proxy', subject: 'jdoe', username: 'jdoe', groups: [], session: 's1' };
 
+test.describe('accounts linked only to a provider that is not enabled', () => {
+  test('keep a local session (from a reset link) but not their API tokens', async () => {
+    const orig = fakeModels.AuthIdentity.findAll;
+    fakeModels.AuthIdentity.findAll = async ({ where }) => (where.user_id === 1 ? [{ provider: 'ldap' }] : []);
+    try {
+      const viaToken = await principal.resolvePrincipal({ headers: { authorization: 'Bearer mmgis-unit-test-token-value' }, session: {} });
+      expect(viaToken.kind).toBe('invalid_token');
+      const viaSession = await principal.resolvePrincipal({ headers: {}, session: { uid: 1 } });
+      expect(viaSession.authenticated).toBe(true);
+      expect(viaSession.username).toBe('admin');
+      expect(await principal.tokensOffFor(1)).toEqual(['ldap']);
+      expect(await principal.tokensOffFor(2)).toEqual([]);
+    } finally {
+      fakeModels.AuthIdentity.findAll = orig;
+    }
+  });
+});
+
+test('an account with an enabled provider link besides a disabled one follows the enabled one', async () => {
+  const orig = fakeModels.AuthIdentity.findAll;
+  fakeModels.AuthIdentity.findAll = async ({ where }) => (where.user_id === 1 ? [{ provider: 'ldap' }, { provider: 'proxy' }] : []);
+  try {
+    expect(await principal.tokensOffFor(1)).toEqual([]);
+  } finally {
+    fakeModels.AuthIdentity.findAll = orig;
+  }
+});
+
+test.describe('groups of a provider that is not enabled', () => {
+  test('grant nothing, while local groups still do', async () => {
+    const orig = { members: fakeModels.AuthGroupMember.findAll, groups: fakeModels.AuthGroup.findAll };
+    bindingRows.push(
+      { id: 90, role: 'data_admin', scope_type: 'global', subject_type: 'group', subject_id: '10' },
+      { id: 91, role: 'editor', scope_type: 'global', subject_type: 'group', subject_id: '11' }
+    );
+    fakeModels.AuthGroupMember.findAll = async ({ where }) =>
+      where.user_id === 2 ? [{ group_id: 10 }, { group_id: 11 }] : [];
+    // ldap isn't in AUTH_PROVIDERS here
+    fakeModels.AuthGroup.findAll = async ({ where }) =>
+      [{ id: 10, source: 'ldap' }, { id: 11, source: 'local' }].filter((g) => where.id.includes(g.id));
+    try {
+      const p = await principal.resolvePrincipal({ headers: {}, session: { uid: 2 } });
+      expect(p.groupIds).toEqual([11]);
+      expect(p.bindings.map((b) => b.role)).toContain('editor');
+      expect(p.bindings.map((b) => b.role)).not.toContain('data_admin');
+    } finally {
+      bindingRows.splice(bindingRows.findIndex((r) => r.id === 90), 2);
+      fakeModels.AuthGroupMember.findAll = orig.members;
+      fakeModels.AuthGroup.findAll = orig.groups;
+    }
+  });
+});
+
 test.describe('local account signed in behind the proxy', () => {
   test('the proxy user is the identity and the local account adds its access', async () => {
     const p = await principal.resolvePrincipal({ headers: {}, session: { uid: 1 }, identity: proxyIdentity });

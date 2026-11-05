@@ -17,15 +17,26 @@ const RENAMED_ENVS = {
   CSSO_PROXY_SECRET: "PROXY_SECRET", // pragma: allowlist secret
 };
 
+// Strips spaces, brackets and quotes off both ends in linear time, unlike a trailing [...]+$ regex
+function trimListJunk(p) {
+  const junk = (ch) => /[\s[\]"']/.test(ch);
+  let a = 0;
+  let b = p.length;
+  while (a < b && junk(p[a])) a++;
+  while (b > a && junk(p[b - 1])) b--;
+  return p.slice(a, b);
+}
+
 function parseProviders(raw) {
   if (raw == null || String(raw).trim() === "") return ["local"];
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
+    // e.g. [local,ldap] without quotes
     parsed = String(raw)
       .split(",")
-      .map((p) => p.trim())
+      .map(trimListJunk)
       .filter(Boolean);
   }
   if (typeof parsed === "string") parsed = [parsed];
@@ -37,14 +48,23 @@ function parseProviders(raw) {
 const LOCAL_LOGIN_VALUES = ["all", "admins"];
 const localAdminsOnly = () => process.env.AUTH_LOCAL_LOGIN === "admins";
 
-// Whether visitors may create their own local accounts
+const allowSignupSetting = () =>
+  process.env.AUTH_LOCAL_ALLOW_SIGNUP === true || process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true";
+
+// Whether accounts linked to another provider exist in the database, even if that provider isn't enabled here
+let providerAccounts = false;
+const setProviderAccounts = (exist) => {
+  providerAccounts = !!exist;
+};
+
+// Whether visitors may create their own local accounts. Alongside another provider (ldap, proxy), or once
+// any account is linked to one, only with AUTH_LOCAL_ALLOW_SIGNUP, so nobody can register a directory
+// user's username before they sign in, including while that provider is out of AUTH_PROVIDERS
 const selfSignupAllowed = () =>
   hasProvider("local") &&
   !localAdminsOnly() &&
-  (isOptional() ||
-    (isRequired() &&
-      (process.env.AUTH_LOCAL_ALLOW_SIGNUP === true ||
-        process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true")));
+  ((isOptional() && ((getProviders().length === 1 && !providerAccounts) || allowSignupSetting())) ||
+    (isRequired() && allowSignupSetting()));
 
 // Returns a list of human-readable problems with the current ENV (empty if valid)
 function validate(env = process.env) {
@@ -70,6 +90,8 @@ function validate(env = process.env) {
     );
   if (env.AUTH_LOCAL_LOGIN != null && env.AUTH_LOCAL_LOGIN !== "" && !LOCAL_LOGIN_VALUES.includes(env.AUTH_LOCAL_LOGIN))
     errors.push(`AUTH_LOCAL_LOGIN must be one of: ${LOCAL_LOGIN_VALUES.join(" | ")}.`);
+  if (env.AUTH_PROVIDER_NEW_ACCOUNTS != null && env.AUTH_PROVIDER_NEW_ACCOUNTS !== "" && !["true", "false"].includes(env.AUTH_PROVIDER_NEW_ACCOUNTS))
+    errors.push("AUTH_PROVIDER_NEW_ACCOUNTS must be true or false.");
   const providers = parseProviders(env.AUTH_PROVIDERS);
   if (providers == null || providers.length === 0) {
     errors.push(`AUTH_PROVIDERS must be a JSON array, e.g. ["local"].`);
@@ -126,5 +148,6 @@ module.exports = {
   endUserLoginEnabled,
   localAdminsOnly,
   selfSignupAllowed,
+  setProviderAccounts,
   LOCAL_LOGIN_VALUES,
 };
