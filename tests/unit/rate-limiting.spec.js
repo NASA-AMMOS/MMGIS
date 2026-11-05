@@ -33,6 +33,10 @@ test.describe('Rate limiting configuration', () => {
     expect(accountKey('ＣＯＲＰ\\ｌdap_Bob')).toBe('ldap_bob');
     expect(accountKey(' Alice@corp.example.org ')).toBe('alice');
     expect(accountKey('ldap_alİce')).toBe('ldap_alice');
+    // A long login username must not stall the server while its key is worked out
+    const started = Date.now();
+    expect(accountKey(`${'@'.repeat(200000)}\nx`)).toBe('');
+    expect(Date.now() - started).toBeLessThan(500);
     expect(accountKey(' Alice@corp.example.org ', 'ldap')).toBe('alice@corp.example.org');
     expect(accountKey('CORP\\Alice', 'ldap')).toBe('alice');
     expect(accountLimiterFor('local')).toBe(accountLimiter);

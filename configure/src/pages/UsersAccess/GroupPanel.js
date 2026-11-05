@@ -51,9 +51,9 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
               {providers.map((p) => <MenuItem key={p} value={p}>{providerName(p)}</MenuItem>)}
             </Select>
           )}
-          <TextField size="small" sx={{ flex: 1 }} autoFocus placeholder={providers.length > 1 ? "Username" : `${providerName(provider)} username`} value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && provider) check(); }} />
+          <TextField size="small" sx={{ flex: 1 }} autoFocus placeholder={providers.length > 1 ? "Username" : `${providerName(provider)} username`} value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && provider) void check(); }} />
         </div>
-        <TextField size="small" fullWidth multiline minRows={2} placeholder={providerGroups(provider).group_example ? `Groups, one per line, e.g.\n${providerGroups(provider).group_example}` : "Groups, one per line"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) check(); }} />
+        <TextField size="small" fullWidth multiline minRows={2} placeholder={providerGroups(provider).group_example ? `Groups, one per line, e.g.\n${providerGroups(provider).group_example}` : "Groups, one per line"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) void check(); }} />
         {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
         {result && (
           <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>
@@ -130,12 +130,12 @@ export function GroupPanel({ group, ctx }) {
         <div className={c.dialogStack}>
           <div>
             <div className={c.fieldLabel}>Name in MMGIS</div>
-            <TextField size="small" fullWidth value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) saveGroup(); }} />
+            <TextField size="small" fullWidth value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) void saveGroup(); }} />
           </div>
           {group.source !== "local" && (
             <div>
               <div className={c.fieldLabel}>{`${providerName(group.source)} ${providerGroups(group.source).group_label || "group"}`}</div>
-              <TextField size="small" fullWidth inputProps={{ style: { fontFamily: "monospace", fontSize: 13 } }} placeholder={providerGroups(group.source).group_example || ""} value={externalName} onChange={(e) => setExternalName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) saveGroup(); }} />
+              <TextField size="small" fullWidth inputProps={{ style: { fontFamily: "monospace", fontSize: 13 } }} placeholder={providerGroups(group.source).group_example || ""} value={externalName} onChange={(e) => setExternalName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) void saveGroup(); }} />
               <div className={c.help}>{providerGroups(group.source).group_hint || `The group's name exactly as ${providerName(group.source)} reports it at sign-in.`}</div>
               {movedTo && (
                 <Alert severity="warning" sx={{ mt: 1.5 }}>

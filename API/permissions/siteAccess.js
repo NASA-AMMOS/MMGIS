@@ -17,6 +17,16 @@ const RENAMED_ENVS = {
   CSSO_PROXY_SECRET: "PROXY_SECRET", // pragma: allowlist secret
 };
 
+// Strips spaces, brackets and quotes off both ends in linear time, unlike a trailing [...]+$ regex
+function trimListJunk(p) {
+  const junk = (ch) => /[\s[\]"']/.test(ch);
+  let a = 0;
+  let b = p.length;
+  while (a < b && junk(p[a])) a++;
+  while (b > a && junk(p[b - 1])) b--;
+  return p.slice(a, b);
+}
+
 function parseProviders(raw) {
   if (raw == null || String(raw).trim() === "") return ["local"];
   let parsed;
@@ -26,7 +36,7 @@ function parseProviders(raw) {
     // e.g. [local,ldap] without quotes
     parsed = String(raw)
       .split(",")
-      .map((p) => p.replace(/^[\s\["']+|[\s\]"']+$/g, ""))
+      .map(trimListJunk)
       .filter(Boolean);
   }
   if (typeof parsed === "string") parsed = [parsed];

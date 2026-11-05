@@ -69,7 +69,9 @@ const fill = (template, values) =>
 // dn is inside base: it ends with ",base" at an unescaped comma (normalizeDn escapes "\\" as "\\\\")
 function underBase(dn, base) {
   if (!dn.endsWith(`,${base}`)) return false;
-  return dn.slice(0, dn.length - base.length - 1).match(/\\*$/)[0].length % 2 === 0;
+  let slashes = 0;
+  for (let i = dn.length - base.length - 2; i >= 0 && dn[i] === "\\"; i--) slashes++;
+  return slashes % 2 === 0;
 }
 
 function normalizeDn(dn) {

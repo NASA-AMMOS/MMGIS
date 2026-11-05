@@ -29,7 +29,7 @@ const accountKey = (username, form = 'local') => {
     .replace(/\u0130/g, 'I')
     .toLowerCase()
     .replace(/^[^\\]*\\/, '');
-  return form === 'local' ? key.replace(/@.*$/, '') : key;
+  return form === 'local' ? key.split('@')[0] : key;
 };
 
 // Failed logins per account and login form, so MMGIS stops before a directory locks the account.
