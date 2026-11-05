@@ -45,6 +45,7 @@ export const useStyles = makeStyles((theme) => ({
   },
   search: { width: "320px" },
   barHint: { fontSize: "13px", opacity: 0.75, minWidth: 0 },
+  groupCode: { fontSize: "12px", wordBreak: "break-all" },
   fieldLabel: { fontSize: "12px", fontWeight: 500, opacity: 0.85, marginBottom: "6px" },
   // New group dialog: one evenly spaced stack of labeled fields
   dialogStack: { display: "flex", flexDirection: "column", gap: "20px", paddingTop: "4px" },

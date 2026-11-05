@@ -21,7 +21,7 @@ import { useRemembered } from "./hooks";
 const EMPTY_GROUP = { name: "", source: "local", external_name: "" };
 
 // New group: where its members come from, and for a provider group, which of the provider's groups it follows
-function NewGroupDialog({ providers, groups, draft, setDraft, onClose, notify, refresh }) {
+function NewGroupDialog({ providers, groups, draft, setDraft, onClose, onCreated, notify, refresh }) {
   const c = useStyles();
   const [lookupUser, setLookupUser] = useState("");
   const [lookup, setLookup] = useState(null);
@@ -50,23 +50,24 @@ function NewGroupDialog({ providers, groups, draft, setDraft, onClose, notify, r
         refresh();
         // The server fills a provider group from the people already signed in, in the background
         if (fromProvider) setTimeout(refresh, 4000);
-        if (res.note) setCreated({ name: made, note: res.note });
+        const id = res.body && res.body.id;
+        if (res.note) setCreated({ name: made, note: res.note, id });
         else {
           notify(`Created group '${made}'.`, "success");
-          onClose();
+          onCreated(id);
         }
       })
       .catch((res) => notify(res.message || "Failed to create group.", "error"));
   const ready = draft.name.trim() && (!fromProvider || draft.external_name.trim());
   if (created)
     return (
-      <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+      <Dialog open onClose={() => onCreated(created.id)} maxWidth="sm" fullWidth>
         <DialogTitle>Created group '{created.name}'</DialogTitle>
         <DialogContent>
           <Alert severity="info">{created.note}</Alert>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" disableElevation onClick={onClose}>Done</Button>
+          <Button variant="contained" disableElevation onClick={() => onCreated(created.id)}>Done</Button>
         </DialogActions>
       </Dialog>
     );
@@ -149,6 +150,11 @@ export default function GroupsTab({ ctx }) {
   const [newGroup, setNewGroup] = useRemembered(remember, "newGroup", EMPTY_GROUP);
   const [creating, setCreating] = useState(false);
   const [providerCheck, setProviderCheck] = useState(false);
+  // A new group needs access next, so open it
+  const opened = (id) => {
+    setCreating(false);
+    if (id != null) setPanel({ type: "group", id });
+  };
   const [providers] = useState(
     String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local")
   );
@@ -166,28 +172,30 @@ export default function GroupsTab({ ctx }) {
               <TableHead>
                 <TableRow>
                   <TableCell>Group</TableCell>
+                  <TableCell>Source</TableCell>
                   <TableCell>Members</TableCell>
                   <TableCell>Access</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {groups.length === 0 && (
-                  <TableRow><TableCell colSpan={3} className={c.muted}>No groups yet.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className={c.muted}>No groups yet. Click New group to make one.</TableCell></TableRow>
                 )}
                 {groups.map((g) => {
                   const own = bindings.filter((b) => b.subject_type === "group" && String(b.subject_id) === String(g.id));
                   return (
                     <TableRow key={g.id} className={c.clickRow} {...rowActivate(() => setPanel({ type: "group", id: g.id }))}>
                       <TableCell><SubjectTag type="group" name={g.name} showKind={false} /></TableCell>
-                      <TableCell>{g.source === "local" ? g.members.length : `${g.members.length} from ${providerName(g.source)} (${g.external_name})`}</TableCell>
-                      <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.scope_type === "layer" ? `${b.mission || "?"} › ${(allLayerPaths[b.mission] || {})[b.layer_uuid] || "folder"}` : b.mission}`).join(" · ") || <span className={c.muted}>—</span>}</TableCell>
+                      <TableCell>{g.source === "local" ? "Added by hand" : <>{providerName(g.source)} · <code className={c.groupCode}>{g.external_name}</code></>}</TableCell>
+                      <TableCell>{g.members.length}</TableCell>
+                      <TableCell>{own.map((b) => `${(roles[b.role] || {}).label || b.role}: ${b.scope_type === "global" ? "site-wide" : b.scope_type === "layer" ? `${b.mission || "?"} › ${(allLayerPaths[b.mission] || {})[b.layer_uuid] || "folder"}` : b.mission}`).join(" · ") || <span className={c.muted}>None yet</span>}</TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
           </div>
-      {creating && <NewGroupDialog providers={providers} groups={groups} draft={newGroup} setDraft={setNewGroup} onClose={() => setCreating(false)} notify={notify} refresh={refresh} />}
+      {creating && <NewGroupDialog providers={providers} groups={groups} draft={newGroup} setDraft={setNewGroup} onClose={() => setCreating(false)} onCreated={opened} notify={notify} refresh={refresh} />}
       {providerCheck && <ProviderCheckDialog open providers={providers} roles={roles} onClose={() => setProviderCheck(false)} />}
     </>
   );

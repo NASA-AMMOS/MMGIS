@@ -46,13 +46,15 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
             : `${providerName(provider)} can't look people up, so enter their groups.`}
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
-            {providers.map((p) => <MenuItem key={p} value={p}>{providerName(p)}</MenuItem>)}
-          </Select>
-          <TextField size="small" sx={{ flex: 1 }} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          {providers.length > 1 && (
+            <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
+              {providers.map((p) => <MenuItem key={p} value={p}>{providerName(p)}</MenuItem>)}
+            </Select>
+          )}
+          <TextField size="small" sx={{ flex: 1 }} autoFocus placeholder={providers.length > 1 ? "Username" : `${providerName(provider)} username`} value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && provider) check(); }} />
         </div>
         <TextField size="small" fullWidth multiline minRows={2} placeholder={providerGroups(provider).group_example ? `Groups, one per line, e.g.\n${providerGroups(provider).group_example}` : "Groups, one per line"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) check(); }} />
-        {error && <div className={c.hint} style={{ color: "#a8572e", marginTop: 12 }}>{error}</div>}
+        {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
         {result && (
           <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>
             {result.reported !== undefined && (
@@ -97,6 +99,8 @@ export function GroupPanel({ group, ctx }) {
     setExternalName(group.external_name || "");
   }, [group.name, group.external_name]);
   const changed = name.trim() !== group.name || (group.source !== "local" && externalName.trim() !== (group.external_name || ""));
+  const movedTo = group.source !== "local" && externalName.trim() && externalName.trim() !== (group.external_name || "") ? externalName.trim() : null;
+  const ready = changed && name.trim() && (group.source === "local" || externalName.trim());
   const saveGroup = () =>
     api("access_groups_update", { id: group.id, name: name.trim(), ...(group.source !== "local" ? { external_name: externalName.trim() } : {}) })
       .then((res) => { notify("Group updated.", "success"); setSaveNote(res.note || null); refresh(); })
@@ -117,20 +121,34 @@ export function GroupPanel({ group, ctx }) {
         ]}
       />
       {!on && (
-        <div className={`${c.section} ${c.hint}`} style={{ color: "#a8572e" }}>
-          {providerName(group.source)} isn't in AUTH_PROVIDERS on this site, so this group gives its members nothing right now; the members listed are from before it was removed.
+        <div className={c.section}>
+          <Alert severity="warning">{providerName(group.source)} isn't in AUTH_PROVIDERS on this site, so this group gives its members nothing right now; the members listed are from before it was removed.</Alert>
         </div>
       )}
       <div className={c.section}>
         <Typography className={c.sectionTitle}>Group</Typography>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <TextField size="small" label="Name" InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && changed && name.trim()) saveGroup(); }} />
+        <div className={c.dialogStack}>
+          <div>
+            <div className={c.fieldLabel}>Name in MMGIS</div>
+            <TextField size="small" fullWidth value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) saveGroup(); }} />
+          </div>
           {group.source !== "local" && (
-            <TextField size="small" label={`${providerName(group.source)} ${providerGroups(group.source).group_label || "group"}`} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={externalName} onChange={(e) => setExternalName(e.target.value)} />
+            <div>
+              <div className={c.fieldLabel}>{`${providerName(group.source)} ${providerGroups(group.source).group_label || "group"}`}</div>
+              <TextField size="small" fullWidth inputProps={{ style: { fontFamily: "monospace", fontSize: 13 } }} placeholder={providerGroups(group.source).group_example || ""} value={externalName} onChange={(e) => setExternalName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) saveGroup(); }} />
+              <div className={c.help}>{providerGroups(group.source).group_hint || `The group's name exactly as ${providerName(group.source)} reports it at sign-in.`}</div>
+              {movedTo && (
+                <Alert severity="warning" sx={{ mt: 1.5 }}>
+                  Saving changes who's in this group: its members become whoever {providerName(group.source)} lists in <b>{movedTo}</b>, as they sign in or are rechecked.
+                </Alert>
+              )}
+            </div>
           )}
-          <Button variant="outlined" size="small" disabled={!changed || !name.trim() || (group.source !== "local" && !externalName.trim())} onClick={saveGroup}>
-            Save
-          </Button>
+          <div>
+            <Button variant="outlined" size="small" disabled={!ready} onClick={saveGroup}>
+              Save
+            </Button>
+          </div>
         </div>
         {saveNote && <Alert severity="info" sx={{ mt: 1.5 }} onClose={() => setSaveNote(null)}>{saveNote}</Alert>}
       </div>

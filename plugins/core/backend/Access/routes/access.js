@@ -267,11 +267,11 @@ router.get("/effective", manage, async (req, res) => {
         target = await providers.reportedGroups(provider, username);
       } catch (err) {
         logger("error", `Couldn't look up '${username}' at ${provider} to check their access.`, "access", req, err);
-        throw new bindings.BindingError(`Couldn't look up '${username}' at ${provider}: it's unreachable or refused its service account (see the server log). Enter their groups instead.`);
+        throw new bindings.BindingError(`Couldn't look up '${username}' at ${providers.providerLabel(provider)}: it's unreachable or refused its service account (see the server log). Enter their groups instead.`);
       }
       if (target) reported = target.groups;
       if (target === null)
-        throw new bindings.BindingError(`${provider} has no single entry with the username '${username}', or it's disabled or left out by its user search filter.`);
+        throw new bindings.BindingError(`${providers.providerLabel(provider)} has no single entry with the username '${username}', or it's disabled or left out by its user search filter.`);
     }
     // The access shown is a sign-in with no account yet; an account already holding the name changes that
     // Accounts follow the directory entry, not its username: a renamed person keeps their account, and a
