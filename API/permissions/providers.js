@@ -1373,6 +1373,11 @@ module.exports = {
   loginForms,
   providerLabel,
   providerInfo,
+  // Name and icon of the provider someone signed in with, for their account menu
+  providerBadge: (id) => {
+    const p = getProvider(id);
+    return p && p.id !== "local" ? { id: p.id, label: providerLabel(p.id), icon: providerIcon(p) } : null;
+  },
   loginLinks,
   logoutUrl,
   mountProviderRoutes,

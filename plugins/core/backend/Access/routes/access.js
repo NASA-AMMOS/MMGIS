@@ -51,9 +51,52 @@ async function summarize(principal) {
   };
 }
 
+// Each of the caller's role bindings with where it applies and where it comes from, for Configure's account menu
+async function ownGrants(principal) {
+  const groupIds = (principal.bindings || []).filter((b) => b.subject_type === "group").map((b) => b.subject_id);
+  const groups = groupIds.length
+    ? await AuthGroup.findAll({ where: { id: groupIds }, attributes: ["id", "name", "source"], raw: true })
+    : [];
+  const groupOf = Object.fromEntries(groups.map((g) => [String(g.id), g]));
+  const out = [];
+  for (const b of principal.bindings || []) {
+    if (!policy.ROLES[b.role]) continue;
+    const [kind, m, l] = b.scope.split(":");
+    const g = b.subject_type === "group" ? groupOf[String(b.subject_id)] : null;
+    if (b.subject_type === "group" && !g) continue;
+    out.push({
+      role: b.role,
+      label: policy.ROLES[b.role].label,
+      scope: kind,
+      mission: m ? await missions.nameForUUID(m) : null,
+      layer: l || null,
+      from:
+        b.subject_type === "user"
+          ? { type: "user" }
+          : g
+            ? { type: "group", name: g.name, provider: g.source !== "local" ? providers.providerLabel(g.source) : null }
+            : { type: "audience", name: b.subject_id },
+    });
+  }
+  return out;
+}
+
+function signedInWith(req, principal) {
+  if (!principal.authenticated) return null;
+  const id = principal.kind === "external" ? principal.provider : req.session && req.session.provider;
+  return id ? providers.providerBadge(id) : null;
+}
+
 router.get("/me", authorize.public("returns the caller's own permissions"), async (req, res) => {
   try {
-    res.send({ status: "success", body: await summarize(await ensurePrincipal(req)) });
+    const principal = await ensurePrincipal(req);
+    res.send({
+      status: "success",
+      body: {
+        ...(await summarize(principal)),
+        ...(req.query.grants === "true" ? { grants: await ownGrants(principal), provider: signedInWith(req, principal) } : {}),
+      },
+    });
   } catch (err) {
     fail(res, err, "Failed to get permissions.");
   }

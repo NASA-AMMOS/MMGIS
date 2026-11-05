@@ -186,12 +186,12 @@ export const useStyles = makeStyles((theme) => ({
     fontWeight: "normal",
     letterSpacing: "normal",
   },
-  // Green (least access), then blue, through to red (most access)
+  // Green (least access), then blue, yellow and orange, to plum (most access)
   badge_viewer: { background: "#5b8c32", color: "white" },
   badge_layer_editor: { background: "#3a8fb7", color: "white" },
   badge_mission_admin: { background: theme.palette.swatches.p[0], color: "black" },
   badge_data_admin: { background: theme.palette.accent.tertiary, color: "white" },
-  badge_superadmin: { background: "#db589a", color: "white" },
+  badge_superadmin: { background: theme.palette.swatches.r[2], color: "white" },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
   // Pagination footer: continues the table's shadow on the sides and bottom only,
   // and sits above the table so it covers the table's bottom shadow
