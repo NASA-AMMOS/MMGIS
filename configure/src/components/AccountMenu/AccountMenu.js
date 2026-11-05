@@ -62,20 +62,30 @@ const useStyles = makeStyles((theme) => ({
     transition: "box-shadow 0.15s, filter 0.15s",
   },
   open: { boxShadow: `0 0 0 2px ${theme.palette.accent.main} !important` },
-  menu: { width: "340px", fontSize: "13px", color: theme.palette.swatches.grey[150] },
+  // Dark like the main site's account menu (Connections_.css)
+  paper: {
+    "&&": {
+      marginTop: "6px",
+      background: theme.palette.swatches.grey[100],
+      border: `1px solid ${theme.palette.swatches.grey[400]}`,
+      borderRadius: "4px",
+      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)",
+    },
+  },
+  menu: { width: "340px", fontSize: "13px", color: "#e1e1e1" },
   section: {
     padding: "11px 14px",
-    "& + &": { borderTop: `1px solid ${theme.palette.swatches.grey[850]}` },
+    "& + &": { borderTop: `1px solid ${theme.palette.swatches.grey[400]}` },
   },
   label: {
     fontSize: "11px",
     textTransform: "uppercase",
     letterSpacing: "0.6px",
-    color: theme.palette.swatches.grey[500],
+    color: theme.palette.swatches.grey[700],
     margin: "2px 0 8px",
   },
   account: { display: "flex", alignItems: "center", gap: "10px" },
-  bigAvatar: { width: "34px", height: "34px", fontSize: "15px", boxShadow: "none" },
+  bigAvatar: { width: "34px", height: "34px", fontSize: "15px", boxShadow: `0 0 0 1px ${theme.palette.swatches.grey[300]}` },
   badge: {
     position: "absolute",
     right: "-5px",
@@ -88,21 +98,21 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "center",
     fontSize: "11px",
     fontWeight: "normal",
-    color: theme.palette.swatches.grey[300],
-    background: theme.palette.swatches.grey[1000],
-    border: `1px solid ${theme.palette.swatches.grey[700]}`,
+    color: theme.palette.swatches.grey[800],
+    background: theme.palette.swatches.grey[100],
+    border: `1px solid ${theme.palette.swatches.grey[400]}`,
   },
   text: { flex: 1, minWidth: 0 },
   user: { fontWeight: "bold", fontSize: "15px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  detail: { fontSize: "12px", color: theme.palette.swatches.grey[400] },
-  roleHelp: { fontSize: "12.5px", color: theme.palette.swatches.grey[300], margin: "8px 0 2px" },
+  detail: { fontSize: "12px", color: theme.palette.swatches.grey[700] },
+  roleHelp: { fontSize: "12.5px", color: theme.palette.swatches.grey[800], margin: "8px 0 2px" },
   grant: { padding: "5px 0" },
   grantTop: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" },
   where: { fontWeight: 600, fontSize: "12.5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   chip: {
     "&&": { fontSize: "11px", lineHeight: "16px", padding: "1px 7px", borderRadius: "9px", margin: 0, fontWeight: 600 },
   },
-  more: { fontSize: "12px", color: theme.palette.swatches.grey[500], paddingTop: "4px" },
+  more: { fontSize: "12px", color: theme.palette.swatches.grey[700], paddingTop: "4px" },
   foot: { display: "flex", justifyContent: "space-between", alignItems: "center" },
   mapLink: {
     display: "flex",
@@ -113,6 +123,18 @@ const useStyles = makeStyles((theme) => ({
     textDecoration: "none",
     "&:hover": { textDecoration: "underline" },
     "& svg": { fontSize: "16px" },
+  },
+  signOut: {
+    "&&": {
+      color: "inherit",
+      borderColor: theme.palette.swatches.grey[700],
+      borderRadius: "3px",
+      textTransform: "none",
+      fontWeight: "bold",
+      fontSize: "12.5px",
+      padding: "4px 12px",
+    },
+    "&&:hover": { borderColor: theme.palette.swatches.grey[900], background: "rgba(255, 255, 255, 0.08)" },
   },
 }));
 
@@ -210,7 +232,7 @@ export default function AccountMenu() {
         onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: { mt: "6px" } } }}
+        slotProps={{ paper: { className: c.paper } }}
       >
         <div className={c.menu} id="configureAccountMenu">
           <div className={c.section}>
@@ -248,7 +270,7 @@ export default function AccountMenu() {
             <a className={c.mapLink} href={siteRoot}>
               <MapIcon /> Open the map
             </a>
-            <Button variant="outlined" size="small" onClick={signout} id="configureSignOut">
+            <Button className={c.signOut} variant="outlined" size="small" onClick={signout} id="configureSignOut">
               Sign out
             </Button>
           </div>
