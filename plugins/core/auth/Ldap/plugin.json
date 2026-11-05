@@ -14,6 +14,9 @@
   "login_form": true,
   "login_icon": "card-account-details-outline",
   "relink": true,
+  "group_label": "group DN",
+  "group_hint": "The group's full DN, as the directory reports it (with LDAP_GROUP_NAME_ATTRIBUTE set, that attribute's value instead).",
+  "group_example": "cn=science-team,ou=groups,dc=example,dc=org",
   "dependencies": {
     "npm": {
       "ldapts": "^9.2.0"

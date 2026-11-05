@@ -581,6 +581,7 @@ export const pushTo = (map, k, v) => {
 // Groups of a provider that's not in AUTH_PROVIDERS give their members nothing
 // From the server: each enabled provider's name and whether it offers relinking
 const providerInfo = () => window.mmgisglobal?.authProviderInfo || [];
+export const providerGroups = (id) => providerInfo().find((p) => p.id === id) || {};
 export const providerName = (id) => (providerInfo().find((p) => p.id === id) || {}).label || String(id).toUpperCase();
 export const relinkProviders = () => providerInfo().filter((p) => p.relink).map((p) => p.id);
 export const providerOn = (source) => source === "local" || (window.mmgisglobal?.authProviders || []).includes(source);

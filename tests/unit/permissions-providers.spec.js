@@ -505,8 +505,8 @@ test.describe('login forms', () => {
 
   test('only providers whose plugin.json sets "relink": true offer relinking', () => {
     expect(providers.providerInfo(['dir', 'local', 'proxy'])).toEqual([
-      { id: 'dir', label: 'Directory', relink: true },
-      { id: 'proxy', label: 'Authenticating proxy', relink: false },
+      { id: 'dir', label: 'Directory', relink: true, group_lookup: true },
+      { id: 'proxy', label: 'Authenticating proxy', relink: false, group_hint: 'The group name exactly as the proxy lists it in its groups header.', group_lookup: false },
     ]);
   });
 

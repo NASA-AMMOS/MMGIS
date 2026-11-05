@@ -88,7 +88,7 @@ export function PersonPanel({ user, ctx }) {
       title: `Allow ${providerName(p)} relink?`,
       text: `${dn ? `'${relinkAs}' is ${dn} in ${providerName(p)}. ` : ""}For the next 24 hours, the next ${providerName(p)} login as '${relinkAs}'${dn ? " from that entry" : ""} takes over this account, keeping its roles, grants, API tokens and drawings, and signing out everyone signed in to it now. Its MMGIS password stops working. Use it when the directory gave this person a new ID, or to move a local account to ${providerName(p)}. If someone else used this account, revoke its API tokens too.${
         providerLogin && providerLogin.missing_reason === "subject"
-          ? ` It was linked under a different subject setting (e.g. LDAP_SUBJECT_ATTRIBUTE), so it needs this relink to sign in again.${
+          ? ` It was linked under a different subject setting of ${providerName(providerLogin.provider)}, so it needs this relink to sign in again.${
               providerLogin.missing_was_gone
                 ? ` Before that, its ${providerName(providerLogin.provider)} entry was deleted or disabled at ${missingText(providerLogin.missing_since)}: if '${relinkAs}' is now someone else, don't allow this.`
                 : ""

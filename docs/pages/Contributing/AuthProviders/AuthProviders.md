@@ -36,8 +36,8 @@ A login provider answers "who is this?"; MMGIS roles, groups and grants decide w
 1. Create `plugins/core/auth/<Name>/plugin.json` and `plugins/core/auth/<Name>/plugin.js` (copy one of the [examples](#example-login-form-provider)).
 2. Add the id to `.env`, keeping `local` so `/configure` admins can still sign in: `AUTH_PROVIDERS=["local","myprovider"]`.
 3. Restart MMGIS. The log prints `AUTH_PROVIDERS` and any problems your `validate`/`warnings` hooks report.
-4. In Configure > Users & Access > Groups, create a group with **Members from MYPROVIDER** and the external group name your provider reports, then give that group a role.
-5. Log in through your provider and check the user in Users & Access > People (session providers) or with **Check a provider user** (per-request providers).
+4. In Configure > Users & Access > Groups, click **New group**, choose **From a MYPROVIDER group** and enter the group name your provider reports, then give that group a role.
+5. Log in through your provider and check the user in Users & Access > People (session providers) or with **Check a person's access** (per-request providers).
 
 There are two kinds of provider. Pick one:
 
@@ -71,6 +71,7 @@ There are two kinds of provider. Pick one:
 | `login_path` | no | Session providers: the route that starts a login, relative to `/api/auth/<id>`. When set, the login page, the Configure sign-in page and the in-app login modal show a button for it (or, with `login_form`, post their form to it). |
 | `login_form` | no | `true` for providers that take a username and password: instead of a button, the shared login form posts to `login_path` (see [Login form providers](#login-form-providers)). |
 | `login_icon` | no | A [Material Design Icons](https://pictogrammers.com/library/mdi/) name (e.g. `card-account-details-outline`) shown on the form's provider switch and banner. |
+| `group_label`, `group_hint`, `group_example` | no | How Configure's **New group** dialog and group panel describe your group names: the field label after the provider name (default `group`), the help line under it, and a placeholder example. Keep provider-specific wording here rather than in Configure, e.g. LDAP's `"group_label": "group DN"`. |
 | `relink` | no | `true` to offer **Allow \<name\> relink** in Users & Access > People, so an admin can let one login from your provider take over an existing account (see `findSubject` below). Without it, MMGIS refuses relinks for your provider. |
 | `login_url` | no | Per-request providers: a login page outside MMGIS (for example the proxy's), linked as is. Use it instead of `login_path`. |
 | `login_label` | no | Text of that button. |
@@ -109,7 +110,7 @@ module.exports = {
 - `locate(subject)` (optional) says whether the entry with this subject still exists anywhere at the provider, even disabled or moved where logins aren't searched: return something truthy (e.g. `{ dn, username }`), or `null` if it's gone. MMGIS uses it before suggesting or allowing a relink, so a name given to someone new doesn't hand them the old account. Without it, `lookup` is used.
 - `relinkUsername(username)` (optional) turns the username an admin types when allowing a relink into the form your logins report it (e.g. LDAP drops `CORP\`), so an unpinned relink matches.
 - `resetFailures({ username, dn })` (optional) clears any failed-login count your provider keeps itself (LDAP counts wrong passwords per directory entry), called when an admin allows a relink; `dn` is set when the relink is pinned to an entry.
-- `findSubject(username)` (optional, with `"relink": true`) lets an admin allowing a relink in Users & Access see which entry has that username now: return `{ subject, dn }`, or `null` if none does. The relink is then pinned to that subject. Without it, the next login with that username claims the account. With `lookup`, it also lets Groups > Check a provider user list the groups the provider reports for someone now, so `lookup` must report groups in the form `groupName` saves.
+- `findSubject(username)` (optional, with `"relink": true`) lets an admin allowing a relink in Users & Access see which entry has that username now: return `{ subject, dn }`, or `null` if none does. The relink is then pinned to that subject. Without it, the next login with that username claims the account. With `lookup`, it also lets Groups > **Check a person's access** and the **New group** dialog list the groups the provider reports for someone now, so `lookup` must report groups in the form `groupName` saves.
 - If `identify(req)` throws, or takes longer than 5 seconds, the error is logged under your provider id and the request is treated as not identified.
 - Read your provider's settings from `env` and name them `<PROVIDERID>_*` (for example `MYPROVIDER_URL`). Document them in `docs/pages/Setup/ENVs/ENVs.md` and `sample.env`.
 - Every route you mount must declare its permission, usually `ctx.authorize.public("...")` for login pages; startup lists routes that don't. See [Backend Permissions](/MMGIS/contributing/permissions).
@@ -135,7 +136,7 @@ An identity is:
 
 **Per-request providers** create no account. Their users don't appear in People and can't hold a grant of their own; they get access through groups (matched on every request) and the Everyone / Logged-in users audiences.
 
-**Groups.** A provider's groups only matter for groups an admin has created in Users & Access with **Members from <PROVIDER>** and an external name exactly equal to the reported group, including capitalization. Other reported groups are ignored; MMGIS never creates groups on its own. For session providers, membership changes at the provider apply at the next login; a new grant to a group applies at the next request.
+**Groups.** A provider's groups only matter for groups an admin has created in Users & Access as **From a <PROVIDER> group** with a group name exactly equal to the reported group, including capitalization. Other reported groups are ignored; MMGIS never creates groups on its own. For session providers, membership changes at the provider apply at the next login; a new grant to a group applies at the next request.
 
 ## The ctx object
 
@@ -317,7 +318,7 @@ Declare both with `ctx.authorize.public(...)`, set `"login_path": "/login"`, and
 - **Startup:** each `validate` problem stops the server with your message; `warnings` are printed.
 - **Login:** session providers: start from the login page button and from the main site's modal, and land back on the page you started from. Per-request: send the headers with `curl` and check `GET /api/access/me`.
 - **Accounts:** a second login reuses the same account (People shows one row); a username that's already a local account gets your 409 message.
-- **Groups:** create a **Members from <PROVIDER>** group, give it a role, log in and check what the user can see; remove the group at the provider and log in again.
+- **Groups:** create a **From a <PROVIDER> group** group, give it a role, log in and check what the user can see; remove the group at the provider and log in again.
 - **Coexistence:** local accounts still log in with your provider enabled.
 - **Removal:** take the id out of `AUTH_PROVIDERS` and restart: its routes return 404 and its sessions and tokens stop working. Its accounts, groups and grants are kept.
 - **Websockets:** scripted websocket clients must send an `Origin` header, or MMGIS closes the connection (the reason is only in the server log).

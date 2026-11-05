@@ -18,7 +18,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { useStyles } from "./styles";
-import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead, providerOn, providerName } from "./shared";
+import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead, providerOn, providerName, providerGroups } from "./shared";
 
 // Provider users have no account row, so check what one would get from a username and group claims
 export function ProviderCheckDialog({ open, providers, roles, onClose }) {
@@ -36,10 +36,13 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
   const roleLabel = (r) => (roles[r] && roles[r].label) || r;
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Check a provider user</DialogTitle>
+      <DialogTitle>Check a person's access</DialogTitle>
       <DialogContent>
         <div className={c.hint} style={{ marginBottom: 12 }}>
-          Enter a username and the group names their login provider sends, one per line (LDAP group DNs as they are), to see the access they would get. Leave the groups empty to ask the provider which groups it reports for that person now (LDAP needs LDAP_BIND_DN for this), e.g. to find a group's new DN after it was moved.
+          Enter a username and the groups their login provider reports, one per line, to see the access they would get, even before their first sign-in.{" "}
+          {providerGroups(provider).group_lookup
+            ? "Leave the groups empty to ask the provider which groups it reports for that person now, e.g. to find a group's new name after it was renamed or moved."
+            : `${providerName(provider)} can't look people up, so enter their groups.`}
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
           <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
@@ -47,7 +50,7 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
           </Select>
           <TextField size="small" sx={{ flex: 1 }} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
         </div>
-        <TextField size="small" fullWidth multiline minRows={2} placeholder={"Groups, one per line, e.g.\ncn=science-team,ou=groups,dc=example,dc=org"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) check(); }} />
+        <TextField size="small" fullWidth multiline minRows={2} placeholder={providerGroups(provider).group_example ? `Groups, one per line, e.g.\n${providerGroups(provider).group_example}` : "Groups, one per line"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) check(); }} />
         {error && <div className={c.hint} style={{ color: "#a8572e", marginTop: 12 }}>{error}</div>}
         {result && (
           <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>
@@ -120,7 +123,7 @@ export function GroupPanel({ group, ctx }) {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <TextField size="small" label="Name" InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && changed && name.trim()) saveGroup(); }} />
           {group.source !== "local" && (
-            <TextField size="small" label={`${providerName(group.source)} group name`} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={externalName} onChange={(e) => setExternalName(e.target.value)} />
+            <TextField size="small" label={`${providerName(group.source)} ${providerGroups(group.source).group_label || "group"}`} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={externalName} onChange={(e) => setExternalName(e.target.value)} />
           )}
           <Button variant="outlined" size="small" disabled={!changed || !name.trim() || (group.source !== "local" && !externalName.trim())} onClick={saveGroup}>
             Save
@@ -138,7 +141,7 @@ export function GroupPanel({ group, ctx }) {
           <Typography className={c.sectionTitle}>Members ({group.members.length})</Typography>
           <div className={c.muted}>
             {group.members.length === 0
-              ? "None right now: people show up here as they sign in or are rechecked (with AUTH_RECHECK_MINUTES=0, click Check linked accounts in People). If it had members before, the group may have been renamed or moved at the provider; Check a provider user, with a former member's username and no groups, lists the groups reported for them now."
+              ? "None right now: people show up here as they sign in or are rechecked (with AUTH_RECHECK_MINUTES=0, click Check linked accounts in People). If it had members before, the group may have been renamed or moved at the provider; Check a person's access, with a former member's username and no groups, lists the groups reported for them now."
               : group.members.map((m) => m.username).sort((a, b) => a.localeCompare(b)).join(", ")}
           </div>
         </div>

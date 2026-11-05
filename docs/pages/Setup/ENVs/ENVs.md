@@ -276,7 +276,7 @@ Attribute with the person's email | string | default `mail`
 
 #### `LDAP_GROUPS_ATTRIBUTE=`
 
-Attribute on the person listing their groups as DNs (Active Directory, or OpenLDAP with the memberof overlay). Each group is reported by its full DN in lowercase, e.g. `cn=science-team,ou=groups,dc=example,dc=org`; use that as the external name of groups with **Members from LDAP**. Ignored when `LDAP_GROUP_SEARCH_BASE` is set | string | default `memberOf`
+Attribute on the person listing their groups as DNs (Active Directory, or OpenLDAP with the memberof overlay). Each group is reported by its full DN in lowercase, e.g. `cn=science-team,ou=groups,dc=example,dc=org`; enter that as the group DN of groups made with **New group** > **From a LDAP group**. Ignored when `LDAP_GROUP_SEARCH_BASE` is set | string | default `memberOf`
 
 #### `LDAP_GROUP_SEARCH_BASE=`
 

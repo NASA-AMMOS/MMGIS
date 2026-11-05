@@ -1,24 +1,116 @@
 import React, { useState } from "react";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import AddIcon from "@mui/icons-material/Add";
 import { useStyles } from "./styles";
-import { SubjectTag, api, rowActivate, providerName } from "./shared";
+import { SubjectTag, api, rowActivate, providerName, providerGroups } from "./shared";
 import { ProviderCheckDialog } from "./GroupPanel";
 import { useRemembered } from "./hooks";
+
+const EMPTY_GROUP = { name: "", source: "local", external_name: "" };
+
+// New group: where its members come from, and for a provider group, which of the provider's groups it follows
+function NewGroupDialog({ providers, draft, setDraft, onClose, notify, refresh }) {
+  const c = useStyles();
+  const [lookupUser, setLookupUser] = useState("");
+  const [lookup, setLookup] = useState(null);
+  const fromProvider = draft.source !== "local";
+  const info = providerGroups(draft.source);
+  const name = providerName(draft.source);
+  const setSource = (source) => {
+    setDraft({ ...draft, source, external_name: "" });
+    setLookup(null);
+  };
+  const findGroups = () =>
+    api("access_effective", { provider: draft.source, username: lookupUser.trim(), groups: "" })
+      .then((r) => setLookup({ groups: (r.body && r.body.reported) || [] }))
+      .catch((res) => setLookup({ error: res.message || "Couldn't look that person up." }));
+  const create = () =>
+    api("access_groups_create", { name: draft.name, source: draft.source, external_name: fromProvider ? draft.external_name : undefined })
+      .then((res) => {
+        if (res.note) notify(res.note, "warning");
+        else notify(`Created group '${draft.name.trim()}'.`, "success");
+        setDraft(EMPTY_GROUP);
+        onClose();
+        refresh();
+        // The server fills a provider group from the people already signed in, in the background
+        if (fromProvider) setTimeout(refresh, 4000);
+      })
+      .catch((res) => notify(res.message || "Failed to create group.", "error"));
+  const ready = draft.name.trim() && (!fromProvider || draft.external_name.trim());
+  return (
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>New group</DialogTitle>
+      <DialogContent>
+        <TextField size="small" fullWidth label="Name in MMGIS" InputLabelProps={{ shrink: true }} sx={{ mt: 1 }} autoFocus value={draft.name} helperText="What you'll see in Configure." onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+        {providers.length > 0 && (
+          <>
+            <div className={c.fieldLabel}>Members</div>
+            <div className={c.choiceRow}>
+              <button type="button" className={`${c.choice} ${!fromProvider ? c.choiceOn : ""}`} aria-pressed={!fromProvider} onClick={() => setSource("local")}>
+                <b>Added by hand</b>You pick MMGIS accounts.
+              </button>
+              {providers.map((p) => (
+                <button key={p} type="button" className={`${c.choice} ${draft.source === p ? c.choiceOn : ""}`} aria-pressed={draft.source === p} onClick={() => setSource(p)}>
+                  <b>From a {providerName(p)} group</b>Anyone {providerName(p)} lists in that group, kept up to date at sign-in and rechecks.
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {fromProvider && (
+          <>
+            <TextField size="small" fullWidth label={`${name} ${info.group_label || "group"}`} InputLabelProps={{ shrink: true }} sx={{ mt: 2.5 }} placeholder={info.group_example || ""} value={draft.external_name} helperText={
+                <>
+                  {info.group_hint || `The group's name exactly as ${name} reports it at sign-in.`}
+                  {info.group_example && <span className={c.example}>e.g. <code>{info.group_example}</code></span>}
+                </>
+              } onChange={(e) => setDraft({ ...draft, external_name: e.target.value })} />
+            {info.group_lookup && (
+              <div className={c.lookupBox}>
+                <div className={c.hint} style={{ marginBottom: 8 }}>Not sure what to enter? Look up someone in the group and pick it from their groups:</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <TextField size="small" className={c.field} placeholder="Username" value={lookupUser} onChange={(e) => setLookupUser(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && lookupUser.trim()) findGroups(); }} />
+                  <Button variant="outlined" size="small" className={c.barButton} disabled={!lookupUser.trim()} onClick={findGroups}>Look up</Button>
+                </div>
+                {lookup && lookup.error && <div className={c.hint} style={{ color: "#a8572e", margin: "8px 0 0" }}>{lookup.error}</div>}
+                {lookup && lookup.groups && (
+                  lookup.groups.length ? (
+                    <div className={c.chips}>
+                      {lookup.groups.map((g) => (
+                        <button key={g} type="button" className={`${c.chip} ${draft.external_name === g ? c.choiceOn : ""}`} onClick={() => setDraft({ ...draft, external_name: g })}>{g}</button>
+                      ))}
+                    </div>
+                  ) : <div className={c.hint} style={{ margin: "8px 0 0" }}>{name} reports no groups for them.</div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" disableElevation startIcon={<AddIcon />} disabled={!ready} onClick={create}>Create group</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 // Groups, and checking what a provider user would get
 export default function GroupsTab({ ctx }) {
   const { roles, groups, bindings, notify, refresh, allLayerPaths, setPanel, remember } = ctx;
   const c = useStyles();
-  const [newGroup, setNewGroup] = useRemembered(remember, "newGroup", { name: "", source: "local", external_name: "" });
+  const [newGroup, setNewGroup] = useRemembered(remember, "newGroup", EMPTY_GROUP);
+  const [creating, setCreating] = useState(false);
   const [providerCheck, setProviderCheck] = useState(false);
   const [providers] = useState(
     String(window.mmgisglobal.AUTH_PROVIDERS || "").split(",").filter((p) => p && p !== "local")
@@ -26,30 +118,10 @@ export default function GroupsTab({ ctx }) {
   return (
     <>
           <div className={c.pane}>
-            <div className={`${c.bar} ${c.toolbarBox}`} style={{ flexWrap: "wrap" }}>
-              <TextField size="small" className={c.field} placeholder="New group name" value={newGroup.name} onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })} />
+            <div className={c.bar}>
+              <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} onClick={() => setCreating(true)}>New group</Button>
               {providers.length > 0 && (
-                <Select size="small" className={c.field} value={newGroup.source} onChange={(e) => setNewGroup({ ...newGroup, source: e.target.value })}>
-                  <MenuItem value="local">Members managed here</MenuItem>
-                  {providers.map((p) => <MenuItem key={p} value={p}>Members from {providerName(p)}</MenuItem>)}
-                </Select>
-              )}
-              {newGroup.source !== "local" && (
-                <TextField size="small" className={c.field} placeholder={`${providerName(newGroup.source)} group, as logged at sign-in`} value={newGroup.external_name} onChange={(e) => setNewGroup({ ...newGroup, external_name: e.target.value })} />
-              )}
-              <Button variant="contained" disableElevation className={c.barButton} startIcon={<AddIcon />} disabled={!newGroup.name.trim()} onClick={() =>
-                api("access_groups_create", { name: newGroup.name, source: newGroup.source, external_name: newGroup.external_name || undefined })
-                  .then((res) => {
-                    if (res.note) notify(res.note, "warning");
-                    setNewGroup({ name: "", source: "local", external_name: "" });
-                    refresh();
-                    // The server fills a provider group from the directory in the background
-                    if (newGroup.source !== "local") setTimeout(refresh, 4000);
-                  })
-                  .catch((res) => notify(res.message || "Failed to create group.", "error"))
-              }>Create group</Button>
-              {providers.length > 0 && (
-                <Button variant="outlined" size="small" className={c.barButton} onClick={() => setProviderCheck(true)}>Check a provider user</Button>
+                <Button variant="outlined" size="small" className={c.barButton} onClick={() => setProviderCheck(true)}>Check a person's access</Button>
               )}
               <span className={c.barHint}>Give roles to several people at once. Click a group to manage its members and access.</span>
             </div>
@@ -78,6 +150,7 @@ export default function GroupsTab({ ctx }) {
               </TableBody>
             </Table>
           </div>
+      {creating && <NewGroupDialog providers={providers} draft={newGroup} setDraft={setNewGroup} onClose={() => setCreating(false)} notify={notify} refresh={refresh} />}
       {providerCheck && <ProviderCheckDialog open providers={providers} roles={roles} onClose={() => setProviderCheck(false)} />}
     </>
   );

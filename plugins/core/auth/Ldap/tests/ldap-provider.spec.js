@@ -142,7 +142,7 @@ test.describe('LDAP login provider', () => {
     expect(Date.now() - new Date(mine[0].sign_ins[0].last_login_at).getTime()).toBeLessThan(60000);
   });
 
-  test('directory groups give roles through groups with Members from LDAP', async () => {
+  test('directory groups give roles through groups made from an LDAP group', async () => {
     const adminCtx = await adminContext();
     const name = `ldap-science-${Date.now()}`;
     const created = await (await adminCtx.post('/api/access/groups/create', { data: { name, source: 'ldap', external_name: 'cn=science-team,ou=groups,dc=example,dc=org' } })).json();
@@ -205,7 +205,7 @@ test.describe('LDAP login provider', () => {
     }
   });
 
-  test('Check a provider user with no groups lists the groups the directory reports now', async () => {
+  test('Check a person\'s access with no groups lists the groups the directory reports now', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to look people up');
     const adminCtx = await adminContext();
     const found = await (await adminCtx.get(`/api/access/effective?provider=ldap&username=${alice.username}`)).json();
@@ -217,7 +217,7 @@ test.describe('LDAP login provider', () => {
     expect(nobody.message).toMatch(/no single entry/);
   });
 
-  test('Check a provider user splits typed DNs at newlines and unescaped semicolons only', async () => {
+  test('Check a person\'s access splits typed DNs at newlines and unescaped semicolons only', async () => {
     const adminCtx = await adminContext();
     const stamp = Date.now();
     const dns = [`cn=Research\\;Ops ${stamp},ou=groups,dc=example,dc=org`, `cn=semi-${stamp},ou=groups,dc=example,dc=org`];
@@ -239,7 +239,7 @@ test.describe('LDAP login provider', () => {
     }
   });
 
-  test('Check a provider user follows the directory entry after a rename and a reused username', async () => {
+  test('Check a person\'s access follows the directory entry after a rename and a reused username', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to look people up');
     const name = `ldap_reuse_${Date.now()}`;
     const password = ['reuse', 'test', 'password'].join('-');
@@ -261,7 +261,7 @@ test.describe('LDAP login provider', () => {
     }
   });
 
-  test('Check a provider user shows a pending relink allowed under another username', async () => {
+  test('Check a person\'s access shows a pending relink allowed under another username', async () => {
     test.skip(!process.env.LDAP_BIND_DN, 'SKIP: needs a service account (LDAP_BIND_DN) to look people up');
     const name = `ldap_pending_${Date.now()}`;
     const password = ['pending', 'test', 'password'].join('-');

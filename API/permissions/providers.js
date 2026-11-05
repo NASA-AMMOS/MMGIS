@@ -1215,7 +1215,21 @@ function providerLabel(id) {
 function providerInfo(ids = siteAccess.getProviders()) {
   return enabledProviders(ids)
     .filter((p) => p.id !== "local")
-    .map((p) => ({ id: p.id, label: providerLabel(p.id), relink: p.manifest.relink === true }));
+    .map((p) => ({
+      id: p.id,
+      label: providerLabel(p.id),
+      relink: p.manifest.relink === true,
+      // How Configure describes the provider's group names (plugin.json group_label, group_hint, group_example)
+      group_label: manifestText(p.manifest.group_label),
+      group_hint: manifestText(p.manifest.group_hint),
+      group_example: manifestText(p.manifest.group_example),
+      // Whether Configure can ask the provider which groups someone is in now
+      group_lookup: typeof p.impl.findSubject === "function" && typeof p.impl.lookup === "function",
+    }));
+}
+
+function manifestText(v) {
+  return typeof v === "string" && v.trim() ? v.trim().slice(0, 500) : undefined;
 }
 
 // Login buttons that the login page, Configure sign-in and the in-app modal show for
