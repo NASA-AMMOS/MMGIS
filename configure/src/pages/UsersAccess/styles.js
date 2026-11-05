@@ -1,5 +1,9 @@
 import { makeStyles } from "@mui/styles";
 
+// Selected state in the New group dialog (cards and group chips)
+const ACCENT = "#0792c5";
+const ACCENT_TINT = "rgba(7, 146, 197, 0.08)";
+
 export const useStyles = makeStyles((theme) => ({
   page: {
     width: "100%",
@@ -41,30 +45,38 @@ export const useStyles = makeStyles((theme) => ({
   },
   search: { width: "320px" },
   barHint: { fontSize: "13px", opacity: 0.75, minWidth: 0 },
-  fieldLabel: { fontSize: "12px", fontWeight: 500, opacity: 0.8, margin: "20px 0 6px" },
+  fieldLabel: { fontSize: "12px", fontWeight: 500, opacity: 0.85, marginBottom: "6px" },
+  // New group dialog: one evenly spaced stack of labeled fields
+  dialogStack: { display: "flex", flexDirection: "column", gap: "20px", paddingTop: "4px" },
+  help: { fontSize: "12px", lineHeight: "18px", opacity: 0.75, marginTop: "6px" },
   // New group: one card per member source
-  choiceRow: { display: "flex", gap: "10px" },
+  choiceRow: { display: "flex", gap: "12px" },
   choice: {
+    position: "relative",
     flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-start",
     textAlign: "left",
     font: "inherit",
     fontSize: "13px",
     lineHeight: "19px",
-    padding: "10px 12px",
+    padding: "12px 36px 12px 14px",
     borderRadius: "6px",
     cursor: "pointer",
     color: "inherit",
     background: theme.palette.swatches.grey[1000],
-    border: `1px solid ${theme.palette.swatches.grey[600]}`,
+    border: `2px solid ${theme.palette.swatches.grey[800]}`,
     "& b": { display: "block", fontSize: "14px", marginBottom: "2px" },
-    "&:hover": { borderColor: theme.palette.swatches.grey[300] },
+    "&:hover": { borderColor: theme.palette.swatches.grey[600] },
   },
   choiceOn: {
-    borderColor: `${theme.palette.swatches.p[0]} !important`,
-    boxShadow: `inset 0 0 0 1px ${theme.palette.swatches.p[0]}`,
+    borderColor: `${ACCENT} !important`,
+    background: `${ACCENT_TINT} !important`,
   },
-  example: { display: "block", marginTop: "4px", "& code": { fontSize: "12px", wordBreak: "break-all" } },
-  lookupBox: { marginTop: "14px", padding: "12px", borderRadius: "4px", background: theme.palette.swatches.grey[900] },
+  choiceCheck: { position: "absolute", top: "10px", right: "10px", fontSize: "20px !important", color: ACCENT },
+  example: { display: "block", "& code": { fontSize: "12px", wordBreak: "break-all" } },
+  lookupBox: { padding: "12px 14px", borderRadius: "4px", background: theme.palette.swatches.grey[900] },
   chips: { display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" },
   chip: {
     font: "inherit",

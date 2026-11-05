@@ -14,6 +14,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
+import Alert from "@mui/material/Alert";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
@@ -89,6 +90,8 @@ export function GroupPanel({ group, ctx }) {
   const layerPaths = layerPathsFor(own);
   const [name, setName] = useState(group.name);
   const [externalName, setExternalName] = useState(group.external_name || "");
+  // What the server says about the last save (e.g. another group follows the same provider group), kept until the next one
+  const [saveNote, setSaveNote] = useState(null);
   useEffect(() => {
     setName(group.name);
     setExternalName(group.external_name || "");
@@ -96,7 +99,7 @@ export function GroupPanel({ group, ctx }) {
   const changed = name.trim() !== group.name || (group.source !== "local" && externalName.trim() !== (group.external_name || ""));
   const saveGroup = () =>
     api("access_groups_update", { id: group.id, name: name.trim(), ...(group.source !== "local" ? { external_name: externalName.trim() } : {}) })
-      .then((res) => { notify(res.note ? `Group updated. ${res.note}` : "Group updated.", res.note ? "warning" : "success"); refresh(); })
+      .then((res) => { notify("Group updated.", "success"); setSaveNote(res.note || null); refresh(); })
       .catch((res) => notify(res.message || "Failed to update group.", "error"));
   const on = providerOn(group.source);
   return (
@@ -129,6 +132,7 @@ export function GroupPanel({ group, ctx }) {
             Save
           </Button>
         </div>
+        {saveNote && <Alert severity="info" sx={{ mt: 1.5 }} onClose={() => setSaveNote(null)}>{saveNote}</Alert>}
       </div>
       {group.source !== "local" && (
         <div className={`${c.section} ${c.hint}`}>
