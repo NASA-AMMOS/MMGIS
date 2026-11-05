@@ -52,11 +52,20 @@ export default {
         missionsMeta = missionsMeta || {}
 
         var missionUrl
+        var unavailableMission = null
         var forceLanding =
             QueryURL.getSingleQueryVariable('forcelanding') || false
 
         if (!forceConfig) {
             missionUrl = QueryURL.checkIfMission()
+            // A requested mission this user can't view shows the mission list, not another mission
+            const unavailable =
+                missionUrl != false && !missions.includes(missionUrl)
+            if (unavailable) {
+                console.warn(`Mission '${missionUrl}' isn't available.`)
+                unavailableMission = missionUrl
+                missionUrl = false
+            }
 
             //If there's only one listed mission, go straight to it — unless
             //the URL names a mission (e.g. a hidden one, reachable by URL)
@@ -64,7 +73,12 @@ export default {
             const listed = missions.filter((m) =>
                 isListedMission(m, missionsMeta, opts)
             )
-            if (listed.length == 1 && !forceLanding && missionUrl == false)
+            if (
+                listed.length == 1 &&
+                !forceLanding &&
+                !unavailable &&
+                missionUrl == false
+            )
                 missionUrl = listed[0]
         }
 
@@ -76,7 +90,7 @@ export default {
             window.mmgisglobal.MAIN_MISSION != 'undefined' &&
             typeof window.mmgisglobal.MAIN_MISSION === 'string' &&
             window.mmgisglobal.MAIN_MISSION.length > 0 &&
-            (window.mmgisglobal.AUTH !== 'local' ||
+            (!(window.mmgisglobal.SITE_ACCESS === 'required' && window.mmgisglobal.authProviders.includes('local')) ||
                 missions.includes(window.mmgisglobal.MAIN_MISSION))
         ) {
             missionUrl = window.mmgisglobal.MAIN_MISSION
@@ -87,6 +101,7 @@ export default {
                 <LandingPageView
                     missions={missions}
                     missionsMeta={missionsMeta}
+                    unavailableMission={unavailableMission}
                     onSelectMission={(name) => {
                         unmount()
                         loadMission(name, missions)

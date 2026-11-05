@@ -63,14 +63,12 @@ function isSafeExpression(expression) {
  */
 function createTitilerExpressionValidator() {
   return function validateTitilerExpression(req, res, next) {
-    const expression =
-      req.method === "GET" ? req.query.expression : req.body?.expression;
+    // Expressions from the query string, and from the body for other methods
+    const expression = [req.query.expression, req.method !== "GET" ? req.body?.expression : undefined]
+      .filter((v) => v !== undefined && v !== null)
+      .find((v) => !isSafeExpression(v));
 
-    if (expression === undefined || expression === null) {
-      return next();
-    }
-
-    if (!isSafeExpression(expression)) {
+    if (expression !== undefined) {
       logger(
         "warn",
         `Blocked TiTiler request with disallowed expression: ${String(

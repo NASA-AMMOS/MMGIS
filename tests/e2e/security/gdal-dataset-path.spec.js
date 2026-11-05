@@ -14,16 +14,16 @@ import { test, expect } from '@playwright/test';
 test.describe('GDAL dataset path validation', () => {
   const baseURL = process.env.TEST_BASE_URL || 'http://localhost:18888';
 
-  // With AUTH=local an unauthenticated POST is answered with the login page
-  // instead of reaching the route, so there is nothing to assert here.
+  // With SITE_ACCESS=required an unauthenticated POST is refused before it
+  // reaches the route, so there is nothing to assert here.
   const state = { loginRequired: false };
   test.beforeAll(async ({ request }) => {
     const probe = await request.post(`${baseURL}/api/utils/getminmax`, {
       form: { type: 'minmax', path: '/etc/passwd', bands: '[1]' },
     });
-    state.loginRequired = (probe.headers()['content-type'] || '').includes(
-      'text/html'
-    );
+    state.loginRequired =
+      probe.status() === 403 ||
+      (probe.headers()['content-type'] || '').includes('text/html');
   });
 
   const rawVRT = (file) =>
@@ -69,7 +69,7 @@ test.describe('GDAL dataset path validation', () => {
   for (const [endpoint, body] of endpoints) {
     for (const [label, badPath] of maliciousPaths) {
       test(`${endpoint} rejects ${label}`, async ({ request }) => {
-        test.skip(state.loginRequired, 'AUTH=local: route is behind the login page');
+        test.skip(state.loginRequired, 'SITE_ACCESS=required: route is behind login');
 
         const response = await request.post(`${baseURL}/api/utils/${endpoint}`, {
           form: body(badPath),
@@ -88,7 +88,7 @@ test.describe('GDAL dataset path validation', () => {
     }
 
     test(`${endpoint} rejects a missing path`, async ({ request }) => {
-      test.skip(state.loginRequired, 'AUTH=local: route is behind the login page');
+      test.skip(state.loginRequired, 'SITE_ACCESS=required: route is behind login');
 
       const response = await request.post(`${baseURL}/api/utils/${endpoint}`, {
         form: body(''),

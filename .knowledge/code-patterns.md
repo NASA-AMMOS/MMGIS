@@ -135,7 +135,10 @@ const logger = require("../../../logger");
 const database = require("../../../database");
 const { sequelize } = require("../../../connection");
 
-router.post("/", async (req, res) => {
+// Every route declares its permission; see docs/pages/Contributing/Permissions/Permissions.md
+const { authorize, resolvers } = require("../../../../../API/permissions/authorize");
+
+router.post("/", authorize("mission.config.edit", resolvers.mission("body.mission")), async (req, res) => {
   try {
     // Validate input
     const { field } = req.body;
@@ -167,10 +170,10 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/featurename",
-      s.ensureUser(),
+      s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      routerFeature
+      s.registerRouter("/api/featurename", routerFeature)
     );
   },
   onceSynced: (s) => {

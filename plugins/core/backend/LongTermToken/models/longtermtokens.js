@@ -24,7 +24,16 @@ const attributes = {
       model: 'users',
       key: 'id'
     }
-  }
+  },
+  // Columns below are added by the Access backend's up()
+  token_hash: { type: Sequelize.STRING(128), allowNull: true },
+  token_prefix: { type: Sequelize.STRING(64), allowNull: true },
+  name: { type: Sequelize.STRING(255), allowNull: true },
+  scopes: { type: Sequelize.ARRAY(Sequelize.TEXT), allowNull: true },
+  missions: { type: Sequelize.ARRAY(Sequelize.TEXT), allowNull: true },
+  expires_at: { type: Sequelize.DATE, allowNull: true },
+  revoked_at: { type: Sequelize.DATE, allowNull: true },
+  last_used_at: { type: Sequelize.DATE, allowNull: true }
 };
 
 const options = {

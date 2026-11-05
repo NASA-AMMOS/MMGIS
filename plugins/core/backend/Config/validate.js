@@ -442,6 +442,8 @@ const fillInMissingFieldsWithDefaults = (layer) => {
   }
   switch (type) {
     case "header":
+      // Without it, layers can't be added under the header later (#442)
+      layer.sublayers = layer.sublayers == null ? [] : layer.sublayers;
       break;
     case "tile":
       layer.tileformat = layer.tileformat == null ? "tms" : layer.tileformat;

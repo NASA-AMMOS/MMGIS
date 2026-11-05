@@ -52,7 +52,7 @@ test.describe('Users API', () => {
         expect(second.status()).toBeLessThan(500);
         const secondBody = await second.json();
         expect(secondBody.status).toBe('failure');
-        expect(secondBody.message).toMatch(/already exists/i);
+        expect(secondBody.message).toMatch(/already in use/i);
       }
       // If signup is blocked by auth policy, the test still passes (no crash).
     });
@@ -204,7 +204,7 @@ test.describe('Users API', () => {
 
     test('returns user info when authenticated', async ({ request }) => {
       test.skip(
-        process.env.AUTH === 'off',
+        process.env.MMGIS_TEST_SITE_ACCESS === 'public',
         'SKIP: Requires AUTH != off to test user session',
       );
 
@@ -229,7 +229,7 @@ test.describe('Users API', () => {
 
     test('returns appropriate response when not authenticated', async ({ request }) => {
       test.skip(
-        process.env.AUTH === 'off',
+        process.env.MMGIS_TEST_SITE_ACCESS === 'public',
         'SKIP: Requires AUTH != off to test user session',
       );
 
@@ -250,7 +250,7 @@ test.describe('Users API', () => {
     // The backend does not expose an updatepassword endpoint;
     // password changes go through POST /api/users/resetPassword with a token.
     test.skip(
-      process.env.AUTH === 'off',
+      process.env.MMGIS_TEST_SITE_ACCESS === 'public',
       'SKIP: Requires AUTH != off to test password update',
     );
 
@@ -267,7 +267,7 @@ test.describe('Users API', () => {
   test.describe('POST /api/users/updateemail', () => {
     // The backend does not expose an updateemail endpoint.
     test.skip(
-      process.env.AUTH === 'off',
+      process.env.MMGIS_TEST_SITE_ACCESS === 'public',
       'SKIP: Requires AUTH != off to test email update',
     );
 

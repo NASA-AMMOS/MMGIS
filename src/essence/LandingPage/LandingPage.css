@@ -343,6 +343,72 @@
     text-align: center;
 }
 
+/* Note for a requested mission that isn't available */
+.landingPage .main .unavailable {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 1080px;
+    box-sizing: border-box;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--lp-card-bg);
+    border: 1px solid var(--lp-border-2);
+    border-left: 3px solid var(--lp-brand);
+    color: var(--lp-text);
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: left;
+}
+.landingPage .main .unavailable > .mdi {
+    align-self: flex-start;
+    color: var(--lp-brand);
+}
+.landingPage .main .unavailable .text {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.landingPage .main .unavailable .title {
+    font-weight: 600;
+}
+.landingPage .main .unavailable .detail {
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--lp-text-2);
+}
+.landingPage .main .unavailable .signin {
+    height: auto;
+    padding: 7px 14px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    background: var(--lp-text);
+    color: var(--lp-bg);
+    transition: background 0.2s ease-in, color 0.2s ease-in;
+}
+.landingPage .main .unavailable .signin:hover {
+    background: var(--lp-accent);
+    color: #fff;
+}
+.landingPage .main .unavailable .dismiss {
+    display: flex;
+    padding: 2px;
+    border: none;
+    background: transparent;
+    color: var(--lp-text-3);
+    cursor: pointer;
+}
+.landingPage .main .unavailable .dismiss:hover {
+    color: var(--lp-text);
+}
+
 /* Cards */
 .landingPage .cards {
     display: grid;
@@ -641,6 +707,9 @@
     }
     .landingPage .main .sub {
         margin-bottom: 16px;
+    }
+    .landingPage .main .unavailable {
+        margin-bottom: 12px;
     }
     .landingPage .cards,
     .landingPage .cards.few {

@@ -5,10 +5,10 @@ let setup = {
   onceInit: (s) => {
     s.app.use(
       s.ROOT_PATH + "/api/stac",
-      s.ensureAdmin(),
+      s.ensureUser({ forbid: true }),
       s.checkHeadersCodeInjection,
       s.setContentType,
-      router
+      s.registerRouter("/api/stac", router)
     );
   },
   //Once the server starts

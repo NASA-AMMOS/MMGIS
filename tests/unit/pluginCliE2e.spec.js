@@ -616,6 +616,8 @@ test.describe('CLI --json output quality', () => {
                 'interaction',
                 'layertype',
                 'layerattachment',
+                'auth',
+                'connection',
             ]).toContain(p.type);
             expect(p).toHaveProperty('required');
             expect(p).toHaveProperty('path');

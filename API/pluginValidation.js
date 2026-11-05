@@ -638,6 +638,7 @@ const KNOWN_FIELDS = {
     "worksOnMobile",
     "config",
     "providesInteractions",
+    "connections",
   ]),
   component: new Set([
     ...COMMON_FIELDS,
@@ -684,6 +685,8 @@ const KNOWN_FIELDS = {
     "defaultIcon",
     "color",
   ]),
+  auth: new Set([...COMMON_FIELDS, "provider", "description", "login_path", "login_url", "login_label", "logout_url"]),
+  connection: new Set([...COMMON_FIELDS, "connection", "description", "guests", "env", "pkce"]),
   layerattachment: new Set([
     ...COMMON_FIELDS,
     "module",
@@ -836,10 +839,12 @@ function validatePluginConfig(config, pluginName, pluginType) {
       "interaction",
       "layertype",
       "layerattachment",
+      "auth",
+      "connection",
     ].includes(config.type)
   ) {
     errors.push(
-      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction, layertype, layerattachment`
+      `Plugin '${pluginName}' (${pluginType}): 'type' must be one of: tool, component, backend, interaction, layertype, layerattachment, auth, connection`
     );
   }
   if (
@@ -910,6 +915,43 @@ function validatePluginConfig(config, pluginName, pluginType) {
           );
         }
       }
+    }
+  }
+
+  if (
+    pluginType === "connection" &&
+    (typeof config.connection !== "string" || !/^[a-z][a-z0-9_-]{0,63}$/i.test(config.connection))
+  ) {
+    errors.push(
+      `Plugin '${pluginName}' (${pluginType}): 'connection' must be an id of letters, digits, "-" or "_", starting with a letter, at most 64 characters (MMGIS lowercases it)`
+    );
+  }
+  for (const key of ["display_name", "description"])
+    if (pluginType === "connection" && config[key] !== undefined && typeof config[key] !== "string")
+      errors.push(`Plugin '${pluginName}' (${pluginType}): '${key}' must be a string`);
+  if (pluginType === "connection" && config.guests !== undefined && typeof config.guests !== "boolean")
+    errors.push(`Plugin '${pluginName}' (${pluginType}): 'guests' must be true or false`);
+  if (pluginType === "connection" && config.pkce !== undefined && typeof config.pkce !== "boolean") {
+    errors.push(`Plugin '${pluginName}' (${pluginType}): 'pkce' must be true or false`);
+  }
+  if (
+    pluginType === "connection" &&
+    config.env !== undefined &&
+    !(Array.isArray(config.env) && config.env.every((n) => typeof n === "string" && n.length > 0))
+  ) {
+    errors.push(`Plugin '${pluginName}' (${pluginType}): 'env' must be a list of environment variable names`);
+  }
+  if (config.connections !== undefined) {
+    const ok = (r) =>
+      r != null &&
+      typeof r === "object" &&
+      ((typeof r.plugin === "string" && /^[^/]+\/connections\/[^/]+$/.test(r.plugin)) ||
+        (r.plugin === undefined && typeof r.id === "string" && /^[A-Za-z][A-Za-z0-9_-]*$/.test(r.id))) &&
+      (r.required === undefined || typeof r.required === "boolean");
+    if (!Array.isArray(config.connections) || !config.connections.every(ok)) {
+      errors.push(
+        `Plugin '${pluginName}' (${pluginType}): 'connections' must be an array of { "plugin": "<container>/connections/<Name>" } or { "id": "<connection id>" }, each with an optional "required": true|false`
+      );
     }
   }
 
