@@ -32,7 +32,8 @@ function NewGroupDialog({ providers, draft, setDraft, onClose, notify, refresh }
   };
   const findGroups = () =>
     api("access_effective", { provider: draft.source, username: lookupUser.trim(), groups: "" })
-      .then((r) => setLookup({ groups: (r.body && r.body.reported) || [] }))
+      // No report at all (unlike an empty list) means the provider can't look people up with its current settings
+      .then((r) => setLookup(r.body && Array.isArray(r.body.reported) ? { groups: r.body.reported } : { unavailable: true }))
       .catch((res) => setLookup({ error: res.message || "Couldn't look that person up." }));
   const create = () =>
     api("access_groups_create", { name: draft.name, source: draft.source, external_name: fromProvider ? draft.external_name : undefined })
@@ -82,6 +83,7 @@ function NewGroupDialog({ providers, draft, setDraft, onClose, notify, refresh }
                   <TextField size="small" className={c.field} placeholder="Username" value={lookupUser} onChange={(e) => setLookupUser(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && lookupUser.trim()) findGroups(); }} />
                   <Button variant="outlined" size="small" className={c.barButton} disabled={!lookupUser.trim()} onClick={findGroups}>Look up</Button>
                 </div>
+                {lookup && lookup.unavailable && <div className={c.hint} style={{ margin: "8px 0 0" }}>{name} can't look people up with its current settings, so enter the group yourself.</div>}
                 {lookup && lookup.error && <div className={c.hint} style={{ color: "#a8572e", margin: "8px 0 0" }}>{lookup.error}</div>}
                 {lookup && lookup.groups && (
                   lookup.groups.length ? (
