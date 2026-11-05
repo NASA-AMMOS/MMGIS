@@ -34,8 +34,9 @@ function NewGroupDialog({ providers, groups, draft, setDraft, onClose, notify, r
     setDraft({ ...draft, source, external_name: "" });
     setLookup(null);
   };
-  const wanted = draft.external_name.trim().toLowerCase();
-  const alreadyFollowing = fromProvider && wanted ? groups.filter((g) => g.source === draft.source && String(g.external_name || "").toLowerCase() === wanted) : [];
+  // Exact, as sign-in matches; a spelling the provider would rewrite (e.g. a DN's case) is caught by the server's note after creating
+  const wanted = draft.external_name.trim();
+  const alreadyFollowing = fromProvider && wanted ? groups.filter((g) => g.source === draft.source && String(g.external_name || "") === wanted) : [];
   const findGroups = () =>
     api("access_effective", { provider: draft.source, username: lookupUser.trim(), groups: "" })
       // No report at all (unlike an empty list) means the provider can't look people up with its current settings
