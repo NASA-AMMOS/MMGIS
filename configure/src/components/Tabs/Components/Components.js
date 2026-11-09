@@ -148,7 +148,7 @@ export default function Components() {
                     })}
                   ></div>
                 </div>
-                <div className={c.cardName}>{key}</div>
+                <div className={c.cardName}>{cConfig.displayName || key}</div>
                 <div className={c.cardContent}>
                   <div className={c.cardContentTitle}>
                     {cConfig.description}
