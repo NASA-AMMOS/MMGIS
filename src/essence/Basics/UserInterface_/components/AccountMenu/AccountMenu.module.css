@@ -1,0 +1,137 @@
+.accountMenu {
+    position: fixed;
+    z-index: 100000;
+    width: 300px;
+    background: var(--color-a);
+    border: 1px solid var(--color-a2, #2b2d30);
+    border-radius: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    color: var(--color-f, #dfdeee);
+    font-family: roboto, sans-serif;
+    font-size: 13px;
+    overflow: hidden;
+}
+.section {
+    padding: 10px 14px;
+}
+.section + .section {
+    border-top: 1px solid var(--color-a2, #2b2d30);
+}
+.account {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 0;
+}
+.avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+    border: 1px solid var(--color-a1);
+    position: relative;
+}
+.providerBadge {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: normal;
+    color: var(--color-a7, #d4d6d8);
+    background: var(--color-a, #1d1f20);
+    border: 1px solid var(--color-a3, #575d60);
+}
+.guest {
+    background: var(--color-a2, #3a3d44);
+    color: var(--color-a6, #b9bcc5);
+}
+.account .action {
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: bold;
+}
+.label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-a5, #8a8d96);
+    margin: 2px 0 6px;
+}
+.user {
+    font-weight: bold;
+    font-size: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.section .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+}
+.unavailable {
+    opacity: 0.55;
+}
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #f0a830;
+}
+.connected .dot {
+    background: #3fbf6f;
+}
+.unavailable .dot {
+    background: var(--color-a5, #8a8d96);
+}
+.text {
+    flex: 1;
+    min-width: 0;
+}
+.name {
+    font-weight: bold;
+}
+.detail {
+    font-size: 12px;
+    color: var(--color-a6, #a1a4ad);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.action {
+    background: transparent;
+    border: 1px solid var(--color-a5, #555);
+    color: inherit;
+    border-radius: 3px;
+    padding: 3px 9px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.primary {
+    background: var(--color-mmgis);
+    border-color: var(--color-mmgis);
+    color: white;
+}
+.tokens {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-a2, #2b2d30);
+}
+.tokenIcon {
+    width: 18px;
+    text-align: center;
+    color: var(--color-a5, #8a8d96);
+}

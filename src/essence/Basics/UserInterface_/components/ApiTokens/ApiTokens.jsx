@@ -77,7 +77,7 @@ const accessText = (t) =>
           : `${t.scopes.length} permissions`
 
 // The caller's own tokens and limits, or null when they may not create tokens
-async function summary() {
+export async function summary() {
     const me = (await request('GET', 'api/access/me')).body || {}
     const caps = me.capabilities || []
     if (!me.authenticated || !caps.includes('tokens.create')) return null
@@ -504,7 +504,6 @@ function ApiTokensModal({ initial, initialView }) {
 
 const ApiTokens = {
     summary,
-    helpers: { isLive, expiryText },
     open(view = 'manage') {
         summary()
             .then((s) => {
