@@ -15,11 +15,19 @@ const logger = require("../../../../../API/logger");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
 const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { hashToken, invalidate, unusableLegacyToken, tokensOffFor } = require("../../../../../API/permissions/principal");
+const { hashToken, invalidate, unusableLegacyToken, tokensOffFor, tokenExpired } = require("../../../../../API/permissions/principal");
+const { sequelize } = require("../../../../../API/connection");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;
 const { User } = require("../../Users/models/user");
 
 const TOKEN_PREFIX = "mmgis_";
+const DAY = 24 * 60 * 60 * 1000;
+
+// Administrators may hold any number of tokens of any length; everyone else one live token of up to 90 days
+function limitsFor(principal) {
+  const unlimited = policy.isAdministrator(principal);
+  return { unlimited, max_tokens: unlimited ? null : 1, max_period: unlimited ? null : 90 * DAY };
+}
 
 // Tokens can't be used to manage tokens
 function sessionOnly(req, res, next) {
@@ -68,7 +76,12 @@ router.get("/get", authorize("tokens.create"), sessionOnly, async (req, res) => 
       order: [["createdAt", "DESC"]],
       raw: true,
     });
-    res.send({ status: "success", tokens: await present(rows) });
+    res.send({
+      status: "success",
+      tokens: await present(rows),
+      user_id: principal.userId == null ? null : principal.userId,
+      limits: limitsFor(principal),
+    });
   } catch (err) {
     logger("error", "Failed to get all tokens.", req.originalUrl, req, err);
     res.send({ status: "failure", message: "Failed to get tokens." });
@@ -145,21 +158,46 @@ router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, re
     const body = req.body || {};
     const { scopes, missions: missionUUIDs } = await resolveRequest(principal, body);
     const expires_at = expiryFrom(body.period);
+    const limits = limitsFor(principal);
+    if (limits.max_period != null && (expires_at == null || Number(body.period) > limits.max_period))
+      throw new TokenError(`Tokens can last at most ${limits.max_period / DAY} days.`);
+    const replaceId = body.replace_id == null ? null : Number(body.replace_id);
+    if (replaceId != null && !Number.isSafeInteger(replaceId)) throw new TokenError("replace_id must be a token id.");
     const label = body.name ? String(body.name).replace(/[^0-9a-zA-Z]/g, "").toLowerCase() : "";
     const secret = crypto.randomBytes(32).toString("hex");
     const token = `${TOKEN_PREFIX}${label ? label + "_" : ""}${secret}`;
     const token_prefix = token.slice(0, TOKEN_PREFIX.length + (label ? label.length + 1 : 0) + 6);
-    const created = await LongTermTokens.create({
-      token: unusableLegacyToken(),
-      token_hash: hashToken(token),
-      token_prefix,
-      name: body.name ? String(body.name) : null,
-      period: body.period == null ? "never" : String(body.period),
-      scopes,
-      missions: missionUUIDs,
-      expires_at,
-      created_by_user_id: principal.userId,
+    const { created, removed } = await sequelize.transaction(async (transaction) => {
+      // Locking the account serializes its creations, so concurrent requests can't pass the limit
+      await User.findOne({ where: { id: principal.userId }, attributes: ["id"], lock: transaction.LOCK.UPDATE, transaction });
+      const own = await LongTermTokens.findAll({
+        where: { created_by_user_id: principal.userId, revoked_at: null },
+        transaction,
+      });
+      if (replaceId != null && !own.some((t) => t.id === replaceId))
+        throw new TokenError(`Token with id ${replaceId} not found.`);
+      // Replacing removes the old token; a limited account's expired tokens go too, as they no longer count
+      const gone = own.filter((t) => t.id === replaceId || (!limits.unlimited && tokenExpired(t)));
+      if (limits.max_tokens != null && own.length - gone.length >= limits.max_tokens)
+        throw new TokenError("You already have an API token. Replace or revoke it to create another.");
+      for (const t of gone) await t.destroy({ transaction });
+      const row = await LongTermTokens.create(
+        {
+          token: unusableLegacyToken(),
+          token_hash: hashToken(token),
+          token_prefix,
+          name: body.name ? String(body.name) : null,
+          period: body.period == null ? "never" : String(body.period),
+          scopes,
+          missions: missionUUIDs,
+          expires_at,
+          created_by_user_id: principal.userId,
+        },
+        { transaction }
+      );
+      return { created: row, removed: gone.length };
     });
+    if (removed) invalidate();
     res.send({
       status: "success",
       message: "Successfully created long term token. Copy it now; it will not be shown again.",

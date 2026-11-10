@@ -31,6 +31,38 @@ function login() {
     )
 }
 
+function apiTokens() {
+    return import('../UserInterface_/components/ApiTokens/ApiTokens').then(
+        (m) => m.default
+    )
+}
+
+// The account menu's API token row, for accounts allowed to create tokens
+function tokenRow(t) {
+    if (!t) return ''
+    const live = t.tokens.filter((x) => t.isLive(x))
+    let name = 'API token'
+    let detail
+    let action
+    if (t.limits.unlimited) {
+        name = `API tokens (${live.length})`
+        detail = 'For scripts and other tools'
+        action = live.length ? 'Manage' : 'Create'
+    } else if (live.length) {
+        detail = `${esc(live[0].name || live[0].token)} · ${esc(t.expiryText(live[0]))}`
+        action = 'Manage'
+    } else {
+        detail = t.tokens.length
+            ? 'Your token expired'
+            : 'For scripts and other tools'
+        action = 'Create'
+    }
+    return `<div class="connectionsMenuRow connectionsMenuTokens">
+        <i class="mdi mdi-key-variant connectionsMenuTokenIcon"></i>
+        <div class="connectionsMenuText"><div class="connectionsMenuName">${name}</div><div class="connectionsMenuDetail">${detail}</div></div>
+        <button id="connectionsMenuTokens" class="connectionsMenuAction${action === 'Create' ? ' primary' : ''}" data-view="${action === 'Create' ? 'create' : 'manage'}">${action}</button></div>`
+}
+
 function find(ref) {
     if (ref == null) return null
     const key = typeof ref === 'string' ? ref : ref.plugin || ref.id
@@ -229,7 +261,20 @@ function serviceRow(s) {
 
 function renderMenu() {
     $('#connectionsMenu').remove()
-    login().then((Login) => {
+    login()
+        .then((Login) =>
+            Login.loggedIn === true
+                ? apiTokens()
+                      .then((ApiTokens) =>
+                          ApiTokens.summary().then((s) =>
+                              s ? { ...s, ...ApiTokens.helpers } : null
+                          )
+                      )
+                      .catch(() => null)
+                      .then((tokens) => [Login, tokens])
+                : [Login, null]
+        )
+        .then(([Login, tokens]) => {
         if (!menuOpen) return
         const loggedIn = Login.loggedIn === true
         const hasLogin = window.mmgisglobal.SITE_ACCESS !== 'public'
@@ -260,6 +305,7 @@ function renderMenu() {
                             : '<button id="connectionsMenuSignIn" class="connectionsMenuAction primary">Sign in</button>'
                     }
                 </div>
+                ${tokenRow(tokens)}
             </div>`
         }
         if (relevant().length)
@@ -285,6 +331,11 @@ function renderMenu() {
         menu.on('click', '#connectionsMenuSignOut', () => {
             closeMenu()
             Login.logout()
+        })
+        menu.on('click', '#connectionsMenuTokens', function () {
+            const view = $(this).attr('data-view')
+            closeMenu()
+            apiTokens().then((ApiTokens) => ApiTokens.open(view))
         })
     })
 }

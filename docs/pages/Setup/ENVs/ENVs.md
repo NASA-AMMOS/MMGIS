@@ -161,6 +161,10 @@ How often MMGIS rereads a provider-linked account (for example LDAP) from its pr
 
 Which local accounts may log in with a username and password. `all`: any local account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin), for sites such as `AUTH_PROVIDERS=["proxy","local"]` where everyone else logs in through the external provider. `admins` also turns off visitor sign-up, whatever `AUTH_LOCAL_ALLOW_SIGNUP` says. Any other value stops startup | string | default `all`
 
+#### `AUTH_TOKENS=`
+
+Who may create API (long-term) tokens, from the account menu on the main site or Configure > API Tokens. `all`: any signed-in account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin); other accounts' existing tokens stop working, without being deleted, until the setting allows them again. Either way, an account without an admin role may hold one unexpired token lasting at most 90 days, while admins may hold any number of any length. A token never has more access than its owner has at the time it's used. Any other value stops startup | string | default `all`
+
 #### `SETUP_CODE=`
 
 While the site has no SuperAdmin, creating the first (SuperAdmin) account on `/configure` requires a one-time setup code. If unset, the server generates a random code on each start and prints it in its log (not in the log files); the code works once. Set this to choose the code yourself, for scripted installs or several replicas behind one URL. It has no effect once a SuperAdmin exists, so accounts created earlier by a login provider such as LDAP don't close setup | string | default `null`

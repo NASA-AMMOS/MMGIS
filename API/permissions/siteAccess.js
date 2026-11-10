@@ -48,6 +48,10 @@ function parseProviders(raw) {
 const LOCAL_LOGIN_VALUES = ["all", "admins"];
 const localAdminsOnly = () => process.env.AUTH_LOCAL_LOGIN === "admins";
 
+// all: every signed-in account may create API tokens; admins: only accounts holding an admin role
+const TOKENS_VALUES = ["all", "admins"];
+const tokensAdminsOnly = () => process.env.AUTH_TOKENS === "admins";
+
 const allowSignupSetting = () =>
   process.env.AUTH_LOCAL_ALLOW_SIGNUP === true || process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true";
 
@@ -90,6 +94,8 @@ function validate(env = process.env) {
     );
   if (env.AUTH_LOCAL_LOGIN != null && env.AUTH_LOCAL_LOGIN !== "" && !LOCAL_LOGIN_VALUES.includes(env.AUTH_LOCAL_LOGIN))
     errors.push(`AUTH_LOCAL_LOGIN must be one of: ${LOCAL_LOGIN_VALUES.join(" | ")}.`);
+  if (env.AUTH_TOKENS != null && env.AUTH_TOKENS !== "" && !TOKENS_VALUES.includes(env.AUTH_TOKENS))
+    errors.push(`AUTH_TOKENS must be one of: ${TOKENS_VALUES.join(" | ")}.`);
   if (env.AUTH_PROVIDER_NEW_ACCOUNTS != null && env.AUTH_PROVIDER_NEW_ACCOUNTS !== "" && !["true", "false"].includes(env.AUTH_PROVIDER_NEW_ACCOUNTS))
     errors.push("AUTH_PROVIDER_NEW_ACCOUNTS must be true or false.");
   const providers = parseProviders(env.AUTH_PROVIDERS);
@@ -147,7 +153,9 @@ module.exports = {
   guestsAllowed,
   endUserLoginEnabled,
   localAdminsOnly,
+  tokensAdminsOnly,
   selfSignupAllowed,
   setProviderAccounts,
   LOCAL_LOGIN_VALUES,
+  TOKENS_VALUES,
 };
