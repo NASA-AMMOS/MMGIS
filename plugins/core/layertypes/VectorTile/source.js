@@ -26,13 +26,22 @@ export function geodatasetTileUrl(url) {
 
 /**
  * A tile feature's properties. Some sources serialize them all into a single
- * `properties` string; those are unpacked.
+ * `properties` string; those are unpacked. Any other text in a `properties`
+ * field is an ordinary value, and the properties are kept as they are.
  *
  * @param {object} properties
  * @returns {object}
  */
 export function featureProperties(properties) {
-    if (properties?.properties && typeof properties.properties === 'string')
-        return JSON.parse(properties.properties)
-    return properties
+    const serialized = properties?.properties
+    if (typeof serialized !== 'string' || !serialized.trimStart().startsWith('{'))
+        return properties
+    try {
+        const parsed = JSON.parse(serialized)
+        return parsed != null && typeof parsed === 'object' && !Array.isArray(parsed)
+            ? parsed
+            : properties
+    } catch (err) {
+        return properties
+    }
 }

@@ -24,3 +24,10 @@ test("serialized properties are unpacked, and others are kept as they are", () =
   const plain = { population: 500, properties: { nested: true } };
   expect(featureProperties(plain)).toBe(plain);
 });
+
+test("text in a properties field is an ordinary value, not serialized properties", () => {
+  for (const text of ["Public land", "{not json", "[1,2]", ""]) {
+    const plain = { properties: text, population: 500 };
+    expect(featureProperties(plain)).toBe(plain);
+  }
+});
