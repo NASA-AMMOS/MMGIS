@@ -8,6 +8,8 @@ import React, { useCallback, useEffect, useState } from 'react'
 import {
     Button,
     Checkbox,
+    Collapsible,
+    Menu,
     Radio,
     RadioGroup,
     TextInput,
@@ -109,11 +111,56 @@ export async function summary() {
     }
 }
 
-function TokenDetails({ token, canReplace, onReplace, onRevoke }) {
+function tokenStatus(token) {
+    const live = isLive(token)
+    const expires = expiresAt(token)
+    const expiresSoon = live && expires != null && expires - Date.now() <= 7 * DAY
+    return {
+        live,
+        className: !live
+            ? styles.statusExpired
+            : expiresSoon
+              ? styles.statusSoon
+              : styles.statusActive,
+        text: !live ? 'Expired' : expiresSoon ? 'Expires soon' : 'Active',
+    }
+}
+
+function adminTokenMeta(token) {
+    const expires = expiresAt(token)
+    if (!isLive(token)) return `Expired ${when(expires)}`
+
+    const missions = Array.isArray(token.missions)
+        ? token.missions.join(', ') || 'None'
+        : 'All missions'
+    const days = expires == null ? null : Math.ceil((expires - Date.now()) / DAY)
+    const expiry =
+        expires == null
+            ? 'Never expires'
+            : `in ${days} ${days === 1 ? 'day' : 'days'}`
+
+    return `${accessText(token)} · ${missions} · ${expiry}`
+}
+
+function sortAdminTokens(tokens) {
+    return [...tokens].sort((a, b) => {
+        const aLive = isLive(a)
+        const bLive = isLive(b)
+        if (aLive !== bLive) return aLive ? -1 : 1
+        if (!aLive) return 0
+
+        const aExpires = expiresAt(a)
+        const bExpires = expiresAt(b)
+        if (aExpires == null) return bExpires == null ? 0 : 1
+        if (bExpires == null) return -1
+        return aExpires - bExpires
+    })
+}
+
+function TokenFacts({ token }) {
     const live = isLive(token)
     const expires = expiresAt(token)
     const now = Date.now()
-    const expiresSoon = live && expires != null && expires - now <= 7 * DAY
     const created = new Date(token.createdAt).getTime()
     const duration = expires - created
     const progress =
@@ -123,34 +170,9 @@ function TokenDetails({ token, canReplace, onReplace, onRevoke }) {
         duration > 0
             ? Math.min(100, Math.max(0, ((now - created) / duration) * 100))
             : null
-    const statusClass = !live
-        ? styles.statusExpired
-        : expiresSoon
-          ? styles.statusSoon
-          : styles.statusActive
 
     return (
-        <div className={`${styles.card} ${live ? '' : styles.expired}`}>
-            <div className={styles.cardTop}>
-                <div className={styles.cardIdentity}>
-                    <div
-                        className={styles.cardName}
-                        title={token.name || 'Unnamed token'}
-                    >
-                        {token.name || 'Unnamed token'}
-                    </div>
-                    <div
-                        className={`${styles.prefix} ${styles.mono}`}
-                        title={token.token}
-                    >
-                        {token.token}
-                    </div>
-                </div>
-                <span className={`${styles.status} ${statusClass}`}>
-                    <span className={styles.statusDot} />
-                    {!live ? 'Expired' : expiresSoon ? 'Expires soon' : 'Active'}
-                </span>
-            </div>
+        <>
             <div className={styles.facts}>
                 <div className={styles.fact}>
                     <div className={styles.factLabel}>Access</div>
@@ -195,6 +217,38 @@ function TokenDetails({ token, canReplace, onReplace, onRevoke }) {
                     <span style={{ width: `${progress}%` }} />
                 </div>
             )}
+        </>
+    )
+}
+
+function TokenDetails({ token, canReplace, onReplace, onRevoke }) {
+    const status = tokenStatus(token)
+
+    return (
+        <div
+            className={`${styles.card} ${status.live ? '' : styles.expired}`}
+        >
+            <div className={styles.cardTop}>
+                <div className={styles.cardIdentity}>
+                    <div
+                        className={styles.cardName}
+                        title={token.name || 'Unnamed token'}
+                    >
+                        {token.name || 'Unnamed token'}
+                    </div>
+                    <div
+                        className={`${styles.prefix} ${styles.mono}`}
+                        title={token.token}
+                    >
+                        {token.token}
+                    </div>
+                </div>
+                <span className={`${styles.status} ${status.className}`}>
+                    <span className={styles.statusDot} />
+                    {status.text}
+                </span>
+            </div>
+            <TokenFacts token={token} />
             <div className={styles.cardActions}>
                 {canReplace && (
                     <Button
@@ -221,10 +275,105 @@ function TokenDetails({ token, canReplace, onReplace, onRevoke }) {
                         className="mdi mdi-delete-outline mdi-14px"
                         aria-hidden="true"
                     />
-                    {live ? 'Revoke' : 'Remove'}
+                    {status.live ? 'Revoke' : 'Remove'}
                 </Button>
             </div>
         </div>
+    )
+}
+
+function AdminTokenRow({
+    token,
+    expanded,
+    onExpandedChange,
+    onReplace,
+    onRevoke,
+}) {
+    const status = tokenStatus(token)
+    const name = token.name || 'Unnamed token'
+    const meta = adminTokenMeta(token)
+
+    return (
+        <Collapsible
+            open={expanded}
+            onOpenChange={onExpandedChange}
+            className={`${styles.adminRow} ${status.live ? '' : styles.expired}`}
+        >
+            <div className={styles.adminRowHeader}>
+                <Collapsible.Trigger
+                    type="button"
+                    className={styles.adminRowTrigger}
+                    aria-label={`${expanded ? 'Collapse' : 'Expand'} ${name}`}
+                >
+                    <span className={styles.adminKeyTile}>
+                        <i
+                            className="mdi mdi-key-variant mdi-16px"
+                            aria-hidden="true"
+                        />
+                    </span>
+                    <span className={styles.adminTokenText}>
+                        <span className={styles.adminTokenName} title={name}>
+                            {name}
+                        </span>
+                        <span className={styles.adminMeta} title={meta}>
+                            {meta}
+                        </span>
+                    </span>
+                    <span className={`${styles.status} ${status.className}`}>
+                        <span className={styles.statusDot} />
+                        {status.text}
+                    </span>
+                    <i
+                        className={`${styles.adminChevron} mdi mdi-chevron-down mdi-18px ${expanded ? styles.adminChevronOpen : ''}`}
+                        aria-hidden="true"
+                    />
+                </Collapsible.Trigger>
+                <Menu
+                    align="end"
+                    trigger={
+                        <IconButton
+                            type="button"
+                            size="md"
+                            aria-label="Token actions"
+                            className={styles.adminMenuTrigger}
+                        >
+                            <i
+                                className="mdi mdi-dots-horizontal mdi-18px"
+                                aria-hidden="true"
+                            />
+                        </IconButton>
+                    }
+                >
+                    {status.live && (
+                        <Menu.Item onClick={onReplace}>
+                            <i
+                                className="mdi mdi-swap-horizontal mdi-14px"
+                                aria-hidden="true"
+                            />
+                            Replace
+                        </Menu.Item>
+                    )}
+                    <Menu.Item onClick={onRevoke} danger>
+                        <i
+                            className="mdi mdi-delete-outline mdi-14px"
+                            aria-hidden="true"
+                        />
+                        {status.live ? 'Revoke' : 'Remove'}
+                    </Menu.Item>
+                </Menu>
+            </div>
+            <Collapsible.Content className={styles.adminPanel}>
+                <div className={styles.adminPrefixLine}>
+                    <span
+                        className={`${styles.prefix} ${styles.mono}`}
+                        title={token.token}
+                    >
+                        {token.token}
+                    </span>
+                </div>
+                <TokenFacts token={token} />
+            </Collapsible.Content>
+        </Collapsible>
     )
 }
 
@@ -498,13 +647,23 @@ function ApiTokensModal({ initial, initialView }) {
     const [data, setData] = useState(initial)
     const [view, setView] = useState(initialView)
     const [replacing, setReplacing] = useState(null)
+    const [expandedId, setExpandedId] = useState(null)
     const [created, setCreated] = useState(null)
     const [error, setError] = useState(null)
     const close = useCallback(() => Modal.remove(false, MODAL_ID), [])
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (event.key === 'Escape' && Modal.top() === MODAL_ID) close()
+            const insideMenu =
+                event.target instanceof Element &&
+                event.target.closest('[role="menu"]')
+            if (
+                event.key === 'Escape' &&
+                !event.defaultPrevented &&
+                !insideMenu &&
+                Modal.top() === MODAL_ID
+            )
+                close()
         }
         document.addEventListener('keydown', handleKeyDown)
         return () => document.removeEventListener('keydown', handleKeyDown)
@@ -589,37 +748,57 @@ function ApiTokensModal({ initial, initialView }) {
         content = (
             <div className={styles.view}>
                 <div className={styles.body}>
-                    {tokens.length === 0 && (
+                    {tokens.length === 0 ? (
                         <div className={styles.empty}>
                             You have no API tokens.
                         </div>
-                    )}
-                    {tokens.map((t) => (
-                        <div key={t.id} className={styles.item}>
-                            <TokenDetails
-                                token={t}
-                                canReplace={!limits.unlimited && isLive(t)}
-                                onReplace={() => {
-                                    setReplacing(t)
-                                    setView('create')
-                                }}
-                                onRevoke={() => revoke(t)}
-                            />
-                            {!limits.unlimited && isLive(t) && (
-                                <div className={styles.note}>
-                                    <i
-                                        className="mdi mdi-information-outline mdi-16px"
-                                        aria-hidden="true"
-                                    />
-                                    <span>
-                                        Replace makes a new token and removes
-                                        this one in one step, so your scripts
-                                        only need the new value.
-                                    </span>
-                                </div>
-                            )}
+                    ) : limits.unlimited ? (
+                        <div className={styles.adminList}>
+                            {sortAdminTokens(tokens).map((t) => (
+                                <AdminTokenRow
+                                    key={t.id}
+                                    token={t}
+                                    expanded={expandedId === t.id}
+                                    onExpandedChange={(open) =>
+                                        setExpandedId(open ? t.id : null)
+                                    }
+                                    onReplace={() => {
+                                        setExpandedId(null)
+                                        setReplacing(t)
+                                        setView('create')
+                                    }}
+                                    onRevoke={() => revoke(t)}
+                                />
+                            ))}
                         </div>
-                    ))}
+                    ) : (
+                        tokens.map((t) => (
+                            <div key={t.id} className={styles.item}>
+                                <TokenDetails
+                                    token={t}
+                                    canReplace={isLive(t)}
+                                    onReplace={() => {
+                                        setReplacing(t)
+                                        setView('create')
+                                    }}
+                                    onRevoke={() => revoke(t)}
+                                />
+                                {isLive(t) && (
+                                    <div className={styles.note}>
+                                        <i
+                                            className="mdi mdi-information-outline mdi-16px"
+                                            aria-hidden="true"
+                                        />
+                                        <span>
+                                            Replace makes a new token and removes
+                                            this one in one step, so your scripts
+                                            only need the new value.
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
                     {error && <div className={styles.error}>{error}</div>}
                 </div>
                 <div className={styles.footer}>
@@ -644,7 +823,10 @@ function ApiTokensModal({ initial, initialView }) {
         )
 
     return (
-        <div className={styles.root} id="apiTokensModal">
+        <div
+            className={`${styles.root} ${limits.unlimited ? styles.wide : ''}`}
+            id="apiTokensModal"
+        >
             <div className={styles.header}>
                 <div
                     className={`${styles.iconTile} ${view === 'reveal' ? styles.successTile : ''}`}

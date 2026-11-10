@@ -16,6 +16,9 @@
     font-family: roboto, sans-serif;
     font-size: 13px;
 }
+.wide {
+    width: 520px;
+}
 
 .header {
     display: flex;
@@ -121,6 +124,96 @@
 .item {
     display: flex;
     flex-direction: column;
+}
+.adminList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+.adminRow {
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--color-a1-5);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--color-a) 60%, var(--color-a1-5));
+}
+.adminRow.expired {
+    opacity: 0.65;
+}
+.adminRowHeader {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    min-height: 48px;
+}
+.adminRow .adminRowTrigger {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    gap: 8px;
+    padding: 0 10px;
+    text-align: left;
+}
+.adminRow .adminRowTrigger:focus-visible {
+    border-radius: 8px;
+    outline: 2px solid var(--color-mmgis);
+    outline-offset: -2px;
+}
+.adminKeyTile {
+    display: flex;
+    flex: 0 0 28px;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--color-mmgis) 16%, var(--color-a));
+    color: var(--color-mmgis);
+}
+.adminTokenText {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.adminTokenName {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.adminMeta {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-a4);
+    font-size: 11px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.adminChevron {
+    flex-shrink: 0;
+    color: var(--color-a3);
+    transition: transform 0.15s;
+}
+.adminChevronOpen {
+    transform: rotate(180deg);
+}
+.adminMenuTrigger {
+    margin-right: 6px;
+    color: var(--color-a4);
+}
+.adminPanel[data-open] {
+    border-top: 1px solid var(--color-a1-5);
+}
+.adminPrefixLine {
+    padding: 10px 12px 8px;
 }
 .note {
     display: flex;
