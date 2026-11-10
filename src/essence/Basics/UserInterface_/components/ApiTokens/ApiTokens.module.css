@@ -111,15 +111,6 @@
 .footerSpacer {
     flex: 1;
 }
-.link {
-    min-width: 0;
-    margin-right: auto;
-    color: var(--color-a4);
-    font-size: 12px;
-}
-.link:hover {
-    color: var(--color-f);
-}
 .empty {
     padding: 14px;
     text-align: center;

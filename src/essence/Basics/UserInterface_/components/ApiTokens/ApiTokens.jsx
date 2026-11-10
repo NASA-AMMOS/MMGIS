@@ -623,14 +623,6 @@ function ApiTokensModal({ initial, initialView }) {
                     {error && <div className={styles.error}>{error}</div>}
                 </div>
                 <div className={styles.footer}>
-                    {limits.unlimited && (
-                        <a
-                            className={styles.link}
-                            href={`${base()}configure?page=api_tokens`}
-                        >
-                            Everyone's tokens in Configure
-                        </a>
-                    )}
                     <Button
                         type="button"
                         variant="secondary"
