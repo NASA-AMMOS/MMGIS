@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import ApiTokens, { expiryText, isLive, summary } from './ApiTokens'
+import { Button } from '../../../../../design-system/components'
 import styles from '../AccountMenu/AccountMenu.module.css'
 
 export default function ApiTokensRow({ onClose }) {
@@ -46,16 +47,17 @@ export default function ApiTokensRow({ onClose }) {
                 <div className={styles.name}>{name}</div>
                 <div className={styles.detail}>{detail}</div>
             </div>
-            <button
+            <Button
                 id="accountMenuTokens"
-                className={`${styles.action} ${action === 'Create' ? styles.primary : ''}`}
+                size="sm"
+                variant={action === 'Create' ? 'primary' : 'secondary'}
                 onClick={() => {
                     onClose()
                     ApiTokens.open(action === 'Create' ? 'create' : 'manage')
                 }}
             >
                 {action}
-            </button>
+            </Button>
         </div>
     )
 }

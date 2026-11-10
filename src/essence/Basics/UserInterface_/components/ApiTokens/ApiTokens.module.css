@@ -67,46 +67,6 @@
     letter-spacing: 0.6px;
     color: var(--color-a5, #8a8d96);
 }
-.field input[type='text'] {
-    background: var(--color-a1, #1f2023);
-    border: 1px solid var(--color-a2, #2b2d30);
-    border-radius: 3px;
-    color: inherit;
-    padding: 7px 9px;
-    font-size: 13px;
-}
-.field input[type='text']:focus {
-    outline: none;
-    border-color: var(--color-mmgis);
-}
-.segmented {
-    display: flex;
-    border: 1px solid var(--color-a2, #2b2d30);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.segmented button {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: inherit;
-    padding: 6px 4px;
-    font-size: 12px;
-    cursor: pointer;
-}
-.segmented button + button {
-    border-left: 1px solid var(--color-a2, #2b2d30);
-}
-.segmented button.on {
-    background: var(--color-mmgis);
-    color: white;
-}
-.choice {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-}
 .missions {
     max-height: 140px;
     overflow-y: auto;
@@ -184,12 +144,6 @@
 .reveal input {
     flex: 1;
     min-width: 0;
-    background: var(--color-a1, #1f2023);
-    border: 1px solid var(--color-a2, #2b2d30);
-    border-radius: 3px;
-    color: inherit;
-    padding: 7px 9px;
-    font-size: 12px;
 }
 .code {
     margin: 0;
@@ -219,26 +173,8 @@
 .link:hover {
     color: var(--color-f, #dfdeee);
 }
-.btn {
-    background: transparent;
-    border: 1px solid var(--color-a5, #555);
-    color: inherit;
-    border-radius: 3px;
-    padding: 6px 12px;
-    font-size: 12.5px;
-    cursor: pointer;
-}
-.btn:disabled {
-    opacity: 0.5;
-    cursor: default;
-}
-.btn.primary {
-    background: var(--color-mmgis);
-    border-color: var(--color-mmgis);
-    color: white;
-    font-weight: bold;
-}
-.btn.danger {
+.root .danger,
+.root .danger:hover {
     border-color: #b35b5b;
     color: #ff9e9e;
 }

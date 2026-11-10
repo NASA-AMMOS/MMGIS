@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Button } from '../../../../../design-system/components'
 import ApiTokensRow from '../ApiTokens/ApiTokensRow'
 import { avatarColor } from './avatarColor'
 import styles from './AccountMenu.module.css'
@@ -65,20 +66,22 @@ export default function AccountSection({ onClose }) {
                     <div className={styles.detail}>{detail}</div>
                 </div>
                 {loggedIn ? (
-                    <button
+                    <Button
                         id="accountMenuSignOut"
-                        className={styles.action}
+                        size="sm"
+                        variant="secondary"
                         onClick={() => {
                             onClose()
                             Login.logout()
                         }}
                     >
                         Sign out
-                    </button>
+                    </Button>
                 ) : (
-                    <button
+                    <Button
                         id="accountMenuSignIn"
-                        className={`${styles.action} ${styles.primary}`}
+                        size="sm"
+                        variant="primary"
                         onClick={() => {
                             onClose()
                             if (!Login.loggedIn) {
@@ -89,7 +92,7 @@ export default function AccountSection({ onClose }) {
                         }}
                     >
                         Sign in
-                    </button>
+                    </Button>
                 )}
             </div>
             {loggedIn && <ApiTokensRow onClose={onClose} />}

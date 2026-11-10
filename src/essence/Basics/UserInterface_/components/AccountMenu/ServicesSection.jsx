@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Button } from '../../../../../design-system/components'
 import Connections_ from '../../../Connections_/Connections_'
 import styles from './AccountMenu.module.css'
 
@@ -28,24 +29,26 @@ export default function ServicesSection() {
                     if (service.storage === 'session')
                         detail += ' · this browser session'
                     action = (
-                        <button
-                            className={styles.action}
+                        <Button
+                            size="sm"
+                            variant="secondary"
                             onClick={() => Connections_.disconnect(service.id)}
                         >
                             Disconnect
-                        </button>
+                        </Button>
                     )
                 } else if (service.canConnect) {
                     detail = used.length
                         ? `Needed by ${used.join(', ')}`
                         : 'Not connected'
                     action = (
-                        <button
-                            className={`${styles.action} ${styles.primary}`}
+                        <Button
+                            size="sm"
+                            variant="primary"
                             onClick={() => Connections_.connect(service.id)}
                         >
                             Connect
-                        </button>
+                        </Button>
                     )
                 } else {
                     detail = 'Sign in to MMGIS first'

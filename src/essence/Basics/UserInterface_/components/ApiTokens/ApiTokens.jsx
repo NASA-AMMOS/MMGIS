@@ -5,6 +5,13 @@
  *   ApiTokens.open(view)  view: 'manage' | 'create'
  */
 import React, { useState } from 'react'
+import {
+    Button,
+    Checkbox,
+    Radio,
+    RadioGroup,
+    TextInput,
+} from '../../../../../design-system/components'
 import Modal from '../Modal/Modal'
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 
@@ -188,7 +195,7 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
             )}
             <label className={styles.field}>
                 <span>Name</span>
-                <input
+                <TextInput
                     type="text"
                     value={name}
                     maxLength={64}
@@ -198,20 +205,11 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
             </label>
             <div className={styles.field}>
                 <span>Expires after</span>
-                <div className={styles.segmented} role="radiogroup">
-                    {periods.map((p) => (
-                        <button
-                            type="button"
-                            key={p.value}
-                            role="radio"
-                            aria-checked={period === p.value}
-                            className={period === p.value ? styles.on : ''}
-                            onClick={() => setPeriod(p.value)}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
-                </div>
+                <RadioGroup
+                    value={period}
+                    onValueChange={setPeriod}
+                    options={periods}
+                />
                 {limits.max_period != null && (
                     <div className={styles.hint}>
                         Tokens last at most{' '}
@@ -221,46 +219,39 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
             </div>
             <div className={styles.field}>
                 <span>Access</span>
-                <label className={styles.choice}>
-                    <input
-                        type="radio"
-                        checked={access === 'read'}
-                        onChange={() => setAccess('read')}
-                    />
-                    Read-only
-                </label>
-                {data.canWrite && (
-                    <label className={styles.choice}>
-                        <input
-                            type="radio"
-                            checked={access === 'full'}
-                            onChange={() => setAccess('full')}
-                        />
-                        Everything you can do
-                    </label>
-                )}
+                <Radio
+                    value={access}
+                    onValueChange={setAccess}
+                    options={[
+                        { value: 'read', label: 'Read-only' },
+                        ...(data.canWrite
+                            ? [
+                                  {
+                                      value: 'full',
+                                      label: 'Everything you can do',
+                                  },
+                              ]
+                            : []),
+                    ]}
+                />
                 <div className={styles.hint}>
                     A token never has more access than your account does.
                 </div>
             </div>
             <div className={styles.field}>
                 <span>Missions</span>
-                <label className={styles.choice}>
-                    <input
-                        type="radio"
-                        checked={missionMode === 'all'}
-                        onChange={() => setMissionMode('all')}
-                    />
-                    All missions you can view
-                </label>
-                <label className={styles.choice}>
-                    <input
-                        type="radio"
-                        checked={missionMode === 'some'}
-                        onChange={pickMissions}
-                    />
-                    Only these missions
-                </label>
+                <Radio
+                    value={missionMode}
+                    onValueChange={(v) =>
+                        v === 'some'
+                            ? pickMissions()
+                            : setMissionMode('all')
+                    }
+                    options={[
+                        { value: 'all', label: 'All missions you can view' },
+                        { value: 'some', label: 'Only these missions' },
+                    ]}
+                />
                 {missionMode === 'some' && (
                     <div className={styles.missions}>
                         {available == null
@@ -268,30 +259,34 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
                             : available.length === 0
                               ? 'No missions'
                               : available.map((m) => (
-                                    <label key={m} className={styles.choice}>
-                                        <input
-                                            type="checkbox"
-                                            checked={missions.includes(m)}
-                                            onChange={() => toggle(m)}
-                                        />
+                                    <Checkbox
+                                        key={m}
+                                        checked={missions.includes(m)}
+                                        onCheckedChange={() => toggle(m)}
+                                        showCheck
+                                    >
                                         {m}
-                                    </label>
+                                    </Checkbox>
                                 ))}
                     </div>
                 )}
             </div>
             {error && <div className={styles.error}>{error}</div>}
             <div className={styles.footer}>
-                <button type="button" className={styles.btn} onClick={onCancel}>
+                <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={onCancel}
+                >
                     Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                     type="submit"
-                    className={`${styles.btn} ${styles.primary}`}
+                    variant="primary"
                     disabled={busy}
                 >
                     {replacing ? 'Replace token' : 'Create token'}
-                </button>
+                </Button>
             </div>
         </form>
     )
@@ -321,20 +316,20 @@ function Reveal({ created, onDone }) {
                 recovered; if you lose it, replace it.
             </div>
             <div className={styles.reveal}>
-                <input
+                <TextInput
                     id="apiTokensValue"
                     className={styles.mono}
                     readOnly
                     value={created.token}
                     onFocus={(e) => e.target.select()}
                 />
-                <button
+                <Button
                     type="button"
-                    className={`${styles.btn} ${styles.primary}`}
+                    variant="primary"
                     onClick={copy}
                 >
                     {copied ? 'Copied' : 'Copy'}
-                </button>
+                </Button>
             </div>
             <div className={styles.field}>
                 <span>Use it in an Authorization header</span>
@@ -343,13 +338,13 @@ function Reveal({ created, onDone }) {
                 </pre>
             </div>
             <div className={styles.footer}>
-                <button
+                <Button
                     type="button"
-                    className={`${styles.btn} ${styles.primary}`}
+                    variant="primary"
                     onClick={onDone}
                 >
                     Done
-                </button>
+                </Button>
             </div>
         </div>
     )
@@ -439,24 +434,25 @@ function ApiTokensModal({ initial, initialView }) {
                         <TokenDetails token={t} />
                         <div className={styles.itemActions}>
                             {!limits.unlimited && isLive(t) && (
-                                <button
+                                <Button
                                     type="button"
-                                    className={styles.btn}
+                                    variant="secondary"
                                     onClick={() => {
                                         setReplacing(t)
                                         setView('create')
                                     }}
                                 >
                                     Replace
-                                </button>
+                                </Button>
                             )}
-                            <button
+                            <Button
                                 type="button"
-                                className={`${styles.btn} ${styles.danger}`}
+                                variant="secondary"
+                                className={styles.danger}
                                 onClick={() => revoke(t)}
                             >
                                 {isLive(t) ? 'Revoke' : 'Remove'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 ))}
@@ -467,17 +463,21 @@ function ApiTokensModal({ initial, initialView }) {
                             Everyone's tokens in Configure
                         </a>
                     )}
-                    <button type="button" className={styles.btn} onClick={close}>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={close}
+                    >
                         Close
-                    </button>
+                    </Button>
                     {!atLimit && (
-                        <button
+                        <Button
                             type="button"
-                            className={`${styles.btn} ${styles.primary}`}
+                            variant="primary"
                             onClick={() => setView('create')}
                         >
                             {tokens.length ? 'New token' : 'Create token'}
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
