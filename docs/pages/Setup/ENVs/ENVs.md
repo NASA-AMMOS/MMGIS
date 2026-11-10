@@ -163,7 +163,7 @@ Which local accounts may log in with a username and password. `all`: any local a
 
 #### `AUTH_TOKENS=`
 
-Who may create API (long-term) tokens, from the account menu on the main site or Configure > API Tokens. `all`: any signed-in account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin); other accounts' existing tokens stop working, without being deleted, until the setting allows them again. Either way, an account without an admin role may hold one unexpired token lasting at most 90 days, while admins may hold any number of any length. A token never has more access than its owner has at the time it's used. Any other value stops startup | string | default `all`
+Who may create API (long-term) tokens, from the account menu on the main site or Configure > API Tokens. `all`: any signed-in account. `admins`: only accounts holding an editing or admin role (Layer Editor, Mission Admin, Data Admin or SuperAdmin); other accounts' existing tokens stop working, without being deleted, until the setting allows them again. They can still see and revoke them from the account menu. Either way, an account without an admin role may hold one unexpired token lasting at most 90 days, while admins may hold any number of any length. A token never has more access than its owner has at the time it's used. Any other value stops startup | string | default `all`
 
 #### `SETUP_CODE=`
 

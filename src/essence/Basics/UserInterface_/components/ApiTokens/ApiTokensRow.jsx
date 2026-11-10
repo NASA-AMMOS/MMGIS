@@ -25,7 +25,10 @@ export default function ApiTokensRow({ onClose }) {
     let name = 'API token'
     let detail
     let action
-    if (tokens.limits.unlimited) {
+    if (!tokens.canCreate) {
+        detail = 'Paused · tokens are limited to admins'
+        action = 'Manage'
+    } else if (tokens.limits.unlimited) {
         name = `API tokens (${live.length})`
         detail = 'For scripts and other tools'
         action = live.length ? 'Manage' : 'Create'

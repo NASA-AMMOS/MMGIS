@@ -1,7 +1,7 @@
 /**
  * ApiTokens — the main site's own API (long-term) tokens: a summary for the
  * account menu and a modal to create, copy, replace and revoke them.
- *   ApiTokens.summary() -> Promise<null | { tokens, limits }>
+ *   ApiTokens.summary() -> Promise<null | { tokens, limits, canCreate }>
  *   ApiTokens.open(view)  view: 'manage' | 'create'
  */
 import React, { useCallback, useEffect, useState } from 'react'
@@ -95,34 +95,50 @@ const accessText = (t) =>
           ? 'Read-only'
           : `${t.scopes.length} permissions`
 
-// The caller's own tokens and limits, or null when they may not create tokens
+// The caller's own tokens and limits, or null when there is nothing to manage
 export async function summary() {
     const me = (await request('GET', 'api/access/me')).body || {}
     const caps = me.capabilities || []
-    if (!me.authenticated || !caps.includes('tokens.create')) return null
-    const list = await request('GET', 'api/longtermtoken/get')
+    if (!me.authenticated) return null
+    let list
+    try {
+        list = await request('GET', 'api/longtermtoken/get')
+    } catch {
+        return null
+    }
+    const tokens = (list.tokens || []).filter(
+        (t) => t.created_by_user_id === list.user_id
+    )
+    const canCreate = list.can_create ?? caps.includes('tokens.create')
+    if (!canCreate && tokens.length === 0) return null
     return {
         // Token managers are sent everyone's tokens; this menu is only about one's own
-        tokens: (list.tokens || []).filter(
-            (t) => t.created_by_user_id === list.user_id
-        ),
+        tokens,
         limits: list.limits || { unlimited: false, max_tokens: 1 },
         username: me.username,
+        canCreate,
     }
 }
 
-function tokenStatus(token) {
+function tokenStatus(token, canCreate = true) {
     const live = isLive(token)
     const expires = expiresAt(token)
+    const paused = live && !canCreate
     const expiresSoon = live && expires != null && expires - Date.now() <= 7 * DAY
     return {
         live,
         className: !live
             ? styles.statusExpired
-            : expiresSoon
+            : paused || expiresSoon
               ? styles.statusSoon
               : styles.statusActive,
-        text: !live ? 'Expired' : expiresSoon ? 'Expires soon' : 'Active',
+        text: !live
+            ? 'Expired'
+            : paused
+              ? 'Paused'
+              : expiresSoon
+                ? 'Expires soon'
+                : 'Active',
     }
 }
 
@@ -221,8 +237,14 @@ function TokenFacts({ token }) {
     )
 }
 
-function TokenDetails({ token, canReplace, onReplace, onRevoke }) {
-    const status = tokenStatus(token)
+function TokenDetails({
+    token,
+    canCreate = true,
+    canReplace,
+    onReplace,
+    onRevoke,
+}) {
+    const status = tokenStatus(token, canCreate)
 
     return (
         <div
@@ -669,7 +691,7 @@ function ApiTokensModal({ initial, initialView }) {
         return () => document.removeEventListener('keydown', handleKeyDown)
     }, [close])
 
-    const { tokens, limits } = data
+    const { tokens, limits, canCreate } = data
     const live = tokens.filter(isLive)
     const atLimit = limits.max_tokens != null && live.length >= limits.max_tokens
 
@@ -714,7 +736,9 @@ function ApiTokensModal({ initial, initialView }) {
               ? replacing
                   ? `Replaces ${replacing.name || replacing.token}. It stops working as soon as the new one is created.`
                   : "You'll see the token once, right after you create it."
-              : `Lets scripts call MMGIS's APIs as you.${!limits.unlimited && limits.max_period != null ? ` One token at a time, up to ${Math.round(limits.max_period / DAY)} days.` : ''}`
+              : !canCreate
+                ? 'Paused: API tokens are limited to admins on this site.'
+                : `Lets scripts call MMGIS's APIs as you.${!limits.unlimited && limits.max_period != null ? ` One token at a time, up to ${Math.round(limits.max_period / DAY)} days.` : ''}`
 
     let content
     if (view === 'reveal')
@@ -776,7 +800,8 @@ function ApiTokensModal({ initial, initialView }) {
                             <div key={t.id} className={styles.item}>
                                 <TokenDetails
                                     token={t}
-                                    canReplace={isLive(t)}
+                                    canCreate={canCreate}
+                                    canReplace={canCreate && isLive(t)}
                                     onReplace={() => {
                                         setReplacing(t)
                                         setView('create')
@@ -790,9 +815,9 @@ function ApiTokensModal({ initial, initialView }) {
                                             aria-hidden="true"
                                         />
                                         <span>
-                                            Replace makes a new token and removes
-                                            this one in one step, so your scripts
-                                            only need the new value.
+                                            {canCreate
+                                                ? 'Replace makes a new token and removes this one in one step, so your scripts only need the new value.'
+                                                : "API tokens are limited to admins on this site, so this token is paused and doesn't work. You can still revoke it."}
                                         </span>
                                     </div>
                                 )}
@@ -809,7 +834,7 @@ function ApiTokensModal({ initial, initialView }) {
                     >
                         Close
                     </Button>
-                    {!atLimit && (
+                    {canCreate && !atLimit && (
                         <Button
                             type="button"
                             variant="primary"
@@ -880,6 +905,7 @@ const ApiTokens = {
                 const initial = { ...s, canWrite: s.limits.unlimited }
                 const live = s.tokens.filter(isLive)
                 const start =
+                    s.canCreate &&
                     view === 'create' &&
                     (s.limits.max_tokens == null ||
                         live.length < s.limits.max_tokens)

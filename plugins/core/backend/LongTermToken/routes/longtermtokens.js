@@ -64,29 +64,47 @@ async function present(rows) {
   );
 }
 
-router.get("/get", authorize("tokens.create"), sessionOnly, async (req, res) => {
-  try {
+router.get(
+  "/get",
+  authorize.inHandler(
+    "site.view",
+    "own tokens for any signed-in account; everyone's with tokens.manage"
+  ),
+  sessionOnly,
+  async (req, res) => {
     const principal = req.principal;
-    const where = { revoked_at: null };
-    if (!policy.can(principal, "tokens.manage")) where.created_by_user_id = principal.userId;
-    if (where.created_by_user_id == null && !policy.can(principal, "tokens.manage"))
-      return res.send({ status: "success", tokens: [] });
-    const rows = await LongTermTokens.findAll({
-      where,
-      order: [["createdAt", "DESC"]],
-      raw: true,
-    });
-    res.send({
-      status: "success",
-      tokens: await present(rows),
-      user_id: principal.userId == null ? null : principal.userId,
-      limits: limitsFor(principal),
-    });
-  } catch (err) {
-    logger("error", "Failed to get all tokens.", req.originalUrl, req, err);
-    res.send({ status: "failure", message: "Failed to get tokens." });
+    if (
+      principal.userId == null &&
+      !policy.can(principal, "tokens.manage")
+    )
+      return res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    try {
+      const where = { revoked_at: null };
+      if (!policy.can(principal, "tokens.manage"))
+        where.created_by_user_id = principal.userId;
+      if (
+        where.created_by_user_id == null &&
+        !policy.can(principal, "tokens.manage")
+      )
+        return res.send({ status: "success", tokens: [] });
+      const rows = await LongTermTokens.findAll({
+        where,
+        order: [["createdAt", "DESC"]],
+        raw: true,
+      });
+      res.send({
+        status: "success",
+        tokens: await present(rows),
+        user_id: principal.userId == null ? null : principal.userId,
+        limits: limitsFor(principal),
+        can_create: policy.can(principal, "tokens.create"),
+      });
+    } catch (err) {
+      logger("error", "Failed to get all tokens.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to get tokens." });
+    }
   }
-});
+);
 
 class TokenError extends Error {}
 
@@ -219,37 +237,53 @@ router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, re
   }
 });
 
-router.post("/clear", authorize("tokens.create"), sessionOnly, async (req, res) => {
-  try {
-    if (req.body.id == null)
-      return res.send({
-        status: "failure",
-        message: `Failed to delete long term token. body.id is undefined.`,
-      });
-    const token = await LongTermTokens.findOne({ where: { id: parseInt(req.body.id) } });
+router.post(
+  "/clear",
+  authorize.inHandler(
+    "site.view",
+    "own tokens for any signed-in account; everyone's with tokens.manage"
+  ),
+  sessionOnly,
+  async (req, res) => {
     const principal = req.principal;
     if (
-      !token ||
-      (!policy.can(principal, "tokens.manage") && token.created_by_user_id !== principal.userId)
+      principal.userId == null &&
+      !policy.can(principal, "tokens.manage")
     )
-      return res.send({
-        status: "failure",
-        message: `Token with id ${req.body.id} not found.`,
+      return res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    try {
+      if (req.body.id == null)
+        return res.send({
+          status: "failure",
+          message: `Failed to delete long term token. body.id is undefined.`,
+        });
+      const token = await LongTermTokens.findOne({
+        where: { id: parseInt(req.body.id) },
       });
-    await token.destroy();
-    invalidate();
-    res.send({
-      status: "success",
-      message: `Successfully deleted long term token with id ${req.body.id}.`,
-    });
-  } catch (err) {
-    logger("error", "Failed to delete long term token.", req.originalUrl, req, err);
-    res.send({
-      status: "failure",
-      message: `Failed to delete long term token with id ${req.body.id}!`,
-    });
+      if (
+        !token ||
+        (!policy.can(principal, "tokens.manage") &&
+          token.created_by_user_id !== principal.userId)
+      )
+        return res.send({
+          status: "failure",
+          message: `Token with id ${req.body.id} not found.`,
+        });
+      await token.destroy();
+      invalidate();
+      res.send({
+        status: "success",
+        message: `Successfully deleted long term token with id ${req.body.id}.`,
+      });
+    } catch (err) {
+      logger("error", "Failed to delete long term token.", req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+        message: `Failed to delete long term token with id ${req.body.id}!`,
+      });
+    }
   }
-});
+);
 
 module.exports = router;
 module.exports.TOKEN_PREFIX = TOKEN_PREFIX;

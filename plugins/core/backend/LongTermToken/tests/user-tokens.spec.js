@@ -21,8 +21,8 @@ const freshAddress = () => {
   return `127.3.${Math.floor(n / 250)}.${(n % 250) + 2}`;
 };
 
-function api(who, method, url, body, { bearer, localAddress } = {}) {
-  const target = new URL(baseURL + url);
+function api(who, method, url, body, { bearer, localAddress, baseURL: origin = baseURL } = {}) {
+  const target = new URL(url, origin);
   const payload = body ? JSON.stringify(body) : null;
   return new Promise((resolve, reject) => {
     const req = http.request(
@@ -63,29 +63,37 @@ function api(who, method, url, body, { bearer, localAddress } = {}) {
 
 const ok = (r) => r.status === 200 && r.json && r.json.status === 'success';
 
-async function login({ username, password }) {
+async function login({ username, password }, origin = baseURL) {
   const who = {};
-  const r = await api(who, 'POST', '/api/users/login', { username, password }, { localAddress: freshAddress() });
+  const r = await api(who, 'POST', '/api/users/login', { username, password }, {
+    localAddress: freshAddress(),
+    baseURL: origin,
+  });
   expect(ok(r), `login ${username}: ${r.text.slice(0, 200)}`).toBe(true);
   return who;
 }
 
-const generate = (who, body) => api(who, 'POST', '/api/longtermtoken/generate', body);
-const list = async (who) => {
-  const r = await api(who, 'GET', '/api/longtermtoken/get');
+const generate = (who, body, origin = baseURL) =>
+  api(who, 'POST', '/api/longtermtoken/generate', body, { baseURL: origin });
+const list = async (who, origin = baseURL) => {
+  const r = await api(who, 'GET', '/api/longtermtoken/get', null, { baseURL: origin });
   expect(ok(r)).toBe(true);
   return r.json;
 };
-const mine = async (who) => {
-  const l = await list(who);
+const mine = async (who, origin = baseURL) => {
+  const l = await list(who, origin);
   return l.tokens.filter((t) => t.created_by_user_id === l.user_id);
 };
-const clearAll = async (who) => {
-  for (const t of await mine(who)) await api(who, 'POST', '/api/longtermtoken/clear', { id: t.id });
+const clearAll = async (who, origin = baseURL) => {
+  for (const t of await mine(who, origin))
+    await api(who, 'POST', '/api/longtermtoken/clear', { id: t.id }, { baseURL: origin });
 };
 // Who a bearer token acts as, or null when it's refused
-const actsAs = async (token) => {
-  const r = await api(null, 'GET', '/api/access/me', null, { bearer: token });
+const actsAs = async (token, origin = baseURL) => {
+  const r = await api(null, 'GET', '/api/access/me', null, {
+    bearer: token,
+    baseURL: origin,
+  });
   return ok(r) && r.json.body.kind === 'token' ? r.json.body.username : null;
 };
 
@@ -109,8 +117,35 @@ test.describe.serial('API token limits', () => {
 
   test('a regular account is told its limits', async () => {
     const l = await list(user);
+    expect(l.can_create).toBe(true);
     expect(l.limits).toEqual({ unlimited: false, max_tokens: 1, max_period: 90 * DAY });
-    expect((await list(admin)).limits).toEqual({ unlimited: true, max_tokens: null, max_period: null });
+    const adminList = await list(admin);
+    expect(adminList.can_create).toBe(true);
+    expect(adminList.limits).toEqual({ unlimited: true, max_tokens: null, max_period: null });
+  });
+
+  test('bearer tokens cannot list or revoke tokens', async () => {
+    const generated = await generate(user, {
+      name: 'session_only',
+      period: String(DAY),
+      scopes: 'read',
+    });
+    expect(ok(generated), generated.text.slice(0, 200)).toBe(true);
+    const token = generated.json.body.token;
+
+    const listed = await api(null, 'GET', '/api/longtermtoken/get', null, {
+      bearer: token,
+    });
+    expect([401, 403]).toContain(listed.status);
+
+    const cleared = await api(
+      null,
+      'POST',
+      '/api/longtermtoken/clear',
+      { id: generated.json.body.id },
+      { bearer: token }
+    );
+    expect([401, 403]).toContain(cleared.status);
   });
 
   test('a 64-character name is stored while its token prefix fits the column', async () => {
@@ -191,5 +226,76 @@ test.describe.serial('API token limits', () => {
     }
     expect((await mine(admin)).length).toBe(3);
     for (const t of made) expect(await actsAs(t)).toBe(ADMIN.username);
+  });
+});
+
+test.describe.serial('AUTH_TOKENS=admins', () => {
+  test.skip(process.env.AUTH_TOKENS !== 'admins', 'SKIP: covers AUTH_TOKENS=admins');
+  test.skip(process.env.MMGIS_TEST_SITE_ACCESS === 'public', 'SKIP: needs sign-in');
+
+  const setupBaseURL = process.env.AUTH_TOKENS_SETUP_URL;
+  let setupUser, user, admin, pausedToken;
+
+  test.beforeAll(async () => {
+    expect(
+      setupBaseURL,
+      'AUTH_TOKENS_SETUP_URL must point to a server running AUTH_TOKENS=all'
+    ).toBeTruthy();
+    const setupAdmin = await login(ADMIN, setupBaseURL);
+    const s = await api(
+      setupAdmin,
+      'POST',
+      '/api/users/signup',
+      { ...USER, skipLogin: true },
+      { baseURL: setupBaseURL, localAddress: freshAddress() }
+    );
+    expect(ok(s), `signup: ${s.text.slice(0, 200)}`).toBe(true);
+    setupUser = await login(USER, setupBaseURL);
+    const created = await generate(
+      setupUser,
+      { name: `paused_${RUN}`, period: String(DAY), scopes: 'read' },
+      setupBaseURL
+    );
+    expect(ok(created), created.text.slice(0, 200)).toBe(true);
+    pausedToken = created.json.body.token;
+
+    user = await login(USER);
+    admin = await login(ADMIN);
+  });
+
+  test.afterAll(async () => {
+    if (setupUser) await clearAll(setupUser, setupBaseURL);
+  });
+
+  test('signed-in users can list their paused token while creation is denied', async () => {
+    const r = await api(user, 'GET', '/api/longtermtoken/get');
+    expect(ok(r)).toBe(true);
+    expect(r.json.can_create).toBe(false);
+    expect(r.json.tokens).toHaveLength(1);
+    expect(r.json.tokens[0].name).toBe(`paused_${RUN}`);
+
+    const generated = await generate(user, {
+      name: `denied_${RUN}`,
+      period: String(DAY),
+    });
+    expect(generated.status).toBe(403);
+    expect(generated.json.status).toBe('failure');
+    expect(await actsAs(pausedToken)).toBe(null);
+
+    const adminList = await api(admin, 'GET', '/api/longtermtoken/get');
+    expect(ok(adminList)).toBe(true);
+    expect(adminList.json.can_create).toBe(true);
+  });
+
+  test('the owner can revoke their paused token', async () => {
+    const before = await api(user, 'GET', '/api/longtermtoken/get');
+    const [token] = before.json.tokens;
+    const cleared = await api(user, 'POST', '/api/longtermtoken/clear', { id: token.id });
+    expect(ok(cleared)).toBe(true);
+
+    const after = await api(user, 'GET', '/api/longtermtoken/get');
+    expect(ok(after)).toBe(true);
+    expect(after.json.can_create).toBe(false);
+    expect(after.json.tokens).toEqual([]);
   });
 });
