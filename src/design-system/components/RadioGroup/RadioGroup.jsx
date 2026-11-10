@@ -4,7 +4,15 @@ import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group'
 import styles from './RadioGroup.module.css'
 
 const RadioGroup = forwardRef(function RadioGroup(
-    { value, onValueChange, options, size = 'sm', className, ...props },
+    {
+        value,
+        onValueChange,
+        options,
+        size = 'sm',
+        variant,
+        className,
+        ...props
+    },
     ref
 ) {
     return (
@@ -12,7 +20,7 @@ const RadioGroup = forwardRef(function RadioGroup(
             ref={ref}
             value={value}
             onValueChange={(nextValue) => onValueChange(nextValue)}
-            className={`${styles.group} ${styles[size] || ''} ${className || ''}`}
+            className={`${styles.group} ${styles[size] || ''} ${variant === 'segmented' ? styles.segmented : ''} ${className || ''}`}
             {...props}
         >
             {options.map((opt) => (

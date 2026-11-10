@@ -12,6 +12,7 @@ import {
     RadioGroup,
     TextInput,
 } from '../../../../../design-system/components'
+import IconButton from '../../../../../design-system/components/IconButton/IconButton'
 import Modal from '../Modal/Modal'
 import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 
@@ -76,6 +77,15 @@ export function expiryText(t) {
     return days <= 1 ? 'Expires within a day' : `Expires in ${days} days`
 }
 
+function cardExpiryText(t) {
+    const e = expiresAt(t)
+    if (e == null) return 'Never'
+    const left = e - Date.now()
+    if (left <= 0) return `Expired ${when(e)}`
+    const days = Math.ceil(left / DAY)
+    return `${when(e)} · in ${days} ${days === 1 ? 'day' : 'days'}`
+}
+
 const accessText = (t) =>
     t.scopes == null
         ? 'Everything you can do'
@@ -99,38 +109,121 @@ export async function summary() {
     }
 }
 
-function TokenDetails({ token }) {
+function TokenDetails({ token, canReplace, onReplace, onRevoke }) {
     const live = isLive(token)
+    const expires = expiresAt(token)
+    const now = Date.now()
+    const expiresSoon = live && expires != null && expires - now <= 7 * DAY
+    const created = new Date(token.createdAt).getTime()
+    const duration = expires - created
+    const progress =
+        live &&
+        expires != null &&
+        Number.isFinite(created) &&
+        duration > 0
+            ? Math.min(100, Math.max(0, ((now - created) / duration) * 100))
+            : null
+    const statusClass = !live
+        ? styles.statusExpired
+        : expiresSoon
+          ? styles.statusSoon
+          : styles.statusActive
+
     return (
         <div className={`${styles.card} ${live ? '' : styles.expired}`}>
-            <div className={styles.cardHead}>
-                <div className={styles.cardName}>
-                    {token.name || 'Unnamed token'}
+            <div className={styles.cardTop}>
+                <div className={styles.cardIdentity}>
+                    <div
+                        className={styles.cardName}
+                        title={token.name || 'Unnamed token'}
+                    >
+                        {token.name || 'Unnamed token'}
+                    </div>
+                    <div
+                        className={`${styles.prefix} ${styles.mono}`}
+                        title={token.token}
+                    >
+                        {token.token}
+                    </div>
                 </div>
-                {!live && <span className={styles.tag}>Expired</span>}
+                <span className={`${styles.status} ${statusClass}`}>
+                    <span className={styles.statusDot} />
+                    {!live ? 'Expired' : expiresSoon ? 'Expires soon' : 'Active'}
+                </span>
             </div>
-            <dl className={styles.facts}>
-                <dt>Token</dt>
-                <dd className={styles.mono}>{token.token}</dd>
-                <dt>Access</dt>
-                <dd>{accessText(token)}</dd>
-                <dt>Missions</dt>
-                <dd>
-                    {Array.isArray(token.missions)
-                        ? token.missions.join(', ') || 'None'
-                        : 'All you can view'}
-                </dd>
-                <dt>Created</dt>
-                <dd>{when(new Date(token.createdAt).getTime())}</dd>
-                <dt>Expiry</dt>
-                <dd>{expiryText(token)}</dd>
-                <dt>Last used</dt>
-                <dd>
-                    {token.last_used_at
-                        ? when(new Date(token.last_used_at).getTime())
-                        : 'Never'}
-                </dd>
-            </dl>
+            <div className={styles.facts}>
+                <div className={styles.fact}>
+                    <div className={styles.factLabel}>Access</div>
+                    <div className={styles.factValue}>{accessText(token)}</div>
+                </div>
+                <div className={styles.fact}>
+                    <div className={styles.factLabel}>Missions</div>
+                    <div className={styles.factValue}>
+                        {Array.isArray(token.missions)
+                            ? token.missions.join(', ') || 'None'
+                            : 'All you can view'}
+                    </div>
+                </div>
+                <div className={styles.fact}>
+                    <div className={styles.factLabel}>Created</div>
+                    <div className={styles.factValue}>
+                        {when(new Date(token.createdAt).getTime())}
+                    </div>
+                </div>
+                <div className={styles.fact}>
+                    <div className={styles.factLabel}>Last used</div>
+                    <div className={styles.factValue}>
+                        {token.last_used_at
+                            ? when(new Date(token.last_used_at).getTime())
+                            : 'Never'}
+                    </div>
+                </div>
+                <div className={`${styles.fact} ${styles.factFull}`}>
+                    <div className={styles.factLabel}>Expires</div>
+                    <div className={styles.factValue}>{cardExpiryText(token)}</div>
+                </div>
+            </div>
+            {progress != null && (
+                <div
+                    className={styles.progress}
+                    role="progressbar"
+                    aria-label="Token lifetime elapsed"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(progress)}
+                >
+                    <span style={{ width: `${progress}%` }} />
+                </div>
+            )}
+            <div className={styles.cardActions}>
+                {canReplace && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={onReplace}
+                    >
+                        <i
+                            className="mdi mdi-swap-horizontal mdi-14px"
+                            aria-hidden="true"
+                        />
+                        Replace
+                    </Button>
+                )}
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={styles.danger}
+                    onClick={onRevoke}
+                >
+                    <i
+                        className="mdi mdi-delete-outline mdi-14px"
+                        aria-hidden="true"
+                    />
+                    {live ? 'Revoke' : 'Remove'}
+                </Button>
+            </div>
         </div>
     )
 }
@@ -200,96 +293,122 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
     }
 
     return (
-        <form className={styles.form} onSubmit={submit}>
-            {replacing && (
-                <div className={styles.note}>
-                    Replacing <b>{replacing.name || replacing.token}</b>: it
-                    stops working as soon as the new token is created.
+        <form className={styles.view} onSubmit={submit}>
+            <div className={styles.body}>
+                <label className={styles.field}>
+                    <span className={styles.label}>Name</span>
+                    <TextInput
+                        className={styles.textField}
+                        type="text"
+                        value={name}
+                        maxLength={64}
+                        placeholder="e.g. analysis-scripts"
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                    <div className={styles.help}>
+                        Helps you recognise it later.
+                    </div>
+                </label>
+                <div className={styles.field}>
+                    <div className={styles.labelRow}>
+                        <span className={styles.label}>Expires after</span>
+                        {limits.max_period != null && (
+                            <span className={styles.periodLimit}>
+                                Up to {Math.round(limits.max_period / DAY)} days
+                            </span>
+                        )}
+                    </div>
+                    <RadioGroup
+                        aria-label="Expires after"
+                        variant="segmented"
+                        size="md"
+                        className={styles.periods}
+                        value={period}
+                        onValueChange={setPeriod}
+                        options={periods}
+                    />
+                    <div className={styles.help}>
+                        {period === 'never'
+                            ? 'Never expires.'
+                            : `Expires on ${when(Date.now() + Number(period))}.`}
+                    </div>
                 </div>
-            )}
-            <label className={styles.field}>
-                <span>Name</span>
-                <TextInput
-                    type="text"
-                    value={name}
-                    maxLength={64}
-                    placeholder="e.g. analysis-scripts"
-                    onChange={(e) => setName(e.target.value)}
-                />
-            </label>
-            <div className={styles.field}>
-                <span>Expires after</span>
-                <RadioGroup
-                    value={period}
-                    onValueChange={setPeriod}
-                    options={periods}
-                />
-                {limits.max_period != null && (
+                <div className={styles.field}>
+                    <span className={styles.label}>Missions</span>
+                    <Radio
+                        aria-label="Missions"
+                        value={missionMode}
+                        onValueChange={(v) =>
+                            v === 'some'
+                                ? pickMissions()
+                                : setMissionMode('all')
+                        }
+                        options={[
+                            { value: 'all', label: 'All missions you can view' },
+                            { value: 'some', label: 'Only these missions' },
+                        ]}
+                    />
+                    {missionMode === 'some' && (
+                        <div className={styles.missions}>
+                            {available == null
+                                ? 'Loading…'
+                                : available.length === 0
+                                  ? 'No missions'
+                                  : available.map((m) => (
+                                        <div
+                                            key={m}
+                                            className={styles.missionOption}
+                                            title={m}
+                                        >
+                                            <Checkbox
+                                                checked={missions.includes(m)}
+                                                onCheckedChange={() => toggle(m)}
+                                                showCheck
+                                            >
+                                                {m}
+                                            </Checkbox>
+                                        </div>
+                                    ))}
+                        </div>
+                    )}
+                </div>
+                <div className={styles.field}>
+                    <span className={styles.label}>Access</span>
+                    {data.canWrite ? (
+                        <Radio
+                            aria-label="Access"
+                            value={access}
+                            onValueChange={setAccess}
+                            options={[
+                                { value: 'read', label: 'Read-only' },
+                                {
+                                    value: 'full',
+                                    label: 'Everything you can do',
+                                },
+                            ]}
+                        />
+                    ) : (
+                        <div className={styles.readOnlyAccess}>
+                            <i
+                                className="mdi mdi-eye-outline mdi-14px"
+                                aria-hidden="true"
+                            />
+                            <span>Read-only</span>
+                            <span className={styles.readOnlyNote}>
+                                · your account can only view
+                            </span>
+                        </div>
+                    )}
                     <div className={styles.hint}>
-                        Tokens last at most{' '}
-                        {Math.round(limits.max_period / DAY)} days.
+                        A token never has more access than your account does.
                     </div>
-                )}
-            </div>
-            <div className={styles.field}>
-                <span>Access</span>
-                <Radio
-                    value={access}
-                    onValueChange={setAccess}
-                    options={[
-                        { value: 'read', label: 'Read-only' },
-                        ...(data.canWrite
-                            ? [
-                                  {
-                                      value: 'full',
-                                      label: 'Everything you can do',
-                                  },
-                              ]
-                            : []),
-                    ]}
-                />
-                <div className={styles.hint}>
-                    A token never has more access than your account does.
                 </div>
+                {error && <div className={styles.error}>{error}</div>}
             </div>
-            <div className={styles.field}>
-                <span>Missions</span>
-                <Radio
-                    value={missionMode}
-                    onValueChange={(v) =>
-                        v === 'some'
-                            ? pickMissions()
-                            : setMissionMode('all')
-                    }
-                    options={[
-                        { value: 'all', label: 'All missions you can view' },
-                        { value: 'some', label: 'Only these missions' },
-                    ]}
-                />
-                {missionMode === 'some' && (
-                    <div className={styles.missions}>
-                        {available == null
-                            ? 'Loading…'
-                            : available.length === 0
-                              ? 'No missions'
-                              : available.map((m) => (
-                                    <Checkbox
-                                        key={m}
-                                        checked={missions.includes(m)}
-                                        onCheckedChange={() => toggle(m)}
-                                        showCheck
-                                    >
-                                        {m}
-                                    </Checkbox>
-                                ))}
-                    </div>
-                )}
-            </div>
-            {error && <div className={styles.error}>{error}</div>}
             <div className={styles.footer}>
                 <Button
                     type="button"
-                    variant="secondary"
+                    variant="ghost"
                     onClick={onCancel}
                 >
                     Cancel
@@ -324,34 +443,48 @@ function Reveal({ created, onDone }) {
         }
     }
     return (
-        <div className={styles.form}>
-            <div className={styles.warn}>
-                Copy your token now. It won't be shown again and can't be
-                recovered; if you lose it, replace it.
-            </div>
-            <div className={styles.reveal}>
-                <TextInput
-                    id="apiTokensValue"
-                    className={styles.mono}
-                    readOnly
-                    value={created.token}
-                    onFocus={(e) => e.target.select()}
-                />
-                <Button
-                    type="button"
-                    variant="primary"
-                    onClick={copy}
-                >
-                    {copied ? 'Copied' : 'Copy'}
-                </Button>
-            </div>
-            <div className={styles.field}>
-                <span>Use it in an Authorization header</span>
-                <pre className={styles.code}>
-                    {`curl -H "Authorization: Bearer <token>" \\\n  ${url}`}
-                </pre>
+        <div className={styles.view}>
+            <div className={styles.body}>
+                <div className={styles.tokenBox}>
+                    <TextInput
+                        id="apiTokensValue"
+                        render={<textarea rows={2} />}
+                        className={`${styles.mono} ${styles.tokenValue}`}
+                        readOnly
+                        value={created.token}
+                        onFocus={(e) => e.target.select()}
+                    />
+                    <Button
+                        type="button"
+                        variant="primary"
+                        onClick={copy}
+                    >
+                        <i
+                            className={`mdi mdi-${copied ? 'check' : 'content-copy'} mdi-14px`}
+                            aria-hidden="true"
+                        />
+                        {copied ? 'Copied' : 'Copy'}
+                    </Button>
+                </div>
+                <div className={styles.warning}>
+                    <i
+                        className="mdi mdi-alert-outline mdi-18px"
+                        aria-hidden="true"
+                    />
+                    <span>
+                        <b>Copy it now.</b> This is the only time it's shown. If
+                        you lose it, replace the token to get a new one.
+                    </span>
+                </div>
+                <div className={styles.field}>
+                    <span className={styles.label}>Try it</span>
+                    <pre className={styles.code}>
+                        {`curl -H "Authorization: Bearer <token>" \\\n  ${url}`}
+                    </pre>
+                </div>
             </div>
             <div className={styles.footer}>
+                <span className={styles.footerSpacer} />
                 <Button
                     type="button"
                     variant="primary"
@@ -402,7 +535,7 @@ function ApiTokensModal({ initial, initialView }) {
 
     const title =
         view === 'reveal'
-            ? 'Your new API token'
+            ? 'Token created'
             : view === 'create'
               ? replacing
                   ? 'Replace API token'
@@ -410,6 +543,22 @@ function ApiTokensModal({ initial, initialView }) {
               : limits.unlimited
                 ? `Your API tokens (${live.length})`
                 : 'Your API token'
+    const icon =
+        view === 'reveal'
+            ? 'check'
+            : view === 'create'
+              ? replacing
+                  ? 'swap-horizontal'
+                  : 'key-plus'
+              : 'key-variant'
+    const subtitle =
+        view === 'reveal'
+            ? ''
+            : view === 'create'
+              ? replacing
+                  ? `Replaces ${replacing.name || replacing.token}. It stops working as soon as the new one is created.`
+                  : "You'll see the token once, right after you create it."
+              : `Lets scripts call MMGIS's APIs as you.${!limits.unlimited && limits.max_period != null ? ` One token at a time, up to ${Math.round(limits.max_period / DAY)} days.` : ''}`
 
     let content
     if (view === 'reveal')
@@ -441,47 +590,47 @@ function ApiTokensModal({ initial, initialView }) {
         )
     else
         content = (
-            <div className={styles.form}>
-                <div className={styles.note}>
-                    Scripts and other tools can call MMGIS's APIs as you with a
-                    token, limited to the access and missions you give it.
-                    {!limits.unlimited &&
-                        ' You can have one token at a time, lasting up to 90 days.'}
-                </div>
-                {tokens.length === 0 && (
-                    <div className={styles.empty}>You have no API tokens.</div>
-                )}
-                {tokens.map((t) => (
-                    <div key={t.id} className={styles.item}>
-                        <TokenDetails token={t} />
-                        <div className={styles.itemActions}>
-                            {!limits.unlimited && isLive(t) && (
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={() => {
-                                        setReplacing(t)
-                                        setView('create')
-                                    }}
-                                >
-                                    Replace
-                                </Button>
-                            )}
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                className={styles.danger}
-                                onClick={() => revoke(t)}
-                            >
-                                {isLive(t) ? 'Revoke' : 'Remove'}
-                            </Button>
+            <div className={styles.view}>
+                <div className={styles.body}>
+                    {tokens.length === 0 && (
+                        <div className={styles.empty}>
+                            You have no API tokens.
                         </div>
-                    </div>
-                ))}
-                {error && <div className={styles.error}>{error}</div>}
+                    )}
+                    {tokens.map((t) => (
+                        <div key={t.id} className={styles.item}>
+                            <TokenDetails
+                                token={t}
+                                canReplace={!limits.unlimited && isLive(t)}
+                                onReplace={() => {
+                                    setReplacing(t)
+                                    setView('create')
+                                }}
+                                onRevoke={() => revoke(t)}
+                            />
+                            {!limits.unlimited && isLive(t) && (
+                                <div className={styles.note}>
+                                    <i
+                                        className="mdi mdi-information-outline mdi-16px"
+                                        aria-hidden="true"
+                                    />
+                                    <span>
+                                        Replace makes a new token and removes
+                                        this one in one step, so your scripts
+                                        only need the new value.
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    {error && <div className={styles.error}>{error}</div>}
+                </div>
                 <div className={styles.footer}>
                     {limits.unlimited && (
-                        <a className={styles.link} href={`${base()}configure?page=api_tokens`}>
+                        <a
+                            className={styles.link}
+                            href={`${base()}configure?page=api_tokens`}
+                        >
                             Everyone's tokens in Configure
                         </a>
                     )}
@@ -507,19 +656,44 @@ function ApiTokensModal({ initial, initialView }) {
 
     return (
         <div className={styles.root} id="apiTokensModal">
-            <div className={styles.title}>
-                <div className={styles.titleLeft}>
-                    <i className="mdi mdi-key-variant mdi-18px" />
-                    <div>{title}</div>
+            <div className={styles.header}>
+                <div
+                    className={`${styles.iconTile} ${view === 'reveal' ? styles.successTile : ''}`}
+                >
+                    <i
+                        className={`mdi mdi-${icon} mdi-18px`}
+                        aria-hidden="true"
+                    />
                 </div>
-                <button
+                <div className={styles.headerText}>
+                    <div className={styles.title}>{title}</div>
+                    <div
+                        className={`${styles.subtitle} ${view === 'reveal' ? styles.revealSubtitle : ''}`}
+                    >
+                        {view === 'reveal' && created ? (
+                            <>
+                                <span className={styles.subtitleName}>
+                                    {created.name || 'Unnamed token'}
+                                </span>
+                                <span className={styles.subtitleDetails}>
+                                    {' · '}
+                                    {accessText(created)} · {expiryText(created)}
+                                </span>
+                            </>
+                        ) : (
+                            subtitle
+                        )}
+                    </div>
+                </div>
+                <IconButton
                     type="button"
+                    size="md"
                     className={styles.close}
                     aria-label="Close"
                     onClick={close}
                 >
-                    <i className="mdi mdi-close mdi-18px" />
-                </button>
+                    <i className="mdi mdi-close mdi-18px" aria-hidden="true" />
+                </IconButton>
             </div>
             {content}
         </div>

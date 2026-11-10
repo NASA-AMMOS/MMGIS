@@ -34,3 +34,39 @@
     padding: 3px 12px;
     font-size: 12px;
 }
+
+.segmented {
+    display: flex;
+    width: 100%;
+    gap: 2px;
+    padding: 3px;
+    background: color-mix(in srgb, var(--color-a) 82%, #000);
+    border-radius: 7px;
+}
+.segmented .option {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 6px 4px;
+    border: 1px solid transparent;
+    border-bottom-color: transparent;
+    border-radius: 5px;
+    background: transparent;
+}
+.segmented .option:hover {
+    color: var(--color-f);
+}
+.segmented .option.active,
+.segmented .option[data-checked] {
+    background: var(--color-a1-5);
+    color: var(--color-f);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px var(--color-a1);
+}
+.segmented .option:focus-visible {
+    outline: 2px solid var(--color-mmgis);
+    outline-offset: 2px;
+    z-index: 1;
+}
