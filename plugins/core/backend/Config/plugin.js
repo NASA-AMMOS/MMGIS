@@ -1,6 +1,7 @@
 const router = require("./routes/configs");
 const triggerWebhooks = require("../Webhooks/processes/triggerwebhooks.js");
 const configurePackageJson = require("../../../../configure/package.json");
+const providers = require("../../../../API/permissions/providers");
 
 let setup = {
   //Once the app initializes
@@ -21,6 +22,8 @@ let setup = {
             role: role,
             SITE_ACCESS: s.siteAccess.getSiteAccess(),
             AUTH_PROVIDERS: s.siteAccess.getProviders().join(","),
+            // URI-encoded so the template can't break out of its string
+            AUTH_PROVIDER_INFO: encodeURIComponent(JSON.stringify(providers.providerInfo())).replace(/'/g, "%27"),
             AUTH_LOCAL_ALLOW_SIGNUP: String(
               process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true"
             ),

@@ -104,6 +104,18 @@ Plugins may declare npm and Python dependencies in their `plugin.json`:
 
 At build time, `scripts/resolve-plugin-deps.js` aggregates these into `plugin-package.json`, `plugin-python-requirements.txt`, and `plugin-conda-deps.txt` at the repo root. Plugin npm deps are installed automatically via a `postinstall` hook. Python deps must be installed manually — see the [Installation page](../Setup/Installation/Installation.md#setup) for details.
 
+### Plugin CI
+
+A plugin whose tests need an outside service or settings (e.g. a directory server) declares how to set them up in its `plugin.json`:
+
+```json
+{
+    "ci": { "script": "tests/ci.sh", "variants": ["ldaps", "starttls"] }
+}
+```
+
+`scripts/plugin-ci.js` runs `<script> <variant>` once per variant (once with no argument if there are no `variants`). The script starts what the tests need and appends their ENVs, one `KEY=VALUE` per line, to the file named by `$MMGIS_CI_ENV`; then the plugin's `tests/` (except `@unit` tests, which run with every plugin's) run with those ENVs. CI's `plugin-ci` job runs every declared plugin and variant, so adding one needs no workflow change. Locally: `npm run test:plugins:ci -- plugins/core/auth/Ldap ldaps`. See `plugins/core/auth/Ldap/tests/ci.sh` and `plugins/core/auth/Proxy/tests/ci.sh`.
+
 For the complete plugin development guide, CLI reference, and `plugin.json` format, see [`plugins/README.md`](/plugins/README.md).
 
 ### Quickstart to Contributing

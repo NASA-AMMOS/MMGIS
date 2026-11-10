@@ -10,7 +10,8 @@ const missions = require("../../../../../API/permissions/missions");
 const bindings = require("../../../../../API/permissions/bindings");
 const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
 const { invalidate, userPrincipal, externalPrincipal } = require("../../../../../API/permissions/principal");
-const { AuthGroup, AuthGroupMember } = require("../../../../../API/permissions/models");
+const { AuthGroup, AuthGroupMember, AuthIdentity, AuthMeta } = require("../../../../../API/permissions/models");
+const Sequelize = require("sequelize");
 const { User } = require("../../Users/models/user");
 const providers = require("../../../../../API/permissions/providers");
 const siteAccess = require("../../../../../API/permissions/siteAccess");
@@ -50,9 +51,52 @@ async function summarize(principal) {
   };
 }
 
+// Each of the caller's role bindings with where it applies and where it comes from, for Configure's account menu
+async function ownGrants(principal) {
+  const groupIds = (principal.bindings || []).filter((b) => b.subject_type === "group").map((b) => b.subject_id);
+  const groups = groupIds.length
+    ? await AuthGroup.findAll({ where: { id: groupIds }, attributes: ["id", "name", "source"], raw: true })
+    : [];
+  const groupOf = Object.fromEntries(groups.map((g) => [String(g.id), g]));
+  const out = [];
+  for (const b of principal.bindings || []) {
+    if (!policy.ROLES[b.role]) continue;
+    const [kind, m, l] = b.scope.split(":");
+    const g = b.subject_type === "group" ? groupOf[String(b.subject_id)] : null;
+    if (b.subject_type === "group" && !g) continue;
+    out.push({
+      role: b.role,
+      label: policy.ROLES[b.role].label,
+      scope: kind,
+      mission: m ? await missions.nameForUUID(m) : null,
+      layer: l || null,
+      from:
+        b.subject_type === "user"
+          ? { type: "user" }
+          : g
+            ? { type: "group", name: g.name, provider: g.source !== "local" ? providers.providerLabel(g.source) : null }
+            : { type: "audience", name: b.subject_id },
+    });
+  }
+  return out;
+}
+
+function signedInWith(req, principal) {
+  if (!principal.authenticated) return null;
+  const id = principal.kind === "external" ? principal.provider : req.session && req.session.provider;
+  return id ? providers.providerBadge(id) : null;
+}
+
 router.get("/me", authorize.public("returns the caller's own permissions"), async (req, res) => {
   try {
-    res.send({ status: "success", body: await summarize(await ensurePrincipal(req)) });
+    const principal = await ensurePrincipal(req);
+    res.send({
+      status: "success",
+      body: {
+        ...(await summarize(principal)),
+        ...(req.query.grants === "true" ? { grants: await ownGrants(principal), provider: signedInWith(req, principal) } : {}),
+      },
+    });
   } catch (err) {
     fail(res, err, "Failed to get permissions.");
   }
@@ -100,20 +144,47 @@ router.post("/groups/create", manage, async (req, res) => {
       providers.availableProviders().includes(req.body.source)
         ? req.body.source
         : "local";
+    const external = source !== "local" ? providers.groupName(source, req.body.external_name || name) : null;
+    if (external && external.length > 255) throw new bindings.BindingError("The provider group name can be at most 255 characters.");
     const group = await AuthGroup.create({
       name,
       description: req.body.description || null,
       source,
-      external_name: source !== "local" ? req.body.external_name || name : null,
+      external_name: external,
     });
     invalidate();
-    res.send({ status: "success", body: group });
+    const note = source !== "local" ? await fillProviderGroups(group).catch(noteFailed) : undefined;
+    res.send({ status: "success", body: group, note });
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
       return res.send({ status: "failure", message: "A group with that name already exists." });
     fail(res, err, "Failed to create group.");
   }
 });
+
+// A new or renamed provider group gets its members from the people already signed in, not only at their next sign-in.
+// Resolves to a note for the admin when that can't happen now, or another group already maps the same provider group.
+// The group is saved by then, so a failed note mustn't report the save as failed
+const noteFailed = (err) => {
+  logger("warn", "Couldn't check a provider group's members from its directory.", "access", null, err);
+  return undefined;
+};
+
+async function fillProviderGroups(group) {
+  const source = group.source;
+  const notes = [];
+  const same = await AuthGroup.findAll({ where: { source, external_name: group.external_name, id: { [Sequelize.Op.ne]: group.id } }, attributes: ["name"], order: [["name", "ASC"]], raw: true });
+  if (same.length)
+    notes.push(`${same.length === 1 ? "Group" : "Groups"} ${same.map((g) => `'${g.name}'`).join(", ")} also ${same.length === 1 ? "gets its" : "get their"} members from ${group.external_name}, so the roles of all of them apply to those people.`);
+  if (providers.fillsOnlyAtSignIn(source))
+    notes.push("Rechecks are off (AUTH_RECHECK_MINUTES=0), so this group fills as its members sign in. To fill it now, click Check linked accounts in People.");
+  const warn = (err) => logger("warn", "Couldn't fill a provider group from its directory now; click Check linked accounts in People once it can be reached, or members join at their next sign-in or recheck.", "access", null, err);
+  providers
+    .fillGroups(source)
+    .then((r) => r && r.failed > 0 && warn(new Error(`${r.failed} linked account(s) couldn't be checked`)))
+    .catch(warn);
+  return notes.length ? notes.join(" ") : undefined;
+}
 
 async function assertHoldsGroupRoles(actor, groupId) {
   const groupBindings = await bindings.listBindings({ subject_type: "group", subject_id: String(groupId) });
@@ -131,12 +202,17 @@ router.post("/groups/update", manage, async (req, res) => {
     ["name", "description", "external_name"].forEach((k) => {
       if (req.body[k] !== undefined) set[k] = req.body[k];
     });
+    if (set.external_name != null && group.source !== "local") set.external_name = providers.groupName(group.source, set.external_name);
+    if (set.external_name != null && String(set.external_name).length > 255)
+      throw new bindings.BindingError("The provider group name can be at most 255 characters.");
     // Pointing a provider group elsewhere grants its roles to new people
     if (set.external_name !== undefined && set.external_name !== group.external_name)
       await assertHoldsGroupRoles(await ensurePrincipal(req), group.id);
+    const repointed = group.source !== "local" && set.external_name !== undefined && set.external_name !== group.external_name;
     await group.update(set);
     invalidate();
-    res.send({ status: "success", body: group });
+    const note = repointed ? await fillProviderGroups(group).catch(noteFailed) : undefined;
+    res.send({ status: "success", body: group, note });
   } catch (err) {
     fail(res, err, "Failed to update group.");
   }
@@ -224,14 +300,66 @@ router.get("/effective", manage, async (req, res) => {
       if (!String(req.query.username || "").trim())
         throw new bindings.BindingError("Enter a username.");
     }
+    // With no groups typed, ask the provider which groups it reports for that person now
+    let reported;
+    let target;
+    if (req.query.provider && !String(req.query.groups || "").trim()) {
+      const provider = String(req.query.provider);
+      const username = String(req.query.username).trim();
+      try {
+        target = await providers.reportedGroups(provider, username);
+      } catch (err) {
+        logger("error", `Couldn't look up '${username}' at ${provider} to check their access.`, "access", req, err);
+        throw new bindings.BindingError(`Couldn't look up '${username}' at ${providers.providerLabel(provider)}: it's unreachable or refused its service account (see the server log). Enter their groups instead.`);
+      }
+      if (target) reported = target.groups;
+      if (target === null)
+        throw new bindings.BindingError(`${providers.providerLabel(provider)} has no single entry with the username '${username}', or it's disabled or left out by its user search filter.`);
+    }
+    // The access shown is a sign-in with no account yet; an account already holding the name changes that
+    // Accounts follow the directory entry, not its username: a renamed person keeps their account, and a
+    // newcomer given a leaver's username is refused
+    let note;
+    if (target) {
+      const provider = String(req.query.provider);
+      const owner = await AuthIdentity.findOne({ where: { provider, subject: target.subject }, attributes: ["user_id"], raw: true });
+      const account = owner && (await User.findOne({ where: { id: owner.user_id }, attributes: ["username"], raw: true }));
+      if (account) note = `MMGIS account '${account.username}' signs in as this person, and its own grants (see People) add to what's shown here.`;
+      else {
+        // New accounts are named by the directory, so an alias typed here (mail, UPN) checks the real name
+        const name = target.username || providers.relinkUsername(provider, String(req.query.username));
+        // As at sign-in: a pending relink (whichever account it's on) comes before a username clash
+        const claim = await providers.findClaim({ provider, subject: target.subject, username: name }, { AuthMeta });
+        const claimed = claim && (await User.findOne({ where: { id: claim.userId }, attributes: ["username"], raw: true }));
+        const taken = !claimed && (await providers.usernameTaken(name));
+        const holder = taken && (await User.findOne({ where: { id: taken.id }, attributes: ["id", "username"], raw: true }));
+        const linked = holder && (await AuthIdentity.findOne({ where: { user_id: holder.id, provider }, raw: true }));
+        if (claimed)
+          note = `A relink is pending: this person's next sign-in takes over account '${claimed.username}', and its own grants (see People) add to what's shown here.`;
+        else if (linked)
+          note = `Account '${holder.username}' is linked to a different ${provider} entry that had this username, so this person's sign-in is refused. Don't relink it to them if that entry still exists (the name was reused); the server log at their sign-in says which. What's shown leaves out that account's own grants.`;
+        else if (holder)
+          note = `Account '${holder.username}' already has this username, so this person's ${provider} sign-in is refused until that account is relinked (People > Allow relink) or deleted. What's shown leaves out that account's own grants.`;
+      }
+    }
+    if (target && target.groupsLeftOut && target.groupsLeftOut.length) {
+      const left = `Left out, having no group name attribute (LDAP_GROUP_NAME_ATTRIBUTE): ${target.groupsLeftOut.join(" | ")}.`;
+      note = note ? `${note} ${left}` : left;
+    }
     const principal = req.query.provider
       ? await externalPrincipal({
           provider: String(req.query.provider),
-          username: String(req.query.username || ""),
-          groups: String(req.query.groups || "")
-            .split(",")
-            .map((g) => g.trim())
-            .filter((g) => g),
+          username: String(req.query.username || "").trim(),
+          // Groups are separated by newlines or unescaped semicolons; a group with "=" is one DN (keeping its
+          // escaped "\," and "\;"), others may list names separated by commas
+          groups:
+            reported ||
+            String(req.query.groups || "")
+              .split(/\n|(?<=(?:^|[^\\])(?:\\\\)*);/)
+              .flatMap((g) => (g.includes("=") ? [g] : g.split(",")))
+              .map((g) => g.trim())
+              .filter((g) => g)
+              .map((g) => providers.groupName(String(req.query.provider), g)),
         })
       : await userPrincipal(parseInt(req.query.user_id));
     if (!principal) throw new bindings.BindingError("User not found.");
@@ -245,7 +373,7 @@ router.get("/effective", manage, async (req, res) => {
       : [];
     res.send({
       status: "success",
-      body: { ...(await summarize(principal)), bindings: detailed, groups },
+      body: { ...(await summarize(principal)), bindings: detailed, groups, reported, note },
     });
   } catch (err) {
     fail(res, err, "Failed to get effective access.");

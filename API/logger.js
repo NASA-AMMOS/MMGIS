@@ -38,6 +38,8 @@ const SECRET_LOG_KEYS = new Set([
   "setup_code",
   "token",
   "retypepassword",
+  "resettoken",
+  "reset_token",
   "access_token",
   "accesstoken",
   "refresh_token",
@@ -59,8 +61,8 @@ function redactSecrets(key, value) {
 function redactCredentials(str) {
   if (typeof str !== "string") return str;
   return str
-    .replace(/\b(access_token|refresh_token|id_token|client_secret|code_verifier|code|password|token|api_?key)=[^\s&"',;]+/gi, "$1=_redacted_")
-    .replace(/(["']?\b(?:access_token|refresh_token|id_token|client_secret|code_verifier|password|api_?key)["']?\s*:\s*["']?)[^\s"',}]+/gi, "$1_redacted_")
+    .replace(/\b(access_token|refresh_token|id_token|client_secret|code_verifier|code|password|reset_?token|token|api_?key)=[^\s&"',;]+/gi, "$1=_redacted_")
+    .replace(/(["']?\b(?:access_token|refresh_token|id_token|client_secret|code_verifier|password|reset_?token|api_?key)["']?\s*:\s*["']?)[^\s"',}]+/gi, "$1_redacted_")
     .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/g, "$1 _redacted_");
 }
 

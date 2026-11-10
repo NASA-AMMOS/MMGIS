@@ -15,7 +15,7 @@ const logger = require("../../../../../API/logger");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
 const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { hashToken, invalidate, unusableLegacyToken } = require("../../../../../API/permissions/principal");
+const { hashToken, invalidate, unusableLegacyToken, tokensOffFor } = require("../../../../../API/permissions/principal");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;
 const { User } = require("../../Users/models/user");
 
@@ -137,6 +137,11 @@ router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, re
   try {
     const principal = req.principal;
     if (principal.userId == null) throw new TokenError("Only signed-in accounts may create tokens.");
+    const off = await tokensOffFor(principal.userId);
+    if (off.length)
+      throw new TokenError(
+        `This account signs in with ${off.join(", ")}, which isn't enabled on this site right now, so its tokens won't work until it is.`
+      );
     const body = req.body || {};
     const { scopes, missions: missionUUIDs } = await resolveRequest(principal, body);
     const expires_at = expiryFrom(body.period);

@@ -236,16 +236,23 @@ function renderMenu() {
         let html = ''
         if (loggedIn || hasLogin) {
             const name = loggedIn ? String(Login.username || '') : ''
+            const via = loggedIn ? Login.signedInWith() : null
             const avatar = loggedIn
-                ? esc(name.charAt(0).toUpperCase())
+                ? esc(name.charAt(0).toUpperCase()) +
+                  (via ? `<span class="connectionsMenuProviderBadge" aria-hidden="true"><i class="mdi mdi-${via.icon}"></i></span>` : '')
                 : '<i class="mdi mdi-account mdi-18px"></i>'
+            const detail = !loggedIn
+                ? 'Not signed in to MMGIS'
+                : via
+                  ? `Signed in with ${esc(via.title)}`
+                  : 'Signed in to MMGIS'
             html += `<div class="connectionsMenuSection connectionsMenuMmgis">
                 <div class="connectionsMenuLabel">MMGIS</div>
                 <div class="connectionsMenuAccount">
                     <div class="connectionsMenuAvatar${loggedIn ? '' : ' guest'}"${loggedIn ? ` style="background:${avatarColor(name)}"` : ''}>${avatar}</div>
                     <div class="connectionsMenuText">
                         <div class="connectionsMenuUser">${loggedIn ? esc(name) : 'Guest'}</div>
-                        <div class="connectionsMenuDetail">${loggedIn ? 'Signed in to MMGIS' : 'Not signed in to MMGIS'}</div>
+                        <div class="connectionsMenuDetail">${detail}</div>
                     </div>
                     ${
                         loggedIn

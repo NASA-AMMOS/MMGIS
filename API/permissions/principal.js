@@ -78,7 +78,7 @@ async function cached(key, build) {
 
 async function userPrincipal(userId) {
   return cached(`user:${userId}`, async () => {
-    const { User, AuthGroupMember } = models();
+    const { User, AuthGroup, AuthGroupMember } = models();
     const user = await User.findOne({
       where: { id: userId },
       attributes: ["id", "username"],
@@ -90,7 +90,19 @@ async function userPrincipal(userId) {
       attributes: ["group_id"],
       raw: true,
     });
-    const groupIds = memberships.map((m) => m.group_id);
+    // Groups whose members come from a provider that isn't in AUTH_PROVIDERS grant nothing until it's back
+    const groupIds =
+      memberships.length > 0
+        ? (
+            await AuthGroup.findAll({
+              where: { id: memberships.map((m) => m.group_id) },
+              attributes: ["id", "source"],
+              raw: true,
+            })
+          )
+            .filter((g) => g.source === "local" || siteAccess.hasProvider(g.source))
+            .map((g) => g.id)
+        : [];
     const subjects = [
       ["user", user.id],
       ["audience", "authenticated"],
@@ -211,15 +223,24 @@ function localAccountAllowed(p) {
   return !siteAccess.localAdminsOnly() || require("./policy").isAdministrator(p);
 }
 
-// Accounts created by a login provider follow that provider; the rest are local accounts
-async function accountAllowed(p) {
-  const links = await models().AuthIdentity.findAll({
-    where: { user_id: p.userId },
-    attributes: ["provider"],
-    raw: true,
-  });
-  if (links.length === 0) return localAccountAllowed(p);
-  return links.some((l) => siteAccess.hasProvider(l.provider));
+// Accounts linked to an enabled login provider follow that provider. An account whose links are all
+// to providers removed from AUTH_PROVIDERS counts as a local account only for a local session (it
+// got one with an MMGIS password, e.g. from a reset link); its tokens stay off until a provider is back
+const providerLinks = (userId) =>
+  models().AuthIdentity.findAll({ where: { user_id: userId }, attributes: ["provider"], raw: true });
+
+async function accountAllowed(p, localSession = false) {
+  const links = await providerLinks(p.userId);
+  const enabled = links.filter((l) => siteAccess.hasProvider(l.provider));
+  if (links.length === 0 || (enabled.length === 0 && localSession)) return localAccountAllowed(p);
+  for (const l of enabled) if (await require("./providers").stillLinked(p.userId, l.provider)) return true;
+  return false;
+}
+
+// The providers of an account that are all out of AUTH_PROVIDERS, so its tokens can't work for now; else []
+async function tokensOffFor(userId) {
+  const links = await providerLinks(userId);
+  return links.some((l) => siteAccess.hasProvider(l.provider)) ? [] : [...new Set(links.map((l) => l.provider))];
 }
 
 async function tokenPrincipal(authorization) {
@@ -227,8 +248,11 @@ async function tokenPrincipal(authorization) {
   if (!raw) return null;
   const row = await findToken(raw);
   if (!row || row.created_by_user_id == null || tokenExpired(row)) return null;
+  const owner = await userPrincipal(row.created_by_user_id);
+  if (!owner || !(await accountAllowed(owner))) return null;
+  // Read again: the provider recheck in accountAllowed may have changed the owner's groups
   const creator = await userPrincipal(row.created_by_user_id);
-  if (!creator || !(await accountAllowed(creator))) return null;
+  if (!creator) return null;
   const { LongTermTokens } = models();
   if (
     !row.last_used_at ||
@@ -264,10 +288,17 @@ async function resolvePrincipal(req) {
   }
   const session = req.session || {};
   if (session.uid != null) {
-    const p = await userPrincipal(session.uid);
-    // Sessions started through a login provider follow that provider; the rest are local logins
-    const allowed =
-      p && (session.provider ? siteAccess.hasProvider(session.provider) : localAccountAllowed(p));
+    // Sessions started through a login provider follow that provider
+    const linked =
+      !session.provider ||
+      (siteAccess.hasProvider(session.provider) &&
+        (await require("./providers").stillLinked(session.uid, session.provider)));
+    let p = linked ? await userPrincipal(session.uid) : null;
+    // A local session of an account that has since been linked to an enabled provider (or whose
+    // provider came back) follows that provider's rechecks, like the account's tokens
+    const allowed = p && (session.provider ? true : await accountAllowed(p, true));
+    // Read again: that recheck may have changed the account's groups
+    if (allowed && !session.provider) p = (await userPrincipal(session.uid)) || p;
     if (allowed) {
       // Signed in locally while the proxy also identifies the request: like AUTH=csso, the
       // proxy user stays the identity and the local account's access is added on top
@@ -329,5 +360,6 @@ module.exports = {
   tokenExpired,
   unusableLegacyToken,
   scrubLegacyTokenColumn,
+  tokensOffFor,
   siteAccess,
 };

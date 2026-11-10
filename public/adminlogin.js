@@ -1,3 +1,4 @@
+/* global $, LoginForms */
 let setup = false;
 
 function login() {
@@ -15,6 +16,19 @@ function login() {
     return;
   }
 
+  if (!LoginForms.isLocal()) {
+    LoginForms.submit(
+      document.getElementById("username").value,
+      document.getElementById("pwd").value,
+      function (message) {
+        document.getElementById("msg").innerText = message;
+        document.getElementById("msg").style.opacity = 1;
+      },
+      document.querySelector("button.btn1")
+    );
+    return;
+  }
+
   $.ajax({
     type: "POST",
     url: "api/users/login",
@@ -28,6 +42,7 @@ function login() {
         (data.hasOwnProperty("status") && data.status == "success")
       ) {
         //success
+        LoginForms.remember();
         document.cookie =
           "MMGISUser=" +
           JSON.stringify({
@@ -37,15 +52,18 @@ function login() {
         location.reload();
       } else {
         //error
-        document.getElementById("msg").innerText =
-          (data && data.message) || "Invalid username or password.";
+        document.getElementById("msg").innerText = LoginForms.failed(
+          (data && data.message) || "Invalid username or password."
+        );
         document.getElementById("msg").style.opacity = 1;
       }
     },
     error: function (xhr) {
       //error
-      document.getElementById("msg").innerText =
-        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.";
+      document.getElementById("msg").innerText = LoginForms.failed(
+        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.",
+        xhr && xhr.status
+      );
       document.getElementById("msg").style.opacity = 1;
     },
   });
@@ -120,8 +138,10 @@ function setupLogin() {
 }
 
 $(document).ready(function () {
+  LoginForms.init();
   $(document).on("keypress", function (e) {
-    if (e.which == 13) {
+    // Enter on a button already clicks it
+    if (e.which == 13 && !$(e.target).is("button")) {
       login();
     }
   });
@@ -134,6 +154,8 @@ $(document).ready(function () {
       if (data.status == "success") {
         if (data.has == false) {
           setup = true;
+          // The first administrator is always a local account
+          LoginForms.onlyLocal();
           $("#setup").css("opacity", "1");
           $("#pwd_retype, #pwd_retype_label").css("display", "block");
           $("#setup_code, #setup_code_label").css("display", "block");
