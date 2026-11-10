@@ -30,6 +30,7 @@ import {
     hasDynamicStyle,
     vectorTileStyles,
 } from './dynamicStyle'
+import { featureProperties, geodatasetTileUrl } from './source'
 import './lib/SimplifiedVectorGrid'
 
 function make(layerObj, ctx = {}) {
@@ -37,16 +38,9 @@ function make(layerObj, ctx = {}) {
     const L = mctx.raw
     const Map_ = L_.Map_
 
-    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
-
-    let urlSplit = layerObj.url.split(':')
-
-    if (urlSplit[0].toLowerCase() === 'geodatasets' && urlSplit[1] != null) {
-        layerUrl =
-            `${window.mmgisglobal.ROOT_PATH || ''}/api/geodatasets/get?layer=${
-                urlSplit[1]
-            }` + '&type=mvt&x={x}&y={y}&z={z}'
-    }
+    let layerUrl =
+        geodatasetTileUrl(layerObj.url) ??
+        L_.getUrl(layerObj.type, layerObj.url, layerObj)
 
     var clearHighlight = function () {
         for (let l of Object.keys(L_.layers.data)) {
@@ -132,12 +126,7 @@ function make(layerObj, ctx = {}) {
         maxNativeZoom: layerObj.maxNativeZoom,
         getFeatureId: (function (vtId) {
             return function (f) {
-                if (
-                    f.properties.properties &&
-                    typeof f.properties.properties === 'string'
-                ) {
-                    f.properties = JSON.parse(f.properties.properties)
-                }
+                f.properties = featureProperties(f.properties)
                 return f.properties[vtId]
             }
         })(layerObj.style.vtId),

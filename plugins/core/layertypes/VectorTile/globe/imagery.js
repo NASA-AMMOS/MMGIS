@@ -13,7 +13,9 @@
 import * as Cesium from 'cesium'
 import { VectorTile } from '@mapbox/vector-tile'
 import Pbf from 'pbf'
+import { restyleLayerWhenSettled } from '@basics/Layers_/render/dynamicStyleRuntime'
 import { vectorTileStyles } from '../dynamicStyle'
+import { featureProperties } from '../source'
 
 const TILE_SIZE = 256
 /** Painted at twice the tile size, so outlines and edges stay crisp. */
@@ -119,11 +121,17 @@ export function paintTile(bytes, styles, z) {
         ]
         for (let i = 0; i < layer.length; i++) {
             const feature = layer.feature(i)
-            const style = featureStyle(styles, sublayer, feature.properties, z)
+            const properties = featureProperties(feature.properties)
+            const style = featureStyle(styles, sublayer, properties, z)
             if (style != null) paintFeature(ctx, feature, style, toPixels)
         }
     }
     return canvas
+}
+
+/** How many features a whole-dataset scale has seen so far. */
+function remembered(layerObj) {
+    return layerObj._vtRememberedFeatures?.size ?? 0
 }
 
 /**
@@ -167,7 +175,16 @@ export function makeVectorTileImageryProvider(layerObj, options) {
                     throw error
                 }
             )
-            .then((bytes) => paintTile(bytes, styles, level))
+            .then((bytes) => {
+                const seen = remembered(layerObj)
+                const canvas = paintTile(bytes, styles, level)
+                // New values can widen a scale measured over everything seen.
+                // The map measures it again as its tiles load; the globe's
+                // tiles may show places the map never has.
+                if (remembered(layerObj) !== seen)
+                    restyleLayerWhenSettled(layerObj.name)
+                return canvas
+            })
     }
     return provider
 }

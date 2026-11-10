@@ -7,6 +7,7 @@
  */
 import L_ from '@basics/Layers_/Layers_'
 import { dynamicStyleSignature } from '@basics/Layers_/render/dynamicStyleRuntime'
+import { featureProperties, geodatasetTileUrl } from '../source'
 
 export function isRenderable(layerObj, engine) {
     return layerObj.extrudeEnabled === true || engine === 'cesium'
@@ -17,7 +18,7 @@ export function toGlobeConfig(layerObj) {
 
     return {
         name: s.name,
-        path: L_.getUrl(s.type, s.url, s),
+        path: geodatasetTileUrl(s.url) ?? L_.getUrl(s.type, s.url, s),
         extruded: s.extrudeEnabled === true,
         // Flat tiles are painted from the layer's own styles.
         layerObj: s,
@@ -34,7 +35,9 @@ export function toGlobeConfig(layerObj) {
         extrudeOpacity: s.extrudeOpacity ?? 0.9,
         // Read when each tile is built, so it is always the current style.
         resolveStyle: (properties) =>
-            s._dynamicStyleResolver ? s._dynamicStyleResolver(properties) : null,
+            s._dynamicStyleResolver
+                ? s._dynamicStyleResolver(featureProperties(properties))
+                : null,
         styleSignature: dynamicStyleSignature(s),
         minZoom: s.minZoom,
         maxZoom: s.maxNativeZoom,
