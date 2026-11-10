@@ -50,16 +50,16 @@
     line-height: 1.2;
 }
 .subtitle {
-    overflow: hidden;
     margin-top: 3px;
     color: var(--color-a4);
     font-size: 12px;
     line-height: 1.4;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 .revealSubtitle {
     display: flex;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
 }
 .subtitleName {
     overflow: hidden;
@@ -210,7 +210,7 @@
     width: 100%;
     min-width: 0;
 }
-.missionOption > label > span {
+.missionOption > label > span:not([role='checkbox']) {
     display: block;
     flex: 1;
     min-width: 0;
@@ -227,10 +227,6 @@
 }
 .readOnlyAccess > i {
     color: var(--color-a4);
-}
-.readOnlyNote {
-    color: var(--color-a3);
-    font-size: 11.5px;
 }
 .card {
     overflow: hidden;

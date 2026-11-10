@@ -394,9 +394,6 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
                                 aria-hidden="true"
                             />
                             <span>Read-only</span>
-                            <span className={styles.readOnlyNote}>
-                                · your account can only view
-                            </span>
                         </div>
                     )}
                     <div className={styles.hint}>
