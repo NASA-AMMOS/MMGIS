@@ -28,6 +28,10 @@
     gap: 8px;
 }
 .close {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    line-height: 1;
     cursor: pointer;
     color: var(--color-a5, #8a8d96);
 }

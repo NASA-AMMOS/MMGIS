@@ -113,6 +113,18 @@ test.describe.serial('API token limits', () => {
     expect((await list(admin)).limits).toEqual({ unlimited: true, max_tokens: null, max_period: null });
   });
 
+  test('a 64-character name is stored while its token prefix fits the column', async () => {
+    await clearAll(user);
+    const name = 'a'.repeat(64);
+    const created = await generate(user, { name, period: String(DAY) });
+    expect(ok(created), created.text.slice(0, 200)).toBe(true);
+
+    const [token] = await mine(user);
+    expect(token.name).toBe(name);
+    expect(token.token.replace(/\.\.\.$/, '').length).toBeLessThanOrEqual(64);
+    await clearAll(user);
+  });
+
   test('a regular account cannot make a token that never expires or lasts over 90 days', async () => {
     for (const period of ['never', undefined, String(90 * DAY + 1), String(365 * DAY)]) {
       const r = await generate(user, { name: 'toolong', period });

@@ -1,4 +1,6 @@
 import React, { forwardRef } from 'react'
+import { Radio as BaseRadio } from '@base-ui/react/radio'
+import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group'
 import styles from './RadioGroup.module.css'
 
 const RadioGroup = forwardRef(function RadioGroup(
@@ -6,25 +8,24 @@ const RadioGroup = forwardRef(function RadioGroup(
     ref
 ) {
     return (
-        <div
+        <BaseRadioGroup
             ref={ref}
+            value={value}
+            onValueChange={(nextValue) => onValueChange(nextValue)}
             className={`${styles.group} ${styles[size] || ''} ${className || ''}`}
-            role="radiogroup"
             {...props}
         >
             {options.map((opt) => (
-                <button
+                <BaseRadio.Root
                     key={opt.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={value === opt.value}
+                    value={opt.value}
+                    disabled={opt.disabled}
                     className={`${styles.option} ${value === opt.value ? styles.active : ''}`}
-                    onClick={() => onValueChange(opt.value)}
                 >
                     {opt.label}
-                </button>
+                </BaseRadio.Root>
             ))}
-        </div>
+        </BaseRadioGroup>
     )
 })
 

@@ -9,18 +9,18 @@ const router = express.Router();
 const { sameOriginOnly } = require("../../../../../API/connections/routes");
 router.use((req, res, next) => (req.method === "GET" || req.method === "HEAD" ? next() : sameOriginOnly(req, res, next)));
 const crypto = require("crypto");
-const { Op } = require("sequelize");
 
 const logger = require("../../../../../API/logger");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
-const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
+const { authorize } = require("../../../../../API/permissions/authorize");
 const { hashToken, invalidate, unusableLegacyToken, tokensOffFor, tokenExpired } = require("../../../../../API/permissions/principal");
 const { sequelize } = require("../../../../../API/connection");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;
 const { User } = require("../../Users/models/user");
 
 const TOKEN_PREFIX = "mmgis_";
+const MAX_LABEL = 32;
 const DAY = 24 * 60 * 60 * 1000;
 
 // Administrators may hold any number of tokens of any length; everyone else one live token of up to 90 days
@@ -163,7 +163,7 @@ router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, re
       throw new TokenError(`Tokens can last at most ${limits.max_period / DAY} days.`);
     const replaceId = body.replace_id == null ? null : Number(body.replace_id);
     if (replaceId != null && !Number.isSafeInteger(replaceId)) throw new TokenError("replace_id must be a token id.");
-    const label = body.name ? String(body.name).replace(/[^0-9a-zA-Z]/g, "").toLowerCase() : "";
+    const label = body.name ? String(body.name).replace(/[^0-9a-zA-Z]/g, "").toLowerCase().slice(0, MAX_LABEL) : "";
     const secret = crypto.randomBytes(32).toString("hex");
     const token = `${TOKEN_PREFIX}${label ? label + "_" : ""}${secret}`;
     const token_prefix = token.slice(0, TOKEN_PREFIX.length + (label ? label.length + 1 : 0) + 6);

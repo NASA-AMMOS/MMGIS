@@ -4,7 +4,7 @@
  *   ApiTokens.summary() -> Promise<null | { tokens, limits }>
  *   ApiTokens.open(view)  view: 'manage' | 'create'
  */
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
     Button,
     Checkbox,
@@ -144,19 +144,33 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
     )
     const [name, setName] = useState(replacing ? replacing.name || '' : '')
     const [period, setPeriod] = useState(String(30 * DAY))
-    const [access, setAccess] = useState('read')
-    const [missionMode, setMissionMode] = useState('all')
-    const [missions, setMissions] = useState([])
+    const [access, setAccess] = useState(
+        replacing && replacing.scopes == null && data.canWrite ? 'full' : 'read'
+    )
+    const [missionMode, setMissionMode] = useState(
+        Array.isArray(replacing?.missions) ? 'some' : 'all'
+    )
+    const [missions, setMissions] = useState(
+        Array.isArray(replacing?.missions) ? replacing.missions : []
+    )
     const [available, setAvailable] = useState(null)
     const [error, setError] = useState(null)
     const [busy, setBusy] = useState(false)
 
-    const pickMissions = () => {
-        setMissionMode('some')
-        if (available) return
+    const loadMissions = useCallback(() => {
         request('GET', 'api/configure/missions')
             .then((r) => setAvailable(r.missions || []))
             .catch((err) => setError(err.message))
+    }, [])
+
+    useEffect(() => {
+        if (Array.isArray(replacing?.missions)) loadMissions()
+    }, [replacing, loadMissions])
+
+    const pickMissions = () => {
+        setMissionMode('some')
+        if (available !== null) return
+        loadMissions()
     }
     const toggle = (m) =>
         setMissions((cur) =>
@@ -356,6 +370,15 @@ function ApiTokensModal({ initial, initialView }) {
     const [replacing, setReplacing] = useState(null)
     const [created, setCreated] = useState(null)
     const [error, setError] = useState(null)
+    const close = useCallback(() => Modal.remove(false, MODAL_ID), [])
+
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape' && Modal.top() === MODAL_ID) close()
+        }
+        document.addEventListener('keydown', handleKeyDown)
+        return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [close])
 
     const { tokens, limits } = data
     const live = tokens.filter(isLive)
@@ -377,7 +400,6 @@ function ApiTokensModal({ initial, initialView }) {
             }
         )
 
-    const close = () => Modal.remove(false, MODAL_ID)
     const title =
         view === 'reveal'
             ? 'Your new API token'
@@ -459,7 +481,7 @@ function ApiTokensModal({ initial, initialView }) {
                 {error && <div className={styles.error}>{error}</div>}
                 <div className={styles.footer}>
                     {limits.unlimited && (
-                        <a className={styles.link} href={`${base()}configure`}>
+                        <a className={styles.link} href={`${base()}configure?page=api_tokens`}>
                             Everyone's tokens in Configure
                         </a>
                     )}
@@ -490,12 +512,14 @@ function ApiTokensModal({ initial, initialView }) {
                     <i className="mdi mdi-key-variant mdi-18px" />
                     <div>{title}</div>
                 </div>
-                <i
-                    className={`mdi mdi-close mdi-18px ${styles.close}`}
-                    role="button"
+                <button
+                    type="button"
+                    className={styles.close}
                     aria-label="Close"
                     onClick={close}
-                />
+                >
+                    <i className="mdi mdi-close mdi-18px" />
+                </button>
             </div>
             {content}
         </div>
