@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import ApiTokens, { expiryText, isLive, summary } from './ApiTokens'
-import { Button } from '../../../../../design-system/components'
 import styles from '../AccountMenu/AccountMenu.module.css'
 
 export default function ApiTokensRow({ onClose }) {
@@ -41,23 +40,23 @@ export default function ApiTokensRow({ onClose }) {
     }
 
     return (
-        <div className={`${styles.row} ${styles.tokens}`}>
-            <i className={`mdi mdi-key-variant ${styles.tokenIcon}`} />
-            <div className={styles.text}>
-                <div className={styles.name}>{name}</div>
-                <div className={styles.detail}>{detail}</div>
-            </div>
-            <Button
-                id="accountMenuTokens"
-                size="sm"
-                variant={action === 'Create' ? 'primary' : 'secondary'}
-                onClick={() => {
-                    onClose()
-                    ApiTokens.open(action === 'Create' ? 'create' : 'manage')
-                }}
-            >
-                {action}
-            </Button>
-        </div>
+        <button
+            type="button"
+            id="accountMenuTokens"
+            className={`${styles.item} ${styles.buttonItem}`}
+            onClick={() => {
+                onClose()
+                ApiTokens.open(action === 'Create' ? 'create' : 'manage')
+            }}
+        >
+            <span className={styles.leadingIcon}>
+                <i className="mdi mdi-key-variant" />
+            </span>
+            <span className={styles.itemText}>
+                <span className={styles.itemTitle}>{name}</span>
+                <span className={styles.itemMeta}>{detail}</span>
+            </span>
+            <i className={`mdi mdi-chevron-right ${styles.chevron}`} />
+        </button>
     )
 }

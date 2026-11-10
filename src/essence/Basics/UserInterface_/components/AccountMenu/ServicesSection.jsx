@@ -15,10 +15,12 @@ export default function ServicesSection() {
     if (!services.length) return null
 
     return (
-        <div className={styles.section}>
+        <div className={styles.group}>
             <div className={styles.label}>Services</div>
             {services.map((service) => {
                 const used = Connections_.toolsUsing(service)
+                const needsService =
+                    !service.connected && service.canConnect && used.length > 0
                 let detail = ''
                 let action = null
                 if (!service.configured) detail = 'Not set up on this site'
@@ -30,8 +32,9 @@ export default function ServicesSection() {
                         detail += ' · this browser session'
                     action = (
                         <Button
+                            type="button"
                             size="sm"
-                            variant="secondary"
+                            variant="ghost"
                             onClick={() => Connections_.disconnect(service.id)}
                         >
                             Disconnect
@@ -43,6 +46,7 @@ export default function ServicesSection() {
                         : 'Not connected'
                     action = (
                         <Button
+                            type="button"
                             size="sm"
                             variant="primary"
                             onClick={() => Connections_.connect(service.id)}
@@ -57,12 +61,25 @@ export default function ServicesSection() {
                 return (
                     <div
                         key={service.id}
-                        className={`${styles.row} ${service.connected ? styles.connected : ''} ${!service.canConnect && !service.connected ? styles.unavailable : ''}`}
+                        className={`${styles.item} ${!service.canConnect && !service.connected ? styles.unavailable : ''}`}
                     >
-                        <span className={styles.dot} />
-                        <div className={styles.text}>
-                            <div className={styles.name}>{service.label}</div>
-                            <div className={styles.detail}>{detail}</div>
+                        <span className={styles.leadingIcon}>
+                            <i className="mdi mdi-link-variant" />
+                        </span>
+                        <div className={styles.itemText}>
+                            <div className={styles.itemTitle}>
+                                {service.label}
+                            </div>
+                            <div className={`${styles.itemMeta} ${styles.serviceMeta}`}>
+                                <span
+                                    className={`${styles.statusDot} ${service.connected ? styles.statusConnected : !service.canConnect ? styles.statusUnavailable : ''}`}
+                                />
+                                <span
+                                    className={`${styles.metaText} ${needsService ? styles.neededText : ''}`}
+                                >
+                                    {detail}
+                                </span>
+                            </div>
                         </div>
                         {action}
                     </div>

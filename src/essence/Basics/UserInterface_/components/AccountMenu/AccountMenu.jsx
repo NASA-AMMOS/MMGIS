@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ReactDOM from 'react-dom'
 import AccountSection from './AccountSection'
+import SignOutItem from './SignOutItem'
 import ServicesSection from './ServicesSection'
 import styles from './AccountMenu.module.css'
 
@@ -42,6 +43,7 @@ export default function AccountMenu({ anchor, onClose }) {
                 <AccountSection onClose={onClose} />
             )}
             <ServicesSection onClose={onClose} />
+            <SignOutItem onClose={onClose} />
         </div>,
         document.body
     )

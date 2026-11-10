@@ -1,27 +1,11 @@
-import React, { useEffect, useState } from 'react'
-import { Button } from '../../../../../design-system/components'
+import React from 'react'
 import ApiTokensRow from '../ApiTokens/ApiTokensRow'
 import { avatarColor } from './avatarColor'
 import styles from './AccountMenu.module.css'
+import useLogin from './useLogin'
 
 export default function AccountSection({ onClose }) {
-    const [Login, setLogin] = useState(null)
-    const [, setUpdate] = useState(0)
-
-    useEffect(() => {
-        let active = true
-        import('../Login/Login').then((m) => {
-            if (active) setLogin(m.default)
-        })
-        const update = () => setUpdate((n) => n + 1)
-        document.addEventListener('mmgis:loginchange', update)
-        document.addEventListener('mmgis:accountprovider', update)
-        return () => {
-            active = false
-            document.removeEventListener('mmgis:loginchange', update)
-            document.removeEventListener('mmgis:accountprovider', update)
-        }
-    }, [])
+    const Login = useLogin()
 
     if (!Login) return null
 
@@ -36,14 +20,23 @@ export default function AccountSection({ onClose }) {
         : via
           ? `Signed in with ${via.title}`
           : 'Signed in to MMGIS'
+    const accent = loggedIn ? avatarColor(name) : 'var(--color-a1-5)'
+    const headerBackground = loggedIn
+        ? `linear-gradient(180deg, color-mix(in srgb, ${accent} 22%, var(--color-a)), var(--color-a))`
+        : 'linear-gradient(180deg, var(--color-a1-5), var(--color-a))'
 
     return (
-        <div className={`${styles.section} ${styles.mmgis}`}>
-            <div className={styles.label}>MMGIS</div>
-            <div className={styles.account}>
+        <div className={styles.group}>
+            <div
+                className={styles.profileHeader}
+                style={{ background: headerBackground }}
+            >
                 <div
                     className={`${styles.avatar} ${loggedIn ? '' : styles.guest}`}
-                    style={loggedIn ? { background: avatarColor(name) } : {}}
+                    style={{
+                        background: accent,
+                        boxShadow: `0 0 0 1px ${accent}`,
+                    }}
                 >
                     {loggedIn ? (
                         <>
@@ -61,41 +54,35 @@ export default function AccountSection({ onClose }) {
                         <i className="mdi mdi-account mdi-18px" />
                     )}
                 </div>
-                <div className={styles.text}>
-                    <div className={styles.user}>{loggedIn ? name : 'Guest'}</div>
-                    <div className={styles.detail}>{detail}</div>
+                <div className={styles.username}>
+                    {loggedIn ? name : 'Guest'}
                 </div>
-                {loggedIn ? (
-                    <Button
-                        id="accountMenuSignOut"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                            onClose()
-                            Login.logout()
-                        }}
-                    >
-                        Sign out
-                    </Button>
-                ) : (
-                    <Button
-                        id="accountMenuSignIn"
-                        size="sm"
-                        variant="primary"
-                        onClick={() => {
-                            onClose()
-                            if (!Login.loggedIn) {
-                                const button =
-                                    document.getElementById('loginoutButton')
-                                if (button) button.click()
-                            }
-                        }}
-                    >
-                        Sign in
-                    </Button>
-                )}
+                <div className={styles.profileDetail}>{detail}</div>
             </div>
-            {loggedIn && <ApiTokensRow onClose={onClose} />}
+            {loggedIn ? (
+                <ApiTokensRow onClose={onClose} />
+            ) : (
+                <button
+                    type="button"
+                    id="accountMenuSignIn"
+                    className={`${styles.item} ${styles.buttonItem}`}
+                    onClick={() => {
+                        onClose()
+                        if (!Login.loggedIn) {
+                            const button =
+                                document.getElementById('loginoutButton')
+                            if (button) button.click()
+                        }
+                    }}
+                >
+                    <span className={styles.leadingIcon}>
+                        <i className="mdi mdi-login" />
+                    </span>
+                    <span className={styles.itemText}>
+                        <span className={styles.itemTitle}>Sign in</span>
+                    </span>
+                </button>
+            )}
         </div>
     )
 }
