@@ -4,7 +4,7 @@
 
 ## 5.5.5
 
-_November XX, 2026_
+_November 12, 2026_
 
 #### Summary
 
