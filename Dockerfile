@@ -84,7 +84,8 @@ COPY . .
 RUN node scripts/resolve-plugin-deps.js
 
 RUN --mount=type=cache,target=/root/.npm \
-    node scripts/install-plugin-deps.js
+    node scripts/install-plugin-deps.js && \
+    node scripts/check-installed-lockfile.js
 
 RUN if [ -s plugin-python-requirements.txt ] && grep -qv '^#' plugin-python-requirements.txt; then \
         echo "Installing plugin pip dependencies..." && \
@@ -156,16 +157,16 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --only=production
 
 # Re-install plugin npm deps in the runtime stage. Plugin deps are
-# installed in the builder with `--no-save --no-package-lock`, so they
-# are NOT recorded in `package.json`/`package-lock.json` and would
-# otherwise be lost by the `npm ci` above. Backend plugins that
-# `require()` their declared npm deps at runtime would fail without
-# this step. (Frontend plugin deps are unaffected because webpack
-# bundled them into `./build` during the builder stage.)
+# installed in the builder with `--no-save`, so they are NOT recorded in
+# `package.json`/`package-lock.json` and would otherwise be lost by the
+# `npm ci` above. Backend plugins that `require()` their declared npm
+# deps at runtime would fail without this step. (Frontend plugin deps
+# are unaffected because webpack bundled them into `./build` during the
+# builder stage.) `npm_config_omit=dev` keeps devDependencies out.
 COPY --from=builder /usr/src/app/plugin-package.json ./plugin-package.json
 COPY --from=builder /usr/src/app/scripts/install-plugin-deps.js ./scripts/install-plugin-deps.js
 RUN --mount=type=cache,target=/root/.npm \
-    node scripts/install-plugin-deps.js
+    npm_config_omit=dev node scripts/install-plugin-deps.js
 
 # Copy built artifacts from builder
 COPY --from=builder /usr/src/app/build ./build

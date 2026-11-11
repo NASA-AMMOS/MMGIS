@@ -14,8 +14,10 @@
  *     silently (no plugins declared npm deps — normal state for stock
  *     MMGIS).
  *   - Otherwise invokes
- *     `npm install <pkg@ver> ... --no-save --no-package-lock --ignore-scripts`.
- *     `--no-save` / `--no-package-lock` keep the root lockfile clean.
+ *     `npm install <pkg@ver> ... --no-save --ignore-scripts`.
+ *     `--no-save` keeps `package.json` and `package-lock.json` unchanged.
+ *     The lockfile is still read, so the root deps stay at their locked
+ *     versions (`--no-package-lock` would re-resolve the whole tree).
  *     `--ignore-scripts` prevents re-entering this postinstall (and
  *     also skips the lifecycle scripts of the installed packages,
  *     matching the Dockerfile's behaviour).
@@ -130,7 +132,6 @@ const result = spawnSync(
     [
         "install",
         "--no-save",
-        "--no-package-lock",
         "--ignore-scripts",
         ...specs,
     ],
