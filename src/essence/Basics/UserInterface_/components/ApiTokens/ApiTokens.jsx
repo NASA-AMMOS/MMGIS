@@ -88,10 +88,13 @@ function cardExpiryText(t) {
     return `${when(e)} · in ${days} ${days === 1 ? 'day' : 'days'}`
 }
 
+const readOnlyScopes = (scopes) =>
+    Array.isArray(scopes) && scopes.every((c) => /\.(view|read)$/.test(c))
+
 const accessText = (t) =>
     t.scopes == null
         ? 'Everything you can do'
-        : t.scopes.every((s) => /\.(view|read)$/.test(s))
+        : readOnlyScopes(t.scopes)
           ? 'Read-only'
           : `${t.scopes.length} permissions`
 
@@ -406,11 +409,16 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
             limits.max_period == null ||
             (p.value !== 'never' && Number(p.value) <= limits.max_period)
     )
+    const canKeepScopes =
+        Array.isArray(replacing?.scopes) && !readOnlyScopes(replacing.scopes)
     const [name, setName] = useState(replacing ? replacing.name || '' : '')
     const [period, setPeriod] = useState(String(30 * DAY))
-    const [access, setAccess] = useState(
-        replacing && replacing.scopes == null && data.canWrite ? 'full' : 'read'
-    )
+    const [access, setAccess] = useState(() => {
+        if (!replacing) return 'read'
+        if (replacing.scopes == null && data.canWrite) return 'full'
+        if (canKeepScopes) return 'keep'
+        return 'read'
+    })
     const [missionMode, setMissionMode] = useState(
         Array.isArray(replacing?.missions) ? 'some' : 'all'
     )
@@ -452,7 +460,14 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
         request('POST', 'api/longtermtoken/generate', {
             name: name.trim() || null,
             period,
-            scopes: access === 'read' ? 'read' : null,
+            scopes:
+                access === 'keep'
+                    ? replacing.scopes
+                    : access === 'read'
+                      ? readOnlyScopes(replacing?.scopes)
+                          ? replacing.scopes
+                          : 'read'
+                      : null,
             missions: missionMode === 'some' ? missions : null,
             ...(replacing ? { replace_id: replacing.id } : {}),
         })
@@ -545,17 +560,29 @@ function CreateForm({ data, replacing, onCreated, onCancel }) {
                 </div>
                 <div className={styles.field}>
                     <span className={styles.label}>Access</span>
-                    {data.canWrite ? (
+                    {data.canWrite || canKeepScopes ? (
                         <Radio
                             aria-label="Access"
                             value={access}
                             onValueChange={setAccess}
                             options={[
+                                ...(canKeepScopes
+                                    ? [
+                                          {
+                                              value: 'keep',
+                                              label: `Same as now (${accessText(replacing)})`,
+                                          },
+                                      ]
+                                    : []),
                                 { value: 'read', label: 'Read-only' },
-                                {
-                                    value: 'full',
-                                    label: 'Everything you can do',
-                                },
+                                ...(data.canWrite
+                                    ? [
+                                          {
+                                              value: 'full',
+                                              label: 'Everything you can do',
+                                          },
+                                      ]
+                                    : []),
                             ]}
                         />
                     ) : (
