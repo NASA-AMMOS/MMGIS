@@ -9,17 +9,25 @@ const router = express.Router();
 const { sameOriginOnly } = require("../../../../../API/connections/routes");
 router.use((req, res, next) => (req.method === "GET" || req.method === "HEAD" ? next() : sameOriginOnly(req, res, next)));
 const crypto = require("crypto");
-const { Op } = require("sequelize");
 
 const logger = require("../../../../../API/logger");
 const policy = require("../../../../../API/permissions/policy");
 const missions = require("../../../../../API/permissions/missions");
-const { authorize, ensurePrincipal } = require("../../../../../API/permissions/authorize");
-const { hashToken, invalidate, unusableLegacyToken, tokensOffFor } = require("../../../../../API/permissions/principal");
+const { authorize } = require("../../../../../API/permissions/authorize");
+const { hashToken, invalidate, unusableLegacyToken, tokensOffFor, tokenExpired } = require("../../../../../API/permissions/principal");
+const { sequelize } = require("../../../../../API/connection");
 const LongTermTokens = require("../models/longtermtokens").LongTermTokens;
 const { User } = require("../../Users/models/user");
 
 const TOKEN_PREFIX = "mmgis_";
+const MAX_LABEL = 32;
+const DAY = 24 * 60 * 60 * 1000;
+
+// Administrators may hold any number of tokens of any length; everyone else one live token of up to 90 days
+function limitsFor(principal) {
+  const unlimited = policy.isAdministrator(principal);
+  return { unlimited, max_tokens: unlimited ? null : 1, max_period: unlimited ? null : 90 * DAY };
+}
 
 // Tokens can't be used to manage tokens
 function sessionOnly(req, res, next) {
@@ -56,24 +64,47 @@ async function present(rows) {
   );
 }
 
-router.get("/get", authorize("tokens.create"), sessionOnly, async (req, res) => {
-  try {
+router.get(
+  "/get",
+  authorize.inHandler(
+    "site.view",
+    "own tokens for any signed-in account; everyone's with tokens.manage"
+  ),
+  sessionOnly,
+  async (req, res) => {
     const principal = req.principal;
-    const where = { revoked_at: null };
-    if (!policy.can(principal, "tokens.manage")) where.created_by_user_id = principal.userId;
-    if (where.created_by_user_id == null && !policy.can(principal, "tokens.manage"))
-      return res.send({ status: "success", tokens: [] });
-    const rows = await LongTermTokens.findAll({
-      where,
-      order: [["createdAt", "DESC"]],
-      raw: true,
-    });
-    res.send({ status: "success", tokens: await present(rows) });
-  } catch (err) {
-    logger("error", "Failed to get all tokens.", req.originalUrl, req, err);
-    res.send({ status: "failure", message: "Failed to get tokens." });
+    if (
+      principal.userId == null &&
+      !policy.can(principal, "tokens.manage")
+    )
+      return res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    try {
+      const where = { revoked_at: null };
+      if (!policy.can(principal, "tokens.manage"))
+        where.created_by_user_id = principal.userId;
+      if (
+        where.created_by_user_id == null &&
+        !policy.can(principal, "tokens.manage")
+      )
+        return res.send({ status: "success", tokens: [] });
+      const rows = await LongTermTokens.findAll({
+        where,
+        order: [["createdAt", "DESC"]],
+        raw: true,
+      });
+      res.send({
+        status: "success",
+        tokens: await present(rows),
+        user_id: principal.userId == null ? null : principal.userId,
+        limits: limitsFor(principal),
+        can_create: policy.can(principal, "tokens.create"),
+      });
+    } catch (err) {
+      logger("error", "Failed to get all tokens.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to get tokens." });
+    }
   }
-});
+);
 
 class TokenError extends Error {}
 
@@ -145,21 +176,46 @@ router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, re
     const body = req.body || {};
     const { scopes, missions: missionUUIDs } = await resolveRequest(principal, body);
     const expires_at = expiryFrom(body.period);
-    const label = body.name ? String(body.name).replace(/[^0-9a-zA-Z]/g, "").toLowerCase() : "";
+    const limits = limitsFor(principal);
+    if (limits.max_period != null && (expires_at == null || Number(body.period) > limits.max_period))
+      throw new TokenError(`Tokens can last at most ${limits.max_period / DAY} days.`);
+    const replaceId = body.replace_id == null ? null : Number(body.replace_id);
+    if (replaceId != null && !Number.isSafeInteger(replaceId)) throw new TokenError("replace_id must be a token id.");
+    const label = body.name ? String(body.name).replace(/[^0-9a-zA-Z]/g, "").toLowerCase().slice(0, MAX_LABEL) : "";
     const secret = crypto.randomBytes(32).toString("hex");
     const token = `${TOKEN_PREFIX}${label ? label + "_" : ""}${secret}`;
     const token_prefix = token.slice(0, TOKEN_PREFIX.length + (label ? label.length + 1 : 0) + 6);
-    const created = await LongTermTokens.create({
-      token: unusableLegacyToken(),
-      token_hash: hashToken(token),
-      token_prefix,
-      name: body.name ? String(body.name) : null,
-      period: body.period == null ? "never" : String(body.period),
-      scopes,
-      missions: missionUUIDs,
-      expires_at,
-      created_by_user_id: principal.userId,
+    const { created, removed } = await sequelize.transaction(async (transaction) => {
+      // Locking the account serializes its creations, so concurrent requests can't pass the limit
+      await User.findOne({ where: { id: principal.userId }, attributes: ["id"], lock: transaction.LOCK.UPDATE, transaction });
+      const own = await LongTermTokens.findAll({
+        where: { created_by_user_id: principal.userId, revoked_at: null },
+        transaction,
+      });
+      if (replaceId != null && !own.some((t) => t.id === replaceId))
+        throw new TokenError(`Token with id ${replaceId} not found.`);
+      // Replacing removes the old token; a limited account's expired tokens go too, as they no longer count
+      const gone = own.filter((t) => t.id === replaceId || (!limits.unlimited && tokenExpired(t)));
+      if (limits.max_tokens != null && own.length - gone.length >= limits.max_tokens)
+        throw new TokenError("You already have an API token. Replace or revoke it to create another.");
+      for (const t of gone) await t.destroy({ transaction });
+      const row = await LongTermTokens.create(
+        {
+          token: unusableLegacyToken(),
+          token_hash: hashToken(token),
+          token_prefix,
+          name: body.name ? String(body.name) : null,
+          period: body.period == null ? "never" : String(body.period),
+          scopes,
+          missions: missionUUIDs,
+          expires_at,
+          created_by_user_id: principal.userId,
+        },
+        { transaction }
+      );
+      return { created: row, removed: gone.length };
     });
+    if (removed) invalidate();
     res.send({
       status: "success",
       message: "Successfully created long term token. Copy it now; it will not be shown again.",
@@ -181,37 +237,53 @@ router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, re
   }
 });
 
-router.post("/clear", authorize("tokens.create"), sessionOnly, async (req, res) => {
-  try {
-    if (req.body.id == null)
-      return res.send({
-        status: "failure",
-        message: `Failed to delete long term token. body.id is undefined.`,
-      });
-    const token = await LongTermTokens.findOne({ where: { id: parseInt(req.body.id) } });
+router.post(
+  "/clear",
+  authorize.inHandler(
+    "site.view",
+    "own tokens for any signed-in account; everyone's with tokens.manage"
+  ),
+  sessionOnly,
+  async (req, res) => {
     const principal = req.principal;
     if (
-      !token ||
-      (!policy.can(principal, "tokens.manage") && token.created_by_user_id !== principal.userId)
+      principal.userId == null &&
+      !policy.can(principal, "tokens.manage")
     )
-      return res.send({
-        status: "failure",
-        message: `Token with id ${req.body.id} not found.`,
+      return res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    try {
+      if (req.body.id == null)
+        return res.send({
+          status: "failure",
+          message: `Failed to delete long term token. body.id is undefined.`,
+        });
+      const token = await LongTermTokens.findOne({
+        where: { id: parseInt(req.body.id) },
       });
-    await token.destroy();
-    invalidate();
-    res.send({
-      status: "success",
-      message: `Successfully deleted long term token with id ${req.body.id}.`,
-    });
-  } catch (err) {
-    logger("error", "Failed to delete long term token.", req.originalUrl, req, err);
-    res.send({
-      status: "failure",
-      message: `Failed to delete long term token with id ${req.body.id}!`,
-    });
+      if (
+        !token ||
+        (!policy.can(principal, "tokens.manage") &&
+          token.created_by_user_id !== principal.userId)
+      )
+        return res.send({
+          status: "failure",
+          message: `Token with id ${req.body.id} not found.`,
+        });
+      await token.destroy();
+      invalidate();
+      res.send({
+        status: "success",
+        message: `Successfully deleted long term token with id ${req.body.id}.`,
+      });
+    } catch (err) {
+      logger("error", "Failed to delete long term token.", req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+        message: `Failed to delete long term token with id ${req.body.id}!`,
+      });
+    }
   }
-});
+);
 
 module.exports = router;
 module.exports.TOKEN_PREFIX = TOKEN_PREFIX;

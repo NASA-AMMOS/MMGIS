@@ -550,6 +550,44 @@ test.describe('provider users and tokens', () => {
     expect(capabilitiesOf(user([]))).toContain('tokens.create');
   });
 
+  test.describe('AUTH_TOKENS=admins', () => {
+    let saved;
+    test.beforeEach(() => {
+      saved = process.env.AUTH_TOKENS;
+      process.env.AUTH_TOKENS = 'admins';
+    });
+    test.afterEach(() => {
+      if (saved === undefined) delete process.env.AUTH_TOKENS;
+      else process.env.AUTH_TOKENS = saved;
+    });
+
+    test('only administrators may create tokens', () => {
+      for (const p of [user([]), user([['viewer', 'global']]), user([['viewer', `mission:${M1}`]])]) {
+        expect(can(p, 'tokens.create')).toBe(false);
+        expect(capabilitiesOf(p)).not.toContain('tokens.create');
+        expect(policy.isAdministrator(p)).toBe(false);
+      }
+      for (const p of [
+        user([['superadmin', 'global']]),
+        user([['data_admin', 'global']]),
+        user([['mission_admin', `mission:${M1}`]]),
+        user([['layer_editor', `layer:${M1}:${FOLDER}`]]),
+      ]) {
+        expect(policy.isAdministrator(p)).toBe(true);
+        expect(can(p, 'tokens.create')).toBe(true);
+        expect(capabilitiesOf(p)).toContain('tokens.create');
+      }
+    });
+
+    test('all (or unset) lets every account create tokens', () => {
+      for (const v of ['all', undefined]) {
+        if (v === undefined) delete process.env.AUTH_TOKENS;
+        else process.env.AUTH_TOKENS = v;
+        expect(can(user([]), 'tokens.create')).toBe(true);
+      }
+    });
+  });
+
   test('a local account signed in behind the proxy is offered tokens.create, as can() allows', () => {
     const mixed = { kind: 'external', provider: 'proxy', authenticated: true, userId: 4, bindings: [] };
     expect(can(mixed, 'tokens.create')).toBe(true);

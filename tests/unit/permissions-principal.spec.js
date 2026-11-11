@@ -42,7 +42,8 @@ let principal, policy, connections, savedProxyIdentity;
 const saved = {};
 
 test.beforeAll(() => {
-  for (const k of ['AUTH_PROVIDERS', 'SITE_ACCESS', 'AUTH_LOCAL_LOGIN']) saved[k] = process.env[k];
+  for (const k of ['AUTH_PROVIDERS', 'SITE_ACCESS', 'AUTH_LOCAL_LOGIN', 'AUTH_TOKENS']) saved[k] = process.env[k];
+  delete process.env.AUTH_TOKENS;
   process.env.AUTH_PROVIDERS = '["proxy","local"]';
   process.env.SITE_ACCESS = 'required';
   delete process.env.AUTH_LOCAL_LOGIN;
@@ -56,6 +57,10 @@ test.beforeAll(() => {
   const raw = 'mmgis-unit-test-token-value';
   tokens[principal.hashToken(raw)] = {
     id: 5, name: 't', created_by_user_id: 1, scopes: null, missions: null,
+    last_used_at: new Date(), expires_at: null,
+  };
+  tokens[principal.hashToken('mmgis-unit-test-viewer-token')] = {
+    id: 6, name: 'v', created_by_user_id: 2, scopes: null, missions: null,
     last_used_at: new Date(), expires_at: null,
   };
 });
@@ -189,6 +194,49 @@ test.describe('bearer tokens behind the proxy', () => {
     });
     expect(p.kind).toBe('invalid_token');
     expect(p.authenticated).toBe(false);
+  });
+});
+
+test.describe('AUTH_TOKENS=admins', () => {
+  const viewer = { authorization: 'Bearer mmgis-unit-test-viewer-token' };
+  const admin = { authorization: 'Bearer mmgis-unit-test-token-value' };
+  test.afterEach(() => {
+    delete process.env.AUTH_TOKENS;
+    principal.invalidate();
+  });
+
+  test("a non-administrator's token stops working, and works again once allowed", async () => {
+    expect((await principal.resolvePrincipal({ headers: viewer, session: {} })).kind).toBe('token');
+    process.env.AUTH_TOKENS = 'admins';
+    principal.invalidate();
+    expect((await principal.resolvePrincipal({ headers: viewer, session: {} })).kind).toBe('invalid_token');
+    process.env.AUTH_TOKENS = 'all';
+    principal.invalidate();
+    expect((await principal.resolvePrincipal({ headers: viewer, session: {} })).kind).toBe('token');
+  });
+
+  test("an administrator's token keeps working", async () => {
+    process.env.AUTH_TOKENS = 'admins';
+    principal.invalidate();
+    const p = await principal.resolvePrincipal({ headers: admin, session: {} });
+    expect(p.kind).toBe('token');
+    expect(p.userId).toBe(1);
+  });
+
+  test('a former administrator keeps their tokens with only the access they have now', async () => {
+    const row = bindingRows[0];
+    const was = row.role;
+    row.role = 'viewer';
+    principal.invalidate();
+    try {
+      const p = await principal.resolvePrincipal({ headers: admin, session: {} });
+      expect(p.kind).toBe('token');
+      expect(policy.isSuperAdmin(p)).toBe(false);
+      expect(policy.can(p, 'accounts.manage')).toBe(false);
+      expect(policy.can(p, 'site.view')).toBe(true);
+    } finally {
+      row.role = was;
+    }
   });
 });
 

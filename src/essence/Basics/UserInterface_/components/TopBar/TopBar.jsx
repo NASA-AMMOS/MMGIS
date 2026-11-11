@@ -9,6 +9,8 @@ import ConfirmationModal from '../ConfirmationModal/ConfirmationModal'
 import Modal from '../Modal/Modal'
 
 import Connections_ from '../../../Connections_/Connections_'
+import AccountMenu from '../AccountMenu/AccountMenu'
+import { avatarColor } from '../AccountMenu/avatarColor'
 import styles from './TopBar.module.css'
 
 const STATUS_CONFIG = {
@@ -124,6 +126,11 @@ function TopBar({ userInterface }) {
     const [globeOpen, setGlobeOpen] = useState(false)
     const [username, setUsername] = useState(null)
     const [accountProvider, setAccountProvider] = useState(null)
+    const [menuAnchor, setMenuAnchor] = useState(null)
+    const toggle = (e) => {
+        const el = e.currentTarget
+        setMenuAnchor((a) => (a ? null : el))
+    }
 
     useEffect(() => {
         const el = topBarLeftRef.current
@@ -383,8 +390,8 @@ function TopBar({ userInterface }) {
                             <IconButton
                                 id="connectionsButton"
                                 title="Services"
-                                className={`${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
-                                onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
+                                className={`${menuAnchor != null ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
+                                onClick={toggle}
                             >
                                 <i className="mdi mdi-connection" style={{ fontSize: 16 }} />
                             </IconButton>
@@ -397,11 +404,11 @@ function TopBar({ userInterface }) {
                             {username ? (
                                 <div
                                     id="accountButton"
-                                    className={`${styles.userAvatar} ${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
+                                    className={`${styles.userAvatar} ${menuAnchor != null ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
                                     role="button"
                                     aria-label={`Account: ${username}${accountProvider ? `, signed in with ${accountProvider.title}` : ''}`}
-                                    style={{ background: Connections_.avatarColor(username) }}
-                                    onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
+                                    style={{ background: avatarColor(username) }}
+                                    onClick={toggle}
                                 >
                                     {username[0].toUpperCase()}
                                 </div>
@@ -409,8 +416,8 @@ function TopBar({ userInterface }) {
                                 <IconButton
                                     id="accountButton"
                                     title={connUI.hasMenu ? 'Sign in and services' : 'Sign in'}
-                                    className={`${connUI.menuOpen ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
-                                    onClick={(e) => Connections_.toggleMenu(e.currentTarget)}
+                                    className={`${menuAnchor != null ? styles.menuOpen : ''} ${connUI.needsConnection ? styles.needsConnection : ''}`}
+                                    onClick={toggle}
                                 >
                                     <i className="mdi mdi-login" style={{ fontSize: 16 }} />
                                 </IconButton>
@@ -443,6 +450,12 @@ function TopBar({ userInterface }) {
                             About
                         </Dropdown.Item>
                     </Dropdown>
+                    {menuAnchor && (
+                        <AccountMenu
+                            anchor={menuAnchor}
+                            onClose={() => setMenuAnchor(null)}
+                        />
+                    )}
                 </div>
         </div>
     )

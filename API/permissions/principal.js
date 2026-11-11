@@ -252,7 +252,8 @@ async function tokenPrincipal(authorization) {
   if (!owner || !(await accountAllowed(owner))) return null;
   // Read again: the provider recheck in accountAllowed may have changed the owner's groups
   const creator = await userPrincipal(row.created_by_user_id);
-  if (!creator) return null;
+  // Tokens only work while their owner may still create them (e.g. AUTH_TOKENS=admins)
+  if (!creator || !require("./policy").can(creator, "tokens.create")) return null;
   const { LongTermTokens } = models();
   if (
     !row.last_used_at ||

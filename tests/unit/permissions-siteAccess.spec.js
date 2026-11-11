@@ -149,6 +149,18 @@ test.describe('AUTH_LOCAL_LOGIN', () => {
   });
 });
 
+test.describe('AUTH_TOKENS', () => {
+  const base = { SITE_ACCESS: 'required', AUTH_PROVIDERS: '["local"]' };
+  test('accepts all, admins or unset', () => {
+    for (const v of [undefined, '', 'all', 'admins'])
+      expect(siteAccess.validate({ ...base, AUTH_TOKENS: v }).filter((e) => /AUTH_TOKENS/.test(e))).toEqual([]);
+  });
+  test('rejects anything else', () => {
+    for (const v of ['none', 'Admins', 'true'])
+      expect(siteAccess.validate({ ...base, AUTH_TOKENS: v }).some((e) => /AUTH_TOKENS/.test(e))).toBe(true);
+  });
+});
+
 test.describe('Self sign-up', () => {
   // Other specs in this worker link provider accounts through the shared module
   test.beforeEach(() => siteAccess.setProviderAccounts(false));

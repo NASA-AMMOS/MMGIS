@@ -1,5 +1,5 @@
-// Service connections on the main site: the Services part of the account
-// menu, the "connect first" card a tool shows, and the API tools use.
+// Service connections on the main site: the services list for the React
+// account menu, the "connect first" card a tool shows, and the API tools use.
 // A connection adds an external service credential; it never signs anyone
 // in to MMGIS (that's Login).
 import $ from 'jquery'
@@ -17,7 +17,6 @@ let gate = null
 const separatedGates = new Map()
 // Separated tools opened before the list arrived, by tool name
 const pendingSeparated = new Map()
-let menuOpen = false
 let missionTools = []
 
 const esc = (s) =>
@@ -102,7 +101,6 @@ function loadList() {
             if (d.status !== 'success') return services
             services = d.connections || []
             renderButton()
-            if (menuOpen) renderMenu()
             if (gate) gate.render()
             Array.from(separatedGates.values()).forEach((g) => g.render())
             emit()
@@ -176,7 +174,6 @@ function disconnect(ref) {
 }
 
 function signIn() {
-    closeMenu()
     login().then((Login) => {
         if (Login.loggedIn) return
         const button = document.getElementById('loginoutButton')
@@ -184,16 +181,12 @@ function signIn() {
     })
 }
 
-////// Account menu
+////// Services list for the React account menu
 
-let menuAnchor = null
-
-// The top bar's account button (React) follows this state
 const uiListeners = []
 function uiState() {
     return {
         hasMenu: relevant().length > 0,
-        menuOpen,
         needsConnection: [gate, ...separatedGates.values()].some(
             (g) => g != null && !g.service.connected
         ),
@@ -202,112 +195,6 @@ function uiState() {
 function renderButton() {
     const state = uiState()
     uiListeners.forEach((fn) => fn(state))
-}
-
-function serviceRow(s) {
-    const used = toolsUsing(s)
-    let detail = ''
-    let action = ''
-    if (!s.configured) detail = 'Not set up on this site'
-    else if (s.connected) {
-        detail = s.account ? `Connected as ${esc(s.account)}` : 'Connected'
-        if (s.storage === 'session') detail += ' · this browser session'
-        action = `<button class="connectionsMenuAction" data-disconnect="${esc(s.id)}">Disconnect</button>`
-    } else if (s.canConnect) {
-        detail = used.length
-            ? `Needed by ${used.map(esc).join(', ')}`
-            : 'Not connected'
-        action = `<button class="connectionsMenuAction primary" data-connect="${esc(s.id)}">Connect</button>`
-    } else {
-        detail = 'Sign in to MMGIS first'
-    }
-    return `<div class="connectionsMenuRow${s.connected ? ' connected' : ''}${!s.canConnect && !s.connected ? ' unavailable' : ''}" data-service="${esc(s.id)}">
-        <span class="connectionsMenuDot"></span>
-        <div class="connectionsMenuText"><div class="connectionsMenuName">${esc(s.label)}</div><div class="connectionsMenuDetail">${detail}</div></div>
-        ${action}</div>`
-}
-
-function renderMenu() {
-    $('#connectionsMenu').remove()
-    login().then((Login) => {
-        if (!menuOpen) return
-        const loggedIn = Login.loggedIn === true
-        const hasLogin = window.mmgisglobal.SITE_ACCESS !== 'public'
-        let html = ''
-        if (loggedIn || hasLogin) {
-            const name = loggedIn ? String(Login.username || '') : ''
-            const via = loggedIn ? Login.signedInWith() : null
-            const avatar = loggedIn
-                ? esc(name.charAt(0).toUpperCase()) +
-                  (via ? `<span class="connectionsMenuProviderBadge" aria-hidden="true"><i class="mdi mdi-${via.icon}"></i></span>` : '')
-                : '<i class="mdi mdi-account mdi-18px"></i>'
-            const detail = !loggedIn
-                ? 'Not signed in to MMGIS'
-                : via
-                  ? `Signed in with ${esc(via.title)}`
-                  : 'Signed in to MMGIS'
-            html += `<div class="connectionsMenuSection connectionsMenuMmgis">
-                <div class="connectionsMenuLabel">MMGIS</div>
-                <div class="connectionsMenuAccount">
-                    <div class="connectionsMenuAvatar${loggedIn ? '' : ' guest'}"${loggedIn ? ` style="background:${avatarColor(name)}"` : ''}>${avatar}</div>
-                    <div class="connectionsMenuText">
-                        <div class="connectionsMenuUser">${loggedIn ? esc(name) : 'Guest'}</div>
-                        <div class="connectionsMenuDetail">${detail}</div>
-                    </div>
-                    ${
-                        loggedIn
-                            ? '<button id="connectionsMenuSignOut" class="connectionsMenuAction">Sign out</button>'
-                            : '<button id="connectionsMenuSignIn" class="connectionsMenuAction primary">Sign in</button>'
-                    }
-                </div>
-            </div>`
-        }
-        if (relevant().length)
-            html += `<div class="connectionsMenuSection"><div class="connectionsMenuLabel">Services</div>${relevant()
-                .map(serviceRow)
-                .join('')}</div>`
-        const menu = $('<div>').attr('id', 'connectionsMenu').html(html)
-        $('body').append(menu)
-        const rect = menuAnchor
-            ? menuAnchor.getBoundingClientRect()
-            : { bottom: 40, right: window.innerWidth - 8 }
-        menu.css({
-            top: rect.bottom + 6,
-            right: Math.max(8, window.innerWidth - rect.right),
-        })
-        menu.on('click', '[data-connect]', function () {
-            connect($(this).attr('data-connect'))
-        })
-        menu.on('click', '[data-disconnect]', function () {
-            disconnect($(this).attr('data-disconnect'))
-        })
-        menu.on('click', '#connectionsMenuSignIn', signIn)
-        menu.on('click', '#connectionsMenuSignOut', () => {
-            closeMenu()
-            Login.logout()
-        })
-    })
-}
-
-function openMenu(anchorEl) {
-    menuAnchor = anchorEl || menuAnchor
-    menuOpen = true
-    renderMenu()
-    renderButton()
-}
-
-function closeMenu() {
-    if (!menuOpen) return
-    menuOpen = false
-    $('#connectionsMenu').remove()
-    renderButton()
-}
-
-function onOutsideClick(e) {
-    if (!menuOpen) return
-    if (e.target.closest('#connectionsMenu')) return
-    if (menuAnchor && menuAnchor.contains(e.target)) return
-    closeMenu()
 }
 
 ////// "Connect first" card inside a tool
@@ -596,22 +483,9 @@ function overlayGate(s, reason, retry, toolName) {
     g.render()
 }
 
-// Stable color per username, dark enough for white text
-function avatarColor(name) {
-    let h = 0
-    for (const c of String(name || ''))
-        h = (c.charCodeAt(0) + ((h << 5) - h)) | 0
-    return `hsl(${Math.abs(h) % 360}, 55%, 40%)`
-}
-
 const Connections_ = {
-    avatarColor,
     init(tools) {
         missionTools = (tools || []).map((t) => t.name)
-        document.addEventListener('click', onOutsideClick, true)
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeMenu()
-        })
         window.addEventListener('focus', refresh)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') refresh()
@@ -650,13 +524,9 @@ const Connections_ = {
             if (i >= 0) uiListeners.splice(i, 1)
         }
     },
-    toggleMenu(anchorEl) {
-        if (menuOpen) closeMenu()
-        else openMenu(anchorEl)
-    },
-    closeMenu,
     ready: () => loaded || refresh(),
     list: () => services.slice(),
+    menuServices: () => relevant(),
     status: (ref) => find(ref),
     isConnected: (ref) => {
         const s = find(ref)
@@ -664,6 +534,7 @@ const Connections_ = {
     },
     connect,
     disconnect,
+    toolsUsing,
     requirementsOf,
     openTool,
     openSeparated,
