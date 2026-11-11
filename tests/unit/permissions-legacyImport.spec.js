@@ -14,9 +14,21 @@ const USERS = [
   { id: 5, username: 'locked', permission: '000', missions_managing: null, missions_viewing: null },
   { id: 6, username: 'locked2', permission: '010', missions_managing: null, missions_viewing: null },
 ];
+const ALL_COLUMNS = ['id', 'username', 'password', 'permission', 'missions_managing', 'missions_viewing'];
+let columns = ALL_COLUMNS;
 const STUBS = {
   'API/permissions/models.js': {},
-  'plugins/core/backend/Users/models/user.js': { User: { findAll: async () => USERS } },
+  'plugins/core/backend/Users/models/user.js': {
+    User: {
+      describe: async () => Object.fromEntries(columns.map((c) => [c, {}])),
+      // Like a raw SELECT: only the requested columns, and a column that does not exist is an error
+      findAll: async ({ attributes }) => {
+        const missing = attributes.filter((a) => !columns.includes(a));
+        if (missing.length) throw new Error(`column "${missing[0]}" does not exist`);
+        return USERS.map((u) => Object.fromEntries(attributes.map((a) => [a, u[a]])));
+      },
+    },
+  },
   'API/permissions/missions.js': { uuidForName: async (n) => `uuid-${n}`, backfill: async () => {} },
 };
 const IMPORT = path.join(root, 'API/permissions/legacyImport.js');
@@ -44,7 +56,10 @@ test.afterAll(() => {
 const ENV = ['SITE_ACCESS', 'AUTH_PROVIDERS'];
 let saved;
 test.beforeEach(() => (saved = ENV.map((k) => process.env[k])));
-test.afterEach(() => ENV.forEach((k, i) => (saved[i] == null ? delete process.env[k] : (process.env[k] = saved[i]))));
+test.afterEach(() => {
+  ENV.forEach((k, i) => (saved[i] == null ? delete process.env[k] : (process.env[k] = saved[i])));
+  columns = ALL_COLUMNS;
+});
 
 const rolesOf = (bindings, id) =>
   bindings
@@ -72,5 +87,18 @@ test.describe('legacy permission import', () => {
     const { bindings } = await legacyImport.plan();
     for (const id of [3, 4, 5, 6]) expect(rolesOf(bindings, id)).toEqual([]);
     expect(bindings.filter((b) => b.subject_type === 'audience').map((b) => b.subject_id)).toEqual(['everyone']);
+  });
+
+  // 5.2.24 and earlier have no users.missions_viewing column
+  test('databases without missions_viewing treat every account as unrestricted', async () => {
+    columns = ALL_COLUMNS.filter((c) => c !== 'missions_viewing');
+    process.env.SITE_ACCESS = 'required';
+    process.env.AUTH_PROVIDERS = 'local';
+    const { bindings } = await legacyImport.plan();
+    expect(rolesOf(bindings, 1)).toEqual(['superadmin@global']);
+    expect(rolesOf(bindings, 2)).toEqual(['mission_admin@uuid-M', 'viewer@global']);
+    expect(rolesOf(bindings, 3)).toEqual(['viewer@global']);
+    expect(rolesOf(bindings, 4)).toEqual(['viewer@global']);
+    expect(rolesOf(bindings, 5)).toEqual([]);
   });
 });

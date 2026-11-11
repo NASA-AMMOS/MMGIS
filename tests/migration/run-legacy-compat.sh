@@ -4,11 +4,15 @@
 #
 #   tests/migration/run-legacy-compat.sh [base-ref]   (default: origin/development)
 #
+# APPLY_WITH=cli applies the import with `npm run auth:migrate` before the
+# upgraded server starts; the default lets the server import on first start.
+#
 # Uses only the mmgis-test database, which is dropped and recreated.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 ROOT=$PWD
 BASE_REF=${1:-origin/development}
+APPLY_WITH=${APPLY_WITH:-server}
 OLD_PORT=${OLD_PORT:-8890}
 NEW_PORT=${NEW_PORT:-8891}
 WORK=${LEGACY_WORKTREE:-$ROOT/test-results/legacy-base}
@@ -57,6 +61,12 @@ before=$(node tests/migration/legacy-accounts.js snapshot)
 (cd "$WORK" && env -u SITE_ACCESS -u AUTH_PROVIDERS node "$ROOT/scripts/auth-migrate.js" --dry-run) | grep -v '^{"level"'
 after=$(node tests/migration/legacy-accounts.js snapshot)
 [ "$before" = "$after" ] || { echo "Dry run changed the database"; exit 1; }
+
+if [ "$APPLY_WITH" = "cli" ]; then
+  echo "== Applying the import with auth-migrate"
+  env -u AUTH SITE_ACCESS=required AUTH_PROVIDERS='["local"]' NODE_ENV=test DB_NAME=mmgis-test \
+    node scripts/auth-migrate.js | grep -v '^{"level"'
+fi
 
 echo "== Starting this checkout on :$NEW_PORT"
 env -u AUTH SITE_ACCESS=required AUTH_PROVIDERS='["local"]' PORT=$NEW_PORT NODE_ENV=test DB_NAME=mmgis-test \
