@@ -133,6 +133,13 @@ jobs:
           if [ -n "$added" ]; then legacy="$added^"; else legacy=origin/${{ github.base_ref }}; fi
           bash tests/migration/run-legacy-compat.sh "$legacy"
 
+      # 5.2.24 is the last tagged release before the auth refactor; its schema predates users.missions_viewing
+      - name: Check auth-migrate on a database from the last release
+        if: matrix.site_access == 'required' && github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin refs/tags/5.2.24:refs/tags/5.2.24
+          APPLY_WITH=cli bash tests/migration/run-legacy-compat.sh 5.2.24
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
