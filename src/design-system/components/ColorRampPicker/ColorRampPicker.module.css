@@ -26,12 +26,16 @@
 
 .swatchBar {
     display: flex;
-    flex: 0 1 45%;
+    flex: 1;
     height: 12px;
     border-radius: 2px;
     overflow: hidden;
     min-width: 0;
     position: relative;
+}
+
+.swatchBarWithName {
+    flex: 0 1 45%;
 }
 
 .selectedName,

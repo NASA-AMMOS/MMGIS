@@ -285,6 +285,7 @@ function CogSettings({ layer, resetToken }) {
                     value={colormap}
                     ramps={COLOR_RAMPS}
                     portal
+                    showNames
                     aria-label="Color ramp"
                     onValueChange={(value) => {
                         layer.cogColormap = value

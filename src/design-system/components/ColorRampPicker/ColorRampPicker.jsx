@@ -59,6 +59,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
         ramps,
         className,
         portal,
+        showNames = false,
         'aria-label': ariaLabel = 'Color ramp',
         ...props
     },
@@ -163,8 +164,14 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                         triggerRef.current?.focus()
                     }}
                 >
-                    <SwatchBar gradient={r.gradient} hasAlpha={r.hasAlpha} />
-                    <span className={styles.optionName}>{r.name}</span>
+                    <SwatchBar
+                        gradient={r.gradient}
+                        hasAlpha={r.hasAlpha}
+                        showNames={showNames}
+                    />
+                    {showNames && (
+                        <span className={styles.optionName}>{r.name}</span>
+                    )}
                 </button>
             ))}
         </div>
@@ -188,8 +195,16 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                 aria-expanded={open}
                 onClick={toggle}
             >
-                <SwatchBar gradient={selected?.gradient} hasAlpha={selected?.hasAlpha} />
-                <span className={styles.selectedName}>{selected?.name || 'Select ramp'}</span>
+                <SwatchBar
+                    gradient={selected?.gradient}
+                    hasAlpha={selected?.hasAlpha}
+                    showNames={showNames}
+                />
+                {showNames && (
+                    <span className={styles.selectedName}>
+                        {selected?.name || 'Select ramp'}
+                    </span>
+                )}
                 <i className="mdi mdi-chevron-down mdi-14px" style={{ flexShrink: 0, color: 'var(--color-a3)' }} />
             </button>
             {open && (portal ? createPortal(list, document.body) : list)}
@@ -197,10 +212,13 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
     )
 })
 
-function SwatchBar({ gradient, hasAlpha }) {
+function SwatchBar({ gradient, hasAlpha, showNames = false }) {
     if (!gradient) return null
+    const className = showNames
+        ? `${styles.swatchBar} ${styles.swatchBarWithName}`
+        : styles.swatchBar
     return (
-        <div className={styles.swatchBar}>
+        <div className={className}>
             {hasAlpha && (
                 <div
                     className={styles.swatchBlock}
