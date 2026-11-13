@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, devices } from '@playwright/test'
 const axeSource = require.resolve('axe-core')
 
 async function openLayers2(page) {
@@ -412,6 +412,192 @@ test.describe('LayersTool2', () => {
             .toBe(before)
         await page.getByRole('button', { name: 'Back to layers' }).click()
         await expect(row.locator('.lt2-statusFiltered')).toHaveCount(0)
+    })
+
+    test('shared Filtering cleanup preserves the legacy Layers filter lifecycle', async ({
+        page,
+    }) => {
+        const pageErrors = []
+        page.on('pageerror', (error) => pageErrors.push(error.message))
+        await page.setViewportSize({ width: 1280, height: 900 })
+        await page.goto('/?mission=Reference-Mission')
+        await page.waitForLoadState('networkidle', { timeout: 60000 })
+        await page.waitForFunction(
+            () => !!(window.mmgisAPI && window.mmgisAPI.map),
+            { timeout: 30000 }
+        )
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.locator('#toolButtonLayers').click()
+        const row = page
+            .locator('#layersToolList > li')
+            .filter({ hasText: layer.label })
+            .first()
+        await expect(row).toBeVisible()
+        await row.locator('.gears').click()
+        const filter = page.locator('#layersTool_filtering')
+        await expect(filter).toBeVisible()
+        const initialWidth = await filter.evaluate(
+            (element) => element.getBoundingClientRect().width
+        )
+
+        await filter.locator('#layersTool_filtering_add_value').click()
+        await expect(
+            filter.locator('#layerTool_filtering_filters_list > li')
+        ).toHaveCount(2)
+        await filter.locator('#layersTool_filtering_submit').click()
+        await expect(filter.locator('#layersTool_filtering_submit_text')).toContainText(
+            'Submitted'
+        )
+        await filter.locator('#layerTool_filtering_filters_spatial_draw').click()
+        await expect(
+            filter.locator('#layerTool_filtering_filters_spatial')
+        ).toHaveClass(/drawing/)
+        await page.mouse.click(800, 400)
+        await filter.locator('#layersTool_filtering_clear').click()
+        await expect(
+            filter.locator('#layerTool_filtering_filters_spatial')
+        ).not.toHaveClass(/drawing|drawn/)
+
+        await page.evaluate(() => window.ToolController_.closeActiveTool())
+        await page.locator('#toolButtonLayers').click()
+        const reopenedRow = page
+            .locator('#layersToolList > li')
+            .filter({ hasText: layer.label })
+            .first()
+        await reopenedRow.locator('.gears').click()
+        const reopenedFilter = page.locator('#layersTool_filtering')
+        await expect(reopenedFilter).toBeVisible()
+        await expect(reopenedFilter).toHaveJSProperty(
+            'offsetWidth',
+            initialWidth
+        )
+        expect(pageErrors).toEqual([])
+    })
+
+    test('TouchSensor reorders a layer on iPhone 13 touch emulation', async ({
+        browser,
+    }) => {
+        const context = await browser.newContext({ ...devices['iPhone 13'] })
+        const page = await context.newPage()
+        const pageErrors = []
+        page.on('pageerror', (error) => pageErrors.push(error.message))
+        await openLayers2(page)
+        await page.getByRole('button', { name: 'Expand all' }).click()
+        const source = page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: 'Points Basic' })
+            .first()
+        const target = page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: 'Lines Basic' })
+            .first()
+        await source.scrollIntoViewIfNeeded()
+        await target.scrollIntoViewIfNeeded()
+        const before = await page.evaluate(() =>
+            window.ToolController_.getTool('LayersTool2')
+                ._debugFlat()
+                .filter((row) => !row.type || row.type !== 'header')
+                .map((row) => row.name)
+        )
+        const sourceBox = await source.locator('.lt2-drag').boundingBox()
+        const targetBox = await target.boundingBox()
+        expect(sourceBox).not.toBeNull()
+        expect(targetBox).not.toBeNull()
+        const cdp = await context.newCDPSession(page)
+        const x = sourceBox.x + sourceBox.width / 2
+        const y = sourceBox.y + sourceBox.height / 2
+        const targetX = targetBox.x + targetBox.width / 2
+        const targetY = targetBox.y + targetBox.height / 2
+        await cdp.send('Input.dispatchTouchEvent', {
+            type: 'touchStart',
+            touchPoints: [{ id: 1, x, y }],
+        })
+        await page.waitForTimeout(250)
+        for (let step = 1; step <= 8; step += 1) {
+            await cdp.send('Input.dispatchTouchEvent', {
+                type: 'touchMove',
+                touchPoints: [
+                    {
+                        id: 1,
+                        x: x + ((targetX - x) * step) / 8,
+                        y: y + ((targetY - y) * step) / 8,
+                    },
+                ],
+            })
+            await page.waitForTimeout(40)
+        }
+        await cdp.send('Input.dispatchTouchEvent', {
+            type: 'touchEnd',
+            touchPoints: [],
+        })
+        await expect
+            .poll(() =>
+                page.evaluate(() =>
+                    window.ToolController_.getTool('LayersTool2')
+                        ._debugFlat()
+                        .filter((row) => !row.type || row.type !== 'header')
+                        .map((row) => row.name)
+                )
+            )
+            .not.toEqual(before)
+        expect(pageErrors).toEqual([])
+        await context.close()
+    })
+
+    test('isolates throwing plugin sections and reports rejected actions', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        await page.evaluate(() => {
+            window.__layersTool2TestPluginRegistry = {
+                vector: {
+                    sections: [
+                        {
+                            id: 'injected-throw',
+                            label: 'Injected throwing section',
+                            Component: () => {
+                                throw new Error('Injected section failure')
+                            },
+                        },
+                    ],
+                    actions: [
+                        {
+                            id: 'injected-reject',
+                            label: 'Reject test action',
+                            onClick: () =>
+                                Promise.reject(
+                                    new Error('Injected action rejection')
+                                ),
+                        },
+                    ],
+                },
+            }
+        })
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill('Points Basic')
+        await page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: 'Points Basic' })
+            .first()
+            .locator('.lt2-title')
+            .click()
+        const settings = page.locator('.lt2-settings')
+        await expect(settings.locator('[data-section="display"]')).toBeVisible()
+        await expect(
+            settings.locator('[data-section="injected-throw"] [role="alert"]')
+        ).toContainText('Injected section failure')
+        await settings.getByRole('button', { name: 'Reject test action' }).click()
+        await expect(
+            settings
+                .locator('.lt2-inlineError')
+                .filter({ hasText: 'Injected action rejection' })
+        ).toBeVisible()
+        await expect(
+            page.locator('.mmgisToastRoot').getByText(
+                'Injected action rejection'
+            )
+        ).toBeVisible()
     })
 
     test('opens settings for each configured layer type', async ({ page }) => {

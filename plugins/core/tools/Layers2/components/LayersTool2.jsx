@@ -900,22 +900,29 @@ function CoreSettings({ layer, api }) {
         setExportError('')
     }, [layer.name, exportResetToken])
     const plugin = LayerTypeRegistry.settings(layer.type)
+    const testPlugin = window.__layersTool2TestPluginRegistry?.[layer.type]
     const pluginSections = useMemo(() => {
         try {
-            return (plugin?.sections?.(layer, pluginContext) || [])
+            return [
+                ...(plugin?.sections?.(layer, pluginContext) || []),
+                ...(testPlugin?.sections || []),
+            ]
                 .slice()
                 .sort((a, b) => (a.order || 0) - (b.order || 0))
         } catch (error) {
             return []
         }
-    }, [plugin, layer, pluginContext, layerVersion, layerOn])
+    }, [plugin, testPlugin, layer, pluginContext, layerVersion, layerOn])
     const pluginActions = useMemo(() => {
         try {
-            return plugin?.actions?.(layer, pluginContext) || []
+            return [
+                ...(plugin?.actions?.(layer, pluginContext) || []),
+                ...(testPlugin?.actions || []),
+            ]
         } catch (error) {
             return []
         }
-    }, [plugin, layer, pluginContext])
+    }, [plugin, testPlugin, layer, pluginContext])
 
     const exportLayer = async () => {
         setExportBusy(true)
