@@ -1658,6 +1658,43 @@ function cmdValidate() {
             p.manifest &&
             (p.type === "layertypes" || p.type === "layerattachments")
     );
+    const readRendererSource = (basePath, seen = new Set()) => {
+        const resolvedBase = path.resolve(basePath);
+        if (seen.has(resolvedBase)) return null;
+        seen.add(resolvedBase);
+
+        const candidates = path.extname(resolvedBase)
+            ? [resolvedBase]
+            : [`${resolvedBase}.js`, `${resolvedBase}.jsx`];
+        for (const candidate of candidates) {
+            let source;
+            try {
+                source = fs.readFileSync(candidate, "utf8");
+            } catch {
+                continue;
+            }
+
+            const exportedName = source.match(
+                /export\s+default\s+([A-Za-z_$][\w$]*)\s*;?/
+            )?.[1];
+            if (!exportedName) return source;
+
+            const importMatch = source.match(
+                new RegExp(
+                    `import\\s+${exportedName}\\s+from\\s+['"]([^'"]+)['"]`
+                )
+            );
+            if (!importMatch || !importMatch[1].startsWith(".")) return source;
+
+            return (
+                readRendererSource(
+                    path.resolve(path.dirname(candidate), importMatch[1]),
+                    seen
+                ) || source
+            );
+        }
+        return null;
+    };
 
     for (const p of rendererPlugins) {
         const prefix = p.id;
@@ -1668,13 +1705,11 @@ function cmdValidate() {
         for (const [key, rel] of Object.entries(flattenLayerModules(p.manifest))) {
             if (typeof rel !== "string") continue;
             const surface = surfaceOfModuleKey(key, pType, p.manifest);
-            const modPath = path.join(p.pluginPath, `${rel}.js`);
-            let src;
-            try {
-                src = fs.readFileSync(modPath, "utf8");
-            } catch {
-                pluginErrors.push(`renderer module '${key}' not found at ${rel}.js`);
-                if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(`renderer module '${key}' not found at ${rel}.js`)}`);
+            const modulePath = path.join(p.pluginPath, rel);
+            const src = readRendererSource(modulePath);
+            if (src == null) {
+                pluginErrors.push(`renderer module '${key}' not found at ${rel}.js or ${rel}.jsx`);
+                if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(`renderer module '${key}' not found at ${rel}.js or ${rel}.jsx`)}`);
                 errors++;
                 continue;
             }
