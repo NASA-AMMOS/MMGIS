@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+const axeSource = require.resolve('axe-core')
 
 async function openLayers2(page) {
     await page.goto('/?mission=Reference-Mission')
@@ -230,7 +231,7 @@ test.describe('LayersTool2', () => {
         })
         test.skip(!headerInfo, 'Reference Mission has no header')
         const header = page
-            .locator('.lt2-headerRow')
+            .getByRole('treeitem')
             .filter({ hasText: headerInfo.displayName })
             .first()
         const initialExpanded = (await header.getAttribute('aria-expanded')) === 'true'
@@ -281,7 +282,7 @@ test.describe('LayersTool2', () => {
             await window.L_.toggleLayer(window.L_.layers.data[name])
         }, layer.name)
         await expect(visible).not.toBeChecked()
-        await page.keyboard.press('Escape')
+        await page.getByRole('button', { name: 'Back to layers' }).click()
         row = page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first()
         await row.locator('.lt2-title').click()
         await expect(visible).toBeChecked()
@@ -666,7 +667,7 @@ test.describe('LayersTool2', () => {
             name: /Rescale minimum/,
         })
         await firstMinimum.fill('123.5')
-        await page.keyboard.press('Escape')
+        await page.getByRole('button', { name: 'Back to layers' }).click()
 
         await search.fill(cogLayers[1])
         await page.waitForTimeout(180)
@@ -817,8 +818,12 @@ test.describe('LayersTool2', () => {
     })
 
     test('uses 44 pixel rows at mobile viewport widths', async ({ page }) => {
-        await page.setViewportSize({ width: 390, height: 844 })
         await openLayers2(page)
+        await page.setViewportSize({ width: 390, height: 844 })
+        await page.evaluate(() => {
+            window.L_.UserInterface_.isMobile = true
+        })
+        await page.getByRole('textbox', { name: 'Search layers' }).fill('points')
         const row = page.locator('.lt2-virtualRow').first()
         await expect(row).toBeVisible()
         expect(await row.evaluate((element) => element.getBoundingClientRect().height)).toBe(44)
@@ -868,5 +873,92 @@ test.describe('LayersTool2', () => {
         expect(openDuration).toBeLessThan(500)
         await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
         expect(await page.locator('.lt2-virtualRow').count()).toBeLessThan(80)
+    })
+
+    test('keeps the large-list scroll position and focus across settings', async ({
+        page,
+    }) => {
+        await page.goto('/?mission=Reference-Mission')
+        await page.waitForLoadState('networkidle', { timeout: 60000 })
+        await page.waitForFunction(
+            () => !!(window.mmgisAPI && window.mmgisAPI.map),
+            { timeout: 30000 }
+        )
+        await page.evaluate(() => {
+            const original = window.L_.configData.layers
+            const layers = Array.from({ length: 600 }, (_, index) => ({
+                name: `Layers2 focus ${index}`,
+                display_name: `Layers2 focus ${index}`,
+                type: 'vector',
+                tags: [],
+            }))
+            window.L_.configData.layers = [
+                ...original,
+                {
+                    name: 'Layers2 focus test',
+                    type: 'header',
+                    expanded: true,
+                    sublayers: layers,
+                },
+            ]
+            document.getElementById('toolButtonLayers2').click()
+        })
+        const tree = page.getByRole('tree', { name: 'Layers' })
+        await expect(tree).toBeVisible()
+        const row = page.getByRole('treeitem').filter({
+            hasText: 'Layers2 focus 500',
+        })
+        await tree.evaluate((element) => {
+            element.scrollTop = 580 * 31
+        })
+        await expect(row).toBeVisible()
+        await row.scrollIntoViewIfNeeded()
+        const scrollTop = await tree.evaluate((element) => element.scrollTop)
+        await row.locator('.lt2-title').click()
+        await expect(page.locator('.lt2-settings')).toBeVisible()
+        await page.getByRole('button', { name: 'Back to layers' }).click()
+        await expect(tree).toBeVisible()
+        await expect(row).toBeVisible()
+        expect(await tree.evaluate((element) => element.scrollTop)).toBe(scrollTop)
+        await expect(tree).toHaveAttribute(
+            'aria-activedescendant',
+            await row.getAttribute('id')
+        )
+        await row.locator('.lt2-title').click()
+        await expect(page.locator('.lt2-settings')).toBeVisible()
+    })
+
+    test('has no serious or critical axe violations in the list or vector settings', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        await page.addScriptTag({ path: axeSource })
+        const audit = async () =>
+            page.evaluate(async () => {
+                const root = document.querySelector('#layersTool2')
+                const results = await window.axe.run(root)
+                return results.violations
+                    .filter((violation) =>
+                        ['serious', 'critical'].includes(violation.impact)
+                    )
+                    .map(({ id, impact, description, nodes }) => ({
+                        id,
+                        impact,
+                        description,
+                        targets: nodes.map((node) => node.target),
+                    }))
+            })
+        expect(await audit()).toEqual([])
+
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points Basic')
+        await page.waitForTimeout(200)
+        await page
+            .getByRole('treeitem')
+            .filter({ hasText: 'Points Basic' })
+            .locator('.lt2-title')
+            .click()
+        await expect(page.locator('.lt2-settings')).toBeVisible()
+        expect(await audit()).toEqual([])
     })
 })

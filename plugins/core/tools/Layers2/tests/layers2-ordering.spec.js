@@ -293,6 +293,9 @@ test.describe('LayersTool2 flat ordering parity', () => {
             const savedNewHistory = newTool.orderingHistory
             const savedUrlTools = layers.FUTURES?.tools
             const savedGlobe = layers.Globe_
+            // Cesium mutates imagery-layer instances while sorting. Keep the
+            // replay differential isolated; startup ordering is tested with
+            // the live globe in its own fresh page below.
             layers.Globe_ = null
             const failures = []
             const rows = () =>
@@ -408,6 +411,53 @@ test.describe('LayersTool2 flat ordering parity', () => {
             results.failures,
             `${results.matched}/${results.histories} histories matched; failures: ${JSON.stringify(results.failures)}`
         ).toEqual([])
+    })
+
+    test('applies LayersTool2 URL ordering at startup with the globe active', async ({
+        page,
+    }) => {
+        const pageErrors = []
+        page.on('pageerror', (error) => pageErrors.push(error.stack || error.message))
+        await loadMission(page)
+        const history = [[5, 2, 2]]
+        const expectedOrder = await page.evaluate((entries) =>
+            window.ToolController_
+                .getTool('LayersTool2')
+                ._debugFlat(entries)
+                .filter((row) => row.type !== 'header')
+                .map((row) => row.name),
+        history)
+        const encodedHistory = history.map((entry) => entry.join('-')).join('.')
+        pageErrors.length = 0
+        await page.goto(
+            `/?mission=Reference-Mission&panePercents=0%2C0%2C100&tools=${encodeURIComponent(`LayersTool2$${encodedHistory}`)}`
+        )
+        await page.waitForLoadState('networkidle', { timeout: 60000 })
+        await page.waitForFunction(
+            () =>
+                window.L_?.FUTURES?.tools?.some((entry) =>
+                    String(entry).startsWith('LayersTool2$')
+                ) && window.L_?.Globe_?.litho,
+            { timeout: 30000 }
+        )
+        const startup = await page.evaluate(() => ({
+            order: window.L_._layersOrdered.slice(),
+            tools: window.L_.FUTURES.tools,
+            globeRenderer: window.L_.Globe_?.litho?.rendererType,
+            globeActive: [...document.querySelectorAll('button[role="switch"]')].some(
+                (button) =>
+                    button.textContent.trim() === 'Globe' &&
+                    button.getAttribute('aria-checked') === 'true'
+            ),
+            toolOpen: Boolean(document.getElementById('layersTool2')),
+        }))
+
+        expect(pageErrors).toEqual([])
+        expect(startup.tools).toContain(`LayersTool2$${encodedHistory}`)
+        expect(startup.order).toEqual(expectedOrder)
+        expect(startup.globeRenderer).toBeTruthy()
+        expect(startup.globeActive).toBe(true)
+        expect(startup.toolOpen).toBe(false)
     })
 
     test('repeats keyboard and mouse moves, undoes twice, and preserves config', async ({
