@@ -11,6 +11,28 @@ async function openLayers2(page) {
     await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
 }
 
+async function getLayer(page, label, type) {
+    const layer = await page.evaluate(
+        ({ searchLabel, layerType }) => {
+            const found = Object.values(window.L_.layers.data).find(
+                (candidate) =>
+                    (candidate.display_name === searchLabel ||
+                        candidate.name === searchLabel) &&
+                    (!layerType || candidate.type === layerType)
+            )
+            return found
+                ? {
+                      name: found.name,
+                      label: found.display_name || found.name,
+                  }
+                : null
+        },
+        { searchLabel: label, layerType: type }
+    )
+    expect(layer, `Layer ${label} (${type || 'any type'}) is configured`).not.toBeNull()
+    return layer
+}
+
 test.describe('LayersTool2', () => {
     test('opens, closes, and reopens with its list state intact', async ({
         page,
@@ -243,29 +265,28 @@ test.describe('LayersTool2', () => {
         page,
     }) => {
         await openLayers2(page)
-        const layerName = 'Points Basic'
+        const layer = await getLayer(page, 'Points Basic', 'vector')
         await page.evaluate(async (name) => {
-            const layer = window.L_.layers.data[name]
-            if (layer && !window.L_.layers.on[name])
-                await window.L_.toggleLayer(layer)
-        }, layerName)
+            const item = window.L_.layers.data[name]
+            if (!window.L_.layers.on[name]) await window.L_.toggleLayer(item)
+        }, layer.name)
         const search = page.getByRole('textbox', { name: 'Search layers' })
-        await search.fill(layerName)
+        await search.fill(layer.label)
         await page.waitForTimeout(180)
-        let row = page.locator('.lt2-layerRow').filter({ hasText: layerName }).first()
+        let row = page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first()
         await row.locator('.lt2-title').click()
         const visible = page.getByRole('checkbox', { name: 'Visible' })
         await expect(visible).toBeChecked()
         await page.evaluate(async (name) => {
             await window.L_.toggleLayer(window.L_.layers.data[name])
-        }, layerName)
+        }, layer.name)
         await expect(visible).not.toBeChecked()
         await page.keyboard.press('Escape')
-        row = page.locator('.lt2-layerRow').filter({ hasText: layerName }).first()
+        row = page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first()
         await row.locator('.lt2-title').click()
         await expect(visible).toBeChecked()
         expect(
-            await page.evaluate((name) => window.L_.layers.on[name], layerName)
+            await page.evaluate((name) => window.L_.layers.on[name], layer.name)
         ).toBe(true)
     })
 
@@ -273,15 +294,15 @@ test.describe('LayersTool2', () => {
         page,
     }) => {
         await openLayers2(page)
-        const layerName = 'Points Basic'
-        await page.getByRole('textbox', { name: 'Search layers' }).fill(layerName)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
         await page.waitForTimeout(180)
-        const row = page.locator('.lt2-layerRow').filter({ hasText: layerName }).first()
+        const row = page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first()
         const visible = row.getByRole('checkbox')
         const target = !(await visible.isChecked())
         await page.evaluate(
             async ({ name, on }) => window.mmgisAPI.toggleLayer(name, on),
-            { name: layerName, on: target }
+            { name: layer.name, on: target }
         )
         if (target) await expect(visible).toBeChecked()
         else await expect(visible).not.toBeChecked()
@@ -306,10 +327,11 @@ test.describe('LayersTool2', () => {
         page,
     }) => {
         await openLayers2(page)
-        const layerName = 'Points Basic'
-        await page.getByRole('textbox', { name: 'Search layers' }).fill(layerName)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        const layerName = layer.name
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
         await page.waitForTimeout(180)
-        await page.locator('.lt2-layerRow').filter({ hasText: layerName }).first().locator('.lt2-title').click()
+        await page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first().locator('.lt2-title').click()
         const filter = page.locator('#layersTool_filtering')
         await expect(filter).toBeVisible()
         await expect(filter.locator('.layersTool_filtering_value_key_input')).toBeVisible()
@@ -362,7 +384,12 @@ test.describe('LayersTool2', () => {
         await expect(filter.locator('#layersTool_filtering_count')).toHaveText(
             `(${after}/${before})`
         )
-        const row = page.locator('.lt2-layerRow').filter({ hasText: layerName }).first()
+        await filter.locator('#layersTool_filtering_add_group').click()
+        await expect(
+            filter.locator('.layersTool_filtering_group_operator_select')
+        ).toBeVisible()
+        await page.getByRole('button', { name: 'Back to layers' }).click()
+        const row = page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first()
         await expect(row.locator('.lt2-statusFiltered')).toBeVisible()
         const filtered = page.getByRole('button', {
             name: 'Show only filtered layers',
@@ -371,10 +398,19 @@ test.describe('LayersTool2', () => {
         await expect(row).toBeVisible()
         await filtered.click()
 
-        await filter.locator('#layersTool_filtering_add_group').click()
-        await expect(
-            filter.locator('.layersTool_filtering_group_operator_select')
-        ).toBeVisible()
+        await row.locator('.lt2-title').click()
+        const reopenedFilter = page.locator('#layersTool_filtering')
+        await reopenedFilter.locator('#layersTool_filtering_clear').click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) => window.L_.layers.layer[name].toGeoJSON().features.length,
+                    layerName
+                )
+            )
+            .toBe(before)
+        await page.getByRole('button', { name: 'Back to layers' }).click()
+        await expect(row.locator('.lt2-statusFiltered')).toHaveCount(0)
     })
 
     test('opens settings for each configured layer type', async ({ page }) => {
@@ -416,22 +452,30 @@ test.describe('LayersTool2', () => {
         const fixtures = await page.evaluate(() => {
             const layers = Object.values(window.L_.layers.data)
             return ['image', 'velocity'].map(
-                (type) => layers.find((layer) => layer.type === type)?.name
+                (type) => {
+                    const layer = layers.find((item) => item.type === type)
+                    return layer
+                        ? { name: layer.name, label: layer.display_name || layer.name }
+                        : null
+                }
             )
         })
-        test.skip(fixtures.some((name) => !name), 'Image or velocity fixture is missing')
-        for (const name of fixtures) {
-            await page.evaluate(async (layerName) => {
-                const layer = window.L_.layers.data[layerName]
-                if (!window.L_.layers.on[layerName])
-                    await window.L_.toggleLayer(layer)
-            }, name)
+        expect(fixtures.every(Boolean), 'Image and velocity fixtures exist').toBe(true)
+        for (const fixture of fixtures) {
+            await page.evaluate(
+                async (layerName) => window.mmgisAPI.toggleLayer(layerName, true),
+                fixture.name
+            )
             await expect
                 .poll(() =>
                     page.evaluate(
-                        (layerName) =>
-                            Boolean(window.L_.layers.layer[layerName]),
-                        name
+                        (name) =>
+                            Boolean(
+                                window.L_.Map_.map.hasLayer(
+                                    window.L_.layers.layer[name]
+                                )
+                            ),
+                        fixture.name
                     )
                 )
                 .toBe(true)
@@ -442,18 +486,20 @@ test.describe('LayersTool2', () => {
         page,
     }) => {
         await openLayers2(page)
-        const name = await page.evaluate(
-            () =>
-                Object.values(window.L_.layers.data).find(
-                    (layer) => layer.type === 'video'
-                )?.name
-        )
-        test.skip(!name, 'Reference Mission has no video fixture')
-        await page.getByRole('textbox', { name: 'Search layers' }).fill(name)
+        const video = await page.evaluate(() => {
+            const layer = Object.values(window.L_.layers.data).find(
+                (candidate) => candidate.type === 'video'
+            )
+            return layer
+                ? { name: layer.name, label: layer.display_name || layer.name }
+                : null
+        })
+        expect(video, 'Reference Mission has a video fixture').not.toBeNull()
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(video.label)
         await page.waitForTimeout(180)
         await page
             .locator('.lt2-layerRow')
-            .filter({ hasText: name })
+            .filter({ hasText: video.label })
             .first()
             .locator('.lt2-title')
             .click()
@@ -465,11 +511,15 @@ test.describe('LayersTool2', () => {
         ).toBeVisible()
         await page.getByRole('button', { name: 'Pause video' }).click()
         await expect(play).toBeVisible()
-        await page.getByRole('button', { name: 'Mute video' }).click()
-        await expect(
-            page.getByRole('button', { name: 'Unmute video' })
-        ).toBeVisible()
-        const scrub = page.locator('.lt2-videoScrub [role="slider"]').first()
+        const mute = page.locator('.lt2-videoControls button').nth(2)
+        const previousMuteLabel = await mute.getAttribute('aria-label')
+        expect(['Mute video', 'Unmute video']).toContain(previousMuteLabel)
+        await mute.click()
+        await expect(mute).toHaveAttribute(
+            'aria-label',
+            previousMuteLabel === 'Mute video' ? 'Unmute video' : 'Mute video'
+        )
+        const scrub = page.locator('.lt2-videoScrub input[type="range"]').first()
         await scrub.focus()
         await scrub.press('ArrowRight')
         await expect
@@ -479,7 +529,7 @@ test.describe('LayersTool2', () => {
                         window.L_.layers.layer[layerName]
                             .getElement()
                             .currentTime,
-                    name
+                    video.name
                 )
             )
             .toBeGreaterThan(0)
@@ -489,7 +539,7 @@ test.describe('LayersTool2', () => {
         page,
     }) => {
         await openLayers2(page)
-        const name = await page.evaluate(() => {
+        const layer = await page.evaluate(() => {
             const visit = (nodes) => {
                 for (const node of nodes || []) {
                     if (node.type === 'header') {
@@ -499,18 +549,18 @@ test.describe('LayersTool2', () => {
                         node.type === 'vector' &&
                         node.variables?.dynamicStyle?.enabled === true
                     )
-                        return node.name
+                        return { name: node.name, label: node.display_name || node.name }
                 }
                 return null
             }
             return visit(window.L_.configData.layers)
         })
-        test.skip(!name, 'Reference Mission has no dynamic-style vector layer')
-        await page.getByRole('textbox', { name: 'Search layers' }).fill(name)
+        expect(layer, 'Reference Mission has a dynamic-style vector layer').not.toBeNull()
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
         await page.waitForTimeout(180)
         await page
             .locator('.lt2-layerRow')
-            .filter({ hasText: name })
+            .filter({ hasText: layer.label })
             .first()
             .locator('.lt2-title')
             .click()
@@ -635,7 +685,7 @@ test.describe('LayersTool2', () => {
         page,
     }) => {
         await openLayers2(page)
-        const name = await page.evaluate(() => {
+        const layer = await page.evaluate(() => {
             const layer = Object.values(window.L_.layers.data).find(
                 (candidate) =>
                     candidate.type === 'tile' &&
@@ -643,14 +693,16 @@ test.describe('LayersTool2', () => {
                         candidate.cogTransform === true ||
                         candidate.url?.startsWith('COG:'))
             )
-            return layer?.name
+            return layer
+                ? { name: layer.name, label: layer.display_name || layer.name }
+                : null
         })
-        test.skip(!name, 'Reference Mission has no configured COG tile')
-        await page.getByRole('textbox', { name: 'Search layers' }).fill(name)
+        expect(layer, 'Reference Mission has a configured COG tile').not.toBeNull()
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
         await page.waitForTimeout(180)
         await page
             .locator('.lt2-layerRow')
-            .filter({ hasText: name })
+            .filter({ hasText: layer.label })
             .first()
             .locator('.lt2-title')
             .click()
@@ -662,7 +714,7 @@ test.describe('LayersTool2', () => {
             }
             const layer = window.L_.layers.data[layerName]
             layer.currentCogMin = Number(layer.cogMin || 0) + 5
-        }, name)
+        }, layer.name)
         await page.getByRole('button', { name: 'Reset all settings' }).click()
         await expect
             .poll(() =>
@@ -674,18 +726,18 @@ test.describe('LayersTool2', () => {
                         layer.currentCogMin,
                         layer.cogMin,
                     ]
-                }, name)
+                }, layer.name)
             )
             .toEqual([
                 1,
                 undefined,
                 await page.evaluate(
                     (layerName) => window.L_.layers.data[layerName].cogMin,
-                    name
+                    layer.name
                 ),
                 await page.evaluate(
                     (layerName) => window.L_.layers.data[layerName].cogMin,
-                    name
+                    layer.name
                 ),
             ])
     })
@@ -723,207 +775,6 @@ test.describe('LayersTool2', () => {
         const row = page.locator('.lt2-virtualRow').first()
         await expect(row).toBeVisible()
         expect(await row.evaluate((element) => element.getBoundingClientRect().height)).toBe(44)
-    })
-
-    test('captures LayersTool2 comparison screenshots', async ({ page }) => {
-        await openLayers2(page)
-        const names = await page.evaluate(() => {
-            const layers = []
-            const visit = (nodes) =>
-                (nodes || []).forEach((node) => {
-                    if (node.type === 'header') visit(node.sublayers)
-                    else layers.push(node)
-                })
-            visit(window.L_.configData.layers)
-            return {
-                vector: layers.find((layer) => layer.name === 'Points Basic')?.name,
-                raster: layers.find(
-                    (layer) =>
-                        layer.type === 'tile' && layer.cogColormapJson != null
-                )?.name,
-                basemap: layers.find(
-                    (layer) =>
-                        layer.type === 'tile' &&
-                        /arcgisonline|arcgis/i.test(layer.url || '')
-                )?.name,
-                data: layers.find((layer) => layer.type === 'data')?.name,
-                cog: layers.find(
-                    (layer) =>
-                        layer.type === 'tile' &&
-                        layer.cogColormapJson != null
-                )?.name,
-                rampCog: layers.find(
-                    (layer) =>
-                        layer.type === 'tile' &&
-                        layer.cogTransform === true &&
-                        layer.cogColormapJson == null
-                )?.name,
-                expressionCog: layers.find(
-                    (layer) =>
-                        layer.type === 'tile' &&
-                        layer.cogExpressionEditable === true
-                )?.name,
-                video: layers.find((layer) => layer.type === 'video')?.name,
-                image: layers.find((layer) => layer.type === 'image')?.name,
-                velocity: layers.find((layer) => layer.type === 'velocity')?.name,
-            }
-        })
-        const captureRow = async (name, file) => {
-            test.skip(!name, `No layer configured for ${file}`)
-            const search = page.getByRole('textbox', { name: 'Search layers' })
-            await search.fill(name)
-            await page.waitForTimeout(180)
-            const row = page.locator('.lt2-layerRow').filter({ hasText: name }).first()
-            await expect(row).toBeVisible()
-            await page.screenshot({
-                path: `/home/ubuntu/work/lt2-shots/${file}`,
-                fullPage: true,
-            })
-        }
-        await captureRow(names.vector, 'list.png')
-        await captureRow(names.raster, 'raster-preview.png')
-
-        await page.evaluate(async (name) => {
-            const layer = window.L_.layers.data[name]
-            if (layer && !window.L_.layers.on[name])
-                await window.mmgisAPI.toggleLayer(name, true)
-        }, names.basemap)
-        await page.getByRole('button', { name: 'Expand all' }).click()
-        await page.getByRole('textbox', { name: 'Search layers' }).fill('')
-        await page.waitForTimeout(220)
-        const captureGroup = async (groupName, file) => {
-            test.skip(!groupName, `No layer group configured for ${file}`)
-            const index = await page.evaluate((name) => {
-                const rows = []
-                const visit = (nodes) =>
-                    (nodes || []).forEach((node) => {
-                        rows.push(node)
-                        if (node.type === 'header') visit(node.sublayers)
-                    })
-                visit(window.L_.configData.layers)
-                return rows.findIndex(
-                    (node) => node.type === 'header' && node.name === name
-                )
-            }, groupName)
-            await page.locator('.lt2-scroll').evaluate((element, rowIndex) => {
-                element.scrollTop = rowIndex * 31
-            }, index)
-            await page.waitForTimeout(1200)
-            const header = page
-                .locator('.lt2-headerRow')
-                .filter({ hasText: groupName })
-                .first()
-            await expect(header).toBeVisible()
-            await page.screenshot({
-                path: `/home/ubuntu/work/lt2-shots/${file}`,
-                fullPage: true,
-            })
-        }
-        await captureGroup('Basemaps', 'basemap-peek.png')
-        await captureGroup('Raster Layers', 'raster-group.png')
-
-        const openSettings = async (name, file) => {
-            test.skip(!name, `No layer configured for ${file}`)
-            const search = page.getByRole('textbox', { name: 'Search layers' })
-            await search.fill(name)
-            await page.waitForTimeout(180)
-            await page
-                .locator('.lt2-layerRow')
-                .filter({ hasText: name })
-                .first()
-                .locator('.lt2-title')
-                .click()
-            await expect(page.locator('.lt2-settings')).toBeVisible()
-            if (file === 'vector-settings.png')
-                await expect(page.locator('#layersTool_filtering')).toBeVisible()
-            if (file === 'tile-cog-settings.png') {
-                const settings = page.locator('.lt2-settings')
-                await expect(
-                    settings.locator('[data-section="display"]')
-                ).toContainText('Opacity')
-                await expect(
-                    settings.locator('[data-section="cog"] .lt2-typeSettingsCogLegend')
-                ).toContainText('Applied rescale')
-                await expect(
-                    settings.locator('.lt2-typeSettingsColorTable')
-                ).toBeVisible()
-            }
-            if (file === 'tile-js-colormap-settings.png')
-                await expect(
-                    page.locator('.lt2-settings .lt2-typeSettingsLegendRamp')
-                ).toBeVisible()
-            await page.screenshot({
-                path: `/home/ubuntu/work/lt2-shots/${file}`,
-                fullPage: true,
-            })
-            await page.keyboard.press('Escape')
-        }
-        await openSettings(names.vector, 'vector-settings.png')
-        await openSettings(names.cog, 'tile-cog-settings.png')
-        if (names.rampCog)
-            await openSettings(names.rampCog, 'tile-js-colormap-settings.png')
-        if (names.expressionCog) {
-            await page
-                .getByRole('textbox', { name: 'Search layers' })
-                .fill(names.expressionCog)
-            await page.waitForTimeout(180)
-            await page
-                .locator('.lt2-layerRow')
-                .filter({ hasText: names.expressionCog })
-                .first()
-                .locator('.lt2-title')
-                .click()
-            const expression = page.getByRole('textbox', {
-                name: 'Band math expression',
-            })
-            await expect(expression).toBeVisible()
-            const original = await page.evaluate(
-                (name) =>
-                    window.L_.layers.data[name].currentCogExpression ||
-                    window.L_.layers.data[name].cogExpression ||
-                    '',
-                names.expressionCog
-            )
-            await expression.fill('b1*2')
-            await page
-                .getByRole('button', { name: 'Apply', exact: true })
-                .click()
-            await expect
-                .poll(() =>
-                    page.evaluate(
-                        (name) =>
-                            window.L_.layers.data[name].currentCogExpression,
-                        names.expressionCog
-                    )
-                )
-                .toBe('b1*2')
-            await page
-                .getByRole('button', { name: 'Reset expression' })
-                .click()
-            await expect(expression).toHaveValue(original)
-            await page.keyboard.press('Escape')
-        }
-        await openSettings(names.data, 'data-settings.png')
-        await openSettings(names.video, 'video-settings.png')
-
-        const captureMapLayer = async (name, file) => {
-            test.skip(!name, `No layer configured for ${file}`)
-            const search = page.getByRole('textbox', { name: 'Search layers' })
-            await search.fill(name)
-            await page.waitForTimeout(180)
-            await page.evaluate(async (layerName) => {
-                const layer = window.L_.layers.data[layerName]
-                if (layer && !window.L_.layers.on[layerName])
-                    await window.L_.toggleLayer(layer)
-            }, name)
-            await page.waitForTimeout(600)
-            await page.screenshot({
-                path: `/home/ubuntu/work/lt2-shots/${file}`,
-                fullPage: true,
-            })
-        }
-        await captureMapLayer(names.image, 'image-map.png')
-        await captureMapLayer(names.velocity, 'velocity-map.png')
     })
 
     test('virtualizes a 600 layer tree', async ({ page }) => {

@@ -52,11 +52,21 @@ const Filtering = {
     },
     /** Ask the layer's type to apply the layer's current filter state. */
     applyFilter: async function (layerName, ctx = {}) {
-        return LayerInterface.run(filterModuleOf(layerName), 'filter', [
-            layerName,
-            Filtering.filters[layerName],
-            ctx,
-        ])
+        const result = await LayerInterface.run(
+            filterModuleOf(layerName),
+            'filter',
+            [
+                layerName,
+                Filtering.filters[layerName],
+                ctx,
+            ]
+        )
+        document.dispatchEvent(
+            new CustomEvent('layersToolFilterStateChange', {
+                detail: { layerName },
+            })
+        )
+        return result
     },
     initialize: function () {
         Object.keys(L_.layers.data).forEach((layerName) => {
@@ -121,9 +131,9 @@ const Filtering = {
 
         let aggs = await Filtering.getAggregations(layerName)
         if (requestId !== Filtering.makeRequestId) return
-        // null == the type has a filtering strategy but could not answer (a
-        // vector layer with no readable GeoJSON); there is nothing to show.
-        if (aggs === null) return
+        // A filter strategy that cannot return aggregations still has useful
+        // manual controls; render the host so users can enter a property.
+        if (aggs === null) aggs = {}
         // A layer with nothing loaded yet offers only its geometry, and that
         // answer is cached, so ask again from the features it has by now -
         // unless a filter is active, whose cache is the unfiltered data.
@@ -177,6 +187,13 @@ const Filtering = {
 
         Filtering.currentContainer = container
         container.append(markup)
+        const initialFeatures =
+            Filtering.filters[layerName].geojson?.features ||
+            L_.layers.layer[layerName]?.toGeoJSON?.().features ||
+            []
+        $('#layersTool_filtering_count').text(
+            `(${initialFeatures.length}/${initialFeatures.length})`
+        )
 
         // In case of reopening the tool, recreate state
         let values = JSON.parse(
@@ -853,7 +870,7 @@ const Filtering = {
                 Filtering.setSubmitButtonState(true)
             },
         })
-        $(elmId).on('keyup', function (e) {
+        $(elmId).on('input', function () {
             Filtering.filters[layerName].values[id].value = $(this).val()
             Filtering.setSubmitButtonState(true)
         })

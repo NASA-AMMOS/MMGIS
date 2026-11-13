@@ -110,24 +110,14 @@ function layerIsOn(layer) {
 }
 
 function layerIsFiltered(layer) {
+    if (!layer || layer.type !== 'vector') return false
+    if (layer._filterEncoded?.filters || layer._filterEncoded?.spatialFilter)
+        return true
+
     const filter = Filtering.filters[layer.name]
-    const encoded = layer._filterEncoded
-    if (!Filtering.isFilterable(layer.name)) return false
-    if (encoded?.filters || encoded?.spatialFilter) return true
-    return !!(
-        filter?.spatial?.center != null ||
-        (filter?.values || []).some(
-            (value) =>
-                value &&
-                !value.isGroup &&
-                value.key != null &&
-                value.key !== '' &&
-                value.type != null &&
-                (value.value != null ||
-                    value.op === 'isnull' ||
-                    value.op === 'isnotnull')
-        )
-    )
+    if (filter?.values?.some((value) => value && !value.isGroup && value.type != null))
+        return true
+    return filter?.spatial?.center != null
 }
 
 function activeError(layer) {
@@ -1361,11 +1351,19 @@ function LayersTool2App({ vars }) {
             store.updateState({
                 layerVersion: store.getState().layerVersion + 1,
             })
+        const onFilterStateChange = () =>
+            store.updateState({
+                layerVersion: store.getState().layerVersion + 1,
+            })
         window.addEventListener('resize', onResize)
         L_.subscribeOnLayerToggle('LayersTool2', onLayerToggle)
         document.addEventListener(
             'layerRefreshStatusChanged',
             onRefreshStatus
+        )
+        document.addEventListener(
+            'layersToolFilterStateChange',
+            onFilterStateChange
         )
         return () => {
             window.removeEventListener('resize', onResize)
@@ -1373,6 +1371,10 @@ function LayersTool2App({ vars }) {
             document.removeEventListener(
                 'layerRefreshStatusChanged',
                 onRefreshStatus
+            )
+            document.removeEventListener(
+                'layersToolFilterStateChange',
+                onFilterStateChange
             )
         }
     }, [])

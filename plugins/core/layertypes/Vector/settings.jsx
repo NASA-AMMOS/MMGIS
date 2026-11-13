@@ -35,9 +35,16 @@ function FilterSettings({ layer, api }) {
         container.classList.add('gears_on')
         const refreshList = () =>
             requestAnimationFrame(() => api.refresh())
+        const onFilterStateChange = (event) => {
+            if (event.detail?.layerName === layer.name) api.refresh()
+        }
         container.addEventListener('input', refreshList)
         container.addEventListener('change', refreshList)
         container.addEventListener('click', refreshList)
+        document.addEventListener(
+            'layersToolFilterStateChange',
+            onFilterStateChange
+        )
         let disposed = false
         Filtering.current = {
             layerName: layer.name,
@@ -57,12 +64,21 @@ function FilterSettings({ layer, api }) {
                     Filtering.currentContainer = null
                 }
             })
-            .catch(() => {})
+            .catch((error) => {
+                console.error(
+                    `LayersTool2 filter UI failed for ${layer.display_name || layer.name}`,
+                    error
+                )
+            })
         return () => {
             disposed = true
             container.removeEventListener('input', refreshList)
             container.removeEventListener('change', refreshList)
             container.removeEventListener('click', refreshList)
+            document.removeEventListener(
+                'layersToolFilterStateChange',
+                onFilterStateChange
+            )
             if (
                 Filtering.current.layerName === layer.name &&
                 Filtering.currentContainer?.[0] === container

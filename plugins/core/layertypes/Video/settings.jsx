@@ -63,8 +63,9 @@ function VideoSettings({ layer }) {
                     variant="secondary"
                     aria-label={muted ? 'Unmute video' : 'Mute video'}
                     onClick={() => {
-                        video.muted = !video.muted
-                        setMuted(video.muted)
+                        const nextMuted = !muted
+                        video.muted = nextMuted
+                        setMuted(nextMuted)
                     }}
                 >
                     <i className={`mdi mdi-volume-${muted ? 'off' : 'high'} mdi-16px`} />
