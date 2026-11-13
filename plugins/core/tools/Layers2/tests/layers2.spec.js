@@ -116,6 +116,69 @@ test.describe('LayersTool2', () => {
         await expect(tree).toBeVisible()
     })
 
+    test('LayerInfo closes locally and restores focus to either launcher', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points Basic')
+        await page.waitForTimeout(180)
+
+        const rowInfo = page
+            .locator('.lt2-headerRow')
+            .filter({ hasText: 'Geometry Types' })
+            .locator('button.lt2-status')
+        await rowInfo.focus()
+        await rowInfo.click()
+        const dialog = page.getByRole('dialog', { name: 'Information' })
+        await expect(dialog).toBeVisible()
+        await expect(dialog).toHaveAttribute('aria-modal', 'true')
+        await page.keyboard.press('Escape')
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () => !document.getElementById('LayerInfoModal')
+                )
+            )
+            .toBe(true)
+        await expect
+            .poll(() =>
+                rowInfo.evaluate(
+                    (element) => element === document.activeElement
+                )
+            )
+            .toBe(true)
+        await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+
+        await page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: 'Points Basic' })
+            .first()
+            .locator('.lt2-title')
+            .click()
+        const settingsInfo = page.getByRole('button', {
+            name: 'Layer information',
+        })
+        await settingsInfo.focus()
+        await settingsInfo.click()
+        await expect(dialog).toBeVisible()
+        await page.locator('#LayerInfoModalClose').click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () => !document.getElementById('LayerInfoModal')
+                )
+            )
+            .toBe(true)
+        await expect
+            .poll(() =>
+                settingsInfo.evaluate(
+                    (element) => element === document.activeElement
+                )
+            )
+            .toBe(true)
+    })
+
     test('keyboard reorder round-trips its URL history', async ({ page }) => {
         await openLayers2(page)
         const tree = page.getByRole('tree', { name: 'Layers' })
@@ -999,6 +1062,12 @@ test.describe('LayersTool2', () => {
             .click()
         const blend = page.getByRole('combobox', { name: 'Blend mode' })
         await expect(blend).toBeVisible()
+        await expect(
+            page.locator('.lt2-settings [data-section="display"]')
+        ).toHaveCount(1)
+        await expect(
+            page.getByRole('heading', { name: 'Display' })
+        ).toHaveCount(1)
         for (const [label, value] of [
             ['Color', 'color'],
             ['Overlay', 'overlay'],
@@ -1424,7 +1493,9 @@ test.describe('LayersTool2', () => {
         await page.getByRole('textbox', { name: 'Search layers' }).fill('points')
         const row = page.locator('.lt2-virtualRow').first()
         await expect(row).toBeVisible()
-        expect(await row.evaluate((element) => element.getBoundingClientRect().height)).toBe(44)
+        await expect
+            .poll(() => row.evaluate((element) => element.getBoundingClientRect().height))
+            .toBe(44)
     })
 
     test('virtualizes a 600 layer tree', async ({ page }) => {

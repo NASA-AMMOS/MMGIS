@@ -1,4 +1,10 @@
 import { test, expect } from '@playwright/test'
+import {
+    applyLiveMove,
+    descendantsOf,
+    flatten,
+    replay,
+} from '../ordering.js'
 
 async function loadMission(page) {
     await page.goto('/?mission=Reference-Mission')
@@ -475,6 +481,118 @@ test.describe('LayersTool2 flat ordering parity', () => {
         expect(startup.globeRenderer).toBeTruthy()
         expect(startup.globeActive).toBe(true)
         expect(startup.toolOpen).toBe(false)
+    })
+
+    test('Alt+Down moves an expanded header past its whole subtree', async ({
+        page,
+    }) => {
+        await loadMission(page)
+        await page.locator('#toolButtonLayers2').click()
+        const tree = page.getByRole('tree', { name: 'Layers' })
+        await expect(tree).toBeVisible()
+        await page.getByRole('button', { name: 'Expand all' }).click()
+
+        const configLayers = await page.evaluate(
+            () => window.L_.configData.layers
+        )
+        const flat = flatten(configLayers)
+        const headerIndex = flat.findIndex((row, index) => {
+            if (row.type !== 'header') return false
+            const descendants = descendantsOf(flat, index)
+            const targetIndex = index + descendants.length + 1
+            return (
+                descendants.some((descendant) => descendant.type === 'header') &&
+                targetIndex < flat.length
+            )
+        })
+        expect(headerIndex).toBeGreaterThanOrEqual(0)
+        const targetIndex =
+            headerIndex + descendantsOf(flat, headerIndex).length + 1
+        const expandedMap = Object.fromEntries(
+            flat
+                .filter((row) => row.type === 'header')
+                .map((row) => [row.name, true])
+        )
+        const liveMove = applyLiveMove(
+            flat,
+            headerIndex,
+            targetIndex,
+            expandedMap
+        )
+        const expectedFlat = replay(flat, [liveMove.entry]).flat
+        const headerKey = flat[headerIndex].key
+        const headerRowId = `lt2-row-${headerKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+
+        await tree.focus()
+        await expect
+            .poll(() => tree.getAttribute('aria-activedescendant'))
+            .not.toBeNull()
+        for (let attempt = 0; attempt < flat.length; attempt += 1) {
+            if (
+                (await tree.getAttribute('aria-activedescendant')) ===
+                headerRowId
+            )
+                break
+            await page.keyboard.press('ArrowDown')
+        }
+        await expect(tree).toHaveAttribute(
+            'aria-activedescendant',
+            headerRowId
+        )
+        await page.keyboard.press('Alt+ArrowDown')
+
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        window.ToolController_.getTool('LayersTool2')
+                            .orderingHistory.length
+                )
+            )
+            .toBe(1)
+        const actual = await page.evaluate(() => {
+            const tool = window.ToolController_.getTool('LayersTool2')
+            const flat = tool._debugFlat()
+            return {
+                history: tool.orderingHistory,
+                flat: flat.map(({ key, depth }) => ({ key, depth })),
+                order: window.L_._layersOrdered.slice(),
+            }
+        })
+        expect(actual.history).toEqual([liveMove.entry])
+        expect(actual.flat).toEqual(
+            expectedFlat.map(({ key, depth }) => ({ key, depth }))
+        )
+        expect(actual.order).toEqual(
+            expectedFlat
+                .filter((row) => row.type !== 'header')
+                .map((row) => row.name)
+        )
+    })
+
+    test('Alt+Up on the first row does not change ordering or show a toast', async ({
+        page,
+    }) => {
+        await loadMission(page)
+        await page.locator('#toolButtonLayers2').click()
+        const tree = page.getByRole('tree', { name: 'Layers' })
+        await expect(tree).toBeVisible()
+        await tree.focus()
+        await page.keyboard.press('Home')
+        const before = await page.evaluate(() => ({
+            history: window.ToolController_.getTool('LayersTool2')
+                .orderingHistory,
+            order: window.L_._layersOrdered.slice(),
+        }))
+        await page.keyboard.press('Alt+ArrowUp')
+        await page.waitForTimeout(100)
+        const after = await page.evaluate(() => ({
+            history: window.ToolController_.getTool('LayersTool2')
+                .orderingHistory,
+            order: window.L_._layersOrdered.slice(),
+        }))
+        expect(after).toEqual(before)
+        await expect(page.locator('.lt2-toast')).toHaveCount(0)
     })
 
     test('repeats keyboard and mouse moves, undoes twice, and preserves config', async ({
