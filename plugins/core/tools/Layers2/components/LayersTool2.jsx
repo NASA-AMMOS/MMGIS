@@ -477,7 +477,7 @@ function SearchBox({ value, onChange, onExpandAll, onCollapseAll, onRestore, tag
                 <i className="mdi mdi-magnify mdi-18px" aria-hidden="true" />
                 <input
                     aria-label="Search layers"
-                    placeholder="Search name, description, #tag"
+                    placeholder="Search layers, #tags"
                     value={query}
                     onChange={(event) => change(event.target.value)}
                     onKeyDown={(event) => {
@@ -696,17 +696,29 @@ function LayerRow({
     const geometry =
         layer.geometryType ||
         layer.variables?.geometryType ||
+        rendered?.feature?.geometry?.type ||
         firstFeature?.feature?.geometry?.type ||
+        rendered?.toGeoJSON?.().features?.find?.((feature) => feature.geometry)?.geometry?.type ||
         ''
+    const pointGeometry =
+        /point/i.test(geometry) || (!geometry && layer.style?.radius != null)
+    const lineGeometry =
+        /line/i.test(geometry) ||
+        (!geometry &&
+            layer.style?.strokeColor &&
+            layer.style?.fillColor == null)
     const glyphShape = VECTOR_TYPES.has(layer.type)
-        ? /point/i.test(geometry)
+        ? pointGeometry
             ? 'point'
-            : /line/i.test(geometry)
+            : lineGeometry
               ? 'line'
               : 'polygon'
         : null
     const glyphColor =
-        layer.style?.fillColor || layer.style?.color || color
+        layer.style?.fillColor ||
+        layer.style?.strokeColor ||
+        layer.style?.color ||
+        color
     return (
         <div
             className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
@@ -967,7 +979,8 @@ function CoreSettings({ layer, api }) {
                     </Button>
                 </SettingSection>
             )}
-            <SettingSection id="export" label="Export" onReset={() => api.reset('export')}>
+            {['vector', 'query'].includes(layer.type) && (
+                <SettingSection id="export" label="Export" onReset={() => api.reset('export')}>
                 <div className="lt2-field">
                     <label>Format</label>
                     <Select
@@ -1019,7 +1032,7 @@ function CoreSettings({ layer, api }) {
                         />
                     </div>
                 )}
-                <Button size="sm" variant="secondary" disabled={exportBusy} onClick={exportLayer}>
+                <Button className="lt2-iconTextButton" size="sm" variant="secondary" disabled={exportBusy} onClick={exportLayer}>
                     <i className="mdi mdi-download" /> {exportBusy ? 'Preparing…' : 'Download data'}
                 </Button>
                 {exportBusy && <progress aria-label="Export progress" />}
@@ -1033,7 +1046,25 @@ function CoreSettings({ layer, api }) {
                     </Button>
                 )}
                 {exportError && <div className="lt2-inlineError" role="alert">{exportError}</div>}
-            </SettingSection>
+                </SettingSection>
+            )}
+            {['tile', 'data'].includes(layer.type) &&
+                layer.variables?.downloadURL && (
+                    <SettingSection
+                        id="export"
+                        label="Export"
+                        onReset={() => api.reset('export')}
+                    >
+                        <a
+                            className="lt2-sourceDownload"
+                            href={layer.variables.downloadURL}
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            Download Data
+                        </a>
+                    </SettingSection>
+                )}
             {pluginSections.map((section) => {
                 const Component = section.Component
                 return (
@@ -1059,7 +1090,7 @@ function CoreSettings({ layer, api }) {
             })}
             <div className="lt2-pluginActions">
                 {pluginActions.map((action) => (
-                    <Button key={action.id} size="sm" variant="secondary" onClick={() => action.onClick?.(api)}>
+                    <Button className="lt2-iconTextButton" key={action.id} size="sm" variant="secondary" onClick={() => action.onClick?.(api)}>
                         {action.icon && <i className={`mdi mdi-${action.icon}`} />} {action.label}
                     </Button>
                 ))}
@@ -1117,8 +1148,17 @@ function SettingsPage({ row, api, onBack }) {
                 <div className="lt2-avatar" aria-hidden="true">
                     <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
                 </div>
-                <div className="lt2-settingsName">{row.label}</div>
-                <div className="lt2-path">{row.path.join(' › ')}</div>
+                <div className="lt2-settingsName" title={row.label}>{row.label}</div>
+                <div className="lt2-path" title={row.path.join(' › ')}>
+                    {row.path.map((part, index) => (
+                        <React.Fragment key={`${part}-${index}`}>
+                            {index > 0 && <span className="lt2-pathSeparator">›</span>}
+                            <span className={`lt2-pathSegment ${index > 0 && index < row.path.length - 1 ? 'lt2-pathMiddle' : ''}`}>
+                                {part}
+                            </span>
+                        </React.Fragment>
+                    ))}
+                </div>
                 <Checkbox
                     checked={visible}
                     onCheckedChange={async (checked) => {
@@ -1153,7 +1193,7 @@ function SettingsPage({ row, api, onBack }) {
                 <CoreSettings layer={layer} api={api} />
             </div>
             <div className="lt2-settingsFooter">
-                <Button size="sm" variant="secondary" onClick={() => api.resetAll()}>
+                <Button className="lt2-iconTextButton" size="sm" variant="secondary" onClick={() => api.resetAll()}>
                     <i className="mdi mdi-restore" /> Reset all settings
                 </Button>
             </div>
@@ -1163,6 +1203,9 @@ function SettingsPage({ row, api, onBack }) {
 
 function LayersTool2App({ vars }) {
     const state = useSyncExternalStore(store.subscribe, store.getState)
+    useEffect(() => {
+        Help.finalize(HELP_KEY)
+    }, [])
     const tree = L_.configData?.layers || []
     const [query, setQuery] = useState(state.search)
     const [treeVersion, setTreeVersion] = useState(0)
@@ -1618,10 +1661,13 @@ function LayersTool2App({ vars }) {
     return (
         <div className={`lt2-root ${mobile ? 'lt2-mobile' : ''}`}>
             <div className="lt2-listPane" style={{ display: state.openLayer ? 'none' : 'flex' }}>
-                <div className="lt2-toolbar">
+                <div id="layersToolHeader" className="lt2-toolbar mmgisToolHeader">
                     <div className="lt2-toolbarTitle">
-                        <div className="mmgisToolTitle">Layers</div>
-                        <div className="lt2-toolbarButtons">
+                        <div className="left">
+                            <div className="mmgisToolTitle">Layers</div>
+                            <span className="lt2-helpSlot" dangerouslySetInnerHTML={{ __html: Help.getComponent(HELP_KEY) }} />
+                        </div>
+                        <div className="right lt2-toolbarButtons">
                             <ToolTip label="Show only layers that are on">
                                 <IconButton
                                     size="sm"
@@ -1644,12 +1690,6 @@ function LayersTool2App({ vars }) {
                                     <i className="mdi mdi-filter mdi-18px" />
                                 </IconButton>
                             </ToolTip>
-                            <span
-                                className="lt2-helpSlot"
-                                dangerouslySetInnerHTML={{
-                                    __html: Help.getComponent(HELP_KEY),
-                                }}
-                            />
                         </div>
                     </div>
                     <SearchBox

@@ -742,31 +742,78 @@ test.describe('LayersTool2', () => {
             ])
     })
 
-    test('shows failed-layer status and an inline export error', async ({
+    test('shows failed-layer status and an inline error for a supported vector export', async ({
         page,
     }) => {
         await openLayers2(page)
-        const layerName = await page.evaluate(() => {
-            const layer = Object.values(window.L_.layers.data).find(
-                (candidate) => candidate.type === 'tile'
-            )
-            if (!layer) return null
-            layer.error = 'LayersTool2 test failure'
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.evaluate((name) => {
+            window.L_.layers.data[name].error = 'LayersTool2 test failure'
             document.dispatchEvent(new Event('layerRefreshStatusChanged'))
-            return layer.display_name || layer.name
-        })
-        test.skip(!layerName, 'Reference Mission has no tile layer')
+        }, layer.name)
         const search = page.getByRole('textbox', { name: 'Search layers' })
-        await search.fill(layerName)
+        await search.fill(layer.label)
         await page.waitForTimeout(180)
-        const row = page.locator('.lt2-layerRow').filter({ hasText: layerName })
+        const row = page.locator('.lt2-layerRow').filter({ hasText: layer.label })
         await expect(row.locator('.lt2-statusError')).toBeVisible()
         await row.locator('.lt2-title').click()
         await expect(page.locator('.layerSettingsStatusBanner')).toBeVisible()
+        await page.evaluate((name) => {
+            window.L_.layers.layer[name] = false
+        }, layer.name)
         await page.getByRole('button', { name: /Download data/ }).click()
         await expect(page.locator('.lt2-inlineError')).toContainText(
             'does not expose exportable'
         )
+    })
+
+    test('does not show GeoJSON export on raster layer types', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const layers = await page.evaluate(() =>
+            ['tile', 'data', 'image']
+                .map((type) => {
+                    const layer = Object.values(window.L_.layers.data).find(
+                        (candidate) => candidate.type === type
+                    )
+                    return layer
+                        ? {
+                              name: layer.name,
+                              label: layer.display_name || layer.name,
+                              type: layer.type,
+                              hasDownloadURL: !!layer.variables?.downloadURL,
+                          }
+                        : null
+                })
+                .filter(Boolean)
+        )
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        for (const layer of layers) {
+            await search.fill(layer.label)
+            await page.waitForTimeout(100)
+            await page
+                .locator('.lt2-layerRow')
+                .filter({ hasText: layer.label })
+                .first()
+                .locator('.lt2-title')
+                .click()
+            await expect(
+                page.getByRole('region', {
+                    name: `${layer.label} settings`,
+                })
+            ).toBeVisible()
+            const hasLegacySourceDownload =
+                ['tile', 'data'].includes(layer.type) && layer.hasDownloadURL
+            if (hasLegacySourceDownload) {
+                await expect(page.locator('[data-section="export"]')).toBeVisible()
+                await expect(page.getByText('Download Data')).toBeVisible()
+                await expect(page.getByRole('combobox', { name: 'Export format' })).toHaveCount(0)
+            } else {
+                await expect(page.locator('[data-section="export"]')).toHaveCount(0)
+            }
+            await page.getByRole('button', { name: 'Back to layers' }).click()
+        }
     })
 
     test('uses 44 pixel rows at mobile viewport widths', async ({ page }) => {

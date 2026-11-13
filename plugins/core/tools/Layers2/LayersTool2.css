@@ -11,6 +11,11 @@
     overflow: hidden;
 }
 
+.lt2-root,
+.lt2-root * {
+    box-sizing: border-box;
+}
+
 .lt2-listPane {
     display: flex;
     flex-direction: column;
@@ -38,34 +43,33 @@
 
 .lt2-toolbarTitle {
     justify-content: space-between;
-    min-height: 31px;
+    min-height: 40px;
+    line-height: 40px;
+    color: #ccc;
+    border-bottom: 1px solid var(--color-a1);
+}
+
+.lt2-toolbarTitle > .left,
+.lt2-toolbarTitle > .right {
+    display: flex;
+    align-items: center;
 }
 
 .lt2-toolbarButtons {
-    gap: 3px;
+    gap: 2px;
+    margin-right: 30px;
+}
+
+.lt2-toolbarButtons > button {
+    width: 24px;
+    height: 32px;
+    flex: 0 0 24px;
+    margin: 0 3px;
+    padding: 2px;
 }
 
 .lt2-helpSlot .mmgisHelpButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 4px;
-    background: transparent;
-    color: var(--color-a5);
-}
-
-.lt2-helpSlot .mmgisHelpButton:hover {
-    background: var(--color-a1-5);
-    color: var(--color-f);
-}
-
-.lt2-helpSlot .mmgisHelpButton i {
-    color: inherit;
+    margin: 0 4px;
 }
 
 .lt2-toolbarButtons [aria-pressed='true'] {
@@ -99,6 +103,14 @@
     background: transparent;
     color: var(--color-f);
     font: inherit;
+}
+
+.lt2-search > button {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    padding: 0;
 }
 
 .lt2-search input::placeholder {
@@ -309,6 +321,8 @@
 }
 
 .lt2-title {
+    position: relative;
+    z-index: 1;
     justify-content: flex-start;
     flex: 1 1 auto;
     min-width: 0;
@@ -316,6 +330,11 @@
     color: var(--color-f);
     text-align: left;
     white-space: nowrap;
+    background: transparent;
+}
+
+.lt2-status {
+    background: transparent;
 }
 
 .lt2-headerTitle {
@@ -455,13 +474,12 @@
 }
 
 .lt2-layerRow:not(.lt2-on) .lt2-previewFallback {
-    filter: grayscale(1) brightness(0.75);
+    filter: none;
     opacity: 0.55;
 }
 
 .lt2-layerRow:not(.lt2-on) .lt2-glyph {
-    filter: grayscale(1) brightness(0.8);
-    opacity: 0.55;
+    opacity: 0.7;
 }
 
 .lt2-title,
@@ -750,4 +768,280 @@
         padding-right: 3px;
         padding-left: calc(3px + var(--depth, 0) * 12px);
     }
+}
+
+.lt2-root,
+.lt2-root * {
+    box-sizing: border-box;
+}
+
+.lt2-toolbarTitle {
+    min-height: 40px;
+    line-height: 40px;
+    border-bottom: 1px solid var(--color-a1);
+}
+
+.lt2-toolbarTitle > .left,
+.lt2-toolbarTitle > .right {
+    display: flex;
+    align-items: center;
+}
+
+.lt2-toolbarButtons {
+    gap: 2px;
+    margin-right: 30px;
+}
+
+.lt2-toolbarButtons > button {
+    flex: 0 0 24px;
+    width: 24px;
+    min-width: 24px;
+    height: 28px;
+    margin: 0 3px;
+}
+
+.lt2-search > button {
+    flex: 0 0 28px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+}
+
+.lt2-helpSlot .mmgisHelpButton {
+    margin: 0 4px;
+}
+
+.lt2-count {
+    min-width: 36px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.lt2-previewFallback {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        color-mix(in srgb, var(--fallback) 65%, transparent) 34%,
+        var(--fallback) 100%
+    );
+    opacity: 0.9;
+    -webkit-mask-image: none;
+    mask-image: none;
+}
+
+.lt2-layerRow:not(.lt2-on) .lt2-previewFallback {
+    filter: none;
+    opacity: 0.55;
+}
+
+.lt2-settingsName {
+    display: -webkit-box;
+    overflow: hidden;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.lt2-name,
+.lt2-settingsName {
+    font-family: "Roboto", "Arial", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.lt2-path {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.lt2-pathSegment {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lt2-pathMiddle {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.lt2-pathSegment:not(.lt2-pathMiddle) {
+    flex: 0 0 auto;
+}
+
+.lt2-pathSeparator {
+    flex: 0 0 auto;
+}
+
+.lt2-settingsSections {
+    padding: 6px 12px;
+}
+
+.lt2-settingsSections .layerSettingsSectionBody {
+    min-width: 0;
+    padding: 4px 12px 10px 20px;
+}
+
+.lt2-settingsSections .layerSettingsSlider > div:last-child {
+    width: calc(100% - 16px);
+    margin: 0 8px;
+}
+
+.lt2-iconTextButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.lt2-settingsSections .lt2-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.lt2-settingsSections .lt2-field > :last-child {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.lt2-typeSettingsInputUnit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.lt2-typeSettingsInputUnit > *:first-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.lt2-typeSettingsFilter,
+.lt2-typeSettingsFilter #layersTool_filtering,
+.lt2-typeSettingsFilter #layersTool_filtering_header,
+.lt2-typeSettingsFilter #layerTool_filtering_filters,
+.lt2-typeSettingsFilter #layerTool_filtering_filters_list {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.lt2-typeSettingsFilter #layersTool_filtering {
+    overflow: hidden;
+}
+
+.lt2-typeSettingsFilter #layersTool_filtering *,
+.lt2-dataShaderSettings,
+.lt2-dataShaderSettings * {
+    box-sizing: border-box;
+}
+
+.lt2-typeSettingsFilter #layersTool_filtering_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+}
+
+.lt2-typeSettingsFilter #layersTool_filtering_title_left,
+.lt2-typeSettingsFilter #layersTool_filtering_adds {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 4px;
+}
+
+.lt2-typeSettingsFilter #layersTool_filtering_adds {
+    flex: 0 0 auto;
+}
+
+.lt2-typeSettingsFilter #layerTool_filtering_filters_list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt2-typeSettingsFilter #layerTool_filtering_filters_list > li {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.lt2-typeSettingsFilter .layersTool_filtering_value_key,
+.lt2-typeSettingsFilter .layersTool_filtering_value_value {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.lt2-typeSettingsFilter .layersTool_filtering_value input {
+    width: 100%;
+    min-width: 0;
+}
+
+.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 4px 0 0;
+    padding: 0;
+    gap: 4px;
+}
+
+.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_draw {
+    flex: 1;
+    min-width: 0;
+}
+
+.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_radius_wrapper {
+    display: flex;
+    align-items: center;
+    flex: 0 1 120px;
+    min-width: 0;
+    gap: 3px;
+}
+
+.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_radius {
+    width: 100%;
+    min-width: 0;
+}
+
+.lt2-dataShaderSettings > ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt2-dataShaderSettings > ul > li {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.lt2-dataShaderSettings > ul > li > div:not([style*="display: block"]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.lt2-dataShaderSettings > ul > li:has([id$="_ramps"]) > div,
+.lt2-dataShaderSettings > ul > li:has(ul[id$="_legend"]) > div {
+    display: block;
+}
+
+.lt2-dataShaderSettings input,
+.lt2-dataShaderSettings select {
+    max-width: 100%;
+    min-width: 0;
 }

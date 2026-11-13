@@ -50,10 +50,10 @@
 }
 
 .lt2-typeSettingsColorTable {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     min-height: 26px;
-    gap: 3px;
-    align-items: stretch;
+    gap: 6px;
     padding: 6px;
     border-radius: 3px;
     background: var(--color-a1-5);
@@ -64,7 +64,6 @@
 .lt2-typeSettingsColorEntry {
     display: flex;
     min-width: 0;
-    flex: 1;
     flex-direction: column;
     align-items: center;
     gap: 2px;
@@ -77,10 +76,11 @@
 }
 
 .lt2-typeSettingsColorEntry small {
-    overflow: hidden;
+    overflow: visible;
     max-width: 100%;
     color: var(--color-a5);
     font-size: 9px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    text-align: center;
+    overflow-wrap: anywhere;
 }

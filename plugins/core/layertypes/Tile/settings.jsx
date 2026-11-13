@@ -251,7 +251,7 @@ function CogSettings({ layer, resetToken }) {
                 {colorTable.length > 0 ? (
                     <div className="lt2-typeSettingsColorTable" aria-label="Custom color table legend">
                         {colorTable.map(({ label, color }, index) => (
-                            <div className="lt2-typeSettingsColorEntry" key={`${label}-${index}`}>
+                            <div className="lt2-typeSettingsColorEntry" key={`${label}-${index}`} title={label}>
                                 <span
                                     style={{
                                         backgroundColor: `rgba(${color[0] || 0},${color[1] || 0},${color[2] || 0},${color[3] == null ? 1 : color[3] / 255})`,
