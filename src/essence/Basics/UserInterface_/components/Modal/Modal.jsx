@@ -21,6 +21,7 @@ import styles from './Modal.module.css'
 
 const _state = {
     modals: {},
+    restoreFocus: {},
     listeners: [],
     seq: 0,
 }
@@ -76,6 +77,8 @@ function ModalHost() {
 function ModalInstance({ modalId, content, closing }) {
     const wrapperRef = useRef(null)
     const isHtmlString = typeof content === 'string'
+    const isLayerInfo =
+        isHtmlString && content.includes("id='LayerInfoModal'")
     const [visible, setVisible] = useState(false)
 
     useEffect(() => {
@@ -91,6 +94,13 @@ function ModalInstance({ modalId, content, closing }) {
             Modal.remove(false, modalId)
         }
     }
+    const handleKeyDownCapture = (event) => {
+        if (event.key !== 'Escape' || Modal.top() !== modalId) return
+        event.preventDefault()
+        event.stopPropagation()
+        event.nativeEvent.stopImmediatePropagation?.()
+        Modal.remove(false, modalId)
+    }
 
     return (
         <div
@@ -98,8 +108,14 @@ function ModalInstance({ modalId, content, closing }) {
             ref={wrapperRef}
             className={`${styles.wrapper} ${visible ? styles.visible : ''}`}
             onClick={handleBackdropClick}
+            onKeyDownCapture={handleKeyDownCapture}
         >
-            <div className={styles.popup}>
+            <div
+                className={styles.popup}
+                role={isLayerInfo ? 'dialog' : undefined}
+                aria-modal={isLayerInfo ? 'true' : undefined}
+                aria-labelledby={isLayerInfo ? 'LayerInfoModalTitle' : undefined}
+            >
                 {isHtmlString ? (
                     <div dangerouslySetInnerHTML={{ __html: content }} />
                 ) : (
@@ -146,6 +162,7 @@ const Modal = {
             closing: false,
             order: ++_state.seq,
         }
+        _state.restoreFocus[modalId] = document.activeElement
         _notify()
         _applyBlur()
 
@@ -203,6 +220,12 @@ const Modal = {
                 _applyBlur()
             }, 500)
         }
+        const restoreFocus = _state.restoreFocus[modalId]
+        delete _state.restoreFocus[modalId]
+        requestAnimationFrame(() => {
+            if (restoreFocus?.isConnected && typeof restoreFocus.focus === 'function')
+                restoreFocus.focus({ preventScroll: true })
+        })
     },
 }
 

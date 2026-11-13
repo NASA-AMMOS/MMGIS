@@ -36,12 +36,20 @@ const RAMP_NAMES = Object.keys(colormapData)
     .sort()
 
 function isCog(layer) {
+    const renderer = L_.layers.layer?.[layer.name]
+    if (layer.type === 'image')
+        return (
+            layer.cogTransform === true &&
+            typeof layer.url === 'string' &&
+            renderer?.georasters?.[0]?.numberOfRasters === 1 &&
+            typeof renderer.updateColors === 'function'
+        )
+    if (layer.type === 'velocity') return layer.kind === 'streamlines'
     return (
-        layer.type === 'image' ||
-        layer.type === 'velocity' ||
-        layer.cogTransform === true ||
-        layer.url?.startsWith('COG:') ||
-        layer.url?.startsWith('stac-collection:')
+        layer.type === 'tile' &&
+        layer.cogTransform === true &&
+        (layer.url?.startsWith('COG:') ||
+            layer.url?.startsWith('stac-collection:'))
     )
 }
 
@@ -189,6 +197,7 @@ function DisplaySettings({ layer, api }) {
             <div className="lt2-typeSettingsField">
                 <span>Blend</span>
                 <Select
+                    aria-label="Blend mode"
                     value={filters['mix-blend-mode'] || layer.style?.blend || 'unset'}
                     options={BLEND_MODES.map((value) => ({
                         value,
@@ -265,6 +274,7 @@ function CogSettings({ layer, resetToken }) {
                     <div
                         className="lt2-typeSettingsLegendRamp"
                         style={{ background: rampGradient(colormap) }}
+                        role="img"
                         aria-label={`${colormap} colormap legend`}
                     />
                 )}
@@ -275,6 +285,7 @@ function CogSettings({ layer, resetToken }) {
                     value={colormap}
                     ramps={COLOR_RAMPS}
                     portal
+                    aria-label="Color ramp"
                     onValueChange={(value) => {
                         layer.cogColormap = value
                         refreshCog(layer)

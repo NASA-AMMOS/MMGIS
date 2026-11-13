@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import $ from 'jquery'
 import { Checkbox, Select, TextInput } from '@design/components'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
@@ -15,17 +15,56 @@ import {
     rulePropertyPath,
     ruleStatOf,
 } from '@basics/Layers_/render/dynamicStyle'
-import { propertyStats } from '@basics/Layers_/render/dynamicStyleRuntime'
+import {
+    propertyStats,
+    RESTYLED_EVENT,
+    restyleLayerDynamically,
+} from '@basics/Layers_/render/dynamicStyleRuntime'
 import {
     getDomainMode,
     getViewedRules,
     overrideDynamicStyleRule,
     setDynamicStyleOverride,
 } from '@basics/Layers_/render/layerDynamicStyle'
-import { restyleLayerDynamically } from '@basics/Layers_/render/dynamicStyleRuntime'
 import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerSettings'
 import DynamicStyleRamp from '../../tools/Layers/components/DynamicStyleRamp'
 import './settings.css'
+
+const ATTRIBUTE_RANGES = {
+    fillOpacity: [0.1, 1],
+    opacity: [0.1, 1],
+    weight: [1, 8],
+    radius: [3, 12],
+}
+
+function rangeForRule(rule, attribute) {
+    const configured = Array.isArray(rule.range) ? rule.range : []
+    const fallback = ATTRIBUTE_RANGES[attribute] || [0, 1]
+    return [
+        Number.isFinite(parseFloat(configured[0]))
+            ? configured[0]
+            : fallback[0],
+        Number.isFinite(parseFloat(configured[1]))
+            ? configured[1]
+            : fallback[1],
+    ]
+}
+
+function useRestyleRevision(layerName) {
+    const [, setVersion] = useState(0)
+    useEffect(() => {
+        const layerUUID = L_.asLayerUUID(layerName)
+        const onRestyled = (event) => {
+            if (
+                event.detail?.layer != null &&
+                L_.asLayerUUID(event.detail.layer) === layerUUID
+            )
+                setVersion((version) => version + 1)
+        }
+        document.addEventListener(RESTYLED_EVENT, onRestyled)
+        return () => document.removeEventListener(RESTYLED_EVENT, onRestyled)
+    }, [layerName])
+}
 
 function FilterSettings({ layer, api }) {
     const host = useRef(null)
@@ -47,6 +86,15 @@ function FilterSettings({ layer, api }) {
                 .text(`(${filtered}/${total})`)
             api.refresh()
         }
+        const onLayerDataLoaded = (event) => {
+            if (
+                event.detail?.layerName !== layer.name ||
+                Filtering.current.layerName !== layer.name
+            )
+                return
+            Filtering.refresh()
+            api.refresh()
+        }
         container.addEventListener('input', refreshList)
         container.addEventListener('change', refreshList)
         container.addEventListener('click', refreshList)
@@ -54,6 +102,7 @@ function FilterSettings({ layer, api }) {
             'layersToolFilterStateChange',
             onFilterStateChange
         )
+        document.addEventListener('layersTool2LayerDataLoaded', onLayerDataLoaded)
         let disposed = false
         Filtering.current = {
             layerName: layer.name,
@@ -88,6 +137,10 @@ function FilterSettings({ layer, api }) {
                 'layersToolFilterStateChange',
                 onFilterStateChange
             )
+            document.removeEventListener(
+                'layersTool2LayerDataLoaded',
+                onLayerDataLoaded
+            )
             if (
                 Filtering.current.layerName === layer.name &&
                 Filtering.currentContainer?.[0] === container
@@ -101,7 +154,7 @@ function FilterSettings({ layer, api }) {
     return <div className="lt2-typeSettingsFilter" ref={host} />
 }
 
-function CompositeSettings({ layer }) {
+function CompositeSettings({ layer, api }) {
     const attachments = L_.layers.attachments[layer.name] || {}
     const entries = Object.entries(attachments).filter(([, attachment]) =>
         Boolean(attachment)
@@ -117,15 +170,17 @@ function CompositeSettings({ layer }) {
                         </span>
                         <Checkbox
                             checked={attachment.on === true}
-                            onCheckedChange={() =>
-                                L_.toggleSublayer(layer.name, name)
-                            }
+                            onCheckedChange={async () => {
+                                await L_.toggleSublayer(layer.name, name)
+                                api.refresh()
+                            }}
                             aria-label={`Toggle ${attachment.title || name}`}
                             showCheck
                         />
                     </div>
                     {attachment.layer?.dropdown && (
                         <Select
+                            aria-label={`${attachment.title || name} field`}
                             value={
                                 attachment.layer.dropdownValue ||
                                 attachment.layer.dropdown[0]
@@ -134,23 +189,26 @@ function CompositeSettings({ layer }) {
                                 value,
                                 label: value,
                             }))}
-                            onValueChange={(value) =>
-                                attachment.layer.dropdownFunc?.(
+                            onValueChange={async (value) => {
+                                attachment.layer.dropdownValue = value
+                                await attachment.layer.dropdownFunc?.(
                                     layer.name,
                                     name,
                                     Map_,
                                     value
                                 )
-                            }
+                                api.refresh()
+                            }}
                         />
                     )}
                     {attachment.opacity != null && (
                         <LayerSettingsSlider
                             label="Opacity"
                             value={attachment.opacity}
-                            onChange={(value) =>
+                            onChange={(value) => {
                                 L_.setSublayerOpacity(layer.name, name, value)
-                            }
+                                api.refresh()
+                            }}
                         />
                     )}
                 </div>
@@ -163,6 +221,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
     const style = layer.variables?.dynamicStyle
     const rules = getViewedRules(layer)
     const reset = useRef(resetToken)
+    useRestyleRevision(layer.name)
     useEffect(() => {
         if (reset.current === resetToken) return
         reset.current = resetToken
@@ -202,7 +261,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
             {rules.map((rule, index) => {
                 const enabled = rule.enabled !== false
                 const attribute = attributeOf(rule) || DEFAULT_ATTRIBUTE
-                const range = Array.isArray(rule.range) ? rule.range : [0, 1]
+                const range = rangeForRule(rule, attribute)
                 const stats = propertyStats(layer, rulePropertyPath(rule))
                 return (
                     <div
@@ -251,7 +310,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                                             setRule(index, {
                                                 attribute: next,
                                                 ...(!COLOR_ATTRIBUTES.includes(next)
-                                                    ? { range: [0, 1] }
+                                                    ? { range: rangeForRule({}, next) }
                                                     : {}),
                                             })
                                         }
@@ -332,6 +391,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
 }
 
 function StatisticsSettings({ layer }) {
+    useRestyleRevision(layer.name)
     const dynamicStyle = layer.variables?.dynamicStyle
     if (
         dynamicStyle?.enabled !== true ||

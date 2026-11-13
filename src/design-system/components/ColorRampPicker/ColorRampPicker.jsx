@@ -53,13 +53,22 @@ const CHECKERBOARD_BG =
  *   overflows it, where the list would otherwise be cut off.
  */
 const ColorRampPicker = forwardRef(function ColorRampPicker(
-    { value, onValueChange, ramps, className, portal, ...props },
+    {
+        value,
+        onValueChange,
+        ramps,
+        className,
+        portal,
+        'aria-label': ariaLabel = 'Color ramp',
+        ...props
+    },
     ref
 ) {
     const [open, setOpen] = useState(false)
     const [anchor, setAnchor] = useState(null)
     const containerRef = useRef(null)
     const popupRef = useRef(null)
+    const triggerRef = useRef(null)
 
     useEffect(() => {
         if (!open) return
@@ -75,7 +84,19 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
     const measure = useCallback(() => {
         if (containerRef.current == null) return
         const rect = containerRef.current.getBoundingClientRect()
-        setAnchor({ top: rect.bottom + 4, left: rect.left, width: rect.width })
+        const spaceBelow = window.innerHeight - rect.bottom - 8
+        const spaceAbove = rect.top - 8
+        const flip = spaceBelow < Math.min(200, spaceAbove)
+        setAnchor({
+            top: flip ? undefined : rect.bottom + 4,
+            bottom: flip ? window.innerHeight - rect.top + 4 : undefined,
+            left: rect.left,
+            width: rect.width,
+            maxHeight: Math.max(
+                80,
+                Math.min(320, flip ? spaceAbove : spaceBelow)
+            ),
+        })
     }, [])
 
     // A portalled list is placed against the viewport, so it has to be placed
@@ -110,11 +131,19 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
     }, [ramps])
 
     const selected = rampEntries.find((r) => r.name === value) || rampEntries[0]
+    const closeOnEscape = (event) => {
+        if (event.key !== 'Escape') return
+        event.preventDefault()
+        event.stopPropagation()
+        setOpen(false)
+        triggerRef.current?.focus()
+    }
 
     const list = (
         <div
             ref={popupRef}
             className={styles.popup}
+            onKeyDown={closeOnEscape}
             style={
                 portal && anchor
                     ? { position: 'fixed', ...anchor, marginTop: 0 }
@@ -126,12 +155,16 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                     key={r.name}
                     type="button"
                     className={`${styles.option} ${r.name === value ? styles.selected : ''}`}
+                    aria-label={r.name}
+                    aria-pressed={r.name === value}
                     onClick={() => {
                         onValueChange(r.name)
                         setOpen(false)
+                        triggerRef.current?.focus()
                     }}
                 >
                     <SwatchBar gradient={r.gradient} hasAlpha={r.hasAlpha} />
+                    <span className={styles.optionName}>{r.name}</span>
                 </button>
             ))}
         </div>
@@ -148,11 +181,15 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
             {...props}
         >
             <button
+                ref={triggerRef}
                 type="button"
                 className={styles.trigger}
+                aria-label={`${ariaLabel}: ${selected?.name || 'none selected'}`}
+                aria-expanded={open}
                 onClick={toggle}
             >
                 <SwatchBar gradient={selected?.gradient} hasAlpha={selected?.hasAlpha} />
+                <span className={styles.selectedName}>{selected?.name || 'Select ramp'}</span>
                 <i className="mdi mdi-chevron-down mdi-14px" style={{ flexShrink: 0, color: 'var(--color-a3)' }} />
             </button>
             {open && (portal ? createPortal(list, document.body) : list)}

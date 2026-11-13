@@ -154,7 +154,7 @@ let DataShaders = {
                 `<li class="dataShader_${cname}_colorize" style="height: auto; min-height: 120px; padding: 4px 0px;">`,
                     '<div style="display: block;">',
                         `<div style="display: flex; justify-content: space-between; font-weight: bold;"><div>Value ${shaderObj.units ? ` (${shaderObj.units})`: ''}</div><div>Color</div></div>`,
-                        `<ul id="dataShader_${cname}_colorize_legend" style="position: relative;"></ul>`,
+                        `<div id="dataShader_${cname}_colorize_legend" role="group" aria-label="Color ramp legend" style="position: relative;"></div>`,
                     '</div>',
                 '</li>',
             ].join('\n')
@@ -502,7 +502,7 @@ let DataShaders = {
                 ramp.forEach((color, idx) => {
                     // prettier-ignore
                     legend.push(
-                        `<li style="display: flex; justify-content: space-between; padding: 2px 0px; height: 24px; line-height: 24px;">`,
+                        `<div style="display: flex; justify-content: space-between; padding: 2px 0px; height: 24px; line-height: 24px;">`,
                             isDiscrete ? [
                                 `<div class="dataShader_${cname}_colorize_legend_value_${idx}">`,
                                     idx === 0 ? `<i class='mdi mdi-less-than mdi-12px' style="font-size: 12px; padding-right: 2px;"></i><div class="dataShader_${cname}_colorize_legend_value_min dataShader_${cname}_colorize_legend_value_${idx}_low" type="number" style="color: white;"></div>`
@@ -518,7 +518,7 @@ let DataShaders = {
                                     : idx === ramp.length - 1 ? `<div class="dataShader_${cname}_colorize_legend_value_${idx} dataShader_${cname}_colorize_legend_value_max" type="number" style="color: white;"></div>`
                                        : `<div class="dataShader_${cname}_colorize_legend_value_${idx}" style="color: white;"></div>`,
                             `<div ${color === 'transparent' ? 'class="checkeredTransparent"' : ''} style="width: 24px; height: 23px; ${ color !== 'transparent' ? `background: ${color};` : ''}"></div>`,
-                        `</li>`
+                        `</div>`
                     )
                 })
             }

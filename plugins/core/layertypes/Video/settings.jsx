@@ -34,7 +34,7 @@ function VideoSettings({ layer, api }) {
         }
     }, [video])
     if (!video) return <div>Turn on the video layer to load playback controls.</div>
-    const download = layer.variables?.downloadURL || L_.getUrl(layer.type, layer.url, layer)
+    const download = layer.variables?.downloadURL || layer.url
     return (
         <div className="lt2-videoSettings">
             <div className="lt2-videoControls">
@@ -54,8 +54,9 @@ function VideoSettings({ layer, api }) {
                     variant="secondary"
                     aria-label="Restart video"
                     onClick={() => {
+                        const wasPlaying = !video.paused
                         video.currentTime = 0
-                        video.play().catch(() => {})
+                        if (wasPlaying) video.play().catch(() => {})
                     }}
                 >
                     <i className="mdi mdi-restart mdi-16px" />
@@ -76,6 +77,7 @@ function VideoSettings({ layer, api }) {
             <div className="lt2-videoScrub">
                 <span>{Math.floor(currentTime)}s</span>
                 <Slider
+                    aria-label="Video playback position"
                     min={0}
                     max={Math.max(1, duration)}
                     step={0.1}
@@ -101,11 +103,15 @@ function VideoSettings({ layer, api }) {
                     <LayerSettingsSlider
                         key={property}
                         label={label}
-                        value={
-                            Number(filters[property]) ||
-                            Number(layer.style?.[property === 'saturate' ? 'saturation' : property]) ||
-                            1
-                        }
+                        value={(() => {
+                            const styleProperty =
+                                property === 'saturate' ? 'saturation' : property
+                            const setting =
+                                filters[property] ?? layer.style?.[styleProperty]
+                            return setting == null || setting === ''
+                                ? 1
+                                : Number(setting)
+                        })()}
                         min={0}
                         max={max}
                         step={0.05}

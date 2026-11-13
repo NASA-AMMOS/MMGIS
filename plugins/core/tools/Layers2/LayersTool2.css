@@ -283,8 +283,16 @@
     padding-right: 88px;
 }
 
+.lt2-longRasterName.lt2-rasterRow .lt2-preview {
+    width: 48px;
+}
+
+.lt2-longRasterName.lt2-rasterRow .lt2-title {
+    padding-right: 48px;
+}
+
 .lt2-drag {
-    width: 16px;
+    width: 24px;
     cursor: grab;
 }
 
@@ -293,7 +301,7 @@
 }
 
 .lt2-chevron {
-    width: 17px;
+    width: 24px;
 }
 
 .lt2-chevron i,
@@ -307,7 +315,7 @@
 }
 
 .lt2-chevronSpace {
-    flex: 0 0 17px;
+    flex: 0 0 24px;
 }
 
 .lt2-checkWrap {
@@ -315,7 +323,7 @@
     z-index: 2;
     display: flex;
     align-items: center;
-    flex: 0 0 19px;
+    flex: 0 0 24px;
     height: 100%;
     overflow: hidden;
 }
@@ -1099,4 +1107,63 @@
     background: var(--color-a);
     color: var(--color-f);
     font: inherit;
+}
+
+.lt2-dataShaderSettings .dropy__title {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+}
+
+.lt2-dataShaderSettings .dropy__title > span:first-child {
+    flex: 1;
+    width: calc(100% - 20px);
+    min-width: 0;
+    overflow: hidden;
+}
+
+.lt2-glyph::before {
+    filter: drop-shadow(0 0 1px var(--color-a))
+        drop-shadow(0 0 1px var(--color-f));
+}
+
+.lt2-stickyPath {
+    background: var(--color-a);
+}
+
+.lt2-status {
+    width: 24px;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+.lt2-checkWrap [role='checkbox'] {
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
+}
+
+.lt2-drag,
+.lt2-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lt2-title,
+.lt2-status {
+    align-items: center;
+}
+
+.lt2-status {
+    display: inline-flex;
+    justify-content: center;
+}
+
+.lt2-count {
+    width: auto;
+    min-width: 36px;
+    padding: 0 3px;
+    white-space: nowrap;
 }

@@ -87,6 +87,32 @@ function layerName(layer) {
     return layer.display_name || layer.name
 }
 
+function sourceDownloadUrl(layer) {
+    if (!layer) return null
+    const downloadURL = layer.variables?.downloadURL
+    let url
+    if (layer.type === 'tile' || layer.type === 'data') {
+        url = downloadURL
+    } else if (layer.type === 'video') {
+        url = downloadURL || layer.url
+    } else if (layer.type === 'vector' || layer.type === 'query') {
+        url =
+            downloadURL ||
+            (layer.url ? L_.getUrl(layer.type, layer.url, layer) : null)
+    } else {
+        return null
+    }
+    return typeof url === 'string' && !/\{[zxy]\}/i.test(url) ? url : null
+}
+
+function dispatchLayerDataLoaded(layerName) {
+    document.dispatchEvent(
+        new CustomEvent('layersTool2LayerDataLoaded', {
+            detail: { layerName },
+        })
+    )
+}
+
 function layerKey(layer) {
     return layer.uuid || layer.name
 }
@@ -722,7 +748,14 @@ function HeaderRow({
                 </button>
             </ToolTip>
             {mutedCount > 0 && <span className="lt2-muted">{mutedCount} muted</span>}
-            {!expanded && <span className="lt2-count">{countOn}/{total}</span>}
+        {!expanded && (
+            <span
+                className="lt2-count"
+                aria-label={`${countOn} of ${total} layers on`}
+            >
+                {countOn}/{total}
+            </span>
+        )}
         </div>
     )
 }
@@ -776,7 +809,7 @@ function LayerRow({
         L_.layers?.layer?.[layer.name] == null
     return (
         <div
-            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${missing ? 'lt2-layerNotFound' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
+            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isRaster && row.label.length > 24 ? 'lt2-longRasterName' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${missing ? 'lt2-layerNotFound' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
             style={{
                 '--depth': depthOverride ?? row.depth,
                 '--lt-color': color,
@@ -974,7 +1007,7 @@ function CoreSettings({ layer, api }) {
                 delete body.noDuplicates
                 geojson = await requestApi('geodatasets_get', body)
             } else {
-                geojson = mapLayer.toGeoJSON()
+                geojson = mapLayer.toGeoJSON(L_.GEOJSON_PRECISION)
             }
             if (
                 layer.variables?.dynamicExtent === true &&
@@ -1196,7 +1229,7 @@ function CoreSettings({ layer, api }) {
                     <i className="mdi mdi-download" /> {exportBusy ? 'Preparing…' : 'Download data'}
                 </Button>
                 {exportBusy && <progress aria-label="Export progress" />}
-                {(layer.variables?.downloadURL || layer.url) && (
+                {sourceDownloadUrl(layer) && (
                     <Button
                         size="sm"
                         variant="secondary"
@@ -1209,7 +1242,8 @@ function CoreSettings({ layer, api }) {
                 </SettingSection>
             )}
             {['tile', 'data'].includes(layer.type) &&
-                layer.variables?.downloadURL && (
+                layer.variables?.downloadURL &&
+                sourceDownloadUrl(layer) && (
                     <SettingSection
                         id="export"
                         label="Export"
@@ -1286,6 +1320,7 @@ function SettingsPage({ row, api: baseApi, onBack }) {
     const titleRef = useRef(null)
     const color = typeColor(layer.type)
     const status = activeError(layer) || refreshWarning(layer)
+    const downloadUrl = sourceDownloadUrl(layer)
     let typeStatus = null
     try {
         typeStatus = LayerTypeRegistry.settings(layer.type)?.status?.(
@@ -1322,8 +1357,19 @@ function SettingsPage({ row, api: baseApi, onBack }) {
                                 <i className="mdi mdi-refresh mdi-18px" />
                             </IconButton>
                         </ToolTip>
-                        <ToolTip label="Download">
-                            <IconButton size="sm" aria-label="Download layer" onClick={() => api.download()}>
+                        <ToolTip
+                            label={
+                                downloadUrl
+                                    ? 'Download'
+                                    : 'No source download is available for this layer'
+                            }
+                        >
+                            <IconButton
+                                size="sm"
+                                aria-label="Download layer"
+                                disabled={!downloadUrl}
+                                onClick={() => api.download()}
+                            >
                                 <i className="mdi mdi-download mdi-18px" />
                             </IconButton>
                         </ToolTip>
@@ -1398,6 +1444,7 @@ function LayersTool2App({ vars }) {
     const tree = L_.configData?.layers || []
     const [query, setQuery] = useState(state.search)
     const [toast, setToast] = useState(null)
+    const [reorderAnnouncement, setReorderAnnouncement] = useState('')
     const [dragPreview, setDragPreview] = useState(null)
     const mobile = L_.UserInterface_.isMobile === true
     const focused = state.focusedRow
@@ -1566,7 +1613,12 @@ function LayersTool2App({ vars }) {
     const api = useMemo(
         () => ({
             setOpacity: (value, layerName = state.openLayer) =>
-                L_.setLayerOpacity(layerName, value),
+                (() => {
+                    L_.setLayerOpacity(layerName, value)
+                    store.updateState({
+                        layerVersion: store.getState().layerVersion + 1,
+                    })
+                })(),
             setTileFilter: (property, value, layerName = state.openLayer) => {
                 if (!L_.layers.data[layerName]) return
                 L_.setLayerFilter(layerName, property, value)
@@ -1587,6 +1639,7 @@ function LayersTool2App({ vars }) {
                     })
                 else if (layer.type !== 'tile')
                     await Map_.refreshLayer(layer)
+                dispatchLayerDataLoaded(layerName)
                 store.bumpLayerPreview(layerName)
                 store.updateState({ layerVersion: store.getState().layerVersion + 1 })
             },
@@ -1605,11 +1658,7 @@ function LayersTool2App({ vars }) {
             },
             download: (layerName = state.openLayer) => {
                 const layer = L_.layers.data[layerName]
-                const url =
-                    layer?.variables?.downloadURL ||
-                    (layer?.url
-                        ? L_.getUrl(layer.type, layer.url, layer)
-                        : null)
+                const url = sourceDownloadUrl(layer)
                 if (url) window.open(url, '_blank', 'noopener')
             },
             refresh: (layerName = state.openLayer) => {
@@ -1699,6 +1748,7 @@ function LayersTool2App({ vars }) {
     useEffect(() => {
         Help.finalize(HELP_KEY)
         const onLayerToggle = (layerName) => {
+            dispatchLayerDataLoaded(layerName)
             store.bumpLayerPreview(layerName)
             store.updateState({
                 layerVersion: store.getState().layerVersion + 1,
@@ -1867,22 +1917,34 @@ function LayersTool2App({ vars }) {
         [muteHeader]
     )
 
-    const expandAll = (expanded) => {
-        store.updateState({
-            expanded: Object.fromEntries(
-                allHeaderNodes.map((header) => [header.name, expanded])
-            ),
+    const setHeaderExpansion = (nextExpanded) => {
+        const previous = store.getState().expanded
+        store.updateState({ expanded: nextExpanded })
+        allHeaderNodes.forEach((header) => {
+            const wasExpanded =
+                previous[header.name] ??
+                expandedMapRef.current[header.name] ??
+                header.expanded ??
+                vars.expanded === true
+            if (wasExpanded !== nextExpanded[header.name])
+                emitHeaderStateChange(header, nextExpanded[header.name])
         })
     }
+    const expandAll = (expanded) =>
+        setHeaderExpansion(
+            Object.fromEntries(
+                allHeaderNodes.map((header) => [header.name, expanded])
+            )
+        )
     const restoreExpansion = () =>
-        store.updateState({
-            expanded: Object.fromEntries(
+        setHeaderExpansion(
+            Object.fromEntries(
                 allHeaderNodes.map((header) => [
                     header.name,
                     header.expanded ?? vars.expanded === true,
                 ])
-            ),
-        })
+            )
+        )
 
     const reorderRows = (activeId, overId) => {
         if (!overId || activeId === overId) return
@@ -1904,16 +1966,44 @@ function LayersTool2App({ vars }) {
             newIndex,
             expandedMapRef.current
         )
-        const history = [
-            ...currentState.orderingHistory,
-            result.entry,
-        ]
+        const history = [...currentState.orderingHistory, result.entry]
+        const nextFlat = replay(
+            flatten(L_.configData?.layers),
+            history
+        ).flat
+        const before = flat.map(({ key, depth }) => `${key}:${depth}`).join('|')
+        const after = nextFlat
+            .map(({ key, depth }) => `${key}:${depth}`)
+            .join('|')
+        if (before === after) return
         store.updateState({ orderingHistory: history })
-        L_.reorderLayers?.(layerOrder(result.flat))
+        L_.reorderLayers?.(layerOrder(nextFlat))
         const relation = oldIndex < newIndex ? 'below' : 'above'
-        setToast(`Moved ${active.label} ${relation} ${target.label}`)
+        const movedIndex = nextFlat.findIndex(
+            (entry) => entry.key === activeId
+        )
+        const newParentIndex = parentOf(nextFlat, movedIndex)
+        const newParent =
+            newParentIndex == null ? null : nextFlat[newParentIndex]
+        const movedAcrossGroups = active.parentId !== (newParent?.key || null)
+        const parentLabel =
+            rowsRef.current.find((row) => row.id === newParent?.key)?.label ||
+            newParent?.node?.display_name ||
+            newParent?.name
+        const message = movedAcrossGroups && parentLabel
+            ? `Moved ${active.label} into ${parentLabel}`
+            : `Moved ${active.label} ${relation} ${target.label}`
+        setToast(message)
+        setReorderAnnouncement('')
+        requestAnimationFrame(() => setReorderAnnouncement(message))
         if (toastTimer.current) clearTimeout(toastTimer.current)
-        toastTimer.current = setTimeout(() => setToast(null), 5000)
+        toastTimer.current = setTimeout(() => {
+            const toastHasFocus =
+                document.activeElement?.closest('.lt2-toast') != null
+            setToast(null)
+            if (toastHasFocus)
+                requestAnimationFrame(() => scrollElement.current?.focus())
+        }, 5000)
     }
 
     const undoReorder = () => {
@@ -2024,14 +2114,37 @@ function LayersTool2App({ vars }) {
             if (row.isHeader) muteHeader(row.node)
             else setLayerToggle(row.node, !layerIsOn(row.node))
         } else if (key === 'Alt+ArrowUp' || key === 'Alt+ArrowDown') {
-            const neighbor =
-                currentRows[index + (key === 'Alt+ArrowUp' ? -1 : 1)]
+            let neighbor
+            if (key === 'Alt+ArrowDown' && row.isHeader) {
+                const flat = replay(
+                    flatten(L_.configData?.layers),
+                    store.getState().orderingHistory
+                ).flat
+                const flatIndex = flat.findIndex(
+                    (entry) => entry.key === row.id
+                )
+                const target = flat[flatIndex + row.descendants.length + 1]
+                neighbor = currentRows.find(
+                    (candidate) => candidate.id === target?.key
+                )
+            } else {
+                neighbor =
+                    currentRows[index + (key === 'Alt+ArrowUp' ? -1 : 1)]
+            }
             if (neighbor) reorderRows(row.id, neighbor.id)
         }
     }
 
     const onTreeKeyDown = (event) => {
         if (store.getState().openLayer) return
+        if (
+            (event.ctrlKey || event.metaKey) &&
+            event.key.toLowerCase() === 'z'
+        ) {
+            event.preventDefault()
+            undoReorder()
+            return
+        }
         const row = rowsRef.current.find(
             (candidate) => candidate.id === focused
         )
@@ -2059,10 +2172,16 @@ function LayersTool2App({ vars }) {
             over
                 ? `${rowLabel(active.id)} is over ${rowLabel(over.id)}.`
                 : `Picked up ${rowLabel(active.id)}.`,
-        onDragEnd: ({ active, over }) =>
-            over
-                ? `Moved ${rowLabel(active.id)} near ${rowLabel(over.id)}.`
-                : `Reorder cancelled for ${rowLabel(active.id)}.`,
+        onDragEnd: ({ active, over }) => {
+            if (!over) return `Reorder cancelled for ${rowLabel(active.id)}.`
+            const activeRow = rowsRef.current.find(
+                (row) => row.id === active.id
+            )
+            const overRow = rowsRef.current.find((row) => row.id === over.id)
+            return activeRow?.parentId !== overRow?.parentId
+                ? `Moved ${rowLabel(active.id)} to another group.`
+                : `Moved ${rowLabel(active.id)} near ${rowLabel(over.id)}.`
+        },
         onDragCancel: ({ active }) =>
             `Reorder cancelled for ${rowLabel(active.id)}.`,
     }
@@ -2206,6 +2325,18 @@ function LayersTool2App({ vars }) {
                                                 id={`lt2-row-${row.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
                                                 tabIndex={-1}
                                                 role="treeitem"
+                                                aria-label={`${row.label}, ${
+                                                    row.isHeader
+                                                        ? row.descendants.some(layerIsOn) &&
+                                                          !row.descendants.every(layerIsOn)
+                                                            ? 'some layers on'
+                                                            : row.descendants.some(layerIsOn)
+                                                              ? 'layers on'
+                                                              : 'layers off'
+                                                        : layerIsOn(row.node)
+                                                          ? 'on'
+                                                          : 'off'
+                                                }`}
                                                 aria-level={row.depth + 1}
                                                 aria-selected={
                                                     !row.isHeader &&
@@ -2240,6 +2371,7 @@ function LayersTool2App({ vars }) {
                                                     api={api}
                                                     isOn={row.isHeader ? undefined : layerIsOn(row.node)}
                                                     countOn={row.isHeader ? row.descendants.filter(layerIsOn).length : undefined}
+                                                    total={row.isHeader ? row.descendants.length : undefined}
                                                     query={query}
                                                     previews={vars.previews !== false}
                                                     depthOverride={
@@ -2271,6 +2403,9 @@ function LayersTool2App({ vars }) {
                         <button type="button" onClick={undoReorder}>Undo</button>
                     </div>
                 )}
+                <div className="lt2-liveRegion" aria-live="polite" aria-atomic="true">
+                    {reorderAnnouncement}
+                </div>
             </div>
             {state.openLayer && (() => {
                 const row = settingsRowsByName.get(state.openLayer)
