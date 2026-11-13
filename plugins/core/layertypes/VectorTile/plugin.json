@@ -1121,6 +1121,7 @@
   "modules": {
     "map": "./map",
     "config": "./config",
+    "settings": "./settings",
     "globe": {
       "cesium": "./globe/cesium",
       "lithosphere": "./globe/lithosphere"

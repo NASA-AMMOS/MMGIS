@@ -1,0 +1,97 @@
+.layerSettingsSection {
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--color-a1-5);
+}
+
+.layerSettingsSectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 32px;
+}
+
+.layerSettingsSectionToggle {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 6px;
+    min-width: 0;
+    padding: 7px 4px;
+    border: 0;
+    background: transparent;
+    color: var(--color-h);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-align: left;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.layerSettingsSectionToggle > i {
+    color: var(--color-a5);
+    transition: transform 0.14s ease;
+}
+
+.layerSettingsSectionToggle > i.layerSettingsOpen {
+    transform: rotate(90deg);
+}
+
+.layerSettingsSectionBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 2px 4px 10px 20px;
+}
+
+.layerSettingsSlider {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.layerSettingsSliderLabel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 26px;
+}
+
+.layerSettingsSliderValue {
+    color: var(--color-a5);
+    font-variant-numeric: tabular-nums;
+}
+
+.layerSettingsChangedDot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 5px;
+    border-radius: 50%;
+    background: var(--color-c);
+    vertical-align: 1px;
+}
+
+.layerSettingsStatusBanner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    margin: 7px 8px 2px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.layerSettingsStatusBanner span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.layerSettingsStatusError {
+    background: color-mix(in srgb, var(--color-red2, #e0524f) 22%, var(--color-a1));
+}
+
+.layerSettingsStatusWarning {
+    background: color-mix(in srgb, var(--color-yellow, #e1b000) 18%, var(--color-a1));
+}

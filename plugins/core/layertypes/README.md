@@ -28,6 +28,7 @@ plugins/core/layertypes/<Type>/
   time.js                        # what time means to this type        — optional
   source.js                      # how the type acquires its data      — optional
   legend.js                      # a legend derived from the render     — optional
+  settings.jsx                   # user-facing settings sections/actions — optional
   lib/                           # anything else the type needs
 ```
 
@@ -55,7 +56,7 @@ modules:
 ```
 
 `modules` keys are **surfaces** — `map`, `globe.<engine>`, `config`, `filter`,
-`time`, `source`, `legend` — not export names, which is why this is not the
+`time`, `source`, `legend`, `settings` — not export names, which is why this is not the
 `paths` of tools and interactions (there a key is the export identifier a mission
 names in `"js"`). Every surface is optional: `Header` declares no modules at all
 and `Model` has no `map`.
@@ -142,6 +143,33 @@ Inheriting the *renderer* while replacing only `config` is the common case, and
 it is why a new data source is usually a `config` surface (`expand` to turn one
 entry into a service's collections, `resolveUrl` to have the last word on what
 core fetches) rather than a renderer at all.
+
+---
+
+## Settings surface
+
+An optional `modules.settings` module lets a layer type contribute React
+settings to the Layers2 tool without depending on a tool implementation:
+
+```jsx
+export default {
+    sections: (layer, ctx) => [
+        { id: 'display', label: 'Display', order: 10, Component, resettable: true },
+    ],
+    actions: (layer, ctx) => [
+        { id: 'custom', label: 'Custom action', icon: 'information-outline', onClick: (api) => {} },
+    ],
+    status: (layer, ctx) => null,
+}
+```
+
+Section components receive `{ layer, api, state, setState, resetToken }`.
+`state` is persistent per layer and section; `resetToken` changes when that
+section or all settings are reset. `api` exposes named operations supplied by
+Layers2 for changing the layer, refreshing it, locating it, and resetting
+settings. `sections`, `actions`, and `status` are optional; inherited layer
+types receive this surface through the same `extends` resolution as other
+modules.
 
 ---
 

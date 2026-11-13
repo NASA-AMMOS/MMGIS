@@ -74,12 +74,14 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
  *   time    what the type's time support means to the time bar
  *   source  how the type acquires its data (core keeps extent/staleness)
  *   legend  a legend derived from how the layer is rendered
+ *   settings user-facing layer settings sections, actions and status
  */
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
 const TIME_OPS = ["format", "applyTimeParams", "availability"];
 const SOURCE_OPS = ["fetch"];
 const LEGEND_OPS = ["derive"];
+const SETTINGS_OPS = ["sections", "actions", "status"];
 
 /**
  * A layer attachment is a single renderable that may straddle both engines (an
@@ -113,6 +115,7 @@ const SURFACES = {
   time: { ops: TIME_OPS, requiresMake: false },
   source: { ops: SOURCE_OPS, requiresMake: false },
   legend: { ops: LEGEND_OPS, requiresMake: false },
+  settings: { ops: SETTINGS_OPS, requiresMake: false },
   attachment: { ops: ATTACHMENT_OPS, requiresMake: true },
   // An attachment that only decorates its host (a bearing turns its host's
   // markers) adds nothing to the map of its own, so it has nothing to `make`.
