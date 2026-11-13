@@ -36,6 +36,9 @@ the layer's defaults; Reset all calls every section reset, including sections
 that are not currently mounted. Actions have an `id`, `label`, optional `icon`,
 and `onClick(ctx)`.
 
+A section with `id: 'display'` extends the core Display section alongside
+Opacity; it does not add a second Display section.
+
 When overriding a parent's settings operation through `extends`, use
 `(layer, ctx, inherited)` and call `inherited()` to retain the parent's result:
 
