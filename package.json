@@ -79,6 +79,9 @@
   "dependencies": {
     "@babel/runtime": "^7.23.1",
     "@base-ui/react": "^1.5.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@eonasdan/tempus-dominus": "^6.2.6",
     "@ffmpeg/core": "^0.12.6",
     "@ffmpeg/ffmpeg": "^0.12.10",
@@ -87,6 +90,7 @@
     "@mapbox/vector-tile": "^2.0.4",
     "@maphubs/tokml": "^0.6.1",
     "@popperjs/core": "^2.11.6",
+    "@tanstack/react-virtual": "^3.14.26",
     "@terraformer/wkt": "^2.2.0",
     "@tmcw/togeojson": "^7.1.2",
     "@turf/turf": "^6.5.0",

@@ -1,0 +1,52 @@
+{
+    "uuid": "d28903e9-6996-4ce7-8e3f-8e2d105a1db1",
+    "id": "core-layers2",
+    "version": "core",
+    "type": "tool",
+    "tier": "core",
+    "overridable": true,
+    "defaultIcon": "layers",
+    "description": "Hierarchically toggle layers, inspect layer status, and configure layer settings.",
+    "descriptionFull": {
+        "title": "React-based layer browser with virtualized tree navigation and per-layer settings.",
+        "example": {
+            "expanded": "(bool) is initial state expanded [default false]",
+            "previews": "(bool) show raster sample-tile previews [default true]"
+        }
+    },
+    "hasVars": true,
+    "name": "Layers2",
+    "toolbarPriority": 2,
+    "worksOnMobile": true,
+    "paths": {
+        "LayersTool2": "./LayersTool2"
+    },
+    "expandable": true,
+    "config": {
+        "rows": [
+            {
+                "components": [
+                    {
+                        "field": "variables.expanded",
+                        "name": "Expanded",
+                        "description": "Whether all layer groupings default to being expanded.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    },
+                    {
+                        "field": "variables.previews",
+                        "name": "Show raster sample-tile previews",
+                        "description": "Show sample tiles on raster rows.",
+                        "type": "checkbox",
+                        "width": 6,
+                        "defaultChecked": true
+                    }
+                ]
+            }
+        ]
+    },
+    "author": "NASA-AMMOS/MMGIS",
+    "license": "Apache-2.0",
+    "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}
