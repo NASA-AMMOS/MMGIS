@@ -36,6 +36,15 @@ import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
 import F_ from '@basics/Formulae_/Formulae_'
 import {
+    applyLiveMove,
+    descendantsOf,
+    flatten,
+    isHidden,
+    layerOrder,
+    parentOf,
+    replay,
+} from '../ordering'
+import {
     Button,
     Checkbox,
     IconButton,
@@ -74,14 +83,6 @@ function layerKey(layer) {
     return layer.uuid || layer.name
 }
 
-function allLeaves(nodes, out = []) {
-    ;(nodes || []).forEach((node) => {
-        if (node.type === 'header') allLeaves(node.sublayers, out)
-        else out.push(node)
-    })
-    return out
-}
-
 function findLayer(nodes, name) {
     for (const node of nodes || []) {
         if (node.name === name) return node
@@ -91,16 +92,6 @@ function findLayer(nodes, name) {
         }
     }
     return null
-}
-
-function collectHeaders(nodes, out = []) {
-    ;(nodes || []).forEach((node) => {
-        if (node.type === 'header') {
-            out.push(node)
-            collectHeaders(node.sublayers, out)
-        }
-    })
-    return out
 }
 
 function layerIsOn(layer) {
@@ -150,92 +141,79 @@ function searchMatches(layer, query) {
         .some((value) => String(value).toLowerCase().includes(q))
 }
 
-function buildRows(tree, current, state, query) {
+function buildRows(flat, current, query, expandedMap) {
     const rows = []
-    const filtered = current.onlyVisible || current.onlyFiltered || query
+    const filtering = !!(
+        current.onlyVisible ||
+        current.onlyFiltered ||
+        query
+    )
+    const matchingLeaves = new Set()
+    const matchingHeaders = new Set()
+    const hiddenByFilter = new Set()
 
-    function visit(nodes, parentNodes, depth, path, parentId) {
-        for (const node of nodes || []) {
-            const isHeader = node.type === 'header'
-            const children = isHeader ? node.sublayers || [] : []
-            const childrenMatch = isHeader
-                ? children.some((child) =>
-                      child.type === 'header'
-                          ? subtreeMatches(child)
-                          : (!current.onlyVisible || layerIsOn(child)) &&
-                            (!current.onlyFiltered || layerIsFiltered(child)) &&
-                            searchMatches(child, query)
-                  )
-                : false
-            if (
-                isHeader &&
-                filtered &&
-                !childrenMatch &&
-                children.length === 0
-            )
-                continue
-            if (
-                isHeader &&
-                filtered &&
-                children.length > 0 &&
-                !childrenMatch
-            )
-                continue
-            if (
-                !isHeader &&
-                ((current.onlyVisible && !layerIsOn(node)) ||
-                    (current.onlyFiltered && !layerIsFiltered(node)) ||
-                    !searchMatches(node, query))
-            )
-                continue
-
-            const row = {
-                id: layerKey(node),
-                node,
-                label: layerName(node),
-                depth,
-                path,
-                isHeader,
-                parentNodes,
-                parentId,
-                descriptionOnly:
-                    !!query &&
-                    !query.startsWith('#') &&
-                    !layerName(node).toLowerCase().includes(query) &&
-                    String(node.description || '')
-                        .toLowerCase()
-                        .includes(query),
-            }
-            rows.push(row)
-            const expanded =
-                query || current.onlyVisible || current.onlyFiltered
-                    ? true
-                    : state.expanded[node.name] ??
-                      node.expanded ??
-                      current.defaultExpanded
-            if (isHeader && expanded)
-                visit(
-                    children,
-                    children,
-                    depth + 1,
-                    [...path, layerName(node)],
-                    row.id
-                )
+    flat.forEach((entry, index) => {
+        if (entry.type === 'header') return
+        const node = entry.node
+        const matches =
+            (!current.onlyVisible || layerIsOn(node)) &&
+            (!current.onlyFiltered || layerIsFiltered(node)) &&
+            searchMatches(node, query)
+        if (!matches) {
+            hiddenByFilter.add(entry.key)
+            return
         }
-    }
+        matchingLeaves.add(index)
+        let parentIndex = parentOf(flat, index)
+        while (parentIndex != null) {
+            matchingHeaders.add(parentIndex)
+            parentIndex = parentOf(flat, parentIndex)
+        }
+    })
 
-    function subtreeMatches(header) {
-        return (header.sublayers || []).some((child) =>
-            child.type === 'header'
-                ? subtreeMatches(child)
-                : (!current.onlyVisible || layerIsOn(child)) &&
-                  (!current.onlyFiltered || layerIsFiltered(child)) &&
-                  searchMatches(child, query)
+    flat.forEach((entry, index) => {
+        const isHeader = entry.type === 'header'
+        if (
+            filtering &&
+            (isHeader ? !matchingHeaders.has(index) : !matchingLeaves.has(index))
         )
-    }
+            return
+        if (!filtering && isHidden(flat, index, expandedMap)) return
 
-    visit(tree, tree, 0, [], null)
-    return rows
+        const parentIndex = parentOf(flat, index)
+        const ancestors = []
+        let ancestorIndex = parentIndex
+        while (ancestorIndex != null) {
+            ancestors.unshift(flat[ancestorIndex])
+            ancestorIndex = parentOf(flat, ancestorIndex)
+        }
+        const node = entry.node
+        rows.push({
+            id: entry.key,
+            node,
+            label: layerName(node),
+            depth: entry.depth,
+            flatIndex: index,
+            path: ancestors.map((ancestor) => layerName(ancestor.node)),
+            isHeader,
+            parentId:
+                parentIndex == null ? null : flat[parentIndex].key,
+            descendants: isHeader
+                ? descendantsOf(flat, index)
+                      .filter((descendant) => descendant.type !== 'header')
+                      .map((descendant) => descendant.node)
+                : [],
+            descriptionOnly:
+                !!query &&
+                !query.startsWith('#') &&
+                !layerName(node).toLowerCase().includes(query) &&
+                String(node.description || '')
+                    .toLowerCase()
+                    .includes(query),
+        })
+    })
+
+    return { rows, hiddenByFilter }
 }
 
 function highlightText(text, query) {
@@ -619,15 +597,16 @@ function HeaderRow({
     selected,
     focused,
     dragHandle,
+    depthOverride,
 }) {
-    const children = allLeaves(row.node.sublayers)
+    const children = row.descendants
     const countOn = children.filter(layerIsOn).length
     const isPartial = countOn > 0 && countOn < children.length
     const mutedCount = Array.isArray(muted) ? muted.length : 0
     return (
         <div
             className={`lt2-row lt2-headerRow ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
-            style={{ '--depth': row.depth }}
+            style={{ '--depth': depthOverride ?? row.depth }}
             aria-level={row.depth + 1}
             aria-expanded={expanded}
             data-row-id={row.id}
@@ -685,6 +664,7 @@ function LayerRow({
     focused,
     selected,
     dragHandle,
+    depthOverride,
 }) {
     const layer = row.node
     const isOn = layerIsOn(layer)
@@ -722,7 +702,10 @@ function LayerRow({
     return (
         <div
             className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
-            style={{ '--depth': row.depth, '--lt-color': color }}
+            style={{
+                '--depth': depthOverride ?? row.depth,
+                '--lt-color': color,
+            }}
             aria-level={row.depth + 1}
             aria-selected={selected}
             data-row-id={row.id}
@@ -1208,35 +1191,77 @@ function LayersTool2App({ vars }) {
     }, [])
     const tree = L_.configData?.layers || []
     const [query, setQuery] = useState(state.search)
-    const [treeVersion, setTreeVersion] = useState(0)
     const [toast, setToast] = useState(null)
+    const [dragPreview, setDragPreview] = useState(null)
     const [mobile, setMobile] = useState(window.innerWidth <= 700)
     const focused = state.focusedRow
     const scrollElement = useRef(null)
     const rowElements = useRef({})
+    const orderedFlatRef = useRef([])
+    const rowsRef = useRef([])
+    const expandedMapRef = useRef({})
     const toastTimer = useRef(null)
-    const appliedUrlOrder = useRef(false)
     const rowHeight = mobile ? 44 : 31
-    const allLayerNodes = useMemo(() => allLeaves(tree), [tree, treeVersion])
-    const allHeaderNodes = useMemo(() => collectHeaders(tree), [tree, treeVersion])
+    const replayResult = useMemo(
+        () => replay(flatten(tree), state.orderingHistory),
+        [tree, state.orderingHistory]
+    )
+    const orderedFlat = replayResult.flat
+    const allLayerNodes = useMemo(
+        () =>
+            orderedFlat
+                .filter((row) => row.type !== 'header')
+                .map((row) => row.node),
+        [orderedFlat]
+    )
+    const allHeaderNodes = useMemo(
+        () =>
+            orderedFlat
+                .filter((row) => row.type === 'header')
+                .map((row) => row.node),
+        [orderedFlat]
+    )
+    const expandedMap = useMemo(
+        () =>
+            Object.fromEntries(
+                allHeaderNodes.map((header) => [
+                    header.name,
+                    state.expanded[header.name] ??
+                        (vars.expanded === true
+                            ? replayResult.headerToggles.reduce(
+                                  (expanded, toggle) =>
+                                      toggle.name === header.name
+                                          ? toggle.expanded
+                                          : expanded,
+                                  true
+                              )
+                            : header.expanded === true),
+                ])
+            ),
+        [allHeaderNodes, state.expanded, vars.expanded, replayResult]
+    )
     const current = {
         onlyVisible: state.onlyVisible,
         onlyFiltered: state.onlyFiltered,
-        defaultExpanded: vars.expanded === true,
     }
-    const rows = useMemo(
-        () => buildRows(tree, current, state, query),
+    const rowModel = useMemo(
+        () => buildRows(orderedFlat, current, query, expandedMap),
         [
-            tree,
-            treeVersion,
-            state.expanded,
+            orderedFlat,
+            expandedMap,
             state.onlyVisible,
             state.onlyFiltered,
             state.layerVersion,
             query,
-            vars.expanded,
         ]
     )
+    const rows = rowModel.rows
+    orderedFlatRef.current = orderedFlat
+    rowsRef.current = rows
+    expandedMapRef.current = {
+        ...expandedMap,
+        searchHidden: rowModel.hiddenByFilter,
+    }
     const total = allLayerNodes.length
     const visibleLayers = rows.filter((row) => !row.isHeader).length
     const allTags = useMemo(
@@ -1451,10 +1476,11 @@ function LayersTool2App({ vars }) {
     const setActiveLayer = useCallback(
         (row) => {
             if (row.isHeader) {
+                const current = store.getState()
                 const expanded =
-                    store.getState().expanded[row.node.name] ??
-                    row.node.expanded ??
-                    vars.expanded === true
+                    current.expanded[row.node.name] ??
+                    expandedMapRef.current[row.node.name] ??
+                    false
                 const onState = !expanded
                 store.setExpanded(row.node.name, onState)
                 emitHeaderStateChange(row.node, onState)
@@ -1478,24 +1504,40 @@ function LayersTool2App({ vars }) {
 
     const muteHeader = useCallback(
         async (header) => {
-            const descendants = allLeaves(header.sublayers)
-            const remembered = state.muted[header.name]
+            const current = store.getState()
+            const flat = replay(
+                flatten(L_.configData?.layers),
+                current.orderingHistory
+            ).flat
+            const headerIndex = flat.findIndex(
+                (entry) =>
+                    entry.type === 'header' && entry.name === header.name
+            )
+            const descendants =
+                headerIndex < 0
+                    ? []
+                    : descendantsOf(flat, headerIndex)
+                          .filter((entry) => entry.type !== 'header')
+                          .map((entry) => entry.node)
+            const remembered = current.muted[header.name]
             if (Array.isArray(remembered)) {
                 for (const name of remembered) {
                     const layer = L_.layers.data[name]
                     if (layer && !layerIsOn(layer)) await L_.toggleLayer(layer)
                 }
+                const muted = store.getState().muted
                 store.updateState({
-                    muted: { ...store.getState().muted, [header.name]: null },
+                    muted: { ...muted, [header.name]: null },
                     layerVersion: store.getState().layerVersion + 1,
                 })
                 emitHeaderStateChange(header, true)
             } else {
                 const onLayers = descendants.filter(layerIsOn)
                 for (const layer of onLayers) await L_.toggleLayer(layer)
+                const muted = store.getState().muted
                 store.updateState({
                     muted: {
-                        ...store.getState().muted,
+                        ...muted,
                         [header.name]: onLayers.map((layer) => layer.name),
                     },
                     layerVersion: store.getState().layerVersion + 1,
@@ -1503,7 +1545,7 @@ function LayersTool2App({ vars }) {
                 emitHeaderStateChange(header, false)
             }
         },
-        [state.muted]
+        []
     )
 
     const expandAll = (expanded) => {
@@ -1523,100 +1565,106 @@ function LayersTool2App({ vars }) {
             ),
         })
 
-    const callReorder = () => {
-        L_.reorderLayers?.(allLeaves(tree).map((layer) => layer.name))
-        setTreeVersion((version) => version + 1)
-        store.updateState({ layerVersion: store.getState().layerVersion + 1 })
-    }
-
-    useEffect(() => {
-        if (appliedUrlOrder.current) return
-        appliedUrlOrder.current = true
-        if (!state.orderingHistory.length) return
-        const expandedState = {
-            ...state,
-            expanded: Object.fromEntries(
-                allHeaderNodes.map((header) => [header.name, true])
-            ),
-        }
-        state.orderingHistory.forEach(([oldIndex, newIndex]) => {
-            const orderedRows = buildRows(
-                tree,
-                { ...current, defaultExpanded: true },
-                expandedState,
-                ''
-            )
-            const active = orderedRows[oldIndex]
-            const target = orderedRows[newIndex]
-            if (
-                !active ||
-                !target ||
-                active.parentId !== target.parentId ||
-                active.parentNodes !== target.parentNodes
-            )
-                return
-            const siblings = active.parentNodes
-            const from = siblings.indexOf(active.node)
-            const to = siblings.indexOf(target.node)
-            if (from >= 0 && to >= 0)
-                siblings.splice(to, 0, siblings.splice(from, 1)[0])
-        })
-        callReorder()
-    }, [tree])
-
     const reorderRows = (activeId, overId) => {
         if (!overId || activeId === overId) return
-        const active = rows.find((row) => row.id === activeId)
-        const target = rows.find((row) => row.id === overId)
-        if (!active || !target || active.parentId !== target.parentId) return
-        const siblings = active.parentNodes
-        const from = siblings.indexOf(active.node)
-        const to = siblings.indexOf(target.node)
-        if (from < 0 || to < 0) return
-        siblings.splice(to, 0, siblings.splice(from, 1)[0])
-        const history = [rows.indexOf(active), rows.indexOf(target), 0]
-        store.addOrderingHistory(history)
-        callReorder()
-        setToast(`Moved ${active.label} below ${target.label}`)
+        const currentRows = rowsRef.current
+        const active = currentRows.find((row) => row.id === activeId)
+        const target = currentRows.find((row) => row.id === overId)
+        if (!active || !target) return
+        const currentState = store.getState()
+        const flat = replay(
+            flatten(L_.configData?.layers),
+            currentState.orderingHistory
+        ).flat
+        const oldIndex = flat.findIndex((entry) => entry.key === activeId)
+        const newIndex = flat.findIndex((entry) => entry.key === overId)
+        if (oldIndex < 0 || newIndex < 0) return
+        const result = applyLiveMove(
+            flat,
+            oldIndex,
+            newIndex,
+            expandedMapRef.current
+        )
+        const history = [
+            ...currentState.orderingHistory,
+            result.entry,
+        ]
+        store.updateState({ orderingHistory: history })
+        L_.reorderLayers?.(layerOrder(result.flat))
+        const relation = oldIndex < newIndex ? 'below' : 'above'
+        setToast(`Moved ${active.label} ${relation} ${target.label}`)
         if (toastTimer.current) clearTimeout(toastTimer.current)
         toastTimer.current = setTimeout(() => setToast(null), 5000)
     }
 
     const undoReorder = () => {
-        const history = store.getState().orderingHistory.slice()
-        const last = history.pop()
-        if (!last) return
-        const currentRows = rows
-        const moved = currentRows[last[0]]
-        const target = currentRows[last[1]]
-        if (moved && target && moved.parentNodes === target.parentNodes) {
-            const siblings = moved.parentNodes
-            const from = siblings.indexOf(moved.node)
-            const to = siblings.indexOf(target.node)
-            siblings.splice(to, 0, siblings.splice(from, 1)[0])
-        }
+        const currentState = store.getState()
+        if (!currentState.orderingHistory.length) return
+        const history = currentState.orderingHistory.slice(0, -1)
+        const flat = replay(flatten(L_.configData?.layers), history).flat
         store.updateState({ orderingHistory: history })
-        callReorder()
-        setToast(null)
+        L_.reorderLayers?.(layerOrder(flat))
+        setToast(history.length ? 'Move undone' : null)
+    }
+
+    const previewReorder = ({ active, over }) => {
+        if (!over || active.id === over.id) {
+            setDragPreview(null)
+            return
+        }
+        const currentState = store.getState()
+        const flat = replay(
+            flatten(L_.configData?.layers),
+            currentState.orderingHistory
+        ).flat
+        const oldIndex = flat.findIndex((entry) => entry.key === active.id)
+        const newIndex = flat.findIndex((entry) => entry.key === over.id)
+        if (oldIndex < 0 || newIndex < 0) {
+            setDragPreview(null)
+            return
+        }
+        const preview = applyLiveMove(
+            flat,
+            oldIndex,
+            newIndex,
+            expandedMapRef.current
+        )
+        setDragPreview({
+            id: active.id,
+            depth:
+                preview.flat.find((entry) => entry.key === active.id)?.depth ??
+                flat[oldIndex].depth,
+        })
     }
 
     const moveFocus = (row, key) => {
-        const index = rows.findIndex((candidate) => candidate.id === row.id)
-        const siblings = rows.filter((candidate) => candidate.parentId === row.parentId)
+        const currentRows = rowsRef.current
+        const index = currentRows.findIndex(
+            (candidate) => candidate.id === row.id
+        )
         if (key === 'ArrowDown' || key === 'ArrowUp') {
-            const next = rows[Math.max(0, Math.min(rows.length - 1, index + (key === 'ArrowDown' ? 1 : -1)))]
+            const next =
+                currentRows[
+                    Math.max(
+                        0,
+                        Math.min(
+                            currentRows.length - 1,
+                            index + (key === 'ArrowDown' ? 1 : -1)
+                        )
+                    )
+                ]
             store.updateState({ focusedRow: next?.id })
         } else if (key === 'ArrowRight' && row.isHeader) {
             const expanded =
-                state.expanded[row.node.name] ??
-                row.node.expanded ??
-                vars.expanded === true
+                store.getState().expanded[row.node.name] ??
+                expandedMapRef.current[row.node.name] ??
+                false
             if (!expanded) {
                 store.setExpanded(row.node.name, true)
                 emitHeaderStateChange(row.node, true)
             }
             else {
-                const child = rows.find(
+                const child = currentRows.find(
                     (candidate) => candidate.parentId === row.id
                 )
                 if (child) store.updateState({ focusedRow: child.id })
@@ -1624,9 +1672,9 @@ function LayersTool2App({ vars }) {
         } else if (key === 'ArrowLeft') {
             if (
                 row.isHeader &&
-                (state.expanded[row.node.name] ??
-                    row.node.expanded ??
-                    vars.expanded === true)
+                (store.getState().expanded[row.node.name] ??
+                    expandedMapRef.current[row.node.name] ??
+                    false)
             ) {
                 store.setExpanded(row.node.name, false)
                 emitHeaderStateChange(row.node, false)
@@ -1639,15 +1687,17 @@ function LayersTool2App({ vars }) {
             if (row.isHeader) muteHeader(row.node)
             else setLayerToggle(row.node, !layerIsOn(row.node))
         } else if (key === 'Alt+ArrowUp' || key === 'Alt+ArrowDown') {
-            const siblingIndex = siblings.findIndex((candidate) => candidate.id === row.id)
-            const neighbor = siblings[siblingIndex + (key === 'Alt+ArrowUp' ? -1 : 1)]
+            const neighbor =
+                currentRows[index + (key === 'Alt+ArrowUp' ? -1 : 1)]
             if (neighbor) reorderRows(row.id, neighbor.id)
         }
     }
 
     const onTreeKeyDown = (event) => {
         if (store.getState().openLayer) return
-        const row = rows.find((candidate) => candidate.id === focused)
+        const row = rowsRef.current.find(
+            (candidate) => candidate.id === focused
+        )
         if (!row) return
         const key = event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')
             ? `Alt+${event.key}`
@@ -1737,7 +1787,12 @@ function LayersTool2App({ vars }) {
                     <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
-                        onDragEnd={({ active, over }) => reorderRows(active.id, over?.id)}
+                        onDragOver={previewReorder}
+                        onDragEnd={({ active, over }) => {
+                            reorderRows(active.id, over?.id)
+                            setDragPreview(null)
+                        }}
+                        onDragCancel={() => setDragPreview(null)}
                     >
                         <SortableContext items={rows.map((row) => row.id)} strategy={verticalListSortingStrategy}>
                             <div
@@ -1771,12 +1826,8 @@ function LayersTool2App({ vars }) {
                                     {virtualizer.getVirtualItems().map((item) => {
                                         const row = rows[item.index]
                                         const expanded =
-                                            query ||
-                                            state.onlyVisible ||
-                                            state.onlyFiltered ||
-                                            (state.expanded[row.node.name] ??
-                                                row.node.expanded ??
-                                                vars.expanded) === true
+                                            isFiltering ||
+                                            expandedMap[row.node.name] === true
                                         return (
                                             <div
                                                 key={row.id}
@@ -1805,6 +1856,11 @@ function LayersTool2App({ vars }) {
                                                     row={row}
                                                     query={query}
                                                     previews={vars.previews !== false}
+                                                    depthOverride={
+                                                        dragPreview?.id === row.id
+                                                            ? dragPreview.depth
+                                                            : undefined
+                                                    }
                                                     expanded={!!expanded}
                                                     muted={state.muted[row.node.name]}
                                                     selected={state.openLayer === row.node.name}
@@ -1832,18 +1888,17 @@ function LayersTool2App({ vars }) {
                 )}
             </div>
             {state.openLayer && (() => {
-                const settingsState = {
-                    ...state,
-                    expanded: Object.fromEntries(
-                        allHeaderNodes.map((header) => [header.name, true])
-                    ),
-                }
+                const settingsExpanded = Object.fromEntries(
+                    allHeaderNodes.map((header) => [header.name, true])
+                )
                 const row = buildRows(
-                    tree,
+                    orderedFlat,
                     { ...current, onlyFiltered: false, onlyVisible: false },
-                    settingsState,
-                    ''
-                ).find((candidate) => candidate.node.name === state.openLayer)
+                    '',
+                    settingsExpanded
+                ).rows.find(
+                    (candidate) => candidate.node.name === state.openLayer
+                )
                 const layer = L_.layers.data[state.openLayer] || row?.node
                 if (!row || !layer) return null
                 return (

@@ -4,6 +4,7 @@ import L_ from '@basics/Layers_/Layers_'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
 import LayersTool2App from './components/LayersTool2'
 import * as store from './store'
+import { flatten, layerOrder, replay } from './ordering'
 
 let root = null
 let mountNode = null
@@ -39,8 +40,25 @@ const LayersTool2 = {
                         item.length === 3 && item.every(Number.isFinite)
                 )
             store.updateState({ orderingHistory: history })
+            if (history.length) {
+                const ordered = replay(
+                    flatten(L_.configData?.layers),
+                    history
+                ).flat
+                const nextOrder = layerOrder(ordered)
+                if (
+                    JSON.stringify(nextOrder) !==
+                    JSON.stringify(L_._layersOrdered)
+                )
+                    L_.reorderLayers(nextOrder)
+            }
         }
         Filtering.initialize()
+    },
+    _debugFlat(history = store.getState().orderingHistory) {
+        return replay(flatten(L_.configData?.layers), history).flat.map(
+            ({ key, name, type, depth }) => ({ key, name, type, depth })
+        )
     },
     make(targetId) {
         void targetId
@@ -79,16 +97,13 @@ const LayersTool2 = {
     },
     toggleHeader(headerId) {
         const name = String(headerId || '').replace(/^header_/, '')
-        const findHeader = (nodes) => {
-            for (const node of nodes || []) {
-                if (node.type !== 'header') continue
-                if (node.name === name) return node
-                const child = findHeader(node.sublayers)
-                if (child) return child
-            }
-            return null
-        }
-        const header = findHeader(L_.configData?.layers)
+        const flat = replay(
+            flatten(L_.configData?.layers),
+            store.getState().orderingHistory
+        ).flat
+        const header = flat.find(
+            (entry) => entry.type === 'header' && entry.name === name
+        )?.node
         if (!header) return
         const expanded =
             store.getState().expanded[name] ??
