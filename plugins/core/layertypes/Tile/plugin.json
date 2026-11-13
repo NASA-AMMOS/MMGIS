@@ -952,6 +952,7 @@
     "config": "./config",
     "time": "./time",
     "legend": "./legend",
+    "settings": "./settings",
     "globe": {
       "cesium": "./globe/cesium",
       "lithosphere": "./globe/lithosphere"

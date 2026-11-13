@@ -1,6 +1,7 @@
 // Part of the LayersTool that deals with filtering
 
 import $ from 'jquery'
+import L from 'leaflet'
 import F_ from '../../Formulae_/Formulae_'
 import L_ from '../../Layers_/Layers_'
 import Map_ from '../../Map_/Map_'
@@ -33,6 +34,8 @@ const Filtering = {
     current: {},
     currentContainer: null,
     mapSpatialLayer: null,
+    sortableInstance: null,
+    makeRequestId: 0,
     /** True if this layer's type ships a filtering strategy. */
     isFilterable: function (layerName) {
         return LayerInterface.hasOp(filterModuleOf(layerName), 'filter')
@@ -50,11 +53,21 @@ const Filtering = {
     },
     /** Ask the layer's type to apply the layer's current filter state. */
     applyFilter: async function (layerName, ctx = {}) {
-        return LayerInterface.run(filterModuleOf(layerName), 'filter', [
-            layerName,
-            Filtering.filters[layerName],
-            ctx,
-        ])
+        const result = await LayerInterface.run(
+            filterModuleOf(layerName),
+            'filter',
+            [
+                layerName,
+                Filtering.filters[layerName],
+                ctx,
+            ]
+        )
+        document.dispatchEvent(
+            new CustomEvent('layersToolFilterStateChange', {
+                detail: { layerName },
+            })
+        )
+        return result
     },
     initialize: function () {
         Object.keys(L_.layers.data).forEach((layerName) => {
@@ -98,6 +111,7 @@ const Filtering = {
         })
     },
     make: async function (container, layerName) {
+        const requestId = ++Filtering.makeRequestId
         const layerObj = L_.layers.data[layerName]
 
         if (layerObj == null) return
@@ -117,9 +131,10 @@ const Filtering = {
         }
 
         let aggs = await Filtering.getAggregations(layerName)
-        // null == the type has a filtering strategy but could not answer (a
-        // vector layer with no readable GeoJSON); there is nothing to show.
-        if (aggs === null) return
+        if (requestId !== Filtering.makeRequestId) return
+        // A filter strategy that cannot return aggregations still has useful
+        // manual controls; render the host so users can enter a property.
+        if (aggs === null) aggs = {}
         // A layer with nothing loaded yet offers only its geometry, and that
         // answer is cached, so ask again from the features it has by now -
         // unless a filter is active, whose cache is the unfiltered data.
@@ -131,6 +146,7 @@ const Filtering = {
             const refreshed = await Filtering.getAggregations(layerName, {
                 refresh: true,
             })
+            if (requestId !== Filtering.makeRequestId) return
             if (refreshed != null) aggs = refreshed
         }
         if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
@@ -153,15 +169,15 @@ const Filtering = {
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
-                    `<ul id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
+                    `<div id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
                         `<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil mdi-14px'></i><div>${spatialActive ? 'Active' : 'Place Point'}</div></div>`,
                         "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
                             "<div>R:</div>",
-                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
+                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' aria-label='Spatial filter radius in meters' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
                             "<div>m</div>",
                         "</div>",
                         "<div id='layerTool_filtering_filters_spatial_clear' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>",
-                    "</ul>",
+                    "</div>",
                 "</div>",
                 `<div id='layersTool_filtering_footer'>`,
                     "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear Filter</div></div>",
@@ -172,6 +188,13 @@ const Filtering = {
 
         Filtering.currentContainer = container
         container.append(markup)
+        const initialFeatures =
+            Filtering.filters[layerName].geojson?.features ||
+            L_.layers.layer[layerName]?.toGeoJSON?.().features ||
+            []
+        $('#layersTool_filtering_count').text(
+            `(${initialFeatures.length}/${initialFeatures.length})`
+        )
 
         // In case of reopening the tool, recreate state
         let values = JSON.parse(
@@ -208,6 +231,16 @@ const Filtering = {
         Help.finalize(helpKey)
     },
     destroy: function () {
+        Filtering.makeRequestId++
+        Filtering.sortableInstance?.destroy()
+        Filtering.sortableInstance = null
+        $('#layersTool_filtering input, #layersTool_filtering select').each(
+            function () {
+                try {
+                    $(this).autocomplete('dispose')
+                } catch (error) {}
+            }
+        )
         // Clear Spatial Filter
         Map_.rmNotNull(Filtering.mapSpatialLayer)
         OpGridSelector.destroy()
@@ -777,7 +810,7 @@ const Filtering = {
         const listToSort = document.getElementById(
             'layerTool_filtering_filters_list'
         )
-        Sortable.create(listToSort, {
+        Filtering.sortableInstance = Sortable.create(listToSort, {
             animation: 150,
             easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
             handle: '.filterDragHandle',
@@ -847,7 +880,7 @@ const Filtering = {
                 Filtering.setSubmitButtonState(true)
             },
         })
-        $(elmId).on('keyup', function (e) {
+        $(elmId).on('input', function () {
             Filtering.filters[layerName].values[id].value = $(this).val()
             Filtering.setSubmitButtonState(true)
         })

@@ -212,6 +212,28 @@ function make(layerObj, ctx = {}) {
         .catch((e) => {
             console.warn(`WARNING - Unable to load image: ${layerUrl}`)
 
+            if (
+                layerObj.boundingBox &&
+                /\.(png|jpe?g)(?:[?#].*)?$/i.test(layerUrl)
+            ) {
+                const [west, south, east, north] = layerObj.boundingBox
+                const bounds = L.latLngBounds(
+                    L.latLng(south, west),
+                    L.latLng(north, east)
+                )
+                L_.layers.layer[layerObj.name] = L.imageOverlay(
+                    layerUrl,
+                    bounds
+                )
+                L_.setLayerOpacity(
+                    layerObj.name,
+                    L_.layers.opacity[layerObj.name] ?? layerObj.initialOpacity ?? 1
+                )
+                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
+                L_.Map_.allLayersLoaded()
+                return
+            }
+
             L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
             L_.layers.layer[layerObj.name] = null
             L_.Map_.allLayersLoaded()

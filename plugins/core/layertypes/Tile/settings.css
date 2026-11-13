@@ -1,0 +1,86 @@
+.lt2-typeSettingsList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lt2-typeSettingsField {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.lt2-typeSettingsField > :last-child {
+    max-width: 65%;
+}
+
+.lt2-typeSettingsInputUnit {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.lt2-typeSettingsCogLegend {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    border: 1px solid var(--color-a1-5);
+    border-radius: 3px;
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+.lt2-typeSettingsLegendRamp {
+    height: 12px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #440154, #31688e, #35b779, #fde725);
+}
+
+.lt2-typeSettingsExpression {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.lt2-typeSettingsExpression > div {
+    display: flex;
+    gap: 6px;
+}
+
+.lt2-typeSettingsColorTable {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-height: 26px;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 3px;
+    background: var(--color-a1-5);
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+.lt2-typeSettingsColorEntry {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.lt2-typeSettingsColorEntry span {
+    width: 100%;
+    min-height: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.lt2-typeSettingsColorEntry small {
+    overflow: visible;
+    max-width: 100%;
+    color: var(--color-a5);
+    font-size: 9px;
+    white-space: normal;
+    text-align: center;
+    overflow-wrap: anywhere;
+}

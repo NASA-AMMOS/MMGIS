@@ -3,7 +3,7 @@ import { Select as BaseSelect } from '@base-ui/react/select'
 import styles from './Select.module.css'
 
 const Select = forwardRef(function Select(
-    { value, onValueChange, options, placeholder, className, ...props },
+    { value, onValueChange, options, placeholder, className, 'aria-label': ariaLabel, ...props },
     ref
 ) {
     return (
@@ -16,6 +16,7 @@ const Select = forwardRef(function Select(
             <BaseSelect.Trigger
                 ref={ref}
                 className={`${styles.trigger} ${className || ''}`}
+                aria-label={ariaLabel}
             >
                 <BaseSelect.Value placeholder={placeholder || 'Select...'} />
                 <BaseSelect.Icon className={styles.icon}>

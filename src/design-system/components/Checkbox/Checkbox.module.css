@@ -32,6 +32,11 @@
     border: 0px solid transparent;
 }
 
+.root[data-indeterminate] {
+    background: var(--color-c);
+    border-color: var(--color-c);
+}
+
 .indicator {
     display: none;
 }
@@ -41,6 +46,10 @@
     align-items: center;
     justify-content: center;
     color: var(--color-a-5);
+}
+
+.root[data-indeterminate] .indicatorVisible {
+    color: var(--color-a);
 }
 
 .text {
