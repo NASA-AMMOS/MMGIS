@@ -281,6 +281,7 @@ let DataShaders = {
             ) {
                 DataShaders.colorize.lastMinMax.min = min
                 DataShaders.colorize.lastMinMax.max = max
+                L_.layers.layer[name]._shaderMinMax = { min, max }
                 L_.layers.layer[name].setUniform('minvalue', min)
                 L_.layers.layer[name].setUniform('maxvalue', max)
                 L_.layers.layer[name].reRender()
@@ -294,6 +295,7 @@ let DataShaders = {
                     Math.abs(max - DataShaders.colorize.lastMinMax.max) < 1
                 ) {
                     clearInterval(DataShaders.colorize.intervalMinMax)
+                    L_.layers.layer[name]._shaderMinMax = { min, max }
                     L_.layers.layer[name].setUniform('minvalue', min)
                     L_.layers.layer[name].setUniform('maxvalue', max)
                     L_.layers.layer[name].reRender()
@@ -318,6 +320,10 @@ let DataShaders = {
                 else if (DataShaders.colorize.lastMinMax.min < max)
                     DataShaders.colorize.lastMinMax.max += maxRate
 
+                L_.layers.layer[name]._shaderMinMax = {
+                    min: DataShaders.colorize.lastMinMax.min,
+                    max: DataShaders.colorize.lastMinMax.max,
+                }
                 L_.layers.layer[name].setUniform(
                     'minvalue',
                     DataShaders.colorize.lastMinMax.min

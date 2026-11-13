@@ -30,6 +30,7 @@ import Filtering from '@basics/Layers_/Filtering/Filtering'
 import TimeUI from '@basics/TimeControl_/TimeUI'
 import Help from '@basics/UserInterface_/components/Help/Help'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
+import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from '../../Layers/LayerInfoModal/LayerInfoModal'
 import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
@@ -63,6 +64,7 @@ const TYPE_ICONS = {
     video: 'video',
 }
 const RASTER_TYPES = new Set(['tile', 'data', 'image', 'velocity'])
+const VECTOR_TYPES = new Set(['vector', 'vectortile', 'query'])
 
 function layerName(layer) {
     return layer.display_name || layer.name
@@ -113,10 +115,18 @@ function layerIsFiltered(layer) {
     if (!Filtering.isFilterable(layer.name)) return false
     if (encoded?.filters || encoded?.spatialFilter) return true
     return !!(
-        ((filter?.values || []).some(
-            (value) => value && !value.isGroup && value.type != null
-        ) ||
-            filter?.spatial?.center != null)
+        filter?.spatial?.center != null ||
+        (filter?.values || []).some(
+            (value) =>
+                value &&
+                !value.isGroup &&
+                value.key != null &&
+                value.key !== '' &&
+                value.type != null &&
+                (value.value != null ||
+                    value.op === 'isnull' ||
+                    value.op === 'isnotnull')
+        )
     )
 }
 
@@ -131,6 +141,10 @@ function refreshWarning(layer) {
         L_.layers?.refreshWarnings?.[layer.name] ||
         null
     )
+}
+
+function emitHeaderStateChange(header, onState) {
+    store.dispatchHeaderStateChange(header.name, onState)
 }
 
 function searchMatches(layer, query) {
@@ -289,16 +303,139 @@ function sampleTileUrl(layer) {
 
 const previewCache = new Map()
 
-function RasterPreview({ layer, enabled }) {
-    const [sample, setSample] = useState(() => {
-        if (!enabled) return null
-        const initial = sampleTileUrl(layer)
-        const cached = initial && previewCache.get(initial.key)
-        if (cached !== undefined) return cached
-        if (initial) previewCache.set(initial.key, initial)
-        return initial
-    })
+function rampColor(value) {
+    if (value === 'transparent') return [0, 0, 0, 0]
+    const hex = /^#([0-9a-f]{6})$/i.exec(value || '')
+    if (hex)
+        return [
+            parseInt(hex[1].slice(0, 2), 16),
+            parseInt(hex[1].slice(2, 4), 16),
+            parseInt(hex[1].slice(4, 6), 16),
+            255,
+        ]
+    const rgb = /^rgba?\(([^)]+)\)$/i.exec(value || '')
+    if (rgb) {
+        const parts = rgb[1].split(',').map(Number)
+        return [
+            parts[0] || 0,
+            parts[1] || 0,
+            parts[2] || 0,
+            parts[3] == null ? 255 : Math.round(parts[3] * 255),
+        ]
+    }
+    return [255, 255, 255, 0]
+}
+
+async function colorizeDataTile(url, layer) {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('Data preview tile failed')
+    const bitmap = await createImageBitmap(await response.blob())
+    const source = document.createElement('canvas')
+    source.width = bitmap.width
+    source.height = bitmap.height
+    const sourceContext = source.getContext('2d', { willReadFrequently: true })
+    sourceContext.drawImage(bitmap, 0, 0)
+    bitmap.close?.()
+    const pixels = sourceContext.getImageData(0, 0, source.width, source.height)
+    const shader = layer.variables?.shader || {}
+    const noDataValues = (shader.noDataValues || []).map(Number)
+    const values = new Float32Array(source.width * source.height)
+    const currentRange =
+        L_.layers.layer[layer.name]?._shaderMinMax ||
+        DataShaders.colorize.lastMinMax
+    let min = Number(currentRange?.min)
+    let max = Number(currentRange?.max)
+    const fixedRange =
+        Number.isFinite(min) && Number.isFinite(max) && min < max
+    if (!fixedRange) {
+        min = Infinity
+        max = -Infinity
+    }
+    for (let index = 0; index < values.length; index++) {
+        const offset = index * 4
+        let value = F_.RGBAto32({
+            r: pixels.data[offset],
+            g: pixels.data[offset + 1],
+            b: pixels.data[offset + 2],
+            a: pixels.data[offset + 3],
+        })
+        if (value === 2147483648) value = 0
+        values[index] = value
+        if (
+            !fixedRange &&
+            !noDataValues.includes(value) &&
+            Number.isFinite(value)
+        ) {
+            min = Math.min(min, value)
+            max = Math.max(max, value)
+        }
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min === max)
+        throw new Error('Data preview has no finite range')
+    const ramp =
+        L_.layers.layer[layer.name]?.ramp || shader.ramps?.[0] || []
+    if (ramp.length < 2) throw new Error('Data preview has no color ramp')
+    const colors = ramp.map(rampColor)
+    for (let index = 0; index < values.length; index++) {
+        const value = values[index]
+        const offset = index * 4
+        if (!Number.isFinite(value) || noDataValues.includes(value)) {
+            pixels.data[offset + 3] = 0
+            continue
+        }
+        const position = Math.max(0, Math.min(1, (value - min) / (max - min)))
+        const scaled = position * (colors.length - 1)
+        const low = Math.floor(scaled)
+        const high = Math.min(colors.length - 1, low + 1)
+        const fraction = shader.discrete === true ? 0 : scaled - low
+        for (let channel = 0; channel < 4; channel++)
+            pixels.data[offset + channel] = Math.round(
+                colors[low][channel] * (1 - fraction) +
+                    colors[high][channel] * fraction
+            )
+    }
+    const output = document.createElement('canvas')
+    output.width = source.width
+    output.height = source.height
+    output.getContext('2d').putImageData(pixels, 0, 0)
+    return output.toDataURL()
+}
+
+function RasterPreview({ layer, enabled, version }) {
+    const [sample, setSample] = useState(null)
     const fallback = typeColor(layer.type)
+    useEffect(() => {
+        if (!enabled) {
+            setSample(null)
+            return
+        }
+        const initial = sampleTileUrl(layer)
+        if (!initial) {
+            setSample(null)
+            return
+        }
+        const cached = previewCache.get(initial.key)
+        if (cached !== undefined) {
+            setSample(cached)
+            return
+        }
+        if (layer.type === 'data') {
+            setSample(null)
+            colorizeDataTile(initial.url, layer)
+                .then((url) => {
+                    const result = { key: initial.key, url }
+                    previewCache.set(initial.key, result)
+                    setSample(result)
+                })
+                .catch(() => {
+                    previewCache.set(initial.key, null)
+                    setSample(null)
+                })
+        } else {
+            previewCache.set(initial.key, initial)
+            setSample(initial)
+        }
+    }, [enabled, layer, version])
     if (!enabled) return null
     return sample?.url ? (
         <img
@@ -426,6 +563,7 @@ function StatusSlot({ layer, onOpen }) {
             ? { kind: 'cached', message: warning.message || warning }
             : null)
     const typeStatus = LayerTypeRegistry.settings(layer.type)?.status
+    const filtered = layerIsFiltered(layer)
     let pluginStatus = null
     try {
         pluginStatus = typeStatus?.(layer, {})
@@ -456,13 +594,24 @@ function StatusSlot({ layer, onOpen }) {
                 </button>
             </ToolTip>
         )
-    if (timeEnabled)
+    if (timeEnabled || filtered)
         return (
-            <ToolTip label="Time-enabled layer settings">
-                <button className="lt2-status" aria-label="Time-enabled; open settings" onClick={onOpen}>
-                    <i className="mdi mdi-clock-outline mdi-16px" />
-                </button>
-            </ToolTip>
+            <span className="lt2-statusGroup">
+                {timeEnabled && (
+                    <ToolTip label="Time-enabled layer settings">
+                        <button className="lt2-status" aria-label="Time-enabled; open settings" onClick={onOpen}>
+                            <i className="mdi mdi-clock-outline mdi-16px" />
+                        </button>
+                    </ToolTip>
+                )}
+                {filtered && (
+                    <ToolTip label="Layer has an active filter">
+                        <button className="lt2-status lt2-statusFiltered" aria-label="Filtered layer; open settings" onClick={onOpen}>
+                            <i className="mdi mdi-filter-check mdi-16px" />
+                        </button>
+                    </ToolTip>
+                )}
+            </span>
         )
     return null
 }
@@ -559,17 +708,18 @@ function LayerRow({
         layer.variables?.geometryType ||
         firstFeature?.feature?.geometry?.type ||
         ''
-    const glyph =
-        layer.type === 'vector' || layer.type === 'vectortile'
-            ? /point/i.test(geometry)
-                ? 'circle'
-                : /line/i.test(geometry)
-                  ? 'vector-polyline'
-                  : 'square'
-            : null
+    const glyphShape = VECTOR_TYPES.has(layer.type)
+        ? /point/i.test(geometry)
+            ? 'point'
+            : /line/i.test(geometry)
+              ? 'line'
+              : 'polygon'
+        : null
+    const glyphColor =
+        layer.style?.fillColor || layer.style?.color || color
     return (
         <div
-            className={`lt2-row lt2-layerRow ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
+            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
             style={{ '--depth': row.depth, '--lt-color': color }}
             aria-level={row.depth + 1}
             aria-selected={selected}
@@ -589,23 +739,25 @@ function LayerRow({
                 />
             </span>
             <button className="lt2-title" onClick={onOpen} title={row.label}>
-                {glyph && (
-                    <i
-                        className={`mdi mdi-${glyph} lt2-glyph`}
-                        style={{ color: layer.style?.fillColor || layer.style?.color || layer.style?.strokeColor || 'var(--color-a5)' }}
+                {glyphShape && (
+                    <span
+                        className={`lt2-glyph lt2-glyph-${glyphShape}`}
+                        style={{ '--glyph-color': glyphColor }}
                         aria-hidden="true"
                     />
                 )}
-                <i
-                    className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'} lt2-typeIcon`}
-                    aria-hidden="true"
-                />
+                {!isRaster && !VECTOR_TYPES.has(layer.type) && (
+                    <i
+                        className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'} lt2-typeIcon`}
+                        aria-hidden="true"
+                    />
+                )}
                 <span className="lt2-name">{highlightText(row.label, query)}</span>
                 {row.descriptionOnly && (
                     <span className="lt2-descriptionHit">in description</span>
                 )}
             </button>
-            {isRaster && <RasterPreview layer={layer} enabled={previews} />}
+            {isRaster && <RasterPreview layer={layer} enabled={previews} version={store.getState().layerVersion} />}
             <StatusSlot layer={layer} onOpen={onOpen} />
         </div>
     )
@@ -639,6 +791,8 @@ function CoreSettings({ layer, api }) {
     const [exportError, setExportError] = useState('')
     const [exportFormat, setExportFormat] = useState('geojson')
     const [exportCoordinates, setExportCoordinates] = useState('source')
+    const [exportExtent, setExportExtent] = useState('current')
+    const [exportProperties, setExportProperties] = useState(true)
     const [exportBusy, setExportBusy] = useState(false)
     const plugin = LayerTypeRegistry.settings(layer.type)
     const pluginSections = useMemo(() => {
@@ -663,7 +817,62 @@ function CoreSettings({ layer, api }) {
             const mapLayer = L_.layers?.layer?.[layer.name]
             if (!mapLayer?.toGeoJSON)
                 throw new Error('This layer does not expose exportable GeoJSON data.')
-            let geojson = mapLayer.toGeoJSON()
+            let geojson
+            if (
+                exportExtent === 'entire' &&
+                layer.variables?.dynamicExtent === true &&
+                layer.url
+            ) {
+                const response = await fetch(
+                    L_.getUrl(layer.type, layer.url, layer)
+                )
+                if (!response.ok)
+                    throw new Error(`Source export failed (${response.status}).`)
+                geojson = await response.json()
+            } else {
+                geojson = mapLayer.toGeoJSON()
+            }
+            if (
+                exportExtent === 'current' &&
+                Array.isArray(geojson.features) &&
+                Map_.map?.getBounds
+            ) {
+                const bounds = Map_.map.getBounds()
+                const withinBounds = (feature) => {
+                    let west = Infinity
+                    let east = -Infinity
+                    let south = Infinity
+                    let north = -Infinity
+                    const visit = (coordinates) => {
+                        if (
+                            Array.isArray(coordinates) &&
+                            coordinates.length >= 2 &&
+                            typeof coordinates[0] === 'number'
+                        ) {
+                            west = Math.min(west, coordinates[0])
+                            east = Math.max(east, coordinates[0])
+                            south = Math.min(south, coordinates[1])
+                            north = Math.max(north, coordinates[1])
+                        } else if (Array.isArray(coordinates)) {
+                            coordinates.forEach(visit)
+                        }
+                    }
+                    visit(feature.geometry?.coordinates)
+                    return (
+                        west <= bounds.getEast() &&
+                        east >= bounds.getWest() &&
+                        south <= bounds.getNorth() &&
+                        north >= bounds.getSouth()
+                    )
+                }
+                geojson.features = geojson.features.filter(withinBounds)
+            }
+            if (exportProperties && Array.isArray(geojson.features))
+                geojson.features.forEach((feature) => {
+                    feature.properties = feature.properties || {}
+                })
+            else if (Array.isArray(geojson.features))
+                geojson.features.forEach((feature) => delete feature.properties)
             if (exportCoordinates !== 'source')
                 geojson = L_.convertGeoJSONLngLatsToPrimaryCoordinates(geojson)
             let body
@@ -782,6 +991,27 @@ function CoreSettings({ layer, api }) {
                         ]}
                     />
                 </div>
+                {layer.variables?.dynamicExtent === true && (
+                    <div className="lt2-field">
+                        <label>Extent</label>
+                        <Select
+                            value={exportExtent}
+                            onValueChange={setExportExtent}
+                            aria-label="Export extent"
+                            options={[
+                                { value: 'current', label: 'Current Extent' },
+                                { value: 'entire', label: 'Entire File' },
+                            ]}
+                        />
+                    </div>
+                )}
+                <Checkbox
+                    checked={exportProperties}
+                    onCheckedChange={setExportProperties}
+                    showCheck
+                >
+                    Include properties
+                </Checkbox>
                 {L_.Coordinates?.mainType !== 'll' && (
                     <div className="lt2-field">
                         <label>Coordinates</label>
@@ -802,6 +1032,16 @@ function CoreSettings({ layer, api }) {
                 <Button size="sm" variant="secondary" disabled={exportBusy} onClick={exportLayer}>
                     <i className="mdi mdi-download" /> {exportBusy ? 'Preparing…' : 'Download data'}
                 </Button>
+                {exportBusy && <progress aria-label="Export progress" />}
+                {(layer.variables?.downloadURL || layer.url) && (
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => api.download()}
+                    >
+                        Download source
+                    </Button>
+                )}
                 {exportError && <div className="lt2-inlineError" role="alert">{exportError}</div>}
             </SettingSection>
             {pluginSections.map((section) => {
@@ -838,7 +1078,7 @@ function CoreSettings({ layer, api }) {
     )
 }
 
-function SettingsPage({ row, api, onBack, onSync }) {
+function SettingsPage({ row, api, onBack }) {
     const layer = row.node
     const color = typeColor(layer.type)
     const status = activeError(layer) || refreshWarning(layer)
@@ -846,8 +1086,7 @@ function SettingsPage({ row, api, onBack, onSync }) {
     try {
         typeStatus = LayerTypeRegistry.settings(layer.type)?.status?.(layer, api)
     } catch (error) {}
-    const [visible, setVisible] = useState(layerIsOn(layer))
-    useEffect(() => setVisible(layerIsOn(layer)), [layer, onSync])
+    const visible = layerIsOn(layer)
     const retry = () => api.reload()
     const info = () => LayerInfoModal.open(layer.name)
     return (
@@ -894,7 +1133,6 @@ function SettingsPage({ row, api, onBack, onSync }) {
                     checked={visible}
                     onCheckedChange={async (checked) => {
                         await api.toggle(layer.name, checked)
-                        setVisible(checked)
                     }}
                     className="lt2-visible"
                     showCheck
@@ -1168,14 +1406,20 @@ function LayersTool2App({ vars }) {
     const setActiveLayer = useCallback(
         (row) => {
             if (row.isHeader) {
-                store.setExpanded(row.node.name, !(state.expanded[row.node.name] ?? row.node.expanded ?? vars.expanded))
+                const expanded =
+                    store.getState().expanded[row.node.name] ??
+                    row.node.expanded ??
+                    vars.expanded === true
+                const onState = !expanded
+                store.setExpanded(row.node.name, onState)
+                emitHeaderStateChange(row.node, onState)
                 return
             }
             store.updateState({ openLayer: row.node.name, focusedRow: row.id })
             if (!layerIsOn(row.node))
                 Promise.resolve(api.toggle(row.node.name, true)).catch(() => {})
         },
-        [api, state.expanded, vars.expanded]
+        [api, vars.expanded]
     )
 
     const setLayerToggle = useCallback(async (layer, checked) => {
@@ -1200,6 +1444,7 @@ function LayersTool2App({ vars }) {
                     muted: { ...store.getState().muted, [header.name]: null },
                     layerVersion: store.getState().layerVersion + 1,
                 })
+                emitHeaderStateChange(header, true)
             } else {
                 const onLayers = descendants.filter(layerIsOn)
                 for (const layer of onLayers) await L_.toggleLayer(layer)
@@ -1210,6 +1455,7 @@ function LayersTool2App({ vars }) {
                     },
                     layerVersion: store.getState().layerVersion + 1,
                 })
+                emitHeaderStateChange(header, false)
             }
         },
         [state.muted]
@@ -1319,8 +1565,11 @@ function LayersTool2App({ vars }) {
             const expanded =
                 state.expanded[row.node.name] ??
                 row.node.expanded ??
-                vars.expanded
-            if (!expanded) store.setExpanded(row.node.name, true)
+                vars.expanded === true
+            if (!expanded) {
+                store.setExpanded(row.node.name, true)
+                emitHeaderStateChange(row.node, true)
+            }
             else {
                 const child = rows.find(
                     (candidate) => candidate.parentId === row.id
@@ -1328,8 +1577,15 @@ function LayersTool2App({ vars }) {
                 if (child) store.updateState({ focusedRow: child.id })
             }
         } else if (key === 'ArrowLeft') {
-            if (row.isHeader && state.expanded[row.node.name] !== false)
+            if (
+                row.isHeader &&
+                (state.expanded[row.node.name] ??
+                    row.node.expanded ??
+                    vars.expanded === true)
+            ) {
                 store.setExpanded(row.node.name, false)
+                emitHeaderStateChange(row.node, false)
+            }
             else if (row.parentId)
                 store.updateState({ focusedRow: row.parentId })
         } else if (key === 'Enter') {
@@ -1356,11 +1612,6 @@ function LayersTool2App({ vars }) {
             moveFocus(row, key)
         }
     }
-
-    const onLayerSync = useCallback((name) => {
-        if (!name || !L_.layers.data[name]) return
-        store.updateState({ layerVersion: store.getState().layerVersion + 1 })
-    }, [])
 
     return (
         <div className={`lt2-root ${mobile ? 'lt2-mobile' : ''}`}>
@@ -1391,7 +1642,12 @@ function LayersTool2App({ vars }) {
                                     <i className="mdi mdi-filter mdi-18px" />
                                 </IconButton>
                             </ToolTip>
-                            <span dangerouslySetInnerHTML={{ __html: Help.getComponent(HELP_KEY) }} />
+                            <span
+                                className="lt2-helpSlot"
+                                dangerouslySetInnerHTML={{
+                                    __html: Help.getComponent(HELP_KEY),
+                                }}
+                            />
                         </div>
                     </div>
                     <SearchBox
@@ -1512,7 +1768,7 @@ function LayersTool2App({ vars }) {
                                                     selected={state.openLayer === row.node.name}
                                                     focused={focused === row.id}
                                                     onCount={() => {}}
-                                                    onExpand={() => store.setExpanded(row.node.name, !expanded)}
+                                                    onExpand={() => setActiveLayer(row)}
                                                     onTitle={() => setActiveLayer(row)}
                                                     onOpen={() => setActiveLayer(row)}
                                                     onMute={() => muteHeader(row.node)}
@@ -1556,7 +1812,6 @@ function LayersTool2App({ vars }) {
                             store.updateState({ openLayer: null })
                             requestAnimationFrame(() => rowElements.current[state.focusedRow]?.focus())
                         }}
-                        onSync={onLayerSync}
                     />
                 )
             })()}

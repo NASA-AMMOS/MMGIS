@@ -4177,7 +4177,7 @@
           "type": "image",
           "url": "Data/images/CuriosityTopDownOrthoSmall.png",
           "visibility": false,
-          "boundingBox": [-122.45, 37.82, -122.35, 37.76],
+          "boundingBox": [-122.45, 37.76, -122.35, 37.82],
           "description": "Small local raster image fixture for Layers2 settings and preview testing.",
           "uuid": "622f2a59-8bda-4ff2-9b2d-d3d9562bd743"
         },
@@ -4185,7 +4185,7 @@
           "name": "Video - Layers2 sample",
           "type": "video",
           "url": "Data/videos/layers2-sample.mp4",
-          "boundingBox": [-122.45, 37.83, -122.35, 37.75],
+          "boundingBox": [-122.45, 37.75, -122.35, 37.83],
           "visibility": false,
           "variables": {
             "video": {
@@ -4217,14 +4217,14 @@
           "uuid": "9e4a432a-21f4-419a-a6d2-45f2813cb98e"
         },
         {
-          "name": "Query - Local Reference STAC",
+          "name": "Query - Elasticsearch endpoint",
           "type": "query",
           "query": {
-            "endpoint": "/api/stac/collections/reference_mission_EMIT_L2B_Methane_Enhancement_Data_60_m_V002/items",
+            "endpoint": "http://localhost:9200/reference_mission/_search",
             "type": "elasticsearch"
           },
           "visibility": false,
-          "description": "Runtime query-layer example configured against the Reference Mission's local STAC collection endpoint.",
+          "description": "Elasticsearch query-layer example. The Reference Mission does not run Elasticsearch; start a compatible local service at localhost:9200 to populate this runtime layer.",
           "uuid": "2686ea70-8e64-40da-8940-f64c83065e7f"
         },
         {

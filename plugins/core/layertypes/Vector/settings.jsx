@@ -27,23 +27,52 @@ import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerS
 import DynamicStyleRamp from '../../tools/Layers/components/DynamicStyleRamp'
 import './settings.css'
 
-function FilterSettings({ layer }) {
+function FilterSettings({ layer, api }) {
     const host = useRef(null)
     useEffect(() => {
         if (!host.current || !Filtering.isFilterable(layer.name)) return
+        const container = host.current
+        container.classList.add('gears_on')
+        const refreshList = () =>
+            requestAnimationFrame(() => api.refresh())
+        container.addEventListener('input', refreshList)
+        container.addEventListener('change', refreshList)
+        container.addEventListener('click', refreshList)
         let disposed = false
-        Filtering.make($(host.current), layer.name)
+        Filtering.current = {
+            layerName: layer.name,
+            layerObj: layer,
+            type: layer.type,
+        }
+        Filtering.currentContainer = $(container)
+        Filtering.make($(container), layer.name)
             .then(() => {
-            if (disposed && Filtering.current.layerName === layer.name)
-                Filtering.destroy()
+                if (
+                    disposed &&
+                    Filtering.current.layerName === layer.name &&
+                    Filtering.currentContainer?.[0] === container
+                ) {
+                    Filtering.destroy()
+                    Filtering.current = {}
+                    Filtering.currentContainer = null
+                }
             })
             .catch(() => {})
         return () => {
             disposed = true
-            if (Filtering.current.layerName === layer.name)
+            container.removeEventListener('input', refreshList)
+            container.removeEventListener('change', refreshList)
+            container.removeEventListener('click', refreshList)
+            if (
+                Filtering.current.layerName === layer.name &&
+                Filtering.currentContainer?.[0] === container
+            ) {
                 Filtering.destroy()
+                Filtering.current = {}
+                Filtering.currentContainer = null
+            }
         }
-    }, [layer.name])
+    }, [api, layer.name])
     return <div className="lt2-typeSettingsFilter" ref={host} />
 }
 

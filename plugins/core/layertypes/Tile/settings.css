@@ -50,9 +50,37 @@
 }
 
 .lt2-typeSettingsColorTable {
+    display: flex;
+    min-height: 26px;
+    gap: 3px;
+    align-items: stretch;
     padding: 6px;
     border-radius: 3px;
     background: var(--color-a1-5);
     color: var(--color-a5);
     font-size: 11px;
+}
+
+.lt2-typeSettingsColorEntry {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.lt2-typeSettingsColorEntry span {
+    width: 100%;
+    min-height: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.lt2-typeSettingsColorEntry small {
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--color-a5);
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

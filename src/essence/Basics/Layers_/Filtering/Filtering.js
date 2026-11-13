@@ -1,6 +1,7 @@
 // Part of the LayersTool that deals with filtering
 
 import $ from 'jquery'
+import L from 'leaflet'
 import F_ from '../../Formulae_/Formulae_'
 import L_ from '../../Layers_/Layers_'
 import Map_ from '../../Map_/Map_'
@@ -33,6 +34,7 @@ const Filtering = {
     current: {},
     currentContainer: null,
     mapSpatialLayer: null,
+    makeRequestId: 0,
     /** True if this layer's type ships a filtering strategy. */
     isFilterable: function (layerName) {
         return LayerInterface.hasOp(filterModuleOf(layerName), 'filter')
@@ -98,6 +100,7 @@ const Filtering = {
         })
     },
     make: async function (container, layerName) {
+        const requestId = ++Filtering.makeRequestId
         const layerObj = L_.layers.data[layerName]
 
         if (layerObj == null) return
@@ -117,6 +120,7 @@ const Filtering = {
         }
 
         let aggs = await Filtering.getAggregations(layerName)
+        if (requestId !== Filtering.makeRequestId) return
         // null == the type has a filtering strategy but could not answer (a
         // vector layer with no readable GeoJSON); there is nothing to show.
         if (aggs === null) return
@@ -131,6 +135,7 @@ const Filtering = {
             const refreshed = await Filtering.getAggregations(layerName, {
                 refresh: true,
             })
+            if (requestId !== Filtering.makeRequestId) return
             if (refreshed != null) aggs = refreshed
         }
         if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
@@ -208,6 +213,7 @@ const Filtering = {
         Help.finalize(helpKey)
     },
     destroy: function () {
+        Filtering.makeRequestId++
         // Clear Spatial Filter
         Map_.rmNotNull(Filtering.mapSpatialLayer)
         OpGridSelector.destroy()

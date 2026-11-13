@@ -79,8 +79,24 @@ const LayersTool2 = {
     },
     toggleHeader(headerId) {
         const name = String(headerId || '').replace(/^header_/, '')
-        const expanded = store.getState().expanded[name] !== false
-        store.setExpanded(name, !expanded)
+        const findHeader = (nodes) => {
+            for (const node of nodes || []) {
+                if (node.type !== 'header') continue
+                if (node.name === name) return node
+                const child = findHeader(node.sublayers)
+                if (child) return child
+            }
+            return null
+        }
+        const header = findHeader(L_.configData?.layers)
+        if (!header) return
+        const expanded =
+            store.getState().expanded[name] ??
+            header.expanded ??
+            vars.expanded === true
+        const onState = !expanded
+        store.setExpanded(name, onState)
+        store.dispatchHeaderStateChange(name, onState)
     },
     populateCogScale(layerName) {
         const key = L_.asLayerUUID ? L_.asLayerUUID(layerName) : layerName

@@ -67,6 +67,42 @@ function defaultsFor(layer) {
     return cogDefaults.get(layer)
 }
 
+function colorTableEntries(table) {
+    if (typeof table === 'string') {
+        try {
+            table = JSON.parse(table)
+        } catch (error) {
+            return []
+        }
+    }
+    if (Array.isArray(table))
+        return table
+            .filter((entry) => Array.isArray(entry) && Array.isArray(entry[1]))
+            .map((entry) => ({
+                label: Array.isArray(entry[0])
+                    ? `${entry[0][0]} – ${entry[0][1]}`
+                    : '',
+                color: entry[1],
+            }))
+    if (table && typeof table === 'object')
+        return Object.keys(table)
+            .sort((a, b) => parseFloat(a) - parseFloat(b))
+            .filter((key) => Array.isArray(table[key]))
+            .map((key) => ({ label: key, color: table[key] }))
+    return []
+}
+
+function rampGradient(name) {
+    const reverse = name.endsWith('_r') || name.endsWith('-r')
+    const mapName = reverse ? name.slice(0, -2) : name
+    const colors = Array.from({ length: 17 }, (_, index) => {
+        const position = (reverse ? 16 - index : index) / 16
+        const [r, g, b] = evaluate_cmap(position, mapName, false)
+        return `rgb(${r},${g},${b}) ${Math.round((index / 16) * 100)}%`
+    })
+    return `linear-gradient(90deg, ${colors.join(',')})`
+}
+
 function refreshCog(layer) {
     const renderer = L_.layers.layer[layer.name]
     if (!renderer) return
@@ -180,7 +216,7 @@ function CogSettings({ layer, resetToken }) {
         layer.currentCogExpression = initial.expression || null
         layer.cogColormap = initial.colorMap
         refreshCog(layer)
-    }, [layer, resetToken])
+    }, [layer, resetToken, initial])
 
     const minimum =
         layer.currentCogMin ??
@@ -202,16 +238,36 @@ function CogSettings({ layer, resetToken }) {
         refreshCog(layer)
     }
     const colormap =
-        layer.cogColormap && RAMP_NAMES.includes(layer.cogColormap)
+        layer.cogColormap && RAMP_NAMES.includes(
+            layer.cogColormap.replace(/[_-]r$/, '')
+        )
             ? layer.cogColormap
             : 'viridis'
+    const colorTable = colorTableEntries(layer.cogColormapJson)
     return (
         <div className="lt2-typeSettingsList">
             <div className="lt2-typeSettingsCogLegend">
-                <div>
-                    {layer.cogUnits || 'Value'}: {minimum} — {maximum}
-                </div>
-                <div className="lt2-typeSettingsLegendRamp" />
+                <div>Applied rescale: {minimum} — {maximum} {layer.cogUnits || ''}</div>
+                {colorTable.length > 0 ? (
+                    <div className="lt2-typeSettingsColorTable" aria-label="Custom color table legend">
+                        {colorTable.map(({ label, color }, index) => (
+                            <div className="lt2-typeSettingsColorEntry" key={`${label}-${index}`}>
+                                <span
+                                    style={{
+                                        backgroundColor: `rgba(${color[0] || 0},${color[1] || 0},${color[2] || 0},${color[3] == null ? 1 : color[3] / 255})`,
+                                    }}
+                                />
+                                {label && <small>{label}</small>}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div
+                        className="lt2-typeSettingsLegendRamp"
+                        style={{ background: rampGradient(colormap) }}
+                        aria-label={`${colormap} colormap legend`}
+                    />
+                )}
             </div>
             <div className="lt2-typeSettingsField">
                 <span>Color ramp</span>
@@ -225,11 +281,6 @@ function CogSettings({ layer, resetToken }) {
                     }}
                 />
             </div>
-            {layer.cogColormapJson && (
-                <div className="lt2-typeSettingsColorTable">
-                    Custom color table configured
-                </div>
-            )}
             <label className="lt2-typeSettingsField">
                 <span>Rescale minimum</span>
                 <span className="lt2-typeSettingsInputUnit">

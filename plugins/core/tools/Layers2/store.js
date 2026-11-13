@@ -1,3 +1,5 @@
+import F_ from '@basics/Formulae_/Formulae_'
+
 let state = {
     expanded: {},
     muted: {},
@@ -25,6 +27,15 @@ export function getState() {
 export function subscribe(listener) {
     listeners.add(listener)
     return () => listeners.delete(listener)
+}
+
+export function dispatchHeaderStateChange(name, onState) {
+    const headerId = `header_${F_.escapeHtml(name)}`.split('_')[1]
+    document.dispatchEvent(
+        new CustomEvent('layersToolHeaderStateChange', {
+            detail: { header_id: headerId, onState },
+        })
+    )
 }
 
 export function updateState(update) {
