@@ -3,12 +3,40 @@ import { Select } from '@design/components'
 import L_ from '@basics/Layers_/Layers_'
 import DataShaders from '@essence/services/DataShaders'
 
+const EMPTY_SHADER = {}
 const shaderDefaults = new WeakMap()
+
+function normalizeShaderLegends(host) {
+    host.querySelectorAll('[id$="_colorize_legend"]').forEach((list) => {
+        let group = list
+        if (list.tagName === 'UL') {
+            group = document.createElement('div')
+            Array.from(list.attributes).forEach(({ name, value }) =>
+                group.setAttribute(name, value)
+            )
+            group.setAttribute('role', 'group')
+            group.setAttribute('aria-label', 'Color ramp legend')
+            while (list.firstChild)
+                group.appendChild(list.firstChild)
+            list.replaceWith(group)
+        }
+        Array.from(group.children).forEach((item) => {
+            if (item.tagName !== 'LI') return
+            const row = document.createElement('div')
+            Array.from(item.attributes).forEach(({ name, value }) =>
+                row.setAttribute(name, value)
+            )
+            while (item.firstChild)
+                row.appendChild(item.firstChild)
+            item.replaceWith(row)
+        })
+    })
+}
 
 function ShaderSettings({ layer, api, resetToken }) {
     const host = useRef(null)
     const lastReset = useRef(resetToken)
-    const shader = layer.variables?.shader || {}
+    const shader = layer.variables?.shader || EMPTY_SHADER
     const module = DataShaders[shader.type]
     if (!shaderDefaults.has(layer))
         shaderDefaults.set(
@@ -27,6 +55,11 @@ function ShaderSettings({ layer, api, resetToken }) {
         if (!host.current || !module?.getHTML) return
         const generated = module.getHTML(layer.name, shader)
         host.current.innerHTML = `<ul>${generated}</ul>`
+        normalizeShaderLegends(host.current)
+        const observer = new MutationObserver(() =>
+            normalizeShaderLegends(host.current)
+        )
+        observer.observe(host.current, { childList: true, subtree: true })
         host.current.querySelectorAll('input, select').forEach((control, index) => {
             if (control.getAttribute('aria-label') || control.labels?.length)
                 return
@@ -38,7 +71,9 @@ function ShaderSettings({ layer, api, resetToken }) {
         })
         module.attachEvents?.(layer.name, shader)
         module.attachImmediateEvents?.(layer.name, shader)
-    }, [layer.name, module, shader, api, resetToken])
+        normalizeShaderLegends(host.current)
+        return () => observer.disconnect()
+    }, [layer, layer.name, module, shader, api, resetToken])
     return module?.getHTML ? (
         <div className="lt2-dataShaderSettings" ref={host} />
     ) : (
@@ -73,10 +108,11 @@ export default {
     sections() {
         return [
             {
-                id: 'data-display',
+                id: 'display',
                 label: 'Display',
-                order: 5,
+                order: 0,
                 Component: DataDisplaySettings,
+                reset: (api) => api.setBlend('unset'),
             },
             {
                 id: 'data-shader',

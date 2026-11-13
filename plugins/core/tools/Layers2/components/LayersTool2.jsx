@@ -83,6 +83,53 @@ const VECTOR_TYPES = new Set(['vector', 'vectortile', 'query'])
 const QUASI_LAYERS = new Set(['model', 'query', '3dtiles'])
 const geometryByLayer = new Map()
 
+function openLayerInfo(name, launcher) {
+    const launcherElement = launcher || document.activeElement
+    let modalId = null
+    let sawModal = false
+    let closed = false
+    const observer = new MutationObserver(() => {
+        const modal = document.getElementById('LayerInfoModal')
+        if (modal) {
+            sawModal = true
+            modal.setAttribute('role', 'dialog')
+            modal.setAttribute('aria-modal', 'true')
+            modal.setAttribute('aria-labelledby', 'LayerInfoModalTitle')
+        } else if (sawModal) {
+            cleanup()
+        }
+    })
+    const cleanup = () => {
+        if (closed) return
+        closed = true
+        observer.disconnect()
+        document.removeEventListener('keydown', onKeyDown, true)
+        if (launcherElement?.isConnected)
+            launcherElement.focus({ preventScroll: true })
+    }
+    const onKeyDown = (event) => {
+        if (event.key !== 'Escape' || Modal.top() !== modalId) return
+        event.preventDefault()
+        event.stopPropagation()
+        event.stopImmediatePropagation()
+        Modal.remove(false, Modal.top())
+    }
+    LayerInfoModal.open(name)
+    modalId = Modal.top()
+    document.addEventListener('keydown', onKeyDown, true)
+    observer.observe(document.body, { childList: true, subtree: true })
+    const modal = document.getElementById('LayerInfoModal')
+    if (modal) {
+        sawModal = true
+        modal.setAttribute('role', 'dialog')
+        modal.setAttribute('aria-modal', 'true')
+        modal.setAttribute('aria-labelledby', 'LayerInfoModalTitle')
+    }
+    requestAnimationFrame(() => {
+        if (!sawModal && Modal.top() !== modalId) cleanup()
+    })
+}
+
 function layerName(layer) {
     return layer.display_name || layer.name
 }
@@ -132,6 +179,38 @@ function layerIsOn(layer) {
     const name = layer.name
     const key = L_.asLayerUUID ? L_.asLayerUUID(name) : name
     return !!(L_.layers?.on?.[name] ?? L_.layers?.on?.[key] ?? layer.visibility)
+}
+
+function leafLayerDescendants(flat, headerIndex) {
+    return descendantsOf(flat, headerIndex)
+        .filter((entry) => entry.type !== 'header')
+        .map((entry) => entry.node)
+}
+
+function rowLayerState(row) {
+    const layers = row.isHeader
+        ? row.descendants.filter((layer) => layer.type !== 'header')
+        : [row.node]
+    const countOn = layers.filter(layerIsOn).length
+    const total = layers.length
+    const anyOn = countOn > 0
+    const partial = row.isHeader && anyOn && countOn < total
+    return {
+        countOn,
+        total,
+        partial,
+        checked: row.isHeader ? total > 0 && countOn === total : anyOn,
+        ariaChecked: row.isHeader ? (partial ? 'mixed' : anyOn) : anyOn,
+        label: row.isHeader
+            ? partial
+                ? 'some layers on'
+                : anyOn
+                  ? 'layers on'
+                  : 'layers off'
+            : anyOn
+              ? 'on'
+              : 'off',
+    }
 }
 
 function layerIsFiltered(layer) {
@@ -246,9 +325,7 @@ function buildRows(flat, current, query, expandedMap) {
             parentId:
                 parentIndex == null ? null : flat[parentIndex].key,
             descendants: isHeader
-                ? descendantsOf(flat, index)
-                      .filter((descendant) => descendant.type !== 'header')
-                      .map((descendant) => descendant.node)
+                ? leafLayerDescendants(flat, index)
                 : [],
             descriptionOnly:
                 !!query &&
@@ -692,22 +769,19 @@ function StatusSlot({ layer, onOpen, api, rowId }) {
 
 function HeaderRow({
     row,
+    rowState: rowStateProp,
     expanded,
-    countOn: countOnProp,
     onExpand,
     onTitle,
     onMute,
     muted,
-    total,
     query,
     selected,
     focused,
     dragHandle,
     depthOverride,
 }) {
-    const children = row.descendants
-    const countOn = countOnProp ?? children.filter(layerIsOn).length
-    const isPartial = countOn > 0 && countOn < children.length
+    const rowState = rowStateProp || rowLayerState(row)
     const mutedCount = Array.isArray(muted) ? muted.length : 0
     return (
         <div
@@ -724,8 +798,8 @@ function HeaderRow({
             </button>
             <span className="lt2-checkWrap" title={mutedCount ? `Restore ${mutedCount} muted layers` : 'Mute or restore on layers in this group'}>
                 <Checkbox
-                    checked={countOn === children.length && children.length > 0}
-                    indeterminate={isPartial}
+                    checked={rowState.checked}
+                    indeterminate={rowState.partial}
                     onCheckedChange={() => onMute(row.id)}
                     aria-label={mutedCount ? `Restore ${mutedCount} muted layers` : 'Mute or restore group layers'}
                     showCheck
@@ -742,7 +816,9 @@ function HeaderRow({
                     aria-label={`Information about ${row.label}`}
                     title={`Information about ${row.label}`}
                     tabIndex={-1}
-                    onClick={() => LayerInfoModal.open(row.node.name)}
+                    onClick={(event) =>
+                        openLayerInfo(row.node.name, event.currentTarget)
+                    }
                 >
                     <i className="mdi mdi-information-outline mdi-16px" />
                 </button>
@@ -751,9 +827,9 @@ function HeaderRow({
         {!expanded && (
             <span
                 className="lt2-count"
-                aria-label={`${countOn} of ${total} layers on`}
+                aria-label={`${rowState.countOn} of ${rowState.total} layers on`}
             >
-                {countOn}/{total}
+                {rowState.countOn}/{rowState.total}
             </span>
         )}
         </div>
@@ -946,6 +1022,10 @@ function CoreSettings({ layer, api }) {
             return []
         }
     }, [plugin, testPlugin, layer, pluginContext, layerVersion, layerOn])
+    const displayExtension = pluginSections.find(
+        (section) => section.id === 'display'
+    )
+    const DisplayComponent = displayExtension?.Component
     const pluginActions = useMemo(() => {
         try {
             return [
@@ -1127,6 +1207,29 @@ function CoreSettings({ layer, api }) {
                     step={0.05}
                     onChange={(value) => api.setOpacity(value)}
                 />
+                {DisplayComponent && (
+                    <PluginSectionBoundary key="display-extension">
+                        <DisplayComponent
+                            layer={layer}
+                            api={api}
+                            state={
+                                store.getState().sectionState[layer.name]?.display ||
+                                {}
+                            }
+                            setState={(value) =>
+                                store.setLayerSectionState(
+                                    layer.name,
+                                    'display',
+                                    value
+                                )
+                            }
+                            resetToken={
+                                store.getState().resetTokens[layer.name]
+                                    ?.display || 0
+                            }
+                        />
+                    </PluginSectionBoundary>
+                )}
             </SettingSection>
             {Array.isArray(layer.sublayers) && layer.sublayers.length > 0 && (
                 <SettingSection id="composite" label="Composite layers" onReset={() => api.reset('composite')}>
@@ -1259,7 +1362,9 @@ function CoreSettings({ layer, api }) {
                         </a>
                     </SettingSection>
                 )}
-            {pluginSections.map((section) => {
+            {pluginSections
+                .filter((section) => section.id !== 'display')
+                .map((section) => {
                 const Component = section.Component
                 return (
                     <SettingSection
@@ -1283,7 +1388,7 @@ function CoreSettings({ layer, api }) {
                         ) : null}
                     </SettingSection>
                 )
-            })}
+                })}
             <div className="lt2-pluginActions">
                 {pluginActions.map((action) => (
                     <Button className="lt2-iconTextButton" key={action.id} size="sm" variant="secondary" onClick={() => {
@@ -1330,7 +1435,7 @@ function SettingsPage({ row, api: baseApi, onBack }) {
     } catch (error) {}
     const visible = layerIsOn(layer)
     const retry = () => api.reload()
-    const info = () => LayerInfoModal.open(layer.name)
+    const info = (event) => openLayerInfo(layer.name, event.currentTarget)
     useEffect(() => {
         titleRef.current?.focus()
     }, [layer.name])
@@ -1527,6 +1632,13 @@ function LayersTool2App({ vars }) {
         ]
     )
     const rows = rowModel.rows
+    const rowStates = useMemo(
+        () =>
+            new Map(
+                rows.map((row) => [row.id, rowLayerState(row)])
+            ),
+        [rows, state.layerVersion]
+    )
     orderedFlatRef.current = orderedFlat
     rowsRef.current = rows
     expandedMapRef.current = {
@@ -1612,13 +1724,12 @@ function LayersTool2App({ vars }) {
 
     const api = useMemo(
         () => ({
-            setOpacity: (value, layerName = state.openLayer) =>
-                (() => {
-                    L_.setLayerOpacity(layerName, value)
-                    store.updateState({
-                        layerVersion: store.getState().layerVersion + 1,
-                    })
-                })(),
+            setOpacity: (value, layerName = state.openLayer) => {
+                L_.setLayerOpacity(layerName, value)
+                store.updateState({
+                    layerVersion: store.getState().layerVersion + 1,
+                })
+            },
             setTileFilter: (property, value, layerName = state.openLayer) => {
                 if (!L_.layers.data[layerName]) return
                 L_.setLayerFilter(layerName, property, value)
@@ -1863,9 +1974,7 @@ function LayersTool2App({ vars }) {
             const descendants =
                 headerIndex < 0
                     ? []
-                    : descendantsOf(flat, headerIndex)
-                          .filter((entry) => entry.type !== 'header')
-                          .map((entry) => entry.node)
+                    : leafLayerDescendants(flat, headerIndex)
             const remembered = current.muted[header.name]
             if (Array.isArray(remembered)) {
                 for (const name of remembered) {
@@ -2123,7 +2232,14 @@ function LayersTool2App({ vars }) {
                 const flatIndex = flat.findIndex(
                     (entry) => entry.key === row.id
                 )
-                const target = flat[flatIndex + row.descendants.length + 1]
+                const target =
+                    flatIndex < 0
+                        ? null
+                        : flat[
+                              flatIndex +
+                                  descendantsOf(flat, flatIndex).length +
+                                  1
+                          ]
                 neighbor = currentRows.find(
                     (candidate) => candidate.id === target?.key
                 )
@@ -2316,6 +2432,7 @@ function LayersTool2App({ vars }) {
                                         const expanded =
                                             isFiltering ||
                                             expandedMap[row.node.name] === true
+                                        const rowState = rowStates.get(row.id)
                                         return (
                                             <div
                                                 key={row.id}
@@ -2325,18 +2442,7 @@ function LayersTool2App({ vars }) {
                                                 id={`lt2-row-${row.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
                                                 tabIndex={-1}
                                                 role="treeitem"
-                                                aria-label={`${row.label}, ${
-                                                    row.isHeader
-                                                        ? row.descendants.some(layerIsOn) &&
-                                                          !row.descendants.every(layerIsOn)
-                                                            ? 'some layers on'
-                                                            : row.descendants.some(layerIsOn)
-                                                              ? 'layers on'
-                                                              : 'layers off'
-                                                        : layerIsOn(row.node)
-                                                          ? 'on'
-                                                          : 'off'
-                                                }`}
+                                                aria-label={`${row.label}, ${rowState.label}`}
                                                 aria-level={row.depth + 1}
                                                 aria-selected={
                                                     !row.isHeader &&
@@ -2345,12 +2451,7 @@ function LayersTool2App({ vars }) {
                                                         : undefined
                                                 }
                                                 aria-checked={
-                                                    row.isHeader
-                                                        ? row.descendants.some(layerIsOn) &&
-                                                          !row.descendants.every(layerIsOn)
-                                                            ? 'mixed'
-                                                            : row.descendants.some(layerIsOn)
-                                                        : layerIsOn(row.node)
+                                                    rowState.ariaChecked
                                                 }
                                                 aria-setsize={row.setSize}
                                                 aria-posinset={row.posInSet}
@@ -2368,10 +2469,9 @@ function LayersTool2App({ vars }) {
                                             >
                                                 <MemoSortableRow
                                                     row={row}
+                                                    rowState={rowState}
                                                     api={api}
                                                     isOn={row.isHeader ? undefined : layerIsOn(row.node)}
-                                                    countOn={row.isHeader ? row.descendants.filter(layerIsOn).length : undefined}
-                                                    total={row.isHeader ? row.descendants.length : undefined}
                                                     query={query}
                                                     previews={vars.previews !== false}
                                                     depthOverride={
