@@ -1424,9 +1424,12 @@ function SettingsPage({ row, api: baseApi, onBack }) {
         [baseApi, layer]
     )
     const titleRef = useRef(null)
+    const settingsRef = useRef(null)
     const color = typeColor(layer.type)
     const status = activeError(layer) || refreshWarning(layer)
     const downloadUrl = sourceDownloadUrl(layer)
+    const exportAction = ['vector', 'query'].includes(layer.type)
+    const showDownload = Boolean(downloadUrl) || exportAction
     let typeStatus = null
     try {
         typeStatus = LayerTypeRegistry.settings(layer.type)?.status?.(
@@ -1437,11 +1440,24 @@ function SettingsPage({ row, api: baseApi, onBack }) {
     const visible = layerIsOn(layer)
     const retry = () => api.reload()
     const info = (event) => openLayerInfo(layer.name, event.currentTarget)
+    const download = () => {
+        if (downloadUrl) {
+            api.download()
+            return
+        }
+        const section = settingsRef.current?.querySelector(
+            '[data-section="export"]'
+        )
+        if (!section) return
+        section.tabIndex = -1
+        section.scrollIntoView({ block: 'start' })
+        section.focus({ preventScroll: true })
+    }
     useEffect(() => {
         titleRef.current?.focus()
     }, [layer.name])
     return (
-        <div className="lt2-settings" role="region" aria-label={`${row.label} settings`}>
+        <div className="lt2-settings" role="region" aria-label={`${row.label} settings`} ref={settingsRef}>
             <div
                 className="lt2-hero"
                 style={{ '--layer-color': color }}
@@ -1463,12 +1479,12 @@ function SettingsPage({ row, api: baseApi, onBack }) {
                                 <i className="mdi mdi-refresh mdi-18px" />
                             </IconButton>
                         </ToolTip>
-                        {downloadUrl && (
+                        {showDownload && (
                             <ToolTip label="Download">
                                 <IconButton
                                     size="sm"
                                     aria-label="Download layer"
-                                    onClick={() => api.download()}
+                                    onClick={download}
                                 >
                                     <i className="mdi mdi-download mdi-18px" />
                                 </IconButton>

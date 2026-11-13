@@ -458,11 +458,10 @@ export function applyLiveMove(
 
     const oldDepth = item.depth
     const descendants = isHeader(item) ? descendantsOf(moved, oldIndex) : []
-    moved.splice(oldIndex, 1)
-    moved.splice(newIndex, 0, item)
-
     const localExpanded = cloneExpandedMap(moved, expandedMap)
     initializeRowState(moved, localExpanded)
+    moved.splice(oldIndex, 1)
+    moved.splice(newIndex, 0, item)
     const { newDepth, headerState } = sortOnChange(
         moved,
         item,

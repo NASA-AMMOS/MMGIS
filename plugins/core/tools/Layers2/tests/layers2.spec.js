@@ -916,7 +916,7 @@ test.describe('LayersTool2', () => {
         }
     })
 
-    test('keeps vector exports without a direct source download action', async ({
+    test('focuses the vector Export section without adding a source download', async ({
         page,
     }) => {
         await openLayers2(page)
@@ -929,9 +929,8 @@ test.describe('LayersTool2', () => {
             .first()
             .locator('.lt2-title')
             .click()
-        await expect(
-            page.getByRole('button', { name: 'Download layer' })
-        ).toHaveCount(0)
+        const download = page.getByRole('button', { name: 'Download layer' })
+        await expect(download).toBeVisible()
         const exportSection = page.locator(
             '.lt2-settings [data-section="export"]'
         )
@@ -942,9 +941,11 @@ test.describe('LayersTool2', () => {
         await expect(
             exportSection.getByRole('button', { name: 'Download source' })
         ).toHaveCount(0)
+        await download.click()
+        await expect(exportSection).toBeFocused()
     })
 
-    test('shows header downloads only for legacy source URL types', async ({
+    test('shows header downloads only when legacy has an export or source download', async ({
         page,
     }) => {
         await page.goto('/?mission=Reference-Mission')
@@ -969,7 +970,9 @@ test.describe('LayersTool2', () => {
             const video = find(window.L_.configData.layers, 'video')
             const image = find(window.L_.configData.layers, 'image')
             const vector = find(window.L_.configData.layers, 'vector')
-            if (![tile, data, video, image, vector].every(Boolean)) return null
+            const query = find(window.L_.configData.layers, 'query')
+            if (![tile, data, video, image, vector, query].every(Boolean))
+                return null
             tile.variables = {
                 ...tile.variables,
                 downloadURL: '/downloads/test-tile.tif',
@@ -997,7 +1000,12 @@ test.describe('LayersTool2', () => {
                     label: layer.display_name || layer.name,
                     downloadable: true,
                 })),
-                ...[image, vector].map((layer) => ({
+                ...[vector, query].map((layer) => ({
+                    name: layer.name,
+                    label: layer.display_name || layer.name,
+                    downloadable: true,
+                })),
+                ...[image].map((layer) => ({
                     name: layer.name,
                     label: layer.display_name || layer.name,
                     downloadable: false,
@@ -1023,6 +1031,139 @@ test.describe('LayersTool2', () => {
             else await expect(download).toHaveCount(0)
             await page.getByRole('button', { name: 'Back to layers' }).click()
         }
+    })
+
+    test('query Export options match legacy formats and conditional controls', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const query = await page.evaluate(() => {
+            const find = (nodes) => {
+                for (const node of nodes || []) {
+                    if (node.type === 'query') return node
+                    if (node.type === 'header') {
+                        const nested = find(node.sublayers)
+                        if (nested) return nested
+                    }
+                }
+                return null
+            }
+            const layer = find(window.L_.configData.layers)
+            return layer
+                ? {
+                      name: layer.name,
+                      label: layer.display_name || layer.name,
+                  }
+                : null
+        })
+        expect(query, 'Reference Mission has a query layer').not.toBeNull()
+        const legacyOptions = await page.evaluate((name) => {
+            const find = (nodes) => {
+                for (const node of nodes || []) {
+                    if (node.name === name) return node
+                    if (node.type === 'header') {
+                        const nested = find(node.sublayers)
+                        if (nested) return nested
+                    }
+                }
+                return null
+            }
+            const layer = find(window.L_.configData.layers)
+            layer.variables = {
+                ...layer.variables,
+                dynamicExtent: true,
+                getFeaturePropertiesOnClick: true,
+            }
+            layer._lastGeodatasetRequestBody = {}
+            const runtimeLayer = window.L_.layers.data[name]
+            if (runtimeLayer && runtimeLayer !== layer) {
+                runtimeLayer.variables = layer.variables
+                runtimeLayer._lastGeodatasetRequestBody = {}
+            }
+            return {
+                hasExtent: layer.variables.dynamicExtent === true,
+                hasExtentWithProps:
+                    layer.variables.getFeaturePropertiesOnClick === true &&
+                    layer._lastGeodatasetRequestBody != null,
+                hasCoordinates: window.L_.Coordinates.mainType !== 'll',
+                convertedCoordinates: window.L_.Coordinates.getMainTypeName(),
+            }
+        }, query.name)
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(query.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: query.label })
+            .first()
+            .locator('.lt2-title')
+            .click()
+
+        const exportSection = page.locator(
+            '.lt2-settings [data-section="export"]'
+        )
+        await expect(exportSection).toBeVisible()
+        const format = exportSection.getByRole('combobox', {
+            name: 'Export format',
+        })
+        await expect(format).toBeVisible()
+        await format.click()
+        for (const option of ['GeoJSON', 'KML', 'SHP'])
+            await expect(page.getByRole('option', { name: option })).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(
+            exportSection.getByRole('combobox', { name: 'Export extent' })
+        ).toHaveCount(legacyOptions.hasExtent ? 1 : 0)
+        await expect(
+            exportSection.getByRole('combobox', {
+                name: 'Export coordinates',
+            })
+        ).toHaveCount(legacyOptions.hasCoordinates ? 1 : 0)
+        if (legacyOptions.hasExtent) {
+            const extent = exportSection.getByRole('combobox', {
+                name: 'Export extent',
+            })
+            await extent.click()
+            await expect(
+                page.getByRole('option', {
+                    name: 'Current Extent',
+                    exact: true,
+                })
+            ).toBeVisible()
+            await expect(
+                page.getByRole('option', { name: 'Entire File' })
+            ).toBeVisible()
+            if (legacyOptions.hasExtentWithProps)
+                await expect(
+                    page.getByRole('option', {
+                        name: 'Current Extent w/ Props',
+                    })
+                ).toBeVisible()
+            await page.keyboard.press('Escape')
+        }
+        if (legacyOptions.hasCoordinates) {
+            const coordinates = exportSection.getByRole('combobox', {
+                name: 'Export coordinates',
+            })
+            await coordinates.click()
+            await expect(
+                page.getByRole('option', { name: 'Source coordinates' })
+            ).toBeVisible()
+            await expect(
+                page.getByRole('option', {
+                    name: `Converted (${legacyOptions.convertedCoordinates})`,
+                    exact: true,
+                })
+            ).toBeVisible()
+            await page.keyboard.press('Escape')
+        }
+
+        const download = page.getByRole('button', { name: 'Download layer' })
+        await expect(download).toBeVisible()
+        await download.click()
+        await expect(exportSection).toBeFocused()
+        await expect(
+            exportSection.getByRole('button', { name: 'Download source' })
+        ).toHaveCount(0)
     })
 
     test('local image and velocity fixtures render on the map', async ({

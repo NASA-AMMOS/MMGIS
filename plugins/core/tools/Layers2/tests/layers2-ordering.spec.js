@@ -745,11 +745,13 @@ async function prepareDragPage(page, tool) {
 
 async function performSeededDrag(page, tool, planned) {
     const spec = { ...planned }
-    await revealDragRow(page, tool, spec.toggle)
-    const toggleInfo = await dragRowInfo(page, tool, spec.toggle)
-    await orderingRow(page, tool, toggleInfo)
-        .locator(tool === 'old' ? '.headerChevron' : '.lt2-chevron')
-        .click()
+    if (spec.toggle) {
+        await revealDragRow(page, tool, spec.toggle)
+        const toggleInfo = await dragRowInfo(page, tool, spec.toggle)
+        await orderingRow(page, tool, toggleInfo)
+            .locator(tool === 'old' ? '.headerChevron' : '.lt2-chevron')
+            .click()
+    }
     if (spec.targetState)
         await setDragHeaderExpanded(
             page,
@@ -1271,6 +1273,187 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 layers2LastRow: newResult.flat.at(-1)?.name,
             })}`
         )
+    })
+
+    test('matches legacy collapsed-header placement and its controls', async ({
+        page,
+    }) => {
+        test.setTimeout(300000)
+        const oldPage = await page.context().newPage()
+        const newPage = await page.context().newPage()
+        const cases = [
+            {
+                label: 'seed-120 both collapsed',
+                source: '📄 GeoJSON Data Features',
+                sourceExpanded: false,
+                targetExpanded: false,
+                sourceIndex: 3,
+                targetIndex: 57,
+                finalIndex: 34,
+                finalDepth: 2,
+                headerState: 1,
+            },
+            {
+                label: 'source expanded',
+                source: '📄 GeoJSON Data Features',
+                sourceExpanded: true,
+                targetExpanded: false,
+                sourceIndex: 3,
+                targetIndex: 57,
+                finalIndex: 34,
+                finalDepth: 2,
+                headerState: 1,
+            },
+            {
+                label: 'target expanded',
+                source: '📄 GeoJSON Data Features',
+                sourceExpanded: false,
+                targetExpanded: true,
+                sourceIndex: 3,
+                targetIndex: 57,
+                finalIndex: 33,
+                finalDepth: 3,
+                headerState: 2,
+            },
+            {
+                label: 'other collapsed pair',
+                source: 'Geometry Types',
+                sourceExpanded: false,
+                targetExpanded: false,
+                sourceIndex: 4,
+                targetIndex: 57,
+                finalIndex: 53,
+                finalDepth: 2,
+                headerState: 1,
+            },
+        ]
+
+        try {
+            for (const scenario of cases) {
+                await prepareDragPage(oldPage, 'old')
+                await prepareDragPage(newPage, 'new')
+                if (scenario.source === 'Geometry Types') {
+                    await setDragHeaderExpanded(
+                        oldPage,
+                        'old',
+                        '📄 GeoJSON Data Features',
+                        true
+                    )
+                    await setDragHeaderExpanded(
+                        newPage,
+                        'new',
+                        '📄 GeoJSON Data Features',
+                        true
+                    )
+                }
+                await setDragHeaderExpanded(
+                    oldPage,
+                    'old',
+                    scenario.source,
+                    scenario.sourceExpanded
+                )
+                await setDragHeaderExpanded(
+                    newPage,
+                    'new',
+                    scenario.source,
+                    scenario.sourceExpanded
+                )
+                await setDragHeaderExpanded(
+                    oldPage,
+                    'old',
+                    'Filter Tab',
+                    scenario.targetExpanded
+                )
+                await setDragHeaderExpanded(
+                    newPage,
+                    'new',
+                    'Filter Tab',
+                    scenario.targetExpanded
+                )
+
+                const sourceName = (await dragRowInfo(
+                    oldPage,
+                    'old',
+                    scenario.source
+                ))?.name
+                const oldSpec = await performSeededDrag(oldPage, 'old', {
+                    source: scenario.source,
+                    target: 'Filter Tab',
+                    position: 'below',
+                })
+                await performSeededDrag(newPage, 'new', oldSpec)
+
+                const legacyDrop = await oldPage.evaluate(
+                    () => window.__layersToolSortableCapture
+                )
+                const oldState = await dragPageState(oldPage, 'old')
+                const newState = await dragPageState(newPage, 'new')
+                const oldMovedIndex = oldState.flat.findIndex(
+                    (row) => row.name === sourceName
+                )
+                const newMovedIndex = newState.flat.findIndex(
+                    (row) => row.name === sourceName
+                )
+                const oracle = await applyLiveOracleFromLegacyCapture(
+                    oldPage,
+                    legacyDrop
+                )
+                const legacyPost = legacyDrop.post.map((row) => ({
+                    name: row.name || row.id.replace(/^header_/, ''),
+                    type: row.type,
+                    depth: Number.parseInt(row.depth, 10),
+                }))
+                const unrelatedDepthTwoRows = legacyDrop.pre.filter(
+                    (row, index) =>
+                        index > scenario.targetIndex &&
+                        Number.parseInt(row.depth, 10) === 2
+                )
+
+                expect(legacyDrop.indices).toEqual({
+                    oldIndex: scenario.sourceIndex,
+                    newIndex: scenario.targetIndex,
+                })
+                expect(unrelatedDepthTwoRows.length).toBeGreaterThan(0)
+                for (const row of unrelatedDepthTwoRows)
+                    expect(row.height).toBeGreaterThan(0)
+                expect(oldMovedIndex, scenario.label).toBe(
+                    scenario.finalIndex
+                )
+                expect(newMovedIndex, scenario.label).toBe(
+                    scenario.finalIndex
+                )
+                expect(oldState.flat).toEqual(newState.flat)
+                expect(oldState.order).toEqual(newState.order)
+                expect(newState.history.at(-1)).toEqual([
+                    scenario.sourceIndex,
+                    scenario.targetIndex,
+                    scenario.headerState,
+                    scenario.finalIndex,
+                    scenario.finalDepth,
+                ])
+                expect(newState.history.at(-1).slice(0, 3)).toEqual(
+                    oldState.history.at(-1)
+                )
+                expect(
+                    oracle.flat.map(({ name, type, depth }) => ({
+                        name,
+                        type,
+                        depth,
+                    }))
+                ).toEqual(legacyPost)
+                console.log(
+                    `Collapsed-header control ${scenario.label}: ${JSON.stringify({
+                        legacyHistory: oldState.history,
+                        layers2History: newState.history,
+                        finalIndex: newMovedIndex,
+                        finalDepth: newState.flat[newMovedIndex].depth,
+                    })}`
+                )
+            }
+        } finally {
+            await oldPage.close()
+            await newPage.close()
+        }
     })
 
     test('matches seeded real-mouse drags against legacy live Sortable', async ({
