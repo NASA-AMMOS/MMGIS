@@ -786,7 +786,10 @@ function HeaderRow({
     return (
         <div
             className={`lt2-row lt2-headerRow ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
-            style={{ '--depth': depthOverride ?? row.depth }}
+            style={{
+                '--depth': depthOverride ?? row.depth,
+                '--lt-color': typeColor(row.node.type),
+            }}
             data-row-id={row.id}
         >
             <span className="lt2-indentGuides" aria-hidden="true" />

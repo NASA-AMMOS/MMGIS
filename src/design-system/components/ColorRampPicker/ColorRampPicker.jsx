@@ -133,9 +133,10 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
 
     const selected = rampEntries.find((r) => r.name === value) || rampEntries[0]
     const closeOnEscape = (event) => {
-        if (event.key !== 'Escape') return
+        if (!open || event.key !== 'Escape') return
         event.preventDefault()
         event.stopPropagation()
+        event.nativeEvent.stopImmediatePropagation()
         setOpen(false)
         triggerRef.current?.focus()
     }
@@ -194,6 +195,7 @@ const ColorRampPicker = forwardRef(function ColorRampPicker(
                 aria-label={`${ariaLabel}: ${selected?.name || 'none selected'}`}
                 aria-expanded={open}
                 onClick={toggle}
+                onKeyDown={closeOnEscape}
             >
                 <SwatchBar
                     gradient={selected?.gradient}

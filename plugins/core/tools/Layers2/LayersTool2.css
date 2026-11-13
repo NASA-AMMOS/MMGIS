@@ -213,6 +213,7 @@
 
 .lt2-headerRow {
     font-weight: 500;
+    box-shadow: inset 3px 0 0 var(--lt-color, var(--color-a4));
 }
 
 .lt2-layerRow {
@@ -242,7 +243,9 @@
 }
 
 .lt2-row.lt2-selected {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-f) 35%, transparent);
+    box-shadow:
+        inset 3px 0 0 var(--lt-color, var(--color-a4)),
+        inset 0 0 0 1px color-mix(in srgb, var(--color-f) 35%, transparent);
 }
 
 .lt2-indentGuides {
@@ -1124,6 +1127,73 @@
     width: calc(100% - 20px);
     min-width: 0;
     overflow: hidden;
+}
+
+#layersTool2 .lt2-filterBar button {
+    color: var(--color-c2);
+}
+
+#layersTool2 .lt2-name mark {
+    background: var(--color-a1) !important;
+    color: var(--color-f) !important;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering,
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_count,
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_clear,
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_draw,
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_radius_wrapper {
+    color: var(--color-f) !important;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering input {
+    background: var(--color-a1-5) !important;
+    color: var(--color-f) !important;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering input::placeholder {
+    color: var(--color-a5) !important;
+    opacity: 1;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering select {
+    background: var(--color-a1) !important;
+    color: var(--color-f) !important;
+}
+
+#layersTool2 .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw {
+    background: var(--color-a1) !important;
+}
+
+#layersTool2 .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw:hover {
+    background: var(--color-a2) !important;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_clear,
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit {
+    background: var(--color-a1) !important;
+    color: var(--color-f) !important;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_clear:hover,
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit:hover {
+    background: var(--color-a2) !important;
+    color: var(--color-f) !important;
+}
+
+#layersTool2 .lt2-dataShaderSettings,
+#layersTool2 .lt2-dataShaderSettings > ul > li > div > div:first-child {
+    color: var(--color-f) !important;
+}
+
+#layersTool2 .lt2-dataShaderSettings
+    > ul
+    > li:has([id$='_colorize_legend'])
+    > div
+    > div:first-child {
+    color: var(--color-f) !important;
 }
 
 .lt2-glyph::before {

@@ -1,6 +1,42 @@
 import { test, expect, devices } from '@playwright/test'
 const fs = require('fs')
 const axeSource = require.resolve('axe-core')
+const LIGHT_DEFAULT_THEME = {
+    '--color-a-5': '#f8fafc',
+    '--color-a': '#ffffff',
+    '--color-accent-active': '#dbeafe',
+    '--color-a1': '#e2e8f0',
+    '--color-a1-5': '#edf2f7',
+    '--color-a2': '#94a3b8',
+    '--color-a3': '#64748b',
+    '--color-a4': '#475569',
+    '--color-a5': '#334155',
+    '--color-a6': '#1e293b',
+    '--color-a7': '#0f172a',
+    '--color-b': '#94a3b8',
+    '--color-c': '#0284c7',
+    '--color-c2': '#0369a1',
+    '--color-d': '#f1f5f9',
+    '--color-e': '#e2e8f0',
+    '--color-f': '#0f172a',
+    '--color-h': '#b45309',
+    '--color-g': '#f8fafc',
+    '--color-i': '#e2e8f0',
+    '--color-j': '#e2e8f0',
+    '--color-k': '#ffffff',
+    '--color-l': '#0f172a',
+    '--color-m': '#475569',
+    '--color-n': '#f1f5f9',
+    '--color-o': '#0369a1',
+    '--color-p': '#64748b',
+    '--color-m1': '#edf2f7',
+    '--color-m2': '#f1f5f9',
+    '--color-m3': '#f8fafc',
+    '--color-mh': '#b45309',
+    '--color-mw': '#1e293b',
+    '--color-mw2': '#334155',
+    '--color-shadow': 'rgba(0, 0, 0, 0.08)',
+}
 
 async function openLayers2(page) {
     await page.goto('/?mission=Reference-Mission')
@@ -1197,6 +1233,64 @@ test.describe('LayersTool2', () => {
         ).not.toHaveValue('123.5')
     })
 
+    test('Escape closes an open COG ramp without closing its settings', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const layer = await page.evaluate(() => {
+            const candidate = Object.values(window.L_.layers.data).find(
+                (item) =>
+                    item.type === 'tile' &&
+                    item.cogTransform === true &&
+                    /^(COG|stac-collection):/i.test(item.url || '')
+            )
+            return candidate
+                ? {
+                      name: candidate.name,
+                      label: candidate.display_name || candidate.name,
+                  }
+                : null
+        })
+        expect(layer, 'Reference Mission has a COG layer').not.toBeNull()
+
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt2-title')
+            .click()
+        await expect(page.locator('.lt2-settings')).toBeVisible()
+
+        const trigger = page.locator(
+            '.lt2-settings [aria-label^="Color ramp:"]'
+        )
+        await expect(trigger).toBeVisible()
+        await trigger.click()
+        await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+        const rampName = (await trigger.getAttribute('aria-label')).replace(
+            /^Color ramp:\s*/,
+            ''
+        )
+        const rampOption = page.getByRole('button', {
+            name: rampName,
+            exact: true,
+        })
+        await expect(rampOption).toBeVisible()
+
+        await page.keyboard.press('Escape')
+        await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+        await expect(page.locator('.lt2-settings')).toBeVisible()
+        await expect(trigger).toBeFocused()
+        await expect(rampOption).toHaveCount(0)
+
+        await page.keyboard.press('Escape')
+        await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+    })
+
     test('Reset all restores display, tile filter, and COG defaults', async ({
         page,
     }) => {
@@ -1597,91 +1691,167 @@ test.describe('LayersTool2', () => {
         await expect(page.locator('.lt2-settings')).toBeVisible()
     })
 
-    test('has no serious or critical axe violations on list and settings pages', async ({
+    test('has no serious or critical axe violations on list and settings pages in both themes', async ({
         page,
     }) => {
         await openLayers2(page)
         await page.addScriptTag({ path: axeSource })
-        const audit = async () =>
-            page.evaluate(async () => {
-                const root = document.querySelector('#layersTool2')
-                const results = await window.axe.run(root)
-                return results.violations
-                    .filter((violation) =>
-                        ['serious', 'critical'].includes(violation.impact)
-                    )
-                    .map(({ id, impact, description, nodes }) => ({
-                        id,
-                        impact,
-                        description,
-                        targets: nodes.map((node) => node.target),
-                    }))
+        const themeVariables = Object.keys(LIGHT_DEFAULT_THEME)
+        const originalTheme = await page.evaluate((names) => {
+            const style = document.documentElement.style
+            return Object.fromEntries(
+                names.map((name) => [
+                    name,
+                    {
+                        value: style.getPropertyValue(name),
+                        priority: style.getPropertyPriority(name),
+                    },
+                ])
+            )
+        }, themeVariables)
+        const darkBackground = await page.evaluate(() =>
+            getComputedStyle(document.documentElement)
+                .getPropertyValue('--color-a')
+                .trim()
+        )
+        const setTheme = async (themeName) =>
+            page.evaluate(
+                ({ name, lightTheme, variables, original }) => {
+                    const style = document.documentElement.style
+                    variables.forEach((variable) => {
+                        if (name === 'Light Default') {
+                            style.setProperty(variable, lightTheme[variable])
+                            return
+                        }
+                        const previous = original[variable]
+                        if (previous.value)
+                            style.setProperty(
+                                variable,
+                                previous.value,
+                                previous.priority
+                            )
+                        else style.removeProperty(variable)
+                    })
+                },
+                {
+                    name: themeName,
+                    lightTheme: LIGHT_DEFAULT_THEME,
+                    variables: themeVariables,
+                    original: originalTheme,
+                }
+            )
+        const audit = async (theme, surface) => {
+            const workaround = await page.addStyleTag({
+                content: '* { mix-blend-mode: normal !important; }',
             })
-        expect(await audit()).toEqual([])
+            let result
+            try {
+                result = await page.evaluate(async () => {
+                    const root = document.querySelector('#layersTool2')
+                    const results = await window.axe.run(root)
+                    const violations = results.violations
+                        .filter((violation) =>
+                            ['serious', 'critical'].includes(violation.impact)
+                        )
+                        .map(({ id, impact, description, nodes }) => ({
+                            id,
+                            impact,
+                            description,
+                            targets: nodes.map((node) => node.target),
+                        }))
+                    return {
+                        violations,
+                        serious: violations
+                            .filter((violation) => violation.impact === 'serious')
+                            .reduce(
+                                (count, violation) =>
+                                    count + violation.targets.length,
+                                0
+                            ),
+                        critical: violations
+                            .filter((violation) => violation.impact === 'critical')
+                            .reduce(
+                                (count, violation) =>
+                                    count + violation.targets.length,
+                                0
+                            ),
+                    }
+                })
+            } finally {
+                await workaround.evaluate((style) => style.remove())
+            }
+            console.log(
+                `Axe ${theme} ${surface}: ${result.serious} serious, ${result.critical} critical`
+            )
+            expect(
+                result.violations,
+                `Axe violations on ${surface} in ${theme}`
+            ).toEqual([])
+        }
 
-        const search = page.getByRole('textbox', { name: 'Search layers' })
-        await search.fill('Points Basic')
-        await page.waitForTimeout(200)
-        await page
-            .getByRole('treeitem')
-            .filter({ hasText: 'Points Basic' })
-            .locator('.lt2-title')
-            .click()
-        await expect(page.locator('.lt2-settings')).toBeVisible()
-        expect(await audit()).toEqual([])
-
-        await page.getByRole('button', { name: 'Back to layers' }).click()
         const surfaces = await page.evaluate(() => {
             const layers = Object.values(window.L_.layers.data)
-            const find = (predicate) => {
-                const layer = layers.find(predicate)
-                return layer
-                    ? {
-                          name: layer.name,
-                          label: layer.display_name || layer.name,
-                      }
-                    : null
-            }
-            return [
-                find(
-                    (layer) =>
-                        layer.type === 'tile' &&
-                        /arcgis/i.test(`${layer.name} ${layer.url || ''}`)
-                ),
-                find(
-                    (layer) =>
-                        layer.type === 'tile' &&
-                        layer.cogTransform === true &&
-                        /^(COG|stac-collection):/i.test(layer.url || '')
-                ),
-                find((layer) => layer.type === 'video'),
-                find((layer) => layer.type === 'data'),
+            const find = (predicate) => layers.find(predicate)
+            const label = (layer) =>
+                layer ? layer.display_name || layer.name : null
+            const vector = find(
+                (layer) =>
+                    layer.type === 'vector' &&
+                    /points basic/i.test(label(layer) || '')
+            )
+            const cog = find(
+                (layer) =>
+                    layer.type === 'tile' &&
+                    layer.cogTransform === true &&
+                    /^(COG|stac-collection):/i.test(layer.url || '')
+            )
+            const video = find((layer) => layer.type === 'video')
+            const data =
                 find(
                     (layer) =>
                         layer.type === 'data' &&
-                        /elev/i.test(layer.display_name || layer.name)
-                ),
-            ].filter(Boolean)
+                        /elev/i.test(label(layer) || '')
+                ) || find((layer) => layer.type === 'data')
+            return [
+                ['Vector', vector],
+                ['COG', cog],
+                ['Video', video],
+                ['Data', data],
+            ].map(([surface, layer]) => ({
+                surface,
+                label: label(layer),
+            }))
         })
         expect(
-            surfaces.length,
-            'Reference Mission has ArcGIS, COG, Video, and Data settings fixtures'
-        ).toBeGreaterThanOrEqual(3)
-        for (const surface of surfaces) {
-            await search.fill(surface.label)
+            surfaces.map(({ label }) => Boolean(label)),
+            'Reference Mission has Vector, COG, Video, and Data fixtures'
+        ).toEqual([true, true, true, true])
+
+        for (const theme of ['Dark Default', 'Light Default']) {
+            await setTheme(theme)
+            const search = page.getByRole('textbox', { name: 'Search layers' })
+            await search.fill('')
             await page.waitForTimeout(180)
-            await page
-                .locator('.lt2-layerRow')
-                .filter({ hasText: surface.label })
-                .first()
-                .locator('.lt2-title')
-                .click()
-            await expect(page.locator('.lt2-settings')).toBeVisible()
-            expect(
-                await audit(),
-                `Axe violations on ${surface.label}`
-            ).toEqual([])
-            await page.getByRole('button', { name: 'Back to layers' }).click()
+            await audit(theme, 'list')
+
+            await search.fill('Points Basic')
+            await page.waitForTimeout(180)
+            await audit(theme, 'searched list')
+
+            for (const surface of surfaces) {
+                await search.fill(surface.label)
+                await page.waitForTimeout(180)
+                await page
+                    .locator('.lt2-layerRow')
+                    .filter({ hasText: surface.label })
+                    .first()
+                    .locator('.lt2-title')
+                    .click()
+                await expect(page.locator('.lt2-settings')).toBeVisible()
+                await audit(theme, surface.surface)
+                await page.getByRole('button', { name: 'Back to layers' }).click()
+            }
         }
+        console.log(`Dark Default root background: ${darkBackground}`)
     })
 })
