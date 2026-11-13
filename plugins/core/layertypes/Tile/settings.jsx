@@ -377,14 +377,14 @@ function CogSettings({ layer, resetToken }) {
 
 export default {
     sections(layer) {
-        const sections = [
-            {
+        const sections = []
+        if (layer.type !== 'image')
+            sections.push({
                 id: 'tile-display',
                 label: 'Display filters',
                 order: 10,
                 Component: DisplaySettings,
-            },
-        ]
+            })
         if (isCog(layer))
             sections.push({
                 id: 'cog',

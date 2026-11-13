@@ -142,10 +142,6 @@ function sourceDownloadUrl(layer) {
         url = downloadURL
     } else if (layer.type === 'video') {
         url = downloadURL || layer.url
-    } else if (layer.type === 'vector' || layer.type === 'query') {
-        url =
-            downloadURL ||
-            (layer.url ? L_.getUrl(layer.type, layer.url, layer) : null)
     } else {
         return null
     }
@@ -1090,7 +1086,9 @@ function CoreSettings({ layer, api }) {
                 delete body.noDuplicates
                 geojson = await requestApi('geodatasets_get', body)
             } else {
-                geojson = mapLayer.toGeoJSON(L_.GEOJSON_PRECISION)
+                const precision =
+                    L_.GEOJSON_PRECISION ?? window.L_?.GEOJSON_PRECISION
+                geojson = mapLayer.toGeoJSON(precision)
             }
             if (
                 layer.variables?.dynamicExtent === true &&
@@ -1465,22 +1463,17 @@ function SettingsPage({ row, api: baseApi, onBack }) {
                                 <i className="mdi mdi-refresh mdi-18px" />
                             </IconButton>
                         </ToolTip>
-                        <ToolTip
-                            label={
-                                downloadUrl
-                                    ? 'Download'
-                                    : 'No source download is available for this layer'
-                            }
-                        >
-                            <IconButton
-                                size="sm"
-                                aria-label="Download layer"
-                                disabled={!downloadUrl}
-                                onClick={() => api.download()}
-                            >
-                                <i className="mdi mdi-download mdi-18px" />
-                            </IconButton>
-                        </ToolTip>
+                        {downloadUrl && (
+                            <ToolTip label="Download">
+                                <IconButton
+                                    size="sm"
+                                    aria-label="Download layer"
+                                    onClick={() => api.download()}
+                                >
+                                    <i className="mdi mdi-download mdi-18px" />
+                                </IconButton>
+                            </ToolTip>
+                        )}
                         <ToolTip label="Information">
                             <IconButton size="sm" aria-label="Layer information" onClick={info}>
                                 <i className="mdi mdi-information-outline mdi-18px" />
@@ -1554,6 +1547,7 @@ function LayersTool2App({ vars }) {
     const [toast, setToast] = useState(null)
     const [reorderAnnouncement, setReorderAnnouncement] = useState('')
     const [dragPreview, setDragPreview] = useState(null)
+    const [activeDragId, setActiveDragId] = useState(null)
     const mobile = L_.UserInterface_.isMobile === true
     const focused = state.focusedRow
     const scrollElement = useRef(null)
@@ -1840,7 +1834,10 @@ function LayersTool2App({ vars }) {
                 const on = layerIsOn(layer)
                 if (target === undefined || target !== on) {
                     if (target === undefined) await L_.toggleLayer(layer)
-                    else await L_.toggleLayerHelper(layer, !target)
+                    else {
+                        await L_.toggleLayerHelper(layer, !target)
+                        if (target) dispatchLayerDataLoaded(name)
+                    }
                 }
                 store.bumpLayerPreview(name)
                 store.updateState({ layerVersion: store.getState().layerVersion + 1 })
@@ -2029,15 +2026,14 @@ function LayersTool2App({ vars }) {
         [muteHeader]
     )
 
-    const setHeaderExpansion = (nextExpanded) => {
+    const setHeaderExpansion = (nextExpanded, orderedHeaders = allHeaderNodes) => {
         const previous = store.getState().expanded
         store.updateState({ expanded: nextExpanded })
-        allHeaderNodes.forEach((header) => {
+        orderedHeaders.forEach((header) => {
             const wasExpanded =
                 previous[header.name] ??
                 expandedMapRef.current[header.name] ??
-                header.expanded ??
-                vars.expanded === true
+                false
             if (wasExpanded !== nextExpanded[header.name])
                 emitHeaderStateChange(header, nextExpanded[header.name])
         })
@@ -2048,15 +2044,31 @@ function LayersTool2App({ vars }) {
                 allHeaderNodes.map((header) => [header.name, expanded])
             )
         )
-    const restoreExpansion = () =>
+    const collapseAll = () => {
+        const collapseOrder = orderedFlat
+            .filter((row) => row.type === 'header')
+            .slice()
+            .sort((a, b) => b.depth - a.depth)
+            .map((row) => row.node)
+        setHeaderExpansion(
+            Object.fromEntries(
+                allHeaderNodes.map((header) => [header.name, false])
+            ),
+            collapseOrder
+        )
+    }
+    const restoreExpansion = () => {
+        collapseAll()
         setHeaderExpansion(
             Object.fromEntries(
                 allHeaderNodes.map((header) => [
                     header.name,
-                    header.expanded ?? vars.expanded === true,
+                    header.expanded === true,
                 ])
-            )
+            ),
+            allHeaderNodes.filter((header) => header.expanded === true)
         )
+    }
 
     const reorderRows = (activeId, overId) => {
         if (!overId || activeId === overId) return
@@ -2072,11 +2084,18 @@ function LayersTool2App({ vars }) {
         const oldIndex = flat.findIndex((entry) => entry.key === activeId)
         const newIndex = flat.findIndex((entry) => entry.key === overId)
         if (oldIndex < 0 || newIndex < 0) return
+        const visibleKeys = new Set(rowsRef.current.map((row) => row.id))
+        const searchHidden = new Set(
+            expandedMapRef.current.searchHidden || []
+        )
+        flat.forEach((row) => {
+            if (!visibleKeys.has(row.key)) searchHidden.add(row.key)
+        })
         const result = applyLiveMove(
             flat,
             oldIndex,
             newIndex,
-            expandedMapRef.current
+            { ...expandedMapRef.current, searchHidden }
         )
         const history = [...currentState.orderingHistory, result.entry]
         const nextFlat = replay(
@@ -2089,7 +2108,14 @@ function LayersTool2App({ vars }) {
             .join('|')
         if (before === after) return
         store.updateState({ orderingHistory: history })
-        L_.reorderLayers?.(layerOrder(nextFlat))
+        try {
+            L_.reorderLayers?.(layerOrder(nextFlat))
+        } catch (error) {
+            console.error(
+                'LayersTool2 failed to synchronize map order after a reorder.',
+                error
+            )
+        }
         const relation = oldIndex < newIndex ? 'below' : 'above'
         const movedIndex = nextFlat.findIndex(
             (entry) => entry.key === activeId
@@ -2359,7 +2385,7 @@ function LayersTool2App({ vars }) {
                             store.updateState({ search })
                         }}
                         onExpandAll={() => expandAll(true)}
-                        onCollapseAll={() => expandAll(false)}
+                        onCollapseAll={collapseAll}
                         onRestore={restoreExpansion}
                         tags={allTags}
                     />
@@ -2398,12 +2424,27 @@ function LayersTool2App({ vars }) {
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         accessibility={{ announcements: dragAnnouncements }}
+                        onDragStart={({ active }) =>
+                            setActiveDragId(String(active.id))
+                        }
                         onDragOver={previewReorder}
                         onDragEnd={({ active, over }) => {
-                            reorderRows(active.id, over?.id)
-                            setDragPreview(null)
+                            try {
+                                reorderRows(active.id, over?.id)
+                            } catch (error) {
+                                console.error(
+                                    'LayersTool2 failed to apply a reorder.',
+                                    error
+                                )
+                            } finally {
+                                setDragPreview(null)
+                                setActiveDragId(null)
+                            }
                         }}
-                        onDragCancel={() => setDragPreview(null)}
+                        onDragCancel={() => {
+                            setDragPreview(null)
+                            setActiveDragId(null)
+                        }}
                     >
                         <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
                             <div
@@ -2411,6 +2452,7 @@ function LayersTool2App({ vars }) {
                                 className="lt2-scroll"
                                 role="tree"
                                 aria-label="Layers"
+                                data-active-drag-id={activeDragId || ''}
                                 aria-activedescendant={
                                     focused
                                         ? `lt2-row-${focused.replace(/[^a-zA-Z0-9_-]/g, '_')}`

@@ -203,7 +203,7 @@ function sortOnEnd(
     oldDepth,
     newDepth,
     descendants,
-    expandedMap
+    expandedMap,
 ) {
     let downIndex = newIndex + 1
     let keepGoing = true
@@ -302,7 +302,7 @@ function initializeRowState(flat, expandedMap) {
 
 export function replay(flat, history, expandedFn) {
     const ordered = flat.map((row) => ({ ...row }))
-    const expandedMap = new Map(
+    let expandedMap = new Map(
         ordered.filter(isHeader).map((row) => [row.name, true])
     )
     initializeRowState(ordered, expandedMap)
@@ -310,43 +310,150 @@ export function replay(flat, history, expandedFn) {
 
     ;(history || []).forEach((entry) => {
         const [oldIndex, newIndex, afterHeader] = entry
-        const item = ordered[oldIndex]
-        if (!item) return
-
-        const oldDepth = item.depth
-        const descendants = isHeader(item) ? descendantsOf(ordered, oldIndex) : []
-        const upward = oldIndex > newIndex
-        const eventIndex = newIndex + (upward ? 0 : 1)
-        const { newDepth } = sortOnChange(
-            ordered,
-            item,
-            eventIndex,
-            expandedMap,
-            {
-                afterHeader,
-                headerToggles,
-                expandedFn,
-            }
-        )
-
-        sortOnEnd(
-            ordered,
-            item,
-            eventIndex,
-            oldDepth,
-            newDepth,
-            descendants,
-            expandedMap
-        )
+        if (entry.length === 5) {
+            applyResolvedMove(ordered, entry)
+            return
+        }
+        const result = applyMove(ordered, oldIndex, newIndex, expandedMap, {
+            afterHeader,
+            headerToggles,
+            expandedFn,
+            legacyReplay: true,
+        })
+        ordered.splice(0, ordered.length, ...result.flat)
+        expandedMap = result.expandedMap
     })
 
     return { flat: ordered, headerToggles }
 }
 
-export function applyLiveMove(flat, oldIndex, newIndex, expandedMap = {}) {
+function applyResolvedMove(flat, entry) {
+    const [oldIndex, , , finalIndex, finalDepth] = entry
+    const item = flat[oldIndex]
+    if (!item || !Number.isInteger(finalIndex) || !Number.isInteger(finalDepth))
+        return
+    const descendants = isHeader(item) ? descendantsOf(flat, oldIndex) : []
+    const subtree = [item, ...descendants]
+    const oldDepth = item.depth
+    subtree.forEach((row) => {
+        const index = flat.indexOf(row)
+        if (index >= 0) flat.splice(index, 1)
+    })
+    const depthDelta = finalDepth - oldDepth
+    subtree.forEach((row) => {
+        row.depth += depthDelta
+    })
+    const insertionIndex = Math.max(0, Math.min(finalIndex, flat.length))
+    flat.splice(insertionIndex, 0, ...subtree)
+}
+
+function applyMove(flat, oldIndex, newIndex, expandedMap, options = {}) {
     const moved = flat.map((row) => ({ ...row }))
     const item = moved[oldIndex]
-    if (!item || oldIndex === newIndex || newIndex < 0 || newIndex >= moved.length)
+    const localExpanded = cloneExpandedMap(moved, expandedMap)
+    if (
+        !item ||
+        (oldIndex === newIndex && !options.legacyReplay) ||
+        newIndex < 0 ||
+        newIndex >= moved.length
+    )
+        return {
+            flat: moved,
+            entry: [oldIndex, newIndex, 0],
+            expandedMap: localExpanded,
+        }
+
+    if (options.legacyReplay) {
+        const oldDepth = item.depth
+        const descendants = isHeader(item) ? descendantsOf(moved, oldIndex) : []
+        const upward = oldIndex > newIndex
+        const eventIndex = newIndex + (upward ? 0 : 1)
+        const { newDepth, headerState } = sortOnChange(
+            moved,
+            item,
+            eventIndex,
+            localExpanded,
+            {
+                afterHeader: options.afterHeader,
+                headerToggles: options.headerToggles,
+                expandedFn: options.expandedFn,
+            }
+        )
+        sortOnEnd(
+            moved,
+            item,
+            eventIndex,
+            oldDepth,
+            newDepth,
+            descendants,
+            localExpanded
+        )
+        return { flat: moved, entry: [oldIndex, newIndex, headerState], expandedMap: localExpanded }
+    }
+
+    const oldDepth = item.depth
+    const descendants = isHeader(item) ? descendantsOf(moved, oldIndex) : []
+    moved.splice(oldIndex, 1)
+    moved.splice(newIndex, 0, item)
+    initializeRowState(moved, localExpanded)
+    if (options.rowState) {
+        moved.forEach((row) => {
+            const state =
+                options.rowState instanceof Map
+                    ? options.rowState.get(row.key) ||
+                      options.rowState.get(row.name)
+                    : options.rowState[row.key] ||
+                      options.rowState[row.name]
+            if (!state) return
+            row.on = state.on
+            row.height = state.height
+        })
+    }
+
+    const { newDepth, headerState } = sortOnChange(
+        moved,
+        item,
+        newIndex,
+        localExpanded,
+        {
+            afterHeader: options.afterHeader,
+            headerToggles: options.headerToggles,
+            expandedFn: options.expandedFn,
+        }
+    )
+
+    sortOnEnd(
+        moved,
+        item,
+        newIndex,
+        oldDepth,
+        newDepth,
+        descendants,
+        localExpanded
+    )
+
+    const finalIndex = moved.indexOf(item)
+    return {
+        flat: moved,
+        entry: [oldIndex, newIndex, headerState, finalIndex, item.depth],
+        expandedMap: localExpanded,
+    }
+}
+
+export function applyLiveMove(
+    flat,
+    oldIndex,
+    newIndex,
+    expandedMap = {}
+) {
+    const moved = flat.map((row) => ({ ...row }))
+    const item = moved[oldIndex]
+    if (
+        !item ||
+        oldIndex === newIndex ||
+        newIndex < 0 ||
+        newIndex >= moved.length
+    )
         return { flat: moved, entry: [oldIndex, newIndex, 0] }
 
     const oldDepth = item.depth
@@ -374,8 +481,9 @@ export function applyLiveMove(flat, oldIndex, newIndex, expandedMap = {}) {
         localExpanded
     )
 
+    const finalIndex = moved.indexOf(item)
     return {
         flat: moved,
-        entry: [oldIndex, newIndex, headerState],
+        entry: [oldIndex, newIndex, headerState, finalIndex, item.depth],
     }
 }

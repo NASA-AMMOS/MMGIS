@@ -4,7 +4,7 @@ import L_ from '@basics/Layers_/Layers_'
 import Filtering from '@basics/Layers_/Filtering/Filtering'
 import LayersTool2App from './components/LayersTool2'
 import * as store from './store'
-import { flatten, layerOrder, replay } from './ordering'
+import { applyLiveMove, flatten, layerOrder, replay } from './ordering'
 import buildCogLegend from '../../layertypes/Tile/cogLegend'
 
 let root = null
@@ -33,12 +33,16 @@ const LayersTool2 = {
         if (entry?.[1]) {
             const history = entry[1]
                 .split('.')
-                .map((item) =>
-                    item.split('-').map((value) => Number.parseInt(value, 10))
-                )
+                .map((item) => {
+                    const values = item.split('-')
+                    return values.every((value) => /^\d+$/.test(value))
+                        ? values.map(Number)
+                        : []
+                })
                 .filter(
                     (item) =>
-                        item.length === 3 && item.every(Number.isFinite)
+                        [3, 5].includes(item.length) &&
+                        item.every(Number.isSafeInteger)
                 )
             store.updateState({ orderingHistory: history })
             if (history.length) {
@@ -66,6 +70,23 @@ const LayersTool2 = {
                 depth,
             })
         )
+    },
+    _debugApplyLiveMove(flat, oldIndex, newIndex, expandedMap) {
+        const result = applyLiveMove(flat, oldIndex, newIndex, expandedMap)
+        return {
+            entry: result.entry,
+            flat: result.flat.map(
+                ({ key, name, type, depth, on, height, childrenon }) => ({
+                key,
+                name,
+                type,
+                depth,
+                on,
+                height,
+                childrenon,
+                })
+            ),
+        }
     },
     make(targetId) {
         void targetId
@@ -95,7 +116,7 @@ const LayersTool2 = {
     getUrlString() {
         return store
             .getState()
-            .orderingHistory.map((entry) => `${entry[0]}-${entry[1]}-${entry[2]}`)
+            .orderingHistory.map((entry) => entry.join('-'))
             .join('.')
     },
     setHeader(header) {

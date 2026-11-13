@@ -371,7 +371,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                                         <span>
                                             {stats.scope === 'dataset'
                                                 ? 'Whole dataset'
-                                                : 'Loaded features'}
+                                                : 'Current view'}
                                         </span>
                                         <span>Min {formatValue(stats.min)}</span>
                                         <span>Max {formatValue(stats.max)}</span>
@@ -414,7 +414,7 @@ function StatisticsSettings({ layer }) {
                     <span>
                         {stats.scope === 'dataset'
                             ? 'Whole dataset'
-                            : 'Loaded features'}
+                            : 'Current view'}
                     </span>
                     <span>Min {formatValue(stats.min)}</span>
                     <span>Max {formatValue(stats.max)}</span>
