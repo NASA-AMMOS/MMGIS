@@ -1,4 +1,5 @@
 import { test, expect, devices } from '@playwright/test'
+const fs = require('fs')
 const axeSource = require.resolve('axe-core')
 
 async function openLayers2(page) {
@@ -118,10 +119,50 @@ test.describe('LayersTool2', () => {
     test('keyboard reorder round-trips its URL history', async ({ page }) => {
         await openLayers2(page)
         const tree = page.getByRole('tree', { name: 'Layers' })
+        await page.getByRole('button', { name: 'Expand all' }).click()
+        const movableLayer = await page.evaluate(() => {
+            const flat = window.ToolController_
+                .getTool('LayersTool2')
+                ._debugFlat([])
+            for (let index = 0; index < flat.length - 1; index += 1) {
+                const current = flat[index]
+                const next = flat[index + 1]
+                if (
+                    current.type !== 'header' &&
+                    next.type !== 'header' &&
+                    current.depth === next.depth
+                )
+                    return current.displayName
+            }
+            return null
+        })
+        expect(movableLayer, 'Reference Mission has movable sibling layers').not.toBeNull()
         await tree.focus()
-        await page.keyboard.press('ArrowDown')
+        let activeName = ''
+        for (let attempt = 0; attempt < 200; attempt += 1) {
+            activeName = await page.evaluate(() => {
+                const activeId = document
+                    .querySelector('[role="tree"]')
+                    ?.getAttribute('aria-activedescendant')
+                return document
+                    .getElementById(activeId)
+                    ?.querySelector('.lt2-name')
+                    ?.textContent?.trim()
+            })
+            if (activeName === movableLayer) break
+            await page.keyboard.press('ArrowDown')
+        }
+        expect(activeName).toBe(movableLayer)
         await page.keyboard.press('Alt+ArrowDown')
-        await expect(page.getByText(/Moved .* below/)).toBeVisible()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        window.ToolController_.getTool('LayersTool2')
+                            .orderingHistory.length
+                )
+            )
+            .toBe(1)
 
         const result = await page.evaluate(() => {
             const tool = window.ToolController_.getTool('LayersTool2')
@@ -214,6 +255,64 @@ test.describe('LayersTool2', () => {
             { header_id: legacyHeaderId, onState: false },
             { header_id: legacyHeaderId, onState: true },
         ])
+    })
+
+    test('bulk header expansion emits state events only for changed headers', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const expected = await page.evaluate(() => {
+            const headers = []
+            const defaultExpanded =
+                window.L_.getToolVars('layers2')?.expanded === true
+            const visit = (nodes) =>
+                (nodes || []).forEach((node) => {
+                    if (node.type === 'header') {
+                        headers.push({
+                            name: node.name,
+                            expanded:
+                                node.expanded ?? defaultExpanded,
+                        })
+                        visit(node.sublayers)
+                    }
+                })
+            visit(window.L_.configData.layers)
+            window.__layers2HeaderEvents = []
+            document.addEventListener('layersToolHeaderStateChange', (event) =>
+                window.__layers2HeaderEvents.push(event.detail)
+            )
+            return headers
+        })
+        await page.getByRole('button', { name: 'Expand all' }).click()
+        await page.evaluate(() => {
+            window.__layers2HeaderEvents = []
+        })
+        await page.getByRole('button', { name: 'Collapse all' }).click()
+        const collapseEvents = await page.evaluate(
+            () => window.__layers2HeaderEvents
+        )
+        expect(collapseEvents).toEqual(
+            expected.map((header) => ({
+                header_id: `header_${header.name}`.split('_')[1],
+                onState: false,
+            }))
+        )
+
+        await page.evaluate(() => {
+            window.__layers2HeaderEvents = []
+        })
+        await page.getByRole('button', { name: 'Restore default expansion' }).click()
+        const restoreEvents = await page.evaluate(
+            () => window.__layers2HeaderEvents
+        )
+        expect(restoreEvents).toEqual(
+            expected
+                .filter((header) => header.expanded)
+                .map((header) => ({
+                    header_id: `header_${header.name}`.split('_')[1],
+                    onState: true,
+                }))
+        )
     })
 
     test('preserves the legacy setHeader and toggleHeader API', async ({
@@ -385,6 +484,19 @@ test.describe('LayersTool2', () => {
         await expect(filter.locator('#layersTool_filtering_count')).toHaveText(
             `(${after}/${before})`
         )
+        await page.evaluate((name) => {
+            document.dispatchEvent(
+                new CustomEvent('layersTool2LayerDataLoaded', {
+                    detail: { layerName: name },
+                })
+            )
+        }, layerName)
+        await expect(
+            filter.locator('.layersTool_filtering_value_key_input').first()
+        ).toHaveValue(condition.key)
+        await expect(
+            filter.locator('.layersTool_filtering_value_value_input').first()
+        ).toHaveValue(String(condition.value))
         await filter.locator('#layersTool_filtering_add_group').click()
         await expect(
             filter.locator('.layersTool_filtering_group_operator_select')
@@ -682,6 +794,14 @@ test.describe('LayersTool2', () => {
                 : null
         })
         expect(video, 'Reference Mission has a video fixture').not.toBeNull()
+        await page.evaluate((name) => {
+            window.L_.layers.filters[name] = {
+                ...(window.L_.layers.filters[name] || {}),
+                brightness: 0,
+                contrast: 0,
+                saturate: 0,
+            }
+        }, video.name)
         await page.getByRole('textbox', { name: 'Search layers' }).fill(video.label)
         await page.waitForTimeout(180)
         await page
@@ -698,6 +818,49 @@ test.describe('LayersTool2', () => {
         ).toBeVisible()
         await page.getByRole('button', { name: 'Pause video' }).click()
         await expect(play).toBeVisible()
+        const mediaState = await page.evaluate((name) => {
+            const videoElement = window.L_.layers.layer[name].getElement()
+            return {
+                paused: videoElement.paused,
+                time: videoElement.currentTime,
+            }
+        }, video.name)
+        await page.getByRole('button', { name: 'Restart video' }).click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) =>
+                        window.L_.layers.layer[name].getElement().currentTime,
+                    video.name
+                )
+            )
+            .toBe(0)
+        expect(mediaState).toMatchObject({ paused: true })
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) =>
+                        window.L_.layers.layer[name].getElement().paused,
+                    video.name
+                )
+            )
+            .toBe(true)
+        await page.getByRole('button', { name: 'Play video' }).click()
+        await expect(
+            page.getByRole('button', { name: 'Pause video' })
+        ).toBeVisible()
+        await page.getByRole('button', { name: 'Restart video' }).click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) =>
+                        window.L_.layers.layer[name].getElement().paused,
+                    video.name
+                )
+            )
+            .toBe(false)
+        await page.getByRole('button', { name: 'Pause video' }).click()
+        await expect(play).toBeVisible()
         const mute = page.locator('.lt2-videoControls button').nth(2)
         const previousMuteLabel = await mute.getAttribute('aria-label')
         expect(['Mute video', 'Unmute video']).toContain(previousMuteLabel)
@@ -707,6 +870,15 @@ test.describe('LayersTool2', () => {
             previousMuteLabel === 'Mute video' ? 'Unmute video' : 'Mute video'
         )
         const scrub = page.locator('.lt2-videoScrub input[type="range"]').first()
+        await expect(
+            page.getByRole('slider', { name: 'Brightness' })
+        ).toHaveValue('0')
+        await expect(
+            page.getByRole('slider', { name: 'Contrast' })
+        ).toHaveValue('0')
+        await expect(
+            page.getByRole('slider', { name: 'Saturation' })
+        ).toHaveValue('0')
         await scrub.focus()
         await scrub.press('ArrowRight')
         await expect
@@ -743,6 +915,12 @@ test.describe('LayersTool2', () => {
             return visit(window.L_.configData.layers)
         })
         expect(layer, 'Reference Mission has a dynamic-style vector layer').not.toBeNull()
+        await page.evaluate((name) => {
+            const rule =
+                window.L_.layers.data[name].variables.dynamicStyle.rules[0]
+            rule.attribute = 'radius'
+            delete rule.range
+        }, layer.name)
         await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
         await page.waitForTimeout(180)
         await page
@@ -755,8 +933,90 @@ test.describe('LayersTool2', () => {
         const dynamicStyle = settings.locator('[data-section="dynamic-style"]')
         await expect(dynamicStyle).toBeVisible()
         await expect(dynamicStyle.locator('.lt2-typeSettingsRule')).toHaveCount(3)
-        await expect(settings.locator('[data-section="statistics"]')).toBeVisible()
-        await expect(settings.locator('.lt2-typeSettingsStats').first()).toBeVisible()
+        const radiusRange = dynamicStyle.locator(
+            '.lt2-typeSettingsRange input'
+        )
+        await expect(radiusRange.nth(0)).toHaveValue('3')
+        await expect(radiusRange.nth(1)).toHaveValue('12')
+        const statistics = settings.locator('[data-section="statistics"]')
+        await expect(statistics).toBeVisible()
+        const statsRow = statistics.locator('.lt2-typeSettingsStats').first()
+        await expect(statsRow).toBeVisible()
+        const previousStats = await statsRow.textContent()
+        await page.evaluate((name) => {
+            const layer = window.L_.layers.data[name]
+            const replacement = {
+                min: 98765,
+                max: 98766,
+                avg: 98765.5,
+                stddev: 0.5,
+                count: 12,
+                nullCount: 0,
+            }
+            layer._fieldStats = { ...(layer._fieldStats || {}) }
+            for (const rule of layer.variables.dynamicStyle.rules || []) {
+                const property =
+                    rule.propertyPath || rule.property || rule.key || rule.field
+                if (typeof property === 'string')
+                    layer._fieldStats[property] = replacement
+            }
+            document.dispatchEvent(
+                new CustomEvent('mmgis-dynamic-style-restyled', {
+                    detail: { layer: name },
+                })
+            )
+        }, layer.name)
+        await expect
+            .poll(() => statsRow.textContent())
+            .not.toBe(previousStats)
+    })
+
+    test('Data blend supports the legacy None, Color, and Overlay values', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const layer = await page.evaluate(() => {
+            const configured = Object.values(window.L_.layers.data).find(
+                (candidate) => candidate.type === 'data'
+            )
+            return configured
+                ? {
+                      name: configured.name,
+                      label: configured.display_name || configured.name,
+                  }
+                : null
+        })
+        expect(layer, 'Reference Mission has a data layer').not.toBeNull()
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt2-title')
+            .click()
+        const blend = page.getByRole('combobox', { name: 'Blend mode' })
+        await expect(blend).toBeVisible()
+        for (const [label, value] of [
+            ['Color', 'color'],
+            ['Overlay', 'overlay'],
+            ['None', 'unset'],
+        ]) {
+            await blend.click()
+            await page.getByRole('option', { name: label }).click()
+            await expect
+                .poll(() =>
+                    page.evaluate(
+                        (name) =>
+                            window.L_.layers.filters[name]?.['mix-blend-mode'],
+                        layer.name
+                    )
+                )
+                .toBe(value)
+            await expect(blend).toContainText(label)
+        }
     })
 
     test('Data shader variants render and Reset restores the shader controls', async ({
@@ -951,7 +1211,112 @@ test.describe('LayersTool2', () => {
         await page.getByRole('button', { name: /Download data/ }).click()
         await expect(page.locator('.lt2-inlineError')).toContainText(
             'does not expose exportable'
+            )
+    })
+
+    test('composite attachment controls reflect their backing state', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const composite = await getLayer(page, 'Points Basic', 'vector')
+        await page.evaluate(
+            async (layerName) =>
+                window.mmgisAPI.toggleLayer(layerName, true),
+            composite.name
         )
+        await page.evaluate((layerName) => {
+            const name = '__layers2TestComposite'
+            const attachment = {
+                title: 'Layers2 test attachment',
+                on: false,
+                opacity: 0.5,
+                layer: {
+                    dropdown: ['First field', 'Second field'],
+                    dropdownValue: 'First field',
+                    dropdownFunc: () => {},
+                },
+            }
+            window.L_.layers.attachments =
+                window.L_.layers.attachments || {}
+            window.L_.layers.attachments[layerName] = {
+                ...(window.L_.layers.attachments[layerName] || {}),
+                [name]: attachment,
+            }
+            window.L_.toggleSublayer = async (hostName, attachmentName) => {
+                const current =
+                    window.L_.layers.attachments[hostName][attachmentName]
+                current.on = !current.on
+            }
+            window.L_.setSublayerOpacity = (
+                hostName,
+                attachmentName,
+                opacity
+            ) => {
+                window.L_.layers.attachments[hostName][attachmentName].opacity =
+                    opacity
+            }
+        }, composite.name)
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill(composite.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: composite.label })
+            .first()
+            .locator('.lt2-title')
+            .click()
+        const section = page.locator('[data-section="composite"]')
+        await expect(section).toBeVisible()
+        const card = section
+            .locator('.lt2-typeSettingsComposite')
+            .filter({ hasText: 'Layers2 test attachment' })
+            .first()
+        const toggle = card.getByRole('checkbox', {
+            name: 'Toggle Layers2 test attachment',
+        })
+        await expect(toggle).toBeVisible()
+        await toggle.click()
+        const attachmentState = () =>
+            page.evaluate((layerName) => {
+                const attachment =
+                    window.L_.layers.attachments[layerName][
+                        '__layers2TestComposite'
+                    ]
+                return {
+                    on: attachment.on,
+                    opacity: attachment.opacity,
+                    dropdownValue: attachment.layer.dropdownValue,
+                }
+            }, composite.name)
+        await expect
+            .poll(() => attachmentState())
+            .toMatchObject({ on: true })
+        await expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+        const dropdown = card.getByRole('combobox', {
+            name: 'Layers2 test attachment field',
+        })
+        await dropdown.click()
+        await page.getByRole('option', { name: 'Second field' }).click()
+        await expect
+            .poll(() => attachmentState())
+            .toMatchObject({ dropdownValue: 'Second field' })
+        await expect(dropdown).toContainText('Second field')
+
+        const opacity = card.getByRole('slider', { name: 'Opacity' })
+        await opacity.focus()
+        await opacity.press('ArrowRight')
+        const changedOpacity = await page
+            .waitForFunction(
+                (layerName) =>
+                    window.L_.layers.attachments[layerName][
+                        '__layers2TestComposite'
+                    ].opacity !== 0.5,
+                composite.name
+            )
+            .then(() => attachmentState())
+        await expect(opacity).toHaveValue(String(changedOpacity.opacity))
     })
 
     test('does not show GeoJSON export on raster layer types', async ({
@@ -1001,6 +1366,53 @@ test.describe('LayersTool2', () => {
             }
             await page.getByRole('button', { name: 'Back to layers' }).click()
         }
+    })
+
+    test('passes GEOJSON_PRECISION to local GeoJSON export', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt2-title')
+            .click()
+        await page.evaluate((name) => {
+            const mapLayer = window.L_.layers.layer[name]
+            mapLayer.toGeoJSON = (precision) => {
+                window.__layers2ExportPrecision = precision
+                return {
+                    type: 'FeatureCollection',
+                    features: [
+                        {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [-122.123456789, 37.123456789],
+                            },
+                            properties: {},
+                        },
+                    ],
+                }
+            }
+        }, layer.name)
+        const downloadPromise = page.waitForEvent('download')
+        await page.getByRole('button', { name: 'Download data' }).click()
+        const download = await downloadPromise
+        const exported = JSON.parse(
+            await fs.promises.readFile(await download.path(), 'utf8')
+        )
+        expect(
+            await page.evaluate(() => window.__layers2ExportPrecision)
+        ).toBe(await page.evaluate(() => window.L_.GEOJSON_PRECISION))
+        expect(exported.features[0].geometry.coordinates).toEqual([
+            -122.123456789,
+            37.123456789,
+        ])
     })
 
     test('uses 44 pixel rows at mobile viewport widths', async ({ page }) => {
@@ -1114,7 +1526,7 @@ test.describe('LayersTool2', () => {
         await expect(page.locator('.lt2-settings')).toBeVisible()
     })
 
-    test('has no serious or critical axe violations in the list or vector settings', async ({
+    test('has no serious or critical axe violations on list and settings pages', async ({
         page,
     }) => {
         await openLayers2(page)
@@ -1146,5 +1558,59 @@ test.describe('LayersTool2', () => {
             .click()
         await expect(page.locator('.lt2-settings')).toBeVisible()
         expect(await audit()).toEqual([])
+
+        await page.getByRole('button', { name: 'Back to layers' }).click()
+        const surfaces = await page.evaluate(() => {
+            const layers = Object.values(window.L_.layers.data)
+            const find = (predicate) => {
+                const layer = layers.find(predicate)
+                return layer
+                    ? {
+                          name: layer.name,
+                          label: layer.display_name || layer.name,
+                      }
+                    : null
+            }
+            return [
+                find(
+                    (layer) =>
+                        layer.type === 'tile' &&
+                        /arcgis/i.test(`${layer.name} ${layer.url || ''}`)
+                ),
+                find(
+                    (layer) =>
+                        layer.type === 'tile' &&
+                        layer.cogTransform === true &&
+                        /^(COG|stac-collection):/i.test(layer.url || '')
+                ),
+                find((layer) => layer.type === 'video'),
+                find((layer) => layer.type === 'data'),
+                find(
+                    (layer) =>
+                        layer.type === 'data' &&
+                        /elev/i.test(layer.display_name || layer.name)
+                ),
+            ].filter(Boolean)
+        })
+        expect(
+            surfaces.length,
+            'Reference Mission has ArcGIS, COG, Video, and Data settings fixtures'
+        ).toBeGreaterThanOrEqual(3)
+        for (const surface of surfaces) {
+            await search.fill(surface.label)
+            await page.waitForTimeout(180)
+            await page
+                .locator('.lt2-layerRow')
+                .filter({ hasText: surface.label })
+                .first()
+                .locator('.lt2-title')
+                .click()
+            await expect(page.locator('.lt2-settings')).toBeVisible()
+            expect(
+                await audit(),
+                `Axe violations on ${surface.label}`
+            ).toEqual([])
+            await page.getByRole('button', { name: 'Back to layers' }).click()
+        }
     })
 })

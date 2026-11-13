@@ -58,7 +58,13 @@ const LayersTool2 = {
     },
     _debugFlat(history = store.getState().orderingHistory) {
         return replay(flatten(L_.configData?.layers), history).flat.map(
-            ({ key, name, type, depth }) => ({ key, name, type, depth })
+            ({ key, name, type, depth, node }) => ({
+                key,
+                name,
+                displayName: node.display_name || name,
+                type,
+                depth,
+            })
         )
     },
     make(targetId) {

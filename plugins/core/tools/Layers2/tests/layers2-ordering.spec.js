@@ -244,6 +244,23 @@ function makeDragScenarios(flat) {
             from: nestedLeaf.index,
             to: rootHeader.index,
         })
+    const geometryTypes = flat.findIndex(
+        (row) =>
+            row.type === 'header' &&
+            row.displayName === 'Geometry Types'
+    )
+    const osmBuildings = flat.findIndex(
+        (row) =>
+            row.type !== 'header' &&
+            row.displayName === 'OSM Buildings'
+    )
+    if (geometryTypes >= 0 && osmBuildings >= 0)
+        scenarios.push({
+            label: 'OSM Buildings onto collapsed Geometry Types',
+            from: osmBuildings,
+            to: geometryTypes,
+            collapseTarget: true,
+        })
     return scenarios
 }
 
@@ -528,7 +545,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         ).toBe(before)
     })
 
-    test('compares seven live mouse-drop scenarios with legacy Sortable', async ({
+    test('compares live mouse-drop scenarios with legacy Sortable', async ({
         page,
     }) => {
         test.setTimeout(300000)
@@ -732,6 +749,14 @@ test.describe('LayersTool2 flat ordering parity', () => {
             )
             if (comparison) {
                 expect(
+                    newLive.order,
+                    `${scenario.label}: map order matches the derived tree order`
+                ).toEqual(
+                    newLive.flat
+                        .filter((row) => row.type !== 'header')
+                        .map((row) => row.name)
+                )
+                expect(
                     newLive.flat,
                     `${scenario.label}: new/old depth parity`
                 ).toEqual(comparison.flat)
@@ -746,5 +771,14 @@ test.describe('LayersTool2 flat ordering parity', () => {
         }
         console.log(`Live Sortable scenarios: ${JSON.stringify(outcomes)}`)
         expect(outcomes).toHaveLength(scenarios.length)
+        const collapsedGeometryDrop = outcomes.find(
+            (outcome) =>
+                outcome.scenario ===
+                'OSM Buildings onto collapsed Geometry Types'
+        )
+        expect(
+            collapsedGeometryDrop?.oldSortableDriven,
+            'the exact collapsed Geometry Types drop must exercise legacy Sortable'
+        ).toBe(true)
     })
 })
