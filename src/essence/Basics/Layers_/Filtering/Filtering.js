@@ -34,6 +34,7 @@ const Filtering = {
     current: {},
     currentContainer: null,
     mapSpatialLayer: null,
+    sortableInstance: null,
     makeRequestId: 0,
     /** True if this layer's type ships a filtering strategy. */
     isFilterable: function (layerName) {
@@ -168,15 +169,15 @@ const Filtering = {
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
-                    `<ul id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
+                    `<div id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
                         `<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil mdi-14px'></i><div>${spatialActive ? 'Active' : 'Place Point'}</div></div>`,
                         "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
                             "<div>R:</div>",
-                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
+                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' aria-label='Spatial filter radius in meters' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
                             "<div>m</div>",
                         "</div>",
                         "<div id='layerTool_filtering_filters_spatial_clear' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>",
-                    "</ul>",
+                    "</div>",
                 "</div>",
                 `<div id='layersTool_filtering_footer'>`,
                     "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear Filter</div></div>",
@@ -231,6 +232,15 @@ const Filtering = {
     },
     destroy: function () {
         Filtering.makeRequestId++
+        Filtering.sortableInstance?.destroy()
+        Filtering.sortableInstance = null
+        $('#layersTool_filtering input, #layersTool_filtering select').each(
+            function () {
+                try {
+                    $(this).autocomplete('dispose')
+                } catch (error) {}
+            }
+        )
         // Clear Spatial Filter
         Map_.rmNotNull(Filtering.mapSpatialLayer)
         OpGridSelector.destroy()
@@ -800,7 +810,7 @@ const Filtering = {
         const listToSort = document.getElementById(
             'layerTool_filtering_filters_list'
         )
-        Sortable.create(listToSort, {
+        Filtering.sortableInstance = Sortable.create(listToSort, {
             animation: 150,
             easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
             handle: '.filterDragHandle',

@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Slider } from '@design/components'
+import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerSettings'
 import L_ from '@basics/Layers_/Layers_'
 import './settings.css'
 
-function VideoSettings({ layer }) {
+function VideoSettings({ layer, api }) {
     const [playing, setPlaying] = useState(false)
     const [muted, setMuted] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const video = L_.layers.layer[layer.name]?.getElement?.()
+    const filters = L_.layers.filters?.[layer.name] || {}
     useEffect(() => {
         if (!video) return
         const update = () => {
@@ -90,6 +92,28 @@ function VideoSettings({ layer }) {
                     Download video
                 </a>
             )}
+            <div className="lt2-videoFilters">
+                {[
+                    ['brightness', 'Brightness', 3],
+                    ['contrast', 'Contrast', 4],
+                    ['saturate', 'Saturation', 4],
+                ].map(([property, label, max]) => (
+                    <LayerSettingsSlider
+                        key={property}
+                        label={label}
+                        value={
+                            Number(filters[property]) ||
+                            Number(layer.style?.[property === 'saturate' ? 'saturation' : property]) ||
+                            1
+                        }
+                        min={0}
+                        max={max}
+                        step={0.05}
+                        unit="×"
+                        onChange={(value) => api.setTileFilter(property, value)}
+                    />
+                ))}
+            </div>
         </div>
     )
 }

@@ -9,7 +9,7 @@ import React, {
 import {
     DndContext,
     KeyboardSensor,
-    PointerSensor,
+    MouseSensor,
     TouchSensor,
     closestCenter,
     useSensor,
@@ -32,8 +32,14 @@ import Help from '@basics/UserInterface_/components/Help/Help'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
 import DataShaders from '@essence/services/DataShaders'
 import LayerInfoModal from '../../Layers/LayerInfoModal/LayerInfoModal'
+import Toast from '@design/components/Toast/Toast'
+import calls from '@pre/calls'
 import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
+import {
+    fetchKmlAsGeoJSON,
+    isKmlUrl,
+} from '@basics/Layers_/capture/LayerCapturer'
 import F_ from '@basics/Formulae_/Formulae_'
 import {
     applyLiveMove,
@@ -74,6 +80,8 @@ const TYPE_ICONS = {
 }
 const RASTER_TYPES = new Set(['tile', 'data', 'image', 'velocity'])
 const VECTOR_TYPES = new Set(['vector', 'vectortile', 'query'])
+const QUASI_LAYERS = new Set(['model', 'query', '3dtiles'])
+const geometryByLayer = new Map()
 
 function layerName(layer) {
     return layer.display_name || layer.name
@@ -112,12 +120,20 @@ function layerIsFiltered(layer) {
 }
 
 function activeError(layer) {
-    return layer.error || layer.failed || layer.loadError || null
+    const error = layer.error || layer.failed || layer.loadError
+    if (error) return error
+    if (
+        !QUASI_LAYERS.has(layer.type) &&
+        L_.layers?.layer?.[layer.name] == null
+    )
+        return { kind: 'failed', message: 'Layer not found.' }
+    return null
 }
 
 function refreshWarning(layer) {
     return (
         layer.refreshWarning ||
+        L_.layers?.refreshFailed?.[layer.name] ||
         L_.layers?.refreshWarning?.[layer.name] ||
         L_.layers?.refreshWarnings?.[layer.name] ||
         null
@@ -130,15 +146,20 @@ function emitHeaderStateChange(header, onState) {
 
 function searchMatches(layer, query) {
     if (!query) return true
-    const q = query.startsWith('#') ? query.slice(1) : query
-    if (!q) return true
-    if (query.startsWith('#'))
-        return (layer.tags || []).some((tag) =>
-            String(tag).toLowerCase().includes(q)
-        )
-    return [layerName(layer), layer.description, ...(layer.tags || [])]
+    const q = query.toLowerCase()
+    const tags = query
+        .split(' ')
+        .filter((word) => word.startsWith('#'))
+        .map((word) => word.slice(1).toLowerCase())
+    const textMatches = [layerName(layer), layer.description]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q))
+    const tagMatches = tags.some((tag) =>
+        (layer.tags || []).some((value) =>
+            String(value).toLowerCase().includes(tag)
+        )
+    )
+    return textMatches || tagMatches
 }
 
 function buildRows(flat, current, query, expandedMap) {
@@ -213,6 +234,17 @@ function buildRows(flat, current, query, expandedMap) {
         })
     })
 
+    const siblingSizes = new Map()
+    const siblingPositions = new Map()
+    rows.forEach((row) => {
+        siblingSizes.set(row.parentId, (siblingSizes.get(row.parentId) || 0) + 1)
+    })
+    rows.forEach((row) => {
+        const position = (siblingPositions.get(row.parentId) || 0) + 1
+        siblingPositions.set(row.parentId, position)
+        row.setSize = siblingSizes.get(row.parentId)
+        row.posInSet = position
+    })
     return { rows, hiddenByFilter }
 }
 
@@ -231,6 +263,54 @@ function highlightText(text, query) {
 
 function typeColor(type) {
     return LayerTypeRegistry.getConfig(type)?.color || 'var(--color-a4)'
+}
+
+function layerScopedApi(api, layer) {
+    const name = layer.name
+    return {
+        ...api,
+        setOpacity: (value) => api.setOpacity(value, name),
+        setTileFilter: (property, value) =>
+            api.setTileFilter(property, value, name),
+        setBlend: (value) => api.setBlend(value, name),
+        reload: () => api.reload(name),
+        zoomTo: () => api.zoomTo(name),
+        download: () => api.download(name),
+        refresh: () => api.refresh(name),
+        reset: (sectionId) => api.reset(sectionId, name),
+        resetAll: () => api.resetAll(name),
+        toggle: (target = name, on) => api.toggle(target, on),
+        setGlobalTimeToExtent: () => api.setGlobalTimeToExtent(name),
+    }
+}
+
+function layerStatusContext(layer, api) {
+    return {
+        layerName: layer.name,
+        layerType: layer.type,
+        api: layerScopedApi(api, layer),
+    }
+}
+
+function geometryFor(layer, rendered) {
+    const cached = geometryByLayer.get(layer.name)
+    if (cached) return cached
+    let geometry
+    try {
+        const firstFeature = rendered
+            ?.getLayers?.()
+            ?.find?.((item) => item.feature)
+        geometry =
+            layer.geometryType ||
+            layer.variables?.geometryType ||
+            rendered?.feature?.geometry?.type ||
+            firstFeature?.feature?.geometry?.type ||
+            rendered?.toGeoJSON?.().features?.find(
+                (feature) => feature.geometry
+            )?.geometry?.type
+    } catch (error) {}
+    if (geometry) geometryByLayer.set(layer.name, geometry)
+    return geometry || ''
 }
 
 function sampleTileUrl(layer) {
@@ -521,7 +601,7 @@ function SearchBox({ value, onChange, onExpandAll, onCollapseAll, onRestore, tag
     )
 }
 
-function StatusSlot({ layer, onOpen }) {
+function StatusSlot({ layer, onOpen, api, rowId }) {
     const error = activeError(layer)
     const warning = refreshWarning(layer)
     const timeEnabled = layer.time?.enabled === true
@@ -534,7 +614,7 @@ function StatusSlot({ layer, onOpen }) {
     const filtered = layerIsFiltered(layer)
     let pluginStatus = null
     try {
-        pluginStatus = typeStatus?.(layer, {})
+        pluginStatus = typeStatus?.(layer, layerStatusContext(layer, api))
     } catch (errorInStatus) {}
     const message = status?.message || pluginStatus?.message
     const kind = status?.kind || pluginStatus?.kind
@@ -549,7 +629,7 @@ function StatusSlot({ layer, onOpen }) {
     if (error || kind === 'failed')
         return (
             <ToolTip label={message || error?.message || String(error || 'Layer failed to load')}>
-                <button className="lt2-status lt2-statusError" aria-label="Layer failed; open settings" onClick={onOpen}>
+                <button className="lt2-status lt2-statusError" aria-label={`Layer failed; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                     <i className="mdi mdi-alert-circle mdi-16px" />
                 </button>
             </ToolTip>
@@ -557,7 +637,7 @@ function StatusSlot({ layer, onOpen }) {
     if (warning || kind === 'cached')
         return (
             <ToolTip label={message || 'Layer refresh failed. Using cached data.'}>
-                <button className="lt2-status lt2-statusWarning" aria-label="Refresh failed; open settings" onClick={onOpen}>
+                <button className="lt2-status lt2-statusWarning" aria-label={`Refresh failed; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                     <i className="mdi mdi-cloud-alert mdi-16px" />
                 </button>
             </ToolTip>
@@ -567,14 +647,14 @@ function StatusSlot({ layer, onOpen }) {
             <span className="lt2-statusGroup">
                 {timeEnabled && (
                     <ToolTip label="Time-enabled layer settings">
-                        <button className="lt2-status" aria-label="Time-enabled; open settings" onClick={onOpen}>
+                        <button className="lt2-status" aria-label={`Time settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                             <i className="mdi mdi-clock-outline mdi-16px" />
                         </button>
                     </ToolTip>
                 )}
                 {filtered && (
                     <ToolTip label="Layer has an active filter">
-                        <button className="lt2-status lt2-statusFiltered" aria-label="Filtered layer; open settings" onClick={onOpen}>
+                        <button className="lt2-status lt2-statusFiltered" aria-label={`Filtered layer; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                             <i className="mdi mdi-filter-check mdi-16px" />
                         </button>
                     </ToolTip>
@@ -587,11 +667,11 @@ function StatusSlot({ layer, onOpen }) {
 function HeaderRow({
     row,
     expanded,
+    countOn: countOnProp,
     onExpand,
     onTitle,
     onMute,
     muted,
-    onCount,
     total,
     query,
     selected,
@@ -600,55 +680,47 @@ function HeaderRow({
     depthOverride,
 }) {
     const children = row.descendants
-    const countOn = children.filter(layerIsOn).length
+    const countOn = countOnProp ?? children.filter(layerIsOn).length
     const isPartial = countOn > 0 && countOn < children.length
     const mutedCount = Array.isArray(muted) ? muted.length : 0
     return (
         <div
             className={`lt2-row lt2-headerRow ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
             style={{ '--depth': depthOverride ?? row.depth }}
-            aria-level={row.depth + 1}
-            aria-expanded={expanded}
             data-row-id={row.id}
         >
             <span className="lt2-indentGuides" aria-hidden="true" />
-            <button className="lt2-drag" aria-label="Drag to reorder" {...dragHandle}>
+            <button className="lt2-drag" aria-label={`Drag ${row.label} to reorder`} {...dragHandle} tabIndex={-1}>
                 <i className="mdi mdi-drag-vertical mdi-16px" />
             </button>
-            <button className="lt2-chevron" aria-label={expanded ? 'Collapse group' : 'Expand group'} onClick={onExpand}>
+            <button className="lt2-chevron" aria-label={expanded ? 'Collapse group' : 'Expand group'} tabIndex={-1} onClick={() => onExpand(row.id)}>
                 <i className={`mdi mdi-chevron-right mdi-18px ${expanded ? 'lt2-open' : ''}`} />
             </button>
             <span className="lt2-checkWrap" title={mutedCount ? `Restore ${mutedCount} muted layers` : 'Mute or restore on layers in this group'}>
                 <Checkbox
                     checked={countOn === children.length && children.length > 0}
                     indeterminate={isPartial}
-                    onCheckedChange={onMute}
+                    onCheckedChange={() => onMute(row.id)}
                     aria-label={mutedCount ? `Restore ${mutedCount} muted layers` : 'Mute or restore group layers'}
                     showCheck
+                    tabIndex={-1}
                 />
             </span>
-            <button className="lt2-title lt2-headerTitle" onClick={onTitle}>
+            <button className="lt2-title lt2-headerTitle" title={row.label} tabIndex={-1} onClick={() => onTitle(row.id)}>
                 <span className="lt2-name">{highlightText(row.label, query)}</span>
             </button>
-            {row.node.description && (
-                <ToolTip label="Header information">
-                    <button
-                        type="button"
-                        className="lt2-status"
-                        aria-label={`Information about ${row.label}`}
-                        onClick={() =>
-                            Modal.set(
-                                <div className="lt2-headerInfo">
-                                    <h3>{row.label}</h3>
-                                    <p>{row.node.description}</p>
-                                </div>
-                            )
-                        }
-                    >
-                        <i className="mdi mdi-information-outline mdi-16px" />
-                    </button>
-                </ToolTip>
-            )}
+            <ToolTip label="Information">
+                <button
+                    type="button"
+                    className="lt2-status"
+                    aria-label={`Information about ${row.label}`}
+                    title={`Information about ${row.label}`}
+                    tabIndex={-1}
+                    onClick={() => LayerInfoModal.open(row.node.name)}
+                >
+                    <i className="mdi mdi-information-outline mdi-16px" />
+                </button>
+            </ToolTip>
             {mutedCount > 0 && <span className="lt2-muted">{mutedCount} muted</span>}
             {!expanded && <span className="lt2-count">{countOn}/{total}</span>}
         </div>
@@ -665,23 +737,20 @@ function LayerRow({
     selected,
     dragHandle,
     depthOverride,
+    api,
+    isOn: isOnProp,
 }) {
     const layer = row.node
-    const isOn = layerIsOn(layer)
+    const isOn = isOnProp ?? layerIsOn(layer)
     const failed = !!activeError(layer)
     const color = typeColor(layer.type)
     const isRaster = RASTER_TYPES.has(layer.type)
     const rendered = L_.layers?.layer?.[layer.name]
-    const firstFeature = rendered?.getLayers?.()?.find?.((item) => item.feature)
-    const geometry =
-        layer.geometryType ||
-        layer.variables?.geometryType ||
-        rendered?.feature?.geometry?.type ||
-        firstFeature?.feature?.geometry?.type ||
-        rendered?.toGeoJSON?.().features?.find?.((feature) => feature.geometry)?.geometry?.type ||
-        ''
+    const geometry = geometryFor(layer, rendered)
     const pointGeometry =
-        /point/i.test(geometry) || (!geometry && layer.style?.radius != null)
+        /point/i.test(geometry) ||
+        (!geometry &&
+            (layer.style?.radius != null || layer.style?.marker != null))
     const lineGeometry =
         /line/i.test(geometry) ||
         (!geometry &&
@@ -692,38 +761,43 @@ function LayerRow({
             ? 'point'
             : lineGeometry
               ? 'line'
-              : 'polygon'
+              : /polygon/i.test(geometry)
+                ? 'polygon'
+                : 'neutral'
         : null
     const glyphColor =
+        (glyphShape === 'line' ? layer.style?.strokeColor : null) ||
         layer.style?.fillColor ||
         layer.style?.strokeColor ||
         layer.style?.color ||
         color
+    const missing =
+        !QUASI_LAYERS.has(layer.type) &&
+        L_.layers?.layer?.[layer.name] == null
     return (
         <div
-            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
+            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${missing ? 'lt2-layerNotFound' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
             style={{
                 '--depth': depthOverride ?? row.depth,
                 '--lt-color': color,
             }}
-            aria-level={row.depth + 1}
-            aria-selected={selected}
             data-row-id={row.id}
         >
             <span className="lt2-indentGuides" aria-hidden="true" />
-            <button className="lt2-drag" aria-label="Drag to reorder" {...dragHandle}>
+            <button className="lt2-drag" aria-label={`Drag ${row.label} to reorder`} {...dragHandle} tabIndex={-1}>
                 <i className="mdi mdi-drag-vertical mdi-16px" />
             </button>
             <span className="lt2-chevronSpace" aria-hidden="true" />
             <span className="lt2-checkWrap">
                 <Checkbox
                     checked={isOn}
-                    onCheckedChange={onToggle}
+                    onCheckedChange={(checked) => onToggle(row.id, checked)}
                     aria-label={`${isOn ? 'Turn off' : 'Turn on'} ${row.label}`}
                     showCheck
+                    tabIndex={-1}
                 />
             </span>
-            <button className="lt2-title" onClick={onOpen} title={row.label}>
+            <button className="lt2-title" onClick={() => onOpen(row.id)} title={row.label} tabIndex={-1}>
                 {glyphShape && (
                     <span
                         className={`lt2-glyph lt2-glyph-${glyphShape}`}
@@ -742,8 +816,15 @@ function LayerRow({
                     <span className="lt2-descriptionHit">in description</span>
                 )}
             </button>
-            {isRaster && <RasterPreview layer={layer} enabled={previews} version={store.getState().layerVersion} />}
-            <StatusSlot layer={layer} onOpen={onOpen} />
+            {isRaster && (
+                <RasterPreview
+                    key={layer.name}
+                    layer={layer}
+                    enabled={previews}
+                    version={store.getState().previewVersions[layer.name] || 0}
+                />
+            )}
+            <StatusSlot layer={layer} onOpen={onOpen} rowId={row.id} api={api} />
         </div>
     )
 }
@@ -763,37 +844,78 @@ function SortableRow(props) {
     return (
         <div ref={setNodeRef} style={style} className="lt2-sortable">
             {props.row.isHeader ? (
-                <HeaderRow {...rowProps} />
+                <MemoHeaderRow {...rowProps} />
             ) : (
-                <LayerRow {...rowProps} />
+                <MemoLayerRow {...rowProps} />
             )}
         </div>
     )
 }
 
+const MemoHeaderRow = React.memo(HeaderRow)
+const MemoLayerRow = React.memo(LayerRow)
+const MemoSortableRow = React.memo(SortableRow)
+
+class PluginSectionBoundary extends React.Component {
+    state = { error: null }
+
+    static getDerivedStateFromError(error) {
+        return { error }
+    }
+
+    render() {
+        if (this.state.error)
+            return (
+                <div className="lt2-inlineError" role="alert">
+                    <strong>This section failed to load</strong>
+                    <div>{this.state.error.message || String(this.state.error)}</div>
+                </div>
+            )
+        return this.props.children
+    }
+}
+
 function CoreSettings({ layer, api }) {
     const opacity = L_.layers?.opacity?.[layer.name] ?? layer.initialOpacity ?? 1
     const [exportError, setExportError] = useState('')
+    const [actionError, setActionError] = useState('')
     const [exportFormat, setExportFormat] = useState('geojson')
     const [exportCoordinates, setExportCoordinates] = useState('source')
     const [exportExtent, setExportExtent] = useState('current')
     const [exportProperties, setExportProperties] = useState(true)
     const [exportBusy, setExportBusy] = useState(false)
+    const exportResetToken =
+        store.getState().resetTokens[layer.name]?.export || 0
+    const layerVersion = store.getState().layerVersion
+    const layerOn = layerIsOn(layer)
+    const pluginContext = useMemo(
+        () => layerStatusContext(layer, api),
+        [layer, api]
+    )
+    useEffect(() => {
+        setExportFormat('geojson')
+        setExportCoordinates('source')
+        setExportExtent('current')
+        setExportProperties(true)
+        setExportError('')
+    }, [layer.name, exportResetToken])
     const plugin = LayerTypeRegistry.settings(layer.type)
     const pluginSections = useMemo(() => {
         try {
-            return (plugin?.sections?.(layer, api) || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0))
+            return (plugin?.sections?.(layer, pluginContext) || [])
+                .slice()
+                .sort((a, b) => (a.order || 0) - (b.order || 0))
         } catch (error) {
             return []
         }
-    }, [plugin, layer, api])
+    }, [plugin, layer, pluginContext, layerVersion, layerOn])
     const pluginActions = useMemo(() => {
         try {
-            return plugin?.actions?.(layer, api) || []
+            return plugin?.actions?.(layer, pluginContext) || []
         } catch (error) {
             return []
         }
-    }, [plugin, layer, api])
+    }, [plugin, layer, pluginContext])
 
     const exportLayer = async () => {
         setExportBusy(true)
@@ -802,22 +924,53 @@ function CoreSettings({ layer, api }) {
             const mapLayer = L_.layers?.layer?.[layer.name]
             if (!mapLayer?.toGeoJSON)
                 throw new Error('This layer does not expose exportable GeoJSON data.')
+            const requestApi = (endpoint, body) =>
+                new Promise((resolve, reject) =>
+                    calls.api(endpoint, body, resolve, reject)
+                )
             let geojson
             if (
                 exportExtent === 'entire' &&
                 layer.variables?.dynamicExtent === true &&
                 layer.url
             ) {
-                const response = await fetch(
-                    L_.getUrl(layer.type, layer.url, layer)
+                const urlParts = layer.url.split(':')
+                if (urlParts[0].toLowerCase() === 'geodatasets') {
+                    const data = await requestApi('geodatasets_get', {
+                        layer: urlParts[1],
+                        type: 'geojson',
+                    })
+                    geojson = data.body
+                } else {
+                    const sourceUrl = L_.getUrl(layer.type, layer.url, layer)
+                    if (isKmlUrl(sourceUrl)) {
+                        geojson = await new Promise((resolve, reject) =>
+                            fetchKmlAsGeoJSON(sourceUrl, resolve, reject)
+                        )
+                    } else {
+                        const response = await fetch(sourceUrl)
+                        if (!response.ok)
+                            throw new Error(
+                                `Source export failed (${response.status}).`
+                            )
+                        geojson = await response.json()
+                    }
+                }
+            } else if (
+                exportExtent === 'raw-extent' &&
+                layer._lastGeodatasetRequestBody
+            ) {
+                const body = JSON.parse(
+                    JSON.stringify(layer._lastGeodatasetRequestBody)
                 )
-                if (!response.ok)
-                    throw new Error(`Source export failed (${response.status}).`)
-                geojson = await response.json()
+                delete body._source
+                delete body.noDuplicates
+                geojson = await requestApi('geodatasets_get', body)
             } else {
                 geojson = mapLayer.toGeoJSON()
             }
             if (
+                layer.variables?.dynamicExtent === true &&
                 exportExtent === 'current' &&
                 Array.isArray(geojson.features) &&
                 Map_.map?.getBounds
@@ -884,8 +1037,15 @@ function CoreSettings({ layer, api }) {
                 extension = 'kml'
                 mimeType = 'application/vnd.google-earth.kml+xml'
             } else if (exportFormat === 'shp') {
+                const projection = window.mmgisglobal?.customCRS?.projString
+                if (!projection)
+                    throw new Error('The map projection is unavailable for SHP export.')
+                const prj = await requestApi('proj42wkt', {
+                    proj4: projection,
+                })
                 const blob = await shpwrite.zip(geojson, {
                     outputType: 'blob',
+                    prj,
                 })
                 const link = document.createElement('a')
                 link.href = URL.createObjectURL(blob)
@@ -924,6 +1084,7 @@ function CoreSettings({ layer, api }) {
                     value={opacity}
                     min={0}
                     max={1}
+                    step={0.05}
                     onChange={(value) => api.setOpacity(value)}
                 />
             </SettingSection>
@@ -986,6 +1147,15 @@ function CoreSettings({ layer, api }) {
                             aria-label="Export extent"
                             options={[
                                 { value: 'current', label: 'Current Extent' },
+                                ...(layer.variables?.getFeaturePropertiesOnClick === true &&
+                                layer._lastGeodatasetRequestBody
+                                    ? [
+                                          {
+                                              value: 'raw-extent',
+                                              label: 'Current Extent w/ Props',
+                                          },
+                                      ]
+                                    : []),
                                 { value: 'entire', label: 'Entire File' },
                             ]}
                         />
@@ -1060,39 +1230,68 @@ function CoreSettings({ layer, api }) {
                         defaultOpen={section.defaultOpen !== false}
                     >
                         {Component ? (
-                            <Component
-                                layer={layer}
-                                api={api}
-                                state={store.getState().sectionState[layer.name]?.[section.id] || {}}
-                                setState={(value) => store.setLayerSectionState(layer.name, section.id, value)}
-                                resetToken={store.getState().resetTokens[layer.name]?.[section.id] || 0}
-                            />
+                            <PluginSectionBoundary key={`${section.id}-boundary`}>
+                                <Component
+                                    layer={layer}
+                                    api={api}
+                                    state={store.getState().sectionState[layer.name]?.[section.id] || {}}
+                                    setState={(value) => store.setLayerSectionState(layer.name, section.id, value)}
+                                    resetToken={store.getState().resetTokens[layer.name]?.[section.id] || 0}
+                                />
+                            </PluginSectionBoundary>
                         ) : null}
                     </SettingSection>
                 )
             })}
             <div className="lt2-pluginActions">
                 {pluginActions.map((action) => (
-                    <Button className="lt2-iconTextButton" key={action.id} size="sm" variant="secondary" onClick={() => action.onClick?.(api)}>
+                    <Button className="lt2-iconTextButton" key={action.id} size="sm" variant="secondary" onClick={() => {
+                        setActionError('')
+                        try {
+                            Promise.resolve(action.onClick?.(pluginContext)).catch((error) =>
+                                {
+                                    const message = error.message || String(error)
+                                    setActionError(message)
+                                    Toast.error(message, 6000)
+                                }
+                            )
+                        } catch (error) {
+                            const message = error.message || String(error)
+                            setActionError(message)
+                            Toast.error(message, 6000)
+                        }
+                    }}>
                         {action.icon && <i className={`mdi mdi-${action.icon}`} />} {action.label}
                     </Button>
                 ))}
             </div>
+            {actionError && <div className="lt2-inlineError" role="alert">{actionError}</div>}
         </>
     )
 }
 
-function SettingsPage({ row, api, onBack }) {
+function SettingsPage({ row, api: baseApi, onBack }) {
     const layer = row.node
+    const api = useMemo(
+        () => layerScopedApi(baseApi, layer),
+        [baseApi, layer]
+    )
+    const titleRef = useRef(null)
     const color = typeColor(layer.type)
     const status = activeError(layer) || refreshWarning(layer)
     let typeStatus = null
     try {
-        typeStatus = LayerTypeRegistry.settings(layer.type)?.status?.(layer, api)
+        typeStatus = LayerTypeRegistry.settings(layer.type)?.status?.(
+            layer,
+            layerStatusContext(layer, baseApi)
+        )
     } catch (error) {}
     const visible = layerIsOn(layer)
     const retry = () => api.reload()
     const info = () => LayerInfoModal.open(layer.name)
+    useEffect(() => {
+        titleRef.current?.focus()
+    }, [layer.name])
     return (
         <div className="lt2-settings" role="region" aria-label={`${row.label} settings`}>
             <div
@@ -1101,7 +1300,7 @@ function SettingsPage({ row, api, onBack }) {
             >
                 <div className="lt2-heroActions">
                     <ToolTip label="Back to layers (Esc)">
-                        <IconButton size="sm" aria-label="Back to layers" onClick={onBack}>
+                        <IconButton size="sm" aria-label="Back to layers" aria-keyshortcuts="Escape" onClick={onBack}>
                             <i className="mdi mdi-arrow-left mdi-18px" />
                         </IconButton>
                     </ToolTip>
@@ -1131,7 +1330,7 @@ function SettingsPage({ row, api, onBack }) {
                 <div className="lt2-avatar" aria-hidden="true">
                     <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
                 </div>
-                <div className="lt2-settingsName" title={row.label}>{row.label}</div>
+                <h2 className="lt2-settingsName" title={row.label} ref={titleRef} tabIndex={-1}>{row.label}</h2>
                 <div className="lt2-path" title={row.path.join(' › ')}>
                     {row.path.map((part, index) => (
                         <React.Fragment key={`${part}-${index}`}>
@@ -1193,7 +1392,7 @@ function LayersTool2App({ vars }) {
     const [query, setQuery] = useState(state.search)
     const [toast, setToast] = useState(null)
     const [dragPreview, setDragPreview] = useState(null)
-    const [mobile, setMobile] = useState(window.innerWidth <= 700)
+    const mobile = L_.UserInterface_.isMobile === true
     const focused = state.focusedRow
     const scrollElement = useRef(null)
     const rowElements = useRef({})
@@ -1240,10 +1439,28 @@ function LayersTool2App({ vars }) {
             ),
         [allHeaderNodes, state.expanded, vars.expanded, replayResult]
     )
+    const settingsRowsByName = useMemo(() => {
+        const expanded = Object.fromEntries(
+            allHeaderNodes.map((header) => [header.name, true])
+        )
+        return new Map(
+            buildRows(
+                orderedFlat,
+                { onlyVisible: false, onlyFiltered: false },
+                '',
+                expanded
+            ).rows.map((row) => [row.node.name, row])
+        )
+    }, [orderedFlat, allHeaderNodes])
     const current = {
         onlyVisible: state.onlyVisible,
         onlyFiltered: state.onlyFiltered,
     }
+    const isFiltering = !!(
+        query ||
+        state.onlyVisible ||
+        state.onlyFiltered
+    )
     const rowModel = useMemo(
         () => buildRows(orderedFlat, current, query, expandedMap),
         [
@@ -1251,7 +1468,7 @@ function LayersTool2App({ vars }) {
             expandedMap,
             state.onlyVisible,
             state.onlyFiltered,
-            state.layerVersion,
+            isFiltering ? state.layerVersion : 0,
             query,
         ]
     )
@@ -1262,8 +1479,46 @@ function LayersTool2App({ vars }) {
         ...expandedMap,
         searchHidden: rowModel.hiddenByFilter,
     }
+    useEffect(() => {
+        const layerNames = new Set(allLayerNodes.map((layer) => layer.name))
+        const headerNames = new Set(allHeaderNodes.map((header) => header.name))
+        const keepKeys = (record, allowed) =>
+            Object.fromEntries(
+                Object.entries(record || {}).filter(([name]) => allowed.has(name))
+            )
+        const sectionState = keepKeys(state.sectionState, layerNames)
+        const resetTokens = keepKeys(state.resetTokens, layerNames)
+        const expanded = keepKeys(state.expanded, headerNames)
+        const muted = keepKeys(state.muted, headerNames)
+        const changed =
+            Object.keys(sectionState).length !== Object.keys(state.sectionState).length ||
+            Object.keys(resetTokens).length !== Object.keys(state.resetTokens).length ||
+            Object.keys(expanded).length !== Object.keys(state.expanded).length ||
+            Object.keys(muted).length !== Object.keys(state.muted).length
+        if (changed || (state.openLayer && !layerNames.has(state.openLayer)))
+            store.updateState({
+                sectionState,
+                resetTokens,
+                expanded,
+                muted,
+                ...(state.openLayer && !layerNames.has(state.openLayer)
+                    ? { openLayer: null }
+                    : {}),
+            })
+    }, [
+        allLayerNodes,
+        allHeaderNodes,
+        state.sectionState,
+        state.resetTokens,
+        state.expanded,
+        state.muted,
+        state.openLayer,
+    ])
     const total = allLayerNodes.length
-    const visibleLayers = rows.filter((row) => !row.isHeader).length
+    const visibleLayers = useMemo(
+        () => rows.filter((row) => !row.isHeader).length,
+        [rows]
+    )
     const allTags = useMemo(
         () =>
             Array.from(
@@ -1275,14 +1530,9 @@ function LayersTool2App({ vars }) {
             ).sort(),
         [allLayerNodes]
     )
-    const isFiltering = !!(
-        query ||
-        state.onlyVisible ||
-        state.onlyFiltered
-    )
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-        useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 6 } }),
+        useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     )
     const virtualizer = useVirtualizer({
@@ -1290,24 +1540,39 @@ function LayersTool2App({ vars }) {
         getScrollElement: () => scrollElement.current,
         estimateSize: () => rowHeight,
         overscan: 12,
+        paddingStart: 22,
+        scrollPaddingStart: 22,
     })
+    const sortableItems = useMemo(() => rows.map((row) => row.id), [rows])
+    const [liveCount, setLiveCount] = useState('')
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setLiveCount(
+                isFiltering
+                    ? `${visibleLayers} of ${total} layers${query ? ` match ${query}` : ''}`
+                    : ''
+            )
+        }, 250)
+        return () => clearTimeout(timer)
+    }, [isFiltering, visibleLayers, total, query])
 
     const api = useMemo(
         () => ({
-            setOpacity: (value) => L_.setLayerOpacity(state.openLayer, value),
-            setTileFilter: (name, value) => {
-                if (!L_.layers.data[state.openLayer]) return
-                L_.setLayerFilter(state.openLayer, name, value)
+            setOpacity: (value, layerName = state.openLayer) =>
+                L_.setLayerOpacity(layerName, value),
+            setTileFilter: (property, value, layerName = state.openLayer) => {
+                if (!L_.layers.data[layerName]) return
+                L_.setLayerFilter(layerName, property, value)
                 store.updateState({ layerVersion: store.getState().layerVersion + 1 })
             },
-            setBlend: (value) => {
-                if (!L_.layers.data[state.openLayer]) return
-                L_.setLayerFilter(state.openLayer, 'mix-blend-mode', value)
+            setBlend: (value, layerName = state.openLayer) => {
+                if (!L_.layers.data[layerName]) return
+                L_.setLayerFilter(layerName, 'mix-blend-mode', value)
                 store.updateState({ layerVersion: store.getState().layerVersion + 1 })
             },
-            reload: async () => {
-                const layer = L_.layers.data[state.openLayer]
-                const rendered = L_.layers.layer[state.openLayer]
+            reload: async (layerName = state.openLayer) => {
+                const layer = L_.layers.data[layerName]
+                const rendered = L_.layers.layer[layerName]
                 if (!layer) return
                 if (layer.type === 'image' && rendered?.refresh)
                     rendered.refresh(null, true, {
@@ -1315,11 +1580,12 @@ function LayersTool2App({ vars }) {
                     })
                 else if (layer.type !== 'tile')
                     await Map_.refreshLayer(layer)
+                store.bumpLayerPreview(layerName)
                 store.updateState({ layerVersion: store.getState().layerVersion + 1 })
             },
-            zoomTo: () => {
-                const rendered = L_.layers.layer[state.openLayer]
-                const layer = L_.layers.data[state.openLayer]
+            zoomTo: (layerName = state.openLayer) => {
+                const rendered = L_.layers.layer[layerName]
+                const layer = L_.layers.data[layerName]
                 if (rendered?.getBounds && Map_.map)
                     Map_.map.fitBounds(rendered.getBounds())
                 else if (layer?.boundingBox && Map_.map)
@@ -1330,8 +1596,8 @@ function LayersTool2App({ vars }) {
                 else if (rendered?.getLatLng && Map_.map)
                     Map_.map.setView(rendered.getLatLng())
             },
-            download: () => {
-                const layer = L_.layers.data[state.openLayer]
+            download: (layerName = state.openLayer) => {
+                const layer = L_.layers.data[layerName]
                 const url =
                     layer?.variables?.downloadURL ||
                     (layer?.url
@@ -1339,9 +1605,14 @@ function LayersTool2App({ vars }) {
                         : null)
                 if (url) window.open(url, '_blank', 'noopener')
             },
-            refresh: () => store.updateState({ layerVersion: store.getState().layerVersion + 1 }),
-            reset: (sectionId) => {
-                const name = state.openLayer
+            refresh: (layerName = state.openLayer) => {
+                store.bumpLayerPreview(layerName)
+                store.updateState({ layerVersion: store.getState().layerVersion + 1 })
+            },
+            reset: (sectionId, layerName = state.openLayer) => {
+                const name = layerName
+                const layer =
+                    L_.layers.data[name] || findLayer(L_.configData?.layers, name)
                 if (sectionId === 'display') L_.setLayerOpacity(name, 1)
                 if (sectionId === 'tile-display')
                     L_.setLayerFilter(name, 'clear')
@@ -1354,11 +1625,15 @@ function LayersTool2App({ vars }) {
                     Filtering.applyFilter(name)
                     Filtering.refresh()
                 }
+                const section = (LayerTypeRegistry.settings(layer?.type)?.sections?.(layer, api) || [])
+                    .find((entry) => entry.id === sectionId)
+                section?.reset?.(layerScopedApi(api, layer), layer)
                 store.resetLayerSection(name, sectionId)
             },
-            resetAll: () => {
-                const name = state.openLayer
-                const layer = L_.layers.data[name]
+            resetAll: (layerName = state.openLayer) => {
+                const name = layerName
+                const layer =
+                    L_.layers.data[name] || findLayer(L_.configData?.layers, name)
                 L_.setLayerOpacity(name, 1)
                 L_.setLayerFilter(name, 'clear')
                 if (Filtering.isFilterable(name)) {
@@ -1370,17 +1645,22 @@ function LayersTool2App({ vars }) {
                     Filtering.applyFilter(name)
                     Filtering.refresh()
                 }
-                store.resetAllLayerSections(name)
                 const settings = LayerTypeRegistry.settings(layer?.type)
                 let sectionIds = []
                 try {
-                    sectionIds = (settings?.sections?.(layer, api) || []).map(
-                        (section) => section.id
-                    )
+                    const sections = settings?.sections?.(
+                        layer,
+                        layerStatusContext(layer, api)
+                    ) || []
+                    sections.forEach((section) => section.reset?.(layerScopedApi(api, layer), layer))
+                    sectionIds = sections.map((section) => section.id)
                 } catch (error) {}
+                store.resetAllLayerSections(name)
                 sectionIds.forEach((sectionId) =>
                     store.resetLayerSection(name, sectionId)
                 )
+                if (!sectionIds.includes('export'))
+                    store.resetLayerSection(name, 'export')
             },
             toggle: async (name, target) => {
                 const layer =
@@ -1392,10 +1672,11 @@ function LayersTool2App({ vars }) {
                     if (target === undefined) await L_.toggleLayer(layer)
                     else await L_.toggleLayerHelper(layer, !target)
                 }
+                store.bumpLayerPreview(name)
                 store.updateState({ layerVersion: store.getState().layerVersion + 1 })
             },
-            setGlobalTimeToExtent: () => {
-                const layer = L_.layers.data[state.openLayer]
+            setGlobalTimeToExtent: (layerName = state.openLayer) => {
+                const layer = L_.layers.data[layerName]
                 const start = layer?.time?.dataStartTime
                 const end = layer?.time?.dataEndTime
                 if (start && end) {
@@ -1410,11 +1691,12 @@ function LayersTool2App({ vars }) {
 
     useEffect(() => {
         Help.finalize(HELP_KEY)
-        const onResize = () => setMobile(window.innerWidth <= 700)
-        const onLayerToggle = () =>
+        const onLayerToggle = (layerName) => {
+            store.bumpLayerPreview(layerName)
             store.updateState({
                 layerVersion: store.getState().layerVersion + 1,
             })
+        }
         const onRefreshStatus = () =>
             store.updateState({
                 layerVersion: store.getState().layerVersion + 1,
@@ -1423,7 +1705,6 @@ function LayersTool2App({ vars }) {
             store.updateState({
                 layerVersion: store.getState().layerVersion + 1,
             })
-        window.addEventListener('resize', onResize)
         L_.subscribeOnLayerToggle('LayersTool2', onLayerToggle)
         document.addEventListener(
             'layerRefreshStatusChanged',
@@ -1434,7 +1715,6 @@ function LayersTool2App({ vars }) {
             onFilterStateChange
         )
         return () => {
-            window.removeEventListener('resize', onResize)
             L_.unsubscribeOnLayerToggle('LayersTool2')
             document.removeEventListener(
                 'layerRefreshStatusChanged',
@@ -1449,10 +1729,20 @@ function LayersTool2App({ vars }) {
 
     useEffect(() => {
         const onEscape = (event) => {
-            if (event.key === 'Escape' && store.getState().openLayer) {
+            if (
+                event.defaultPrevented ||
+                event.key !== 'Escape' ||
+                (event.target instanceof Element &&
+                    event.target.closest(
+                        'input, textarea, [role="listbox"], [role="menu"], [role="dialog"], [data-popup]'
+                    ))
+            )
+                return
+            if (store.getState().openLayer) {
                 event.preventDefault()
                 store.updateState({ openLayer: null })
-                requestAnimationFrame(() => rowElements.current[store.getState().focusedRow]?.focus())
+                Modal.remove(true, Modal.top())
+                requestAnimationFrame(() => scrollElement.current?.focus())
             }
         }
         window.addEventListener('keydown', onEscape)
@@ -1546,6 +1836,28 @@ function LayersTool2App({ vars }) {
             }
         },
         []
+    )
+
+    const openRow = useCallback(
+        (rowId) => {
+            const row = rowsRef.current.find((candidate) => candidate.id === rowId)
+            if (row) setActiveLayer(row)
+        },
+        [setActiveLayer]
+    )
+    const toggleRow = useCallback(
+        (rowId, checked) => {
+            const row = rowsRef.current.find((candidate) => candidate.id === rowId)
+            if (row && !row.isHeader) setLayerToggle(row.node, checked)
+        },
+        [setLayerToggle]
+    )
+    const muteRow = useCallback(
+        (rowId) => {
+            const row = rowsRef.current.find((candidate) => candidate.id === rowId)
+            if (row?.isHeader) muteHeader(row.node)
+        },
+        [muteHeader]
     )
 
     const expandAll = (expanded) => {
@@ -1654,6 +1966,24 @@ function LayersTool2App({ vars }) {
                     )
                 ]
             store.updateState({ focusedRow: next?.id })
+        } else if (key === 'Home' || key === 'End') {
+            const next = currentRows[key === 'Home' ? 0 : currentRows.length - 1]
+            if (next) store.updateState({ focusedRow: next.id })
+        } else if (key === 'PageDown' || key === 'PageUp') {
+            const pageSize = Math.max(
+                1,
+                Math.floor(
+                    (scrollElement.current?.clientHeight || rowHeight) / rowHeight
+                )
+            )
+            const nextIndex = Math.max(
+                0,
+                Math.min(
+                    currentRows.length - 1,
+                    index + (key === 'PageDown' ? pageSize : -pageSize)
+                )
+            )
+            store.updateState({ focusedRow: currentRows[nextIndex]?.id })
         } else if (key === 'ArrowRight' && row.isHeader) {
             const expanded =
                 store.getState().expanded[row.node.name] ??
@@ -1702,15 +2032,50 @@ function LayersTool2App({ vars }) {
         const key = event.altKey && (event.key === 'ArrowUp' || event.key === 'ArrowDown')
             ? `Alt+${event.key}`
             : event.key
-        if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Alt+ArrowUp', 'Alt+ArrowDown'].includes(key)) {
+        if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown', 'Enter', ' ', 'Alt+ArrowUp', 'Alt+ArrowDown'].includes(key)) {
             event.preventDefault()
             moveFocus(row, key)
         }
     }
 
+    const virtualItems = virtualizer.getVirtualItems()
+    const scrollOffset = scrollElement.current?.scrollTop || 0
+    const stickyItem = virtualItems.find(
+        (item) => item.start + item.size > scrollOffset
+    )
+    const stickyPath = rows[stickyItem?.index ?? 0]?.path || []
+    const rowLabel = (id) =>
+        rowsRef.current.find((candidate) => candidate.id === id)?.label || 'layer'
+    const dragAnnouncements = {
+        onDragStart: ({ active }) => `Picked up ${rowLabel(active.id)}.`,
+        onDragOver: ({ active, over }) =>
+            over
+                ? `${rowLabel(active.id)} is over ${rowLabel(over.id)}.`
+                : `Picked up ${rowLabel(active.id)}.`,
+        onDragEnd: ({ active, over }) =>
+            over
+                ? `Moved ${rowLabel(active.id)} near ${rowLabel(over.id)}.`
+                : `Reorder cancelled for ${rowLabel(active.id)}.`,
+        onDragCancel: ({ active }) =>
+            `Reorder cancelled for ${rowLabel(active.id)}.`,
+    }
+
     return (
         <div className={`lt2-root ${mobile ? 'lt2-mobile' : ''}`}>
-            <div className="lt2-listPane" style={{ display: state.openLayer ? 'none' : 'flex' }}>
+            <div className="lt2-liveRegion" aria-live="polite" aria-atomic="true">{liveCount}</div>
+            <div
+                className="lt2-listPane"
+                style={
+                    state.openLayer
+                        ? {
+                              visibility: 'hidden',
+                              position: 'absolute',
+                              inset: 0,
+                              pointerEvents: 'none',
+                          }
+                        : undefined
+                }
+            >
                 <div id="layersToolHeader" className="lt2-toolbar mmgisToolHeader">
                     <div className="lt2-toolbarTitle">
                         <div className="left">
@@ -1787,6 +2152,7 @@ function LayersTool2App({ vars }) {
                     <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
+                        accessibility={{ announcements: dragAnnouncements }}
                         onDragOver={previewReorder}
                         onDragEnd={({ active, over }) => {
                             reorderRows(active.id, over?.id)
@@ -1794,7 +2160,7 @@ function LayersTool2App({ vars }) {
                         }}
                         onDragCancel={() => setDragPreview(null)}
                     >
-                        <SortableContext items={rows.map((row) => row.id)} strategy={verticalListSortingStrategy}>
+                        <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
                             <div
                                 ref={scrollElement}
                                 className="lt2-scroll"
@@ -1808,22 +2174,18 @@ function LayersTool2App({ vars }) {
                                 tabIndex={0}
                                 onKeyDown={onTreeKeyDown}
                             >
-                                {rows[
-                                    virtualizer.getVirtualItems()[0]?.index || 0
-                                ]?.path?.length > 0 && (
+                                {stickyPath.length > 0 && (
                                     <div className="lt2-stickyPath">
                                         <i className="mdi mdi-folder-outline mdi-14px" />
-                                        {rows[
-                                            virtualizer.getVirtualItems()[0]
-                                                ?.index || 0
-                                        ].path.join(' › ')}
+                                        {stickyPath.join(' › ')}
                                     </div>
                                 )}
                                 <div
                                     className="lt2-virtualContent"
+                                    role="group"
                                     style={{ height: virtualizer.getTotalSize() }}
                                 >
-                                    {virtualizer.getVirtualItems().map((item) => {
+                                    {virtualItems.map((item) => {
                                         const row = rows[item.index]
                                         const expanded =
                                             isFiltering ||
@@ -1833,13 +2195,27 @@ function LayersTool2App({ vars }) {
                                                 key={row.id}
                                                 ref={(element) => {
                                                     rowElements.current[row.id] = element
-                                                    virtualizer.measureElement(element)
                                                 }}
                                                 id={`lt2-row-${row.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
                                                 tabIndex={-1}
                                                 role="treeitem"
                                                 aria-level={row.depth + 1}
-                                                aria-selected={focused === row.id}
+                                                aria-selected={
+                                                    !row.isHeader &&
+                                                    state.openLayer === row.node.name
+                                                        ? true
+                                                        : undefined
+                                                }
+                                                aria-checked={
+                                                    row.isHeader
+                                                        ? row.descendants.some(layerIsOn) &&
+                                                          !row.descendants.every(layerIsOn)
+                                                            ? 'mixed'
+                                                            : row.descendants.some(layerIsOn)
+                                                        : layerIsOn(row.node)
+                                                }
+                                                aria-setsize={row.setSize}
+                                                aria-posinset={row.posInSet}
                                                 aria-expanded={
                                                     row.isHeader
                                                         ? !!expanded
@@ -1852,8 +2228,11 @@ function LayersTool2App({ vars }) {
                                                     transform: `translateY(${item.start}px)`,
                                                 }}
                                             >
-                                                <SortableRow
+                                                <MemoSortableRow
                                                     row={row}
+                                                    api={api}
+                                                    isOn={row.isHeader ? undefined : layerIsOn(row.node)}
+                                                    countOn={row.isHeader ? row.descendants.filter(layerIsOn).length : undefined}
                                                     query={query}
                                                     previews={vars.previews !== false}
                                                     depthOverride={
@@ -1865,12 +2244,11 @@ function LayersTool2App({ vars }) {
                                                     muted={state.muted[row.node.name]}
                                                     selected={state.openLayer === row.node.name}
                                                     focused={focused === row.id}
-                                                    onCount={() => {}}
-                                                    onExpand={() => setActiveLayer(row)}
-                                                    onTitle={() => setActiveLayer(row)}
-                                                    onOpen={() => setActiveLayer(row)}
-                                                    onMute={() => muteHeader(row.node)}
-                                                    onToggle={(checked) => setLayerToggle(row.node, checked)}
+                                                    onExpand={openRow}
+                                                    onTitle={openRow}
+                                                    onOpen={openRow}
+                                                    onMute={muteRow}
+                                                    onToggle={toggleRow}
                                                 />
                                             </div>
                                         )
@@ -1888,17 +2266,7 @@ function LayersTool2App({ vars }) {
                 )}
             </div>
             {state.openLayer && (() => {
-                const settingsExpanded = Object.fromEntries(
-                    allHeaderNodes.map((header) => [header.name, true])
-                )
-                const row = buildRows(
-                    orderedFlat,
-                    { ...current, onlyFiltered: false, onlyVisible: false },
-                    '',
-                    settingsExpanded
-                ).rows.find(
-                    (candidate) => candidate.node.name === state.openLayer
-                )
+                const row = settingsRowsByName.get(state.openLayer)
                 const layer = L_.layers.data[state.openLayer] || row?.node
                 if (!row || !layer) return null
                 return (
@@ -1907,7 +2275,7 @@ function LayersTool2App({ vars }) {
                         api={api}
                         onBack={() => {
                             store.updateState({ openLayer: null })
-                            requestAnimationFrame(() => rowElements.current[state.focusedRow]?.focus())
+                            requestAnimationFrame(() => scrollElement.current?.focus())
                         }}
                     />
                 )

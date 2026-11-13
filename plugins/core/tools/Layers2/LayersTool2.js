@@ -5,6 +5,7 @@ import Filtering from '@basics/Layers_/Filtering/Filtering'
 import LayersTool2App from './components/LayersTool2'
 import * as store from './store'
 import { flatten, layerOrder, replay } from './ordering'
+import buildCogLegend from '../../layertypes/Tile/cogLegend'
 
 let root = null
 let mountNode = null
@@ -117,6 +118,7 @@ const LayersTool2 = {
         const key = L_.asLayerUUID ? L_.asLayerUUID(layerName) : layerName
         const layer = L_.layers?.data?.[key] || L_.layers?.data?.[layerName]
         if (!layer) return
+        if (!buildCogLegend(layer)) return
         const old = store.getState().sectionState[layer.name] || {}
         store.updateState({
             sectionState: {
@@ -131,9 +133,11 @@ const LayersTool2 = {
             },
             layerVersion: store.getState().layerVersion + 1,
         })
+        store.bumpLayerPreview(layer.name)
     },
     syncLayer(layerName) {
         if (!layerName) return
+        store.bumpLayerPreview(layerName)
         store.updateState({ layerVersion: store.getState().layerVersion + 1 })
     },
 }

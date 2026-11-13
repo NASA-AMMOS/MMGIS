@@ -12,6 +12,7 @@ let state = {
     focusedRow: null,
     sectionState: {},
     resetTokens: {},
+    previewVersions: {},
 }
 
 const listeners = new Set()
@@ -96,6 +97,16 @@ export function resetAllLayerSections(layerName) {
             resetTokens: { ...current.resetTokens, [layerName]: tokens },
         }
     })
+}
+
+export function bumpLayerPreview(layerName) {
+    if (!layerName) return
+    updateState((current) => ({
+        previewVersions: {
+            ...current.previewVersions,
+            [layerName]: (current.previewVersions[layerName] || 0) + 1,
+        },
+    }))
 }
 
 export function addOrderingHistory(entry) {

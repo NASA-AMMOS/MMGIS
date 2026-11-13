@@ -11,20 +11,25 @@ export function LayerSettingsSection({
     defaultOpen = true,
 }) {
     const [open, setOpen] = useState(defaultOpen)
+    const contentId = `layer-settings-${id}-content`
     return (
         <section className="layerSettingsSection" data-section={id}>
             <div className="layerSettingsSectionHeader">
-                <button
-                    type="button"
-                    className="layerSettingsSectionToggle"
-                    aria-expanded={open}
-                    onClick={() => setOpen((previous) => !previous)}
-                >
-                    <i
-                        className={`mdi mdi-chevron-right ${open ? 'layerSettingsOpen' : ''}`}
-                    />
-                    <span>{label}</span>
-                </button>
+                <h3 className="layerSettingsSectionHeading">
+                    <button
+                        id={`layer-settings-${id}-toggle`}
+                        type="button"
+                        className="layerSettingsSectionToggle"
+                        aria-expanded={open}
+                        aria-controls={contentId}
+                        onClick={() => setOpen((previous) => !previous)}
+                    >
+                        <i
+                            className={`mdi mdi-chevron-right ${open ? 'layerSettingsOpen' : ''}`}
+                        />
+                        <span>{label}</span>
+                    </button>
+                </h3>
                 {resettable && (
                     <Tooltip content={`Reset ${label}`}>
                         <IconButton
@@ -38,7 +43,7 @@ export function LayerSettingsSection({
                 )}
             </div>
             {open && (
-                <div className="layerSettingsSectionBody">{children}</div>
+                <div id={contentId} className="layerSettingsSectionBody">{children}</div>
             )}
         </section>
     )
@@ -77,6 +82,15 @@ export function LayerSettingsSlider({
                 min={min}
                 max={max}
                 step={step}
+                aria-label={label}
+                onKeyDown={(event) => {
+                    if (event.key !== 'PageUp' && event.key !== 'PageDown') return
+                    event.preventDefault()
+                    const direction = event.key === 'PageUp' ? 1 : -1
+                    onChange(
+                        Math.max(min, Math.min(max, current + direction * 0.1))
+                    )
+                }}
                 onValueChange={(next) =>
                     onChange(Array.isArray(next) ? next[0] : next)
                 }

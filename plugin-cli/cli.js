@@ -1647,6 +1647,8 @@ function cmdValidate() {
     // `export default {}` operation shape is checked against its surface.
     const {
         validateLayerTypeModuleShape,
+        validateLayerTypeSettingsModuleShape,
+        resolvePluginModulePath,
         surfaceOfModuleKey,
         flattenLayerModules,
         validateLayerTypeInheritance,
@@ -1722,6 +1724,29 @@ function cmdValidate() {
                 if (!FLAG_JSON) console.error(`  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`);
             }
             errors += modErrs.length;
+        }
+
+        if (p.type === "layertypes") {
+            const settingsPath = resolvePluginModulePath(
+                path.join(p.pluginPath, "settings")
+            );
+            if (settingsPath) {
+                const source = readRendererSource(settingsPath);
+                const modErrs = source == null
+                    ? [`${prefix} [settings]: unable to read settings module`]
+                    : validateLayerTypeSettingsModuleShape(
+                          source,
+                          `${prefix} [settings]`
+                      );
+                for (const e of modErrs) {
+                    pluginErrors.push(e);
+                    if (!FLAG_JSON)
+                        console.error(
+                            `  ${c.red("✗")} ${c.cyan(prefix)}: ${c.red(e)}`
+                        );
+                }
+                errors += modErrs.length;
+            }
         }
 
         if (pluginErrors.length > 0) {

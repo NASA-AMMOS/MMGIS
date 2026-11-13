@@ -232,9 +232,13 @@
 }
 
 .lt2-row.lt2-focused {
+    outline: none;
+    z-index: 2;
+}
+
+.lt2-scroll:focus-visible .lt2-row.lt2-focused {
     outline: 2px solid var(--color-c);
     outline-offset: -2px;
-    z-index: 2;
 }
 
 .lt2-row.lt2-selected {
@@ -397,6 +401,38 @@
 .lt2-glyph-polygon::before {
     width: 7px;
     height: 7px;
+}
+
+.lt2-glyph-neutral::before {
+    width: 7px;
+    height: 7px;
+    border: 1px solid var(--glyph-color);
+    background: transparent;
+    transform: rotate(45deg);
+}
+
+.lt2-layerNotFound .lt2-name {
+    color: var(--color-red2, #e0524f);
+    text-decoration: line-through;
+}
+
+.lt2-liveRegion {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.lt2-root :focus-visible,
+.lt2-settings :focus-visible {
+    outline: 2px solid var(--color-c);
+    outline-offset: -2px;
+}
+
+.lt2-drag {
+    touch-action: none;
 }
 
 .lt2-descriptionHit,
@@ -897,6 +933,19 @@
     gap: 6px;
 }
 
+.lt2-sortable {
+    transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lt2-root *,
+    .lt2-root *::before,
+    .lt2-root *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 .lt2-settingsSections .lt2-field {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
@@ -1044,4 +1093,10 @@
 .lt2-dataShaderSettings select {
     max-width: 100%;
     min-width: 0;
+    padding: 4px 6px;
+    border: 1px solid color-mix(in srgb, var(--color-f) 25%, transparent) !important;
+    border-radius: 3px;
+    background: var(--color-a);
+    color: var(--color-f);
+    font: inherit;
 }

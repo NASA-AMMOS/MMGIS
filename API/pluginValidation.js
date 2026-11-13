@@ -12,6 +12,8 @@
  * compatible with older MMGIS versions.
  */
 
+const fs = require("fs");
+const path = require("path");
 const semver = require("semver");
 
 const logger = require("./logger");
@@ -1903,6 +1905,17 @@ function validateLayerTypeModuleShape(source, label, surface = "map") {
   return errors;
 }
 
+function resolvePluginModulePath(modulePath) {
+  const candidates = path.extname(modulePath)
+    ? [modulePath]
+    : [`${modulePath}.js`, `${modulePath}.jsx`];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+function validateLayerTypeSettingsModuleShape(source, label) {
+  return validateLayerTypeModuleShape(source, label, "settings");
+}
+
 /**
  * Cross-plugin check for `extends`: the parent must exist, and inheritance is
  * one level only — a chain of layer types is a refactoring hazard for no
@@ -1944,6 +1957,8 @@ module.exports = {
   findDuplicateInteractionIds,
   findDuplicateIds,
   validateLayerTypeModuleShape,
+  validateLayerTypeSettingsModuleShape,
+  resolvePluginModulePath,
   surfaceOfModuleKey,
   flattenLayerModules,
   validateLayerTypeInheritance,

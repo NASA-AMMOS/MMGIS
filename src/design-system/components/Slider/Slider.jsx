@@ -3,7 +3,7 @@ import { Slider as BaseSlider } from '@base-ui/react/slider'
 import styles from './Slider.module.css'
 
 const Slider = forwardRef(function Slider(
-    { value, onValueChange, min = 0, max = 1, step = 0.01, suffix, formatValue, className, ...props },
+    { value, onValueChange, min = 0, max = 1, step = 0.01, suffix, formatValue, className, 'aria-label': ariaLabel, ...props },
     ref
 ) {
     return (
@@ -21,7 +21,10 @@ const Slider = forwardRef(function Slider(
                 <BaseSlider.Control className={styles.control}>
                     <BaseSlider.Track className={styles.track}>
                         <BaseSlider.Indicator className={styles.indicator} />
-                        <BaseSlider.Thumb className={styles.thumb} />
+                <BaseSlider.Thumb
+                    className={styles.thumb}
+                    getAriaLabel={ariaLabel ? () => ariaLabel : undefined}
+                />
                     </BaseSlider.Track>
                 </BaseSlider.Control>
             </BaseSlider.Root>

@@ -36,7 +36,16 @@ function FilterSettings({ layer, api }) {
         const refreshList = () =>
             requestAnimationFrame(() => api.refresh())
         const onFilterStateChange = (event) => {
-            if (event.detail?.layerName === layer.name) api.refresh()
+            if (event.detail?.layerName !== layer.name) return
+            const total =
+                Filtering.filters[layer.name]?.geojson?.features?.length || 0
+            const filtered =
+                L_.layers.layer[layer.name]?.toGeoJSON?.()?.features?.length ??
+                total
+            $(container)
+                .find('#layersTool_filtering_count')
+                .text(`(${filtered}/${total})`)
+            api.refresh()
         }
         container.addEventListener('input', refreshList)
         container.addEventListener('change', refreshList)
