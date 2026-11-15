@@ -27,6 +27,7 @@ import { createTimeSeriesChart } from './IdentifierTimeSeriesChart'
 import {
     shouldChartMapClick,
     shouldChartGlobeClick,
+    globeClickPosition,
 } from './IdentifierClickGuard'
 import {
     createTimeSeriesController,
@@ -202,6 +203,16 @@ var IdentifierTool = {
     // Pointer events, not mouse events: Cesium prevents the default of
     // pointerdown, so its canvas never gets mousedown/mouseup.
     pointerDownGlobe: function (e) {
+        // Cesium's viewer container also holds buttons and other controls.
+        // Only an actual canvas press can begin a chart selection.
+        const globe = Globe_.litho
+        if (
+            globe?.rendererType === 'cesium' &&
+            e.target !== globe.renderer?.scene?.canvas
+        ) {
+            IdentifierTool.globePointerDown = null
+            return
+        }
         IdentifierTool.globePointerDown =
             e.isPrimary !== false && e.button === 0
                 ? { x: e.clientX, y: e.clientY }
@@ -217,8 +228,10 @@ var IdentifierTool = {
             Math.abs(down.y - e.clientY) > 3
         )
             return
-        const mouse = Globe_.litho.mouse
-        if (!mouse || mouse.onSurface === false) return
+        // Cesium gets the surface point directly from this pointerup.
+        // Cached hover coordinates do not update for stationary touch taps.
+        const point = globeClickPosition(e, Globe_.litho)
+        if (!point) return
         if (
             !shouldChartGlobeClick({
                 activeTool: ToolController_.activeTool,
@@ -227,7 +240,7 @@ var IdentifierTool = {
             })
         )
             return
-        IdentifierTool.timeSeries.selectPoint(mouse.lng, mouse.lat)
+        IdentifierTool.timeSeries.selectPoint(point.lng, point.lat)
     },
     destroy: function () {
         clearTimeout(IdentifierTool.timeSeriesTimeout)

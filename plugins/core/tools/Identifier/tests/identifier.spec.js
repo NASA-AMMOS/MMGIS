@@ -678,13 +678,28 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     const cx = canvasBox.x + canvasBox.w / 2;
     const cy = canvasBox.y + canvasBox.h / 2;
 
-    // a click on the globe: the mouse position is the globe's, the panel opens
-    await page.mouse.move(cx - 3, cy - 3);
-    await page.mouse.move(cx, cy);
-    await page.mouse.down();
-    await page.mouse.up();
+    // A stationary touchscreen tap: do NOT emit mousemove. Deliberately poison
+    // GlobeRenderer.mouse so this fails if clickGlobe uses cached hover state.
+    const at = await page.evaluate(({ cx, cy }) => {
+      const G = window.L_.Globe_.litho;
+      const scene = G.renderer.scene;
+      const canvas = scene.canvas;
+      const rect = canvas.getBoundingClientRect();
+      const position = { x: cx - rect.left, y: cy - rect.top };
+      const hit = G.renderer.camera.pickEllipsoid(position, scene.globe.ellipsoid);
+      if (!hit) throw new Error('Globe test center does not hit the ellipsoid');
+      const c = scene.globe.ellipsoid.cartesianToCartographic(hit);
+      const expected = { lng: (c.longitude * 180) / Math.PI, lat: (c.latitude * 180) / Math.PI };
+      Object.assign(G.mouse, { lng: 0, lat: 0, onSurface: false });
+      for (const type of ['pointerdown', 'pointerup']) {
+        canvas.dispatchEvent(new PointerEvent(type, {
+          bubbles: true, isPrimary: true, button: 0, buttons: type === 'pointerdown' ? 1 : 0,
+          clientX: cx, clientY: cy, pointerId: 8, pointerType: 'touch',
+        }));
+      }
+      return expected;
+    }, { cx, cy });
     await expect(page.locator('#identifierTimeSeriesPanel')).toBeVisible({ timeout: 10000 });
-    const at = await page.evaluate(() => ({ ...window.L_.Globe_.litho.mouse }));
     await expect.poll(() => searches).toBe(1);
 
     // the marker is an entity on the surface at that point, and on the map
@@ -703,7 +718,16 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     expect(Math.abs(marker.h)).toBeLessThan(1);
     await expect(page.locator('.leaflet-overlay-pane path[fill="yellow"]')).toHaveCount(1);
 
+    // Cesium's link control belongs to the UI, not the globe surface.
+    const link = page.locator('#_cesium_control_link');
+    if (await link.count()) {
+      await link.click();
+      await page.waitForTimeout(500);
+      expect(searches).toBe(1);
+    }
+
     // clicking the marker itself picks an entity: left alone
+    await page.mouse.move(cx, cy);
     await page.mouse.down();
     await page.mouse.up();
     await page.waitForTimeout(800);

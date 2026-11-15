@@ -154,3 +154,61 @@ export function shouldChartGlobeClick(ctx) {
         ) == null
     )
 }
+
+/**
+ * Read the geographic point UNDER THIS pointer event, not a cached globe
+ * hover coordinate. Cesium's mouse state only updates on MOUSE_MOVE, so a
+ * first stationary touch and a tap after moving the camera can be stale.
+ *
+ * Reject Cesium UI controls (which share the viewer container) and sky taps.
+ * LithoSphere retains its existing mouse-coordinate handling.
+ */
+export function globeClickPosition(e, litho) {
+    if (!e || !litho) return null
+    if (litho.rendererType !== 'cesium') {
+        const mouse = litho.mouse
+        if (
+            !mouse ||
+            mouse.onSurface === false ||
+            !Number.isFinite(mouse.lng) ||
+            !Number.isFinite(mouse.lat)
+        )
+            return null
+        return { lng: mouse.lng, lat: mouse.lat }
+    }
+
+    const viewer = litho.renderer
+    const scene = viewer?.scene
+    const canvas = scene?.canvas
+    // getContainer() covers link/navigation controls; only canvas owns picks.
+    if (!canvas || e.target !== canvas) return null
+    const rect = canvas.getBoundingClientRect?.()
+    if (!rect || rect.width <= 0 || rect.height <= 0) return null
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    if (
+        !Number.isFinite(x) ||
+        !Number.isFinite(y) ||
+        x < 0 ||
+        y < 0 ||
+        x > rect.width ||
+        y > rect.height
+    )
+        return null
+
+    try {
+        // Same picking API used by GlobeRenderer's coordinate control.
+        const ellipsoid = scene.globe?.ellipsoid
+        if (!ellipsoid) return null
+        const hit = viewer.camera?.pickEllipsoid({ x, y }, ellipsoid)
+        if (!hit) return null // off the planet / sky
+        const cartographic = ellipsoid.cartesianToCartographic(hit)
+        if (!cartographic) return null
+        const lng = (cartographic.longitude * 180) / Math.PI
+        const lat = (cartographic.latitude * 180) / Math.PI
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null
+        return { lng: ((lng + 180) % 360 + 360) % 360 - 180, lat }
+    } catch (_) {
+        return null
+    }
+}

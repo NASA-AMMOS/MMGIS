@@ -147,7 +147,9 @@ export function buildChartOption(series, opts = {}) {
             type: 'line',
             // Gaps at nodata; no line drawn through them.
             connectNulls: false,
-            showSymbol: pointCount <= 200,
+            // Isolated valid readings surrounded by gaps have no line
+            // segments. Without symbols a sparse history looks empty.
+            showSymbol: pointCount <= 200 || s.points.some((p) => p.value == null),
             symbolSize: 5,
             data: s.points.map((p) => ({
                 value: [p.time, p.value],

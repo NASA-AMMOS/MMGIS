@@ -40,6 +40,7 @@ import {
     isFeatureClickTarget,
     shouldChartMapClick,
     shouldChartGlobeClick,
+    globeClickPosition,
 } from '../../plugins/core/tools/Identifier/IdentifierClickGuard.js'
 
 /**
@@ -1270,6 +1271,49 @@ test.describe('chart option', () => {
         expect(o.legend).toBeUndefined()
     })
 
+    test('201 alternating readings and gaps keep visible symbols', () => {
+        const points = Array.from({ length: 201 }, (_, i) => ({
+            time: Date.UTC(2024, 0, 1 + i),
+            value: i % 2 === 0 ? i + 1 : null,
+            status: i % 2 === 0 ? 'ok' : 'nodata',
+            itemId: `item-${i}`,
+        }))
+        const sparse = buildChartOption([{ name: 'b1', units: '', points }])
+        expect(sparse.series[0].connectNulls).toBe(false)
+        expect(sparse.series[0].showSymbol).toBe(true)
+        expect(sparse.series[0].data.filter((d) => d.value[1] != null)).toHaveLength(101)
+
+        // Render real ECharts SVG: without symbols isolated points disappear.
+        const renderSvg = (option) => {
+            const chart = echarts.init(null, null, {
+                renderer: 'svg',
+                ssr: true,
+                width: 800,
+                height: 260,
+            })
+            try {
+                chart.setOption(option)
+                return chart.renderToSVGString()
+            } finally {
+                chart.dispose()
+            }
+        }
+        const withSymbols = renderSvg(sparse)
+        const withoutSymbols = renderSvg({
+            ...sparse,
+            series: sparse.series.map((line) => ({ ...line, showSymbol: false })),
+        })
+        const paintedShapes = (svg) =>
+            (svg.match(/<(?:path|circle|ellipse|rect)\b/g) || []).length
+        expect(paintedShapes(withSymbols)).toBeGreaterThan(paintedShapes(withoutSymbols))
+
+        // Dense histories may still suppress markers to avoid visual clutter.
+        const dense = buildChartOption([
+            { name: 'b1', units: '', points: points.map((p) => ({ ...p, value: 1 })) },
+        ])
+        expect(dense.series[0].showSymbol).toBe(false)
+    })
+
     test('several bands get a legend; mixed units leave the axis unitless', () => {
         const two = [series[0], { ...series[0], name: 'b2', units: 'K' }]
         const o = buildChartOption(two, { measurementLabel: 'b1/b2' })
@@ -1980,5 +2024,72 @@ test.describe('controller - cache and measurement', () => {
             'new window',
         ])
         expect(c._cacheSize()).toBe(1)
+    })
+})
+
+
+test.describe('globe click-point picking', () => {
+    const makeCesium = () => {
+        const canvas = {
+            getBoundingClientRect: () => ({ left: 100, top: 50, width: 600, height: 400 }),
+        }
+        const ellipsoid = {
+            cartesianToCartographic: () => ({
+                longitude: (-122.44 * Math.PI) / 180,
+                latitude: (38.5 * Math.PI) / 180,
+            }),
+        }
+        const picks = []
+        const litho = {
+            rendererType: 'cesium',
+            // Deliberately poisoned hover coordinate; it must not be read.
+            mouse: { lng: 0, lat: 0, onSurface: false },
+            renderer: {
+                scene: { canvas, globe: { ellipsoid } },
+                camera: {
+                    pickEllipsoid: (point, shape) => {
+                        picks.push({ point, shape })
+                        return { x: 1, y: 2, z: 3 }
+                    },
+                },
+            },
+        }
+        return { canvas, ellipsoid, litho, picks }
+    }
+
+    test('stationary touch resolves fresh Cesium coordinates, ignoring stale hover', () => {
+        const { canvas, ellipsoid, litho, picks } = makeCesium()
+        const r = globeClickPosition(
+            { target: canvas, clientX: 400, clientY: 250, pointerType: 'touch' },
+            litho
+        )
+        expect(r.lng).toBeCloseTo(-122.44, 5)
+        expect(r.lat).toBeCloseTo(38.5, 5)
+        expect(picks).toEqual([{ point: { x: 300, y: 200 }, shape: ellipsoid }])
+    })
+
+    test('a control in the Cesium viewer cannot select a chart point', () => {
+        const { litho, picks } = makeCesium()
+        expect(globeClickPosition({
+            target: { id: '_cesium_control_link' }, clientX: 400, clientY: 250,
+        }, litho)).toBeNull()
+        expect(picks).toHaveLength(0)
+    })
+
+    test('sky, missing canvas and out-of-bounds pointers never select', () => {
+        const { canvas, litho } = makeCesium()
+        const evt = { target: canvas, clientX: 400, clientY: 250 }
+        litho.renderer.camera.pickEllipsoid = () => null
+        expect(globeClickPosition(evt, litho)).toBeNull()
+        expect(globeClickPosition({ ...evt, clientX: 99 }, litho)).toBeNull()
+        litho.renderer.scene.canvas = null
+        expect(globeClickPosition(evt, litho)).toBeNull()
+    })
+
+    test('LithoSphere keeps its previous hover behavior', () => {
+        const litho = { rendererType: 'lithosphere', mouse: { lng: 12, lat: 23 } }
+        expect(globeClickPosition({}, litho)).toEqual({ lng: 12, lat: 23 })
+        litho.mouse.onSurface = false
+        expect(globeClickPosition({}, litho)).toBeNull()
     })
 })
