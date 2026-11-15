@@ -14,6 +14,33 @@ import {
     formatStacBidx,
     normalizeTitilerExpression,
 } from '@basics/Layers_/LayerUtils'
+import * as echarts from 'echarts/core'
+import { LineChart } from 'echarts/charts'
+import {
+    GridComponent,
+    TooltipComponent,
+    LegendComponent,
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import { classifyLayer, fetchLayerTimeSeries } from './IdentifierTimeSeries'
+import { createTimeSeriesChart } from './IdentifierTimeSeriesChart'
+import {
+    shouldChartMapClick,
+    shouldChartGlobeClick,
+} from './IdentifierClickGuard'
+import {
+    createTimeSeriesController,
+    createPanelView,
+} from './IdentifierTimeSeriesPanel'
+import './IdentifierTimeSeries.css'
+
+echarts.use([
+    LineChart,
+    GridComponent,
+    TooltipComponent,
+    LegendComponent,
+    CanvasRenderer,
+])
 
 // Most STAC items listed for a point (the hover readout stays short)
 const STAC_POINT_MAX_ITEMS = 10
@@ -57,6 +84,8 @@ var IdentifierTool = {
 
         L_.subscribeOnLayerToggle('IdentifierTool', () => {
             this.MMWebGISInterface = new interfaceWithMMWebGIS()
+            // A layer turned on or off changes what the open panel lists.
+            IdentifierTool.timeSeries?.refresh()
         })
 
         this.made = true
@@ -102,8 +131,109 @@ var IdentifierTool = {
         this.zoomLevels = []
         this.images = []
         this.imageData = []
+
+        // The hover pass rewrites vars.data for STAC/COG layers, so keep the
+        // configured entries for the time series (scale factor, unit, url).
+        this.configuredData = {}
+        Object.keys(this.vars.data).forEach((uuid) => {
+            const d = this.vars.data[uuid]?.data?.[0]
+            if (d) this.configuredData[uuid] = { ...d }
+        })
+        this.makeTimeSeries()
+    },
+    // Click-for-time-series (#1159); see IdentifierTimeSeriesPanel.js
+    makeTimeSeries: function () {
+        IdentifierTool.timeSeries?.destroy()
+        IdentifierTool.timeSeries = createTimeSeriesController({
+            getLayers: () => L_.layers,
+            getIdentifierConfig: (uuid) =>
+                IdentifierTool.configuredData?.[uuid],
+            fetchSeries: (args) =>
+                fetchLayerTimeSeries({
+                    ...args,
+                    fetchFn: (url, init) => window.fetch(url, init),
+                    location: window.location,
+                    nodeEnv: window.mmgisglobal?.NODE_ENV,
+                    stacOptions: window.mmgisglobal?.options?.stac || {},
+                }),
+            marker: timeSeriesMarker,
+            view: createPanelView({
+                document: document,
+                getParent: () =>
+                    document.getElementById('splitscreens') || document.body,
+                createChart: (el, option) =>
+                    createTimeSeriesChart(el, option, { echarts }),
+            }),
+        })
+        // The time window moved: chart the new range at the same point.
+        L_.subscribeTimeChange('IdentifierTimeSeries', () => {
+            clearTimeout(IdentifierTool.timeSeriesTimeout)
+            IdentifierTool.timeSeriesTimeout = setTimeout(
+                () => IdentifierTool.timeSeries?.refresh(),
+                500
+            )
+        })
+    },
+    // Hover only says a click is available; it never queries history.
+    hasTimeSeriesLayer: function () {
+        for (const uuid in L_.layers.on) {
+            if (
+                L_.layers.on[uuid] === true &&
+                classifyLayer(L_.layers.data[uuid])?.eligible === true
+            )
+                return true
+        }
+        return false
+    },
+    clickMap: function (e) {
+        if (!e?.latlng || !IdentifierTool.timeSeries) return
+        // A click another tool or a clicked feature is using isn't ours.
+        if (
+            !shouldChartMapClick(e, {
+                activeTool: ToolController_.activeTool,
+                map: Map_.map,
+            })
+        )
+            return
+        // Leaflet's latlng runs past ±180 on a wrapped map; STAC wants -180..180.
+        const ll = e.latlng.wrap ? e.latlng.wrap() : e.latlng
+        IdentifierTool.timeSeries.selectPoint(ll.lng, ll.lat)
+    },
+    // Pointer events, not mouse events: Cesium prevents the default of
+    // pointerdown, so its canvas never gets mousedown/mouseup.
+    pointerDownGlobe: function (e) {
+        IdentifierTool.globePointerDown =
+            e.isPrimary !== false && e.button === 0
+                ? { x: e.clientX, y: e.clientY }
+                : null
+    },
+    // A globe "click" is a pointerup that didn't drag the globe.
+    clickGlobe: function (e) {
+        const down = IdentifierTool.globePointerDown
+        IdentifierTool.globePointerDown = null
+        if (!down || e.button !== 0 || !IdentifierTool.timeSeries) return
+        if (
+            Math.abs(down.x - e.clientX) > 3 ||
+            Math.abs(down.y - e.clientY) > 3
+        )
+            return
+        const mouse = Globe_.litho.mouse
+        if (!mouse || mouse.onSurface === false) return
+        if (
+            !shouldChartGlobeClick({
+                activeTool: ToolController_.activeTool,
+                map: Map_.map,
+                pickedFeature: globeFeatureAt(e),
+            })
+        )
+            return
+        IdentifierTool.timeSeries.selectPoint(mouse.lng, mouse.lat)
     },
     destroy: function () {
+        clearTimeout(IdentifierTool.timeSeriesTimeout)
+        L_.unsubscribeTimeChange('IdentifierTimeSeries')
+        IdentifierTool.timeSeries?.destroy()
+        IdentifierTool.timeSeries = null
         this.MMWebGISInterface.separateFromMMWebGIS()
         this.targetId = null
         L_.unsubscribeOnLayerToggle('IdentifierTool')
@@ -621,6 +751,12 @@ var IdentifierTool = {
             }
         }
 
+        // Clicking charts the history; hovering only points that out.
+        if (IdentifierTool.hasTimeSeriesLayer())
+            liEls.push(
+                `<li class="identifierTimeSeriesHint">Click for time series</li>`
+            )
+
         CursorInfo.update(
             `<ul style='list-style-type: none; padding: 0; margin: 0; width:${
                 $('#cursorInfo').width() ? $('#cursorInfo').width() + 'px' : ''
@@ -704,6 +840,7 @@ function interfaceWithMMWebGIS() {
 
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
     Map_.map.on('mouseout', IdentifierTool.clearCursor)
+    Map_.map.on('click', IdentifierTool.clickMap)
     if (L_.hasGlobe) {
         Globe_.litho
             .getContainer()
@@ -711,6 +848,16 @@ function interfaceWithMMWebGIS() {
         Globe_.litho
             .getContainer()
             .addEventListener('mouseout', IdentifierTool.clearCursor, false)
+        Globe_.litho
+            .getContainer()
+            .addEventListener(
+                'pointerdown',
+                IdentifierTool.pointerDownGlobe,
+                false
+            )
+        Globe_.litho
+            .getContainer()
+            .addEventListener('pointerup', IdentifierTool.clickGlobe, false)
         //Globe_.shouldRaycastSprites = false
 
         Globe_.litho.getContainer().style.cursor = 'crosshair'
@@ -729,15 +876,26 @@ function interfaceWithMMWebGIS() {
         CursorInfo.hide()
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
         Map_.map.off('mouseout', IdentifierTool.clearCursor)
+        Map_.map.off('click', IdentifierTool.clickMap)
         //Globe_.shouldRaycastSprites = true
         if (L_.hasGlobe) {
             Globe_.litho.getContainer().style.cursor = 'default'
             Globe_.litho
                 .getContainer()
                 .removeEventListener('mousemove', IdentifierTool.idPixelGlobe)
+            // Was removed as 'mousemove', leaving the mouseout listener behind.
             Globe_.litho
                 .getContainer()
-                .removeEventListener('mousemove', IdentifierTool.clearCursor)
+                .removeEventListener('mouseout', IdentifierTool.clearCursor)
+            Globe_.litho
+                .getContainer()
+                .removeEventListener(
+                    'pointerdown',
+                    IdentifierTool.pointerDownGlobe
+                )
+            Globe_.litho
+                .getContainer()
+                .removeEventListener('pointerup', IdentifierTool.clickGlobe)
         }
 
         if (IdentifierTool.targetId === 'toolContentSeparated_Identifier') {
@@ -758,6 +916,83 @@ function interfaceWithMMWebGIS() {
 }
 
 //Other functions
+
+// The selected time-series point, on the map and (if there is one) the globe.
+const TIME_SERIES_GLOBE_LAYER = '_identifierTimeSeriesPoint'
+const timeSeriesMarker = {
+    mapMarker: null,
+    place(lng, lat) {
+        timeSeriesMarker.remove()
+        timeSeriesMarker.mapMarker = new window.L.circleMarker([lat, lng], {
+            fillColor: 'yellow',
+            fillOpacity: 1,
+            color: '#0f0f0f',
+            weight: 2,
+            interactive: false,
+        })
+            .setRadius(6)
+            .addTo(Map_.map)
+        // A standard GeoJSON point on a 'clamped' layer (as the Draw tool puts
+        // shapes on the globe), so either engine sets it on the terrain.
+        if (L_.hasGlobe)
+            Globe_.litho.addLayer('clamped', {
+                name: TIME_SERIES_GLOBE_LAYER,
+                id: TIME_SERIES_GLOBE_LAYER,
+                on: true,
+                opacity: 1,
+                order: 2,
+                minZoom: 0,
+                maxZoom: 30,
+                style: {
+                    default: {
+                        fillColor: 'yellow',
+                        fillOpacity: 1,
+                        color: '#000',
+                        weight: 2,
+                        radius: 8,
+                    },
+                },
+                geojson: {
+                    type: 'FeatureCollection',
+                    features: [
+                        {
+                            type: 'Feature',
+                            properties: {},
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [lng, lat],
+                            },
+                        },
+                    ],
+                },
+            })
+    },
+    remove() {
+        Map_.rmNotNull(timeSeriesMarker.mapMarker)
+        timeSeriesMarker.mapMarker = null
+        if (L_.hasGlobe) Globe_.litho.removeLayer(TIME_SERIES_GLOBE_LAYER)
+    },
+}
+
+// Whether the Cesium globe has a feature (entity) under a pointer event; its
+// own click handler selects that feature. LithoSphere exposes no picker.
+function globeFeatureAt(e) {
+    const litho = Globe_.litho
+    if (!litho || typeof litho._pickEntityAt !== 'function') return false
+    const canvas = litho.renderer?.scene?.canvas
+    if (!canvas) return false
+    const rect = canvas.getBoundingClientRect()
+    try {
+        return (
+            litho._pickEntityAt({
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            }) != null
+        )
+    } catch (err) {
+        return false
+    }
+}
 
 function bestMatchInLegend(rgba, legendData) {
     var bestMatch = ''
