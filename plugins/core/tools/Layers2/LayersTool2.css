@@ -986,95 +986,10 @@
     min-width: 0;
 }
 
-.lt2-typeSettingsFilter,
-.lt2-typeSettingsFilter #layersTool_filtering,
-.lt2-typeSettingsFilter #layersTool_filtering_header,
-.lt2-typeSettingsFilter #layerTool_filtering_filters,
-.lt2-typeSettingsFilter #layerTool_filtering_filters_list {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-}
-
-.lt2-typeSettingsFilter #layersTool_filtering {
-    overflow: hidden;
-}
-
 .lt2-typeSettingsFilter #layersTool_filtering *,
 .lt2-dataShaderSettings,
 .lt2-dataShaderSettings * {
     box-sizing: border-box;
-}
-
-.lt2-typeSettingsFilter #layersTool_filtering_header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4px;
-}
-
-.lt2-typeSettingsFilter #layersTool_filtering_title_left,
-.lt2-typeSettingsFilter #layersTool_filtering_adds {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    gap: 4px;
-}
-
-.lt2-typeSettingsFilter #layersTool_filtering_adds {
-    flex: 0 0 auto;
-}
-
-.lt2-typeSettingsFilter #layerTool_filtering_filters_list {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.lt2-typeSettingsFilter #layerTool_filtering_filters_list > li {
-    max-width: 100%;
-    min-width: 0;
-}
-
-.lt2-typeSettingsFilter .layersTool_filtering_value_key,
-.lt2-typeSettingsFilter .layersTool_filtering_value_value {
-    flex: 1 1 0;
-    min-width: 0;
-}
-
-.lt2-typeSettingsFilter .layersTool_filtering_value input {
-    width: 100%;
-    min-width: 0;
-}
-
-.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    margin: 4px 0 0;
-    padding: 0;
-    gap: 4px;
-}
-
-.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_draw {
-    flex: 1;
-    min-width: 0;
-}
-
-.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_radius_wrapper {
-    display: flex;
-    align-items: center;
-    flex: 0 1 120px;
-    min-width: 0;
-    gap: 3px;
-}
-
-.lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_radius {
-    width: 100%;
-    min-width: 0;
 }
 
 .lt2-dataShaderSettings > ul {
@@ -1138,51 +1053,6 @@
     color: var(--color-f) !important;
 }
 
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering,
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_count,
-#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_clear,
-#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_draw,
-#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_radius_wrapper {
-    color: var(--color-f) !important;
-}
-
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering input {
-    background: var(--color-a1-5) !important;
-    color: var(--color-f) !important;
-}
-
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering input::placeholder {
-    color: var(--color-a5) !important;
-    opacity: 1;
-}
-
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering select {
-    background: var(--color-a1) !important;
-    color: var(--color-f) !important;
-}
-
-#layersTool2 .lt2-typeSettingsFilter
-    #layerTool_filtering_filters_spatial_draw {
-    background: var(--color-a1) !important;
-}
-
-#layersTool2 .lt2-typeSettingsFilter
-    #layerTool_filtering_filters_spatial_draw:hover {
-    background: var(--color-a2) !important;
-}
-
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_clear,
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit {
-    background: var(--color-a1) !important;
-    color: var(--color-f) !important;
-}
-
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_clear:hover,
-#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit:hover {
-    background: var(--color-a2) !important;
-    color: var(--color-f) !important;
-}
-
 #layersTool2 .lt2-dataShaderSettings,
 #layersTool2 .lt2-dataShaderSettings > ul > li > div > div:first-child {
     color: var(--color-f) !important;
@@ -1240,4 +1110,428 @@
     min-width: 36px;
     padding: 0 3px;
     white-space: nowrap;
+}
+
+/* Filter: restyles the shared Filtering markup inside LayersTool2 only, so
+   the legacy LayersTool keeps its look. */
+#layersTool2 .lt2-typeSettingsFilter {
+    width: 100%;
+    min-width: 0;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    color: var(--color-f);
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    height: auto;
+    min-height: 24px;
+    line-height: normal;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_title_left {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_title {
+    padding: 0;
+    color: var(--color-f);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 20px;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layersTool_filtering_title_left
+    > .mmgisHelpButton {
+    margin: 0 2px;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_count {
+    padding: 1px 7px;
+    border-radius: 9px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+    font-size: 11px;
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_adds {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .mmgisButton5 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-f);
+    font-size: 12px;
+    line-height: normal;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .mmgisButton5:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+#layersTool2 .lt2-typeSettingsFilter .mmgisButton5 > div {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    line-height: normal;
+    text-transform: none;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .mmgisButton5 > i.mdi::before {
+    font-size: 16px;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters,
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    list-style: none;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_list:empty {
+    display: none;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_value,
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    height: auto;
+    min-height: 28px;
+    border: 0;
+    background: transparent;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .filterDragHandle {
+    display: flex;
+    flex: 0 0 12px;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    color: var(--color-a4);
+    cursor: grab;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .filterDragHandle:hover {
+    color: var(--color-f);
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering input {
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+    font: inherit;
+    font-size: 13px;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering input:hover {
+    border-color: var(--color-a2);
+    background: var(--color-a1-5);
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering input:focus {
+    border-color: var(--color-c);
+    outline: none;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layersTool_filtering
+    input::placeholder {
+    color: var(--color-a5);
+    opacity: 1;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_value_key,
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_value_value {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_value input {
+    width: 100%;
+    min-width: 0;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_value_value_type {
+    width: 26px;
+    height: 28px;
+    line-height: 28px;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_value_operator {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    .layersTool_filtering_value_operator_select {
+    height: 28px;
+    overflow: hidden;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    .layersTool_filtering_value_operator_select:hover,
+#layersTool2 .lt2-typeSettingsFilter .op-grid-trigger:hover {
+    background: var(--color-a1);
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layerTool_filtering_filters_clear {
+    flex: 0 0 24px;
+    width: 24px;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+    color: var(--color-a4);
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layerTool_filtering_filters_clear:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_group {
+    justify-content: space-between;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_group > div:first-child {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_group_key {
+    padding: 0;
+    color: var(--color-f);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    line-height: normal;
+    text-transform: uppercase;
+}
+
+#layersTool2 .lt2-typeSettingsFilter .layersTool_filtering_group_operator {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    .layersTool_filtering_group_operator_select {
+    min-width: 52px;
+    height: 22px;
+    margin: 0;
+    padding: 0 4px;
+    overflow: hidden;
+    border-radius: 11px;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_spatial {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layerTool_filtering_filters_spatial_draw {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    gap: 6px;
+    min-width: 0;
+    height: 28px;
+    margin: 0;
+    padding: 0 8px 0 4px;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw
+    > i {
+    display: inline-flex;
+    flex: 0 0 20px;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    border-radius: 50%;
+    color: var(--color-a5);
+    line-height: 20px;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.drawing
+    #layerTool_filtering_filters_spatial_draw
+    > i {
+    background: var(--color-r7);
+    color: #000;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.drawn
+    #layerTool_filtering_filters_spatial_draw
+    > i {
+    background: var(--color-green2);
+    color: #000;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw
+    > div {
+    overflow: hidden;
+    font-size: 12px;
+    line-height: normal;
+    text-overflow: ellipsis;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper {
+    display: flex;
+    flex: 0 1 112px;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+    min-width: 0;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper:focus-within {
+    border-color: var(--color-c);
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > div {
+    height: auto;
+    padding: 0;
+    font-size: 12px;
+    line-height: normal;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    height: auto;
+    padding-top: 2px;
+    line-height: normal;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_clear,
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit {
+    height: 26px;
+    padding: 0 10px;
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit.active {
+    border-color: var(--color-h);
+    background: var(--color-h);
+    color: var(--color-a);
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit.active:hover {
+    filter: brightness(1.08);
+}
+
+#layersTool2 .lt2-typeSettingsFilter #layersTool_filtering_submit_loading {
+    padding: 0;
+}
+
+#layersTool2
+    .lt2-typeSettingsFilter
+    #layersTool_filtering_submit_loading.active
+    > div {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
 }
