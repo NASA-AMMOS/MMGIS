@@ -300,7 +300,7 @@ function buildRows(flat, current, query, expandedMap) {
             (isHeader ? !matchingHeaders.has(index) : !matchingLeaves.has(index))
         )
             return
-        if (!filtering && isHidden(flat, index, expandedMap)) return
+        if (isHidden(flat, index, expandedMap)) return
 
         const parentIndex = parentOf(flat, index)
         const ancestors = []
@@ -1633,11 +1633,46 @@ function LayersTool2App({ vars }) {
         state.onlyVisible ||
         state.onlyFiltered
     )
+    const effectiveExpandedMap = useMemo(
+        () =>
+            isFiltering
+                ? Object.fromEntries(
+                      allHeaderNodes.map((header) => [
+                          header.name,
+                          state.searchExpanded?.[header.name] ?? true,
+                      ])
+                  )
+                : expandedMap,
+        [allHeaderNodes, expandedMap, isFiltering, state.searchExpanded]
+    )
+    const previousIsFiltering = useRef(isFiltering)
+    useEffect(() => {
+        if (previousIsFiltering.current === isFiltering) return
+        previousIsFiltering.current = isFiltering
+
+        if (isFiltering) {
+            allHeaderNodes.forEach((header) => {
+                if (expandedMap[header.name] !== true)
+                    emitHeaderStateChange(header, true)
+            })
+            store.updateState({ searchExpanded: {} })
+            return
+        }
+
+        const searchExpanded = store.getState().searchExpanded || {}
+        allHeaderNodes.forEach((header) => {
+            const searchOn = searchExpanded[header.name] ?? true
+            const storedOn = expandedMap[header.name] === true
+            if (searchOn !== storedOn)
+                emitHeaderStateChange(header, storedOn)
+        })
+        store.updateState({ searchExpanded: null })
+    }, [allHeaderNodes, expandedMap, isFiltering])
     const rowModel = useMemo(
-        () => buildRows(orderedFlat, current, query, expandedMap),
+        () => buildRows(orderedFlat, current, query, effectiveExpandedMap),
         [
             orderedFlat,
-            expandedMap,
+            effectiveExpandedMap,
             state.onlyVisible,
             state.onlyFiltered,
             isFiltering ? state.layerVersion : 0,
@@ -1655,7 +1690,7 @@ function LayersTool2App({ vars }) {
     orderedFlatRef.current = orderedFlat
     rowsRef.current = rows
     expandedMapRef.current = {
-        ...expandedMap,
+        ...effectiveExpandedMap,
         searchHidden: rowModel.hiddenByFilter,
     }
     useEffect(() => {
@@ -1668,17 +1703,25 @@ function LayersTool2App({ vars }) {
         const sectionState = keepKeys(state.sectionState, layerNames)
         const resetTokens = keepKeys(state.resetTokens, layerNames)
         const expanded = keepKeys(state.expanded, headerNames)
+        const searchExpanded =
+            state.searchExpanded == null
+                ? null
+                : keepKeys(state.searchExpanded, headerNames)
         const muted = keepKeys(state.muted, headerNames)
         const changed =
             Object.keys(sectionState).length !== Object.keys(state.sectionState).length ||
             Object.keys(resetTokens).length !== Object.keys(state.resetTokens).length ||
             Object.keys(expanded).length !== Object.keys(state.expanded).length ||
+            (searchExpanded != null &&
+                Object.keys(searchExpanded).length !==
+                    Object.keys(state.searchExpanded || {}).length) ||
             Object.keys(muted).length !== Object.keys(state.muted).length
         if (changed || (state.openLayer && !layerNames.has(state.openLayer)))
             store.updateState({
                 sectionState,
                 resetTokens,
                 expanded,
+                searchExpanded,
                 muted,
                 ...(state.openLayer && !layerNames.has(state.openLayer)
                     ? { openLayer: null }
@@ -1690,6 +1733,7 @@ function LayersTool2App({ vars }) {
         state.sectionState,
         state.resetTokens,
         state.expanded,
+        state.searchExpanded,
         state.muted,
         state.openLayer,
     ])
@@ -1947,24 +1991,36 @@ function LayersTool2App({ vars }) {
         if (index >= 0) virtualizer.scrollToIndex(index, { align: 'auto' })
     }, [focused, rows, virtualizer])
 
+    const setHeaderExpanded = useCallback(
+        (header, onState) => {
+            const expanded = expandedMapRef.current[header.name] ?? false
+            if (expanded === onState) return
+            if (isFiltering) {
+                store.updateState((currentState) => ({
+                    searchExpanded: {
+                        ...(currentState.searchExpanded || {}),
+                        [header.name]: onState,
+                    },
+                }))
+            } else store.setExpanded(header.name, onState)
+            emitHeaderStateChange(header, onState)
+        },
+        [isFiltering]
+    )
+
     const setActiveLayer = useCallback(
         (row) => {
             if (row.isHeader) {
-                const current = store.getState()
-                const expanded =
-                    current.expanded[row.node.name] ??
-                    expandedMapRef.current[row.node.name] ??
-                    false
+                const expanded = expandedMapRef.current[row.node.name] ?? false
                 const onState = !expanded
-                store.setExpanded(row.node.name, onState)
-                emitHeaderStateChange(row.node, onState)
+                setHeaderExpanded(row.node, onState)
                 return
             }
             store.updateState({ openLayer: row.node.name, focusedRow: row.id })
             if (!layerIsOn(row.node))
                 Promise.resolve(api.toggle(row.node.name, true)).catch(() => {})
         },
-        [api, vars.expanded]
+        [api, setHeaderExpanded]
     )
 
     const setLayerToggle = useCallback(async (layer, checked) => {
@@ -2043,15 +2099,26 @@ function LayersTool2App({ vars }) {
     )
 
     const setHeaderExpansion = (nextExpanded, orderedHeaders = allHeaderNodes) => {
-        const previous = store.getState().expanded
-        store.updateState({ expanded: nextExpanded })
+        const current = store.getState()
+        const previous = isFiltering
+            ? Object.fromEntries(
+                  allHeaderNodes.map((header) => [
+                      header.name,
+                      current.searchExpanded?.[header.name] ?? true,
+                  ])
+              )
+            : current.expanded
+        if (isFiltering)
+            store.updateState({ searchExpanded: nextExpanded })
+        else store.updateState({ expanded: nextExpanded })
         orderedHeaders.forEach((header) => {
             const wasExpanded =
                 previous[header.name] ??
                 expandedMapRef.current[header.name] ??
                 false
-            if (wasExpanded !== nextExpanded[header.name])
-                emitHeaderStateChange(header, nextExpanded[header.name])
+            const onState = nextExpanded[header.name] ?? false
+            if (wasExpanded !== onState)
+                emitHeaderStateChange(header, onState)
         })
     }
     const expandAll = (expanded) =>
@@ -2236,13 +2303,9 @@ function LayersTool2App({ vars }) {
             )
             store.updateState({ focusedRow: currentRows[nextIndex]?.id })
         } else if (key === 'ArrowRight' && row.isHeader) {
-            const expanded =
-                store.getState().expanded[row.node.name] ??
-                expandedMapRef.current[row.node.name] ??
-                false
+            const expanded = expandedMapRef.current[row.node.name] ?? false
             if (!expanded) {
-                store.setExpanded(row.node.name, true)
-                emitHeaderStateChange(row.node, true)
+                setHeaderExpanded(row.node, true)
             }
             else {
                 const child = currentRows.find(
@@ -2253,12 +2316,9 @@ function LayersTool2App({ vars }) {
         } else if (key === 'ArrowLeft') {
             if (
                 row.isHeader &&
-                (store.getState().expanded[row.node.name] ??
-                    expandedMapRef.current[row.node.name] ??
-                    false)
+                (expandedMapRef.current[row.node.name] ?? false)
             ) {
-                store.setExpanded(row.node.name, false)
-                emitHeaderStateChange(row.node, false)
+                setHeaderExpanded(row.node, false)
             }
             else if (row.parentId)
                 store.updateState({ focusedRow: row.parentId })
@@ -2491,8 +2551,9 @@ function LayersTool2App({ vars }) {
                                     {virtualItems.map((item) => {
                                         const row = rows[item.index]
                                         const expanded =
-                                            isFiltering ||
-                                            expandedMap[row.node.name] === true
+                                            effectiveExpandedMap[
+                                                row.node.name
+                                            ] === true
                                         const rowState = rowStates.get(row.id)
                                         return (
                                             <div

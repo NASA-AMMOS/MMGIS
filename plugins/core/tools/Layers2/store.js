@@ -2,6 +2,7 @@ import F_ from '@basics/Formulae_/Formulae_'
 
 let state = {
     expanded: {},
+    searchExpanded: null,
     muted: {},
     search: '',
     onlyVisible: false,

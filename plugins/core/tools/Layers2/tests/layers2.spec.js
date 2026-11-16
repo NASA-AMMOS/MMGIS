@@ -71,6 +71,43 @@ async function getLayer(page, label, type) {
     return layer
 }
 
+async function dragTreeItem(page, sourceLabel, targetLabel) {
+    const sourceRow = page
+        .getByRole('treeitem')
+        .filter({ hasText: sourceLabel })
+        .first()
+    const targetRow = page
+        .getByRole('treeitem')
+        .filter({ hasText: targetLabel })
+        .first()
+    const source = await sourceRow.locator('.lt2-drag').boundingBox()
+    const target = await targetRow.boundingBox()
+    if (!source || !target)
+        throw new Error(
+            `Missing drag geometry for ${sourceLabel} -> ${targetLabel}`
+        )
+
+    const x = source.x + source.width / 2
+    const y = source.y + source.height / 2
+    const toY = target.y + target.height / 2
+    await page.mouse.move(x, y)
+    await page.waitForTimeout(180)
+    await page.mouse.down()
+    await page.waitForTimeout(180)
+    await page.mouse.move(x + 14, y, { steps: 5 })
+    await page.waitForTimeout(180)
+    for (let step = 1; step <= 45; step += 1) {
+        await page.mouse.move(
+            x + (14 * (1 - step / 45)),
+            y + ((toY - y) * step) / 45
+        )
+        await page.waitForTimeout(12)
+    }
+    await page.waitForTimeout(250)
+    await page.mouse.up()
+    await page.waitForTimeout(500)
+}
+
 test.describe('LayersTool2', () => {
     test('opens, closes, and reopens with its list state intact', async ({
         page,
@@ -107,6 +144,180 @@ test.describe('LayersTool2', () => {
         await expect(
             page.getByRole('treeitem').filter({ hasText: /Points Basic/i })
         ).toBeVisible()
+    })
+
+    test('search expansion restores collapsed groups and emits state changes', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const headerName = 'Geometry Types'
+        const otherHeaderName = 'Feature Property Styling'
+        const header = page
+            .getByRole('treeitem')
+            .filter({ hasText: headerName })
+            .first()
+        const otherHeader = page
+            .getByRole('treeitem')
+            .filter({ hasText: otherHeaderName })
+            .first()
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(otherHeader).toHaveAttribute('aria-expanded', 'true')
+        const headerEventNames = await page.evaluate(
+            ({ headerName, otherHeaderName }) => {
+                const names = {}
+                const visit = (nodes) =>
+                    (nodes || []).forEach((node) => {
+                        if (node.type === 'header') {
+                            const displayName = node.display_name || node.name
+                            if (displayName === headerName)
+                                names.header = node.name
+                            if (displayName === otherHeaderName)
+                                names.otherHeader = node.name
+                            visit(node.sublayers)
+                        }
+                    })
+                visit(window.L_.configData.layers)
+                return names
+            },
+            { headerName, otherHeaderName }
+        )
+        expect(headerEventNames.header).toBeTruthy()
+        expect(headerEventNames.otherHeader).toBeTruthy()
+
+        await header.locator('.lt2-chevron').click()
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await page.evaluate(() => {
+            window.__searchExpansionEvents = []
+            document.addEventListener(
+                'layersToolHeaderStateChange',
+                (event) =>
+                    window.__searchExpansionEvents.push(event.detail)
+            )
+        })
+
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points')
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Basic' })
+                .first()
+        ).toBeVisible()
+        await expect
+            .poll(() =>
+                page.evaluate(() => window.__searchExpansionEvents)
+            )
+            .toEqual([
+                { header_id: headerEventNames.header, onState: true },
+            ])
+
+        await otherHeader.locator('.lt2-chevron').click()
+        await expect(otherHeader).toHaveAttribute('aria-expanded', 'false')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Styled' })
+        ).toHaveCount(0)
+
+        await search.fill('')
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Basic' })
+        ).toHaveCount(0)
+        await expect(otherHeader).toHaveAttribute('aria-expanded', 'true')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Styled' })
+                .first()
+        ).toBeVisible()
+        await expect
+            .poll(() =>
+                page.evaluate(() => window.__searchExpansionEvents)
+            )
+            .toEqual([
+                { header_id: headerEventNames.header, onState: true },
+                { header_id: headerEventNames.otherHeader, onState: false },
+                { header_id: headerEventNames.header, onState: false },
+                { header_id: headerEventNames.otherHeader, onState: true },
+            ])
+    })
+
+    test('search-time drops use transient expansion instead of stored collapse', async ({
+        page,
+    }) => {
+        const headerName = '📄 GeoJSON Data Features'
+        const outcomes = []
+        for (const initiallyExpanded of [false, true]) {
+            const testPage = await page.context().newPage()
+            try {
+                await openLayers2(testPage)
+                const header = testPage
+                    .getByRole('treeitem')
+                    .filter({ hasText: headerName })
+                    .first()
+                const isExpanded =
+                    (await header.getAttribute('aria-expanded')) === 'true'
+                if (isExpanded !== initiallyExpanded)
+                    await header.locator('.lt2-chevron').click()
+                await expect(header).toHaveAttribute(
+                    'aria-expanded',
+                    String(initiallyExpanded)
+                )
+
+                const search = testPage.getByRole('textbox', {
+                    name: 'Search layers',
+                })
+                await search.fill('Points')
+                await testPage.waitForTimeout(250)
+                await expect(header).toHaveAttribute('aria-expanded', 'true')
+                await expect(
+                    testPage
+                        .getByRole('treeitem')
+                        .filter({ hasText: 'Geometry Types' })
+                        .first()
+                ).toBeVisible()
+                await dragTreeItem(
+                    testPage,
+                    'Points Styled',
+                    'Geometry Types'
+                )
+                await expect
+                    .poll(() =>
+                        testPage.evaluate(
+                            () =>
+                                window.ToolController_
+                                    .getTool('LayersTool2')
+                                    .orderingHistory.length
+                        )
+                    )
+                    .toBe(1)
+
+                await search.fill('')
+                await expect(header).toHaveAttribute(
+                    'aria-expanded',
+                    String(initiallyExpanded)
+                )
+                outcomes.push(
+                    await testPage.evaluate(() =>
+                        window.ToolController_
+                            .getTool('LayersTool2')
+                            ._debugFlat()
+                            .map(({ name, display_name, type, depth }) => ({
+                                name: display_name || name,
+                                type,
+                                depth,
+                            }))
+                    )
+                )
+            } finally {
+                await testPage.close()
+            }
+        }
+        expect(outcomes[0]).toEqual(outcomes[1])
     })
 
     test('toggles visible and filtered layer views', async ({ page }) => {
