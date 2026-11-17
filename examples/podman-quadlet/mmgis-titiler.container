@@ -1,0 +1,41 @@
+# TiTiler, reached only through MMGIS at /titiler (no published port).
+[Unit]
+Description=MMGIS adjacent server: TiTiler
+PartOf=mmgis.service
+
+[Container]
+Image=ghcr.io/developmentseed/titiler:2.2.0
+ContainerName=mmgis-titiler
+Network=mmgis.network
+# MMGIS proxies /titiler to http://titiler:8883 (TITILER_PORT)
+PodmanArgs=--network-alias=titiler
+Environment=HOST=0.0.0.0
+Environment=PORT=8883
+Environment=WEB_CONCURRENCY=1
+# GDAL
+Environment=CPL_TMPDIR=/tmp
+Environment=CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif,.tiff
+# "%%" is a literal "%" in systemd unit files
+Environment=GDAL_CACHEMAX=75%%
+Environment=GDAL_INGESTED_BYTES_AT_OPEN=32768
+Environment=GDAL_DISABLE_READDIR_ON_OPEN=YES
+Environment=GDAL_HTTP_MERGE_CONSECUTIVE_RANGES=YES
+Environment=GDAL_HTTP_MULTIPLEX=YES
+Environment=GDAL_HTTP_VERSION=2
+Environment=PYTHONWARNINGS=ignore
+Environment=VSI_CACHE=TRUE
+Environment=VSI_CACHE_SIZE=536870912
+# Planetary tile matrix sets, copied out of the MMGIS image (see README.md)
+Environment=TILEMATRIXSET_DIRECTORY=/adjacent-servers/resources/tilematrixsets/planetcantile_v4
+Volume=/var/lib/mmgis/resources:/adjacent-servers/resources:ro,z
+# In external mode MMGIS hands TiTiler local rasters as /Missions/...
+Volume=/var/lib/mmgis/Missions:/Missions:ro,z
+
+[Service]
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=900
+MemoryMax=8G
+
+[Install]
+WantedBy=multi-user.target default.target

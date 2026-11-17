@@ -332,6 +332,15 @@ When using composited time tiles, MMGIS queries the tileset's folder for existin
 
 Enables and proxies to other self-hosted services. [Additional setup](/MMGIS/setup/adjacent-servers) may be required.
 
+#### `ADJACENT_SERVERS_MODE=`
+
+Where the enabled adjacent servers run | `embedded` or `external` | default: `external` inside a container (Docker, Podman, Kubernetes), `embedded` otherwise
+
+- `embedded`: MMGIS starts each enabled server as a child process (`adjacent-servers/<name>/start-<name>.sh`) and proxies to it on `localhost`. If one exits, its exit code and last lines of output are logged.
+- `external`: MMGIS starts nothing and proxies to each server by service name on its port: `stac-fastapi`, `tipg`, `titiler`, `titiler-pgstac`, `veloserver`. Use this with the services in `docker-compose.sample.yml` or the [Podman quadlet example](https://github.com/NASA-AMMOS/MMGIS/tree/development/examples/podman-quadlet). The servers must mount the `Missions` directory at `/Missions`.
+
+Set it explicitly in container deployments so the behavior does not depend on which runtime is detected. To run the servers inside the MMGIS container itself, set `embedded`.
+
 #### `WITH_STAC=`
 
 STAC Catalogs - https://github.com/stac-utils/stac-fastapi-pgstac | default `false`

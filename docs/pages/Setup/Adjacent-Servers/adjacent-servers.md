@@ -46,6 +46,23 @@ TITILER_ALLOWED_URL_PATTERNS='["^https://(?!.*\\.\\.)(?!.*\\x00).*$"]'
 
 This pattern requires HTTPS and blocks common attack vectors (path traversal, null bytes).
 
+## Embedded or external
+
+`ADJACENT_SERVERS_MODE` decides who runs the adjacent services:
+
+| Mode | Who starts the services | Where MMGIS proxies to | Path TiTiler sees `Missions` under |
+| --- | --- | --- | --- |
+| `embedded` | MMGIS, as child processes | `localhost:<port>` | `../../Missions` |
+| `external` | You (Compose services, Podman quadlet units, ...) | `<service name>:<port>` | `/Missions` |
+
+The service names used in `external` mode are `stac-fastapi`, `tipg`, `titiler`, `titiler-pgstac` and `veloserver`.
+
+When unset, the mode is `external` inside a container (Docker, Podman or Kubernetes) and `embedded` otherwise. Setting it explicitly is recommended for container deployments. MMGIS logs the mode it chose at startup.
+
+To run the services inside the MMGIS container instead of beside it, set `ADJACENT_SERVERS_MODE=embedded`. They take their settings from the container's environment, or from an optional `adjacent-servers/<name>/.env` file.
+
+In `embedded` mode, a service that stops is reported in the MMGIS log with its exit code and its last lines of output.
+
 ### Upgrading Python and Installing the Adjacent Services
 
 **If using docker, this is unneeded.**
@@ -60,7 +77,14 @@ This pattern requires HTTPS and blocks common attack vectors (path traversal, nu
 1. Fill out the `POSTGRES_*` environment variables in and use `docker-compose.sample.yml`
 1. Unused services within the docker-compose.yml can be safely removed.
 
-#### Without Docker
+#### With Podman
+
+`examples/podman-quadlet/` has systemd quadlet units for MMGIS, PostGIS, STAC and TiTiler. See its `README.md`.
+
+#### Without Docker (embedded)
+
+The `.env` files below are optional. Without one, a service starts with the environment MMGIS was started with.
+
 
 1. Copy `/adjacent-servers/stac/.env.example` to `/adjacent-servers/stac/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/tipg/.env.example` to `/adjacent-servers/tipg/.env` and fill out the `POSTGRES_*` environment variables.

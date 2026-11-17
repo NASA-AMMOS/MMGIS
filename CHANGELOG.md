@@ -24,6 +24,7 @@ Authentication and access are reworked. The `AUTH` ENV is replaced by `SITE_ACCE
 - **Breaking (Deployments): `AUTH` and `CSSO_*` ENVs removed.** MMGIS refuses to start while `AUTH`, `CSSO_GROUPS`, `CSSO_LEAD_GROUP` or `CSSO_PROXY_SECRET` is set. Earlier `sample.env` files set the `CSSO_*` lines on every site, so delete them even if the site never used CSSO. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
 - **Breaking (Deployments): Default container uid/gid is now `10001`.** Sites that chowned `./Missions` / `./ssl` to `1000` after 5.4.0 should either set `user: "1000:1000"` on the `mmgis` service or chown to `10001`. Sites that build their own image with `--build-arg APP_UID/APP_GID` are unaffected.
 - **Breaking (Deployments): `_docker-entrypoint.sh` removed.** Compose files or scripts that set `entrypoint`/`command` to `./_docker-entrypoint.sh` should use `npm run start:prod-docker` instead (or drop the override).
+- **Changed (Deployments): Podman containers now default to external adjacent servers.** MMGIS used to detect only Docker, so under Podman it started the enabled `WITH_*` servers inside its own container and proxied to `localhost`. It now treats Podman like Docker: nothing is started in the container and the proxy targets the service names (`titiler`, `stac-fastapi`, ...). Podman sites that relied on the in-container servers should set `ADJACENT_SERVERS_MODE=embedded`; all container sites are encouraged to set `ADJACENT_SERVERS_MODE` explicitly.
 - **Added (Deployments): Run as any uid.** Set `user: "<uid>:<gid>"` (numeric host ids, e.g. from `stat -c '%u:%g' ./Missions`) on the `mmgis` service. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`, or file logs in `API/logs`; stdout logging is unaffected).
 
 #### Changed
@@ -36,8 +37,17 @@ Authentication and access are reworked. The `AUTH` ENV is replaced by `SITE_ACCE
 - A SPICE kernel directory that can't be created (e.g. unwritable `spice/kernels`) is now logged as an error instead of crashing MMGIS on startup with `SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START=true`
 - `docker-compose.sample.yml` documents the optional `user:` override
 
+#### Added
+
+- `ADJACENT_SERVERS_MODE` ENV (`embedded` or `external`) chooses whether MMGIS starts the adjacent servers itself or proxies to separately run ones, instead of inferring it from the container runtime [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- `examples/podman-quadlet/`: example systemd quadlet units running MMGIS with PostGIS, STAC and TiTiler under Podman
+
 #### Fixed
 
+- Adjacent servers are no longer started inside the MMGIS container when the proxy targets separate services, where they ran unused [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- Podman is recognized as a container runtime, so the adjacent server proxy targets no longer differ between Docker and Podman [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- `adjacent-servers/<name>/start-<name>` scripts start without a per-server `.env` file [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- An embedded adjacent server that exits is logged with its exit code and last lines of output instead of failing silently [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
 - `pypgstac migrate` on startup is run directly from `PATH` and receives `HOME`, so it works when the container runs under a custom uid
 
 ---

@@ -1,0 +1,27 @@
+# PostgreSQL + PostGIS for MMGIS (databases: DB_NAME and mmgis-stac).
+[Unit]
+Description=MMGIS database (PostGIS)
+
+[Container]
+Image=docker.io/postgis/postgis:18-3.6-alpine
+ContainerName=mmgis-db
+Network=mmgis.network
+# MMGIS reaches the database as DB_HOST=db
+PodmanArgs=--network-alias=db --shm-size=1g
+# POSTGRES_USER / POSTGRES_PASSWORD
+EnvironmentFile=/etc/mmgis/db.env
+Volume=mmgis-db.volume:/var/lib/postgresql
+HealthCmd=pg_isready -d postgres
+HealthInterval=10s
+HealthRetries=10
+HealthStartPeriod=10s
+HealthTimeout=8s
+
+[Service]
+Restart=on-failure
+RestartSec=10
+# Leave time for the first image pull
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target default.target

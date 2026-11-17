@@ -1,0 +1,5 @@
+# Named volume holding the PostgreSQL data directory.
+[Unit]
+Description=MMGIS database volume
+
+[Volume]

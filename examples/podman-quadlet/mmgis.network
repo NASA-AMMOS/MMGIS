@@ -1,0 +1,7 @@
+# Private network shared by the MMGIS containers. Containers on it reach each
+# other by network alias (db, titiler, stac-fastapi); only mmgis.container
+# publishes a port to the host.
+[Unit]
+Description=MMGIS container network
+
+[Network]
