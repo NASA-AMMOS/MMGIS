@@ -1,4 +1,4 @@
-import { render } from 'react-dom'
+import { createRoot } from 'react-dom/client'
 import React, { useState, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { useResizeDetector } from 'react-resize-detector'
@@ -7,7 +7,7 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
 // Setting worker path to worker bundle.
-pdfjs.GlobalWorkerOptions.workerSrc = '/public/workers/pdf.worker.min.js'
+pdfjs.GlobalWorkerOptions.workerSrc = '/public/workers/pdf.worker.min.mjs'
 
 const ReactPDF = (props) => {
     const { pdfPath } = props
@@ -219,10 +219,11 @@ export default function (options) {
     options = options || {}
 
     async function changePDF(pdfPath, canvasId) {
-        render(
-            <ReactPDF pdfPath={pdfPath} />,
-            document.getElementById('pdfViewerWrapper')
-        )
+        const container = document.getElementById('pdfViewerWrapper')
+        if (!container._reactRoot) {
+            container._reactRoot = createRoot(container)
+        }
+        container._reactRoot.render(<ReactPDF pdfPath={pdfPath} />)
     }
 
     return {

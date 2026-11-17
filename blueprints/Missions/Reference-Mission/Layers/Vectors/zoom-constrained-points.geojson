@@ -1,0 +1,84 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.81]
+      },
+      "properties": {
+        "id": "zoom-pt-1",
+        "name": "Zoom 8-11",
+        "description": "Point visible only at zoom levels 8-11",
+        "style": {
+          "fillColor": "#ff4444",
+          "color": "#990000",
+          "radius": 8,
+          "weight": 2,
+          "minZoom": 8,
+          "maxZoom": 11
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4, 37.82]
+      },
+      "properties": {
+        "id": "zoom-pt-2",
+        "name": "Zoom 11-14",
+        "description": "Point visible only at zoom levels 11-14",
+        "style": {
+          "fillColor": "#44ff44",
+          "color": "#009900",
+          "radius": 8,
+          "weight": 2,
+          "minZoom": 11,
+          "maxZoom": 14
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.38, 37.79]
+      },
+      "properties": {
+        "id": "zoom-pt-3",
+        "name": "Zoom 14-17",
+        "description": "Point visible only at zoom levels 14-17",
+        "style": {
+          "fillColor": "#4444ff",
+          "color": "#000099",
+          "radius": 8,
+          "weight": 2,
+          "minZoom": 14,
+          "maxZoom": 17
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.785]
+      },
+      "properties": {
+        "annotation": true,
+        "id": "zoom-pt-annot-1",
+        "name": "Points with feature-level zoom constraints (8-11, 11-14, 14-17)",
+        "description": "Annotation describing zoom-constrained points",
+        "style": {
+          "fillColor": "rgba(255,255,255,0.9)",
+          "color": "#333333",
+          "weight": 2,
+          "fillOpacity": 0.9
+        }
+      }
+    }
+  ]
+}

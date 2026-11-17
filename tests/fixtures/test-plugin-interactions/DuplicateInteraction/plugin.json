@@ -1,0 +1,11 @@
+{
+  "name": "DuplicateInteraction",
+  "type": "interaction",
+  "interactionId": "test:interaction",
+  "phase": "main",
+  "applicableEvents": ["click"],
+  "applicableLayerTypes": ["vector"],
+  "paths": {
+    "DuplicateInteraction": "./DuplicateInteraction"
+  }
+}

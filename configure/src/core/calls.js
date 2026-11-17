@@ -18,6 +18,18 @@ const c = {
     type: "GET",
     url: "configure/public/componentConfigs.json",
   },
+  getLayerTypeConfig: {
+    type: "GET",
+    url: "configure/public/layerTypeConfigs.json",
+  },
+  getLayerAttachmentConfig: {
+    type: "GET",
+    url: "configure/public/layerAttachmentConfigs.json",
+  },
+  getInteractionConfig: {
+    type: "GET",
+    url: "configure/public/interactionConfigs.json",
+  },
   get: {
     type: "GET",
     url: "api/configure/get",
@@ -50,6 +62,62 @@ const c = {
     type: "GET",
     url: "api/configure/user-permissions",
   },
+  access_me: {
+    type: "GET",
+    url: "api/access/me",
+  },
+  connections_setup: {
+    type: "GET",
+    url: "api/connections/setup",
+  },
+  access_roles: {
+    type: "GET",
+    url: "api/access/roles",
+  },
+  access_missions: {
+    type: "GET",
+    url: "api/access/missions",
+  },
+  access_groups: {
+    type: "GET",
+    url: "api/access/groups",
+  },
+  access_groups_create: {
+    type: "POST",
+    url: "api/access/groups/create",
+  },
+  access_groups_update: {
+    type: "POST",
+    url: "api/access/groups/update",
+  },
+  access_groups_delete: {
+    type: "POST",
+    url: "api/access/groups/delete",
+  },
+  access_members_add: {
+    type: "POST",
+    url: "api/access/groups/members/add",
+  },
+  access_members_remove: {
+    type: "POST",
+    url: "api/access/groups/members/remove",
+  },
+  access_bindings: {
+    type: "GET",
+    url: "api/access/bindings",
+  },
+  access_bindings_add: {
+    type: "POST",
+    url: "api/access/bindings/add",
+  },
+  access_bindings_remove: {
+    type: "POST",
+    url: "api/access/bindings/remove",
+  },
+  access_effective: {
+    type: "GET",
+    url: "api/access/effective",
+  },
   versions: {
     type: "GET",
     url: "api/configure/versions",
@@ -77,6 +145,14 @@ const c = {
   geodatasets_get: {
     type: "GET",
     url: "api/geodatasets/get",
+  },
+  geodatasets_recompute_stats: {
+    type: "POST",
+    url: "api/geodatasets/recompute_stats/:name",
+  },
+  geodatasets_convert_properties: {
+    type: "POST",
+    url: "api/geodatasets/convert_properties/:name",
   },
   geodatasets_remove: {
     type: "DELETE",
@@ -142,6 +218,26 @@ const c = {
     type: "POST",
     url: "api/accounts/update",
   },
+  account_defaults: {
+    type: "GET",
+    url: "api/accounts/defaults",
+  },
+  account_update_defaults: {
+    type: "POST",
+    url: "api/accounts/updateDefaults",
+  },
+  account_allow_relink: {
+    type: "POST",
+    url: "api/accounts/allowRelink",
+  },
+  account_cancel_relink: {
+    type: "POST",
+    url: "api/accounts/cancelRelink",
+  },
+  account_recheck_linked: {
+    type: "POST",
+    url: "api/accounts/recheckLinked",
+  },
   account_reset_password_link: {
     type: "POST",
     url: "api/accounts/generateResetPasswordLink",
@@ -186,7 +282,34 @@ const c = {
     type: "GET",
     url: "titiler/colorMaps",
   },
+  reference_mission_save_to_base: {
+    type: "POST",
+    url: "api/configure/reference-mission/save-to-base",
+  },
 };
+
+// After a 401/403, reload if the session ended or lost admin access so the
+// server shows the sign-in page instead of a stale Configure
+let recheckingSession = false;
+function recheckSession() {
+  if (recheckingSession) return;
+  recheckingSession = true;
+  fetch(`${domain}api/access/me`, { credentials: "include" })
+    .then((res) => res.json())
+    .then((json) => {
+      const me = json && json.body;
+      const admin =
+        me && me.authenticated && (me.capabilities || []).some((cap) => ADMIN_CAPS.has(cap));
+      if (!admin) window.location.reload();
+    })
+    .catch(() => {})
+    .finally(() => setTimeout(() => (recheckingSession = false), 5000));
+}
+const ADMIN_CAPS = new Set([
+  "mission.layer.edit", "mission.config.edit", "mission.create", "mission.manage",
+  "accounts.manage", "groups.manage", "options.manage", "webhooks.manage",
+  "broadcast.send", "tokens.manage", "data.geodatasets.write", "data.datasets.write", "data.stac.write",
+]);
 
 function api(call, data, success, error) {
   if (c[call] == null) {
@@ -208,15 +331,18 @@ function api(call, data, success, error) {
     });
     delete data.urlReplacements;
   }
-  if (c[call].type === "POST" && data?.forceParams != null) {
+  if ((c[call].type === "POST" || c[call].type === "DELETE") && data?.forceParams != null) {
     url += `?${new URLSearchParams(data.forceParams)}`;
     delete data.forceParams;
   }
 
-  if (c[call].type === "POST" || c[call].type === "PUT" || c[call].type === "PATCH")
+  if (
+    c[call].type === "POST" ||
+    c[call].type === "PUT" ||
+    c[call].type === "PATCH"
+  )
     options.body = JSON.stringify(data);
-  else if (c[call].type === "GET")
-    options.data = JSON.stringify(data);
+  else if (c[call].type === "GET") options.data = JSON.stringify(data);
 
   fetch(
     `${domain}${url}${
@@ -226,10 +352,14 @@ function api(call, data, success, error) {
           : ""
         : ""
     }`,
-    options
+    options,
   )
-    .then((res) => res.json())
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) recheckSession();
+      return res.json();
+    })
     .then((json) => {
+      if (json && /^Unauthorized/.test(json.message || "")) recheckSession();
       if (
         !json.hasOwnProperty("status") ||
         (json.hasOwnProperty("status") && json.status === "success")

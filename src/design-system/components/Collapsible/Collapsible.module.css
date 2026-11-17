@@ -1,0 +1,49 @@
+.root {
+    width: 100%;
+}
+
+.trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+    color: inherit;
+}
+
+.panel {
+    overflow: hidden;
+}
+
+.panel[data-open] {
+    animation: collapsibleOpen 0.15s ease-out;
+}
+
+.panel:not([data-open]) {
+    animation: collapsibleClose 0.12s ease-out;
+}
+
+@keyframes collapsibleOpen {
+    from {
+        height: 0;
+        opacity: 0;
+    }
+    to {
+        height: var(--collapsible-panel-height);
+        opacity: 1;
+    }
+}
+
+@keyframes collapsibleClose {
+    from {
+        height: var(--collapsible-panel-height);
+        opacity: 1;
+    }
+    to {
+        height: 0;
+        opacity: 0;
+    }
+}

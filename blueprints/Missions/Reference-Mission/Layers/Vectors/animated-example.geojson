@@ -1,0 +1,263 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pulse",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "pulse"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4600, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pulse Fast",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "pulse-fast"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4500, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pulse Slow",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "pulse-slow"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4400, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pulse Sharp",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "pulse-sharp"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4300, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pulse Bounce",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "pulse-bounce"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4200, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hue Shift",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "hue-shift"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4100, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Glow",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "glow"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4000, 37.7950]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Shimmer",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "shimmer"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4600, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Fade Blur",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "fade-blur"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4500, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Breathe",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "breathe"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4400, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Flutter",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "flutter"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4300, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Blink",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "blink"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4200, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Alert",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "alert"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4100, 37.7850]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Highlight",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 0.7,
+          "color": "#000000",
+          "weight": 2,
+          "radius": 12,
+          "animation": "highlight"
+        }
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4000, 37.7850]
+      }
+    }
+  ]
+}

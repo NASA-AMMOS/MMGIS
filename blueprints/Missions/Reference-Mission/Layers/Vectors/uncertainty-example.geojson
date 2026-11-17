@@ -1,0 +1,67 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GPS Position A",
+        "xAxis": 50,
+        "yAxis": 30,
+        "angle": 45,
+        "description": "High confidence position"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4200, 37.7800]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GPS Position B",
+        "xAxis": 80,
+        "yAxis": 40,
+        "angle": 90,
+        "description": "Medium confidence position"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4400, 37.7750]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GPS Position C",
+        "xAxis": 120,
+        "yAxis": 60,
+        "angle": 0,
+        "description": "Low confidence position"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4100, 37.7700]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GPS Position D",
+        "xAxis": 40,
+        "yAxis": 25,
+        "angle": 135,
+        "description": "Very high confidence"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4300, 37.7850]
+      }
+    }
+  ]
+}

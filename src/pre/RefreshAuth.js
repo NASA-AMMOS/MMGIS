@@ -20,18 +20,26 @@ String.prototype.toHHMMSS = function () {
 //set interval that checks valid sso
 //every 4:30min checks if the token will expire in less than 5min
 //refreshes if the user moved their mouse in the past 20min
-if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
+if (mmgisglobal.SERVER == 'node' && mmgisglobal.authProviders.includes('proxy') &&
+    window.mmgisglobal.PROXY_STATUS_URL !== 'off'
+) {
     console.log(
         '%cAUTH_REFRESH ON',
         'background: #006280; padding: 0px 4px 0px 4px;'
     )
     //Add your own login/logout redirects
+    // Guests on sites that allow them have no proxy session to end
+    var _refreshAuth_signedIn = false
     function ssologout() {
-        window.location.href = '/ssologoutredirect'
+        if (mmgisglobal.SITE_ACCESS !== 'required' && !_refreshAuth_signedIn)
+            return
+        window.location.href = window.mmgisglobal.PROXY_LOGOUT_URL || '/ssologoutredirect'
     }
     function ssologin() {
         window.location.href =
-            '/ssologinredirect?redirect=' + window.location.href
+            (window.mmgisglobal.PROXY_LOGIN_URL || '/ssologinredirect') +
+            '?redirect=' +
+            window.location.href
     }
 
     mmgisglobal.lastInteraction = Math.floor(Date.now() / 1000)
@@ -41,7 +49,7 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
 
     function ssorefresh() {
         var request = new XMLHttpRequest()
-        request.open('Post', '/ssostatus', true)
+        request.open('Post', window.mmgisglobal.PROXY_STATUS_URL || '/ssostatus', true)
         request.onload = function () {
             if (request.status >= 200 && request.status < 400) {
                 var result = request.responseText
@@ -50,6 +58,7 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
                 var now = Math.floor(Date.now() / 1000)
 
                 if (result.authenticated) {
+                    _refreshAuth_signedIn = true
                     const content = `${
                         result.sub
                     }<br />Authentication expiring in ${(result.exp - now)
@@ -77,7 +86,11 @@ if (mmgisglobal.SERVER == 'node' && mmgisglobal.AUTH == 'csso') {
                         result.inactivity_timeout
                     ) {
                         var refresh = new XMLHttpRequest()
-                        refresh.open('Post', '/ssorefreshtimeout', true)
+                        refresh.open(
+                            'Post',
+                            window.mmgisglobal.PROXY_REFRESH_URL || '/ssorefreshtimeout',
+                            true
+                        )
                         refresh.onload = function () {
                             if (refresh.status >= 200 && refresh.status < 400) {
                                 var result = refresh.responseText

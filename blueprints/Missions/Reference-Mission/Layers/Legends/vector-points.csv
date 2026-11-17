@@ -1,0 +1,8 @@
+value,color,label,shape,symbol
+high,#ff0000,High Priority,circle,
+medium,#ffa500,Medium Priority,circle,
+low,#00ff00,Low Priority,circle,
+landmark,#0000ff,Landmark,star,map-marker
+facility,#800080,Facility,square,
+observation,#ffff00,Observation Site,diamond,camera
+alert,#ff6600,Alert Location,triangle,alert

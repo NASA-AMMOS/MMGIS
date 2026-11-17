@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="60" viewBox="0 0 300 60">
+  <defs>
+    <linearGradient id="ramp" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#440154"/>
+      <stop offset="25%" stop-color="#3b528b"/>
+      <stop offset="50%" stop-color="#21908c"/>
+      <stop offset="75%" stop-color="#5dc863"/>
+      <stop offset="100%" stop-color="#fde725"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="8" width="280" height="22" fill="url(#ramp)" stroke="#000" stroke-width="1"/>
+  <g font-family="Roboto, sans-serif" font-size="14" fill="#000">
+    <text x="10" y="50" text-anchor="start">0</text>
+    <text x="80" y="50" text-anchor="middle">25</text>
+    <text x="150" y="50" text-anchor="middle">50</text>
+    <text x="220" y="50" text-anchor="middle">75</text>
+    <text x="290" y="50" text-anchor="end">100</text>
+  </g>
+</svg>

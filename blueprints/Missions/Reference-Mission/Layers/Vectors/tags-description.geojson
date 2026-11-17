@@ -1,0 +1,44 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.86]
+      },
+      "properties": {
+        "id": "tag-1",
+        "name": "Tagged Feature 1",
+        "category": "science",
+        "description": "This layer has tags: 'demo', 'testing', 'configuration'. Description helps users understand layer purpose."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.85]
+      },
+      "properties": {
+        "id": "tag-2",
+        "name": "Tagged Feature 2",
+        "category": "operations",
+        "description": "Layer tags enable filtering and organization in the Layers tool."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.37, 37.84]
+      },
+      "properties": {
+        "id": "tag-3",
+        "name": "Tagged Feature 3",
+        "category": "reference",
+        "description": "Tags and descriptions are set in the Configure page layer modal."
+      }
+    }
+  ]
+}

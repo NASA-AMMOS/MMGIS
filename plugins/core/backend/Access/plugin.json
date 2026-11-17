@@ -1,0 +1,21 @@
+{
+  "uuid": "6f2b1c1e-6a63-4d7e-9a2f-6f0f3f0b8d21",
+  "id": "core-access",
+  "name": "Access",
+  "display_name": "Roles, Groups and Permissions",
+  "aliases": [
+    "access"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": false,
+  "required": true,
+  "routes": {
+    "prefix": "/api/access",
+    "auth": "user"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

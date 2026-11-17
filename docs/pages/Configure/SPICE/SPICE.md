@@ -14,7 +14,7 @@ nav_order: 3
 
 MMGIS utilizes SPICE through [spiceypy](https://github.com/AndrewAnnex/SpiceyPy). Some of MMGIS' tools may need to be configured properly with regards to SPICE. The following tools require relevant SPICE kernels (mission-specific files that SPICE needs to perform certain computations and transformations) to be set:
 
-- ShadeTool
+- SightlineTool
 
 ## Configuring
 

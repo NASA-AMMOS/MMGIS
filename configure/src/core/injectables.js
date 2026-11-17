@@ -78,7 +78,12 @@ function getColormapNames(injectableName) {
       (res) => {
         // Get the intersection of colormaps from js-colormaps and TiTiler
         const js_colormaps = Object.keys(colormapData).map((color => color.toLowerCase()));
-        let colormaps = res.colorMaps;
+        let colormaps = res.colorMaps || res.colormaps;
+        if (!Array.isArray(colormaps)) {
+          console.warn(`Failed to query for ${injectableName}. Using defaults.`);
+          injectables[injectableName] = Object.keys(colormapData);
+          return;
+        }
         colormaps = colormaps.filter((color) => {
             if (js_colormaps.includes(color.toLowerCase())) {
                 return color;

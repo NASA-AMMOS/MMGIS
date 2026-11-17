@@ -1,27 +1,387 @@
 # MMGIS Changelog
 
-## Unreleased
+---
 
-_TBD_
+## 5.5.5
+
+_November 17, 2026_
+
+#### Summary
+
+This release reworks authentication and access. The `AUTH` ENV is replaced by `SITE_ACCESS` (`public`, `optional`, `required`) and `AUTH_PROVIDERS`, login providers become plugins (`local`, `proxy` — formerly `csso` — and a new `ldap` provider for OpenLDAP and Active Directory), and access is granted with roles at global, mission and layer scope to accounts, groups and audiences, managed on Configure's new Users & Access page. Long-term tokens can be limited to missions and capabilities, `AUTH_TOKENS` controls who may create them, and signed-in users can manage their own token from the main site's account menu. Existing accounts, passwords, sessions and tokens are kept, and their access is imported once.
+
+The raster stack moves to TiTiler 2.x / TiTiler-pgSTAC 3.x / rio-tiler 9.x (pinned identically for Docker Compose and non-Docker installs), with expression parsing on the `/titiler` and `/titilerpgstac` proxies and custom GDAL color tables for COG layers. The Docker image runs as an unprivileged user (default uid/gid `10001`) and works for any uid set with Compose `user:`. The landing page is redesigned with admin-configurable mission cards, DrawTool files are scoped to the mission they were made in, a shared `Missions/shared` folder is readable by every signed-in user, and the new Broadcast plugin lets admins or pipelines push layer refreshes to connected clients. Geodatasets gain statistics and Style-tab dynamic vector styling, layer types and attachments are fully pluginized, Leaflet is upgraded to 1.9.4, mobile mode gains a bottom sheet and more tools, and server defaults for CORS, cookies and request limits are updated.
+
+### Compatibility
+
+- **Mission configurations: Backward compatible.** Existing `cogBands`, `cogColormap` and expression settings continue to work; legacy `asset_bN` expressions are mapped to `bN`. No mission config changes are required.
+- **JavaScript API (`window.mmgisAPI`): Backward compatible.** Adds `mmgisAPI.setLayerAttachmentConfig`.
+- **End users: Mostly unchanged.** Login and mission access behave as before; the landing page and login form look different, and new DrawTool files are listed only in the mission they were created in (files made before this release are still listed everywhere by default).
+- **Deployments: Breaking.** `AUTH` and the `CSSO_*` ENVs must be replaced, the database must be backed up before upgrading, Docker deployments need the updated `docker-compose` (new TiTiler images, renamed `titiler-pgstac` ENVs, new container uid), and non-Docker installs must reinstall Python dependencies. See the migration guide below.
+- **Plugin developers: Breaking for layer type and attachment plugins.** See the migration guide below.
+
+### Migration Guide
+
+- **Breaking (Deployments): Back up the database before upgrading; downgrading means restoring that backup.** Accounts' access is imported once from the legacy `users.permission`, `missions_managing` and `missions_viewing` columns into role bindings. After that the columns are left as they were and are no longer read or updated, so running an older release on the upgraded database is not supported. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
+- **Breaking (Deployments): `AUTH` and `CSSO_*` ENVs removed.** MMGIS refuses to start while `AUTH`, `CSSO_GROUPS`, `CSSO_LEAD_GROUP` or `CSSO_PROXY_SECRET` is set. Earlier `sample.env` files set the `CSSO_*` lines on every site, so delete them even if the site never used CSSO. Set `SITE_ACCESS` and `AUTH_PROVIDERS` instead. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
+- **Breaking (Deployments): TiTiler / TiTiler-pgSTAC / TiPG versions.** `titiler.application` 0.24 → 2.2.0, `titiler-pgstac` 1.9 → 3.1.0, `tipg` 1.3 → 1.6.1, `rio-tiler` 7.x → 9.x. Update both the Compose images (`ghcr.io/developmentseed/titiler:2.2.0`, `ghcr.io/stac-utils/titiler-pgstac:3.1.0`, `ghcr.io/developmentseed/tipg:1.6.1`) and the Python environment (`python-requirements.txt` / `python-environment.yml`). `pypgstac` stays at 0.9.6; no pgSTAC schema migration is required beyond the `pypgstac migrate` MMGIS already runs on startup.
+- **Breaking (Deployments): titiler-pgstac ENVs renamed.** `POSTGRES_USER/PASS/HOST/PORT/DBNAME` → `PGUSER/PGPASSWORD/PGHOST/PGPORT/PGDATABASE` for the `titiler-pgstac` service (Compose and `adjacent-servers/titiler-pgstac/.env.example`). The `stac` and `tipg` services keep `POSTGRES_*`. The unused `WORKERS_PER_CORE`/`MAX_WORKERS` entries were removed (the image only honors `WEB_CONCURRENCY`).
+- **Breaking (Deployments): The MMGIS container runs as non-root, default uid/gid `10001`.** Bind-mounted `./Missions` (and `./ssl`) must be writable by the container's uid: either set `user: "<uid>:<gid>"` on the `mmgis` service to the existing owner (e.g. from `stat -c '%u:%g' ./Missions`) or chown them to `10001`. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`, or file logs in `API/logs`). Sites that build their own image can still set `--build-arg APP_UID/APP_GID`.
+- **Breaking (Deployments): `_docker-entrypoint.sh` removed.** Compose files or scripts that set `entrypoint`/`command` to `./_docker-entrypoint.sh` should use `npm run start:prod-docker` instead (or drop the override).
+- **Breaking (Deployments): Same-origin by default.** Cross-origin browser clients and websocket connections must be listed in `CORS_ORIGINS` (comma-separated); unset, MMGIS allows same-origin requests only. When `HTTPS=true`, session cookies default to `Secure`; set `SESSION_COOKIE_SECURE=false` only for intentionally non-TLS deployments.
+- **Changed (Deployments): Request limits.** The global request body limit is 10mb (500mb on `/api/configure`, `/api/datasets`, `/api/files`, `/api/geodatasets`; 50mb on `/api/draw`), and the global `/api/` rate limit is 3000 requests per 5 minutes per IP.
+- **Breaking (API): `/api/accounts/update` and `/api/users/signup` take `viewing`** (null: every mission; a list: only those) instead of `missions_viewing`. `/api/accounts/update` refuses requests that still send `role`, `missions_managing` or `missions_viewing`; grant roles with `/api/access/bindings/add`. `/api/accounts/entries` no longer returns `missions_managing` or `missions_viewing`.
+- **Breaking (API): changed responses for scripts.** `/api/configure/user-permissions` no longer returns `permission`; it returns `role`, `superadmin` and `capabilities`. `/api/longtermtoken/get` no longer returns `created_by_permission` or `created_by_missions`. `/api/longtermtoken/generate` takes `period` as milliseconds or `"never"`; strings such as `"1d"` are refused.
+- **Breaking (Direct TiTiler API users): TiTiler 2.x request/response changes.** For `/titilerpgstac`: `bidx`/`expression` per asset are now expressed as `assets=asset|bidx=1,2` and `assets=asset&expression=b1*2` (top-level `bidx` is ignored; `asset_b1` syntax, `asset_bidx`, `asset_expression`, `vrt://` assets are removed); `/point` responses return `{coordinates, assets:[{name, values, band_names}]}` instead of top-level `values`. For both services: `@2x`/`tile_scale` URL suffixes are removed in favor of `tilesize=`. MMGIS's own frontend has been updated; external clients calling the proxies directly must update.
+- **Changed (API): TiTiler `expression` parsing.** The `/titiler` and `/titilerpgstac` proxies now accept only band identifiers, numeric literals, arithmetic/comparison/logical operators, function calls such as `where()`/`sqrt()`, parentheses, commas and `;`. Other content returns `400`.
+- **Breaking (Plugin Developers): Layer type and attachment contract.** The unused `load` op is removed (data acquisition belongs to core's `source` surface), surfaces live one per file (`map.js`, `config.js`, `filter.js`, `globe/{cesium,lithosphere}.js`), and core decisions come from manifest `capabilities` validated against a schema. See `plugins/core/layertypes/README.md` and `plugins/core/layerattachments/README.md`.
+- **Changed (Plugin Developers): Leaflet 1.5.1 → 1.9.4.** Leaflet is now an npm dependency instead of a vendored copy; `window.L` is unchanged. Plugins using Leaflet internals or the `.leaflet-clickable` class should be checked.
+- **Added (Plugin Developers): Auth provider and connection plugins.** Login providers live in `plugins/core/auth/<Name>/` and service connections in `plugins/<container>/connections/<Name>/`. See [AuthProviders](docs/pages/Contributing/AuthProviders/AuthProviders.md) and [Connections](docs/pages/Contributing/Connections/Connections.md).
+
+#### Added
+
+- Auth & access: `SITE_ACCESS` and `AUTH_PROVIDERS`, auth provider plugins (`local`, `proxy`), named roles and capabilities granted to accounts, groups and audiences at global, mission or layer-subtree scope, Configure's Users & Access page, and token v2 with mission and capability limits (PR #1146)
+- LDAP login provider (OpenLDAP, Active Directory) with provider-linked account lifecycle, and one shared login form for username/password providers across the login page, Configure and the in-app modal (PR #1155)
+- `AUTH_TOKENS=all|admins` to allow or prevent non-admin accounts from creating API tokens, per-account token limits, and an API token menu in the main site's account menu (PR #1164)
+- Landing page redesign (React) with admin-configurable mission cards, mission status and General Options (PR #1079)
+- Shared `Missions/shared` folder readable by any signed-in user or valid long-term token (PR #1121)
+- Broadcast plugin: `POST /api/broadcast/layerUpdate` tells connected clients to refresh layers (PR #1071)
+- Geodataset statistics (per-group and dataset-wide) and dynamic vector styling from the Style tab (PR #1044)
+- Custom GDAL color tables for COG layers (`cogColormapJson`) via TiTiler (PR #1017)
+- On-map attribution dropdown gated by `look.showAttributionsOnMap`, and attributions in each layer's info modal (PR #1088)
+- Legend Tool highlights the entry matching the value the Identifier resolves under the cursor (PR #1087)
+- Configure: rename a mission, optionally moving its folder (PR #1030, PR #1041)
+- Configure: a component's `plugin.json` `display_name` labels its Components card (PR #1162)
+- DrawTool: per-mission "Show Files Without a Mission" and "Show Lead Files" settings, and leads can move a file to another mission (PR #1094)
+- Mobile mode: bottom sheet with three stops per tool (PR #1046), `worksOnMobile` tool flag (PR #1047), compact OperationsClock (PR #1048) and AnimationTool support (PR #1106)
+- Layer types and attachments: single-file plugins, manifest `capabilities`, attachment `onConfigChange` and `mmgisAPI.setLayerAttachmentConfig`, interaction `configPath`, npm dependencies, and `create layerattachment` in the plugin CLI (PR #1036)
+- Expression parsing middleware for the TiTiler and TiTiler-pgSTAC proxies (`adjacent-servers/validateTitilerExpression.js`) (PR #1084)
 
 #### Changed
 
-- Moved TimeControl from `Ancillary/` to `Basics/TimeControl_/` to reflect its role as core infrastructure (#835)
-  - TimeControl and TimeUI now located in `src/essence/Basics/TimeControl_/`
-  - Updated import paths across 19 files
-  - **Breaking change for external plugins**: Import path changed from `'Ancillary/TimeControl'` to `'Basics/TimeControl_/TimeControl'`
-- Moved admin login assets from `config/login/` to `public/` directory
-  - `adminlogin.js` and `adminlogin.css` now served from `/public`
+- Pinned TiTiler 2.2.0, TiTiler-pgSTAC 3.1.0, TiPG 1.6.1 and rio-tiler 9.x in Docker Compose and Python requirements; STAC tile, terrain and point requests use the TiTiler 2.x `assets=asset|bidx=` syntax; expression help text documents `bN` band syntax (PR #1084)
+- Dockerfile runtime user is `mmgis` with default uid/gid `10001`, created with `useradd --no-log-init`; `/usr/src/app` is owned by `mmgis:0` with `g=u`; the `mmgis` micromamba environment is activated via `ENV` so it applies to any runtime uid; the image starts with `CMD ["npm", "run", "start:prod-docker"]`; Numba and npm caches point at `/tmp`; `docker-compose.sample.yml` documents the optional `user:` override (PR #1084, PR #1120)
+- DrawTool files are tagged with the mission they were created in and listed only in that mission (PR #1094)
+- Leaflet is an npm dependency at 1.9.4 instead of a vendored 1.5.1, and every remaining vendored Leaflet file documents why (PR #1043)
+- `CORS_ORIGINS` applies to both HTTP and websocket connections, session cookies set `sameSite` and honor `SESSION_COOKIE_SECURE`, and request body and rate limits are configured per route (see the Migration Guide); dependency updates (PR #1051)
+- Coordinates display wraps longitude to -180..180 (PR #1057)
+- Pinned `stac-fastapi-api/types/extensions` to 6.2.1 (PR #1061)
+- CI runs on Node 22 (PR #1059)
+- Development startup logs are no longer cleared from the terminal (PR #1029)
+- Development console logger strips newlines from the caller (PR #1122)
+
+#### Fixed
+
+- `npm run auth:migrate`, including `--dry-run`, works on databases from 5.2.24 and earlier, which have no `users.missions_viewing` column
+- Builds and Docker images keep npm packages at their `package-lock.json` versions when plugin dependencies are installed, which restores the Layers tool's per-layer settings and download panels in production builds
+- Globe: Identifier values when the map and globe are unlinked, wrong values on STAC layers with many items, "no data" instead of 0, throttled point queries, tile error noise, and 3D Tiles layers in the Layers tool (PR #1149)
+- Landing page: hidden-mission URLs (PR #1149), logout giving no feedback (PR #1098), and a `PUG:NO_END_BRACKET` 500 on `/` in production builds (PR #1096)
+- `FORCE_CONFIG_PATH` is read at runtime in production builds (PR #1161)
+- COG tile layers with `s3://` URLs were treated as mission-relative (PR #1099)
+- Geodatasets: queries on tables created before temporal support, start-only time filters dropping features, and recreating with new time mappings (PR #1049)
+- LithoSphere globe layer operations, a vector time-filter race, and the time-tile availability histogram (PR #1050)
+- Global Search autocomplete reaches every unique value, not only the first 500 or a random sample on large geodatasets (PR #1132; also in 5.2.24-a)
+- Header layers added through the Configure API without `sublayers` get an empty array (PR #1133)
+- Duplicated Projection Setup actions in the Coordinates tab (PR #1109)
+- `GET /api/webhooks/entries` hung when no webhook configuration existed (PR #1093)
+- Mission data paths in the Viewer, Identifier and Measure tools use the mission folder instead of the display name (PR #1039)
+- Console errors on missions without a globe (PR #1042)
+- Hidden scalebar text in mobile mode (PR #1105)
+- Dropy dropdowns and the search component in Maker (PR #1033)
+- `pypgstac migrate` on startup is run from `PATH` and receives `HOME`, so it works in venv installs and under a custom container uid (PR #1084, PR #1120)
+- TiTiler colormap legend images are requested with `f=png` (PR #1084)
+- An unwritable SPICE kernel directory is logged as an error instead of crashing MMGIS on startup with `SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START=true` (PR #1120)
+
+---
+
+## 5.2.24
+
+_August 3, 2026_
+
+#### Summary
+
+This release overhauls the plugin ecosystem into a unified, manifest-driven `/plugins/` directory with a CLI, per-plugin validation, and a new first-class Interactions plugin type replacing the hardcoded Kinds dispatcher. The ShadeTool becomes the Sightline Tool, gaining editable sweep times, cancellable sweeps, multi-DEM selection, and native-resolution sizing. A new Global Feature Search panel adds cross-layer feature search with select and filter modes. Dynamic-extent geodataset layers are now driven by the Globe viewport in addition to the 2D map. Separated tools gain a chrome-less `"custom"` mode plus public `openTool`/`closeTool` APIs. The release also includes Express 5 and PostgreSQL 18 follow-up fixes, security hardening (XSS, log sanitization, geodataset parameter validation, CI permissions), legal attribution corrections with a root `NOTICE` file, expanded OpenAPI documentation, and a number of Legend, Filtering, TimeUI, DrawTool, and Coordinates fixes.
+
+### Compatibility
+
+- **Mission configurations: Backward compatible.** Existing layer `kind` values continue to work — legacy Kinds are resolved through manifest `kindAlias` pipelines in the new Interactions system. No mission config changes are required. Note that `separatedTool` is now read only from a tool's plugin manifest, so the mission-config value for it is ignored.
+- **JavaScript API (`window.mmgisAPI`): Fully backward compatible.** No migration needed.
+- **End users: No breaking changes.** The ShadeTool is now named the Sightline Tool.
+- **Deployments:** Docker users should redeploy with the updated `Dockerfile` and `docker-compose` (the `plugins/` copy and the PostgreSQL 18 volume path fixes) — an existing install on the old db volume path can crash-loop on a fresh install.
+
+### Migration Guide (Plugin Developers Only)
+
+- **Breaking (Plugin Developers): Plugin manifests standardized.** Tools must rename `config.json` → `plugin.json`; backends must rename `setup.js` → `plugin.js` and add a `plugin.json`. Lifecycle hooks (`onceInit`, `onceStarted`, `onceSynced`) and existing tool fields (`name`, `paths`, `description`, …) are unchanged. Legacy formats still load but log a deprecation warning.
+- **Breaking (Plugin Developers): Plugin directory layout.** All plugins now live under `plugins/<container>/<type>/<PluginName>/` (core plugins under `plugins/core/{tools,backend,components}/`). `plugin.json` `paths` should use `./` relative paths rather than absolute paths.
+- **Breaking (Plugin Developers): Kinds dispatcher removed.** The `plugins/core/tools/Kinds` dispatcher is gone; click/hover behavior is now composed from Interaction plugins run by `InteractionRunner`. Existing `kind` configs are preserved via `kindAlias`.
+- **Changed: plugin CLI `remove` → `uninstall`.** Git installs now use `org--repo` container directory naming to avoid collisions; `uninstall` no longer removes registry entries (use `registry remove`).
+
+#### Added
+
+- Plugin ecosystem overhaul: unified `/plugins/` hierarchy, `plugin.json` manifests, validation, semver/peerDependency resolution, engines compatibility, and a git-registry-based plugin CLI (PR #999)
+- Interactions plugin type: manifest-driven interaction discovery, `InteractionRunner`, 12 core Interactions, CLI scaffolding, and a Configure layer-modal Interactions tab with drag-and-drop click pipelines (PR #1026)
+- Global Feature Search: React search panel across vector and geodataset layers, select and filter modes, wildcard search, per-field value parsing, All/Common group toggle, time-aware search with time-range fitting (PR #1012)
+- Sightline Tool (formerly ShadeTool) for horizon profiles and shadow/visibility sweeps (PR #993)
+- Sightline: editable top-section Start/End times, cancellable sweeps, multiple DEM selection, and working resolution derived from each DEM's real meters-per-pixel (PR #1016)
+- `separatedTool: "custom"` mode for chrome-less separated panels where the tool owns its own DOM (PR #1020)
+- `ToolController_.openTool` / `ToolController_.closeTool` public API for opening/closing any tool by name (PR #1020)
+- `Globe_.getExtent()` and a debounced globe dynamic-extent watcher, making both LithoSphere and Cesium first-class extent sources for `dynamicextent_*` geodataset queries (PR #1022)
+- `OpGridSelector` compact grid selector for Filtering tool operator dropdowns (PR #1009)
+- "Legend Source Types" example layers (CSV, inline JSON, image, TiTiler color ramp) in the Earth reference mission (PR #1005)
+- Root `NOTICE` file per Apache 2.0 conventions (PR #997)
+- `scripts/rateLimiters.js` shared rate-limiter module (PR #998)
+- `test:plugins` npm script to run co-located `plugins/**/tests/*.spec.js` specs (PR #1027)
+- Express error-handling middleware so unhandled route errors return 500 instead of crashing the process (PR #1001)
+- OpenAPI/Swagger documentation for GeoDataset append params (`group_id_prop`, `feature_id_prop`, `startProp`/`endProp`/`groupIdProp`/`featureIdProp`) and previously undocumented core plugin endpoints (PR #1015)
+
+#### Changed
+
+- `separatedTool` is now read only from the plugin manifest (`toolConfigs`), a single source of truth with no mission-config fallback (PR #1020)
+- Generalized separated-tool panel max-height so any separated panel clears the map's bottom-left compass and scale bar (previously Legend-only) (PR #1005)
+- Legend: units render as a chip in the layer title row, images scale to panel width, labels use 14px Roboto (PR #1005)
+- Replaced Dropy dropdowns in the Filtering tool with a body-appended fixed-position popup that escapes ancestor overflow clipping (PR #1009)
+- Rate limiters imported directly by route files, removing the `router._authLimiter` / `router._computeLimiter` late-binding pattern (PR #998)
+- Plugin CLI: `remove` renamed to `uninstall`, `org--repo` container naming for git installs, `./` relative `paths` in `plugin.json` (PR #1002)
+- Updated plugin documentation (README, CONTRIBUTING, docs) and pointed users to [NASA-AMMOS/MMGIS-Plugins](https://github.com/NASA-AMMOS/MMGIS-Plugins) (PR #1002)
+- Corrected `attributions.js` license types, versions, and misattributed entries; added missing vendored library entries (PR #997)
+- `Utils.forceAlphaNumUnder()` accepts an optional `allowList` of preserved characters (PR #1006)
+
+#### Fixed
+
+- Express 5 `req.query` is read-only: Draw publish (which crash-looped the server), `GET /geodatasets/get/:layer`, and mission clone all silently broke on mutation and are now passed explicit options (PR #1001)
+- Docker db volume mount path for PostGIS 18 (`/var/lib/postgresql`), which crash-looped the db container on fresh installs after the PostgreSQL 16→18 upgrade (PR #1000)
+- Docker runtime stage was missing `COPY` of `plugins/`, causing backend plugin 404s and a 404 `/configure` page (PR #1003)
+- TimeUI: opaque `#mmgisTimeUITimelineInner` background painted over the availability histogram, hiding the blue availability bars for time-enabled tile layers (PR #1028)
+- TimeUI: Play and Quick Select popovers hidden behind the floating layout (PR #1019)
+- DrawTool: Review panel invisible because `backdrop-filter` on `.toolPanel` made it a containing block for the `position: fixed` panel; panel now overlays DrawTool content and widens to 390px while open (PR #1004)
+- COG colormap names are lowercased before being sent to TiTiler as `colormap_name`, fixing failed tile requests for mixed-case colormaps (e.g. `BrBG`) (PR #1013)
+- `Coordinates.init` crash when a mission set `coordinates.coordll: false`, which aborted the essence init chain and broke `Description` (PR #1014)
+- Legend: horizontal continuous tick labels centered with bar-end padding, units chip no longer overlaps the title, image legends no longer clip, hover tooltip clamped within the bar (PR #1005)
+- Sightline `sightmap.py` now handles `BrokenPipeError`/`IOError` and stops cleanly when a client aborts a sweep (PR #1016)
+
+#### Security
+
+- XSS prevention in DrawTool (`newTag` DOM construction, removal of inline interpolated `value` attributes) (PR #1006)
+- Geodataset `_source` parameter validation via `forceAlphaNumUnder` (PR #1006)
+- Log sanitization now strips `\r` while preserving `\n`/`\t` for stack traces (PR #1006)
+- CI hardening: `permissions: contents: read` and SHA-pinned `actions/checkout` in `secrets-detection.yaml` (PR #1006)
+
+---
+
+## 5.0.15
+
+_June 11, 2026_
+
+#### Summary
+
+This major release modernizes the MMGIS frontend by migrating core UI infrastructure from jQuery/Materialize to React 18 and Base UI. The separated tools system has been fully rewritten as React components. The Ancillary directory has been dissolved and its components reorganized. A comprehensive mobile UI overhaul improves toolbar layout, TimeUI integration, and responsive positioning. A configurable theme system with High Contrast support has been added. The internal test infrastructure (Test\_ module) has been removed in favor of the Playwright-based E2E framework. The Cesium 3D globe link button has been restyled and repositioned. Various bug fixes address TimeControl, Legend, modal, tooltip, and z-index issues. This release also introduces the Segment Tool, 3D gradient polyline and vectortile extrusion, KML import, a Zustand-based React UI migration, a comprehensive E2E and unit test infrastructure overhaul, PostgreSQL 18 and Express v5 upgrades, and extensive SQL parameterization and security hardening across the codebase.
+
+### Compatibility
+
+- **Mission configurations: Fully backward compatible.** No changes are required to existing mission configuration JSON files. All existing config fields (`separatedTool`, `look.*`, tool definitions, layer definitions, etc.) continue to work as before. The removed `justification` field is silently ignored if still present. New optional fields (`look.theme`, `look.primarycolor`, `look.secondarycolor`, `look.tertiarycolor`, `look.accentcolor`, `look.hightlightcolor`) are additive and do not need to be set.
+- **JavaScript API (`window.mmgisAPI`): Fully backward compatible.** All documented public API functions remain unchanged. No migration needed for code using `mmgisAPI`.
+- **End users: No breaking changes.** The application UI has been modernized but all user-facing functionality is preserved or improved. No retraining or workflow changes are needed.
+
+### Migration Guide (Developers Only)
+
+The following breaking changes affect **developers who maintain custom tool plugins, component plugins, or code that imports internal MMGIS modules**. They do NOT affect mission operators, end users, or mission configurations.
+
+- **Breaking (Developers): Ancillary directory dissolved.** Components previously under `src/essence/Ancillary/` have been reorganized into nested locations under `src/essence/Basics/UserInterface_/components/`. Any custom plugin code importing from `Ancillary/` paths will need import path updates.
+- **Breaking (Developers): jQuery UI components replaced with React.** Modal, Tooltip, Toast, Help, ContextMenu, and Coordinates components are now React-based. Any custom plugin code relying on jQuery selectors (e.g., `$('.modal')`, `$('.tooltipped')`) or Materialize CSS classes for these components will need updating to use the new React component APIs or DOM IDs.
+- **Breaking (Developers): Separated tools system rewritten.** The separated/floating tools system is now React-based. Custom tools that used the old jQuery-based separated tools DOM API will need migration. The tool module interface (`make()`, `destroy()`, `initialize()`, `finalize()`) is unchanged — only the DOM container rendering has changed.
+- **Breaking (Developers): Test\_ module removed.** The internal `Test_` module, `testModules`, and `DrawTool.test` have been removed. Use the Playwright-based E2E test framework (`tests/e2e/`) instead.
+
+#### Added
+
+- React 18 and Base UI as core frontend framework (PR #49)
+- Proper Toast notification component replacing ~69 ad-hoc CursorInfo toast calls
+- Configurable theme system with High Contrast theme via Configure page UI tab
+- Custom theme mode with `enableWhenField` support in Configure
+- `.knowledge/` directory with AI agent knowledge architecture (PR #52)
+- Legend empty state message when no legend items are present
+- Hover effect on MMGIS logo (subtle background highlight)
+- Per-layer fade control: time-enabled and shade/viewshed layers never fade
+- Selective tile fade: fade on pan/zoom, instant on refresh/reload
+- Segment Tool for measuring terrain profiles and distances (PR #940)
+- 3D Cesium gradient polyline support with performance optimizations (PR #936)
+- LithoSphere gradient layer support via lithosphere ^1.6.0 (PR #937)
+- 3D extrusion for vectortile layers and 3D Tiles support (PR #942)
+- KML import support for MMGIS vector layers (PR #945)
+- React UI migration: Zustand store, bridge, components, ToolController\_ and BottomBar React migration (PR #944)
+- Option to set a tool to open by default (PR #923)
+- Secrets Detection workflow via GitHub Actions (PR #921)
+- Comprehensive Playwright E2E and unit test infrastructure (Waves 1–4) (PR #929)
+- TiTiler Planetcantile E2E tests and auto-start of adjacent servers in test harness (PR #943)
+- Bounding box support for ViewshedTool (PR #948)
+- Lunar South Pole reference mission variant (IAU2000:30120) (PR #982)
+- Demo/Testing Mission exposing every feature (PR #919)
+- Per-plugin dependencies, validation, and shared discovery (PR #975)
+- Pass-through of reloadLayer flags in mmgisAPI.reloadLayers (PR #976)
+- Extra E2E test safety improvements: production fail-safe, test DB credentials, AI agent rules (PR #951)
+
+#### Changed
+
+- Migrated Ancillary UI components (Modal, Tooltip, Toast, Help, ContextMenu, Coordinates) from jQuery/Materialize to React 18 + Base UI (PR #49)
+- Rewrote separated tools system from jQuery to React components (PR #51)
+- Dissolved `Ancillary/` folder and reorganized components into nested structure
+- Repositioned Viewer and Globe panel buttons to top-right
+- Moved Cesium link button to top-right with Leaflet zoom button styling (PR #55)
+- Anchored map logo to document.body to avoid CSS filter containing block issues (PR #56)
+- Reverted tooltips to tippy.js for consistency
+- Redesigned About modal
+- Removed dead CSS: deleted `tools.css`, cleaned ~600 lines from `mmgisUI.css` and `mmgis.css`
+- Removed `separatedTool/justification` config toggles (field silently ignored if present in existing configs)
+- Removed separated tools offset logic from `Globe_.js`
+- Updated docs to remove references to deleted test infrastructure (PR #57)
+- Upgraded PostgreSQL from 16-3.4-alpine to 18-3.6-alpine (v16 still works) (PR #935)
+- Updated server/middleware packages including Express v5 and pg-promise v12 (PR #922)
+- Removed react-dev-utils and pinned all build toolchain dependencies (PR #924)
+
+#### Fixed
+
+- Mobile toolbar: 40px height, active button styling matching desktop, icon alignment (PR #50)
+- Mobile TimeUI: overflow, panel height, expanded rows, Invalid date, isMobile detection (PR #50)
+- Mobile topBar padding and hamburger menu positioning (PR #50)
+- Mobile topBarTitleName text wrapping via `white-space: nowrap` (PR #58)
+- Mobile scalebar/compass positioning at correct offset (PR #50)
+- Mobile hotkeys hidden on mobile devices (PR #50)
+- TimeUI dropdown z-index above tool panel
+- TimeUI `#toggleTimeUI` click handler, tippy tooltip, and active class restoration
+- TimeControl `.fina()` assignment operator used instead of comparison
+- Legend empty message scoped to content container via targetId
+- Legend duplicate ID issue
+- IdentifierTool deactivation icon ID reference in `separateFromMMWebGIS`
+- CurtainTool `destroy()` using undefined `ReactDOM.unmountComponentAtNode`
+- Modal blur persistence and race condition during fade-out
+- ContextMenu WKT null guard
+- Help.jsx fetch error handling and HTML sanitization with DOMPurify
+- CoordinatesDiv z-index
+- `topBarTitleName` padding override specificity
+- `toolPanelDrag` visibility when no tool is open
+- `mapToolBar` pointer events, login padding, default tool, About modal order
+- Session logout regression
+- `defaulttooldropdown` case handler in `Maker.js`
+- Circular import in `TimeUI.js`
+- `--color-a3` text contrast
+- StatusIndicator spacing and title attribute conflict with tippy tooltip
+- Tool headers fixed to 40px height
+- Various tool UI issues: ViewshedTool subheader, AnimationTool header, InfoTool close button
+- BLOCKER fixes and broad correctness improvements for security, correctness, and code quality (PR #928)
+- populateCogScale calculation (PR #926)
+- DrawTool templated point type points not respecting time filtering (PR #961)
+- Poor configure/upsert SQL and WebSocket body causing memory spike (PR #967)
+- Concurrent layer reloads serialized and stop mutating layer.url (PR #974)
+- MeasureTool config DEM field renamed from `dem` to `url` (PR #980)
+- SegmentTool background, Clipboard API, and context menu test selectors (PR #981)
+- Race condition: expose L*.Map* before makeLayers (PR #986)
+- clearGradientHoverPoint missing in mockLitho (PR #957)
+- Login pathing for external proxies (PR #956)
+- Dataset endpoint error catching (PR #953)
+- Infinite redirect loop when ROOT_PATH is set (PR #950)
+- DEM tile corruption by using nearest-neighbor resampling for RGBA-encoded float tiles (PR #947)
+- curl added to runtime Docker stage for healthcheck support (PR #949)
+- 5 security vulnerabilities from MMGIS security audit (PR #941)
+- Fixed Dockerfile COPY for blueprints (PR #920)
+- Fixed typo: Geographical → Geographic (PR #938)
 
 #### Removed
 
-- Legacy jQuery/Materialize configure page and `/configure-legacy` route (#830)
-  - Removed entire `config/` directory (css, js, fonts, pre, login subdirectories)
-  - Removed `views/configure.pug` template
-  - Use `/configure` for React-based configure interface
-- `database/` directory - Old Docker Postgres migration/upgrade scripts
-- `src/essence/Tools/_OLD/` directory (Distance, FileManager, Query, Search, Sketch tools)
-- `Dockerfile.legacy` (superseded by main Dockerfile)
+- Internal test infrastructure: `Test_` module, `testModules`, `DrawTool.test` (PR #53)
+- `tools.css` and ~600 lines of dead CSS from `mmgisUI.css` and `mmgis.css`
+- `separatedTool/justification` configuration toggles
+- Separated tools offset logic from `Globe_.js`
+- Stale `setShowUserCard` call in `handleLogout`
+
+#### Security
+
+- SQL parameterization improvements for Draw/Files filters (PR #930)
+- SQL parameterization improvements in filesutils.js with tests (PR #931)
+- SonarQube taint chain break in queryTilesetTimes fs.readdir (PR #932)
+- SQL parameterization improvements for geodatasets with comprehensive tests (PR #933)
+- SonarQube S3649 taint chain fixes in filesutils.js (PR #934)
+- 7 Sonar security recommendations applied with TDD (PR #983)
+- Security upgrades: 49→13 vulnerabilities, materialize-css removal (PR #987)
+
+---
+
+## 4.2.34
+
+_April 2, 2026_
+
+#### Summary
+
+This release introduces beta CesiumJS integration as an alternative 3D globe renderer, a new Plugin Components system for extensible UI behaviors, and a Playwright-based end-to-end testing framework. The DrawTool gains DynamicExtent for viewport-based feature loading and a new Point template type. AnimationTool receives multiple improvements and STAC URL fixes. TimeControl is promoted to core infrastructure under Basics. New API callbacks and events expand extensibility (newActiveFeature, layersToolHeaderStateChange, madeLegendTool, viewer_open). Mobile mode sees significant improvements including configurable initial zoom, layout fixes, and a responsive login page. Security hardening includes adjacent servers placed behind authentication, npm audit fixes, and multiple vulnerability patches. The codebase is cleaned up with D3 largely removed, legacy scripts and files pruned, and an improved Dockerfile. Two new open-source components are released: AnalysisTool and OperationsClock.
+
+#### Added
+
+- Beta CesiumJS integration as an alternative 3D globe renderer (#810)
+- Plugin Components system for lightweight, extensible UI behaviors (#849)
+- AnalysisTool and OperationsClock released as open-source components (#904)
+- Playwright end-to-end testing framework (#216)
+- DrawTool DynamicExtent for viewport-based feature loading (#852)
+- DrawTool Template for Point type (#843)
+- DrawTool endpoint support via long-term tokens (#841)
+- TiTiler layer support in Cesium Globe (#898)
+- External MMGIS STAC catalog linking (#863)
+- viewer_open as a new layer Kind (#855)
+- Configurable initial zoom for mobile mode (#866)
+- Latitude/Longitude option in coordinates display (#905)
+- Callback for layersToolHeaderStateChange (#846)
+- Callback for madeLegendTool (#858)
+- Additional newActiveFeature events (#845)
+- Font types as webpack assets (#874)
+- AGENTS.md and spec-kit for AI development (#828)
+- .gitattributes file (#901)
+
+#### Changed
+
+- Moved TimeControl from Ancillary/ to Basics/TimeControl\_/ to reflect its role as core infrastructure (#835)
+- Breaking change for external plugins: Import path changed from 'Ancillary/TimeControl' to 'Basics/TimeControl\_/TimeControl'
+- Removed D3 dependency (mostly) (#826)
+- Improved Dockerfile with multi-stage build and reduced image size (#868)
+- Upgraded all adjacent servers and sample ENVs (#897)
+- Updated time and timetype metaconfigurations (#891)
+- Removed redundant urlencoded middleware (#888)
+- AnimationTool improvements including playback and UI enhancements (#856)
+- Updated GitHub workflow: docker-build.yml (#917)
+- Updated README.md (#913)
+
+#### Fixed
+
+- LegendTool overflow (#848)
+- Viewer and globe splitter icons (#850)
+- Time and Refresh Interval enabled layers incorrectly set to layernotfound (#853)
+- AnimationTool STAC URLs (#860, #861, #867)
+- Return value for layersToolHeaderStateChange event (#862)
+- Bug in viewer_open kind (#865, #882)
+- titiler-pgstac performance issue (#870)
+- DynamicExtent + Threshold layers not properly updating (#871)
+- Multiple mobile mode layout and interaction issues (#875, #878)
+- Login page layout on smaller screens (#883)
+- Initial Start and End Time configuration parameters (#886)
+- Time Type = Local and Refresh Interval not working together (#889)
+- queryTilesetTimes not updating on layer toggles (#892)
+- DrawTool bugs: template field naming, not-null advanced filters (#895)
+- DrawTool Templated Point origin point getting stuck (#909)
+- updateClampedRasterForLayer is not a function error (#907)
+- Image loading in OpenSeadragon (#899)
+- Missions middleware (#914)
+- Hover Feature Label and Layer Tags wrongly assigned (#915)
+- Critical security vulnerabilities (#880, #884)
+
+#### Removed
+
+- Legacy jQuery/Materialize configure page and /configure-legacy route (#830)
+- database/ directory containing old Docker Postgres migration scripts (#830)
+- src/essence/Tools/\_OLD/ directory (#830)
+- Dockerfile.legacy (#830)
+
+#### Security
+
+- npm audit fix (unforced) (#832)
+- Adjacent servers placed behind authentication (#911)
+
+---
 
 ## 4.1.0
 

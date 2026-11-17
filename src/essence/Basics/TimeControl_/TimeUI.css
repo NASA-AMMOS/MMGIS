@@ -11,6 +11,7 @@
     opacity: 0;
     pointer-events: none;
     transition: all 0.2s ease-in;
+    border-radius: 10px;
 }
 #timeUI.active {
     opacity: 1;
@@ -186,6 +187,17 @@
     text-transform: capitalize;
     color: var(--color-a5);
 }
+/* Tool-added indicator lines on the timeline */
+.mmgisTimeUIIndicatorLine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px solid red;
+    pointer-events: none;
+    z-index: 4;
+}
+
 /* Start/End wrappers intentionally left for future styling hooks */
 #mmgisTimeUIActionsLeft,
 #mmgisTimeUIActionsRight {
@@ -193,6 +205,10 @@
     display: flex;
     justify-content: space-between;
     height: 40px;
+    border-radius: 10px;
+}
+#mmgisTimeUIActionsRight > div:not(#mmgisTimeUIPresent) {
+    border-radius: 10px;
 }
 .mmgisTimeUIButton {
     margin: 5px;
@@ -244,10 +260,24 @@
 #mmgisTimeUIModeDropdown {
     background: var(--color-a-5);
     width: 80px;
+    height: 40px;
+    z-index: 1501;
+    border-radius: 10px;
+}
+#mmgisTimeUIModeDropdown .dropy__title {
+    border-color: transparent;
+}
+#mmgisTimeUIModeDropdown .dropy__content ul,
+#mmgisTimeUIQuickSelectDropdown .dropy__content ul,
+#mmgisTimeUIStepWithinBeyondDropdown .dropy__content ul,
+#mmgisTimeUIStepDropdown .dropy__content ul,
+#mmgisTimeUIRateDropdown .dropy__content ul {
+    z-index: 10000;
 }
 #mmgisTimeUIQuickSelectDropdown {
     background: var(--color-a-5);
     width: 100px;
+    z-index: 1501;
 }
 #mmgisTimeUIStepWithinBeyondDropdown {
     background: var(--color-a-5);
@@ -357,6 +387,7 @@
 
 #timeUIQuickSelectPopover {
     display: none;
+    z-index: 10000;
     background: var(--color-a);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
     width: 100px;
@@ -371,6 +402,7 @@
 
 #timeUIPlayPopover {
     display: none;
+    z-index: 10000;
     background: var(--color-a);
     box-shadow: 0px 2px 4px 0px rgba(0, 0, 0, 0.4);
     width: 160px;
@@ -447,9 +479,10 @@
 #mmgisTimeUITimelineExtent {
     height: 100%;
     position: absolute;
-    background: rgb(96, 78, 26, 0.7);
+    background: rgba(96, 78, 26, 0.2);
     transition: opacity 0.2s ease-out;
-    z-index: -1;
+    z-index: 1;
+    pointer-events: none;
     max-width: 100%;
 }
 

@@ -1,0 +1,21 @@
+.trigger {
+    display: inline-flex;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: inherit;
+    font: inherit;
+    color: inherit;
+}
+
+.popup {
+    background: var(--color-c2);
+    color: white;
+    border-radius: 2px;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    z-index: 10000;
+    white-space: nowrap;
+    pointer-events: none;
+}

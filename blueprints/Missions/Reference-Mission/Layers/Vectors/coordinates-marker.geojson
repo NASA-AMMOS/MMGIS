@@ -1,0 +1,108 @@
+{
+  "type": "FeatureCollection",
+  "coord_properties": ["longitude", "latitude", "elevation", "index", "timestamp", "heading"],
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "coord-line-1",
+        "name": "Traverse Path Alpha",
+        "path_type": "traverse",
+        "description": "LineString demonstrating coordinate marker attachments with per-coordinate properties. Each vertex has elevation, index, timestamp, and heading data."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.40, 37.87, 125, 0, 1700920000, 45],
+          [-122.39, 37.865, 130, 1, 1700920060, 90],
+          [-122.38, 37.86, 98, 2, 1700920120, 135],
+          [-122.37, 37.855, 105, 3, 1700920180, 180]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "coord-line-2",
+        "name": "Traverse Path Beta",
+        "path_type": "route",
+        "coord_properties": ["longitude", "latitude", "elevation", "index", "timestamp", "heading", "speed"],
+        "description": "LineString with extended coord_properties including speed. Feature-level coord_properties override the global definition."
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.36, 37.85, 150, 0, 1700930000, 270, 1.2],
+          [-122.35, 37.84, 155, 1, 1700930060, 315, 1.5],
+          [-122.34, 37.83, 160, 2, 1700930120, 0, 1.8]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "coord-poly-1",
+        "name": "Observation Region 1",
+        "area_type": "observation",
+        "description": "Polygon demonstrating coordinate markers at each vertex. Shows elevation and heading data for boundary points. Note: First and last coordinates must be completely identical."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.42, 37.88, 100, 0, 1700940000, 0],
+            [-122.41, 37.88, 105, 1, 1700940060, 90],
+            [-122.41, 37.87, 110, 2, 1700940120, 180],
+            [-122.42, 37.87, 108, 3, 1700940180, 270],
+            [-122.42, 37.88, 100, 0, 1700940000, 0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "coord-poly-2",
+        "name": "Study Area Delta",
+        "area_type": "study_area",
+        "description": "Polygon showing coordinate information for area boundaries with elevation and temporal data. Note: First and last coordinates must be completely identical."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.38, 37.84, 120, 0, 1700950000, 45],
+            [-122.37, 37.84, 125, 1, 1700950060, 135],
+            [-122.37, 37.83, 130, 2, 1700950120, 225],
+            [-122.38, 37.83, 128, 3, 1700950180, 315],
+            [-122.38, 37.84, 120, 0, 1700950000, 45]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "coord-multiline-1",
+        "name": "Multi-Segment Path",
+        "path_type": "discontinuous",
+        "description": "MultiLineString demonstrating coordinate markers across multiple path segments."
+      },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [-122.44, 37.89, 95, 0, 1700960000, 60],
+            [-122.43, 37.885, 98, 1, 1700960060, 80],
+            [-122.42, 37.88, 100, 2, 1700960120, 100]
+          ],
+          [
+            [-122.40, 37.875, 105, 3, 1700960200, 120],
+            [-122.39, 37.87, 108, 4, 1700960260, 140],
+            [-122.38, 37.865, 110, 5, 1700960320, 160]
+          ]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>MMGIS KML Sample</name>
+    <description>Sample KML layer for MMGIS Reference Mission</description>
+    <Placemark>
+      <name>Ferry Building</name>
+      <description>Historic ferry terminal and marketplace</description>
+      <ExtendedData>
+        <Data name="category"><value>Landmark</value></Data>
+        <Data name="id"><value>1</value></Data>
+      </ExtendedData>
+      <Point>
+        <coordinates>-122.3936,37.7956,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Fisherman's Wharf</name>
+      <description>Popular waterfront neighborhood</description>
+      <ExtendedData>
+        <Data name="category"><value>Landmark</value></Data>
+        <Data name="id"><value>2</value></Data>
+      </ExtendedData>
+      <Point>
+        <coordinates>-122.4169,37.8080,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Lombard Street</name>
+      <description>Famous winding street</description>
+      <ExtendedData>
+        <Data name="category"><value>Landmark</value></Data>
+        <Data name="id"><value>3</value></Data>
+      </ExtendedData>
+      <Point>
+        <coordinates>-122.4186,37.8021,0</coordinates>
+      </Point>
+    </Placemark>
+    <Placemark>
+      <name>Embarcadero Path</name>
+      <description>Waterfront walking path</description>
+      <LineString>
+        <coordinates>
+          -122.3936,37.7956,0
+          -122.3980,37.7990,0
+          -122.4050,37.8040,0
+          -122.4169,37.8080,0
+        </coordinates>
+      </LineString>
+    </Placemark>
+    <Placemark>
+      <name>North Beach Area</name>
+      <description>Historic Italian neighborhood</description>
+      <Polygon>
+        <outerBoundaryIs>
+          <LinearRing>
+            <coordinates>
+              -122.4100,37.8000,0
+              -122.4200,37.8000,0
+              -122.4200,37.8080,0
+              -122.4100,37.8080,0
+              -122.4100,37.8000,0
+            </coordinates>
+          </LinearRing>
+        </outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>

@@ -1,40 +1,45 @@
 import $ from 'jquery'
 import F_ from '../Formulae_/Formulae_'
 import L_ from '../Layers_/Layers_'
-import { captureVector } from '../Layers_/LayerCapturer'
-import {
-    constructVectorLayer,
-    constructSublayers,
-} from '../Layers_/LayerConstructors'
-import { transformStacUrl } from '../Layers_/LayerUtils'
-import Filtering from '../Layers_/Filtering/Filtering'
+import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import LayerAttachmentRegistry from '../Layers_/registry/LayerAttachmentRegistry'
+import LayerInterface from '../Layers_/interface/LayerInterface'
 import Viewer_ from '../Viewer_/Viewer_'
 import Globe_ from '../Globe_/Globe_'
 import ToolController_ from '../ToolController_/ToolController_'
-import CursorInfo from '../../Ancillary/CursorInfo'
-import Description from '../../Ancillary/Description'
-import QueryURL from '../../Ancillary/QueryURL'
-import MetadataCapturer from '../Layers_/MetadataCapturer.js'
-import { Kinds } from '../../../pre/tools'
-import DataShaders from '../../Ancillary/DataShaders'
-import calls from '../../../pre/calls'
-import TimeControl from '../TimeControl_/TimeControl'
-
-import gjv from 'geojson-validation'
+import CursorInfo from '../UserInterface_/components/CursorInfo/CursorInfo'
+import Description from '../UserInterface_/components/Description/Description'
+import QueryURL from '../../services/QueryURL'
+import MetadataCapturer from '../Layers_/capture/MetadataCapturer.js'
+import { restyleViewFollowingLayers } from '../Layers_/render/dynamicStyleRuntime'
 import {
-    evaluate_cmap,
-    data as colormapData,
-} from '../../../external/js-colormaps/js-colormaps.js'
+    runInteractions,
+    resolveLayerInteractions,
+} from '../InteractionRunner/InteractionRunner'
+import TimeControl from '../TimeControl_/TimeControl'
 
 let L = window.L
 
+// --- Per-layer fade control ---
+// Leaflet's tile fade is map-level (_fadeAnimated). Time-enabled tile/raster
+// layers should never fade (instant tile swap on pan or time change).
+// All other tile layers fade normally.
+// Strategy: patch _tileReady to check a per-layer _noFade flag.
+;(function patchPerLayerFade() {
+    const origTileReady = L.GridLayer.prototype._tileReady
+    L.GridLayer.prototype._tileReady = function (coords, err, tile) {
+        if (this._noFade && this._map) {
+            const wasFade = this._map._fadeAnimated
+            this._map._fadeAnimated = false
+            origTileReady.call(this, coords, err, tile)
+            this._map._fadeAnimated = wasFade
+            return
+        }
+        return origTileReady.call(this, coords, err, tile)
+    }
+})()
+
 let essenceFina = function () {}
-
-import GeoRasterLayer from '../../../external/georaster-layer-for-leaflet/georaster-layer-for-leaflet.ts'
-import georaster from 'georaster'
-
-// The default color ramp used for image layer types
-const IMAGE_DEFAULT_COLOR_RAMP = 'binary'
 
 let Map_ = {
     //Our main leaflet map variable
@@ -49,6 +54,9 @@ let Map_ = {
         essenceFina = essenceFinal
 
         //Repair Leaflet and plugin incongruities
+        // Leaflet 1.9 removed DomEvent.fakeStop; renderer containers now carry
+        // _leaflet_disable_events, so callers only need it to exist.
+        if (L.DomEvent.fakeStop == null) L.DomEvent.fakeStop = function () {}
         L.DomEvent._fakeStop = L.DomEvent.fakeStop
 
         //var fakeStop = L.DomEvent.fakeStop || L.DomEvent._fakeStop || stop;?
@@ -201,6 +209,35 @@ let Map_ = {
 
         if (this.map.zoomControl) this.map.zoomControl.setPosition('topright')
 
+        // Home button on zoom controls (resets to configured initial view)
+        var HomeControl = L.Control.extend({
+            options: { position: 'topright' },
+            onAdd: function () {
+                var container = L.DomUtil.create(
+                    'div',
+                    'leaflet-control-zoom leaflet-bar leaflet-control'
+                )
+                var btn = L.DomUtil.create(
+                    'a',
+                    'leaflet-control-zoom-home',
+                    container
+                )
+                btn.innerHTML =
+                    '<i class="mdi mdi-home-variant-outline" style="font-size:16px;line-height:30px;"></i>'
+                btn.href = '#'
+                btn.title = 'Reset View'
+                btn.setAttribute('role', 'button')
+                btn.setAttribute('aria-label', 'Reset View')
+                L.DomEvent.disableClickPropagation(btn)
+                L.DomEvent.on(btn, 'click', function (e) {
+                    L.DomEvent.preventDefault(e)
+                    Map_.resetView(L_.view)
+                })
+                return container
+            },
+        })
+        this.map.addControl(new HomeControl())
+
         if (Map_.mapScaleZoom) {
             L.control
                 .scalefactor({
@@ -244,6 +281,10 @@ let Map_ = {
         //Remove attribution
         $('.leaflet-control-attribution').remove()
 
+        // Expose Map_ on L_ early so that AJAX callbacks from makeLayers
+        // can safely access L_.Map_.map (e.g. getZoom()) before L_.fina() runs.
+        L_.Map_ = this
+
         //Make our layers
         makeLayers(L_.layers.dataFlat)
 
@@ -263,21 +304,12 @@ let Map_ = {
             $('.map-autoset-zoom').text(Map_.map.getZoom())
         })
 
-        this.map.on('movestart', fadeOutCertainLayers)
-        this.map.on('zoomstart', fadeOutCertainLayers)
-
-        function fadeOutCertainLayers() {
-            // Fade out Velocity layer Streamlines to prevent rendering jumps
-            Object.keys(L_.layers.data).forEach((layerUUID) => {
-                const layerData = L_.layers.data[layerUUID]
-                if (
-                    layerData.type === 'velocity' &&
-                    (layerData.kind === 'streamlines' || layerData.kind == null)
-                ) {
-                    L_.layers.layer[layerUUID].setOpacity(0)
-                }
-            })
-        }
+        // A layer whose colour scale is stretched over the current view has a
+        // new scale as soon as the view is new. Coalesced into one restyle per
+        // movement rather than one per event.
+        this.map.on('moveend', () => {
+            restyleViewFollowingLayers()
+        })
 
         if (Globe_.controls.link) {
             this.map.on('move', (e) => {
@@ -390,15 +422,21 @@ let Map_ = {
     },
     //Redraws all layers, starting with the bottom one
     orderedBringToFront: function () {
+        // An 'overlay' type is ordered by insertion, so it has to be removed
+        // and re-added in order; a 'raster' type only needs its z-index reset.
+        // Which one a type is, is declared (capabilities.map.stacking) rather
+        // than asked of the layer — core partitions every layer here before it
+        // touches any of them.
         let hasIndex = []
         let hasIndexRaster = []
 
         for (let i = L_._layersOrdered.length - 1; i >= 0; i--) {
             if (Map_.hasLayer(L_._layersOrdered[i])) {
                 if (L_.layers.data[L_._layersOrdered[i]]) {
-                    if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'vector'
-                    ) {
+                    const stacking = LayerTypeRegistry.mapStacking(
+                        L_.layers.data[L_._layersOrdered[i]].type
+                    )
+                    if (stacking === 'overlay') {
                         if (L_.layers.attachments[L_._layersOrdered[i]]) {
                             for (let s in L_.layers.attachments[
                                 L_._layersOrdered[i]
@@ -414,18 +452,8 @@ let Map_ = {
                             L_.layers.layer[L_._layersOrdered[i]]
                         )
                         hasIndex.push(i)
-                    } else if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'tile' ||
-                        L_.layers.data[L_._layersOrdered[i]].type === 'data'
-                    ) {
+                    } else if (stacking === 'raster') {
                         hasIndexRaster.push(i)
-                    } else if (
-                        L_.layers.data[L_._layersOrdered[i]].type === 'image'
-                    ) {
-                        Map_.map.removeLayer(
-                            L_.layers.layer[L_._layersOrdered[i]]
-                        )
-                        hasIndex.push(i)
                     }
                 }
             }
@@ -441,10 +469,14 @@ let Map_ = {
                         L_.layers.attachments[L_._layersOrdered[hasIndex[i]]][s]
                             .on
                     ) {
+                        // Only attachments that draw on the 2D map take part
+                        // in map ordering.
                         if (
-                            L_.layers.attachments[
-                                L_._layersOrdered[hasIndex[i]]
-                            ][s].type !== 'model'
+                            LayerAttachmentRegistry.rendersOnMap(
+                                L_.layers.attachments[
+                                    L_._layersOrdered[hasIndex[i]]
+                                ][s].type
+                            )
                         ) {
                             Map_.map.addLayer(
                                 L_.layers.attachments[
@@ -458,9 +490,12 @@ let Map_ = {
 
             Map_.map.addLayer(L_.layers.layer[L_._layersOrdered[hasIndex[i]]])
 
-            // If image layer, reorder the z index and redraw the layer
+            // Some overlay types (image) also need their z-index reset and
+            // their tiles redrawn after being re-added.
             if (
-                L_.layers.data[L_._layersOrdered[hasIndex[i]]].type === 'image'
+                LayerTypeRegistry.redrawsOnReorder(
+                    L_.layers.data[L_._layersOrdered[hasIndex[i]]].type
+                )
             ) {
                 L_.layers.layer[L_._layersOrdered[hasIndex[i]]].setZIndex(
                     L_._layersOrdered.length +
@@ -506,14 +541,16 @@ let Map_ = {
         layerObj,
         cb,
         skipOrderedBringToFront,
-        stopLoops
+        stopLoops,
+        resolvedUrl
     ) {
         // If it's a dynamic extent layer, just re-call its function
         const dynamicExtentKey = `dynamicextent_${layerObj.name}`
-        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}`  // For velocity layers
+        const dynamicGeodatasetKey = `dynamicgeodataset_${layerObj.name}` // For velocity layers
 
-        const subscription = L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey]
-                          || L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
+        const subscription =
+            L_._onSpecificLayerToggleSubscriptions[dynamicExtentKey] ||
+            L_._onSpecificLayerToggleSubscriptions[dynamicGeodatasetKey]
 
         if (subscription != null) {
             if (L_.layers.on[layerObj.name]) {
@@ -538,13 +575,22 @@ let Map_ = {
         for (var i = L_._layersOrdered.length - 1; i >= 0; i--) {
             if (
                 L_.layers.data[L_._layersOrdered[i]] &&
-                L_.layers.data[L_._layersOrdered[i]].type == 'vector' &&
+                LayerTypeRegistry.refreshesByRemake(
+                    L_.layers.data[L_._layersOrdered[i]].type
+                ) &&
                 L_.layers.data[L_._layersOrdered[i]].name == layerObj.name
             ) {
                 // Original
                 if (L_._layersBeingMade[layerObj.name] !== true) {
-                    // makeLayer now handles all layer swapping internally for refresh operations
                     L_.layers.on[layerObj.name] = true
+
+                    // Pass `resolvedUrl` through to makeLayer instead of
+                    // mutating `layerObj.url`. Mutation leaked the resolved
+                    // URL to any concurrent code reading `layer.url` during
+                    // the async makeLayer window (most importantly to a
+                    // second TimeControl.reloadLayer() call that would then
+                    // capture the *resolved* URL as its "template" and
+                    // corrupt the placeholders for every subsequent reload).
                     await makeLayer(
                         layerObj,
                         true,
@@ -552,17 +598,30 @@ let Map_ = {
                         null,
                         null,
                         stopLoops,
-                        true
+                        true,
+                        null,
+                        resolvedUrl
                     )
                     L_.addVisible(Map_, [layerObj.name])
 
                     L_.enforceVisibilityCutoffs()
                 } else {
-                    console.warn(
-                        `WARNING - refreshLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
-                    )
-                    if (typeof cb === 'function') cb()
-                    return false
+                    // A reload of this same layer is already in flight.
+                    // Instead of silently dropping this request (causing
+                    // "gaps" where dynamically-appearing data fails to
+                    // show up), coalesce it into a single pending queued
+                    // reload that fires after the in-flight one finishes.
+                    // The queue uses one slot per layer name — duplicate
+                    // queued reloads coalesce automatically.
+                    L_._layerReloadQueue = L_._layerReloadQueue || {}
+                    L_._layerReloadQueue[layerObj.name] = {
+                        layerObj,
+                        cb,
+                        skipOrderedBringToFront,
+                        stopLoops,
+                        resolvedUrl,
+                    }
+                    return true
                 }
                 if (typeof cb === 'function') cb()
                 return true
@@ -683,7 +742,8 @@ async function makeLayer(
     forceMake,
     stopLoops,
     isRefresh = false,
-    targetMapContext = null
+    targetMapContext = null,
+    resolvedUrl = null
 ) {
     // Default to main map context for backward compatibility
     const mapContext = targetMapContext || {
@@ -694,7 +754,8 @@ async function makeLayer(
     return new Promise(async (resolve, reject) => {
         const layerName = L_.asLayerUUID(layerObj.name)
         // Use map-specific lock if available, otherwise fall back to global lock
-        const lockRegistry = mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
+        const lockRegistry =
+            mapContext.layerRegistry._layersBeingMade || L_._layersBeingMade
         if (forceMake !== true && lockRegistry[layerName] === true) {
             console.error(
                 `ERROR - makeLayer: Cannot make layer ${layerObj.display_name}/${layerObj.name} as it's already being made!`
@@ -704,72 +765,159 @@ async function makeLayer(
         } else {
             lockRegistry[layerName] = true
         }
-        //Decide what kind of layer it is
-        //Headers do not need to be made
-        if (layerObj.type != 'header') {
-            //Simply call the appropriate function for each layer type
-            switch (layerObj.type) {
-                case 'vector':
-                    await makeVectorLayer(
-                        layerObj,
-                        evenIfOff,
-                        null,
-                        forceGeoJSON,
-                        isRefresh,
-                        mapContext
+
+        // Wrap the layer-builder dispatch in try/finally so the lock is
+        // ALWAYS released (and any queued reload drained) even if one of
+        // the per-type builders throws. Otherwise the lock would stay
+        // pinned at `true` and every subsequent refreshLayer call for
+        // this layer would queue against a permanently-locked entry that
+        // never drains — silently breaking all future reloads.
+        // Frozen map renderer context shared across the plugin's make /
+        // afterMake / afterUnlock lifecycle hooks below.
+        const rt = LayerTypeRegistry.get(layerObj.type)
+        const pluginCtx = {
+            evenIfOff,
+            forceGeoJSON,
+            isRefresh,
+            mapContext,
+            resolvedUrl,
+        }
+        // Resolve the map `make` phases once. `make` is dispatched by phase
+        // (rather than LayerInterface.run) because its lifecycle straddles the
+        // make-lock: before/main/after run inside the lock here, while
+        // afterCommit must run in the finally block after the lock releases.
+        // The `after`/`afterCommit` phases are also gated on `stopLoops`.
+        const makeMain =
+            rt && rt.map
+                ? LayerInterface.getPhase(rt.map, 'make', 'main')
+                : null
+        let madeSuccessfully = true
+        try {
+            //Decide what kind of layer it is
+            //Structural layers (headers) hold no data and are never made
+            if (!LayerTypeRegistry.isStructural(layerObj.type)) {
+                // Layer-type plugins own their map renderer. Every built-in type
+                // is plugin-backed and dispatched through the registry with the
+                // frozen renderer context — one real path per type, no per-type
+                // branching in core.
+                if (makeMain) {
+                    const makeBefore = LayerInterface.getPhase(
+                        rt.map,
+                        'make',
+                        'before'
                     )
-                    break
-                case 'velocity':
-                    await makeVelocityLayer(
-                        layerObj,
-                        evenIfOff,
-                        null,
-                        forceGeoJSON,
-                        mapContext
+                    const makeAfter = LayerInterface.getPhase(
+                        rt.map,
+                        'make',
+                        'after'
                     )
-                    break
-                case 'tile':
-                    makeTileLayer(layerObj, mapContext)
-                    break
-                case 'vectortile':
-                    makeVectorTileLayer(layerObj, mapContext)
-                    break
-                case 'query':
-                    await makeVectorLayer(
-                        layerObj,
-                        false,
-                        true,
-                        forceGeoJSON,
-                        false,
-                        mapContext
-                    )
-                    break
-                case 'data':
-                    makeDataLayer(layerObj, mapContext)
-                    break
-                case 'image':
-                    makeImageLayer(layerObj, mapContext)
-                    break
-                case 'model':
-                    //Globe only
-                    makeModelLayer(layerObj, mapContext)
-                    break
-                case 'video':
-                    makeVideoLayer(layerObj, mapContext)
-                    break
-                default:
+                    if (makeBefore) await makeBefore(layerObj, pluginCtx)
+                    await makeMain(layerObj, pluginCtx)
+                    // Post-make hook inside the lock (e.g. vector rebuilds its
+                    // filtering GeoJSON). Gated on stopLoops.
+                    if (makeAfter && stopLoops !== true)
+                        await makeAfter(layerObj, pluginCtx)
+                } else if (rt) {
+                    // A registered type with no map renderer is globe-only
+                    // (e.g. model, 3dtiles). Nothing to draw on the 2D map;
+                    // mark it loaded so allLayersLoaded() can resolve. A type
+                    // that declares a map renderer and resolved none is a
+                    // broken type rather than a globe-only one, and would
+                    // otherwise present as a layer that loads and draws
+                    // nothing.
+                    if (LayerTypeRegistry.rendersOnMap(layerObj.type))
+                        console.warn(
+                            `Layer type '${layerObj.type}' declares a map renderer but resolved no map make.main — nothing will be drawn for layer '${layerObj.name}'.`
+                        )
+                    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
+                        true
+                    allLayersLoaded()
+                } else {
                     console.warn('Unknown layer type: ' + layerObj.type)
+                }
             }
-        }
+        } catch (err) {
+            madeSuccessfully = false
+            console.error(
+                `ERROR - makeLayer: failed to make layer ${layerObj.display_name}/${layerObj.name}`,
+                err
+            )
+        } finally {
+            // release hold on layer (use same registry as above)
+            lockRegistry[layerName] = false
 
-        // release hold on layer (use same registry as above)
-        lockRegistry[layerName] = false
+            const pendingTimeFilter = L_._pendingTimeFilters?.[layerName]
+            if (pendingTimeFilter) {
+                delete L_._pendingTimeFilters[layerName]
+                try {
+                    L_.timeFilterVectorLayer(
+                        layerName,
+                        pendingTimeFilter.start,
+                        pendingTimeFilter.end
+                    )
+                } catch (timeFilterErr) {
+                    console.warn(
+                        'WARNING - pending time filter failed for',
+                        layerObj.name,
+                        timeFilterErr
+                    )
+                }
+            }
 
-        if (stopLoops !== true && layerObj.type === 'vector') {
-            Filtering.updateGeoJSON(layerObj.name)
-            Filtering.triggerFilter(layerObj.name)
+            // Trigger filter AFTER releasing the lock — triggerFilter may call
+            // LocalFilterer.filter which does clearVectorLayer + updateVectorLayer.
+            // updateVectorLayer checks _layersBeingMade and bails if the lock is
+            // still held, which would leave the layer empty (cleared but not
+            // repopulated). Moving this here ensures the lock is free.
+            try {
+                const afterCommit =
+                    rt && rt.map
+                        ? LayerInterface.getPhase(rt.map, 'make', 'afterCommit')
+                        : null
+                if (madeSuccessfully && stopLoops !== true && afterCommit) {
+                    await afterCommit(layerObj, pluginCtx)
+                }
+            } catch (filterErr) {
+                console.warn(
+                    'WARNING - make.afterCommit hook failed for',
+                    layerObj.name,
+                    filterErr
+                )
+            }
+
+            // Drain any queued reload request for this layer that arrived
+            // while the lock was held. We dequeue exactly one entry — the
+            // queue coalesces by layer name so newer queued requests have
+            // already replaced older ones. Fire-and-forget: the queued
+            // caller's Promise has already resolved with `true`, so we
+            // don't need to wait or propagate this result.
+            //
+            // CRITICAL: this MUST run in finally — otherwise an exception
+            // inside the switch above would leave the queue holding a
+            // stale entry that the next caller would re-queue against,
+            // permanently blocking reloads for this layer.
+            L_._layerReloadQueue = L_._layerReloadQueue || {}
+            if (L_._layerReloadQueue[layerObj.name]) {
+                const queued = L_._layerReloadQueue[layerObj.name]
+                delete L_._layerReloadQueue[layerObj.name]
+                // Use setTimeout 0 so the current resolve() chain unwinds
+                // first — this prevents stack growth if multiple reloads
+                // are queued back-to-back, and gives any awaiting code in
+                // the original caller a chance to see makeLayer's result
+                // before the next reload begins.
+                setTimeout(() => {
+                    Map_.refreshLayer(
+                        queued.layerObj,
+                        queued.cb,
+                        queued.skipOrderedBringToFront,
+                        queued.stopLoops,
+                        queued.resolvedUrl
+                    )
+                }, 0)
+            }
+
+            resolve(madeSuccessfully)
         }
-        resolve(true)
     })
 }
 
@@ -787,27 +935,62 @@ function onEachFeatureDefault(feature, layer) {
             layer['useKeyAsName']
     }
 
-    if (typeof layer['useKeyAsName'] === 'string') {
-        //Add a mouseover event to the layer
-        layer.on('mouseover', function () {
-            //Make it turn on CursorInfo and show name and value
-            CursorInfo.update(pv, null, false)
+    const layerData = L_.layers.data[layer.options?.layerName] || {}
+    const typeInteractions = LayerTypeRegistry.defaultInteractions(
+        layerData.type
+    )
+    const hooks = resolveLayerInteractions(
+        layerData,
+        undefined,
+        typeInteractions.ids
+    )
+    // Lets the runner enforce each interaction's `applicableLayerTypes`.
+    const layerTypeChain = LayerTypeRegistry.typeChain(layerData.type)
+
+    if (typeof layer['useKeyAsName'] === 'string' && hooks.hover) {
+        layer.on('mouseover', function (e) {
+            const ctx = {
+                Map_,
+                feature,
+                layer,
+                layerName: layer.options.layerName,
+                layerData,
+                layerVar: layerData.variables || {},
+                event: e,
+                eventType: 'hover',
+                layerTypeChain,
+                typeInteractionConfigs: typeInteractions.settings,
+                stop: false,
+                state: {},
+            }
+            runInteractions(hooks.hover, ctx)
         })
-        //Add a mouseout event
-        layer.on('mouseout', function () {
-            //Make it turn off CursorInfo
-            CursorInfo.hide()
+    }
+    if (typeof layer['useKeyAsName'] === 'string' && hooks.mouseout) {
+        layer.on('mouseout', function (e) {
+            const ctx = {
+                Map_,
+                feature,
+                layer,
+                layerName: layer.options.layerName,
+                layerData,
+                layerVar: layerData.variables || {},
+                event: e,
+                eventType: 'mouseout',
+                layerTypeChain,
+                typeInteractionConfigs: typeInteractions.settings,
+                stop: false,
+                state: {},
+            }
+            runInteractions(hooks.mouseout, ctx)
         })
     }
 
-    if (
-        !(
-            feature.style &&
-            feature.style.hasOwnProperty('noclick') &&
-            feature.style.noclick
-        )
-    ) {
-        //Add a click event to send the data to the info tab
+    if (!(
+        feature.style &&
+        feature.style.hasOwnProperty('noclick') &&
+        feature.style.noclick
+    )) {
         layer.on('click', (e) => {
             featureDefaultClick(feature, layer, e)
         })
@@ -821,1157 +1004,38 @@ function featureDefaultClick(feature, layer, e) {
         ToolController_.activeTool.disableLayerInteractions === true
     )
         return
-    MetadataCapturer.populateMetadata(layer, () => {
-        Kinds.use(
-            L_.layers.data[layer.options.layerName].kind,
+    MetadataCapturer.populateMetadata(layer, async () => {
+        const layerName = layer.options.layerName
+        const layerData = L_.layers.data[layerName]
+        const typeInteractions = LayerTypeRegistry.defaultInteractions(
+            layerData.type
+        )
+        const pipeline = resolveLayerInteractions(
+            layerData,
+            undefined,
+            typeInteractions.ids
+        ).click
+
+        L_.clearFeatureAttachments()
+
+        const ctx = {
             Map_,
             feature,
             layer,
-            layer.options.layerName,
-            null,
-            e
-        )
-
-        //update url
-        if (layer != null && layer.hasOwnProperty('options')) {
-            var keyAsName
-            if (layer.hasOwnProperty('useKeyAsName')) {
-                keyAsName = layer.feature.properties[layer.useKeyAsName]
-            } else {
-                keyAsName = layer.feature.properties[0]
-            }
+            layerName,
+            layerData,
+            layerVar: layerData.variables || {},
+            event: e,
+            eventType: 'click',
+            layerTypeChain: LayerTypeRegistry.typeChain(layerData.type),
+            typeInteractionConfigs: typeInteractions.settings,
+            additional: null,
+            stop: false,
+            state: {},
         }
 
-        Viewer_.changeImages(feature, layer)
-
-        //figure out how to construct searchStr in URL. For example: a ChemCam target can sometime
-        //be searched by "target sol", or it can be searched by "sol target" depending on config file.
-        var searchToolVars = L_.getToolVars('search')
-        var searchfields = {}
-        if (searchToolVars.hasOwnProperty('searchfields')) {
-            for (var layerfield in searchToolVars.searchfields) {
-                var fieldString = searchToolVars.searchfields[layerfield]
-                fieldString = fieldString.split(')')
-                for (var i = 0; i < fieldString.length; i++) {
-                    fieldString[i] = fieldString[i].split('(')
-                    var li = fieldString[i][0].lastIndexOf(' ')
-                    if (li != -1) {
-                        fieldString[i][0] = fieldString[i][0].substring(li + 1)
-                    }
-                }
-                fieldString.pop()
-                //0 is function, 1 is parameter
-                searchfields[layerfield] = fieldString
-            }
-        }
-
-        var str = ''
-        if (searchfields.hasOwnProperty(layer.options.layerName)) {
-            var sf = searchfields[layer.options.layerName] //sf for search field
-            for (var i = 0; i < sf.length; i++) {
-                str += sf[i][1]
-                str += ' '
-            }
-        }
-        str = str.substring(0, str.length - 1)
-
-        var searchFieldTokens = str.split(' ')
-        var searchStr
-
-        if (searchFieldTokens.length == 2) {
-            if (
-                searchFieldTokens[0].toLowerCase() ==
-                layer.useKeyAsName.toLowerCase()
-            ) {
-                searchStr = keyAsName + ' ' + layer.feature.properties.Sol
-            } else {
-                searchStr = layer.feature.properties.Sol + ' ' + keyAsName
-            }
-        }
-
-        QueryURL.writeSearchURL([searchStr], layer.options.layerName)
-
-        let _event = new CustomEvent('newActiveFeature', {
-            detail: {
-                activeFeature: L_.activeFeature,
-            },
-        })
-        document.dispatchEvent(_event)
+        await runInteractions(pipeline, ctx)
     })
-}
-
-//Pretty much like makePointLayer but without the pointToLayer stuff
-async function makeVectorLayer(
-    layerObj,
-    evenIfOff,
-    useEmptyGeoJSON,
-    forceGeoJSON,
-    isRefresh = false,
-    mapContext = null
-) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-        default: true,
-    }
-
-    return new Promise((resolve, reject) => {
-        if (forceGeoJSON) add(forceGeoJSON)
-        else
-            captureVector(
-                layerObj,
-                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
-                add,
-                (f) => {
-                    Map_.map.on('moveend', f)
-                    if (
-                        layerObj.time?.enabled === true &&
-                        layerObj.controlled !== true
-                    )
-                        L_.subscribeTimeChange(
-                            `dynamicextent_${layerObj.name}`,
-                            f
-                        )
-                    L_.subscribeOnSpecificLayerToggle(
-                        `dynamicextent_${layerObj.name}`,
-                        layerObj.name,
-                        f
-                    )
-                }
-            )
-
-        function add(data, allowInvalid) {
-            data = F_.parseIntoGeoJSON(data)
-
-            let invalidGeoJSONTrace = gjv.valid(data, true)
-            const allowableErrors = [`position must only contain numbers`]
-
-            invalidGeoJSONTrace = invalidGeoJSONTrace.filter((t) => {
-                if (typeof t !== 'string') return false
-                for (let i = 0; i < allowableErrors.length; i++) {
-                    if (t.toLowerCase().indexOf(allowableErrors[i]) != -1)
-                        return false
-                }
-                return true
-            })
-            if (
-                data == null ||
-                data === 'off' ||
-                (invalidGeoJSONTrace.length > 0 && allowInvalid !== true)
-            ) {
-                if (data != null && data != 'off') {
-                    data = null
-                    console.warn(
-                        `ERROR: ${layerObj.display_name} has invalid GeoJSON!`
-                    )
-                }
-
-                // For refresh operations, preserve the existing layer on failure
-                // to prevent temporary network issues from marking the layer as "layernotfound"
-                if (isRefresh && data === null) {
-                    const existingLayer = ctx.layerRegistry.layer[layerObj.name]
-                    if (existingLayer != null && existingLayer !== false) {
-                        console.warn(
-                            `[${new Date().toISOString()}] Refresh failed for ${layerObj.display_name}, ` +
-                                `keeping existing layer. Next refresh in ${layerObj.time?.refreshIntervalAmount || 60}s`
-                        )
-                        // Mark layer as having a failed refresh
-                        ctx.layerRegistry.refreshFailed[layerObj.name] = true
-                        // Dispatch event so LayersTool can update the UI
-                        const event = new CustomEvent(
-                            'layerRefreshStatusChanged',
-                            {
-                                detail: {
-                                    layerName: layerObj.name,
-                                    failed: true,
-                                },
-                            }
-                        )
-                        document.dispatchEvent(event)
-                        resolve()
-                        return
-                    }
-                }
-
-                // Only set to null for initial loads or if no existing layer
-                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
-                    true
-                ctx.layerRegistry.layer[layerObj.name] =
-                    data == null ? null : false
-                allLayersLoaded()
-                resolve()
-                return
-            }
-
-            layerObj.style = layerObj.style || {}
-            layerObj.style.layerName = layerObj.name
-
-            layerObj.style.opacity =
-                ctx.layerRegistry.opacity[layerObj.name] || 1
-            //layerObj.style.fillOpacity = ctx.layerRegistry.opacity[layerObj.name]
-
-            const vl = constructVectorLayer(
-                data,
-                layerObj,
-                onEachFeatureDefault,
-                Map_ // Keep passing Map_ - constructVectorLayer expects this
-            )
-
-            // For refresh operations, toggle off old layer and handle seamless swap
-            let wasOnForRefresh = false
-            if (
-                isRefresh &&
-                ctx.layerRegistry.on[layerObj.name] &&
-                ctx.layerRegistry.layer[layerObj.name] &&
-                ctx.map.hasLayer(ctx.layerRegistry.layer[layerObj.name])
-            ) {
-                wasOnForRefresh = true
-                L_.toggleLayer(
-                    ctx.layerRegistry.data[layerObj.name],
-                    true,
-                    true
-                )
-            }
-
-            // Clear local time filter cache on refresh so new data is used
-            if (isRefresh && L_._localTimeFilterCache) {
-                delete L_._localTimeFilterCache[layerObj.name]
-            }
-
-            ctx.layerRegistry.attachments[layerObj.name] = vl.sublayers
-            ctx.layerRegistry.layer[layerObj.name] = vl.layer
-
-            // Add to appropriate map
-            if (vl.layer && ctx.default != true) {
-                vl.layer.addTo(ctx.map)
-            }
-
-            // Clear refresh failed status on successful load/refresh
-            if (
-                ctx.layerRegistry.refreshFailed &&
-                ctx.layerRegistry.refreshFailed[layerObj.name]
-            ) {
-                ctx.layerRegistry.refreshFailed[layerObj.name] = false
-                // Dispatch event so LayersTool can update the UI
-                const event = new CustomEvent('layerRefreshStatusChanged', {
-                    detail: { layerName: layerObj.name, failed: false },
-                })
-                document.dispatchEvent(event)
-            }
-
-            // For refresh operations, turn the new layer back on if the old one was on
-            if (isRefresh && wasOnForRefresh) {
-                L_.toggleLayer(
-                    ctx.layerRegistry.data[layerObj.name],
-                    false,
-                    true
-                )
-            }
-
-            L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-
-            allLayersLoaded()
-            resolve()
-        }
-    })
-}
-
-//For vector velocity layers
-async function makeVelocityLayer(
-    layerObj,
-    evenIfOff,
-    useEmptyGeoJSON,
-    forceGeoJSON,
-    mapContext = null
-) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-    }
-    return new Promise((resolve, reject) => {
-        if (forceGeoJSON) add(forceGeoJSON)
-        else
-            captureVector(
-                layerObj,
-                { evenIfOff: evenIfOff, useEmptyGeoJSON: useEmptyGeoJSON },
-                add,
-                (f) => {
-                    Map_.map.on('moveend', f)
-                    if (
-                        layerObj.time?.enabled === true &&
-                        layerObj.controlled !== true
-                    )
-                        L_.subscribeTimeChange(
-                            `dynamicgeodataset_${layerObj.name}`,
-                            f
-                        )
-                    L_.subscribeOnSpecificLayerToggle(
-                        `dynamicgeodataset_${layerObj.name}`,
-                        layerObj.name,
-                        f
-                    )
-                }
-            )
-
-        function add(data, allowInvalid) {
-            if (layerObj.type == 'velocity') {
-                if (
-                    layerObj.kind == 'streamlines' ||
-                    'kind' in layerObj == false
-                ) {
-                    const defaultColors = [
-                        'rgb(36,104, 180)',
-                        'rgb(60,157, 194)',
-                        'rgb(128,205,193 )',
-                        'rgb(151,218,168 )',
-                        'rgb(198,231,181)',
-                        'rgb(238,247,217)',
-                        'rgb(255,238,159)',
-                        'rgb(252,217,125)',
-                        'rgb(255,182,100)',
-                        'rgb(252,150,75)',
-                        'rgb(250,112,52)',
-                        'rgb(245,64,32)',
-                        'rgb(237,45,28)',
-                        'rgb(220,24,32)',
-                        'rgb(180,0,35)',
-                    ]
-                    let colorScale = ''
-                    if (layerObj.variables?.streamlines?.colorScale) {
-                        let colorConfig =
-                            layerObj.variables?.streamlines?.colorScale
-                        if (colorConfig.includes(',')) {
-                            colorScale = colorConfig
-                                .split('", "')
-                                .map((item) => item.replace(/["]/g, ''))
-                        } else if (colorConfig === 'DEFAULT') {
-                            colorScale = defaultColors
-                        } else {
-                            // Assume we have a colormap name and look up the values
-                            let reverse = false
-                            if (colorConfig.endsWith('_r')) {
-                                reverse = true
-                                colorConfig = colorConfig.slice(0, -2)
-                            }
-                            colorScale = []
-                            let colors = colormapData[colorConfig]?.colors
-                            if (colors != null) {
-                                colors
-                                    .map((color) => {
-                                        const r = Math.round(color[0] * 255)
-                                        const g = Math.round(color[1] * 255)
-                                        const b = Math.round(color[2] * 255)
-                                        return `rgb(${r}, ${g}, ${b})`
-                                    })
-                                    .forEach((colorString) =>
-                                        colorScale.push(colorString)
-                                    )
-                                if (reverse) {
-                                    colorScale = colorScale.reverse()
-                                }
-                            } else {
-                                colorScale = defaultColors
-                            }
-                        }
-                    }
-                    let velocityLayer = L.velocityLayer({
-                        displayValues:
-                            layerObj.variables?.streamlines?.displayValues,
-                        displayOptions: {
-                            position: layerObj.variables?.streamlines
-                                ?.displayPosition
-                                ? layerObj.variables?.streamlines
-                                      ?.displayPosition
-                                : 'bottomleft',
-                            emptyString: '',
-                        },
-                        data: data,
-                        minVelocity: layerObj.variables?.streamlines
-                            ?.minVelocity
-                            ? layerObj.variables.streamlines.minVelocity
-                            : 0,
-                        maxVelocity: layerObj.variables?.streamlines
-                            ?.maxVelocity
-                            ? layerObj.variables.streamlines.maxVelocity
-                            : 15,
-                        velocityScale: layerObj.variables?.streamlines
-                            ?.velocityScale
-                            ? layerObj.variables.streamlines.velocityScale
-                            : 0.005,
-                        particleAge: layerObj.variables?.streamlines
-                            ?.particleAge
-                            ? layerObj.variables.streamlines.particleAge
-                            : 90,
-                        lineWidth: layerObj.variables?.streamlines?.lineWidth
-                            ? layerObj.variables.streamlines.lineWidth
-                            : 1,
-                        particleMultiplier: layerObj.variables?.streamlines
-                            ?.particleMultiplier
-                            ? layerObj.variables.streamlines.particleMultiplier
-                            : 1 / 300,
-                        frameRate: layerObj.variables?.streamlines?.frameRate
-                            ? layerObj.variables.streamlines.frameRate
-                            : 15,
-                        colorScale: colorScale,
-                    })
-                    velocityLayer.setZIndex = function () {}
-                    L_.layers.layer[layerObj.name] = velocityLayer
-                } else if (layerObj.kind == 'particles') {
-                    let points = []
-                    if (data.features) {
-                        data.features.forEach(function (feature) {
-                            points.push([
-                                feature.geometry.coordinates[1],
-                                feature.geometry.coordinates[0],
-                            ])
-                        })
-                    }
-                    let options = {
-                        angle: layerObj.variables?.particles?.angle
-                            ? layerObj.variables?.particles?.angle
-                            : 80,
-                        width: layerObj.variables?.particles?.width
-                            ? layerObj.variables?.particles?.width
-                            : 1,
-                        spacing: layerObj.variables?.particles?.spacing
-                            ? layerObj.variables?.particles?.spacing
-                            : 10,
-                        length: layerObj.variables?.particles?.length
-                            ? layerObj.variables?.particles?.length
-                            : 4,
-                        interval: layerObj.variables?.particles?.interval
-                            ? layerObj.variables?.particles?.interval
-                            : 10,
-                        speed: layerObj.variables?.particles?.speed
-                            ? layerObj.variables?.particles?.speed
-                            : 0.1,
-                        color: layerObj.style?.color
-                            ? layerObj.style?.color
-                            : 'Oxa6b3e9',
-                    }
-                    let rainLayer = L.rain(points, options)
-                    rainLayer.setZIndex = function () {}
-                    L_.layers.layer[layerObj.name] = rainLayer
-                }
-                L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] =
-                    true
-            }
-            allLayersLoaded()
-            resolve()
-        }
-    })
-}
-
-async function makeTileLayer(layerObj, mapContext = null) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-        default: true,
-    }
-
-    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
-
-    let splitColonType
-    const splitColonLayerUrl = layerObj.url.split(':')
-    if (splitColonLayerUrl[1] != null) {
-        let bandsParam = ''
-        let b
-        let resamplingParam = ''
-
-        switch (splitColonLayerUrl[0]) {
-            case 'stac-collection':
-                splitColonType = splitColonLayerUrl[0]
-                // Use shared transformation function
-                layerUrl = transformStacUrl(
-                    layerObj.url,
-                    layerObj,
-                    'tile',
-                    window.location
-                )
-                // Cache transformed URL for reuse (e.g., in animations)
-                layerObj._transformedUrl = layerUrl
-                layerObj.tileformat = 'wmts'
-                break
-            case 'COG':
-                splitColonType = splitColonLayerUrl[0]
-
-                // Bands parameter (expression will be added dynamically in getTileUrl)
-                bandsParam = ''
-
-                // Only add bands if no expression exists (expression takes precedence)
-                if (
-                    !layerObj.cogExpression ||
-                    layerObj.cogExpression.trim() === ''
-                ) {
-                    b = layerObj.cogBands
-                    if (b != null) {
-                        b.forEach((band) => {
-                            if (band != null) bandsParam += `&bidx=${band}`
-                        })
-                    }
-                }
-
-                resamplingParam = ''
-                if (layerObj.cogResampling) {
-                    resamplingParam = `&resampling=${layerObj.cogResampling}`
-                }
-
-                layerUrl = `${window.location.origin}${(
-                    window.location.pathname || ''
-                ).replace(/\/$/g, '')}/titiler/cog/tiles/${
-                    layerObj.tileMatrixSet || 'WebMercatorQuad'
-                }/{z}/{x}/{y}.webp?url=${layerUrl}${bandsParam}${resamplingParam}`
-
-            default:
-                break
-        }
-    }
-
-    let bb = null
-    if (layerObj.hasOwnProperty('boundingBox')) {
-        bb = L.latLngBounds(
-            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
-            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
-        )
-    }
-    layerUrl = await TimeControl.performTimeUrlReplacements(
-        layerUrl,
-        layerObj,
-        null
-    )
-
-    let tileFormat = 'tms'
-    // For backward compatibility with the .tms option
-    if (typeof layerObj.tileformat === 'undefined') {
-        tileFormat = typeof layerObj.tms === 'undefined' ? true : layerObj.tms
-        tileFormat = tileFormat ? 'tms' : 'wmts'
-    } else tileFormat = layerObj.tileformat
-
-    ctx.layerRegistry.layer[layerObj.name] = L.tileLayer.colorFilter(layerUrl, {
-        minZoom: parseInt(layerObj.minZoom),
-        maxZoom: parseInt(layerObj.maxZoom),
-        maxNativeZoom: parseInt(layerObj.maxNativeZoom),
-        tileFormat: tileFormat,
-        tms: tileFormat === 'tms',
-        splitColonType: splitColonType,
-        //noWrap: true,
-        continuousWorld: true,
-        reuseTiles: true,
-        bounds: bb,
-        timeEnabled: layerObj.time != null && layerObj.time.enabled === true,
-        time: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
-        compositeTile:
-            typeof layerObj.time === 'undefined'
-                ? false
-                : layerObj.time.compositeTile || false,
-        starttime:
-            typeof layerObj.time === 'undefined' ? '' : layerObj.time.start,
-        endtime: typeof layerObj.time === 'undefined' ? '' : layerObj.time.end,
-        customTimes:
-            typeof layerObj.time === 'undefined'
-                ? null
-                : layerObj.time.customTimes,
-        cogTransform: layerObj.cogTransform,
-        cogMin: layerObj.cogMin,
-        currentCogMin: layerObj.currentCogMin,
-        cogMax: layerObj.cogMax,
-        currentCogMax: layerObj.currentCogMax,
-        cogColormap: layerObj.cogColormap,
-        cogExpression: layerObj.cogExpression,
-        currentCogExpression: layerObj.currentCogExpression,
-        variables: layerObj.variables || {},
-    })
-
-    // Add to map
-    if (ctx.default != true) {
-        ctx.layerRegistry.layer[layerObj.name].addTo(ctx.map)
-    }
-
-    L_.setLayerOpacity(
-        layerObj.name,
-        ctx.layerRegistry.opacity[layerObj.name] || 1
-    )
-
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    ctx.layerRegistry.layer[layerObj.name].off('loading')
-    ctx.layerRegistry.layer[layerObj.name].on('loading', () => {
-        L_.setGlobalLoading(layerObj.name)
-    })
-    ctx.layerRegistry.layer[layerObj.name].off('load')
-    ctx.layerRegistry.layer[layerObj.name].on('load', () => {
-        // Set default css filters for tile layer
-        if (
-            layerObj.style?.brightness != null &&
-            L_.layers.filters[layerObj.name]?.brightness == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'brightness',
-                layerObj.style.brightness
-            )
-        if (
-            layerObj.style?.contrast != null &&
-            L_.layers.filters[layerObj.name]?.contrast == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'contrast',
-                layerObj.style.contrast
-            )
-        if (
-            layerObj.style?.saturation != null &&
-            L_.layers.filters[layerObj.name]?.saturation == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'saturation',
-                layerObj.style.saturation
-            )
-        if (
-            layerObj.style?.blend != null &&
-            L_.layers.filters[layerObj.name]?.blend == null
-        )
-            L_.setLayerFilter(
-                layerObj.name,
-                'mix-blend-mode',
-                layerObj.style.blend
-            )
-
-        L_.setGlobalLoaded(layerObj.name)
-    })
-    allLayersLoaded()
-}
-
-function makeVectorTileLayer(layerObj, mapContext = null) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-    }
-    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
-
-    let urlSplit = layerObj.url.split(':')
-
-    if (urlSplit[0].toLowerCase() === 'geodatasets' && urlSplit[1] != null) {
-        layerUrl =
-            `${window.mmgisglobal.ROOT_PATH || ''}/api/geodatasets/get?layer=${
-                urlSplit[1]
-            }` + '&type=mvt&x={x}&y={y}&z={z}'
-    }
-
-    var bb = null
-    if (layerObj.hasOwnProperty('boundingBox')) {
-        bb = L.latLngBounds(
-            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
-            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
-        )
-    }
-
-    var clearHighlight = function () {
-        for (let l of Object.keys(L_.layers.data)) {
-            if (L_.layers.layer[l]) {
-                var highlight = L_.layers.layer[l].highlight
-                if (highlight) {
-                    L_.layers.layer[l].resetFeatureStyle(highlight)
-                }
-                L_.layers.layer[l].highlight = null
-            }
-        }
-    }
-    var timedSelectTimeout = null
-    var timedSelect = function (layer, layerName, e) {
-        clearTimeout(timedSelectTimeout)
-        timedSelectTimeout = setTimeout(
-            (function (layer, layerName, e) {
-                return function () {
-                    let ell = { latlng: null }
-                    if (e.latlng != null)
-                        ell.latlng = JSON.parse(JSON.stringify(e.latlng))
-                    MetadataCapturer.populateMetadata(layer, () => {
-                        Kinds.use(
-                            L_.layers.data[layerName].kind,
-                            Map_,
-                            L_.layers.layer[layerName].activeFeatures[0],
-                            layer,
-                            layerName,
-                            null,
-                            ell
-                        )
-
-                        ToolController_.getTool('InfoTool').use(
-                            layer,
-                            layerName,
-                            L_.layers.layer[layerName].activeFeatures,
-                            null,
-                            null,
-                            null,
-                            ell
-                        )
-                        L_.layers.layer[layerName].activeFeatures = []
-                    })
-                }
-            })(layer, layerName, e),
-            100
-        )
-    }
-
-    var vectorTileOptions = {
-        layerName: layerObj.name,
-        rendererFactory: L.svg.tile,
-        vectorTileLayerStyles: layerObj.style.vtLayer || {},
-        interactive: true,
-        minZoom: layerObj.minZoom,
-        maxZoom: layerObj.maxZoom,
-        maxNativeZoom: layerObj.maxNativeZoom,
-        getFeatureId: (function (vtId) {
-            return function (f) {
-                if (
-                    f.properties.properties &&
-                    typeof f.properties.properties === 'string'
-                ) {
-                    f.properties = JSON.parse(f.properties.properties)
-                }
-                return f.properties[vtId]
-            }
-        })(layerObj.style.vtId),
-    }
-
-    L_.layers.layer[layerObj.name] = L.vectorGrid
-        .protobuf(layerUrl, vectorTileOptions)
-        .on('click', function (e, b, x) {
-            let layerName = e.target.options.layerName
-            let vtId = L_.layers.layer[layerName].vtId
-            clearHighlight()
-            L_.layers.layer[layerName].highlight = e.layer.properties[vtId]
-
-            L_.layers.layer[layerName].setFeatureStyle(
-                L_.layers.layer[layerName].highlight,
-                {
-                    weight: 2,
-                    color: 'red',
-                    opacity: 1,
-                    fillColor: 'red',
-                    fill: true,
-                    radius: 4,
-                    fillOpacity: 1,
-                }
-            )
-            L_.layers.layer[layerName].activeFeatures =
-                L_.layers.layer[layerName].activeFeatures || []
-            L_.layers.layer[layerName].activeFeatures.push({
-                type: 'Feature',
-                properties: e.layer.properties,
-                geometry: {},
-            })
-
-            Map_.activeLayer = e.layer
-            if (Map_.activeLayer) L_.Map_._justSetActiveLayer = true
-
-            let p = e.sourceTarget._point
-
-            if (p) {
-                for (var i in e.layer._renderer._features) {
-                    if (
-                        e.layer._renderer._features[i].feature._pxBounds.min
-                            .x <= p.x &&
-                        e.layer._renderer._features[i].feature._pxBounds.max
-                            .x >= p.x &&
-                        e.layer._renderer._features[i].feature._pxBounds.min
-                            .y <= p.y &&
-                        e.layer._renderer._features[i].feature._pxBounds.max
-                            .y >= p.y &&
-                        e.layer._renderer._features[i].feature.properties[
-                            vtId
-                        ] != e.layer.properties[vtId]
-                    ) {
-                        L_.layers.layer[layerName].activeFeatures.push({
-                            type: 'Feature',
-                            properties:
-                                e.layer._renderer._features[i].feature
-                                    .properties,
-                            geometry: {},
-                        })
-                    }
-                }
-            }
-
-            timedSelect(e.layer, layerName, e)
-
-            L.DomEvent.stop(e)
-        })
-        .on(
-            'mouseover',
-            (function (vtKey) {
-                return function (e, a, b, c) {
-                    if (vtKey != null)
-                        CursorInfo.update(
-                            vtKey + ': ' + e.layer.properties[vtKey],
-                            null,
-                            false
-                        )
-                }
-            })(layerObj.style.vtKey)
-        )
-        .on('mouseout', function () {
-            CursorInfo.hide()
-        })
-
-    L_.layers.layer[layerObj.name].vtId = layerObj.style.vtId
-    L_.layers.layer[layerObj.name].vtKey = layerObj.style.vtKey
-
-    L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
-
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    allLayersLoaded()
-}
-
-function makeModelLayer(layerObj, mapContext = null) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-    }
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    allLayersLoaded()
-}
-
-function makeDataLayer(layerObj, mapContext = null) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-    }
-    let layerUrl = L_.getUrl(layerObj.type, layerObj.demtileurl, layerObj)
-
-    let bb = null
-    if (layerObj.hasOwnProperty('boundingBox')) {
-        bb = L.latLngBounds(
-            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
-            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
-        )
-    }
-
-    const shader = F_.getIn(layerObj, 'variables.shader') || {}
-    const shaderType = shader.type || 'image'
-
-    var uniforms = {}
-    for (let i = 0; i < DataShaders[shaderType].settings.length; i++) {
-        uniforms[DataShaders[shaderType].settings[i].parameter] =
-            DataShaders[shaderType].settings[i].value
-    }
-
-    L_.layers.layer[layerObj.name] = L.tileLayer.gl({
-        options: {
-            tms: true,
-            bounds: bb,
-        },
-        fragmentShader: DataShaders[shaderType].frag,
-        tileUrls: [layerUrl],
-        pixelPerfect: true,
-        uniforms: uniforms,
-    })
-
-    if (DataShaders[shaderType].attachImmediateEvents) {
-        DataShaders[shaderType].attachImmediateEvents(layerObj.name, shader)
-    }
-
-    L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
-
-    L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-    allLayersLoaded()
-}
-
-function makeImageLayer(layerObj, mapContext = null) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-    }
-    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
-    if (!F_.isUrlAbsolute(layerUrl)) {
-        layerUrl = `${window.location.origin}${(
-            window.location.pathname || ''
-        ).replace(/\/$/g, '')}/${layerUrl}`
-    }
-
-    let bb = null
-    if (layerObj.hasOwnProperty('boundingBox')) {
-        bb = L.latLngBounds(
-            L.latLng(layerObj.boundingBox[3], layerObj.boundingBox[2]),
-            L.latLng(layerObj.boundingBox[1], layerObj.boundingBox[0])
-        )
-    }
-
-    const cogColormap = F_.getIn(L_.layers.data[layerObj.name], 'cogColormap')
-
-    parseGeoraster(layerUrl)
-        .then((georaster) => {
-            let pixelValuesToColorFn = null
-            if (
-                F_.getIn(
-                    L_.layers.data[layerObj.name],
-                    'variables.hideNoDataValue'
-                ) === true
-            ) {
-                pixelValuesToColorFn = (values) => {
-                    // https://github.com/GeoTIFF/georaster-layer-for-leaflet/issues/16
-                    return values[0] === georaster.noDataValue
-                        ? null
-                        : `rgb(${values[0]},${values[1]},${values[2]})`
-                }
-            }
-
-            const imageInfo = F_.getIn(
-                L_.layers.data[layerObj.name],
-                'variables.image'
-            )
-
-            const hideNoDataValue = F_.getIn(
-                L_.layers.data[layerObj.name],
-                'variables.hideNoDataValue'
-            )
-
-            let min = null
-            let max = null
-            if (georaster.numberOfRasters === 1) {
-                min = layerObj.cogMin
-                max = layerObj.cogMax
-
-                if (
-                    isNaN(parseFloat(layerObj.cogMin)) ||
-                    isNaN(parseFloat(layerObj.cogMax))
-                ) {
-                    // Try to get the min and max values using gdal if the user did not input min/max in the layer config
-                    $.ajax({
-                        type: calls.getminmax.type,
-                        url: calls.getminmax.url,
-                        data: {
-                            type: 'minmax',
-                            path: calls.getprofile.pathprefix + layerUrl,
-                            bands: '[1]', // Assume the geotiff images only have a single band
-                        },
-                        async: false,
-                        success: function (data) {
-                            if (
-                                data &&
-                                data[0] &&
-                                data[0].band &&
-                                data[0].band === 1
-                            ) {
-                                if (isNaN(parseFloat(layerObj.cogMin))) {
-                                    min = data[0].min
-                                    layerObj.cogMin = min
-                                }
-                                if (isNaN(parseFloat(layerObj.cogMax))) {
-                                    max = data[0].max
-                                    layerObj.cogMax = max
-                                }
-                            }
-                        },
-                        error: function (request, status, error) {
-                            console.warn(
-                                `Failed to get gdal minmax info for ${layerObj.name}`,
-                                request,
-                                status,
-                                error
-                            )
-                        },
-                    })
-                }
-
-                // FIXME A lot of this code is duplicated in LayersTool so find some way to consolidate them as functions
-                var range = max - min
-                let colormap = null
-                let reverse = false
-                if (
-                    layerObj.cogTransform === true &&
-                    'cogColormap' in layerObj
-                ) {
-                    colormap = layerObj.cogColormap
-                    // TiTiler colormap variables are all lower case so we need to format them correctly for js-colormaps
-                    if (colormap.toLowerCase().endsWith('_r')) {
-                        colormap = colormap.substring(0, colormap.length - 2)
-                        reverse = true
-                    }
-
-                    let index = Object.keys(colormapData).findIndex((v) => {
-                        return v.toLowerCase() === colormap.toLowerCase()
-                    })
-
-                    if (index > -1) {
-                        colormap = Object.keys(colormapData)[index]
-                    } else {
-                        colormap = 'binary' // Give it the default value
-                    }
-                } else {
-                    colormap = 'binary' // Give it the default value
-                }
-
-                pixelValuesToColorFn = (values) => {
-                    var pixelValue = values[0] // single band
-                    // don't return a color
-                    if (
-                        georaster.noDataValue != null &&
-                        georaster.noDataValue === pixelValue
-                    ) {
-                        if (hideNoDataValue) {
-                            return null
-                        }
-
-                        // Handle the case where we do not want to hide noDataValue
-                        return [0, 0, 0]
-                    }
-
-                    // scale from 0 - 1
-                    var scaledPixelValue = (pixelValue - min) / range
-                    if (!(scaledPixelValue >= 0 && scaledPixelValue <= 1)) {
-                        if (imageInfo && imageInfo.fillMinMax) {
-                            if (scaledPixelValue <= 0) {
-                                scaledPixelValue = 0
-                            } else if (scaledPixelValue >= 1.0) {
-                                scaledPixelValue = 1
-                            }
-                        } else {
-                            return null
-                        }
-                    }
-
-                    return evaluate_cmap(
-                        scaledPixelValue,
-                        colormap || IMAGE_DEFAULT_COLOR_RAMP,
-                        reverse
-                    )
-                }
-            }
-
-            L_.layers.layer[layerObj.name] = new GeoRasterLayer({
-                georaster: georaster,
-                resolution: 256,
-                opacity: 1.0,
-                pixelValuesToColorFn: pixelValuesToColorFn,
-            })
-
-            L_.layers.layer[layerObj.name].clearCache()
-
-            L_.layers.layer[layerObj.name].setZIndex(
-                L_._layersOrdered.length +
-                    1 -
-                    L_._layersOrdered.indexOf(layerObj.name)
-            )
-
-            L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
-
-            L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-            allLayersLoaded()
-        })
-        .catch((e) => {
-            console.warn(`WARNING - Unable to load image: ${layerUrl}`)
-
-            L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-            L_.layers.layer[layerObj.name] = null
-            allLayersLoaded()
-        })
-}
-
-function makeVideoLayer(layerObj, mapContext = null) {
-    // Default to main map context for backward compatibility
-    const ctx = mapContext || {
-        map: Map_.map,
-        layerRegistry: L_.layers,
-    }
-    let layerUrl = L_.getUrl(layerObj.type, layerObj.url, layerObj)
-    if (!F_.isUrlAbsolute(layerUrl)) {
-        layerUrl = `${window.location.origin}${(
-            window.location.pathname || ''
-        ).replace(/\/$/g, '')}/${layerUrl}`
-    }
-
-    if (!layerObj.boundingBox || layerObj.boundingBox.length !== 4) {
-        console.warn(
-            `Video layer '${layerObj.name}' missing required bounding box`
-        )
-        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-        L_.layers.layer[layerObj.name] = null
-        allLayersLoaded()
-        return
-    }
-
-    const bounds = [
-        [
-            parseFloat(layerObj.boundingBox[1]),
-            parseFloat(layerObj.boundingBox[0]),
-        ],
-        [
-            parseFloat(layerObj.boundingBox[3]),
-            parseFloat(layerObj.boundingBox[2]),
-        ],
-    ]
-
-    const videoOptions = {
-        opacity: layerObj.initialOpacity != null ? layerObj.initialOpacity : 1,
-        autoplay: F_.getIn(layerObj, 'variables.video.autoplay', false),
-        loop: F_.getIn(layerObj, 'variables.video.loop', true),
-        muted: true, // Always muted by default
-        playsInline: true,
-    }
-
-    try {
-        L_.layers.layer[layerObj.name] = L.videoOverlay(
-            layerUrl,
-            bounds,
-            videoOptions
-        )
-
-        // Add updateFilter function to video layer for CSS filter support
-        L_.layers.layer[layerObj.name].updateFilter = function (filterArray) {
-            const videoElement = this.getElement()
-            if (videoElement) {
-                let cssFilters = []
-
-                filterArray.forEach((filter) => {
-                    const [property, value] = filter.split(':')
-                    // Skip blend mode for videos - only handle CSS filters
-                    if (property !== 'mix-blend-mode') {
-                        if (property === 'saturate') {
-                            cssFilters.push(
-                                `saturate(${parseFloat(value) * 100}%)`
-                            )
-                        } else if (property === 'brightness') {
-                            cssFilters.push(
-                                `brightness(${parseFloat(value) * 100}%)`
-                            )
-                        } else if (property === 'contrast') {
-                            cssFilters.push(
-                                `contrast(${parseFloat(value) * 100}%)`
-                            )
-                        }
-                    }
-                })
-
-                // Apply CSS filters to video element
-                videoElement.style.filter = cssFilters.join(' ')
-            }
-        }
-
-        L_.layers.layer[layerObj.name].setZIndex(
-            L_._layersOrdered.length +
-                1 -
-                L_._layersOrdered.indexOf(layerObj.name)
-        )
-
-        L_.setLayerOpacity(layerObj.name, L_.layers.opacity[layerObj.name])
-
-        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-        allLayersLoaded()
-    } catch (e) {
-        console.warn(`WARNING - Unable to load video layer: ${layerUrl}`, e)
-        L_._layersLoaded[L_._layersOrdered.indexOf(layerObj.name)] = true
-        L_.layers.layer[layerObj.name] = null
-        allLayersLoaded()
-    }
 }
 
 //Because some layers load faster than others, check to see if
@@ -1996,27 +1060,9 @@ function allLayersLoaded() {
         L_.loaded()
         //OTHER TEMPORARY TEST STUFF THINGS
 
-        if (L_.UserInterface_.isMobile !== true) {
-            // Turn on legend if displayOnStart is true
-            if ('LegendTool' in ToolController_.toolModules) {
-                if (
-                    ToolController_.toolModules['LegendTool'].displayOnStart ==
-                    true
-                ) {
-                    ToolController_.toolModules['LegendTool'].make(
-                        'toolContentSeparated_Legend'
-                    )
-                    ToolController_.activeSeparatedTools.push('LegendTool')
-                    let _event = new CustomEvent('toggleSeparatedTool', {
-                        detail: {
-                            toggledToolName: 'LegendTool',
-                            visible: true,
-                        },
-                    })
-                    document.dispatchEvent(_event)
-                }
-            }
-        }
+        // displayOnStart for separated tools (e.g. Legend) is now handled
+        // by ToolController_.finalizeTools() above — Map_ does not reference
+        // specific tools.
     }
 }
 

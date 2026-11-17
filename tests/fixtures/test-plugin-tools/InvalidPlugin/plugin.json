@@ -1,0 +1,3 @@
+{
+    "description": "Intentionally invalid plugin fixture: missing required 'name' and 'paths' fields."
+}

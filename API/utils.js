@@ -63,9 +63,11 @@ const Utils = {
     else object[keyArray[keyArray.length - 1]] = value;
     return true;
   },
+  DANGEROUS_KEYS: new Set(['__proto__', 'constructor', 'prototype']),
   setIn2: function (obj, keyArray, value, force) {
     if (keyArray == null || keyArray.length === 0) return null;
     if (typeof keyArray === "string") keyArray = keyArray.split(".");
+    if (keyArray.some(k => Utils.DANGEROUS_KEYS.has(k))) return null;
     let object = obj;
     for (let i = 0; i < keyArray.length - 1; i++) {
       if (force) {
@@ -183,10 +185,12 @@ const Utils = {
 
     return isDockerCached;
   },
-  forceAlphaNumUnder: function (str) {
+  forceAlphaNumUnder: function (str, allowList) {
     if (typeof str === "string") {
       return str
-        .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\//() ]/gi, "")
+        .replace(/[`~!@#$%^&*|+\-=?;:'",.<>\{\}\[\]\\\//() ]/gi, function (match) {
+          return allowList && allowList.indexOf(match) !== -1 ? match : "";
+        })
         .replace(/[^ -~]+/g, "");
     } else if (typeof str === "number") {
       // Reject unsafe number values (NaN, Infinity, -Infinity)
@@ -199,7 +203,9 @@ const Utils = {
     } else if (Array.isArray(str)) {
       return str
         .join(",")
-        .replace(/[`~!@#$%^&*|+\-=?;:'".<>\{\}\[\]\\\//() ]/gi, "")
+        .replace(/[`~!@#$%^&*|+\-=?;:'".<>\{\}\[\]\\\//() ]/gi, function (match) {
+          return allowList && allowList.indexOf(match) !== -1 ? match : "";
+        })
         .replace(/[^ -~]+/g, "")
         .split(",");
     } else {

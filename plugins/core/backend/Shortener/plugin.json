@@ -1,0 +1,20 @@
+{
+  "uuid": "9f3c3f37-d7df-4513-ab09-5128e65b7af9",
+  "id": "core-shortener",
+  "name": "Shortener",
+  "display_name": "URL Shortener",
+  "aliases": [
+    "shortener"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/shortener",
+    "auth": "public"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

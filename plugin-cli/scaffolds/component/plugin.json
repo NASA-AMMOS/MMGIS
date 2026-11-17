@@ -1,0 +1,8 @@
+{
+    "name": "__Name__",
+    "type": "component",
+    "defaultIcon": "puzzle-outline",
+    "paths": {
+        "__Name__": "./__Name__"
+    }
+}

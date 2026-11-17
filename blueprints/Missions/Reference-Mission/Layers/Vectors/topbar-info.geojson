@@ -1,0 +1,33 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.85]
+      },
+      "properties": {
+        "id": "topbar-1",
+        "name": "TopBar Info Point 1",
+        "mission_time": "Sol 1234",
+        "temperature": "18°C",
+        "description": "This layer has custom TopBar information configured to display mission-critical data."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.40, 37.84]
+      },
+      "properties": {
+        "id": "topbar-2",
+        "name": "TopBar Info Point 2",
+        "mission_time": "Sol 1235",
+        "temperature": "19°C",
+        "description": "TopBar can show dynamic layer properties like time, temperature, status."
+      }
+    }
+  ]
+}

@@ -1,0 +1,173 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "arrow": true,
+        "name": "Solid Arrow - Round Joins",
+        "description": "Red arrow with round line joins and caps",
+        "style": {
+          "color": "rgb(255, 50, 50)",
+          "fillColor": "rgb(255, 100, 100)",
+          "width": 4,
+          "weight": 4,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.85,
+          "radius": 18,
+          "dashArray": "",
+          "lineCap": "round",
+          "lineJoin": "round"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4200, 37.7700],
+          [-122.4200, 37.7800]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrow": true,
+        "name": "Dashed Arrow - Bevel Joins",
+        "description": "Green arrow with bevel joins and dashed pattern",
+        "style": {
+          "color": "rgb(0, 200, 50)",
+          "fillColor": "rgb(50, 255, 100)",
+          "width": 5,
+          "weight": 5,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.75,
+          "radius": 20,
+          "dashArray": "10, 5",
+          "lineCap": "butt",
+          "lineJoin": "bevel"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4400, 37.7700],
+          [-122.4300, 37.7800]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrow": true,
+        "name": "Thick Arrow - Miter Joins",
+        "description": "Blue arrow with sharp miter joins and square caps",
+        "style": {
+          "color": "rgb(30, 100, 255)",
+          "fillColor": "rgb(80, 150, 255)",
+          "width": 6,
+          "weight": 6,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.9,
+          "radius": 22,
+          "dashArray": "",
+          "lineCap": "square",
+          "lineJoin": "miter"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4600, 37.7750],
+          [-122.4500, 37.7750]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrow": true,
+        "name": "Dot-Dash Pattern Arrow",
+        "description": "Cyan arrow with dot-dash pattern",
+        "style": {
+          "color": "rgb(0, 200, 255)",
+          "fillColor": "rgb(100, 230, 255)",
+          "width": 4,
+          "weight": 4,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.8,
+          "radius": 18,
+          "dashArray": "15, 5, 3, 5",
+          "lineCap": "round",
+          "lineJoin": "round"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4000, 37.7650],
+          [-122.3900, 37.7700]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrow": true,
+        "name": "Wide Contrasting Arrow",
+        "description": "Purple arrow with wide stroke and contrasting fill",
+        "style": {
+          "color": "rgb(150, 0, 200)",
+          "fillColor": "rgb(255, 200, 0)",
+          "width": 7,
+          "weight": 7,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.95,
+          "radius": 25,
+          "dashArray": "",
+          "lineCap": "round",
+          "lineJoin": "miter"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4150, 37.7600],
+          [-122.4050, 37.7650]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "arrow": true,
+        "name": "Long Dash Arrow",
+        "description": "Orange arrow with long dash pattern",
+        "style": {
+          "color": "rgb(255, 140, 0)",
+          "fillColor": "rgb(255, 180, 50)",
+          "width": 5,
+          "weight": 5,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.7,
+          "radius": 20,
+          "dashArray": "20, 10",
+          "lineCap": "square",
+          "lineJoin": "bevel"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4350, 37.7600],
+          [-122.4250, 37.7650]
+        ]
+      }
+    }
+  ]
+}

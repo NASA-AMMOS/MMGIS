@@ -1,0 +1,237 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.45, 37.82]
+      },
+      "properties": {
+        "id": "zoom-feat-pt-1",
+        "name": "Zoom 8-11 Point",
+        "description": "Point visible at zoom 8-11 (feature property)",
+        "style": {
+          "fillColor": "#ff0000",
+          "minZoom": 8,
+          "maxZoom": 11
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.82]
+      },
+      "properties": {
+        "id": "zoom-feat-pt-2",
+        "name": "Zoom 11-14 Point",
+        "description": "Point visible at zoom 11-14 (feature property)",
+        "style": {
+          "fillColor": "#00ff00",
+          "minZoom": 11,
+          "maxZoom": 14
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.82]
+      },
+      "properties": {
+        "id": "zoom-feat-pt-3",
+        "name": "Zoom 14+ Point",
+        "description": "Point visible at zoom 14+ (feature property)",
+        "style": {
+          "fillColor": "#0000ff",
+          "minZoom": 14,
+          "maxZoom": 20
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.46, 37.80],
+          [-122.44, 37.78]
+        ]
+      },
+      "properties": {
+        "id": "zoom-feat-line-1",
+        "name": "Zoom 9-12 Line",
+        "description": "Line visible at zoom 9-12 (feature property)",
+        "style": {
+          "color": "#ff6600",
+          "weight": 3,
+          "minZoom": 9,
+          "maxZoom": 12
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.42, 37.80],
+          [-122.40, 37.78]
+        ]
+      },
+      "properties": {
+        "id": "zoom-feat-line-2",
+        "name": "Zoom 12-15 Line",
+        "description": "Line visible at zoom 12-15 (feature property)",
+        "style": {
+          "color": "#00aaff",
+          "weight": 3,
+          "minZoom": 12,
+          "maxZoom": 15
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.44, 37.76],
+          [-122.42, 37.74]
+        ]
+      },
+      "properties": {
+        "arrow": true,
+        "id": "zoom-feat-arrow-1",
+        "name": "Zoom 10-13 Arrow",
+        "description": "Arrow visible at zoom 10-13 (feature property)",
+        "style": {
+          "color": "rgb(200, 0, 200)",
+          "fillColor": "rgb(255, 100, 255)",
+          "width": 4,
+          "weight": 4,
+          "length": "Full",
+          "opacity": 1,
+          "fillOpacity": 0.8,
+          "radius": 18,
+          "lineCap": "round",
+          "lineJoin": "round",
+          "minZoom": 10,
+          "maxZoom": 13
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.40, 37.76],
+            [-122.38, 37.76],
+            [-122.38, 37.74],
+            [-122.40, 37.74],
+            [-122.40, 37.76]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "zoom-feat-poly-1",
+        "name": "Zoom 8-10 Polygon",
+        "description": "Polygon visible at zoom 8-10 (feature property)",
+        "style": {
+          "fillColor": "#ffaa00",
+          "fillOpacity": 0.5,
+          "minZoom": 8,
+          "maxZoom": 10
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.37, 37.76],
+            [-122.35, 37.76],
+            [-122.35, 37.74],
+            [-122.37, 37.74],
+            [-122.37, 37.76]
+          ]
+        ]
+      },
+      "properties": {
+        "id": "zoom-feat-poly-2",
+        "name": "Zoom 13-16 Polygon",
+        "description": "Polygon visible at zoom 13-16 (feature property)",
+        "style": {
+          "fillColor": "#aa00ff",
+          "fillOpacity": 0.6,
+          "minZoom": 13,
+          "maxZoom": 16
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.83]
+      },
+      "properties": {
+        "id": "zoom-feat-label-1",
+        "name": "FEATURE ZOOM 8-11",
+        "description": "Label visible at zoom 8-11",
+        "style": {
+          "radius": 0,
+          "fillOpacity": 0,
+          "opacity": 0,
+          "minZoom": 8,
+          "maxZoom": 11
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.82]
+      },
+      "properties": {
+        "id": "zoom-feat-label-2",
+        "name": "FEATURE ZOOM 11-14",
+        "description": "Label visible at zoom 11-14",
+        "style": {
+          "radius": 0,
+          "fillOpacity": 0,
+          "opacity": 0,
+          "minZoom": 11,
+          "maxZoom": 14
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.81]
+      },
+      "properties": {
+        "id": "zoom-feat-label-3",
+        "name": "FEATURE ZOOM 14+",
+        "description": "Label visible at zoom 14+",
+        "style": {
+          "radius": 0,
+          "fillOpacity": 0,
+          "opacity": 0,
+          "minZoom": 14,
+          "maxZoom": 20
+        }
+      }
+    }
+  ]
+}

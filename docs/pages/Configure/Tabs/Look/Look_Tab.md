@@ -95,3 +95,7 @@ A URL to a new logo if the default MMGIS is unwanted. The logo should be reasona
 #### Help URL
 
 The URL to take users to in they click the help icon in the bottom left. Help above should be checked on.
+
+#### Show Attributions on Map
+
+If checked, a collapsible dropdown listing the attributions of all currently visible layers is always shown on the map, to the left of the home/zoom controls. It is hidden entirely when no visible layer has an attribution. Attributions are always listed in the About modal regardless of this setting.

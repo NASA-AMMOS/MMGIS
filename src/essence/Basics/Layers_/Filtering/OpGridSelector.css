@@ -1,0 +1,45 @@
+.op-grid-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    transition: background 0.2s cubic-bezier(0.785, 0.135, 0.15, 0.86);
+}
+.op-grid-trigger:hover {
+    background: var(--color-a3);
+}
+
+.op-grid-popup {
+    display: grid;
+    background: var(--color-a1);
+    border: 1px solid var(--color-a4);
+    border-radius: 3px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    padding: 2px;
+    gap: 1px;
+}
+
+.op-grid-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    min-width: 28px;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 2px;
+    color: var(--color-f);
+    transition: background 0.1s ease;
+}
+.op-grid-item:hover {
+    background: var(--color-a4);
+}
+.op-grid-item--selected {
+    background: var(--color-c);
+    font-weight: bold;
+}
+.op-grid-item--selected:hover {
+    background: var(--color-c2);
+}

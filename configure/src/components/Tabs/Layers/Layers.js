@@ -21,17 +21,9 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Button from "@mui/material/Button";
 
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"; // Header
-import StorageIcon from "@mui/icons-material/Storage"; // Data
-import PolylineIcon from "@mui/icons-material/Polyline"; // Vector
-import TravelExploreIcon from "@mui/icons-material/TravelExplore"; // Query
-import LanguageIcon from "@mui/icons-material/Language"; // Tile
-import GridViewIcon from "@mui/icons-material/GridView"; // Vector tile
-import ViewInArIcon from "@mui/icons-material/ViewInAr"; // Model
-import AirIcon from "@mui/icons-material/Air"; // Velocity
-import ImageIcon from "@mui/icons-material/Image"; // Image
-import VideoFileIcon from "@mui/icons-material/VideoFile"; // Video
 import AddIcon from "@mui/icons-material/Add";
+
+import { getLayerTypeVisual } from "../../../core/layerTypeVisuals";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import AccessTimeFilledIcon from "@mui/icons-material/AccessTimeFilled";
@@ -176,6 +168,9 @@ export default function Layers() {
   const [flatLayers, setFlatLayers] = useState([]);
 
   const mission = useSelector((state) => state.core.mission);
+  const layerTypeConfiguration = useSelector(
+    (state) => state.core.layerTypeConfiguration
+  );
   const minLayersStr = useSelector((state) => {
     if (state.core.configuration?.layers == null) return "[]";
 
@@ -354,51 +349,11 @@ export default function Layers() {
                 className={c.layersList}
               >
                 {flatLayers.map((l, idx) => {
-                  let color = "#FFFFFF";
-                  let iconType = null;
-                  switch (l.layer.type) {
-                    case "header":
-                      iconType = <KeyboardArrowDownIcon fontSize="small" />;
-                      color = "#2c2f30";
-                      break;
-                    case "data":
-                      iconType = <StorageIcon fontSize="small" />;
-                      color = "#c43541";
-                      break;
-                    case "vector":
-                      iconType = <PolylineIcon fontSize="small" />;
-                      color = "#245980";
-                      break;
-                    case "query":
-                      iconType = <TravelExploreIcon fontSize="small" />;
-                      color = "#4c8b2d";
-                      break;
-                    case "tile":
-                      iconType = <LanguageIcon fontSize="small" />;
-                      color = "#67401d";
-                      break;
-                    case "vectortile":
-                      iconType = <GridViewIcon fontSize="small" />;
-                      color = "#0792c5";
-                      break;
-                    case "model":
-                      iconType = <ViewInArIcon fontSize="small" />;
-                      color = "#a98732";
-                      break;
-                    case "velocity":
-                      iconType = <AirIcon fontSize="small" />;
-                      color = "#24807c";
-                      break;
-                    case "image":
-                      iconType = <ImageIcon fontSize="small" />;
-                      color = "#b0518f";
-                      break;
-                    case "video":
-                      iconType = <VideoFileIcon fontSize="small" />;
-                      color = "#7b2323";
-                      break;
-                    default:
-                  }
+                  const { color, Icon: TypeIcon } = getLayerTypeVisual(
+                    layerTypeConfiguration,
+                    l.layer.type
+                  );
+                  const iconType = <TypeIcon fontSize="small" />;
 
                   return (
                     <Draggable

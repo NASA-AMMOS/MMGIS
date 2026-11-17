@@ -1,0 +1,125 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Location Marker",
+        "description": "Checked map marker",
+        "icon": "map-marker-check"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4100, 37.7900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GPS Position",
+        "description": "GPS crosshairs",
+        "icon": "crosshairs-gps"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4200, 37.7900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Barley Field",
+        "description": "Agricultural area - barley",
+        "icon": "barley"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4300, 37.7900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Vehicle Parking",
+        "description": "Pickup truck parking",
+        "icon": "car-pickup"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4400, 37.7900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Corn Field",
+        "description": "Agricultural area - corn",
+        "icon": "corn"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4500, 37.7900]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Forest Area",
+        "description": "Pine tree forest",
+        "icon": "pine-tree"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4100, 37.7800]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Power Station",
+        "description": "Electrical power facility",
+        "icon": "flash"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4200, 37.7800]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hurricane Zone",
+        "description": "Weather hazard area",
+        "icon": "weather-hurricane"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4300, 37.7800]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Airport",
+        "description": "Aircraft facility",
+        "icon": "airplane"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4400, 37.7800]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Launch Site",
+        "description": "Rocket launch facility",
+        "icon": "rocket"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4500, 37.7800]
+      }
+    }
+  ]
+}

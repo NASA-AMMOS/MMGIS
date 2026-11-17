@@ -1,0 +1,172 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Panoramic Mosaic",
+        "description": "Click to open a 360° cylindrical panoramic mosaic in the Viewer Panel. Uses isPanoramic with azimuth/elevation parameters to deproject the image onto a sphere.",
+        "viewer_type": "panoramic",
+        "images": [
+          {
+            "name": "MSL Sol 1051 Navcam Mosaic",
+            "url": "Data/Mosaics/N_L000_1051_ILT048CYL_S_2470_UNCORM1.jpg",
+            "isPanoramic": true,
+            "rows": 1800,
+            "columns": 7696,
+            "azmin": 0.0,
+            "azmax": 360.0,
+            "elmin": -66.5118,
+            "elmax": 17.7171,
+            "elzero": 379.759
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4786, 37.8199]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "3D Model",
+        "description": "Click to view a 3D OBJ model in the Viewer Panel. Uses isModel with a texture path. Supports .obj and .dae formats.",
+        "viewer_type": "model",
+        "images": [
+          {
+            "name": "Askival Rock Model",
+            "url": "Data/models/Askival_v2/Askival_v2.obj",
+            "texture": "Data/models/Askival_v2/Askival_v2.jpg",
+            "type": "image",
+            "isModel": true
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4641, 37.8044]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Regular Images",
+        "description": "Click to view regular images in the Viewer Panel. The first image in the array loads on feature click. Supports JPEG, PNG, and animated GIFs.",
+        "viewer_type": "image",
+        "images": [
+          {
+            "name": "MMGIS",
+            "url": "Data/images/logo-small-text.png",
+            "type": "image"
+          },
+          {
+            "name": "MSL Raw Image",
+            "url": "http://mars.jpl.nasa.gov/msl-raw-images/msss/00582/mrdi/0582MD0002120000101703E01_DXXX.jpg",
+            "type": "image"
+          },
+          {
+            "name": "Animated GIF",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif",
+            "type": "image"
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4228, 37.827]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PDF Document",
+        "description": "Click to view a PDF in the Viewer Panel. Place a .pdf file at Data/sample.pdf to activate this example.",
+        "viewer_type": "document",
+        "images": [
+          {
+            "name": "Sample PDF (© PDF Association)",
+            "url": "Data/Simple PDF 2.0 file.pdf",
+            "type": "document"
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4097, 37.8088]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Video",
+        "description": "Click to view a video in the Viewer Panel. Supports MP4 and WebM formats with native HTML5 controls.",
+        "viewer_type": "video",
+        "images": [
+          {
+            "name": "Hurricane Patricia (MP4)",
+            "url": "https://labs.mapbox.com/bites/00188/patricia_nasa.mp4",
+            "type": "video"
+          },
+          {
+            "name": "Hurricane Patricia (WebM)",
+            "url": "https://labs.mapbox.com/bites/00188/patricia_nasa.webm",
+            "type": "video"
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4531, 37.8007]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "All Media Types",
+        "description": "Comprehensive example with all Viewer Panel media types: panoramic mosaic, 3D model, image, PDF, and video. The first entry (panoramic mosaic) loads on click.",
+        "viewer_type": "all",
+        "images": [
+          {
+            "name": "Panoramic Mosaic (MSL Sol 1051)",
+            "url": "Data/Mosaics/N_L000_1051_ILT048CYL_S_2470_UNCORM1.jpg",
+            "isPanoramic": true,
+            "rows": 1800,
+            "columns": 7696,
+            "azmin": 0.0,
+            "azmax": 360.0,
+            "elmin": -66.5118,
+            "elmax": 17.7171,
+            "elzero": 379.759
+          },
+          {
+            "name": "Askival Rock Model",
+            "url": "Data/models/Askival_v2/Askival_v2.obj",
+            "texture": "Data/models/Askival_v2/Askival_v2.jpg",
+            "type": "image",
+            "isModel": true
+          },
+          {
+            "name": "MMGIS",
+            "url": "Data/images/logo-small-text.png",
+            "type": "image"
+          },
+          {
+            "name": "Sample PDF (© PDF Association)",
+            "url": "Data/Simple PDF 2.0 file.pdf",
+            "type": "document"
+          },
+          {
+            "name": "Hurricane Patricia (MP4)",
+            "url": "https://labs.mapbox.com/bites/00188/patricia_nasa.mp4",
+            "type": "video"
+          }
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.44, 37.81]
+      }
+    }
+  ]
+}

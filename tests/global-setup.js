@@ -1,0 +1,584 @@
+/**
+ * Playwright global setup — runs once before all test suites.
+ *
+ * IMPORTANT: Playwright runs webServer plugins BEFORE globalSetup.
+ * Therefore we manage the MMGIS server ourselves here (not via the
+ * webServer config option) so we can guarantee the database exists
+ * before the server starts.
+ *
+ * Order of operations:
+ * 1. Loads DB connection settings from `.env` (DB_HOST, DB_PORT, etc.)
+ * 2. Forces DB_NAME to `mmgis-test` — tests never touch production.
+ * 3. Creates the `mmgis-test` database if it doesn't exist
+ *    (connects to `postgres` maintenance DB which always exists).
+ * 4. Sets up PostGIS / btree_gist extensions and session table.
+ * 5. Runs schema migrations (ADD COLUMN IF NOT EXISTS).
+ * 6. Starts the MMGIS server on port 18888 (or TEST_PORT).
+ * 7. Creates admin user + Reference Mission via the API if needed.
+ * 8. Returns a teardown function that kills the server when tests end.
+ *
+ * All HTTP calls use Node's native fetch() for cross-platform support
+ * (works on Windows, Linux, macOS without requiring curl).
+ */
+
+import { config } from 'dotenv';
+import { resolve } from 'path';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { spawn, execSync } from 'child_process';
+import pgPromise from 'pg-promise';
+
+/** Hardcoded test database name — never changes. */
+const TEST_DB_NAME = 'mmgis-test';
+
+/** Hardcoded test STAC database name — used when STAC services are enabled. */
+const TEST_STAC_DB_NAME = 'mmgis-stac-test';
+// Lets the test server's first account be created without reading its log
+const TEST_SETUP_CODE = 'TEST-SETUP-CODE';
+
+/** Port the test server listens on. */
+const TEST_PORT = Number(process.env.TEST_PORT || 18888);
+
+/**
+ * Read a value from the `.env` file by key. Returns `undefined` when
+ * the file doesn't exist or the key isn't present.
+ */
+function readDotenvValue(key) {
+  try {
+    const envPath = resolve(process.cwd(), '.env');
+    const contents = readFileSync(envPath, 'utf8');
+    const match = contents.match(new RegExp(`^${key}\\s*=\\s*(.+)$`, 'm'));
+    if (match) return match[1].trim().replace(/^["']|["']$/g, '');
+  } catch {
+    // .env not found — fall through
+  }
+  return undefined;
+}
+
+export default async function globalSetup() {
+  // Load .env so we can read DB_HOST / DB_PORT / DB_USER / DB_PASS
+  config({ path: resolve(process.cwd(), '.env') });
+
+  // ── Production environment fail-safe ──────────────────────────
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '\u26A0\uFE0F DANGER: Refusing to run test operations because NODE_ENV is set to "production". ' +
+      'Tests must never be executed against a production environment.'
+    );
+  }
+
+  // Read connection settings (with sensible defaults)
+  const dbHost = process.env.DB_HOST || readDotenvValue('DB_HOST') || 'localhost';
+  const dbPort = process.env.DB_PORT || readDotenvValue('DB_PORT') || '5432';
+
+  // Use dedicated test DB credentials (DB_USER_TEST / DB_PASS_TEST) to enforce
+  // least-privilege separation between CI/test and production database roles.
+  // No fallback — tests must use explicit test credentials.
+  const dbUser = process.env.DB_USER_TEST || readDotenvValue('DB_USER_TEST');
+  const dbPass = process.env.DB_PASS_TEST || readDotenvValue('DB_PASS_TEST');
+
+  if (!dbUser || !dbPass) {
+    throw new Error(
+      'DB_USER_TEST and DB_PASS_TEST must be set for test setup. ' +
+      'Set them in your environment or .env file.'
+    );
+  }
+
+  process.env.DB_USER = dbUser;
+  process.env.DB_PASS = dbPass;
+
+  // Force DB_NAME to the hardcoded test database
+  process.env.DB_NAME = TEST_DB_NAME;
+
+  // Single pg-promise instance — the library requires exactly one
+  // initialization per process.
+  const pgp = pgPromise();
+
+  // ── Create the test database if it doesn't exist ──────────────
+  // We connect to the `postgres` maintenance DB (which always exists)
+  // rather than the user's default DB (which may not exist after a
+  // test:clean run).
+  const adminDb = pgp({
+    host: dbHost,
+    port: Number(dbPort),
+    user: dbUser,
+    password: dbPass,
+    database: 'postgres',
+  });
+
+  try {
+    const exists = await adminDb.oneOrNone(
+      'SELECT 1 FROM pg_database WHERE datname = $1',
+      [TEST_DB_NAME],
+    );
+
+    if (!exists) {
+      await adminDb.none('CREATE DATABASE $1:name', [TEST_DB_NAME]);
+      console.log(`[global-setup] Created database "${TEST_DB_NAME}".`);
+    } else {
+      console.log(`[global-setup] Database "${TEST_DB_NAME}" already exists.`);
+    }
+  } catch (err) {
+    console.error(`[global-setup] Failed to create database "${TEST_DB_NAME}":`, err.message);
+    throw err;
+  } finally {
+    await adminDb.$pool.end();
+  }
+
+  // ── 2. Set up extensions and session table directly ─────────────
+  // We set these up directly rather than calling init-db.js because
+  // init-db.js uses Sequelize(null, ...) which defaults to a DB
+  // named after the user — that DB may not exist on a fresh system.
+  const testDb = pgp({
+    host: dbHost,
+    port: Number(dbPort),
+    user: dbUser,
+    password: dbPass,
+    database: TEST_DB_NAME,
+  });
+
+  try {
+    // Extensions (same as init-db.js)
+    await testDb.none('CREATE EXTENSION IF NOT EXISTS postgis');
+    await testDb.none('CREATE EXTENSION IF NOT EXISTS btree_gist');
+    console.log(`[global-setup] Extensions ready.`);
+
+    // Session table (same as init-db.js)
+    await testDb.none(`
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid" varchar NOT NULL COLLATE "default",
+        "sess" json NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      )
+    `);
+    await testDb.none(
+      'CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")',
+    );
+    console.log(`[global-setup] Session table ready.`);
+
+    // ── 3. Schema migrations ────────────────────────────────────────
+    // Safe no-ops when columns already exist.
+    const migrations = [
+      // user_files (Draw/models/userfiles.js)
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS template json NULL',
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS publicity_type varchar(255) NULL',
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS public_editors text[] NULL',
+      'ALTER TABLE IF EXISTS user_files ADD COLUMN IF NOT EXISTS mission varchar(255) NULL',
+      // Same columns on the test variant table
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS template json NULL',
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS publicity_type varchar(255) NULL',
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS public_editors text[] NULL',
+      'ALTER TABLE IF EXISTS user_files_tests ADD COLUMN IF NOT EXISTS mission varchar(255) NULL',
+      // file_histories (Draw/models/filehistories.js)
+      'ALTER TABLE IF EXISTS file_histories ADD COLUMN IF NOT EXISTS author varchar(255) NULL',
+      // users (Users/models/user.js)
+      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS missions_managing TEXT[] NULL',
+      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS missions_viewing TEXT[] NULL',
+      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS reset_token varchar(2048) NULL',
+      'ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS reset_token_expiration BIGINT NULL',
+      // geodatasets (Geodatasets/models/geodatasets.js)
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS filename varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS num_features INTEGER NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS start_time_field varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS end_time_field varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS group_id_field varchar(255) NULL',
+      'ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS feature_id_field varchar(255) NULL',
+      // long_term_tokens (LongTermToken/models/longtermtokens.js)
+      'ALTER TABLE IF EXISTS long_term_tokens ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER NULL',
+    ];
+    for (const sql of migrations) {
+      await testDb.none(sql);
+    }
+
+    console.log(`[global-setup] Schema migrations applied.`);
+  } catch (err) {
+    console.error(`[global-setup] DB setup failed:`, err.message);
+    throw err;
+  } finally {
+    await testDb.$pool.end();
+  }
+
+  // ── 3b. Create the STAC test database if STAC services are enabled ──
+  const stacEnabled =
+    process.env.WITH_STAC === 'true' ||
+    process.env.WITH_TIPG === 'true' ||
+    process.env.WITH_TITILER_PGSTAC === 'true';
+
+  if (stacEnabled) {
+    const stacAdminDb = pgp({
+      host: dbHost,
+      port: Number(dbPort),
+      user: dbUser,
+      password: dbPass,
+      database: 'postgres',
+    });
+
+    try {
+      const stacExists = await stacAdminDb.oneOrNone(
+        'SELECT 1 FROM pg_database WHERE datname = $1',
+        [TEST_STAC_DB_NAME],
+      );
+
+      if (!stacExists) {
+        await stacAdminDb.none('CREATE DATABASE $1:name', [TEST_STAC_DB_NAME]);
+        console.log(`[global-setup] Created database "${TEST_STAC_DB_NAME}".`);
+      } else {
+        console.log(`[global-setup] Database "${TEST_STAC_DB_NAME}" already exists.`);
+      }
+    } catch (err) {
+      console.error(`[global-setup] Failed to create database "${TEST_STAC_DB_NAME}":`, err.message);
+      throw err;
+    } finally {
+      await stacAdminDb.$pool.end();
+    }
+
+
+  }
+
+  // ── 4. Check if Reference Mission already exists ────────────────
+  let needsMission = true;
+  const checkDb = pgp({
+    host: dbHost,
+    port: Number(dbPort),
+    user: dbUser,
+    password: dbPass,
+    database: TEST_DB_NAME,
+  });
+  try {
+    const hasTable = await checkDb.oneOrNone(
+      "SELECT 1 FROM information_schema.tables WHERE table_name = 'configs'",
+    );
+    if (hasTable) {
+      const hasMission = await checkDb.oneOrNone(
+        "SELECT 1 FROM configs WHERE mission = 'Reference-Mission' LIMIT 1",
+      );
+      if (hasMission) {
+        console.log('[global-setup] Reference Mission already exists.');
+        needsMission = false;
+      }
+    }
+  } catch {
+    // Table doesn't exist yet — will create mission below.
+  } finally {
+    await checkDb.$pool.end();
+  }
+
+  // Done with pg-promise
+  pgp.end();
+
+  // ── 4b. Kill any leftover server on the test port ─────────────
+  // If a previous run was interrupted (Ctrl+C), the detached server
+  // process group may still be listening. Kill it before starting.
+  killProcessOnPort(TEST_PORT);
+
+  // ── 5. Prepare adjacent server .env files ────────────────────────
+  // The MMGIS server spawns adjacent servers (TiTiler, STAC, etc.) via
+  // shell scripts that read a local .env file. Repos only ship
+  // .env.example, so we copy it into place when missing and fix up
+  // relative paths so they resolve from the working directory.
+  prepareAdjacentServerEnvFiles(process.cwd());
+
+  // ── 6. Start the MMGIS test server ──────────────────────────────
+  // We start it here (not via playwright.config.js webServer) because
+  // Playwright runs webServer plugins BEFORE globalSetup — so the DB
+  // wouldn't exist yet when the server tries to connect.
+  const serverEnv = {
+    ...process.env,
+    DB_NAME: TEST_DB_NAME,
+    DB_HOST: dbHost,
+    DB_PORT: dbPort,
+    DB_USER: dbUser,
+    DB_PASS: dbPass,
+    NODE_ENV: 'test',
+    PORT: String(TEST_PORT),
+    HIDE_CONFIG: 'false',
+    SETUP_CODE: TEST_SETUP_CODE,
+    ENABLE_MMGIS_WEBSOCKETS: '',
+    ENABLE_CONFIG_WEBSOCKETS: '',
+  };
+
+  const server = spawn('node', [resolve(process.cwd(), 'scripts/server.js')], {
+    env: serverEnv,
+    cwd: process.cwd(),
+    stdio: 'pipe',
+    detached: true,
+    windowsHide: true,
+  });
+
+  server.stdout.on('data', (d) => {
+    process.stdout.write(`[WebServer] ${d.toString()}`);
+  });
+  server.stderr.on('data', (d) => {
+    process.stderr.write(`[WebServer] ${d.toString()}`);
+  });
+
+  const baseUrl = `http://localhost:${TEST_PORT}`;
+  const healthUrl = `${baseUrl}/api/utils/healthcheck`;
+
+  // Helper to kill the server and all its children (adjacent servers, etc.).
+  // The server is started with detached:true so it leads its own process group.
+  // Sending the signal to -pid kills the entire group.
+  const killServer = async () => {
+    console.log('[global-teardown] Stopping test server and adjacent servers...');
+    try { process.kill(-server.pid, 'SIGTERM'); } catch { /* already dead */ }
+    await sleep(2000);
+    try { process.kill(-server.pid, 'SIGKILL'); } catch { /* already dead */ }
+    console.log('[global-teardown] Server stopped.');
+  };
+
+  // Ensure Ctrl+C / SIGTERM during tests still kills the detached group.
+  const onExit = () => { try { process.kill(-server.pid, 'SIGKILL'); } catch {} };
+  process.on('SIGINT', onExit);
+  process.on('SIGTERM', onExit);
+  process.on('exit', onExit);
+
+  console.log(`[global-setup] Starting MMGIS server on port ${TEST_PORT}...`);
+  try {
+    await waitForServer(healthUrl, 120_000);
+  } catch (err) {
+    // Server failed to start — kill the orphaned process before re-throwing
+    await killServer();
+    throw err;
+  }
+  console.log(`[global-setup] Server is ready.`);
+
+  // ── 6b. Probe adjacent servers ────────────────────────────────────
+  // The MMGIS server's adjacentServers() already spawned the start
+  // scripts. Give them a few seconds then report which ones are live.
+  await probeAdjacentServers(15_000);
+
+  // ── 7. Create Reference Mission if needed ───────────────────────
+  if (needsMission) {
+    console.log('[global-setup] Creating Reference Mission...');
+    try {
+      // Create admin user (safe to fail if already exists)
+      await fetchJSON(`${baseUrl}/api/users/first_signup`, {
+        method: 'POST',
+        body: { username: 'test_admin', password: 'TestAdmin1!', setup_code: TEST_SETUP_CODE },  // pragma: allowlist secret
+      }).catch(() => {});
+
+      // Login to get session cookie
+      const loginRes = await fetch(`${baseUrl}/api/users/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'test_admin', password: 'TestAdmin1!' }),  // pragma: allowlist secret
+        redirect: 'manual',
+      });
+      const rawCookies = loginRes.headers.getSetCookie?.() || [];
+      // Strip Set-Cookie attributes (Path, HttpOnly, etc.) — Cookie header expects only name=value pairs
+      const cookieHeader = rawCookies.map(c => c.split(';')[0].trim()).join('; ');
+
+      // Create Reference Mission — try with auth cookie
+      let result = await fetchJSON(`${baseUrl}/api/configure/add`, {
+        method: 'POST',
+        body: { setupReferenceMission: true },
+        cookies: cookieHeader,
+      }).catch(() => null);
+
+      // Fallback: try without auth (AUTH=off may not need cookies)
+      // Check for a proper JSON success response — HTML login pages are truthy strings.
+      if (!result || typeof result !== 'object' || result.status !== 'success') {
+        result = await fetchJSON(`${baseUrl}/api/configure/add`, {
+          method: 'POST',
+          body: { setupReferenceMission: true },
+        }).catch(() => null);
+      }
+
+      if (result && typeof result === 'object' && result.status === 'success') {
+        console.log(`[global-setup] Reference Mission created.`);
+      } else {
+        console.warn('[global-setup] Could not create Reference Mission — UI tests may 404.');
+      }
+
+      // Create test_user (non-admin, permission "001") if it doesn't exist.
+      // The signup endpoint requires admin session or AUTH_LOCAL_ALLOW_SIGNUP=true.
+      if (cookieHeader) {
+        const signupResult = await fetchJSON(`${baseUrl}/api/users/signup`, {
+          method: 'POST',
+          body: {
+            username: 'test_user',
+            password: 'TestUser1!', // pragma: allowlist secret
+            email: 'user@test.com',
+          },
+          cookies: cookieHeader,
+        }).catch(() => null);
+
+        if (signupResult && typeof signupResult === 'object' && signupResult.status === 'success') {
+          console.log('[global-setup] test_user created.');
+        } else {
+          // May already exist — that's fine
+          console.log('[global-setup] test_user already exists or signup not available.');
+        }
+      }
+    } catch (err) {
+      console.error('[global-setup] Reference Mission setup error:', err.message);
+    }
+  }
+
+  console.log(`[global-setup] Done — "${TEST_DB_NAME}" is ready, server running on port ${TEST_PORT}.`);
+
+  // Return teardown function — Playwright calls this after all tests.
+  return killServer;
+}
+
+// ─── Adjacent server helpers ────────────────────────────────────────
+
+/**
+ * Adjacent server definitions — mirrors adjacent-servers/adjacent-servers.js.
+ * Each entry maps an env-var gate to the directory, port, and a health URL.
+ */
+const ADJACENT_SERVERS = [
+  { env: 'WITH_STAC',           dir: 'adjacent-servers/stac',           portEnv: 'STAC_PORT',           defaultPort: 8881, healthPath: '/api.html' },
+  { env: 'WITH_TIPG',           dir: 'adjacent-servers/tipg',           portEnv: 'TIPG_PORT',           defaultPort: 8882, healthPath: '/api.html' },
+  { env: 'WITH_TITILER',        dir: 'adjacent-servers/titiler',        portEnv: 'TITILER_PORT',        defaultPort: 8883, healthPath: '/api.html' },
+  { env: 'WITH_TITILER_PGSTAC', dir: 'adjacent-servers/titiler-pgstac', portEnv: 'TITILER_PGSTAC_PORT', defaultPort: 8884, healthPath: '/api.html' },
+];
+
+/**
+ * For each enabled adjacent server, copy .env.example → .env if the
+ * .env file doesn't already exist. Rewrite relative paths in
+ * TILEMATRIXSET_DIRECTORY so they resolve from the repo root.
+ */
+function prepareAdjacentServerEnvFiles(repoRoot) {
+  for (const srv of ADJACENT_SERVERS) {
+    if (process.env[srv.env] !== 'true') continue;
+
+    const srvDir  = resolve(repoRoot, srv.dir);
+    const envFile = resolve(srvDir, '.env');
+    const example = resolve(srvDir, '.env.example');
+
+    if (existsSync(envFile)) {
+      console.log(`[global-setup] ${srv.dir}/.env already exists.`);
+      continue;
+    }
+    if (!existsSync(example)) {
+      console.log(`[global-setup] ${srv.dir}/.env.example not found — skipping.`);
+      continue;
+    }
+
+    // Read the example, fix relative TILEMATRIXSET_DIRECTORY paths
+    let contents = readFileSync(example, 'utf8');
+    contents = contents.replace(
+      /^(TILEMATRIXSET_DIRECTORY\s*=\s*)("?\.\..*)$/m,
+      (_match, prefix, relPath) => {
+        const cleaned = relPath.replace(/^["']|["']$/g, '');
+        const abs = resolve(srvDir, cleaned);
+        return `${prefix}"${abs}"`;
+      },
+    );
+
+    // Point adjacent servers at the test STAC database
+    // (POSTGRES_DBNAME for stac/tipg, PGDATABASE for titiler-pgstac)
+    contents = contents.replace(
+      /^((?:POSTGRES_DBNAME|PGDATABASE)\s*=\s*).*$/m,
+      `$1${TEST_STAC_DB_NAME}`,
+    );
+
+    writeFileSync(envFile, contents, 'utf8');
+    console.log(`[global-setup] Created ${srv.dir}/.env from .env.example (STAC db=${TEST_STAC_DB_NAME}).`);
+  }
+}
+
+/**
+ * Poll each enabled adjacent server's direct port until it responds or
+ * the timeout elapses. Logs which servers came up and which didn't.
+ */
+async function probeAdjacentServers(timeoutMs) {
+  const enabled = ADJACENT_SERVERS.filter(s => process.env[s.env] === 'true');
+  if (enabled.length === 0) {
+    console.log('[global-setup] No adjacent servers enabled — nothing to probe.');
+    return;
+  }
+
+  console.log(`[global-setup] Probing ${enabled.length} adjacent server(s)...`);
+
+  const deadline = Date.now() + timeoutMs;
+  const results = await Promise.all(
+    enabled.map(async (srv) => {
+      const port = Number(process.env[srv.portEnv] || srv.defaultPort);
+      const url = `http://localhost:${port}${srv.healthPath}`;
+      while (Date.now() < deadline) {
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+          if (res.ok) return { name: srv.env, port, ok: true };
+        } catch { /* not ready yet */ }
+        await sleep(1000);
+      }
+      return { name: srv.env, port, ok: false };
+    }),
+  );
+
+  for (const r of results) {
+    if (r.ok) {
+      console.log(`[global-setup] ✓ ${r.name} is ready on port ${r.port}.`);
+    } else {
+      console.warn(`[global-setup] ✗ ${r.name} did not start on port ${r.port} (timeout ${timeoutMs}ms).`);
+    }
+  }
+}
+
+// ─── Utilities ─────────────────────────────────────────────────────
+
+/** Poll a URL until it returns HTTP 200. Uses native fetch(). */
+async function waitForServer(url, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) return;
+    } catch { /* not ready yet */ }
+    await sleep(1000);
+  }
+  throw new Error(`Server at ${url} did not become ready within ${timeoutMs}ms`);
+}
+
+/** POST JSON and return parsed response. Uses native fetch(). */
+async function fetchJSON(url, { method = 'GET', body, cookies } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (cookies) headers['Cookie'] = cookies;
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(30_000),
+  });
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Kill any process listening on the given port.
+ * Works cross-platform (lsof on macOS/Linux, netstat on Windows).
+ */
+function killProcessOnPort(port) {
+  try {
+    const isWin = process.platform === 'win32';
+    if (isWin) {
+      const out = execSync(
+        `netstat -ano | findstr :${port} | findstr LISTENING`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true },
+      ).trim();
+      const pids = [...new Set(out.split('\n').map(l => l.trim().split(/\s+/).pop()).filter(Boolean))];
+      for (const pid of pids) {
+        try { execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore', windowsHide: true }); } catch {}
+      }
+    } else {
+      const out = execSync(
+        `lsof -ti tcp:${port}`,
+        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true },
+      ).trim();
+      if (out) {
+        for (const pid of out.split('\n')) {
+          try { process.kill(Number(pid), 'SIGKILL'); } catch {}
+        }
+      }
+    }
+    console.log(`[global-setup] Killed leftover process(es) on port ${port}.`);
+  } catch {
+    // Nothing listening — that's fine.
+  }
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
 
@@ -31,6 +31,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 
 import { setConfiguration, setSnackBarText } from "./ConfigureStore";
+import { resolveOptions } from "./optionProviders";
 import {
   getIn,
   setIn,
@@ -47,6 +48,8 @@ import { isFieldRequired } from "./validators";
 import Map from "../components/Map/Map";
 import VideoPreview from "../components/VideoPreview/VideoPreview";
 import ColorButton from "../components/ColorButton/ColorButton";
+import ThemePreview from "../components/ThemePreview/ThemePreview";
+import InteractionEditor from "../components/Tabs/Layers/Interactions/InteractionEditor";
 import MDEditor from "@uiw/react-md-editor";
 import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
@@ -56,7 +59,9 @@ import { data as colormapData } from "../external/js-colormaps.js";
 
 import { calls } from "./calls";
 import { parseTileMatrixSetCRS } from "./crsUtils";
+import { safeHTML } from "./Sanitize";
 import Autocomplete from "@mui/material/Autocomplete";
+import Chip from "@mui/material/Chip";
 
 const useStyles = makeStyles((theme) => ({
   Maker: {
@@ -77,6 +82,12 @@ const useStyles = makeStyles((theme) => ({
     },
     "& .MuiTabScrollButton-root": {
       color: theme.palette.swatches.grey[1000],
+    },
+    // A disabled scroll button (e.g. the left one at the start) keeps its 40px
+    // width at opacity 0 by default, leaving an empty gap before the first tab.
+    "& .MuiTabScrollButton-root.Mui-disabled": {
+      width: 0,
+      overflow: "hidden",
     },
   },
   contentTabs: {
@@ -160,6 +171,11 @@ const useStyles = makeStyles((theme) => ({
   text: {
     width: "100%",
   },
+  textareaInput: {
+    fontFamily: "monospace",
+    fontSize: "13px",
+    lineHeight: 1.4,
+  },
   textArrayHexes: {
     display: "flex",
   },
@@ -174,6 +190,21 @@ const useStyles = makeStyles((theme) => ({
     height: "20px",
     margin: "0px",
     borderRadius: "4px",
+  },
+  colorRampOption: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    gap: "12px",
+  },
+  colorRampBar: {
+    height: "14px",
+    // Fixed, so every ramp is drawn at the same width and they read as a
+    // column rather than each one sized by the length of its name.
+    width: "120px",
+    flexShrink: 0,
+    borderRadius: "2px",
   },
   dropdown: {
     width: "100%",
@@ -200,13 +231,47 @@ const useStyles = makeStyles((theme) => ({
     "& > div:first-child": { width: "25%", marginRight: "8px" },
     "& > div:last-child": { flex: 1 },
   },
+  subheading: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    width: "100%",
+    margin: "4px 0px 2px 0px",
+    fontSize: "11px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    color: theme.palette.swatches.grey[300],
+    // The line runs on past the words to the end of the row, so the fields
+    // beneath read as belonging to it.
+    "&:after": {
+      content: "''",
+      flex: 1,
+      height: "1px",
+      background: theme.palette.swatches.grey[700],
+    },
+  },
   objectArrayBox: {
     display: "flex",
     margin: "0px 10px 10px 10px",
     background: theme.palette.swatches.grey[1000],
-    padding: "10px 44px 10px 10px",
+    padding: "10px 44px 10px 28px",
     boxShadow: "0px 2px 2px 0px rgba(0, 0, 0, 0.1)",
     position: "relative",
+  },
+  // Items look alike, so each is numbered to show where one ends and the
+  // next begins.
+  objectArrayIndex: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    minWidth: "20px",
+    padding: "1px 4px",
+    background: theme.palette.accent.main,
+    color: theme.palette.swatches.grey[1000],
+    fontSize: "11px",
+    fontWeight: 600,
+    lineHeight: "16px",
+    textAlign: "center",
   },
   object: {
     border: `2px solid ${theme.palette.swatches.grey[900]}`,
@@ -345,6 +410,70 @@ const ColormapHelper = ({ colormapName }) => {
   return colormap_html;
 }
 
+/**
+ * A colormap as a CSS gradient, so a ramp can be recognised by its colours
+ * rather than by its name. A name ending '_r' is the reversed map.
+ */
+const rampGradient = (name) => {
+  // A converted legend brings its own colours rather than a colormap's name,
+  // and those are the exact colours the layer was drawn with.
+  if (Array.isArray(name)) {
+    if (name.length < 2) return null;
+    // A stop may say where it sits, which is how a converted legend keeps its
+    // colours at the values they were drawn at rather than evenly spread.
+    const stops = name.map((stop, i) => {
+      const placed =
+        stop != null && typeof stop === "object" && isFinite(stop.position);
+      const at = placed ? stop.position * 100 : (i / (name.length - 1)) * 100;
+      const color = stop != null && typeof stop === "object" ? stop.color : stop;
+      return `${color} ${at.toFixed(1)}%`;
+    });
+    return `linear-gradient(to right, ${stops.join(", ")})`;
+  }
+  if (typeof name !== "string") return null;
+  const reverse = name.toLowerCase().endsWith("_r");
+  const base = reverse ? name.substring(0, name.length - 2) : name;
+  const match = Object.keys(colormapData).find(
+    (v) => v.toLowerCase() === base.toLowerCase()
+  );
+  if (match == null) return null;
+
+  const colors = colormapData[match].colors;
+  const step = Math.max(1, Math.floor(colors.length / 32));
+  const sampled = colors.filter(
+    (_, i) => i % step === 0 || i === colors.length - 1
+  );
+  if (reverse) sampled.reverse();
+
+  const css = (rgb) => `rgb(${rgb.map((v) => Math.floor(v * 255)).join(",")})`;
+  // A qualitative map's colours don't blend into each other, so it is drawn
+  // as the bands it actually is.
+  const stops = colormapData[match].interpolate
+    ? sampled.map(
+        (rgb, i) =>
+          `${css(rgb)} ${((i / (sampled.length - 1)) * 100).toFixed(1)}%`
+      )
+    : sampled.flatMap((rgb, i) => [
+        `${css(rgb)} ${((i / sampled.length) * 100).toFixed(1)}%`,
+        `${css(rgb)} ${(((i + 1) / sampled.length) * 100).toFixed(1)}%`,
+      ]);
+  return `linear-gradient(to right, ${stops.join(", ")})`;
+};
+
+/** A ramp's name with its colours beside it. */
+const ColorRampOption = ({ name, c }) => {
+  const gradient = rampGradient(name);
+  const label = Array.isArray(name) ? `Custom (${name.length} colors)` : name;
+  return (
+    <div className={c.colorRampOption}>
+      <div>{label}</div>
+      {gradient && (
+        <div className={c.colorRampBar} style={{ background: gradient }} />
+      )}
+    </div>
+  );
+};
+
 const DrawColormap = ({ src, colormapName }) => {
   const [error, setError] = useState(false);
 
@@ -370,6 +499,70 @@ const DrawColormap = ({ src, colormapName }) => {
   );
 };
 
+/**
+ * Renders a component whose dropdown options come from a provider rather than
+ * the manifest (`"optionsFrom": "layerProperties"`). The provider is async and
+ * cached, so this shows the component's declared `options` — usually none —
+ * until it answers.
+ */
+const WithDynamicOptions = ({ com, layer, children }) => {
+  const configuration = useSelector((state) => state.core.configuration);
+  const layerTypeConfiguration = useSelector(
+    (state) => state.core.layerTypeConfiguration
+  );
+  const [options, setOptions] = useState(null);
+
+  const missionPath = configuration?.msv?.mission
+    ? `Missions/${configuration.msv.mission}/`
+    : "";
+
+  useEffect(() => {
+    let alive = true;
+    resolveOptions(com.optionsFrom, {
+      layer,
+      configuration,
+      layerTypeConfiguration,
+      missionPath,
+    }).then((o) => {
+      if (alive) setOptions(o);
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [com.optionsFrom, layer?.uuid, layer?.url]);
+
+  return children(
+    options == null || options.length === 0 ? com.options || [] : options
+  );
+};
+
+/**
+ * A component may declare `showIf` to be drawn only when another field says it
+ * is relevant - a sigma is meaningless unless the domain is measured in them.
+ * `field` is read beside the component: a sibling of the same objectarray item,
+ * or a path into the configuration for an ordinary row.
+ *
+ * `{field, equals}`, `{field, in: []}`, `{field, not}`, `{field, notIn: []}` and
+ * `{field, truthy}` are the tests; an array of them must all pass. A field that
+ * is unset reads as null, so `in: [null, "fillColor"]` covers a default.
+ */
+const passesShowIf = (com, read) => {
+  if (com.showIf == null) return true;
+  const tests = Array.isArray(com.showIf) ? com.showIf : [com.showIf];
+  return tests.every((test) => {
+    if (test == null || typeof test.field !== "string") return true;
+    const value = read(test.field);
+    const at = value === undefined || value === "" ? null : value;
+    if (test.in !== undefined) return (test.in || []).indexOf(at) !== -1;
+    if (test.notIn !== undefined) return (test.notIn || []).indexOf(at) === -1;
+    if (test.not !== undefined) return at !== test.not;
+    if (test.truthy !== undefined) return test.truthy ? !!at : !at;
+    if (test.equals !== undefined) return at === test.equals;
+    return true;
+  });
+};
+
 const getComponent = (
   com,
   configuration,
@@ -382,10 +575,18 @@ const getComponent = (
   value,
   forceField,
   dispatch,
-  fieldDefaults
+  fieldDefaults,
+  dynamicOptions
 ) => {
   const directConf =
     layer == null ? (tool == null ? (component == null ? configuration : component) : tool) : layer;
+  // A component can opt into inline help text instead of the tab-wide tooltip default
+  inlineHelp = inlineHelp || com.inlineHelp === true;
+
+  // An objectarray item's field is relative to its item, so a like-named key
+  // of what's being configured must not stand in for an unset one.
+  const configured = (fallback) =>
+    forceField != null ? fallback : getIn(directConf, com.field, fallback);
   
   // Check if this is a planetary projection component and if TiTiler is available
   const isPlanetaryProjectionComponent = 
@@ -412,11 +613,37 @@ const getComponent = (
     }
     disabled = disabled || !switchVal;
   }
+  if (com.enableWhenField) {
+    const ewfVal = getIn(configuration, com.enableWhenField.field, com.enableWhenField.default || "");
+    disabled = disabled || ewfVal !== com.enableWhenField.value;
+  }
+  if (com.disableWhen) {
+    // Disables the component when ALL conditions match. Each condition
+    // references a sibling field: {field, notEmpty: true} or {field, equals: <value>}
+    const conditions = Array.isArray(com.disableWhen)
+      ? com.disableWhen
+      : [com.disableWhen];
+    const allMet = conditions.every((cond) => {
+      const condVal = getIn(directConf, cond.field, null);
+      if (cond.notEmpty === true)
+        return condVal != null && String(condVal).trim() !== "";
+      if (Object.prototype.hasOwnProperty.call(cond, "equals"))
+        return condVal === cond.equals;
+      return false;
+    });
+    disabled = disabled || allMet;
+  }
   const isRequired = isFieldRequired(com, layer, configuration);
-  const fieldValue = value != null ? value : getIn(directConf, com.field, "");
+  const fieldValue = value != null ? value : configured("");
   const hasError = isRequired && (fieldValue === "" || fieldValue == null);
   
   switch (com.type) {
+    case "subheading":
+      return (
+        <div className={c.subheading} title={com.description || ""}>
+          {com.name || ""}
+        </div>
+      );
     case "gap":
       return (
         <div>
@@ -467,8 +694,8 @@ const getComponent = (
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ 
                   __html: isDisabled 
-                    ? `${com.description || ""}<br/><strong>Note:</strong> ${disabledMessage}`
-                    : com.description || "" 
+                    ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                    : safeHTML(com.description || "")
                 }}
               ></div>
             </>
@@ -517,7 +744,56 @@ const getComponent = (
               {inner}
               <div
                 className={c.subtitle2}
-                dangerouslySetInnerHTML={{ __html: com.description || "" }}
+                dangerouslySetInnerHTML={{ __html: safeHTML(com.description || "") }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    case "textarea":
+      inner = (
+        <TextField
+          className={c.text}
+          label={com.name}
+          variant="filled"
+          size="small"
+          multiline
+          minRows={com.rows || 4}
+          disabled={disabled || isDisabled}
+          required={isRequired}
+          error={hasError}
+          helperText={hasError ? "This field is required" : ""}
+          FormHelperTextProps={{
+            className: c.noMarginHelperText,
+          }}
+          inputProps={{
+            autoComplete: "off",
+            // A multiline value is usually something written in another
+            // language (a query, a template, a shader snippet), where
+            // alignment is part of the meaning.
+            className: c.textareaInput,
+            spellCheck: false,
+          }}
+          value={fieldValue}
+          onChange={(e) => {
+            if (!isDisabled) {
+              updateConfiguration(forceField || com.field, e.target.value, layer);
+            }
+          }}
+        />
+      );
+      return (
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -769,8 +1045,8 @@ const getComponent = (
               <div
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ __html: isDisabled 
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || "" }}
+                  ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                  : safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -789,7 +1065,7 @@ const getComponent = (
         </div>
       );
     case "textarray":
-      let text_array_f = getIn(directConf, com.field, []);
+      let text_array_f = value != null ? value : configured([]);
       if (text_array_f != null && typeof text_array_f.join === "function")
         text_array_f = text_array_f.join(",");
 
@@ -853,7 +1129,7 @@ const getComponent = (
         </div>
       );
     case "markdown":
-      let markdown_f = value || getIn(directConf, com.field, "");
+      let markdown_f = value || configured("");
       return (
         <div className="container">
           <MDEditor
@@ -866,7 +1142,7 @@ const getComponent = (
         </div>
       );
     case "json":
-      let json_f = value || getIn(directConf, com.field, {});
+      let json_f = value || configured({});
       try {
         if (typeof json_f === "string") json_f = JSON.parse(json_f);
       } catch (err) {}
@@ -892,7 +1168,7 @@ const getComponent = (
         </div>
       );
     case "number":
-      const numberValue = value != null ? value : getIn(directConf, com.field, "");
+      const numberValue = value != null ? value : configured("");
       const numberHasError = isRequired && (numberValue === "" || numberValue == null || isNaN(numberValue));
       inner = (
         <TextField
@@ -950,9 +1226,7 @@ const getComponent = (
             control={
               <Checkbox
                 disabled={disabled}
-                checked={
-                  value || getIn(directConf, com.field, com.defaultChecked)
-                }
+                checked={value != null ? value : configured(com.defaultChecked)}
                 onChange={(e) => {
                   updateConfiguration(
                     forceField || com.field,
@@ -990,7 +1264,7 @@ const getComponent = (
               {`${com.name} (${
                 value != null
                   ? value
-                  : getIn(directConf, com.field, com.default || "")
+                  : configured(com.default || "")
               })`}
             </Typography>
             <Grid item xs style={{ margin: "0px 10px" }}>
@@ -999,7 +1273,7 @@ const getComponent = (
                 value={
                   value != null
                     ? value
-                    : getIn(directConf, com.field, com.default || "")
+                    : configured(com.default || "")
                 }
                 onChange={(e) => {
                   let v = e.target.value;
@@ -1041,9 +1315,7 @@ const getComponent = (
             control={
               <Switch
                 disabled={disabled}
-                checked={
-                  value || getIn(directConf, com.field, com.defaultChecked)
-                }
+                checked={value != null ? value : configured(com.defaultChecked)}
                 onChange={(e) => {
                   updateConfiguration(
                     forceField || com.field,
@@ -1073,13 +1345,43 @@ const getComponent = (
           )}
         </div>
       );
-    case "dropdown":
+    case "dropdown": {
+      // A component may name a provider for options it can't know when it was
+      // written ("a property of this layer's data"); until the provider
+      // answers, whatever it declared literally is what shows.
+      if (com.optionsFrom != null && dynamicOptions == null)
+        return (
+          <WithDynamicOptions com={com} layer={layer}>
+            {(options) =>
+              getComponent(
+                { ...com, options },
+                configuration,
+                layer,
+                tool,
+                component,
+                updateConfiguration,
+                c,
+                inlineHelp,
+                value,
+                forceField,
+                dispatch,
+                fieldDefaults,
+                options
+              )
+            }
+          </WithDynamicOptions>
+        );
+      const isOptionObject = (o) => typeof o === "object" && o !== null;
+      const optionValue = (o) => (isOptionObject(o) ? o.value : o);
+      const optionLabel = (o) =>
+        isOptionObject(o) ? o.label ?? o.value : o;
+      const firstOptionValue = optionValue(com.options?.[0]);
       inner = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>
           <Select
             disabled={disabled || isDisabled}
-            value={value || getIn(directConf, com.field, com.options?.[0])}
+            value={value || configured(firstOptionValue)}
             onChange={(e) => {
               if (!isDisabled) {
                 updateConfiguration(
@@ -1091,9 +1393,11 @@ const getComponent = (
             }}
           >
             {com.options.map((o) => {
+              const v = optionValue(o);
+              const l = optionLabel(o);
               return (
-                <MenuItem value={o}>
-                  {typeof o === "string" ? o.toUpperCase() : o}
+                <MenuItem value={v} key={v}>
+                  {typeof l === "string" ? l.toUpperCase() : l}
                 </MenuItem>
               );
             })}
@@ -1108,8 +1412,8 @@ const getComponent = (
               <div
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ __html: isDisabled 
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || "" }}
+                  ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                  : safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -1127,7 +1431,30 @@ const getComponent = (
           )}
         </div>
       );
+    }
     case "searchdropdown":
+      if (com.optionsFrom != null && dynamicOptions == null)
+        return (
+          <WithDynamicOptions com={com} layer={layer}>
+            {(options) =>
+              getComponent(
+                { ...com, options },
+                configuration,
+                layer,
+                tool,
+                component,
+                updateConfiguration,
+                c,
+                inlineHelp,
+                value,
+                forceField,
+                dispatch,
+                fieldDefaults,
+                options
+              )
+            }
+          </WithDynamicOptions>
+        );
       let searchOptions = com.options;
 
       // Support for dynamic injection through mustache
@@ -1145,18 +1472,31 @@ const getComponent = (
         searchOptions = com.options || [];
       }
 
-      const currentValue = value || getIn(directConf, com.field, com.options?.[0] || "");
+      // An empty ordinary searchdropdown shows its first option; an empty
+      // freeSolo one shows nothing, since it has no answer yet.
+      const currentValue =
+        value ||
+        configured((com.freeSolo === true ? "" : com.options?.[0]) || "");
 
+      // `freeSolo` lets a field suggest what it knows without refusing what it
+      // doesn't — a property list can only offer top-level names, but a nested
+      // one ("meta.reading.value") is just as valid.
       inner = (
         <Autocomplete
           className={c.autocomplete}
           disabled={isDisabled}
+          freeSolo={com.freeSolo === true}
           options={searchOptions}
           value={currentValue}
           onChange={(event, newValue) => {
             if (!isDisabled && newValue !== null) {
               updateConfiguration(forceField || com.field, newValue, layer);
             }
+          }}
+          onInputChange={(event, newInput, reason) => {
+            if (com.freeSolo !== true || isDisabled) return;
+            if (reason === "reset") return;
+            updateConfiguration(forceField || com.field, newInput, layer);
           }}
           renderInput={(params) => (
             <TextField
@@ -1177,7 +1517,7 @@ const getComponent = (
               option.toLowerCase().includes(inputValue.toLowerCase())
             );
           }}
-          noOptionsText="No matching tilematrixsets"
+          noOptionsText={com.noOptionsText || "No matching tilematrixsets"}
           clearOnBlur={false}
           selectOnFocus
           handleHomeEndKeys
@@ -1191,8 +1531,8 @@ const getComponent = (
               <div
                 className={c.subtitle2}
                 dangerouslySetInnerHTML={{ __html: isDisabled 
-                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
-                  : com.description || "" }}
+                  ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                  : safeHTML(com.description || "") }}
               ></div>
             </>
           ) : (
@@ -1210,9 +1550,55 @@ const getComponent = (
           )}
         </div>
       );
+    case "colorramp": {
+      // Like a dropdown, but each option wears its own colours - a ramp is
+      // hard to recognise by name alone.
+      const ramp_value = value || configured(com.options?.[0]);
+      const ramp_options = com.options?.includes(ramp_value)
+        ? com.options
+        : [ramp_value, ...(com.options || [])];
+      inner = (
+        <FormControl className={c.dropdown} variant="filled" size="small">
+          <InputLabel>{com.name}</InputLabel>
+          <Select
+            disabled={disabled}
+            value={ramp_value}
+            renderValue={(v) => <ColorRampOption name={v} c={c} />}
+            onChange={(e) => {
+              updateConfiguration(
+                forceField || com.field,
+                e.target.value,
+                layer
+              );
+            }}
+          >
+            {ramp_options.map((o) => (
+              <MenuItem value={o} key={Array.isArray(o) ? "custom" : o}>
+                <ColorRampOption name={o} c={c} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <Typography className={c.subtitle2}>
+                {com.description || ""}
+              </Typography>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    }
     case "colordropdown":
-      let dropdown_value =
-        value || getIn(directConf, com.field, com.options?.[0]);
+      let dropdown_value = value || configured(com.options?.[0]);
       inner = (
         <FormControl className={c.dropdown} variant="filled" size="small">
           <InputLabel>{com.name}</InputLabel>
@@ -1243,7 +1629,7 @@ const getComponent = (
       let source = "";
       if (window.mmgisglobal.WITH_TITILER === "true") {
         // Get colors from TiTiler if it is available
-        source = `${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?format=png`
+        source = `${domain}titiler/colorMaps/${dropdown_value.toLowerCase()}?f=png`
       }
 
       return (
@@ -1259,7 +1645,15 @@ const getComponent = (
               </Typography>
             </>
           ) : (
-            <Tooltip title={com.description || ""} placement="top" arrow>
+            <Tooltip
+              title={
+                disabled
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`.trim()
+                  : com.description || ""
+              }
+              placement="top"
+              arrow
+            >
               {inner}
             </Tooltip>
           )}
@@ -1267,18 +1661,11 @@ const getComponent = (
       );
     case "colorpicker":
       let color;
-      if (tool)
-        color = getIn(tool, com.field.split("."), {
-          hex: com.default || "#FFFFFF",
-        });
-      else if (layer)
-        color = getIn(layer, com.field.split("."), {
-          hex: com.default || "#FFFFFF",
-        });
-      else
-        color = getIn(directConf, com.field.split("."), {
-          hex: com.default || "#FFFFFF",
-        });
+      const colorDefault = { hex: com.default || "#FFFFFF" };
+      if (forceField != null) color = colorDefault;
+      else if (tool) color = getIn(tool, com.field.split("."), colorDefault);
+      else if (layer) color = getIn(layer, com.field.split("."), colorDefault);
+      else color = configured(colorDefault);
 
       inner = (
         <ColorButton
@@ -1314,13 +1701,130 @@ const getComponent = (
           )}
         </div>
       );
+    case "layerMultiSelect": {
+      const allowedTypes = Array.isArray(com.layerTypes) ? com.layerTypes : null;
+      const allLayers = [];
+      if (configuration && configuration.layers) {
+        traverseLayers(configuration.layers, (l) => {
+          if (l.type && l.type !== "header") {
+            if (allowedTypes && !allowedTypes.includes(l.type)) return;
+            allLayers.push({
+              uuid: l.uuid || l.name,
+              displayName: l.display_name || l.name,
+            });
+          }
+        });
+      }
+      const layerOptions = allLayers.map((l) => l.displayName);
+      const validNames = new Set(allLayers.map((l) => l.displayName));
+      const validUuids = new Set(allLayers.map((l) => l.uuid));
+
+      let selectedLayers = value != null ? value : fieldValue;
+      if (!Array.isArray(selectedLayers)) selectedLayers = [];
+
+      inner = (
+        <Autocomplete
+          className={c.autocomplete}
+          multiple
+          options={layerOptions}
+          value={selectedLayers}
+          onChange={(event, newValue) => {
+            updateConfiguration(forceField || com.field, newValue, layer);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={com.name}
+              variant="filled"
+              size="small"
+            />
+          )}
+          renderTags={(tagValue, getTagProps) =>
+            tagValue.map((option, index) => {
+              const isValid = validNames.has(option) || validUuids.has(option);
+              return (
+                <Chip
+                  label={option}
+                  size="small"
+                  {...getTagProps({ index })}
+                  key={option}
+                  sx={
+                    isValid
+                      ? {}
+                      : {
+                          backgroundColor: "rgba(211, 47, 47, 0.2)",
+                          color: "#f44336",
+                          "& .MuiChip-deleteIcon": {
+                            color: "#f44336",
+                          },
+                        }
+                  }
+                />
+              );
+            })
+          }
+          filterOptions={(options, { inputValue }) => {
+            return options.filter(
+              (option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase()) &&
+                !selectedLayers.includes(option)
+            );
+          }}
+          noOptionsText="No matching layers"
+          clearOnBlur={false}
+          selectOnFocus
+          handleHomeEndKeys
+          freeSolo
+        />
+      );
+      return (
+        <div>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{ __html: safeHTML(com.description || "") }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip title={com.description || ""} placement="top" arrow>
+              {inner}
+            </Tooltip>
+          )}
+        </div>
+      );
+    }
     case "objectarray":
       const section = [];
+      // An objectarray nested inside another one is reached by the path its
+      // parent handed down, not by the field it declares (which is relative to
+      // its item), so the outer path wins when there is one.
+      const arrayField = forceField || com.field;
       let items;
-      if (tool) items = getIn(tool, com.field.split("."), []);
-      else if (layer) items = getIn(layer, com.field.split("."), []);
-      else items = getIn(configuration, com.field.split("."), []);
+      if (tool) items = getIn(tool, arrayField.split("."), []);
+      else if (component) items = getIn(component, arrayField.split("."), []);
+      else if (layer) items = getIn(layer, arrayField.split("."), []);
+      else items = getIn(configuration, arrayField.split("."), []);
       if (typeof items.push !== "function") items = [];
+
+      // Items whose fields are themselves paths ("domain.source") are read the
+      // same way they're written.
+      const itemValue = (item, field) => {
+        // A subheading and the like edit nothing, so they have no field to read.
+        if (typeof field !== "string") return undefined;
+        const read = getIn(item, field.split("."), undefined);
+        return read === null ? undefined : read;
+      };
+      const newItem = () => {
+        const next = {};
+        com.object.forEach((obj) => {
+          if (typeof obj.field !== "string") return;
+          // A path can't be a key; it's written when the field is first edited.
+          if (obj.field.indexOf(".") === -1) next[obj.field] = null;
+        });
+        return next;
+      };
 
       items.forEach((item, idx) => {
         section.push(
@@ -1329,6 +1833,7 @@ const getComponent = (
             className={clsx(c.row, c.objectArrayBox)}
             key={idx}
           >
+            <div className={c.objectArrayIndex}>{idx + 1}</div>
             <Grid
               container
               spacing={4}
@@ -1336,7 +1841,15 @@ const getComponent = (
               justifyContent="left"
               alignItems="left"
             >
-              {com.object.map((icom, idx2) => {
+              {com.object
+                .map((icom, idx2) => [icom, idx2])
+                .filter(([icom]) =>
+                  passesShowIf(icom, (field) => itemValue(item, field))
+                )
+                // Keyed by where a component is declared, not where it ended
+                // up, so showing one doesn't hand another's half-typed text to
+                // the field after it.
+                .map(([icom, idx2]) => {
                 return (
                   <Grid
                     item
@@ -1356,8 +1869,8 @@ const getComponent = (
                           updateConfiguration,
                           c,
                           inlineHelp,
-                          item[icom.field],
-                          `${com.field}.${idx}.${icom.field}`
+                          itemValue(item, icom.field),
+                          `${arrayField}.${idx}.${icom.field}`
                         )
                       : getComponent(
                           icom,
@@ -1368,8 +1881,8 @@ const getComponent = (
                           updateConfiguration,
                           c,
                           inlineHelp,
-                          item[icom.field],
-                          `${com.field}.${idx}.${icom.field}`
+                          itemValue(item, icom.field),
+                          `${arrayField}.${idx}.${icom.field}`
                         )}
                   </Grid>
                 );
@@ -1383,30 +1896,39 @@ const getComponent = (
                       tool.name,
                       configuration
                     );
-                    let next = getIn(t, com.field.split("."), []);
+                    let next = getIn(t, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
 
                     next.splice(idx, 1);
 
-                    updateConfiguration(com.field, next, configuration);
+                    updateConfiguration(arrayField, next, configuration);
+                  } else if (component) {
+                    const comp = getComponentFromConfiguration(component.name, configuration);
+                    let next = getIn(comp, arrayField.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+
+                    next.splice(idx, 1);
+
+                    updateConfiguration(arrayField, next);
                   } else if (layer) {
                     const l = getLayerByUUID(configuration.layers, layer.uuid);
-                    let next = getIn(l, com.field.split("."), []);
+                    let next = getIn(l, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
 
                     next.splice(idx, 1);
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   } else {
-                    let next = getIn(configuration, com.field.split("."), []);
+                    let next = getIn(configuration, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
 
                     next.splice(idx, 1);
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   }
                 }}
               >
@@ -1432,39 +1954,35 @@ const getComponent = (
                       tool.name,
                       configuration
                     );
-                    let next = getIn(t, com.field.split("."), []);
+                    let next = getIn(t, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+                    next.push(newItem());
 
-                    updateConfiguration(com.field, next, configuration);
+                    updateConfiguration(arrayField, next, configuration);
+                  } else if (component) {
+                    const comp = getComponentFromConfiguration(component.name, configuration);
+                    let next = getIn(comp, arrayField.split("."), []);
+                    next = JSON.parse(JSON.stringify(next));
+                    if (typeof next.push !== "function") next = [];
+                    next.push(newItem());
+
+                    updateConfiguration(arrayField, next);
                   } else if (layer) {
                     const l = getLayerByUUID(configuration.layers, layer.uuid);
-                    let next = getIn(l, com.field.split("."), []);
+                    let next = getIn(l, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+                    next.push(newItem());
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   } else {
-                    let next = getIn(configuration, com.field.split("."), []);
+                    let next = getIn(configuration, arrayField.split("."), []);
                     next = JSON.parse(JSON.stringify(next));
                     if (typeof next.push !== "function") next = [];
-                    let nextObj = {};
-                    com.object.forEach((obj) => {
-                      nextObj[obj.field] = null;
-                    });
-                    next.push(nextObj);
+                    next.push(newItem());
 
-                    updateConfiguration(com.field, next, layer);
+                    updateConfiguration(arrayField, next, layer);
                   }
                 }}
               >
@@ -1474,6 +1992,27 @@ const getComponent = (
           </div>
           {section}
         </div>
+      );
+    case "interactions":
+      return (
+        <InteractionEditor
+          layer={layer}
+          renderSettings={(rows) =>
+            makeConfig(
+              updateConfiguration,
+              { rows },
+              configuration,
+              layer,
+              tool,
+              component,
+              c,
+              false,
+              inlineHelp,
+              dispatch
+            )
+          }
+          updateConfiguration={updateConfiguration}
+        />
       );
     case "map":
       return (
@@ -1485,6 +2024,77 @@ const getComponent = (
       return (
         <div className={c.map} style={{ height: com.height || "200px" }}>
           <VideoPreview layer={layer} configuration={configuration} />
+        </div>
+      );
+    case "themepreview":
+      return <ThemePreview configuration={configuration} />;
+    case "defaulttooldropdown":
+      let tools = configuration?.tools || null;
+      tools = tools
+        .filter((tool) => {
+          return (
+            tool?.separatedTool !== true &&
+            tool?.separatedTool !== "custom" &&
+            tool?.on !== false
+          );
+        })
+        .map((tool) => tool.name);
+
+      tools.unshift("None");
+
+      inner = (
+        <FormControl className={c.dropdown} variant="filled" size="small">
+          <InputLabel>{com.name}</InputLabel>
+          <Select
+            disabled={disabled || isDisabled}
+            value={value || configured(tools[0])}
+            onChange={(e) => {
+              if (!isDisabled) {
+                updateConfiguration(
+                  forceField || com.field,
+                  e.target.value,
+                  layer
+                );
+              }
+            }}
+          >
+            {tools.map((o) => {
+              return (
+                <MenuItem key={o} value={o}>
+                  {typeof o === "string" ? o.toUpperCase() : o}
+                </MenuItem>
+              );
+            })}
+          </Select>
+        </FormControl>
+      );
+      return (
+        <div style={isDisabled ? { opacity: 0.5 } : {}}>
+          {inlineHelp ? (
+            <>
+              {inner}
+              <div
+                className={c.subtitle2}
+                dangerouslySetInnerHTML={{
+                  __html: isDisabled
+                    ? `${safeHTML(com.description || "")}<br/><strong>Note:</strong> ${safeHTML(disabledMessage)}`
+                    : safeHTML(com.description || ""),
+                }}
+              ></div>
+            </>
+          ) : (
+            <Tooltip
+              title={
+                isDisabled
+                  ? `${com.description || ""}\n\nNote: ${disabledMessage}`
+                  : com.description || ""
+              }
+              placement="top"
+              arrow
+            >
+              {inner}
+            </Tooltip>
+          )}
         </div>
       );
     default:
@@ -1546,7 +2156,7 @@ const makeConfig = (
           <div
             className={clsx(c.rowDescription)}
             key={`${idx}_desc`}
-            dangerouslySetInnerHTML={{ __html: row.description || "" }}
+            dangerouslySetInnerHTML={{ __html: safeHTML(row.description || "") }}
           ></div>
         );
       }
@@ -1565,7 +2175,7 @@ const makeConfig = (
           <div
             className={clsx(c.rowDescription)}
             key={`${idx}_desc`}
-            dangerouslySetInnerHTML={{ __html: row.subdescription || "" }}
+            dangerouslySetInnerHTML={{ __html: safeHTML(row.subdescription || "") }}
           ></div>
         );
       }
@@ -1597,7 +2207,26 @@ const makeConfig = (
                 alignItems="left"
                 style={row.forceHeight ? { height: row.forceHeight } : null}
               >
-                {row.components.map((com, idx2) => {
+                {row.components
+                  .map((com, idx2) => [com, idx2])
+                  .filter(([com]) =>
+                    passesShowIf(com, (field) =>
+                      getIn(
+                        layer == null
+                          ? tool == null
+                            ? component == null
+                              ? configuration
+                              : component
+                            : tool
+                          : layer,
+                        field.split("."),
+                        undefined
+                      )
+                    )
+                  )
+                  // Keyed by where a component is declared, as in an
+                  // objectarray's items.
+                  .map(([com, idx2]) => {
               return (
                 <Grid
                   item
@@ -1649,7 +2278,7 @@ export default function Maker(props) {
   if (toolName) tool = getToolFromConfiguration(toolName, configuration);
 
   let component = null;
-  if (componentName) component = getComponentFromConfiguration(componentName, configuration);
+  if (componentName) component = getComponentFromConfiguration(componentName, configuration) || {};
 
   const updateConfiguration = (
     keyPath,
@@ -1669,9 +2298,9 @@ export default function Maker(props) {
         keyPath.split("."),
         value
       );
-    } else if (component != null) {
+    } else if (componentName != null) {
       updateComponentInConfiguration(
-        component.name,
+        componentName,
         nextConfiguration,
         keyPath.split("."),
         value

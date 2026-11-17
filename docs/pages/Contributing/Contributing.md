@@ -12,7 +12,7 @@ Thanks for taking the time to consider contributing! We very much appreciate you
 
 ## Introduction
 
-MMGIS (Multi-Mission Geographical Information System) is a highly-configurable, cross-mission web-based and open-source mapping application. It's been used on MSL, InSight, Mars 2020, EMIT, MAIA, Lunar VIPER, ... to name a few. And we would much appreciate your help! Here are the basics on contributing:
+MMGIS (Multi-Mission Geographic Information System) is a highly-configurable, cross-mission web-based and open-source mapping application. It's been used on MSL, InSight, Mars 2020, EMIT, MAIA, Lunar VIPER, ... to name a few. And we would much appreciate your help! Here are the basics on contributing:
 
 - Anyone can contribute!
 - You can contribute at any time
@@ -24,64 +24,99 @@ Since we're an open source project, we also accept and encourage ad-hoc contribu
 
 ## Plugin System
 
-MMGIS supports a flexible plugin system for adding custom tools and backend functionality without modifying the core codebase. This allows teams to maintain private or mission-specific functionality while still benefiting from MMGIS updates.
+MMGIS uses a plugin-based architecture organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`. Core plugins ship with MMGIS in `plugins/core/`; external plugins can be installed from Git repositories or local paths without modifying the core codebase.
 
-### Tool Plugins
+### Official Plugin Repository
 
-Custom tools can be added by creating directories in `/src/essence/` that match these patterns:
-- `*Private-Tools*` (e.g., `My-Private-Tools`, `MMGIS-Private-Tools`)
-- `*Plugin-Tools*` (e.g., `NASA-Plugin-Tools`, `Mission-Plugin-Tools-v2`)
+Community and mission-specific plugins are maintained in the official collection:
 
-Each plugin directory should contain subdirectories for individual tools with the standard structure:
-- `config.json` - Tool configuration
-- `[ToolName]Tool.js` - Tool implementation
-- `[ToolName]Tool.css` - Optional styling
+**[NASA-AMMOS/MMGIS-Plugins](https://github.com/NASA-AMMOS/MMGIS-Plugins)**
 
-**Important**: Run `npm run build` after adding or modifying tool plugins.
+Install the official plugins with:
 
-### Backend Plugins
-
-Custom backends can be added by creating directories in `/API/` that match these patterns:
-- `*Private-Backend*` (e.g., `My-Private-Backend`, `MMGIS-Private-Backend`)
-- `*Plugin-Backend*` (e.g., `NASA-Plugin-Backend`, `Mission-Plugin-Backend-v2`)
-
-Each plugin directory should contain subdirectories for individual backends with:
-- `setup.js` - Backend setup file
-- `models/` - Optional data models
-- `routes/` - Optional API routes
-
-**Important**: Only `npm start` is required - backends are loaded dynamically.
-
-### Component Plugins
-
-Custom components can be added by creating directories in `/src/essence/` that match these patterns:
-- `*Private-Components*` (e.g., `My-Private-Components`, `MMGIS-Private-Components`)
-- `*Plugin-Components*` (e.g., `NASA-Plugin-Components`, `Mission-Plugin-Components-v2`)
-
-Components are lightweight initialization plugins that run once after the UI is finalized. They're ideal for:
-- Analytics integrations
-- Global keyboard shortcuts
-- Custom page-level enhancements
-- Background services
-
-Each plugin directory should contain subdirectories for individual components with:
-- `config.json` - Component metadata and configuration schema
-- `[ComponentName].js` - Component implementation with `init()` method
-
-**Important**: Run `npm run build` after adding or modifying component plugins.
-
-**Component Lifecycle**: Components have a single `init(vars)` method that is called once after the MMGIS UI is finalized (after `fina()`). Components receive their configured variables as a parameter and should handle initialization quickly (< 100ms recommended).
-
-**Example Component Structure**:
-```
-/src/essence/MMGIS-Private-Components/
-  └── ExampleComponent/
-      ├── config.json           # Component metadata and config schema
-      ├── ExampleComponent.js   # Component with init() method
-      └── README.md             # Optional documentation
+```bash
+npm run plugins -- install MMGIS-Plugins
 ```
 
-All plugin directories are automatically gitignored and can override standard tools/backends/components by using the same names.
+### Plugin Types
+
+| Type | Location | Description |
+|------|----------|-------------|
+| **tools** | `plugins/<container>/tools/` | Frontend sidebar tools (Draw, Measure, Legend, etc.) |
+| **backend** | `plugins/<container>/backend/` | Server-side Express route modules (Accounts, Config, Users, etc.) |
+| **components** | `plugins/<container>/components/` | Lightweight UI widgets (OperationsClock, etc.) |
+| **interactions** | `plugins/<container>/interactions/` | Feature interaction handlers (Select, InfoOpen, etc.) |
+| **layertypes** | `plugins/<container>/layertypes/` | Layer renderers and their config/filter/time behavior (Vector, Tile, etc.) |
+| **layerattachments** | `plugins/<container>/layerattachments/` | Extras built from a host layer's data (Labels, PathGradient, etc.) |
+| **auth** | `plugins/core/auth/` | MMGIS sign-in providers selected by `AUTH_PROVIDERS` (Local, Proxy). Core only. See [Writing an Auth Provider](AuthProviders/AuthProviders.md) |
+| **connections** | `plugins/<container>/connections/` | Outside services that tools use with each person's own account there (e.g. Earthdata; none in core yet). Not a way to sign in to MMGIS. See [Connections](Connections/Connections.md) |
+
+Each plugin directory contains a `plugin.json` manifest describing the plugin's metadata, paths, and optional dependencies. See [`plugins/README.md`](/plugins/README.md) for the full manifest reference, and the per-family `README.md` in `plugins/core/layertypes/` and `plugins/core/layerattachments/` for those contracts.
+
+### Plugin CLI
+
+Manage plugins via the built-in CLI (`npm run plugins -- <command>`):
+
+| Command | Description |
+|---------|-------------|
+| `list` | List all plugins with enabled/disabled status |
+| `install <git-url\|path\|name>` | Install a plugin repo (git clone, local copy, or registry name) |
+| `uninstall <repo-name>` | Uninstall an installed plugin repo (cannot uninstall `core`) |
+| `enable <plugin-id>` | Mark a plugin as active |
+| `disable <plugin-id>` | Mark a plugin as inactive |
+| `create <type> <Name>` | Scaffold a new plugin of any of the six types above |
+| `validate` | Validate all `plugin.json` manifests |
+| `deps` | Show aggregated dependencies with conflict detection |
+| `update [repo-name]` | `git pull` latest for one or all installed repos |
+
+### Creating a New Plugin
+
+```bash
+# Scaffold a new tool plugin in a custom container
+npm run plugins -- create tool MyTool --container my-plugins
+
+# Scaffold a new backend plugin
+npm run plugins -- create backend MyBackend --container my-plugins
+
+# …or a layer type / layer attachment
+npm run plugins -- create layertype MyGrid --container my-plugins
+npm run plugins -- create layerattachment MyHalos --container my-plugins
+```
+
+This copies `plugin-cli/scaffolds/<type>/` to `plugins/<container>/<type>/<Name>/`, substituting the name — so the scaffold itself is the starting point to read. External plugin containers (anything outside `plugins/core/`) are automatically gitignored.
+
+### Override Behavior
+
+Plugins are keyed by their **on-disk directory name**. To override a core plugin, create a plugin with the same directory name in an external container. Core plugins load first; external containers are scanned afterwards and override what was already registered. Overrides are logged for auditability.
+
+### Plugin Dependencies
+
+Plugins may declare npm and Python dependencies in their `plugin.json`:
+
+```json
+{
+    "dependencies": {
+        "npm": { "html2canvas": "^1.4.1" },
+        "python": { "pip": ["spiceypy==5.1.2"], "conda": ["gdal==3.12.2"] }
+    }
+}
+```
+
+At build time, `scripts/resolve-plugin-deps.js` aggregates these into `plugin-package.json`, `plugin-python-requirements.txt`, and `plugin-conda-deps.txt` at the repo root. Plugin npm deps are installed automatically via a `postinstall` hook. Python deps must be installed manually — see the [Installation page](../Setup/Installation/Installation.md#setup) for details.
+
+### Plugin CI
+
+A plugin whose tests need an outside service or settings (e.g. a directory server) declares how to set them up in its `plugin.json`:
+
+```json
+{
+    "ci": { "script": "tests/ci.sh", "variants": ["ldaps", "starttls"] }
+}
+```
+
+`scripts/plugin-ci.js` runs `<script> <variant>` once per variant (once with no argument if there are no `variants`). The script starts what the tests need and appends their ENVs, one `KEY=VALUE` per line, to the file named by `$MMGIS_CI_ENV`; then the plugin's `tests/` (except `@unit` tests, which run with every plugin's) run with those ENVs. CI's `plugin-ci` job runs every declared plugin and variant, so adding one needs no workflow change. Locally: `npm run test:plugins:ci -- plugins/core/auth/Ldap ldaps`. See `plugins/core/auth/Ldap/tests/ci.sh` and `plugins/core/auth/Proxy/tests/ci.sh`.
+
+For the complete plugin development guide, CLI reference, and `plugin.json` format, see [`plugins/README.md`](/plugins/README.md).
 
 ### Quickstart to Contributing
 

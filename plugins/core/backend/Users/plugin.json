@@ -1,0 +1,21 @@
+{
+  "uuid": "483bdf7d-dcb0-4bae-84a7-9af95bc6e7aa",
+  "id": "core-users",
+  "name": "Users",
+  "display_name": "User Management",
+  "aliases": [
+    "users"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": false,
+  "required": true,
+  "routes": {
+    "prefix": "/api/users",
+    "auth": "public"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

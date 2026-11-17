@@ -1,0 +1,88 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 1,
+                "name": "Borehole A",
+                "depth_m": 12.5,
+                "confidence": 0.95,
+                "reading_type": "core"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [-122.4783, 37.8199]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 2,
+                "name": "Borehole B",
+                "depth_m": 48.2,
+                "confidence": 0.61,
+                "reading_type": "core"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [-122.4194, 37.7749]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 3,
+                "name": "Borehole C",
+                "depth_m": 103.7,
+                "confidence": 0.42,
+                "reading_type": "probe"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [-122.4058, 37.7955]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 4,
+                "name": "Borehole D",
+                "depth_m": 76.4,
+                "confidence": 0.78,
+                "reading_type": "probe"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [-122.3892, 37.7679]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 5,
+                "name": "Borehole E",
+                "depth_m": 5.1,
+                "confidence": 0.33,
+                "reading_type": "surface"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [-122.4477, 37.8083]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "id": 6,
+                "name": "Borehole F",
+                "confidence": 0.5,
+                "reading_type": "surface"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [-122.4326, 37.7883]
+            }
+        }
+    ]
+}

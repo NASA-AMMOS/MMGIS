@@ -1,0 +1,66 @@
+{
+  "type": "FeatureCollection",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Fisherman's Wharf",
+        "category": "Landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4177, 37.8080]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Union Square",
+        "category": "Shopping"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4075, 37.7880]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Twin Peaks",
+        "category": "Viewpoint"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4474, 37.7544]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Coit Tower",
+        "category": "Monument"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4058, 37.8024]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Painted Ladies",
+        "category": "Architecture"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.4330, 37.7762]
+      }
+    }
+  ]
+}

@@ -6,6 +6,15 @@ import F_ from './essence/Basics/Formulae_/Formulae_'
 
 import calls from './pre/calls'
 
+import UserInterfaceLayout from './essence/Basics/UserInterface_/components/Layout/UserInterfaceLayout'
+import ToastRenderer from './design-system/components/Toast/ToastRenderer'
+
+// Ensure useReactUI is always set (defensive fallback for non-standard bootstrap)
+;(function () {
+    if (typeof window.mmgisglobal === 'undefined') window.mmgisglobal = {}
+    window.mmgisglobal.useReactUI = true
+})()
+
 //Start MMGIS
 $(document).ready(function () {
     const browser = F_.getBrowser()
@@ -21,6 +30,11 @@ $(document).ready(function () {
         {},
         function (resp) {
             mmgisglobal.options = resp.options
+            const landingPage = (resp.options || {}).landingPage || {}
+            if (mmgisglobal.setLoadingTheme)
+                mmgisglobal.setLoadingTheme(landingPage.theme)
+            if (mmgisglobal.setLoadingLogo)
+                mmgisglobal.setLoadingLogo(landingPage.logoUrl)
             initApp()
         },
         function (err) {
@@ -63,25 +77,34 @@ function initApp() {
             )
         }
     } else {
+        // Viewing-filtered {mission, look, msv} card metadata for the landing page
         calls.api(
             'missions',
-            {},
+            { cards: true },
             function (s) {
+                const missionsMeta = {}
                 const missions = (s.missions || [])
-                    .slice()
+                    .map((m) => {
+                        if (m && typeof m === 'object') {
+                            missionsMeta[m.mission] = m
+                            return m.mission
+                        }
+                        return m
+                    })
+                    .filter((m) => typeof m === 'string')
                     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-                continueOn(missions)
+                continueOn(missions, missionsMeta)
             },
             function (e) {
-                continueOn([])
+                continueOn([], {})
             }
         )
 
-        function continueOn(missions) {
+        function continueOn(missions, missionsMeta) {
             const u = window.location.href.split('?s=')
             if (!u[1]) {
                 //Not a shortened URL
-                LandingPage.init(missions)
+                LandingPage.init(missions, false, null, missionsMeta)
             } else {
                 calls.api(
                     'shortener_expand',
@@ -92,10 +115,10 @@ function initApp() {
                         //Set and update the url
                         const url = u[0] + s.body.url
                         window.history.replaceState('', '', url)
-                        LandingPage.init(missions)
+                        LandingPage.init(missions, false, null, missionsMeta)
                     },
                     function (e) {
-                        LandingPage.init(missions, true)
+                        LandingPage.init(missions, true, null, missionsMeta)
                     }
                 )
             }
@@ -104,7 +127,12 @@ function initApp() {
 }
 
 function App() {
-    return <div className='App'></div>
+    return (
+        <div className='App'>
+            <UserInterfaceLayout />
+            <ToastRenderer />
+        </div>
+    )
 }
 
 export default App

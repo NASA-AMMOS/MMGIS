@@ -1,0 +1,49 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "South Pole Traverse",
+        "description": "Meandering traverse route from -60\u00b0 latitude to the lunar south pole",
+        "type": "traverse",
+        "length": "~920 km"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [0, -60],
+          [8, -61.5],
+          [18, -63],
+          [12, -64.5],
+          [-2, -65.5],
+          [-15, -67],
+          [-22, -68.5],
+          [-12, -70],
+          [5, -71],
+          [20, -72.5],
+          [30, -73.5],
+          [22, -75],
+          [8, -76],
+          [-8, -77],
+          [-22, -78],
+          [-30, -79],
+          [-18, -80],
+          [-5, -81],
+          [12, -82],
+          [25, -82.5],
+          [18, -83.5],
+          [5, -84.5],
+          [-10, -85],
+          [-18, -86],
+          [-8, -87],
+          [5, -87.5],
+          [12, -88],
+          [5, -88.5],
+          [-3, -89],
+          [0, -89.5]
+        ]
+      }
+    }
+  ]
+}

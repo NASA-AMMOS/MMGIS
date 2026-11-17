@@ -1,24 +1,31 @@
 body,
 html {
   font-family: sans-serif;
-  background-color: #1a1a1a;
-  background-image: url(../../configure/build/contours.png);
   padding: 0;
   margin: 0;
 }
 
+/* Centers the banner and card together, and scrolls instead of clipping when they don't fit */
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 24px 0;
+}
+
 .container {
   margin: 0;
-  top: 50%;
-  left: 50%;
-  position: absolute;
+  position: relative;
+  flex: none;
   text-align: center;
-  transform: translateX(-50%) translateY(-50%);
   background-color: #1c1c1c;
   border-top: 4px solid #08aeea;
-  border-bottom: 4px solid #08aeea;
+  border-radius: 10px;
   width: 400px;
-  height: 440px;
+  padding-bottom: 26px;
   box-shadow: 0px 4px 30px 10px #141414;
 }
 
@@ -26,7 +33,7 @@ html {
   font-family: sans-serif;
   color: #08aeea;
   font-size: 18px;
-  margin-top: 94px;
+  margin-top: 16px;
 }
 
 .box h4 span {
@@ -36,26 +43,26 @@ html {
 
 .box h5 {
   font-family: sans-serif;
-  font-size: 13px;
-  color: #a1a4ad;
-  letter-spacing: 1.5px;
-  margin-top: -15px;
-  margin-bottom: 70px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #b4b7bf;
+  letter-spacing: 0.3px;
+  margin-top: -10px;
+  margin-bottom: 24px;
 }
 
 .box input[type="text"],
 .box input[type="password"] {
   display: block;
-  margin: 20px auto;
+  margin: 6px auto 16px;
   background: #36373a;
-  border: 0;
   border-radius: 5px;
   padding: 14px 10px;
   width: 320px;
   outline: none;
   font-size: 14px;
   color: #ececec;
-  border: 1px solid rgba(0, 0, 0, 0);
+  border: 1px solid #45464a;
 }
 ::-webkit-input-placeholder {
   color: #727580;
@@ -63,7 +70,8 @@ html {
 
 .box input[type="text"]:focus,
 .box input[type="password"]:focus {
-  border: 1px solid #75767a;
+  border: 1px solid #08aeea;
+  box-shadow: 0 0 0 3px rgba(8, 174, 234, 0.25);
 }
 
 a {
@@ -76,16 +84,17 @@ a:hover {
 }
 
 .btn1 {
+  display: block;
+  box-sizing: border-box;
+  background: #08aeea;
+  color: #08222e;
+  font-weight: 600;
   border: 0;
-  background: #36373a;
-  color: #dfdeee;
-  border-radius: 5px;
-  width: 340px;
+  border-radius: 6px;
+  width: 342px;
   height: 49px;
+  margin: 12px auto 0;
   font-size: 16px;
-  position: absolute;
-  top: 80%;
-  left: 7.5%;
   transition: 0.3s;
   cursor: pointer;
   text-align: center;
@@ -95,22 +104,26 @@ a:hover {
 }
 
 .btn1:hover {
-  background: #08aeea;
-  font-weight: bold;
-  color: #1a1a1a;
+  background: #3cc4f3;
+  color: #08222e;
 }
 
 .error {
   text-align: center;
   width: 337px;
-  height: 20px;
+  min-height: 20px;
   padding: 2px;
   border: 0;
   border-radius: 5px;
-  margin: 10px auto 10px;
+  margin: 0;
   position: absolute;
-  top: 90%;
-  left: 7.2%;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  /* Longer provider messages wrap instead of running off the card */
+  white-space: normal;
+  display: flex;
+  justify-content: center;
   color: #d6d7db;
   border-bottom: 2px solid #ff7426;
   opacity: 0;
@@ -119,19 +132,34 @@ a:hover {
 
 #setup {
   opacity: 0;
-  color: #00ff80;
   position: absolute;
-  top: calc(50% - 309px);
+  bottom: 100%;
   left: 50%;
   width: 400px;
-  transform: translateX(-50%) translateY(-50%);
+  transform: translateX(-50%);
+  margin-bottom: -8px;
   text-align: center;
   font-size: 110px;
+  line-height: 1;
+  /* Fades into the card like the card's shadow */
+  background: linear-gradient(to bottom, #00ff80 55%, #00a352 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  pointer-events: none;
   transition: opacity 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
 }
 
-#pwd_retype {
+#pwd_retype,
+#pwd_retype_label,
+#setup_code,
+#setup_code_label {
   display: none;
+}
+
+#setup_code {
+  font-family: monospace;
+  letter-spacing: 1px;
 }
 
 img {
@@ -140,6 +168,25 @@ img {
   left: 50%;
   transform: translateX(-50%);
   cursor: pointer;
+}
+
+.container > img {
+  position: static;
+  transform: none;
+  display: block;
+  margin: 34px auto 0;
+  height: 30px;
+}
+
+.fieldLabel {
+  display: block;
+  width: 342px;
+  margin: 0 auto;
+  text-align: left;
+  font-size: 13px;
+  font-weight: bold;
+  font-family: "Source Sans Pro", sans-serif;
+  color: #a1a4ad;
 }
 
 .mmgisScrollbar::-webkit-scrollbar-track {
@@ -173,12 +220,236 @@ img {
 }
 
 .version {
+  display: block;
   text-align: center;
-  margin-top: 10px;
+  margin-top: 14px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.4);
-  position: absolute;
-  width: 100%;
-  bottom: 14px;
   font-family: monospace;
+}
+
+.notAdmin {
+  flex: none;
+  width: 400px;
+  max-width: 100%;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #2a2213;
+  border: 1px solid #5c4a1f;
+  border-left: 4px solid #f0b429;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px #111;
+  color: #cfc6b0;
+  font-family: "Source Sans Pro", sans-serif;
+  text-align: left;
+}
+.notAdminBody {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+}
+.notAdminBody > .mdi {
+  flex: none;
+  width: 20px;
+  color: #f0b429;
+  font-size: 20px;
+  line-height: 20px;
+}
+.notAdminTitle {
+  color: #fff;
+  font-size: 15px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+.notAdminTitle b {
+  font-weight: 600;
+}
+.notAdminText {
+  font-size: 13.5px;
+  line-height: 19px;
+}
+.notAdminActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid #4a3d1d;
+}
+.notAdminActions a,
+.notAdminActions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.notAdminActions .mdi {
+  font-size: 16px;
+}
+.notAdminActions .notAdminMap {
+  color: #f0b429;
+  border-right: 1px solid #4a3d1d;
+}
+.notAdminActions .notAdminSignOut {
+  color: #e8e2d4;
+}
+.notAdminActions a:hover,
+.notAdminActions button:hover,
+.notAdminActions a:focus-visible,
+.notAdminActions button:focus-visible {
+  background: rgba(240, 180, 41, 0.12);
+  outline: none;
+}
+
+.providerLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 342px;
+  max-width: 100%;
+  margin: 14px auto 0;
+}
+.providerOr {
+  text-align: center;
+  color: #808080;
+  font-size: 13px;
+}
+.providerBtn {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1a1a1a;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.providerBtn:hover,
+.providerBtn:focus-visible {
+  background: #d9e9f0;
+  color: #1a1a1a;
+  outline: none;
+}
+
+/* Provider switch, single-provider banner, hint and help link above/below the shared form */
+.loginProviders.multiple {
+  display: flex;
+  gap: 4px;
+  width: 342px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 18px;
+  padding: 4px;
+  background: #121d23;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px rgba(8, 174, 234, 0.5) inset;
+}
+.loginProviders.single {
+  display: none;
+}
+.loginProvider {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #a1a4ad;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.loginProvider span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loginProvider:hover,
+.loginProvider:focus-visible {
+  color: #ececec;
+  outline: none;
+}
+.loginProvider.active {
+  background: #0c3546;
+  color: #ffffff;
+  box-shadow: 0 0 0 1.5px #08aeea inset;
+}
+.loginProvider.active .mdi {
+  color: #08aeea;
+}
+.loginBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 342px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 18px;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 8px;
+  background: #13252e;
+  border: 1px solid rgba(8, 174, 234, 0.45);
+  border-left: 4px solid #08aeea;
+}
+.loginBanner > .mdi {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0c3546;
+  color: #08aeea;
+  font-size: 22px;
+}
+.loginBanner small {
+  display: block;
+  color: #b4b7bf;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.loginBanner b {
+  display: block;
+  color: #ffffff;
+  font-size: 17px;
+}
+.loginBanner span {
+  display: block;
+  margin-top: 2px;
+  color: #b4b7bf;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.loginHint {
+  display: none;
+  width: 342px;
+  max-width: 100%;
+  margin: -8px auto 14px;
+  text-align: center;
+  color: #a1a4ad;
+  font-style: italic;
+  font-size: 12.5px;
+  line-height: 1.4;
 }

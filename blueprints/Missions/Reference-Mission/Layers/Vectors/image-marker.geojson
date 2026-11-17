@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.88]
+      },
+      "properties": {
+        "id": "perseverance-image",
+        "name": "Perseverance Rover",
+        "image_url": "Data/images/PerseveranceTopDown.png",
+        "description": "Top-down orthographic view of Perseverance rover. Uses pathProp to specify per-feature image URLs. Image displays at 10m width, always visible at 80% opacity."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.37, 37.87]
+      },
+      "properties": {
+        "id": "curiosity-image",
+        "name": "Curiosity Rover",
+        "image_url": "Data/images/CuriosityTopDownOrthoSmall.png",
+        "description": "Top-down orthographic view of Curiosity rover. Each feature can have its own unique image via the image_url property."
+      }
+    }
+  ]
+}

@@ -1,0 +1,196 @@
+{
+  "type": "FeatureCollection",
+  "groupIdProp": "site_id",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "site_id": "site-alpha",
+        "name": "Site Alpha - Reading A",
+        "reading_type": "temperature",
+        "value": 18.4,
+        "unit": "C",
+        "instrument": "Sensor-01"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4783, 37.8199] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "site_id": "site-alpha",
+        "name": "Site Alpha - Reading B",
+        "reading_type": "humidity",
+        "value": 72.1,
+        "unit": "%",
+        "instrument": "Sensor-02"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4783, 37.8199] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "site_id": "site-beta",
+        "name": "Site Beta - Reading A",
+        "reading_type": "temperature",
+        "value": 16.9,
+        "unit": "C",
+        "instrument": "Sensor-01"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4230, 37.8270] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "site_id": "site-beta",
+        "name": "Site Beta - Reading B",
+        "reading_type": "pressure",
+        "value": 1013.2,
+        "unit": "hPa",
+        "instrument": "Sensor-03"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4230, 37.8270] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "site_id": "site-gamma",
+        "name": "Site Gamma - Reading A",
+        "reading_type": "temperature",
+        "value": 20.2,
+        "unit": "C",
+        "instrument": "Sensor-01"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4488, 37.8029] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "site_id": "site-gamma",
+        "name": "Site Gamma - Reading B",
+        "reading_type": "wind_speed",
+        "value": 12.5,
+        "unit": "km/h",
+        "instrument": "Sensor-04"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4488, 37.8029] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "site_id": "site-delta",
+        "name": "Site Delta - Reading A",
+        "reading_type": "temperature",
+        "value": 15.7,
+        "unit": "C",
+        "instrument": "Sensor-01"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4025, 37.7949] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "site_id": "site-delta",
+        "name": "Site Delta - Reading B",
+        "reading_type": "humidity",
+        "value": 65.3,
+        "unit": "%",
+        "instrument": "Sensor-02"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4025, 37.7949] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "site_id": "route-alpha-beta",
+        "name": "Route Alpha to Beta",
+        "reading_type": "route",
+        "value": null,
+        "unit": null,
+        "instrument": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4783, 37.8199],
+          [-122.4600, 37.8240],
+          [-122.4400, 37.8260],
+          [-122.4230, 37.8270]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 10,
+        "site_id": "route-gamma-delta",
+        "name": "Route Gamma to Delta",
+        "reading_type": "route",
+        "value": null,
+        "unit": null,
+        "instrument": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4488, 37.8029],
+          [-122.4350, 37.8000],
+          [-122.4200, 37.7980],
+          [-122.4025, 37.7949]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 11,
+        "site_id": "zone-alpha",
+        "name": "Site Alpha Monitoring Zone",
+        "reading_type": "zone",
+        "value": null,
+        "unit": null,
+        "instrument": null
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4883, 37.8099],
+          [-122.4683, 37.8099],
+          [-122.4683, 37.8299],
+          [-122.4883, 37.8299],
+          [-122.4883, 37.8099]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 12,
+        "site_id": "zone-delta",
+        "name": "Site Delta Monitoring Zone",
+        "reading_type": "zone",
+        "value": null,
+        "unit": null,
+        "instrument": null
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4125, 37.7849],
+          [-122.3925, 37.7849],
+          [-122.3925, 37.8049],
+          [-122.4125, 37.8049],
+          [-122.4125, 37.7849]
+        ]]
+      }
+    }
+  ]
+}

@@ -5,12 +5,11 @@ import F_ from '../../Formulae_/Formulae_'
 import L_ from '../../Layers_/Layers_'
 import Map_ from '../../Map_/Map_'
 
-import LocalFilterer from '../../../Ancillary/LocalFilterer'
-import ESFilterer from './ESFilterer'
-import GeodatasetFilterer from './GeodatasetFilterer'
+import LayerInterface from '../interface/LayerInterface'
+import LayerTypeRegistry from '../registry/LayerTypeRegistry'
 
-import Help from '../../../Ancillary/Help'
-import Dropy from '../../../../external/Dropy/dropy'
+import Help from '../../UserInterface_/components/Help/Help'
+import OpGridSelector from './OpGridSelector'
 import { circle } from '@turf/turf'
 
 import Sortable from 'sortablejs'
@@ -19,15 +18,49 @@ import './Filtering.css'
 
 const helpKey = 'LayersTool-Filtering'
 
+/**
+ * Which types can be filtered, and how, is the layer type's business: a type
+ * ships a `filter` surface with `getAggregations` (what can I filter on?) and
+ * `filter` (apply this filter state). A type without one simply isn't
+ * filterable, and every call below no-ops for it.
+ */
+function filterModuleOf(layerName) {
+    return LayerTypeRegistry.get(L_.layers.data[layerName]?.type)?.filter
+}
+
 const Filtering = {
     filters: {},
     current: {},
+    currentContainer: null,
     mapSpatialLayer: null,
+    /** True if this layer's type ships a filtering strategy. */
+    isFilterable: function (layerName) {
+        return LayerInterface.hasOp(filterModuleOf(layerName), 'filter')
+    },
+    /**
+     * Ask the layer's type what can be filtered on. Returns undefined for a
+     * type that isn't filterable and null when the type could not answer.
+     */
+    getAggregations: async function (layerName, ctx = {}) {
+        return LayerInterface.run(filterModuleOf(layerName), 'getAggregations', [
+            layerName,
+            Filtering.filters[layerName],
+            ctx,
+        ])
+    },
+    /** Ask the layer's type to apply the layer's current filter state. */
+    applyFilter: async function (layerName, ctx = {}) {
+        return LayerInterface.run(filterModuleOf(layerName), 'filter', [
+            layerName,
+            Filtering.filters[layerName],
+            ctx,
+        ])
+    },
     initialize: function () {
         Object.keys(L_.layers.data).forEach((layerName) => {
             const layerObj = L_.layers.data[layerName]
 
-            if (layerObj == null || layerObj.type != 'vector') return
+            if (layerObj == null || !Filtering.isFilterable(layerName)) return
 
             let shouldInitiallySubmit = false
 
@@ -59,7 +92,8 @@ const Filtering = {
                     geojson: null,
                 }
 
-                Filtering.submit(layerName)
+                // Note: Initial filters will be applied when the layer is first turned on
+                // See L_.toggleLayer() for the application logic
             }
         })
     },
@@ -80,41 +114,26 @@ const Filtering = {
             layerName: layerName,
             layerObj: layerObj,
             type: layerObj.type,
-            needsToQueryGeodataset:
-                layerObj?.url.startsWith('geodatasets:') &&
-                layerObj?.variables?.getFeaturePropertiesOnClick === true,
         }
 
-        if (Filtering.current.type === 'vector') {
-            if (Filtering.current.needsToQueryGeodataset) {
-                Filtering.filters[layerName].aggs =
-                    await GeodatasetFilterer.getAggregations(layerName)
-            } else {
-                try {
-                    Filtering.filters[layerName].geojson =
-                        Filtering.filters[layerName].geojson ||
-                        L_.layers.layer[layerName].toGeoJSON(
-                            L_.GEOJSON_PRECISION
-                        )
-                } catch (err) {
-                    console.warn(
-                        `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
-                    )
-                    return
-                }
-                Filtering.filters[layerName].aggs =
-                    LocalFilterer.getAggregations(
-                        Filtering.filters[layerName].geojson,
-                        layerName
-                    )
-            }
-        } else if (Filtering.current.type === 'query') {
-            Filtering.filters[layerName].aggs =
-                await ESFilterer.getAggregations(
-                    layerName,
-                    Filtering.getConfig()
-                )
+        let aggs = await Filtering.getAggregations(layerName)
+        // null == the type has a filtering strategy but could not answer (a
+        // vector layer with no readable GeoJSON); there is nothing to show.
+        if (aggs === null) return
+        // A layer with nothing loaded yet offers only its geometry, and that
+        // answer is cached, so ask again from the features it has by now -
+        // unless a filter is active, whose cache is the unfiltered data.
+        if (
+            aggs !== undefined &&
+            Object.keys(aggs).length <= 1 &&
+            (Filtering.filters[layerName].values || []).length === 0
+        ) {
+            const refreshed = await Filtering.getAggregations(layerName, {
+                refresh: true,
+            })
+            if (refreshed != null) aggs = refreshed
         }
+        if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
         const spatialActive =
             Filtering.filters[layerName].spatial?.center != null
 
@@ -151,6 +170,7 @@ const Filtering = {
             "</div>",
         ].join('\n')
 
+        Filtering.currentContainer = container
         container.append(markup)
 
         // In case of reopening the tool, recreate state
@@ -190,8 +210,23 @@ const Filtering = {
     destroy: function () {
         // Clear Spatial Filter
         Map_.rmNotNull(Filtering.mapSpatialLayer)
+        OpGridSelector.destroy()
 
         $('#layersTool_filtering').remove()
+    },
+    // Re-render the currently open filter panel (if any) to reflect
+    // externally applied filter changes (e.g. from the Search component)
+    refresh: function () {
+        if (
+            Filtering.current.layerName &&
+            Filtering.currentContainer &&
+            $('#layersTool_filtering').length > 0
+        ) {
+            const layerName = Filtering.current.layerName
+            const container = Filtering.currentContainer
+            Filtering.destroy()
+            Filtering.make(container, layerName)
+        }
     },
     addGroup: function (layerName, group) {
         let id, op
@@ -243,9 +278,9 @@ const Filtering = {
         let id, key, op, val
         if (value) {
             id = value.id
-            key = value.key != null ? ` value='${value.key}'` : ''
+            key = value.key != null ? ` value='${String(value.key).replace(/'/g, "&apos;")}'` : ''
             op = value.op
-            val = value.value != null ? ` value='${value.value}'` : ''
+            val = value.value != null ? ` value='${String(value.value).replace(/'/g, "&apos;")}'` : ''
         } else id = Filtering.filters[layerName].values.length
 
         // prettier-ignore
@@ -456,25 +491,7 @@ const Filtering = {
             })
 
             // Refilter to show all
-            if (Filtering.current.type === 'vector') {
-                if (Filtering.current.needsToQueryGeodataset) {
-                    GeodatasetFilterer.filter(
-                        layerName,
-                        Filtering.filters[layerName]
-                    )
-                } else {
-                    LocalFilterer.filter(
-                        layerName,
-                        Filtering.filters[layerName]
-                    )
-                }
-            } else if (Filtering.current.type === 'query') {
-                await ESFilterer.filter(
-                    layerName,
-                    Filtering.filters[layerName],
-                    Filtering.getConfig()
-                )
-            }
+            await Filtering.applyFilter(layerName)
 
             // Reset count
             $('#layersTool_filtering_count').text('')
@@ -519,58 +536,31 @@ const Filtering = {
             Filtering.setSubmitButtonState(true)
         })
 
-        // Operator Dropdown
+        // Operator Grid Selector
         elmId = `#layersTool_filtering_group_operator_${F_.getSafeName(
             layerName
         )}_${id}`
 
         const ops = ['AND', 'OR', 'NOT_AND', 'NOT_OR']
         const opId = Math.max(ops.indexOf(options.op), 0)
-        $(elmId).html(
-            Dropy.construct(
-                [
-                    `<div style='font-family: monospace;'>All Must Match (AND)</div>`,
-                    `<div style='font-family: monospace;'>Any May Match (OR)</div>`,
-                    `<div style='font-family: monospace;'>Not All May Match (NOT AND)</div>`,
-                    `<div style='font-family: monospace;'>None Must Match (NOT OR)</div>`,
-                ],
-                'op',
-                opId,
-                { openUp: true, hideChevron: true }
-            )
-        )
-        Dropy.init($(elmId), function (idx) {
-            const newOp = ops[idx]
-            Filtering.filters[layerName].values[id].op = newOp
-            switch (newOp) {
-                case 'AND':
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_and')
-                    break
-                case 'OR':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_or')
-                    break
-                case 'NOT_AND':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_or')
-                    $(elmId).addClass('op_not_and')
-                    break
-                case 'NOT_OR':
-                    $(elmId).removeClass('op_and')
-                    $(elmId).removeClass('op_or')
-                    $(elmId).removeClass('op_not_and')
-                    $(elmId).addClass('op_not_or')
-                    break
-                default:
-                    break
-            }
-            Filtering.setSubmitButtonState(true)
+
+        const groupOpItems = [
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>AND</div>`, title: 'All Must Match (AND)' },
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>OR</div>`, title: 'Any May Match (OR)' },
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>NAND</div>`, title: 'Not All May Match (NOT AND)' },
+            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>NOR</div>`, title: 'None Must Match (NOT OR)' },
+        ]
+
+        OpGridSelector.init($(elmId), groupOpItems, opId, {
+            columns: 4,
+            onSelect: function (idx) {
+                const newOp = ops[idx]
+                Filtering.filters[layerName].values[id].op = newOp
+                $(elmId)
+                    .removeClass('op_and op_or op_not_and op_not_or')
+                    .addClass('op_' + newOp.toLowerCase())
+                Filtering.setSubmitButtonState(true)
+            },
         })
     },
     attachValueEvents: function (id, layerName, options) {
@@ -695,7 +685,7 @@ const Filtering = {
             } else $(this).css('border', '1px solid var(--color-p4)')
         })
 
-        // Operator Dropdown
+        // Operator Grid Selector
         elmId = `#layersTool_filtering_value_operator_${F_.getSafeName(
             layerName
         )}_${id}`
@@ -711,34 +701,53 @@ const Filtering = {
             'contains',
             'beginswith',
             'endswith',
+            'isnull',
+            'isnotnull',
         ]
         const opId = Math.max(ops.indexOf(options.op), 0)
-        $(elmId).html(
-            Dropy.construct(
-                [
-                    `<i class='mdi mdi-equal mdi-18px' title='Equals'></i>`,
-                    `<div title='Not Equals' style='font-family: monospace;'>!=</div>`,
-                    `<div title='Comma-separated list' style='font-family: monospace;'>in</div>`,
-                    `<i class='mdi mdi-less-than mdi-18px' title='Less than'></i>`,
-                    `<i class='mdi mdi-greater-than mdi-18px' title='Greater than'></i>`,
-                    `<i class='mdi mdi-less-than-or-equal mdi-18px' title='Less than or Equal'></i>`,
-                    `<i class='mdi mdi-greater-than-or-equal mdi-18px' title='Greater than or Equal'></i>`,
-                    `<i class='mdi mdi-contain mdi-18px' title='Contains'></i>`,
-                    `<i class='mdi mdi-contain-start mdi-18px' title='Begins With'></i>`,
-                    `<i class='mdi mdi-contain-end mdi-18px' title='Ends With'></i>`,
-                ],
-                'op',
-                opId,
-                { openUp: true, hideChevron: true }
-            )
-        )
-        Dropy.init($(elmId), function (idx) {
-            Filtering.filters[layerName].values[id].op = ops[idx]
-            Filtering.setSubmitButtonState(true)
+
+        const valueOpItems = [
+            { html: `<i class='mdi mdi-equal mdi-18px'></i>`, title: 'Equals' },
+            { html: `<div style='font-family: monospace;'>!=</div>`, title: 'Not Equals' },
+            { html: `<div style='font-family: monospace;'>in</div>`, title: 'Comma-separated list' },
+            { html: `<i class='mdi mdi-less-than mdi-18px'></i>`, title: 'Less than' },
+            { html: `<i class='mdi mdi-greater-than mdi-18px'></i>`, title: 'Greater than' },
+            { html: `<i class='mdi mdi-less-than-or-equal mdi-18px'></i>`, title: 'Less than or Equal' },
+            { html: `<i class='mdi mdi-greater-than-or-equal mdi-18px'></i>`, title: 'Greater than or Equal' },
+            { html: `<i class='mdi mdi-contain mdi-18px'></i>`, title: 'Contains' },
+            { html: `<i class='mdi mdi-contain-start mdi-18px'></i>`, title: 'Begins With' },
+            { html: `<i class='mdi mdi-contain-end mdi-18px'></i>`, title: 'Ends With' },
+            { html: `<i class='mdi mdi-null mdi-18px'></i>`, title: 'Is Null (No Value)' },
+            { html: `<i class='mdi mdi-check-circle-outline mdi-18px'></i>`, title: 'Is Not Null (Has Value)' },
+        ]
+
+        OpGridSelector.init($(elmId), valueOpItems, opId, {
+            columns: 6,
+            onSelect: function (idx) {
+                Filtering.filters[layerName].values[id].op = ops[idx]
+                Filtering.toggleValueInput(id, layerName, ops[idx])
+                Filtering.setSubmitButtonState(true)
+            },
         })
 
         // Value AutoComplete
         Filtering.updateValuesAutoComplete(id, layerName)
+
+        // If initial operator is isnull/isnotnull, disable the value input
+        if (options.op === 'isnull' || options.op === 'isnotnull') {
+            Filtering.toggleValueInput(id, layerName, options.op)
+        }
+    },
+    toggleValueInput: function (id, layerName, operator) {
+        const elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        if (operator === 'isnull' || operator === 'isnotnull') {
+            $(elmId).prop('disabled', true).css('opacity', '0.3').val('')
+            Filtering.filters[layerName].values[id].value = ''
+        } else {
+            $(elmId).prop('disabled', false).css('opacity', '1')
+        }
     },
     submit: async function (layerName, updateValuesOrder) {
         const layerObj = L_.layers.data[layerName]
@@ -757,26 +766,7 @@ const Filtering = {
 
         Filtering.setSubmitButtonState(true)
         $(`#layersTool_filtering_submit_loading`).addClass('active')
-        if (layerObj.type === 'vector') {
-            // needsToQueryGeodataset (but pulled out so submit could be called standalone)
-            if (
-                layerObj?.url.startsWith('geodatasets:') &&
-                layerObj?.variables?.getFeaturePropertiesOnClick === true
-            ) {
-                GeodatasetFilterer.filter(
-                    layerName,
-                    Filtering.filters[layerName]
-                )
-            } else {
-                LocalFilterer.filter(layerName, Filtering.filters[layerName])
-            }
-        } else if (layerObj.type === 'query') {
-            await ESFilterer.filter(
-                layerName,
-                Filtering.filters[layerName],
-                Filtering.getConfig()
-            )
-        }
+        await Filtering.applyFilter(layerName, { source: 'submit' })
 
         $(`#layersTool_filtering_submit_loading`).removeClass('active')
         Filtering.setSubmitButtonState(false)
@@ -795,6 +785,19 @@ const Filtering = {
             onChange: () => {},
             onEnd: () => {},
         })
+    },
+    /**
+     * Re-offer the layer's properties to a row that was built before the
+     * layer had them.
+     */
+    updateKeysAutoComplete: function (id, layerName) {
+        const elmId = `#layersTool_filtering_value_key_input_${F_.getSafeName(
+            layerName
+        )}_${id}`
+        const keys = Object.keys(Filtering.filters[layerName]?.aggs || {}).sort(
+            (a, b) => b.localeCompare(a)
+        )
+        $(elmId).autocomplete('setOptions', { lookup: keys })
     },
     updateValuesAutoComplete: function (id, layerName) {
         let elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
@@ -876,74 +879,26 @@ const Filtering = {
                 break
         }
     },
-    getConfig: function () {
-        if (
-            Filtering.current.layerObj.type === 'query' &&
-            Filtering.current.layerObj.query
-        ) {
-            return {
-                endpoint: Filtering.current.layerObj.query.endpoint,
-                type: Filtering.current.layerObj.query.type || 'elasticsearch',
-                ...(Filtering.current.layerObj.variables
-                    ? Filtering.current.layerObj.variables.query || {}
-                    : {}),
-            }
-        }
-        return {}
-    },
     // Let other places of the code trigger filters as needed
     triggerFilter: function (layerName) {
         if (Filtering.filters[layerName]) {
-            if (L_.layers.data[layerName].type === 'vector')
-                if (Filtering.filters[layerName]?.values?.[0]?.type != null) {
-                    if (Filtering.current.needsToQueryGeodataset) {
-                        GeodatasetFilterer.filter(
-                            layerName,
-                            Filtering.filters[layerName]
-                        )
-                    } else {
-                        LocalFilterer.filter(
-                            layerName,
-                            Filtering.filters[layerName]
-                        )
-                    }
-                }
+            if (Filtering.filters[layerName]?.values?.[0]?.type != null)
+                Filtering.applyFilter(layerName, { source: 'trigger' })
         }
     },
-    // Useful for dynamicExtent vector layers so that the geojson and aggs match the visible features
+    // Useful for dynamicExtent layers so that the data and aggs match the visible features
     updateGeoJSON: async function (layerName) {
         if (Filtering.filters[layerName]) {
-            if (L_.layers.data[layerName].type === 'vector') {
-                if (Filtering.current.needsToQueryGeodataset) {
-                    Filtering.filters[layerName].aggs =
-                        await GeodatasetFilterer.getAggregations(layerName)
-                } else {
-                    try {
-                        Filtering.filters[layerName].geojson = L_.layers.layer[
-                            layerName
-                        ].toGeoJSON(L_.GEOJSON_PRECISION)
-                    } catch (err) {
-                        console.warn(
-                            `Filtering - Cannot find GeoJSON to filter on for layer: ${layerName}`
-                        )
-                        return
-                    }
-                    Filtering.filters[layerName].aggs =
-                        LocalFilterer.getAggregations(
-                            Filtering.filters[layerName].geojson,
-                            layerName
-                        )
-                }
-            } else if (L_.layers.data[layerName].type === 'query')
-                Filtering.filters[layerName].aggs =
-                    await ESFilterer.getAggregations(
-                        layerName,
-                        Filtering.getConfig()
-                    )
+            const aggs = await Filtering.getAggregations(layerName, {
+                refresh: true,
+            })
+            if (aggs === null) return
+            if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
 
             if (Filtering.filters[layerName]?.values) {
                 Filtering.filters[layerName]?.values.forEach((v, idx) => {
-                    // Value AutoComplete
+                    // Property and Value AutoComplete
+                    Filtering.updateKeysAutoComplete(idx, layerName)
                     Filtering.updateValuesAutoComplete(idx, layerName)
                 })
             }

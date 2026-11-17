@@ -1,0 +1,11 @@
+{
+    "name": "TestPlugin",
+    "type": "tool",
+    "version": "0.1.0",
+    "description": "Minimal fixture plugin for CLI e2e tests.",
+    "defaultIcon": "bug",
+    "hasVars": false,
+    "paths": {
+        "TestPluginTool": "../plugins/test-plugin-repo/tools/TestPlugin/TestPluginTool"
+    }
+}

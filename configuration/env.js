@@ -95,7 +95,8 @@ function getClientEnvironment(publicUrl) {
         WDS_SOCKET_PATH: process.env.WDS_SOCKET_PATH,
         WDS_SOCKET_PORT: process.env.WDS_SOCKET_PORT,
         // MMGIS
-        AUTH: process.env.AUTH,
+        SITE_ACCESS: process.env.SITE_ACCESS,
+        AUTH_PROVIDERS: process.env.AUTH_PROVIDERS,
         AUTH_LOCAL_ALLOW_SIGNUP: process.env.AUTH_LOCAL_ALLOW_SIGNUP,
         VERSION: packagejson.version,
         CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER,
@@ -112,6 +113,7 @@ function getClientEnvironment(publicUrl) {
         SKIP_CLIENT_INITIAL_LOGIN: process.env.SKIP_CLIENT_INITIAL_LOGIN || "",
         IS_DOCKER: process.env.IS_DOCKER,
         WITH_TITILER: process.env.WITH_TITILER,
+        FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH || "",
       }
     );
   // Stringify all values so we can feed into webpack DefinePlugin

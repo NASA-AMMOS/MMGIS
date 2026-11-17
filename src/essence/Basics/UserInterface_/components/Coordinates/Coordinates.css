@@ -1,0 +1,153 @@
+#CoordinatesDiv {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    padding: 0;
+    margin: 0;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    height: 30px;
+    transition: bottom 0.2s ease-in;
+    background: transparent;
+    border-radius: 8px;
+}
+
+#CoordinatesDiv .mouseLngLat {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 10px;
+}
+#CoordinatesDiv #mouseDesc {
+    font-size: 13px;
+    margin-bottom: 0;
+    margin-right: 6px;
+    color: var(--color-f);
+    line-height: 30px;
+    text-align: center;
+}
+#CoordinatesDiv #mouseLngLat {
+    font-size: 15px;
+    line-height: 30px;
+    color: var(--color-f);
+    text-align: center;
+}
+#CoordinatesDiv #mouseElev {
+    font-size: 15px;
+    line-height: 30px;
+    color: var(--color-f);
+    text-align: center;
+    transition: opacity 0.1s ease-out;
+}
+
+#CoordinatesDiv .mouseLngLatPicking {
+    display: none;
+    align-items: center;
+    border-left: 1px solid var(--color-a1);
+    transition: opacity 0.2s ease-in;
+}
+#CoordinatesDiv .mouseLngLatPicking.active {
+    display: flex;
+}
+
+#CoordinatesDiv #mouseDescPicking {
+    font-size: 13px;
+    margin-bottom: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+    color: var(--color-f);
+    line-height: 30px;
+    text-align: center;
+    white-space: nowrap;
+}
+#CoordinatesDiv #mouseLngLatPicking {
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 30px;
+    text-align: center;
+    display: flex;
+}
+#CoordinatesDiv #mouseLngLatPicking input {
+    background: var(--color-g);
+    color: var(--color-f);
+    padding: 0px 6px;
+    font-size: 15px;
+    line-height: 30px;
+    width: 130px;
+    border: 1px solid rgba(0, 0, 0, 0);
+    transition: border 0.2s ease-in;
+}
+#CoordinatesDiv #mouseLngLatPicking input:focus {
+    border: 1px solid var(--color-c);
+}
+#CoordinatesDiv #mouseLngLatPicking > div {
+    padding: 0px 8px;
+    background: var(--color-a);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#CoordinatesDiv #mouseGoPicking {
+    padding: 0px 6px;
+    background: var(--color-h);
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    transition: background 0.2s ease-in;
+    cursor: pointer;
+    color: var(--color-a);
+}
+#CoordinatesDiv #mouseGoPicking:hover {
+    background: var(--color-l);
+}
+
+#CoordinatesDiv #changeCoordType {
+    height: 30px;
+}
+#CoordinatesDiv #changeCoordType .dropy {
+    height: 30px;
+    margin-bottom: 0px;
+}
+#CoordinatesDiv #changeCoordType .dropy__title {
+    height: 30px;
+    font-size: 13px;
+    line-height: 30px;
+}
+#CoordinatesDiv #changeCoordType .dropy__title span {
+    padding: 0px 1.875em 0px 0px;
+    color: var(--color-f);
+}
+#CoordinatesDiv #changeCoordType .dropy__title i {
+    line-height: 13px;
+    color: var(--color-f);
+}
+#CoordinatesDiv #changeCoordType .dropy__content {
+    overflow: visible;
+    width: 360px;
+}
+#CoordinatesDiv #changeCoordType .dropy__content li a {
+    padding: 2px 8px;
+    font-size: 13px;
+}
+
+#CoordinatesDiv #pickLngLat {
+    color: var(--color-f);
+    text-align: center;
+    cursor: pointer;
+    border-radius: 3px;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    margin: 0;
+    border-left: 1px solid var(--color-a1);
+    pointer-events: all;
+    transition: all 0.2s ease-in;
+}
+#CoordinatesDiv #pickLngLat:hover {
+    color: var(--color-mmgis);
+}
+#CoordinatesDiv #pickLngLat.active {
+    color: var(--color-mmgis);
+}
+
+/* toggleTimeUI button removed — TimeUI toggle is now in Settings modal */

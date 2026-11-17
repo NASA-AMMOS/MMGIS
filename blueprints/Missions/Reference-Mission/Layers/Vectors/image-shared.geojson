@@ -1,0 +1,57 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.42, 37.89]
+      },
+      "properties": {
+        "id": "rover-position-1",
+        "name": "Rover Position 1",
+        "heading": 0,
+        "description": "Rover footprint at heading 0° (north). Uses shared base path - all features display the same image. Click to view image."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.40, 37.895]
+      },
+      "properties": {
+        "id": "rover-position-2",
+        "name": "Rover Position 2",
+        "heading": 45,
+        "description": "Rover footprint at heading 45° (northeast). Image rotates based on heading property using angleProp."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.38, 37.89]
+      },
+      "properties": {
+        "id": "rover-position-3",
+        "name": "Rover Position 3",
+        "heading": 90,
+        "description": "Rover footprint at heading 90° (east). Demonstrates show='click' behavior - click marker to display image."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.40, 37.865]
+      },
+      "properties": {
+        "id": "rover-position-4",
+        "name": "Rover Position 4",
+        "heading": 270,
+        "description": "Rover footprint at heading 270° (west). All features share the same base image URL but with different rotations."
+      }
+    }
+  ]
+}

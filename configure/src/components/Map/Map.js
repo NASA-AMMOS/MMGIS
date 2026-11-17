@@ -52,7 +52,7 @@ const Map = ({ configuration, layer, vector, clickableFeatures }) => {
     );
     try {
       L.tileLayer(
-        layer?.url ? layer.url : "https://c.tile.osm.org/{z}/{x}/{y}.png",
+        layer?.url ? layer.url : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}.jpg",
         {
           maxZoom: 19,
           tms: layer?.url ? true : false,

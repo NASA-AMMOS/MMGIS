@@ -2,9 +2,12 @@ const {
   createProxyMiddleware,
   responseInterceptor,
 } = require("http-proxy-middleware");
+const bodyParser = require("body-parser");
 
 const logger = require("../API/logger");
 const createTitilerUrlValidator = require("./validateTitilerUrl");
+const createTitilerExpressionValidator = require("./validateTitilerExpression");
+const { routedPath, stripCredentials, forwardParsedBody } = require("./proxyPath");
 
 function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjacentServers) {
   ///////////////////////////
@@ -16,7 +19,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     }`;
     app.use(
       `${process.env.ROOT_PATH || ""}/stac`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("stac"),
       createProxyMiddleware({
         target: stacTarget,
         changeOrigin: true,
@@ -25,6 +28,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: stripCredentials,
           proxyRes: createSwaggerInterceptor("stac", stacTarget),
         },
       })
@@ -38,7 +42,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     }`;
     app.use(
       `${process.env.ROOT_PATH || ""}/tipg`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("tipg"),
       createProxyMiddleware({
         target: tipgTarget,
         changeOrigin: true,
@@ -47,6 +51,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: stripCredentials,
           proxyRes: createSwaggerInterceptor("tipg", tipgTarget),
         },
       })
@@ -61,22 +66,32 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
 
     // Create URL validator instance (compiled at startup)
     const validateTitilerUrl = createTitilerUrlValidator();
+    const validateTitilerExpression = createTitilerExpressionValidator();
 
     app.use(
       `${process.env.ROOT_PATH || ""}/titiler`,
       (req, res, next) => {
-        const url = req.originalUrl.split('?')[0].toLowerCase();
+        // Checked on the path TiTiler will route, so encodings like %73tac or //stac can't skip it
+        const url = routedPath(req.originalUrl);
+        if (url == null) {
+          res.status(400).send({ status: "failure", message: "Invalid path." });
+          return;
+        }
 
-        // /cog/stac is always admin-only regardless of AUTH mode
-        if (url.includes('/titiler') && url.includes('/cog/stac')) {
+        // /cog/stac is always admin-only regardless of SITE_ACCESS
+        if (url.includes('/cog/stac')) {
           ensureAdmin()(req, res, next);
           return;
         }
 
         // All other TiTiler endpoints follow standard adjacent server auth
-        ensureUserForAdjacentServers()(req, res, next);
+        ensureUserForAdjacentServers("titiler")(req, res, next);
       },
+      // Parse bodies so the validators also see URLs and expressions sent in them
+      bodyParser.json({ limit: "10mb" }),
+      bodyParser.urlencoded({ limit: "10mb", extended: true }),
       validateTitilerUrl, // URL validation middleware (SSRF prevention)
+      validateTitilerExpression, // band-math token allowlist
       createProxyMiddleware({
         target: titilerTarget,
         changeOrigin: true,
@@ -85,6 +100,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: (proxyReq, req) => {
+            stripCredentials(proxyReq);
+            forwardParsedBody(proxyReq, req);
+          },
           proxyRes: createSwaggerInterceptor("titiler", titilerTarget),
         },
       })
@@ -98,7 +117,8 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
     }:${process.env.TITILER_PGSTAC_PORT || 8884}`;
     app.use(
       `${process.env.ROOT_PATH || ""}/titilerpgstac`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("titiler-pgstac"),
+      createTitilerExpressionValidator(),
       createProxyMiddleware({
         target: titilerpgstacTarget,
         changeOrigin: true,
@@ -109,6 +129,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         },
         selfHandleResponse: true,
         on: {
+          proxyReq: stripCredentials,
           proxyRes: createSwaggerInterceptor(
             "titilerpgstac",
             titilerpgstacTarget
@@ -122,7 +143,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
   if (process.env.WITH_VELOSERVER === "true") {
     app.use(
       `${process.env.ROOT_PATH || ""}/veloserver`,
-      ensureUserForAdjacentServers(),
+      ensureUserForAdjacentServers("veloserver"),
       createProxyMiddleware({
         target: `http://${isDocker ? "veloserver" : "localhost"}:${
           process.env.VELOSERVER_PORT || 8104
@@ -131,6 +152,7 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         pathRewrite: {
           [`^${process.env.ROOT_PATH || ""}/veloserver`]: "",
         },
+        on: { proxyReq: stripCredentials },
       })
     );
   }
@@ -219,13 +241,14 @@ function setupCustomAdjacentServer(app, isDocker, ensureAdmin, ensureUserForAdja
 
   app.use(
     routePath,
-    ensureUserForAdjacentServers(),
+    ensureUserForAdjacentServers("custom"),
     createProxyMiddleware({
       target: target,
       changeOrigin: true,
       pathRewrite: {
         [`^${process.env.ROOT_PATH || ""}/${routeName}`]: "",
       },
+      on: { proxyReq: stripCredentials },
     })
   );
 }
@@ -234,10 +257,17 @@ const createSwaggerInterceptor = (path, target) => {
   return responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
     let finalReturn = responseBuffer;
     let newResponse;
+    const requestPath = req.originalUrl.split("?")[0];
+    let responseJSON = null;
+    if (requestPath.endsWith(`/${path}/api`)) {
+      try {
+        responseJSON = JSON.parse(responseBuffer.toString("utf8"));
+      } catch (err) {
+        responseJSON = null;
+      }
+    }
 
-    if (req.originalUrl.endsWith(`/${path}/api`)) {
-      newResponse = newResponse || responseBuffer.toString("utf8");
-      const responseJSON = JSON.parse(newResponse); // convert buffer to string
+    if (responseJSON) {
       responseJSON.servers = [
         {
           url: `${
@@ -247,7 +277,7 @@ const createSwaggerInterceptor = (path, target) => {
         },
       ];
       newResponse = JSON.stringify(responseJSON); // manipulate response
-    } else if (req.originalUrl.endsWith(`/${path}/api.html`)) {
+    } else if (requestPath.endsWith(`/${path}/api.html`)) {
       newResponse = newResponse || responseBuffer.toString("utf8");
       newResponse = newResponse
         .replace(

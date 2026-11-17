@@ -199,9 +199,9 @@ Every configuration change creates a new immutable version:
 
 The configuration system integrates with the user management system's three-tier permission model:
 
-1. **SuperAdmin (111)** - Full access to all configuration operations across all missions. Can create, edit, clone, and delete any mission.
+1. **SuperAdmin** (global `superadmin` binding) - Full access to all configuration operations across all missions. Can create, edit, clone, and delete any mission.
 
-2. **Admin (110)** - Mission-specific configuration access. Can edit configurations only for missions listed in their `missions_managing` array. Cannot create or delete missions.
+2. **Mission admin** (`mission_admin` binding per mission) - Mission-specific configuration access. Can edit configurations only for missions listed in their `missions_managing` array. Cannot create or delete missions.
 
 3. **User (001)** - Read-only access to public mission configurations. Cannot access Configure interface or modify configurations.
 
@@ -262,7 +262,7 @@ For Admin users, access control is enforced at the mission level:
 }
 
 // Creates mission at version 0
-// Requires SuperAdmin (111) permission
+// Requires mission.create (SuperAdmin)
 // Mission name validated (no special chars, no leading numbers)
 ```
 
@@ -305,7 +305,7 @@ For Admin users, access control is enforced at the mission level:
 
 // Deletes all versions of mission from database
 // Renames Missions/{mission} folder to {mission}_deleted_
-// Requires SuperAdmin (111) permission
+// Requires mission.create (SuperAdmin)
 // Irreversible operation
 ```
 
@@ -355,14 +355,14 @@ For Admin users, access control is enforced at the mission level:
 // Response for SuperAdmin
 {
   status: "success",
-  permission: "111",
+  role: "superadmin",
   missions_managing: null  // null = all missions
 }
 
 // Response for Admin
 {
   status: "success",
-  permission: "110",
+  role: "mission_admin",
   missions_managing: ["Mission1", "Mission2"]
 }
 ```

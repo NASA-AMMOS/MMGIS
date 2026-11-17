@@ -1,0 +1,89 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "id": 1,  "name": "Observation 1",  "sensor": "A", "value": 42 }, "geometry": { "type": "Point", "coordinates": [-122.5100, 37.7200] } },
+    { "type": "Feature", "properties": { "id": 2,  "name": "Observation 2",  "sensor": "B", "value": 17 }, "geometry": { "type": "Point", "coordinates": [-122.4900, 37.7300] } },
+    { "type": "Feature", "properties": { "id": 3,  "name": "Observation 3",  "sensor": "A", "value": 88 }, "geometry": { "type": "Point", "coordinates": [-122.4700, 37.7400] } },
+    { "type": "Feature", "properties": { "id": 4,  "name": "Observation 4",  "sensor": "C", "value": 55 }, "geometry": { "type": "Point", "coordinates": [-122.4500, 37.7500] } },
+    { "type": "Feature", "properties": { "id": 5,  "name": "Observation 5",  "sensor": "B", "value": 31 }, "geometry": { "type": "Point", "coordinates": [-122.4300, 37.7600] } },
+    { "type": "Feature", "properties": { "id": 6,  "name": "Observation 6",  "sensor": "A", "value": 74 }, "geometry": { "type": "Point", "coordinates": [-122.4100, 37.7700] } },
+    { "type": "Feature", "properties": { "id": 7,  "name": "Observation 7",  "sensor": "C", "value": 62 }, "geometry": { "type": "Point", "coordinates": [-122.3900, 37.7800] } },
+    { "type": "Feature", "properties": { "id": 8,  "name": "Observation 8",  "sensor": "A", "value": 19 }, "geometry": { "type": "Point", "coordinates": [-122.3700, 37.7900] } },
+    { "type": "Feature", "properties": { "id": 9,  "name": "Observation 9",  "sensor": "B", "value": 93 }, "geometry": { "type": "Point", "coordinates": [-122.4800, 37.8000] } },
+    { "type": "Feature", "properties": { "id": 10, "name": "Observation 10", "sensor": "C", "value": 48 }, "geometry": { "type": "Point", "coordinates": [-122.4600, 37.8100] } },
+    { "type": "Feature", "properties": { "id": 11, "name": "Observation 11", "sensor": "A", "value": 27 }, "geometry": { "type": "Point", "coordinates": [-122.4400, 37.8200] } },
+    { "type": "Feature", "properties": { "id": 12, "name": "Observation 12", "sensor": "B", "value": 81 }, "geometry": { "type": "Point", "coordinates": [-122.4200, 37.8300] } },
+    { "type": "Feature", "properties": { "id": 13, "name": "Observation 13", "sensor": "C", "value": 36 }, "geometry": { "type": "Point", "coordinates": [-122.4000, 37.8400] } },
+    { "type": "Feature", "properties": { "id": 14, "name": "Observation 14", "sensor": "A", "value": 67 }, "geometry": { "type": "Point", "coordinates": [-122.4950, 37.7550] } },
+    { "type": "Feature", "properties": { "id": 15, "name": "Observation 15", "sensor": "B", "value": 53 }, "geometry": { "type": "Point", "coordinates": [-122.4750, 37.7650] } },
+    { "type": "Feature", "properties": { "id": 16, "name": "Observation 16", "sensor": "C", "value": 12 }, "geometry": { "type": "Point", "coordinates": [-122.4550, 37.7750] } },
+    { "type": "Feature", "properties": { "id": 17, "name": "Observation 17", "sensor": "A", "value": 79 }, "geometry": { "type": "Point", "coordinates": [-122.4350, 37.7850] } },
+    { "type": "Feature", "properties": { "id": 18, "name": "Observation 18", "sensor": "B", "value": 44 }, "geometry": { "type": "Point", "coordinates": [-122.4150, 37.7950] } },
+    { "type": "Feature", "properties": { "id": 19, "name": "Observation 19", "sensor": "C", "value": 96 }, "geometry": { "type": "Point", "coordinates": [-122.3950, 37.8050] } },
+    { "type": "Feature", "properties": { "id": 20, "name": "Observation 20", "sensor": "A", "value": 23 }, "geometry": { "type": "Point", "coordinates": [-122.5000, 37.8150] } },
+    { "type": "Feature", "properties": { "id": 21, "name": "Observation 21", "sensor": "B", "value": 58 }, "geometry": { "type": "Point", "coordinates": [-122.4850, 37.7450] } },
+    { "type": "Feature", "properties": { "id": 22, "name": "Observation 22", "sensor": "C", "value": 71 }, "geometry": { "type": "Point", "coordinates": [-122.4650, 37.7350] } },
+    { "type": "Feature", "properties": { "id": 23, "name": "Observation 23", "sensor": "A", "value": 38 }, "geometry": { "type": "Point", "coordinates": [-122.4250, 37.7250] } },
+    { "type": "Feature", "properties": { "id": 24, "name": "Observation 24", "sensor": "B", "value": 85 }, "geometry": { "type": "Point", "coordinates": [-122.4050, 37.7150] } },
+    { "type": "Feature", "properties": { "id": 25, "name": "Observation 25", "sensor": "C", "value": 60 }, "geometry": { "type": "Point", "coordinates": [-122.5050, 37.8250] } },
+    {
+      "type": "Feature",
+      "properties": { "id": 26, "name": "Transect Alpha", "sensor": "A", "value": null },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.5100, 37.7200],
+          [-122.4900, 37.7300],
+          [-122.4700, 37.7400],
+          [-122.4500, 37.7500],
+          [-122.4300, 37.7600],
+          [-122.4100, 37.7700],
+          [-122.3900, 37.7800],
+          [-122.3700, 37.7900]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 27, "name": "Transect Beta", "sensor": "B", "value": null },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4800, 37.8000],
+          [-122.4600, 37.8100],
+          [-122.4400, 37.8200],
+          [-122.4200, 37.8300],
+          [-122.4000, 37.8400]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 28, "name": "Coverage Zone West", "sensor": "A", "value": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.5150, 37.7150],
+          [-122.4600, 37.7150],
+          [-122.4600, 37.7700],
+          [-122.5150, 37.7700],
+          [-122.5150, 37.7150]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 29, "name": "Coverage Zone East", "sensor": "C", "value": null },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4600, 37.7150],
+          [-122.3650, 37.7150],
+          [-122.3650, 37.8450],
+          [-122.4600, 37.8450],
+          [-122.4600, 37.7150]
+        ]]
+      }
+    }
+  ]
+}

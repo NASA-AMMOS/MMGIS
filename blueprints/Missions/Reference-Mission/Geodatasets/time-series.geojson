@@ -1,0 +1,235 @@
+{
+  "type": "FeatureCollection",
+  "startProp": "start_time",
+  "endProp": "end_time",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Event A - Phase 1",
+        "event_type": "survey",
+        "status": "complete",
+        "start_time": "2024-01-01T00:00:00Z",
+        "end_time": "2024-01-15T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4783, 37.8199] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Event B - Phase 1",
+        "event_type": "inspection",
+        "status": "complete",
+        "start_time": "2024-01-05T00:00:00Z",
+        "end_time": "2024-01-20T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4488, 37.8029] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Event C - Phase 1",
+        "event_type": "survey",
+        "status": "complete",
+        "start_time": "2024-01-10T00:00:00Z",
+        "end_time": "2024-01-25T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4230, 37.8270] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Event A - Phase 2",
+        "event_type": "maintenance",
+        "status": "complete",
+        "start_time": "2024-02-01T00:00:00Z",
+        "end_time": "2024-02-14T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4783, 37.8199] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Event D - Phase 2",
+        "event_type": "inspection",
+        "status": "complete",
+        "start_time": "2024-02-10T00:00:00Z",
+        "end_time": "2024-02-28T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4025, 37.7949] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "name": "Event E - Phase 2",
+        "event_type": "survey",
+        "status": "complete",
+        "start_time": "2024-02-15T00:00:00Z",
+        "end_time": "2024-03-01T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4475, 37.7544] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "name": "Event B - Phase 3",
+        "event_type": "maintenance",
+        "status": "active",
+        "start_time": "2024-03-01T00:00:00Z",
+        "end_time": "2024-03-31T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4488, 37.8029] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "name": "Event F - Phase 3",
+        "event_type": "survey",
+        "status": "active",
+        "start_time": "2024-03-10T00:00:00Z",
+        "end_time": "2024-04-10T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4177, 37.8080] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "name": "Event G - Phase 4",
+        "event_type": "inspection",
+        "status": "planned",
+        "start_time": "2024-04-01T00:00:00Z",
+        "end_time": "2024-04-30T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.3937, 37.7955] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 10,
+        "name": "Event H - Phase 4",
+        "event_type": "survey",
+        "status": "planned",
+        "start_time": "2024-04-15T00:00:00Z",
+        "end_time": "2024-05-15T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4820, 37.7694] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 11,
+        "name": "Event C - Phase 4",
+        "event_type": "maintenance",
+        "status": "planned",
+        "start_time": "2024-05-01T00:00:00Z",
+        "end_time": "2024-05-31T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.4230, 37.8270] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 12,
+        "name": "Event I - Phase 5",
+        "event_type": "survey",
+        "status": "planned",
+        "start_time": "2024-06-01T00:00:00Z",
+        "end_time": "2024-06-30T23:59:59Z"
+      },
+      "geometry": { "type": "Point", "coordinates": [-122.5066, 37.7797] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 13,
+        "name": "Phase 1 Survey Transect",
+        "event_type": "survey",
+        "status": "complete",
+        "start_time": "2024-01-01T00:00:00Z",
+        "end_time": "2024-01-25T23:59:59Z"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4783, 37.8199],
+          [-122.4600, 37.8150],
+          [-122.4488, 37.8029],
+          [-122.4350, 37.8160],
+          [-122.4230, 37.8270]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 14,
+        "name": "Phase 3 Patrol Route",
+        "event_type": "maintenance",
+        "status": "active",
+        "start_time": "2024-03-01T00:00:00Z",
+        "end_time": "2024-04-10T23:59:59Z"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4177, 37.8080],
+          [-122.4100, 37.8020],
+          [-122.4025, 37.7949],
+          [-122.3980, 37.7955],
+          [-122.3937, 37.7955]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 15,
+        "name": "Phase 1-2 Coverage Area",
+        "event_type": "survey",
+        "status": "complete",
+        "start_time": "2024-01-01T00:00:00Z",
+        "end_time": "2024-03-01T23:59:59Z"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4883, 37.8099],
+          [-122.4030, 37.8099],
+          [-122.4030, 37.8370],
+          [-122.4883, 37.8370],
+          [-122.4883, 37.8099]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 16,
+        "name": "Phase 4-5 Survey Zone",
+        "event_type": "inspection",
+        "status": "planned",
+        "start_time": "2024-04-01T00:00:00Z",
+        "end_time": "2024-06-30T23:59:59Z"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.5166, 37.7594],
+          [-122.3837, 37.7594],
+          [-122.3837, 37.8080],
+          [-122.5166, 37.8080],
+          [-122.5166, 37.7594]
+        ]]
+      }
+    }
+  ]
+}

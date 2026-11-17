@@ -1,0 +1,179 @@
+import { useEffect } from 'react'
+import useUIStore from '../../store/uiStore'
+import { MOBILE_TOOLBAR_HEIGHT, MOBILE_HANDLE_HEIGHT } from '../Toolbar/Toolbar'
+
+/**
+ * BottomElementPositioner — a headless React component that reactively
+ * positions all non-React bottom-anchored DOM elements based on Zustand
+ * store state.
+ *
+ * With the bottom floating bar architecture (PR #47 style), #timeUI is
+ * reparented into #bottomFloatingBar. The bar's total height drives
+ * offsets for map controls, compass, coordinates, etc.
+ */
+function BottomElementPositioner() {
+    const pxIsTools = useUIStore((s) => s.pxIsTools)
+    const isMobile = useUIStore((s) => s.isMobile)
+    const timeUIActive = useUIStore((s) => s.timeUIActive)
+    const timeUIExpanded = useUIStore((s) => s.timeUIExpanded)
+    const toolPanelWidth = useUIStore((s) => s.toolPanelWidth)
+    const topSize = useUIStore((s) => s.topSize)
+    const isDragging = useUIStore((s) => s.isDraggingSplitter)
+    const toolDetentFractions = useUIStore((s) => s.toolDetentFractions)
+    const toolbarVisible = useUIStore((s) => s.toolbarVisible)
+    // Re-run when separated tool panels (e.g. Legend) open/close so the
+    // legend-height reserve is (re)computed once #LegendTool exists in the DOM.
+    const activeSeparatedTools = useUIStore((s) => s.activeSeparatedTools)
+
+    useEffect(() => {
+        const ease = isDragging ? 'none' : 'bottom 0.3s ease-out, left 0.3s ease-out'
+
+        if (isMobile) {
+            const toolbarH = MOBILE_TOOLBAR_HEIGHT
+            const toolsH = pxIsTools || 0
+
+            // Shift the scale bar up by the handle's height when the drag
+            // handle is showing so it doesn't cover the scale bar text.
+            // Mirrors MobileToolDragHandle's own visible condition
+            // (Toolbar.jsx) — toolbarVisible=false hides the handle too.
+            const hasDragHandle =
+                toolsH > 0 && toolDetentFractions.length > 0 && toolbarVisible
+            const mapControlOffset = hasDragHandle
+                ? toolbarH + MOBILE_HANDLE_HEIGHT
+                : toolbarH
+
+            const coordsDiv = document.getElementById('CoordinatesDiv')
+            if (coordsDiv) {
+                coordsDiv.style.transition = ease
+                coordsDiv.style.bottom = toolsH + 'px'
+            }
+            const toolbar = document.getElementById('toolbar')
+            if (toolbar) {
+                toolbar.style.transition = ease
+                toolbar.style.bottom = toolsH + 'px'
+            }
+            const mapToolBar = document.getElementById('mapToolBar')
+            if (mapToolBar) {
+                mapToolBar.style.transition = ease
+                mapToolBar.style.bottom = mapControlOffset + 'px'
+            }
+            const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
+            if (leafletBottomLeft) {
+                leafletBottomLeft.style.transition = ease
+                leafletBottomLeft.style.bottom = mapControlOffset + 'px'
+            }
+            const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
+            if (leafletBottomRight) {
+                leafletBottomRight.style.transition = ease
+                leafletBottomRight.style.bottom = mapControlOffset + 'px'
+            }
+            const mapLogo = document.getElementById('mmgis-map-logo')
+            if (mapLogo) {
+                mapLogo.style.transition = ease
+                mapLogo.style.bottom = (mapControlOffset + 45) + 'px'
+            }
+        } else {
+            // Calculate target bar height from known state
+            const toolsH = pxIsTools || 0
+            const timeUIDockH = timeUIActive ? (timeUIExpanded ? 177 : 40) : 0
+            const barBorderH = (toolsH > 0 || timeUIDockH > 0) ? 2 : 0
+            const targetBarHeight = toolsH + timeUIDockH + barBorderH
+
+            const barBottom = 12
+            const isBarVisible = timeUIActive || toolsH > 0
+            const totalOffset = isBarVisible ? (targetBarHeight + barBottom) : 0
+
+            // Left offset from vertical tool panel
+            const tpShift = toolPanelWidth || 0
+
+            const mapToolBar = document.getElementById('mapToolBar')
+            if (mapToolBar) {
+                mapToolBar.style.transition = ease
+                mapToolBar.style.bottom = totalOffset + 'px'
+                mapToolBar.style.left = (12 + tpShift) + 'px'
+            }
+
+            // Compass and scalefactor are both inside .leaflet-bottom.leaflet-left
+            // and use position:absolute relative to that container — they move with it.
+
+            const leafletBottomRight = document.querySelector('.leaflet-bottom.leaflet-right')
+            if (leafletBottomRight) {
+                leafletBottomRight.style.transition = ease
+                leafletBottomRight.style.bottom = totalOffset + 'px'
+            }
+
+            const mapLogo = document.getElementById('mmgis-map-logo')
+            if (mapLogo) {
+                mapLogo.style.transition = ease
+                mapLogo.style.bottom = (totalOffset + 45) + 'px'
+            }
+
+            const coordsDiv = document.getElementById('CoordinatesDiv')
+            if (coordsDiv) {
+                coordsDiv.style.transition = ease
+                coordsDiv.style.bottom = (totalOffset + 12) + 'px'
+            }
+
+            const photoAz = document.getElementById('photosphereAzIndicator')
+            if (photoAz) {
+                photoAz.style.transition = ease
+                photoAz.style.bottom = totalOffset + 'px'
+            }
+
+            const lithoControls = document.getElementById('_lithosphere_controls_bottomleft')
+            if (lithoControls) {
+                lithoControls.style.transition = ease
+                lithoControls.style.bottom = (totalOffset + 10) + 'px'
+            }
+
+            // Leaflet bottom-left controls (scalebar, etc.)
+            const leafletBottomLeft = document.querySelector('.leaflet-bottom.leaflet-left')
+            if (leafletBottomLeft) {
+                leafletBottomLeft.style.transition = ease
+                leafletBottomLeft.style.bottom = totalOffset + 'px'
+                leafletBottomLeft.style.left = (12 + tpShift) + 'px'
+            }
+
+            // Adjust vertical tool panel height so it doesn't overlap the bottom bar
+            const toolPanel = document.getElementById('toolPanel')
+            if (toolPanel) {
+                const panelBottom = totalOffset > 0 ? (totalOffset + 12) : 12
+                toolPanel.style.height = `calc(100% - ${topSize + 12 + panelBottom}px)`
+            }
+            const toolPanelDrag = document.getElementById('toolPanelDrag')
+            if (toolPanelDrag) {
+                const panelBottom = totalOffset > 0 ? (totalOffset + 12) : 12
+                toolPanelDrag.style.height = `calc(100% - ${topSize + 12 + panelBottom}px)`
+            }
+
+            // Push separated tool content panels (Legend, etc.) right of vertical tool panel
+            const sepContent = document.getElementById('toolcontroller_sep_content')
+            if (sepContent) {
+                sepContent.style.transition = 'left 0.2s ease-out'
+                sepContent.style.left = (12 + tpShift + (tpShift > 0 ? 12 : 0)) + 'px'
+            }
+
+            // Cap every separated tool panel (Legend, etc.) so none overlaps the
+            // bottom-left compass + scale bar. All panels share the container's top,
+            // so a single reserve covers them all. That stack's top sits ~70px above
+            // the bottom bar (mapToolBar bottom = totalOffset), so a panel's bottom
+            // must clear totalOffset + 70 + a 12px gap. totalOffset already grows with
+            // the expanded timeline, so the panels shrink exactly as needed.
+            const sepContainer = document.getElementById('toolcontroller_sep_content')
+            if (sepContainer) {
+                const compassStack = 70 // compass + scale bar height above the bar
+                const gap = 12
+                const containerTop = sepContainer.getBoundingClientRect().top
+                const reserve = containerTop + totalOffset + compassStack + gap
+                document.documentElement.style.setProperty(
+                    '--mmgis-sep-tools-bottom-reserve',
+                    reserve + 'px'
+                )
+            }
+        }
+    }, [pxIsTools, isMobile, timeUIActive, timeUIExpanded, toolPanelWidth, topSize, isDragging, activeSeparatedTools, toolDetentFractions, toolbarVisible])
+
+    return null
+}
+
+export default BottomElementPositioner

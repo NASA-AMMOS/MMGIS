@@ -1,0 +1,158 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Primary Route",
+        "description": "Main pathway with solid red line",
+        "category": "primary",
+        "style": {
+          "color": "#ff0000",
+          "weight": 4,
+          "opacity": 1.0,
+          "lineCap": "round",
+          "lineJoin": "round"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4500, 37.7500],
+          [-122.4450, 37.7550],
+          [-122.4350, 37.7580],
+          [-122.4300, 37.7600],
+          [-122.4250, 37.7650],
+          [-122.4150, 37.7680],
+          [-122.4100, 37.7700],
+          [-122.4000, 37.7750],
+          [-122.3900, 37.7800]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Secondary Route",
+        "description": "Alternative path with dashed blue line",
+        "category": "secondary",
+        "style": {
+          "color": "#0000ff",
+          "weight": 3,
+          "opacity": 0.8,
+          "dashArray": "10, 5",
+          "lineCap": "butt",
+          "lineJoin": "miter"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4500, 37.7500],
+          [-122.4480, 37.7520],
+          [-122.4440, 37.7540],
+          [-122.4400, 37.7550],
+          [-122.4350, 37.7580],
+          [-122.4300, 37.7620],
+          [-122.4200, 37.7650],
+          [-122.4100, 37.7700],
+          [-122.4000, 37.7750]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Trail Route",
+        "description": "Dotted green line for trail",
+        "category": "trail",
+        "style": {
+          "color": "#00ff00",
+          "weight": 2,
+          "opacity": 0.7,
+          "dashArray": "2, 5",
+          "lineCap": "round",
+          "lineJoin": "round"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4700, 37.7600],
+          [-122.4680, 37.7620],
+          [-122.4650, 37.7650],
+          [-122.4620, 37.7680],
+          [-122.4600, 37.7700],
+          [-122.4550, 37.7750],
+          [-122.4500, 37.7800],
+          [-122.4450, 37.7850],
+          [-122.4400, 37.7900]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Boundary Line",
+        "description": "Thick orange line with long dashes",
+        "category": "boundary",
+        "style": {
+          "color": "#ffa500",
+          "weight": 5,
+          "opacity": 0.9,
+          "dashArray": "20, 10",
+          "lineCap": "square",
+          "lineJoin": "bevel"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4800, 37.7400],
+          [-122.4780, 37.7430],
+          [-122.4750, 37.7460],
+          [-122.4700, 37.7500],
+          [-122.4680, 37.7540],
+          [-122.4650, 37.7570],
+          [-122.4600, 37.7600],
+          [-122.4550, 37.7650],
+          [-122.4500, 37.7700]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Proposed Route",
+        "description": "Thin semi-transparent purple line with dash-dot pattern",
+        "category": "proposed",
+        "style": {
+          "color": "#800080",
+          "weight": 2,
+          "opacity": 0.5,
+          "dashArray": "10, 5, 2, 5",
+          "lineCap": "butt",
+          "lineJoin": "miter"
+        }
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.4200, 37.8000],
+          [-122.4180, 37.8020],
+          [-122.4150, 37.8040],
+          [-122.4100, 37.8050],
+          [-122.4050, 37.8070],
+          [-122.4000, 37.8100],
+          [-122.3950, 37.8120],
+          [-122.3900, 37.8150]
+        ]
+      }
+    }
+  ]
+}

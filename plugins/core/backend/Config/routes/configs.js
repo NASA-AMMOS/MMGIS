@@ -1,0 +1,2376 @@
+/***********************************************************
+ * JavaScript syntax format: ES5/ES6 - ECMAScript 2015
+ * Loading all required dependencies, libraries and packages
+ **********************************************************/
+require("dotenv").config();
+const express = require("express");
+const router = express.Router();
+const {
+  authorize,
+  resolvers,
+  missionNamesWith,
+  ensurePrincipal,
+  can,
+} = require("../../../../../API/permissions/authorize");
+const siteAccess = require("../../../../../API/permissions/siteAccess");
+const missionIdentity = require("../../../../../API/permissions/missions");
+const policy = require("../../../../../API/permissions/policy");
+const principal = require("../../../../../API/permissions/principal");
+const execFile = require("child_process").execFile;
+const Sequelize = require("sequelize");
+const crypto = require("crypto");
+const { sequelize } = require("../../../../../API/connection");
+
+const logger = require("../../../../../API/logger");
+const Config = require("../models/config");
+const config_template = require("../../../../../API/templates/config_template");
+const Userfiles = require("../../Draw/models/userfiles").Userfiles;
+const { UserDefaults } = require("../../Users/models/userdefaults");
+const missionTemplates = require("../../Utils/missionTemplates");
+
+// Sanitize user input to prevent XSS in error messages
+function sanitizeInput(input) {
+  if (typeof input !== "string") return String(input);
+  return input.replace(/[<>'"&]/g, function (match) {
+    switch (match) {
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#x27;";
+      case "&":
+        return "&amp;";
+      default:
+        return match;
+    }
+  });
+}
+
+const GeneralOptions = require("../../GeneralOptions/models/generaloptions");
+
+const validate = require("../validate");
+const {
+  SHARED_MISSION_FOLDER_NAME,
+  isReservedMissionName,
+  reservedMissionNameMessage,
+} = require("../constants");
+const populateUUIDs = require("../uuids");
+const Utils = require("../../../../../API/utils.js");
+
+const websocket = require("../../../../../API/websocket.js");
+
+const fs = require("fs");
+const path = require("path");
+const deepmerge = require("deepmerge");
+
+let fullAccess = false;
+if (
+  !process.env.hasOwnProperty("HIDE_CONFIG") ||
+  process.env.HIDE_CONFIG != "true"
+)
+  fullAccess = true;
+
+const missionFromReq = resolvers.mission(
+  (req) => (req.body && req.body.mission) || req.query.mission
+);
+missionFromReq.description = "mission(body.mission | query.mission)";
+
+// Whole-mission configuration edits
+const checkMissionPermission = authorize("mission.config.edit", missionFromReq);
+const checkQueryMissionPermission = authorize(
+  "mission.config.edit",
+  resolvers.mission((req) => req.query.mission)
+);
+
+// Layer-subtree editors may change a layer in place; moving it or
+// changing its UUID needs whole-config permission
+async function requireConfigEditToMoveLayer(req, res, next) {
+  const body = req.body || {};
+  const moving =
+    body.placement != null ||
+    (body.layer &&
+      body.layer.uuid != null &&
+      String(body.layer.uuid) !== String(body.layerUUID));
+  if (!moving) return next();
+  try {
+    const resource = await missionFromReq(req);
+    if (resource && (await can(req, "mission.config.edit", resource))) return next();
+  } catch (err) {
+    logger("error", "Failed to check layer move permission.", req.originalUrl, req, err);
+  }
+  res.status(403).send({
+    status: "failure",
+    message: "Unauthorized - moving a layer requires mission configuration permission.",
+  });
+}
+
+// Mission names the request may view (null = all)
+function getViewableMissions(req) {
+  return missionNamesWith(req, "mission.view");
+}
+
+// Mission names whose whole configuration the request may edit (null = all)
+function getManagedMissions(req) {
+  return missionNamesWith(req, "mission.config.edit");
+}
+
+// Mission config reads: the site, or a token that may only view some missions (no site.view)
+function siteOrMissionView(reason) {
+  const mw = (req, res, next) => {
+    const deny = () => res.status(403).send({ status: "failure", message: "Unauthorized" });
+    ensurePrincipal(req)
+      .then((principal) => {
+        if (principal.kind === "invalid_token") return deny();
+        if (policy.can(principal, "site.view")) return next();
+        const viewable = policy.missionsWith(principal, "mission.view");
+        if (viewable == null || viewable.length > 0) return next();
+        deny();
+      })
+      .catch((err) => {
+        logger("error", "Failed to check mission viewing permissions.", req.originalUrl, req, err);
+        deny();
+      });
+  };
+  mw.__access = { capability: "site.view | mission.view", resolver: `in handler: ${reason}` };
+  return mw;
+}
+
+// Guards config loads by mission.view
+function checkMissionViewingPermission(req, res, next) {
+  const mission = req.query.mission || (req.body && req.body.mission);
+  getViewableMissions(req)
+    .then((viewable) => {
+      if (viewable == null || mission == null || viewable.includes(mission)) {
+        next();
+        return;
+      }
+      res.send({
+        status: "failure",
+        message: `Unauthorized - no permission to view mission: ${sanitizeInput(
+          mission
+        )}`,
+      });
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to check mission viewing permissions.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to verify mission viewing permissions.",
+      });
+    });
+}
+
+// Specific (older) configuration versions are for mission config editors
+function requireAdminForVersion(req, res, next) {
+  if (req.query.version == null || req.query.version === "") {
+    next();
+    return;
+  }
+
+  getManagedMissions(req)
+    .then((managed) => {
+      if (managed === null || managed.includes(req.query.mission)) {
+        next();
+        return;
+      }
+      res.send({
+        status: "failure",
+        message:
+          "Unauthorized - only mission admins may request specific configuration versions.",
+      });
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to check mission permissions.",
+        req.originalUrl,
+        req,
+        err
+      );
+      res.send({
+        status: "failure",
+        message: "Failed to verify mission permissions.",
+      });
+    });
+}
+
+// Cached per-principal set of viewable mission folder names (msv.missionFolderName)
+const VIEWABLE_FOLDERS_TTL = 10 * 1000;
+const viewableFoldersCache = new Map();
+let viewableFoldersGeneration = 0;
+function clearViewableFoldersCache(uid) {
+  viewableFoldersGeneration++;
+  viewableFoldersCache.clear();
+}
+principal.onInvalidate(() => clearViewableFoldersCache());
+
+// Clears the cache again once a mission mutation's response has been sent
+function clearViewableFoldersCacheAfter(req, res, next) {
+  clearViewableFoldersCache();
+  res.on("finish", () => clearViewableFoldersCache());
+  next();
+}
+
+function principalCacheKey(req) {
+  const p = req.principal || {};
+  if (p.kind === "token") return `token:${p.token.id}`;
+  if (p.kind === "user") return `user:${p.userId}`;
+  if (p.kind === "external")
+    return `${p.provider}:${p.username}:${(p.groupIds || []).join(",")}`;
+  return p.kind || "anonymous";
+}
+
+// Resolves to null (unrestricted) or a Set of /Missions folder names the request may read
+function getViewableMissionFolders(req) {
+  return ensurePrincipal(req).then(() => {
+    const key = principalCacheKey(req);
+    const cached = viewableFoldersCache.get(key);
+    if (cached && Date.now() - cached.ts < VIEWABLE_FOLDERS_TTL)
+      return cached.folders;
+
+    const generation = viewableFoldersGeneration;
+    return getViewableMissions(req).then((viewable) => {
+      if (viewable == null) return null;
+      return Config.findAll({
+        where: { mission: viewable },
+        attributes: ["mission", "config"],
+        order: [["id", "DESC"]],
+      }).then((configs) => {
+        const folders = new Set(viewable);
+        const seen = new Set();
+        folders.delete(SHARED_MISSION_FOLDER_NAME);
+        (configs || []).forEach((c) => {
+          if (seen.has(c.mission)) return;
+          seen.add(c.mission);
+          const folder =
+            c.config && c.config.msv && c.config.msv.missionFolderName;
+          if (
+            typeof folder === "string" &&
+            folder.length > 0 &&
+            folder !== SHARED_MISSION_FOLDER_NAME
+          )
+            folders.add(folder);
+        });
+        if (generation === viewableFoldersGeneration)
+          viewableFoldersCache.set(key, { ts: Date.now(), folders });
+        return folders;
+      });
+    });
+  });
+}
+
+// Guards /Missions/<folder>/... static files by mission.view
+// forbid(req, res) sends the 403 response
+function checkMissionFileViewingPermission(forbid) {
+  return function (req, res, next) {
+    let folder = null;
+    try {
+      // Normalize so "<folder>/%2e%2e/<other>" resolves to <other>, as the
+      // static file server would
+      folder = path.posix
+        .normalize(
+          "/" + decodeURIComponent(req.path.split("?")[0]).replace(/\\/g, "/")
+        )
+        .split("/")
+        .filter((s) => s.length > 0)[0];
+    } catch (err) {
+      return res.sendStatus(404);
+    }
+    if (folder === SHARED_MISSION_FOLDER_NAME) {
+      ensurePrincipal(req)
+        .then((p) =>
+          policy.canReadSharedFolder(p) ? next() : forbid(req, res)
+        )
+        .catch(() => res.sendStatus(500));
+      return;
+    }
+    getViewableMissionFolders(req)
+      .then((folders) => {
+        if (folders == null || folder == null || folders.has(folder)) next();
+        else forbid(req, res);
+      })
+      .catch((err) => {
+        logger(
+          "error",
+          "Failed to check mission file viewing permissions.",
+          req.originalUrl,
+          req,
+          err
+        );
+        res.sendStatus(500);
+      });
+  };
+}
+
+function rejectReservedMissionName(field) {
+  return function (req, res, next) {
+    if (req.body && isReservedMissionName(req.body[field])) {
+      res.send({ status: "failure", message: reservedMissionNameMessage() });
+      return;
+    }
+    next();
+  };
+}
+
+function get(req, res, next, cb, options) {
+  const qMission = (options && options.mission) || req.query.mission;
+  const qFull = (options && options.full) || req.query.full;
+  Config.findAll({
+    limit: 1,
+    where: {
+      mission: qMission,
+    },
+    order: [["id", "DESC"]],
+  })
+    .then((missions) => {
+      if (missions && missions.length > 0) return missions[0].version;
+      return 0;
+    })
+    .then((version) => {
+      if (req.query.version) version = req.query.version;
+
+      if (version < 0) {
+        //mission doesn't exist
+        if (cb)
+          cb({
+            status: "failure",
+            message: `Mission not found. Bad version: ${version}.`,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: `Mission not found. Bad version: ${version}.`,
+          });
+        return null;
+      } else {
+        Config.findOne({
+          where: {
+            mission: qMission,
+            version: version,
+          },
+        })
+          .then((mission) => {
+            // Apply fallback logic for missionFolderName
+            const config = mission.config;
+            if (
+              config.msv &&
+              (!config.msv.missionFolderName ||
+                config.msv.missionFolderName === "")
+            ) {
+              config.msv.missionFolderName = config.msv.mission || "";
+            }
+
+            if (qFull) {
+              if (cb)
+                cb({
+                  status: "success",
+                  mission: mission.mission,
+                  config: config,
+                  version: mission.version,
+                });
+              else
+                res.send({
+                  status: "success",
+                  mission: mission.mission,
+                  config: config,
+                  version: mission.version,
+                });
+            } else {
+              if (cb) cb(config);
+              else res.send(config);
+            }
+            return null;
+          })
+          .catch((err) => {
+            if (cb)
+              cb({
+                status: "failure",
+                message: `Mission '${sanitizeInput(
+                  qMission
+                )} v${version}' not found.`,
+              });
+            else
+              res.send({
+                status: "failure",
+                message: `Mission '${sanitizeInput(
+                  qMission
+                )} v${version}' not found.`,
+              });
+            return null;
+          });
+      }
+      return null;
+    })
+    .catch((err) => {
+      if (cb) cb({ status: "failure", message: "Mission not found." });
+      else res.send({ status: "failure", message: "Mission not found." });
+      return null;
+    });
+  return null;
+}
+router.get(
+  "/get",
+  siteOrMissionView("mission.view per requested mission"),
+  checkMissionViewingPermission,
+  requireAdminForVersion,
+  function (req, res, next) {
+    get(req, res, next);
+  }
+);
+
+/**
+ * Create a Reference Mission demo
+ */
+async function createReferenceMission(req, res, cb) {
+  // Resolve variant key from request body (defaults to "default")
+  const variantKey = req.body.referenceMissionVariant || (typeof req.body.setupReferenceMission === 'string' && req.body.setupReferenceMission) || "default";
+  const variants = missionTemplates.REFERENCE_MISSION_VARIANTS;
+
+  if (!Object.hasOwn(variants, variantKey)) {
+    const validKeys = Object.keys(variants).join(", ");
+    const errorResponse = {
+      status: "failure",
+      message: `Unknown reference mission variant: ${sanitizeInput(variantKey)}. Valid variants: ${validKeys}`,
+    };
+    if (cb) cb(errorResponse);
+    else res.send(errorResponse);
+    return;
+  }
+
+  const missionName = variants[variantKey].missionName;
+
+  try {
+    // Check if mission already exists
+    const existingMission = await Config.findOne({
+      where: { mission: missionName },
+    });
+
+    // Create or update Reference Mission
+    const result = await missionTemplates.createReferenceMission(missionName, variantKey);
+
+    if (existingMission) {
+      // Delete all existing rows for this mission and create a fresh one.
+      // Config.update would stamp every historical version row with the same new
+      // version, causing the MAX(version) query to return all of them and inflate
+      // the "used by" occurrence count.
+      const maxVersion = await Config.max("version", {
+        where: { mission: missionName },
+      });
+      const updatedVersion = (maxVersion ?? 0) + 1;
+
+      await Config.destroy({ where: { mission: missionName } });
+      await Config.create({
+        mission: missionName,
+        config: result.config,
+        version: updatedVersion,
+      });
+
+      logger(
+        "info",
+        `Successfully updated Reference Mission: ${missionName} (v${updatedVersion})`,
+        req.originalUrl,
+        req
+      );
+
+      const response = {
+        status: "success",
+        mission: missionName,
+        version: updatedVersion,
+        message: `Reference Mission updated successfully to version ${updatedVersion}.`,
+      };
+
+      if (cb) cb(response);
+      else res.send(response);
+    } else {
+      // Create new mission
+      const newConfig = {
+        mission: missionName,
+        config: result.config,
+        version: 0,
+      };
+
+      const created = await Config.create(newConfig);
+
+      logger(
+        "info",
+        `Successfully created Reference Mission: ${created.mission}`,
+        req.originalUrl,
+        req
+      );
+
+      const response = {
+        status: "success",
+        mission: created.mission,
+        version: created.version,
+        message: result.message,
+      };
+
+      if (cb) cb(response);
+      else res.send(response);
+    }
+  } catch (err) {
+    logger(
+      "error",
+      "Failed to create/update Reference Mission.",
+      req.originalUrl,
+      req,
+      err
+    );
+
+    const errorResponse = {
+      status: "failure",
+      message: "Failed to create/update Reference Mission.",
+    };
+
+    if (cb) cb(errorResponse);
+    else res.send(errorResponse);
+  }
+}
+
+function add(req, res, next, cb) {
+  // Check for Reference Mission mode (boolean or string variant key)
+  if (req.body.setupReferenceMission === true || (typeof req.body.setupReferenceMission === 'string' && req.body.setupReferenceMission !== '')) {
+    return createReferenceMission(req, res, cb);
+  }
+
+  let configTemplate = JSON.parse(JSON.stringify(config_template));
+
+  // If a config is provided, deep merge it with the template
+  if (req.body.config) {
+    configTemplate = deepmerge(configTemplate, req.body.config);
+  }
+
+  configTemplate.msv.mission = req.body.mission;
+  // Set missionFolderName to match the mission name by default
+  configTemplate.msv.missionFolderName = req.body.mission;
+
+  // Fix validation logic: use OR conditions instead of AND (allow hyphens)
+  if (
+    req.body.mission !==
+      req.body.mission.replace(
+        /[`~!@#$%^&*()|+=?;:'",.<>\{\}\[\]\\\/]/gi,
+        ""
+      ) ||
+    req.body.mission.length === 0 ||
+    !isNaN(req.body.mission[0]) ||
+    req.body.mission.includes("../") ||
+    req.body.mission.includes("..\\")
+  ) {
+    logger("error", "Attempted to add bad mission name.", req.originalUrl, req);
+    res.send({ status: "failure", message: "Bad mission name." });
+    return;
+  }
+  if (isReservedMissionName(req.body.mission)) {
+    logger("error", "Attempted to add reserved mission name.", req.originalUrl, req);
+    res.send({ status: "failure", message: reservedMissionNameMessage() });
+    return;
+  }
+
+  let newConfig = {
+    mission: req.body.mission,
+    config: configTemplate,
+    version: 0,
+  };
+
+  //Make sure the mission doesn't already exist
+  Config.findOne({
+    where: {
+      mission: req.body.mission,
+    },
+  })
+    .then((mission) => {
+      if (!mission) {
+        Config.create(newConfig)
+          .then((created) => {
+            if (req.body.makedir === true || req.body.makedir === "true") {
+              let dir = "./Missions/" + created.mission;
+              if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir);
+                let dir2 = dir + "/Layers";
+                if (!fs.existsSync(dir2)) {
+                  fs.mkdirSync(dir2);
+                }
+                let dir3 = dir + "/Data";
+                if (!fs.existsSync(dir3)) {
+                  fs.mkdirSync(dir3);
+                }
+              }
+            }
+
+            logger(
+              "info",
+              "Successfully created mission: " + created.mission,
+              req.originalUrl,
+              req
+            );
+            if (cb)
+              cb({
+                status: "success",
+                mission: created.mission,
+                version: created.version,
+              });
+            else
+              res.send({
+                status: "success",
+                mission: created.mission,
+                version: created.version,
+              });
+            return null;
+          })
+          .catch((err) => {
+            logger(
+              "error",
+              "Failed to create new mission.",
+              req.originalUrl,
+              req,
+              err
+            );
+            if (cb)
+              cb({
+                status: "failure",
+                message: "Failed to create new mission.",
+              });
+            else
+              res.send({
+                status: "failure",
+                message: "Failed to create new mission.",
+              });
+            return null;
+          });
+      } else {
+        logger("error", "Mission already exists.", req.originalUrl, req);
+        if (cb) cb({ status: "failure", message: "Mission already exists." });
+        else
+          res.send({ status: "failure", message: "Mission already exists." });
+      }
+      return null;
+    })
+    .catch((err) => {
+      logger(
+        "error",
+        "Failed to check if mission already exists.",
+        req.originalUrl,
+        req,
+        err
+      );
+      if (cb)
+        cb({
+          status: "failure",
+          message: "Failed to check if mission already exists.",
+        });
+      else
+        res.send({
+          status: "failure",
+          message: "Failed to check if mission already exists.",
+        });
+      return null;
+    });
+  return null;
+}
+
+if (fullAccess)
+  router.post("/add", authorize("mission.create"), function (req, res, next) {
+    add(req, res, next);
+  });
+
+// A config may only point msv.missionFolderName at another mission's folder if the caller can already configure that mission
+async function missionFolderNameError(req, mission, configJSON) {
+  const folder = configJSON && configJSON.msv && configJSON.msv.missionFolderName;
+  if (typeof folder !== "string" || folder === "" || folder === mission) return null;
+  if (/[\\/]/.test(folder) || folder === "." || folder === "..")
+    return "msv.missionFolderName must be a single folder name.";
+  const latest = await Config.findOne({
+    where: { mission },
+    order: [["version", "DESC"]],
+    attributes: ["config"],
+  });
+  const previous = latest && latest.config && latest.config.msv && latest.config.msv.missionFolderName;
+  if (previous === folder) return null;
+  const claimers = await Config.findAll({
+    attributes: ["mission"],
+    where: {
+      [Sequelize.Op.and]: [
+        { mission: { [Sequelize.Op.ne]: mission } },
+        {
+          [Sequelize.Op.or]: [
+            { mission: folder },
+            sequelize.where(sequelize.json("config.msv.missionFolderName"), folder),
+          ],
+        },
+      ],
+    },
+    group: ["mission"],
+  });
+  for (const c of claimers) {
+    const resource = await resolvers.mission(() => c.mission)(req);
+    if (!resource || !(await can(req, "mission.config.edit", resource)))
+      return `msv.missionFolderName '${folder}' belongs to another mission.`;
+  }
+  return null;
+}
+
+/**
+ * Updates and mission's full config
+ * @param req {object}
+ * {
+ *    mission: '',
+ *    version?: 0,
+ *    config?: {}
+ * }
+ */
+function upsert(req, res, next, cb, info) {
+  let hasVersion = false;
+  req.body = req.body || {};
+
+  info = info || {
+    type: "upsert",
+  };
+  info.route = "config";
+  info.id = req.body.id;
+  info.mission = req.body.mission;
+
+  if (req.body.version != null) hasVersion = true;
+  let versionConfig = null;
+
+  const forceClientUpdate = req.body?.forceClientUpdate || false;
+
+  Config.max("version", {
+    where: {
+      mission: req.body.mission,
+    },
+  })
+    .then((maxVersion) => {
+      const currentVersion = maxVersion == null || isNaN(maxVersion) ? -1 : maxVersion;
+
+      if (hasVersion) {
+        return Config.findOne({
+          where: { mission: req.body.mission, version: req.body.version },
+        }).then((match) => {
+          if (match) versionConfig = match.config;
+          return currentVersion;
+        });
+      }
+      return currentVersion;
+    })
+    .then((version) => {
+      let configJSON;
+      if (versionConfig) configJSON = versionConfig;
+      else {
+        if (typeof req.body.config === "string") {
+          try {
+            configJSON = JSON.parse(req.body.config);
+          } catch (err) {
+            if (cb)
+              cb({
+                status: "failure",
+                message: "Stringified configuration object is not JSON.",
+              });
+            else
+              res.send({
+                status: "failure",
+                message: "Stringified configuration object is not JSON.",
+              });
+          }
+        } else configJSON = req.body.config;
+      }
+
+      const { newlyAddedUUIDs, allNewUUIDs } = populateUUIDs(configJSON);
+
+      // Do not update the config if there are duplicate or bad UUIDs
+      const badUUIDs = newlyAddedUUIDs
+        .filter((i) => {
+          return "replacesBadUUID" in i;
+        })
+        .map((i) => i.replacesBadUUID);
+
+      if (badUUIDs.length > 0) {
+        if (cb)
+          cb({
+            status: "failure",
+            message: "There are duplicate or bad UUIDs.",
+            badUUIDs,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: "There are duplicate or bad UUIDs.",
+            badUUIDs,
+          });
+        return;
+      }
+
+      const validation = validate(configJSON);
+
+      if (!validation.valid) {
+        if (cb)
+          cb({
+            status: "failure",
+            message: "Configuration object is invalid.",
+            ...validation,
+          });
+        else
+          res.send({
+            status: "failure",
+            message: "Configuration object is invalid.",
+            ...validation,
+          });
+        return;
+      }
+
+      missionFolderNameError(req, req.body.mission, configJSON)
+        .then((folderError) => {
+          if (folderError) {
+            const failure = { status: "failure", message: folderError };
+            if (cb) cb(failure);
+            else res.send(failure);
+            return null;
+          }
+          return Config.create({
+            mission: req.body.mission,
+            config: configJSON,
+            version: version + 1,
+          });
+        })
+        .then((created) => {
+          if (!created) return;
+          logger(
+            "info",
+            "Successfully updated mission: " +
+              created.mission +
+              " v" +
+              created.version,
+            req.originalUrl,
+            req
+          );
+          if (cb)
+            cb({
+              status: "success",
+              mission: created.mission,
+              version: created.version,
+              newlyAddedUUIDs: newlyAddedUUIDs,
+            });
+          else
+            res.send({
+              status: "success",
+              mission: created.mission,
+              version: created.version,
+              newlyAddedUUIDs: newlyAddedUUIDs,
+            });
+
+          if (info && info.layerName) {
+            // Find the layer UUID instead of passing back the layer's display name
+            let isArray = true;
+            let infoLayerNames = info.layerName;
+            if (!Array.isArray(info.layerName)) {
+              infoLayerNames = [];
+              infoLayerNames.push(info.layerName);
+              isArray = false;
+            }
+
+            for (let i in infoLayerNames) {
+              const found = allNewUUIDs.findIndex(
+                (x) => x.name == infoLayerNames[i]
+              );
+              if (found > -1) {
+                const result = allNewUUIDs[found];
+                infoLayerNames[i] = result.uuid;
+                allNewUUIDs.splice(found, 1);
+              }
+            }
+
+            if (!isArray) {
+              info.layerName = infoLayerNames[0];
+            }
+          }
+
+          openWebSocket(
+            {
+              mission: req.body.mission,
+              config: true,
+            },
+            {
+              status: "success",
+              mission: created.mission,
+              version: created.version,
+              newlyAddedUUIDs: newlyAddedUUIDs,
+            },
+            info,
+            forceClientUpdate
+          );
+          return null;
+        })
+        .catch((err) => {
+          logger(
+            "error",
+            "Failed to update mission.",
+            req.originalUrl,
+            req,
+            err
+          );
+          if (cb)
+            cb({ status: "failure", message: "Failed to update mission." });
+          else
+            res.send({
+              status: "failure",
+              message: "Failed to update mission.",
+            });
+          return null;
+        });
+      return null;
+    })
+    .catch((err) => {
+      logger("error", "Failed to find mission.", req.originalUrl, req, err);
+      if (cb) cb({ status: "failure", message: "Failed to find mission." });
+      else res.send({ status: "failure", message: "Failed to find mission." });
+      return null;
+    });
+  return null;
+}
+
+if (fullAccess)
+  router.post("/upsert", rejectReservedMissionName("mission"), checkMissionPermission, clearViewableFoldersCacheAfter, function (req, res, next) {
+    upsert(req, res, next);
+  });
+
+router.get("/missions", siteOrMissionView("lists only viewable missions"), function (req, res, next) {
+  const viewablePromise = getViewableMissions(req).catch((err) => {
+    logger(
+      "error",
+      "Failed to check mission viewing permissions.",
+      req.originalUrl,
+      req,
+      err
+    );
+    // Fail closed
+    return [];
+  });
+
+  Promise.all([
+    viewablePromise,
+    Config.aggregate("mission", "DISTINCT", { plain: false }),
+  ])
+    .then(([viewable, missions]) => {
+      let allMissions = [];
+      for (let i = 0; i < missions.length; i++)
+        allMissions.push(missions[i].DISTINCT);
+      allMissions = allMissions.filter((m) => !isReservedMissionName(m));
+      if (viewable != null)
+        allMissions = allMissions.filter((m) => viewable.includes(m));
+      allMissions.sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
+      );
+      if (req.query.cards !== "true") {
+        res.send({ status: "success", missions: allMissions });
+        return null;
+      }
+      if (allMissions.length === 0) {
+        res.send({ status: "success", missions: [] });
+        return null;
+      }
+      // Landing page card metadata only (latest version per mission)
+      return Config.findAll({
+        where: { mission: allMissions },
+        attributes: [
+          "mission",
+          [Sequelize.fn("MAX", Sequelize.col("version")), "version"],
+        ],
+        group: ["mission"],
+        raw: true,
+      })
+        .then((latest) =>
+          Config.findAll({
+            where: {
+              [Sequelize.Op.or]: latest.map((l) => ({
+                mission: l.mission,
+                version: l.version,
+              })),
+            },
+            attributes: ["mission", "version", "config"],
+            order: [
+              ["mission", "ASC"],
+              ["id", "DESC"],
+            ],
+          })
+        )
+        .then((rows) => {
+          const seen = new Set();
+          const cards = [];
+          for (const row of rows) {
+            if (seen.has(row.mission)) continue;
+            seen.add(row.mission);
+            const config = row.config || {};
+            const look = config.look || {};
+            cards.push({
+              mission: row.mission,
+              version: row.version,
+              look: { missionname: look.missionname, card: look.card },
+              msv: { missionFolderName: (config.msv || {}).missionFolderName },
+            });
+          }
+          res.send({ status: "success", missions: cards });
+          return null;
+        });
+    })
+    .catch((err) => {
+      logger("error", "Failed to find missions.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to find missions." });
+      return null;
+    });
+  return null;
+});
+
+router.get("/export", authorize.inHandler("site.view", "exports only viewable missions"), function (req, res, next) {
+  const requested = req.query.mission
+    ? String(req.query.mission)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : null;
+
+
+  Promise.all([
+    getViewableMissions(req),
+    Config.aggregate("mission", "DISTINCT", { plain: false }),
+  ])
+    .then(([viewable, missions]) => {
+      let targetMissions = Array.from(
+        new Set((missions || []).map((row) => row.DISTINCT))
+      );
+      if (viewable != null)
+        targetMissions = targetMissions.filter((m) => viewable.includes(m));
+      if (requested != null)
+        targetMissions = targetMissions.filter((m) => requested.includes(m));
+
+      if (targetMissions.length === 0) {
+        res.send({ status: "success", missions: [] });
+        return null;
+      }
+
+      const query =
+        'SELECT DISTINCT ON (mission) mission, version, config, "createdAt" FROM configs WHERE mission IN (:missions) ORDER BY mission ASC, version DESC';
+      return sequelize
+        .query(query, { replacements: { missions: targetMissions } })
+        .then(([rows]) => {
+          res.send({ status: "success", missions: rows });
+          return null;
+        });
+    })
+    .catch((err) => {
+      logger("error", "Failed to export missions.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to export missions." });
+      return null;
+    });
+  return null;
+});
+
+// Get current user's mission permissions for the Configure page
+router.get(
+  "/user-permissions",
+  authorize.public("returns the caller's own permissions"),
+  async function (req, res, next) {
+    try {
+      const principal = await ensurePrincipal(req);
+      const managing = await getManagedMissions(req);
+      const layerEditable = await missionNamesWith(req, "mission.layer.edit");
+      res.send({
+        status: "success",
+        role: policy.accountRole(principal.bindings || []),
+        superadmin: policy.isSuperAdmin(principal),
+        capabilities: policy.capabilitiesOf(principal),
+        // null means all missions
+        missions_managing: managing,
+        missions_layer_editing: layerEditable,
+      });
+    } catch (err) {
+      logger("error", "Failed to get user permissions.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to get user permissions." });
+    }
+  }
+);
+
+if (fullAccess)
+  router.get("/versions", checkQueryMissionPermission, function (req, res, next) {
+    Config.findAll({
+      where: {
+        mission: req.query.mission,
+      },
+      attributes: ["mission", "version", "createdAt"],
+      order: [["id", "ASC"]],
+    })
+      .then((missions) => {
+        res.send({ status: "success", versions: missions });
+        return null;
+      })
+      .catch((err) => {
+        logger("error", "Failed to find versions.", req.originalUrl, req, err);
+        res.send({ status: "failure", message: "Failed to find versions." });
+        return null;
+      });
+    return null;
+  });
+
+function relativizePaths(config, mission) {
+  let relConfig = JSON.parse(JSON.stringify(config));
+
+  setAllKeys(relConfig, "../" + mission + "/");
+
+  function setAllKeys(data, prepend) {
+    if (typeof data === "object" && data !== null) {
+      for (let k in data) {
+        if (typeof data[k] === "object" && data[k] !== null)
+          setAllKeys(data[k], prepend);
+        else if (Array.isArray(data[k])) setAllKeys(data[k], prepend);
+        else if (k == "url" || k == "demtileurl" || k == "legend")
+          if (data[k].indexOf("://") == -1) data[k] = prepend + "" + data[k];
+      }
+    } else if (Array.isArray(data)) {
+      for (let i = 0; i < data.length; i++) {
+        if (typeof data[i] === "object" && data[i] !== null)
+          setAllKeys(data[i], prepend);
+        else if (Array.isArray(data[i])) setAllKeys(data[i], prepend);
+      }
+    }
+  }
+
+  return relConfig;
+}
+
+//existingMission
+//cloneMission
+//hasPaths
+if (fullAccess)
+  router.post("/clone", authorize("mission.create"), authorize("mission.view", resolvers.mission((req) => req.body.existingMission)), rejectReservedMissionName("cloneMission"), function (req, res, next) {
+    if (typeof req.body.cloneMission !== "string" || req.body.cloneMission.length === 0) {
+      res.send({ status: "failure", message: "Missing cloneMission." });
+      return;
+    }
+    get(req, res, next, function (r) {
+      if (r.status == "success") {
+        r.config.msv.mission = req.body.cloneMission;
+        // Set missionFolderName to match the new mission name
+        r.config.msv.missionFolderName = req.body.cloneMission;
+        req.body.config =
+          req.body.hasPaths == "true"
+            ? relativizePaths(r.config, req.body.existingMission)
+            : r.config;
+        req.body.mission = req.body.cloneMission;
+        execFile(
+          "python",
+          [
+            "private/api/create_mission.py",
+            encodeURIComponent(req.body.cloneMission),
+          ],
+          function (error, stdout, stderr) {
+            stdout = JSON.parse(stdout);
+            if (stdout.status == "success") {
+              add(req, res, next, function (r2) {
+                if (r2.status == "success") {
+                  res.send(r2);
+                } else {
+                  res.send(r2);
+                }
+              });
+            } else res.send(stdout);
+          }
+        );
+      } else {
+        res.send(r);
+      }
+    }, { full: true, mission: req.body.existingMission });
+  });
+
+// pg_advisory_xact_lock takes two 32 bit keys. Derive them from the target
+// name so concurrent renames into the same name serialize on the same lock.
+const renameLockKeys = (name) => {
+  const digest = crypto
+    .createHash("sha1")
+    .update("mission_rename:" + name)
+    .digest();
+  return [digest.readInt32BE(0), digest.readInt32BE(4)];
+};
+
+if (fullAccess)
+  router.post("/rename", rejectReservedMissionName("mission"), authorize("mission.manage", missionFromReq), clearViewableFoldersCacheAfter, function (req, res, next) {
+    const missionName = req.body.mission;
+    const newName = req.body.newName;
+
+    const nameRegex = /^[A-Za-z0-9_ -]+$/;
+    if (
+      !missionName ||
+      !nameRegex.test(missionName) ||
+      !newName ||
+      !nameRegex.test(newName)
+    ) {
+      logger("error", "Invalid mission name in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+    // Rename must be at least as strict as /add: a name you cannot create
+    // should not be reachable by renaming into it.
+    if (
+      newName !== newName.trim() ||
+      newName.trim().length === 0 ||
+      !isNaN(newName[0])
+    ) {
+      logger("error", "Bad new mission name in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Bad mission name." });
+      return;
+    }
+    if (isReservedMissionName(newName)) {
+      res.send({ status: "failure", message: reservedMissionNameMessage() });
+      return;
+    }
+    if (missionName === newName) {
+      res.send({
+        status: "failure",
+        message: "New mission name must differ from the current name.",
+      });
+      return;
+    }
+    const missionsBase = path.resolve("./Missions");
+    const resolvedSrc = path.resolve("./Missions/" + missionName);
+    const resolvedDest = path.resolve("./Missions/" + newName);
+    if (
+      (!resolvedSrc.startsWith(missionsBase + path.sep) &&
+        resolvedSrc !== missionsBase) ||
+      (!resolvedDest.startsWith(missionsBase + path.sep) &&
+        resolvedDest !== missionsBase)
+    ) {
+      logger("error", "Path traversal attempt in rename request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+
+    Config.findAll({ where: { mission: newName } })
+      .then((existing) => {
+        if ((existing && existing.length > 0) || fs.existsSync(resolvedDest)) {
+          res.send({
+            status: "failure",
+            message: "A mission named " + newName + " already exists.",
+          });
+          return null;
+        }
+        return Config.findAll({ where: { mission: missionName } }).then(
+          (rows) => {
+            if (!rows || rows.length === 0) {
+              res.send({
+                status: "failure",
+                message: "Mission " + missionName + " not found.",
+              });
+              return null;
+            }
+
+            // The folder name is intentionally separable from the mission name.
+            // Only follow the rename when the mission currently points at its
+            // own folder; if it points elsewhere, leave the folder alone.
+            const latest = rows.reduce((a, b) =>
+              (b.version || 0) > (a.version || 0) ? b : a
+            );
+            const latestFolder =
+              latest.config && latest.config.msv
+                ? latest.config.msv.missionFolderName
+                : undefined;
+            // The folder can only follow when it currently matches the mission
+            // name. Within that, the caller may opt out by sending followFolder
+            // false. Omitting the field keeps the previous behaviour.
+            const canFollowFolder =
+              !latestFolder ||
+              latestFolder === "" ||
+              latestFolder === missionName;
+            const followFolder =
+              canFollowFolder && req.body.followFolder !== false;
+
+            const lockKeys = renameLockKeys(newName);
+            return sequelize
+              .transaction(async (t) => {
+                // The check above is outside the transaction, so two callers
+                // can both see the name as free. A row lock cannot close that
+                // window because there are no rows to lock when the name is
+                // absent. Take a transaction scoped advisory lock on the target
+                // name instead, then re-check inside the transaction.
+                await sequelize.query(
+                  "SELECT pg_advisory_xact_lock($1, $2)",
+                  { bind: lockKeys, transaction: t }
+                );
+                const taken = await Config.findAll({
+                  where: { mission: newName },
+                  transaction: t,
+                });
+                if (taken && taken.length > 0) {
+                  const collision = new Error("mission name taken");
+                  collision.missionNameTaken = true;
+                  throw collision;
+                }
+                const configUpdates = rows.map((row) => {
+                  // Deep copy so Sequelize detects the JSON change
+                  const cfg = JSON.parse(JSON.stringify(row.config || {}));
+                  if (cfg.msv) {
+                    cfg.msv.mission = newName;
+                    if (followFolder) {
+                      cfg.msv.missionFolderName = newName;
+                    }
+                  }
+                  return row.update(
+                    { mission: newName, config: cfg },
+                    { transaction: t }
+                  );
+                });
+
+                // The new-account default viewing list is stored as mission names
+                const renameIn = (list) =>
+                  list.map((m) => (m === missionName ? newName : m));
+                const defaultsUpdate = UserDefaults.findOne({
+                  where: { id: 1 },
+                  transaction: t,
+                }).then((d) => {
+                  if (
+                    d &&
+                    Array.isArray(d.missions_viewing) &&
+                    d.missions_viewing.includes(missionName)
+                  )
+                    return d.update(
+                      { missions_viewing: renameIn(d.missions_viewing) },
+                      { transaction: t }
+                    );
+                  return null;
+                });
+
+                // Draw files are scoped by mission name too.
+                const userfilesUpdate = Userfiles.update(
+                  { mission: newName },
+                  { where: { mission: missionName }, transaction: t }
+                );
+
+                return Promise.all([
+                  ...configUpdates,
+                  defaultsUpdate,
+                  userfilesUpdate,
+                ]);
+              })
+              .then(() => missionIdentity.renameMission(missionName, newName))
+              .then(() => {
+                logger(
+                  "info",
+                  "Renamed Mission: " + missionName + " to " + newName,
+                  req.originalUrl,
+                  req
+                );
+
+                // Other missions may embed ../OldName/ relative paths (written
+                // by clone/relativizePaths). Those silently break, so report them.
+                return Config.findAll().then((allRows) => {
+                  const needle = "../" + missionName + "/";
+                  const warnings = [];
+                  (allRows || []).forEach((row) => {
+                    if (row.mission === newName) {
+                      return;
+                    }
+                    try {
+                      if (JSON.stringify(row.config || {}).indexOf(needle) !== -1) {
+                        if (warnings.indexOf(row.mission) === -1) {
+                          warnings.push(row.mission);
+                        }
+                      }
+                    } catch (e) {
+                      // ignore unparsable configs
+                    }
+                  });
+
+                  const respond = (message) => {
+                    const payload = { status: "success", message: message };
+                    if (warnings.length > 0) {
+                      payload.warnings = [
+                        "These missions contain relative paths to " +
+                          missionName +
+                          " that will need updating: " +
+                          warnings.join(", "),
+                      ];
+                    }
+                    res.send(payload);
+                  };
+
+                  const srcDir = "./Missions/" + missionName;
+                  const destDir = "./Missions/" + newName;
+                  if (followFolder && fs.existsSync(srcDir)) {
+                    fs.rename(srcDir, destDir, (err) => {
+                      if (err) {
+                        respond(
+                          "Successfully renamed mission to " +
+                            newName +
+                            " but couldn't rename its Missions directory."
+                        );
+                      } else {
+                        respond("Successfully renamed mission to " + newName);
+                      }
+                    });
+                  } else {
+                    respond("Successfully renamed mission to " + newName);
+                  }
+                  return null;
+                });
+              });
+          }
+        );
+      })
+      .catch((err) => {
+        if (err && err.missionNameTaken) {
+          res.send({
+            status: "failure",
+            message: "A mission named " + newName + " already exists.",
+          });
+          return null;
+        }
+        logger(
+          "error",
+          "Failed to rename mission: " + missionName,
+          req.originalUrl,
+          req,
+          err
+        );
+        res.send({
+          status: "failure",
+          message: "Failed to rename mission " + missionName + ".",
+        });
+        return null;
+      });
+    return null;
+  });
+
+if (fullAccess)
+  router.post("/destroy", rejectReservedMissionName("mission"), authorize("mission.manage", missionFromReq), clearViewableFoldersCacheAfter, function (req, res, next) {
+    const missionName = req.body.mission;
+    if (!missionName || !/^[A-Za-z0-9_ -]+$/.test(missionName)) {
+      logger("error", "Invalid mission name in destroy request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+    const missionsBase = path.resolve("./Missions");
+    const resolvedDir = path.resolve("./Missions/" + missionName);
+    if (!resolvedDir.startsWith(missionsBase + path.sep) && resolvedDir !== missionsBase) {
+      logger("error", "Path traversal attempt in destroy request.", req.originalUrl, req);
+      res.send({ status: "failure", message: "Invalid mission name." });
+      return;
+    }
+
+    // The Missions folder is named after the stored mission, not the request
+    let folderName = null;
+    Config.findOne({ where: { mission: missionName }, attributes: ["mission"] })
+      .then((row) => {
+        folderName = row ? row.mission : null;
+      })
+      .then(() => sequelize.transaction((t) =>
+        Promise.all([
+          Config.destroy({ where: { mission: missionName }, transaction: t }),
+          Userfiles.update(
+            { mission: null },
+            { where: { mission: missionName }, transaction: t }
+          ),
+          UserDefaults.findOne({ where: { id: 1 }, transaction: t }).then((d) =>
+            d &&
+            Array.isArray(d.missions_viewing) &&
+            d.missions_viewing.includes(missionName)
+              ? d.update(
+                  { missions_viewing: d.missions_viewing.filter((m) => m !== missionName) },
+                  { transaction: t }
+                )
+              : null
+          ),
+        ])
+      ))
+      .then(() => missionIdentity.removeMission(missionName))
+      .then((mission) => {
+        logger(
+          "info",
+          "Deleted Mission: " + missionName,
+          req.originalUrl,
+          req
+        );
+
+        const missionsRoot = path.resolve("./Missions");
+        const entries =
+          folderName && fs.existsSync(missionsRoot) ? fs.readdirSync(missionsRoot) : [];
+        const index = entries.indexOf(folderName);
+        const dir = index >= 0 ? path.resolve(missionsRoot, entries[index]) : null;
+        let deletedDir = dir ? path.resolve(missionsRoot, `${entries[index]}_deleted_`) : null;
+        if (deletedDir && fs.existsSync(deletedDir))
+          deletedDir = path.resolve(missionsRoot, `${entries[index]}_${Date.now()}_deleted_`);
+        const inMissions = (d) => d && d.startsWith(missionsRoot + path.sep) && path.dirname(d) === missionsRoot;
+        if (inMissions(dir) && inMissions(deletedDir) && fs.existsSync(dir)) {
+          fs.rename(dir, deletedDir, (err) => {
+            if (err)
+              res.send({
+                status: "success",
+                message:
+                  "Successfully Deleted Mission: " +
+                  missionName +
+                  " but couldn't rename its Missions directory.",
+              });
+            else
+              res.send({
+                status: "success",
+                message: "Successfully Deleted Mission: " + missionName,
+              });
+          });
+        } else {
+          res.send({
+            status: "success",
+            message: "Successfully Deleted Mission: " + missionName,
+          });
+        }
+      })
+      .catch((err) => {
+        logger(
+          "error",
+          "Failed to delete mission: " + missionName,
+          req.originalUrl,
+          req,
+          err
+        );
+        res.send({
+          status: "failure",
+          message: "Failed to delete mission " + missionName + ".",
+        });
+        return null;
+      });
+    return null;
+  });
+
+if (fullAccess)
+  router.post("/validate", authorize.inHandler("site.view", "validates a config body without saving"), function (req, res, next) {
+    let configJSON;
+    if (typeof req.body.config === "string") {
+      try {
+        configJSON = JSON.parse(req.body.config);
+      } catch (err) {
+        res.send({
+          status: "failure",
+          message: "Stringified configuration object is not JSON.",
+        });
+      }
+    } else configJSON = req.body.config;
+
+    const validation = validate(configJSON);
+    if (validation.valid) {
+      res.send({
+        status: "success",
+        message: "Configuration object is valid.",
+      });
+    } else {
+      res.send({
+        status: "failure",
+        message: "Configuration object is invalid.",
+        errors: validation,
+      });
+    }
+  });
+
+function openWebSocket(body, response, info, forceClientUpdate) {
+  if (
+    !process.env.hasOwnProperty("ENABLE_MMGIS_WEBSOCKETS") ||
+    process.env.ENABLE_MMGIS_WEBSOCKETS != "true"
+  ) {
+    return;
+  }
+
+  const data = {
+    info,
+    body,
+    forceClientUpdate,
+  };
+  websocket.websocket.broadcast(JSON.stringify(data));
+}
+
+// === Quick API Functions ===
+function addLayer(req, res, next, cb, forceConfig, caller = "addLayer") {
+  const exampleBody = {
+    mission: "{mission_name}",
+    layer: {
+      name: "{new_layer_name}",
+      type: "header || vector || vectortile || query || model || tile || data || image",
+      "more...": "...",
+    },
+    "placement?": {
+      "path?":
+        "{path.to.header}, path to header in 'layers' to place new layer, a simple path ('sublayers' are added), default no group",
+      "index?":
+        "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
+    },
+    "forceClientUpdate?": "{true}; default false",
+  };
+
+  if (req.body.mission == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'mission' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+  if (req.body.layer == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'layer' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+
+  get(
+    {
+      query: {
+        mission: req.body.mission,
+      },
+    },
+    null,
+    null,
+    (config) => {
+      config = forceConfig || config;
+      if (config.status === "failure") {
+        res.send(config);
+      } else {
+        try {
+          let placementPath = req.body.placement?.path;
+          let placementIndex = req.body.placement?.index;
+
+          if (placementPath && typeof placementPath === "string") {
+            placementPath = placementPath
+              .replace(/\./g, ".sublayers.")
+              .split(".")
+              .concat("sublayers")
+              .join(".");
+
+            // Headers saved without a 'sublayers' array (#442) can still take
+            // layers. A plugin type extending header counts, as in validate.js.
+            const header = Utils.getIn(
+              config.layers,
+              placementPath.replace(/\.sublayers$/, ""),
+              null,
+              true
+            );
+            if (
+              header != null &&
+              header.sublayers == null &&
+              validate.defaultsTypeOf(header.type) === "header"
+            )
+              header.sublayers = [];
+
+            const level = Utils.getIn(config.layers, placementPath, null, true);
+            if (level == null) {
+              if (cb)
+                cb({
+                  status: "failure",
+                  message: `Path specified in 'placement.path' not found in 'layers': ${placementPath}.`,
+                });
+              else
+                res.send({
+                  status: "failure",
+                  message: `Path specified in 'placement.path' not found in 'layers': ${placementPath}.`,
+                });
+              return;
+            }
+            if (placementIndex == null) placementIndex = level.length;
+            placementIndex = Math.max(
+              0,
+              Math.min(placementIndex, level.length)
+            );
+
+            placementPath += ".";
+          } else {
+            placementPath = "";
+            if (placementIndex == null) placementIndex = config.layers.length;
+            placementIndex = Math.max(
+              0,
+              Math.min(placementIndex, config.layers.length)
+            );
+          }
+
+          let didSet = false;
+
+          // Input can be object or array
+          if (Array.isArray(req.body.layer)) {
+            for (let i in req.body.layer) {
+              // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
+              // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
+              Utils.traverseLayers([req.body.layer[i]], (layer) => {
+                if (layer.uuid != null) {
+                  layer.proposed_uuid = layer.uuid;
+                }
+              });
+
+              didSet = Utils.setIn(
+                config.layers,
+                `${placementPath}${placementIndex}`,
+                req.body.layer[i],
+                true,
+                true
+              );
+
+              placementIndex += 1;
+            }
+          } else {
+            // This adds the proposed_uuid key to all of the new layers/sublayers to be added that have
+            // user defined UUIDs. We remove the proposed_uuid key after using it to check for unique UUIDs.
+            Utils.traverseLayers([req.body.layer], (layer) => {
+              if (layer.uuid != null) {
+                layer.proposed_uuid = layer.uuid;
+              }
+            });
+
+            didSet = Utils.setIn(
+              config.layers,
+              `${placementPath}${placementIndex}`,
+              req.body.layer,
+              true,
+              true
+            );
+          }
+
+          if (didSet) {
+            upsert(
+              {
+                body: {
+                  mission: req.body.mission,
+                  config: config,
+                  forceClientUpdate: req.body.forceClientUpdate,
+                },
+              },
+              null,
+              null,
+              (response) => {
+                if (response.status === "success") {
+                  if (cb) {
+                    cb({
+                      status: "success",
+                      message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
+                      mission: response.mission,
+                      version: response.version,
+                      newlyAddedUUIDs: response.newlyAddedUUIDs,
+                    });
+                  } else {
+                    res.send({
+                      status: "success",
+                      message: `Added layer to the ${response.mission} mission. Configuration versioned ${response.version}.`,
+                      mission: response.mission,
+                      version: response.version,
+                      newlyAddedUUIDs: response.newlyAddedUUIDs,
+                    });
+                  }
+                } else {
+                  res.send(response);
+                }
+              },
+              {
+                type: caller,
+                layerName: Array.isArray(req.body.layer)
+                  ? req.body.layer.map((i) => i.name)
+                  : req.body.layer.name,
+              }
+            );
+          } else if (cb)
+            cb({
+              status: "failure",
+              message: `Failed to add layer. setIn() operation failed.`,
+            });
+          else
+            res.send({
+              status: "failure",
+              message: `Failed to add layer. setIn() operation failed.`,
+            });
+        } catch (err) {
+          logger("error", "Failed to add layer.", req.originalUrl, req, err);
+          if (cb)
+            cb({
+              status: "failure",
+              message: `Failed to add layer. Uncaught reason.`,
+            });
+          else
+            res.send({
+              status: "failure",
+              message: `Failed to add layer. Uncaught reason.`,
+            });
+        }
+      }
+    }
+  );
+}
+if (fullAccess)
+  router.post("/addLayer", checkMissionPermission, function (req, res, next) {
+    addLayer(req, res, next);
+  });
+
+if (fullAccess)
+  /**
+   * /updateLayer
+   * Finds the existing layer, merges new layer items, deletes and readds with addLayer.
+   */
+  router.post(
+    "/updateLayer",
+    authorize(
+      "mission.layer.edit",
+      resolvers.layer("body.mission", "body.layerUUID")
+    ),
+    requireConfigEditToMoveLayer,
+    function (req, res, next) {
+      const exampleBody = {
+        mission: "{mission_name}",
+        layerUUID: "{existing_layer_uuid}",
+        layer: {
+          "...": "...",
+        },
+        "placement?": {
+          "path?":
+            "{path.to.header}, path to header in 'layers' to place new layer, a simple path ('sublayers' are added), default no group",
+          "index?":
+            "{0}, index in 'layers' to place new layer out of range placement indices are best fit; default end",
+        },
+        "forceClientUpdate?": "{true}; default false",
+      };
+
+      if (req.body.mission == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'mission' is unset.`,
+          example: exampleBody,
+        });
+        return;
+      }
+      if (req.body.layerUUID == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'layerUUID' is unset. (a layer.uuid is not sufficient)`,
+          example: exampleBody,
+        });
+        return;
+      }
+      if (req.body.layer == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'layer' is unset.`,
+          example: exampleBody,
+        });
+        return;
+      }
+
+      get(
+        {
+          query: {
+            mission: req.body.mission,
+          },
+        },
+        null,
+        null,
+        (config) => {
+          if (config.status === "failure") {
+            res.send(config);
+          } else {
+            try {
+              // Fill out layer and placement before addLayer
+              let existingLayer = null;
+              let parentLayer = null;
+              let placementPath = req.body.placement?.path;
+              let placementIndex = req.body.placement?.index;
+
+              Utils.traverseLayers(config.layers, (layer) => {
+                if (
+                  Array.isArray(layer.sublayers) &&
+                  layer.sublayers.some((s) => s && s.uuid === req.body.layerUUID)
+                )
+                  parentLayer = layer;
+              });
+              Utils.traverseLayers(config.layers, (layer, path, index) => {
+                if (layer.uuid === req.body.layerUUID) {
+                  existingLayer = JSON.parse(JSON.stringify(layer));
+                  if (placementPath == null) placementPath = path;
+                  if (placementIndex == null) placementIndex = index;
+                  return "remove";
+                }
+              });
+
+              if (existingLayer == null) {
+                res.send({
+                  status: "failure",
+                  message: `Layer ${req.body.layerUUID} not found. Cannot update.`,
+                });
+                return;
+              }
+
+              // Re-adding goes by header names; with duplicate names that
+              // path can resolve to a different header than the original
+              if (
+                req.body.placement == null &&
+                typeof placementPath === "string" &&
+                placementPath !== ""
+              ) {
+                const level = Utils.getIn(
+                  config.layers,
+                  placementPath
+                    .replace(/\./g, ".sublayers.")
+                    .split(".")
+                    .concat("sublayers")
+                    .join("."),
+                  null,
+                  true
+                );
+                if (parentLayer == null || level !== parentLayer.sublayers) {
+                  res.send({
+                    status: "failure",
+                    message: `Layer ${req.body.layerUUID} is under a header whose name path '${placementPath}' is not unique. Rename the header so its path is unique, then update.`,
+                  });
+                  return;
+                }
+              }
+
+              // Merge existing and new
+              let newLayer = deepmerge(
+                existingLayer,
+                JSON.parse(JSON.stringify(req.body.layer))
+              );
+              let body = {
+                mission: req.body.mission,
+                layer: newLayer,
+                placement: req.body.placement || {
+                  path: placementPath,
+                  index: placementIndex,
+                },
+                forceClientUpdate: req.body.forceClientUpdate,
+              };
+
+              addLayer(
+                {
+                  body: body,
+                },
+                res,
+                next,
+                (resp) => {
+                  if (resp.status === "success") {
+                    res.send({
+                      status: "success",
+                      message: `Updated layer '${req.body.layerUUID}' in the ${resp.mission} mission. Configuration versioned ${resp.version}.`,
+                    });
+                  } else {
+                    resp.message = `Update layer failed with: ${resp.message}`;
+                    res.send(resp);
+                  }
+                },
+                config,
+                "updateLayer"
+              );
+              // Remove Existing
+            } catch (err) {
+              logger(
+                "error",
+                `Failed to update layer: ${req.body.layerUUID}.`,
+                req.originalUrl,
+                req,
+                err
+              );
+              res.send({
+                status: "failure",
+                message: `Failed to update layer: ${req.body.layerUUID}. Uncaught reason.`,
+              });
+            }
+          }
+        }
+      );
+    }
+  );
+
+function removeLayer(req, res, next, cb) {
+  const exampleBody = {
+    mission: "{mission_name}",
+    layerUUID: "{existing_layer_uuid}",
+    "forceClientUpdate?": "{true}; default false",
+  };
+
+  if (req.body.mission == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'mission' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+  if (req.body.layerUUID == null) {
+    res.send({
+      status: "failure",
+      message: `Required parameter 'layerUUID' is unset.`,
+      example: exampleBody,
+    });
+    return;
+  }
+
+  get(
+    {
+      query: {
+        mission: req.body.mission,
+      },
+    },
+    null,
+    null,
+    (config) => {
+      if (config.status === "failure") {
+        res.send(config);
+      } else {
+        try {
+          let layerUUIDs = [];
+
+          // Input can be object or array
+          if (!Array.isArray(req.body.layerUUID)) {
+            layerUUIDs.push(req.body.layerUUID);
+          } else {
+            layerUUIDs = [...req.body.layerUUID];
+          }
+
+          let didRemove = false;
+          const removedUUIDs = Utils.traverseLayers(
+            config.layers,
+            (layer, path, index) => {
+              if (layerUUIDs.includes(layer.uuid)) {
+                didRemove = true;
+                return "remove";
+              }
+            }
+          );
+
+          const unableToRemoveUUIDs = layerUUIDs.filter(
+            (i) => !removedUUIDs.map((x) => x.uuid).includes(i)
+          );
+          if (didRemove) {
+            upsert(
+              {
+                body: {
+                  mission: req.body.mission,
+                  config: config,
+                  forceClientUpdate: req.body.forceClientUpdate,
+                },
+              },
+              res,
+              next,
+              (resp) => {
+                if (resp.status === "success") {
+                  res.send({
+                    status: "success",
+                    message: `Successfully removed layer${
+                      removedUUIDs.length >= 1 ? "s" : ""
+                    }. Configuration versioned ${resp.version}.`,
+                    removedUUIDs: removedUUIDs,
+                    unableToRemoveUUIDs: unableToRemoveUUIDs,
+                  });
+                } else {
+                  res.send({
+                    status: "failure",
+                    message: `Failed to remove layer${
+                      layerUUIDs.length >= 1 ? "s" : ""
+                    }: ${resp.message}.`,
+                    unableToRemoveUUIDs: layerUUIDs,
+                  });
+                }
+              },
+              {
+                type: "removeLayer",
+                layerName: layerUUIDs.filter((i) =>
+                  removedUUIDs.map((x) => x.uuid).includes(i)
+                ),
+              }
+            );
+          } else {
+            res.send({
+              status: "failure",
+              message: `Failed to remove layer${
+                layerUUIDs.length >= 1 ? "s" : ""
+              }. Layer${layerUUIDs.length >= 1 ? "s" : ""} not found.`,
+              unableToRemoveUUIDs: layerUUIDs,
+            });
+          }
+        } catch (err) {}
+      }
+    }
+  );
+}
+if (fullAccess)
+  /** 
+ * /removeLayer
+ * body: {
+    "mission": "",
+    "layerUUID": ""
+    "forceClientUpdate?": true
+  }
+ */
+  router.post(
+    "/removeLayer",
+    authorize(
+      "mission.layer.edit",
+      resolvers.layers("body.mission", "body.layerUUID")
+    ),
+    function (req, res, next) {
+      removeLayer(req, res, next);
+    }
+  );
+
+if (fullAccess)
+  /** 
+ * /updateInitialView
+ * body: {
+    mission: "{mission_name}",
+    "latitude?": 0,
+    "longitude?": 0,
+    "zoom?": 0
+  }
+ */
+  router.post(
+    "/updateInitialView",
+    checkMissionPermission,
+    function (req, res, next) {
+      const exampleBody = {
+        mission: "{mission_name}",
+        "latitude?": 0,
+        "longitude?": 0,
+        "zoom?": 5,
+      };
+
+      if (req.body.mission == null) {
+        res.send({
+          status: "failure",
+          message: `Required parameter 'mission' is unset.`,
+          example: exampleBody,
+        });
+        return;
+      }
+
+      get(
+        {
+          query: {
+            mission: req.body.mission,
+          },
+        },
+        null,
+        null,
+        (config) => {
+          if (config.status === "failure") {
+            res.send(config);
+          } else {
+            try {
+              let lat =
+                req.body.latitude != null && !isNaN(req.body.latitude)
+                  ? `${req.body.latitude}`
+                  : config.msv.view[0];
+              let lng =
+                req.body.longitude != null && !isNaN(req.body.longitude)
+                  ? `${req.body.longitude}`
+                  : config.msv.view[1];
+              let zoom =
+                req.body.zoom != null && !isNaN(req.body.zoom)
+                  ? `${parseInt(req.body.zoom)}`
+                  : config.msv.view[2];
+
+              const existingView = config.msv.view;
+              const newView = [lat, lng, zoom];
+
+              if (JSON.stringify(newView) !== JSON.stringify(existingView)) {
+                config.msv.view = [lat, lng, zoom];
+
+                upsert(
+                  {
+                    body: {
+                      mission: req.body.mission,
+                      config: config,
+                    },
+                  },
+                  res,
+                  next,
+                  (resp) => {
+                    if (resp.status === "success") {
+                      res.send({
+                        status: "success",
+                        message: `Successfully updated initial view of the '${req.body.mission}' mission.`,
+                      });
+                    } else {
+                      res.send({
+                        status: "failure",
+                        message: `Failed to update the initial view of the '${req.body.mission}' mission: ${resp.message}`,
+                      });
+                    }
+                  }
+                );
+              } else {
+                res.send({
+                  status: "success",
+                  message: `The initial view of the '${req.body.mission}' mission needs no changes.`,
+                });
+              }
+            } catch (err) {
+              res.send({
+                status: "failure",
+                message: `Failed to update the initial view of the '${req.body.mission}' mission. Uncaught reason.`,
+              });
+            }
+          }
+        }
+      );
+    }
+  );
+
+if (fullAccess) {
+  router.post("/updateGeneralOptions", authorize("options.manage"), function (req, res, next) {
+    let optionsJSON;
+    if (typeof req.body.options === "string") {
+      try {
+        optionsJSON = JSON.parse(req.body.options);
+      } catch (err) {
+        res.send({
+          status: "failure",
+          message: "Stringified general options object is not JSON.",
+        });
+      }
+    } else optionsJSON = req.body.options;
+
+    GeneralOptions.upsert({
+      id: 1,
+      options: optionsJSON,
+    })
+      .then((upserted) => {
+        logger(
+          "info",
+          "Successfully updated the general options.",
+          req.originalUrl,
+          req
+        );
+        res.send({
+          status: "success",
+        });
+      })
+      .catch((err) => {
+        res.send({
+          status: "failure",
+          message: `Failed to update the general options.`,
+        });
+      });
+  });
+}
+
+function getGeneralOptions(req, res, next, cb) {
+  GeneralOptions.findOne({
+    where: {
+      id: 1,
+    },
+  })
+    .then((resp) => {
+      if (cb)
+        cb({
+          status: "success",
+          options: resp.options,
+        });
+      else
+        res.send({
+          status: "success",
+          options: resp.options,
+        });
+      return null;
+    })
+    .catch((err) => {
+      if (cb)
+        cb({
+          status: "success",
+          options: {},
+        });
+      else
+        res.send({
+          status: "success",
+          options: {},
+        });
+      return null;
+    });
+  return null;
+}
+router.get("/getGeneralOptions", authorize("site.view"), function (req, res, next) {
+  getGeneralOptions(req, res, next);
+});
+
+// Reference Mission: Save current config back to blueprints template
+router.post("/reference-mission/save-to-base", checkMissionPermission, function (req, res, next) {
+  const mission = req.body.mission;
+  const variants = missionTemplates.REFERENCE_MISSION_VARIANTS;
+
+  // Look up the variant whose missionName matches
+  const variantEntry = Object.values(variants).find(
+    (v) => v.missionName === mission
+  );
+  if (!variantEntry) {
+    return res.send({
+      status: "failure",
+      message: "This endpoint is only available for Reference Mission variants.",
+    });
+  }
+
+  // Only allow in development mode
+  if (process.env.NODE_ENV !== "development") {
+    return res.send({
+      status: "failure",
+      message: "This endpoint is only available in development mode.",
+    });
+  }
+
+  const basePath = `./blueprints/Missions/${variantEntry.blueprintDir}/${variantEntry.configFile}`;
+
+  // Get current working config
+  Config.findOne({
+    where: {
+      mission: mission,
+    },
+    order: [["id", "DESC"]],
+  })
+    .then((missionConfig) => {
+      if (!missionConfig) {
+        return res.send({
+          status: "failure",
+          message: `${mission} mission not found.`,
+        });
+      }
+
+      const config = missionConfig.config;
+
+      // Write config to base template location
+      fs.writeFile(
+        basePath,
+        JSON.stringify(config, null, 2),
+        "utf8",
+        (err) => {
+          if (err) {
+            logger("error", `Failed to save ${mission} config to base template.`, req.originalUrl, req, err);
+            return res.send({
+              status: "failure",
+              message: "Failed to save config to base template.",
+            });
+          }
+
+          logger("info", `${mission} config saved to base template.`, req.originalUrl, req);
+          res.send({
+            status: "success",
+            message: `Config saved to ${basePath}`,
+          });
+        }
+      );
+    })
+    .catch((err) => {
+      logger("error", `Failed to retrieve ${mission} config.`, req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+        message: "Failed to retrieve config.",
+      });
+    });
+});
+
+module.exports = router;
+module.exports.checkMissionPermission = checkMissionPermission;
+module.exports.checkMissionFileViewingPermission =
+  checkMissionFileViewingPermission;
+module.exports.clearViewableFoldersCache = clearViewableFoldersCache;

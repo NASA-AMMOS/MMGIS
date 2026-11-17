@@ -16,7 +16,7 @@
 
 <div align="center">
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15237385.svg)](https://doi.org/10.5281/zenodo.15237385)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21779898.svg)](https://doi.org/10.5281/zenodo.21779898)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%2B-336791.svg)](https://www.postgresql.org/)
@@ -43,6 +43,7 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Plugins](#plugins)
+- [Minimum Specs](#minimum-specs)
 - [License](#license-apache-20)
 - [Contacts](#contacts)
 
@@ -178,6 +179,7 @@ Run: `docker-compose down`
 1. Setup the admin account:
    - In your browser, navigate to `https://{your-mmgis-domain}/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
+   - Enter the one-time setup code. While no SuperAdmin exists, the server prints it in its log (`docker logs <container>` for Docker) as `MMGIS has no SuperAdmin yet ... one-time setup code: XXXX-XXXX-XXXX-XXXX`. A restart prints a new code; set `SETUP_CODE` to choose it yourself.
 
 1. Now sign in with your Administrator credentials
 
@@ -192,21 +194,54 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 ## Plugins
 
-MMGIS supports a flexible plugin system for adding custom tools and backend functionality without modifying the core codebase.
+MMGIS uses a plugin-based architecture organized under `/plugins/` in a three-level hierarchy: `<container>/<type>/<PluginName>/`. Core plugins ship with MMGIS; external plugins can be installed from Git repositories or local paths without modifying the core codebase. Git repos are cloned into `plugins/<org>--<repo>/` (double-hyphen separator) to avoid name collisions across organizations.
 
-### Tool Plugins
+### Official Plugin Repository
 
-Place custom tools in directories matching `/src/essence/*Private-Tools*` or `/src/essence/*Plugin-Tools*`. These directories are automatically gitignored and loaded when you run `npm run build`.
+Community and mission-specific plugins are maintained in the official collection:
 
-### Component Plugins
+**[NASA-AMMOS/MMGIS-Plugins](https://github.com/NASA-AMMOS/MMGIS-Plugins)**
 
-Place miscellaneous custom UI behaviors and components in directories matching `/src/essence/*Private-Components*` or `/src/essence/*Plugin-Components*`. These directories are automatically gitignored and loaded when you run `npm run build`.
+Install the official plugins with:
 
-### Backend Plugins
+```bash
+npm run plugins -- install MMGIS-Plugins
+```
 
-Place custom backends in directories matching `/API/*Private-Backend*` or `/API/*Plugin-Backend*`. These directories are automatically gitignored and loaded when you run `npm start`.
+### Plugin Types
 
-For detailed plugin development instructions, see the [Contributing Guide](https://nasa-ammos.github.io/MMGIS/contributing/).
+| Type | Description |
+|------|-------------|
+| **tools** | Frontend sidebar tools (Draw, Measure, Legend, etc.) |
+| **backend** | Server-side Express route modules (Accounts, Config, Users, etc.) |
+| **components** | Lightweight UI widgets (OperationsClock, etc.) |
+
+### Plugin CLI
+
+Manage plugins via the built-in CLI:
+
+```bash
+npm run plugins -- list                    # List all plugins
+npm run plugins -- install <git-url|path>  # Install a plugin repo
+npm run plugins -- uninstall <repo-name>   # Uninstall a plugin repo
+npm run plugins -- enable <plugin-id>      # Enable a plugin
+npm run plugins -- disable <plugin-id>     # Disable a plugin
+npm run plugins -- create <type> <Name>    # Scaffold a new plugin
+npm run plugins -- validate                # Validate all manifests
+```
+
+See [`plugins/README.md`](plugins/README.md) for the full CLI reference, `plugin.json` manifest format, and development guide.
+
+<div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
+
+## Minimum Specs
+
+| Scenario | Instance Type | RAM | Notes |
+|---|---|---|---|
+| **Bare minimum** (MMGIS only, DB on RDS, no adjacent servers) | **t3.small** | **2 GB** | Slightly risky depending on usage. Set `NODE_OPTIONS=--max-old-space-size=1024` and add swap space. |
+| **Minimum viable** (MMGIS only, DB on RDS, no adjacent servers) | **t3.medium** | **4 GB** | Decent and workable. |
+| **Recommended production** (MMGIS only) | **t3.large** | **8 GB** | Comfortable headroom for large uploads, concurrent users, local database, and growth. |
+| **With adjacent servers** (STAC, TiTiler, TiPG, etc.) | **t3.xlarge+** | **16+ GB** | The docker-compose sample allocates 8-12GB just for TiTiler services alone. |
 
 <div align="center"><img src="/docs/assets/images/divider.png" alt="---" width="100%" /></div>
 

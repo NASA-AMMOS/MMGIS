@@ -21,6 +21,47 @@
       ]
     },
     {
+      "name": "Theming",
+      "components": [
+        {
+          "field": "look.theme",
+          "name": "Color Theme",
+          "description": "Select a color theme for the interface. Each preset applies a full set of coordinated colors.",
+          "type": "dropdown",
+          "width": 6,
+          "options": [
+            "Dark Default",
+            "Dark Blue",
+            "Dark Warm",
+            "Dark Mars",
+            "Dark Midnight",
+            "Dark Terra",
+            "Dark Nebula",
+            "Dark Lunar",
+            "Dark Supernova",
+            "Dark Heliosphere",
+            "Dark Monokai",
+            { "value": "Light Default", "label": "Light Default (experimental)" },
+            { "value": "Light Cool", "label": "Light Cool (experimental)" },
+            { "value": "Light Slate", "label": "Light Slate (experimental)" },
+            { "value": "Light Warm", "label": "Light Warm (experimental)" },
+            { "value": "Light Botanical", "label": "Light Botanical (experimental)" },
+            { "value": "Light Solarized", "label": "Light Solarized (experimental)" },
+            "High Contrast"
+          ],
+          "default": "Dark Default"
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "type": "themepreview",
+          "width": 12
+        }
+      ]
+    },
+    {
       "name": "Map Logo",
       "components": [
         {
@@ -287,6 +328,14 @@
     {
       "components": [
         {
+          "field": "look.searchbar",
+          "name": "Search Bar",
+          "description": "Display the global feature search bar in the top bar. If null or unset, the search bar is shown by default.",
+          "type": "checkbox",
+          "width": 3,
+          "defaultChecked": true
+        },
+        {
           "field": "look.zoomcontrol",
           "name": "Map Zoom Control",
           "description": "",
@@ -317,83 +366,6 @@
           "type": "checkbox",
           "width": 3,
           "defaultChecked": true
-        }
-      ]
-    },
-
-    {
-      "name": "Colors",
-      "components": [
-        {
-          "field": "look.primarycolor",
-          "name": "Primary Color",
-          "description": "Colors various buttons, components, panels, feature hover text.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.secondarycolor",
-          "name": "Secondary Color",
-          "description": "Colors some panels and UI borders and is used as the background of the Viewer Panel.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.tertiarycolor",
-          "name": "Tertiary Color",
-          "description": "Colors many icons and text.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.accentcolor",
-          "name": "Accent Color",
-          "description": "Colors things like the active tool indicator.",
-          "type": "colorpicker",
-          "width": 3
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "look.bodycolor",
-          "name": "Body Color",
-          "description": "Colors the overall body but might have little impact.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.topbarcolor",
-          "name": "TopBar Color",
-          "description": "Colors the top horizontal bar.",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.toolbarcolor",
-          "name": "ToolBar Color",
-          "description": "Colors the left vertical toolbar",
-          "type": "colorpicker",
-          "width": 3
-        },
-        {
-          "field": "look.mapcolor",
-          "name": "Map Color",
-          "description": "Colors the background of the map. The color is seen in regions of the 2D map where there is no data.",
-          "type": "colorpicker",
-          "width": 3
-        }
-      ]
-    },
-    {
-      "components": [
-        {
-          "field": "look.hightlightcolor",
-          "name": "Highlight Color",
-          "description": "The color with which to highlight selected features in the map.",
-          "type": "colorpicker",
-          "width": 3
         }
       ]
     },
@@ -461,6 +433,50 @@
           "description": "Required in order to enable button.",
           "type": "text",
           "width": 10
+        },
+        {
+          "field": "look.aboutModalContent",
+          "name": "About Modal Content",
+          "description": "Markdown content displayed in the About modal. Supports full GitHub-flavored Markdown.",
+          "type": "markdown",
+          "width": 12
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.showAttributionsOnMap",
+          "name": "Show Attributions on Map",
+          "description": "Always show a collapsible dropdown of the visible layers' attributions on the map (top-right, next to the home button). Attributions are always listed in the About modal regardless of this setting.",
+          "type": "checkbox",
+          "width": 4,
+          "defaultChecked": false
+        }
+      ]
+    },
+    {
+      "name": "Default Tool",
+      "components": [
+        {
+          "field": "look.defaultToolEnabled",
+          "name": "Enabled",
+          "description": "",
+          "type": "switch",
+          "width": 4,
+          "defaultChecked": false
+        }
+      ]
+    },
+    {
+      "components": [
+        {
+          "field": "look.defaultTool",
+          "name": "Default Tool",
+          "description": "The tool that is opened by default when MMGIS loads.",
+          "type": "defaulttooldropdown",
+          "disableSwitch": "look.defaultToolEnabled",
+          "width": 4
         }
       ]
     }

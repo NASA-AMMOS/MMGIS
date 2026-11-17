@@ -1,0 +1,60 @@
+.wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 4px;
+}
+
+.root {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.control {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 20px;
+}
+
+.track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--color-a1);
+}
+
+.indicator {
+    position: absolute;
+    height: 100%;
+    border-radius: 2px;
+    background: var(--color-mmgis);
+}
+
+.thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-c);
+    border: 2px solid var(--color-mmgis);
+    cursor: pointer;
+    transition: box-shadow 0.12s;
+    outline: none;
+}
+
+.thumb:hover,
+.thumb:focus-visible {
+    box-shadow: 0 0 0 3px var(--color-accent-active);
+}
+
+.suffix {
+    width: 32px;
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--color-a5);
+    text-align: right;
+    white-space: nowrap;
+}

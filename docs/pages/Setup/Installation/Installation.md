@@ -62,6 +62,7 @@ This repo contains a `/docker-compose.sample.yml` file that defines a service fo
 - To run MMGIS in a container, you need to create a directory on the host machine and map this to a directory in the container.
   - On the host machine, create a `Missions` directory and copy the contents of `./Missions` to your directory.
   - Via the docker-compose.yml, map this directory to `/usr/src/app/Missions` in the container. For example, if the host directory is `./Missions`, the volume mapping would be `- ./Missions:/usr/src/app/Missions`
+- The MMGIS image runs as the unprivileged user `mmgis` with uid/gid `10001`, so the host `Missions` (and `ssl`) directories must be readable and writable by uid `10001`. To instead run as the existing host owner of your data, set `user: "<uid>:<gid>"` on the `mmgis` service using numeric ids (find them with `stat -c '%u:%g' ./Missions`). Names like `user: mmgis` are resolved against the container's `/etc/passwd`, not the host's. If that uid must also write inside the image (e.g. saving a mission back to its blueprint template, `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels` writable by that uid, or file logs in `API/logs`), also add `group_add: ["0"]`. Stdout logging works either way.
 - Note, the `/docker-compose.sample.yml` includes optional STAC and TiTiler services. If any of them are unwanted, they can be removed from the docker-compose-yml and their respective `.env` variable `WITH_{service}` can be set to false.
 
 ### Running
@@ -73,6 +74,7 @@ Run: `docker-compose up -d`
 1. Setup the admin account:
    - In your browser, navigate to `http://localhost:8888/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
+   - Enter the one-time setup code. While no SuperAdmin exists, the server prints it in its log (`docker logs <container>` for Docker) as `MMGIS has no SuperAdmin yet ... one-time setup code: XXXX-XXXX-XXXX-XXXX`. A restart prints a new code; set `SETUP_CODE` to choose it yourself.
 
 1. Now sign in with you Administrator credentials
 
@@ -121,6 +123,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
       ```
       micromamba activate mmgis
       ```
+   1. If any tool, component, or backend plugin declares Python dependencies in its `config.json`, install them now (see the [Setup steps](#setup) below for the exact commands). This is only needed for plugin-declared deps — the core `python-environment.yml` packages are already installed by the `env create` step above.
    #### Legacy (without micromamba):
    - GDAL [3.4+](https://gdal.org/download.html) with Python bindings (Windows users may find [these](https://github.com/cgohlke/geospatial-wheels/releases) helpful)
    - Python [>=3.10 and <3.13](https://www.python.org/downloads/)
@@ -165,6 +168,18 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 
 1. Run `micromamba activate mmgis` or `python -m pip install -r python-requirements.txt` (if not using python environments)
 
+1. If any plugin declares Python dependencies, install them on top of the activated environment. `npm run build` (step 5 above) writes `plugin-python-requirements.txt` and `plugin-conda-deps.txt` at the repo root — install whichever side(s) are non-empty:
+
+   ```
+   # pip-side plugin deps
+   micromamba run -n mmgis pip install -r plugin-python-requirements.txt
+
+   # conda-side plugin deps (only if any plugin declares them)
+   micromamba install -n mmgis --file plugin-conda-deps.txt
+   ```
+
+   Plugin **npm** deps are installed automatically by `npm install` via a `postinstall` hook, so no separate command is needed for those. Re-run the two commands above after pulling new plugins or editing an existing plugin's Python deps. The Dockerfile already installs the pip-side plugin deps automatically, so this step only applies to non-Docker installs.
+
 1. If using adjacent-servers (titiler, stac, ...) make `.env` files from the samples within the `/adjacent-servers/{servers}/` directory.
 
 1. Run `npm run start:prod`
@@ -172,6 +187,7 @@ See the [configuration documentation](https://nasa-ammos.github.io/MMGIS/configu
 1. Setup the admin account:
    - In your browser, navigate to `http://localhost:8888/configure`
    - Sign up for an Administrator account (The Administrator account is always the first user in the database and you are only prompted to create an Administrator account if there are no other users)
+   - Enter the one-time setup code. While no SuperAdmin exists, the server prints it in its log (`docker logs <container>` for Docker) as `MMGIS has no SuperAdmin yet ... one-time setup code: XXXX-XXXX-XXXX-XXXX`. A restart prints a new code; set `SETUP_CODE` to choose it yourself.
 
 1. Now sign in with you Administrator credentials
 

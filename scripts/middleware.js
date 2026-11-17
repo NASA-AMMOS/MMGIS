@@ -6,7 +6,7 @@ const logger = require("../API/logger");
 const rootDir = `${__dirname}/..`;
 const rootDirMissions = `${rootDir}/Missions`;
 
-const dirStore = {};
+const dirStore = Object.create(null);
 const DIR_STORE_MAX_AGE =
   process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS == null ||
   isNaN(parseInt(process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS))
@@ -38,12 +38,17 @@ async function compositeImageUrls(urls) {
 
 async function onlyExistingFilepaths(paths) {
   const filePromises = [];
-  paths.forEach((path) => {
+  paths.forEach((filePath) => {
     filePromises.push(
       new Promise(async (resolve, reject) => {
         try {
-          await fs.promises.access(`${rootDirMissions}${path}`);
-          resolve(path);
+          const fullPath = path.resolve(`${rootDirMissions}${filePath}`);
+          if (!fullPath.replace(/\\/g, '/').startsWith(path.resolve(rootDirMissions).replace(/\\/g, '/') + '/')) {
+            resolve(false);
+            return;
+          }
+          await fs.promises.access(fullPath);
+          resolve(filePath);
         } catch (err) {
           resolve(false);
         }
@@ -198,6 +203,12 @@ const middleware = {
       }
 
       if (req.query.time != null && originalUrl.indexOf("_time_") > -1) {
+        if (
+          typeof req.query.time !== "string" ||
+          (req.query.starttime != null &&
+            typeof req.query.starttime !== "string")
+        )
+          return res.sendStatus(400);
         const urlSplit = originalUrl.split("_time_");
         const relUrlSplit = relUrl.split("_time_");
 

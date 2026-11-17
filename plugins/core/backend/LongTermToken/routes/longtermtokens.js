@@ -1,0 +1,291 @@
+/***********************************************************
+ * Long-term tokens: hashed at rest, scoped to capabilities and
+ * missions, and never more powerful than their creator.
+ **********************************************************/
+const express = require("express");
+const router = express.Router();
+
+// Cookie-authenticated changes must come from MMGIS's own pages
+const { sameOriginOnly } = require("../../../../../API/connections/routes");
+router.use((req, res, next) => (req.method === "GET" || req.method === "HEAD" ? next() : sameOriginOnly(req, res, next)));
+const crypto = require("crypto");
+
+const logger = require("../../../../../API/logger");
+const policy = require("../../../../../API/permissions/policy");
+const missions = require("../../../../../API/permissions/missions");
+const { authorize } = require("../../../../../API/permissions/authorize");
+const { hashToken, invalidate, unusableLegacyToken, tokensOffFor, tokenExpired } = require("../../../../../API/permissions/principal");
+const { sequelize } = require("../../../../../API/connection");
+const LongTermTokens = require("../models/longtermtokens").LongTermTokens;
+const { User } = require("../../Users/models/user");
+
+const TOKEN_PREFIX = "mmgis_";
+const MAX_LABEL = 32;
+const DAY = 24 * 60 * 60 * 1000;
+
+// Administrators may hold any number of tokens of any length; everyone else one live token of up to 90 days
+function limitsFor(principal) {
+  const unlimited = policy.isAdministrator(principal);
+  return { unlimited, max_tokens: unlimited ? null : 1, max_period: unlimited ? null : 90 * DAY };
+}
+
+// Tokens can't be used to manage tokens
+function sessionOnly(req, res, next) {
+  if (req.principal && req.principal.kind === "token") {
+    res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    return;
+  }
+  next();
+}
+
+async function present(rows) {
+  const users = await User.findAll({
+    where: { id: rows.map((r) => r.created_by_user_id).filter((i) => i != null) },
+    attributes: ["id", "username"],
+    raw: true,
+  });
+  const names = Object.fromEntries(users.map((u) => [u.id, u.username]));
+  return Promise.all(
+    rows.map(async (r) => ({
+      id: r.id,
+      name: r.name,
+      // Only a prefix is ever shown after creation
+      token: r.token_prefix ? `${r.token_prefix}...` : `${String(r.token).slice(0, 12)}...`,
+      period: r.period,
+      scopes: r.scopes,
+      missions: r.missions ? await missions.namesForUUIDs(r.missions) : null,
+      expires_at: r.expires_at,
+      last_used_at: r.last_used_at,
+      created_by_user_id: r.created_by_user_id,
+      created_by_username: names[r.created_by_user_id] || null,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }))
+  );
+}
+
+router.get(
+  "/get",
+  authorize.inHandler(
+    "site.view",
+    "own tokens for any signed-in account; everyone's with tokens.manage"
+  ),
+  sessionOnly,
+  async (req, res) => {
+    const principal = req.principal;
+    if (
+      principal.userId == null &&
+      !policy.can(principal, "tokens.manage")
+    )
+      return res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    try {
+      const where = { revoked_at: null };
+      if (!policy.can(principal, "tokens.manage"))
+        where.created_by_user_id = principal.userId;
+      if (
+        where.created_by_user_id == null &&
+        !policy.can(principal, "tokens.manage")
+      )
+        return res.send({ status: "success", tokens: [] });
+      const rows = await LongTermTokens.findAll({
+        where,
+        order: [["createdAt", "DESC"]],
+        raw: true,
+      });
+      res.send({
+        status: "success",
+        tokens: await present(rows),
+        user_id: principal.userId == null ? null : principal.userId,
+        limits: limitsFor(principal),
+        can_create: policy.can(principal, "tokens.create"),
+      });
+    } catch (err) {
+      logger("error", "Failed to get all tokens.", req.originalUrl, req, err);
+      res.send({ status: "failure", message: "Failed to get tokens." });
+    }
+  }
+);
+
+class TokenError extends Error {}
+
+// Validates requested scopes/missions against what the creator holds right now
+async function resolveRequest(principal, body) {
+  const holds = (cap) =>
+    policy.MISSION_SCOPED.has(cap)
+      ? policy.capabilitiesOf(principal).includes(cap)
+      : policy.can(principal, cap);
+  let scopes = body.scopes;
+  if (scopes === "read" || scopes == null) {
+    scopes = scopes === "read" || !hasAnyWrite(principal) ? policy.READ_CAPABILITIES.slice() : null;
+    // A default read set only carries the read capabilities the creator holds
+    if (scopes != null) scopes = scopes.filter(holds);
+    if (scopes != null && scopes.length === 0)
+      throw new TokenError("You have no read access to put in a token.");
+  }
+  if (scopes != null) {
+    if (!Array.isArray(scopes) || scopes.length === 0)
+      throw new TokenError("scopes must be 'read', null (all of your access) or an array of capabilities.");
+    scopes = Array.from(new Set(scopes.map(String)));
+    for (const cap of scopes) {
+      if (!policy.CAPABILITIES[cap]) throw new TokenError(`Unknown capability '${cap}'.`);
+      if (cap === "tokens.create" || cap === "tokens.manage")
+        throw new TokenError("Tokens cannot manage tokens.");
+      if (!holds(cap)) throw new TokenError(`You do not have '${cap}'.`);
+    }
+  } else if (!policy.isSuperAdmin(principal) && !hasAnyWrite(principal)) {
+    scopes = policy.READ_CAPABILITIES.filter(holds);
+  }
+  if (body.missions != null && !Array.isArray(body.missions))
+    throw new TokenError("missions must be null or an array of mission names.");
+  let missionUUIDs = null;
+  if (Array.isArray(body.missions)) {
+    missionUUIDs = [];
+    const reachable = policy.missionsWith(principal, "mission.view");
+    for (const name of body.missions) {
+      const uuid = await missions.uuidForName(name);
+      if (!uuid) throw new TokenError(`Unknown mission '${name}'.`);
+      if (reachable != null && !reachable.includes(uuid))
+        throw new TokenError(`You do not have access to mission '${name}'.`);
+      missionUUIDs.push(uuid);
+    }
+  }
+  return { scopes, missions: missionUUIDs };
+}
+
+function hasAnyWrite(principal) {
+  const caps = policy.capabilitiesOf(principal);
+  return caps.some((c) => !policy.READ_CAPABILITIES.includes(c) && !policy.BASELINE.authenticated.has(c));
+}
+
+function expiryFrom(period) {
+  if (period == null || period === "never") return null;
+  const ms = /^\d+$/.test(String(period)) ? Number(period) : NaN;
+  if (!Number.isSafeInteger(ms) || ms <= 0) throw new TokenError("period must be 'never' or a positive number of milliseconds.");
+  return new Date(Date.now() + ms);
+}
+
+router.post("/generate", authorize("tokens.create"), sessionOnly, async (req, res) => {
+  try {
+    const principal = req.principal;
+    if (principal.userId == null) throw new TokenError("Only signed-in accounts may create tokens.");
+    const off = await tokensOffFor(principal.userId);
+    if (off.length)
+      throw new TokenError(
+        `This account signs in with ${off.join(", ")}, which isn't enabled on this site right now, so its tokens won't work until it is.`
+      );
+    const body = req.body || {};
+    const { scopes, missions: missionUUIDs } = await resolveRequest(principal, body);
+    const expires_at = expiryFrom(body.period);
+    const limits = limitsFor(principal);
+    if (limits.max_period != null && (expires_at == null || Number(body.period) > limits.max_period))
+      throw new TokenError(`Tokens can last at most ${limits.max_period / DAY} days.`);
+    const replaceId = body.replace_id == null ? null : Number(body.replace_id);
+    if (replaceId != null && !Number.isSafeInteger(replaceId)) throw new TokenError("replace_id must be a token id.");
+    const label = body.name ? String(body.name).replace(/[^0-9a-zA-Z]/g, "").toLowerCase().slice(0, MAX_LABEL) : "";
+    const secret = crypto.randomBytes(32).toString("hex");
+    const token = `${TOKEN_PREFIX}${label ? label + "_" : ""}${secret}`;
+    const token_prefix = token.slice(0, TOKEN_PREFIX.length + (label ? label.length + 1 : 0) + 6);
+    const { created, removed } = await sequelize.transaction(async (transaction) => {
+      // Locking the account serializes its creations, so concurrent requests can't pass the limit
+      await User.findOne({ where: { id: principal.userId }, attributes: ["id"], lock: transaction.LOCK.UPDATE, transaction });
+      const own = await LongTermTokens.findAll({
+        where: { created_by_user_id: principal.userId, revoked_at: null },
+        transaction,
+      });
+      if (replaceId != null && !own.some((t) => t.id === replaceId))
+        throw new TokenError(`Token with id ${replaceId} not found.`);
+      // Replacing removes the old token; a limited account's expired tokens go too, as they no longer count
+      const gone = own.filter((t) => t.id === replaceId || (!limits.unlimited && tokenExpired(t)));
+      if (limits.max_tokens != null && own.length - gone.length >= limits.max_tokens)
+        throw new TokenError("You already have an API token. Replace or revoke it to create another.");
+      for (const t of gone) await t.destroy({ transaction });
+      const row = await LongTermTokens.create(
+        {
+          token: unusableLegacyToken(),
+          token_hash: hashToken(token),
+          token_prefix,
+          name: body.name ? String(body.name) : null,
+          period: body.period == null ? "never" : String(body.period),
+          scopes,
+          missions: missionUUIDs,
+          expires_at,
+          created_by_user_id: principal.userId,
+        },
+        { transaction }
+      );
+      return { created: row, removed: gone.length };
+    });
+    if (removed) invalidate();
+    res.send({
+      status: "success",
+      message: "Successfully created long term token. Copy it now; it will not be shown again.",
+      body: {
+        id: created.id,
+        token,
+        name: created.name,
+        period: created.period,
+        scopes,
+        missions: Array.isArray(body.missions) ? body.missions : null,
+        expires_at,
+        created_by_user_id: principal.userId,
+      },
+    });
+  } catch (err) {
+    if (err instanceof TokenError) return res.send({ status: "failure", message: err.message });
+    logger("error", "Failed to create long term token.", req.originalUrl, req, err);
+    res.send({ status: "failure", message: "Failed to create long term token!" });
+  }
+});
+
+router.post(
+  "/clear",
+  authorize.inHandler(
+    "site.view",
+    "own tokens for any signed-in account; everyone's with tokens.manage"
+  ),
+  sessionOnly,
+  async (req, res) => {
+    const principal = req.principal;
+    if (
+      principal.userId == null &&
+      !policy.can(principal, "tokens.manage")
+    )
+      return res.status(403).send({ status: "failure", message: "Unauthorized!" });
+    try {
+      if (req.body.id == null)
+        return res.send({
+          status: "failure",
+          message: `Failed to delete long term token. body.id is undefined.`,
+        });
+      const token = await LongTermTokens.findOne({
+        where: { id: parseInt(req.body.id) },
+      });
+      if (
+        !token ||
+        (!policy.can(principal, "tokens.manage") &&
+          token.created_by_user_id !== principal.userId)
+      )
+        return res.send({
+          status: "failure",
+          message: `Token with id ${req.body.id} not found.`,
+        });
+      await token.destroy();
+      invalidate();
+      res.send({
+        status: "success",
+        message: `Successfully deleted long term token with id ${req.body.id}.`,
+      });
+    } catch (err) {
+      logger("error", "Failed to delete long term token.", req.originalUrl, req, err);
+      res.send({
+        status: "failure",
+        message: `Failed to delete long term token with id ${req.body.id}!`,
+      });
+    }
+  }
+);
+
+module.exports = router;
+module.exports.TOKEN_PREFIX = TOKEN_PREFIX;
+module.exports.expiryFrom = expiryFrom;
+module.exports.TokenError = TokenError;

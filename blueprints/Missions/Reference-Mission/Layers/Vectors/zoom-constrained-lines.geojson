@@ -1,0 +1,90 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.45, 37.78],
+          [-122.43, 37.80],
+          [-122.41, 37.79]
+        ]
+      },
+      "properties": {
+        "id": "zoom-line-1",
+        "name": "Zoom 9-12",
+        "description": "Line visible only at zoom levels 9-12",
+        "style": {
+          "color": "#ff6600",
+          "weight": 4,
+          "minZoom": 9,
+          "maxZoom": 12
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.38, 37.81],
+          [-122.36, 37.82],
+          [-122.35, 37.80]
+        ]
+      },
+      "properties": {
+        "id": "zoom-line-2",
+        "name": "Zoom 12-15",
+        "description": "Line visible only at zoom levels 12-15",
+        "style": {
+          "color": "#00aaff",
+          "weight": 4,
+          "minZoom": 12,
+          "maxZoom": 15
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-122.40, 37.77],
+          [-122.38, 37.78],
+          [-122.37, 37.76]
+        ]
+      },
+      "properties": {
+        "id": "zoom-line-3",
+        "name": "Zoom 15-18",
+        "description": "Line visible only at zoom levels 15-18",
+        "style": {
+          "color": "#aa00ff",
+          "weight": 4,
+          "minZoom": 15,
+          "maxZoom": 18
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.40, 37.785]
+      },
+      "properties": {
+        "annotation": true,
+        "id": "zoom-line-annot-1",
+        "name": "Lines with feature-level zoom constraints (9-12, 12-15, 15-18)",
+        "description": "Annotation describing zoom-constrained lines",
+        "style": {
+          "fillColor": "rgba(255,255,255,0.9)",
+          "color": "#333333",
+          "weight": 2,
+          "fillOpacity": 0.9
+        }
+      }
+    }
+  ]
+}

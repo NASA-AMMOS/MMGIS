@@ -1,0 +1,8 @@
+{
+    "name": "__Name__",
+    "type": "tool",
+    "defaultIcon": "puzzle-outline",
+    "paths": {
+        "__Name__Tool": "./__Name__Tool"
+    }
+}

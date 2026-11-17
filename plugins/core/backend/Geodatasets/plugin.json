@@ -1,0 +1,20 @@
+{
+  "uuid": "476b2963-d434-4ac8-954e-156db0248d2e",
+  "id": "core-geodatasets",
+  "name": "Geodatasets",
+  "display_name": "Geodataset Management",
+  "aliases": [
+    "geodatasets"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/geodatasets",
+    "auth": "user"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

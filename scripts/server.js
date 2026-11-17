@@ -1,5 +1,22 @@
 require("dotenv").config();
 
+const siteAccess = require("../API/permissions/siteAccess");
+const providers = require("../API/permissions/providers");
+const connections = require("../API/connections");
+// Defines auth_connections before the table sync
+require("../API/connections/models");
+{
+  const authConfigErrors = siteAccess.validate();
+  if (authConfigErrors.length > 0) {
+    console.error(
+      "\nMMGIS cannot start because of its authentication settings:\n  - " +
+        authConfigErrors.join("\n  - ") +
+        "\nSee docs/pages/Setup/ENVs/ENVs.md.\n",
+    );
+    process.exit(1);
+  }
+}
+
 const fs = require("fs");
 const http = require("http");
 const https = require("https");
@@ -16,7 +33,35 @@ var swaggerDocumentMain = require("../docs/mmgis-openapi.json");
 const createError = require("http-errors");
 const cors = require("cors");
 const logger = require("../API/logger");
-const rateLimit = require("express-rate-limit");
+
+// A rejected promise a route forgot to catch fails that request, not the server
+process.on("unhandledRejection", (reason) => {
+  logger(
+    "error",
+    "Unhandled promise rejection.",
+    "server",
+    null,
+    reason instanceof Error ? reason : new Error(String(reason))
+  );
+});
+// Plugins from outside core run in this process (API/pluginFaults.js says which errors they can
+// cause without stopping MMGIS for everyone); anything else still stops it.
+process.on("uncaughtException", (err) => {
+  const pluginFaults = require("../API/pluginFaults");
+  const survivable = pluginFaults.isPluginFault(err);
+  const from = pluginFaults.pluginOf(err);
+  logger(
+    "error",
+    survivable
+      ? `Uncaught error from ${from ? `the ${from.family} plugin in ${from.dir}` : "a network socket"}; MMGIS keeps running.`
+      : "Uncaught error; MMGIS is stopping.",
+    "server",
+    null,
+    err instanceof Error ? err : new Error(String(err))
+  );
+  if (!survivable) process.exit(1);
+});
+const { apilimiter, authLimiter, computeLimiter, rejectLongUsername } = require("./rateLimiters");
 const compression = require("compression");
 
 const session = require("express-session");
@@ -26,10 +71,30 @@ const testEnv = require("../API/testEnv");
 const utils = require("../API/utils");
 
 const { sequelize } = require("../API/connection");
+const { getRequestHost, isOriginAllowed } = require("../API/origin");
+const crypto = require("crypto");
+const policy = require("../API/permissions/policy");
+const { principalMiddleware } = require("../API/permissions/principal");
+const {
+  authorize,
+  resolvers,
+  can,
+  missionNamesWith,
+  ensurePrincipal,
+  registerRouter,
+  undeclaredRoutes,
+  undeclaredPluginRoutes,
+} = require("../API/permissions/authorize");
 
 const setups = require("../API/setups");
 
-const { updateTools, updateComponents } = require("../API/updateTools");
+const {
+  updateTools,
+  updateComponents,
+  updateInteractions,
+  updateLayerTypes,
+  updateLayerAttachments,
+} = require("../API/updateTools");
 
 const { websocket } = require("../API/websocket");
 
@@ -43,6 +108,25 @@ const WebSocket = require("isomorphic-ws");
 const chalk = require("chalk");
 
 const middleware = require("./middleware").middleware;
+const {
+  checkMissionFileViewingPermission,
+} = require("../plugins/core/backend/Config/routes/configs");
+const GeneralOptions = require("../plugins/core/backend/GeneralOptions/models/generaloptions");
+
+// Landing page theme/logo from General Options; the loading page uses them before the bundle loads
+async function getLandingPageInjection() {
+  let lp = {};
+  try {
+    const row = await GeneralOptions.findOne({ where: { id: 1 } });
+    lp = (row && row.options && row.options.landingPage) || {};
+  } catch (err) {}
+  const logoUrl = typeof lp.logoUrl === "string" ? lp.logoUrl.trim() : "";
+  return {
+    LANDING_THEME: lp.theme === "light" ? "light" : "dark",
+    // JS-string-escaped (no surrounding quotes); Pug HTML-escapes it on top
+    LANDING_LOGO_URL: JSON.stringify(logoUrl).slice(1, -1),
+  };
+}
 
 const isDevEnv = process.env.NODE_ENV === "development";
 
@@ -65,28 +149,48 @@ const app = express();
 const isDocker = utils.isDocker();
 process.env.IS_DOCKER = isDocker ? "true" : "false";
 
-const apilimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 20000, // limit each IP to 100 requests per windowMs
-});
-
 // Load the permissions.json file, which maps LDAP groups to permission sets.
 // This application has two permission sets: "users" and "admins".
 let permissions = {};
-permissions.users = process.env.CSSO_GROUPS
-  ? JSON.parse(process.env.CSSO_GROUPS)
+permissions.users = process.env.PROXY_GROUPS
+  ? JSON.parse(process.env.PROXY_GROUPS)
   : [];
 
-// The port your application runs on must only be exposed locally. The CSSO
-// proxy will run on a different port, which will be exposed externally.
+// The port your application runs on must only be exposed locally. The
+// authenticating proxy (AUTH_PROVIDERS proxy) will run on a different port, which will be exposed externally.
 const port = parseInt(process.env.PORT || "8888", 10);
 
 /** set the session for application */
-const cookieOptions = { maxAge: 86400000 };
-if (process.env.THIRD_PARTY_COOKIES === "true") {
-  cookieOptions.sameSite = "None";
-  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+const thirdPartyCookies = process.env.THIRD_PARTY_COOKIES === "true";
+const sessionCookieSecure = process.env.SESSION_COOKIE_SECURE;
+if (
+  sessionCookieSecure &&
+  sessionCookieSecure !== "true" &&
+  sessionCookieSecure !== "false"
+) {
+  logger(
+    "infrastructure_error",
+    "FATAL: SESSION_COOKIE_SECURE must be true, false, or unset.",
+    "server",
+  );
+  process.exit(1);
 }
+if (thirdPartyCookies && sessionCookieSecure === "false") {
+  logger(
+    "infrastructure_error",
+    "FATAL: SESSION_COOKIE_SECURE=false is incompatible with THIRD_PARTY_COOKIES=true.",
+    "server",
+  );
+  process.exit(1);
+}
+const cookieOptions = {
+  maxAge: 86400000,
+  sameSite: thirdPartyCookies ? "None" : "Lax",
+  secure:
+    sessionCookieSecure === "true" ||
+    (sessionCookieSecure !== "false" &&
+      (process.env.HTTPS === "true" || thirdPartyCookies)),
+};
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -111,20 +215,56 @@ const pool = new Pool({
                 : false,
         }
       : false,
+  // Fail instead of hanging when the database can't be reached
+  connectionTimeoutMillis: 10000,
 });
+// An idle client losing its connection (Postgres restart, failover) emits "error" on the
+// pool; without a listener Node treats it as uncaught and the whole server exits.
+pool.on("error", (err) => {
+  logger("error", `Session store database connection lost: ${err.message}`, "server");
+});
+const sessionSecret = process.env.SECRET;
+if (!sessionSecret) {
+  logger(
+    "infrastructure_error",
+    "FATAL: The SECRET environment variable is not set. Please set it to a strong random string for session security.",
+    "server",
+  );
+  process.exit(1);
+}
+if (sessionSecret.length < 24) {
+  logger(
+    "infrastructure_error",
+    "FATAL: The SECRET environment variable is too short (minimum 24 characters). Please set it to a strong random string for session security.",
+    "server",
+  );
+  process.exit(1);
+}
+// Public static assets - served before session middleware to avoid unnecessary cookies
+app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
 app.use(
-  session({
-    secret: process.env.SECRET || "Shhhh, it is a secret!",
-    name: "MMGISSession",
-    proxy: true,
-    resave: false,
-    cookie: cookieOptions,
-    saveUninitialized: false,
-    store: new (require("connect-pg-simple")(session))({
-      pool,
-    }),
-  }),
+  `${ROOT_PATH}/README.md`,
+  express.static(path.join(rootDir, "/README.md")),
 );
+if (process.argv.includes("--with_examples"))
+  app.use(
+    `${ROOT_PATH}/examples`,
+    express.static(path.join(rootDir, "/examples")),
+  );
+
+const sessionMiddleware = session({
+  secret: sessionSecret,
+  name: "MMGISSession",
+  proxy: true,
+  resave: false,
+  cookie: cookieOptions,
+  saveUninitialized: false,
+  store: new (require("connect-pg-simple")(session))({
+    pool,
+  }),
+});
+app.use(sessionMiddleware);
+app.use(connections.carryGuestConnections);
 
 if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
   setSPICEKernelDownloadSchedule(
@@ -137,7 +277,15 @@ if (process.env.SPICE_SCHEDULED_KERNEL_DOWNLOAD === "true")
 ///////////////////////////
 
 // This is application-level middleware, written to run for all requests.
-const cssoHandler = (req, res, next) => {
+providers
+  .providerWarnings()
+  .forEach((warning) => logger("warn", warning, "server"));
+connections
+  .startupWarnings()
+  .forEach((warning) => logger("warn", warning, "server"));
+
+// Identifies the request through the enabled login providers (e.g. proxy)
+const identityHandler = (req, res, next) => {
   // For this application, every HTTP request is a direct response to user
   // activity, so we can set the activity header to true on every response.
   res.set("X-Activity", "true");
@@ -145,35 +293,50 @@ const cssoHandler = (req, res, next) => {
   //Also hardcoded a few places on the front-end and maybe initial Lead file creation
   req.leadGroupName = "mmgis-group";
 
-  // Get the user's and username information from the request headers and set
-  // them as attributes of the req object.
-
-  if (process.env.AUTH == "csso") {
-    if (req.get("X-Groups") !== undefined) {
-      req.groups = JSON.parse(
-        Buffer.from(req.get("X-Groups"), "base64").toString("ascii"),
-      );
-      if (req.groups[process.env.CSSO_LEAD_GROUP] === true) {
-        req.groups[req.leadGroupName] = true;
+  providers
+    .identify(req)
+    .then((identity) => {
+      if (identity) {
+        req.identity = identity;
+        req.groups = Object.fromEntries(identity.groups.map((g) => [g, true]));
+        if (identity.provider === "proxy" && (identity.strictGroups || identity.groups).includes(process.env.PROXY_LEAD_GROUP))
+          req.groups[req.leadGroupName] = true;
+        req.user = identity.username;
+        if (identity.provider === "proxy") {
+          req.proxyAuthenticated = true;
+          // Remembered for websocket upgrades that arrive without the proxy headers
+          if (req.session) {
+            const saved = {
+              subject: identity.subject,
+              username: identity.username,
+              groups: identity.groups,
+              session: identity.session,
+            };
+            if (JSON.stringify(req.session.proxyIdentity) !== JSON.stringify(saved)) req.session.proxyIdentity = saved;
+          }
+          if (identity.session) req.proxySessionID = identity.session;
+        }
+        next();
+        return;
       }
-      req.user = req.get("X-Sub");
-      req.session.user = req.user;
-      let cssoSessionID = req.get("X-Session");
-      if (cssoSessionID) req.cssoSessionID = cssoSessionID;
-    }
-  } else {
-    req.user = req.session.user || guestUsername;
-    let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
-    if (leads.indexOf(req.user) != -1) {
-      req.groups = {};
-      req.groups[req.leadGroupName] = true;
-    } else {
-      req.groups = {};
-    }
-  }
-
-  next();
+      sessionIdentity(req);
+      next();
+    })
+    .catch(next);
 };
+
+// Where the proxy reports its session status and signs people out (frontend polling and Sign out)
+function proxyUrls() {
+  const c = require("../plugins/core/auth/Proxy/plugin.js").config();
+  return { status: c.statusUrl, logout: c.logoutUrl, login: c.loginUrl, refresh: c.refreshUrl };
+}
+
+function sessionIdentity(req) {
+  req.user = req.session.user || guestUsername;
+  let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
+  req.groups = {};
+  if (leads.indexOf(req.user) != -1) req.groups[req.leadGroupName] = true;
+}
 
 function setContentType(req, res, next) {
   res.setHeader("Content-Type", "application/json");
@@ -199,64 +362,45 @@ function checkHeadersCodeInjection(req, res, next) {
     res.send({
       Warning:
         "You are not allowed to inject bad code to the application. Your action will be reported!",
-      "Your IP": req.headers["x-forwarded-for"] || req.connection.remoteAddress,
+      "Your IP": req.headers["x-forwarded-for"] || req.socket.remoteAddress,
       "Requested URL": fullUrl,
     });
     res.end();
   } else {
-    // Set header parameters for this request
-    // res.setHeader('Access-Control-Allow-Origin', 'http://localhost:80');
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST");
-    // res.setHeader('Content-Type', 'application/json');
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-with, Content-Type, Methods",
-    );
+    const origin = req.get("Origin");
+    if (origin && isOriginAllowed(origin, getRequestHost(req))) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST");
+      res.setHeader(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-with, Content-Type, Methods",
+      );
+      res.setHeader("Vary", "Origin");
+    }
     next();
   }
 }
 
+// Requires a signed-in principal (session user, proxy user or token)
 function stopGuests(req, res, next) {
-  let url = req.originalUrl.split("?")[0].toLowerCase();
-
-  if (
-    url.endsWith("/api/configure/get") ||
-    url.endsWith("/api/configure/missions") ||
-    url.endsWith("/api/files/getfile")
-  ) {
-    next();
-    return;
-  }
-
-  if (req.user == guestUsername || process.env.AUTH === "off") {
-    res.send({ status: "failure", message: "User is not logged in." });
-    res.end();
-    return;
-  } else next();
+  ensurePrincipal(req)
+    .then((principal) => {
+      if (principal.authenticated) next();
+      else res.send({ status: "failure", message: "User is not logged in." });
+    })
+    .catch(next);
 }
 
 /**
  * ensureGroup - Checks if user is in ANY of the allowed groups.
- *
- * Returns an Express/Connect middleware function that calls the next handler
- * if the user is authorized, and sends a 403 Forbidden error message if not.
+ * Only applies when the proxy login provider is enabled.
  *
  * @param {array} allowedGroups - An array of group names.
  * @return {function}
  */
 function ensureGroup(allowedGroups) {
   return (req, res, next) => {
-    // req.groups is an object, set by cssoHandler (which runs on every
-    // request), where each key is a group and each value is a boolean
-    // indicating if the user is in that group. For each allowed group, this
-    // will check if the group is present in req.groups, and if the value for
-    // that group is True. If that is the case, continue to the next handler,
-    // otherwise continue checking the list of allowed groups. If the user is
-    // not in any allowed groups, the next handler will never be called and a
-    // 403 Forbidden response will be returned to the user.
-    //console.log( 'ensureGroup', req );
-    if (process.env.AUTH != "csso") {
+    if (!siteAccess.hasProvider("proxy") || !req.proxyAuthenticated) {
       next();
       return;
     }
@@ -276,11 +420,40 @@ function ensureGroup(allowedGroups) {
       return;
     }
 
-    res.render("unauthorized", { user: req.user });
+    res.render("unauthorized", { user: req.user, PROXY_LOGOUT_URL: proxyUrls().logout });
     return;
   };
 }
 
+const ADMIN_CAPABILITIES = policy.ADMIN_CAPABILITIES;
+function isAdminPrincipal(principal) {
+  const caps = policy.capabilitiesOf(principal);
+  return ADMIN_CAPABILITIES.some((c) => caps.includes(c));
+}
+
+function renderAdminLogin(req, res, principal) {
+  const signedIn =
+    principal && principal.authenticated && principal.kind !== "token";
+  res.render("adminlogin", {
+    user: req.user,
+    SIGNED_IN_AS: signedIn ? principal.username || req.user || "" : null,
+    LOGIN_FORMS: providers.loginForms(undefined, { configure: true }),
+    LOGIN_LINKS: providers.loginLinks(),
+    RETURN_TO: providers.returnTo(req.originalUrl),
+    VERSION: configurePackageJson.version,
+    ROOT_PATH: isDevEnv
+      ? ""
+      : process.env.ROOT_PATH
+        ? process.env.ROOT_PATH + "/"
+        : "",
+  });
+}
+
+/**
+ * ensureAdmin - Requires an administrator (anyone holding an admin capability).
+ * Route-level authorize() calls decide what that administrator may actually do.
+ * Kept for plugins; core routes declare capabilities with s.authorize.
+ */
 function ensureAdmin(
   toLoginPage,
   denyLongTermTokens,
@@ -289,209 +462,130 @@ function ensureAdmin(
   disallow,
 ) {
   return (req, res, next) => {
-    let url = req.originalUrl.split("?")[0].toLowerCase();
-    const remoteAddress =
-      req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-
+    const url = req.originalUrl.split("?")[0].toLowerCase();
+    const notDisallowed =
+      disallow == null || disallow.filter((p) => url.endsWith(p)).length == 0;
     if (
-      url.endsWith("/api/configure/get") ||
-      url.endsWith("/api/configure/missions") ||
-      url.endsWith("/api/configure/getgeneraloptions") ||
-      url.endsWith("/api/geodatasets/get") ||
-      url.endsWith("/api/geodatasets/intersect") ||
-      url.endsWith("/api/geodatasets/aggregations") ||
-      url.endsWith("/api/geodatasets/search") ||
-      url.endsWith("/api/datasets/get") ||
-      req.session.permission === "111" ||
-      req.session.permission === "110"
+      notDisallowed &&
+      ((allowGets === true && req.method === "GET") ||
+        (allowPosts === true && req.method === "POST"))
     ) {
-      next();
+      ensureUser({ forbid: true })(req, res, next);
       return;
     }
-
-    if (allowGets === true && req.method === "GET") {
-      if (
-        disallow == null ||
-        disallow.filter((path) => url.endsWith(path)).length == 0
-      ) {
-        next();
-        return;
-      }
-    }
-
-    if (allowPosts === true && req.method === "POST") {
-      if (
-        disallow == null ||
-        disallow.filter((path) => url.endsWith(path)).length == 0
-      ) {
-        next();
-        return;
-      }
-    }
-
-    if (toLoginPage) {
-      res.render("adminlogin", {
-        user: req.user,
-        VERSION: configurePackageJson.version,
-      });
-      return;
-    }
-
-    if (!denyLongTermTokens && req.headers.authorization) {
-      validateLongTermToken(
-        req.headers.authorization,
-        (tokenData) => {
-          req.isLongTermToken = true;
-          req.tokenUserPermission = tokenData.permission;
-          req.tokenUserMissions = tokenData.missions_managing;
-          req.user = tokenData.username;
-          next();
-        },
-        () => {
-          res.send({ status: "failure", message: "Unauthorized Token!" });
+    ensurePrincipal(req)
+      .then((principal) => {
+        const remoteAddress =
+          req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+        if (principal.kind === "invalid_token") {
+          res.status(401).send({ status: "failure", message: "Unauthorized Token!" });
           logger(
             "warn",
-            `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
+            `Unauthorized token call made and rejected (from ${remoteAddress})`,
             req.originalUrl,
             req,
           );
-        },
-      );
-      return;
-    }
-
-    res.send({ status: "failure", message: "Unauthorized!" });
-    logger(
-      "warn",
-      `Unauthorized call made and rejected (from ${remoteAddress})`,
-      req.originalUrl,
-      req,
-    );
-    return;
-  };
-}
-
-function validateLongTermToken(token, successCallback, failureCallback) {
-  token = token.replace(/Bearer:?\s+/g, "");
-
-  sequelize
-    .query(
-      'SELECT lt.*, u.permission, u.missions_managing, u.username FROM "long_term_tokens" lt JOIN "users" u ON lt.created_by_user_id = u.id WHERE lt.token=:token',
-      {
-        replacements: {
-          token: token,
-        },
-      },
-    )
-    .then((result) => {
-      try {
-        result = result[0][0];
-      } catch (err) {
-        failureCallback();
-      }
-
-      if (
-        result &&
-        result.token == token &&
-        result.created_by_user_id != null && // Block tokens without creator ID (legacy tokens)
-        (result.period == "never" ||
-          Date.now() - new Date(result.createdAt).getTime() <
-            parseInt(result.period))
-      ) {
-        successCallback(result);
-      } else {
-        failureCallback();
-      }
-    });
-}
-
-function ensureUser() {
-  return (req, res, next) => {
-    /* If the request is:
-      - Not trying to use an authorization header (longtermtoken)
-      - And MMGIS is not configured to use AUTH-local
-        OR
-      - There is already a user session with valid permissions set
-        Then continue
-
-      Otherwise, if there is an authorization header (longtermtoken), try to validate it.
-
-      Still if not, redirect to the login page
-    */
-    if (
-      (req.headers.authorization == null && process.env.AUTH != "local") ||
-      (typeof req.session.permission === "string" &&
-        (req.session.permission === "111" ||
-          req.session.permission === "110" ||
-          req.session.permission === "001"))
-    ) {
-      next();
-    } else {
-      if (req.headers.authorization) {
-        const remoteAddress =
-          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-        validateLongTermToken(
-          req.headers.authorization,
-          (tokenData) => {
-            req.isLongTermToken = true;
-            req.tokenUserPermission = tokenData.permission;
-            req.tokenUserMissions = tokenData.missions_managing;
-            req.user = tokenData.username;
-            next();
-          },
-          () => {
-            res.send({ status: "failure", message: "Unauthorized Token!" });
-            logger(
-              "warn",
-              `Unauthorized token call made and rejected (from ${remoteAddress}, with token ${req.headers.authorization})`,
-              req.originalUrl,
-              req,
-            );
-          },
+          return;
+        }
+        // Pages are for browser sessions; tokens get the login page as before
+        if (toLoginPage && principal.kind === "token") {
+          renderAdminLogin(req, res);
+          return;
+        }
+        if (denyLongTermTokens && principal.kind === "token") {
+          res.send({ status: "failure", message: "Unauthorized!" });
+          return;
+        }
+        if (isAdminPrincipal(principal)) {
+          next();
+          return;
+        }
+        if (toLoginPage) {
+          renderAdminLogin(req, res, principal);
+          return;
+        }
+        res.send({ status: "failure", message: "Unauthorized!" });
+        logger(
+          "warn",
+          `Unauthorized call made and rejected (from ${remoteAddress})`,
+          req.originalUrl,
+          req,
         );
-      } else {
-        res.render("login", {
-          user: req.user,
-          CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
-          CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
-          AUTH_LOCAL_ALLOW_SIGNUP: process.env.AUTH_LOCAL_ALLOW_SIGNUP || false,
-        });
-      }
-    }
-    return;
+      })
+      .catch(next);
   };
 }
 
-/**
- * Middleware to protect adjacent server proxies based on AUTH mode
- * - AUTH=off/none: Allow GETs, require admin for other methods (current behavior)
- * - AUTH=local/csso: Require user authentication for all methods
- */
-function ensureUserForAdjacentServers() {
+// 403 for file routes: styled page for browsers, plain status otherwise
+function sendForbidden(req, res) {
+  if (req.accepts(["json", "html"]) === "html")
+    res.status(403).render("forbidden", { HOME: `${ROOT_PATH}/` });
+  else if ((req.originalUrl || "").startsWith(`${ROOT_PATH}/api/`))
+    res.status(403).send({ status: "failure", message: "Unauthorized" });
+  else res.sendStatus(403);
+}
+
+// Lets the request through when the site allows guests or the caller is signed in.
+// options.forbid: respond 403 instead of rendering the login page (for file routes)
+function ensureUser(options = {}) {
   return (req, res, next) => {
-    const authMode = process.env.AUTH;
+    ensurePrincipal(req)
+      .then((principal) => {
+        if (principal.kind === "invalid_token") {
+          res.status(401).send({ status: "failure", message: "Unauthorized Token!" });
+          return;
+        }
+        if (principal.authenticated || siteAccess.guestsAllowed()) {
+          next();
+          return;
+        }
+        if (options.forbid) sendForbidden(req, res);
+        // Sites with no login form or login links sign in through their authenticating proxy
+        else if (providers.loginForms().length === 0 && providers.loginLinks().length === 0)
+          res.render("unauthorized", { user: null, PROXY_LOGOUT_URL: proxyUrls().logout });
+        else
+          res.render("login", {
+            user: req.user,
+            LOGIN_FORMS: providers.loginForms(),
+            LOGIN_LINKS: providers.loginLinks(),
+            RETURN_TO: providers.returnTo(req.originalUrl),
+            CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
+            CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
+            AUTH_LOCAL_ALLOW_SIGNUP: siteAccess.selfSignupAllowed(),
+            ROOT_PATH: isDevEnv
+              ? ""
+              : process.env.ROOT_PATH
+                ? process.env.ROOT_PATH + "/"
+                : "",
+          });
+      })
+      .catch(next);
+  };
+}
 
-    // For 'off' and 'none', maintain current behavior:
-    // - Allow GET requests
-    // - Require admin for other methods
-    if (authMode === "off" || authMode === "none") {
-      if (req.method === "GET") {
-        next();
-        return;
-      }
-      // For non-GET methods, require admin
-      ensureAdmin()(req, res, next);
-      return;
-    }
-
-    // For 'local' and 'csso', require user authentication for all methods
-    ensureUser()(req, res, next);
+// Site gate for adjacent server proxies. Reads follow the site gate; other methods
+// need an admin. Tokens also need the capability for that server and method.
+function ensureUserForAdjacentServers(server) {
+  const gate = ensureUser();
+  const admin = ensureAdmin();
+  const tokenAllowed = (req, res, next) =>
+    ensurePrincipal(req)
+      .then((p) =>
+        policy.canUseAdjacentServer(p, req.method, server, req.path)
+          ? next()
+          : res.send({ status: "failure", message: "Unauthorized!" }),
+      )
+      .catch(next);
+  return (req, res, next) => {
+    const then = () => tokenAllowed(req, res, next);
+    if (req.method === "GET" || req.method === "HEAD") return gate(req, res, then);
+    return admin(req, res, then);
   };
 }
 
 var swaggerOptions = {
-  customCssUrl: "/docs/swagger/swaggerCSS.css",
-  customJs: "/docs/swagger/swaggerJS.js",
+  customCssUrl: ["/docs/swagger/swaggerCSS.css"],
+  customJs: ["/docs/swagger/swaggerJS.js"],
 };
 
 const useSwaggerSchema =
@@ -511,22 +605,46 @@ initAdjacentServersProxy(
 
 let s = {
   app: app,
-  cssoHandler,
+  identityHandler,
   setContentType,
   checkHeadersCodeInjection,
   stopGuests,
   ensureGroup,
   ensureAdmin,
   ensureUser,
+  ensurePrincipal,
   ensureUserForAdjacentServers,
+  authorize,
+  resolvers,
+  can,
+  missionNamesWith,
+  registerRouter,
+  siteAccess,
+  policy,
   swaggerUi,
   useSwaggerSchema,
   permissions,
   ROOT_PATH,
+  // For backend plugins: connections.token(req, id), connections.rejected(req, id, token),
+  // connections.unavailable(id, message?), connections.connectionRequired(res, err)
+  connections: {
+    token: connections.token,
+    rejected: connections.rejected,
+    unavailable: connections.unavailable,
+    connectionRequired: connections.connectionRequired,
+    ConnectionRequiredError: connections.ConnectionRequiredError,
+  },
 };
 
-// Trust first proxy
-app.set("trust proxy", 1);
+// Which proxies' X-Forwarded-For to trust for the client IP (rate limits, logs). Defaults to the first one.
+function trustProxySetting(v) {
+  if (v == null || v === "") return 1;
+  if (v === "false") return false;
+  if (v === "true") return true;
+  if (/^\d+$/.test(v)) return parseInt(v, 10);
+  return v;
+}
+app.set("trust proxy", trustProxySetting(process.env.TRUST_PROXY));
 
 app.use("/api/", apilimiter);
 
@@ -554,6 +672,8 @@ let helmetConfig = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'", "blob:", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: ["'self'", "blob:", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrcAttr: null,
       imgSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
       styleSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
       fontSrc: ["*", "data:", "blob:", "'unsafe-inline'"],
@@ -561,12 +681,15 @@ let helmetConfig = {
       mediaSrc: ["*", "data:", "blob:"],
       frameAncestors: process.env.FRAME_ANCESTORS
         ? JSON.parse(process.env.FRAME_ANCESTORS)
-        : "none",
+        : "'none'",
       frameSrc: process.env.FRAME_SRC
         ? JSON.parse(process.env.FRAME_SRC)
-        : "none",
+        : "'none'",
     },
   },
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
 };
 
 app.use(helmet(helmetConfig));
@@ -584,23 +707,64 @@ app.use(
 // Pug is used to render pages.
 app.set("view engine", "pug");
 
-// Ensure the CSSO handler runs on every request.
-app.use(cssoHandler);
+// Ensure the identity handler runs on every request.
+app.use(identityHandler);
+app.use(principalMiddleware);
 
 //app.use(logger('dev'));
 //app.use(express.json());
 
-app.use(bodyParser.json({ limit: "500mb" })); // support json encoded bodies
-app.use(bodyParser.urlencoded({ limit: "500mb", extended: true })); // support encoded bodies
+const largeBodyLimit = "500mb";
+for (const route of [
+  `${ROOT_PATH}/api/configure`,
+  `${ROOT_PATH}/api/datasets`,
+  `${ROOT_PATH}/api/files`,
+  `${ROOT_PATH}/api/geodatasets`,
+]) {
+  app.use(route, bodyParser.json({ limit: largeBodyLimit }));
+  app.use(
+    route,
+    bodyParser.urlencoded({ limit: largeBodyLimit, extended: true }),
+  );
+}
+const mediumBodyLimit = "50mb";
+for (const route of [`${ROOT_PATH}/api/draw`, `${ROOT_PATH}/api/utils`]) {
+  app.use(route, bodyParser.json({ limit: mediumBodyLimit }));
+  app.use(
+    route,
+    bodyParser.urlencoded({ limit: mediumBodyLimit, extended: true }),
+  );
+}
+app.use(bodyParser.json({ limit: "10mb" })); // support json encoded bodies
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true })); // support encoded bodies
+
+// Express 5 no longer initializes req.body to {} — it is undefined when no
+// body-parser middleware has matched the Content-Type.  Many route handlers
+// (files, draw, datasets, etc.) access req.body.* without null-checking, so
+// we restore Express 4 behaviour here to avoid 500s on empty-body POSTs.
+app.use((req, res, next) => {
+  if (req.body === undefined) req.body = {};
+  next();
+});
 
 app.use(cookieParser());
 
-app.use(cors());
+app.use((req, res, next) => {
+  cors({
+    credentials: true,
+    origin: (origin, callback) => {
+      callback(null, isOriginAllowed(origin, getRequestHost(req)));
+    },
+  })(req, res, next);
+});
 // app.set('Origin', false);
+// After CORS, so allowed cross-origin pages can read the refusal
+app.use(rejectLongUsername);
 
 /*Require all dynamic backend setup scripts
 and return functions that bulk run their functions
 */
+console.log(chalk.cyan("\nPlugging in Backends..."));
 setups.getBackendSetups(function (setups) {
   //Sync all tables
   sequelize
@@ -625,56 +789,47 @@ setups.getBackendSetups(function (setups) {
       ),
     );
 
-  // STATICS
+  // Authenticated static routes - must remain after session middleware
 
   app.use(
     `${ROOT_PATH}/build`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/build")),
   );
   app.use(
     `${ROOT_PATH}/docs`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/docs")),
   );
   app.use(
-    `${ROOT_PATH}/README.md`,
-    express.static(path.join(rootDir, "/README.md")),
-  );
-  app.use(
     `${ROOT_PATH}/configure/build`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/configure/build")),
   );
   app.use(
     `${ROOT_PATH}/configure/public`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
     express.static(path.join(rootDir, "/configure/public")),
   );
 
-  if (process.argv.includes("--with_examples"))
-    app.use(
-      `${ROOT_PATH}/examples`,
-      express.static(path.join(rootDir, "/examples")),
-    );
-  app.use(`${ROOT_PATH}/public`, express.static(path.join(rootDir, "/public")));
   app.use(
     `${ROOT_PATH}/Missions`,
-    ensureUser(),
+    ensureUser({ forbid: true }),
+    checkMissionFileViewingPermission(sendForbidden),
     middleware.missions(ROOT_PATH),
     express.static(path.join(rootDir, "/Missions")),
   );
   app.get(s.ROOT_PATH + "/resetPassword", (req, res) => {
-    const user = process.env.AUTH === "csso" ? req.user : req.user || "";
+    const user = req.proxyAuthenticated ? req.user : req.user || "";
     res.render("../views/resetpassword.pug", {
       user: user,
-      AUTH: process.env.AUTH,
+      SITE_ACCESS: siteAccess.getSiteAccess(),
+      AUTH_PROVIDERS: siteAccess.getProviders().join(","),
       NODE_ENV: process.env.NODE_ENV,
       ROOT_PATH:
         process.env.NODE_ENV === "development"
           ? ""
-          : /*(process.env.EXTERNAL_ROOT_PATH || "") +*/
-            process.env.ROOT_PATH || "",
+          : (process.env.ROOT_PATH ? process.env.ROOT_PATH + "/" : ""),
       CLEARANCE_NUMBER: process.env.CLEARANCE_NUMBER || "CL##-####",
       CONTACT_INFO: process.env.CONTACT_INFO || "None Provided",
     });
@@ -700,7 +855,7 @@ setups.getBackendSetups(function (setups) {
 
   // Validate envs
   if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyan("Validating Environment Variables...\n"));
+    console.log(chalk.cyan("\nValidating Environment Variables..."));
   }
   testEnv.test(setups.envs, port);
 
@@ -708,15 +863,45 @@ setups.getBackendSetups(function (setups) {
   // We're only doing this for dev because we're assuming
   // build will also call this.
   if (process.env.NODE_ENV === "development") {
-    console.log(chalk.cyan("Updating Tools...\n"));
+    console.log(chalk.cyan("\nPlugging in Tools..."));
     updateTools();
 
-    console.log(chalk.cyan("Updating Components...\n"));
+    console.log(chalk.cyan("\nPlugging in Components..."));
     updateComponents();
+
+    console.log(chalk.cyan("\nPlugging in Interactions..."));
+    updateInteractions();
+
+    console.log(chalk.cyan("\nPlugging in Layer Types..."));
+    updateLayerTypes();
+
+    console.log(chalk.cyan("\nPlugging in Layer Attachments..."));
+    updateLayerAttachments();
   }
 
   //////Setups Init//////
   setups.init(s);
+  providers.mountProviderRoutes(app, { registerRouter, authorize, rootPath: ROOT_PATH });
+  connections.mountConnectionRoutes(app, { registerRouter, authorize, rootPath: ROOT_PATH });
+
+  // Every registered API route must declare its permission
+  const undeclared = undeclaredRoutes();
+  if (undeclared.length > 0) {
+    logger(
+      "infrastructure_error",
+      "Routes without a declared permission (use s.authorize, or ctx.authorize in auth providers): " +
+        undeclared.map((r) => `${r.methods} ${r.path}`).join(", "),
+      "server",
+    );
+    process.exit(1);
+  }
+  undeclaredPluginRoutes().forEach(({ plugin, routes }) =>
+    logger(
+      "warn",
+      `Backend plugin '${plugin}' has routes without a declared permission; only the site login gate applies to them (use s.authorize): ${routes.join(", ")}`,
+      "server",
+    ),
+  );
 
   let httpServer;
   if (process.env.HTTPS == "true") {
@@ -741,24 +926,52 @@ setups.getBackendSetups(function (setups) {
       // passing to it an array of LDAP group names (which were loaded
       // from the permissions.json file at the top of the file).
 
+      if (ROOT_PATH) {
+        app.get(ROOT_PATH, (req, res, next) => {
+          if (!req.path.endsWith('/')) {
+            res.redirect(301, `${ROOT_PATH}/`);
+          } else {
+            next();
+          }
+        });
+      }
+
       app.get(
         `${ROOT_PATH}/`,
         ensureUser(),
         ensureGroup(permissions.users),
-        (req, res) => {
+        async (req, res) => {
           let user = guestUsername;
-          if (process.env.AUTH === "csso" || req.user != null) user = req.user;
+          if (req.principal && req.principal.authenticated)
+            user = req.principal.username;
+          else if (req.user != null) user = req.user;
 
-          let permission = "000";
-          if (process.env.AUTH === "csso") permission = "001";
-          if (req.session.permission) permission = req.session.permission;
+          const role =
+            req.principal && req.principal.authenticated
+              ? policy.accountRole(req.principal.bindings || [])
+              : "guest";
 
           const groups = req.groups ? Object.keys(req.groups) : [];
+          // Which provider signed this browser in, so the client signs out the right way
+          const p = req.principal || {};
+          let loginProvider = "";
+          if (p.authenticated && p.kind === "external") loginProvider = p.provider || "";
+          else if (p.authenticated && p.kind === "user")
+            loginProvider = (req.session && req.session.provider) || "local";
           res.render("../build/index.pug", {
             user: user,
-            permission: permission,
+            LOGIN_PROVIDER: loginProvider,
+            LOGIN_PER_REQUEST: String(p.kind === "external"),
+            LOGOUT_URL: providers.logoutUrl(loginProvider) || "",
+            PROXY_STATUS_URL: proxyUrls().status,
+            PROXY_LOGOUT_URL: proxyUrls().logout,
+            PROXY_LOGIN_URL: proxyUrls().login,
+            PROXY_REFRESH_URL: proxyUrls().refresh,
+            role: role,
             groups: JSON.stringify(groups),
-            AUTH: process.env.AUTH,
+            SITE_ACCESS: siteAccess.getSiteAccess(),
+            SELF_SIGNUP: String(siteAccess.selfSignupAllowed()),
+            AUTH_PROVIDERS: siteAccess.getProviders().join(","),
             NODE_ENV: process.env.NODE_ENV,
             VERSION: packagejson.version,
             FORCE_CONFIG_PATH: process.env.FORCE_CONFIG_PATH,
@@ -778,6 +991,7 @@ setups.getBackendSetups(function (setups) {
             HOSTS: JSON.stringify({
               scienceIntent: process.env.SCIENCE_INTENT_HOST,
             }),
+            ...(await getLandingPageInjection()),
           });
         },
       );
@@ -790,10 +1004,30 @@ setups.getBackendSetups(function (setups) {
     //////Setups Started//////
     setups.started(s);
 
-    // error handler
-    app.all("*", (req, res, next) => {
-      // render the error page
+    // 404 handler
+    app.all("/{*splat}", (req, res, next) => {
       res.status(404).render("error");
+    });
+
+    // Global error handler — catches errors forwarded by next(err) or thrown
+    // in async route handlers. Prevents unhandled errors from crashing the
+    // process; returns a 500 response instead.
+    app.use((err, req, res, next) => {
+      logger(
+        "error",
+        "Unhandled route error.",
+        req.originalUrl,
+        req,
+        err,
+      );
+      if (res.headersSent) {
+        return next(err);
+      }
+      const status = err.statusCode || err.status;
+      res.status(status >= 400 && status < 500 ? status : 500).send({
+        status: "error",
+        message: "Internal server error.",
+      });
     });
 
     logger(
@@ -803,8 +1037,8 @@ setups.getBackendSetups(function (setups) {
     );
 
     if (process.env.ENABLE_MMGIS_WEBSOCKETS) {
-      console.log(chalk.cyan("Starting websocket...\n"));
-      websocket.init(httpServer);
+      console.log(chalk.cyan("\nStarting websocket..."));
+      websocket.init(httpServer, sessionMiddleware);
     }
   });
 });
@@ -814,56 +1048,74 @@ function setupDevServer() {
   const paths = require("../configuration/paths");
   const webpack = require("webpack");
   const WebpackDevServer = require("webpack-dev-server");
-  const clearConsole = require("react-dev-utils/clearConsole");
-  const checkRequiredFiles = require("react-dev-utils/checkRequiredFiles");
-  const {
-    choosePort,
-    createCompiler,
-    prepareProxy,
-    prepareUrls,
-  } = require("react-dev-utils/WebpackDevServerUtils");
-  const openBrowser = require("react-dev-utils/openBrowser");
+  const { formatWebpackMessages } = require("../configuration/build-utils");
   const configFactory = require("../configuration/webpack.config");
   const createDevServerConfig = require("../configuration/webpackDevServer.config");
 
   const HOST = "localhost";
   const config = configFactory("development");
   const protocol = process.env.HTTPS === "true" ? "https" : "http";
-  const appName = require(paths.appPackageJson).name;
-  const useYarn = fs.existsSync(paths.yarnLockFile);
-  const useTypeScript = fs.existsSync(paths.appTsConfig);
-  const isInteractive = process.stdout.isTTY;
-  const tscCompileOnError = process.env.TSC_COMPILE_ON_ERROR === "true";
-  const urls = prepareUrls(
-    protocol,
-    HOST,
-    port,
-    paths.publicUrlOrPath.slice(0, -1),
-  );
-  const devSocket = {
-    warnings: (warnings) =>
-      devServer.sockWrite(devServer.sockets, "warnings", warnings),
-    errors: (errors) =>
-      devServer.sockWrite(devServer.sockets, "errors", errors),
+  const { URL } = require("url");
+  const lanUrl = new URL(`${protocol}://${HOST}:${port}${paths.publicUrlOrPath.slice(0, -1)}`);
+  const urls = {
+    lanUrlForConfig: HOST,
+    lanUrlForTerminal: lanUrl.href,
+    localUrlForTerminal: `${protocol}://localhost:${port}${paths.publicUrlOrPath.slice(0, -1)}`,
+    localUrlForBrowser: `${protocol}://localhost:${port}${paths.publicUrlOrPath.slice(0, -1)}`,
   };
-  // Create a webpack compiler that is configured with custom messages.
-  const compiler = createCompiler({
-    appName,
-    config,
-    devSocket,
-    urls,
-    useYarn,
-    useTypeScript,
-    tscCompileOnError,
-    webpack,
+  // Create a webpack compiler
+  const compiler = webpack(config);
+  compiler.hooks.done.tap("done", (stats) => {
+    const statsData = stats.toJson({ all: false, warnings: true, errors: true });
+    const messages = formatWebpackMessages(statsData);
+    if (messages.errors.length) {
+      console.log(chalk.red("Failed to compile.\n"));
+      console.log(messages.errors.join("\n\n"));
+    }
+    if (messages.warnings.length) {
+      console.log(chalk.yellow("Compiled with warnings.\n"));
+      console.log(messages.warnings.join("\n\n"));
+    }
   });
-  // Load proxy config
+  // Load proxy config — forward all non-webpack requests to the Express server.
+  // The original prepareProxy from react-dev-utils acted as a catch-all proxy.
   const proxySetting = `http://localhost:${port}`;
-  const proxyConfig = prepareProxy(
-    proxySetting,
-    paths.appPublic,
-    paths.publicUrlOrPath,
-  );
+  const proxyConfig = [
+    {
+      context: (pathname, req) => {
+        // Don't proxy webpack-dev-server internal paths or HMR websocket
+        if (
+          pathname.startsWith("/ws") ||
+          pathname.startsWith("/sockjs-node")
+        ) {
+          return false;
+        }
+        // Don't proxy requests for webpack-compiled assets (served by dev server)
+        if (
+          pathname.startsWith("/static/") ||
+          pathname.endsWith(".hot-update.json") ||
+          pathname.endsWith(".hot-update.js")
+        ) {
+          return false;
+        }
+        // Don't proxy browser page loads (Accept: text/html) — let
+        // historyApiFallback handle them so the React SPA index.html is served.
+        if (
+          req.method === "GET" &&
+          req.headers.accept &&
+          req.headers.accept.indexOf("text/html") !== -1
+        ) {
+          return false;
+        }
+        // Proxy everything else to the Express server
+        return true;
+      },
+      target: proxySetting,
+      changeOrigin: true,
+      ws: false,
+      xfwd: true,
+    },
+  ];
 
   // Serve webpack assets generated by the compiler over a web server.
   const serverConfig = createDevServerConfig(proxyConfig, urls.lanUrlForConfig);
@@ -875,10 +1127,6 @@ function setupDevServer() {
     if (err) {
       return console.log(err);
     }
-    if (isInteractive) {
-      clearConsole();
-    }
-
     // We used to support resolving modules according to `NODE_PATH`.
     // This now has been deprecated in favor of jsconfig/tsconfig.json
     // This lets you use absolute paths in imports inside large monorepos:
@@ -890,7 +1138,7 @@ function setupDevServer() {
       );
       console.log();
     }
-    console.log(chalk.cyan("Starting the development server...\n"));
+    console.log(chalk.cyan("\nStarting the development server..."));
   });
 
   ["SIGINT", "SIGTERM"].forEach(function (sig) {

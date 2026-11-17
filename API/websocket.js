@@ -1,12 +1,37 @@
 const WebSocket = require("isomorphic-ws");
 const logger = require("./logger");
+const siteAccess = require("./permissions/siteAccess");
+
+// A proxy that leaves its identity headers off websocket upgrades: use the proxy
+// identity this session's last proxied request carried (as AUTH=csso did)
+function savedProxyIdentity(s) {
+  const saved = s && s.proxyIdentity;
+  if (!saved || typeof saved.username !== "string" || saved.username === "") return null;
+  if (!siteAccess.hasProvider("proxy")) return null;
+  return {
+    provider: "proxy",
+    subject: String(saved.subject || saved.username),
+    username: saved.username,
+    email: null,
+    groups: Array.isArray(saved.groups) ? saved.groups.filter((g) => typeof g === "string") : [],
+    session: saved.session != null ? String(saved.session) : null,
+  };
+}
 
 const websocket = {
   wss: null,
-  init: function (server) {
+  broadcast: function (data, isBinary) {
+    if (!websocket.wss || typeof websocket.wss.broadcast !== "function") {
+      return false;
+    }
+
+    websocket.wss.broadcast(data, isBinary);
+    return true;
+  },
+  init: function (server, sessionMiddleware) {
     logger("info", "Trying to init websocket...", "websocket", null, "");
 
-    if (!server === null) {
+    if (!server) {
       logger(
         "websocket_error",
         "server parameter not defined.",
@@ -25,39 +50,148 @@ const websocket = {
       ""
     );
 
-    const wss = new WebSocket.Server({ noServer: true });
+    const wss = new WebSocket.Server({ noServer: true, maxPayload: 64 * 1024 });
     websocket.wss = wss;
+    const { getRequestHost, isOriginAllowed } = require("./origin");
 
-    // Broadcast to all clients
+    // Sends each mission's updates only to clients that can view that mission
     wss.broadcast = function broadcast(data, isBinary) {
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN && data !== undefined) {
-          client.send(data, { binary: isBinary });
-        }
-      });
+      if (data === undefined) return;
+      let mission = null;
+      try {
+        const parsed = JSON.parse(data);
+        mission = parsed && parsed.body ? parsed.body.mission : null;
+      } catch (err) {}
+      if (typeof mission !== "string" || mission === "") return;
+      const policy = require("./permissions/policy");
+      require("./permissions/missions")
+        .uuidForName(mission)
+        .then((uuid) => {
+          if (!uuid) return;
+          wss.clients.forEach((client) => {
+            if (client.readyState !== WebSocket.OPEN || !client.mmgisViewer) return;
+            client
+              .mmgisViewer()
+              .then((p) => {
+                if (
+                  client.readyState === WebSocket.OPEN &&
+                  policy.can(p, "mission.view", { mission: uuid })
+                )
+                  client.send(data, { binary: isBinary });
+              })
+              .catch(() => {});
+          });
+        })
+        .catch((err) =>
+          logger("error", "Failed to broadcast websocket update.", "websocket", null, err)
+        );
     };
 
-    wss.on("connection", (ws) => {
+    wss.on("connection", (ws, request) => {
       ws.on("message", (message) => {
-        wss.broadcast(message);
+        logger(
+          "warn",
+          `Rejected websocket client message (from ${
+            request.headers["x-forwarded-for"] || request.socket.remoteAddress
+          })`,
+          "websocket",
+          request,
+        );
+        ws.close(1008, "Client messages are not accepted");
       });
     });
 
     server.on("upgrade", function upgrade(request, socket, head) {
       const pathname = request.url;
+      const remoteAddress =
+        request.headers["x-forwarded-for"] || request.socket.remoteAddress;
+      const reject = (reason) => {
+        logger(
+          "warn",
+          `Rejected websocket upgrade (reason: ${reason}, from ${remoteAddress})`,
+          "websocket",
+          request,
+        );
+        socket.destroy();
+      };
+
       try {
         if (
-          pathname ===
+          pathname !==
           (process.env.WEBSOCKET_ROOT_PATH || process.env.ROOT_PATH || "") + "/"
         ) {
+          reject("invalid path");
+          return;
+        }
+
+        const origin = request.headers.origin;
+        if (!origin) {
+          reject("missing origin");
+          return;
+        }
+        if (!isOriginAllowed(origin, getRequestHost(request))) {
+          reject("origin not allowed");
+          return;
+        }
+
+        // Header-based login providers (e.g. proxy) identify the upgrade request itself
+        const providerIdentity = () =>
+          require("./permissions/providers")
+            .identify({
+              headers: request.headers,
+              socket: request.socket,
+              get: (name) => request.headers[String(name).toLowerCase()],
+            })
+            .catch(() => null);
+
+        const completeUpgrade = async () => {
+          const identity = await providerIdentity();
+          // The session as stored now, so logouts and ended sessions apply to open sockets
+          const currentSession = () =>
+            new Promise((resolve) => {
+              const store = request.sessionStore;
+              if (!request.session || !store || !request.sessionID) {
+                resolve(request.session || {});
+                return;
+              }
+              store.get(request.sessionID, (err, s) => resolve(err || !s ? {} : s));
+            });
+          // Resolved again on every broadcast, so removed access and deleted accounts apply at once
+          const viewer = async () => {
+            const session = await currentSession();
+            return require("./permissions/principal").resolvePrincipal({
+              headers: request.headers,
+              session,
+              identity: identity || savedProxyIdentity(session) || undefined,
+            });
+          };
+          const p = await viewer();
+
+          // Guests are allowed unless SITE_ACCESS=required; a deleted account's session is a guest
+          if (p.kind === "invalid_token" || !(p.authenticated || siteAccess.guestsAllowed())) {
+            reject("unauthenticated session");
+            return;
+          }
+
           wss.handleUpgrade(request, socket, head, function done(ws) {
+            ws.mmgisViewer = viewer;
             wss.emit("connection", ws, request);
           });
+        };
+
+        if (typeof sessionMiddleware === "function") {
+          sessionMiddleware(request, {}, (err) => {
+            if (err) {
+              reject("session middleware error");
+              return;
+            }
+            completeUpgrade().catch(() => reject("upgrade error"));
+          });
         } else {
-          socket.destroy();
+          completeUpgrade().catch(() => reject("upgrade error"));
         }
       } catch (err) {
-        socket.destroy();
+        reject("upgrade error");
       }
     });
 
@@ -68,4 +202,4 @@ const websocket = {
   },
 };
 
-module.exports = { websocket };
+module.exports = { websocket, savedProxyIdentity };

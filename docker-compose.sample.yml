@@ -24,9 +24,14 @@ services:
       start_period: 15s
       timeout: 8s
     restart: on-failure
+    # Runs as uid/gid 10001 by default; ./Missions and ./ssl must be writable by it.
+    # To run as the host owner of ./Missions instead (set MMGIS_UID/MMGIS_GID in .env):
+    # user: "${MMGIS_UID}:${MMGIS_GID}"
     volumes:
       - ./Missions:/usr/src/app/Missions
       - ./ssl:/usr/src/app/ssl
+      # Optional: persist SPICE kernels downloaded with SPICE_SCHEDULED_KERNEL_DOWNLOAD (must be writable by the mmgis uid)
+      # - ./spice/kernels:/usr/src/app/spice/kernels
 
   stac-fastapi:
     image: ghcr.io/stac-utils/stac-fastapi-pgstac:6.2.2
@@ -46,6 +51,8 @@ services:
       - POSTGRES_PORT=5432
       - DB_MIN_CONN_SIZE=1
       - DB_MAX_CONN_SIZE=1
+      # Enable write endpoints (POST/PUT/DELETE on /collections and /items)
+      - ENABLE_TRANSACTIONS_EXTENSIONS=true
     depends_on:
       mmgis:
         condition: service_healthy
@@ -58,7 +65,7 @@ services:
       - ./Missions:/Missions
 
   tipg:
-    image: ghcr.io/developmentseed/tipg:1.3.0
+    image: ghcr.io/developmentseed/tipg:1.6.1
     ports:
       - 8882
     environment:
@@ -97,7 +104,7 @@ services:
     # TODO: remove once https://github.com/rasterio/rasterio-wheels/issues/69 is resolved
     # See https://github.com/developmentseed/titiler/discussions/387
     platform: linux/amd64
-    image: ghcr.io/developmentseed/titiler:1.2.1
+    image: ghcr.io/developmentseed/titiler:2.2.0
     ports:
       - 8883
     restart: on-failure
@@ -149,7 +156,7 @@ services:
     # At the time of writing, rasterio and psycopg wheels are not available for arm64 arch
     # so we force the image to be built with linux/amd64
     platform: linux/amd64
-    image: ghcr.io/stac-utils/titiler-pgstac:1.9.0
+    image: ghcr.io/stac-utils/titiler-pgstac:3.1.0
     ports:
       - 8884
     restart: on-failure
@@ -165,21 +172,17 @@ services:
       # Application
       - HOST=0.0.0.0
       - PORT=8884
-      # https://github.com/tiangolo/uvicorn-gunicorn-docker#web_concurrency
+      # Number of gunicorn/uvicorn workers
       - WEB_CONCURRENCY=1
-      # https://github.com/tiangolo/uvicorn-gunicorn-docker#workers_per_core
-      - WORKERS_PER_CORE=1
-      # https://github.com/tiangolo/uvicorn-gunicorn-docker#max_workers
-      - MAX_WORKERS=10
-      # Postgres connection
+      # Postgres connection (titiler-pgstac >=2.0 uses PG* names)
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_USER=username
+      - PGUSER=username
       ## UPDATE ME V============================================================================================V UPDATE ME
-      - POSTGRES_PASS=password
+      - PGPASSWORD=password
       ## Leave this as mmgis-stac
-      - POSTGRES_DBNAME=mmgis-stac
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      - PGDATABASE=mmgis-stac
+      - PGHOST=db
+      - PGPORT=5432
       - DB_MIN_CONN_SIZE=1
       - DB_MAX_CONN_SIZE=10
       # - DB_MAX_QUERIES=10
@@ -226,7 +229,7 @@ services:
     restart: on-failure
 
   db:
-    image: postgis/postgis:16-3.4-alpine
+    image: postgis/postgis:18-3.6-alpine
     env_file: .env
     environment:
       - POSTGRES_USER=${DB_USER}
@@ -243,6 +246,6 @@ services:
       timeout: 8s
     restart: on-failure
     volumes:
-      - mmgis-db:/var/lib/postgresql/data
+      - mmgis-db:/var/lib/postgresql
 volumes:
   mmgis-db:

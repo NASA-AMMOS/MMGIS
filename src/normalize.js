@@ -88,6 +88,7 @@ define(function() {
     
     baseParts.pop();
     
+    var curPart;
     while (curPart = uriParts.shift())
       if (curPart == '..')
         baseParts.pop();
@@ -105,7 +106,7 @@ define(function() {
     var baseParts = base.split('/');
     baseParts.pop();
     base = baseParts.join('/') + '/';
-    i = 0;
+    var i = 0;
     while (base.substr(i, 1) == uri.substr(i, 1))
       i++;
     while (base.substr(i, 1) != '/')
@@ -116,11 +117,12 @@ define(function() {
     // each base folder difference is thus a backtrack
     baseParts = base.split('/');
     var uriParts = uri.split('/');
-    out = '';
+    var out = '';
     while (baseParts.shift())
       out += '../';
     
     // finally add uri parts
+    var curPart;
     while (curPart = uriParts.shift())
       out += curPart + '/';
     

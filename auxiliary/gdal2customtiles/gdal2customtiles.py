@@ -955,11 +955,15 @@ def scale_query_to_tile(dsquery, dstile, options, tilefilename=""):
 
     if options.resampling == "average":
 
+        # MMGIS - DEM tiles encode float32 values as RGBA bytes; averaging
+        # those bytes produces garbage floats, so use nearest-neighbor instead.
+        resample_alg = "near" if getattr(options, "isDEMtile", False) else "average"
+
         # Function: gdal.RegenerateOverview()
         for i in range(1, tilebands + 1):
             # Black border around NODATA
             res = gdal.RegenerateOverview(
-                dsquery.GetRasterBand(i), dstile.GetRasterBand(i), "average"
+                dsquery.GetRasterBand(i), dstile.GetRasterBand(i), resample_alg
             )
             if res != 0:
                 exit_with_error(
@@ -4923,7 +4927,7 @@ def single_threaded_tiling(
     if options.verbose:
         print("Begin tiles details calc")
     conf, tile_details = worker_tile_details(
-        input_file, output_folder, options)
+        input_file, output_folder, options, None)
 
     if options.base_every_zoom:
         sys.exit('Done!')

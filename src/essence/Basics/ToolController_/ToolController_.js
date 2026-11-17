@@ -1,501 +1,191 @@
 import $ from 'jquery'
 import L_ from '../Layers_/Layers_'
-import TimeUI from '../TimeControl_/TimeUI'
 import { toolModules, toolConfigs } from '../../../pre/tools'
+import Connections_ from '../Connections_/Connections_'
+import useUIStore, { readSavedDetentIndex } from '../UserInterface_/store/uiStore'
+import { getSeparatedMode, resolveToolJs } from './toolControllerHelpers'
 
-import tippy from 'tippy.js'
+// Once per name: a miss is usually in a click handler, so warning every time
+// would be a console full of the same line.
+const _warnedMissingTools = new Set()
 
 let ToolController_ = {
     tools: null,
-    incToolsDiv: null,
-    excToolsDiv: null,
-    separatedDiv: null,
-    separatedDivLeft: null,
-    separatedDivRight: null,
     activeSeparatedTools: [],
     toolModuleNames: [],
     toolModules: toolModules,
     activeTool: null,
     activeToolName: null,
+    _pendingCloseTool: null,
     prevHeight: 0,
     defaultColor: 'var(--color-f)',
     hoverColor: 'var(--color-mmgis)',
     activeColor: 'var(--color-mmgis)',
     activeBG: 'var(--color-i)',
     loaded: false,
+
+    // init: Build the tool module name list and initialize all tool modules.
+    // DOM construction for toolbar buttons and separated tools is handled by React
+    // (Toolbar.jsx and SeparatedTools.jsx).
     init: function (tools) {
         this.tools = tools
+        Connections_.init(tools)
 
-        var mainDiv = $('<div>')
-            .attr('id', 'toolbarTools')
-            .css('height', '100%')
-        $('#toolbar').append(mainDiv)
-
-        this.incToolsDiv = $('<div>')
-            .attr('id', 'toolcontroller_incdiv')
-            .attr('class', 'sixteen wide column')
-            .css({
-                'transition': 'all 0.25s ease-in',
-                'pointer-events': 'none',
-                'opacity': '0',
-                'padding-bottom': '8px'
-            })
-        mainDiv.append(this.incToolsDiv)
-
-        // Create three separate containers for left, center, and right justified tools
-        this.separatedDivLeft = $('<div>')
-            .attr('id', 'toolcontroller_sepdiv_left')
-            .css({
-                'position': 'absolute',
-                'top': '40px',
-                'left': '5px',
-                'z-index': '1004'
-            })
-        $('#splitscreens').append(this.separatedDivLeft)
-
-        this.separatedDiv = $('<div>')
-            .attr('id', 'toolcontroller_sepdiv')
-            .css({
-                'position': 'absolute',
-                'top': '40px',
-                'left': '5px',
-                'z-index': '1004'
-            })
-        $('#splitscreens').append(this.separatedDiv)
-
-        // Adjust right position if zoom controls are enabled
-        const rightPosition =
-            L_.configData.look && L_.configData.look.zoomcontrol
-                ? '40px'
-                : '5px'
-
-        this.separatedDivRight = $('<div>')
-            .attr('id', 'toolcontroller_sepdiv_right')
-            .css({
-                'position': 'absolute',
-                'top': '40px',
-                'right': rightPosition,
-                'z-index': '1004'
-            })
-        $('#splitscreens').append(this.separatedDivRight)
-
-        // Helper function to create a separated tool
-        const createSeparatedTool = (i) => {
-            $('#viewerToolBar').css('padding-left', '36px')
-
-            // Determine which container to use based on justification
-            let targetDiv = this.separatedDiv // default to center/left
-            const justification = tools[i].variables?.justification
-            if (justification === 'left') {
-                targetDiv = this.separatedDivLeft
-            } else if (justification === 'right') {
-                targetDiv = this.separatedDivRight
-            }
-
-            let sep = $('<div>')
-                .attr('id', `toolSeparated_${tools[i].name}`)
-                .css({
-                    'position': 'relative',
-                    'border-radius': '3px',
-                    'background': 'var(--color-a)',
-                    'margin-bottom': '5px'
-                })
-            targetDiv.append(sep)
-
-            const toolContent = $('<div>')
-                .attr('id', `toolContentSeparated_${tools[i].name}`)
-                .css({
-                    'position': 'absolute',
-                    'top': '0px',
-                    'left': '0px',
-                    'border-radius': '3px',
-                    'background': 'var(--color-a)',
-                    'transform': justification === 'right'
-                        ? 'translateX(calc(-100% + 30px))'
-                        : 'unset'
-                })
-            sep.append(toolContent)
-
-            const toolButton = $('<div>')
-                .attr('id', `toolButtonSeparated_${tools[i].name}`)
-                .attr('class', 'toolButtonSep')
-                .attr('tabindex', i + 1)
-                .css({
-                    'position': 'relative',
-                    'width': '30px',
-                    'height': '30px',
-                    'display': 'inline-block',
-                    'text-align': 'center',
-                    'line-height': '30px',
-                    //'text-shadow': '0px 1px #111',
-                    'vertical-align': 'middle',
-                    'cursor': 'pointer',
-                    'transition': 'all 0.2s ease-in',
-                    'color': ToolController_.defaultColor
-                })
-                .on(
-                    'click',
-                    (function (i) {
-                        return function () {
-                            const tM =
-                                ToolController_.toolModules[
-                                    `${ToolController_.tools[i].name}Tool`
-                                ]
-                            if (tM) {
-                                if (tM.made === false) {
-                                    tM.make(
-                                        `toolContentSeparated_${ToolController_.tools[i].name}`
-                                    )
-                                    ToolController_.activeSeparatedTools.push(
-                                        ToolController_.tools[i].name + 'Tool'
-                                    )
-                                    $(
-                                        `#toolButtonSeparated_${tools[i].name}`
-                                    ).addClass('active')
-                                } else {
-                                    tM.destroy()
-                                    ToolController_.activeSeparatedTools =
-                                        ToolController_.activeSeparatedTools.filter(
-                                            (a) =>
-                                                a !=
-                                                ToolController_.tools[i].name +
-                                                    'Tool'
-                                        )
-
-                                    $(
-                                        `#toolButtonSeparated_${tools[i].name}`
-                                    ).removeClass('active')
-                                }
-
-                                // Dispatch `toggleSeparatedTool` event
-                                let _event = new CustomEvent(
-                                    'toggleSeparatedTool',
-                                    {
-                                        detail: {
-                                            toggledToolName:
-                                                ToolController_.tools[i].js,
-                                            visible: tM.made,
-                                        },
-                                    }
-                                )
-                                document.dispatchEvent(_event)
-                            }
-                        }
-                    })(i)
-                )
-            sep.append(toolButton)
-
-            const sepIcon = $('<i>')
-                .attr('id', tools[i].name + 'Tool')
-                .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
-                .css('cursor', 'pointer')
-            toolButton.append(sepIcon)
-        }
-
-        let legendToolIndex = -1
-
+        // Build toolModuleNames array (used by makeTool, getToolsUrl, etc.)
         for (let i = 0; i < tools.length; i++) {
             this.toolModuleNames.push(tools[i].js)
-
-            if (tools[i].separatedTool && L_.UserInterface_.isMobile !== true) {
-                // Legend tool should always be last in its container
-                if (tools[i].name === 'Legend') {
-                    legendToolIndex = i
-                    continue
-                }
-                createSeparatedTool(i)
-            } else {
-                const toolButton = $('<div>')
-                    .attr('id', `toolButton${tools[i].name}`)
-                    .attr('class', 'toolButton')
-                    .css(
-                        'width',
-                        L_.UserInterface_.isMobile === true ? '45px' : '100%'
-                    )
-                    .css(
-                        'height',
-                        L_.UserInterface_.isMobile === true ? '100%' : '36px'
-                    )
-                    .css('display', 'inline-block')
-                    .css('text-align', 'center')
-                    .css('line-height', '36px')
-                    .css(
-                        'border-top',
-                        i === 0 ? '1px solid var(--color-a-5)' : 'none'
-                    )
-                    .css('border-bottom', '1px solid var(--color-a-5)')
-                    //.css( 'text-shadow', '0px 1px #111' )
-                    .css('vertical-align', 'middle')
-                    .css('cursor', 'pointer')
-                    .attr('tabindex', i + 1)
-                    .css('transition', 'all 0.2s ease-in')
-                    .css('color', ToolController_.defaultColor)
-                    .on(
-                        'click',
-                        (function (i) {
-                            return function () {
-                                var hasActive = false
-                                if ($(this).hasClass('active')) {
-                                    hasActive = true
-                                }
-                                var prevActive = $(
-                                    '#toolcontroller_incdiv .active'
-                                )
-                                prevActive.removeClass('active').css({
-                                    color: ToolController_.defaultColor,
-                                    background: 'none',
-                                })
-                                prevActive.parent().css({
-                                    background: 'none',
-                                })
-                                if (!hasActive) {
-                                    var newActive = $(
-                                        '#toolcontroller_incdiv #' +
-                                            ToolController_.tools[i].name +
-                                            'Tool'
-                                    )
-                                    newActive.addClass('active').css({
-                                        color: ToolController_.activeColor,
-                                    })
-                                    newActive.parent().css({
-                                        background: ToolController_.activeBG,
-                                    })
-                                }
-
-                                ToolController_.makeTool(
-                                    ToolController_.toolModuleNames[i],
-                                    i
-                                )
-
-                                // Dispatch `toolChange` event
-                                let _event = new CustomEvent('toolChange', {
-                                    detail: {
-                                        activeTool: ToolController_.activeTool,
-                                        activeToolName:
-                                            ToolController_.activeToolName,
-                                    },
-                                })
-                                document.dispatchEvent(_event)
-                            }
-                        })(i)
-                    )
-                    .on('mouseover', function () {
-                        if (!$(this).hasClass('active')) {
-                            $(this).css({ color: ToolController_.hoverColor })
-                        }
-                    })
-                    .on('mouseleave', function () {
-                        if (!$(this).hasClass('active')) {
-                            $(this).css({ color: ToolController_.defaultColor })
-                        }
-                    })
-                this.incToolsDiv.append(toolButton)
-
-                const toolIcon = $('<i>')
-                    .attr('id', tools[i].name + 'Tool')
-                    .attr('class', 'mdi mdi-' + tools[i].icon + ' mdi-18px')
-                    .css('cursor', 'pointer')
-                toolButton.append(toolIcon)
-
-                if (!L_.UserInterface_.isMobile) {
-                    // Only show tooltip if not in mobile mode
-                    tippy(`#toolButton${tools[i].name}`, {
-                        content: tools[i].name,
-                        placement: 'right',
-                        theme: 'blue',
-                    })
-                }
-            }
         }
 
-        // Add Legend tool last if it exists
-        if (legendToolIndex >= 0) {
-            createSeparatedTool(legendToolIndex)
-        }
-
-        // FIXME For now, remove the time button in the toolbar
-        // Add the time UI button if time is enabled and in mobile mode
-        if (
-            L_.UserInterface_?.isMobile === true &&
-            L_.configData.time &&
-            L_.configData.time.enabled === true
-        ) {
-            let timeSelect = $('<div>')
-                .attr('id', 'toggleTimeUI')
-                .attr('class', 'toolButton')
-                .css({
-                    'position': 'relative',
-                    'width': '45px',
-                    'height': '45px',
-                    'display': 'inline-block',
-                    'text-align': 'center',
-                    'line-height': '45px',
-                    'vertical-align': 'middle',
-                    'cursor': 'pointer',
-                    'transition': 'all 0.2s ease-in',
-                    'color': ToolController_.defaultColor
-                })
-                .on(
-                    'click',
-                    (function () {
-                        return function () {
-                            var hasActive = false
-                            if ($(this).hasClass('active')) {
-                                hasActive = true
-                            }
-                            var prevActive = $('#toolcontroller_incdiv .active')
-                            prevActive.removeClass('active').css({
-                                color: ToolController_.defaultColor,
-                                background: 'none',
-                            })
-                            prevActive.parent().css({
-                                background: 'none',
-                            })
-                            if (!hasActive) {
-                                var newActive = $(
-                                    '#toolcontroller_incdiv #toggleTimeUI'
-                                )
-                                newActive.addClass('active').css({
-                                    color: ToolController_.activeColor,
-                                })
-
-                                TimeUI.initialize()
-                                ToolController_.setToolHeight(TimeUI.height)
-                                ToolController_.setToolWidth()
-                                ToolController_.activeToolName = 'TimeUI'
-                                TimeUI.make()
-                                TimeUI.toggleExpanded()
-                                TimeUI.fina()
-                            } else {
-                                ToolController_.setToolHeight(0)
-                                ToolController_.setToolWidth()
-                                TimeUI.destroy()
-                                ToolController_.closeActiveTool()
-                                ToolController_.activeToolName = null
-                            }
-
-                            $('#topBar').css({
-                                'padding-left': '40px',
-                                'margin-left': '0px',
-                                width: '100%',
-                            })
-                        }
-                    })()
-                )
-            $('#toolcontroller_incdiv').append(timeSelect)
-
-            timeSelect
-                .append($('<i>')
-                    .attr('class', 'mdi mdi-clock mdi-18px')
-                    .css('cursor', 'pointer')
-                )
-        }
-
-        if (
-            L_.UserInterface_?.isMobile === true &&
-            (L_.configData.coordinates.coordll == true ||
-                L_.configData.coordinates.coorden == true)
-        ) {
-            let coordSelect = $('<div>')
-                .attr('id', 'coordinatesDiv')
-                .attr('class', 'toolButton')
-                .css({
-                    'position': 'relative',
-                    'width': '45px',
-                    'height': '45px',
-                    'display': 'inline-block',
-                    'text-align': 'center',
-                    'line-height': '45px',
-                    'vertical-align': 'middle',
-                    'cursor': 'pointer',
-                    'transition': 'all 0.2s ease-in',
-                    'color': ToolController_.defaultColor
-                })
-                .on(
-                    'click',
-                    (function () {
-                        return function () {
-                            var hasActive = false
-                            if ($(this).hasClass('active')) {
-                                hasActive = true
-                            }
-                            var prevActive = $('#toolcontroller_incdiv .active')
-                            prevActive.removeClass('active').css({
-                                color: ToolController_.defaultColor,
-                                background: 'none',
-                            })
-                            prevActive.parent().css({
-                                background: 'none',
-                            })
-                            if (!hasActive) {
-                                var newActive = $(
-                                    '#toolcontroller_incdiv #coordinatesDiv'
-                                )
-                                newActive.addClass('active').css({
-                                    color: ToolController_.activeColor,
-                                })
-
-                                L_.Coordinates.initialize()
-                                L_.Coordinates.init()
-                                ToolController_.setToolHeight(
-                                    L_.Coordinates.height
-                                )
-                                ToolController_.setToolWidth()
-                                ToolController_.activeToolName = 'CoordinatesTool'
-                                L_.Coordinates.make()
-                            } else {
-                                ToolController_.setToolHeight(0)
-                                ToolController_.setToolWidth()
-                                L_.Coordinates.destroy()
-                                ToolController_.closeActiveTool()
-                                ToolController_.activeToolName = null
-                            }
-
-                            $('#topBar').css({
-                                'padding-left': '40px',
-                                'margin-left': '0px',
-                                width: '100%',
-                            })
-                        }
-                    })()
-                )
-            $('#toolcontroller_incdiv').append(coordSelect)
-
-            coordSelect
-                .append($('<i>')
-                    .attr('class', 'mdi mdi-target mdi-18px')
-                    .css('cursor', 'pointer')
-                )
-        }
-
-        ToolController_.incToolsDiv
-            .css('pointer-events', 'auto')
-            .css('opacity', '1')
-
+        // Initialize tool modules. `toolModules` is populated by
+        // `src/pre/tools.js` (generated by `API/updateTools.js`) with
+        // static imports — every entry is an already-loaded module.
         ToolController_.toolModuleNames.forEach((t) => {
-            if (
-                ToolController_.toolModules[t] &&
-                typeof ToolController_.toolModules[t].initialize === 'function'
-            )
-                ToolController_.toolModules[t].initialize()
+            const tm = ToolController_.toolModules[t]
+            if (tm && typeof tm.initialize === 'function') tm.initialize()
         })
+
+        // separatedTool is defined solely by the plugin manifest (toolConfigs),
+        // like `expandable`. `true` = framed panel, "custom" = chrome-less
+        // (tool owns its DOM); anything else (incl. unset) = not separated.
+        const separatedTools = tools.filter((t) => {
+            const raw = toolConfigs[t.name]?.separatedTool
+            if (raw != null && !getSeparatedMode(toolConfigs, t.name)) {
+                console.warn(
+                    `Tool "${t.name}" has an unrecognized separatedTool value ${JSON.stringify(
+                        raw
+                    )}; expected true or "custom". Treating it as not separated.`
+                )
+            }
+            return getSeparatedMode(toolConfigs, t.name) != null
+        })
+        useUIStore.getState().setSeparatedToolsList(separatedTools)
+
+        // Auto-open separated tools that have on === true
+        separatedTools.forEach((tool) => {
+            if (tool.on === true && L_.UserInterface_.isMobile !== true) {
+                setTimeout(() => {
+                    const toolModuleName = tool.name + 'Tool'
+                    const tM = ToolController_.toolModules[toolModuleName]
+                    if (tM && tM.made === false)
+                        ToolController_.openSeparatedTool(tool.name)
+                }, 0)
+            }
+        })
+
+        // Publish tools list to Zustand store for React rendering
+        useUIStore.getState().setToolsList(tools)
+        useUIStore.getState().setToolsLoaded(true)
 
         ToolController_.loaded = true
         L_.toolsLoaded = true
 
         L_.fullyLoaded()
     },
+
     clear() {
-        $('#toolbarTools').remove()
+        // Don't remove #toolbarTools — it's React-managed.
+        // Setting toolsLoaded: false (below) causes Toolbar.jsx to unmount it.
         this.tools = null
-        this.incToolsDiv = null
-        this.excToolsDiv = null
         this.toolModuleNames = []
-        this.toolModules = []
+        this.activeSeparatedTools = []
+        this.toolModules = toolModules
+        useUIStore.getState().setSeparatedToolsList([])
+        useUIStore.getState().setActiveSeparatedTools([])
+        useUIStore.getState().setToolsList([])
+        useUIStore.getState().setToolsLoaded(false)
     },
     getTool: function (name) {
         var tool = this.toolModules[name]
+        if (tool == null && !_warnedMissingTools.has(name)) {
+            // The stub keeps a caller from throwing, but silence turns "the
+            // tool isn't in this mission's toolbar" into "my plugin does
+            // nothing", which is the harder thing to debug.
+            _warnedMissingTools.add(name)
+            console.warn(
+                `ToolController_.getTool('${name}'): no such tool is loaded — calls on it do nothing. Is it in the mission's toolbar and enabled?`
+            )
+        }
         return tool || { use: function () {} }
+    },
+    // Shows a separated tool; a tool that needs a connection shows the connect card first
+    openSeparatedTool: function (name) {
+        const toolModuleName = name + 'Tool'
+        const tM = this.toolModules[toolModuleName]
+        if (!tM || tM.made === true) return
+        if (this.activeSeparatedTools.includes(toolModuleName)) return
+        const containerId = `toolContentSeparated_${name}`
+        const make = () => {
+            if (tM.made !== true) tM.make(containerId)
+        }
+        if (!Connections_.openSeparated(name, containerId, make)) make()
+        this.activeSeparatedTools.push(toolModuleName)
+        useUIStore.getState().addActiveSeparatedTool(toolModuleName)
+        document.dispatchEvent(
+            new CustomEvent('toggleSeparatedTool', {
+                detail: {
+                    toggledToolName: resolveToolJs(this.tools, name),
+                    visible: true,
+                },
+            })
+        )
+    },
+    // openTool/closeTool — type-agnostic public API (keyed by tool name, e.g.
+    // 'Identifier') so plugins have one call regardless of tool kind. Both
+    // no-op if the tool is already in the requested state.
+    openTool: function (name) {
+        if (getSeparatedMode(toolConfigs, name)) {
+            this.openSeparatedTool(name)
+        } else {
+            const idx = (this.tools || []).findIndex((t) => t.name === name)
+            if (idx < 0) return
+            const toolModuleName = this.toolModuleNames[idx]
+            if (this.activeToolName === toolModuleName) return
+            this.makeTool(toolModuleName, idx)
+            useUIStore.getState().setActiveToolName(this.activeToolName)
+            document.dispatchEvent(
+                new CustomEvent('toolChange', {
+                    detail: {
+                        activeTool: this.activeTool,
+                        activeToolName: this.activeToolName,
+                    },
+                })
+            )
+        }
+    },
+    closeTool: function (name) {
+        if (getSeparatedMode(toolConfigs, name)) {
+            const toolModuleName = name + 'Tool'
+            const tM = this.toolModules[toolModuleName]
+            const gated = Connections_.closeSeparated(name)
+            if (!tM || (tM.made === false && !gated)) return
+            if (tM.made !== false) tM.destroy()
+            this.activeSeparatedTools = this.activeSeparatedTools.filter(
+                (a) => a !== toolModuleName
+            )
+            useUIStore.getState().removeActiveSeparatedTool(toolModuleName)
+            document.dispatchEvent(
+                new CustomEvent('toggleSeparatedTool', {
+                    detail: {
+                        toggledToolName: resolveToolJs(this.tools, name),
+                        visible: false,
+                    },
+                })
+            )
+        } else {
+            const idx = (this.tools || []).findIndex((t) => t.name === name)
+            if (idx < 0) return
+            if (this.activeToolName === this.toolModuleNames[idx]) {
+                this.closeActiveTool()
+                document.dispatchEvent(
+                    new CustomEvent('toolChange', {
+                        detail: {
+                            activeTool: this.activeTool,
+                            activeToolName: this.activeToolName,
+                        },
+                    })
+                )
+            }
+        }
     },
     makeTool: function (name, idx) {
         var tool = this.getTool(name)
@@ -507,34 +197,98 @@ let ToolController_ = {
                     typeof tool.make === 'function' &&
                     typeof tool.destroy === 'function'
                 ) {
+                    // Destroy the currently active tool before switching
                     if (this.activeTool != null) {
                         this.activeTool.destroy()
+                        this.activeTool = null
                     }
+                    // If a horizontal tool is still pending close (deferred
+                    // destroy via setTimeout), destroy it now before opening
+                    // the new tool — otherwise its destroy() is never called.
+                    if (this._pendingCloseTool) {
+                        this._pendingCloseTool.destroy()
+                        this._pendingCloseTool = null
+                    }
+                    // Cancel any pending horizontal-tool close cleanup
+                    ++this._closeSeq
 
-                    this.activeTool = tool
-                    this.setToolHeight(this.activeTool.height)
-                    this.setToolWidth(this.activeTool.width)
-                    if (this.activeTool.height == 0) {
-                        this.UserInterface.openToolPanel(this.activeTool.width)
+                    // Register the tool's detent fractions so the drag
+                    // splitter can snap between hardstops
+                    const detents = Array.isArray(tool.heightDetents)
+                        ? tool.heightDetents
+                        : []
+                    useUIStore.getState().setToolDetents(detents)
+
+                    // Open at a detent index (default = middle) using the same
+                    // height basis as the snap math, so the initial height lines
+                    // up with a hardstop. Restore the user's last-used detent if
+                    // one was saved and fall back to tool.height when no detents
+                    let openedFromDetent = false
+                    if (detents.length > 0 && tool.height !== 0) {
+                        const savedIdx = readSavedDetentIndex(name)
+                        const middleIdx = Math.floor(detents.length / 2)
+                        const useIdx =
+                            savedIdx != null &&
+                            savedIdx >= 0 &&
+                            savedIdx < detents.length
+                                ? savedIdx
+                                : middleIdx
+                        openedFromDetent = useUIStore
+                            .getState()
+                            .setToolHeightToDetent(useIdx)
+                    }
+                    if (!openedFromDetent) {
+                        this.setToolHeight(tool.height)
+                    } else {
+                        // keep prevHeight in sync so a later setToolHeight(0) closes
+                        this.prevHeight = useUIStore.getState().pxIsTools
+                    }
+                    this.setToolWidth(tool.width)
+                    if (tool.height == 0) {
+                        this.UserInterface.openToolPanel(tool.width)
                     } else {
                         this.UserInterface.closeToolPanel()
                     }
-                    /*
-                    if( this.prevHeight != this.activeTool.height && this.UserInterface != null ) {
-                        this.UserInterface.setToolHeight( this.activeTool.height );
-                    }
-                    this.prevHeight = this.activeTool.height;
-                    */
-                    // Toggle drag handle
-                    $('#toolPanelDrag').css(
-                        'display',
+                    // Toggle drag handle via store (React is single source of truth)
+                    useUIStore.getState().setToolPanelDragVisible(
                         toolConfigs[ToolController_.tools[idx].name]
                             ?.expandable === true
-                            ? 'block'
-                            : 'none'
                     )
 
-                    this.activeTool.make(this)
+                    // On mobile, rescue #timeUI back to staging before the new
+                    // tool's make() clears #tools — the React useEffect in
+                    // MobileTimeUIToggle fires too late (async) to save it.
+                    if (useUIStore.getState().isMobile) {
+                        const timeUI = document.getElementById('timeUI')
+                        const staging = document.getElementById(
+                            'timeUIMobileStaging'
+                        )
+                        if (timeUI && staging && timeUI.closest('#tools')) {
+                            staging.appendChild(timeUI)
+                        }
+                        useUIStore.getState().setTimeUIActive(false)
+                        useUIStore.getState().setTimeUIExpanded(false)
+                    }
+
+                    // A tool whose plugin.json requires a connection the user
+                    // hasn't made shows the "connect first" card instead
+                    const makeNow = () => {
+                        this.activeTool = tool
+                        tool.make(this)
+                        ToolController_.injectCloseButton()
+                    }
+                    const gated = Connections_.openTool(
+                        ToolController_.tools[idx].name,
+                        tool,
+                        () => {
+                            if (this.activeToolName === name) makeNow()
+                        }
+                    )
+                    this.activeTool = gated || tool
+                    if (!gated) tool.make(this)
+
+                    // Inject close X button into the tool's content area
+                    ToolController_.injectCloseButton()
                 } else {
                     console.warn(
                         'WARNING: ' +
@@ -545,8 +299,8 @@ let ToolController_ = {
                 }
                 this.activeToolName = name
             } else {
-                // Toggle drag handle
-                $('#toolPanelDrag').css('display', 'none')
+                // Toggle drag handle via store (React is single source of truth)
+                useUIStore.getState().setToolPanelDragVisible(false)
                 //close tool
                 this.closeActiveTool()
             }
@@ -568,31 +322,133 @@ let ToolController_ = {
                 this.activeTool.notify(type, payload)
         }
     },
+    _closeSeq: 0,
     closeActiveTool: function () {
-        var prevActive = $('#toolcontroller_incdiv .active')
-        prevActive.removeClass('active').css({
-            color: ToolController_.defaultColor,
-            background: 'none',
-        })
-        prevActive.parent().css({ background: 'none' })
+        // Button active/inactive styling is now driven by the Zustand store's
+        // activeToolName field. Toolbar.jsx reads it and passes isActive to
+        // each ToolButton, so no imperative DOM class toggling is needed here.
+        // Setting activeToolName to null (below) triggers React to re-render
+        // all buttons with isActive=false.
+
+        var wasHorizontal = this.prevHeight != 0
 
         if (this.activeTool != null) {
-            this.activeTool.destroy()
-            $('#tools').empty()
-            this.UserInterface.closeToolPanel()
+            if (wasHorizontal) {
+                // Horizontal tools: animate the wrapper height to 0 first,
+                // then destroy the tool and clean up after the CSS transition
+                // (0.4s ease-out) completes. This keeps the tool content
+                // visible while the wrapper slides downward.
+                var closingTool = this.activeTool
+                this._pendingCloseTool = closingTool
+                var closeId = ++this._closeSeq
+                this.UserInterface.setToolHeight(0)
+                // Reset wrapper width immediately so TopBar snaps to
+                // the correct position at the start of the close animation
+                // (the height animation provides the visual close effect).
+                useUIStore.setState({
+                    toolsWrapperRawWidth: 0,
+                    toolsWrapperCSSWidth: '0%',
+                })
+                setTimeout(function () {
+                    // Guard: if another tool was opened during the transition,
+                    // _closeSeq will have incremented — skip stale cleanup.
+                    if (ToolController_._closeSeq !== closeId) return
+                    try {
+                        closingTool.destroy()
+                    } catch (e) {
+                        console.warn('Deferred tool destroy() failed:', e)
+                    }
+                    ToolController_._pendingCloseTool = null
+                    var toolsEl = document.getElementById('tools')
+                    if (toolsEl) toolsEl.innerHTML = ''
+                }, 420)
+            } else {
+                // Vertical/side-panel tools: destroy immediately
+                this.activeTool.destroy()
+                var toolsEl = document.getElementById('tools')
+                if (toolsEl) toolsEl.innerHTML = ''
+                this.UserInterface.closeToolPanel()
+                useUIStore.setState({
+                    toolsWrapperRawWidth: 0,
+                    toolsWrapperCSSWidth: '0%',
+                })
+                if (this.UserInterface != null) {
+                    this.UserInterface.setToolHeight(0)
+                }
+            }
         }
         this.activeTool = null
         this.activeToolName = null
-        if (this.prevHeight != 0 && this.UserInterface != null) {
-            this.UserInterface.setToolHeight(0)
-        }
+        // Sync to store so React re-renders button states
+        useUIStore.getState().setActiveToolName(null)
+        useUIStore.getState().setToolPanelDragVisible(false)
+        useUIStore.getState().setToolDetents([])
         this.prevHeight = 0
+    },
+    injectCloseButton: function () {
+        // Horizontal tools: close button is rendered by the React
+        // BottomFloatingBar component (SplitScreens.jsx) — no injection
+        // needed here. Only inject for vertical (side-panel) tools.
+        const isHorizontal = this.activeTool && this.activeTool.height > 0
+        if (isHorizontal) return
+
+        const container = $('#toolPanel')
+        if (!container.length) return
+
+        // Remove any existing injected close button
+        container.find('.tool-close-btn').remove()
+
+        const closeBtn = $('<div>')
+            .addClass('tool-close-btn')
+            .attr('title', 'Close Tool')
+            .css({
+                position: 'absolute',
+                top: '6px',
+                right: '6px',
+                width: '26px',
+                height: '26px',
+                display: 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                cursor: 'pointer',
+                'border-radius': '4px',
+                'z-index': '10',
+                color: '#9ca3af',
+                'font-size': '18px',
+                transition: 'background 0.15s, color 0.15s',
+            })
+            .html("<i class='mdi mdi-close mdi-18px'></i>")
+            .on('mouseenter', function () {
+                $(this).css({ background: 'rgba(255,255,255,0.1)', color: '#fff' })
+            })
+            .on('mouseleave', function () {
+                $(this).css({ background: 'transparent', color: '#9ca3af' })
+            })
+            .on('click', function () {
+                ToolController_.closeActiveTool()
+            })
+
+        // Ensure the container has position:relative for absolute positioning
+        const firstChild = container.children().first()
+        if (firstChild.length) {
+            firstChild.css('position', 'relative')
+            firstChild.append(closeBtn)
+        } else {
+            container.css('position', 'relative')
+            container.append(closeBtn)
+        }
     },
     getToolsUrl: function () {
         var toolsUrl = ''
+        // Walk every loaded tool module (lazy loaders without a
+        // resolved module yet have no URL state to serialise).
         for (var i = 0; i < this.toolModuleNames.length; i++) {
             var tool = this.toolModules[this.toolModuleNames[i]]
-            if (tool && typeof tool.getUrlString === 'function') {
+            if (
+                tool &&
+                typeof tool !== 'function' &&
+                typeof tool.getUrlString === 'function'
+            ) {
                 var urlString = tool.getUrlString()
                 if (urlString.length > 0)
                     toolsUrl += this.toolModuleNames[i] + '$' + urlString + ','
@@ -611,9 +467,31 @@ let ToolController_ = {
     finalizeTools: function () {
         for (let i = 0; i < this.toolModuleNames.length; i++) {
             const tool = this.toolModules[this.toolModuleNames[i]]
-            if (tool && typeof tool.finalize === 'function') {
+            if (
+                tool &&
+                typeof tool !== 'function' &&
+                typeof tool.finalize === 'function'
+            ) {
                 tool.finalize()
             }
+        }
+
+        // Open separated tools with displayOnStart after all layers are loaded
+        if (L_.UserInterface_.isMobile !== true) {
+            const separatedTools = useUIStore.getState().separatedToolsList
+            separatedTools.forEach((tool) => {
+                const toolModuleName = tool.name + 'Tool'
+                const tM = ToolController_.toolModules[toolModuleName]
+                if (
+                    tM &&
+                    tM.displayOnStart === true &&
+                    tM.made === false
+                ) {
+                    setTimeout(() => {
+                        ToolController_.openSeparatedTool(tool.name)
+                    }, 0)
+                }
+            })
         }
     },
 }

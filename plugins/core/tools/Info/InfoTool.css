@@ -1,0 +1,282 @@
+#infoTool {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-flow: column;
+    box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
+}
+
+#infoToolHeader {
+    display: flex;
+    height: 40px;
+    line-height: 40px;
+    color: #ccc;
+    background: var(--color-a);
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-a1);
+}
+#infoToolHeader > div {
+    display: flex;
+    align-items: center;
+}
+#infoToolHeader > .right {
+    display: flex;
+    align-items: center;
+    margin-right: 24px;
+}
+
+#infoToolTitle {
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    font-weight: 600;
+    padding-left: 10px;
+    font-family: 'lato-light';
+    text-transform: uppercase;
+    color: var(--color-l);
+}
+
+#infoToolEquiv {
+    font-size: 12px;
+    background: var(--color-b);
+    border-radius: 3px;
+    padding: 0px 4px;
+    height: 18px;
+    min-width: 18px;
+    text-align: center;
+    margin: 12px 4px 10px 4px;
+    color: var(--color-l);
+    cursor: default;
+    display: none;
+}
+
+#infoToolUnhideAll {
+    cursor: pointer;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 30px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    color: var(--color-green);
+}
+#infoToolUnhideAll:hover {
+    color: var(--color-green2);
+}
+
+#infoToolHide {
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 30px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+}
+#infoToolHide > i.mdi-eye-off {
+    color: var(--color-red2);
+}
+#infoToolDownload {
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 30px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+}
+#infoToolLocate {
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 30px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+}
+#infoToolShowHidden {
+    position: absolute;
+    right: 0px;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
+    width: 34px;
+    height: 34px;
+    text-align: center;
+    line-height: 34px;
+}
+
+#infoToolDownload:hover,
+#infoToolLocate:hover,
+#infoToolHide:hover,
+#infoToolShowHidden:hover {
+    color: var(--color-m);
+}
+
+#infoToolSelectedDropdown {
+    width: 100%;
+    height: 40px;
+    background: var(--color-a1-5);
+    border-top: 1px solid var(--color-a-5);
+}
+#infoToolSelectedGeoDataset,
+#infoToolSelectedDataset {
+    display: flex;
+}
+#infoToolSelectedGeoDatasetDropdown,
+#infoToolSelectedDatasetDropdown {
+    width: calc(100% - 60px);
+    height: 40px;
+    background: var(--color-a1-5);
+    border-bottom: 1px solid var(--color-a-5);
+}
+#infoToolSelectedGeoDatasetDropdown .dropy__title span,
+#infoToolSelectedDatasetDropdown .dropy__title span {
+    color: var(--color-h);
+    font-size: 14px;
+    padding-top: 12px;
+}
+#infoToolSelectedGeoDatasetDropdownTotal,
+#infoToolSelectedDatasetDropdownTotal {
+    position: absolute;
+    right: 60px;
+    font-size: 12px;
+    background: var(--color-b);
+    border-radius: 3px;
+    padding: 2px 4px;
+    height: 18px;
+    min-width: 18px;
+    text-align: center;
+    margin: 10px 4px 12px 4px;
+    color: var(--color-l);
+    cursor: default;
+}
+
+#infoToolSelectedGeoDatasetLeft,
+#infoToolSelectedGeoDatasetRight,
+#infoToolSelectedDatasetLeft,
+#infoToolSelectedDatasetRight {
+    width: 30px;
+    height: 40px;
+    line-height: 40px;
+    display: flex;
+    justify-content: center;
+    background: var(--color-a1);
+    border-bottom: 1px solid var(--color-a-5);
+    cursor: pointer;
+    transition: background 0.2s ease-out;
+}
+#infoToolSelectedGeoDatasetLeft:hover,
+#infoToolSelectedGeoDatasetRight:hover,
+#infoToolSelectedDatasetLeft:hover,
+#infoToolSelectedDatasetRight:hover {
+    background: var(--color-a2);
+}
+#infoToolSelectedGeoDatasetLeft,
+#infoToolSelectedDatasetLeft {
+    border-right: 1px solid var(--color-a-5);
+}
+#infoToolSelectedGeoDatasetRight,
+#infoToolSelectedDatasetRight {
+    border-left: 1px solid var(--color-a-5);
+}
+
+#infoToolFilter {
+    display: flex;
+    height: 36px;
+    line-height: 33px;
+    border-top: 1px solid var(--color-a-5);
+    border-bottom: 1px solid var(--color-a-5);
+    background: var(--color-a1);
+}
+#infoToolFilter input {
+    background: var(--color-a1);
+    width: calc(100% - 68px);
+    color: #ccc;
+    padding-left: 9px;
+    border: none;
+    border-right: 1px solid var(--color-a-5);
+}
+#infoToolFilter .mdi-filter-variant {
+    position: absolute;
+    right: 42px;
+    color: #999;
+    line-height: 34px;
+    pointer-events: none;
+}
+
+#infoToolContent {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#infoToolNoneSelected {
+    display: none;
+    text-align: center;
+    font-size: 13px;
+    height: 34px;
+    line-height: 34px;
+    color: var(--color-f);
+    background: var(--color-j);
+}
+
+#infoToolData {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 16px;
+}
+#infoToolData > li {
+    display: flex;
+    background: var(--color-a1-5);
+    padding: 3px 5px 3px 10px;
+    margin: 1px 0px;
+    transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+#infoToolData > li:hover {
+    background: var(--color-a1);
+    cursor: pointer;
+}
+
+#infoToolData > li.infoTool_property {
+    border-left: 3px solid var(--color-c2);
+}
+#infoToolData > li.infoTool_geometry {
+    border-left: 3px solid var(--color-yellow);
+}
+#infoToolData > li.infoTool_hidden {
+    border-left: 3px solid black;
+}
+#infoToolData > li.infoTool_metrics {
+    border-left: 3px solid var(--color-orange2);
+}
+
+#infoToolData > li > div:first-child {
+    max-width: 40%;
+    min-width: 40%;
+    color: white;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+#infoToolData > li > div:last-child {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#infoToolData > li.expand > div:first-child {
+    white-space: unset;
+    word-break: break-all;
+}
+#infoToolData > li.expand > div:last-child {
+    white-space: unset;
+    word-break: break-all;
+}
+
+#infoTool #infoToolHeader .mmgisHelpButton {
+    margin: 11px 4px;
+}

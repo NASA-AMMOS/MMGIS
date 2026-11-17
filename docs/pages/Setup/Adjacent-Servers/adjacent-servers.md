@@ -19,6 +19,8 @@ Version 4.0.0+ adds support for the following adjacent services:
 
 All adjacent services are proxied through MMGIS and endpoints that perform writes are locked behind MMGIS' authentication.
 
+**Requirement:** adjacent services must only be reachable through these MMGIS proxy routes. Don't publish their ports outside the host or container network. MMGIS checks access on the proxy routes (reads need the matching `*.read` capability, other methods the `*.write` one), but the services themselves don't, so a directly reachable service is not covered by MMGIS' site access and roles.
+
 - https://{mmgis-domain}/stac
 - https://{mmgis-domain}/tipg
 - https://{mmgis-domain}/titiler
@@ -63,7 +65,7 @@ This pattern requires HTTPS and blocks common attack vectors (path traversal, nu
 1. Copy `/adjacent-servers/stac/.env.example` to `/adjacent-servers/stac/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/tipg/.env.example` to `/adjacent-servers/tipg/.env` and fill out the `POSTGRES_*` environment variables.
 1. Copy `/adjacent-servers/titiler/.env.example` to `/adjacent-servers/titiler/.env`.
-1. Copy `/adjacent-servers/titiler-pgstac/.env.example` to `/adjacent-servers/titiler-pgstac/.env` and fill out the `POSTGRES_*` environment variables.
+1. Copy `/adjacent-servers/titiler-pgstac/.env.example` to `/adjacent-servers/titiler-pgstac/.env` and fill out the `PG*` environment variables (`PGUSER`, `PGPASSWORD`, `PGHOST`, `PGPORT`).
 1. Make sure your system `PROJ_LIB` environment variable is pointed to the installation of proj within the python version in use. For example, my local machine's installation is located at `.../Programs/Python/Python312/Lib/site-packages/pyproj/proj_dir/share/proj`.
 
 ### Setting MMGIS ENVs

@@ -110,8 +110,8 @@ variable "db_pool_idle" {
   description = "How many milliseconds for an incoming connection to wait for a DB connection before getting kicked away"
   default = 10000
 }
-variable "csso_groups" {
-  description = "A list of CSSO LDAP groups that have access"
+variable "proxy_groups" {
+  description = "With the proxy login provider, a list of proxy (e.g. CSSO LDAP) groups that have access"
   type        = list(string)
   default = []
 }
@@ -156,7 +156,7 @@ variable "force_config_path" {
   default     = ""
 }
 variable "leads" {
-  description = "array of strings - default [] - when not using AUTH=csso, this is a list of usernames to be treated as leads (users with elevated permissions)"
+  description = "array of strings - default [] - when not using the proxy login provider, this is a list of usernames to be treated as leads (users with elevated permissions)"
   type        = list(string)
   default     = []
 }

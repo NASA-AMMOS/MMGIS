@@ -1,24 +1,48 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadDotenv } from 'dotenv';
+loadDotenv();
+
+// SITE_ACCESS mode under test: public | optional | required
+process.env.MMGIS_TEST_SITE_ACCESS =
+  ['public', 'optional', 'required'].includes(process.env.SITE_ACCESS) ? process.env.SITE_ACCESS : 'public';
 
 /**
  * Playwright configuration for MMGIS
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  // Test directory
-  testDir: "./tests",
+  // Global setup — safety guard against running tests on production DB
+  // Skipped for unit-only runs (unit tests don't touch the database)
+  globalSetup: process.env.PLAYWRIGHT_TEST_UNIT_ONLY
+    ? undefined
+    : "./tests/global-setup.js",
 
-  // Test file patterns
-  testMatch: "**/*.spec.js",
+  // Test directory — root so we can scan both tests/ and plugins/**/tests/
+  testDir: ".",
 
-  // Timeout per test
-  timeout: 30 * 1000,
+  // Test file patterns — scan both centralized tests and co-located plugin tests
+  testMatch: [
+    "tests/**/*.spec.js",
+    "plugins/**/tests/*.spec.js",
+  ],
+
+  // `plugin-cli/scaffolds/**` are templates, not tests: they are the specs a
+  // plugin is *created with*, full of `__name__` placeholders and paths that
+  // only resolve once copied into a plugin directory.
+  testIgnore: ["**/plugin-cli/scaffolds/**"],
+
+  // Timeout per test (3 minutes — E2E tests may need extra time on slower machines)
+  timeout: 180 * 1000,
 
   // Test execution settings
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Local default: cap at 4 workers. Playwright's default of `undefined`
+  // resolves to ~half the CPU cores, which on higher-core machines
+  // (e.g. 16 cores → 8 workers) tends to overload the dev server and
+  // actually slows the suite down. CI still runs serially (1 worker).
+  workers: process.env.CI ? 1 : 4,
 
   // Reporter configuration
   reporter: [
@@ -31,7 +55,7 @@ export default defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for tests
-    baseURL: process.env.TEST_BASE_URL || "http://localhost:8888",
+    baseURL: process.env.TEST_BASE_URL || "http://localhost:18888",
 
     // Collect trace on failure
     trace: "on-first-retry",
@@ -49,31 +73,16 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
-    // Uncomment to enable Firefox and WebKit testing
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+      testMatch: /cross-browser/,
+    },
   ],
 
-  // Web server configuration - start MMGIS before E2E tests
-  // Note: Unit tests don't need the server running
-  // Only start server if running E2E tests
-  webServer: process.env.PLAYWRIGHT_TEST_UNIT_ONLY
-    ? undefined
-    : {
-        command: "npm run start:test",
-        url: `${
-          process.env.TEST_BASE_URL || "http://localhost:8888"
-        }/api/utils/healthcheck`,
-        timeout: 120 * 1000,
-        reuseExistingServer: !process.env.CI,
-        stdout: "pipe",
-        stderr: "pipe",
-        ignoreHTTPSErrors: true,
-      },
+  // Server lifecycle is managed by globalSetup (tests/global-setup.js).
+  // Playwright runs webServer plugins BEFORE globalSetup, which means the
+  // DB wouldn't exist yet when the server tries to connect.  By starting
+  // the server inside globalSetup we guarantee: create DB → start server
+  // → create Reference Mission → run tests → teardown kills server.
 });

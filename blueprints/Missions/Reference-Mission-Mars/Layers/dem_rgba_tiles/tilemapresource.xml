@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <TileMap version="1.0.0" tilemapservice="http://tms.osgeo.org/1.0.0">
+      <Title>mars_dem_ll.tif</Title>
+      <Abstract></Abstract>
+      <SRS>EPSG:3857</SRS>
+      <BoundingBox minx="137.31997530311463" miny="-4.84201887726005" maxx="137.45496740667102" maxy="-4.57193391654915"/>
+      <Origin x="137.31997530311463" y="-4.84201887726005"/>
+      <TileFormat width="32" height="32" mime-type="image/png" extension="png"/>
+      <TileSets profile="mercator">
+        <TileSet href="0" units-per-pixel="156543.03390000000945" order="0"/>
+        <TileSet href="1" units-per-pixel="78271.51695000000473" order="1"/>
+        <TileSet href="2" units-per-pixel="39135.75847500000236" order="2"/>
+        <TileSet href="3" units-per-pixel="19567.87923750000118" order="3"/>
+        <TileSet href="4" units-per-pixel="9783.93961875000059" order="4"/>
+        <TileSet href="5" units-per-pixel="4891.96980937500030" order="5"/>
+        <TileSet href="6" units-per-pixel="2445.98490468750015" order="6"/>
+        <TileSet href="7" units-per-pixel="1222.99245234375007" order="7"/>
+        <TileSet href="8" units-per-pixel="611.49622617187504" order="8"/>
+        <TileSet href="9" units-per-pixel="305.74811308593752" order="9"/>
+        <TileSet href="10" units-per-pixel="152.87405654296876" order="10"/>
+        <TileSet href="11" units-per-pixel="76.43702827148438" order="11"/>
+        <TileSet href="12" units-per-pixel="38.21851413574219" order="12"/>
+        <TileSet href="13" units-per-pixel="19.10925706787109" order="13"/>
+        <TileSet href="14" units-per-pixel="9.55462853393555" order="14"/>
+      </TileSets>
+    </TileMap>
+    

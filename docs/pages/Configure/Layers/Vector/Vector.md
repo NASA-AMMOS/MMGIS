@@ -8,7 +8,7 @@ grand_parent: Configure
 
 # Vector Layer
 
-A [geojson](https://geojson.org/) layer.
+A [geojson](https://geojson.org/) or KML layer. When the URL ends with `.kml`, MMGIS automatically converts the KML to GeoJSON on load.
 
 #### Layer Name
 

@@ -1,11 +1,7 @@
 "use strict";
 
 const fs = require("fs");
-const errorOverlayMiddleware = require("react-dev-utils/errorOverlayMiddleware");
-const evalSourceMapMiddleware = require("react-dev-utils/evalSourceMapMiddleware");
-const noopServiceWorkerMiddleware = require("react-dev-utils/noopServiceWorkerMiddleware");
-const ignoredFiles = require("react-dev-utils/ignoredFiles");
-const redirectServedPath = require("react-dev-utils/redirectServedPathMiddleware");
+const { noopServiceWorkerMiddleware, redirectServedPathMiddleware } = require("./build-utils");
 const paths = require("./paths");
 const getHttpsConfig = require("./getHttpsConfig");
 const chalk = require("chalk");
@@ -38,7 +34,15 @@ module.exports = function (proxy, allowedHost, options) {
       // remove last slash so user can land on `/test` instead of `/test/`
       publicPath: paths.publicUrlOrPath.slice(0, -1),
     },
-    https: getHttpsConfig(),
+    server: (() => {
+      const httpsConfig = getHttpsConfig();
+      if (httpsConfig && httpsConfig !== false) {
+        return typeof httpsConfig === 'object'
+          ? { type: 'https', options: httpsConfig }
+          : { type: 'https' };
+      }
+      return 'http';
+    })(),
     host,
     client: {
       // Silence WebpackDevServer's own logs since they're generally not useful.
@@ -69,8 +73,7 @@ module.exports = function (proxy, allowedHost, options) {
         require(paths.proxySetup)(devServer.app);
       }
       middlewares.push(
-        evalSourceMapMiddleware(devServer),
-        redirectServedPath(paths.publicUrlOrPath),
+        redirectServedPathMiddleware(paths.publicUrlOrPath),
         noopServiceWorkerMiddleware(paths.publicUrlOrPath)
       );
 

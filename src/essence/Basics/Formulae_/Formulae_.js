@@ -646,10 +646,11 @@ var Formulae_ = {
         // eslint-disable-next-line no-eq-null, eqeqeq
         if (keyArray == null) return notSetValue != null ? notSetValue : null
         if (typeof keyArray === 'string') keyArray = keyArray.split('.')
-        let object = Object.assign({}, obj)
+        // Read-only walk over own properties, so keys like `__proto__` resolve as data.
+        let object = obj
         for (let i = 0; i < keyArray.length; i++)
-            // eslint-disable-next-line no-prototype-builtins,no-eq-null, eqeqeq
-            if (object != null && object.hasOwnProperty(keyArray[i]))
+            // eslint-disable-next-line no-eq-null, eqeqeq
+            if (object != null && Object.prototype.hasOwnProperty.call(object, keyArray[i]))
                 object = object[keyArray[i]]
             // eslint-disable-next-line no-eq-null, eqeqeq
             else return notSetValue != null ? notSetValue : null
@@ -822,7 +823,8 @@ var Formulae_ = {
         return 'zero'
     },
     isUrlAbsolute: function (url) {
-        const r = new RegExp('^(?:[a-z]+:)?//', 'i')
+        // RFC 3986 scheme (letters, digits, + - .) so s3://, gs://, etc. count
+        const r = new RegExp('^(?:[a-z][a-z0-9+.-]*:)?//', 'i')
         return r.test(url)
     },
     csvToJSON: function (csv) {
@@ -1833,6 +1835,17 @@ var Formulae_ = {
         if (str == null) return ''
         return str.replace(/[<>;{}]/g, '')
     },
+    // Text safe to put in markup. Layer names and feature properties come from
+    // whatever was uploaded, so they are not ours to trust.
+    escapeHtml(str) {
+        if (str == null) return ''
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+    },
     doBoundingBoxesIntersect(a, b) {
         return a[1] <= b[3] && a[3] >= b[1] && a[0] <= b[2] && a[2] >= b[0]
     },
@@ -2048,23 +2061,32 @@ var Formulae_ = {
      * @credit https://hackernoon.com/copying-text-to-clipboard-with-javascript-df4d4988697f
      */
     copyToClipboard(text) {
-        const el = document.createElement('textarea') // Create a <textarea> element
-        el.value = text // Set its value to the string that you want copied
-        el.setAttribute('readonly', '') // Make it readonly to be tamper-proof
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(() => {
+                // Fallback for when clipboard API fails (e.g., non-secure context)
+                this._copyToClipboardFallback(text)
+            })
+        } else {
+            this._copyToClipboardFallback(text)
+        }
+    },
+    _copyToClipboardFallback(text) {
+        const el = document.createElement('textarea')
+        el.value = text
+        el.setAttribute('readonly', '')
         el.style.position = 'absolute'
-        el.style.left = '-9999px' // Move outside the screen to make it invisible
-        document.body.appendChild(el) // Append the <textarea> element to the HTML document
+        el.style.left = '-9999px'
+        document.body.appendChild(el)
         const selected =
-            document.getSelection().rangeCount > 0 // Check if there is any content selected previously
-                ? document.getSelection().getRangeAt(0) // Store selection if found
-                : false // Mark as false to know no selection existed before
-        el.select() // Select the <textarea> content
-        document.execCommand('copy') // Copy - only works as a result of a user action (e.g. click events)
-        document.body.removeChild(el) // Remove the <textarea> element
+            document.getSelection().rangeCount > 0
+                ? document.getSelection().getRangeAt(0)
+                : false
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
         if (selected) {
-            // If a selection existed before copying
-            document.getSelection().removeAllRanges() // Unselect everything on the HTML document
-            document.getSelection().addRange(selected) // Restore the original selection
+            document.getSelection().removeAllRanges()
+            document.getSelection().addRange(selected)
         }
     },
     speedToMetersPerSeconds(speed, fromUnit) {

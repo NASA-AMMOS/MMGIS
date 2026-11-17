@@ -1,0 +1,80 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.45, 37.80]
+      },
+      "properties": {
+        "id": "filter-1",
+        "name": "Active Status",
+        "status": "active",
+        "priority": "high",
+        "type": "station",
+        "description": "Status: Active, Priority: High"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.43, 37.79]
+      },
+      "properties": {
+        "id": "filter-2",
+        "name": "Inactive Status",
+        "status": "inactive",
+        "priority": "low",
+        "type": "station",
+        "description": "Status: Inactive, Priority: Low"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.41, 37.81]
+      },
+      "properties": {
+        "id": "filter-3",
+        "name": "Pending Status",
+        "status": "pending",
+        "priority": "medium",
+        "type": "waypoint",
+        "description": "Status: Pending, Priority: Medium"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.39, 37.78]
+      },
+      "properties": {
+        "id": "filter-4",
+        "name": "Active High Priority",
+        "status": "active",
+        "priority": "high",
+        "type": "waypoint",
+        "description": "Status: Active, Priority: High"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-122.37, 37.82]
+      },
+      "properties": {
+        "id": "filter-5",
+        "name": "Active Medium Priority",
+        "status": "active",
+        "priority": "medium",
+        "type": "station",
+        "description": "Status: Active, Priority: Medium"
+      }
+    }
+  ]
+}

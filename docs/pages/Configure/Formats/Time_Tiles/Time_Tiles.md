@@ -24,7 +24,8 @@ Examples:
 
 ### Folder Tags
 
-Additionally `{t}` may be appended with a name. The `time` is accessed by splitting on the new delimiter `Z-` and taking the first element.
+Additionally `{t}` may be appended with a name. The tag may be separated from
+the timestamp by `-`, `--`, or `_` after the `Z`.
 
 Examples:
 

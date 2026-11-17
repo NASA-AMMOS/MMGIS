@@ -1,0 +1,142 @@
+{
+  "uuid": "573bf3e3-3b6e-404f-ab89-717da6aefea5",
+  "id": "core-layertype-3dtiles",
+  "name": "ThreeDTiles",
+  "type": "layertype",
+  "typeId": "3dtiles",
+  "version": "core",
+  "tier": "core",
+  "overridable": false,
+  "color": "#7a5c9e",
+  "defaultIcon": "Hexagon",
+  "description": "OGC 3D Tiles dataset (photogrammetry meshes, point clouds, buildings) streamed onto the globe. Globe-only.",
+  "capabilities": {
+    "renderers": {
+      "map": false,
+      "globe": { "engines": ["cesium", "lithosphere"] }
+    },
+    "map": { "stacking": false, "tracksLoad": false },
+    "time": false
+  },
+  "fileTypes": ["json"],
+  "supportedData": [
+    {
+      "label": "OGC 3D Tiles tileset",
+      "category": "3d-tiles",
+      "standards": ["3D Tiles", "OGC 3D Tiles"],
+      "formats": ["json"],
+      "extensions": [".json"],
+      "urlSchemes": ["{url}/tileset.json"],
+      "description": "A 3D Tiles tileset (entry tileset.json) referencing b3dm/i3dm/pnts/glTF content — e.g. photogrammetry meshes, point clouds, or extruded buildings. Streamed and LOD-managed by the globe engine. Supports opacity, a height offset and a Cesium3DTileStyle.",
+      "procurement": "Produce with a 3D Tiles tiler (e.g. py3dtiles, Cesium ion, or a photogrammetry pipeline); host the tileset directory statically."
+    }
+  ],
+  "config": {
+    "tabs": [
+      {
+        "name": "Core",
+        "rows": [
+          {
+            "name": "Core",
+            "components": [
+              {
+                "field": "type",
+                "name": "Layer Type",
+                "description": "",
+                "type": "dropdown",
+                "optionsFrom": "layerTypes",
+                "width": 2
+              },
+              {
+                "field": "name",
+                "name": "Layer Name",
+                "description": "A display name for the layer.",
+                "type": "textnotrim",
+                "width": 6,
+                "required": true
+              },
+              {
+                "field": "visibility",
+                "name": "Initial Visibility",
+                "description": "Whether the layer is on initially.",
+                "type": "checkbox",
+                "width": 2,
+                "defaultChecked": false
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "url",
+                "name": "URL",
+                "description": "URL to a 3D Tiles tileset.json endpoint. For OSM buildings, use a provider like MapTiler or a self-hosted 3D Tiles server.",
+                "type": "text",
+                "width": 12,
+                "required": true
+              }
+            ]
+          },
+          {
+            "name": "3D Tiles Settings",
+            "components": [
+              {
+                "field": "maximumScreenSpaceError",
+                "name": "Max Screen Space Error",
+                "description": "Controls level-of-detail quality. Lower values produce higher quality at the cost of performance. Default: 16.",
+                "type": "number",
+                "width": 4,
+                "default": 16
+              },
+              {
+                "field": "maximumMemoryUsage",
+                "name": "Max Memory (MB)",
+                "description": "Maximum GPU memory in MB for this tileset. Default: 512.",
+                "type": "number",
+                "width": 4,
+                "default": 512
+              },
+              {
+                "field": "heightOffset",
+                "name": "Height Offset (m)",
+                "description": "Vertical offset in meters. Use to adjust building placement relative to terrain.",
+                "type": "number",
+                "width": 4,
+                "default": 0
+              }
+            ]
+          },
+          {
+            "name": "Style",
+            "components": [
+              {
+                "field": "tileStyle.color",
+                "name": "Color Expression",
+                "description": "A Cesium 3D Tiles style color expression. Example: color('#ffffff') or color('white', 0.8). Leave empty for tileset defaults.",
+                "type": "text",
+                "width": 12
+              }
+            ]
+          },
+          {
+            "components": [
+              {
+                "field": "tileStyle.show",
+                "name": "Show Expression",
+                "description": "A Cesium 3D Tiles style show expression to filter features. Example: ${Height} > 10. Leave empty to show all.",
+                "type": "text",
+                "width": 12
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "modules": {
+    "globe": {
+      "cesium": "./globe/cesium",
+      "lithosphere": "./globe/lithosphere"
+    }
+  }
+}

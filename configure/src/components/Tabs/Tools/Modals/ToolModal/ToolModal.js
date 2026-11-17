@@ -30,6 +30,10 @@ import { makeStyles, useTheme } from "@mui/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 import Maker from "../../../../../core/Maker";
+import {
+  useConnectionsSetup,
+  ToolConnections,
+} from "../../../../../core/Connections";
 
 const useStyles = makeStyles((theme) => ({
   Modal: {
@@ -173,6 +177,7 @@ const ToolModal = (props) => {
   modal = modal || {};
   const toolName = modal.toolName;
   const toolConfig = modal.toolConfig;
+  const connectionsSetup = useConnectionsSetup();
   const tool = getToolFromConfiguration(toolName, configuration) || {};
 
   const theme = useTheme();
@@ -199,7 +204,11 @@ const ToolModal = (props) => {
             if (currentValue != null)
               setIn(currentTool, c.field.split("."), currentValue, true);
 
-            if (c.type === "dropdown" || c.type === "colordropdown") {
+            if (
+              c.type === "dropdown" ||
+              c.type === "colordropdown" ||
+              c.type === "colorramp"
+            ) {
               const currentValue = getIn(currentTool, c.field);
               if (currentValue == null) {
                 setIn(currentTool, c.field.split("."), c.options[0], true);
@@ -277,6 +286,11 @@ const ToolModal = (props) => {
             <Typography className={c.infoTitle}>
               {toolConfig?.description}
             </Typography>
+            <ToolConnections
+              toolConfig={toolConfig}
+              setup={connectionsSetup}
+              style={{ margin: "4px 0 8px" }}
+            />
             <Typography className={c.infoDescription}>
               {toolConfig?.descriptionFull?.title}
             </Typography>
@@ -320,7 +334,7 @@ const ToolModal = (props) => {
               className={c.text}
               variant="filled"
               size="small"
-              value={tool?.icon || toolConfig?.defaultIcon || ""}
+              value={tool?.icon || toolConfig?.defaultIcon || "puzzle-outline"}
               label={"MDI Icon Name"}
               onChange={(e) => {
                 const nextConfiguration = JSON.parse(

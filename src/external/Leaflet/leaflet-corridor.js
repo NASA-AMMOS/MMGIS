@@ -1,4 +1,5 @@
 /*
+ * MMGIS-authored L.Corridor, derived from (and keeping the license of)
  * https://github.com/adoroszlai/leaflet-distance-markers
  *
  * The MIT License (MIT)

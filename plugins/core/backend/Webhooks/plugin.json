@@ -1,0 +1,20 @@
+{
+  "uuid": "15f7ac9e-2da4-40de-8665-ee10d3a1d91a",
+  "id": "core-webhooks",
+  "name": "Webhooks",
+  "display_name": "Webhook Management",
+  "aliases": [
+    "webhooks"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/webhooks",
+    "auth": "admin"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

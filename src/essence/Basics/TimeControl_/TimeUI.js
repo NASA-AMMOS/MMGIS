@@ -9,8 +9,8 @@ import * as moment from 'moment'
 import F_ from '../Formulae_/Formulae_'
 import Map_ from '../Map_/Map_'
 import L_ from '../Layers_/Layers_'
-import { parseExternalStacUrl } from '../Layers_/LayerUtils'
-import calls from '../../../pre/calls'
+import LayerTypeRegistry from '../Layers_/registry/LayerTypeRegistry'
+import LayerInterface from '../Layers_/interface/LayerInterface'
 import tippy from 'tippy.js'
 import Dropy from '../../../external/Dropy/dropy'
 
@@ -18,6 +18,12 @@ import { TempusDominus, Namespace } from '@eonasdan/tempus-dominus'
 import '@eonasdan/tempus-dominus/dist/css/tempus-dominus.css'
 
 import './TimeUI.css'
+import Toast from '../../../design-system/components/Toast/Toast'
+
+// Lazy accessor to avoid circular import (uiStore → ... → TimeUI)
+function _getUIStore() {
+    return require('../UserInterface_/store/uiStore').default
+}
 
 const FORMAT = 'MM/DD/yyyy, hh:mm:ss A'
 
@@ -32,13 +38,17 @@ const MS = {
     decade: 315576000000,
 }
 
+// Indicator lines that tools can add/remove on the timeline
+// Map<string, {id, groupId, color, time (ms timestamp)}>
+const _indicators = new Map()
+
 const TimeUI = {
     height: 0,
     width: 0,
     vars: {},
     MMGISInterface: null,
     initialize: function () {
-        if (L_.UserInterface_?.isMobile === true) {
+        if (_getUIStore().getState().isMobile === true) {
             this.width = 'full'
             this.height = 217
         }
@@ -93,7 +103,7 @@ const TimeUI = {
         // prettier-ignore
         let markup = [
             `<div id="mmgisTimeUI">`,
-            L_.UserInterface_?.isMobile == true ? 
+            _getUIStore().getState().isMobile == true ? 
                 ["<div id='timeUIHeader'>",
                     "<div class='left'>",
                         "<div id='timeUITitle'>Time</div>",
@@ -102,7 +112,7 @@ const TimeUI = {
                 `<div id="mmgisTimeUITopBar">`,
         ].join('\n')
 
-        if (L_.UserInterface_?.isMobile !== true) {
+        if (_getUIStore().getState().isMobile !== true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUIActionsLeft">`,
@@ -134,7 +144,7 @@ const TimeUI = {
         ].join('\n')
 
         // Nest the timeline if not mobile
-        if (L_.UserInterface_?.isMobile !== true) {
+        if (_getUIStore().getState().isMobile !== true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUITimeline">`,
@@ -161,7 +171,7 @@ const TimeUI = {
             `</div>`,
         ].join('\n')
 
-        if (L_.UserInterface_?.isMobile !== true) {
+        if (_getUIStore().getState().isMobile !== true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUIActionsRight">`,
@@ -210,7 +220,7 @@ const TimeUI = {
         }
 
         // Put the expanded content separately if mobile
-        if (L_.UserInterface_?.isMobile === true) {
+        if (_getUIStore().getState().isMobile === true) {
             // prettier-ignore
             markup += [
                 `<div id="mmgisTimeUIExpandedContent" class="show">`,
@@ -281,9 +291,17 @@ const TimeUI = {
             `</div>`,
         ].join('\n')
 
-        if (L_.UserInterface_?.isMobile === true) {
-            const toolsContainer = $('#tools')
-            //Add a semantic container
+        if (_getUIStore().getState().isMobile === true) {
+            // Stage #timeUI in a hidden container (not in #tools, which gets
+            // cleared by other tools). MobileTimeUIToggle moves it into #tools
+            // on demand and back here when toggled off.
+            let staging = document.getElementById('timeUIMobileStaging')
+            if (!staging) {
+                staging = document.createElement('div')
+                staging.id = 'timeUIMobileStaging'
+                staging.style.display = 'none'
+                document.body.appendChild(staging)
+            }
             const tools = $('<div>')
                 .attr('id', 'timeUI')
                 .css({
@@ -293,15 +311,12 @@ const TimeUI = {
                     height: '100%',
                 })
                 .html(markup)
-            toolsContainer.append(tools)
+            $(staging).append(tools)
 
-            //Add the markup to tools or do it manually
             const playPopover = $('<div>')
                 .attr('id', 'timeUIPlayPopover_global')
                 .html(playPopoverMarkup)
             $('body').append(playPopover)
-
-            $('#timeUI').toggleClass('active')
         } else {
             const timeUIDiv = $('<div>').attr('id', 'timeUI').html(markup)
             $('#splitscreens').append(timeUIDiv)
@@ -328,7 +343,7 @@ const TimeUI = {
             const layer = L_.layers.data[layerName]
             if (
                 layer &&
-                layer.type === 'tile' &&
+                LayerTypeRegistry.providesTimeHistogram(layer.type) &&
                 layer.time &&
                 layer.time.enabled === true
             ) {
@@ -363,7 +378,7 @@ const TimeUI = {
         return { dateString, additionalSeconds }
     },
     alignPopovers(e) {
-        if (L_.UserInterface_?.isMobile === true) {
+        if (_getUIStore().getState().isMobile === true) {
             return
         }
 
@@ -378,7 +393,7 @@ const TimeUI = {
                 position: 'fixed',
                 left: bcr.left,
                 right: bcr.right,
-                bottom: timeUIHeight,
+                bottom: (window.innerHeight - bcr.top) + 'px',
             })
 
             bcr = $(`#mmgisTimeUIPlayTrigger`).get(0).getBoundingClientRect()
@@ -386,7 +401,7 @@ const TimeUI = {
                 position: 'fixed',
                 left: bcr.left,
                 right: bcr.right,
-                bottom: timeUIHeight,
+                bottom: (window.innerHeight - bcr.top) + 'px',
             })
 
             // Update timeline handles when layout changes
@@ -405,7 +420,7 @@ const TimeUI = {
             TimeUI._startingModeIndex = 1
 
         // FIXME Figure out what this does
-        if (L_.UserInterface_?.isMobile !== true) {
+        if (_getUIStore().getState().isMobile !== true) {
             document.addEventListener('toolChange', TimeUI.alignPopovers)
         }
 
@@ -828,7 +843,7 @@ const TimeUI = {
             }
         })
 
-        if (L_.UserInterface_?.isMobile !== true) {
+        if (_getUIStore().getState().isMobile !== true) {
             // tippy
             tippy('#mmgisTimeUIMode', {
                 content: 'Mode',
@@ -1157,7 +1172,7 @@ const TimeUI = {
 
         // FIXME
         if (TimeUI.timeChange) {
-            if (L_.UserInterface_?.isMobile !== true) {
+            if (_getUIStore().getState().isMobile !== true) {
                 // Initialize the time control times, but don't trigger events
                 TimeUI.timeChange(
                     TimeUI._initialStart.toISOString(),
@@ -1166,14 +1181,11 @@ const TimeUI = {
                     true
                 )
             } else {
-                // If in mobile mode, the TimeUI is created and destroyed based on whether it is visible
-                // or not and the user selected time should persist after the TimeUI is opened/closed
-                TimeUI._initialStart = L_.TimeControl_?.startTime
-                TimeUI._initialEnd = L_.TimeControl_?.endTime
-
+                // Mobile: use the same computed _initialStart/_initialEnd as desktop
+                // (L_.TimeControl_ times aren't set yet at this point)
                 TimeUI.timeChange(
-                    L_.TimeControl_?.startTime,
-                    L_.TimeControl_?.endTime,
+                    TimeUI._initialStart.toISOString(),
+                    TimeUI._initialEnd.toISOString(),
                     null,
                     true
                 )
@@ -1289,15 +1301,10 @@ const TimeUI = {
         // Shift to view the selected elements in the expanded timeline
         TimeUI._shiftExpandedContainerView()
 
-        if (L_.UserInterface_?.isMobile === true) {
-            $('#mmgisTimeUIExpandedContent').css({
-                position: 'absolute',
-                top: '80px',
-            })
-
-            // FIXME Improve time pickers for mobile mode?
-            //  Do not allow users to edit using the start/time pickers
-            $('#mmgisTimeUIMain').css('pointer-events', 'none')
+        if (_getUIStore().getState().isMobile === true) {
+            // On mobile, expanded is always true so populate the rows
+            TimeUI.expanded = true
+            TimeUI._populateExpandedRows()
         }
     },
     _shiftExpandedContainerView() {
@@ -1683,7 +1690,7 @@ const TimeUI = {
         TimeUI._drawTimeLine(nextStart, nextEnd)
 
         clearTimeout(TimeUI._panHistoTimeout)
-        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._clearHistogram()
         TimeUI._makeHistogram()
     },
     quickSelectPeriod(idx) {
@@ -1807,11 +1814,7 @@ const TimeUI = {
                 !activeFeature.layer.options.layerName
             ) {
                 // Show toast message
-                M.toast({
-                    html: 'Select a feature from a real-time layer first',
-                    displayLength: 3000,
-                    classes: 'mmgisToast feature',
-                })
+                Toast.info('Select a feature from a real-time layer first', 3000)
                 return
             }
 
@@ -1833,44 +1836,28 @@ const TimeUI = {
         const layer = L_.layers.data[layerName]
         if (!layer) {
             // Show toast message
-            M.toast({
-                html: 'Layer not found.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Layer not found.', 3000)
             return false
         }
 
         // Layer must be time-enabled
         if (!layer.time || layer.time.enabled !== true) {
             // Show toast message
-            M.toast({
-                html: 'Selected layer does not support real-time updates.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Selected layer does not support real-time updates.', 3000)
             return false
         }
 
         // Layer must fetch new data (global or requery types)
         if (layer.time.type !== 'global' && layer.time.type !== 'requery') {
             // Show toast message
-            M.toast({
-                html: 'Selected layer does not support real-time updates.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Selected layer does not support real-time updates.', 3000)
             return false
         }
 
         // Present mode should be on for real-time following
         if (!TimeUI.now) {
             // Show toast message
-            M.toast({
-                html: 'Present Mode is not active.',
-                displayLength: 3000,
-                classes: 'mmgisToast failure',
-            })
+            Toast.error('Present Mode is not active.', 3000)
             return false
         }
 
@@ -1912,7 +1899,7 @@ const TimeUI = {
     toggleExpanded() {
         TimeUI.expanded = !TimeUI.expanded
 
-        if (L_.UserInterface_?.isMobile === true) {
+        if (_getUIStore().getState().isMobile === true) {
             TimeUI.expanded = true
         }
 
@@ -1931,7 +1918,11 @@ const TimeUI = {
             TimeUI.alignPopovers()
         } else {
             // Collapse the TimeUI
-            $('#timeUI').removeClass('expanded')
+            // Also clear the 'defaultExpanded' marker: it represents the initial
+            // expanded-by-default state, and if left on, the store observer
+            // (which treats expanded||defaultExpanded as expanded) would keep the
+            // layout stuck at expanded height even after the user collapses.
+            $('#timeUI').removeClass('expanded').removeClass('defaultExpanded')
             $('#mmgisTimeUIExpandedContent').removeClass('show')
             $('#mmgisTimeUIExpand > i')
                 .removeClass('mdi-chevron-down')
@@ -1955,7 +1946,7 @@ const TimeUI = {
         // Populate Hours Row
         TimeUI._populateHoursRow()
 
-        if (L_.UserInterface_?.isMobile !== true) {
+        if (_getUIStore().getState().isMobile !== true) {
             // Update range indicators
             TimeUI._updateRangeIndicators()
         } else {
@@ -2701,7 +2692,7 @@ const TimeUI = {
         waitForActiveFeature()
     },
     _remakeTimeSlider(ignoreHistogram) {
-        if (L_.UserInterface_?.isMobile === true) {
+        if (_getUIStore().getState().isMobile === true) {
             return
         }
 
@@ -2831,8 +2822,11 @@ const TimeUI = {
             }
         }
 
-        if ($('#toggleTimeUI').hasClass('active') && ignoreHistogram !== true)
+        const useUIStore = require('../UserInterface_/store/uiStore').default
+        if (useUIStore.getState().timeUIActive && ignoreHistogram !== true)
             TimeUI._makeHistogram()
+
+        TimeUI._renderIndicators()
     },
     _addRangeShiftButtons: function () {
         // Remove any existing buttons first
@@ -2893,12 +2887,20 @@ const TimeUI = {
     },
     _refreshHistogramDebounced(delay = 3000) {
         clearTimeout(TimeUI._histogramRefreshTimeout)
-        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI._clearHistogram()
         TimeUI._histogramRefreshTimeout = setTimeout(() => {
             TimeUI._makeHistogram()
         }, delay)
     },
+    _clearHistogram() {
+        $('#mmgisTimeUITimelineHisto').empty()
+        TimeUI.lastHistoStartTimestamp = null
+        TimeUI.lastHistoEndTimestamp = null
+    },
     _makeHistogram() {
+        // Histogram is drawn inside the timeline slider which doesn't exist on mobile
+        if (_getUIStore().getState().isMobile === true) return
+
         const startTimestamp = TimeUI.removeOffset(
             TimeUI._timelineStartTimestamp
         )
@@ -2915,136 +2917,101 @@ const TimeUI = {
             TimeUI.lastHistoEndTimestamp = endTimestamp
         }
 
-        // Find all on, time-enabled, tile layers
-        const sparklineLayers = []
-        Object.keys(L_.layers.data).forEach((name) => {
-            const l = L_.layers.data[name]
-            if (
-                l &&
-                l.type === 'tile' &&
-                l.time &&
-                l.time.enabled === true &&
-                L_.layers.on[name] === true
-            ) {
-                let layerUrl = l.url
-                if (layerUrl.indexOf('stac-collection:') === 0) {
-                    const afterColon = layerUrl.substring(
-                        layerUrl.indexOf(':') + 1
-                    )
-                    let collectionName = afterColon
-                    let isExternal = false
-                    let externalBaseUrl = null
-
-                    // Handle external STAC URLs (format: https://example.com/mmgis/titilerpgstac/collections/name)
-                    if (afterColon.includes('://')) {
-                        const parsed = parseExternalStacUrl(afterColon)
-                        if (parsed) {
-                            collectionName = parsed.collectionName
-                            isExternal = true
-
-                            // Convert TiTiler URL to MMGIS base URL
-                            // From: https://example.com/mmgis/titilerpgstac
-                            // To:   https://example.com/mmgis
-                            externalBaseUrl = parsed.baseUrl.replace(
-                                /\/titilerpgstac$/,
-                                ''
-                            )
-                        } else {
-                            console.error(
-                                'Failed to parse external STAC URL for histogram:',
-                                layerUrl
-                            )
-                            return
-                        }
-                    } else {
-                        // Local format - just strip query params if present
-                        collectionName = afterColon.split('?')[0]
-                    }
-
-                    sparklineLayers.push({
-                        name: name,
-                        stacCollection: collectionName,
-                        isExternal: isExternal,
-                        externalBaseUrl: externalBaseUrl,
-                    })
-                } else if (!F_.isUrlAbsolute(layerUrl)) {
-                    layerUrl = L_.missionPath + layerUrl
-                    if (layerUrl.indexOf('{t}') > -1)
-                        sparklineLayers.push({
-                            name: name,
-                            path: `/${layerUrl}`.replace(/{t}/g, '_time_'),
-                        })
-                }
-            }
-        })
-
-        const starttimeISO = new Date(
-            TimeUI._timelineStartTimestamp
-        ).toISOString()
-
-        const endtimeISO = new Date(TimeUI._timelineEndTimestamp).toISOString()
-
         const NUM_BINS = Math.max(
             Math.min(endTimestamp - startTimestamp, 255),
             1
         )
-        let bins = new Array(NUM_BINS).fill(0)
-        let completedCalls = 0
+        const bins = new Array(NUM_BINS).fill(0)
 
-        // Helper function to bin STAC collection data
-        function binStacData(data, bins) {
-            if (data.body && data.body.times) {
-                // Create time bin boundaries
-                const timeBins = []
-                for (let i = 0; i < NUM_BINS; i++) {
-                    timeBins[i] = Math.floor(
-                        F_.linearScale(
-                            [0, NUM_BINS],
-                            [
-                                TimeUI._timelineStartTimestamp,
-                                TimeUI._timelineEndTimestamp,
-                            ],
-                            i
-                        )
-                    )
-                }
-
-                // Bin the timestamps
-                let ti = 0
-                for (let bi = 1; bi < timeBins.length; bi++) {
-                    while (
-                        data.body.times[ti] &&
-                        new Date(data.body.times[ti].t).getTime() >=
-                            timeBins[bi - 1] &&
-                        new Date(data.body.times[ti].t).getTime() < timeBins[bi]
-                    ) {
-                        bins[bi - 1] += parseInt(data.body.times[ti].total)
-                        ti++
-                    }
-                }
-            }
+        const ctx = {
+            startTime: new Date(TimeUI._timelineStartTimestamp).toISOString(),
+            endTime: new Date(TimeUI._timelineEndTimestamp).toISOString(),
+            bins: NUM_BINS,
         }
 
-        // Helper function to bin file-based layer data
-        function binFileData(data, bins) {
-            if (data.body && data.body.times) {
-                data.body.times.forEach((time) => {
-                    const binIndex = Math.floor(
-                        F_.linearScale(
-                            [startTimestamp, endTimestamp],
-                            [0, NUM_BINS],
-                            TimeUI.removeOffset(new Date(time.t).getTime())
-                        )
+        // Every on, time-enabled layer whose type can say when its data exists.
+        // What "exists" means, and where the answer comes from, is the type's:
+        // core asks for times and counts and does the binning and drawing.
+        const asked = []
+        Object.keys(L_.layers.data).forEach((name) => {
+            const layerObj = L_.layers.data[name]
+            if (
+                layerObj == null ||
+                layerObj.time?.enabled !== true ||
+                L_.layers.on[name] !== true ||
+                !LayerTypeRegistry.providesTimeHistogram(layerObj.type)
+            )
+                return
+
+            const timeModule = LayerTypeRegistry.get(layerObj.type)?.time
+            if (!LayerInterface.hasOp(timeModule, 'availability')) {
+                console.warn(
+                    `Layer type '${layerObj.type}' declares capabilities.time.histogram but implements no time.availability, so '${name}' contributes nothing to the time bar's availability.`
+                )
+                return
+            }
+
+            asked.push({
+                name,
+                type: layerObj.type,
+                promise: Promise.resolve(
+                    LayerInterface.run(timeModule, 'availability', [
+                        layerObj,
+                        ctx,
+                    ])
+                ).catch((err) => {
+                    console.warn(
+                        `ERROR! time.availability of layer type '${layerObj.type}' failed for ${name} /// ${
+                            err?.message || err
+                        }`
                     )
-                    if (binIndex >= 0 && binIndex < NUM_BINS) {
-                        bins[binIndex]++
-                    }
+                    return null
                 })
-            }
-        }
+            })
+        })
 
-        // Helper function to render histogram
-        function renderHistogram() {
+        Promise.all(asked.map((request) => request.promise)).then((results) => {
+            const warnedInvalidTimes = new Set()
+            results.forEach((times, index) => {
+                if (!Array.isArray(times)) return
+                const request = asked[index]
+                times.forEach((entry) => {
+                    const at = TimeUI.removeOffset(
+                        new Date(entry?.t).getTime()
+                    )
+                    if (isNaN(at)) {
+                        const warningKey = `${request.type}/${request.name}`
+                        if (!warnedInvalidTimes.has(warningKey)) {
+                            warnedInvalidTimes.add(warningKey)
+                            console.warn(
+                                `Invalid time.availability value '${entry?.t}' for layer type '${request.type}' layer '${request.name}'.`
+                            )
+                        }
+                        return
+                    }
+                    const total =
+                        entry.total == null ? 1 : parseInt(entry.total)
+                    if (isNaN(total)) return
+                    // Reported times are truncated to whatever bin size the
+                    // type queried with, so they can land just outside the
+                    // timeline.
+                    const binIndex = Math.min(
+                        Math.max(
+                            Math.floor(
+                                F_.linearScale(
+                                    [startTimestamp, endTimestamp],
+                                    [0, NUM_BINS],
+                                    at
+                                )
+                            ),
+                            0
+                        ),
+                        NUM_BINS - 1
+                    )
+                    bins[binIndex] += total
+                })
+            })
+
             const minmax = F_.getMinMaxOfArray(bins)
             const histoElm = $('#mmgisTimeUITimelineHisto')
             histoElm.empty()
@@ -3057,72 +3024,6 @@ const TimeUI = {
                         }%;"></div>`
                     )
                 })
-            }
-        }
-
-        // Query each layer for availability data
-        sparklineLayers.forEach((l) => {
-            const onComplete = () => {
-                completedCalls++
-                if (completedCalls === sparklineLayers.length) {
-                    renderHistogram()
-                }
-            }
-
-            // Check if this is an external STAC collection
-            if (l.isExternal && l.externalBaseUrl) {
-                // Query external MMGIS instance
-                const externalUrl =
-                    `${l.externalBaseUrl}/api/utils/queryTilesetTimes?` +
-                    `stacCollection=${encodeURIComponent(l.stacCollection)}&` +
-                    `starttime=${encodeURIComponent(starttimeISO)}&` +
-                    `endtime=${encodeURIComponent(endtimeISO)}`
-
-                fetch(externalUrl)
-                    .then((response) => {
-                        if (!response.ok)
-                            throw new Error(`HTTP ${response.status}`)
-                        return response.json()
-                    })
-                    .then((data) => {
-                        binStacData(data, bins)
-                        onComplete()
-                    })
-                    .catch((err) => {
-                        console.error(
-                            `Failed to fetch external STAC times from ${l.externalBaseUrl}:`,
-                            err
-                        )
-                        onComplete()
-                    })
-            } else {
-                // Local STAC or file-based layer
-                calls.api(
-                    'query_tileset_times',
-                    l.stacCollection != null
-                        ? {
-                              stacCollection: l.stacCollection,
-                              starttime: starttimeISO,
-                              endtime: endtimeISO,
-                          }
-                        : {
-                              path: l.path,
-                              starttime: starttimeISO,
-                              endtime: endtimeISO,
-                          },
-                    function (data) {
-                        if (l.stacCollection != null) {
-                            binStacData(data, bins)
-                        } else {
-                            binFileData(data, bins)
-                        }
-                        onComplete()
-                    },
-                    function (e) {
-                        console.error('Failed to query tileset times:', e)
-                        onComplete()
-                    }
-                )
             }
         })
     },
@@ -3534,53 +3435,78 @@ const TimeUI = {
         }
 
         TimeUI._remakeTimeSlider(true)
+        TimeUI._renderIndicators()
     },
     _updateBottomUIHeight() {
-        if (L_.UserInterface_?.isMobile === true) {
+        if (_getUIStore().getState().isMobile === true) {
             return
         }
 
-        const active = !$('#toggleTimeUI').hasClass('active')
+        // The centralized BottomElementPositioner (React) handles all
+        // bottom-anchored element positioning via the Zustand store.
+        // The MutationObserver in UserInterfaceLayout.jsx watches #timeUI
+        // class changes and updates timeUIActive/timeUIExpanded in the
+        // store, which triggers BottomElementPositioner to recalculate.
+        // No direct CSS manipulation needed here.
+    },
 
-        const defaultExpanded = $('#timeUI').hasClass('expanded')
-        const timeUIHeight = defaultExpanded
-            ? 177
-            : $('#timeUI').hasClass('active')
-              ? 40
-              : 0
-        const newBottom = !active
-            ? timeUIHeight
-            : $('#timeUI').hasClass('active')
-              ? 40
-              : 0
-        const timeBottom = 0
+    /**
+     * Add an indicator line to the timeline.
+     * @param {string} id - unique identifier for this indicator
+     * @param {string} groupId - group identifier (for bulk removal)
+     * @param {string} color - CSS color for the line
+     * @param {string|number} time - ISO string or ms timestamp
+     */
+    addIndicator(id, groupId, color, time) {
+        const ts = typeof time === 'string' ? new Date(time).getTime() : time
+        _indicators.set(id, { id, groupId, color, time: ts })
+        TimeUI._renderIndicators()
+    },
 
-        $('#CoordinatesDiv').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('#mapToolBar').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('.leaflet-bottom.leaflet-left').css({
-            bottom: newBottom + 'px',
-        })
-        $('#mmgis-attributions').css({
-            bottom: (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('.leaflet-bottom.leaflet-right').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
-        $('#photosphereAzIndicator').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-            transition: 'bottom 0.2s ease-in',
-        })
-        $('#_lithosphere_controls_bottomleft').css({
-            bottom: newBottom + (L_.UserInterface_.pxIsTools || 0) + 10 + 'px',
-            transition: 'bottom 0.2s ease-in',
-        })
-        $('#timeUI').css({
-            bottom: timeBottom + (L_.UserInterface_.pxIsTools || 0) + 'px',
-        })
+    /**
+     * Remove indicator(s) from the timeline.
+     * @param {string|null} id - specific indicator id, or null to match by group
+     * @param {string|null} groupId - remove all indicators with this group id
+     */
+    removeIndicator(id, groupId) {
+        if (id != null) {
+            _indicators.delete(id)
+        }
+        if (groupId != null) {
+            for (const [key, val] of _indicators) {
+                if (val.groupId === groupId) _indicators.delete(key)
+            }
+        }
+        TimeUI._renderIndicators()
+    },
+
+    _renderIndicators() {
+        // Remove existing indicator DOM elements
+        $('.mmgisTimeUIIndicatorLine').remove()
+
+        if (
+            TimeUI._timelineStartTimestamp == null ||
+            TimeUI._timelineEndTimestamp == null
+        ) return
+
+        const timeline = document.getElementById('mmgisTimeUITimeline')
+        if (!timeline) return
+
+        for (const [, ind] of _indicators) {
+            const leftPct = F_.linearScale(
+                [TimeUI._timelineStartTimestamp, TimeUI._timelineEndTimestamp],
+                [0, 100],
+                ind.time
+            )
+            if (leftPct < 0 || leftPct > 100) continue
+
+            const line = document.createElement('div')
+            line.className = 'mmgisTimeUIIndicatorLine'
+            line.style.left = leftPct + '%'
+            line.style.borderLeftColor = ind.color
+            line.dataset.indicatorId = ind.id
+            timeline.appendChild(line)
+        }
     },
 }
 

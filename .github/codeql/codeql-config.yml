@@ -32,6 +32,11 @@ paths-ignore:
   - '**/Missions/**'
   - '**/auxiliary/**'
   - '**/public/**'
+  # Vendored third-party libraries (~191k LOC) and bundled demo pages. Not our
+  # code to fix, and far too large to bring into sonar.sources, so findings
+  # here could only ever import as unmappable project-level issues.
+  - 'src/external/**'
+  - 'examples/**'
 
 # Query filters to reduce false positives
 query-filters:

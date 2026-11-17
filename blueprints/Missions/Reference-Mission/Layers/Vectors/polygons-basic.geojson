@@ -1,0 +1,105 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Golden Gate Park",
+        "description": "Large urban park stretching from the center of the city to the Pacific Ocean",
+        "category": "park",
+        "area": "4.1 km²"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.5110, 37.7694],
+          [-122.5110, 37.7747],
+          [-122.4550, 37.7747],
+          [-122.4550, 37.7694],
+          [-122.5110, 37.7694]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Presidio",
+        "description": "Park and former military fort on the northern tip of the San Francisco Peninsula",
+        "category": "park",
+        "area": "6.0 km²"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4667, 37.7989],
+          [-122.4667, 37.8083],
+          [-122.4375, 37.8083],
+          [-122.4375, 37.7989],
+          [-122.4667, 37.7989]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Financial District",
+        "description": "Business district and central business district of San Francisco",
+        "category": "district",
+        "area": "1.2 km²"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4050, 37.7900],
+          [-122.4050, 37.7970],
+          [-122.3970, 37.7970],
+          [-122.3970, 37.7900],
+          [-122.4050, 37.7900]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Mission District",
+        "description": "Vibrant neighborhood known for its Latin American culture and street art",
+        "category": "neighborhood",
+        "area": "2.9 km²"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4300, 37.7500],
+          [-122.4300, 37.7650],
+          [-122.4100, 37.7650],
+          [-122.4100, 37.7500],
+          [-122.4300, 37.7500]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Twin Peaks Area",
+        "description": "Residential area surrounding the famous Twin Peaks hilltops",
+        "category": "residential",
+        "area": "3.5 km²"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-122.4550, 37.7475],
+          [-122.4550, 37.7575],
+          [-122.4400, 37.7575],
+          [-122.4400, 37.7475],
+          [-122.4550, 37.7475]
+        ]]
+      }
+    }
+  ]
+}

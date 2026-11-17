@@ -1,0 +1,10 @@
+{
+    "name": "DepCrossFamilyInteraction",
+    "type": "interaction",
+    "interactionId": "dep:crossfamily",
+    "description": "Fixture depending on a layer type — a satisfiable, cross-family dependency.",
+    "pluginDependencies": ["core/layertypes/Vector"],
+    "paths": {
+        "DepCrossFamilyInteraction": "../plugins/mmgis-test/interactions/DepCrossFamilyInteraction/DepCrossFamilyInteraction"
+    }
+}

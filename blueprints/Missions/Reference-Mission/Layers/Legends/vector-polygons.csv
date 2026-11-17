@@ -1,0 +1,8 @@
+value,color,label
+high,#ff0000,High Density
+medium,#ffa500,Medium Density
+low,#00ff00,Low Density
+protected,#0000ff,Protected Area
+development,#800080,Development Zone
+residential,#ffff00,Residential
+park,#228b22,Park / Recreation

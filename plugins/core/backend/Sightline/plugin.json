@@ -1,0 +1,21 @@
+{
+  "uuid": "f37ec932-34a2-4eaa-bf0b-9f7eb6c9c143",
+  "id": "core-sightline",
+  "name": "Sightline",
+  "display_name": "Sightline Backend",
+  "aliases": [
+    "sightline",
+    "sightmap"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/sightline",
+    "auth": "user"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

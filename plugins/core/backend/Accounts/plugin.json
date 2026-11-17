@@ -1,0 +1,21 @@
+{
+  "uuid": "ddb42129-e502-48fb-8544-005ed4e0a353",
+  "id": "core-accounts",
+  "name": "Accounts",
+  "display_name": "Account Management",
+  "aliases": [
+    "accounts"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": false,
+  "required": true,
+  "routes": {
+    "prefix": "/api/accounts",
+    "auth": "admin"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

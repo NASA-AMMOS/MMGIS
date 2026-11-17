@@ -30,7 +30,7 @@ COPY python-environment.yml ./
 # Node.js
 #############################
 
-RUN dnf module install -y nodejs:20
+RUN dnf module install -y nodejs:22
 
 #############################
 # Python (micromamba)
@@ -78,6 +78,23 @@ WORKDIR /usr/src/app
 # Now copy source code - changes here won't invalidate dependency layers
 COPY . .
 
+# Resolve per-plugin dependencies (writes plugin-package.json,
+# plugin-python-requirements.txt, plugin-conda-deps.txt) and install
+# whatever each plugin declared on top of the root deps.
+RUN node scripts/resolve-plugin-deps.js
+
+RUN --mount=type=cache,target=/root/.npm \
+    node scripts/install-plugin-deps.js && \
+    node scripts/check-installed-lockfile.js
+
+RUN if [ -s plugin-python-requirements.txt ] && grep -qv '^#' plugin-python-requirements.txt; then \
+        echo "Installing plugin pip dependencies..." && \
+        source ~/.bashrc && \
+        micromamba run -n mmgis pip install -r plugin-python-requirements.txt; \
+    else \
+        echo "No plugin pip dependencies to install."; \
+    fi
+
 # Build MMGIS main
 RUN npm run build
 
@@ -94,22 +111,42 @@ FROM oraclelinux:8.9 AS runtime
 
 # Runtime dependencies only (smaller, more secure)
 RUN dnf -y update && \
-    dnf -y install ca-certificates && \
+    dnf -y install ca-certificates curl && \
     update-ca-trust enable && \
     update-ca-trust extract && \
-    dnf module install -y nodejs:20 && \
+    dnf module install -y nodejs:22 && \
     dnf clean all
 
 ARG PUBLIC_URL_ARG=
 ENV PUBLIC_URL=$PUBLIC_URL_ARG
 
+# Unprivileged runtime user
+ARG APP_UID=10001
+ARG APP_GID=10001
+RUN groupadd -g ${APP_GID} mmgis && \
+    useradd --no-log-init -m -u ${APP_UID} -g mmgis -s /bin/bash mmgis
+
 WORKDIR /usr/src/app
 
 # Copy micromamba and Python environment from builder
-COPY --from=builder /opt/micromamba /opt/micromamba
-RUN MAMBA_ROOT_PREFIX="/opt/micromamba"; /opt/micromamba/bin/micromamba shell init -s bash && \
-    echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /root/.bashrc && \
-    echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /root/.bashrc
+COPY --from=builder --chown=mmgis:mmgis /opt/micromamba /opt/micromamba
+ENV MAMBA_ROOT_PREFIX=/opt/micromamba
+ENV PATH=/opt/micromamba/bin:$PATH
+RUN /opt/micromamba/bin/micromamba shell init -s bash --root-prefix /opt/micromamba && \
+    su mmgis -c "/opt/micromamba/bin/micromamba shell init -s bash --root-prefix /opt/micromamba" && \
+    echo 'export PATH="/opt/micromamba/bin:$PATH"' >> /home/mmgis/.bashrc && \
+    echo 'export MAMBA_ROOT_PREFIX="/opt/micromamba"' >> /home/mmgis/.bashrc
+
+# Activate the mmgis env via ENV (not ~/.bashrc) so it applies to any runtime uid, e.g. compose `user:`
+ENV CONDA_DEFAULT_ENV=mmgis \
+    CONDA_PREFIX=/opt/micromamba/envs/mmgis \
+    PATH=/opt/micromamba/envs/mmgis/bin:$PATH \
+    GDAL_DATA=/opt/micromamba/envs/mmgis/share/gdal \
+    GDAL_DRIVER_PATH=/opt/micromamba/envs/mmgis/lib/gdalplugins \
+    PROJ_DATA=/opt/micromamba/envs/mmgis/share/proj \
+    PROJ_NETWORK=ON \
+    CPL_ZIP_ENCODING=UTF-8 \
+    XML_CATALOG_FILES="file:///opt/micromamba/envs/mmgis/etc/xml/catalog file:///etc/xml/catalog"
 
 # Copy package files for production dependency installation
 COPY --from=builder /usr/src/app/package.json ./package.json
@@ -118,6 +155,18 @@ COPY --from=builder /usr/src/app/package-lock.json ./package-lock.json
 # Install ONLY production dependencies in runtime (no devDependencies)
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --only=production
+
+# Re-install plugin npm deps in the runtime stage. Plugin deps are
+# installed in the builder with `--no-save`, so they are NOT recorded in
+# `package.json`/`package-lock.json` and would otherwise be lost by the
+# `npm ci` above. Backend plugins that `require()` their declared npm
+# deps at runtime would fail without this step. (Frontend plugin deps
+# are unaffected because webpack bundled them into `./build` during the
+# builder stage.) `npm_config_omit=dev` keeps devDependencies out.
+COPY --from=builder /usr/src/app/plugin-package.json ./plugin-package.json
+COPY --from=builder /usr/src/app/scripts/install-plugin-deps.js ./scripts/install-plugin-deps.js
+RUN --mount=type=cache,target=/root/.npm \
+    npm_config_omit=dev node scripts/install-plugin-deps.js
 
 # Copy built artifacts from builder
 COPY --from=builder /usr/src/app/build ./build
@@ -133,7 +182,6 @@ COPY --from=builder /usr/src/app/API ./API
 COPY --from=builder /usr/src/app/scripts ./scripts
 COPY --from=builder /usr/src/app/public ./public
 COPY --from=builder /usr/src/app/configuration ./configuration
-COPY --from=builder /usr/src/app/_docker-entrypoint.sh ./_docker-entrypoint.sh
 
 # Copy additional runtime directories
 COPY --from=builder /usr/src/app/views ./views
@@ -141,9 +189,19 @@ COPY --from=builder /usr/src/app/spice ./spice
 COPY --from=builder /usr/src/app/adjacent-servers ./adjacent-servers
 COPY --from=builder /usr/src/app/examples ./examples
 COPY --from=builder /usr/src/app/private ./private
-COPY --from=builder /usr/src/app/prepare ./prepare
+COPY --from=builder /usr/src/app/blueprints ./blueprints
+COPY --from=builder /usr/src/app/plugins ./plugins
 
-RUN chmod 755 _docker-entrypoint.sh
+RUN mkdir -p Missions ssl && \
+    rm -rf API/logs && mkdir API/logs && \
+    chown -R mmgis:0 /usr/src/app && \
+    chmod -R g=u /usr/src/app
+
+# HOME is / for runtime uids not in /etc/passwd, so point caches at /tmp
+ENV NUMBA_CACHE_DIR=/tmp/numba-cache \
+    NPM_CONFIG_CACHE=/tmp/.npm
+
+USER mmgis
 
 EXPOSE 8888
-CMD ["./_docker-entrypoint.sh"]
+CMD ["npm", "run", "start:prod-docker"]

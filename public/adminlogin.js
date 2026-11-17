@@ -1,3 +1,4 @@
+/* global $, LoginForms */
 let setup = false;
 
 function login() {
@@ -15,6 +16,19 @@ function login() {
     return;
   }
 
+  if (!LoginForms.isLocal()) {
+    LoginForms.submit(
+      document.getElementById("username").value,
+      document.getElementById("pwd").value,
+      function (message) {
+        document.getElementById("msg").innerText = message;
+        document.getElementById("msg").style.opacity = 1;
+      },
+      document.querySelector("button.btn1")
+    );
+    return;
+  }
+
   $.ajax({
     type: "POST",
     url: "api/users/login",
@@ -28,6 +42,7 @@ function login() {
         (data.hasOwnProperty("status") && data.status == "success")
       ) {
         //success
+        LoginForms.remember();
         document.cookie =
           "MMGISUser=" +
           JSON.stringify({
@@ -37,15 +52,31 @@ function login() {
         location.reload();
       } else {
         //error
-        document.getElementById("msg").innerHTML =
-          "Invalid username or password.";
+        document.getElementById("msg").innerText = LoginForms.failed(
+          (data && data.message) || "Invalid username or password."
+        );
         document.getElementById("msg").style.opacity = 1;
       }
     },
-    error: function () {
+    error: function (xhr) {
       //error
-      document.getElementById("msg").innerHTML = "Server error.";
+      document.getElementById("msg").innerText = LoginForms.failed(
+        (xhr && xhr.responseJSON && xhr.responseJSON.message) || "Server error.",
+        xhr && xhr.status
+      );
       document.getElementById("msg").style.opacity = 1;
+    },
+  });
+}
+
+function signOut() {
+  $.ajax({
+    type: "POST",
+    url: "api/users/logout",
+    complete: function () {
+      document.cookie =
+        "MMGISUser=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/";
+      location.reload();
     },
   });
 }
@@ -57,6 +88,13 @@ function setupLogin() {
     document.getElementById("pwd_retype").value == ""
   ) {
     document.getElementById("msg").innerHTML = "Missing username or password.";
+    document.getElementById("msg").style.opacity = 1;
+    return;
+  }
+
+  if (document.getElementById("setup_code").value.trim() == "") {
+    document.getElementById("msg").innerHTML =
+      "Enter the setup code from the server log.";
     document.getElementById("msg").style.opacity = 1;
     return;
   }
@@ -76,6 +114,7 @@ function setupLogin() {
     data: {
       username: document.getElementById("username").value,
       password: document.getElementById("pwd").value,
+      setup_code: document.getElementById("setup_code").value,
     },
     success: function (data) {
       if (
@@ -99,8 +138,10 @@ function setupLogin() {
 }
 
 $(document).ready(function () {
+  LoginForms.init();
   $(document).on("keypress", function (e) {
-    if (e.which == 13) {
+    // Enter on a button already clicks it
+    if (e.which == 13 && !$(e.target).is("button")) {
       login();
     }
   });
@@ -113,11 +154,13 @@ $(document).ready(function () {
       if (data.status == "success") {
         if (data.has == false) {
           setup = true;
+          // The first administrator is always a local account
+          LoginForms.onlyLocal();
           $("#setup").css("opacity", "1");
-          $(".container").css("height", "520px");
-          $("#pwd_retype").css("display", "block");
-          $(".btn1").css("top", "81%");
+          $("#pwd_retype, #pwd_retype_label").css("display", "block");
+          $("#setup_code, #setup_code_label").css("display", "block");
           $(".btn1").text("Create Administrator Account");
+          $("#signInTitle").text("Create the first administrator account.");
         }
       }
     },

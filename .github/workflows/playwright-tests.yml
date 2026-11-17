@@ -6,18 +6,29 @@ on:
   pull_request:
     branches: [master, main, development]
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    timeout-minutes: 20
-    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        auth_mode: [off, local]
+        include:
+          - auth_mode: off
+            site_access: public
+          - auth_mode: local
+            site_access: required
 
     services:
       postgres:
         image: postgis/postgis:13-3.1
         env:
-          POSTGRES_DB: mmgis_test
+          POSTGRES_DB: mmgis-test
           POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
+          POSTGRES_PASSWORD: test_password # pragma: allowlist secret
         ports:
           - 5432:5432
         options: >-
@@ -28,57 +39,211 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "18"
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
         run: npm ci
 
+      # The postinstall plugin-dep install must not move packages off their locked versions
+      - name: Check installed packages match package-lock.json
+        run: node scripts/check-installed-lockfile.js
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Setup Python for adjacent servers
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install adjacent server Python packages
+        run: pip install "titiler.application" "python-dotenv[cli]" uvicorn
+
       - name: Setup test environment
-        run: |
+        run: | # pragma: allowlist secret
           cp sample.env .env || touch .env
+          sed -i "/^SITE_ACCESS=/d;/^AUTH_PROVIDERS=/d" .env
           echo "NODE_ENV=test" >> .env
-          echo "PORT=8888" >> .env
-          echo "AUTH=off" >> .env
+          echo "PORT=18888" >> .env
+          echo "SITE_ACCESS=${{ matrix.site_access }}" >> .env
+          echo 'AUTH_PROVIDERS=["local"]' >> .env
           echo "DB_HOST=localhost" >> .env
           echo "DB_PORT=5432" >> .env
-          echo "DB_NAME=mmgis_test" >> .env
+          echo "DB_NAME=mmgis-test" >> .env
           echo "DB_USER=test_user" >> .env
           echo "DB_PASS=test_password" >> .env
+          echo "DB_USER_TEST=test_user" >> .env
+          echo "DB_PASS_TEST=test_password" >> .env
           echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
           echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
-          echo "HIDE_CONFIG=true" >> .env
+          echo "HIDE_CONFIG=false" >> .env
+          echo "SECRET=ci-test-session-secret-not-for-production" >> .env
 
-      - name: Initialize Database
-        run: node scripts/init-db.js
+      # DB creation, Reference Mission setup, and server lifecycle are all
+      # handled by tests/global-setup.js (runs before any test suite).
+      # No manual init-db / server start / curl steps needed.
 
       - name: Run Unit Tests
         run: npx playwright test tests/unit --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+          PLAYWRIGHT_TEST_UNIT_ONLY: "true"
 
-      - name: Run E2E Tests
-        run: npx playwright test tests/e2e --project=chromium
-        continue-on-error: true
+      # Every plugin's tests tagged @unit, wherever the plugin lives
+      - name: Run Plugin Unit Tests
+        run: npm run test:plugins:unit -- --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+          PLAYWRIGHT_TEST_UNIT_ONLY: "true"
+
+      - name: Run E2E API Tests
+        run: npx playwright test tests/e2e/api tests/e2e/security tests/e2e/startup --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+
+      # Plugin suites call routes without signing in, so they run on the public site
+      - name: Run Backend Plugin Tests
+        if: matrix.site_access == 'public'
+        run: npx --no-install playwright test plugins/core/backend --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+
+      - name: Run E2E Auth Tests
+        run: npx --no-install playwright test tests/e2e/auth --project=chromium
+        env:
+          SITE_ACCESS: ${{ matrix.site_access }}
+          AUTH_PROVIDERS: local
+
+      - name: Check existing accounts survive the upgrade
+        if: matrix.site_access == 'required' && github.event_name == 'pull_request'
+        run: |
+          # Looked up on development so PRs into master (which lacks the file) seed from the same commit
+          git fetch --no-tags --depth=200 origin development
+          # Seed with the last release before the auth refactor (the commit before scripts/auth-migrate.js was added)
+          added=$(git log --diff-filter=A --format=%H -1 origin/development -- scripts/auth-migrate.js)
+          if [ -n "$added" ]; then legacy="$added^"; else legacy=origin/development; fi
+          bash tests/migration/run-legacy-compat.sh "$legacy"
+
+      # 5.2.24 is the last tagged release before the auth refactor; its schema predates users.missions_viewing
+      - name: Check auth-migrate on a database from the last release
+        if: matrix.site_access == 'required' && github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin refs/tags/5.2.24:refs/tags/5.2.24
+          APPLY_WITH=cli bash tests/migration/run-legacy-compat.sh 5.2.24
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.auth_mode }}
           path: playwright-report/
           retention-days: 30
 
       - name: Upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: test-results
+          name: test-results-${{ matrix.auth_mode }}
           path: test-results/
           retention-days: 7
+
+  # The proxy login provider (the replacement for AUTH=csso), with the headers a
+  # reverse proxy would add, under legacy network trust and the default secret trust.
+  plugin-ci-list:
+    # Plugins whose tests need an outside service or settings declare "ci" in plugin.json (scripts/plugin-ci.js)
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.list.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: List plugin CI runs
+        id: list
+        run: echo "matrix=$(node scripts/plugin-ci.js list)" >> "$GITHUB_OUTPUT"
+
+  plugin-ci:
+    needs: plugin-ci-list
+    if: needs.plugin-ci-list.outputs.matrix != '[]'
+    name: plugin (${{ matrix.name }})
+    timeout-minutes: 20
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plugin-ci-list.outputs.matrix) }}
+
+    services:
+      postgres:
+        image: postgis/postgis:13-3.1
+        env:
+          POSTGRES_DB: mmgis-test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password # pragma: allowlist secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install plugin dependencies
+        run: node scripts/resolve-plugin-deps.js && node scripts/install-plugin-deps.js
+
+      - name: Install Playwright Browsers
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Setup test environment
+        run: | # pragma: allowlist secret
+          cp sample.env .env || touch .env
+          echo "NODE_ENV=test" >> .env
+          echo "PORT=18888" >> .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_NAME=mmgis-test" >> .env
+          echo "DB_USER=test_user" >> .env
+          echo "DB_PASS=test_password" >> .env
+          echo "DB_USER_TEST=test_user" >> .env
+          echo "DB_PASS_TEST=test_password" >> .env
+          echo "ENABLE_MMGIS_WEBSOCKETS=false" >> .env
+          echo "ENABLE_CONFIG_WEBSOCKETS=false" >> .env
+          echo "HIDE_CONFIG=false" >> .env
+          echo "SECRET=ci-test-session-secret-not-for-production" >> .env
+
+      - name: Run plugin tests
+        run: node scripts/plugin-ci.js run "$PLUGIN_DIR" "$PLUGIN_VARIANT" -- --project=chromium
+        env:
+          PLUGIN_DIR: ${{ matrix.dir }}
+          PLUGIN_VARIANT: ${{ matrix.variant }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report-${{ matrix.slug }}
+          path: playwright-report/
+          retention-days: 30

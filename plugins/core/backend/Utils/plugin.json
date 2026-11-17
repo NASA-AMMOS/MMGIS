@@ -1,0 +1,20 @@
+{
+  "uuid": "60e4fc7b-1e55-49c4-b91a-eeee95d3a229",
+  "id": "core-utils",
+  "name": "Utils",
+  "display_name": "Utility Endpoints",
+  "aliases": [
+    "utils"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/utils",
+    "auth": "public"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

@@ -1,0 +1,20 @@
+{
+  "uuid": "7aace5bd-8a5d-4cc9-a6a1-17688a3f0546",
+  "id": "core-generaloptions",
+  "name": "GeneralOptions",
+  "display_name": "General Options",
+  "aliases": [
+    "generaloptions"
+  ],
+  "version": "core",
+  "type": "backend",
+  "tier": "core",
+  "overridable": true,
+  "routes": {
+    "prefix": "/api/generaloptions",
+    "auth": "public"
+  },
+  "author": "NASA-AMMOS/MMGIS",
+  "license": "Apache-2.0",
+  "repository": "https://github.com/NASA-AMMOS/MMGIS"
+}

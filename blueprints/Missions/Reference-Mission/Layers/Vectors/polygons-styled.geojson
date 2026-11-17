@@ -1,0 +1,339 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 1,
+        "name": "Park Area",
+        "description": "Urban park with solid fill",
+        "category": "park",
+        "style": {
+          "fillColor": "#90ee90",
+          "fillOpacity": 0.6,
+          "color": "#228b22",
+          "weight": 2
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4300, 37.8300],
+            [-122.4250, 37.8300],
+            [-122.4250, 37.8350],
+            [-122.4300, 37.8350],
+            [-122.4300, 37.8300]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 2,
+        "name": "Residential Zone",
+        "description": "Housing area with pattern fill",
+        "category": "residential",
+        "style": {
+          "geologic": {
+            "type": "pattern",
+            "tag": "217-K",
+            "size": 0.5
+          },
+          "fillColor": "#ffffcc",
+          "fillOpacity": 0.7,
+          "color": "#ff8c00",
+          "weight": 2
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4400, 37.8300],
+            [-122.4320, 37.8300],
+            [-122.4320, 37.8360],
+            [-122.4400, 37.8360],
+            [-122.4400, 37.8300]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 3,
+        "name": "Water Body",
+        "description": "Lake or reservoir with blue fill",
+        "category": "water",
+        "style": {
+          "fillColor": "#4169e1",
+          "fillOpacity": 0.5,
+          "color": "#000080",
+          "weight": 1
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4500, 37.8300],
+            [-122.4480, 37.8310],
+            [-122.4460, 37.8330],
+            [-122.4440, 37.8340],
+            [-122.4420, 37.8335],
+            [-122.4410, 37.8320],
+            [-122.4420, 37.8305],
+            [-122.4450, 37.8300],
+            [-122.4500, 37.8300]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 4,
+        "name": "Commercial District",
+        "description": "Business area with thick border",
+        "category": "commercial",
+        "style": {
+          "fillColor": "#ffb6c1",
+          "fillOpacity": 0.4,
+          "color": "#8b0000",
+          "weight": 4,
+          "dashArray": "5, 5"
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4250, 37.8200],
+            [-122.4200, 37.8200],
+            [-122.4180, 37.8220],
+            [-122.4180, 37.8250],
+            [-122.4220, 37.8270],
+            [-122.4260, 37.8250],
+            [-122.4250, 37.8200]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Industrial Zone",
+        "description": "Factory area with diagonal pattern",
+        "category": "industrial",
+        "style": {
+          "geologic": {
+            "type": "pattern",
+            "tag": "314-M",
+            "size": 0.6
+          },
+          "fillColor": "#d3d3d3",
+          "fillOpacity": 0.6,
+          "color": "#4b0082",
+          "weight": 3
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4400, 37.8200],
+            [-122.4350, 37.8200],
+            [-122.4350, 37.8250],
+            [-122.4400, 37.8250],
+            [-122.4400, 37.8200]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 6,
+        "name": "Agricultural Land",
+        "description": "Farmland with stipple pattern",
+        "category": "agriculture",
+        "style": {
+          "geologic": {
+            "type": "pattern",
+            "tag": "231-DO",
+            "size": 0.7
+          },
+          "fillColor": "#f0e68c",
+          "fillOpacity": 0.5,
+          "color": "#8b4513",
+          "weight": 2
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4500, 37.8200],
+            [-122.4450, 37.8200],
+            [-122.4420, 37.8220],
+            [-122.4420, 37.8260],
+            [-122.4480, 37.8260],
+            [-122.4500, 37.8230],
+            [-122.4500, 37.8200]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 7,
+        "name": "Forest Reserve",
+        "description": "Protected woodland area",
+        "category": "forest",
+        "style": {
+          "fillColor": "#228b22",
+          "fillOpacity": 0.7,
+          "color": "#006400",
+          "weight": 2
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4600, 37.8300],
+            [-122.4550, 37.8300],
+            [-122.4520, 37.8320],
+            [-122.4520, 37.8350],
+            [-122.4560, 37.8360],
+            [-122.4600, 37.8340],
+            [-122.4600, 37.8300]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 8,
+        "name": "Geological Formation",
+        "description": "Bedrock outcrop with geological pattern",
+        "category": "geology",
+        "style": {
+          "geologic": {
+            "type": "pattern",
+            "tag": "401-C",
+            "size": 0.8
+          },
+          "fillColor": "#deb887",
+          "fillOpacity": 0.6,
+          "color": "#8b4513",
+          "weight": 2
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4600, 37.8200],
+            [-122.4550, 37.8200],
+            [-122.4530, 37.8230],
+            [-122.4550, 37.8260],
+            [-122.4600, 37.8250],
+            [-122.4600, 37.8200]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 9,
+        "name": "Security Zone",
+        "description": "High-security area with very heavy border and full opacity",
+        "category": "restricted",
+        "style": {
+          "fillColor": "#ff0000",
+          "fillOpacity": 1.0,
+          "color": "#000000",
+          "weight": 8
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4700, 37.8300],
+            [-122.4650, 37.8300],
+            [-122.4650, 37.8340],
+            [-122.4700, 37.8340],
+            [-122.4700, 37.8300]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 10,
+        "name": "Heritage Site",
+        "description": "Historical landmark with ornate border",
+        "category": "heritage",
+        "style": {
+          "fillColor": "#ffd700",
+          "fillOpacity": 0.8,
+          "color": "#8b4513",
+          "weight": 3,
+          "dashArray": "8, 4, 2, 4"
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4700, 37.8200],
+            [-122.4660, 37.8200],
+            [-122.4650, 37.8220],
+            [-122.4660, 37.8250],
+            [-122.4700, 37.8250],
+            [-122.4700, 37.8200]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 11,
+        "name": "Transit Hub",
+        "description": "Transportation center with rounded corners",
+        "category": "transit",
+        "style": {
+          "fillColor": "#ff6347",
+          "fillOpacity": 0.65,
+          "color": "#dc143c",
+          "weight": 5,
+          "lineCap": "round",
+          "lineJoin": "round"
+        }
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-122.4180, 37.8300],
+            [-122.4130, 37.8300],
+            [-122.4110, 37.8320],
+            [-122.4130, 37.8350],
+            [-122.4180, 37.8350],
+            [-122.4180, 37.8300]
+          ]
+        ]
+      }
+    }
+  ]
+}

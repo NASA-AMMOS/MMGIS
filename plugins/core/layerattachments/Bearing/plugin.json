@@ -1,0 +1,85 @@
+{
+  "uuid": "0b8ddde8-4c6a-4a95-b62c-1b4a76c53c19",
+  "id": "core-layerattachment-bearing",
+  "name": "Bearing",
+  "type": "layerattachment",
+  "attachmentId": "bearing",
+  "configPath": "variables.markerAttachments.bearing",
+  "version": "core",
+  "tier": "core",
+  "overridable": false,
+  "description": "Points the host layer's own markers in a direction taken from a feature property (clockwise from north). It decorates its host instead of drawing a sublayer, so it never appears in the layer's Composite Layers list.",
+  "capabilities": {
+    "renderers": {
+      "map": {
+        "engines": ["leaflet"]
+      },
+      "globe": {
+        "engines": ["lithosphere"]
+      }
+    },
+    "host": {
+      "decoratesHost": true
+    }
+  },
+  "config": {
+    "tab": "Attachment - Markers",
+    "tabOrder": 12,
+    "order": 0,
+    "rows": [
+      {
+        "name": "Attachment - Markers",
+        "subname": "Bearings",
+        "components": [
+          {
+            "field": "variables.markerAttachments.bearing.enabled",
+            "name": "Enabled",
+            "description": "Sets a bearing direction (clockwise from north) of this layer's point markers (or Shape from Icon or Marker Icons if set). Overrides the layer's shape dropdown value.",
+            "type": "switch",
+            "width": 3,
+            "defaultChecked": false
+          }
+        ]
+      },
+      {
+        "components": [
+          {
+            "field": "variables.markerAttachments.bearing.angleProp",
+            "name": "Angle Property",
+            "description": "The dot.notated path to the feature properties that contains the desired rotation angle. Ex. headings.yaw.",
+            "type": "text",
+            "width": 4
+          },
+          {
+            "field": "variables.markerAttachments.bearing.angleUnit",
+            "name": "Angle Unit",
+            "description": "Unit of the value of 'angleProp'.",
+            "type": "dropdown",
+            "width": 2,
+            "options": [
+              "deg",
+              "rad"
+            ]
+          },
+          {
+            "field": "variables.markerAttachments.bearing.color",
+            "name": "Color",
+            "description": "A color for the directional arrow for non-Shape-from-Icon and non-Marker-Icon bearings.",
+            "type": "colorpicker",
+            "width": 3
+          },
+          {
+            "field": "variables.markerAttachments.bearing.useCustomShape",
+            "name": "Use Custom Marker Shapes",
+            "description": "If true, the bearing marker's style does not default to being a directional-circle. This reenables setting the 'Shape' dropdown in the Style Tab instead of forcing it to be 'DIRECTIONAL-CIRCLE'.",
+            "type": "checkbox",
+            "width": 3,
+            "defaultChecked": false
+          }
+        ]
+      }
+    ]
+  },
+  "module": "./bearing",
+  "applicableLayerTypes": ["vector", "query"]
+}

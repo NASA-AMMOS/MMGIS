@@ -1,0 +1,60 @@
+.switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    border-radius: 999px;
+    background: var(--color-a2);
+    cursor: pointer;
+    transition: background 0.15s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.switch:hover {
+    background: var(--color-a3);
+}
+
+.checked {
+    background: var(--color-mmgis);
+}
+.checked:hover {
+    background: var(--color-mmgis);
+    opacity: 0.85;
+}
+
+.thumb {
+    display: block;
+    border-radius: 50%;
+    background: var(--color-f);
+    transition: transform 0.15s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Size: sm (default) */
+.sm {
+    width: 28px;
+    height: 16px;
+}
+.sm .thumb {
+    width: 12px;
+    height: 12px;
+    transform: translateX(2px);
+}
+.sm.checked .thumb {
+    transform: translateX(14px);
+}
+
+/* Size: md */
+.md {
+    width: 36px;
+    height: 20px;
+}
+.md .thumb {
+    width: 16px;
+    height: 16px;
+    transform: translateX(2px);
+}
+.md.checked .thumb {
+    transform: translateX(18px);
+}

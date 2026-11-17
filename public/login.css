@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Source Sans Pro";
-  src: url(/public/fonts/sourcesanspro/SourceSansPro-Regular.ttf);
+  /* src is set via inline style in login.pug to support ROOT_PATH */
 }
 
 html {
@@ -9,7 +9,7 @@ html {
 }
 
 body {
-  background-image: url(/public/images/contours.png);
+  /* background-image is set via inline style in login.pug to support ROOT_PATH */
   font-family: "Source Sans Pro", sans-serif;
   background-color: #1a1a1a;
   padding: 0;
@@ -25,18 +25,17 @@ body {
   transform: translateX(-50%) translateY(-50%);
   background-color: #1c1c1c;
   border-top: 4px solid #08aeea;
-  border-bottom: 4px solid #08aeea;
+  border-radius: 10px;
   width: 400px;
-  height: 440px;
+  padding-bottom: 26px;
   box-shadow: 0px 4px 30px 10px #141414;
-  transition: height 0.2s;
 }
 
 .box h4 {
   font-family: "Source Sans Pro", sans-serif;
   color: #08aeea;
   font-size: 18px;
-  margin-top: 94px;
+  margin-top: 16px;
 }
 
 .box h4 span {
@@ -47,26 +46,26 @@ body {
 
 .box h5 {
   font-family: "Source Sans Pro", sans-serif;
-  font-size: 13px;
-  color: #a1a4ad;
-  letter-spacing: 1.5px;
-  margin-top: -15px;
-  margin-bottom: 53px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #b4b7bf;
+  letter-spacing: 0.3px;
+  margin-top: -10px;
+  margin-bottom: 24px;
 }
 
 .box input[type="text"],
 .box input[type="password"] {
   display: block;
-  margin: 20px auto;
+  margin: 6px auto 16px;
   background: #36373a;
-  border: 0;
   border-radius: 5px;
   padding: 14px 10px;
   width: 320px;
   outline: none;
   font-size: 14px;
   color: #ececec;
-  border: 1px solid rgba(0, 0, 0, 0);
+  border: 1px solid #45464a;
 }
 ::-webkit-input-placeholder {
   color: #727580;
@@ -74,7 +73,8 @@ body {
 
 .box input[type="text"]:focus,
 .box input[type="password"]:focus {
-  border: 1px solid #75767a;
+  border: 1px solid #08aeea;
+  box-shadow: 0 0 0 3px rgba(8, 174, 234, 0.25);
 }
 
 a {
@@ -87,15 +87,17 @@ a:hover {
 }
 
 .btn1 {
-  background: #36373a;
-  color: #dfdeee;
-  border-radius: 5px;
-  width: 340px;
+  display: block;
+  box-sizing: border-box;
+  background: #08aeea;
+  color: #08222e;
+  font-weight: 600;
+  border: 0;
+  border-radius: 6px;
+  width: 342px;
   height: 49px;
+  margin: 12px auto 0;
   font-size: 16px;
-  position: absolute;
-  bottom: 47px;
-  left: 7.5%;
   transition: 0.3s;
   cursor: pointer;
   text-align: center;
@@ -105,23 +107,25 @@ a:hover {
 }
 
 .btn1:hover {
-  background: #08aeea;
-  color: white;
+  background: #3cc4f3;
+  color: #08222e;
 }
 
 .error {
   text-align: center;
   width: 337px;
-  height: 22px;
+  min-height: 22px;
   padding: 2px;
   border: 0;
-  margin: 10px auto 10px;
+  margin: 0;
   position: absolute;
-  top: 158px;
-  white-space: nowrap;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  /* Longer provider messages wrap instead of running off the card */
+  white-space: normal;
   display: flex;
   justify-content: center;
-  left: 7.2%;
   color: #ffcfb3;
   border-bottom: 2px solid #ff7426;
   opacity: 0;
@@ -141,9 +145,11 @@ a:hover {
 #pwd_description {
   color: #a1a4ad;
   font-style: italic;
-  font-size: 14px;
+  font-size: 12.5px;
+  line-height: 1.4;
   text-align: left;
-  margin: -17px 39px -8px 39px;
+  width: 342px;
+  margin: -10px auto 16px;
 }
 
 img {
@@ -152,6 +158,24 @@ img {
   left: 50%;
   transform: translateX(-50%);
   cursor: pointer;
+}
+
+#container > img {
+  position: static;
+  transform: none;
+  display: block;
+  margin: 34px auto 0;
+  height: 30px;
+}
+
+.fieldLabel {
+  display: block;
+  width: 342px;
+  margin: 0 auto;
+  text-align: left;
+  font-size: 13px;
+  font-weight: bold;
+  color: #a1a4ad;
 }
 
 .mmgisScrollbar::-webkit-scrollbar-track {
@@ -188,10 +212,10 @@ img {
   width: 100%;
   display: none;
   justify-content: center;
+  margin-top: 14px;
 }
 #toggle {
-  position: absolute;
-  bottom: 15px;
+  border: 0;
   padding: 2px 8px;
   line-height: 16px;
   text-align: center;
@@ -229,4 +253,147 @@ img {
   #container {
     transform: translateX(-50%) translateY(-50%) scale(0.8);
   }
+}
+
+.providerLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 342px;
+  max-width: 100%;
+  margin: 14px auto 0;
+}
+.providerOr {
+  text-align: center;
+  color: #808080;
+  font-size: 13px;
+}
+.providerBtn {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1a1a1a;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.providerBtn:hover,
+.providerBtn:focus-visible {
+  background: #d9e9f0;
+  color: #1a1a1a;
+  outline: none;
+}
+
+/* Provider switch, single-provider banner, hint and help link above/below the shared form */
+.loginProviders.multiple {
+  display: flex;
+  gap: 4px;
+  width: 342px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 18px;
+  padding: 4px;
+  background: #121d23;
+  border-radius: 7px;
+  box-shadow: 0 0 0 1px rgba(8, 174, 234, 0.5) inset;
+}
+.loginProviders.single {
+  display: none;
+}
+.loginProvider {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #a1a4ad;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.loginProvider span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loginProvider:hover,
+.loginProvider:focus-visible {
+  color: #ececec;
+  outline: none;
+}
+.loginProvider.active {
+  background: #0c3546;
+  color: #ffffff;
+  box-shadow: 0 0 0 1.5px #08aeea inset;
+}
+.loginProvider.active .mdi {
+  color: #08aeea;
+}
+.loginBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 342px;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto 18px;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 8px;
+  background: #13252e;
+  border: 1px solid rgba(8, 174, 234, 0.45);
+  border-left: 4px solid #08aeea;
+}
+.loginBanner > .mdi {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #0c3546;
+  color: #08aeea;
+  font-size: 22px;
+}
+.loginBanner small {
+  display: block;
+  color: #b4b7bf;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.loginBanner b {
+  display: block;
+  color: #ffffff;
+  font-size: 17px;
+}
+.loginBanner span {
+  display: block;
+  margin-top: 2px;
+  color: #b4b7bf;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.loginHint {
+  display: none;
+  width: 342px;
+  max-width: 100%;
+  margin: -8px auto 14px;
+  text-align: center;
+  color: #a1a4ad;
+  font-style: italic;
+  font-size: 12.5px;
+  line-height: 1.4;
 }

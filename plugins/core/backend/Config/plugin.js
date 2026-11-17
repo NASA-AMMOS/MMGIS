@@ -1,0 +1,72 @@
+const router = require("./routes/configs");
+const triggerWebhooks = require("../Webhooks/processes/triggerwebhooks.js");
+const configurePackageJson = require("../../../../configure/package.json");
+const providers = require("../../../../API/permissions/providers");
+
+let setup = {
+  //Once the app initializes
+  onceInit: (s) => {
+    if (
+      !process.env.hasOwnProperty("HIDE_CONFIG") ||
+      process.env.HIDE_CONFIG != "true"
+    ) {
+      s.app.get(
+        s.ROOT_PATH + "/configure",
+        s.ensureGroup(s.permissions.users),
+        s.ensureAdmin(true),
+        (req, res) => {
+          const user = req.principal.username || req.user || "";
+          const role = s.policy.accountRole(req.principal.bindings || []);
+          res.render("../configure/build/index.pug", {
+            user: user,
+            role: role,
+            SITE_ACCESS: s.siteAccess.getSiteAccess(),
+            AUTH_PROVIDERS: s.siteAccess.getProviders().join(","),
+            // URI-encoded so the template can't break out of its string
+            AUTH_PROVIDER_INFO: encodeURIComponent(JSON.stringify(providers.providerInfo())).replace(/'/g, "%27"),
+            AUTH_LOCAL_ALLOW_SIGNUP: String(
+              process.env.AUTH_LOCAL_ALLOW_SIGNUP === "true"
+            ),
+            AUTH_LOCAL_LOGIN: s.siteAccess.localAdminsOnly() ? "admins" : "all",
+            SELF_SIGNUP: String(s.siteAccess.selfSignupAllowed()),
+            NODE_ENV: process.env.NODE_ENV,
+            VERSION: configurePackageJson.version,
+            PORT: process.env.PORT || "8888",
+            ENABLE_CONFIG_WEBSOCKETS: process.env.ENABLE_CONFIG_WEBSOCKETS,
+            ENABLE_CONFIG_OVERRIDE: process.env.ENABLE_CONFIG_OVERRIDE,
+            ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : /*(process.env.EXTERNAL_ROOT_PATH || "") +*/
+                  process.env.ROOT_PATH || "",
+            WEBSOCKET_ROOT_PATH:
+              process.env.NODE_ENV === "development"
+                ? ""
+                : process.env.WEBSOCKET_ROOT_PATH || "",
+            IS_DOCKER: process.env.IS_DOCKER,
+            WITH_STAC: process.env.WITH_STAC,
+            WITH_TIPG: process.env.WITH_TIPG,
+            WITH_TITILER: process.env.WITH_TITILER,
+            WITH_TITILER_PGSTAC: process.env.WITH_TITILER_PGSTAC,
+          });
+        }
+      );
+    }
+
+    s.app.use(
+      s.ROOT_PATH + "/api/configure",
+      s.ensureUser({ forbid: true }),
+      s.checkHeadersCodeInjection,
+      s.setContentType,
+      s.registerRouter("/api/configure", router)
+    );
+  },
+  //Once the server starts
+  onceStarted: (s) => {},
+  //Once all tables sync
+  onceSynced: (s) => {
+    triggerWebhooks("getConfiguration", {});
+  },
+};
+
+module.exports = setup;
