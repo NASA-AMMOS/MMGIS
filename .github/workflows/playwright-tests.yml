@@ -127,10 +127,11 @@ jobs:
       - name: Check existing accounts survive the upgrade
         if: matrix.site_access == 'required' && github.event_name == 'pull_request'
         run: |
-          git fetch --no-tags --depth=200 origin ${{ github.base_ref }}
+          # Looked up on development so PRs into master (which lacks the file) seed from the same commit
+          git fetch --no-tags --depth=200 origin development
           # Seed with the last release before the auth refactor (the commit before scripts/auth-migrate.js was added)
-          added=$(git log --diff-filter=A --format=%H -1 origin/${{ github.base_ref }} -- scripts/auth-migrate.js)
-          if [ -n "$added" ]; then legacy="$added^"; else legacy=origin/${{ github.base_ref }}; fi
+          added=$(git log --diff-filter=A --format=%H -1 origin/development -- scripts/auth-migrate.js)
+          if [ -n "$added" ]; then legacy="$added^"; else legacy=origin/development; fi
           bash tests/migration/run-legacy-compat.sh "$legacy"
 
       # 5.2.24 is the last tagged release before the auth refactor; its schema predates users.missions_viewing
