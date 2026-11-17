@@ -320,6 +320,47 @@ test.describe('LayersTool2', () => {
         expect(outcomes[0]).toEqual(outcomes[1])
     })
 
+    test('keeps search match counts when all matching groups are collapsed', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points')
+
+        const count = page.locator('#layersTool2 .lt2-filterBar span')
+        await expect(count).toHaveText(/^\d+ of \d+ layers$/)
+        const countBeforeCollapse = await count.textContent()
+        const matchingRowCount = await page
+            .locator('#layersTool2 .lt2-layerRow')
+            .count()
+        expect(matchingRowCount).toBeGreaterThan(0)
+
+        await page.getByRole('button', { name: 'Collapse all' }).click()
+        await expect(page.getByText(/No layers match/)).toHaveCount(0)
+        await expect(count).toHaveText(countBeforeCollapse)
+        const vectorHeader = page
+            .getByRole('treeitem')
+            .filter({ hasText: 'Vector Layers' })
+            .first()
+        await expect(vectorHeader).toBeVisible()
+        await expect(vectorHeader).toHaveAttribute('aria-expanded', 'false')
+        await expect(
+            page.locator('#layersTool2 .lt2-layerRow')
+        ).toHaveCount(0)
+
+        await page.getByRole('button', { name: 'Expand all' }).click()
+        await expect(vectorHeader).toHaveAttribute('aria-expanded', 'true')
+        await expect(
+            page.locator('#layersTool2 .lt2-layerRow')
+        ).toHaveCount(matchingRowCount)
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Basic' })
+                .first()
+        ).toBeVisible()
+    })
+
     test('toggles visible and filtered layer views', async ({ page }) => {
         await openLayers2(page)
         const visible = page.getByRole('button', {

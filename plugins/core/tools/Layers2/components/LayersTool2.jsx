@@ -344,7 +344,11 @@ function buildRows(flat, current, query, expandedMap) {
         row.setSize = siblingSizes.get(row.parentId)
         row.posInSet = position
     })
-    return { rows, hiddenByFilter }
+    return {
+        rows,
+        hiddenByFilter,
+        matchCount: matchingLeaves.size,
+    }
 }
 
 function highlightText(text, query) {
@@ -1739,8 +1743,11 @@ function LayersTool2App({ vars }) {
     ])
     const total = allLayerNodes.length
     const visibleLayers = useMemo(
-        () => rows.filter((row) => !row.isHeader).length,
-        [rows]
+        () =>
+            isFiltering
+                ? rowModel.matchCount
+                : rows.filter((row) => !row.isHeader).length,
+        [isFiltering, rowModel.matchCount, rows]
     )
     const allTags = useMemo(
         () =>
