@@ -13,6 +13,7 @@
 - Local development uses hot-reloading — there is little reason to run `npm run build` during development.
 - New development work that depends on a specific configuration and/or data should often be included in a Reference Mission blueprint under `/blueprints/Missions/`. Multiple variants exist (Earth, Lunar South Pole, etc.) — see [blueprints/README.md](./blueprints/README.md) for the full list and instructions on adding new variants. Site Admins can create a working Reference Mission in `/Missions` via the Configure Page, and developers can update the blueprint itself.
 - For code pattern templates (Express routes, Sequelize models, Tool plugins, WebSocket handlers) and the detailed project structure, see [.knowledge/code-patterns.md](./.knowledge/code-patterns.md).
+- Acting as a **site administrator** (standing up a mission, loading a DEM, configuring projections and layers, no code changes)? Follow [docs/pages/Configure/Administrator_Agent/Administrator_Agent.md](./docs/pages/Configure/Administrator_Agent/Administrator_Agent.md) (published at https://nasa-ammos.github.io/MMGIS/configure/administrator-agent).
 
 ## Quick Start
 
