@@ -12,7 +12,7 @@ permissions:
 jobs:
   test:
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         auth_mode: [off, local]
@@ -160,7 +160,7 @@ jobs:
   # reverse proxy would add, under legacy network trust and the default secret trust.
   plugin-ci-list:
     # Plugins whose tests need an outside service or settings declare "ci" in plugin.json (scripts/plugin-ci.js)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.list.outputs.matrix }}
     steps:
@@ -176,7 +176,7 @@ jobs:
     if: needs.plugin-ci-list.outputs.matrix != '[]'
     name: plugin (${{ matrix.name }})
     timeout-minutes: 20
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
