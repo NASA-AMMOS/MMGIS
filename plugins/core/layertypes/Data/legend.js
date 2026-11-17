@@ -12,6 +12,7 @@ function derive(layerObj) {
     if (F_.getIn(layerObj, 'variables.shader.type') !== 'colorize') return false
 
     ToolController_.getTool('LayersTool')?.populateCogScale(layerObj.name)
+    ToolController_.getTool('LayersTool2')?.populateCogScale?.(layerObj.name)
     return true
 }
 

@@ -1,0 +1,65 @@
+.lt2-typeSettingsList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.lt2-typeSettingsField,
+.lt2-typeSettingsCompositeLine {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.lt2-typeSettingsField > :last-child {
+    max-width: 65%;
+}
+
+.lt2-typeSettingsComposite,
+.lt2-typeSettingsRule {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 7px;
+    border: 1px solid var(--color-a1-5);
+    border-radius: 4px;
+}
+
+.lt2-typeSettingsRange {
+    display: flex;
+    gap: 8px;
+}
+
+.lt2-typeSettingsRange label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+
+.lt2-typeSettingsStats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 8px;
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+.lt2-typeSettingsStats strong {
+    grid-column: 1 / -1;
+    color: var(--color-f);
+}
+
+.lt2-typeSettingsFilter {
+    min-width: 0;
+}
+
+.lt2-typeSettingsFilter #layersTool_filtering {
+    position: relative;
+    width: 100%;
+}
+
+.lt2-typeSettingsFilter #layersTool_filtering_header {
+    min-height: 28px;
+}

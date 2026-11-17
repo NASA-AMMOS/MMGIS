@@ -1,0 +1,29 @@
+.lt2-videoSettings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lt2-videoControls,
+.lt2-videoScrub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lt2-videoScrub > div {
+    flex: 1;
+    min-width: 40px;
+}
+
+.lt2-videoScrub > span {
+    min-width: 28px;
+    color: var(--color-a5);
+    font-size: 11px;
+    text-align: center;
+}
+
+.lt2-videoSettings a {
+    color: var(--color-h);
+    font-size: 12px;
+}

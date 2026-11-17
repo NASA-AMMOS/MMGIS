@@ -14,6 +14,7 @@ function derive(layerObj) {
         return false
 
     ToolController_.getTool('LayersTool')?.populateCogScale(layerObj.name)
+    ToolController_.getTool('LayersTool2')?.populateCogScale?.(layerObj.name)
     return true
 }
 

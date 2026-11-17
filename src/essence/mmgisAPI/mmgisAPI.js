@@ -458,6 +458,8 @@ var mmgisAPI_ = {
                 } else {
                     $(id).removeClass('on')
                 }
+            } else if (ToolController_.activeToolName === 'LayersTool2') {
+                ToolController_.getTool('LayersTool2')?.syncLayer?.(layerName)
             }
         } else {
             console.warn(`'Warning: Unable to find layer named ${layerName}`)

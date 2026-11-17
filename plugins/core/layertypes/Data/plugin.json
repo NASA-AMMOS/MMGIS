@@ -595,6 +595,7 @@
   },
   "modules": {
     "map": "./map",
-    "legend": "./legend"
+    "legend": "./legend",
+    "settings": "./settings"
   }
 }

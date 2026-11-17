@@ -1,5 +1,9 @@
 # Optional Data Files
 
+The `videos/layers2-sample.mp4` and `models/layers2-triangle.gltf` files are
+small, local fixtures for the Reference Mission's Layers2 layer-type examples.
+Both are deliberately kept tiny so they can ship in the blueprint.
+
 This directory is for **optional** user-provided data files used by MMGIS analysis tools.
 
 ## Purpose

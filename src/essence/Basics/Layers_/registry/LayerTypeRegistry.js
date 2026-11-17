@@ -86,6 +86,10 @@ const LayerTypeRegistry = {
     get(typeId) {
         return _effectiveModules(typeId)
     },
+    /** Optional React settings surface, inherited with the rest of a type's modules. */
+    settings(typeId) {
+        return _effectiveModules(typeId)?.settings || null
+    },
     /** Per-engine globe renderer module for a type, e.g. getGlobe('tile','cesium'). */
     getGlobe(typeId, engine) {
         return _effectiveModules(typeId)?.globe?.[engine]

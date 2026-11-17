@@ -275,6 +275,7 @@
     ]
   },
   "modules": {
-    "map": "./map"
+    "map": "./map",
+    "settings": "./settings"
   }
 }
