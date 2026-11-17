@@ -2,83 +2,95 @@
 
 ---
 
-## Unreleased
+## 5.5.5
+
+_November 12, 2026_
 
 #### Summary
 
-The MMGIS Docker image still runs as an unprivileged user by default, but its default uid/gid changes from `1000` to `10001`, and it now works for any uid set with Compose `user: "<uid>:<gid>"`. This lets each deployment run the container as the existing host owner of its `Missions` directory without `chown`, ACLs, root or a custom image build.
+This release reworks authentication and access. The `AUTH` ENV is replaced by `SITE_ACCESS` (`public`, `optional`, `required`) and `AUTH_PROVIDERS`, login providers become plugins (`local`, `proxy` — formerly `csso` — and a new `ldap` provider for OpenLDAP and Active Directory), and access is granted with roles at global, mission and layer scope to accounts, groups and audiences, managed on Configure's new Users & Access page. Long-term tokens can be limited to missions and capabilities, `AUTH_TOKENS` controls who may create them, and signed-in users can manage their own token from the main site's account menu. Existing accounts, passwords, sessions and tokens are kept, and their access is imported once.
 
-Authentication and access are reworked. The `AUTH` ENV is replaced by `SITE_ACCESS` (`public`, `optional`, `required`) and `AUTH_PROVIDERS` (login-provider plugins such as `local` and `proxy`; `csso` is renamed to `proxy`). Access is granted with roles at global, mission and layer scope to accounts, groups and audiences, managed on Configure's new Users & Access page. Long-term tokens can be limited to missions and capabilities. Existing accounts, passwords, sessions and tokens are kept, and their access is imported once. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
+The raster stack moves to TiTiler 2.x / TiTiler-pgSTAC 3.x / rio-tiler 9.x (pinned identically for Docker Compose and non-Docker installs), with expression parsing on the `/titiler` and `/titilerpgstac` proxies and custom GDAL color tables for COG layers. The Docker image runs as an unprivileged user (default uid/gid `10001`) and works for any uid set with Compose `user:`. The landing page is redesigned with admin-configurable mission cards, DrawTool files are scoped to the mission they were made in, a shared `Missions/shared` folder is readable by every signed-in user, and the new Broadcast plugin lets admins or pipelines push layer refreshes to connected clients. Geodatasets gain statistics and Style-tab dynamic vector styling, layer types and attachments are fully pluginized, Leaflet is upgraded to 1.9.4, mobile mode gains a bottom sheet and more tools, and server defaults for CORS, cookies and request limits are updated.
 
 ### Compatibility
 
-- **Mission configurations: No changes.**
-- **End users: Mostly unchanged.** Login and mission access behave as before; admins manage access on the new Users & Access page.
-- **Deployments: Breaking.** `AUTH` and the `CSSO_*` ENVs must be replaced, and some Docker deployments need changes. See the migration guide below.
+- **Mission configurations: Backward compatible.** Existing `cogBands`, `cogColormap` and expression settings continue to work; legacy `asset_bN` expressions are mapped to `bN`. No mission config changes are required.
+- **JavaScript API (`window.mmgisAPI`): Backward compatible.** Adds `mmgisAPI.setLayerAttachmentConfig`.
+- **End users: Mostly unchanged.** Login and mission access behave as before; the landing page and login form look different, and new DrawTool files are listed only in the mission they were created in (files made before this release are still listed everywhere by default).
+- **Deployments: Breaking.** `AUTH` and the `CSSO_*` ENVs must be replaced, the database must be backed up before upgrading, Docker deployments need the updated `docker-compose` (new TiTiler images, renamed `titiler-pgstac` ENVs, new container uid), and non-Docker installs must reinstall Python dependencies. See the migration guide below.
+- **Plugin developers: Breaking for layer type and attachment plugins.** See the migration guide below.
 
 ### Migration Guide
 
 - **Breaking (Deployments): Back up the database before upgrading; downgrading means restoring that backup.** Accounts' access is imported once from the legacy `users.permission`, `missions_managing` and `missions_viewing` columns into role bindings. After that the columns are left as they were and are no longer read or updated, so running an older release on the upgraded database is not supported. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
+- **Breaking (Deployments): `AUTH` and `CSSO_*` ENVs removed.** MMGIS refuses to start while `AUTH`, `CSSO_GROUPS`, `CSSO_LEAD_GROUP` or `CSSO_PROXY_SECRET` is set. Earlier `sample.env` files set the `CSSO_*` lines on every site, so delete them even if the site never used CSSO. Set `SITE_ACCESS` and `AUTH_PROVIDERS` instead. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
+- **Breaking (Deployments): TiTiler / TiTiler-pgSTAC / TiPG versions.** `titiler.application` 0.24 → 2.2.0, `titiler-pgstac` 1.9 → 3.1.0, `tipg` 1.3 → 1.6.1, `rio-tiler` 7.x → 9.x. Update both the Compose images (`ghcr.io/developmentseed/titiler:2.2.0`, `ghcr.io/stac-utils/titiler-pgstac:3.1.0`, `ghcr.io/developmentseed/tipg:1.6.1`) and the Python environment (`python-requirements.txt` / `python-environment.yml`). `pypgstac` stays at 0.9.6; no pgSTAC schema migration is required beyond the `pypgstac migrate` MMGIS already runs on startup.
+- **Breaking (Deployments): titiler-pgstac ENVs renamed.** `POSTGRES_USER/PASS/HOST/PORT/DBNAME` → `PGUSER/PGPASSWORD/PGHOST/PGPORT/PGDATABASE` for the `titiler-pgstac` service (Compose and `adjacent-servers/titiler-pgstac/.env.example`). The `stac` and `tipg` services keep `POSTGRES_*`. The unused `WORKERS_PER_CORE`/`MAX_WORKERS` entries were removed (the image only honors `WEB_CONCURRENCY`).
+- **Breaking (Deployments): The MMGIS container runs as non-root, default uid/gid `10001`.** Bind-mounted `./Missions` (and `./ssl`) must be writable by the container's uid: either set `user: "<uid>:<gid>"` on the `mmgis` service to the existing owner (e.g. from `stat -c '%u:%g' ./Missions`) or chown them to `10001`. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`, or file logs in `API/logs`). Sites that build their own image can still set `--build-arg APP_UID/APP_GID`.
+- **Breaking (Deployments): `_docker-entrypoint.sh` removed.** Compose files or scripts that set `entrypoint`/`command` to `./_docker-entrypoint.sh` should use `npm run start:prod-docker` instead (or drop the override).
+- **Breaking (Deployments): Same-origin by default.** Cross-origin browser clients and websocket connections must be listed in `CORS_ORIGINS` (comma-separated); unset, MMGIS allows same-origin requests only. When `HTTPS=true`, session cookies default to `Secure`; set `SESSION_COOKIE_SECURE=false` only for intentionally non-TLS deployments.
+- **Changed (Deployments): Request limits.** The global request body limit is 10mb (500mb on `/api/configure`, `/api/datasets`, `/api/files`, `/api/geodatasets`; 50mb on `/api/draw`), and the global `/api/` rate limit is 3000 requests per 5 minutes per IP.
 - **Breaking (API): `/api/accounts/update` and `/api/users/signup` take `viewing`** (null: every mission; a list: only those) instead of `missions_viewing`. `/api/accounts/update` refuses requests that still send `role`, `missions_managing` or `missions_viewing`; grant roles with `/api/access/bindings/add`. `/api/accounts/entries` no longer returns `missions_managing` or `missions_viewing`.
 - **Breaking (API): changed responses for scripts.** `/api/configure/user-permissions` no longer returns `permission`; it returns `role`, `superadmin` and `capabilities`. `/api/longtermtoken/get` no longer returns `created_by_permission` or `created_by_missions`. `/api/longtermtoken/generate` takes `period` as milliseconds or `"never"`; strings such as `"1d"` are refused.
-- **Breaking (Deployments): `AUTH` and `CSSO_*` ENVs removed.** MMGIS refuses to start while `AUTH`, `CSSO_GROUPS`, `CSSO_LEAD_GROUP` or `CSSO_PROXY_SECRET` is set. Earlier `sample.env` files set the `CSSO_*` lines on every site, so delete them even if the site never used CSSO. See [Auth & access migration](docs/pages/Migration/auth-access/auth-access.md).
-- **Breaking (Deployments): Default container uid/gid is now `10001`.** Sites that chowned `./Missions` / `./ssl` to `1000` after 5.4.0 should either set `user: "1000:1000"` on the `mmgis` service or chown to `10001`. Sites that build their own image with `--build-arg APP_UID/APP_GID` are unaffected.
-- **Breaking (Deployments): `_docker-entrypoint.sh` removed.** Compose files or scripts that set `entrypoint`/`command` to `./_docker-entrypoint.sh` should use `npm run start:prod-docker` instead (or drop the override).
-- **Added (Deployments): Run as any uid.** Set `user: "<uid>:<gid>"` (numeric host ids, e.g. from `stat -c '%u:%g' ./Missions`) on the `mmgis` service. Add `group_add: ["0"]` if that uid must also write inside the image (e.g. saving a mission back to its blueprint template, `SPICE_SCHEDULED_KERNEL_DOWNLOAD=true` without a bind-mounted `spice/kernels`, or file logs in `API/logs`; stdout logging is unaffected).
-
-#### Changed
-
-- Dockerfile runtime user defaults to uid/gid `10001` and is created with `useradd --no-log-init`
-- The `mmgis` micromamba environment is activated via `ENV` instead of `~/.bashrc`, so it applies to any runtime uid
-- Removed `_docker-entrypoint.sh`; the image now starts with `CMD ["npm", "run", "start:prod-docker"]`
-- `/usr/src/app` is owned by `mmgis:0` with group permissions equal to user permissions (`g=u`)
-- Numba (`NUMBA_CACHE_DIR`) and npm (`NPM_CONFIG_CACHE`) caches point at `/tmp`, so Sightmap works under a custom `user:` without `group_add`
-- A SPICE kernel directory that can't be created (e.g. unwritable `spice/kernels`) is now logged as an error instead of crashing MMGIS on startup with `SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START=true`
-- `docker-compose.sample.yml` documents the optional `user:` override
-
-#### Fixed
-
-- `pypgstac migrate` on startup is run directly from `PATH` and receives `HOME`, so it works when the container runs under a custom uid
-
----
-
-## 5.4.0
-
-_September 15, 2026_
-
-#### Summary
-
-This release moves the raster stack to TiTiler 2.x / TiTiler-pgSTAC 3.x / rio-tiler 9.x (pinned identically for Docker Compose and non-Docker installs), adds expression parsing on the `/titiler` and `/titilerpgstac` proxies, and runs the MMGIS Docker image as an unprivileged user. Frontend STAC tile and point requests were migrated to the TiTiler 2.x asset/band syntax.
-
-### Compatibility
-
-- **Mission configurations: Backward compatible.** Existing `cogBands`, `cogColormap`, and expression settings continue to work. Legacy `asset_bN` expressions are accepted and mapped to `bN` before requests are sent.
-- **End users: No breaking changes.**
-- **Deployments: Breaking.** See the migration guide below — Docker users must redeploy with the updated `docker-compose` (new image tags and renamed `titiler-pgstac` env vars); non-Docker users must reinstall Python dependencies.
-
-### Migration Guide
-
-- **Breaking (Deployments): TiTiler / TiTiler-pgSTAC / TiPG versions.** `titiler.application` 0.24 → 2.2.0, `titiler-pgstac` 1.9 → 3.1.0, `tipg` 1.3 → 1.6.1, `rio-tiler` 7.x → 9.x. Update both the Compose images (`ghcr.io/developmentseed/titiler:2.2.0`, `ghcr.io/stac-utils/titiler-pgstac:3.1.0`, `ghcr.io/developmentseed/tipg:1.6.1`) and the Python environment (`python-requirements.txt` / `python-environment.yml`). `pypgstac` stays at 0.9.6; no pgSTAC schema migration is required beyond the `pypgstac migrate` MMGIS already runs on startup.
-- **Breaking (Deployments): titiler-pgstac env vars renamed.** `POSTGRES_USER/PASS/HOST/PORT/DBNAME` → `PGUSER/PGPASSWORD/PGHOST/PGPORT/PGDATABASE` for the `titiler-pgstac` service (Compose and `adjacent-servers/titiler-pgstac/.env.example`). The `stac` and `tipg` services keep `POSTGRES_*`. The unused `WORKERS_PER_CORE`/`MAX_WORKERS` entries were removed (the image only honors `WEB_CONCURRENCY`).
-- **Breaking (Deployments): MMGIS container runs as non-root.** The image now runs as user `mmgis` (uid/gid 1000, configurable via `APP_UID`/`APP_GID` build args). Bind-mounted `./Missions` (and `./ssl`) must be writable by that uid.
 - **Breaking (Direct TiTiler API users): TiTiler 2.x request/response changes.** For `/titilerpgstac`: `bidx`/`expression` per asset are now expressed as `assets=asset|bidx=1,2` and `assets=asset&expression=b1*2` (top-level `bidx` is ignored; `asset_b1` syntax, `asset_bidx`, `asset_expression`, `vrt://` assets are removed); `/point` responses return `{coordinates, assets:[{name, values, band_names}]}` instead of top-level `values`. For both services: `@2x`/`tile_scale` URL suffixes are removed in favor of `tilesize=`. MMGIS's own frontend has been updated; external clients calling the proxies directly must update.
-- **Changed: TiTiler `expression` parsing.** The `/titiler` and `/titilerpgstac` proxies now accept only band identifiers, numeric literals, arithmetic/comparison/logical operators, function calls such as `where()`/`sqrt()`, parentheses, commas and `;`. Other content returns `400`.
+- **Changed (API): TiTiler `expression` parsing.** The `/titiler` and `/titilerpgstac` proxies now accept only band identifiers, numeric literals, arithmetic/comparison/logical operators, function calls such as `where()`/`sqrt()`, parentheses, commas and `;`. Other content returns `400`.
+- **Breaking (Plugin Developers): Layer type and attachment contract.** The unused `load` op is removed (data acquisition belongs to core's `source` surface), surfaces live one per file (`map.js`, `config.js`, `filter.js`, `globe/{cesium,lithosphere}.js`), and core decisions come from manifest `capabilities` validated against a schema. See `plugins/core/layertypes/README.md` and `plugins/core/layerattachments/README.md`.
+- **Changed (Plugin Developers): Leaflet 1.5.1 → 1.9.4.** Leaflet is now an npm dependency instead of a vendored copy; `window.L` is unchanged. Plugins using Leaflet internals or the `.leaflet-clickable` class should be checked.
+- **Added (Plugin Developers): Auth provider and connection plugins.** Login providers live in `plugins/core/auth/<Name>/` and service connections in `plugins/<container>/connections/<Name>/`. See [AuthProviders](docs/pages/Contributing/AuthProviders/AuthProviders.md) and [Connections](docs/pages/Contributing/Connections/Connections.md).
 
 #### Added
 
-- Expression parsing middleware for the TiTiler and TiTiler-pgSTAC proxies (`adjacent-servers/validateTitilerExpression.js`) with unit tests
+- Auth & access: `SITE_ACCESS` and `AUTH_PROVIDERS`, auth provider plugins (`local`, `proxy`), named roles and capabilities granted to accounts, groups and audiences at global, mission or layer-subtree scope, Configure's Users & Access page, and token v2 with mission and capability limits (PR #1146)
+- LDAP login provider (OpenLDAP, Active Directory) with provider-linked account lifecycle, and one shared login form for username/password providers across the login page, Configure and the in-app modal (PR #1155)
+- `AUTH_TOKENS=all|admins` to allow or prevent non-admin accounts from creating API tokens, per-account token limits, and an API token menu in the main site's account menu (PR #1164)
+- Landing page redesign (React) with admin-configurable mission cards, mission status and General Options (PR #1079)
+- Shared `Missions/shared` folder readable by any signed-in user or valid long-term token (PR #1121)
+- Broadcast plugin: `POST /api/broadcast/layerUpdate` tells connected clients to refresh layers (PR #1071)
+- Geodataset statistics (per-group and dataset-wide) and dynamic vector styling from the Style tab (PR #1044)
+- Custom GDAL color tables for COG layers (`cogColormapJson`) via TiTiler (PR #1017)
+- On-map attribution dropdown gated by `look.showAttributionsOnMap`, and attributions in each layer's info modal (PR #1088)
+- Legend Tool highlights the entry matching the value the Identifier resolves under the cursor (PR #1087)
+- Configure: rename a mission, optionally moving its folder (PR #1030, PR #1041)
+- Configure: a component's `plugin.json` `display_name` labels its Components card (PR #1162)
+- DrawTool: per-mission "Show Files Without a Mission" and "Show Lead Files" settings, and leads can move a file to another mission (PR #1094)
+- Mobile mode: bottom sheet with three stops per tool (PR #1046), `worksOnMobile` tool flag (PR #1047), compact OperationsClock (PR #1048) and AnimationTool support (PR #1106)
+- Layer types and attachments: single-file plugins, manifest `capabilities`, attachment `onConfigChange` and `mmgisAPI.setLayerAttachmentConfig`, interaction `configPath`, npm dependencies, and `create layerattachment` in the plugin CLI (PR #1036)
+- Expression parsing middleware for the TiTiler and TiTiler-pgSTAC proxies (`adjacent-servers/validateTitilerExpression.js`) (PR #1084)
 
 #### Changed
 
-- Pinned TiTiler 2.2.0, TiTiler-pgSTAC 3.1.0, TiPG 1.6.1 and rio-tiler 9.x in Docker Compose and Python requirements
-- STAC tile, terrain and point requests use TiTiler 2.x `assets=asset|bidx=` syntax; Identifier tool parses the TiTiler-pgSTAC 3.x `/point` response
-- Expression help text now documents `bN` band syntax (`asset_bN` remains accepted)
-- MMGIS Dockerfile runs as unprivileged `mmgis` user
+- Pinned TiTiler 2.2.0, TiTiler-pgSTAC 3.1.0, TiPG 1.6.1 and rio-tiler 9.x in Docker Compose and Python requirements; STAC tile, terrain and point requests use the TiTiler 2.x `assets=asset|bidx=` syntax; expression help text documents `bN` band syntax (PR #1084)
+- Dockerfile runtime user is `mmgis` with default uid/gid `10001`, created with `useradd --no-log-init`; `/usr/src/app` is owned by `mmgis:0` with `g=u`; the `mmgis` micromamba environment is activated via `ENV` so it applies to any runtime uid; the image starts with `CMD ["npm", "run", "start:prod-docker"]`; Numba and npm caches point at `/tmp`; `docker-compose.sample.yml` documents the optional `user:` override (PR #1084, PR #1120)
+- DrawTool files are tagged with the mission they were created in and listed only in that mission (PR #1094)
+- Leaflet is an npm dependency at 1.9.4 instead of a vendored 1.5.1, and every remaining vendored Leaflet file documents why (PR #1043)
+- `CORS_ORIGINS` applies to both HTTP and websocket connections, session cookies set `sameSite` and honor `SESSION_COOKIE_SECURE`, and request body and rate limits are configured per route (see the Migration Guide); dependency updates (PR #1051)
+- Coordinates display wraps longitude to -180..180 (PR #1057)
+- Pinned `stac-fastapi-api/types/extensions` to 6.2.1 (PR #1061)
+- CI runs on Node 22 (PR #1059)
+- Development startup logs are no longer cleared from the terminal (PR #1029)
+- Development console logger strips newlines from the caller (PR #1122)
 
 #### Fixed
 
-- `pypgstac migrate` on startup now inherits `PATH`, so a venv-installed pypgstac is found on non-Docker installs
-- TiTiler colormap legend images requested with `f=png` (previously `format=png`, which returned JSON)
+- `npm run auth:migrate`, including `--dry-run`, works on databases from 5.2.24 and earlier, which have no `users.missions_viewing` column
+- Builds and Docker images keep npm packages at their `package-lock.json` versions when plugin dependencies are installed, which restores the Layers tool's per-layer settings and download panels in production builds
+- Globe: Identifier values when the map and globe are unlinked, wrong values on STAC layers with many items, "no data" instead of 0, throttled point queries, tile error noise, and 3D Tiles layers in the Layers tool (PR #1149)
+- Landing page: hidden-mission URLs (PR #1149), logout giving no feedback (PR #1098), and a `PUG:NO_END_BRACKET` 500 on `/` in production builds (PR #1096)
+- `FORCE_CONFIG_PATH` is read at runtime in production builds (PR #1161)
+- COG tile layers with `s3://` URLs were treated as mission-relative (PR #1099)
+- Geodatasets: queries on tables created before temporal support, start-only time filters dropping features, and recreating with new time mappings (PR #1049)
+- LithoSphere globe layer operations, a vector time-filter race, and the time-tile availability histogram (PR #1050)
+- Global Search autocomplete reaches every unique value, not only the first 500 or a random sample on large geodatasets (PR #1132; also in 5.2.24-a)
+- Header layers added through the Configure API without `sublayers` get an empty array (PR #1133)
+- Duplicated Projection Setup actions in the Coordinates tab (PR #1109)
+- `GET /api/webhooks/entries` hung when no webhook configuration existed (PR #1093)
+- Mission data paths in the Viewer, Identifier and Measure tools use the mission folder instead of the display name (PR #1039)
+- Console errors on missions without a globe (PR #1042)
+- Hidden scalebar text in mobile mode (PR #1105)
+- Dropy dropdowns and the search component in Maker (PR #1033)
+- `pypgstac migrate` on startup is run from `PATH` and receives `HOME`, so it works in venv installs and under a custom container uid (PR #1084, PR #1120)
+- TiTiler colormap legend images are requested with `f=png` (PR #1084)
+- An unwritable SPICE kernel directory is logged as an error instead of crashing MMGIS on startup with `SPICE_SCHEDULED_KERNEL_DOWNLOAD_ON_START=true` (PR #1120)
 
 ---
 
@@ -96,8 +108,6 @@ This release overhauls the plugin ecosystem into a unified, manifest-driven `/pl
 - **JavaScript API (`window.mmgisAPI`): Fully backward compatible.** No migration needed.
 - **End users: No breaking changes.** The ShadeTool is now named the Sightline Tool.
 - **Deployments:** Docker users should redeploy with the updated `Dockerfile` and `docker-compose` (the `plugins/` copy and the PostgreSQL 18 volume path fixes) — an existing install on the old db volume path can crash-loop on a fresh install.
-- **CORS:** Cross-origin browser clients must set `CORS_ORIGINS` to a comma-separated list of allowed origins; unset, MMGIS now allows same-origin requests only.
-- **Session cookies:** When `HTTPS=true`, session cookies now default to `Secure`; set `SESSION_COOKIE_SECURE=false` only for intentionally non-TLS deployments.
 
 ### Migration Guide (Plugin Developers Only)
 
