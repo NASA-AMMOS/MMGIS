@@ -8,17 +8,31 @@ const {
   unusableLegacyToken,
 } = require("../../../../API/permissions/principal");
 
-// AUTH_LOCAL_LOGIN=admins: only accounts holding an admin role may log in locally
-const LOCAL_ADMINS_ONLY = "Only administrators may log in with a local account on this site.";
-async function localLoginAllowed(userId) {
-  if (!siteAccess.localAdminsOnly()) return true;
-  return policy.isAdministrator(await userPrincipal(userId));
+// AUTH_LOCAL_LOGIN=admins: only accounts holding an admin role may log in locally. They get the
+// wrong-password message, so a refusal doesn't confirm a guessed password.
+const LOCAL_ADMINS_ONLY = "Invalid username or password.";
+function sendRefusal(req, res, user, refusal) {
+  if (refusal === LOCAL_ADMINS_ONLY)
+    logger("warn", `Local sign-in refused for '${user.username}': AUTH_LOCAL_LOGIN=admins and the account holds no editing or admin role.`, "login", req);
+  res.send({ status: "failure", message: refusal });
+}
+// Why this account may not sign in with a local password, or null if it may
+async function localLoginRefusal(userId, models = { AuthIdentity }) {
+  // Accounts linked to an enabled login provider sign in through it (e.g. a local account relinked to LDAP)
+  if ((await models.AuthIdentity.count({ where: { user_id: userId, provider: { [Op.in]: providers.enabledProviders().map((p) => p.id) } } })) > 0)
+    return "This account signs in through its login provider.";
+  if (siteAccess.localAdminsOnly() && !policy.isAdministrator(await userPrincipal(userId)))
+    return LOCAL_ADMINS_ONLY;
+  return null;
 }
 const bcrypt = require("bcryptjs");
+// Compared against when no account has the username, so an unknown name takes as long as a wrong password
+const NO_ACCOUNT_HASH = bcrypt.hashSync("no account", bcrypt.genSaltSync());
 
 const logger = require("../../../../API/logger");
 const {
   authLimiter,
+  accountLimiter,
   signupLimiter,
   resetLimiter,
 } = require("../../../../scripts/rateLimiters");
@@ -32,6 +46,9 @@ const policy = require("../../../../API/permissions/policy");
 const bindings = require("../../../../API/permissions/bindings");
 const setupCode = require("../../../../API/permissions/setupCode");
 const { LongTermTokens } = require("../../backend/LongTermToken/models/longtermtokens");
+const { AuthIdentity } = require("../../../../API/permissions/models");
+// Required lazily: connections/routes loads the provider registry, which loads this file
+const sameOriginOnly = (req, res, next) => require("../../../../API/connections/routes").sameOriginOnly(req, res, next);
 
 // Same message whether the username or the email is taken
 const SIGNUP_UNAVAILABLE =
@@ -75,10 +92,12 @@ async function revokeTokensOf(userId) {
 }
 
 function mountLocalRoutes(router) {
+// Setup stays open until a SuperAdmin exists, so an LDAP or proxy user signing in first can't close it
 router.post("/has", authorize.public("login and account self-service"), function (req, res, next) {
-  User.count()
-    .then((count) => {
-      res.send({ status: "success", has: count !== 0 });
+  bindings
+    .superAdminUserIds()
+    .then((ids) => {
+      res.send({ status: "success", has: ids.length !== 0 });
     })
     .catch((err) => {
       res.send({ status: "failure" });
@@ -95,9 +114,10 @@ router.post("/first_signup", signupLimiter, authorize.public("login and account 
     return;
   }
 
-  User.count()
-    .then((count) => {
-      if (count === 0) {
+  bindings
+    .superAdminUserIds()
+    .then((ids) => {
+      if (ids.length === 0) {
         setupCode.ensure();
         if (!setupCode.consume(req.body.setup_code)) {
           logger("warn", "First account sign-up rejected: wrong or missing setup code.", req.originalUrl, req);
@@ -140,8 +160,14 @@ router.post("/first_signup", signupLimiter, authorize.public("login and account 
     });
 });
 
-router.post("/signup", signupLimiter, authorize.public("login and account self-service"), function (req, res, next) {
+router.post("/signup", sameOriginOnly, signupLimiter, authorize.public("login and account self-service"), async function (req, res, next) {
   const accountManager = policy.can(req.principal, "accounts.manage");
+  // Another process may have linked the first provider account since this one started
+  if (!accountManager)
+    await providers.refreshProviderAccounts().catch((err) => {
+      siteAccess.setProviderAccounts(true);
+      logger("error", "Couldn't check for provider-linked accounts; visitor sign-up stays closed until a check succeeds (at the next sign-up attempt, account deletion or restart).", "signup", req, err);
+    });
   const selfSignup = siteAccess.selfSignupAllowed();
   if (!accountManager && !selfSignup) {
     res.send({
@@ -168,12 +194,15 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
     return;
   }
 
-  // Draw keeps group-shared and master files under the owner "group"
-  if (String(req.body.username).trim().toLowerCase() === "group") {
+  if (providers.reservedUsername(req.body.username)) {
     res.send({
       status: "failure",
       message: "That username is reserved.",
     });
+    return;
+  }
+  if (providers.unsafeUsername(req.body.username)) {
+    res.send({ status: "failure", message: "Usernames can't contain commas, < > \" ` \\ or control characters." });
     return;
   }
 
@@ -194,12 +223,9 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
     token: null,
   };
 
-  //Make sure user doesn't already exit
-  User.findOne({
-    where: {
-      username: newUser.username,
-    },
-  })
+  // Make sure no account has this username, in any case or Unicode form
+  providers
+    .usernameTaken(newUser.username)
     .then(async (user) => {
       if (user == null) {
         // SuperAdmins may override the site default for what the new account can view
@@ -317,7 +343,23 @@ router.post("/signup", signupLimiter, authorize.public("login and account self-s
 /**
  * User login
  */
-router.post("/login", authLimiter, authorize.public("login and account self-service"), function (req, res) {
+// Refuses posts from other sites (login CSRF), also at the /api/users/login alias the login forms use
+// The account limiter counts the name the handler signs in with, so a saved login's (MMGISUser cookie) is
+// resolved first; a non-string name (["admin"], username[]=) would match the account but skip the limiter
+function loginUsername(req, res, next) {
+  if (!req.body) req.body = {};
+  if (req.body.username == null || req.body.username === "") {
+    try {
+      const saved = JSON.parse(String(req.cookies.MMGISUser || "").replace(/}undefined$/, "}"));
+      if (saved && typeof saved.username === "string") req.body.username = saved.username;
+    } catch (err) {}
+  }
+  if (req.body.username != null && typeof req.body.username !== "string")
+    return res.status(400).send({ status: "failure", message: "Invalid username or password." });
+  next();
+}
+
+router.post("/login", sameOriginOnly, loginUsername, authLimiter, accountLimiter, authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser;
   try {
     let userCookie = req.cookies.MMGISUser;
@@ -396,8 +438,8 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
               });
             });
           };
-          return localLoginAllowed(user.id).then((allowed) => {
-            if (!allowed) return res.send({ status: "failure", message: LOCAL_ADMINS_ONLY });
+          return localLoginRefusal(user.id).then((refusal) => {
+            if (refusal) return sendRefusal(req, res, user, refusal);
             // A session that is not already this user's gets a new id
             if (String(req.session.uid) === String(user.id)) signIn();
             else
@@ -434,10 +476,13 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
     })
       .then((user) => {
         if (!user) {
-          res.send({
-            status: "failure",
-            message: "Invalid username or password.",
-          });
+          res.locals.loginFailed = true;
+          bcrypt.compare(String(req.body.password || ""), NO_ACCOUNT_HASH, () =>
+            res.send({
+              status: "failure",
+              message: "Invalid username or password.",
+            })
+          );
         } else {
           function pass(err, result, again) {
             if (result) {
@@ -482,6 +527,7 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
                 });
               return;
             } else {
+              res.locals.loginFailed = true;
               res.send({
                 status: "failure",
                 message: "Invalid username or password.",
@@ -492,9 +538,9 @@ router.post("/login", authLimiter, authorize.public("login and account self-serv
 
           bcrypt.compare(req.body.password, user.password, (err, result, again) => {
             if (!result) return pass(err, result, again);
-            localLoginAllowed(user.id)
-              .then((allowed) =>
-                allowed ? pass(err, result, again) : res.send({ status: "failure", message: LOCAL_ADMINS_ONLY })
+            localLoginRefusal(user.id)
+              .then((refusal) =>
+                refusal ? sendRefusal(req, res, user, refusal) : pass(err, result, again)
               )
               .catch(() => res.send({ status: "failure", message: "Login failed." }));
           });
@@ -542,7 +588,12 @@ router.post("/resetPassword", resetLimiter, authorize.public("login and account 
         "token",
       ],
     })
-      .then((user) => {
+      .then(async (user) => {
+        // Accounts created by a login provider sign in through it, never with a local password
+        if (user && (await AuthIdentity.count({ where: { user_id: user.id, provider: { [Op.in]: providers.enabledProviders().map((p) => p.id) } } })) > 0) {
+          res.send({ status: "failure", message: "This account signs in through its login provider." });
+          return null;
+        }
         if (user) {
           if (
             user.reset_token_expiration == null ||
@@ -612,14 +663,7 @@ router.post("/resetPassword", resetLimiter, authorize.public("login and account 
 
 }
 
-function getUserGroups(user, leadGroupName) {
-  let leads = process.env.LEADS ? JSON.parse(process.env.LEADS) : [];
-  let groups = {};
-  if (leads.indexOf(user) != -1) {
-    groups[leadGroupName] = true;
-  }
-  return Object.keys(groups);
-}
+const getUserGroups = (user, leadGroupName) => providers.leadGroups(user, leadGroupName);
 
 function clearLoginSession(req) {
   req.session.user = "guest";
@@ -630,4 +674,4 @@ function clearLoginSession(req) {
   delete req.session.proxyIdentity;
 }
 
-module.exports = { mountLocalRoutes, getUserGroups, clearLoginSession };
+module.exports = { mountLocalRoutes, getUserGroups, clearLoginSession, localLoginRefusal };

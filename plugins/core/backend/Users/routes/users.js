@@ -8,6 +8,7 @@ const router = express.Router();
 const { authorize } = require("../../../../../API/permissions/authorize");
 const logger = require("../../../../../API/logger");
 const { apilimiter } = require("../../../../../scripts/rateLimiters");
+const { sameOriginOnly } = require("../../../../../API/connections/routes");
 const userModel = require("../models/user");
 const User = userModel.User;
 const { mountLocalRoutes, clearLoginSession } = require("../../../auth/Local/routes");
@@ -15,7 +16,7 @@ const { mountLocalRoutes, clearLoginSession } = require("../../../auth/Local/rou
 // Signup, login and password reset belong to the Local login provider; kept here at /api/users/* too
 mountLocalRoutes(router);
 
-router.post("/logout", apilimiter, authorize.public("login and account self-service"), function (req, res) {
+router.post("/logout", sameOriginOnly, apilimiter, authorize.public("login and account self-service"), function (req, res) {
   let MMGISUser = false;
   try {
     MMGISUser = req.cookies.MMGISUser ? JSON.parse(req.cookies.MMGISUser) : false;

@@ -151,7 +151,7 @@ function loadMission(missionName, missions) {
         )
     } else {
         loadConfigJson(
-            'Missions/' + missionName + '/config.json',
+            'Missions/' + encodeURIComponent(missionName) + '/config.json',
             missions,
             'warn',
             missionName

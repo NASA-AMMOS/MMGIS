@@ -65,6 +65,12 @@
     user-select: none;
     color: white;
     border: 1px solid var(--color-a1);
+    transition: box-shadow 0.15s, filter 0.15s;
+}
+
+.userAvatar:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 0 2px var(--color-a3);
 }
 
 /* --- User account area --- */

@@ -14,11 +14,12 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
+import Alert from "@mui/material/Alert";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { useStyles } from "./styles";
-import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead } from "./shared";
+import { api, GrantsTable, RoleBadge, sourceText, PickButton, PanelHeader, SectionHead, providerOn, providerName, providerGroups } from "./shared";
 
 // Provider users have no account row, so check what one would get from a username and group claims
 export function ProviderCheckDialog({ open, providers, roles, onClose }) {
@@ -36,21 +37,36 @@ export function ProviderCheckDialog({ open, providers, roles, onClose }) {
   const roleLabel = (r) => (roles[r] && roles[r].label) || r;
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Check a provider user</DialogTitle>
+      <DialogTitle>Check a person's access</DialogTitle>
       <DialogContent>
         <div className={c.hint} style={{ marginBottom: 12 }}>
-          Enter a username and the group names their login provider sends, separated by commas, to see the access they would get.
+          Enter a username and the groups their login provider reports, one per line, to see the access they would get, even before their first sign-in.{" "}
+          {providerGroups(provider).group_lookup
+            ? "Leave the groups empty to ask the provider which groups it reports for that person now, e.g. to find a group's new name after it was renamed or moved."
+            : `${providerName(provider)} can't look people up, so enter their groups.`}
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
-            {providers.map((p) => <MenuItem key={p} value={p}>{p.toUpperCase()}</MenuItem>)}
-          </Select>
-          <TextField size="small" sx={{ flex: 1 }} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          {providers.length > 1 && (
+            <Select size="small" value={provider} onChange={(e) => setProvider(e.target.value)}>
+              {providers.map((p) => <MenuItem key={p} value={p}>{providerName(p)}</MenuItem>)}
+            </Select>
+          )}
+          <TextField size="small" sx={{ flex: 1 }} autoFocus placeholder={providers.length > 1 ? "Username" : `${providerName(provider)} username`} value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim() && provider) void check(); }} />
         </div>
-        <TextField size="small" fullWidth placeholder="Groups, e.g. science-team, ops" value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && username.trim()) check(); }} />
-        {error && <div className={c.hint} style={{ color: "#a8572e", marginTop: 12 }}>{error}</div>}
+        <TextField size="small" fullWidth multiline minRows={2} placeholder={providerGroups(provider).group_example ? `Groups, one per line, e.g.\n${providerGroups(provider).group_example}` : "Groups, one per line"} value={groupClaims} onChange={(e) => setGroupClaims(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && username.trim()) void check(); }} />
+        {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
         {result && (
           <div style={{ marginTop: 16, fontSize: 14, lineHeight: "22px" }}>
+            {result.reported !== undefined && (
+              <div style={{ marginBottom: 8 }}>
+                <b>Groups {providerName(provider)} reports now:</b>
+                {result.reported.length ? result.reported.map((g) => <div key={g} style={{ fontFamily: "monospace", fontSize: 13, wordBreak: "break-all" }}>{g}</div>) : " none"}
+              </div>
+            )}
+            {result.note && <div className={c.hint}>{result.note}</div>}
+            {result.reported === undefined && !groupClaims.trim() && (
+              <div className={c.hint}>{providerName(provider)} can't look people up here, so this checked no groups. Enter their groups to check those.</div>
+            )}
             <div><b>Site role:</b> <RoleBadge role={result.role || "user"} roles={roles} /></div>
             <div><b>Can view:</b> {viewing === null ? "All missions" : viewing && viewing.length ? viewing.join(", ") : "No missions"}</div>
             {["mission.config.edit", "mission.layer.edit"].map((cap) => {
@@ -76,16 +92,20 @@ export function GroupPanel({ group, ctx }) {
   const layerPaths = layerPathsFor(own);
   const [name, setName] = useState(group.name);
   const [externalName, setExternalName] = useState(group.external_name || "");
+  // What the server says about the last save (e.g. another group follows the same provider group), kept until the next one
+  const [saveNote, setSaveNote] = useState(null);
   useEffect(() => {
     setName(group.name);
     setExternalName(group.external_name || "");
   }, [group.name, group.external_name]);
   const changed = name.trim() !== group.name || (group.source !== "local" && externalName.trim() !== (group.external_name || ""));
+  const movedTo = group.source !== "local" && externalName.trim() && externalName.trim() !== (group.external_name || "") ? externalName.trim() : null;
+  const ready = changed && name.trim() && (group.source === "local" || externalName.trim());
   const saveGroup = () =>
     api("access_groups_update", { id: group.id, name: name.trim(), ...(group.source !== "local" ? { external_name: externalName.trim() } : {}) })
-      .then(() => { notify("Group updated.", "success"); refresh(); })
+      .then((res) => { notify("Group updated.", "success"); setSaveNote(res.note || null); refresh(); })
       .catch((res) => notify(res.message || "Failed to update group.", "error"));
-  const providerOn = group.source === "local" || (window.mmgisglobal?.authProviders || []).includes(group.source);
+  const on = providerOn(group.source);
   return (
     <>
       <PanelHeader
@@ -100,27 +120,52 @@ export function GroupPanel({ group, ctx }) {
           },
         ]}
       />
-      {!providerOn && (
-        <div className={`${c.section} ${c.hint}`} style={{ color: "#a8572e" }}>
-          {group.source.toUpperCase()} isn't in AUTH_PROVIDERS on this site, so nobody can be a member of this group right now.
+      {!on && (
+        <div className={c.section}>
+          <Alert severity="warning">{providerName(group.source)} isn't in AUTH_PROVIDERS on this site, so this group gives its members nothing right now; the members listed are from before it was removed.</Alert>
         </div>
       )}
       <div className={c.section}>
         <Typography className={c.sectionTitle}>Group</Typography>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <TextField size="small" label="Name" InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && changed && name.trim()) saveGroup(); }} />
+        <div className={c.dialogStack}>
+          <div>
+            <div className={c.fieldLabel}>Name in MMGIS</div>
+            <TextField size="small" fullWidth value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) void saveGroup(); }} />
+          </div>
           {group.source !== "local" && (
-            <TextField size="small" label={`${group.source.toUpperCase()} group name`} InputLabelProps={{ shrink: true }} sx={{ flex: 1 }} value={externalName} onChange={(e) => setExternalName(e.target.value)} />
+            <div>
+              <div className={c.fieldLabel}>{`${providerName(group.source)} ${providerGroups(group.source).group_label || "group"}`}</div>
+              <TextField size="small" fullWidth inputProps={{ style: { fontFamily: "monospace", fontSize: 13 } }} placeholder={providerGroups(group.source).group_example || ""} value={externalName} onChange={(e) => setExternalName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && ready) void saveGroup(); }} />
+              <div className={c.help}>{providerGroups(group.source).group_hint || `The group's name exactly as ${providerName(group.source)} reports it at sign-in.`}</div>
+              {movedTo && (
+                <Alert severity="warning" sx={{ mt: 1.5 }}>
+                  Saving changes who's in this group: its members become whoever {providerName(group.source)} lists in <b>{movedTo}</b>, as they sign in or are rechecked.
+                </Alert>
+              )}
+            </div>
           )}
-          <Button variant="outlined" size="small" disabled={!changed || !name.trim() || (group.source !== "local" && !externalName.trim())} onClick={saveGroup}>
-            Save
-          </Button>
+          <div>
+            <Button variant="outlined" size="small" disabled={!ready} onClick={saveGroup}>
+              Save
+            </Button>
+          </div>
         </div>
+        {saveNote && <Alert severity="info" sx={{ mt: 1.5 }} onClose={() => setSaveNote(null)}>{saveNote}</Alert>}
       </div>
       {group.source !== "local" && (
         <div className={`${c.section} ${c.hint}`}>
-          Members come from {group.source.toUpperCase()}: anyone whose group claims include <b>{group.external_name}</b>.
+          Members come from {providerName(group.source)}: anyone whose group claims include <b>{group.external_name}</b>.
           {group.source === "proxy" && " If PROXY_GROUPS is set, members must also be in one of those groups to open the map or Configure."}
+        </div>
+      )}
+      {group.source !== "local" && (
+        <div className={c.section}>
+          <Typography className={c.sectionTitle}>Members ({group.members.length})</Typography>
+          <div className={c.muted}>
+            {group.members.length === 0
+              ? "None right now: people show up here as they sign in or are rechecked (with AUTH_RECHECK_MINUTES=0, click Check linked accounts in People). If it had members before, the group may have been renamed or moved at the provider; Check a person's access, with a former member's username and no groups, lists the groups reported for them now."
+              : group.members.map((m) => m.username).sort((a, b) => a.localeCompare(b)).join(", ")}
+          </div>
         </div>
       )}
       {group.source === "local" && (

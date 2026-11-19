@@ -55,6 +55,7 @@ npm start
 | `npm run build`       | Build the main app for production                                                     |
 | `npm test`            | Run Playwright tests (`playwright test`)                                              |
 | `npm run test:unit`   | Run unit tests only                                                                   |
+| `npm run test:plugins:unit` | Run plugins' `@unit` tests                                                      |
 | `npm run test:e2e`    | Run E2E tests only                                                                    |
 | `npm run test:headed` | Run Playwright tests in headed mode                                                   |
 | `npm run test:debug`  | Run Playwright tests in debug mode                                                    |

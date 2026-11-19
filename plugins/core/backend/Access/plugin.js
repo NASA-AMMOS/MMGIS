@@ -20,10 +20,16 @@ let setup = {
       s.registerRouter("/api/access", router)
     );
   },
-  onceStarted: (s) => {},
+  onceStarted: (s) => {
+    require("../../../../API/permissions/providers").startSettingBeat();
+  },
   onceSynced: async (s) => {
     try {
       await permissionModels.up();
+      // Needs the columns up() adds, e.g. on the first start after an upgrade
+      await require("../../../../API/permissions/providers")
+        .warnUnfitSubjects()
+        .catch((err) => logger("error", "Couldn't check the login providers' linked accounts.", "AuthProviders", null, err));
       await missions.backfill();
       await legacyImport.run();
       await legacyImport.dropRollbackTracking();

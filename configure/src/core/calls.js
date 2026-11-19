@@ -226,6 +226,18 @@ const c = {
     type: "POST",
     url: "api/accounts/updateDefaults",
   },
+  account_allow_relink: {
+    type: "POST",
+    url: "api/accounts/allowRelink",
+  },
+  account_cancel_relink: {
+    type: "POST",
+    url: "api/accounts/cancelRelink",
+  },
+  account_recheck_linked: {
+    type: "POST",
+    url: "api/accounts/recheckLinked",
+  },
   account_reset_password_link: {
     type: "POST",
     url: "api/accounts/generateResetPasswordLink",
@@ -319,7 +331,7 @@ function api(call, data, success, error) {
     });
     delete data.urlReplacements;
   }
-  if (c[call].type === "POST" && data?.forceParams != null) {
+  if ((c[call].type === "POST" || c[call].type === "DELETE") && data?.forceParams != null) {
     url += `?${new URLSearchParams(data.forceParams)}`;
     delete data.forceParams;
   }

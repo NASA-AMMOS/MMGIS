@@ -11,6 +11,7 @@ const IMPORT_KEY = "legacy_import_v1";
 // Rollback tracking from earlier builds of this release; no longer kept
 const OLD_COLUMNS_KEYS = { [Op.or]: [{ [Op.eq]: "legacy_columns_v1" }, { [Op.like]: "legacy_columns:%" }] };
 const SIGNED_IN_PERMISSIONS = [LEGACY_ADMIN, "001"];
+const LEGACY_MISSION_COLUMNS = ["missions_managing", "missions_viewing"];
 
 function models() {
   const permissionModels = require("./models");
@@ -41,8 +42,10 @@ async function plan({ dryRun = false } = {}) {
   let lookup = missions.uuidForName;
   if (dryRun) lookup = await readOnlyMissionLookup();
   else await missions.backfill();
+  // Databases from older releases may not have every legacy column yet; a missing one is unset
+  const columns = await User.describe();
   const users = await User.findAll({
-    attributes: ["id", "username", "permission", "missions_managing", "missions_viewing"],
+    attributes: ["id", "username", "permission", ...LEGACY_MISSION_COLUMNS.filter((c) => c in columns)],
     order: [["id", "ASC"]],
     raw: true,
   });

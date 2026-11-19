@@ -1,5 +1,9 @@
 import { makeStyles } from "@mui/styles";
 
+// Selected state in the New group dialog (cards and group chips)
+const ACCENT = "#0792c5";
+const ACCENT_TINT = "rgba(7, 146, 197, 0.08)";
+
 export const useStyles = makeStyles((theme) => ({
   page: {
     width: "100%",
@@ -41,6 +45,53 @@ export const useStyles = makeStyles((theme) => ({
   },
   search: { width: "320px" },
   barHint: { fontSize: "13px", opacity: 0.75, minWidth: 0 },
+  groupCode: { fontSize: "12px", wordBreak: "break-all" },
+  fieldLabel: { fontSize: "12px", fontWeight: 500, opacity: 0.85, marginBottom: "6px" },
+  // New group dialog: one evenly spaced stack of labeled fields
+  dialogStack: { display: "flex", flexDirection: "column", gap: "20px", paddingTop: "4px" },
+  help: { fontSize: "12px", lineHeight: "18px", opacity: 0.75, marginTop: "6px" },
+  // New group: one card per member source
+  choiceRow: { display: "flex", gap: "12px" },
+  choice: {
+    position: "relative",
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    textAlign: "left",
+    font: "inherit",
+    fontSize: "13px",
+    lineHeight: "19px",
+    padding: "12px 36px 12px 14px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    color: "inherit",
+    background: theme.palette.swatches.grey[1000],
+    border: `2px solid ${theme.palette.swatches.grey[800]}`,
+    "& b": { display: "block", fontSize: "14px", marginBottom: "2px" },
+    "&:hover": { borderColor: theme.palette.swatches.grey[600] },
+  },
+  choiceOn: {
+    borderColor: `${ACCENT} !important`,
+    background: `${ACCENT_TINT} !important`,
+  },
+  choiceCheck: { position: "absolute", top: "10px", right: "10px", fontSize: "20px !important", color: ACCENT },
+  example: { display: "block", "& code": { fontSize: "12px", wordBreak: "break-all" } },
+  lookupBox: { padding: "12px 14px", borderRadius: "4px", background: theme.palette.swatches.grey[900] },
+  chips: { display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" },
+  chip: {
+    font: "inherit",
+    fontFamily: "monospace",
+    fontSize: "12px",
+    padding: "3px 10px",
+    borderRadius: "12px",
+    cursor: "pointer",
+    color: "inherit",
+    wordBreak: "break-all",
+    textAlign: "left",
+    background: theme.palette.swatches.grey[1000],
+    border: `1px solid ${theme.palette.swatches.grey[600]}`,
+  },
   barButton: { height: "34px", whiteSpace: "nowrap", padding: "0px 16px !important" },
   tabs: {
     padding: "0px 20px",
@@ -87,7 +138,7 @@ export const useStyles = makeStyles((theme) => ({
     wordBreak: "break-word",
   },
   audienceHint: { maxWidth: "900px", fontSize: "14px", lineHeight: "20px", opacity: 0.85, marginBottom: "14px" },
-  bar: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" },
+  bar: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", marginBottom: "12px" },
   grow: { flex: 1 },
   hint: { fontSize: "13px", opacity: 0.75, marginBottom: "12px" },
   // People table
@@ -135,13 +186,14 @@ export const useStyles = makeStyles((theme) => ({
     fontWeight: "normal",
     letterSpacing: "normal",
   },
-  // Green (least access), then blue, through to red (most access)
+  // Green (least access), then blue, yellow and orange, to plum (most access)
   badge_viewer: { background: "#5b8c32", color: "white" },
   badge_layer_editor: { background: "#3a8fb7", color: "white" },
   badge_mission_admin: { background: theme.palette.swatches.p[0], color: "black" },
   badge_data_admin: { background: theme.palette.accent.tertiary, color: "white" },
-  badge_superadmin: { background: "#db589a", color: "white" },
+  badge_superadmin: { background: theme.palette.swatches.r[2], color: "white" },
   badge_user: { background: theme.palette.swatches.grey[300], color: "white" },
+  badgeIcon: { fontSize: "16px !important", verticalAlign: "-3px", marginRight: "4px" },
   // Pagination footer: continues the table's shadow on the sides and bottom only,
   // and sits above the table so it covers the table's bottom shadow
   bottomBar: {

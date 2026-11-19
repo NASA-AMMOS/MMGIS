@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const logger = require("../logger");
+const { getAllowedOrigins, getRequestHost, isOriginAllowed } = require("../origin");
 const { DOCS_URL, STATE_TTL_MS, MAX_PENDING_STATES, withTimeout, ConnectionRequiredError, envSecrets, scrubbed } = require("./common");
 const { connectionMap, allConnections, getConnection, setupStatus } = require("./registry");
 const { principalOf, storageFor, grantRecord, ownerKey, readStored, writeStored, removeStored, serialized, adoptSessionConnections, revokeQuietly } = require("./storage");
@@ -132,11 +133,14 @@ function renderResult(res, view) {
   });
 }
 
+// Refuses only requests a browser marks as from another site: curl and scripts send no Origin and pass
 function sameOriginOnly(req, res, next) {
   const site = req.get("sec-fetch-site");
   const origin = req.get("origin");
   // The browser sets Sec-Fetch-Site itself; a proxy that rewrites Host would otherwise refuse it
   if (site === "same-origin") return next();
+  // Origins the site trusts with credentialed requests (CORS_ORIGINS) may post from their own pages
+  if (origin && getAllowedOrigins().length && isOriginAllowed(origin, getRequestHost(req))) return next();
   let foreign = site === "cross-site" || site === "same-site";
   if (!foreign && origin) {
     try {

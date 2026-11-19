@@ -13,6 +13,9 @@
   "tier": "core",
   "overridable": false,
   "required": true,
+  "login_path": "/login",
+  "login_form": true,
+  "login_icon": "account-key-outline",
   "author": "NASA-AMMOS/MMGIS",
   "license": "Apache-2.0",
   "repository": "https://github.com/NASA-AMMOS/MMGIS"

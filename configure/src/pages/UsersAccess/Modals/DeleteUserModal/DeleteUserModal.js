@@ -173,6 +173,7 @@ const DeleteUserModal = (props) => {
   const dispatch = useDispatch();
 
   const [userName, setUserName] = useState(null);
+  const [drawingsTo, setDrawingsTo] = useState("");
 
   const handleClose = () => {
     // close modal
@@ -205,8 +206,13 @@ const DeleteUserModal = (props) => {
         urlReplacements: {
           id: modal.row.id,
         },
+        ...(drawingsTo.trim() ? { forceParams: { drawings_to: drawingsTo.trim() } } : {}),
       },
       (res) => {
+        if (res.body?.deleted_id !== modal.row.id && res.message) {
+          dispatch(setSnackBarText({ text: res.message, severity: "error" }));
+          return;
+        }
         if (res.body?.deleted_id === modal.row.id) {
           dispatch(
             setSnackBarText({
@@ -279,9 +285,21 @@ const DeleteUserModal = (props) => {
             setUserName(e.target.value);
           }}
         />
+        <TextField
+          className={c.confirmInput}
+          label="Give their drawings to (optional username)"
+          variant="filled"
+          value={drawingsTo}
+          inputProps={{
+            autoComplete: "off",
+          }}
+          onChange={(e) => {
+            setDrawingsTo(e.target.value);
+          }}
+        />
         <Typography
           className={c.subtitle2}
-        >{`Enter '${modal?.row?.username}' above and click 'Delete' to confirm the permanent deletion of this user's account.`}</Typography>
+        >{`Enter '${modal?.row?.username}' above and click 'Delete' to confirm the permanent deletion of this user's account. Their drawings will no longer belong to anyone, including a later account with the same username, unless you name an account above to give them to (e.g. the account this person is being relinked to).`}</Typography>
       </DialogContent>
       <DialogActions className={c.dialogActions}>
         <Button

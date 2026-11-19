@@ -9,6 +9,7 @@
  *   Modal.set(content, onAddCallback, onRemoveCallback, modalId)
  *     - content can be an HTML string (legacy) or a React element
  *   Modal.remove(isImmediate, modalId)
+ *   Modal.top() -> id of the topmost open modal, or null
  */
 import React, { useState, useEffect, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -21,6 +22,7 @@ import styles from './Modal.module.css'
 const _state = {
     modals: {},
     listeners: [],
+    seq: 0,
 }
 
 function _notify() {
@@ -53,18 +55,20 @@ function ModalHost() {
 
     return (
         <>
-            {Object.keys(modals).map((modalId) => {
-                const m = modals[modalId]
-                if (!m) return null
-                return (
-                    <ModalInstance
-                        key={modalId}
-                        modalId={modalId}
-                        content={m.content}
-                        closing={!!m.closing}
-                    />
-                )
-            })}
+            {Object.keys(modals)
+                .sort((a, b) => modals[a].order - modals[b].order)
+                .map((modalId) => {
+                    const m = modals[modalId]
+                    if (!m) return null
+                    return (
+                        <ModalInstance
+                            key={modalId}
+                            modalId={modalId}
+                            content={m.content}
+                            closing={!!m.closing}
+                        />
+                    )
+                })}
         </>
     )
 }
@@ -137,7 +141,11 @@ const Modal = {
         Modal._onRemoveCallback[modalId] =
             typeof onRemoveCallback === 'function' ? onRemoveCallback : null
 
-        _state.modals[modalId] = { content, closing: false }
+        _state.modals[modalId] = {
+            content,
+            closing: false,
+            order: ++_state.seq,
+        }
         _notify()
         _applyBlur()
 
@@ -158,6 +166,13 @@ const Modal = {
                 setTimeout(() => obs.disconnect(), 2000)
             }
         }
+    },
+
+    top: function () {
+        const open = Object.entries(_state.modals)
+            .filter(([, modal]) => !modal.closing)
+            .sort(([, a], [, b]) => b.order - a.order)
+        return open.length ? open[0][0] : null
     },
 
     /**

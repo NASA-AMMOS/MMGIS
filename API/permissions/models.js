@@ -101,6 +101,11 @@ const AuthIdentity = sequelize.define(
     provider: { type: Sequelize.STRING, allowNull: false },
     // The provider's stable user id (e.g. the OIDC "sub" claim)
     subject: { type: Sequelize.STRING, allowNull: false },
+    // The provider's username at the last login, which may differ from the MMGIS username after a rename
+    username: { type: Sequelize.STRING, allowNull: true },
+    last_login_at: { type: Sequelize.DATE, allowNull: true },
+    // The provider's subject setting when linked (e.g. LDAP_SUBJECT_ATTRIBUTE), so a later change is noticed
+    subject_setting: { type: Sequelize.STRING, allowNull: true },
     user_id: {
       type: Sequelize.INTEGER,
       allowNull: false,
@@ -158,6 +163,11 @@ const up = async () => {
     `CREATE UNIQUE INDEX IF NOT EXISTS long_term_tokens_token_hash ON long_term_tokens (token_hash);`,
     "index long_term_tokens.token_hash"
   );
+  for (const col of ["username varchar(255) NULL", "last_login_at TIMESTAMPTZ NULL", "subject_setting varchar(255) NULL"])
+    await runQuery(
+      `ALTER TABLE IF EXISTS auth_identities ADD COLUMN IF NOT EXISTS ${col};`,
+      `add auth_identities.${col.split(" ")[0]} column`
+    );
   // Owning mission for data resources (null = global, SuperAdmin/Data Admin managed)
   await runQuery(
     `ALTER TABLE IF EXISTS geodatasets ADD COLUMN IF NOT EXISTS owner_mission_uuid UUID NULL;`,

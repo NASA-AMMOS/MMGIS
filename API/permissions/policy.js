@@ -1,5 +1,6 @@
 // Authorization policy: named capabilities, roles bound at a scope, and can().
 // Pure functions only; no database access.
+const siteAccess = require("./siteAccess");
 
 const CAPABILITIES = {
   "site.view": "View the main site",
@@ -151,6 +152,8 @@ function can(principal, cap, resource) {
       bindingGrants(b, cap, ["global"])
     );
   }
+  // AUTH_TOKENS=admins: only administrators may create tokens (and keep using them)
+  if (cap === "tokens.create" && siteAccess.tokensAdminsOnly() && !isAdministrator(principal)) return false;
   const baseline =
     BASELINE[principal.authenticated ? "authenticated" : "anonymous"];
   if (baseline.has(cap)) return true;
@@ -263,10 +266,13 @@ const ADMIN_CAPABILITIES = [
   "data.datasets.write",
   "data.stac.write",
 ];
-const isAdministrator = (principal) => {
-  const caps = capabilitiesOf(principal);
-  return ADMIN_CAPABILITIES.some((c) => caps.includes(c));
-};
+// Computed per capability, not through capabilitiesOf, since can("tokens.create") asks this
+const isAdministrator = (principal) =>
+  ADMIN_CAPABILITIES.some((cap) => {
+    if (!MISSION_SCOPED.has(cap)) return can(principal, cap, null);
+    const m = missionsWith(principal, cap);
+    return m == null || m.length > 0 || layerRootsAny(principal, cap);
+  });
 
 // Missions/shared: signed-in users, and guests who can view at least one mission
 function canReadSharedFolder(principal) {

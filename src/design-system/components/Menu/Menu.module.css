@@ -1,0 +1,53 @@
+.positioner {
+    z-index: 10000;
+}
+
+.popup {
+    min-width: 160px;
+    overflow: hidden;
+    padding: 4px 0;
+    border: 1px solid var(--color-a1);
+    border-radius: 8px;
+    background: var(--color-a);
+    box-shadow: 0 8px 24px var(--color-shadow);
+    animation: menuFadeIn 0.12s ease-out;
+}
+
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    color: var(--color-a5);
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    transition: background 0.12s, color 0.12s;
+}
+
+.item:hover,
+.item[data-highlighted] {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+.danger {
+    color: #ec8a8a;
+}
+
+.danger:hover,
+.danger[data-highlighted] {
+    color: #ec8a8a;
+}

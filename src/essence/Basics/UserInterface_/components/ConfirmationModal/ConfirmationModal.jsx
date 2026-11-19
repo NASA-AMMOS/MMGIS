@@ -5,13 +5,24 @@
  * Button components. Keeps the same imperative API:
  *   ConfirmationModal.prompt(message, cb)
  */
-import React from 'react'
+import React, { useEffect } from 'react'
 import Modal from '../Modal/Modal'
 import { Button } from '../../../../../design-system/components'
 
 import styles from './ConfirmationModal.module.css'
 
+const MODAL_ID = 0
+
 function ConfirmationContent({ message, onResult }) {
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape' && Modal.top() === String(MODAL_ID))
+                onResult(false)
+        }
+        document.addEventListener('keydown', handleKeyDown)
+        return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [onResult])
+
     return (
         <div className={styles.root}>
             <div className={styles.title}>
@@ -63,7 +74,8 @@ const ConfirmationModal = {
                     ConfirmationModal.finished = true
                     cb(false)
                 }
-            }
+            },
+            MODAL_ID
         )
     },
 }

@@ -123,7 +123,7 @@ The import never changes usernames or password hashes, so every existing account
 
 The audience grant keeps every mission visible as before. A brand-new site gets it too, so on `public` and `optional` sites guests can see every mission until you remove or narrow it in **Configure → Users & Access**.
 
-On a brand-new site with no accounts, creating the first account on `/configure` now asks for a one-time setup code printed in the server log (see `SETUP_CODE`). Existing sites already have accounts and are unaffected.
+On a brand-new site with no SuperAdmin, creating the first account on `/configure` now asks for a one-time setup code printed in the server log (see `SETUP_CODE`). Existing sites already have a SuperAdmin and are unaffected.
 
 The server also runs the import once on first start if it hasn't run. It never runs again, so later grant changes are never undone; set `SITE_ACCESS` correctly before that first start (the server warns if it later differs from the value used at import). Unknown mission names are reported and skipped. Accounts whose legacy `permission` could not log in before (`000`, `010`, ...) get no viewer access.
 

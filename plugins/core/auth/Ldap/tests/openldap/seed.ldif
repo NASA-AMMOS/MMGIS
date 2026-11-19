@@ -1,0 +1,51 @@
+# Test directory for the LDAP provider tests (../ldap-provider.spec.js). Passwords are test-only.
+dn: ou=people,dc=example,dc=org
+objectClass: organizationalUnit
+ou: people
+
+dn: ou=groups,dc=example,dc=org
+objectClass: organizationalUnit
+ou: groups
+
+dn: ou=services,dc=example,dc=org
+objectClass: organizationalUnit
+ou: services
+
+dn: cn=mmgis-svc,ou=services,dc=example,dc=org
+objectClass: organizationalRole
+objectClass: simpleSecurityObject
+cn: mmgis-svc
+userPassword: svc-test-password
+
+dn: uid=ldap_alice,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: ldap_alice
+cn: Alice Directory
+sn: Directory
+mail: ldap_alice@example.org
+userPassword: alice-test-password
+
+dn: uid=ldap_bob,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: ldap_bob
+cn: Bob Directory
+sn: Directory
+userPassword: bob-test-password
+
+dn: uid=test_admin,ou=people,dc=example,dc=org
+objectClass: inetOrgPerson
+uid: test_admin
+cn: Clashing Admin
+sn: Admin
+userPassword: clash-test-password
+
+dn: cn=science-team,ou=groups,dc=example,dc=org
+objectClass: groupOfNames
+cn: science-team
+member: uid=ldap_alice,ou=people,dc=example,dc=org
+
+# The recheck test adds and removes ldap_bob here
+dn: cn=recheck-team,ou=groups,dc=example,dc=org
+objectClass: groupOfNames
+cn: recheck-team
+member: uid=test_admin,ou=people,dc=example,dc=org

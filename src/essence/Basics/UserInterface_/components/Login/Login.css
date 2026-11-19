@@ -22,6 +22,9 @@
 #loginModal {
     width: 400px;
     max-width: calc(100vw - 24px);
+    /* Scrolls instead of being cut off when zoomed in or on short screens */
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
     position: absolute;
     left: 50%;
     top: 50%;
@@ -109,6 +112,10 @@
     font-style: italic;
     font-size: 12.5px;
     line-height: 1.4;
+}
+
+#loginModalHint {
+    text-align: center;
 }
 
 #loginSubmit[type='submit'] {
@@ -271,4 +278,102 @@
     background: #d9e9f0;
     color: #1a1a1a;
     outline: none;
+}
+
+/* Provider switch, single-provider banner, hint and help link (as in public/login.css) */
+#loginModalProviders {
+    width: 342px;
+    max-width: calc(100% - 40px);
+    margin: 20px auto 0;
+}
+#loginModalProviders:empty {
+    display: none;
+}
+#loginModalProviders + #loginForm {
+    margin-top: 18px;
+}
+#loginModalProviders .loginProviders {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: #121d23;
+    border-radius: 7px;
+    box-shadow: 0 0 0 1px rgba(8, 174, 234, 0.5) inset;
+}
+#loginModalProviders .loginProvider {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 8px 6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #a1a4ad;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+#loginModalProviders .loginProvider span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#loginModalProviders .loginProvider:hover,
+#loginModalProviders .loginProvider:focus-visible {
+    color: #ececec;
+    outline: none;
+}
+#loginModalProviders .loginProvider.active {
+    background: #0c3546;
+    color: #ffffff;
+    box-shadow: 0 0 0 1.5px #08aeea inset;
+}
+#loginModalProviders .loginProvider.active .mdi {
+    color: #08aeea;
+}
+#loginModalProviders .loginBanner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    text-align: left;
+    border-radius: 8px;
+    background: #13252e;
+    border: 1px solid rgba(8, 174, 234, 0.45);
+    border-left: 4px solid #08aeea;
+}
+#loginModalProviders .loginBanner > .mdi {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #0c3546;
+    color: #08aeea;
+    font-size: 22px;
+}
+#loginModalProviders .loginBanner small {
+    display: block;
+    color: #b4b7bf;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+#loginModalProviders .loginBanner b {
+    display: block;
+    color: #ffffff;
+    font-size: 17px;
+}
+#loginModalProviders .loginBanner span {
+    display: block;
+    margin-top: 2px;
+    color: #b4b7bf;
+    font-size: 12.5px;
+    line-height: 1.35;
 }

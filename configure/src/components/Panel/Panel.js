@@ -26,6 +26,8 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 
 import WarningIcon from "@mui/icons-material/Warning";
+import SearchIcon from "@mui/icons-material/Search";
+import CloseIcon from "@mui/icons-material/Close";
 
 const useStyles = makeStyles((theme) => ({
   Panel: {
@@ -104,6 +106,51 @@ const useStyles = makeStyles((theme) => ({
       color: `${theme.palette.swatches.grey[0]} !important`,
     },
   },
+  missionFilter: {
+    display: "flex",
+    alignItems: "center",
+    margin: "10px 0px 0px 0px",
+    padding: "0px 8px",
+    height: "32px",
+    border: `1px solid ${theme.palette.swatches.grey[300]}`,
+    background: "rgba(255,255,255,0.06)",
+    color: theme.palette.swatches.grey[700],
+    "&:focus-within": {
+      borderColor: theme.palette.swatches.grey[600],
+    },
+    "& > svg": {
+      fontSize: "18px",
+      flexShrink: 0,
+    },
+    "& > input": {
+      flex: 1,
+      minWidth: 0,
+      height: "100%",
+      padding: "0px 8px",
+      border: "none",
+      outline: "none",
+      background: "transparent",
+      color: theme.palette.swatches.grey[900],
+      fontSize: "14px",
+    },
+  },
+  missionFilterClear: {
+    display: "flex",
+    padding: 0,
+    border: "none",
+    background: "none",
+    color: "inherit",
+    cursor: "pointer",
+    "& > svg": {
+      fontSize: "16px",
+    },
+  },
+  noMissions: {
+    padding: "12px 16px",
+    textAlign: "right",
+    fontSize: "13px",
+    color: theme.palette.swatches.grey[600],
+  },
   missions: {
     flex: 1,
     overflowY: "auto",
@@ -164,6 +211,11 @@ export default function Panel() {
     setSection(sectionForPage(page) || MISSIONS_SECTION);
   }, [page]);
   const [userPermissions, setUserPermissions] = useState(null);
+  const [missionFilter, setMissionFilter] = useState("");
+  const filterText = missionFilter.trim().toLowerCase();
+  const shownMissions = filterText
+    ? missions.filter((m) => m.toLowerCase().includes(filterText))
+    : missions;
 
   // Fetch user permissions to determine which missions can be edited
   useEffect(() => {
@@ -276,12 +328,39 @@ export default function Panel() {
                   </Button>
                 </div>
               )}
+              <div className={c.missionFilter}>
+                <SearchIcon />
+                <input
+                  type="text"
+                  value={missionFilter}
+                  placeholder="Filter missions"
+                  aria-label="Filter missions"
+                  spellCheck={false}
+                  onChange={(e) => setMissionFilter(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setMissionFilter("");
+                  }}
+                />
+                {missionFilter && (
+                  <button
+                    className={c.missionFilterClear}
+                    aria-label="Clear mission filter"
+                    title="Clear"
+                    onClick={() => setMissionFilter("")}
+                  >
+                    <CloseIcon />
+                  </button>
+                )}
+              </div>
               <div className={c.missions}>
+                {filterText && shownMissions.length === 0 && (
+                  <div className={c.noMissions}>No missions match.</div>
+                )}
                 <ul className={c.missionsUl}>
-                  {missions.map((mission, idx) => {
+                  {shownMissions.map((mission) => {
                     const canEdit = canEditMission(mission);
                     return (
-                      <li className={c.missionsLi} key={idx}>
+                      <li className={c.missionsLi} key={mission}>
                         <Button
                           className={clsx(
                             {

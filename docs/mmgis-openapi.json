@@ -4555,7 +4555,7 @@
     "/api/longtermtoken/get": {
       "get": {
         "summary": "List long term tokens",
-        "description": "Lists unrevoked tokens. Users with tokens.manage (SuperAdmin) see every token; others see only their own. Only a prefix of each token is returned; the full token is shown once, at creation. Needs a signed-in session, not a token.",
+        "description": "Lists unrevoked tokens. Users with tokens.manage (SuperAdmin) see every token; other signed-in accounts with a user ID see only their own, even when they cannot create tokens. The response includes can_create. Accounts without a user ID and guests are denied. Only a prefix of each token is returned; the full token is shown once, at creation. Needs a signed-in session, not a token.",
         "tags": [
           "API Tokens"
         ],
@@ -4597,7 +4597,8 @@
                           "createdAt": "2026-09-28T20:00:00Z",
                           "updatedAt": "2026-10-01T12:00:00Z"
                         }
-                      ]
+                      ],
+                      "can_create": true
                     }
                   },
                   "failure": {
@@ -4726,7 +4727,7 @@
     "/api/longtermtoken/clear": {
       "post": {
         "summary": "Clear (delete) a long term token",
-        "description": "Deletes an existing API token by its ID.",
+        "description": "A signed-in account may delete its own API token by ID, even when it cannot create tokens; users with tokens.manage may delete any token. Needs a signed-in session, not a token.",
         "tags": ["API Tokens"],
         "security": [
           {

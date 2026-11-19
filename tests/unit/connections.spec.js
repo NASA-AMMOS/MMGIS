@@ -273,6 +273,15 @@ test.describe('sameOriginOnly', () => {
       }),
     ).toBe(200);
     expect(run({ host: 'mmgis.example', origin: 'https://evil.example' })).toBe(403);
+    const savedCors = process.env.CORS_ORIGINS;
+    try {
+      process.env.CORS_ORIGINS = 'https://portal.example';
+      expect(run({ host: 'mmgis.example', origin: 'https://portal.example', 'sec-fetch-site': 'cross-site' })).toBe(200);
+      expect(run({ host: 'mmgis.example', origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' })).toBe(403);
+    } finally {
+      if (savedCors === undefined) delete process.env.CORS_ORIGINS;
+      else process.env.CORS_ORIGINS = savedCors;
+    }
     expect(run({ host: 'mmgis.example', 'sec-fetch-site': 'cross-site' })).toBe(403);
     expect(run({ host: 'mmgis.example', origin: 'null' })).toBe(403);
   });
