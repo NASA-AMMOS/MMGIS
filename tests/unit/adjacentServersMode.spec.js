@@ -9,7 +9,13 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { resolveAdjacentServersMode } = require('../../adjacent-servers/mode');
+const { isContainer, resolveAdjacentServersMode } = require('../../adjacent-servers/mode');
+
+test.describe('isContainer', () => {
+  test('a Kubernetes pod is a container even with no marker file or cgroup hint', () => {
+    expect(isContainer({ KUBERNETES_SERVICE_HOST: '10.96.0.1' })).toBe(true);
+  });
+});
 
 test.describe('resolveAdjacentServersMode', () => {
   test('an explicit mode wins over container detection', () => {

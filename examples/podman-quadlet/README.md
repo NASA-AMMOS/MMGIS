@@ -84,11 +84,11 @@ If a unit does not appear after `daemon-reload`, the generator prints why:
 
 ## Rootless
 
-To run as a regular user instead:
+The [Podman guide](https://nasa-ammos.github.io/MMGIS/setup/podman) has these steps as commands. To run as a regular user instead:
 
 - Put the units in `~/.config/containers/systemd/` and use `systemctl --user` (and `journalctl --user`).
 - Replace `/etc/mmgis` and `/var/lib/mmgis` in the units with directories you own. `%h` is your home directory, for example `EnvironmentFile=%h/mmgis/env/mmgis.env` and `Volume=%h/mmgis/Missions:/usr/src/app/Missions:z`.
-- Uncomment `UserNS=keep-id:uid=10001,gid=10001` in `mmgis.container` so MMGIS writes `Missions` as your user. Skip the `chown` step, and drop `sudo` and `--user 0` elsewhere.
+- Uncomment `UserNS=keep-id:uid=10001,gid=10001` in `mmgis.container` so MMGIS writes `Missions` as your user. Skip the `chown` step and drop `sudo` elsewhere. Keep `--user 0` when copying the tile matrix sets: rootless, it is your own user on the host.
 - Run `loginctl enable-linger $USER` so the services start at boot without a login.
 
 ## Changing it

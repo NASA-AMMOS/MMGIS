@@ -116,7 +116,7 @@
 
 ## Installation
 
-It is recommended to setup MMGIS via docker. However, if you would like to setup MMGIS without docker, please check out: https://nasa-ammos.github.io/MMGIS/setup/installation#installing-without-docker
+It is recommended to setup MMGIS via docker. To use Podman instead, see the [Podman guide](https://nasa-ammos.github.io/MMGIS/setup/podman). However, if you would like to setup MMGIS without docker, please check out: https://nasa-ammos.github.io/MMGIS/setup/installation#installing-without-docker
 
 `/` will always refer to the repo's root directory.
 

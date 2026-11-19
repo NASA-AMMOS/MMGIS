@@ -79,7 +79,7 @@ In `embedded` mode, a service that stops is reported in the MMGIS log with its e
 
 #### With Podman
 
-`examples/podman-quadlet/` has systemd quadlet units for MMGIS, PostGIS, STAC and TiTiler. See its `README.md`.
+`examples/podman-quadlet/` has systemd quadlet units for MMGIS, PostGIS, STAC and TiTiler. The [Podman guide](/MMGIS/setup/podman) walks through a rootless install.
 
 #### Without Docker (embedded)
 

@@ -12,6 +12,8 @@ nav_order: 1
 
 ## Installing with Docker
 
+Using Podman instead? The same image runs under it. See the [Podman guide](/MMGIS/setup/podman) for a rootless setup with systemd quadlets.
+
 `/` will always refer to the repo's root directory
 
 1. Clone the repo  
