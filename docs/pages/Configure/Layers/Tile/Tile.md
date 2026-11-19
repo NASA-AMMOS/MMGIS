@@ -28,7 +28,7 @@ A file path like URL but pointing to a Digital Elevation Map tileset generated b
 #### Legend
 
 _type:_ string  
-An absolute or relative file path pointing to a `legend.csv` that describes the symbology of the layer. Please see the Legend Tool to see how to form a `legend.csv`.
+An absolute or relative file path pointing to a `legend.csv` that describes the symbology of the layer. Please see the Legend Tool to see how to form a `legend.csv`. When left empty on a `stac-collection:` layer, the legend is read from the collection's `classification:classes`, if it lists any (see the Legend Tool).
 
 #### Tile Format
 

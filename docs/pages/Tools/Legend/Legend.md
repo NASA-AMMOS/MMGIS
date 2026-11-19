@@ -19,6 +19,30 @@ On the Configure page, under Tools, you can specify additional options:
 }
 ```
 
+### Legends from STAC classes
+
+A Tile layer served from a `stac-collection:` URL gets its legend from the collection when no Legend is configured for it. If the collection lists classes with the STAC [classification extension](https://github.com/stac-extensions/classification) (`classification:classes`), each class becomes a legend entry, and the Identifier Tool shows the class's name beside the pixel value.
+
+- Classes are read from the collection's `item_assets` (the rendered band first, then the asset) and then from its `summaries`.
+- An entry is labeled with the class's `title`, else its `description`, else its `name`.
+- An entry is colored by the layer's Custom Color Table when it has one, else by the class's `color_hint`. Classes marked `nodata`, and ones the color table makes fully transparent, are left out.
+- A configured Legend (a file or a Raw Variables `legend`) takes precedence, as does the scale of a Single Data Band COG Transformation.
+- The collection is read once, when the layer's legend is first shown. Classes added to the collection later appear on the next page load.
+
+```json
+{
+  "item_assets": {
+    "asset": {
+      "classification:classes": [
+        { "value": 1, "name": "water", "title": "Water", "color_hint": "0000ff" },
+        { "value": 2, "name": "forest", "title": "Forest", "color_hint": "00a000" },
+        { "value": 255, "name": "nodata", "nodata": true }
+      ]
+    }
+  }
+}
+```
+
 ### legend.csv example:
 
         color,strokecolor,shape,value

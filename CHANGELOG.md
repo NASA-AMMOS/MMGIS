@@ -2,6 +2,15 @@
 
 ---
 
+## Unreleased
+
+#### Added
+
+- Tile layers served from a `stac-collection:` URL read their legend from the collection's `classification:classes` (STAC classification extension) when no legend is configured, including the class names the Identifier Tool shows
+- The Identifier Tool names a class raster's pixel value from the layer's legend
+
+---
+
 ## 5.5.5
 
 _November 17, 2026_
