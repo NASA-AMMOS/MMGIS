@@ -6,6 +6,7 @@ import {
   resolveCandidateIndex,
   resolveScalePosition,
   resolveCandidatePosition,
+  resolveLegendLabel,
 } from "../../plugins/core/tools/Legend/legendHighlight.js";
 
 /**
@@ -251,5 +252,55 @@ test.describe("resolveCandidatePosition", () => {
   test("nothing placeable has no position", () => {
     expect(resolveCandidatePosition(DEM_RAMP, ["Basalt"])).toBeNull();
     expect(resolveCandidatePosition(DEM_RAMP, [])).toBeNull();
+  });
+});
+
+/** A class raster's legend as configured: a name, its colour, the id it is. */
+const MINERALS = [
+  { color: "#eb00b4", shape: "rect", value: "Hematite GDS76", propertyValue: "2" },
+  { color: "#a0af00", shape: "rect", value: "Goethite GDS240", propertyValue: "4 - 4" },
+  { color: "#808080", shape: "discreet", value: "Other", propertyValue: "90 - 99" },
+];
+
+test.describe("resolveEntryIndex on a class legend", () => {
+  test("a row is found by the pixel value recorded beside its name", () => {
+    const rows = entries(["Hematite GDS76", "Goethite GDS240"], ["2", "4"]);
+    expect(resolveEntryIndex(rows, 4, ROWS)).toBe(1);
+    expect(resolveEntryIndex(rows, 3, ROWS)).toBe(-1);
+  });
+});
+
+test.describe("resolveLegendLabel", () => {
+  test("a class id reads as the name its legend gives it", () => {
+    expect(resolveLegendLabel(MINERALS, 2)).toEqual({
+      label: "Hematite GDS76",
+      color: "#eb00b4",
+    });
+    expect(resolveLegendLabel(MINERALS, 4).label).toBe("Goethite GDS240");
+    expect(resolveLegendLabel(MINERALS, 97).label).toBe("Other");
+  });
+
+  test("an id the legend does not list has no name", () => {
+    expect(resolveLegendLabel(MINERALS, 3)).toBeNull();
+    expect(resolveLegendLabel(MINERALS, null)).toBeNull();
+    expect(resolveLegendLabel(MINERALS, "Basalt")).toBeNull();
+  });
+
+  test("a label that only repeats the reading adds nothing", () => {
+    const numbered = [{ color: "#fff", shape: "rect", value: "7" }];
+    expect(resolveLegendLabel(numbered, 7)).toBeNull();
+  });
+
+  test("a ramp stop is not a name", () => {
+    const ramp = [
+      { color: "#000", shape: "continuous", value: "low", propertyValue: 0 },
+      { color: "#fff", shape: "continuous", value: "high", propertyValue: 100 },
+    ];
+    expect(resolveLegendLabel(ramp, 100)).toBeNull();
+  });
+
+  test("a legend that is an image, or missing, has no names", () => {
+    expect(resolveLegendLabel("Layers/legend.png", 2)).toBeNull();
+    expect(resolveLegendLabel(undefined, 2)).toBeNull();
   });
 });

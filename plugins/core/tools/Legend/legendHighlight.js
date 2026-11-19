@@ -75,6 +75,17 @@ export function resolveEntryIndex(entries, value, allowNearest) {
     })
     if (contained >= 0) return contained
 
+    // A class legend names each entry in words and records the pixel value it
+    // stands for beside it, so the reading is that recorded value exactly.
+    const recorded = entries.findIndex(
+        (entry) =>
+            entry.propertyValue != null &&
+            entry.propertyValue !== '' &&
+            parseRange(entry.propertyValue) == null &&
+            toNumber(entry.propertyValue) === target
+    )
+    if (recorded >= 0) return recorded
+
     if (!allowNearest) return -1
 
     let best = -1
@@ -180,10 +191,42 @@ export function resolveCandidatePosition(entries, candidates) {
     return null
 }
 
+/**
+ * The legend entry that names a value read off the map, as { label, color },
+ * or null. Only an entry that says more than the reading itself counts: a ramp
+ * stop, or a label that is just the number again, adds nothing to a readout.
+ *
+ * @param {Array<{value: *, propertyValue: *, color: string, shape: string}>} legend
+ *   - a layer's legend as configured (csv rows or the `legend` variable)
+ * @param {*} value
+ * @returns {{label: string, color: string|null}|null}
+ */
+export function resolveLegendLabel(legend, value) {
+    if (!Array.isArray(legend) || legend.length === 0) return null
+    if (toNumber(value) == null) return null
+
+    const index = resolveEntryIndex(
+        legend.map((entry) => ({
+            label: entry?.value == null ? '' : String(entry.value),
+            propertyValue: entry?.propertyValue,
+        })),
+        value,
+        false
+    )
+    if (index < 0) return null
+
+    const entry = legend[index]
+    if (entry.shape === 'continuous') return null
+    const label = entry.value == null ? '' : String(entry.value).trim()
+    if (label === '' || label === String(value).trim()) return null
+    return { label: label, color: entry.color || null }
+}
+
 const LegendHighlight = {
     toNumber,
     parseRange,
     resolveEntryIndex,
+    resolveLegendLabel,
     resolveCandidateIndex,
     resolveScalePosition,
     resolveCandidatePosition,

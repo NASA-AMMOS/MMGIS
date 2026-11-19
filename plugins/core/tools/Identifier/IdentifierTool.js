@@ -9,6 +9,7 @@ import Globe_ from '@basics/Globe_/Globe_'
 import ToolController_ from '@basics/ToolController_/ToolController_'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '@pre/calls'
+import { resolveLegendLabel } from '../Legend/legendHighlight'
 import {
     parseExternalStacUrl,
     formatStacBidx,
@@ -485,7 +486,40 @@ var IdentifierTool = {
                                                       '' +
                                                       unit
 
-                                            if (
+                                            // A class raster reads as an id;
+                                            // the layer's legend says what
+                                            // that id is called.
+                                            const named =
+                                                raw == null || Number.isNaN(raw)
+                                                    ? null
+                                                    : resolveLegendLabel(
+                                                          L_.layers.data[
+                                                              layerUUID
+                                                          ]?._legend,
+                                                          raw
+                                                      )
+
+                                            if (named != null) {
+                                                // The source (item and band)
+                                                // moves to the hover title.
+                                                htmlValues +=
+                                                    '<div title="' +
+                                                    F_.escapeHtml(
+                                                        String(value[v][0] ?? '')
+                                                    ) +
+                                                    '" style="display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; margin-right: 15px; color: var(--color-a6); font-size: 14px;">' +
+                                                    (named.color
+                                                        ? '<div style="flex-shrink: 0; width: 10px; height: 10px; margin-right: 6px; background: ' +
+                                                          F_.escapeHtml(
+                                                              named.color
+                                                          ) +
+                                                          ';"></div>'
+                                                        : '') +
+                                                    F_.escapeHtml(named.label) +
+                                                    '</div><div style="color: var(--color-a5); font-size: 12px;">' +
+                                                    valueParsed +
+                                                    '</div></div>'
+                                            } else if (
                                                 value.length > 1 ||
                                                 value[v][2] != null
                                             ) {
