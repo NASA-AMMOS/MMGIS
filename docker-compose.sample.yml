@@ -7,6 +7,9 @@ services:
         condition: service_healthy
         restart: true
     env_file: .env
+    environment:
+      # The stac-fastapi, tipg, titiler, ... services below run the adjacent servers
+      - ADJACENT_SERVERS_MODE=external
     ports:
       - 8888:8888
     healthcheck:

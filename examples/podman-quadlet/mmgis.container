@@ -1,0 +1,34 @@
+# MMGIS. Starting this unit also starts the database, TiTiler and STAC.
+[Unit]
+Description=MMGIS
+Requires=mmgis-db.service
+After=mmgis-db.service
+Wants=mmgis-titiler.service mmgis-stac.service
+
+[Container]
+Image=ghcr.io/nasa-ammos/mmgis:development
+ContainerName=mmgis
+Network=mmgis.network
+PublishPort=8888:8888
+# MMGIS settings (the container's .env), including ADJACENT_SERVERS_MODE=external
+EnvironmentFile=/etc/mmgis/mmgis.env
+# Must be writable by the container user (uid/gid 10001). ":z" relabels the
+# directory for SELinux so the TiTiler container can share it.
+Volume=/var/lib/mmgis/Missions:/usr/src/app/Missions:z
+# Rootless only: run as the host user that owns Missions (see README.md)
+# UserNS=keep-id:uid=10001,gid=10001
+HealthCmd=curl -fsk http://localhost:8888/api/utils/healthcheck
+HealthInterval=20s
+HealthRetries=5
+HealthStartPeriod=15s
+HealthTimeout=8s
+
+[Service]
+# MMGIS exits if the database is not accepting connections yet; systemd
+# starts it again until it is.
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target default.target

@@ -2,6 +2,23 @@
 
 ---
 
+## Unreleased
+
+#### Added
+
+- `ADJACENT_SERVERS_MODE` ENV (`embedded` or `external`) chooses whether MMGIS starts the adjacent servers itself or proxies to separately run ones, instead of inferring it from the container runtime [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- `examples/podman-quadlet/`: example systemd quadlet units running MMGIS with PostGIS, STAC and TiTiler under Podman
+- [Podman setup guide](docs/pages/Setup/Podman/Podman.md) for running MMGIS rootless with quadlets, linked from the installation docs
+
+#### Fixed
+
+- Adjacent servers are no longer started inside the MMGIS container when the proxy targets separate services, where they ran unused [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- Podman and Kubernetes pods are recognized as container runtimes, so the adjacent server proxy targets no longer differ between Docker and Podman [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- `adjacent-servers/<name>/start-<name>` scripts start without a per-server `.env` file [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+- An embedded adjacent server that exits is logged with its exit code and last lines of output instead of failing silently [#1138](https://github.com/NASA-AMMOS/MMGIS/issues/1138)
+
+---
+
 ## 5.5.5
 
 _November 17, 2026_

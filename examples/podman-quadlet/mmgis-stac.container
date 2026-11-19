@@ -1,0 +1,33 @@
+# stac-fastapi-pgstac, reached only through MMGIS at /stac (no published port).
+[Unit]
+Description=MMGIS adjacent server: STAC
+PartOf=mmgis.service
+# MMGIS creates and migrates the mmgis-stac database when it starts
+After=mmgis.service
+
+[Container]
+Image=ghcr.io/stac-utils/stac-fastapi-pgstac:6.2.2
+ContainerName=mmgis-stac
+Network=mmgis.network
+# MMGIS proxies /stac to http://stac-fastapi:8881 (STAC_PORT)
+PodmanArgs=--network-alias=stac-fastapi
+# POSTGRES_USER / POSTGRES_PASS
+EnvironmentFile=/etc/mmgis/stac.env
+Environment=POSTGRES_DBNAME=mmgis-stac
+Environment=POSTGRES_HOST_READER=db
+Environment=POSTGRES_HOST_WRITER=db
+Environment=POSTGRES_PORT=5432
+Environment=DB_MIN_CONN_SIZE=1
+Environment=DB_MAX_CONN_SIZE=1
+# Enable write endpoints (POST/PUT/DELETE on /collections and /items)
+Environment=ENABLE_TRANSACTIONS_EXTENSIONS=true
+Exec=uvicorn stac_fastapi.pgstac.app:app --host 0.0.0.0 --port 8881
+
+[Service]
+# Fails until the mmgis-stac database exists; systemd starts it again.
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target default.target

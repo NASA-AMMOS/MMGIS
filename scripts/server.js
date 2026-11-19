@@ -102,6 +102,9 @@ const { setSPICEKernelDownloadSchedule } = require("../spice/getKernels");
 
 const initAdjacentServersProxy = require("../adjacent-servers/adjacent-servers-proxy");
 const adjacentServers = require("../adjacent-servers/adjacent-servers");
+const {
+  resolveAdjacentServersMode,
+} = require("../adjacent-servers/mode");
 
 const WebSocket = require("isomorphic-ws");
 
@@ -146,8 +149,31 @@ const rootDir = `${__dirname}/..`;
 ///////////////////////////
 const app = express();
 
-const isDocker = utils.isDocker();
-process.env.IS_DOCKER = isDocker ? "true" : "false";
+// Where the adjacent servers (STAC, TiTiler, ...) run: started by MMGIS
+// (embedded) or by something else and reached by service name (external).
+const adjacentServersMode = resolveAdjacentServersMode();
+if (adjacentServersMode.invalid)
+  logger(
+    "warn",
+    `ADJACENT_SERVERS_MODE='${adjacentServersMode.invalid}' is not 'embedded' or 'external'; ignoring it.`,
+    "adjacent-servers",
+  );
+logger(
+  "info",
+  `Adjacent servers mode: ${adjacentServersMode.mode} (${
+    adjacentServersMode.source === "env"
+      ? "from ADJACENT_SERVERS_MODE"
+      : adjacentServersMode.source === "container"
+        ? "default inside a container"
+        : "default outside a container"
+  }).`,
+  "adjacent-servers",
+);
+const adjacentServersExternal = adjacentServersMode.mode === "external";
+// IS_DOCKER is the historical name for "adjacent servers are external". The
+// frontend and STAC code read it to pick service hosts and the path TiTiler
+// sees /Missions under, so it follows the mode, not the container runtime.
+process.env.IS_DOCKER = adjacentServersExternal ? "true" : "false";
 
 // Load the permissions.json file, which maps LDAP groups to permission sets.
 // This application has two permission sets: "users" and "admins".
@@ -594,10 +620,10 @@ const useSwaggerSchema =
     swaggerUi.setup(schema, swaggerOptions)(...args);
 
 ///
-adjacentServers();
+adjacentServers(adjacentServersMode.mode);
 initAdjacentServersProxy(
   app,
-  isDocker,
+  adjacentServersExternal,
   ensureAdmin,
   ensureUserForAdjacentServers,
 );
