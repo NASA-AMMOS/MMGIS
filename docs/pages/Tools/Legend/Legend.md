@@ -12,12 +12,26 @@ A layer can be configured with a legend by pointing its Legend field to a .csv f
 On the Configure page, under Tools, you can specify additional options:
 
 * displayOnStart: Whether the expanded legend should automatically be displayed on start (`true`/`false`)
+* filterInView: Whether class legends start narrowed to the classes in the current map view (`true`/`false`). See [Filtering to the current view](#filtering-to-the-current-view).
 
 ```javascript
 {
-    "displayOnStart": true
+    "displayOnStart": true,
+    "filterInView": false
 }
 ```
+
+### Moving and resizing
+
+On desktop the Legend's panel, like the other floating tool panels, can be dragged by its header and resized from its bottom-right corner. Double-click the header to put it back. Its position and size are remembered in the browser.
+
+### Filtering to the current view
+
+The **In view only** button at the top of the Legend narrows class legends to the entries present in the current map view, and notes how many that is ("12 of 52 in view"). It is re-read when the map stops moving.
+
+- **`stac-collection:` and `COG:` Tile layers**: one small request per layer reads the view from TiTiler. The legend's entries must name the pixel value or range they stand for, in a `propertyValue` column (`7`, or `10 - 20`) or as the `value` itself. Layers drawn through a Single Data Band COG Transformation or an expression are not narrowed.
+- **Vector layers**: narrowed when the legend comes from a categorical Dynamic Style rule, from the features in view. A legend written by hand has no tie to the features and is left as it is.
+- The view is sampled, so a class covering only a few pixels can be missed. Hovering it with the Identifier Tool shows its entry.
 
 ### Legends from STAC classes
 

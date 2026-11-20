@@ -69,6 +69,7 @@ function numericSwatch(attribute, value, color) {
 function entriesForNumericAttributeRule(compiledRule, baseColor) {
     const { rule, attribute, categorical, mappings, domain, resolve } =
         compiledRule
+    const { property } = compiledRule
 
     if (categorical) {
         const byValue = new Map()
@@ -80,6 +81,8 @@ function entriesForNumericAttributeRule(compiledRule, baseColor) {
                 String(mapping.value),
                 Object.assign(numericSwatch(attribute, value, baseColor), {
                     value: mapping.label || String(mapping.value),
+                    property: property,
+                    propertyValue: mapping.value,
                 })
             )
         }
@@ -155,7 +158,7 @@ function entriesForNumericRule(compiledRule) {
 }
 
 function entriesForCategoricalRule(compiledRule) {
-    const { mappings, resolve } = compiledRule
+    const { mappings, resolve, property } = compiledRule
     // Two mappings of the same value: the resolver keeps the later one, so the
     // legend labels the later one too.
     const byValue = new Map()
@@ -169,6 +172,10 @@ function entriesForCategoricalRule(compiledRule) {
             color: color,
             strokecolor: color,
             value: mapping.label || key,
+            // The feature property and value this entry stands for, so a
+            // feature can be matched back to its entry.
+            property: property,
+            propertyValue: mapping.value,
         })
     }
     return [...byValue.values()]

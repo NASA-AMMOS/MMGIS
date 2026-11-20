@@ -42,6 +42,14 @@
                         "defaultChecked": false
                     },
                     {
+                        "field": "variables.filterInView",
+                        "name": "Filter to View",
+                        "description": "If true, class legends of stac-collection Tile layers start narrowed to the classes in the current map view. Users can turn this on or off from the legend's header.",
+                        "type": "checkbox",
+                        "width": 3,
+                        "defaultChecked": false
+                    },
+                    {
                         "field": "variables.width",
                         "name": "Panel Width (px)",
                         "description": "Width of the legend panel in pixels. Defaults to 200. Values below 100 are treated as 100.",
