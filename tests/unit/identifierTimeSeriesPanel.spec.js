@@ -184,6 +184,9 @@ test.describe('Identifier time-series panel (browser)', () => {
             'Roads: Vector layer: features carry no raster measurements to chart.',
             'Basemap: Pre-rendered tiles: colours only, no numeric source values.',
         ])
+        await expect(
+            panel.locator('.identifierTimeSeriesPanel_unsupported')
+        ).toBeHidden()
 
         // the chart holds every observation, the nodata one as a gap
         const data = await page.evaluate(() =>
@@ -197,6 +200,33 @@ test.describe('Identifier time-series panel (browser)', () => {
         expect(await page.evaluate(() => window.__h.marker.at)).toEqual([
             10, 20,
         ])
+    })
+
+    test('Not charted only appears when no chart is displayed', async ({ page }) => {
+        await openHarness(page)
+        await page.evaluate(() => {
+            window.__h.layers.on.ch4 = false
+            window.__h.controller.selectPoint(10, 20)
+        })
+        const notCharted = page.locator('.identifierTimeSeriesPanel_unsupported')
+        await expect(notCharted).toBeVisible()
+        await expect(notCharted).toContainText('Not charted')
+        await expect(page.locator('#identifierTimeSeriesPanel canvas')).toHaveCount(0)
+
+        // When a real chart appears, the unsupported summary is hidden.
+        await page.evaluate(() => {
+            window.__h.layers.on.ch4 = true
+            window.__h.controller.refresh()
+        })
+        await expect(page.locator('[data-layer="ch4"] canvas')).toHaveCount(1)
+        await expect(notCharted).toBeHidden()
+
+        // It reappears after a refresh that cannot plot any chart.
+        await page.evaluate(() => {
+            window.__h.layers.on.ch4 = false
+            window.__h.controller.refresh()
+        })
+        await expect(notCharted).toBeVisible()
     })
 
     test('another click moves the marker and replaces the chart', async ({

@@ -55,7 +55,7 @@ How each chart is built:
 - Every acquisition keeps its place on the time axis. One with no usable reading is a gap in the line, never 0 and never bridged by the line, and the tooltip says why: "no data" (masked/nodata pixel), "no reading" (TiTiler returned nothing for that item or band), or "invalid value" (a non-finite or non-numeric value). The panel counts each kind. Acquisitions sharing a timestamp are all kept, ordered by item id.
 - At most 500 acquisitions are charted per layer and click; the panel says when a history was cut short. Results are cached per point, layer, time window, band selection or expression, scale factor and units, so clicking the same place again doesn't re-query, and changing any of those does.
 
-Layers that can't be charted are listed under _Not charted_ with the reason: vector layers, pre-rendered tiles (colours only), COGs and Identifier `url` sources (see below), and layers that aren't time-enabled or have no time range set. The panel only opens when at least one time-enabled layer is on.
+When no chart is displayed, layers that can't be charted are listed under _Not charted_ with the reason: vector layers, pre-rendered tiles (colours only), COGs and Identifier `url` sources (see below), and layers that aren't time-enabled or have no time range set. The _Not charted_ section is hidden while any time-series chart is plotted. The panel only opens when at least one time-enabled layer is on.
 
 #### COG layers
 

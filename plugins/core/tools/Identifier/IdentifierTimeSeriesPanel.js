@@ -328,6 +328,11 @@ export function createPanelView(deps) {
                 )
                 chartEl.classList.remove('identifierTimeSeriesPanel_chart--on')
             }
+            // Keep unsupported-layer reasons only when there is no chart.
+            const notCharted = root.querySelector(
+                '.identifierTimeSeriesPanel_unsupported'
+            )
+            if (notCharted) notCharted.hidden = charts.size > 0
         },
         close() {
             disposeCharts()
