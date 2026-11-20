@@ -7,6 +7,10 @@ import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 import LayerAttachmentRegistry from '@basics/Layers_/registry/LayerAttachmentRegistry'
 import { deriveLegend } from '@basics/Layers_/legend/LayerLegend'
 import {
+    classesToLegend,
+    hasConfiguredLegend,
+} from '@basics/Layers_/legend/stacClassLegend'
+import {
     COLOR_ATTRIBUTES,
     DEFAULT_ATTRIBUTE,
     GROUP_STATS,
@@ -438,7 +442,14 @@ var LayersTool = {
             units
         )
         if (colortableLegend != null) {
-            L_.layers.data[layer.name]._legend = colortableLegend
+            // A STAC collection's classes name the color table's values. A
+            // configured legend is left alone: it already says what they are.
+            if (!hasConfiguredLegend(layer))
+                L_.layers.data[layer.name]._legend =
+                    classesToLegend(
+                        layer._stacClasses,
+                        layer.cogColormapJson
+                    ) || colortableLegend
             // The rescale gradation labels don't apply to a color table
             for (let i = 1; i < 8; i++) $(`[id=tileCogLegend_${i}]`).text('')
             $('#tileCogColormapMapLines').empty()

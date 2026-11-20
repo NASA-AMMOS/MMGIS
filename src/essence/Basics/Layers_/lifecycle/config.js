@@ -213,6 +213,13 @@ export async function parseConfig(L_, configData, urlOnLayers) {
                             return function (data) {
                                 data = F_.csvToJSON(data)
                                 L_.layers.data[name]._legend = data
+                                // A legend already on screen was drawn
+                                // without this one.
+                                document.dispatchEvent(
+                                    new CustomEvent('mmgis-legend-loaded', {
+                                        detail: { layer: name },
+                                    })
+                                )
                             }
                         })(d[i].name)
                     )

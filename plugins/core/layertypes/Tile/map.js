@@ -46,6 +46,9 @@ async function make(layerObj, ctx = {}) {
                 break
             case 'COG':
                 splitColonType = splitColonLayerUrl[0]
+                // TiTiler numbers its rows from the top, whatever the layer's
+                // Tile Format says; as TMS every tile asked for is the wrong one.
+                layerObj.tileformat = 'wmts'
 
                 // Bands parameter (expression will be added dynamically in getTileUrl)
                 bandsParam = ''

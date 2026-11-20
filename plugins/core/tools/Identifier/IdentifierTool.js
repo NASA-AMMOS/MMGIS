@@ -9,6 +9,7 @@ import Globe_ from '@basics/Globe_/Globe_'
 import ToolController_ from '@basics/ToolController_/ToolController_'
 import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '@pre/calls'
+import { resolveLegendLabel } from '../Legend/legendHighlight'
 import {
     parseExternalStacUrl,
     formatStacBidx,
@@ -159,7 +160,19 @@ var IdentifierTool = {
             a: data[position + 3],
         }
     },
+    // A reading belongs to where the cursor rested. Once it moves on, the
+    // readout and the legend mark describe somewhere else, so they go until
+    // the cursor rests again - and a refining read still in flight is dropped.
+    clearStaleReading: function () {
+        if (IdentifierTool._readingShown !== true) return
+        IdentifierTool._readingShown = false
+        clearTimeout(IdentifierTool.mousemoveTimeout)
+        CursorInfo.hide(true)
+        IdentifierTool.resetLegendMatches()
+        IdentifierTool.highlightInLegend()
+    },
     idPixelMap: function (e) {
+        IdentifierTool.clearStaleReading()
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
         IdentifierTool.mousemoveTimeoutMap = setTimeout(function () {
             IdentifierTool.idPixel(e, [
@@ -172,6 +185,7 @@ var IdentifierTool = {
     // Debounced like idPixelMap: without it every globe mousemove sent a point
     // query. The position is read when the timer fires, where the mouse rests.
     idPixelGlobe: function (e) {
+        IdentifierTool.clearStaleReading()
         clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
         IdentifierTool.mousemoveTimeoutGlobe = setTimeout(function () {
             const mouse = Globe_.litho.mouse
@@ -189,6 +203,7 @@ var IdentifierTool = {
         clearTimeout(IdentifierTool.mousemoveTimeout)
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
         clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
+        IdentifierTool._readingShown = false
         CursorInfo.hide()
         IdentifierTool.resetLegendMatches()
         IdentifierTool.highlightInLegend()
@@ -485,7 +500,40 @@ var IdentifierTool = {
                                                       '' +
                                                       unit
 
-                                            if (
+                                            // A class raster reads as an id;
+                                            // the layer's legend says what
+                                            // that id is called.
+                                            const named =
+                                                raw == null || Number.isNaN(raw)
+                                                    ? null
+                                                    : resolveLegendLabel(
+                                                          L_.layers.data[
+                                                              layerUUID
+                                                          ]?._legend,
+                                                          raw
+                                                      )
+
+                                            if (named != null) {
+                                                // The source (item and band)
+                                                // moves to the hover title.
+                                                htmlValues +=
+                                                    '<div title="' +
+                                                    F_.escapeHtml(
+                                                        String(value[v][0] ?? '')
+                                                    ) +
+                                                    '" style="display: flex; justify-content: space-between; align-items: center;"><div style="display: flex; align-items: center; margin-right: 15px; color: var(--color-a6); font-size: 14px;">' +
+                                                    (named.color
+                                                        ? '<div style="flex-shrink: 0; width: 10px; height: 10px; margin-right: 6px; background: ' +
+                                                          F_.escapeHtml(
+                                                              named.color
+                                                          ) +
+                                                          ';"></div>'
+                                                        : '') +
+                                                    F_.escapeHtml(named.label) +
+                                                    '</div><div style="color: var(--color-a5); font-size: 12px;">' +
+                                                    valueParsed +
+                                                    '</div></div>'
+                                            } else if (
                                                 value.length > 1 ||
                                                 value[v][2] != null
                                             ) {
@@ -621,6 +669,7 @@ var IdentifierTool = {
             }
         }
 
+        IdentifierTool._readingShown = true
         CursorInfo.update(
             `<ul style='list-style-type: none; padding: 0; margin: 0; width:${
                 $('#cursorInfo').width() ? $('#cursorInfo').width() + 'px' : ''

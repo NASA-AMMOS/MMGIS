@@ -15,9 +15,21 @@ import {
     resolveCandidateIndex,
     resolveCandidatePosition,
 } from './legendHighlight'
+import {
+    parseNpy,
+    distinctValues,
+    entriesInView,
+    distinctPropertyValues,
+    viewValuesUrl,
+    cogViewEntriesUrl,
+    distinctEntryIndexes,
+} from './legendInView'
 import Help from '@basics/UserInterface_/components/Help/Help'
 
 const helpKey = 'LegendTool'
+
+/** How long the map has to be still before the view's classes are re-read. */
+const IN_VIEW_SETTLE_MS = 250
 
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
@@ -47,6 +59,9 @@ var LegendTool = {
 
         this.displayOnStart = vars['displayOnStart']
         this.showHeadersInLegend = vars['showHeadersInLegend']
+        // Narrow class legends to the entries on screen. The header's toggle
+        // starts from this.
+        this.filterInView = vars['filterInView'] === true
     },
     make: function (targetId) {
         this.targetId =
@@ -64,6 +79,22 @@ var LegendTool = {
         // a current-view domain, and a geodataset's statistics arrive late.
         this._onRestyled = () => refreshLegends()
         document.addEventListener(RESTYLED_EVENT, this._onRestyled)
+        // A layer's legend file arrives after the first draw on a slow load.
+        document.addEventListener('mmgis-legend-loaded', this._onRestyled)
+        // A horizontal scale fits its labels to the panel's width.
+        window.addEventListener('mmgis-separated-tool-resized', this._onRestyled)
+
+        // One listener, and it waits for the map to stop: a drag fires nothing
+        // until it ends, and a run of small moves reads the view once.
+        this._onMapMoved = () => {
+            if (LegendTool.filterInView !== true) return
+            clearTimeout(LegendTool._inViewTimeout)
+            LegendTool._inViewTimeout = setTimeout(
+                updateInView,
+                IN_VIEW_SETTLE_MS
+            )
+        }
+        Map_.map?.on('moveend', this._onMapMoved)
 
         this.made = true
 
@@ -79,6 +110,14 @@ var LegendTool = {
         this.targetId = null
         L_.unsubscribeOnLayerToggle('LegendTool')
         document.removeEventListener(RESTYLED_EVENT, this._onRestyled)
+        document.removeEventListener('mmgis-legend-loaded', this._onRestyled)
+        window.removeEventListener(
+            'mmgis-separated-tool-resized',
+            this._onRestyled
+        )
+        Map_.map?.off('moveend', this._onMapMoved)
+        clearTimeout(this._inViewTimeout)
+        abortInViewReads()
         this.made = false
     },
     refreshLegends: refreshLegends,
@@ -271,6 +310,219 @@ function refreshLegends() {
     }
 
     reapplyHighlight()
+    updateInView()
+}
+
+// The legend rows a layer has drawn, keyed by layer.
+function entryRowsByLayer(panel) {
+    const rowsByLayer = new Map()
+    panel.find('.legendEntry').each(function () {
+        const row = $(this)
+        const uuid = row.attr('data-legend-layer-uuid')
+        if (!rowsByLayer.has(uuid)) rowsByLayer.set(uuid, [])
+        rowsByLayer.get(uuid).push(row)
+    })
+    return rowsByLayer
+}
+
+function abortInViewReads() {
+    const reads = LegendTool._inView || {}
+    Object.keys(reads).forEach((uuid) => reads[uuid].controller?.abort())
+    // Forgotten too, so turning the filter back on reads the view afresh.
+    LegendTool._inView = {}
+}
+
+// Read which classes are under the current view, for each class legend that
+// is showing. A layer whose view hasn't changed is not asked again, and a read
+// the map has since moved on from is cancelled.
+function updateInView() {
+    if (LegendTool._inView == null) LegendTool._inView = {}
+    const reads = LegendTool._inView
+
+    const panel = $(`#${LegendTool.targetId} #LegendTool`)
+    if (LegendTool.filterInView !== true || panel.length === 0 || !Map_.map) {
+        abortInViewReads()
+        applyInView()
+        return
+    }
+
+    const bounds = Map_.map.getBounds()
+    const box = {
+        west: bounds.getWest(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        north: bounds.getNorth(),
+    }
+    const options = {
+        mapSize: Map_.map.getSize(),
+        stac: window.mmgisglobal?.options?.stac,
+    }
+    entryRowsByLayer(panel).forEach((rows, uuid) => {
+        const layerObj = L_.layers.data[uuid]
+        // A collection is asked for its values; a COG for the entries
+        // themselves (see legendInView).
+        let url = viewValuesUrl(layerObj, box, options)
+        const byEntry = url == null
+        if (byEntry)
+            url = cogViewEntriesUrl(
+                L_.layers.layer[uuid]?._url,
+                layerObj,
+                box,
+                rows.map(legendEntryOfRow),
+                options
+            )
+        if (url == null) {
+            delete reads[uuid]
+            return
+        }
+        if (reads[uuid]?.url === url) return
+
+        reads[uuid]?.controller?.abort()
+        const controller =
+            typeof AbortController === 'function' ? new AbortController() : null
+        // The last view's values stay up until this one's arrive.
+        const read = {
+            url,
+            controller,
+            values: reads[uuid]?.values,
+            indexes: reads[uuid]?.indexes,
+        }
+        reads[uuid] = read
+        fetch(url, controller ? { signal: controller.signal } : undefined)
+            .then((response) => {
+                // 204: the layer has nothing under this view.
+                if (response.status === 204) return new Set()
+                if (!response.ok) return null
+                return response
+                    .arrayBuffer()
+                    .then((buffer) => {
+                        const npy = parseNpy(buffer)
+                        if (npy == null) return null
+                        return byEntry
+                            ? distinctEntryIndexes(npy)
+                            : distinctValues(npy)
+                    })
+            })
+            .catch(() => null)
+            .then((found) => {
+                if (reads[uuid] !== read) return
+                // Unreadable: show the whole legend rather than a wrong one.
+                read.values = byEntry ? null : found
+                read.indexes = byEntry ? found : null
+                applyInView()
+            })
+    })
+    applyInView()
+}
+
+// The values the features of a vector layer in view hold, for each property
+// its legend rows stand for, or null if the layer has no features to ask.
+function vectorValuesInView(uuid, properties) {
+    const leafletLayer = L_.layers.layer[uuid]
+    if (
+        properties.length === 0 ||
+        leafletLayer == null ||
+        typeof leafletLayer.eachLayer !== 'function' ||
+        !Map_.map
+    )
+        return null
+    const bounds = Map_.map.getBounds()
+    const features = []
+    leafletLayer.eachLayer((sublayer) => {
+        if (sublayer?.feature == null) return
+        const inBounds =
+            typeof sublayer.getBounds === 'function'
+                ? bounds.intersects(sublayer.getBounds())
+                : typeof sublayer.getLatLng === 'function'
+                ? bounds.contains(sublayer.getLatLng())
+                : true
+        if (inBounds) features.push(sublayer.feature)
+    })
+    return distinctPropertyValues(features, properties)
+}
+
+// A row as the entry it was drawn from.
+function legendEntryOfRow(row) {
+    return {
+        label: row.attr('data-legend-value'),
+        propertyValue: row.attr('data-legend-property-value'),
+    }
+}
+
+// Show only the rows whose class is under the view, and say how many that is.
+function applyInView() {
+    const panel = $(`#${LegendTool.targetId} #LegendTool`)
+    if (panel.length === 0) return
+    const reads = LegendTool._inView || {}
+
+    entryRowsByLayer(panel).forEach((allRows, uuid) => {
+        const container = allRows[0].parent()
+        let note = container.children('.legendInViewNote')
+        const entryOf = legendEntryOfRow
+
+        // A raster's values are read from TiTiler; a vector's rows say which
+        // feature property they stand for, and the features are asked.
+        let rows = allRows
+        let inView = null
+        const values =
+            LegendTool.filterInView === true ? reads[uuid]?.values : null
+        const indexes =
+            LegendTool.filterInView === true ? reads[uuid]?.indexes : null
+        if (values != null) {
+            inView = entriesInView(rows.map(entryOf), values)
+        } else if (indexes != null) {
+            inView = indexes
+        } else if (LegendTool.filterInView === true) {
+            // Rows with no property (a configured legend) can't be matched to
+            // features, so they are left as they are.
+            rows = allRows.filter((row) => row.attr('data-legend-property'))
+            const properties = [
+                ...new Set(rows.map((row) => row.attr('data-legend-property'))),
+            ]
+            const byProperty = vectorValuesInView(uuid, properties)
+            if (byProperty != null) {
+                inView = new Set()
+                properties.forEach((property) => {
+                    const indexes = []
+                    rows.forEach((row, i) => {
+                        if (row.attr('data-legend-property') === property)
+                            indexes.push(i)
+                    })
+                    entriesInView(
+                        indexes.map((i) => entryOf(rows[i])),
+                        byProperty.get(property)
+                    ).forEach((k) => inView.add(indexes[k]))
+                })
+            }
+        }
+
+        if (inView == null) {
+            allRows.forEach((row) => row.css('display', 'flex'))
+            note.remove()
+            return
+        }
+
+        rows.forEach((row, i) =>
+            row.css('display', inView.has(i) ? 'flex' : 'none')
+        )
+
+        if (note.length === 0) {
+            note = $('<div>')
+                .attr('class', 'legendInViewNote')
+                .css({
+                    'font-size': '12px',
+                    'font-style': 'italic',
+                    'color': 'var(--color-a4)',
+                    'padding': '0px 0px 6px 9px',
+                })
+                .appendTo(container)
+        }
+        note.text(
+            inView.size === 0
+                ? 'None in view'
+                : `${inView.size} of ${rows.length} in view`
+        )
+    })
 }
 
 // A redraw builds fresh rows, so a highlight has to be put back.
@@ -368,6 +620,9 @@ function highlightEntries(matches) {
             : -1
         rows.forEach((row, i) => {
             row.css(i === index ? HIGHLIGHT_CSS : UNHIGHLIGHT_CSS)
+            // A class under the cursor is in view, even if the view's sample
+            // stepped over it.
+            if (i === index) row.css('display', 'flex')
         })
     })
 
@@ -468,13 +723,58 @@ function drawLegendHeader() {
     tools.append(legendHeader)
     Help.finalize(helpKey)
 
+    // Its own row rather than the header: a separated panel draws its own
+    // header and hides this tool's.
+    const inViewToggle = $('<div>')
+        .attr('id', 'LegendTool_inView')
+        .attr('role', 'button')
+        .attr('tabindex', '0')
+        .attr('title', 'Show only the classes in the current map view')
+        .html(
+            "<i class='mdi mdi-image-filter-center-focus mdi-14px'></i><span style='margin-left: 5px;'>In view only</span>"
+        )
+    tools.append(
+        $('<div>')
+            .css({
+                'display': 'flex',
+                'justify-content': 'flex-end',
+                'padding': '5px 8px 0px 8px',
+            })
+            .append(inViewToggle)
+    )
+    const paintInViewToggle = () => {
+        const on = LegendTool.filterInView === true
+        inViewToggle.attr('aria-pressed', on).css({
+            'display': 'flex',
+            'align-items': 'center',
+            'height': '22px',
+            'line-height': '22px',
+            'padding': '0px 8px',
+            'font-size': '12px',
+            'border-radius': '11px',
+            'cursor': 'pointer',
+            'user-select': 'none',
+            'color': on ? 'var(--color-mmgis)' : 'var(--color-a4)',
+            'border': `1px solid ${on ? 'var(--color-mmgis)' : 'var(--color-a2)'}`,
+            'background': on ? 'var(--color-a1)' : 'transparent',
+        })
+    }
+    paintInViewToggle()
+    inViewToggle.on('click keydown', (e) => {
+        if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return
+        e.preventDefault()
+        LegendTool.filterInView = LegendTool.filterInView !== true
+        paintInViewToggle()
+        updateInView()
+    })
+
     //Add a semantic container
     const legendContainer = $('<div>')
         .attr('id', 'LegendTool')
         .css({
             'color': 'var(--color-a6)',
-            'height': 'calc(100% - 40px)',
-            'max-height': 'calc(100vh - 189px)',
+            'height': 'calc(100% - 67px)',
+            'max-height': 'calc(100vh - 216px)',
             'overflow-y': 'auto',
             'overflow-x': 'hidden'
         })
@@ -640,6 +940,7 @@ function drawLegends(tools, _legend, layerUUID, display_name, opacity, shift) {
                 .attr('data-legend-layer-uuid', layerUUID)
                 .attr('data-legend-value', _legend[d].value == null ? '' : String(_legend[d].value))
                 .attr('data-legend-property-value', _legend[d].propertyValue == null ? '' : String(_legend[d].propertyValue))
+                .attr('data-legend-property', _legend[d].property == null ? '' : String(_legend[d].property))
                 .css({
                     'display': 'flex',
                     'margin': orientation === 'horizontal' ? '0px 8px 8px 0px' : '0px 0px 8px 9px',
