@@ -6,6 +6,7 @@
  */
 import ToolController_ from '@basics/ToolController_/ToolController_'
 import {
+    hasConfiguredLegend,
     wantsStacClassLegend,
     loadStacClasses,
     classesToLegend,
@@ -14,6 +15,11 @@ import {
 // Build the layer's legend from its live render parameters. The scale itself is
 // drawn by the LayersTool, which owns the colormap/rescale UI it comes from.
 function derive(layerObj) {
+    // A configured legend that hasn't loaded yet is still the layer's legend;
+    // a color table's own would otherwise be drawn in its place.
+    if (hasConfiguredLegend(layerObj) && layerObj.cogTransform !== true)
+        return false
+
     const hasClasses = deriveStacClasses(layerObj)
 
     // A custom GDAL color table (cogColormapJson) colors raw pixel values

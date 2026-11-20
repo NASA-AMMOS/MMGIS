@@ -22,6 +22,21 @@ const DEFAULT_ASSET = 'asset'
 const requests = new Map()
 
 /**
+ * True if a legend is configured for the layer - a file, or entries written
+ * into its variables. A configured legend is the layer's legend; one derived
+ * from how it is drawn only stands in when there is none.
+ *
+ * @param {object} layerObj
+ * @returns {boolean}
+ */
+export function hasConfiguredLegend(layerObj) {
+    if (layerObj == null) return false
+    if (layerObj.legend != null && layerObj.legend !== '') return true
+    const configured = layerObj.variables?.legend
+    return Array.isArray(configured) ? configured.length > 0 : configured != null
+}
+
+/**
  * True if this layer's legend should come from its STAC collection: it is
  * served from one, nothing else is configured as its legend, and it is not
  * rescaled over a colormap (which is a scale, not classes).
@@ -33,11 +48,7 @@ export function wantsStacClassLegend(layerObj) {
     if (layerObj == null || typeof layerObj.url !== 'string') return false
     if (!layerObj.url.toLowerCase().startsWith('stac-collection:')) return false
     if (layerObj.cogTransform === true) return false
-    if (layerObj.legend != null && layerObj.legend !== '') return false
-    const configured = layerObj.variables?.legend
-    if (Array.isArray(configured) ? configured.length > 0 : configured != null)
-        return false
-    return true
+    return !hasConfiguredLegend(layerObj)
 }
 
 /**
@@ -224,6 +235,7 @@ export function clearStacClassCache() {
 }
 
 const StacClassLegend = {
+    hasConfiguredLegend,
     wantsStacClassLegend,
     stacCollectionUrl,
     findClasses,

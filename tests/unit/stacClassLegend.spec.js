@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
+  hasConfiguredLegend,
   wantsStacClassLegend,
   stacCollectionUrl,
   findClasses,
@@ -44,6 +45,16 @@ test.describe("wantsStacClassLegend", () => {
     expect(wantsStacClassLegend({ url, legend: "Layers/legend.csv" })).toBe(false);
     expect(wantsStacClassLegend({ url, variables: { legend: [{ value: "a" }] } })).toBe(false);
     expect(wantsStacClassLegend({ url, cogTransform: true })).toBe(false);
+  });
+});
+
+test.describe("hasConfiguredLegend", () => {
+  test("a legend file or written entries", () => {
+    expect(hasConfiguredLegend({ legend: "Layers/legend.csv" })).toBe(true);
+    expect(hasConfiguredLegend({ variables: { legend: [{ value: "a" }] } })).toBe(true);
+    expect(hasConfiguredLegend({ legend: "", variables: { legend: [] } })).toBe(false);
+    expect(hasConfiguredLegend({})).toBe(false);
+    expect(hasConfiguredLegend(null)).toBe(false);
   });
 });
 
