@@ -148,9 +148,12 @@ function discreteColortable(cogColormapJson) {
  * if none can be shown.
  *
  * A class is colored the way it is drawn: by the layer's color table when it
- * has one, else by the class's `color_hint`. A class the table makes fully
- * transparent, and one marked `nodata`, is left out. `propertyValue` records
- * the pixel value, which is what a reading off the map is matched on.
+ * has one, else by the class's `color_hint`. A color table draws only the
+ * values it lists, so a class it leaves out or makes fully transparent is not
+ * on the map and is left out of the legend, as is one marked `nodata` - a
+ * collection may enumerate hundreds of classes a layer shows a few dozen of.
+ * `propertyValue` records the pixel value, which is what a reading off the map
+ * is matched on.
  *
  * @param {Array<object>} classes - `classification:classes`
  * @param {object|string} [cogColormapJson] - the layer's GDAL color table
@@ -167,8 +170,9 @@ export function classesToLegend(classes, cogColormapJson = null) {
         if (typeof c.value !== 'number' || !isFinite(c.value)) return
 
         let color = null
-        const rgba = table?.[String(c.value)]
-        if (Array.isArray(rgba)) {
+        if (table != null) {
+            const rgba = table[String(c.value)]
+            if (!Array.isArray(rgba)) return
             const alpha = rgba[3] == null ? 255 : rgba[3]
             if (alpha <= 0) return
             color = `rgba(${rgba[0] || 0},${rgba[1] || 0},${rgba[2] || 0},${

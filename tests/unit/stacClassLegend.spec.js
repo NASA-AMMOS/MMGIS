@@ -136,6 +136,13 @@ test.describe("classesToLegend", () => {
     ]);
   });
 
+  test("a class the color table leaves out isn't drawn, so it isn't listed", () => {
+    // Forest has a color hint, but the table is what the map is drawn with.
+    const legend = classesToLegend(CLASSES, { 1: [10, 20, 30, 255] });
+    expect(legend.map((e) => e.value)).toEqual(["Water"]);
+    expect(classesToLegend(CLASSES, { 99: [1, 1, 1, 255] })).toBeNull();
+  });
+
   test("an interval color table or a bad one falls back to the hints", () => {
     expect(classesToLegend(CLASSES, [[[0, 2], [1, 1, 1, 255]]])[0].color).toBe("#0000ff");
     expect(classesToLegend(CLASSES, "{not json")[0].color).toBe("#0000ff");

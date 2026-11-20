@@ -39,7 +39,7 @@ A Tile layer served from a `stac-collection:` URL gets its legend from the colle
 
 - Classes are read from the collection's `item_assets` (the rendered band first, then the asset) and then from its `summaries`.
 - An entry is labeled with the class's `title`, else its `description`, else its `name`.
-- An entry is colored by the layer's Custom Color Table when it has one, else by the class's `color_hint`. Classes marked `nodata`, and ones the color table makes fully transparent, are left out.
+- An entry is colored by the layer's Custom Color Table when it has one, else by the class's `color_hint`. Classes marked `nodata` are left out. With a Custom Color Table, so are classes it doesn't list or makes fully transparent, since they aren't drawn: a collection can enumerate every possible class while the legend shows only the ones on the map.
 - A configured Legend (a file or a Raw Variables `legend`) takes precedence, as does the scale of a Single Data Band COG Transformation.
 - The collection is read once, when the layer's legend is first shown. Classes added to the collection later appear on the next page load.
 

@@ -6,7 +6,7 @@
 
 #### Added
 
-- Tile layers served from a `stac-collection:` URL read their legend from the collection's `classification:classes` (STAC classification extension) when no legend is configured, including the class names the Identifier Tool shows
+- Tile layers served from a `stac-collection:` URL read their legend from the collection's `classification:classes` (STAC classification extension) when no legend is configured, including the class names the Identifier Tool shows. With a Custom Color Table, only the classes it draws are listed
 - The Identifier Tool names a class raster's pixel value from the layer's legend
 - Legend Tool: an "In view only" toggle (and `filterInView` variable) narrows class legends to the entries in the current map view, for `stac-collection:` and `COG:` Tile layers and for Vector layers with a categorical Dynamic Style
 - Floating tool panels (Legend, Identifier, Info) can be dragged by their header and resized on desktop; double-click the header to put one back

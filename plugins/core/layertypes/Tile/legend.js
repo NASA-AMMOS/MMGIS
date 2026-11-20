@@ -43,6 +43,12 @@ function deriveStacClasses(layerObj) {
     loadStacClasses(layerObj).then((classes) => {
         if (classes == null) return
         layerObj._stacClasses = classes
+        // The color table's legend was built while these were on their way,
+        // with bare values where the names now go.
+        if (layerObj.cogColormapJson != null)
+            ToolController_.getTool('LayersTool')?.populateCogScale(
+                layerObj.name
+            )
         if (!applyStacClasses(layerObj)) return
         // The legend was drawn without these; draw it again with them.
         const legendTool = ToolController_.getTool('LegendTool')
