@@ -160,7 +160,19 @@ var IdentifierTool = {
             a: data[position + 3],
         }
     },
+    // A reading belongs to where the cursor rested. Once it moves on, the
+    // readout and the legend mark describe somewhere else, so they go until
+    // the cursor rests again - and a refining read still in flight is dropped.
+    clearStaleReading: function () {
+        if (IdentifierTool._readingShown !== true) return
+        IdentifierTool._readingShown = false
+        clearTimeout(IdentifierTool.mousemoveTimeout)
+        CursorInfo.hide(true)
+        IdentifierTool.resetLegendMatches()
+        IdentifierTool.highlightInLegend()
+    },
     idPixelMap: function (e) {
+        IdentifierTool.clearStaleReading()
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
         IdentifierTool.mousemoveTimeoutMap = setTimeout(function () {
             IdentifierTool.idPixel(e, [
@@ -173,6 +185,7 @@ var IdentifierTool = {
     // Debounced like idPixelMap: without it every globe mousemove sent a point
     // query. The position is read when the timer fires, where the mouse rests.
     idPixelGlobe: function (e) {
+        IdentifierTool.clearStaleReading()
         clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
         IdentifierTool.mousemoveTimeoutGlobe = setTimeout(function () {
             const mouse = Globe_.litho.mouse
@@ -190,6 +203,7 @@ var IdentifierTool = {
         clearTimeout(IdentifierTool.mousemoveTimeout)
         clearTimeout(IdentifierTool.mousemoveTimeoutMap)
         clearTimeout(IdentifierTool.mousemoveTimeoutGlobe)
+        IdentifierTool._readingShown = false
         CursorInfo.hide()
         IdentifierTool.resetLegendMatches()
         IdentifierTool.highlightInLegend()
@@ -655,6 +669,7 @@ var IdentifierTool = {
             }
         }
 
+        IdentifierTool._readingShown = true
         CursorInfo.update(
             `<ul style='list-style-type: none; padding: 0; margin: 0; width:${
                 $('#cursorInfo').width() ? $('#cursorInfo').width() + 'px' : ''
