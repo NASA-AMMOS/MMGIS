@@ -104,6 +104,25 @@
     max-height: calc(100vh - var(--mmgis-sep-tools-bottom-reserve, 120px));
 }
 
+/* A panel that can be dragged by its header and resized from its corner. */
+.panelMovable {
+    resize: both;
+    min-width: 180px;
+    min-height: 80px;
+    max-width: calc(100vw - 16px);
+}
+
+.headerMovable {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.headerMovable:active {
+    cursor: grabbing;
+}
+
 /* Legend-specific overrides */
 .panel :global(#toolContentSeparated_Legend) > div:first-child {
     display: none !important;
