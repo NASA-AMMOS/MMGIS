@@ -15,9 +15,6 @@ import {
     normalizeTitilerExpression,
 } from '@basics/Layers_/LayerUtils'
 
-// Most STAC items listed for a point (the hover readout stays short)
-const STAC_POINT_MAX_ITEMS = 10
-
 //Add the tool markup if you want to do it this way
 var markup = [].join('\n')
 
@@ -876,30 +873,29 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                 // titiler-pgstac>=3: { assets: [{ name: 'collection/item', values, band_names }] }
                 // Items arrive in the search order the map's mosaic uses
                 // (newest first), and the mosaic draws each pixel from the
-                // first item with data there. List the items with data here,
-                // that one first and marked, so the value shown matches the
-                // pixel and the ones under it can still be compared. Items
-                // with no data (most of a swath collection, at any point) are
-                // left out.
+                // first item with data there. Report only that item, so the
+                // value shown matches the pixel. Items under it (often near-
+                // identical forecasts of the same day) are left out.
                 if (json && Array.isArray(json.assets)) {
                     const hasData = (v) => v != null && !Number.isNaN(v)
-                    const withData = json.assets.filter((a) =>
+                    const shownAsset = json.assets.find((a) =>
                         (a.values || []).some(hasData)
                     )
                     const values = []
-                    withData
-                        .slice(0, STAC_POINT_MAX_ITEMS)
-                        .forEach((asset, i) => {
-                            const itemName = (asset.name || '').split('/').pop()
-                            const shown = i === 0 ? ' (shown)' : ''
-                            asset.band_names.forEach((bandName, idx) => {
+                    if (shownAsset) {
+                        const itemName = (shownAsset.name || '')
+                            .split('/')
+                            .pop()
+                        ;(shownAsset.band_names || []).forEach(
+                            (bandName, idx) => {
                                 values.push([
-                                    `${itemName}${shown} - ${bandName}`,
-                                    [asset.values[idx]],
+                                    `${itemName} - ${bandName}`,
+                                    [shownAsset.values[idx]],
                                     [bandName],
                                 ])
-                            })
-                        })
+                            }
+                        )
+                    }
                     if (!values.length) values.push(['', [null], null]) // shown as a lone "no data"
                     respond(values)
                 } else respond(null)
