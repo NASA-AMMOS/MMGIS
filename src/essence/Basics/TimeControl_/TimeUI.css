@@ -648,3 +648,166 @@
     color: white;
     font-weight: bold;
 }
+
+/* Start/End pickers: a day or month that at least one on, time-enabled layer has data
+   for (from its type's time.availability). Same dot-under-the-day mark as
+   mmgis-lite's calendar, plus a light tint so the days read at a glance. */
+.tempus-dominus-widget .date-container-days div.mmgisTimeUIHasData:not(.no-highlight),
+.tempus-dominus-widget .date-container-months div.mmgisTimeUIHasData:not(.no-highlight) {
+    position: relative;
+    background: color-mix(in srgb, var(--color-c) 18%, transparent);
+    color: var(--color-f);
+    font-weight: bold;
+}
+.tempus-dominus-widget .date-container-days div.mmgisTimeUIHasData:not(.no-highlight)::after,
+.tempus-dominus-widget .date-container-months div.mmgisTimeUIHasData:not(.no-highlight)::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    /* width/height are forced: a global ::after rule otherwise squashes it */
+    width: 4px !important;
+    height: 4px !important;
+    margin-left: -2px;
+    border-radius: 50%;
+    background: var(--color-c);
+}
+.tempus-dominus-widget .date-container-days div.mmgisTimeUIHasData.active:not(.no-highlight)::after,
+.tempus-dominus-widget .date-container-months div.mmgisTimeUIHasData.active:not(.no-highlight)::after {
+    background: var(--color-f);
+}
+.tempus-dominus-widget .date-container-days div.mmgisTimeUIHasData.old:not(.no-highlight),
+.tempus-dominus-widget .date-container-days div.mmgisTimeUIHasData.new:not(.no-highlight) {
+    opacity: 0.6;
+}
+
+/* Per-layer coverage lanes along the bottom of the timeline (as in mmgis-lite).
+   Solid = the layer really has data; hatched = only an advertised range. */
+#mmgisTimeUITimelineLanes {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+}
+.mmgisTimeUILane {
+    position: absolute;
+    left: 0;
+    right: 0;
+}
+.mmgisTimeUILane > div {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background-color: var(--lane-color, var(--color-h));
+}
+.mmgisTimeUILane > div.approx {
+    opacity: 0.45;
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgba(0, 0, 0, 0.5) 0 2px,
+        transparent 2px 4px
+    );
+}
+
+/* Expanded panel: named lanes, or the Years/Months/Days/Hours rows. The rows are
+   hidden with visibility so their scroll positions keep being measurable. */
+#mmgisTimeUIExpandedContent {
+    position: relative;
+    padding-right: 32px;
+}
+#mmgisTimeUIExpandedContent.coverageView .mmgisTimeUIExpandedRow {
+    visibility: hidden;
+}
+#mmgisTimeUICoverage {
+    display: none;
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 0;
+    right: 32px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-a3) transparent;
+}
+#mmgisTimeUIExpandedContent.coverageView #mmgisTimeUICoverage {
+    display: block;
+}
+.mmgisTimeUICoverageRow {
+    position: relative;
+    height: 15px;
+}
+.mmgisTimeUICoverageRow:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+.mmgisTimeUICoverageName {
+    position: absolute;
+    left: 6px;
+    width: calc(var(--track-left) - 14px);
+    line-height: 15px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: right;
+    color: var(--color-a7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mmgisTimeUICoverageRow .mmgisTimeUILane {
+    left: var(--track-left);
+    right: auto;
+    width: var(--track-width);
+    top: 1px;
+    height: 13px;
+    background: rgba(255, 255, 255, 0.05);
+}
+.mmgisTimeUICoverageRow .mmgisTimeUILane > div {
+    border-radius: 2px;
+}
+.mmgisTimeUICoverageEmpty {
+    padding-top: 50px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-a5);
+}
+/* Coverage lanes on the Year/Month/Day/Hour buttons */
+.mmgisTimeUIItemLanes {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+.mmgisTimeUIItemLanes .mmgisTimeUILane {
+    left: auto;
+    right: auto;
+    flex: none;
+}
+#mmgisTimeUIExpandedViews {
+    position: absolute;
+    top: 5px;
+    right: 4px;
+    width: 24px;
+}
+#mmgisTimeUIExpandedViews > div {
+    height: 24px;
+    line-height: 24px;
+    margin-bottom: 2px;
+    text-align: center;
+    border-radius: 4px;
+    color: var(--color-a5);
+    cursor: pointer;
+}
+#mmgisTimeUIExpandedViews > div:hover {
+    background: var(--color-a1);
+}
+#mmgisTimeUIExpandedViews > div.active {
+    background: var(--color-a2);
+    color: var(--color-h);
+}

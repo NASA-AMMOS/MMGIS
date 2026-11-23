@@ -40,6 +40,19 @@ const MS = {
 
 // Indicator lines that tools can add/remove on the timeline
 // Map<string, {id, groupId, color, time (ms timestamp)}>
+// Coverage lane colors, readable on the dark timeline. Yellow is left out because
+// it is the selected range's color.
+const COVERAGE_LANE_COLORS = [
+    '#56b4e9',
+    '#ef5350',
+    '#2dc8a0',
+    '#e07bb0',
+    '#7aa7ff',
+    '#eceff1',
+    '#b7d968',
+    '#c9a7ff',
+]
+
 const _indicators = new Map()
 
 const TimeUI = {
@@ -69,6 +82,8 @@ const TimeUI = {
     _timelineEndTimestamp: null,
     now: false,
     expanded: false,
+    // 'lanes' (named lanes) or 'dates' (the buttons, the default)
+    _expandedView: null,
     numFrames: 24,
     durationIndex: 0,
     stepWithinBeyondIndex: 0,
@@ -151,6 +166,7 @@ const TimeUI = {
                     `<div id="mmgisTimeUITimelineExtent"></div>`,
                     `<div id="mmgisTimeUITimelinePlayExtent"></div>`,
                     `<div id="mmgisTimeUITimelineHisto"></div>`,
+                    `<div id="mmgisTimeUITimelineLanes"></div>`,
                     `<div id="mmgisTimeUITimelineHover"></div>`,
                     `<div id="mmgisTimeUITimelineInner"></div>`,
                     `<div id='mmgisTimeUITimelineSlider' class='svelteSlider'></div>`,
@@ -200,6 +216,11 @@ const TimeUI = {
                         */
                     `</div>`,
                     `<div id="mmgisTimeUIExpandedContent">`,
+                        `<div id="mmgisTimeUICoverage"></div>`,
+                        `<div id="mmgisTimeUIExpandedViews">`,
+                            `<div data-view="lanes" title="Layer coverage"><i class='mdi mdi-layers-outline mdi-18px'></i></div>`,
+                            `<div data-view="dates" title="Years, months, days and hours"><i class='mdi mdi-calendar-month-outline mdi-18px'></i></div>`,
+                        `</div>`,
                         `<div id="mmgisTimeUIYearsRow" class="mmgisTimeUIExpandedRow">`,
                             `<div id="mmgisTimeUIYearsRange" class="mmgisTimeUIExpandedRowRange"></div>`,
                             `<div id="mmgisTimeUIYearsContainer" class="mmgisTimeUIExpandedRowContainer"></div>`,
@@ -349,6 +370,8 @@ const TimeUI = {
             ) {
                 // Use shorter 1-second debounce for layer toggles
                 TimeUI._refreshHistogramDebounced(1000)
+                // The Start/End calendars mark the on layers' data days
+                TimeUI._repaintPickerAvailability()
             }
         })
 
@@ -726,6 +749,10 @@ const TimeUI = {
         $('#mmgisTimeUITimelineInner').on('mouseleave', function () {
             $('#mmgisTimeUITimelineHover').css('opacity', 0)
         })
+        // The lanes sit under the timeline's pointer surface, so it names them
+        $('#mmgisTimeUITimelineInner').on('mousemove', function (e) {
+            this.title = TimeUI._coverageLaneTipAt(e.clientY)
+        })
 
         // Time
         const options = {
@@ -775,6 +802,10 @@ const TimeUI = {
         TimeUI.endTempus.dates.formatInput = function (date) {
             return moment(date).format(FORMAT)
         }
+
+        // Mark the days that the on layers have data for in both calendars
+        TimeUI._attachPickerAvailability(TimeUI.startTempus)
+        TimeUI._attachPickerAvailability(TimeUI.endTempus)
 
         // Don't let end date be before start date
         TimeUI.startTempus.subscribe(Namespace.events.change, (e) => {
@@ -1238,6 +1269,16 @@ const TimeUI = {
         $('#mmgisTimeUIFollowFeature').on('click', TimeUI.toggleFollowFeature)
         $('#mmgisTimeUIPresent').on('click', TimeUI.toggleTimeNow)
         $('#mmgisTimeUIExpand').on('click', TimeUI.toggleExpanded)
+        $('#mmgisTimeUIExpandedViews > div').on('click', function () {
+            TimeUI._expandedView = this.dataset.view
+            TimeUI._renderCoverageLanes()
+        })
+        // The labelled lanes are placed from the timeline's measured position
+        const coverageTimeline = document.getElementById('mmgisTimeUITimeline')
+        if (coverageTimeline != null && window.ResizeObserver)
+            new ResizeObserver(() => TimeUI._renderCoverageLanes()).observe(
+                coverageTimeline
+            )
 
         TimeUI._remakeTimeSlider()
         TimeUI._setCurrentTime(true, savedEndDate)
@@ -1913,6 +1954,7 @@ const TimeUI = {
 
             // Populate the rows on first expand or refresh
             TimeUI._populateExpandedRows()
+            TimeUI._renderCoverageLanes()
 
             // Realign popovers for expanded height
             TimeUI.alignPopovers()
@@ -1953,6 +1995,7 @@ const TimeUI = {
             // Update highlighted buttons as range if mobile
             TimeUI._updateRangeIndicatorsMobile()
         }
+        TimeUI._paintButtonLanes()
 
         // Convert UTC timestamps to local time using addOffset to match display
         const startTime = moment(TimeUI.removeOffset(TimeUI._startTimestamp))
@@ -2885,6 +2928,427 @@ const TimeUI = {
             rightBtn.css('left', `${rightPos + 19}px`) // +20 to position at right edge of handle
         }
     },
+    // When each layer has data, per calendar year, for the Start/End pickers.
+    // `${layerName}|${YYYY}` -> Set of 'YYYY-MM-DD' and 'YYYY-MM' once known, or
+    // a Promise while it is being asked.
+    _pickerAvailability: new Map(),
+    // The layers whose data days the pickers mark: the same ones the timeline
+    // histogram draws — on, time-enabled, and of a type that can say when its
+    // data exists.
+    _pickerAvailabilityLayers() {
+        return Object.keys(L_.layers.data).filter((name) => {
+            const layerObj = L_.layers.data[name]
+            return (
+                layerObj != null &&
+                layerObj.time?.enabled === true &&
+                L_.layers.on[name] === true &&
+                LayerTypeRegistry.providesTimeHistogram(layerObj.type) &&
+                LayerInterface.hasOp(
+                    LayerTypeRegistry.get(layerObj.type)?.time,
+                    'availability'
+                )
+            )
+        })
+    },
+    // The picker shows UTC wall time in local fields (see addOffset), so a
+    // cell's local year/month/date are the UTC day it stands for.
+    _attachPickerAvailability(tempus) {
+        if (tempus?.display == null) return
+        const pad = (n) => String(n).padStart(2, '0')
+        tempus.display.paint = (unit, date, classes) => {
+            if ((unit !== 'date' && unit !== 'month') || date == null) return
+            const y = date.getFullYear()
+            const monthKey = `${y}-${pad(date.getMonth() + 1)}`
+            const cellKey =
+                unit === 'month' ? monthKey : `${monthKey}-${pad(date.getDate())}`
+            const layers = TimeUI._pickerAvailabilityLayers()
+            for (let i = 0; i < layers.length; i++) {
+                const known = TimeUI._pickerAvailabilityFor(layers[i], y)
+                if (known instanceof Set && known.has(cellKey)) {
+                    classes.push('mmgisTimeUIHasData')
+                    return
+                }
+            }
+        }
+    },
+    // The layer's data days and months in year `y` (UTC), or undefined while
+    // they are being asked; the open pickers repaint when the answer lands.
+    // A whole year is one request, and is a range the STAC time query still
+    // bins by day.
+    _pickerAvailabilityFor(layerName, y) {
+        const key = `${layerName}|${y}`
+        const cached = TimeUI._pickerAvailability.get(key)
+        if (cached instanceof Set) return cached
+        if (cached != null) return undefined
+
+        const layerObj = L_.layers.data[layerName]
+        const timeModule = LayerTypeRegistry.get(layerObj?.type)?.time
+        const ctx = {
+            startTime: new Date(Date.UTC(y, 0, 1)).toISOString(),
+            endTime: new Date(Date.UTC(y + 1, 0, 1)).toISOString(),
+            bins: 366,
+        }
+        const promise = Promise.resolve(
+            LayerInterface.run(timeModule, 'availability', [layerObj, ctx])
+        )
+            .catch((err) => {
+                console.warn(
+                    `ERROR! time.availability failed for the date pickers on ${layerName} /// ${
+                        err?.message || err
+                    }`
+                )
+                return null
+            })
+            .then((times) => {
+                const known = new Set()
+                if (Array.isArray(times))
+                    times.forEach((entry) => {
+                        const at = new Date(entry?.t)
+                        if (isNaN(at.getTime())) return
+                        if (entry.total != null && !(parseInt(entry.total) > 0))
+                            return
+                        const iso = at.toISOString()
+                        known.add(iso.slice(0, 10))
+                        known.add(iso.slice(0, 7))
+                    })
+                TimeUI._pickerAvailability.set(key, known)
+                TimeUI._repaintPickerAvailability()
+            })
+        TimeUI._pickerAvailability.set(key, promise)
+        return undefined
+    },
+    // Redraw the day and month grids of whichever picker is open; coalesced so a burst of
+    // answers (one per layer) repaints once.
+    _repaintPickerAvailability() {
+        if (TimeUI._pickerRepaintQueued) return
+        TimeUI._pickerRepaintQueued = true
+        requestAnimationFrame(() => {
+            TimeUI._pickerRepaintQueued = false
+            ;[TimeUI.startTempus, TimeUI.endTempus].forEach((tempus) => {
+                if (tempus?.display?.isVisible) {
+                    tempus.display._update('date')
+                    tempus.display._update('month')
+                }
+            })
+            TimeUI._renderCoverageLanes()
+        })
+    },
+    // Which years a layer has data in: Set<number> once known, or a Promise.
+    // One coarse question per layer, so the day-resolution per-year queries are
+    // only ever made for years that hold something.
+    _coverageYears: new Map(),
+    _coverageYearsFor(layerName) {
+        const cached = TimeUI._coverageYears.get(layerName)
+        if (cached instanceof Set) return cached
+        if (cached != null) return undefined
+
+        const layerObj = L_.layers.data[layerName]
+        const timeModule = LayerTypeRegistry.get(layerObj?.type)?.time
+        const promise = Promise.resolve(
+            LayerInterface.run(timeModule, 'availability', [
+                layerObj,
+                {
+                    startTime: '1970-01-01T00:00:00.000Z',
+                    endTime: '2070-01-01T00:00:00.000Z',
+                    bins: 100,
+                },
+            ])
+        )
+            .catch((err) => {
+                console.warn(
+                    `ERROR! time.availability failed for the coverage lane of ${layerName} /// ${
+                        err?.message || err
+                    }`
+                )
+                return null
+            })
+            .then((times) => {
+                const years = new Set()
+                if (Array.isArray(times))
+                    times.forEach((entry) => {
+                        const at = new Date(entry?.t)
+                        if (!isNaN(at.getTime())) years.add(at.getUTCFullYear())
+                    })
+                TimeUI._coverageYears.set(layerName, years)
+                TimeUI._repaintPickerAvailability()
+            })
+        TimeUI._coverageYears.set(layerName, promise)
+        return undefined
+    },
+    // A layer's real data days inside [startMs, endMs] as merged [a, b) spans,
+    // plus every day's count; undefined until the answers are in.
+    _coverageSpansFor(layerName, startMs, endMs) {
+        const years = TimeUI._coverageYearsFor(layerName)
+        if (years == null) return undefined
+
+        const days = []
+        let pending = false
+        const y1 = new Date(endMs).getUTCFullYear()
+        for (let y = new Date(startMs).getUTCFullYear(); y <= y1; y++) {
+            if (!years.has(y)) continue
+            const known = TimeUI._pickerAvailabilityFor(layerName, y)
+            if (known == null) pending = true
+            else
+                known.forEach((key) => {
+                    if (key.length === 10) days.push(Date.parse(`${key}T00:00:00Z`))
+                })
+        }
+        if (pending) return undefined
+
+        days.sort((a, b) => a - b)
+        const spans = []
+        days.forEach((day) => {
+            const last = spans[spans.length - 1]
+            if (last != null && last[1] === day) last[1] = day + MS.day
+            else spans.push([day, day + MS.day])
+        })
+        return { spans, days: days.length, hasData: years.size > 0 }
+    },
+    // One lane per on, time-enabled layer along the bottom of the timeline, as
+    // in mmgis-lite: solid where the layer really has data, dim and hatched for
+    // a configured dataStartTime/dataEndTime that is only an advertised range.
+    _renderCoverageLanes() {
+        const container = document.getElementById('mmgisTimeUITimelineLanes')
+        const t0 = TimeUI._timelineStartTimestamp
+        const t1 = TimeUI._timelineEndTimestamp
+        if (container == null || t0 == null || t1 == null || t1 <= t0) return
+
+        const exact = new Set(TimeUI._pickerAvailabilityLayers())
+        const rows = []
+        // Colored by position among all time-enabled layers, so a layer keeps
+        // its color while others are toggled
+        let colorIndex = -1
+        Object.keys(L_.layers.data).forEach((name) => {
+            const layerObj = L_.layers.data[name]
+            if (layerObj?.time?.enabled !== true) return
+            colorIndex++
+            if (L_.layers.on[name] !== true) return
+            const color =
+                COVERAGE_LANE_COLORS[colorIndex % COVERAGE_LANE_COLORS.length]
+            const label = layerObj.display_name || name
+            const coverage = exact.has(name)
+                ? TimeUI._coverageSpansFor(name, t0, t1)
+                : null
+            if (exact.has(name) && coverage === undefined) return
+            if (coverage?.hasData) {
+                rows.push({
+                    name,
+                    label,
+                    color,
+                    spans: coverage.spans,
+                    days: coverage.days,
+                })
+                return
+            }
+            const a = Date.parse(layerObj.time.dataStartTime)
+            const b = Date.parse(layerObj.time.dataEndTime)
+            if (!isNaN(a) && !isNaN(b) && b > a)
+                rows.push({ name, label, color, spans: [[a, b]], approx: true })
+        })
+
+        TimeUI._coverageRows = rows
+        // 4px lanes, thinning so a long layer list stays out of the tick labels
+        const laneHeight = rows.length
+            ? Math.max(1, Math.min(4, 16 / rows.length))
+            : 0
+        TimeUI._coverageLaneHeight = laneHeight
+        container.style.height = `${rows.length * laneHeight}px`
+        const pct = (ms) => ((ms - t0) / (t1 - t0)) * 100
+        const barsFor = (row) =>
+            row.spans
+                .filter(([a, b]) => b > t0 && a < t1)
+                .map(([a, b]) => {
+                    const left = Math.max(0, pct(a))
+                    const width = Math.max(0.15, Math.min(100, pct(b)) - left)
+                    return `<div class="${
+                        row.approx ? 'approx' : ''
+                    }" style="left:${left.toFixed(3)}%;width:${width.toFixed(
+                        3
+                    )}%"></div>`
+                })
+                .join('')
+        container.innerHTML = rows
+            .map(
+                (row, i) =>
+                    `<div class="mmgisTimeUILane" style="--lane-color:${
+                        row.color
+                    };top:${i * laneHeight}px;height:${Math.max(
+                        1,
+                        laneHeight - 1
+                    )}px">${barsFor(row)}</div>`
+            )
+            .join('')
+        TimeUI._paintButtonLanes()
+        TimeUI._renderLabelledLanes(rows, barsFor)
+    },
+    // Draws each layer's lane across the Year, Month, Day and Hour buttons, in
+    // a fixed slot per layer so a lane continues from one button to the next.
+    // Availability is day-resolution, so Hour marks are hatched: the day has
+    // data, but which hours is unknown.
+    _paintButtonLanes() {
+        const rows = TimeUI._coverageRows
+        const yearButtons = $('#mmgisTimeUIYearsContainer [data-year]')
+        if (rows == null || TimeUI._endTimestamp == null || !yearButtons.length)
+            return
+
+        const selected = moment.utc(
+            moment(TimeUI.removeOffset(TimeUI._endTimestamp))
+        )
+        const y = selected.year()
+        const m = selected.month()
+        const d =
+            parseInt(
+                $('#mmgisTimeUIDaysContainer .selected').attr('data-day')
+            ) || selected.date()
+        const firstYear = parseInt(yearButtons.first().attr('data-year'))
+        const lastYear = parseInt(yearButtons.last().attr('data-year'))
+        const from = Date.UTC(Math.min(firstYear, y), 0, 1)
+        const to = Date.UTC(Math.max(lastYear, y) + 1, 0, 1)
+        const layers = rows.map((row) => ({
+            ...row,
+            all: row.approx
+                ? row.spans
+                : TimeUI._coverageSpansFor(row.name, from, to - 1)?.spans || [],
+        }))
+        const laneHeight = Math.max(1, Math.min(3, 6 / (layers.length || 1)))
+
+        const paint = (selector, attr, periodOf, dayLevel) => {
+            $(selector)
+                .find(`[${attr}]`)
+                .each(function () {
+                    this.querySelector('.mmgisTimeUIItemLanes')?.remove()
+                    this.removeAttribute('title')
+                    const [a, b] = periodOf(parseInt(this.getAttribute(attr)))
+                    const hits = []
+                    const strips = layers.map((layer) => {
+                        const overlaps = layer.all.filter(
+                            ([s, e]) => e > a && s < b
+                        )
+                        if (overlaps.length) hits.push(layer.label)
+                        const cls = layer.approx || dayLevel ? 'approx' : ''
+                        const segments = overlaps
+                            .map(([s, e]) => {
+                                const left =
+                                    ((Math.max(s, a) - a) / (b - a)) * 100
+                                const width = Math.max(
+                                    6,
+                                    ((Math.min(e, b) - Math.max(s, a)) /
+                                        (b - a)) *
+                                        100
+                                )
+                                return `<div class="${cls}" style="left:${Math.min(
+                                    left,
+                                    100 - width
+                                ).toFixed(2)}%;width:${width.toFixed(
+                                    2
+                                )}%"></div>`
+                            })
+                            .join('')
+                        return `<div class="mmgisTimeUILane" style="--lane-color:${layer.color};position:relative;height:${laneHeight}px">${segments}</div>`
+                    })
+                    if (!hits.length) return
+                    this.insertAdjacentHTML(
+                        'beforeend',
+                        `<div class="mmgisTimeUIItemLanes">${strips.join(
+                            ''
+                        )}</div>`
+                    )
+                    this.title = `${hits.join('\n')}${
+                        dayLevel ? '\n(data on this day, hour not known)' : ''
+                    }`
+                })
+        }
+        paint('#mmgisTimeUIYearsContainer', 'data-year', (v) => [
+            Date.UTC(v, 0, 1),
+            Date.UTC(v + 1, 0, 1),
+        ])
+        paint('#mmgisTimeUIMonthsContainer', 'data-month', (v) => [
+            Date.UTC(y, v, 1),
+            Date.UTC(y, v + 1, 1),
+        ])
+        paint('#mmgisTimeUIDaysContainer', 'data-day', (v) => [
+            Date.UTC(y, m, v),
+            Date.UTC(y, m, v + 1),
+        ])
+        paint(
+            '#mmgisTimeUIHoursContainer',
+            'data-hour',
+            (v) => [Date.UTC(y, m, d, v), Date.UTC(y, m, d, v + 1)],
+            true
+        )
+    },
+    // The expanded panel's lanes: same bars, tall enough to carry the layer's
+    // name, which sits left of the track so the track stays under the timeline.
+    _renderLabelledLanes(rows, barsFor) {
+        const content = document.getElementById('mmgisTimeUIExpandedContent')
+        const panel = document.getElementById('mmgisTimeUICoverage')
+        const timeline = document.getElementById('mmgisTimeUITimeline')
+        if (content == null || panel == null || timeline == null) return
+
+        const view = TimeUI._expandedView || 'dates'
+        content.classList.toggle('coverageView', view === 'lanes')
+        $('#mmgisTimeUIExpandedViews > div').each(function () {
+            this.classList.toggle('active', this.dataset.view === view)
+        })
+        if (view !== 'lanes' || !content.classList.contains('show')) return
+
+        const contentRect = content.getBoundingClientRect()
+        const timelineRect = timeline.getBoundingClientRect()
+        panel.style.setProperty(
+            '--track-left',
+            `${timelineRect.left - contentRect.left}px`
+        )
+        panel.style.setProperty('--track-width', `${timelineRect.width}px`)
+
+        const esc = (text) =>
+            String(text).replace(
+                /[&<>"]/g,
+                (c) =>
+                    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])
+            )
+        panel.innerHTML = rows.length
+            ? rows
+                  .map(
+                      (row) =>
+                          `<div class="mmgisTimeUICoverageRow" style="--lane-color:${
+                              row.color
+                          }" title="${esc(
+                              TimeUI._coverageTip(row)
+                          )}"><div class="mmgisTimeUICoverageName">${esc(
+                              row.label
+                          )}</div><div class="mmgisTimeUILane">${barsFor(
+                              row
+                          )}</div></div>`
+                  )
+                  .join('')
+            : `<div class="mmgisTimeUICoverageEmpty">Turn on a time-enabled layer to see its coverage</div>`
+    },
+    // The tooltip for whichever lane is under the pointer, or '' off the lanes.
+    _coverageLaneTipAt(clientY) {
+        const container = document.getElementById('mmgisTimeUITimelineLanes')
+        const rows = TimeUI._coverageRows
+        if (container == null || !rows?.length) return ''
+        const y = clientY - container.getBoundingClientRect().top
+        if (y < 0) return ''
+        const row = rows[Math.floor(y / TimeUI._coverageLaneHeight)]
+        return row == null ? '' : TimeUI._coverageTip(row)
+    },
+    _coverageTip(row) {
+        if (row.approx) {
+            const day = (ms) => new Date(ms).toISOString().slice(0, 10)
+            return `${row.label} · ${day(row.spans[0][0])} → ${day(
+                row.spans[0][1]
+            )} · advertised range, exact dates unknown`
+        }
+        if (!row.spans.length) return `${row.label} · no data in this window`
+        const day = (ms) => new Date(ms).toISOString().slice(0, 10)
+        const gaps = row.spans.length - 1
+        return `${row.label} · ${day(row.spans[0][0])} → ${day(
+            row.spans[gaps][1] - MS.day
+        )} · ${row.days} day${row.days === 1 ? '' : 's'}${
+            gaps ? ` · ${gaps} gap${gaps === 1 ? '' : 's'}` : ''
+        }`
+    },
     _refreshHistogramDebounced(delay = 3000) {
         clearTimeout(TimeUI._histogramRefreshTimeout)
         TimeUI._clearHistogram()
@@ -3436,6 +3900,7 @@ const TimeUI = {
 
         TimeUI._remakeTimeSlider(true)
         TimeUI._renderIndicators()
+        TimeUI._renderCoverageLanes()
     },
     _updateBottomUIHeight() {
         if (_getUIStore().getState().isMobile === true) {
