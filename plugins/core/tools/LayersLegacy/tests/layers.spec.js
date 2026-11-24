@@ -30,8 +30,8 @@ test.describe('Layers Tool Panel', () => {
     await layersBtn.click();
     await page.waitForTimeout(500);
 
-    // Verify the panel is visible (#layersTool is the panel container)
-    const panel = page.locator('#layersTool, #toolPanel').first();
+    // Verify the panel is visible (#layersToolLegacy is the panel container)
+    const panel = page.locator('#layersToolLegacy, #toolPanel').first();
     const panelVisible = await panel.isVisible({ timeout: 5000 }).catch(() => false);
     expect(panelVisible).toBeTruthy();
 
@@ -236,7 +236,7 @@ test.describe('Layers Tool Panel', () => {
     await layersBtn.click();
     await page.waitForTimeout(500);
 
-    const panel = page.locator('#layersTool, #toolPanel').first();
+    const panel = page.locator('#layersToolLegacy, #toolPanel').first();
     const panelText = await panel.textContent();
 
     // "Geodatasets - Basic" has a description about PostGIS-backed geodataset
@@ -268,12 +268,12 @@ test.describe('Layers Tool Panel', () => {
     await layersBtn.click();
     await page.waitForTimeout(500);
 
-    const panel = page.locator('#layersTool, #toolPanel').first();
+    const panel = page.locator('#layersToolLegacy, #toolPanel').first();
     const panelText = await panel.textContent();
 
     if (!panelText.includes('Tags and Description')) {
       // May need to expand groups to find it
-      const headers = panel.locator('.layersToolHeader');
+      const headers = panel.locator('.layersToolLegacyHeader');
       const count = await headers.count();
       for (let i = 0; i < count; i++) {
         await headers.nth(i).click().catch(() => {});

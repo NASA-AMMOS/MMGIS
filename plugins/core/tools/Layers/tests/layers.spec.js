@@ -327,11 +327,11 @@ test.describe('LayersTool', () => {
         const search = page.getByRole('textbox', { name: 'Search layers' })
         await search.fill('Points')
 
-        const count = page.locator('#layersTool2 .lt-filterBar span')
+        const count = page.locator('#layersTool .lt-filterBar span')
         await expect(count).toHaveText(/^\d+ of \d+ layers$/)
         const countBeforeCollapse = await count.textContent()
         const matchingRowCount = await page
-            .locator('#layersTool2 .lt-layerRow')
+            .locator('#layersTool .lt-layerRow')
             .count()
         expect(matchingRowCount).toBeGreaterThan(0)
 
@@ -345,13 +345,13 @@ test.describe('LayersTool', () => {
         await expect(vectorHeader).toBeVisible()
         await expect(vectorHeader).toHaveAttribute('aria-expanded', 'false')
         await expect(
-            page.locator('#layersTool2 .lt-layerRow')
+            page.locator('#layersTool .lt-layerRow')
         ).toHaveCount(0)
 
         await page.getByRole('button', { name: 'Expand all' }).click()
         await expect(vectorHeader).toHaveAttribute('aria-expanded', 'true')
         await expect(
-            page.locator('#layersTool2 .lt-layerRow')
+            page.locator('#layersTool .lt-layerRow')
         ).toHaveCount(matchingRowCount)
         await expect(
             page
@@ -917,7 +917,7 @@ test.describe('LayersTool', () => {
         await expect(filter.locator('#helpModal_LayersTool-Filtering')).toBeVisible()
         const filterAlignment = await page.evaluate(() => {
             const root = document.querySelector(
-                '#layersTool2 .lt-typeSettingsFilter'
+                '#layersTool .lt-typeSettingsFilter'
             )
             const right = (selector) => {
                 const element = root.querySelector(selector)
@@ -2497,7 +2497,7 @@ test.describe('LayersTool', () => {
             let result
             try {
                 result = await page.evaluate(async () => {
-                    const root = document.querySelector('#layersTool2')
+                    const root = document.querySelector('#layersTool')
                     const results = await window.axe.run(root)
                     const violations = results.violations
                         .filter((violation) =>

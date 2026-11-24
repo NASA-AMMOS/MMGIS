@@ -97,7 +97,7 @@ const LayersTool = {
         if (!container) return
         container.innerHTML = ''
         mountNode = document.createElement('div')
-        mountNode.id = 'layersTool2'
+        mountNode.id = 'layersTool'
         mountNode.style.width = '100%'
         mountNode.style.height = '100%'
         mountNode.style.display = 'flex'

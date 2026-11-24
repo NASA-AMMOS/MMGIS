@@ -67,7 +67,7 @@ import {
 } from '@basics/Layers_/capture/LayerCapturer'
 import './LayersToolLegacy.css'
 
-const helpKey = 'LayersTool'
+const helpKey = 'LayersToolLegacy'
 
 // Neutral fallback when a layer type declares no manifest color.
 const DEFAULT_LAYER_TYPE_COLOR = 'var(--color-a4)'
@@ -80,7 +80,7 @@ function getLayerTypeColor(type) {
 
 /**
  * Generate the tool markup dynamically based on available layer types
- * @returns {string} HTML markup for the LayersTool
+ * @returns {string} HTML markup for the LayersToolLegacy
  */
 function generateMarkup() {
     const availableTypes = getAvailableLayerTypes()
@@ -137,8 +137,8 @@ function generateMarkup() {
 
     // prettier-ignore
     return [
-        "<div id='layersTool'>",
-            "<div id='layersToolHeader' class='mmgisToolHeader'>",
+        "<div id='layersToolLegacy'>",
+            "<div id='layersToolLegacyHeader' class='mmgisToolHeader'>",
                 "<div id='filterLayers'>",
                     "<div class='left'>",
                         '<div class="mmgisToolTitle">Layers</div>',
@@ -157,8 +157,8 @@ function generateMarkup() {
                     '<div id="collapse"><i class="mdi mdi-arrow-collapse-vertical mdi-18px"></i></div>',
                 "</div>",
             "</div>",
-            "<div id='layersToolContent'>",
-                "<ul id='layersToolList'>",
+            "<div id='layersToolLegacyContent'>",
+                "<ul id='layersToolLegacyList'>",
                 "</ul>",
             "</div>",
         "</div>",
@@ -294,7 +294,7 @@ var LayersToolLegacy = {
         var wasOn = [false]
         var currentHeaderIdx = 0
 
-        $('#layersToolList > li').each(function () {
+        $('#layersToolLegacyList > li').each(function () {
             if (done) return
             var t = $(this)
             if (t.attr('id') == elmIndex) {
@@ -306,7 +306,7 @@ var LayersToolLegacy = {
                 t.find('.headerChevron').toggleClass('mdi-chevron-right')
                 t.find('.headerChevron').toggleClass('mdi-chevron-down')
 
-                let _event = new CustomEvent('layersToolHeaderStateChange', {
+                let _event = new CustomEvent('layersToolLegacyHeaderStateChange', {
                     detail: {
                         header_id: elmIndex.split('_')[1],
                         onState: wasOn[currentHeaderIdx] ? false : true,
@@ -722,7 +722,7 @@ var LayersToolLegacy = {
                 if (
                     (node[i].expanded && node[i].expanded === true) ||
                     (node[i].expanded === undefined &&
-                        $(`#layersToolList > li#header_${parent.name}`).attr(
+                        $(`#layersToolLegacyList > li#header_${parent.name}`).attr(
                             'childrenon'
                         ) === true)
                 ) {
@@ -752,7 +752,7 @@ function interfaceWithMMGIS(fromInit) {
     //Clear it
     toolsContainer.empty()
     //Add a semantic container
-    const tools = $('<div>').attr('id', 'layersTool').css({
+    const tools = $('<div>').attr('id', 'layersToolLegacy').css({
         display: 'flex',
         'flex-flow': 'column',
         overflow: 'hidden',
@@ -798,33 +798,33 @@ function interfaceWithMMGIS(fromInit) {
                         /*
                         '<ul>',
                             L_.Coordinates.mainType != 'll' ? ['<li>',
-                                '<div class="layersToolExportGeoJSON">',
+                                '<div class="layersToolLegacyExportGeoJSON">',
                                     `<div>Export GeoJSON (${L_.Coordinates.getMainTypeName()})</div>`,
                                 '</div>',
                             '</li>'].join('\n') : '',
                             '<li>',
-                                '<div class="layersToolExportSourceGeoJSON">',
+                                '<div class="layersToolLegacyExportSourceGeoJSON">',
                                     `<div>Export GeoJSON ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</div>`,
                                 '</div>',
                             '</li>',
                             L_.Coordinates.mainType != 'll' ? ['<li>',
-                                '<div class="layersToolExportKML">',
+                                '<div class="layersToolLegacyExportKML">',
                                     `<div>Export KML (${L_.Coordinates.getMainTypeName()})</div>`,
                                 '</div>',
                             '</li>'].join('\n') : '',
                             '<li>',
-                                '<div class="layersToolExportSourceKML">',
+                                '<div class="layersToolLegacyExportSourceKML">',
                                     `<div>Export KML ${L_.Coordinates.mainType != 'll' ? '(lonlat)' : '' }</div>`,
                                 '</div>',
                             '</li>',
                         '</ul>',
                         */
                         '<ul>',
-                            `<li class="layersToolExport">`,
+                            `<li class="layersToolLegacyExport">`,
                                 `<div><i class='mdi mdi-download mdi-14px'></i><div>Export</div></div>`,
                                 '<div>',
                                     '<div>Format</div>',
-                                    '<select class="layersToolExportFormat dropdown">',
+                                    '<select class="layersToolLegacyExportFormat dropdown">',
                                         '<option value="geojson" selected>GeoJSON</option>',
                                         '<option value="kml">KML</option>',
                                         '<option value="shp">SHP</option>',
@@ -832,7 +832,7 @@ function interfaceWithMMGIS(fromInit) {
                                 '</div>',
                                 node[i]?.variables?.dynamicExtent === true ? ['<div>',
                                     '<div>Extent</div>',
-                                    '<select class="layersToolExportExtent dropdown">',
+                                    '<select class="layersToolLegacyExportExtent dropdown">',
                                         '<option value="local" selected>Current Extent</option>',
                                         (node[i]?.variables?.getFeaturePropertiesOnClick === true && node[i]?._lastGeodatasetRequestBody != null) ? '<option value="raw-extent" selected>Current Extent w/ Props</option>' : null,
                                         '<option value="raw">Entire File</option>',
@@ -841,12 +841,12 @@ function interfaceWithMMGIS(fromInit) {
                                 L_.Coordinates.mainType != 'll' ? [
                                 '<div>',
                                     '<div>Coords</div>',
-                                    '<select class="layersToolExportCoords dropdown">',
+                                    '<select class="layersToolLegacyExportCoords dropdown">',
                                         '<option value="source" selected>Source Coordinates</option>',
                                         `<option value="${L_.Coordinates.mainType}">Converted (${L_.Coordinates.mainType})</option>`,
                                     '</select>',
                                 '</div>'] .join('\n') : '',
-                                '<div><div class="layersToolExportGo mmgisButton5">Export</div></div>',
+                                '<div><div class="layersToolLegacyExportGo mmgisButton5">Export</div></div>',
                             `</li>`,
                         '</ul>',
                     ].join('\n')
@@ -860,7 +860,7 @@ function interfaceWithMMGIS(fromInit) {
                             layerExport = [
                                 '<ul>',
                                 '<li>',
-                                '<div class="layersToolExportSourceGeoJSON">',
+                                '<div class="layersToolLegacyExportSourceGeoJSON">',
                                 `<div><a href="` +
                                     node[i].variables.downloadURL +
                                     `" target="_blank">Download Data</a></div>`,
@@ -882,7 +882,7 @@ function interfaceWithMMGIS(fromInit) {
                     layerExport = [
                         '<ul>',
                         '<li>',
-                        '<div class="layersToolExportSourceGeoJSON">',
+                        '<div class="layersToolLegacyExportSourceGeoJSON">',
                         `<div><a href="` +
                             videoDownloadUrl +
                             `" target="_blank">Download Video</a></div>`,
@@ -1593,11 +1593,11 @@ function interfaceWithMMGIS(fromInit) {
             switch (node[i].type) {
                 case 'header':
                     // prettier-ignore
-                    $('#layersToolList').append(
+                    $('#layersToolLegacyList').append(
                         [
-                            `<li class="layersToolHeader" id="header_${escapedLayerName}" name="${escapedLayerName}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
+                            `<li class="layersToolLegacyHeader" id="header_${escapedLayerName}" name="${escapedLayerName}" type="${node[i].type}" depth="${depth}" childrenon="true" style="margin-bottom: 1px;">`,
                                 `<div class="title" id="headerstart" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
-                                    '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
+                                    '<div class="layersToolLegacyColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
                                     '<div>',
@@ -1609,7 +1609,7 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div class="layerCount">',
                                         (node[i].sublayers ? node[i].sublayers.length : '0'),
                                     '</div>',
-                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
+                                    '<div title="Information" class="LayersToolLegacyInfo" id="layerinfo' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
                                     `<div class="headerPowerState ${'on'}" title="Toggle all on inner-layers on or off.">`,
@@ -1622,11 +1622,11 @@ function interfaceWithMMGIS(fromInit) {
                     break
                 default:
                     // prettier-ignore
-                    $('#layersToolList').append(
+                    $('#layersToolLegacyList').append(
                         [
-                            '<li id="LayersTool' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layers.layer[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + escapedLayerName + '" parent="' + escapedParentName + '"  style="margin-bottom: 1px;">',
+                            '<li id="LayersToolLegacy' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" class="' + ((!quasiLayers.includes(node[i].type) && L_.layers.layer[node[i].name] == null) ? 'layernotfound' : '') + '" type="' + node[i].type + '" on="true" depth="' + depth + '" name="' + escapedLayerName + '" parent="' + escapedParentName + '"  style="margin-bottom: 1px;">',
                                 `<div class="title" id="layerstart${F_.getSafeName(node[i].name)}" style="border-left: ${depth * DEPTH_SIZE}px solid ${INDENT_COLOR};">`,
-                                    '<div class="layersToolColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
+                                    '<div class="layersToolLegacyColor ' + node[i].type + '" style="--lt-color:' + getLayerTypeColor(node[i].type) + ';">',
                                         '<i class="mdi mdi-drag-vertical mdi-12px"></i>',
                                     '</div>',
                                     '<div class="checkboxcont">',
@@ -1652,7 +1652,7 @@ function interfaceWithMMGIS(fromInit) {
                                     '<div title="Locate" class="locate" id="layerlocate' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-crosshairs-gps mdi-18px" name="layerlocate"></i>',
                                     '</div>',
-                                    '<div title="Information" class="LayersToolInfo" id="layerinfo' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
+                                    '<div title="Information" class="LayersToolLegacyInfo" id="layerinfo' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
                                         '<i class="mdi mdi-information-outline mdi-18px" name="layerinfo"></i>',
                                     '</div>',
                                     (timeDisplay != '') ? ['<div class="time" id="timesettings' + F_.escapeHtml(F_.getSafeName(node[i].name)) + '" stype="' + node[i].type + '" layername="' + escapedLayerName + '">',
@@ -1728,7 +1728,7 @@ function interfaceWithMMGIS(fromInit) {
     async function toggleLayer(checkbox) {
         if (checkbox.hasClass('loading')) {
             console.warn(
-                'LayersTool - Cannot toggle layer that is still loading.'
+                'LayersToolLegacy - Cannot toggle layer that is still loading.'
             )
             return
         }
@@ -1767,14 +1767,14 @@ function interfaceWithMMGIS(fromInit) {
                     // own, drawn before the layer is on; neither is the one
                     // being looked for - the Composite Layers heading is.
                     !$(
-                        `#LayersTool${F_.getSafeName(
+                        `#LayersToolLegacy${F_.getSafeName(
                             layerName
                         )} .sublayerHeading:not(.dynamicStyleHeading):not(.statsRow)`
                     ).length
                 ) {
                     // refresh settings
                     const mainSettings = $(
-                        `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
+                        `#LayersToolLegacy${F_.getSafeName(layerName)} > .settingsmainvector`
                     )
                     if (mainSettings) {
                         mainSettings.html(getVectorLayerSettings(layerName))
@@ -1800,14 +1800,14 @@ function interfaceWithMMGIS(fromInit) {
     }
     //Add event functions and whatnot
     //Makes layers clickable on and off
-    $('#layersToolList > li > .title .checkbox').on('click', function () {
+    $('#layersToolLegacyList > li > .title .checkbox').on('click', function () {
         // First, find all parents header (if any), and set power state to on again
         const elm = $(this).parent().parent().parent()
-        const elmIdx = $('#layersToolList > li').index(elm)
+        const elmIdx = $('#layersToolLegacyList > li').index(elm)
         const elmDepth = parseInt(elm.attr('depth'))
         // We need exactly one depth for each depth above elmDepth to 0
         const depthsChecklist = {}
-        const listLis = $('#layersToolList').children('li').get()
+        const listLis = $('#layersToolLegacyList').children('li').get()
         $(listLis.reverse()).each(function (idx, item) {
             idx = listLis.length - 1 - idx
             if (idx < elmIdx && $(item).attr('type') === 'header') {
@@ -1834,14 +1834,14 @@ function interfaceWithMMGIS(fromInit) {
     Object.keys(L_.layers.refreshFailed).forEach((layerName) => {
         if (L_.layers.refreshFailed[layerName]) {
             const safeName = F_.getSafeName(layerName)
-            const layerElement = $(`#LayersTool${safeName}`)
+            const layerElement = $(`#LayersToolLegacy${safeName}`)
             const warningIcon = layerElement.find('.refreshWarning')
             warningIcon.css('display', 'flex')
         }
     })
 
     // Collapse header
-    $('.layersToolHeader').on('click', function () {
+    $('.layersToolLegacyHeader').on('click', function () {
         LayersToolLegacy.toggleHeader($(this).attr('id'))
     })
     // Toggle between all-off and previous-on states
@@ -1852,7 +1852,7 @@ function interfaceWithMMGIS(fromInit) {
         const wasOn = $(this).hasClass('on')
         const headElm = $(this).parent().parent()
         const name = headElm.attr('name')
-        const elmIdx = $('#layersToolList > li').index(headElm)
+        const elmIdx = $('#layersToolLegacyList > li').index(headElm)
         const elmDepth = parseInt(headElm.attr('depth'))
 
         if (wasOn) {
@@ -1861,7 +1861,7 @@ function interfaceWithMMGIS(fromInit) {
             LayersToolLegacy._header_states[name] = []
             // Iterate every layer below
             let stillUnder = true
-            $('#layersToolList')
+            $('#layersToolLegacyList')
                 .children('li')
                 .each(function (idx, item) {
                     if (idx > elmIdx) {
@@ -1891,7 +1891,7 @@ function interfaceWithMMGIS(fromInit) {
                 LayersToolLegacy._header_states[name].forEach((layerName) => {
                     toggleLayer(
                         $(
-                            `#LayersTool${F_.getSafeName(layerName)} .title .checkbox`
+                            `#LayersToolLegacy${F_.getSafeName(layerName)} .title .checkbox`
                         )
                     )
                 })
@@ -2025,7 +2025,7 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     // Locates/zooms to fill extent of layer
-    $('#layersTool .locate').on('click', function (e) {
+    $('#layersToolLegacy .locate').on('click', function (e) {
         e.stopPropagation()
         const layerName = $(this).attr('layername')
         const data = L_.layers.data[layerName]
@@ -2060,7 +2060,7 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     // Set global time to layer's data extent
-    $('#layersTool').on('click', '.setGlobalTimeFromExtent', function (e) {
+    $('#layersToolLegacy').on('click', '.setGlobalTimeFromExtent', function (e) {
         e.stopPropagation()
         const layerName = $(this).attr('data-layername')
         const layerUUID = L_.asLayerUUID(layerName)
@@ -2086,7 +2086,7 @@ function interfaceWithMMGIS(fromInit) {
     })
 
     //Enables the time dialogue box
-    $('.LayersToolInfo').on('click', function (e) {
+    $('.LayersToolLegacyInfo').on('click', function (e) {
         e.stopPropagation()
         const layerName = $(this).attr('layername')
         LayerInfoModal.open(layerName)
@@ -2100,20 +2100,20 @@ function interfaceWithMMGIS(fromInit) {
         if (!wasOn) li.addClass('time_on')
     })
 
-    $('.layersToolExportGo').on('click', function () {
+    $('.layersToolLegacyExportGo').on('click', function () {
         const li = $(this).parent().parent().parent().parent().parent()
 
         const layerUUID = li.attr('name')
         const layerData = L_.layers.data[layerUUID] || {}
         const layerDisplayName = layerData.display_name || layerUUID
 
-        let format = li.find('.layersToolExportFormat')
+        let format = li.find('.layersToolLegacyExportFormat')
         if (format) format = format.val() || 'geojson'
         else format = 'geojson'
-        let extent = li.find('.layersToolExportExtent')
+        let extent = li.find('.layersToolLegacyExportExtent')
         if (extent) extent = extent.val() || 'local'
         else extent = 'local'
-        let coords = li.find('.layersToolExportCoords')
+        let coords = li.find('.layersToolLegacyExportCoords')
         if (coords) coords = coords.val() || 'source'
         else coords = 'source'
 
@@ -2204,7 +2204,7 @@ function interfaceWithMMGIS(fromInit) {
                         console.warn(
                             'ERROR: ' +
                                 data.status +
-                                ' in LayersTool geodatasets_get:' +
+                                ' in LayersToolLegacy geodatasets_get:' +
                                 layerDisplayName +
                                 ' /// ' +
                                 data.message
@@ -2278,7 +2278,7 @@ function interfaceWithMMGIS(fromInit) {
                     console.warn(
                         'ERROR: ' +
                             data.status +
-                            ' in LayersTool geodatasets_get:' +
+                            ' in LayersToolLegacy geodatasets_get:' +
                             layerDisplayName +
                             ' /// ' +
                             data.message
@@ -2837,7 +2837,7 @@ function interfaceWithMMGIS(fromInit) {
         markAll()
         function getThats() {
             let thats = []
-            $('#layersToolList > li').each(function () {
+            $('#layersToolLegacyList > li').each(function () {
                 if ($(this).attr('type') != 'header') {
                     if (filterString == null || filterString == '') {
                         $(this).css('height', 'auto')
@@ -2917,7 +2917,7 @@ function interfaceWithMMGIS(fromInit) {
         $('#searchLayers > input').val('').trigger('input')
     })
     $('#searchLayers > #expand').on('click', function () {
-        $('#layersToolList > li').each(function () {
+        $('#layersToolLegacyList > li').each(function () {
             if (
                 $(this).attr('type') == 'header' &&
                 $(this).attr('childrenon') == 'false'
@@ -2930,7 +2930,7 @@ function interfaceWithMMGIS(fromInit) {
     $('#searchLayers > #collapse').on('click', function () {
         // Collapse deepest first
         for (let depth = LayersToolLegacy._maxDepth; depth >= 0; depth--) {
-            $(`#layersToolList > li[type="header"][depth="${depth}"]`).each(
+            $(`#layersToolLegacyList > li[type="header"][depth="${depth}"]`).each(
                 function () {
                     if (
                         $(this).attr('type') == 'header' &&
@@ -2969,7 +2969,7 @@ function interfaceWithMMGIS(fromInit) {
             visible: $('#filterLayers .right > .visible').hasClass('on'),
             filtered: $('#filterLayers .right > .filtered').hasClass('on'),
         }
-        $('#layersToolList > li').each(function () {
+        $('#layersToolLegacyList > li').each(function () {
             if ($(this).attr('type') !== 'header') {
                 if (type === 'visible') {
                     var layerOn = $(this).find('.checkbox').hasClass('on')
@@ -3013,7 +3013,7 @@ function interfaceWithMMGIS(fromInit) {
         LayersToolLegacy._drag_lisToMoveUnderHeader = []
         if (type === 'header') {
             let stillUnder = true
-            $('#layersToolList')
+            $('#layersToolLegacyList')
                 .children('li')
                 .each(function (idx, item) {
                     if (idx > oldIdx) {
@@ -3041,7 +3041,7 @@ function interfaceWithMMGIS(fromInit) {
             if (e.downward === true) upIdx++
 
             while (upIdx >= 0) {
-                aboveElm = $(`#layersToolList > li:nth-child(${upIdx})`)
+                aboveElm = $(`#layersToolLegacyList > li:nth-child(${upIdx})`)
                 if (aboveElm.attr('on') !== 'false') upIdx = 0
                 upIdx--
             }
@@ -3090,9 +3090,9 @@ function interfaceWithMMGIS(fromInit) {
         let keepGoing = true
         let nextElm
         let afterElm
-        const totalLayers = $(`#layersToolList > li`).length
+        const totalLayers = $(`#layersToolLegacyList > li`).length
 
-        nextElm = $(`#layersToolList > li:nth-child(${e.newIndex})`)
+        nextElm = $(`#layersToolLegacyList > li:nth-child(${e.newIndex})`)
         if (
             nextElm.attr('type') === 'header' &&
             nextElm.attr('childrenon') === 'false'
@@ -3100,14 +3100,14 @@ function interfaceWithMMGIS(fromInit) {
             downIdx++
         }
         while (e.newIndex > 0 && keepGoing) {
-            nextElm = $(`#layersToolList > li:nth-child(${downIdx})`)
+            nextElm = $(`#layersToolLegacyList > li:nth-child(${downIdx})`)
             if (nextElm.length > 0) {
                 if (
                     downIdx >= totalLayers ||
                     parseInt(nextElm.css('height')) > 0
                 ) {
                     afterElm = $(
-                        `#layersToolList > li:nth-child(${
+                        `#layersToolLegacyList > li:nth-child(${
                             downIdx + (downIdx >= totalLayers ? 0 : -1)
                         })`
                     )
@@ -3121,7 +3121,7 @@ function interfaceWithMMGIS(fromInit) {
         }
         if (afterElm) {
             $(e.item).insertAfter(afterElm)
-        } else $(`#layersToolList`).prepend($(e.item))
+        } else $(`#layersToolLegacyList`).prepend($(e.item))
 
         if (type === 'header') {
             // If a header was moved, now move everything under it along with it
@@ -3153,7 +3153,7 @@ function interfaceWithMMGIS(fromInit) {
         if (e.ignoreFinalOrder !== true) {
             // Set reorder in data model
             const newLayersOrdered = []
-            $('#layersToolList')
+            $('#layersToolLegacyList')
                 .children('li')
                 .each(function () {
                     if (
@@ -3171,7 +3171,7 @@ function interfaceWithMMGIS(fromInit) {
         const newIdx = hist[1]
         const afterHeader = hist[2]
         const upward = oldIdx > newIdx
-        const item = $(`#layersToolList > li:nth-child(${oldIdx + 1})`)
+        const item = $(`#layersToolLegacyList > li:nth-child(${oldIdx + 1})`)
         sortOnStart({ item: item, oldIndex: oldIdx })
         sortOnChange({
             item: item,
@@ -3190,11 +3190,11 @@ function interfaceWithMMGIS(fromInit) {
         })
     })
 
-    const listToSort = document.getElementById('layersToolList')
+    const listToSort = document.getElementById('layersToolLegacyList')
     Sortable.create(listToSort, {
         animation: 150,
         easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
-        handle: '.layersToolColor',
+        handle: '.layersToolLegacyColor',
         onStart: sortOnStart,
         onChange: sortOnChange,
         onEnd: sortOnEnd,
@@ -3496,7 +3496,7 @@ function interfaceWithMMGIS(fromInit) {
         const layerObj = L_.layers.data[uuid]
         const rules = getViewedRules(layerObj)
         const mounts = $(
-            `#LayersTool${F_.getSafeName(
+            `#LayersToolLegacy${F_.getSafeName(
                 layerName
             )} > .settingsmainvector .dynamicStyleRampMount`
         )
@@ -3541,7 +3541,7 @@ function interfaceWithMMGIS(fromInit) {
      * fresh elements, so any tippy on the old ones went with them.
      */
     function mountDynamicStyleTips(layerName) {
-        const settings = `#LayersTool${F_.getSafeName(
+        const settings = `#LayersToolLegacy${F_.getSafeName(
             layerName
         )} > .settingsmainvector`
         tippy(`${settings} .dynamicStyleStatInfo`, {
@@ -3588,7 +3588,7 @@ function interfaceWithMMGIS(fromInit) {
     function refreshDynamicStyleSettings(layerName) {
         const uuid = L_.asLayerUUID(layerName)
         const settings = $(
-            `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
+            `#LayersToolLegacy${F_.getSafeName(layerName)} > .settingsmainvector`
         )
         const opacity = settings.find('.transparencyslider').parent()
         if (opacity.length === 0) return
@@ -3613,7 +3613,7 @@ function interfaceWithMMGIS(fromInit) {
      */
     function refreshStatsSettings(layerName) {
         const settings = $(
-            `#LayersTool${F_.getSafeName(layerName)} > .settingsmainvector`
+            `#LayersToolLegacy${F_.getSafeName(layerName)} > .settingsmainvector`
         )
         const rows = settings.find('.statsRow')
         const markup = getStatsSettings(layerName)
@@ -3762,8 +3762,8 @@ function interfaceWithMMGIS(fromInit) {
                 .text(parseInt(texttransp * 100) + '%')
         })
 
-        $('#layersToolList > li > .settings .sublayer .dropdown').off('change')
-        $('#layersToolList > li > .settings .sublayer .dropdown').on(
+        $('#layersToolLegacyList > li > .settings .sublayer .dropdown').off('change')
+        $('#layersToolLegacyList > li > .settings .sublayer .dropdown').on(
             'change',
             function () {
                 const layerName = $(this).attr('layername')
@@ -3870,10 +3870,10 @@ function interfaceWithMMGIS(fromInit) {
         })
 
         $(
-            '#layersToolList > li > .settings .sublayer .sublayeropacityslider'
+            '#layersToolLegacyList > li > .settings .sublayer .sublayeropacityslider'
         ).off('input')
         $(
-            '#layersToolList > li > .settings .sublayer .sublayeropacityslider'
+            '#layersToolLegacyList > li > .settings .sublayer .sublayeropacityslider'
         ).on('input', function () {
             const opacity = parseFloat($(this).val())
             const layerName = $(this).attr('layername')
@@ -3884,10 +3884,10 @@ function interfaceWithMMGIS(fromInit) {
         // Only a sublayer's own box: a dynamic style rule's switch is a
         // checkbox in a .sublayer row too, and has its own handler.
         $(
-            '#layersToolList > li > .settings .sublayer .checkbox[sublayername]'
+            '#layersToolLegacyList > li > .settings .sublayer .checkbox[sublayername]'
         ).off('click')
         $(
-            '#layersToolList > li > .settings .sublayer .checkbox[sublayername]'
+            '#layersToolLegacyList > li > .settings .sublayer .checkbox[sublayername]'
         ).on('click', async function () {
             const layerName = $(this).attr('layername')
             const sublayerName = $(this).attr('sublayername')
@@ -3909,7 +3909,7 @@ function interfaceWithMMGIS(fromInit) {
     const handleRefreshStatusChange = (event) => {
         const { layerName, failed } = event.detail
         const safeName = F_.getSafeName(layerName)
-        const layerElement = $(`#LayersTool${safeName}`)
+        const layerElement = $(`#LayersToolLegacy${safeName}`)
         const warningIcon = layerElement.find('.refreshWarning')
 
         if (failed) {
@@ -3932,7 +3932,7 @@ function interfaceWithMMGIS(fromInit) {
         const uuid = L_.asLayerUUID(restyled)
         // The panel is keyed by the name in the layer tree, which is the
         // display name when layers are addressed by uuid.
-        $('#layersToolList li[name]').each(function () {
+        $('#layersToolLegacyList li[name]').each(function () {
             const name = $(this).attr('name')
             if (L_.asLayerUUID(name) === uuid) refreshStatsSettings(name)
         })
@@ -3942,7 +3942,7 @@ function interfaceWithMMGIS(fromInit) {
     // Sync checkbox UI when a layer is toggled externally (e.g., by Search)
     L_.subscribeOnLayerToggle('LayersToolLegacy', function (layerName, isNowOn) {
         const safeName = F_.getSafeName(layerName)
-        const checkbox = $(`#LayersTool${safeName} .title .checkbox`)
+        const checkbox = $(`#LayersToolLegacy${safeName} .title .checkbox`)
         if (checkbox.length === 0) return
         if (isNowOn && !checkbox.hasClass('on')) {
             checkbox.removeClass('off').addClass('on')

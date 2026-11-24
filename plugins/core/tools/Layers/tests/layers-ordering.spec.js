@@ -848,7 +848,7 @@ async function dragPageState(page, tool) {
             flat.map((row) => [row.key, row.displayName])
         )
         const renderedRows = Array.from(
-            document.querySelectorAll('#layersTool2 [role="treeitem"]')
+            document.querySelectorAll('#layersTool [role="treeitem"]')
         )
         return {
             flat: flat.map(({ name, type, depth }) => ({
@@ -1238,7 +1238,7 @@ test.describe('LayersTool flat ordering parity', () => {
             order: window.L_._layersOrdered.slice(),
             history: window.ToolController_.getTool('LayersTool').orderingHistory,
             dom: Array.from(
-                document.querySelectorAll('#layersTool2 [role="treeitem"]')
+                document.querySelectorAll('#layersTool [role="treeitem"]')
             ).map((row) => ({
                 id:
                     row.querySelector('[data-row-id]')?.getAttribute(
@@ -2028,7 +2028,7 @@ test.describe('LayersTool flat ordering parity', () => {
                     button.textContent.trim() === 'Globe' &&
                     button.getAttribute('aria-checked') === 'true'
             ),
-            toolOpen: Boolean(document.getElementById('layersTool2')),
+            toolOpen: Boolean(document.getElementById('layersTool')),
         }))
 
         expect(pageErrors).toEqual([])

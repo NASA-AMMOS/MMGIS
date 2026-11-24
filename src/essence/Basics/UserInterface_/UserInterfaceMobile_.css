@@ -230,22 +230,22 @@
 }
 
 /* Overwrite LayersTool CSS */
-#layersTool .layerName {
+#layersToolLegacy .layerName {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-#layersTool .reload,
-#layersTool .layerDownload,
-#layersTool .gears,
-#layersTool .locate,
-#layersTool .LayersToolInfo {
+#layersToolLegacy .reload,
+#layersToolLegacy .layerDownload,
+#layersToolLegacy .gears,
+#layersToolLegacy .locate,
+#layersToolLegacy .LayersToolInfo {
     color: #ccc;
 }
-#layersTool .reload:hover,
-#layersTool .layerDownload:hover,
-#layersTool .gears:hover,
-#layersTool .locate:hover,
-#layersTool .LayersToolInfo:hover {
+#layersToolLegacy .reload:hover,
+#layersToolLegacy .layerDownload:hover,
+#layersToolLegacy .gears:hover,
+#layersToolLegacy .locate:hover,
+#layersToolLegacy .LayersToolInfo:hover {
     background: transparent;
 }
 .locate {
