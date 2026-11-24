@@ -319,17 +319,13 @@ export function createPanelView(deps) {
                 }
             })
             // The panel floats over the map: keep its clicks, wheel and keys
-            // off it.
-            ;[
-                'click',
-                'dblclick',
-                'mousedown',
-                'mouseup',
-                'wheel',
-                'contextmenu',
-                'keydown',
-            ].forEach((ev) =>
-                root.addEventListener(ev, (e) => e.stopPropagation())
+            // off it. mousedown/mouseup are left to bubble: the panel isn't
+            // inside the Leaflet map, and the app listens for them on the
+            // document - to close menus and dropdowns on an outside press
+            // (Search) and to end drags on any release (tool-panel resize,
+            // sliders) - which must not stop working over this panel.
+            ;['click', 'dblclick', 'wheel', 'contextmenu', 'keydown'].forEach(
+                (ev) => root.addEventListener(ev, (e) => e.stopPropagation())
             )
             deps.getParent().appendChild(root)
             if (options.focus) view.focus()

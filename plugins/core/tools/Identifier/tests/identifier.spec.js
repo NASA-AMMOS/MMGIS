@@ -827,6 +827,79 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     expect(errors).toEqual([]);
   });
 
+  test('mobile width (390x844): the focused button is fully in view and the readings fit the panel', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const uuid = await openApp(page);
+    // an all-gap window, so the table is the whole answer
+    await page.evaluate((u) => window.mmgisAPI.setLayerTime(u, '2024-01-30T20:47:00Z', '2024-01-30T20:47:10Z'), uuid);
+    await page.evaluate(() => document.activeElement?.blur());
+    let reached = false;
+    for (let i = 0; i < 150 && !reached; i++) {
+      await page.keyboard.press('Tab');
+      reached = await page.evaluate(() => document.activeElement?.id === 'identifierTimeSeriesCentreButton');
+    }
+    expect(reached).toBe(true);
+    const where = (sel) =>
+      page.evaluate((s) => {
+        const el = document.querySelector(s);
+        const r = el.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return {
+          inView: r.width > 0 && r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth + 0.5 && r.bottom <= window.innerHeight + 0.5,
+          topmost: at === el || el.contains(at),
+        };
+      }, sel);
+    // Tab passed over the over-wide top bar, which scrolls the app sideways at
+    // this width; the button still comes fully into view, uncovered
+    expect(await where('#identifierTimeSeriesCentreButton')).toEqual({ inView: true, topmost: true });
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    const section = page.locator(`#identifierTimeSeriesPanel [data-layer="${uuid}"]`);
+    await expect(section.locator('.identifierTimeSeriesPanel_status')).toHaveText('Every acquisition here is nodata.', { timeout: 20000 });
+    const cell = section.locator('details.identifierTimeSeriesPanel_readings tbody td').last();
+    await expect(cell).toHaveText('no data');
+    // the value cell sits inside the panel and the viewport
+    const fit = await cell.evaluate((td) => {
+      const r = td.getBoundingClientRect();
+      const p = document.getElementById('identifierTimeSeriesPanel').getBoundingClientRect();
+      return r.left >= p.left - 0.5 && r.right <= p.right + 0.5 && r.right <= window.innerWidth + 0.5 && r.left >= 0;
+    });
+    expect(fit).toBe(true);
+    // Known core behaviour, not this tool's: the search dropdown opened by
+    // Tab stays open after focus leaves it (Escape doesn't close it) and at
+    // this width covers nearly all of the panel. Whatever covers the value
+    // is that dropdown - nothing of this tool's.
+    const atValue = await cell.evaluate((td) => {
+      const r = td.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return at === td || td.contains(at) ? 'value' : at?.closest('.searchUnifiedPanel') ? 'core search dropdown' : at?.className || at?.tagName;
+    });
+    expect(['value', 'core search dropdown']).toContain(atValue);
+  });
+
+  test('a press on the panel closes an open search dropdown (outside-press reaches the document)', async ({ page }) => {
+    const uuid = await openApp(page);
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    await expect(page.locator(`#identifierTimeSeriesPanel [data-layer="${uuid}"]`)).toHaveAttribute('data-settled', 'true', { timeout: 20000 });
+    // open the core search dropdown as a keyboard user would
+    await page.locator('#topBar input').first().focus();
+    await expect(page.locator('.searchUnifiedPanel')).toHaveCount(1);
+    // press on a part of the panel the dropdown doesn't cover
+    const spot = await page.locator('#identifierTimeSeriesPanel').evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      for (let y = r.bottom - 6; y > r.top; y -= 10)
+        for (let x = r.right - 6; x > r.left; x -= 10) {
+          const at = document.elementFromPoint(x, y);
+          if (at && el.contains(at) && !at.closest('button, summary, a, canvas')) return { x, y };
+        }
+      return null;
+    });
+    expect(spot).not.toBeNull();
+    await page.mouse.click(spot.x, spot.y);
+    await expect(page.locator('.searchUnifiedPanel')).toHaveCount(0);
+    // and the press charted nothing new
+    expect(await page.evaluate(() => window.ToolController_.getTool('IdentifierTool').timeSeries.getPoint())).toEqual({ lng: LNG, lat: LAT });
+  });
+
   test('keyboard: Tab to "Chart time series at map centre", Enter charts; Escape returns focus', async ({ page }) => {
     const uuid = await openApp(page);
     const button = page.getByRole('button', { name: 'Chart time series at map centre' });

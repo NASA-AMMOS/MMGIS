@@ -580,8 +580,10 @@ const abortError = () =>
  *    ordinary failure that is reported and retried.
  *  - It settles as soon as either happens, even if the response body
  *    ignores the abort, so a stalled body can't hold a concurrency slot or
- *    leave a chart loading. The abandoned work is aborted, and its late
- *    rejection is swallowed rather than left unhandled.
+ *    leave a chart loading. The abandoned work is sent the abort; a fetch or
+ *    body that ignores it may still run to the end, but whatever it then
+ *    returns or throws is discarded (the race has already settled), and a
+ *    late rejection is swallowed rather than left unhandled.
  *  - The timer and the listener on the caller's signal are always removed.
  *  - An error thrown while the request is aborted is reported as the abort
  *    (cancellation or timeout), never as e.g. "not JSON".
@@ -634,7 +636,9 @@ export function runRequest({
     return Promise.race([work, aborted]).finally(() => {
         if (timer) clearTimeout(timer)
         signal?.removeEventListener('abort', onAbort)
-        // anything still running (a stalled body) is stopped
+        // ask anything still running (a stalled body) to stop; this only
+        // signals it - work that ignores the signal is left to finish, and
+        // its outcome goes nowhere
         if (!controller.signal.aborted) controller.abort()
     })
 }
@@ -748,8 +752,14 @@ export async function fetchPointValues({
 }) {
     const merged = new Map()
     // Once one batch has failed the result is an error: batches still queued
-    // behind it (in the shared limiter) are not started.
+    // behind it (in the shared limiter) are not started, and the ones in
+    // flight are cancelled - through this call's own signal, which follows
+    // the caller's but never aborts it - so they stop holding shared slots.
     let failed = false
+    const batchCtrl = new AbortController()
+    const followCaller = () => batchCtrl.abort()
+    if (signal?.aborted) batchCtrl.abort()
+    else signal?.addEventListener('abort', followCaller)
     const readAll = async (wanted) => {
         const batches = []
         for (let i = 0; i < wanted.length; i += limits.pointBatchSize)
@@ -773,23 +783,30 @@ export async function fetchPointValues({
                                 layer,
                                 { ids: batch, stacOptions }
                             ),
-                            signal,
+                            signal: batchCtrl.signal,
                             collection,
                             timeoutMs: limits.requestTimeoutMs,
                         })
                         got.forEach((v, k) => merged.set(k, v))
                     } catch (e) {
-                        failed = true
+                        if (!failed) {
+                            failed = true
+                            batchCtrl.abort()
+                        }
                         throw e
                     }
                 })
             )
         )
     }
-    await readAll(ids)
-    const absent = ids.filter((id) => !merged.has(id))
-    if (absent.length > 0) await readAll(absent)
-    return merged
+    try {
+        await readAll(ids)
+        const absent = ids.filter((id) => !merged.has(id))
+        if (absent.length > 0) await readAll(absent)
+        return merged
+    } finally {
+        signal?.removeEventListener('abort', followCaller)
+    }
 }
 
 /**

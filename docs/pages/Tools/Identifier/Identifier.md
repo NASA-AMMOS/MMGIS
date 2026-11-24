@@ -70,6 +70,8 @@ Layers that can't be charted are listed under _Not charted (N)_ with the reason:
 
 COG layers (`COG:` sources) are not charted, time-enabled or not. A COG layer's time support is URL templating: `{time}`, `{starttime}`, `{endtime}` and `{customtime.N}` are filled from the time window, so each window resolves to one file, and TiTiler's COG reader has no `datetime` filter (the `datetime` MMGIS appends to COG tile URLs is ignored). Nothing in a COG layer's configuration lists the times it has files for, so building a history would mean guessing timestamps and file names.
 
+With only COG layers on, hovering shows no _Click for time series_ hint. A click with a time-enabled COG on opens the panel, charts nothing, and lists the COG under _Not charted_ with this reason; with no time-enabled layer on, a click opens nothing.
+
 Charting COG histories needs a source of acquisition times. Options for maintainers to decide between:
 
 1. Catalogue the COGs as a STAC collection (as the Reference Mission does for its blueprint COGs) and use a `stac-collection:` layer. This works today.

@@ -976,8 +976,13 @@ function addCentreButton() {
     wrap.innerHTML =
         `<button type="button" id="${TIME_SERIES_CENTRE_BUTTON}">Chart time series at map centre</button>` +
         `<span id="${TIME_SERIES_CENTRE_BUTTON}_status" class="identifierTimeSeriesPanel_live" role="status" aria-live="polite"></span>`
-    wrap.querySelector('button').addEventListener('click', (e) =>
-        IdentifierTool.chartMapCentre(e)
+    const button = wrap.querySelector('button')
+    button.addEventListener('click', (e) => IdentifierTool.chartMapCentre(e))
+    // Shown only while focused, so the browser may not have scrolled it into
+    // view: on a narrow screen the app can be scrolled sideways (by Tab
+    // passing over-wide top-bar controls), leaving it half off-screen.
+    button.addEventListener('focus', () =>
+        button.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
     )
     host.appendChild(wrap)
 }

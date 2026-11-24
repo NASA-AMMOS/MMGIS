@@ -461,6 +461,44 @@ test.describe('Identifier time-series panel (browser)', () => {
         expect(await page.evaluate(() => window.__mapClicks)).toBe(0)
     })
 
+    test('mousedown/mouseup inside the panel still reach document-level listeners', async ({
+        page,
+    }) => {
+        // the app closes menus and dropdowns on a mousedown outside them
+        // (Search, colour pickers) and ends drags on a mouseup anywhere
+        // (tool-panel resize, sliders): a press or release over this panel
+        // must not be hidden from them. Clicks still stop at the panel.
+        await openHarness(page)
+        await page.evaluate(() => {
+            window.__doc = { down: 0, up: 0 }
+            document.addEventListener('mousedown', () => window.__doc.down++)
+            document.addEventListener('mouseup', () => window.__doc.up++)
+            window.__splitClicks = 0
+            document
+                .getElementById('splitscreens')
+                .addEventListener('click', () => window.__splitClicks++)
+            window.__h.controller.selectPoint(1, 2)
+        })
+        await page
+            .locator('.identifierTimeSeriesPanel_layerName')
+            .first()
+            .click()
+        expect(await page.evaluate(() => window.__doc)).toEqual({
+            down: 1,
+            up: 1,
+        })
+        expect(await page.evaluate(() => window.__splitClicks)).toBe(0)
+        // a drag that started elsewhere and is released over the panel ends
+        const title = await page
+            .locator('.identifierTimeSeriesPanel_title')
+            .boundingBox()
+        await page.mouse.move(5, 650)
+        await page.mouse.down()
+        await page.mouse.move(title.x + 5, title.y + 5)
+        await page.mouse.up()
+        expect(await page.evaluate(() => window.__doc.up)).toBe(2)
+    })
+
     test('destroy (Identifier turned off) leaves nothing behind', async ({
         page,
     }) => {

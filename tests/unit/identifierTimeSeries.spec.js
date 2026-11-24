@@ -3713,6 +3713,71 @@ test.describe('finding A - the time limit and cancellation cover the body', () =
         expect(results.sort()).toEqual(['error', 'ok', 'ok'])
     })
 
+    test('a body that ignores the abort and answers late changes nothing shown or cached', async () => {
+        // load 1's point body ignores the abort and resolves after the panel
+        // closed and a new load charted - with different values
+        let releaseLate
+        let first = true
+        const srv = bodyServers((kind, real) => {
+            if (kind === 'point' && first) {
+                first = false
+                return new Promise((resolve) => {
+                    releaseLate = () =>
+                        resolve({
+                            type: 'FeatureCollection',
+                            assets: ['a', 'b', 'c'].map((id) => ({
+                                assets: ['asset'],
+                                collection: COLLECTION,
+                                id,
+                                values: [999],
+                                band_names: ['b1'],
+                            })),
+                        })
+                })
+            }
+            return real()
+        })
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    fetchFn: srv.fetchFn,
+                    location: LOCATION,
+                }),
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await settle(10)
+        expect(typeof releaseLate).toBe('function')
+        c.close()
+        c.selectPoint(1, 2)
+        await within(
+            (async () => {
+                while (!view.results().length) await settle(2)
+            })()
+        )
+        const shown = () =>
+            view
+                .results()
+                .map(([, , r]) => r.series?.[0]?.points.map((p) => p.value))
+        expect(shown()).toEqual([[1, 2, 3]])
+        // the abandoned body now answers
+        releaseLate()
+        await settle(20)
+        expect(shown()).toEqual([[1, 2, 3]])
+        expect(c._cacheSize()).toBe(1)
+        // and the cache still holds the real answer
+        c.selectPoint(1, 2)
+        await settle(10)
+        expect(shown().at(-1)).toEqual([1, 2, 3])
+    })
+
     test('timers, listeners and losing promises are cleaned up', async () => {
         const unhandled = []
         const onUnhandled = (e) => unhandled.push(e)
@@ -3784,6 +3849,223 @@ test.describe('finding A - the time limit and cancellation cover the body', () =
         } finally {
             process.off('unhandledRejection', onUnhandled)
         }
+    })
+})
+
+test.describe('a failed point batch cancels its siblings', () => {
+    // batch a fails at once; batch b is in flight (honours the abort like
+    // fetch); batch c is queued behind them in the shared limiter
+    const setup = () => {
+        const log = { requested: [], aborted: [] }
+        const fetchFn = (url, init) => {
+            const id = new URL(url).searchParams.get('ids')
+            log.requested.push(id)
+            if (id === 'a')
+                return Promise.resolve({
+                    ok: false,
+                    status: 503,
+                    json: async () => ({}),
+                })
+            return new Promise((resolve, reject) => {
+                init.signal.addEventListener('abort', () => {
+                    log.aborted.push(id)
+                    reject(
+                        Object.assign(new Error('aborted'), {
+                            name: 'AbortError',
+                        })
+                    )
+                })
+                // b answers only after a long time, if ever asked to
+                setTimeout(() => resolve(jsonResponse({ assets: [] })), 5000)
+            })
+        }
+        return { log, fetchFn }
+    }
+    const pointArgs = (fetchFn, run, extra = {}) => ({
+        fetchFn,
+        titilerBase: 'https://mmgis.test/titilerpgstac',
+        collection: COLLECTION,
+        lng: 0,
+        lat: 0,
+        ids: ['a', 'b', 'c'],
+        layer: stacLayer(),
+        limits: { ...TIME_SERIES_LIMITS, pointBatchSize: 1 },
+        run,
+        ...extra,
+    })
+
+    test('in-flight siblings are aborted, queued ones never start, and the slots are freed at once', async () => {
+        const { log, fetchFn } = setup()
+        const run = createLimiter(2)
+        const t0 = Date.now()
+        await expect(fetchPointValues(pointArgs(fetchFn, run))).rejects.toThrow(
+            /HTTP 503/
+        )
+        // the sibling in flight was cancelled, not left to run for seconds
+        await settle(5)
+        expect(log.aborted).toEqual(['b'])
+        expect(log.requested).toEqual(['a', 'b'])
+        expect(run.active()).toBe(0)
+        // another layer's request on the same limiter starts straight away
+        let started = null
+        await run(async () => {
+            started = Date.now() - t0
+        })
+        expect(started).toBeLessThan(500)
+    })
+
+    test("the caller's own signal is untouched by a sibling's failure", async () => {
+        const { fetchFn } = setup()
+        const ctrl = new AbortController()
+        await expect(
+            fetchPointValues(
+                pointArgs(fetchFn, createLimiter(2), { signal: ctrl.signal })
+            )
+        ).rejects.toThrow(/HTTP 503/)
+        expect(ctrl.signal.aborted).toBe(false)
+    })
+
+    test('a cancelled load still cancels every batch', async () => {
+        const { log, fetchFn } = setup()
+        const ctrl = new AbortController()
+        const p = fetchPointValues(
+            pointArgs(
+                (url, init) =>
+                    new URL(url).searchParams.get('ids') === 'a'
+                        ? new Promise(() => {})
+                        : fetchFn(url, init),
+                createLimiter(3),
+                { signal: ctrl.signal }
+            )
+        )
+        await settle(5)
+        ctrl.abort()
+        await expect(p).rejects.toMatchObject({ name: 'AbortError' })
+        await settle(5)
+        expect(log.aborted.sort()).toEqual(['b', 'c'])
+    })
+
+    test('through the controller: a failing layer cancels its own in-flight batches; the other layer still charts', async () => {
+        const { log, fetchFn } = setup()
+        const healthy = fakeServers({
+            items: [item('h', '2024-01-01T00:00:00Z')],
+            values: { h: [7] },
+        })
+        // layer "bad" lists a, b, c; layer "good" lists h - one limiter of 2
+        const badItems = fakeServers({
+            items: ['a', 'b', 'c'].map((id, i) =>
+                item(id, `2024-01-0${i + 1}T00:00:00Z`)
+            ),
+        })
+        const layers = {
+            data: {
+                bad: stacLayer({ url: 'stac-collection:bad' }),
+                good: stacLayer({ url: 'stac-collection:good' }),
+            },
+            on: { bad: true, good: true },
+        }
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => layers,
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    location: LOCATION,
+                    limits: { ...TIME_SERIES_LIMITS, pointBatchSize: 1 },
+                    fetchFn: (url, init) => {
+                        const u = new URL(url)
+                        const bad =
+                            u.pathname.includes('/bad') ||
+                            u.searchParams.get('collections') === 'bad'
+                        if (u.pathname.endsWith('/stac/search'))
+                            return (bad ? badItems : healthy).fetchFn(url, init)
+                        return bad
+                            ? fetchFn(url, init)
+                            : healthy.fetchFn(url, init)
+                    },
+                }),
+            marker: fakeMarker(),
+            view,
+            requestConcurrency: 2,
+        })
+        const t0 = Date.now()
+        c.selectPoint(1, 2)
+        while (view.results().length < 2 && Date.now() - t0 < 3000)
+            await new Promise((r) => setTimeout(r, 5))
+        const byLayer = Object.fromEntries(
+            view.results().map(([, uuid, r]) => [uuid, r.status])
+        )
+        expect(byLayer).toEqual({ bad: 'error', good: 'ok' })
+        // the failed layer's sibling request was really cancelled, so it
+        // stops costing the server and a shared slot
+        await settle(5)
+        expect(log.aborted).toContain('b')
+        expect(log.requested).not.toContain('c')
+    })
+})
+
+test.describe('COG-only configurations (#1159 scope)', () => {
+    const cogTime = {
+        type: 'tile',
+        display_name: 'COG over time',
+        url: 'COG:Layers/dem_{time}.tif',
+        time: {
+            enabled: true,
+            start: '2024-01-01T00:00:00Z',
+            end: '2024-02-01T00:00:00Z',
+        },
+    }
+    const run = (layers) => {
+        const fetched = []
+        const view = fakeView()
+        const marker = fakeMarker()
+        const c = createTimeSeriesController({
+            getLayers: () => layers,
+            fetchSeries: async (a) => {
+                fetched.push(a)
+                return { status: 'ok', series: [] }
+            },
+            marker,
+            view,
+        })
+        return { c, view, marker, fetched }
+    }
+
+    test('a time-enabled COG alone: the click opens the panel, requests nothing, and says why it is not charted', async () => {
+        const { c, view, marker, fetched } = run({
+            data: { cog: cogTime },
+            on: { cog: true },
+        })
+        expect(c.selectPoint(1, 2)).toBe(true)
+        await settle(5)
+        expect(fetched).toEqual([])
+        expect(marker.at).toEqual([1, 2])
+        const [, , eligible, unsupported] = view.log.find(
+            (l) => l[0] === 'render'
+        )
+        expect(eligible).toEqual([])
+        expect(unsupported).toEqual([
+            [
+                'cog',
+                'Time-enabled COG: each time window reads one file, and no catalog lists its acquisition times.',
+            ],
+        ])
+        // and no time was made up for it anywhere
+        expect(view.results()).toEqual([])
+    })
+
+    test('a COG without time alone: a click opens nothing', () => {
+        const { c, marker } = run({
+            data: { cog: { ...cogTime, time: { enabled: false } } },
+            on: { cog: true },
+        })
+        expect(c.selectPoint(1, 2)).toBe(false)
+        expect(marker.at).toBeNull()
+    })
+
+    test('the hover prompt is offered only for a layer that can be charted', () => {
+        expect(classifyLayer(cogTime).eligible).toBe(false)
+        expect(classifyLayer(stacLayer()).eligible).toBe(true)
     })
 })
 
