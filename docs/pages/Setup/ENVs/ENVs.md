@@ -468,7 +468,7 @@ A JSON array of regular expression patterns that define allowed URLs for TiTiler
 **Format**: JSON array of regex strings | **Type**: string[] | **Default**: unset (local `/Missions` paths only)
 
 **Behavior**:
-- **Unset, empty, `[]`, invalid JSON or no valid regex**: Only the local `/Missions` paths MMGIS itself sends to TiTiler are allowed (`/Missions/...` in Docker, `../../Missions/...` otherwise, with no `..` segments). Invalid patterns are logged and skipped.
+- **Unset, empty, `[]`, invalid JSON or no valid regex**: Only the local `/Missions` paths MMGIS itself sends to TiTiler are allowed (`/Missions/...` in Docker, `../../Missions/...` otherwise, with no `..` segments other than a mission's `../shared/`). Invalid patterns are logged and skipped.
 - **Non-empty array**: URL must match at least one regex pattern to be proxied
 - **Allow all**: Must be explicit with `'[".*"]'` (not recommended)
 - **Important**: When you set your own patterns, include the `/Missions` patterns below if TiTiler should keep reading local Missions files.
@@ -483,14 +483,14 @@ A JSON array of regular expression patterns that define allowed URLs for TiTiler
 
 1. **Default** (local Missions files only):
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^/Missions/(?!.*\\.\\.)[^\\x00]*$", "^\\.\\./\\.\\./Missions/(?!.*\\.\\.)[^\\x00]*$"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^/Missions/(?:(?!\\.\\.?/)[^/\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$", "^\\.\\./\\.\\./Missions/(?:(?!\\.\\.?/)[^/\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
    ```
-   - Allows local `/Missions` directory files (e.g., `/Missions/Test/data.tif`)
+   - Allows local `/Missions` directory files (e.g., `/Missions/Test/data.tif`), including a mission's `../shared/` paths into `Missions/shared`
    - Blocks path traversal (`..`) and null bytes
 
 2. **Specific Trusted Domains** plus local Missions files:
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^https://data\\.example\\.org/(?!.*\\.\\.)", "^/Missions/(?!.*\\.\\.)[^\\x00]*$"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^https://data\\.example\\.org/(?!.*\\.\\.)", "^/Missions/(?:(?!\\.\\.?/)[^/\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
    ```
    - Only allows specific trusted domains
 

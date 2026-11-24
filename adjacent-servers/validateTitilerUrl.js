@@ -3,8 +3,8 @@ const logger = require("../API/logger");
 // Used when TITILER_ALLOWED_URL_PATTERNS is unset, empty or has no valid pattern:
 // only the local Missions paths MMGIS itself sends (Docker: /Missions/..., otherwise ../../Missions/...)
 const DEFAULT_PATTERNS = [
-  "^/Missions/(?!.*\\.\\.)[^\\x00]*$",
-  "^\\.\\./\\.\\./Missions/(?!.*\\.\\.)[^\\x00]*$",
+  "^/Missions/(?:(?!\\.\\.?/)[^/\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$",
+  "^\\.\\./\\.\\./Missions/(?:(?!\\.\\.?/)[^/\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$",
 ];
 
 function compilePatterns(patterns) {
