@@ -41,7 +41,7 @@ The TiTiler proxy accepts a `?url=` parameter that specifies which geospatial fi
 
 **Example**:
 ```bash
-TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^/Missions/(?:(?!\\.\\.?/)[^/\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
+TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^/Missions/(?:(?!\\.)[^/\\\\\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
 ```
 
 The TiTiler `/stac/*`, `/mosaicjson/*` and `/cog/stac*` endpoints follow URLs inside the documents they read, which the pattern check cannot see, so MMGIS only proxies them for administrators. As defense in depth, restrict the TiTiler service's network egress (for example, block private address ranges and cloud metadata addresses with a firewall or network policy), keep `CPL_VSIL_CURL_ALLOWED_EXTENSIONS` narrow, or disable unused routers with `TITILER_API_DISABLE_STAC` / `TITILER_API_DISABLE_MOSAIC`.
