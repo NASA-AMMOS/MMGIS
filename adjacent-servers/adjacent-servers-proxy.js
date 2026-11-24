@@ -81,7 +81,10 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
         // Admin-only regardless of SITE_ACCESS: /cog/stac, and the /stac and /mosaicjson
         // routers, which make TiTiler fetch URLs nested in documents the URL check can't see
         if (url.includes('/cog/stac') || /\/titiler\/(stac|mosaicjson)(\/|$)/.test(url)) {
-          ensureAdmin()(req, res, next);
+          // Admin first, then the usual token capability check for this server
+          ensureAdmin()(req, res, () =>
+            ensureUserForAdjacentServers("titiler")(req, res, next),
+          );
           return;
         }
 
