@@ -36,8 +36,8 @@ function VideoSettings({ layer, api }) {
     if (!video) return <div>Turn on the video layer to load playback controls.</div>
     const download = layer.variables?.downloadURL || layer.url
     return (
-        <div className="lt2-videoSettings">
-            <div className="lt2-videoControls">
+        <div className="lt-videoSettings">
+            <div className="lt-videoControls">
                 <Button
                     size="sm"
                     variant="secondary"
@@ -74,7 +74,7 @@ function VideoSettings({ layer, api }) {
                     <i className={`mdi mdi-volume-${muted ? 'off' : 'high'} mdi-16px`} />
                 </Button>
             </div>
-            <div className="lt2-videoScrub">
+            <div className="lt-videoScrub">
                 <span>{Math.floor(currentTime)}s</span>
                 <Slider
                     aria-label="Video playback position"
@@ -94,7 +94,7 @@ function VideoSettings({ layer, api }) {
                     Download video
                 </a>
             )}
-            <div className="lt2-videoFilters">
+            <div className="lt-videoFilters">
                 {[
                     ['brightness', 'Brightness', 3],
                     ['contrast', 'Contrast', 4],

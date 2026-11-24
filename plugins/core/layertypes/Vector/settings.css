@@ -1,23 +1,23 @@
-.lt2-typeSettingsList {
+.lt-typeSettingsList {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.lt2-typeSettingsField,
-.lt2-typeSettingsCompositeLine {
+.lt-typeSettingsField,
+.lt-typeSettingsCompositeLine {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
 }
 
-.lt2-typeSettingsField > :last-child {
+.lt-typeSettingsField > :last-child {
     max-width: 65%;
 }
 
-.lt2-typeSettingsComposite,
-.lt2-typeSettingsRule {
+.lt-typeSettingsComposite,
+.lt-typeSettingsRule {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -26,19 +26,19 @@
     border-radius: 4px;
 }
 
-.lt2-typeSettingsRange {
+.lt-typeSettingsRange {
     display: flex;
     gap: 8px;
 }
 
-.lt2-typeSettingsRange label {
+.lt-typeSettingsRange label {
     display: flex;
     align-items: center;
     gap: 5px;
     min-width: 0;
 }
 
-.lt2-typeSettingsStats {
+.lt-typeSettingsStats {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px 8px;
@@ -46,20 +46,20 @@
     font-size: 11px;
 }
 
-.lt2-typeSettingsStats strong {
+.lt-typeSettingsStats strong {
     grid-column: 1 / -1;
     color: var(--color-f);
 }
 
-.lt2-typeSettingsFilter {
+.lt-typeSettingsFilter {
     min-width: 0;
 }
 
-.lt2-typeSettingsFilter #layersTool_filtering {
+.lt-typeSettingsFilter #layersTool_filtering {
     position: relative;
     width: 100%;
 }
 
-.lt2-typeSettingsFilter #layersTool_filtering_header {
+.lt-typeSettingsFilter #layersTool_filtering_header {
     min-height: 28px;
 }

@@ -161,7 +161,7 @@ function refreshCog(layer) {
         currentCogExpression: layer.currentCogExpression,
         cogColormap: layer.cogColormap,
     })
-    ToolController_.getTool('LayersTool2')?.populateCogScale?.(layer.name)
+    ToolController_.getTool('LayersTool')?.populateCogScale?.(layer.name)
 }
 
 function DisplaySettings({ layer, api }) {
@@ -169,7 +169,7 @@ function DisplaySettings({ layer, api }) {
     const getFilter = (key, fallback) =>
         Number(filters[key] ?? layer.style?.[key] ?? fallback)
     return (
-        <div className="lt2-typeSettingsList">
+        <div className="lt-typeSettingsList">
             <LayerSettingsSlider
                 label="Brightness"
                 value={getFilter('brightness', 1)}
@@ -194,7 +194,7 @@ function DisplaySettings({ layer, api }) {
                 defaultValue={layer.style?.saturation ?? 1}
                 onChange={(value) => api.setTileFilter('saturate', value)}
             />
-            <div className="lt2-typeSettingsField">
+            <div className="lt-typeSettingsField">
                 <span>Blend</span>
                 <Select
                     aria-label="Blend mode"
@@ -254,13 +254,13 @@ function CogSettings({ layer, resetToken }) {
             : 'viridis'
     const colorTable = colorTableEntries(layer.cogColormapJson)
     return (
-        <div className="lt2-typeSettingsList">
-            <div className="lt2-typeSettingsCogLegend">
+        <div className="lt-typeSettingsList">
+            <div className="lt-typeSettingsCogLegend">
                 <div>Applied rescale: {minimum} — {maximum} {layer.cogUnits || ''}</div>
                 {colorTable.length > 0 ? (
-                    <div className="lt2-typeSettingsColorTable" aria-label="Custom color table legend">
+                    <div className="lt-typeSettingsColorTable" aria-label="Custom color table legend">
                         {colorTable.map(({ label, color }, index) => (
-                            <div className="lt2-typeSettingsColorEntry" key={`${label}-${index}`} title={label}>
+                            <div className="lt-typeSettingsColorEntry" key={`${label}-${index}`} title={label}>
                                 <span
                                     style={{
                                         backgroundColor: `rgba(${color[0] || 0},${color[1] || 0},${color[2] || 0},${color[3] == null ? 1 : color[3] / 255})`,
@@ -272,14 +272,14 @@ function CogSettings({ layer, resetToken }) {
                     </div>
                 ) : (
                     <div
-                        className="lt2-typeSettingsLegendRamp"
+                        className="lt-typeSettingsLegendRamp"
                         style={{ background: rampGradient(colormap) }}
                         role="img"
                         aria-label={`${colormap} colormap legend`}
                     />
                 )}
             </div>
-            <div className="lt2-typeSettingsField">
+            <div className="lt-typeSettingsField">
                 <span>Color ramp</span>
                 <ColorRampPicker
                     value={colormap}
@@ -293,9 +293,9 @@ function CogSettings({ layer, resetToken }) {
                     }}
                 />
             </div>
-            <label className="lt2-typeSettingsField">
+            <label className="lt-typeSettingsField">
                 <span>Rescale minimum</span>
-                <span className="lt2-typeSettingsInputUnit">
+                <span className="lt-typeSettingsInputUnit">
                     <TextInput
                         type="number"
                         value={minimum}
@@ -306,9 +306,9 @@ function CogSettings({ layer, resetToken }) {
                     {layer.cogUnits}
                 </span>
             </label>
-            <label className="lt2-typeSettingsField">
+            <label className="lt-typeSettingsField">
                 <span>Rescale maximum</span>
-                <span className="lt2-typeSettingsInputUnit">
+                <span className="lt-typeSettingsInputUnit">
                     <TextInput
                         type="number"
                         value={maximum}
@@ -320,12 +320,12 @@ function CogSettings({ layer, resetToken }) {
                 </span>
             </label>
             {layer.cogExpressionEditable === true && (
-                <div className="lt2-typeSettingsExpression">
-                    <label htmlFor={`lt2-expression-${layer.name}`}>
+                <div className="lt-typeSettingsExpression">
+                    <label htmlFor={`lt-expression-${layer.name}`}>
                         Band math expression
                     </label>
                     <TextInput
-                        id={`lt2-expression-${layer.name}`}
+                        id={`lt-expression-${layer.name}`}
                         value={expression}
                         placeholder="e.g., b1*2 or (b1+b2)/2"
                         onChange={(event) => setExpression(event.target.value)}

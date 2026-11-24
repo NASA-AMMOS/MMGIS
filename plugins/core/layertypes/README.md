@@ -149,7 +149,7 @@ core fetches) rather than a renderer at all.
 ## Settings surface
 
 An optional `modules.settings` module lets a layer type contribute React
-settings to the Layers2 tool without depending on a tool implementation:
+settings to the Layers tool without depending on a tool implementation:
 
 ```jsx
 export default {
@@ -166,7 +166,7 @@ export default {
 Section components receive `{ layer, api, state, setState, resetToken }`.
 `state` is persistent per layer and section; `resetToken` changes when that
 section or all settings are reset. `api` exposes named operations supplied by
-Layers2 for changing the layer, refreshing it, locating it, and resetting
+Layers for changing the layer, refreshing it, locating it, and resetting
 settings. `sections`, `actions`, and `status` are optional; inherited layer
 types receive this surface through the same `extends` resolution as other
 modules.

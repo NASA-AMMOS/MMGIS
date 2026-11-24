@@ -1,27 +1,27 @@
-.lt2-typeSettingsList {
+.lt-typeSettingsList {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.lt2-typeSettingsField {
+.lt-typeSettingsField {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
 }
 
-.lt2-typeSettingsField > :last-child {
+.lt-typeSettingsField > :last-child {
     max-width: 65%;
 }
 
-.lt2-typeSettingsInputUnit {
+.lt-typeSettingsInputUnit {
     display: flex;
     align-items: center;
     gap: 5px;
 }
 
-.lt2-typeSettingsCogLegend {
+.lt-typeSettingsCogLegend {
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -32,24 +32,24 @@
     font-size: 11px;
 }
 
-.lt2-typeSettingsLegendRamp {
+.lt-typeSettingsLegendRamp {
     height: 12px;
     border-radius: 2px;
     background: linear-gradient(90deg, #440154, #31688e, #35b779, #fde725);
 }
 
-.lt2-typeSettingsExpression {
+.lt-typeSettingsExpression {
     display: flex;
     flex-direction: column;
     gap: 5px;
 }
 
-.lt2-typeSettingsExpression > div {
+.lt-typeSettingsExpression > div {
     display: flex;
     gap: 6px;
 }
 
-.lt2-typeSettingsColorTable {
+.lt-typeSettingsColorTable {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     min-height: 26px;
@@ -61,7 +61,7 @@
     font-size: 11px;
 }
 
-.lt2-typeSettingsColorEntry {
+.lt-typeSettingsColorEntry {
     display: flex;
     min-width: 0;
     flex-direction: column;
@@ -69,13 +69,13 @@
     gap: 2px;
 }
 
-.lt2-typeSettingsColorEntry span {
+.lt-typeSettingsColorEntry span {
     width: 100%;
     min-height: 15px;
     border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.lt2-typeSettingsColorEntry small {
+.lt-typeSettingsColorEntry small {
     overflow: visible;
     max-width: 100%;
     color: var(--color-a5);

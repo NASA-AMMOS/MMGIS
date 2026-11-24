@@ -1,6 +1,6 @@
-# LayersTool2 layer settings
+# LayersTool layer settings
 
-Layer-type plugins may export an optional `settings.jsx` module. LayersTool2
+Layer-type plugins may export an optional `settings.jsx` module. LayersTool
 reads its `sections(layer, ctx)` and `actions(layer, ctx)` descriptors and calls
 `status(layer, ctx)` both in the layer list and in settings. `ctx` is the same
 layer-scoped object at both call sites:

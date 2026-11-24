@@ -80,7 +80,7 @@ test.describe('Legend Tool', () => {
     await page.waitForTimeout(500);
 
     // Open the Layers tool to toggle the layer
-    const layersBtn = page.locator('#toolButtonLayers').first();
+    const layersBtn = page.locator('#toolButtonLayersLegacy').first();
     await layersBtn.click();
     await page.waitForTimeout(500);
 
@@ -148,7 +148,7 @@ test.describe('Legend Tool', () => {
     await page.waitForTimeout(500);
 
     // Open the Layers tool
-    const layersBtn = page.locator('#toolButtonLayers').first();
+    const layersBtn = page.locator('#toolButtonLayersLegacy').first();
     await layersBtn.click();
     await page.waitForTimeout(500);
 

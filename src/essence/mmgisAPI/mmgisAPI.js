@@ -450,7 +450,7 @@ var mmgisAPI_ = {
                 await L_.toggleLayerHelper(L_.layers.data[layerName], state)
             }
 
-            if (ToolController_.activeToolName === 'LayersTool') {
+            if (ToolController_.activeToolName === 'LayersToolLegacy') {
                 const id = `#layerstart${F_.getSafeName(layerName)} .checkbox`
 
                 if (L_.layers.on[layerName]) {
@@ -458,8 +458,8 @@ var mmgisAPI_ = {
                 } else {
                     $(id).removeClass('on')
                 }
-            } else if (ToolController_.activeToolName === 'LayersTool2') {
-                ToolController_.getTool('LayersTool2')?.syncLayer?.(layerName)
+            } else if (ToolController_.activeToolName === 'LayersTool') {
+                ToolController_.getTool('LayersTool')?.syncLayer?.(layerName)
             }
         } else {
             console.warn(`'Warning: Unable to find layer named ${layerName}`)

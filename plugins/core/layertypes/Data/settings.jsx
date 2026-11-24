@@ -75,7 +75,7 @@ function ShaderSettings({ layer, api, resetToken }) {
         return () => observer.disconnect()
     }, [layer, layer.name, module, shader, api, resetToken])
     return module?.getHTML ? (
-        <div className="lt2-dataShaderSettings" ref={host} />
+        <div className="lt-dataShaderSettings" ref={host} />
     ) : (
         <div>Shader settings are not available for this layer.</div>
     )
@@ -88,7 +88,7 @@ function DataDisplaySettings({ layer, api }) {
             ? 'unset'
             : currentBlend
     return (
-        <div className="lt2-typeSettingsField">
+        <div className="lt-typeSettingsField">
             <span>Blend</span>
             <Select
                 aria-label="Blend mode"

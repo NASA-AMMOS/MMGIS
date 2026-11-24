@@ -166,8 +166,9 @@ function updateTools() {
   // 5. Build dynamic /src/pre/tools.js file with static imports for every
   //    tool. Tool modules are referenced synchronously by cross-tool code
   //    (e.g. `Map_` feature-click hands off to `InfoTool.use(...)`,
-  //    `LegendTool` reads `LayersTool.populateCogScale`), so they must be
-  //    available the moment `ToolController_` is initialised.
+  //    `LegendTool` reads `LayersTool.populateCogScale` and
+  //    `LayersToolLegacy.populateCogScale`), so they must be available the
+  //    moment `ToolController_` is initialised.
   let toolConfigs = "";
   const toolModules = {};
   // Paths values in plugin.json can be:

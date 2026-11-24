@@ -206,7 +206,7 @@ async function loadMission(page) {
             !!(
                 window.mmgisAPI &&
                 window.mmgisAPI.map &&
-                window.ToolController_?.getTool('LayersTool2')?._debugFlat
+                window.ToolController_?.getTool('LayersTool')?._debugFlat
             ),
         { timeout: 30000 }
     )
@@ -489,7 +489,7 @@ async function dragWithMouse(page, handle, target, targetFraction = 0.5) {
 }
 
 function orderingRowSelector(key) {
-    return `#lt2-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
+    return `#lt-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
 }
 
 async function dragRowInfo(page, tool, label) {
@@ -516,7 +516,7 @@ async function dragRowInfo(page, tool, label) {
                     collapsed: element.getAttribute('childrenon') === 'false',
                 }))
             } else {
-                const tool = window.ToolController_.getTool('LayersTool2')
+                const tool = window.ToolController_.getTool('LayersTool')
                 rows = tool._debugFlat().map((row) => {
                     const element = Array.from(
                         document.querySelectorAll('[data-row-id]')
@@ -531,7 +531,7 @@ async function dragRowInfo(page, tool, label) {
                         depth: row.depth,
                         label: row.displayName || row.name,
                         collapsed:
-                            element?.querySelector('.lt2-chevron')
+                            element?.querySelector('.lt-chevron')
                                 ?.getAttribute('aria-label') ===
                             'Expand group',
                     }
@@ -575,7 +575,7 @@ async function revealDragRow(page, tool, label) {
     for (const ancestor of info.ancestors) {
         if (!ancestor.collapsed) continue
         const row = orderingRow(page, tool, ancestor)
-        await row.locator(tool === 'old' ? '.headerChevron' : '.lt2-chevron').click()
+        await row.locator(tool === 'old' ? '.headerChevron' : '.lt-chevron').click()
     }
     return dragRowInfo(page, tool, label)
 }
@@ -583,7 +583,7 @@ async function revealDragRow(page, tool, label) {
 async function expandLegacyHeaders(page) {
     await page.locator('#searchLayers > #expand').click()
     await page.evaluate(() => {
-        const tool = window.ToolController_.getTool('LayersTool')
+        const tool = window.ToolController_.getTool('LayersToolLegacy')
         Array.from(
             document.querySelectorAll('#layersToolList > li[type="header"]')
         )
@@ -606,7 +606,7 @@ async function setDragHeaderExpanded(page, tool, label, expanded) {
     const isExpanded = !info.collapsed
     if (isExpanded === expanded) return
     await orderingRow(page, tool, info)
-        .locator(tool === 'old' ? '.headerChevron' : '.lt2-chevron')
+        .locator(tool === 'old' ? '.headerChevron' : '.lt-chevron')
         .click()
 }
 
@@ -687,7 +687,7 @@ async function applyLiveOracleFromLegacyCapture(page, capture) {
                 .map((row) => row.name || row.id)
         )
         return window.ToolController_
-            .getTool('LayersTool2')
+            .getTool('LayersTool')
             ._debugApplyLiveMove(
                 flat,
                 drop.indices.oldIndex,
@@ -700,7 +700,7 @@ async function applyLiveOracleFromLegacyCapture(page, capture) {
 async function prepareDragPage(page, tool) {
     await loadMission(page)
     const flat = await page.evaluate(() =>
-        window.ToolController_.getTool('LayersTool2')._debugFlat([])
+        window.ToolController_.getTool('LayersTool')._debugFlat([])
     )
     await page.setViewportSize({
         width: 1500,
@@ -710,7 +710,7 @@ async function prepareDragPage(page, tool) {
         await page.locator('#toolButtonLayers').click()
         await expandLegacyHeaders(page)
     } else {
-        await page.locator('#toolButtonLayers2').click()
+        await page.locator('#toolButtonLayers').click()
         await page.getByRole('button', { name: 'Expand all' }).click()
     }
     const imagery = await page.evaluate(() => {
@@ -728,7 +728,7 @@ async function prepareDragPage(page, tool) {
                       `#layersToolList > li[name="${imagery.name.replaceAll('"', '\\"')}"]`
                   )
                 : page
-                      .locator('.lt2-layerRow')
+                      .locator('.lt-layerRow')
                       .filter({ hasText: 'ArcGIS World Imagery' })
                       .first()
         await row
@@ -749,7 +749,7 @@ async function performSeededDrag(page, tool, planned) {
         await revealDragRow(page, tool, spec.toggle)
         const toggleInfo = await dragRowInfo(page, tool, spec.toggle)
         await orderingRow(page, tool, toggleInfo)
-            .locator(tool === 'old' ? '.headerChevron' : '.lt2-chevron')
+            .locator(tool === 'old' ? '.headerChevron' : '.lt-chevron')
             .click()
     }
     if (spec.targetState)
@@ -782,7 +782,7 @@ async function performSeededDrag(page, tool, planned) {
                               ),
                           }))
                         : window.ToolController_
-                              .getTool('LayersTool2')
+                              .getTool('LayersTool')
                               ._debugFlat()
                               .map((row) => ({ depth: row.depth }))
                 return rows
@@ -807,7 +807,7 @@ async function performSeededDrag(page, tool, planned) {
     const sourceRow = orderingRow(page, tool, source)
     const targetRow = orderingRow(page, tool, target)
     const handle = sourceRow.locator(
-        tool === 'old' ? '.layersToolColor' : '.lt2-drag'
+        tool === 'old' ? '.layersToolColor' : '.lt-drag'
     )
     await handle.scrollIntoViewIfNeeded()
     await targetRow.scrollIntoViewIfNeeded()
@@ -820,7 +820,7 @@ async function performSeededDrag(page, tool, planned) {
 async function dragPageState(page, tool) {
     return page.evaluate((toolName) => {
         if (toolName === 'old') {
-            const tool = window.ToolController_.getTool('LayersTool')
+            const tool = window.ToolController_.getTool('LayersToolLegacy')
             const rows = Array.from(
                 document.querySelectorAll('#layersToolList > li')
             )
@@ -842,7 +842,7 @@ async function dragPageState(page, tool) {
                 history: tool.orderingHistory || [],
             }
         }
-        const tool = window.ToolController_.getTool('LayersTool2')
+        const tool = window.ToolController_.getTool('LayersTool')
         const flat = tool._debugFlat()
         const namesByKey = new Map(
             flat.map((row) => [row.key, row.displayName])
@@ -861,11 +861,11 @@ async function dragPageState(page, tool) {
                 key:
                     row.querySelector('[data-row-id]')?.getAttribute(
                         'data-row-id'
-                    ) || row.id.replace(/^lt2-row-/, ''),
+                    ) || row.id.replace(/^lt-row-/, ''),
                 name: namesByKey.get(
                     row.querySelector('[data-row-id]')?.getAttribute(
                         'data-row-id'
-                    ) || row.id.replace(/^lt2-row-/, '')
+                    ) || row.id.replace(/^lt-row-/, '')
                 ),
                 height: row.getBoundingClientRect().height,
                 expanded: row.getAttribute('aria-expanded'),
@@ -874,7 +874,7 @@ async function dragPageState(page, tool) {
                 key:
                     row.querySelector('[data-row-id]')?.getAttribute(
                         'data-row-id'
-                    ) || row.id.replace(/^lt2-row-/, ''),
+                    ) || row.id.replace(/^lt-row-/, ''),
                 depth: Number(row.getAttribute('aria-level')) - 1,
             })),
             order: window.L_._layersOrdered.slice(),
@@ -882,7 +882,7 @@ async function dragPageState(page, tool) {
         }
     }, tool)
 }
-test.describe('LayersTool2 flat ordering parity', () => {
+test.describe('LayersTool flat ordering parity', () => {
     test('preserves legacy triple replay and translated URL compatibility for 52 histories', async ({
         page,
     }) => {
@@ -893,7 +893,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             window.ToolController_.closeActiveTool()
         )
         const baseFlat = await page.evaluate(() =>
-            window.ToolController_.getTool('LayersTool2')._debugFlat([])
+            window.ToolController_.getTool('LayersTool')._debugFlat([])
         )
         expect(baseFlat.length).toBeGreaterThan(2)
         const histories = makeHistories(baseFlat)
@@ -904,8 +904,8 @@ test.describe('LayersTool2 flat ordering parity', () => {
         ).toBe(true)
         const results = await page.evaluate((inputHistories) => {
             const layers = window.L_
-            const oldTool = window.ToolController_.getTool('LayersTool')
-            const newTool = window.ToolController_.getTool('LayersTool2')
+            const oldTool = window.ToolController_.getTool('LayersToolLegacy')
+            const newTool = window.ToolController_.getTool('LayersTool')
             const savedOrder = layers._layersOrdered.slice()
             const savedOldHistory = oldTool.orderingHistory
             const savedNewHistory = newTool.orderingHistory
@@ -959,9 +959,9 @@ test.describe('LayersTool2 flat ordering parity', () => {
                         layers.FUTURES.tools = [
                             ...(savedUrlTools || []).filter(
                                 (value) =>
-                                    !String(value).startsWith('LayersTool2$')
+                                    !String(value).startsWith('LayersTool$')
                             ),
-                            `LayersTool2$${encoded}`,
+                            `LayersTool$${encoded}`,
                         ]
                         newTool.finalize()
                         newResult = {
@@ -1038,7 +1038,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                     firstDivergingRow < 0
                         ? []
                         : oldRows.slice(firstDivergingRow, firstDivergingRow + 3),
-                layers2RowsAtDifference:
+                layersRowsAtDifference:
                     firstDivergingRow < 0
                         ? []
                         : nextRows.slice(
@@ -1107,7 +1107,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         const prepareTool = async (tool) => {
             await loadMission(page)
             const flat = await page.evaluate(() =>
-                window.ToolController_.getTool('LayersTool2')._debugFlat([])
+                window.ToolController_.getTool('LayersTool')._debugFlat([])
             )
             await page.setViewportSize({
                 width: 1500,
@@ -1117,7 +1117,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 await page.locator('#toolButtonLayers').click()
                 await expandLegacyHeaders(page)
             } else {
-                await page.locator('#toolButtonLayers2').click()
+                await page.locator('#toolButtonLayers').click()
                 await page.getByRole('button', { name: 'Expand all' }).click()
             }
             const imagery = await page.evaluate(() => {
@@ -1136,7 +1136,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                               `#layersToolList > li[name="${imagery.name}"]`
                           )
                         : page
-                              .locator('.lt2-layerRow')
+                              .locator('.lt-layerRow')
                               .filter({ hasText: 'ArcGIS World Imagery' })
                               .first()
                 await row
@@ -1176,7 +1176,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             .poll(() =>
                 page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool')
+                        window.ToolController_.getTool('LayersToolLegacy')
                             .orderingHistory.length
                 )
             )
@@ -1190,7 +1190,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 depth: Number.parseInt(row.getAttribute('depth'), 10),
             })),
             order: window.L_._layersOrdered.slice(),
-            history: window.ToolController_.getTool('LayersTool').orderingHistory,
+            history: window.ToolController_.getTool('LayersToolLegacy').orderingHistory,
         }))
 
         const newBase = await prepareTool('new')
@@ -1199,7 +1199,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         )
         const newRows = await page.evaluate(() => {
             const flat = window.ToolController_
-                .getTool('LayersTool2')
+                .getTool('LayersTool')
                 ._debugFlat()
             return {
                 source: flat.find(
@@ -1212,38 +1212,38 @@ test.describe('LayersTool2 flat ordering parity', () => {
             }
         })
         const rowSelector = (key) =>
-            `#lt2-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
+            `#lt-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
         const newSource = page.locator(rowSelector(newRows.source.key))
         const newTarget = page.locator(rowSelector(newRows.target.key))
-        const newHandle = newSource.locator('.lt2-drag')
+        const newHandle = newSource.locator('.lt-drag')
         await dragWithMouse(page, newHandle, newTarget, 0.8)
         await expect
             .poll(() =>
                 page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                             .orderingHistory.length
                 )
             )
             .toBe(1)
         const newResult = await page.evaluate(() => ({
             flat: window.ToolController_
-                .getTool('LayersTool2')
+                .getTool('LayersTool')
                 ._debugFlat()
                 .map(({ name, type, depth }) => ({ name, type, depth })),
             keyedFlat: window.ToolController_
-                .getTool('LayersTool2')
+                .getTool('LayersTool')
                 ._debugFlat()
                 .map(({ key, depth }) => ({ id: key, depth })),
             order: window.L_._layersOrdered.slice(),
-            history: window.ToolController_.getTool('LayersTool2').orderingHistory,
+            history: window.ToolController_.getTool('LayersTool').orderingHistory,
             dom: Array.from(
                 document.querySelectorAll('#layersTool2 [role="treeitem"]')
             ).map((row) => ({
                 id:
                     row.querySelector('[data-row-id]')?.getAttribute(
                         'data-row-id'
-                    ) || row.id.replace(/^lt2-row-/, ''),
+                    ) || row.id.replace(/^lt-row-/, ''),
                 depth: Number(row.getAttribute('aria-level')) - 1,
             })),
         }))
@@ -1262,15 +1262,15 @@ test.describe('LayersTool2 flat ordering parity', () => {
         console.log(
             `Exact bottom drop: ${JSON.stringify({
                 legacyHistory: oldResult.history,
-                layers2History: newResult.history,
+                layersHistory: newResult.history,
                 legacyMovedIndex: oldResult.flat.findIndex(
                     (row) => row.name === oldNames.source
                 ),
-                layers2MovedIndex: newResult.flat.findIndex(
+                layersMovedIndex: newResult.flat.findIndex(
                     (row) => row.name === oldNames.source
                 ),
                 legacyLastRow: oldResult.flat.at(-1)?.name,
-                layers2LastRow: newResult.flat.at(-1)?.name,
+                layersLastRow: newResult.flat.at(-1)?.name,
             })}`
         )
     })
@@ -1444,7 +1444,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 console.log(
                     `Collapsed-header control ${scenario.label}: ${JSON.stringify({
                         legacyHistory: oldState.history,
-                        layers2History: newState.history,
+                        layersHistory: newState.history,
                         finalIndex: newMovedIndex,
                         finalDepth: newState.flat[newMovedIndex].depth,
                     })}`
@@ -1489,13 +1489,13 @@ test.describe('LayersTool2 flat ordering parity', () => {
                         'old',
                         spec
                     )
-                    const layers2Spec = await performSeededDrag(
+                    const layersSpec = await performSeededDrag(
                         newPage,
                         'new',
                         legacySpec
                     )
                     const sameDrag =
-                        JSON.stringify(layers2Spec) ===
+                        JSON.stringify(layersSpec) ===
                         JSON.stringify(legacySpec)
                     const legacyDrop = await page.evaluate(
                         () => window.__layersToolSortableCapture
@@ -1507,7 +1507,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                             page,
                             legacyDrop
                         )
-                    const layers2Entry = newState.history.at(-1)
+                    const layersEntry = newState.history.at(-1)
                     const legacyPost = legacyDrop.post.map((row) => ({
                         name:
                             row.name ||
@@ -1516,8 +1516,8 @@ test.describe('LayersTool2 flat ordering parity', () => {
                         depth: Number.parseInt(row.depth, 10),
                     }))
                     const indexMappingMatches =
-                        legacyDrop?.indices?.oldIndex === layers2Entry?.[0] &&
-                        legacyDrop?.indices?.newIndex === layers2Entry?.[1]
+                        legacyDrop?.indices?.oldIndex === layersEntry?.[0] &&
+                        legacyDrop?.indices?.newIndex === layersEntry?.[1]
                     const liveAlgorithmMatches =
                         JSON.stringify(
                             applyLiveOracle.flat?.map(
@@ -1536,7 +1536,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                             seed,
                             step: index + 1,
                             sortableIndices: legacyDrop?.indices,
-                            layers2Indices: layers2Entry?.slice(0, 2),
+                            layersIndices: layersEntry?.slice(0, 2),
                         })
                     if (liveAlgorithmMatches) liveAlgorithm.matched += 1
                     else
@@ -1554,11 +1554,11 @@ test.describe('LayersTool2 flat ordering parity', () => {
                     console.log(
                         `Seed ${seed}, step ${index + 1} (${spec.source} -> ${spec.target}): ${JSON.stringify({
                             oldHistory: oldState.history,
-                            layers2History: newState.history,
+                            layersHistory: newState.history,
                             oldMovedIndex: oldState.flat.findIndex(
                                 (row) => row.name === movedName
                             ),
-                            layers2MovedIndex: newState.flat.findIndex(
+                            layersMovedIndex: newState.flat.findIndex(
                                 (row) => row.name === movedName
                             ),
                         })}`
@@ -1585,7 +1585,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                             old: oldState.visibility.filter((row) =>
                                 nearbyNames.includes(row.name)
                             ),
-                            layers2: nearbyNames.map(
+                            layers: nearbyNames.map(
                                     (name) =>
                                         newHeights.get(name) || {
                                             name,
@@ -1619,21 +1619,21 @@ test.describe('LayersTool2 flat ordering parity', () => {
                         const divergence = {
                             seed,
                             step: index + 1,
-                            drag: { old: legacySpec, layers2: layers2Spec },
+                            drag: { old: legacySpec, layers: layersSpec },
                             histories: {
                                 old: oldState.history,
-                                layers2: newState.history,
+                                layers: newState.history,
                             },
                             oldMovedIndex: oldState.flat.findIndex(
                                 (row) => row.name === movedName
                             ),
-                            layers2MovedIndex: newState.flat.findIndex(
+                            layersMovedIndex: newState.flat.findIndex(
                                 (row) => row.name === movedName
                             ),
                             matching,
                             rowHeightEvidence,
                             legacyDrop,
-                            layers2Indices: layers2Entry?.slice(0, 2),
+                            layersIndices: layersEntry?.slice(0, 2),
                             applyLiveOracle,
                         }
                         if (divergences.length === 0)
@@ -1683,7 +1683,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 }
                 const shared = await newPage.evaluate(() => {
                     const tool =
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                     const history = tool.orderingHistory.map((entry) => [
                         ...entry,
                     ])
@@ -1694,11 +1694,11 @@ test.describe('LayersTool2 flat ordering parity', () => {
                     const encoded = tool.getUrlString()
                     const previousTools = window.L_.FUTURES?.tools
                     const otherTools = (previousTools || []).filter(
-                        (entry) => !String(entry).startsWith('LayersTool2$')
+                        (entry) => !String(entry).startsWith('LayersTool$')
                     )
                     window.L_.FUTURES.tools = [
                         ...otherTools,
-                        `LayersTool2$${encoded}`,
+                        `LayersTool$${encoded}`,
                     ]
                     tool.orderingHistory = []
                     tool.finalize()
@@ -1724,7 +1724,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 shareUrl.searchParams.set('panePercents', '0,0,100')
                 shareUrl.searchParams.set(
                     'tools',
-                    `LayersTool2$${shared.encoded}`
+                    `LayersTool$${shared.encoded}`
                 )
                 await newPage.goto(shareUrl.toString())
                 await newPage.waitForLoadState('networkidle', {
@@ -1733,7 +1733,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 await newPage.waitForFunction(
                     ({ encoded, historyLength }) => {
                         const tool =
-                            window.ToolController_?.getTool('LayersTool2')
+                            window.ToolController_?.getTool('LayersTool')
                         return (
                             tool?.getUrlString?.() === encoded &&
                             tool.orderingHistory?.length === historyLength
@@ -1747,7 +1747,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 )
                 const reloaded = await newPage.evaluate(() => {
                     const tool =
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                     return {
                         flat: tool._debugFlat().map(
                             ({ name, type, depth }) => ({ name, type, depth })
@@ -1823,7 +1823,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         }
     })
 
-    test('keeps LayersTool2 ordering usable after a globe reorder error', async ({
+    test('keeps LayersTool ordering usable after a globe reorder error', async ({
         page,
     }) => {
         test.setTimeout(60000)
@@ -1837,13 +1837,13 @@ test.describe('LayersTool2 flat ordering parity', () => {
         })
         await loadMission(page)
         const flat = await page.evaluate(() =>
-            window.ToolController_.getTool('LayersTool2')._debugFlat([])
+            window.ToolController_.getTool('LayersTool')._debugFlat([])
         )
         await page.setViewportSize({
             width: 1500,
             height: Math.min(10000, Math.max(4800, flat.length * 44)),
         })
-        await page.locator('#toolButtonLayers2').click()
+        await page.locator('#toolButtonLayers').click()
         await page.getByRole('button', { name: 'Expand all' }).click()
         const imagery = await page.evaluate(() => {
             const layer = Object.values(window.L_.layers.data).find(
@@ -1857,7 +1857,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         expect(imagery).not.toBeNull()
         if (!imagery.on) {
             await page
-                .locator('.lt2-layerRow')
+                .locator('.lt-layerRow')
                 .filter({ hasText: 'ArcGIS World Imagery' })
                 .first()
                 .locator('[role="checkbox"]')
@@ -1884,12 +1884,12 @@ test.describe('LayersTool2 flat ordering parity', () => {
             const target = orderingRow(page, 'new', targetInfo)
             const historyLength = await page.evaluate(
                 () =>
-                    window.ToolController_.getTool('LayersTool2')
+                    window.ToolController_.getTool('LayersTool')
                         .orderingHistory.length
             )
             await dragWithMouse(
                 page,
-                source.locator('.lt2-drag'),
+                source.locator('.lt-drag'),
                 target,
                 fraction
             )
@@ -1897,7 +1897,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 .poll(() =>
                     page.evaluate(
                         () =>
-                            window.ToolController_.getTool('LayersTool2')
+                            window.ToolController_.getTool('LayersTool')
                                 .orderingHistory.length
                     )
                 )
@@ -1907,7 +1907,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             ).toHaveAttribute('data-active-drag-id', '')
             const state = await page.evaluate(() => {
                 const flat = window.ToolController_
-                    .getTool('LayersTool2')
+                    .getTool('LayersTool')
                     ._debugFlat()
                 return {
                     flat: flat.map(({ name, type, depth }) => ({
@@ -1916,7 +1916,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                         depth,
                     })),
                     order: window.L_._layersOrdered.slice(),
-                    history: window.ToolController_.getTool('LayersTool2')
+                    history: window.ToolController_.getTool('LayersTool')
                         .orderingHistory,
                 }
             })
@@ -1946,7 +1946,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             `Globe reorder error evidence: ${JSON.stringify({
                 pageErrors,
                 consoleErrors: consoleErrors.filter((text) =>
-                    /LayersTool2 failed to synchronize map order|DeveloperError|destroyed/i.test(
+                    /LayersTool failed to synchronize map order|DeveloperError|destroyed/i.test(
                         text
                     )
                 ),
@@ -1964,7 +1964,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         await loadMission(page)
         const history = [[5, 2, 2]]
         const legacyState = await page.evaluate((entries) => {
-            const oldTool = window.ToolController_.getTool('LayersTool')
+            const oldTool = window.ToolController_.getTool('LayersToolLegacy')
             const savedOrder = window.L_._layersOrdered.slice()
             const savedHistory = oldTool.orderingHistory
             const savedGlobe = window.L_.Globe_
@@ -1997,10 +1997,10 @@ test.describe('LayersTool2 flat ordering parity', () => {
             }
         }, history)
         const encodedHistory = history.map((entry) => entry.join('-')).join('.')
-        const legacyToolsUrl = `LayersTool$${encodedHistory}`
+        const legacyToolsUrl = `LayersToolLegacy$${encodedHistory}`
         const translatedToolsUrl = legacyToolsUrl.replace(
-            'LayersTool$',
-            'LayersTool2$'
+            'LayersToolLegacy$',
+            'LayersTool$'
         )
         pageErrors.length = 0
         await page.goto(
@@ -2018,7 +2018,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         const startup = await page.evaluate(() => ({
             order: window.L_._layersOrdered.slice(),
             flat: window.ToolController_
-                .getTool('LayersTool2')
+                .getTool('LayersTool')
                 ._debugFlat()
                 .map(({ name, type, depth }) => ({ name, type, depth })),
             tools: window.L_.FUTURES.tools,
@@ -2044,7 +2044,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         page,
     }) => {
         await loadMission(page)
-        await page.locator('#toolButtonLayers2').click()
+        await page.locator('#toolButtonLayers').click()
         const tree = page.getByRole('tree', { name: 'Layers' })
         await expect(tree).toBeVisible()
         await page.getByRole('button', { name: 'Expand all' }).click()
@@ -2078,7 +2078,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         )
         const expectedFlat = replay(flat, [liveMove.entry]).flat
         const headerKey = flat[headerIndex].key
-        const headerRowId = `lt2-row-${headerKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+        const headerRowId = `lt-row-${headerKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`
 
         await tree.focus()
         await expect
@@ -2102,13 +2102,13 @@ test.describe('LayersTool2 flat ordering parity', () => {
             .poll(() =>
                 page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                             .orderingHistory.length
                 )
             )
             .toBe(1)
         const actual = await page.evaluate(() => {
-            const tool = window.ToolController_.getTool('LayersTool2')
+            const tool = window.ToolController_.getTool('LayersTool')
             const flat = tool._debugFlat()
             return {
                 history: tool.orderingHistory,
@@ -2131,32 +2131,32 @@ test.describe('LayersTool2 flat ordering parity', () => {
         page,
     }) => {
         await loadMission(page)
-        await page.locator('#toolButtonLayers2').click()
+        await page.locator('#toolButtonLayers').click()
         const tree = page.getByRole('tree', { name: 'Layers' })
         await expect(tree).toBeVisible()
         await tree.focus()
         await page.keyboard.press('Home')
         const before = await page.evaluate(() => ({
-            history: window.ToolController_.getTool('LayersTool2')
+            history: window.ToolController_.getTool('LayersTool')
                 .orderingHistory,
             order: window.L_._layersOrdered.slice(),
         }))
         await page.keyboard.press('Alt+ArrowUp')
         await page.waitForTimeout(100)
         const after = await page.evaluate(() => ({
-            history: window.ToolController_.getTool('LayersTool2')
+            history: window.ToolController_.getTool('LayersTool')
                 .orderingHistory,
             order: window.L_._layersOrdered.slice(),
         }))
         expect(after).toEqual(before)
-        await expect(page.locator('.lt2-toast')).toHaveCount(0)
+        await expect(page.locator('.lt-toast')).toHaveCount(0)
     })
 
     test('repeats keyboard and mouse moves, undoes twice, and preserves config', async ({
         page,
     }) => {
         await loadMission(page)
-        await page.locator('#toolButtonLayers2').click()
+        await page.locator('#toolButtonLayers').click()
         const tree = page.getByRole('tree', { name: 'Layers' })
         await expect(tree).toBeVisible()
         await page.getByRole('button', { name: 'Expand all' }).click()
@@ -2171,15 +2171,15 @@ test.describe('LayersTool2 flat ordering parity', () => {
             .poll(() =>
                 page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                             .orderingHistory.length
                 )
             )
             .toBe(3)
 
-        const layerRows = page.locator('.lt2-layerRow')
+        const layerRows = page.locator('.lt-layerRow')
         await expect(layerRows.nth(1)).toBeVisible()
-        const dragHandle = await layerRows.nth(0).locator('.lt2-drag').boundingBox()
+        const dragHandle = await layerRows.nth(0).locator('.lt-drag').boundingBox()
         const target = await layerRows.nth(1).boundingBox()
         await page.mouse.move(
             dragHandle.x + dragHandle.width / 2,
@@ -2197,7 +2197,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             .poll(() =>
                 page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                             .orderingHistory.length
                 )
             )
@@ -2207,7 +2207,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             .poll(() =>
                 page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                             .orderingHistory.length
                     )
                 )
@@ -2217,7 +2217,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             .poll(() =>
                 page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool2')
+                        window.ToolController_.getTool('LayersTool')
                             .orderingHistory.length
                 )
             )
@@ -2235,7 +2235,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
         test.setTimeout(300000)
         await loadMission(page)
         const baseFlat = await page.evaluate(() =>
-            window.ToolController_.getTool('LayersTool2')._debugFlat([])
+            window.ToolController_.getTool('LayersTool')._debugFlat([])
         )
         await page.setViewportSize({
             width: 1280,
@@ -2251,7 +2251,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
             await page.locator('#toolButtonLayers').click()
             await page.locator('#layersToolList > li').first().waitFor()
             const oldTool = await page.evaluate(() => {
-                const tool = window.ToolController_.getTool('LayersTool')
+                const tool = window.ToolController_.getTool('LayersToolLegacy')
                 tool.orderingHistory = []
                 document
                     .querySelectorAll('#layersToolList > li[type="header"]')
@@ -2276,7 +2276,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                         `#layersToolList > li:nth-child(${index + 1})`
                     )
                     if (row?.getAttribute('type') === 'header') {
-                        window.ToolController_.getTool('LayersTool').toggleHeader(
+                        window.ToolController_.getTool('LayersToolLegacy').toggleHeader(
                             row.id
                         )
                     }
@@ -2287,13 +2287,13 @@ test.describe('LayersTool2 flat ordering parity', () => {
             await oldHandle.dragTo(toOld, { steps: 80 }).catch(() => {})
             let oldHistory = await page.evaluate(
                 () =>
-                    window.ToolController_.getTool('LayersTool').orderingHistory
+                    window.ToolController_.getTool('LayersToolLegacy').orderingHistory
             )
             if (!oldHistory.length) {
                 await dragWithMouse(page, oldHandle, toOld)
                 oldHistory = await page.evaluate(
                     () =>
-                        window.ToolController_.getTool('LayersTool')
+                        window.ToolController_.getTool('LayersToolLegacy')
                             .orderingHistory
                 )
             }
@@ -2310,7 +2310,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                     await dragWithMouse(page, oldHandle, toOld)
                     oldHistory = await page.evaluate(
                         () =>
-                            window.ToolController_.getTool('LayersTool')
+                            window.ToolController_.getTool('LayersToolLegacy')
                                 .orderingHistory
                     )
                 }
@@ -2329,10 +2329,10 @@ test.describe('LayersTool2 flat ordering parity', () => {
                           depth: Number.parseInt(row.getAttribute('depth'), 10),
                       })),
                       order: window.L_._layersOrdered.slice(),
-                      url: window.ToolController_.getTool('LayersTool')
+                      url: window.ToolController_.getTool('LayersToolLegacy')
                           .getUrlString(),
                       history:
-                          window.ToolController_.getTool('LayersTool')
+                          window.ToolController_.getTool('LayersToolLegacy')
                               .orderingHistory,
                   }))
                 : null
@@ -2344,19 +2344,19 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 )
             )
                 await page.screenshot({
-                    path: `/home/ubuntu/work/lt2-shots/v3/reorder-${screenshotSlug}-old.png`,
+                    path: `/home/ubuntu/work/lt-shots/v3/reorder-${screenshotSlug}-old.png`,
                 })
             await page.evaluate(() =>
                 window.ToolController_.closeActiveTool()
             )
             await page.evaluate(() => {
-                const tool = window.ToolController_.getTool('LayersTool2')
+                const tool = window.ToolController_.getTool('LayersTool')
                 tool.orderingHistory = []
             })
-            await page.locator('#toolButtonLayers2').click()
+            await page.locator('#toolButtonLayers').click()
             await page.getByRole('button', { name: 'Expand all' }).click()
             const rowSelector = (key) =>
-                `#lt2-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
+                `#lt-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
             const newFrom = page.locator(rowSelector(baseFlat[scenario.from].key))
             const newTo = page.locator(rowSelector(baseFlat[scenario.to].key))
             if (scenario.collapseTarget || scenario.collapseSource) {
@@ -2364,39 +2364,39 @@ test.describe('LayersTool2 flat ordering parity', () => {
                     scenario.collapseTarget ? scenario.to : scenario.from
                 ].key
                 await page
-                    .locator(`[data-row-id="${collapseId}"] .lt2-chevron`)
+                    .locator(`[data-row-id="${collapseId}"] .lt-chevron`)
                     .click()
             }
             await newFrom.scrollIntoViewIfNeeded()
             await newTo.scrollIntoViewIfNeeded()
-            const newHandle = newFrom.locator('.lt2-drag')
+            const newHandle = newFrom.locator('.lt-drag')
             await newHandle.dragTo(newTo, { steps: 80 }).catch(() => {})
             let newHistory = await page.evaluate(
                 () =>
-                    window.ToolController_.getTool('LayersTool2')
+                    window.ToolController_.getTool('LayersTool')
                         .orderingHistory
             )
             if (!newHistory.length)
                 await dragWithMouse(page, newHandle, newTo)
             newHistory = await page.evaluate(
                 () =>
-                    window.ToolController_.getTool('LayersTool2')
+                    window.ToolController_.getTool('LayersTool')
                         .orderingHistory
             )
             let newLive = await page.evaluate(() => ({
                 flat: window.ToolController_
-                    .getTool('LayersTool2')
+                    .getTool('LayersTool')
                     ._debugFlat()
                     .map(({ name, type, depth }) => ({ name, type, depth })),
                 order: window.L_._layersOrdered.slice(),
-                url: window.ToolController_.getTool('LayersTool2').getUrlString(),
+                url: window.ToolController_.getTool('LayersTool').getUrlString(),
             }))
             let comparison = oldLive
             if (!oldDriven) {
                 await page.evaluate((history) => {
                     window.ToolController_.closeActiveTool()
                     window.L_._layersOrdered = window.L_._layersOrdered.slice()
-                    const oldTool = window.ToolController_.getTool('LayersTool')
+                    const oldTool = window.ToolController_.getTool('LayersToolLegacy')
                     oldTool.orderingHistory = history.map((entry) =>
                         entry.slice(0, 3)
                     )
@@ -2411,10 +2411,10 @@ test.describe('LayersTool2 flat ordering parity', () => {
                         depth: Number.parseInt(row.getAttribute('depth'), 10),
                     })),
                     order: window.L_._layersOrdered.slice(),
-                    url: window.ToolController_.getTool('LayersTool')
+                    url: window.ToolController_.getTool('LayersToolLegacy')
                         .getUrlString(),
                     history:
-                        window.ToolController_.getTool('LayersTool')
+                        window.ToolController_.getTool('LayersToolLegacy')
                             .orderingHistory,
                 }))
                 if (
@@ -2423,7 +2423,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                     )
                 )
                     await page.screenshot({
-                        path: `/home/ubuntu/work/lt2-shots/v3/reorder-${screenshotSlug}-old.png`,
+                        path: `/home/ubuntu/work/lt-shots/v3/reorder-${screenshotSlug}-old.png`,
                     })
             }
             if (
@@ -2432,7 +2432,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 )
             )
                 await page.screenshot({
-                    path: `/home/ubuntu/work/lt2-shots/v3/reorder-${screenshotSlug}-new.png`,
+                    path: `/home/ubuntu/work/lt-shots/v3/reorder-${screenshotSlug}-new.png`,
                 })
             outcomes.push({
                 scenario: scenario.label,
@@ -2501,7 +2501,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 console.log(
                     `Collapsed-header placement: ${JSON.stringify({
                         old: summarize(comparison?.flat || []),
-                        layers2: summarize(newLive.flat),
+                        layers: summarize(newLive.flat),
                         applyLiveMove: summarize(simulated),
                         sortableIndices: oldDropCapture?.indices,
                         oracleMatchesLegacy,
@@ -2527,7 +2527,7 @@ test.describe('LayersTool2 flat ordering parity', () => {
                 )
                 expect(
                     newHistory.every((entry) => entry.length === 5),
-                    `${scenario.label}: Layers2 records resolved placements`
+                    `${scenario.label}: Layers records resolved placements`
                 ).toBe(true)
                 expect(
                     newHistory.map((entry) => entry.slice(0, 3)),

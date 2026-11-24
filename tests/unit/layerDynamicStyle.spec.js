@@ -560,7 +560,7 @@ test.describe("layerDynamicStyle - the Layers Tool's labels", () => {
   const LAYERS_TOOL = require("fs").readFileSync(
     require("path").resolve(
       __dirname,
-      "../../plugins/core/tools/Layers/LayersTool.js",
+      "../../plugins/core/tools/LayersLegacy/LayersToolLegacy.js",
     ),
     "utf8",
   );

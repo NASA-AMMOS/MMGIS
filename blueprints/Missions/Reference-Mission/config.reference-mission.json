@@ -4178,7 +4178,7 @@
           "url": "Data/images/CuriosityTopDownOrthoSmall.png",
           "visibility": false,
           "boundingBox": [-122.45, 37.76, -122.35, 37.82],
-          "description": "Small local raster image fixture for Layers2 settings and preview testing.",
+          "description": "Small local raster image fixture for Layers settings and preview testing.",
           "uuid": "622f2a59-8bda-4ff2-9b2d-d3d9562bd743"
         },
         {
@@ -4271,9 +4271,9 @@
       }
     },
     {
-      "name": "Layers2",
+      "name": "LayersLegacy",
       "icon": "layers",
-      "js": "LayersTool2",
+      "js": "LayersToolLegacy",
       "variables": {
         "expanded": true
       }

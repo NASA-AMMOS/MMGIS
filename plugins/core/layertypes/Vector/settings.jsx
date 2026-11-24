@@ -27,7 +27,7 @@ import {
     setDynamicStyleOverride,
 } from '@basics/Layers_/render/layerDynamicStyle'
 import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerSettings'
-import DynamicStyleRamp from '../../tools/Layers/components/DynamicStyleRamp'
+import DynamicStyleRamp from '../../tools/LayersLegacy/components/DynamicStyleRamp'
 import './settings.css'
 
 const ATTRIBUTE_RANGES = {
@@ -102,7 +102,7 @@ function FilterSettings({ layer, api }) {
             'layersToolFilterStateChange',
             onFilterStateChange
         )
-        document.addEventListener('layersTool2LayerDataLoaded', onLayerDataLoaded)
+        document.addEventListener('layersToolLayerDataLoaded', onLayerDataLoaded)
         let disposed = false
         Filtering.current = {
             layerName: layer.name,
@@ -124,7 +124,7 @@ function FilterSettings({ layer, api }) {
             })
             .catch((error) => {
                 console.error(
-                    `LayersTool2 filter UI failed for ${layer.display_name || layer.name}`,
+                    `LayersTool filter UI failed for ${layer.display_name || layer.name}`,
                     error
                 )
             })
@@ -138,7 +138,7 @@ function FilterSettings({ layer, api }) {
                 onFilterStateChange
             )
             document.removeEventListener(
-                'layersTool2LayerDataLoaded',
+                'layersToolLayerDataLoaded',
                 onLayerDataLoaded
             )
             if (
@@ -151,7 +151,7 @@ function FilterSettings({ layer, api }) {
             }
         }
     }, [api, layer.name])
-    return <div className="lt2-typeSettingsFilter" ref={host} />
+    return <div className="lt-typeSettingsFilter" ref={host} />
 }
 
 function CompositeSettings({ layer, api }) {
@@ -161,10 +161,10 @@ function CompositeSettings({ layer, api }) {
     )
     if (entries.length === 0) return <div>No composite layers.</div>
     return (
-        <div className="lt2-typeSettingsList">
+        <div className="lt-typeSettingsList">
             {entries.map(([name, attachment]) => (
-                <div className="lt2-typeSettingsComposite" key={name}>
-                    <div className="lt2-typeSettingsCompositeLine">
+                <div className="lt-typeSettingsComposite" key={name}>
+                    <div className="lt-typeSettingsCompositeLine">
                         <span title={attachment.title || name}>
                             {attachment.title || name}
                         </span>
@@ -241,9 +241,9 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
     }
     const userSettable = style.userSettable !== false
     return (
-        <div className="lt2-typeSettingsList">
+        <div className="lt-typeSettingsList">
             {userSettable && (
-                <div className="lt2-typeSettingsField">
+                <div className="lt-typeSettingsField">
                     <span>Domain</span>
                     <Select
                         value={getDomainMode(layer)}
@@ -265,10 +265,10 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                 const stats = propertyStats(layer, rulePropertyPath(rule))
                 return (
                     <div
-                        className="lt2-typeSettingsRule"
+                        className="lt-typeSettingsRule"
                         key={`${rulePropertyPath(rule)}-${index}`}
                     >
-                        <div className="lt2-typeSettingsCompositeLine">
+                        <div className="lt-typeSettingsCompositeLine">
                             <strong>{rulePropertyLabel(rule)}</strong>
                             {userSettable && (
                                 <Checkbox
@@ -284,7 +284,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                         {!userSettable || !enabled ? null : (
                             <>
                                 {rule.propertyType === 'stats' && (
-                                    <div className="lt2-typeSettingsField">
+                                    <div className="lt-typeSettingsField">
                                         <span>Statistic</span>
                                         <Select
                                             value={ruleStatOf(rule) || 'avg'}
@@ -298,7 +298,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                                         />
                                     </div>
                                 )}
-                                <div className="lt2-typeSettingsField">
+                                <div className="lt-typeSettingsField">
                                     <span>Styles</span>
                                     <Select
                                         value={attribute}
@@ -331,7 +331,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                                         }
                                     />
                                 ) : (
-                                    <div className="lt2-typeSettingsRange">
+                                    <div className="lt-typeSettingsRange">
                                         <label>
                                             <span>From</span>
                                             <TextInput
@@ -367,7 +367,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                                     </div>
                                 )}
                                 {stats && (
-                                    <div className="lt2-typeSettingsStats">
+                                    <div className="lt-typeSettingsStats">
                                         <span>
                                             {stats.scope === 'dataset'
                                                 ? 'Whole dataset'
@@ -407,9 +407,9 @@ function StatisticsSettings({ layer }) {
         .filter(Boolean)
     if (!rows.length) return <div>Statistics are not available yet.</div>
     return (
-        <div className="lt2-typeSettingsList">
+        <div className="lt-typeSettingsList">
             {rows.map(({ rule, stats }, index) => (
-                <div className="lt2-typeSettingsStats" key={`${rulePropertyPath(rule)}-${index}`}>
+                <div className="lt-typeSettingsStats" key={`${rulePropertyPath(rule)}-${index}`}>
                     <strong>{rulePropertyLabel(rule)}</strong>
                     <span>
                         {stats.scope === 'dataset'

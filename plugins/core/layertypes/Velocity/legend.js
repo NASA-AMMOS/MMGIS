@@ -9,8 +9,8 @@ import ToolController_ from '@basics/ToolController_/ToolController_'
 // drawn by the LayersTool, which owns the colormap/rescale UI it comes from.
 function derive(layerObj) {
 
-    ToolController_.getTool('LayersTool')?.populateCogScale(layerObj.name)
-    ToolController_.getTool('LayersTool2')?.populateCogScale?.(layerObj.name)
+    ToolController_.getTool('LayersToolLegacy')?.populateCogScale(layerObj.name)
+    ToolController_.getTool('LayersTool')?.populateCogScale?.(layerObj.name)
     return true
 }
 

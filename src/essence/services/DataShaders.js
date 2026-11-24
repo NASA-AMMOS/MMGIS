@@ -663,9 +663,9 @@ let DataShaders = {
                     ).val(max.toFixed(sigfigs))
                 }
 
-                const layersTool = ToolController_.getTool('LayersTool')
+                const layersTool = ToolController_.getTool('LayersToolLegacy')
                 if (layersTool && typeof layersTool.populateCogScale === 'function') layersTool.populateCogScale(name)
-                ToolController_.getTool('LayersTool2')?.populateCogScale?.(name)
+                ToolController_.getTool('LayersTool')?.populateCogScale?.(name)
             }
         },
         // prettier-ignore

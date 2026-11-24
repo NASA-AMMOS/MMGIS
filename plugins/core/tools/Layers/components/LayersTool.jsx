@@ -31,7 +31,7 @@ import TimeUI from '@basics/TimeControl_/TimeUI'
 import Help from '@basics/UserInterface_/components/Help/Help'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
 import DataShaders from '@essence/services/DataShaders'
-import LayerInfoModal from '../../Layers/LayerInfoModal/LayerInfoModal'
+import LayerInfoModal from '../../LayersLegacy/LayerInfoModal/LayerInfoModal'
 import Toast from '@design/components/Toast/Toast'
 import calls from '@pre/calls'
 import * as tokml from '@maphubs/tokml'
@@ -64,7 +64,7 @@ import {
     LayerSettingsStatusBanner,
 } from '@basics/UserInterface_/LayerSettings/LayerSettings'
 import * as store from '../store'
-import '../LayersTool2.css'
+import '../LayersTool.css'
 
 const HELP_KEY = 'LayersTool'
 const TYPE_ICONS = {
@@ -158,7 +158,7 @@ function layerShortcut(layer) {
 
 function dispatchLayerDataLoaded(layerName) {
     document.dispatchEvent(
-        new CustomEvent('layersTool2LayerDataLoaded', {
+        new CustomEvent('layersToolLayerDataLoaded', {
             detail: { layerName },
         })
     )
@@ -587,7 +587,7 @@ function RasterPreview({ layer, enabled, version }) {
     if (!enabled || !sample?.url) return null
     return (
         <img
-            className="lt2-preview"
+            className="lt-preview"
             src={sample.url}
             alt=""
             onError={markFailed}
@@ -625,8 +625,8 @@ function SearchBox({ value, onChange, onExpandAll, onCollapseAll, onRestore, tag
         timer.current = setTimeout(() => onChange(next.trim().toLowerCase()), 150)
     }
     return (
-        <div className="lt2-searchWrap">
-            <div className="lt2-search">
+        <div className="lt-searchWrap">
+            <div className="lt-search">
                 <i className="mdi mdi-magnify mdi-18px" aria-hidden="true" />
                 <input
                     aria-label="Search layers"
@@ -675,7 +675,7 @@ function SearchBox({ value, onChange, onExpandAll, onCollapseAll, onRestore, tag
                 </ToolTip>
             </div>
             {showTags && matchingTags.length > 0 && (
-                <div className="lt2-tagPopup" role="listbox" aria-label="Layer tags">
+                <div className="lt-tagPopup" role="listbox" aria-label="Layer tags">
                     {matchingTags.map((tag) => (
                         <button
                             type="button"
@@ -716,7 +716,7 @@ function StatusSlot({ layer, onOpen, api, rowId }) {
     if (kind === 'loading')
         return (
             <ToolTip label={message || 'Loading layer'}>
-                <span className="lt2-status" aria-label="Loading layer">
+                <span className="lt-status" aria-label="Loading layer">
                     <i className="mdi mdi-loading mdi-spin mdi-16px" />
                 </span>
             </ToolTip>
@@ -724,7 +724,7 @@ function StatusSlot({ layer, onOpen, api, rowId }) {
     if (error || kind === 'failed')
         return (
             <ToolTip label={message || error?.message || String(error || 'Layer failed to load')}>
-                <button className="lt2-status lt2-statusError" aria-label={`Layer failed; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
+                <button className="lt-status lt-statusError" aria-label={`Layer failed; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                     <i className="mdi mdi-alert-circle mdi-16px" />
                 </button>
             </ToolTip>
@@ -732,24 +732,24 @@ function StatusSlot({ layer, onOpen, api, rowId }) {
     if (warning || kind === 'cached')
         return (
             <ToolTip label={message || 'Layer refresh failed. Using cached data.'}>
-                <button className="lt2-status lt2-statusWarning" aria-label={`Refresh failed; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
+                <button className="lt-status lt-statusWarning" aria-label={`Refresh failed; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                     <i className="mdi mdi-cloud-alert mdi-16px" />
                 </button>
             </ToolTip>
         )
     if (timeEnabled || filtered)
         return (
-            <span className="lt2-statusGroup">
+            <span className="lt-statusGroup">
                 {timeEnabled && (
                     <ToolTip label="Time-enabled layer settings">
-                        <button className="lt2-status" aria-label={`Time settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
+                        <button className="lt-status" aria-label={`Time settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                             <i className="mdi mdi-clock-outline mdi-16px" />
                         </button>
                     </ToolTip>
                 )}
                 {filtered && (
                     <ToolTip label="Layer has an active filter">
-                        <button className="lt2-status lt2-statusFiltered" aria-label={`Filtered layer; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
+                        <button className="lt-status lt-statusFiltered" aria-label={`Filtered layer; open settings for ${layerName(layer)}`} tabIndex={-1} onClick={() => onOpen(rowId)}>
                             <i className="mdi mdi-filter-check mdi-16px" />
                         </button>
                     </ToolTip>
@@ -777,30 +777,30 @@ function HeaderRow({
     const mutedCount = Array.isArray(muted) ? muted.length : 0
     return (
         <div
-            className={`lt2-row lt2-headerRow ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
+            className={`lt-row lt-headerRow ${focused ? 'lt-focused' : ''} ${selected ? 'lt-selected' : ''}`}
             style={{
                 '--depth': depthOverride ?? row.depth,
             }}
             data-row-id={row.id}
         >
-            <span className="lt2-indentGuides" aria-hidden="true" />
-            <button className="lt2-drag" aria-label={`Drag ${row.label} to reorder`} {...dragHandle} tabIndex={-1}>
+            <span className="lt-indentGuides" aria-hidden="true" />
+            <button className="lt-drag" aria-label={`Drag ${row.label} to reorder`} {...dragHandle} tabIndex={-1}>
                 <i className="mdi mdi-drag-vertical mdi-16px" />
             </button>
-            <button className="lt2-chevron" aria-label={expanded ? 'Collapse group' : 'Expand group'} tabIndex={-1} onClick={() => onExpand(row.id)}>
-                <i className={`mdi mdi-chevron-right mdi-18px ${expanded ? 'lt2-open' : ''}`} />
+            <button className="lt-chevron" aria-label={expanded ? 'Collapse group' : 'Expand group'} tabIndex={-1} onClick={() => onExpand(row.id)}>
+                <i className={`mdi mdi-chevron-right mdi-18px ${expanded ? 'lt-open' : ''}`} />
             </button>
-            <button className="lt2-title lt2-headerTitle" title={row.label} tabIndex={-1} onClick={() => onTitle(row.id)}>
+            <button className="lt-title lt-headerTitle" title={row.label} tabIndex={-1} onClick={() => onTitle(row.id)}>
                 <i
-                    className={`mdi mdi-${expanded ? 'folder-open-outline' : 'folder-outline'} lt2-folderIcon`}
+                    className={`mdi mdi-${expanded ? 'folder-open-outline' : 'folder-outline'} lt-folderIcon`}
                     aria-hidden="true"
                 />
-                <span className="lt2-name">{highlightText(row.label, query)}</span>
+                <span className="lt-name">{highlightText(row.label, query)}</span>
             </button>
             <ToolTip label="Information">
                 <button
                     type="button"
-                    className="lt2-status"
+                    className="lt-status"
                     aria-label={`Information about ${row.label}`}
                     title={`Information about ${row.label}`}
                     tabIndex={-1}
@@ -813,7 +813,7 @@ function HeaderRow({
             </ToolTip>
             {!expanded && (
                 <span
-                    className="lt2-count"
+                    className="lt-count"
                     aria-label={`${rowState.countOn} of ${rowState.total} layers on`}
                 >
                     {rowState.countOn}/{rowState.total}
@@ -828,7 +828,7 @@ function HeaderRow({
             >
                 <button
                     type="button"
-                    className={`lt2-power ${mutedCount ? 'lt2-powerMuted' : ''}`}
+                    className={`lt-power ${mutedCount ? 'lt-powerMuted' : ''}`}
                     tabIndex={-1}
                     aria-pressed={mutedCount > 0}
                     aria-label={
@@ -880,19 +880,19 @@ function LayerRow({
         L_.layers?.layer?.[layer.name] == null
     return (
         <div
-            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${missing ? 'lt2-layerNotFound' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
+            className={`lt-row lt-layerRow ${isRaster && previews ? 'lt-rasterRow' : ''} ${isOn ? 'lt-on' : ''} ${failed ? 'lt-failed' : ''} ${missing ? 'lt-layerNotFound' : ''} ${focused ? 'lt-focused' : ''} ${selected ? 'lt-selected' : ''}`}
             style={{
                 '--depth': depthOverride ?? row.depth,
                 '--lt-color': color,
             }}
             data-row-id={row.id}
         >
-            <span className="lt2-indentGuides" aria-hidden="true" />
-            <button className="lt2-drag" aria-label={`Drag ${row.label} to reorder`} {...dragHandle} tabIndex={-1}>
+            <span className="lt-indentGuides" aria-hidden="true" />
+            <button className="lt-drag" aria-label={`Drag ${row.label} to reorder`} {...dragHandle} tabIndex={-1}>
                 <i className="mdi mdi-drag-vertical mdi-16px" />
             </button>
-            <span className="lt2-chevronSpace" aria-hidden="true" />
-            <span className="lt2-checkWrap">
+            <span className="lt-chevronSpace" aria-hidden="true" />
+            <span className="lt-checkWrap">
                 <Checkbox
                     checked={isOn}
                     onCheckedChange={(checked) => onToggle(row.id, checked)}
@@ -901,17 +901,17 @@ function LayerRow({
                     tabIndex={-1}
                 />
             </span>
-            <button className="lt2-title" onClick={() => onOpen(row.id)} title={row.label} tabIndex={-1}>
-                <span className="lt2-typeBadge" aria-hidden="true">
+            <button className="lt-title" onClick={() => onOpen(row.id)} title={row.label} tabIndex={-1}>
+                <span className="lt-typeBadge" aria-hidden="true">
                     <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
                 </span>
-                <span className="lt2-name">{highlightText(row.label, query)}</span>
+                <span className="lt-name">{highlightText(row.label, query)}</span>
                 <i
-                    className="mdi mdi-chevron-right lt2-openIndicator"
+                    className="mdi mdi-chevron-right lt-openIndicator"
                     aria-hidden="true"
                 />
                 {row.descriptionOnly && (
-                    <span className="lt2-descriptionHit">in description</span>
+                    <span className="lt-descriptionHit">in description</span>
                 )}
             </button>
             {isRaster && (
@@ -940,7 +940,7 @@ function SortableRow(props) {
         dragHandle: { ...attributes, ...listeners },
     }
     return (
-        <div ref={setNodeRef} style={style} className="lt2-sortable">
+        <div ref={setNodeRef} style={style} className="lt-sortable">
             {props.row.isHeader ? (
                 <MemoHeaderRow {...rowProps} />
             ) : (
@@ -964,7 +964,7 @@ class PluginSectionBoundary extends React.Component {
     render() {
         if (this.state.error)
             return (
-                <div className="lt2-inlineError" role="alert">
+                <div className="lt-inlineError" role="alert">
                     <strong>This section failed to load</strong>
                     <div>{this.state.error.message || String(this.state.error)}</div>
                 </div>
@@ -998,7 +998,7 @@ function CoreSettings({ layer, api }) {
         setExportError('')
     }, [layer.name, exportResetToken])
     const plugin = LayerTypeRegistry.settings(layer.type)
-    const testPlugin = window.__layersTool2TestPluginRegistry?.[layer.type]
+    const testPlugin = window.__layersToolTestPluginRegistry?.[layer.type]
     const pluginSections = useMemo(() => {
         try {
             return [
@@ -1191,7 +1191,7 @@ function CoreSettings({ layer, api }) {
                 icon="download-outline"
                 onReset={() => api.reset('export')}
             >
-                <div className="lt2-field">
+                <div className="lt-field">
                     <label>Format</label>
                     <Select
                         value={exportFormat}
@@ -1205,7 +1205,7 @@ function CoreSettings({ layer, api }) {
                     />
                 </div>
                 {layer.variables?.dynamicExtent === true && (
-                    <div className="lt2-field">
+                    <div className="lt-field">
                         <label>Extent</label>
                         <Select
                             value={exportExtent}
@@ -1235,7 +1235,7 @@ function CoreSettings({ layer, api }) {
                     Include properties
                 </Checkbox>
                 {L_.Coordinates?.mainType !== 'll' && (
-                    <div className="lt2-field">
+                    <div className="lt-field">
                         <label>Coordinates</label>
                         <Select
                             value={exportCoordinates}
@@ -1252,7 +1252,7 @@ function CoreSettings({ layer, api }) {
                     </div>
                 )}
                 <Button
-                    className="lt2-iconTextButton"
+                    className="lt-iconTextButton"
                     size="sm"
                     variant="secondary"
                     disabled={exportBusy}
@@ -1272,7 +1272,7 @@ function CoreSettings({ layer, api }) {
                     </Button>
                 )}
                 {exportError && (
-                    <div className="lt2-inlineError" role="alert">
+                    <div className="lt-inlineError" role="alert">
                         {exportError}
                     </div>
                 )}
@@ -1287,7 +1287,7 @@ function CoreSettings({ layer, api }) {
                 onReset={() => api.reset('export')}
             >
                 <a
-                    className="lt2-sourceDownload"
+                    className="lt-sourceDownload"
                     href={layer.variables.downloadURL}
                     target="_blank"
                     rel="noreferrer"
@@ -1363,16 +1363,16 @@ function CoreSettings({ layer, api }) {
                     icon="clock-outline"
                     onReset={() => api.reset('time')}
                 >
-                    <div className="lt2-field">
+                    <div className="lt-field">
                         <span>Data start</span>
                         <TextInput readOnly value={layer.time.dataStartTime || layer.time.start || ''} />
                     </div>
-                    <div className="lt2-field">
+                    <div className="lt-field">
                         <span>Data end</span>
                         <TextInput readOnly value={layer.time.dataEndTime || layer.time.end || ''} />
                     </div>
                     {layer.time.refreshIntervalEnabled === true && (
-                        <div className="lt2-field">
+                        <div className="lt-field">
                             <span>Auto-refreshes every</span>
                             <span>{layer.time.refreshIntervalAmount || 60} seconds</span>
                         </div>
@@ -1409,9 +1409,9 @@ function CoreSettings({ layer, api }) {
                     </SettingSection>
                 )
                 })}
-            <div className="lt2-pluginActions">
+            <div className="lt-pluginActions">
                 {pluginActions.map((action) => (
-                    <Button className="lt2-iconTextButton" key={action.id} size="sm" variant="secondary" onClick={() => {
+                    <Button className="lt-iconTextButton" key={action.id} size="sm" variant="secondary" onClick={() => {
                         setActionError('')
                         try {
                             Promise.resolve(action.onClick?.(pluginContext)).catch((error) =>
@@ -1431,7 +1431,7 @@ function CoreSettings({ layer, api }) {
                     </Button>
                 ))}
             </div>
-            {actionError && <div className="lt2-inlineError" role="alert">{actionError}</div>}
+            {actionError && <div className="lt-inlineError" role="alert">{actionError}</div>}
             {coreExport}
         </>
     )
@@ -1486,9 +1486,9 @@ function SettingsPage({
         requestAnimationFrame(() => {
             section.tabIndex = -1
             section.scrollIntoView({ block: 'nearest' })
-            section.classList.remove('lt2-sectionFlash')
+            section.classList.remove('lt-sectionFlash')
             void section.offsetWidth
-            section.classList.add('lt2-sectionFlash')
+            section.classList.add('lt-sectionFlash')
             const exportButton = Array.from(
                 section.querySelectorAll('.layerSettingsSectionBody button')
             ).find((button) => /^download/i.test(button.textContent.trim()))
@@ -1500,29 +1500,29 @@ function SettingsPage({
     }, [layer.name])
     return (
         <div
-            className={`lt2-settings ${drawerClosing ? 'lt2-drawerClosing' : ''}`}
+            className={`lt-settings ${drawerClosing ? 'lt-drawerClosing' : ''}`}
             role="region"
             aria-label={`${row.label} settings`}
             ref={settingsRef}
         >
             <div
-                className={`lt2-hero ${heroSample?.url ? 'lt2-hasSample' : ''}`}
+                className={`lt-hero ${heroSample?.url ? 'lt-hasSample' : ''}`}
                 style={{ '--layer-color': color }}
             >
                 {heroSample?.url && (
                     <img
-                        className="lt2-heroSample"
+                        className="lt-heroSample"
                         src={heroSample.url}
                         alt=""
                         aria-hidden="true"
                         onError={markFailed}
                     />
                 )}
-                <div className="lt2-heroActions">
+                <div className="lt-heroActions">
                     <ToolTip label="Back to layers (Esc)">
                         <IconButton
                             size="sm"
-                            className="lt2-closeButton"
+                            className="lt-closeButton"
                             aria-label="Close settings"
                             aria-keyshortcuts="Escape"
                             onClick={onBack}
@@ -1536,29 +1536,29 @@ function SettingsPage({
                         </IconButton>
                     </ToolTip>
                 </div>
-                <div className="lt2-avatar" aria-hidden="true">
+                <div className="lt-avatar" aria-hidden="true">
                     <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
                 </div>
-                <h2 className="lt2-settingsName" title={row.label} ref={titleRef} tabIndex={-1}>{row.label}</h2>
-                <div className="lt2-path" title={row.path.join(' › ')}>
+                <h2 className="lt-settingsName" title={row.label} ref={titleRef} tabIndex={-1}>{row.label}</h2>
+                <div className="lt-path" title={row.path.join(' › ')}>
                     {row.path.map((part, index) => (
                         <React.Fragment key={`${part}-${index}`}>
-                            {index > 0 && <span className="lt2-pathSeparator">›</span>}
-                            <span className={`lt2-pathSegment ${index > 0 && index < row.path.length - 1 ? 'lt2-pathMiddle' : ''}`}>
+                            {index > 0 && <span className="lt-pathSeparator">›</span>}
+                            <span className={`lt-pathSegment ${index > 0 && index < row.path.length - 1 ? 'lt-pathMiddle' : ''}`}>
                                 {part}
                             </span>
                         </React.Fragment>
                     ))}
                 </div>
                 {shortcut && (
-                    <div className="lt2-shortcut">
+                    <div className="lt-shortcut">
                         <kbd>Alt</kbd>
-                        <span className="lt2-keyPlus">+</span>
+                        <span className="lt-keyPlus">+</span>
                         <kbd>{shortcut}</kbd>
-                        <span className="lt2-shortcutText">toggles this layer</span>
+                        <span className="lt-shortcutText">toggles this layer</span>
                     </div>
                 )}
-                <div className="lt2-actionBar">
+                <div className="lt-actionBar">
                     <Checkbox
                         aria-keyshortcuts={
                             shortcut ? `Alt+${shortcut}` : undefined
@@ -1567,12 +1567,12 @@ function SettingsPage({
                         onCheckedChange={async (checked) => {
                             await api.toggle(layer.name, checked)
                         }}
-                        className="lt2-visible"
+                        className="lt-visible"
                         showCheck
                     >
                         Visible
                     </Checkbox>
-                    <div className="lt2-actionButtons">
+                    <div className="lt-actionButtons">
                         <ToolTip label="Zoom to layer">
                             <IconButton size="sm" aria-label="Zoom to layer" onClick={() => api.zoomTo()}>
                                 <i className="mdi mdi-crosshairs-gps mdi-18px" />
@@ -1616,11 +1616,11 @@ function SettingsPage({
                     onRetry={retry}
                 />
             )}
-            <div className="lt2-settingsSections">
+            <div className="lt-settingsSections">
                 <CoreSettings layer={layer} api={api} />
             </div>
-            <div className="lt2-settingsFooter">
-                <Button className="lt2-iconTextButton" size="sm" variant="secondary" onClick={() => api.resetAll()}>
+            <div className="lt-settingsFooter">
+                <Button className="lt-iconTextButton" size="sm" variant="secondary" onClick={() => api.resetAll()}>
                     <i className="mdi mdi-restore" /> Reset all settings
                 </Button>
             </div>
@@ -1628,7 +1628,7 @@ function SettingsPage({
     )
 }
 
-function LayersTool2App({ vars }) {
+function LayersToolApp({ vars }) {
     const state = useSyncExternalStore(store.subscribe, store.getState)
     useEffect(() => {
         Help.finalize(HELP_KEY)
@@ -2054,7 +2054,7 @@ function LayersTool2App({ vars }) {
             store.updateState({
                 layerVersion: store.getState().layerVersion + 1,
             })
-        L_.subscribeOnLayerToggle('LayersTool2', onLayerToggle)
+        L_.subscribeOnLayerToggle('LayersTool', onLayerToggle)
         document.addEventListener(
             'layerRefreshStatusChanged',
             onRefreshStatus
@@ -2064,7 +2064,7 @@ function LayersTool2App({ vars }) {
             onFilterStateChange
         )
         return () => {
-            L_.unsubscribeOnLayerToggle('LayersTool2')
+            L_.unsubscribeOnLayerToggle('LayersTool')
             document.removeEventListener(
                 'layerRefreshStatusChanged',
                 onRefreshStatus
@@ -2315,7 +2315,7 @@ function LayersTool2App({ vars }) {
             L_.reorderLayers?.(layerOrder(nextFlat))
         } catch (error) {
             console.error(
-                'LayersTool2 failed to synchronize map order after a reorder.',
+                'LayersTool failed to synchronize map order after a reorder.',
                 error
             )
         }
@@ -2340,7 +2340,7 @@ function LayersTool2App({ vars }) {
         if (toastTimer.current) clearTimeout(toastTimer.current)
         toastTimer.current = setTimeout(() => {
             const toastHasFocus =
-                document.activeElement?.closest('.lt2-toast') != null
+                document.activeElement?.closest('.lt-toast') != null
             setToast(null)
             if (toastHasFocus)
                 requestAnimationFrame(() => scrollElement.current?.focus())
@@ -2523,20 +2523,20 @@ function LayersTool2App({ vars }) {
     }
 
     return (
-        <div className={`lt2-root ${mobile ? 'lt2-mobile' : ''}`}>
-            <div className="lt2-liveRegion" aria-live="polite" aria-atomic="true">{liveCount}</div>
+        <div className={`lt-root ${mobile ? 'lt-mobile' : ''}`}>
+            <div className="lt-liveRegion" aria-live="polite" aria-atomic="true">{liveCount}</div>
             <div
                 ref={listPaneRef}
-                className="lt2-listPane"
+                className="lt-listPane"
                 aria-hidden={state.openLayer ? true : undefined}
             >
-                <div id="layersToolHeader" className="lt2-toolbar mmgisToolHeader">
-                    <div className="lt2-toolbarTitle">
+                <div id="layersToolHeader" className="lt-toolbar mmgisToolHeader">
+                    <div className="lt-toolbarTitle">
                         <div className="left">
                             <div className="mmgisToolTitle">Layers</div>
-                            <span className="lt2-helpSlot" dangerouslySetInnerHTML={{ __html: Help.getComponent(HELP_KEY) }} />
+                            <span className="lt-helpSlot" dangerouslySetInnerHTML={{ __html: Help.getComponent(HELP_KEY) }} />
                         </div>
-                        <div className="right lt2-toolbarButtons">
+                        <div className="right lt-toolbarButtons">
                             <ToolTip label="Show only layers that are on">
                                 <IconButton
                                     size="sm"
@@ -2574,7 +2574,7 @@ function LayersTool2App({ vars }) {
                     />
                 </div>
                 {isFiltering && (
-                    <div className="lt2-filterBar">
+                    <div className="lt-filterBar">
                         <span>{visibleLayers} of {total} layers</span>
                         <button
                             type="button"
@@ -2588,7 +2588,7 @@ function LayersTool2App({ vars }) {
                     </div>
                 )}
                 {isFiltering && visibleLayers === 0 ? (
-                    <div className="lt2-empty">
+                    <div className="lt-empty">
                         <i className="mdi mdi-layers-search-outline mdi-36px" />
                         <div>No layers match{query ? ` “${query}”` : ' these filters'}.</div>
                         <Button
@@ -2616,7 +2616,7 @@ function LayersTool2App({ vars }) {
                                 reorderRows(active.id, over?.id)
                             } catch (error) {
                                 console.error(
-                                    'LayersTool2 failed to apply a reorder.',
+                                    'LayersTool failed to apply a reorder.',
                                     error
                                 )
                             } finally {
@@ -2632,20 +2632,20 @@ function LayersTool2App({ vars }) {
                         <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
                             <div
                                 ref={scrollElement}
-                                className="lt2-scroll"
+                                className="lt-scroll"
                                 role="tree"
                                 aria-label="Layers"
                                 data-active-drag-id={activeDragId || ''}
                                 aria-activedescendant={
                                     focused
-                                        ? `lt2-row-${focused.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+                                        ? `lt-row-${focused.replace(/[^a-zA-Z0-9_-]/g, '_')}`
                                         : undefined
                                 }
                                 tabIndex={0}
                                 onKeyDown={onTreeKeyDown}
                             >
                                 <div
-                                    className="lt2-virtualContent"
+                                    className="lt-virtualContent"
                                     role="group"
                                     style={{ height: virtualizer.getTotalSize() }}
                                 >
@@ -2662,7 +2662,7 @@ function LayersTool2App({ vars }) {
                                                 ref={(element) => {
                                                     rowElements.current[row.id] = element
                                                 }}
-                                                id={`lt2-row-${row.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
+                                                id={`lt-row-${row.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
                                                 tabIndex={-1}
                                                 role="treeitem"
                                                 aria-label={`${row.label}, ${rowState.label}`}
@@ -2684,7 +2684,7 @@ function LayersTool2App({ vars }) {
                                                         : undefined
                                                 }
                                                 data-index={item.index}
-                                                className="lt2-virtualRow"
+                                                className="lt-virtualRow"
                                                 style={{
                                                     height: rowHeight,
                                                     transform: `translateY(${item.start}px)`,
@@ -2721,19 +2721,19 @@ function LayersTool2App({ vars }) {
                     </DndContext>
                 )}
                 {toast && (
-                    <div className="lt2-toast" role="status">
+                    <div className="lt-toast" role="status">
                         <span>{toast}</span>
                         <button type="button" onClick={undoReorder}>Undo</button>
                     </div>
                 )}
-                <div className="lt2-liveRegion" aria-live="polite" aria-atomic="true">
+                <div className="lt-liveRegion" aria-live="polite" aria-atomic="true">
                     {reorderAnnouncement}
                 </div>
             </div>
             {state.openLayer && (
                 <button
                     type="button"
-                    className={`lt2-drawerScrim ${drawerClosing ? 'lt2-drawerClosing' : ''}`}
+                    className={`lt-drawerScrim ${drawerClosing ? 'lt-drawerClosing' : ''}`}
                     aria-label="Close settings"
                     tabIndex={-1}
                     onClick={closeSettings}
@@ -2759,4 +2759,4 @@ function LayersTool2App({ vars }) {
     )
 }
 
-export default LayersTool2App
+export default LayersToolApp

@@ -23,7 +23,7 @@ const read = (p) => fs.readFileSync(path.resolve(__dirname, '../../', p), 'utf8'
 const LAYER_LEGEND = read('src/essence/Basics/Layers_/legend/LayerLegend.js')
 const SUBLAYERS = read('src/essence/Basics/Layers_/display/sublayers.js')
 const LEGEND_TOOL = read('plugins/core/tools/Legend/LegendTool.js')
-const LAYERS_TOOL = read('plugins/core/tools/Layers/LayersTool.js')
+const LAYERS_TOOL = read('plugins/core/tools/LayersLegacy/LayersToolLegacy.js')
 const UPDATE_TOOLS = read('API/updateTools.js')
 
 const emptyConfig = {
