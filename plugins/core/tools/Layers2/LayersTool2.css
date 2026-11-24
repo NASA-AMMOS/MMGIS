@@ -271,18 +271,6 @@
     cursor: pointer;
 }
 
-.lt2-rasterRow:has(img.lt2-preview) .lt2-title {
-    padding-right: 88px;
-}
-
-.lt2-longRasterName.lt2-rasterRow .lt2-preview {
-    width: 48px;
-}
-
-.lt2-longRasterName.lt2-rasterRow:has(img.lt2-preview) .lt2-title {
-    padding-right: 48px;
-}
-
 .lt2-drag {
     position: absolute;
     top: 0;
@@ -523,24 +511,45 @@
     color: var(--color-yellow, #e1b000);
 }
 
+.lt2-rasterRow {
+    --lt2-previewLeft: calc(34px + var(--depth, 0) * var(--lt2-indent));
+}
+
 .lt2-preview {
     position: absolute;
     top: 0;
     right: 0;
+    left: var(--lt2-previewLeft);
     z-index: 0;
-    width: 92px;
+    width: calc(100% - var(--lt2-previewLeft));
     height: 100%;
     object-fit: cover;
-    border-radius: 0 2px 2px 0;
-    opacity: 0.85;
+    border-radius: 3px;
     pointer-events: none;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 86%);
-    mask-image: linear-gradient(90deg, transparent, #000 86%);
+    -webkit-mask-image: linear-gradient(90deg, #000 75%, transparent);
+    mask-image: linear-gradient(90deg, #000 75%, transparent);
+}
+
+.lt2-rasterRow:has(img.lt2-preview)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: var(--lt2-previewLeft);
+    z-index: 0;
+    border-radius: 3px;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-a) 78%, transparent),
+        color-mix(in srgb, var(--color-a) 30%, transparent) 70%,
+        transparent
+    );
+    pointer-events: none;
 }
 
 .lt2-layerRow:not(.lt2-on) .lt2-preview {
     filter: grayscale(1) brightness(0.6);
-    opacity: 0.5;
 }
 
 .lt2-title,

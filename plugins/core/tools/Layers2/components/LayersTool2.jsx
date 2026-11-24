@@ -871,7 +871,7 @@ function LayerRow({
         L_.layers?.layer?.[layer.name] == null
     return (
         <div
-            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isRaster && row.label.length > 24 ? 'lt2-longRasterName' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${missing ? 'lt2-layerNotFound' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
+            className={`lt2-row lt2-layerRow ${isRaster && previews ? 'lt2-rasterRow' : ''} ${isOn ? 'lt2-on' : ''} ${failed ? 'lt2-failed' : ''} ${missing ? 'lt2-layerNotFound' : ''} ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
             style={{
                 '--depth': depthOverride ?? row.depth,
                 '--lt-color': color,
