@@ -10,6 +10,7 @@
     background: var(--color-a);
     position: relative;
     overflow: hidden;
+    overflow: clip;
 }
 
 .lt2-root,

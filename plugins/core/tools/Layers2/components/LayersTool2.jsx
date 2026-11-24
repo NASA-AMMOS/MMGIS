@@ -1486,7 +1486,7 @@ function SettingsPage({
         })
     }
     useEffect(() => {
-        titleRef.current?.focus()
+        titleRef.current?.focus({ preventScroll: true })
     }, [layer.name])
     return (
         <div
