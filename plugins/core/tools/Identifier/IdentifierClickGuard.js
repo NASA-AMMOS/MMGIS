@@ -207,8 +207,38 @@ export function globeClickPosition(e, litho) {
         const lng = (cartographic.longitude * 180) / Math.PI
         const lat = (cartographic.latitude * 180) / Math.PI
         if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null
-        return { lng: ((lng + 180) % 360 + 360) % 360 - 180, lat }
+        return { lng: ((((lng + 180) % 360) + 360) % 360) - 180, lat }
     } catch (_) {
         return null
     }
+}
+
+/** A longitude in -180..180 (180 stays 180; -180 stays -180). */
+export function normalizeLng(lng) {
+    if (!Number.isFinite(lng)) return lng
+    if (lng >= -180 && lng <= 180) return lng
+    return ((((lng + 180) % 360) + 360) % 360) - 180
+}
+
+/**
+ * The copy of `lng` (by whole turns) nearest `refLng`: where a point chosen
+ * on the globe, or by longitude, belongs on a map that has been panned
+ * across the antimeridian, so the marker lands in the world copy in view.
+ */
+export function nearestWorldLng(lng, refLng) {
+    if (!Number.isFinite(lng) || !Number.isFinite(refLng)) return lng
+    return lng + 360 * Math.round((refLng - lng) / 360)
+}
+
+/**
+ * The point a map click selects: the normalised longitude for the queries
+ * (and the globe), and the clicked longitude itself for the map marker, so
+ * the marker stays in the world copy that was clicked (190°E is queried as
+ * -170° but marked at 190°).
+ */
+export function mapClickPoint(latlng) {
+    if (!latlng) return null
+    const { lat, lng } = latlng
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+    return { lng: normalizeLng(lng), lat, mapLng: lng }
 }

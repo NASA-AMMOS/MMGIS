@@ -12,8 +12,15 @@ import {
     classifyLayer,
     createRequestGuard,
     cacheKey,
+    createLimiter,
+    snapshotLayerQuery,
+    TIME_SERIES_LIMITS,
 } from './IdentifierTimeSeries.js'
-import { buildChartOption } from './IdentifierTimeSeriesChart.js'
+import {
+    buildChartOption,
+    buildReadingsTable,
+    describeChart,
+} from './IdentifierTimeSeriesChart.js'
 
 const CACHE_SIZE = 24
 
@@ -53,16 +60,19 @@ export function listActiveLayers(
  * @param {() => object} deps.getLayers - { data, on }
  * @param {(uuid) => object|undefined} [deps.getIdentifierConfig]
  * @param {(args) => Promise<object>} deps.fetchSeries - fetchLayerTimeSeries
- *   bound to fetch/location (receives { layer, lng, lat, signal, identifierConfig })
- * @param {{ place(lng, lat), remove() }} deps.marker
+ *   bound to fetch/location; receives { query, layerUUID, lng, lat, signal,
+ *   run } where query is the layer's snapshot and run the shared limiter
+ * @param {{ place(lng, lat, mapLng), remove() }} deps.marker
  * @param {object} deps.view - see createPanelView
  * @param {Function} [deps.AbortController]
+ * @param {number} [deps.requestConcurrency] - per point selection, all layers
  */
 export function createTimeSeriesController(deps) {
     const guard = createRequestGuard(deps.AbortController)
     const cache = new Map()
     let point = null
     let open = false
+    let refreshQueued = false
 
     const getConfig = (uuid) => deps.getIdentifierConfig?.(uuid)
     const remember = (key, result) => {
@@ -80,10 +90,19 @@ export function createTimeSeriesController(deps) {
         )
         deps.view.render(point, eligible, unsupported)
 
+        // One concurrency budget for everything this selection asks for,
+        // shared by every layer charted here.
+        const run = createLimiter(
+            deps.requestConcurrency ?? TIME_SERIES_LIMITS.requestConcurrency
+        )
         const { lng, lat } = point
         return Promise.all(
             eligible.map(({ uuid, layer }) => {
-                const key = cacheKey(uuid, layer, lng, lat, getConfig(uuid))
+                // Everything below - cache key, requests, labels - reads this
+                // snapshot, never the live layer, which may change while the
+                // requests are out.
+                const query = snapshotLayerQuery(layer)
+                const key = cacheKey(uuid, query, lng, lat)
                 if (cache.has(key)) {
                     const hit = cache.get(key)
                     remember(key, hit)
@@ -93,12 +112,12 @@ export function createTimeSeriesController(deps) {
                 return Promise.resolve()
                     .then(() =>
                         deps.fetchSeries({
-                            layer,
+                            query,
                             layerUUID: uuid,
                             lng,
                             lat,
                             signal: token.signal,
-                            identifierConfig: getConfig(uuid),
+                            run,
                         })
                     )
                     .then((result) => {
@@ -124,22 +143,46 @@ export function createTimeSeriesController(deps) {
         wantsClick() {
             return listActiveLayers(deps.getLayers()).anyTimeEnabled
         },
-        /** Select (or move to) a point and chart it. */
-        selectPoint(lng, lat) {
+        /**
+         * Select (or move to) a point and chart it.
+         * @param {number} lng - normalised to -180..180; the queries use it
+         * @param {number} lat
+         * @param {object} [options]
+         * @param {number} [options.mapLng] - the longitude in the map's world
+         *   copy that was clicked, for the map marker only
+         * @param {boolean} [options.fromKeyboard] - focus the panel
+         */
+        selectPoint(lng, lat, options = {}) {
             if (!Number.isFinite(lng) || !Number.isFinite(lat)) return false
             if (!controller.wantsClick()) return false
             point = { lng, lat }
-            deps.marker.place(lng, lat)
+            const mapLng = Number.isFinite(options.mapLng)
+                ? options.mapLng
+                : lng
+            deps.marker.place(lng, lat, mapLng)
             if (!open) {
-                deps.view.open()
+                deps.view.open({ focus: options.fromKeyboard === true })
                 open = true
-            }
+            } else if (options.fromKeyboard) deps.view.focus?.()
             load()
             return true
         },
         /** Re-chart the current point (time window or layers changed). */
         refresh() {
             if (open && point) load()
+        },
+        /**
+         * A layer's query inputs changed (expression, bands, time window).
+         * Changes made together - in one task - re-chart once; the request
+         * guard drops whatever the previous load still has in flight.
+         */
+        queryChanged() {
+            if (!open || !point || refreshQueued) return
+            refreshQueued = true
+            Promise.resolve().then(() => {
+                refreshQueued = false
+                controller.refresh()
+            })
         },
         close() {
             guard.cancel()
@@ -190,47 +233,86 @@ function readTheme(doc, el) {
 
 /**
  * The panel: a floating card listing each active layer - a chart for those
- * that can be charted, and a one-line reason for those that can't.
+ * that can be charted, and the reason for those that can't.
+ *
+ * Layers that can't be charted sit in a "Not charted (N)" disclosure: closed
+ * while at least one chart is shown, open when nothing could be charted.
+ * Each chart has an accessible name and a readings table (dates, values,
+ * acquisition ids and gap reasons) behind its own disclosure.
  *
  * @param {object} deps
  * @param {Document} deps.document
  * @param {() => HTMLElement} deps.getParent - where the panel mounts
  * @param {(el, option) => { setOption, resize, dispose }} deps.createChart
+ * @param {() => HTMLElement|null} [deps.getReturnFocus] - where focus goes
+ *   when the panel is closed from the keyboard
  */
 export function createPanelView(deps) {
     const doc = deps.document
     let root = null
     let closeHandler = null
     const charts = new Map()
+    // Open/closed as the person last set "Not charted" themselves (null:
+    // they haven't). Kept across re-renders, which rebuild the element.
+    let notChartedChoice = null
+    let pending = 0
 
     const disposeCharts = () => {
         charts.forEach((c) => c.dispose())
         charts.clear()
     }
 
+    const notChartedOpen = () => {
+        const d = root?.querySelector('.identifierTimeSeriesPanel_unsupported')
+        if (!d || notChartedChoice != null) return
+        // Hidden behind its summary while anything is charted; shown when
+        // nothing is (or will be).
+        d.open = charts.size === 0 && pending === 0
+    }
+
+    const closeFromPanel = (viaKeyboard) => {
+        const back = viaKeyboard ? deps.getReturnFocus?.() : null
+        if (closeHandler) closeHandler()
+        if (back && typeof back.focus === 'function') back.focus()
+    }
+
     const view = {
         onClose(fn) {
             closeHandler = fn
         },
-        open() {
+        open(options = {}) {
             if (root) return
-            root = doc.createElement('div')
+            root = doc.createElement('section')
             root.id = 'identifierTimeSeriesPanel'
             root.className = 'identifierTimeSeriesPanel'
-            root.setAttribute('role', 'dialog')
-            root.setAttribute('aria-label', 'Identifier time series')
+            root.setAttribute(
+                'aria-labelledby',
+                'identifierTimeSeriesPanel_title'
+            )
             root.innerHTML = [
                 '<div class="identifierTimeSeriesPanel_header">',
-                '<div class="identifierTimeSeriesPanel_title">Time Series</div>',
-                '<div class="identifierTimeSeriesPanel_coords"></div>',
-                '<button type="button" class="identifierTimeSeriesPanel_close" title="Close" aria-label="Close time series"><i class="mdi mdi-close mdi-14px"></i></button>',
+                '<h2 class="identifierTimeSeriesPanel_title" id="identifierTimeSeriesPanel_title" tabindex="-1">Time Series</h2>',
+                '<div class="identifierTimeSeriesPanel_coords" aria-label="Selected point"></div>',
+                '<button type="button" class="identifierTimeSeriesPanel_close" title="Close" aria-label="Close time series"><i class="mdi mdi-close mdi-14px" aria-hidden="true"></i></button>',
                 '</div>',
+                '<div class="identifierTimeSeriesPanel_live" role="status" aria-live="polite"></div>',
                 '<div class="identifierTimeSeriesPanel_body"></div>',
             ].join('')
-            root.querySelector(
+            const closeBtn = root.querySelector(
                 '.identifierTimeSeriesPanel_close'
-            ).addEventListener('click', () => closeHandler && closeHandler())
-            // The panel floats over the map: keep its clicks and wheel off it.
+            )
+            closeBtn.addEventListener('click', (e) =>
+                // detail 0: activated with Enter/Space rather than a pointer
+                closeFromPanel(e.detail === 0)
+            )
+            root.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    e.stopPropagation()
+                    closeFromPanel(true)
+                }
+            })
+            // The panel floats over the map: keep its clicks, wheel and keys
+            // off it.
             ;[
                 'click',
                 'dblclick',
@@ -238,29 +320,43 @@ export function createPanelView(deps) {
                 'mouseup',
                 'wheel',
                 'contextmenu',
+                'keydown',
             ].forEach((ev) =>
                 root.addEventListener(ev, (e) => e.stopPropagation())
             )
             deps.getParent().appendChild(root)
+            if (options.focus) view.focus()
+        },
+        focus() {
+            root?.querySelector('.identifierTimeSeriesPanel_title')?.focus()
         },
         render(point, eligible, unsupported) {
             if (!root) return
             disposeCharts()
+            pending = eligible.length
             root.querySelector(
                 '.identifierTimeSeriesPanel_coords'
             ).textContent = `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`
+            root.querySelector('.identifierTimeSeriesPanel_live').textContent =
+                eligible.length > 0
+                    ? `Loading time series at ${point.lat.toFixed(
+                          5
+                      )}, ${point.lng.toFixed(5)}.`
+                    : 'No active layer can be charted here.'
             const body = root.querySelector('.identifierTimeSeriesPanel_body')
             const parts = eligible.map(
                 (e) =>
                     `<div class="identifierTimeSeriesPanel_layer" data-layer="${escapeHtml(
                         e.uuid
                     )}">` +
-                    `<div class="identifierTimeSeriesPanel_layerName">${escapeHtml(
+                    `<h3 class="identifierTimeSeriesPanel_layerName">${escapeHtml(
                         e.name
-                    )}</div>` +
+                    )}</h3>` +
                     `<div class="identifierTimeSeriesPanel_status">Loading time series…</div>` +
+                    `<div class="identifierTimeSeriesPanel_incomplete" role="note" hidden></div>` +
                     `<div class="identifierTimeSeriesPanel_chart"></div>` +
                     `<ul class="identifierTimeSeriesPanel_notes"></ul>` +
+                    `<details class="identifierTimeSeriesPanel_readings" hidden><summary>Readings table</summary><div class="identifierTimeSeriesPanel_tableWrap"></div></details>` +
                     `</div>`
             )
             if (eligible.length === 0)
@@ -269,8 +365,8 @@ export function createPanelView(deps) {
                 )
             if (unsupported.length > 0)
                 parts.push(
-                    '<div class="identifierTimeSeriesPanel_unsupported">' +
-                        '<div class="identifierTimeSeriesPanel_subtitle">Not charted</div><ul>' +
+                    '<details class="identifierTimeSeriesPanel_unsupported">' +
+                        `<summary class="identifierTimeSeriesPanel_subtitle">Not charted (${unsupported.length})</summary><ul>` +
                         unsupported
                             .map(
                                 (u) =>
@@ -279,9 +375,23 @@ export function createPanelView(deps) {
                                     )}</span>: ${escapeHtml(u.reason)}</li>`
                             )
                             .join('') +
-                        '</ul></div>'
+                        '</ul></details>'
                 )
             body.innerHTML = parts.join('')
+            const d = root.querySelector(
+                '.identifierTimeSeriesPanel_unsupported'
+            )
+            if (d) {
+                d.open =
+                    notChartedChoice != null
+                        ? notChartedChoice
+                        : eligible.length === 0
+                // A toggle by the person (not by us) is theirs to keep: a
+                // summary click (pointer, Enter or Space) flips it.
+                d.querySelector('summary').addEventListener('click', () => {
+                    notChartedChoice = !d.open
+                })
+            }
         },
         renderResult(uuid, result) {
             if (!root) return
@@ -289,26 +399,42 @@ export function createPanelView(deps) {
                 ...root.querySelectorAll('.identifierTimeSeriesPanel_layer'),
             ].find((el) => el.getAttribute('data-layer') === uuid)
             if (!section) return
-            const status = section.querySelector(
-                '.identifierTimeSeriesPanel_status'
-            )
-            const chartEl = section.querySelector(
-                '.identifierTimeSeriesPanel_chart'
-            )
-            const notes = section.querySelector(
-                '.identifierTimeSeriesPanel_notes'
-            )
+            const q = (c) =>
+                section.querySelector(`.identifierTimeSeriesPanel_${c}`)
+            const status = q('status')
+            const chartEl = q('chart')
+            const notes = q('notes')
+            const incomplete = q('incomplete')
+            const readings = q('readings')
             if (charts.has(uuid)) {
                 charts.get(uuid).dispose()
                 charts.delete(uuid)
             }
+            if (section.dataset.settled !== 'true') {
+                section.dataset.settled = 'true'
+                pending = Math.max(0, pending - 1)
+            }
             notes.innerHTML = (result.notes || [])
                 .map((n) => `<li>${escapeHtml(n)}</li>`)
                 .join('')
+            const reasons = result.incomplete || []
+            incomplete.hidden = reasons.length === 0
+            incomplete.textContent =
+                reasons.length > 0
+                    ? `History may be incomplete: ${reasons.join('; ')}.`
+                    : ''
+            const name = section.querySelector(
+                '.identifierTimeSeriesPanel_layerName'
+            ).textContent
             if (result.status === 'ok') {
                 status.textContent = ''
                 status.style.display = 'none'
                 chartEl.classList.add('identifierTimeSeriesPanel_chart--on')
+                chartEl.setAttribute('role', 'img')
+                chartEl.setAttribute(
+                    'aria-label',
+                    describeChart(result.series, name)
+                )
                 charts.set(
                     uuid,
                     deps.createChart(
@@ -319,6 +445,30 @@ export function createPanelView(deps) {
                         })
                     )
                 )
+                const table = buildReadingsTable(result.series)
+                readings.hidden = false
+                readings.querySelector('summary').textContent =
+                    `Readings table (${table.rows.length})`
+                readings.querySelector(
+                    '.identifierTimeSeriesPanel_tableWrap'
+                ).innerHTML =
+                    `<table><caption>${escapeHtml(name)} readings at the selected point</caption>` +
+                    `<thead><tr>${table.columns
+                        .map((c) => `<th scope="col">${escapeHtml(c)}</th>`)
+                        .join('')}</tr></thead><tbody>` +
+                    table.rows
+                        .map(
+                            (r) =>
+                                `<tr>${r
+                                    .map((c, i) =>
+                                        i === 0
+                                            ? `<th scope="row">${escapeHtml(c)}</th>`
+                                            : `<td>${escapeHtml(c)}</td>`
+                                    )
+                                    .join('')}</tr>`
+                        )
+                        .join('') +
+                    '</tbody></table>'
             } else {
                 status.style.display = ''
                 status.textContent = result.message || 'No data.'
@@ -327,17 +477,26 @@ export function createPanelView(deps) {
                     result.status === 'error'
                 )
                 chartEl.classList.remove('identifierTimeSeriesPanel_chart--on')
+                chartEl.removeAttribute('role')
+                chartEl.removeAttribute('aria-label')
+                readings.hidden = true
             }
-            // Keep unsupported-layer reasons only when there is no chart.
-            const notCharted = root.querySelector(
-                '.identifierTimeSeriesPanel_unsupported'
-            )
-            if (notCharted) notCharted.hidden = charts.size > 0
+            if (pending === 0)
+                root.querySelector(
+                    '.identifierTimeSeriesPanel_live'
+                ).textContent =
+                    charts.size > 0
+                        ? `Time series ready: ${charts.size} chart${charts.size === 1 ? '' : 's'}.`
+                        : 'No time series could be charted here.'
+            notChartedOpen()
         },
         close() {
             disposeCharts()
             if (root && root.parentNode) root.parentNode.removeChild(root)
             root = null
+            pending = 0
+            // A new panel starts from the defaults.
+            notChartedChoice = null
         },
         isOpen: () => root != null,
         _chartCount: () => charts.size,

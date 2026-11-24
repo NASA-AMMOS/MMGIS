@@ -62,6 +62,26 @@ export function parseExternalStacUrl(afterColon) {
 }
 
 /**
+ * The base URL of this MMGIS for its own adjacent-server proxies
+ * (/titilerpgstac, /titiler, /stac): the page's origin plus its path, with no
+ * trailing slash. The same in development, where the webpack dev server
+ * forwards these requests from its own origin to the API server.
+ *
+ * @param {object} [location] - { origin, pathname }; defaults to window.location
+ * @returns {string|null} null when no location is available
+ *
+ * @example
+ * getAppBaseUrl({ origin: 'https://host', pathname: '/MMGIS/' })
+ * // => 'https://host/MMGIS'
+ */
+export function getAppBaseUrl(location = null) {
+    const loc =
+        location || (typeof window !== 'undefined' ? window.location : null)
+    if (!loc) return null
+    return `${loc.origin || ''}${(loc.pathname || '').replace(/\/$/g, '')}`
+}
+
+/**
  * Transforms a STAC collection URL (stac-collection:name?params) into a proper HTTP URL
  * for TiTiler PgSTAC endpoints.
  *
@@ -114,15 +134,12 @@ export function transformStacUrl(
         collectionName = splitParams[0]
 
         // Use provided location or default to window.location
-        const loc = location || (typeof window !== 'undefined' ? window.location : null)
-        if (!loc) {
+        const appBase = getAppBaseUrl(location)
+        if (appBase == null) {
             console.error('Cannot build local STAC URL: location not available')
             return url
         }
-
-        const origin = loc.origin
-        const pathname = (loc.pathname || '').replace(/\/$/g, '')
-        baseUrl = `${origin}${pathname}/titilerpgstac`
+        baseUrl = `${appBase}/titilerpgstac`
     }
 
     // Band selection (only if no expression exists). titiler>=2 ignores a
@@ -284,6 +301,7 @@ export function buildTiTilerQueryParams(options) {
 }
 
 export default {
+    getAppBaseUrl,
     parseExternalStacUrl,
     transformStacUrl,
     formatStacBidx,

@@ -11,8 +11,8 @@ import CursorInfo from '@basics/UserInterface_/components/CursorInfo/CursorInfo'
 import calls from '@pre/calls'
 import {
     parseExternalStacUrl,
-    formatStacBidx,
     normalizeTitilerExpression,
+    getAppBaseUrl,
 } from '@basics/Layers_/LayerUtils'
 import * as echarts from 'echarts/core'
 import { LineChart } from 'echarts/charts'
@@ -22,17 +22,30 @@ import {
     LegendComponent,
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { classifyLayer, fetchLayerTimeSeries } from './IdentifierTimeSeries'
+import {
+    classifyLayer,
+    fetchLayerTimeSeries,
+    buildPointUrl,
+    buildDatetimeParam,
+} from './IdentifierTimeSeries'
 import { createTimeSeriesChart } from './IdentifierTimeSeriesChart'
 import {
     shouldChartMapClick,
     shouldChartGlobeClick,
     globeClickPosition,
+    toolClaimingClicks,
+    mapClickPoint,
+    nearestWorldLng,
+    normalizeLng,
 } from './IdentifierClickGuard'
 import {
     createTimeSeriesController,
     createPanelView,
 } from './IdentifierTimeSeriesPanel'
+import {
+    parseIdentifierValue as parseValue,
+    unitForBand,
+} from './IdentifierValueFormat'
 import './IdentifierTimeSeries.css'
 
 echarts.use([
@@ -154,7 +167,6 @@ var IdentifierTool = {
                     ...args,
                     fetchFn: (url, init) => window.fetch(url, init),
                     location: window.location,
-                    nodeEnv: window.mmgisglobal?.NODE_ENV,
                     stacOptions: window.mmgisglobal?.options?.stac || {},
                 }),
             marker: timeSeriesMarker,
@@ -164,7 +176,17 @@ var IdentifierTool = {
                     document.getElementById('splitscreens') || document.body,
                 createChart: (el, option) =>
                     createTimeSeriesChart(el, option, { echarts }),
+                // MMGIS's map takes no keyboard focus (keyboard: false), so
+                // a keyboard close returns focus to the centre button.
+                getReturnFocus: () =>
+                    document.getElementById(TIME_SERIES_CENTRE_BUTTON),
             }),
+        })
+        // An expression applied or reset, or a layer's time window set
+        // directly: re-chart the pinned point with the new inputs.
+        L_.subscribeOnLayerQueryChange('IdentifierTimeSeries', (uuid) => {
+            if (uuid == null || L_.layers.on?.[uuid] === true)
+                IdentifierTool.timeSeries?.queryChanged()
         })
         // The time window moved: chart the new range at the same point.
         L_.subscribeTimeChange('IdentifierTimeSeries', () => {
@@ -196,9 +218,43 @@ var IdentifierTool = {
             })
         )
             return
-        // Leaflet's latlng runs past ±180 on a wrapped map; STAC wants -180..180.
-        const ll = e.latlng.wrap ? e.latlng.wrap() : e.latlng
-        IdentifierTool.timeSeries.selectPoint(ll.lng, ll.lat)
+        // Leaflet's latlng runs past ±180 on a wrapped map. The queries use
+        // -180..180; the marker stays in the world copy that was clicked.
+        const p = mapClickPoint(e.latlng)
+        if (!p) return
+        IdentifierTool.timeSeries.selectPoint(p.lng, p.lat, {
+            mapLng: p.mapLng,
+        })
+    },
+    // Keyboard selection. The map itself can't take focus (MMGIS creates it
+    // with keyboard: false), so a button - reachable with Tab, shown when
+    // focused - charts the point at the centre of the map view, under the
+    // same guard as a click.
+    chartMapCentre: function (e) {
+        const status = document.getElementById(
+            `${TIME_SERIES_CENTRE_BUTTON}_status`
+        )
+        const say = (text) => {
+            if (status) status.textContent = text
+        }
+        if (!IdentifierTool.timeSeries || !Map_.map) return
+        const map = Map_.map
+        if (
+            toolClaimingClicks(ToolController_.activeTool, (t, fn) =>
+                map.listens(t, fn)
+            ) != null
+        ) {
+            say('Another tool is using map clicks; close it to chart here.')
+            return
+        }
+        const c = map.getCenter()
+        const selected = IdentifierTool.timeSeries.selectPoint(
+            normalizeLng(c.lng),
+            c.lat,
+            // detail 0: Enter/Space, not a pointer - move focus to the panel
+            { mapLng: c.lng, fromKeyboard: !e || e.detail === 0 }
+        )
+        say(selected ? '' : 'No time-enabled layer is on to chart.')
     },
     // Pointer events, not mouse events: Cesium prevents the default of
     // pointerdown, so its canvas never gets mousedown/mouseup.
@@ -240,11 +296,16 @@ var IdentifierTool = {
             })
         )
             return
-        IdentifierTool.timeSeries.selectPoint(point.lng, point.lat)
+        // On the map, mark it in the world copy the map is showing.
+        const centerLng = Map_.map?.getCenter?.().lng
+        IdentifierTool.timeSeries.selectPoint(point.lng, point.lat, {
+            mapLng: nearestWorldLng(point.lng, centerLng),
+        })
     },
     destroy: function () {
         clearTimeout(IdentifierTool.timeSeriesTimeout)
         L_.unsubscribeTimeChange('IdentifierTimeSeries')
+        L_.unsubscribeOnLayerQueryChange('IdentifierTimeSeries')
         IdentifierTool.timeSeries?.destroy()
         IdentifierTool.timeSeries = null
         this.MMWebGISInterface.separateFromMMWebGIS()
@@ -604,15 +665,14 @@ var IdentifierTool = {
                                         )
                                         let cnt = 0
                                         for (let v in value) {
-                                            let unit = d2.units || ''
-                                            if (
-                                                d2.units &&
-                                                d2.units.constructor ===
-                                                    Array &&
-                                                d2.units[cnt]
-                                            ) {
-                                                unit = d2.units[cnt]
-                                            }
+                                            // The unit of this row's band:
+                                            // STAC rows carry their band index
+                                            // (several items' rows share one
+                                            // list); COG rows are in band order.
+                                            const unit = unitForBand(
+                                                d2.units,
+                                                value[v][3] ?? cnt
+                                            )
                                             // A null/NaN reading is "no data", never 0
                                             const raw = Array.isArray(value[v][1])
                                                 ? value[v][1][0]
@@ -795,35 +855,6 @@ var IdentifierTool = {
                 IdentifierTool.idPixel(e, lnglatzoom, true, true)
             }, 150)
         }
-
-        function parseValue(v, sigfigs, scalefactor) {
-            var ed = 10
-            if (typeof v === 'string') {
-                return v
-            }
-            if (v == null) {
-                return v
-            } else if (v.toString().indexOf('e') != -1) {
-                if (sigfigs != undefined) ed = sigfigs
-                if (scalefactor != undefined) v = v * parseFloat(scalefactor)
-                v = parseFloat(v)
-                return v.toExponential(ed)
-            } else {
-                var decSplit = v.toString().split('.')
-                var decPlacesBefore = decSplit[0] ? decSplit[0].length : 0
-                var decPlacesAfter = decSplit[1] ? decSplit[1].length : 0
-                if (decPlacesBefore <= 5) {
-                    if (scalefactor != undefined)
-                        v = v * parseFloat(scalefactor)
-                    if (sigfigs != undefined) v = v.toFixed(sigfigs)
-                }
-                v = parseFloat(v)
-                if (decPlacesAfter >= ed) {
-                    v = v.toExponential(ed)
-                }
-                return parseFloat(v)
-            }
-        }
     },
 }
 
@@ -854,6 +885,7 @@ function interfaceWithMMWebGIS() {
     Map_.map.on('mousemove', IdentifierTool.idPixelMap)
     Map_.map.on('mouseout', IdentifierTool.clearCursor)
     Map_.map.on('click', IdentifierTool.clickMap)
+    addCentreButton()
     if (L_.hasGlobe) {
         Globe_.litho
             .getContainer()
@@ -890,6 +922,7 @@ function interfaceWithMMWebGIS() {
         Map_.map.off('mousemove', IdentifierTool.idPixelMap)
         Map_.map.off('mouseout', IdentifierTool.clearCursor)
         Map_.map.off('click', IdentifierTool.clickMap)
+        document.getElementById(TIME_SERIES_CENTRE_BUTTON)?.parentNode?.remove()
         //Globe_.shouldRaycastSprites = true
         if (L_.hasGlobe) {
             Globe_.litho.getContainer().style.cursor = 'default'
@@ -930,13 +963,33 @@ function interfaceWithMMWebGIS() {
 
 //Other functions
 
+// A keyboard way in: a button that charts the map's centre. Placed after the
+// map (so it follows it in tab order), visually hidden until focused.
+const TIME_SERIES_CENTRE_BUTTON = 'identifierTimeSeriesCentreButton'
+function addCentreButton() {
+    // interfaceWithMMWebGIS runs again on every layer toggle: add it once.
+    if (document.getElementById(TIME_SERIES_CENTRE_BUTTON)) return
+    const host = document.getElementById('mapScreen')
+    if (!host) return
+    const wrap = document.createElement('div')
+    wrap.className = 'identifierTimeSeriesCentre'
+    wrap.innerHTML =
+        `<button type="button" id="${TIME_SERIES_CENTRE_BUTTON}">Chart time series at map centre</button>` +
+        `<span id="${TIME_SERIES_CENTRE_BUTTON}_status" class="identifierTimeSeriesPanel_live" role="status" aria-live="polite"></span>`
+    wrap.querySelector('button').addEventListener('click', (e) =>
+        IdentifierTool.chartMapCentre(e)
+    )
+    host.appendChild(wrap)
+}
+
 // The selected time-series point, on the map and (if there is one) the globe.
 const TIME_SERIES_GLOBE_LAYER = '_identifierTimeSeriesPoint'
 const timeSeriesMarker = {
     mapMarker: null,
-    place(lng, lat) {
+    // lng: -180..180, for the globe; mapLng: the map's world copy to mark.
+    place(lng, lat, mapLng = lng) {
         timeSeriesMarker.remove()
-        timeSeriesMarker.mapMarker = new window.L.circleMarker([lat, lng], {
+        timeSeriesMarker.mapMarker = new window.L.circleMarker([lat, mapLng], {
             fillColor: 'yellow',
             fillOpacity: 1,
             color: '#0f0f0f',
@@ -1042,12 +1095,9 @@ function parseStacUrl(url) {
         // External format - use LayerUtils function
         return parseExternalStacUrl(afterColon)
     } else {
-        // Local format
-        const origin = window.location.origin
-        const pathname = (window.location.pathname || '').replace(/\/$/g, '')
-        const baseUrl = mmgisglobal.NODE_ENV === 'development'
-            ? 'http://localhost:8888'
-            : `${origin}${pathname}`
+        // Local format: this MMGIS's proxy, at the same proxy-aware base the
+        // tiles and time-series charts use.
+        const baseUrl = getAppBaseUrl()
         const collectionName = afterColon.split('?')[0].trim()
 
         return { baseUrl: `${baseUrl}/titilerpgstac`, collectionName }
@@ -1076,38 +1126,20 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         }
 
         const { baseUrl, collectionName } = parsed
-
-        let timeParam = ''
-        if (L_.layers.data[layerUUID].time?.enabled == true)
-            timeParam = `&datetime=${L_.layers.data[layerUUID].time.start}/${L_.layers.data[layerUUID].time.end}`
-
-        // Expression or Bands (titiler>=2: bands go inline as assets=asset|bidx=1,2)
-        let expressionParam = ''
-        let assetsParam = 'assets=asset'
         const layer = L_.layers.data[layerUUID]
 
-        // Check currentCogExpression first (runtime value), then fall back to cogExpression (configured value)
-        const expressionToUse =
-            layer.currentCogExpression || layer.cogExpression
-        if (expressionToUse && expressionToUse.trim() !== '') {
-            const processedExpression = processExpression(expressionToUse)
-            expressionParam = `&expression=${encodeURIComponent(processedExpression)}`
-        } else {
-            const bands = formatStacBidx(layer.cogBandsQuery)
-            if (bands) assetsParam += `|bidx=${bands}`
-        }
-
         // Search the same items the map tiles mosaic, so the first item with
-        // data here is the one drawn there. 100 is TiTiler's default.
+        // data here is the one drawn there (items_limit: TiTiler's default 100
+        // unless configured). Same request contract as the time-series charts.
         const stac = window.mmgisglobal?.options?.stac || {}
-        let mosaicParams = `&items_limit=${stac.mosaicItemLimit ?? 100}`
-        if (stac.mosaicScanLimit != null)
-            mosaicParams += `&scan_limit=${stac.mosaicScanLimit}`
-        if (stac.mosaicTimeLimit != null)
-            mosaicParams += `&time_limit=${stac.mosaicTimeLimit}`
-
         fetch(
-            `${baseUrl}/collections/${collectionName}/point/${lng},${lat}?${assetsParam}${mosaicParams}${timeParam}${expressionParam}`,
+            buildPointUrl(baseUrl, collectionName, lng, lat, layer, {
+                datetime:
+                    layer.time?.enabled == true
+                        ? buildDatetimeParam(layer.time)
+                        : null,
+                stacOptions: stac,
+            }),
             {
                 method: 'GET',
                 headers: {
@@ -1145,6 +1177,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
                                     `${itemName}${shown} - ${bandName}`,
                                     [asset.values[idx]],
                                     [bandName],
+                                    idx,
                                 ])
                             })
                         })
@@ -1193,13 +1226,7 @@ function queryDataValue(url, lng, lat, numBands, layerUUID, callback) {
         }
 
         fetch(
-            `${
-                mmgisglobal.NODE_ENV === 'development'
-                    ? 'http://localhost:8888'
-                    : `${window.location.origin}${(
-                          window.location.pathname || ''
-                      ).replace(/\/$/g, '')}`
-            }/titiler/cog/point/${lng},${lat}?url=${L_.getUrl(
+            `${getAppBaseUrl()}/titiler/cog/point/${lng},${lat}?url=${L_.getUrl(
                 'tile',
                 url
             )}${timeParam}${expressionParam}${bandsParam}`,

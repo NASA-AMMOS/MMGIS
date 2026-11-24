@@ -134,6 +134,16 @@ const L_ = {
     unsubscribeOnLayerToggle(...a) {
         return subscriptions.unsubscribeOnLayerToggle(L_, ...a)
     },
+    _onLayerQueryChangeSubscriptions: {},
+    subscribeOnLayerQueryChange(...a) {
+        return subscriptions.subscribeOnLayerQueryChange(L_, ...a)
+    },
+    unsubscribeOnLayerQueryChange(...a) {
+        return subscriptions.unsubscribeOnLayerQueryChange(L_, ...a)
+    },
+    layerQueryChanged(...a) {
+        return subscriptions.layerQueryChanged(L_, ...a)
+    },
     _onSpecificLayerToggleSubscriptions: {},
     subscribeOnSpecificLayerToggle(...a) {
         return subscriptions.subscribeOnSpecificLayerToggle(L_, ...a)

@@ -18,6 +18,10 @@ import {
     buildSeries,
     readValue,
     fetchLayerTimeSeries,
+    snapshotLayerQuery,
+    createLimiter,
+    withRequestTimeout,
+    isNoAssetDetail,
     createRequestGuard,
     cacheKey,
 } from '../../plugins/core/tools/Identifier/IdentifierTimeSeries.js'
@@ -28,6 +32,7 @@ import {
     formatValue,
     axisUnits,
     gapLabel,
+    buildReadingsTable,
 } from '../../plugins/core/tools/Identifier/IdentifierTimeSeriesChart.js'
 import {
     listActiveLayers,
@@ -41,7 +46,20 @@ import {
     shouldChartMapClick,
     shouldChartGlobeClick,
     globeClickPosition,
+    normalizeLng,
+    nearestWorldLng,
+    mapClickPoint,
 } from '../../plugins/core/tools/Identifier/IdentifierClickGuard.js'
+import {
+    parseIdentifierValue,
+    unitForBand,
+    formatStacReading,
+    STAC_VALUE_FORMAT,
+} from '../../plugins/core/tools/Identifier/IdentifierValueFormat.js'
+import {
+    getAppBaseUrl,
+    transformStacUrl,
+} from '../../src/essence/Basics/Layers_/LayerUtils.js'
 
 /**
  * Identifier click-for-time-series (#1159).
@@ -51,7 +69,7 @@ import {
  *    link carries `token=next:...` in its href.
  *  - titiler-pgstac 3.1 /collections/{id}/point: { coordinates, assets:
  *    [{ name: 'collection/item', values, band_names, band_descriptions }] },
- *    nodata as null, 404 when no item has the point.
+ *    nodata as null, 204 No Content when no item has the point.
  */
 
 const COLLECTION = 'emit_ch4'
@@ -234,11 +252,22 @@ test.describe('resolveStacEndpoints', () => {
         })
     })
 
-    test('development points at the API port like the hover query', () => {
+    test('a dev server on any port is used as-is: it proxies to the API', () => {
+        // The webpack dev server forwards /stac and /titilerpgstac from its
+        // own origin, so no port is hard-coded (it used to be 8888).
+        const dev = { origin: 'http://localhost:9001', pathname: '/' }
+        expect(resolveStacEndpoints('stac-collection:abc', dev)).toMatchObject({
+            stacBase: 'http://localhost:9001/stac',
+            titilerBase: 'http://localhost:9001/titilerpgstac',
+        })
+        // the same base the map's tiles use
         expect(
-            resolveStacEndpoints('stac-collection:abc', LOCATION, 'development')
-                .stacBase
-        ).toBe('http://localhost:8888/stac')
+            transformStacUrl('stac-collection:abc', {}, 'tiles', dev)
+        ).toMatch(/^http:\/\/localhost:9001\/titilerpgstac\/collections\/abc\//)
+        expect(getAppBaseUrl(dev)).toBe('http://localhost:9001')
+        expect(
+            getAppBaseUrl({ origin: 'https://h', pathname: '/MMGIS/' })
+        ).toBe('https://h/MMGIS')
     })
 
     test('external collections use the sibling /stac of their TiTiler', () => {
@@ -641,9 +670,11 @@ test.describe('bands, expressions, point query', () => {
             COLLECTION,
             1,
             2,
-            ['a', 'b/c'],
             { cogExpression: 'b1+1' },
-            { mosaicScanLimit: 500, mosaicTimeLimit: 9 }
+            {
+                ids: ['a', 'b/c'],
+                stacOptions: { mosaicScanLimit: 500, mosaicTimeLimit: 9 },
+            }
         )
         expect(url).toContain(`/collections/${COLLECTION}/point/1,2?`)
         const u = new URL(url)
@@ -652,6 +683,60 @@ test.describe('bands, expressions, point query', () => {
         expect(u.searchParams.get('scan_limit')).toBe('500')
         expect(u.searchParams.get('time_limit')).toBe('9')
         expect(u.searchParams.get('expression')).toBe('b1+1')
+        // a history asks by id, not by time window
+        expect(u.searchParams.get('datetime')).toBeNull()
+    })
+
+    test('a configured scan_limit below the batch is raised to reach every id', () => {
+        const ids = Array.from({ length: 50 }, (_, i) => `i${i}`)
+        const u = new URL(
+            buildPointUrl(
+                TITILER_BASE,
+                COLLECTION,
+                0,
+                0,
+                {},
+                {
+                    ids,
+                    stacOptions: { mosaicScanLimit: 10 },
+                }
+            )
+        )
+        expect(u.searchParams.get('scan_limit')).toBe('50')
+        expect(u.searchParams.get('items_limit')).toBe('50')
+    })
+
+    test('the hover readout uses the same builder: mosaic limits and window', () => {
+        const layer = {
+            cogBandsQuery: [2],
+            time: { enabled: true, start: 'A', end: 'B' },
+        }
+        const u = new URL(
+            buildPointUrl(TITILER_BASE, COLLECTION, 3, 4, layer, {
+                datetime: buildDatetimeParam(layer.time),
+                stacOptions: { mosaicItemLimit: 25, mosaicTimeLimit: 7 },
+            })
+        )
+        expect(u.searchParams.get('assets')).toBe('asset|bidx=2')
+        expect(u.searchParams.get('items_limit')).toBe('25')
+        expect(u.searchParams.get('time_limit')).toBe('7')
+        expect(u.searchParams.get('datetime')).toBe('A/B')
+        expect(u.searchParams.get('ids')).toBeNull()
+        // TiTiler's default when nothing is configured; open start window
+        const d = new URL(
+            buildPointUrl(
+                TITILER_BASE,
+                COLLECTION,
+                3,
+                4,
+                {},
+                {
+                    datetime: buildDatetimeParam({ start: '', end: 'B' }),
+                }
+            )
+        )
+        expect(d.searchParams.get('items_limit')).toBe('100')
+        expect(d.searchParams.get('datetime')).toBe('../B')
     })
 
     test('values are matched to items by asset name, not position', () => {
@@ -675,7 +760,7 @@ test.describe('bands, expressions, point query', () => {
         expect(parsePointResponse(null, COLLECTION).size).toBe(0)
     })
 
-    test('batches ids, bounds concurrency, and reads 204/404 as no pixel', async () => {
+    test('batches ids, bounds concurrency, and reads 204 / no-asset 404 as no pixel', async () => {
         let inFlight = 0
         let peak = 0
         const seen = []
@@ -687,7 +772,12 @@ test.describe('bands, expressions, point query', () => {
             const ids = new URL(url).searchParams.get('ids').split(',')
             seen.push(ids.length)
             if (ids[0] === 'i100') return { ok: true, status: 204 }
-            if (ids[0] === 'i50') return jsonResponse({}, 404)
+            // legacy titiler-pgstac: NoAssetFound as a 404 that says so
+            if (ids[0] === 'i50')
+                return jsonResponse(
+                    { detail: 'No assets found for point (0,0)' },
+                    404
+                )
             return jsonResponse({
                 assets: ids.map((id) => pointAsset(id, [1])),
             })
@@ -701,10 +791,81 @@ test.describe('bands, expressions, point query', () => {
             lat: 0,
             ids,
             layer: {},
+            run: createLimiter(2),
         })
-        expect(seen.sort()).toEqual([20, 50, 50])
-        expect(peak).toBeLessThanOrEqual(TIME_SERIES_LIMITS.pointConcurrency)
+        // 3 batches, then the 70 absent ids asked once more (50 + 20)
+        expect(seen.sort((a, b) => a - b)).toEqual([20, 20, 50, 50, 50])
+        expect(peak).toBeLessThanOrEqual(2)
         expect(out.size).toBe(50)
+    })
+
+    test('a generic 404 or a 200 without assets is an error, never "no data"', async () => {
+        const call = (fetchFn) =>
+            fetchPointValues({
+                fetchFn,
+                titilerBase: TITILER_BASE,
+                collection: COLLECTION,
+                lng: 0,
+                lat: 0,
+                ids: ['a'],
+                layer: {},
+            })
+        // a missing route / wrong proxy path
+        await expect(
+            call(async () => jsonResponse({ detail: 'Not Found' }, 404))
+        ).rejects.toThrow('HTTP 404')
+        await expect(
+            call(async () => ({
+                ok: false,
+                status: 404,
+                json: async () => {
+                    throw new SyntaxError('html')
+                },
+            }))
+        ).rejects.toThrow('HTTP 404')
+        // a 200 that isn't a point response
+        await expect(call(async () => jsonResponse({}))).rejects.toThrow(
+            'no assets list'
+        )
+        await expect(
+            call(async () => ({
+                ok: true,
+                status: 200,
+                json: async () => {
+                    throw new SyntaxError('html')
+                },
+            }))
+        ).rejects.toThrow('not JSON')
+        expect(isNoAssetDetail({ detail: 'No assets found for point' })).toBe(
+            true
+        )
+        expect(isNoAssetDetail({ detail: 'No items found' })).toBe(true)
+        expect(isNoAssetDetail({ detail: 'Not Found' })).toBe(false)
+        expect(isNoAssetDetail(null)).toBe(false)
+    })
+
+    test('items a batch left out are asked for once more, and found', async () => {
+        // pgSTAC's time limit can end a search early, silently
+        let calls = 0
+        const fetchFn = async (url) => {
+            calls++
+            const ids = new URL(url).searchParams.get('ids').split(',')
+            const answered = calls === 1 ? ids.slice(0, 1) : ids
+            return jsonResponse({
+                assets: answered.map((id) => pointAsset(id, [7])),
+            })
+        }
+        const out = await fetchPointValues({
+            fetchFn,
+            titilerBase: TITILER_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+            ids: ['a', 'b', 'c'],
+            layer: {},
+        })
+        expect(calls).toBe(2)
+        expect([...out.keys()].sort()).toEqual(['a', 'b', 'c'])
     })
 
     test('after a failed batch no further batches are started', async () => {
@@ -725,6 +886,7 @@ test.describe('bands, expressions, point query', () => {
                 lat: 0,
                 ids: Array.from({ length: 300 }, (_, i) => `i${i}`),
                 layer: {},
+                run: createLimiter(2),
             })
         ).rejects.toThrow('HTTP 500')
         await new Promise((r) => setTimeout(r, 30))
@@ -922,7 +1084,7 @@ test.describe('buildSeries', () => {
         })
     })
 
-    test('an overflowing scale reaches the chart only as a gap', async () => {
+    test('STAC readings are charted as the hover shows them: raw, in cogUnits', async () => {
         const { fetchFn } = fakeServers({
             items: [
                 item('a', '2024-02-01T00:00:00Z'),
@@ -936,17 +1098,34 @@ test.describe('buildSeries', () => {
             lat: 0,
             fetchFn,
             location: LOCATION,
-            identifierConfig: { scalefactor: 10 },
         })
         expect(r.status).toBe('ok')
-        expect(r.series[0].points.map((p) => p.value)).toEqual([null, 30])
-        expect(r.notes.join(' ')).toMatch(/1 non-numeric value shown as gaps/)
+        // unscaled, so an extreme finite value stays finite and plotted
+        expect(r.series[0].points.map((p) => p.value)).toEqual([
+            Number.MAX_VALUE,
+            3,
+        ])
+        expect(r.series[0].units).toBe('ppm m')
         const data = buildChartOption(r.series).series[0].data
-        expect(
-            data.every(
-                (d) => d.value[1] === null || Number.isFinite(d.value[1])
+        expect(data.every((d) => Number.isFinite(d.value[1]))).toBe(true)
+    })
+
+    test('a reading reads the same in the hover and the chart', () => {
+        // the hover formats STAC values with sigfigs 2, scale 1
+        for (const v of [
+            1878.83841, 120.91466522216797, -11.682, 0, 3e-7, 123456.789,
+        ])
+            expect(formatValue(v)).toBe(
+                String(
+                    parseIdentifierValue(
+                        v,
+                        STAC_VALUE_FORMAT.sigfigs,
+                        STAC_VALUE_FORMAT.scalefactor
+                    )
+                )
             )
-        ).toBe(true)
+        expect(formatValue(120.91466522216797)).toBe('120.91')
+        expect(formatValue(null)).toBe('no data')
     })
 
     test('positional band names fill only bands no response named', () => {
@@ -985,18 +1164,16 @@ test.describe('buildSeries', () => {
         ])
     })
 
-    test('measurement: Identifier config first, then cogUnits', () => {
+    test('measurement: the layer cogUnits, unscaled - as the hover', () => {
         expect(resolveMeasurement({ cogUnits: 'ppm' })).toEqual({
             scalefactor: 1,
             units: 'ppm',
         })
-        expect(
-            resolveMeasurement(
-                { cogUnits: 'ppm' },
-                { scalefactor: '0.01', unit: ' K' }
-            )
-        ).toEqual({ scalefactor: 0.01, units: ' K' })
-        expect(resolveMeasurement({}, { scalefactor: 'x' }).scalefactor).toBe(1)
+        expect(resolveMeasurement({ cogUnits: ['m', 's'] }).units).toEqual([
+            'm',
+            's',
+        ])
+        expect(resolveMeasurement({})).toEqual({ scalefactor: 1, units: '' })
     })
 })
 
@@ -1082,7 +1259,7 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
         expect(r.status).toBe('empty')
         expect(r.message).toMatch(/No usable values/)
         expect(r.notes.join(' ')).toMatch(
-            /1 acquisition returned no reading here \(gaps\)/
+            /1 acquisition returned no reading here, asked twice \(gaps\)/
         )
     })
 
@@ -1169,7 +1346,7 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
         ).rejects.toBe(abort)
     })
 
-    test('expression and scale factor reach the query and the values', async () => {
+    test('the expression reaches the query and the label; values stay unscaled', async () => {
         const { fetchFn, calls } = fakeServers({
             items: [item('a', '2024-02-01T00:00:00Z')],
             values: { a: [8] },
@@ -1180,10 +1357,9 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
             lat: 0,
             fetchFn,
             location: LOCATION,
-            identifierConfig: { scalefactor: 10 },
         })
         expect(calls.point[0].searchParams.get('expression')).toBe('b1/2')
-        expect(r.series[0].points[0].value).toBe(80)
+        expect(r.series[0].points[0].value).toBe(8)
         expect(r.expression).toBe('b1/2')
     })
 })
@@ -1222,16 +1398,31 @@ test.describe('request guard', () => {
         )
     })
 
-    test('the cache key changes with the measurement (scale factor, units)', () => {
-        const l = stacLayer()
-        const k = cacheKey('u', l, 1, 2, undefined)
-        expect(cacheKey('u', l, 1, 2, { scalefactor: 1 })).toBe(k)
-        expect(cacheKey('u', l, 1, 2, { scalefactor: 10 })).not.toBe(k)
-        expect(cacheKey('u', l, 1, 2, { unit: 'K' })).not.toBe(k)
-        expect(cacheKey('u', stacLayer({ cogUnits: 'ppb' }), 1, 2)).not.toBe(k)
+    test('the cache key changes with the units the values are shown in', () => {
+        const k = cacheKey('u', snapshotLayerQuery(stacLayer()), 1, 2)
         expect(
-            cacheKey('u', stacLayer({ cogUnits: ['a', 'b'] }), 1, 2)
-        ).not.toBe(cacheKey('u', stacLayer({ cogUnits: ['a', 'c'] }), 1, 2))
+            cacheKey(
+                'u',
+                snapshotLayerQuery(stacLayer({ cogUnits: 'ppb' })),
+                1,
+                2
+            )
+        ).not.toBe(k)
+        expect(
+            cacheKey(
+                'u',
+                snapshotLayerQuery(stacLayer({ cogUnits: ['a', 'b'] })),
+                1,
+                2
+            )
+        ).not.toBe(
+            cacheKey(
+                'u',
+                snapshotLayerQuery(stacLayer({ cogUnits: ['a', 'c'] })),
+                1,
+                2
+            )
+        )
     })
 })
 
@@ -1281,7 +1472,9 @@ test.describe('chart option', () => {
         const sparse = buildChartOption([{ name: 'b1', units: '', points }])
         expect(sparse.series[0].connectNulls).toBe(false)
         expect(sparse.series[0].showSymbol).toBe(true)
-        expect(sparse.series[0].data.filter((d) => d.value[1] != null)).toHaveLength(101)
+        expect(
+            sparse.series[0].data.filter((d) => d.value[1] != null)
+        ).toHaveLength(101)
 
         // Render real ECharts SVG: without symbols isolated points disappear.
         const renderSvg = (option) => {
@@ -1301,15 +1494,24 @@ test.describe('chart option', () => {
         const withSymbols = renderSvg(sparse)
         const withoutSymbols = renderSvg({
             ...sparse,
-            series: sparse.series.map((line) => ({ ...line, showSymbol: false })),
+            series: sparse.series.map((line) => ({
+                ...line,
+                showSymbol: false,
+            })),
         })
         const paintedShapes = (svg) =>
             (svg.match(/<(?:path|circle|ellipse|rect)\b/g) || []).length
-        expect(paintedShapes(withSymbols)).toBeGreaterThan(paintedShapes(withoutSymbols))
+        expect(paintedShapes(withSymbols)).toBeGreaterThan(
+            paintedShapes(withoutSymbols)
+        )
 
         // Dense histories may still suppress markers to avoid visual clutter.
         const dense = buildChartOption([
-            { name: 'b1', units: '', points: points.map((p) => ({ ...p, value: 1 })) },
+            {
+                name: 'b1',
+                units: '',
+                points: points.map((p) => ({ ...p, value: 1 })),
+            },
         ])
         expect(dense.series[0].showSymbol).toBe(false)
     })
@@ -1339,6 +1541,18 @@ test.describe('chart option', () => {
         expect(html).toContain('>b<')
     })
 
+    test('formatting helpers', () => {
+        expect(formatUtc(Date.UTC(2024, 4, 6, 7, 8, 9))).toBe(
+            '2024-05-06 07:08:09 UTC'
+        )
+        expect(formatValue(null)).toBe('no data')
+        expect(formatValue(NaN)).toBe('no data')
+        expect(formatValue(0)).toBe('0')
+        // two decimals, as the hover readout writes a STAC reading
+        expect(formatValue(1.23456789)).toBe('1.23')
+        expect(formatValue(244.6387481689453)).toBe('244.64')
+    })
+
     test('each kind of gap is named in the tooltip', () => {
         const pts = ['nodata', 'missing', 'invalid'].map((status, i) => ({
             time: Date.UTC(2024, 0, i + 1),
@@ -1358,17 +1572,6 @@ test.describe('chart option', () => {
         // no units after a gap
         expect(say(1)).not.toContain('no reading K')
         expect(gapLabel(undefined)).toBe('no data')
-    })
-
-    test('formatting helpers', () => {
-        expect(formatUtc(Date.UTC(2024, 4, 6, 7, 8, 9))).toBe(
-            '2024-05-06 07:08:09 UTC'
-        )
-        expect(formatValue(null)).toBe('no data')
-        expect(formatValue(NaN)).toBe('no data')
-        expect(formatValue(0)).toBe('0')
-        expect(formatValue(1.23456789)).toBe('1.2346')
-        expect(formatValue(123456789)).toBe('1.235e+8')
     })
 })
 
@@ -1733,17 +1936,18 @@ test.describe('controller - click, marker, panel', () => {
         })
     })
 
-    test('the Identifier config is passed through for scale and units', async () => {
-        let got
+    test('each fetch gets a frozen snapshot of the layer and the shared limiter', async () => {
+        const got = []
         const c = createTimeSeriesController({
             getLayers: () => ({
-                data: { ch4: stacLayer() },
-                on: { ch4: true },
+                data: {
+                    ch4: stacLayer(),
+                    no2: stacLayer({ url: 'stac-collection:no2' }),
+                },
+                on: { ch4: true, no2: true },
             }),
-            getIdentifierConfig: (uuid) =>
-                uuid === 'ch4' ? { scalefactor: 2 } : undefined,
             fetchSeries: async (a) => {
-                got = a.identifierConfig
+                got.push(a)
                 return { status: 'ok', series: [] }
             },
             marker: fakeMarker(),
@@ -1751,7 +1955,14 @@ test.describe('controller - click, marker, panel', () => {
         })
         c.selectPoint(1, 1)
         await flush()
-        expect(got).toEqual({ scalefactor: 2 })
+        expect(got).toHaveLength(2)
+        for (const a of got) {
+            expect(Object.isFrozen(a.query)).toBe(true)
+            expect(Object.isFrozen(a.query.time)).toBe(true)
+            expect(a.layer).toBeUndefined()
+        }
+        // one budget for the whole selection, not one per layer
+        expect(got[0].run).toBe(got[1].run)
     })
 })
 
@@ -1959,13 +2170,11 @@ test.describe('click guard - whose click is it', () => {
 })
 
 test.describe('controller - cache and measurement', () => {
-    test('a changed scale factor or units re-reads instead of reusing the cache', async () => {
-        let config = { scalefactor: 1 }
+    test('changed units re-read instead of reusing the cache', async () => {
         let calls = 0
         const layers = { data: { ch4: stacLayer() }, on: { ch4: true } }
         const c = createTimeSeriesController({
             getLayers: () => layers,
-            getIdentifierConfig: () => config,
             fetchSeries: async () => {
                 calls++
                 return { status: 'ok', series: [] }
@@ -1978,14 +2187,10 @@ test.describe('controller - cache and measurement', () => {
         c.refresh()
         await flush()
         expect(calls).toBe(1)
-        config = { scalefactor: 100 }
-        c.refresh()
-        await flush()
-        expect(calls).toBe(2)
         layers.data.ch4 = stacLayer({ cogUnits: 'ppb' })
         c.refresh()
         await flush()
-        expect(calls).toBe(3)
+        expect(calls).toBe(2)
     })
 
     test('a response that lands after refresh never reaches the panel or the cache', async () => {
@@ -2027,11 +2232,15 @@ test.describe('controller - cache and measurement', () => {
     })
 })
 
-
 test.describe('globe click-point picking', () => {
     const makeCesium = () => {
         const canvas = {
-            getBoundingClientRect: () => ({ left: 100, top: 50, width: 600, height: 400 }),
+            getBoundingClientRect: () => ({
+                left: 100,
+                top: 50,
+                width: 600,
+                height: 400,
+            }),
         }
         const ellipsoid = {
             cartesianToCartographic: () => ({
@@ -2060,7 +2269,12 @@ test.describe('globe click-point picking', () => {
     test('stationary touch resolves fresh Cesium coordinates, ignoring stale hover', () => {
         const { canvas, ellipsoid, litho, picks } = makeCesium()
         const r = globeClickPosition(
-            { target: canvas, clientX: 400, clientY: 250, pointerType: 'touch' },
+            {
+                target: canvas,
+                clientX: 400,
+                clientY: 250,
+                pointerType: 'touch',
+            },
             litho
         )
         expect(r.lng).toBeCloseTo(-122.44, 5)
@@ -2070,9 +2284,16 @@ test.describe('globe click-point picking', () => {
 
     test('a control in the Cesium viewer cannot select a chart point', () => {
         const { litho, picks } = makeCesium()
-        expect(globeClickPosition({
-            target: { id: '_cesium_control_link' }, clientX: 400, clientY: 250,
-        }, litho)).toBeNull()
+        expect(
+            globeClickPosition(
+                {
+                    target: { id: '_cesium_control_link' },
+                    clientX: 400,
+                    clientY: 250,
+                },
+                litho
+            )
+        ).toBeNull()
         expect(picks).toHaveLength(0)
     })
 
@@ -2087,9 +2308,813 @@ test.describe('globe click-point picking', () => {
     })
 
     test('LithoSphere keeps its previous hover behavior', () => {
-        const litho = { rendererType: 'lithosphere', mouse: { lng: 12, lat: 23 } }
+        const litho = {
+            rendererType: 'lithosphere',
+            mouse: { lng: 12, lat: 23 },
+        }
         expect(globeClickPosition({}, litho)).toEqual({ lng: 12, lat: 23 })
         litho.mouse.onSurface = false
         expect(globeClickPosition({}, litho)).toBeNull()
+    })
+})
+
+// -------------------------------------------------------------------------
+// PR #1171 review findings. Each test drives the real fetchLayerTimeSeries
+// through the controller against controllable stand-in STAC/TiTiler servers.
+
+const settle = async (n = 4) => {
+    for (let i = 0; i < n; i++) await flush()
+}
+
+/** STAC + TiTiler stand-ins whose answers the test controls. */
+function controllableServers({ holdStac = false, honourAbort = true } = {}) {
+    const s = {
+        held: [],
+        stacCalls: 0,
+        pointUrls: [],
+        inFlight: 0,
+        peak: 0,
+        // what the point endpoint answers: (url) => response
+        point: (u) => {
+            const expr = u.searchParams.get('expression')
+            const ids = u.searchParams.get('ids').split(',')
+            const v = expr === 'b2' ? 2 : 1
+            return jsonResponse({
+                assets: ids.map((id) => pointAsset(id, [v], [expr || 'b1'])),
+            })
+        },
+        features: [item('a', '2024-02-01T00:00:00Z')],
+    }
+    s.fetchFn = async (url, init) => {
+        const u = new URL(url)
+        s.inFlight++
+        s.peak = Math.max(s.peak, s.inFlight)
+        try {
+            if (u.pathname.endsWith('/stac/search')) {
+                s.stacCalls++
+                const answer = () =>
+                    jsonResponse({
+                        type: 'FeatureCollection',
+                        features: s.features,
+                        links: [],
+                        numberMatched: s.features.length,
+                    })
+                if (!holdStac) {
+                    await flush()
+                    return answer()
+                }
+                return await new Promise((resolve, reject) => {
+                    s.held.push({ release: () => resolve(answer()) })
+                    if (honourAbort)
+                        init?.signal?.addEventListener('abort', () =>
+                            reject(
+                                Object.assign(new Error('aborted'), {
+                                    name: 'AbortError',
+                                })
+                            )
+                        )
+                })
+            }
+            s.pointUrls.push(u)
+            await flush()
+            return s.point(u)
+        } finally {
+            s.inFlight--
+        }
+    }
+    return s
+}
+
+function realController(servers, layers, extra = {}) {
+    const view = fakeView()
+    const marker = {
+        calls: [],
+        place: (lng, lat, mapLng) => marker.calls.push([lng, lat, mapLng]),
+        remove: () => marker.calls.push(['remove']),
+    }
+    const c = createTimeSeriesController({
+        getLayers: () => layers,
+        fetchSeries: (a) =>
+            fetchLayerTimeSeries({
+                ...a,
+                fetchFn: servers.fetchFn,
+                location: LOCATION,
+            }),
+        marker,
+        view,
+        ...extra,
+    })
+    return { c, view, marker }
+}
+
+test.describe('review 1 - query snapshots, cache and stale results', () => {
+    for (const honourAbort of [true, false]) {
+        test(`b1 -> b2 -> b1 while STAC is slow (fetch ${
+            honourAbort ? 'aborts' : 'ignores aborts'
+        }): only the newest is drawn or cached`, async () => {
+            const servers = controllableServers({ holdStac: true, honourAbort })
+            const layer = stacLayer({ currentCogExpression: 'b1' })
+            const layers = { data: { ch4: layer }, on: { ch4: true } }
+            const { c, view } = realController(servers, layers)
+
+            c.selectPoint(1, 2)
+            await settle()
+            layer.currentCogExpression = 'b2'
+            c.queryChanged()
+            await settle()
+            layer.currentCogExpression = 'b1'
+            c.queryChanged()
+            await settle()
+            expect(servers.held).toHaveLength(3)
+
+            // answers arrive newest first, then the two stale ones
+            servers.held[2].release()
+            await settle(8)
+            servers.held[0].release()
+            servers.held[1].release()
+            await settle(8)
+
+            const results = view.results()
+            expect(results).toHaveLength(1)
+            const r = results[0][2]
+            expect(r.status).toBe('ok')
+            expect(r.expression).toBe('b1')
+            expect(r.query.currentCogExpression).toBe('b1')
+            expect(r.series[0].points[0].value).toBe(1)
+            // only the current settings were stored
+            expect(c._cacheSize()).toBe(1)
+            // the stale loads stopped at their STAC answer: even when fetch
+            // ignores the abort, no point request is made for them
+            const exprs = servers.pointUrls.map((u) =>
+                u.searchParams.get('expression')
+            )
+            expect(exprs).toEqual(['b1'])
+
+            // b2 again: not served from a stale b2 result - read afresh
+            const before = servers.stacCalls
+            layer.currentCogExpression = 'b2'
+            c.queryChanged()
+            await settle()
+            servers.held.at(-1).release()
+            await settle(8)
+            expect(servers.stacCalls).toBe(before + 1)
+            expect(view.results().at(-1)[2].series[0].points[0].value).toBe(2)
+            expect(view.results().at(-1)[2].expression).toBe('b2')
+        })
+    }
+
+    test('a layer edited mid-read: that read keeps its own inputs end to end', async () => {
+        const servers = controllableServers({ holdStac: true })
+        const layer = stacLayer({ currentCogExpression: 'b1' })
+        const { c, view } = realController(servers, {
+            data: { ch4: layer },
+            on: { ch4: true },
+        })
+        c.selectPoint(1, 2)
+        await settle()
+        // changed without a re-chart (no queryChanged): the read under way
+        // must not mix the new expression into its point request or label
+        layer.currentCogExpression = 'b2'
+        servers.held[0].release()
+        await settle(10)
+        expect(
+            servers.pointUrls.map((u) => u.searchParams.get('expression'))
+        ).toEqual(['b1'])
+        const r = view.results()[0][2]
+        expect([r.expression, r.series[0].points[0].value]).toEqual(['b1', 1])
+        // stored under b1, so a b2 chart is read afresh, not taken from it
+        expect(c._cacheSize()).toBe(1)
+        c.refresh()
+        await settle()
+        expect(servers.held).toHaveLength(2)
+    })
+
+    test('the snapshot is frozen: later layer edits change nothing in it', () => {
+        const layer = stacLayer({
+            currentCogExpression: 'b1',
+            cogBandsQuery: [1],
+        })
+        const q = snapshotLayerQuery(layer)
+        layer.currentCogExpression = 'b2'
+        layer.cogBandsQuery.push(3)
+        layer.time.end = '2030-01-01T00:00:00Z'
+        expect(q.currentCogExpression).toBe('b1')
+        expect(q.cogBandsQuery).toEqual([1])
+        expect(q.time.end).toBe('2024-06-30T23:59:59Z')
+        expect(Object.isFrozen(q) && Object.isFrozen(q.time)).toBe(true)
+        expect(cacheKey('u', q, 1, 2)).toBe(
+            cacheKey(
+                'u',
+                snapshotLayerQuery(
+                    stacLayer({
+                        currentCogExpression: 'b1',
+                        cogBandsQuery: [1],
+                    })
+                ),
+                1,
+                2
+            )
+        )
+    })
+})
+
+test.describe('review 3 - acquisitions sharing a timestamp', () => {
+    const T = Date.UTC(2024, 1, 1, 10)
+    const itemsAt = [
+        { id: 'scene-a', time: T, range: null },
+        { id: 'scene-b', time: T, range: null },
+        { id: 'scene-c', time: T + 86400000, range: null },
+    ]
+    // ECharts' axis tooltip passes every series' point at that x - one per
+    // acquisition sharing it (checked against ECharts 6.1 in a browser).
+    const paramsAt = (option, dataIndexes) =>
+        option.series.flatMap((s, seriesIndex) =>
+            dataIndexes.map((dataIndex) => ({
+                seriesIndex,
+                seriesName: s.name,
+                dataIndex,
+                data: s.data[dataIndex],
+                marker: '',
+            }))
+        )
+    const groups = (html) =>
+        [
+            ...html.matchAll(
+                /data-item="([^"]+)">(.*?)<\/div>(?=<div class="identifierTimeSeriesTooltip_item"|$)/gs
+            ),
+        ].map((m) => [m[1], m[2]])
+
+    test('each reading is shown under its own acquisition id', () => {
+        const r = buildSeries(
+            itemsAt,
+            new Map([
+                ['scene-a', { values: [5], bandNames: ['b1'] }],
+                ['scene-b', { values: [9], bandNames: ['b1'] }],
+                ['scene-c', { values: [7], bandNames: ['b1'] }],
+            ]),
+            { units: 'ppm' }
+        )
+        const option = buildChartOption(r.series)
+        const html = option.tooltip.formatter(paramsAt(option, [0, 1]))
+        const g = groups(html)
+        expect(g.map((x) => x[0])).toEqual(['scene-a', 'scene-b'])
+        expect(g[0][1]).toContain('scene-a')
+        expect(g[0][1]).toContain('<b>5ppm</b>')
+        expect(g[0][1]).not.toContain('9')
+        expect(g[1][1]).toContain('<b>9ppm</b>')
+        expect(html.match(/2024-02-01 10:00:00 UTC/g)).toHaveLength(1)
+    })
+
+    test('several bands, a gap and a range stay with their own item', () => {
+        const r = buildSeries(
+            [
+                { id: 'x1', time: T, range: null },
+                {
+                    id: 'x2',
+                    time: T,
+                    range: ['2024-02-01T10:00:00Z', '2024-02-01T11:00:00Z'],
+                },
+            ],
+            new Map([
+                ['x1', { values: [1, null], bandNames: ['red', 'nir'] }],
+                ['x2', { values: [3], bandNames: ['red'] }],
+            ]),
+            { units: [' K', ' %'] }
+        )
+        const option = buildChartOption(r.series)
+        const g = groups(option.tooltip.formatter(paramsAt(option, [0, 1])))
+        expect(g.map((x) => x[0])).toEqual(['x1', 'x2'])
+        expect(g[0][1]).toContain('red: <b>1 K</b>')
+        expect(g[0][1]).toContain('nir: <b>no data</b>')
+        expect(g[1][1]).toContain('red: <b>3 K</b>')
+        expect(g[1][1]).toContain('nir: <b>no reading</b>')
+        expect(g[1][1]).toContain('2024-02-01T10:00:00Z – 2024-02-01T11:00:00Z')
+        expect(g[0][1]).not.toContain('–')
+    })
+
+    test('the readings table gives every shared-time acquisition its own row', () => {
+        const r = buildSeries(
+            itemsAt,
+            new Map([
+                ['scene-a', { values: [5], bandNames: ['b1'] }],
+                ['scene-b', { values: [9], bandNames: ['b1'] }],
+            ]),
+            { units: 'ppm' }
+        )
+        const t = buildReadingsTable(r.series)
+        expect(t.columns).toEqual([
+            'Acquired (UTC)',
+            'Acquisition ID',
+            'b1 (ppm)',
+        ])
+        expect(t.rows).toEqual([
+            ['2024-02-01 10:00:00 UTC', 'scene-a', '5'],
+            ['2024-02-01 10:00:00 UTC', 'scene-b', '9'],
+            ['2024-02-02 10:00:00 UTC', 'scene-c', 'no reading'],
+        ])
+    })
+})
+
+test.describe('review 4 - wrapped longitudes', () => {
+    test('a click in another world copy queries the real longitude, marks the clicked one', () => {
+        expect(mapClickPoint({ lat: 10, lng: 190 })).toEqual({
+            lng: -170,
+            lat: 10,
+            mapLng: 190,
+        })
+        expect(mapClickPoint({ lat: 10, lng: -190 })).toEqual({
+            lng: 170,
+            lat: 10,
+            mapLng: -190,
+        })
+        expect(mapClickPoint({ lat: 10, lng: 45 })).toEqual({
+            lng: 45,
+            lat: 10,
+            mapLng: 45,
+        })
+        expect(mapClickPoint({ lat: 10, lng: 550 })).toEqual({
+            lng: -170,
+            lat: 10,
+            mapLng: 550,
+        })
+        expect(mapClickPoint({ lat: NaN, lng: 1 })).toBeNull()
+        expect(normalizeLng(180)).toBe(180)
+        expect(normalizeLng(-180)).toBe(-180)
+        expect(normalizeLng(-170)).toBe(-170)
+        // a globe pick placed on the map copy in view
+        expect(nearestWorldLng(-170, 200)).toBe(190)
+        expect(nearestWorldLng(-170, 0)).toBe(-170)
+        expect(nearestWorldLng(-170, 100)).toBe(190)
+        expect(nearestWorldLng(170, -350)).toBe(-190)
+    })
+
+    test('190 and -170 are one point: same queries, one cache entry, marker where clicked', async () => {
+        const servers = controllableServers()
+        const layers = { data: { ch4: stacLayer() }, on: { ch4: true } }
+        const { c, marker } = realController(servers, layers)
+        const p = mapClickPoint({ lat: 10, lng: 190 })
+        c.selectPoint(p.lng, p.lat, { mapLng: p.mapLng })
+        await settle(10)
+        expect(marker.calls[0]).toEqual([-170, 10, 190])
+        const stacAt = servers.stacCalls
+        const pointPath = servers.pointUrls[0].pathname
+        expect(pointPath).toContain('/point/-170,10')
+        // the same place clicked in the main world copy: served from cache
+        const q = mapClickPoint({ lat: 10, lng: -170 })
+        c.selectPoint(q.lng, q.lat, { mapLng: q.mapLng })
+        await settle(10)
+        expect(marker.calls.at(-1)).toEqual([-170, 10, -170])
+        expect(servers.stacCalls).toBe(stacAt)
+        expect(c._cacheSize()).toBe(1)
+    })
+})
+
+test.describe('review 5 - failures stay retryable', () => {
+    const failing = [
+        ['a generic 404', () => jsonResponse({ detail: 'Not Found' }, 404)],
+        [
+            'a 404 with no body',
+            () => ({
+                ok: false,
+                status: 404,
+                json: async () => {
+                    throw new SyntaxError('x')
+                },
+            }),
+        ],
+        ['a 503', () => jsonResponse({}, 503)],
+        ['a 200 without assets', () => jsonResponse({ type: 'Point' })],
+        [
+            'a 200 that is not JSON',
+            () => ({
+                ok: true,
+                status: 200,
+                json: async () => {
+                    throw new SyntaxError('x')
+                },
+            }),
+        ],
+    ]
+    for (const [what, answer] of failing) {
+        test(`${what} is an error, not cached, and the next click after recovery charts`, async () => {
+            const servers = controllableServers()
+            const healthy = servers.point
+            servers.point = answer
+            const layers = { data: { ch4: stacLayer() }, on: { ch4: true } }
+            const { c, view } = realController(servers, layers)
+            c.selectPoint(1, 2)
+            await settle(10)
+            expect(view.results().at(-1)[2].status).toBe('error')
+            expect(c._cacheSize()).toBe(0)
+
+            servers.point = healthy // the service recovers
+            c.selectPoint(1, 2)
+            await settle(10)
+            const r = view.results().at(-1)[2]
+            expect(r.status).toBe('ok')
+            expect(r.series[0].points[0]).toMatchObject({
+                value: 1,
+                status: 'ok',
+            })
+            expect(c._cacheSize()).toBe(1)
+        })
+    }
+
+    test('an explicit no-asset answer (204, or a legacy NoAssetFound 404) is a real gap', async () => {
+        for (const answer of [
+            () => ({
+                ok: true,
+                status: 204,
+                json: async () => {
+                    throw new SyntaxError('empty')
+                },
+            }),
+            () =>
+                jsonResponse(
+                    { detail: 'No assets found for point (1,2)' },
+                    404
+                ),
+        ]) {
+            const servers = controllableServers()
+            servers.point = answer
+            const { c, view } = realController(servers, {
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            })
+            c.selectPoint(1, 2)
+            await settle(10)
+            const r = view.results().at(-1)[2]
+            expect(r.status).toBe('empty')
+            expect(r.notes.join(' ')).toMatch(
+                /returned no reading here, asked twice/
+            )
+            // asked once, then once more for the absent item
+            expect(servers.pointUrls).toHaveLength(2)
+        }
+    })
+})
+
+test.describe('review 6 - re-chart when query inputs change', () => {
+    test('several changes in one task re-chart once; nothing while closed', async () => {
+        let loads = 0
+        const layers = { data: { ch4: stacLayer() }, on: { ch4: true } }
+        const c = createTimeSeriesController({
+            getLayers: () => layers,
+            fetchSeries: async () => {
+                loads++
+                return { status: 'ok', series: [] }
+            },
+            marker: fakeMarker(),
+            view: fakeView(),
+        })
+        c.queryChanged()
+        await settle()
+        expect(loads).toBe(0)
+        c.selectPoint(1, 2)
+        await settle()
+        expect(loads).toBe(1)
+        layers.data.ch4 = stacLayer({ currentCogExpression: 'b2' })
+        c.queryChanged()
+        c.queryChanged()
+        c.queryChanged()
+        await settle()
+        expect(loads).toBe(2)
+        c.close()
+        c.queryChanged()
+        await settle()
+        expect(loads).toBe(2)
+    })
+
+    test('a time window set while a read is out cancels it and charts the new window', async () => {
+        const servers = controllableServers({ holdStac: true })
+        const layer = stacLayer()
+        const { c, view } = realController(servers, {
+            data: { ch4: layer },
+            on: { ch4: true },
+        })
+        c.selectPoint(1, 2)
+        await settle()
+        layer.time = {
+            enabled: true,
+            start: '2023-01-01T00:00:00Z',
+            end: '2023-06-01T00:00:00Z',
+        }
+        c.queryChanged()
+        await settle()
+        expect(servers.held).toHaveLength(2)
+        servers.held[1].release()
+        servers.held[0].release()
+        await settle(10)
+        expect(view.results()).toHaveLength(1)
+        expect(view.results()[0][2].query.time.end).toBe('2023-06-01T00:00:00Z')
+    })
+})
+
+test.describe('review 8 - one request budget and incomplete histories', () => {
+    test('requests for one point share one concurrency limit across all layers', async () => {
+        const servers = controllableServers()
+        servers.features = Array.from({ length: 120 }, (_, i) =>
+            item(`i${i}`, new Date(Date.UTC(2024, 0, 1 + i)).toISOString())
+        )
+        const layers = {
+            data: {
+                a: stacLayer({ url: 'stac-collection:a' }),
+                b: stacLayer({ url: 'stac-collection:b' }),
+                c: stacLayer({ url: 'stac-collection:c' }),
+            },
+            on: { a: true, b: true, c: true },
+        }
+        const { c, view } = realController(servers, layers, {
+            requestConcurrency: 2,
+        })
+        c.selectPoint(1, 2)
+        for (let i = 0; i < 40 && view.results().length < 3; i++) await settle()
+        expect(view.results()).toHaveLength(3)
+        // 3 STAC searches + 3 x 3 point batches, never more than 2 at once
+        expect(servers.pointUrls.length).toBe(9)
+        expect(servers.peak).toBeLessThanOrEqual(2)
+        expect(servers.peak).toBe(2)
+    })
+
+    test('createLimiter queues past the limit and keeps going after a failure', async () => {
+        const run = createLimiter(1)
+        const order = []
+        const a = run(async () => {
+            order.push('a')
+            throw new Error('x')
+        })
+        const b = run(async () => order.push('b'))
+        await expect(a).rejects.toThrow('x')
+        await b
+        await flush()
+        expect(order).toEqual(['a', 'b'])
+        expect(run.active()).toBe(0)
+        expect(run.queued()).toBe(0)
+    })
+
+    const stacPages = (pages) => {
+        let n = 0
+        return async () => {
+            const p = pages[Math.min(n++, pages.length - 1)]
+            return jsonResponse(p)
+        }
+    }
+    const page = (ids, links = [], extra = {}) => ({
+        features: ids.map((id) => item(id, '2024-01-01T00:00:00Z')),
+        links,
+        ...extra,
+    })
+    const listing = (fetchFn, limits) =>
+        fetchStacItems({
+            fetchFn,
+            stacBase: STAC_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+            ...(limits ? { limits } : {}),
+        })
+
+    test('a next link that cannot be followed is reported, not taken as the end', async () => {
+        const r = await listing(
+            stacPages([
+                page(
+                    ['a'],
+                    [{ rel: 'next', method: 'POST', href: 'http://h/search' }]
+                ),
+            ])
+        )
+        expect(r.items).toHaveLength(1)
+        expect(r.incomplete).toEqual([
+            'the STAC API offered a next page in a form that could not be followed',
+        ])
+    })
+
+    test('a full page with no next link and no count is reported', async () => {
+        const limits = { ...TIME_SERIES_LIMITS, stacPageSize: 2 }
+        const r = await listing(stacPages([page(['a', 'b'])]), limits)
+        expect(r.incomplete).toEqual([
+            'the STAC API returned a full page without a next link',
+        ])
+        // with a count saying that was everything: complete
+        const done = await listing(
+            stacPages([page(['a', 'b'], [], { numberMatched: 2 })]),
+            limits
+        )
+        expect(done.incomplete).toEqual([])
+        // a short page is the end
+        const short = await listing(stacPages([page(['a'])]), limits)
+        expect(short.incomplete).toEqual([])
+    })
+
+    test('a repeated page token is reported', async () => {
+        const r = await listing(
+            stacPages([
+                page(
+                    ['a'],
+                    [{ rel: 'next', href: 'http://h/search?token=next:same' }]
+                ),
+            ])
+        )
+        expect(r.incomplete).toEqual(['the STAC API repeated a page token'])
+    })
+
+    test('an incomplete history still charts, flagged as incomplete', async () => {
+        const servers = controllableServers()
+        const layers = { data: { ch4: stacLayer() }, on: { ch4: true } }
+        servers.fetchFn = ((orig) => async (url, init) => {
+            const res = await orig(url, init)
+            if (new URL(url).pathname.endsWith('/stac/search')) {
+                const body = await res.json()
+                body.links = [
+                    { rel: 'next', method: 'POST', href: 'http://h/search' },
+                ]
+                delete body.numberMatched
+                return jsonResponse(body)
+            }
+            return res
+        })(servers.fetchFn)
+        const { c, view } = realController(servers, layers)
+        c.selectPoint(1, 2)
+        await settle(10)
+        const r = view.results().at(-1)[2]
+        expect(r.status).toBe('ok')
+        expect(r.incomplete).toHaveLength(1)
+        // the truncation of our own bound is reported the same way
+        const cut = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            fetchFn: fakeServers({
+                items: Array.from({ length: 5 }, (_, i) =>
+                    item(`i${i}`, `2024-01-0${i + 1}T00:00:00Z`)
+                ),
+                values: Object.fromEntries(
+                    Array.from({ length: 5 }, (_, i) => [`i${i}`, [i]])
+                ),
+            }).fetchFn,
+            location: LOCATION,
+            limits: { ...TIME_SERIES_LIMITS, maxItems: 3, stacPageSize: 3 },
+        })
+        expect(cut.incomplete).toEqual([
+            'showing 3 of 5 matching items (limit 3)',
+        ])
+    })
+
+    test('local collections use the page origin and path - no hard-coded port', () => {
+        const e = resolveStacEndpoints('stac-collection:c', {
+            origin: 'http://localhost:8889',
+            pathname: '/mmgis/',
+        })
+        expect(e.titilerBase).toBe('http://localhost:8889/mmgis/titilerpgstac')
+        expect(e.stacBase).toBe('http://localhost:8889/mmgis/stac')
+        expect(getAppBaseUrl({ origin: 'https://h', pathname: '/' })).toBe(
+            'https://h'
+        )
+    })
+})
+
+test.describe('review 8 - request time limit', () => {
+    // a server that never answers, but honours an abort like fetch does
+    const hanging = () => {
+        const calls = []
+        const fetchFn = (url, init) =>
+            new Promise((_, reject) => {
+                calls.push(url)
+                const abortErr = () =>
+                    reject(
+                        Object.assign(new Error('aborted'), {
+                            name: 'AbortError',
+                        })
+                    )
+                if (init?.signal?.aborted) return abortErr()
+                init?.signal?.addEventListener('abort', abortErr)
+            })
+        return { fetchFn, calls }
+    }
+
+    test('a hung request becomes a reported, retryable error - not a silent cancel', async () => {
+        const { fetchFn } = hanging()
+        const r = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            fetchFn,
+            location: LOCATION,
+            limits: { ...TIME_SERIES_LIMITS, requestTimeoutMs: 30 },
+        })
+        expect(r.status).toBe('error')
+        expect(r.message).toMatch(/STAC API \(request timed out after 0 s\)/)
+
+        // through the controller: shown, not cached, and the next click charts
+        const servers = controllableServers()
+        let hang = true
+        const layers = { data: { ch4: stacLayer() }, on: { ch4: true } }
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => layers,
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    fetchFn: (url, init) =>
+                        hang
+                            ? hanging().fetchFn(url, init)
+                            : servers.fetchFn(url, init),
+                    location: LOCATION,
+                    limits: { ...TIME_SERIES_LIMITS, requestTimeoutMs: 30 },
+                }),
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await new Promise((r) => setTimeout(r, 80))
+        expect(view.results().at(-1)[2].status).toBe('error')
+        expect(c._cacheSize()).toBe(0)
+        hang = false
+        c.selectPoint(1, 2)
+        await settle(10)
+        expect(view.results().at(-1)[2].status).toBe('ok')
+    })
+
+    test('a cancellation stays a cancellation, and timers are cleared', async () => {
+        const { fetchFn } = hanging()
+        const ctrl = new AbortController()
+        const p = withRequestTimeout(fetchFn, 10000)('http://x/', {
+            signal: ctrl.signal,
+        })
+        ctrl.abort()
+        await expect(p).rejects.toMatchObject({ name: 'AbortError' })
+        // already-aborted signal: aborted at once
+        const pre = new AbortController()
+        pre.abort()
+        await expect(
+            withRequestTimeout(fetchFn, 10000)('http://x/', {
+                signal: pre.signal,
+            })
+        ).rejects.toMatchObject({ name: 'AbortError' })
+        // a fast answer passes through untouched
+        const ok = await withRequestTimeout(async () => 'res', 10000)(
+            'http://x/',
+            {}
+        )
+        expect(ok).toBe('res')
+        // no limit configured: the original fetch is used as-is
+        expect(withRequestTimeout(fetchFn, 0)).toBe(fetchFn)
+    })
+})
+
+test.describe('step 3 - hover and chart write a reading the same way', () => {
+    test('value and unit: per band, appended verbatim, as the hover does', () => {
+        expect(unitForBand(['K', '%'], 1)).toBe('%')
+        expect(unitForBand(['K'], 3)).toBe('')
+        expect(unitForBand('ppm', 5)).toBe('ppm')
+        expect(unitForBand(undefined, 0)).toBe('')
+        // the hover's own formula: parseValue(v, 2, 1) + '' + unit
+        for (const [v, unit] of [
+            [120.91466522216797, 'ppm'],
+            [-11.682, ' m'],
+            [0, ''],
+        ])
+            expect(formatStacReading(v, unit)).toBe(
+                parseIdentifierValue(v, 2, 1) + '' + unit
+            )
+        expect(formatStacReading(null, 'ppm')).toBe('no data')
+        // the chart's tooltip and table use the same text
+        const r = buildSeries(
+            [{ id: 'a', time: 0, range: null }],
+            new Map([
+                [
+                    'a',
+                    {
+                        values: [120.91466522216797, 3],
+                        bandNames: ['b1', 'b2'],
+                    },
+                ],
+            ]),
+            { units: ['ppm', ' K'] }
+        )
+        const t = buildReadingsTable(r.series)
+        expect(t.columns).toEqual([
+            'Acquired (UTC)',
+            'Acquisition ID',
+            'b1 (ppm)',
+            'b2 (K)',
+        ])
+        // the table puts the unit in the column header, the number in the cell
+        expect(t.rows[0].slice(2)).toEqual(['120.91', '3'])
+        const option = buildChartOption(r.series)
+        const html = option.tooltip.formatter(
+            option.series.map((s, i) => ({
+                seriesIndex: i,
+                seriesName: s.name,
+                dataIndex: 0,
+                data: s.data[0],
+            }))
+        )
+        expect(html).toContain('b1: <b>120.91ppm</b>')
+        expect(html).toContain('b2: <b>3 K</b>')
+    })
+
+    test('the chart draws times in UTC (useUTC) for every browser zone', () => {
+        expect(buildChartOption([]).useUTC).toBe(true)
     })
 })

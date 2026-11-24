@@ -657,7 +657,185 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     expect(names.sort()).toEqual(seen.stac.features.map((f) => f.id).sort());
   });
 
-  test('globe (Cesium): marker on the surface, click charts, drag and marker clicks do not', async ({ page }) => {
+  // Values of the three granules at the point, from TiTiler's single-item
+  // endpoint (null where masked), for comparing chart values against.
+  async function itemValues(request, expression, at = { lng: LNG, lat: LAT }) {
+    const ids = [
+      'EMIT_L2B_CH4ENH_002_20240130T204707_2403014_005',
+      'EMIT_L2B_CH4ENH_002_20240130T204718_2403014_006',
+      'EMIT_L2B_CH4ENH_002_20240203T191240_2403413_004',
+    ];
+    const out = {};
+    for (const id of ids) {
+      const q = expression ? `&expression=${encodeURIComponent(expression)}` : '';
+      const j = await (
+        await request.get(`${base}/titilerpgstac/collections/${COLLECTION}/items/${id}/point/${at.lng},${at.lat}?assets=asset${q}`)
+      ).json();
+      out[id] = j.values[0];
+    }
+    return out;
+  }
+
+  // What the open panel currently charts for the layer, read back from the
+  // readings table (acquisition id -> the shown value text).
+  async function tableValues(page, uuid) {
+    const details = page.locator(`#identifierTimeSeriesPanel [data-layer="${uuid}"] details.identifierTimeSeriesPanel_readings`);
+    await expect(details).toBeVisible({ timeout: 20000 });
+    return page.evaluate((u) => {
+      const rows = document.querySelectorAll(`#identifierTimeSeriesPanel [data-layer="${u}"] tbody tr`);
+      return Object.fromEntries([...rows].map((r) => {
+        const c = [...r.children].map((x) => x.textContent);
+        return [c[1], c[2]];
+      }));
+    }, uuid);
+  }
+
+  test('applying and resetting a band expression in the Layers tool re-charts with it', async ({ page, request }) => {
+    const searches = [];
+    page.on('request', (req) => { if (req.url().includes('/stac/search?')) searches.push(req.url()); });
+    const uuid = await openApp(page);
+    // expose the (normally config-only) expression editor for this layer
+    await page.evaluate((u) => { window.L_.layers.data[u].cogExpressionEditable = true; }, uuid);
+    const box = await page.locator('#map').boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    const plain = await tableValues(page, uuid);
+    // the point actually selected (the map centre pixel, not exactly LNG/LAT)
+    const at = await page.evaluate(() => window.ToolController_.getTool('IdentifierTool').timeSeries.getPoint());
+    const raw = await itemValues(request, null, at);
+    for (const [id, v] of Object.entries(raw)) expect(plain[id]).toBe(v == null ? 'no data' : String(Number(v.toFixed(2))));
+
+    // the real Layers tool: open the layer's settings, type, Apply
+    await page.evaluate(() => window.ToolController_.openTool('Layers'));
+    const gears = page.locator(`.gears[layername="${uuid}"]`);
+    await expect(gears).toHaveCount(1, { timeout: 15000 });
+    await gears.click();
+    const input = page.locator(`input.tileexpression[layername="${uuid}"]`);
+    await expect(input).toBeVisible({ timeout: 10000 });
+    const before = searches.length;
+    await input.fill('b1*2');
+    await page.locator(`button.tileexpressionapply[layername="${uuid}"]`).click();
+    await expect.poll(() => searches.length, { timeout: 15000 }).toBeGreaterThan(before);
+    const withValue = Object.keys(raw).find((id) => raw[id] != null);
+    expect(withValue).toBeTruthy();
+    await expect.poll(async () => (await tableValues(page, uuid))[withValue], { timeout: 20000 })
+      .not.toBe(plain[withValue]);
+    const doubled = await tableValues(page, uuid);
+    const viaTitiler = await itemValues(request, 'b1*2', at);
+    for (const [id, v] of Object.entries(viaTitiler)) expect(doubled[id]).toBe(v == null ? 'no data' : String(Number(v.toFixed(2))));
+    // the y axis and request say which expression was used
+    expect(await page.evaluate((u) => window.L_.layers.data[u].currentCogExpression, uuid)).toBe('b1*2');
+
+    // Reset: back to the raw band. Those inputs were charted first, so the
+    // re-chart is served from the cache - no new request - with the same values.
+    const beforeReset = searches.length;
+    await page.locator(`.tileexpressionreset[layername="${uuid}"]`).click();
+    await expect.poll(async () => JSON.stringify(await tableValues(page, uuid)), { timeout: 20000 }).toBe(JSON.stringify(plain));
+    expect(await page.evaluate((u) => window.L_.layers.data[u].currentCogExpression, uuid)).toBeNull();
+    expect(searches.length).toBe(beforeReset);
+  });
+
+  test('setLayerTime re-charts the pinned point for the new window', async ({ page, request }) => {
+    const searches = [];
+    page.on('request', (r) => { if (r.url().includes('/stac/search?')) searches.push(new URL(r.url()).searchParams.get('datetime')); });
+    const uuid = await openApp(page);
+    // the exact point (a pixel centre would be a few metres off it)
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    expect(Object.keys(await tableValues(page, uuid))).toHaveLength(3);
+    await page.evaluate((u) => window.mmgisAPI.setLayerTime(u, '2024-01-01T00:00:00Z', '2024-01-31T00:00:00Z'), uuid);
+    await expect.poll(() => searches.at(-1), { timeout: 15000 }).toBe('2024-01-01T00:00:00Z/2024-01-31T00:00:00Z');
+    const jan = await itemValues(request, null);
+    const expected = {
+      EMIT_L2B_CH4ENH_002_20240130T204707_2403014_005: 'no data',
+      EMIT_L2B_CH4ENH_002_20240130T204718_2403014_006: String(Number(jan.EMIT_L2B_CH4ENH_002_20240130T204718_2403014_006.toFixed(2))),
+    };
+    await expect.poll(async () => tableValues(page, uuid), { timeout: 20000 }).toEqual(expected);
+    // only one re-chart for one change
+    expect(searches.length).toBe(2);
+  });
+
+  test('keyboard: Tab to "Chart time series at map centre", Enter charts; Escape returns focus', async ({ page }) => {
+    const uuid = await openApp(page);
+    const button = page.getByRole('button', { name: 'Chart time series at map centre' });
+    await expect(button).toHaveCount(1);
+    // hidden from sight until focused, so pointer users see nothing new
+    expect((await button.boundingBox()).width).toBeLessThanOrEqual(1);
+    // reach it with the keyboard alone, tabbing from the start of the page
+    await page.evaluate(() => document.activeElement?.blur());
+    let reached = false;
+    for (let i = 0; i < 120 && !reached; i++) {
+      await page.keyboard.press('Tab');
+      reached = await page.evaluate(() => document.activeElement?.id === 'identifierTimeSeriesCentreButton');
+    }
+    expect(reached).toBe(true);
+    expect((await button.boundingBox()).width).toBeGreaterThan(50);
+    await page.keyboard.press('Enter');
+    const panel = page.locator('#identifierTimeSeriesPanel');
+    await expect(panel).toBeVisible();
+    await expect(page.locator('#identifierTimeSeriesPanel_title')).toBeFocused();
+    await expect(panel.locator(`[data-layer="${uuid}"] canvas`)).toHaveCount(1, { timeout: 20000 });
+    const c = await page.evaluate(() => window.mmgisAPI.map.getCenter());
+    await expect(panel.locator('.identifierTimeSeriesPanel_coords')).toHaveText(`${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`);
+    await expect(page.locator('.leaflet-overlay-pane path[fill="yellow"]')).toHaveCount(1);
+    // the readings are reachable by keyboard
+    const summary = panel.locator('details.identifierTimeSeriesPanel_readings summary');
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await expect(panel.locator('tbody tr')).toHaveCount(3);
+    await page.keyboard.press('Escape');
+    await expect(panel).toHaveCount(0);
+    await expect(button).toBeFocused();
+    await expect(page.locator('.leaflet-overlay-pane path[fill="yellow"]')).toHaveCount(0);
+
+    // with another tool taking clicks, it explains instead of charting
+    await page.evaluate(() => window.ToolController_.openTool('Measure'));
+    await page.waitForTimeout(500);
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#identifierTimeSeriesCentreButton_status')).toHaveText(/Another tool is using map clicks/);
+    await expect(panel).toHaveCount(0);
+    await page.evaluate(() => window.ToolController_.closeTool('Measure'));
+
+    // closing the Identifier removes the button
+    await page.evaluate(() => window.ToolController_.closeTool('Identifier'));
+    await expect(button).toHaveCount(0);
+  });
+
+  test('a click in another world copy: queries use -180..180, the marker stays where clicked', async ({ page }) => {
+    const points = [];
+    page.on('request', (req) => { if (req.url().includes('/titilerpgstac/') && req.url().includes('ids=')) points.push(new URL(req.url()).pathname); });
+    await openApp(page);
+    // the same place, one world copy east (lng + 360)
+    await page.evaluate(() => window.mmgisAPI.map.setView([38.5, -122.44 + 360], 11, { animate: false }));
+    await page.waitForTimeout(500);
+    const box = await page.locator('#map').boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page.locator('#identifierTimeSeriesPanel canvas')).toHaveCount(1, { timeout: 20000 });
+    // queried at the real longitude
+    expect(points.length).toBeGreaterThan(0);
+    for (const p of points) {
+      const [lng, lat] = p.split('/point/')[1].split(',').map(Number);
+      expect(lng).toBeCloseTo(-122.44, 2);
+      expect(lat).toBeCloseTo(38.5, 2);
+    }
+    const [shownLat, shownLng] = (await page.locator('.identifierTimeSeriesPanel_coords').textContent()).split(', ').map(Number);
+    expect(shownLat).toBeCloseTo(38.5, 2);
+    expect(shownLng).toBeCloseTo(-122.44, 2);
+    // the marker is in the copy that was clicked, i.e. in view
+    const m = await page.evaluate(() => {
+      let ll = null;
+      window.mmgisAPI.map.eachLayer((l) => { if (l.options && l.options.fillColor === 'yellow' && l.getLatLng) ll = l.getLatLng(); });
+      return ll && { lng: ll.lng, inView: window.mmgisAPI.map.getBounds().contains(ll) };
+    });
+    expect(m.lng).toBeGreaterThan(180);
+    expect(m.inView).toBe(true);
+  });
+
+  // A real touchscreen tap (trusted touch input, through Playwright's
+  // touchscreen API in a touch-capable context) - not synthetic events.
+  test.describe('globe touch', () => {
+  test.use({ hasTouch: true });
+
+  test('globe (Cesium): a touch tap charts, marker on the surface; drag and marker clicks do not', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     let searches = 0;
@@ -678,27 +856,25 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     const cx = canvasBox.x + canvasBox.w / 2;
     const cy = canvasBox.y + canvasBox.h / 2;
 
-    // A stationary touchscreen tap: do NOT emit mousemove. Deliberately poison
-    // GlobeRenderer.mouse so this fails if clickGlobe uses cached hover state.
+    // Where the tap lands on the globe, and a poisoned hover position, so
+    // this fails if the tap is read from cached hover state instead of from
+    // the tap's own position (a touch has no hover before it).
     const at = await page.evaluate(({ cx, cy }) => {
       const G = window.L_.Globe_.litho;
       const scene = G.renderer.scene;
-      const canvas = scene.canvas;
-      const rect = canvas.getBoundingClientRect();
+      const rect = scene.canvas.getBoundingClientRect();
       const position = { x: cx - rect.left, y: cy - rect.top };
       const hit = G.renderer.camera.pickEllipsoid(position, scene.globe.ellipsoid);
       if (!hit) throw new Error('Globe test center does not hit the ellipsoid');
       const c = scene.globe.ellipsoid.cartesianToCartographic(hit);
-      const expected = { lng: (c.longitude * 180) / Math.PI, lat: (c.latitude * 180) / Math.PI };
       Object.assign(G.mouse, { lng: 0, lat: 0, onSurface: false });
-      for (const type of ['pointerdown', 'pointerup']) {
-        canvas.dispatchEvent(new PointerEvent(type, {
-          bubbles: true, isPrimary: true, button: 0, buttons: type === 'pointerdown' ? 1 : 0,
-          clientX: cx, clientY: cy, pointerId: 8, pointerType: 'touch',
-        }));
-      }
-      return expected;
+      window.__pointerTypes = [];
+      scene.canvas.addEventListener('pointerup', (e) => window.__pointerTypes.push([e.pointerType, e.isTrusted]));
+      return { lng: (c.longitude * 180) / Math.PI, lat: (c.latitude * 180) / Math.PI };
     }, { cx, cy });
+    await page.touchscreen.tap(cx, cy);
+    // it really was a trusted touch
+    expect(await page.evaluate(() => window.__pointerTypes)).toEqual([['touch', true]]);
     await expect(page.locator('#identifierTimeSeriesPanel')).toBeVisible({ timeout: 10000 });
     await expect.poll(() => searches).toBe(1);
 
@@ -718,11 +894,19 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     expect(Math.abs(marker.h)).toBeLessThan(1);
     await expect(page.locator('.leaflet-overlay-pane path[fill="yellow"]')).toHaveCount(1);
 
-    // Cesium's link control belongs to the UI, not the globe surface.
+    // Cesium's link control belongs to the UI, not the globe surface: a tap
+    // on it charts nothing. Linking is switched straight back off: while the
+    // map and globe are linked, moving over the globe hits a pre-existing,
+    // unrelated MMGIS defect (Map_.setPlayerLookat calls map.hasLayer(null) ->
+    // "Cannot use 'in' operator to search for '_leaflet_id' in null"; it
+    // happens with the Identifier closed too), which would otherwise land in
+    // the page-error check below.
     const link = page.locator('#_cesium_control_link');
     if (await link.count()) {
       await link.click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
+      await link.click();
+      await page.waitForTimeout(300);
       expect(searches).toBe(1);
     }
 
@@ -752,5 +936,6 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     await expect(page.locator('#identifierTimeSeriesPanel')).toHaveCount(0);
     expect(searches).toBe(1);
     expect(errors).toEqual([]);
+  });
   });
 });

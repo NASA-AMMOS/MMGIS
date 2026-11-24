@@ -26,10 +26,12 @@
  * unit-tested directly; `fetch` and global options are passed in.
  */
 import {
+    getAppBaseUrl,
     parseExternalStacUrl,
     formatStacBidx,
     normalizeTitilerExpression,
 } from '../../../../src/essence/Basics/Layers_/LayerUtils.js'
+import { unitForBand } from './IdentifierValueFormat.js'
 
 export const TIME_SERIES_LIMITS = {
     // Most STAC items charted for one point and layer. Bounds the work a
@@ -39,8 +41,13 @@ export const TIME_SERIES_LIMITS = {
     stacPageSize: 100,
     // Items per TiTiler point request (also its items_limit).
     pointBatchSize: 50,
-    // Point requests in flight at once, per layer.
-    pointConcurrency: 2,
+    // Requests in flight at once for one selected point, across every layer
+    // charted there (STAC pages and TiTiler point batches alike).
+    requestConcurrency: 4,
+    // One request (a STAC page or a point batch) taking longer than this is
+    // given up on and reported as an error, so a hung server can't leave a
+    // chart loading forever. MMGIS's titiler-pgstac proxy stops at 30 s.
+    requestTimeoutMs: 60000,
     // A broken `next` link must not page forever.
     maxStacPages: 20,
 }
@@ -119,7 +126,8 @@ export function classifyLayer(layer, options = {}) {
 /**
  * The servers a stac-collection layer reads from.
  *
- * Local collections use this MMGIS's /titilerpgstac and /stac proxies.
+ * Local collections use this MMGIS's /titilerpgstac and /stac proxies, at
+ * the same proxy-aware base the map's tiles use (LayerUtils.getAppBaseUrl).
  * External ones (`stac-collection:https://host/titilerpgstac/collections/c`)
  * only name their TiTiler, so the STAC API is taken to be the sibling
  * `https://host/stac` - the layout every MMGIS deployment exposes. If it isn't
@@ -127,7 +135,7 @@ export function classifyLayer(layer, options = {}) {
  *
  * @returns {{titilerBase: string, stacBase: string, collection: string, external: boolean} | null}
  */
-export function resolveStacEndpoints(url, location, nodeEnv) {
+export function resolveStacEndpoints(url, location) {
     if (typeof url !== 'string' || !url.startsWith('stac-collection:'))
         return null
     const afterColon = url.substring(url.indexOf(':') + 1)
@@ -142,21 +150,39 @@ export function resolveStacEndpoints(url, location, nodeEnv) {
         }
     }
     const collection = afterColon.split('?')[0].trim()
-    if (!collection) return null
-    // Same origin rule as the Identifier's hover query.
-    const base =
-        nodeEnv === 'development'
-            ? 'http://localhost:8888'
-            : `${location?.origin || ''}${(location?.pathname || '').replace(
-                  /\/$/g,
-                  ''
-              )}`
+    const base = getAppBaseUrl(location)
+    if (!collection || base == null) return null
     return {
         titilerBase: `${base}/titilerpgstac`,
         stacBase: `${base}/stac`,
         collection,
         external: false,
     }
+}
+
+/**
+ * A frozen copy of everything about a layer that decides what a history
+ * query asks for and how its values read. A history is fetched over several
+ * awaits; the layer object itself can change meanwhile (an expression
+ * applied or reset, a new time window), so the cache key, the STAC and
+ * TiTiler requests and the chart's labels must all come from one snapshot
+ * taken before the first request.
+ */
+export function snapshotLayerQuery(layer) {
+    const copy = (v) => (Array.isArray(v) ? [...v] : v)
+    return Object.freeze({
+        type: layer.type,
+        url: layer.url,
+        time: Object.freeze({
+            enabled: layer.time?.enabled === true,
+            start: layer.time?.start ?? '',
+            end: layer.time?.end ?? '',
+        }),
+        cogExpression: layer.cogExpression ?? null,
+        currentCogExpression: layer.currentCogExpression ?? null,
+        cogBandsQuery: Object.freeze(copy(layer.cogBandsQuery) ?? null),
+        cogUnits: Object.freeze(copy(layer.cogUnits) ?? null),
+    })
 }
 
 /**
@@ -317,7 +343,12 @@ export class TimeSeriesHttpError extends Error {
 /**
  * Every item (up to `maxItems`) containing the point in the time window.
  *
- * @returns {Promise<{items: Array, numberMatched: number|null, truncated: boolean, invalidTimes: number}>}
+ * `truncated` means our own bound (maxItems / maxStacPages) stopped paging.
+ * `incomplete` lists reasons the server may hold items that were not read:
+ * a next link whose token can't be found, or a full page with no next link
+ * and no count to show it was the last.
+ *
+ * @returns {Promise<{items: Array, numberMatched: number|null, truncated: boolean, invalidTimes: number, incomplete: string[]}>}
  */
 export async function fetchStacItems({
     fetchFn,
@@ -328,9 +359,11 @@ export async function fetchStacItems({
     datetime,
     signal,
     limits = TIME_SERIES_LIMITS,
+    run = createLimiter(limits.requestConcurrency),
 }) {
     const items = []
     const seen = new Set()
+    const incomplete = []
     let invalidTimes = 0
     let numberMatched = null
     let token = null
@@ -339,23 +372,30 @@ export async function fetchStacItems({
 
     for (let page = 0; page < limits.maxStacPages; page++) {
         const remaining = limits.maxItems - items.length
-        const res = await fetchFn(
-            buildStacSearchUrl(
-                stacBase,
-                collection,
-                lng,
-                lat,
-                datetime,
-                Math.min(limits.stacPageSize, Math.max(remaining, 1)),
-                token
-            ),
-            {
-                headers: { accept: 'application/geo+json, application/json' },
-                signal,
-            }
-        )
-        if (!res.ok) throw new TimeSeriesHttpError('STAC search', res.status)
-        const json = await res.json()
+        const pageLimit = Math.min(limits.stacPageSize, Math.max(remaining, 1))
+        const pageToken = token
+        const json = await run(async () => {
+            const res = await fetchFn(
+                buildStacSearchUrl(
+                    stacBase,
+                    collection,
+                    lng,
+                    lat,
+                    datetime,
+                    pageLimit,
+                    pageToken
+                ),
+                {
+                    headers: {
+                        accept: 'application/geo+json, application/json',
+                    },
+                    signal,
+                }
+            )
+            if (!res.ok)
+                throw new TimeSeriesHttpError('STAC search', res.status)
+            return res.json()
+        })
         if (!json || !Array.isArray(json.features))
             throw new Error('STAC search returned no feature list')
         if (Number.isFinite(json.numberMatched))
@@ -379,13 +419,30 @@ export async function fetchStacItems({
         }
         if (truncated) break
 
+        const hasNextLink = (json.links || []).some((l) => l?.rel === 'next')
         token = nextPageToken(json)
-        if (!token || json.features.length === 0) break
+        if (!token) {
+            if (hasNextLink)
+                incomplete.push(
+                    'the STAC API offered a next page in a form that could not be followed'
+                )
+            else if (
+                json.features.length >= pageLimit &&
+                numberMatched == null &&
+                items.length < limits.maxItems
+            )
+                incomplete.push(
+                    'the STAC API returned a full page without a next link'
+                )
+            break
+        }
+        if (json.features.length === 0) break
         if (items.length >= limits.maxItems) {
             truncated = true
             break
         }
         if (seenTokens.has(token)) {
+            incomplete.push('the STAC API repeated a page token')
             token = null
             break
         }
@@ -395,7 +452,7 @@ export async function fetchStacItems({
     }
     if (numberMatched != null && numberMatched > items.length + invalidTimes)
         truncated = true
-    return { items, numberMatched, truncated, invalidTimes }
+    return { items, numberMatched, truncated, invalidTimes, incomplete }
 }
 
 /**
@@ -414,25 +471,44 @@ export function buildBandParams(layer) {
     return { assets: bands ? `asset|bidx=${bands}` : 'asset', expression: null }
 }
 
-/** `/collections/{id}/point/{lng},{lat}` for an explicit set of item ids. */
+/**
+ * A titiler-pgstac `/collections/{id}/point/{lng},{lat}` URL: the one
+ * request contract the Identifier's hover readout and its histories share.
+ *
+ * @param {object} opts
+ * @param {string[]} [opts.ids] - read exactly these items (history); its
+ *   items_limit is then the number of ids, and a configured scan_limit is
+ *   raised to at least that many so pgSTAC can't stop before reaching them
+ * @param {number} [opts.itemsLimit] - without ids (hover): the mosaic's
+ *   items_limit (TiTiler's default 100)
+ * @param {string|null} [opts.datetime] - without ids: the layer's window
+ * @param {object} [opts.stacOptions] - mmgisglobal.options.stac
+ */
 export function buildPointUrl(
     titilerBase,
     collection,
     lng,
     lat,
-    ids,
     layer,
-    stacOptions = {}
+    opts = {}
 ) {
+    const stacOptions = opts.stacOptions || {}
     const band = buildBandParams(layer)
-    // The `|` and `=` inside assets are left as the hover query sends them.
+    // The `|` and `=` inside assets are sent as-is, as the tiles send them.
     let qs = `assets=${band.assets}`
-    qs += `&ids=${ids.map((id) => encodeURIComponent(id)).join(',')}`
-    qs += `&items_limit=${ids.length}`
-    if (stacOptions.mosaicScanLimit != null)
-        qs += `&scan_limit=${stacOptions.mosaicScanLimit}`
+    let itemsLimit = opts.itemsLimit ?? stacOptions.mosaicItemLimit ?? 100
+    let scanLimit = stacOptions.mosaicScanLimit
+    if (Array.isArray(opts.ids)) {
+        qs += `&ids=${opts.ids.map((id) => encodeURIComponent(id)).join(',')}`
+        itemsLimit = opts.ids.length
+        if (scanLimit != null) scanLimit = Math.max(scanLimit, opts.ids.length)
+    }
+    qs += `&items_limit=${itemsLimit}`
+    if (scanLimit != null) qs += `&scan_limit=${scanLimit}`
     if (stacOptions.mosaicTimeLimit != null)
         qs += `&time_limit=${stacOptions.mosaicTimeLimit}`
+    if (!Array.isArray(opts.ids) && opts.datetime)
+        qs += `&datetime=${encodeURIComponent(opts.datetime)}`
     if (band.expression)
         qs += `&expression=${encodeURIComponent(band.expression)}`
     return `${titilerBase}/collections/${encodeURIComponent(
@@ -489,7 +565,144 @@ export async function mapWithConcurrency(inputs, limit, task) {
     return out
 }
 
-/** Values at the point for the given items, by item id. */
+/**
+ * `fetchFn` with a per-request time limit. A request that runs past `ms` is
+ * aborted and rejects with a TimeoutError - an ordinary failure, reported and
+ * retried, unlike a cancellation (AbortError from the caller's own signal),
+ * which is silently dropped. No AbortSignal.any/timeout needed.
+ */
+export function withRequestTimeout(fetchFn, ms) {
+    if (!Number.isFinite(ms) || ms <= 0) return fetchFn
+    return (url, init = {}) => {
+        const parent = init.signal
+        const controller =
+            typeof AbortController !== 'undefined'
+                ? new AbortController()
+                : null
+        if (!controller) return fetchFn(url, init)
+        let timedOut = false
+        const onAbort = () => controller.abort()
+        if (parent) {
+            if (parent.aborted) controller.abort()
+            else parent.addEventListener('abort', onAbort, { once: true })
+        }
+        const timer = setTimeout(() => {
+            timedOut = true
+            controller.abort()
+        }, ms)
+        const done = () => {
+            clearTimeout(timer)
+            if (parent) parent.removeEventListener('abort', onAbort)
+        }
+        return Promise.resolve()
+            .then(() => fetchFn(url, { ...init, signal: controller.signal }))
+            .then(
+                (res) => {
+                    done()
+                    return res
+                },
+                (e) => {
+                    done()
+                    if (timedOut && !parent?.aborted)
+                        throw Object.assign(
+                            new Error(
+                                `request timed out after ${Math.round(ms / 1000)} s`
+                            ),
+                            { name: 'TimeoutError' }
+                        )
+                    throw e
+                }
+            )
+    }
+}
+
+/**
+ * A concurrency limit shared by every request one point selection makes,
+ * across all its layers: `run(task)` starts `task` when fewer than `limit`
+ * tasks are running, else queues it. The limiter knows nothing of
+ * cancellation: a queued task checks its own abort signal when it starts
+ * (fetchPointValues does; a STAC page's fetch rejects on an aborted signal).
+ */
+export function createLimiter(limit) {
+    let active = 0
+    const queue = []
+    const release = () => {
+        active--
+        pump()
+    }
+    function pump() {
+        while (active < limit && queue.length > 0) {
+            const { task, resolve, reject } = queue.shift()
+            active++
+            Promise.resolve().then(task).then(resolve, reject).finally(release)
+        }
+    }
+    const run = (task) =>
+        new Promise((resolve, reject) => {
+            queue.push({ task, resolve, reject })
+            pump()
+        })
+    run.active = () => active
+    run.queued = () => queue.length
+    return run
+}
+
+/**
+ * Whether a 404 from the point endpoint says "no item has a pixel here" -
+ * older titiler-pgstac answered NoAssetFound with 404 and a detail naming
+ * it. Any other 404 (a missing route, a wrong collection or proxy path) is
+ * a failure, not an absence of data.
+ */
+export function isNoAssetDetail(body) {
+    const detail = body && typeof body === 'object' ? body.detail : undefined
+    return (
+        typeof detail === 'string' && /no (assets?|items?) found/i.test(detail)
+    )
+}
+
+/**
+ * One point request for a batch of items. Resolves to the readings by item
+ * id; an empty map only when TiTiler said explicitly that none of them has a
+ * pixel here. Throws (so nothing is cached and the next click retries) on a
+ * generic 404, any other error status, or a 200 without an `assets` list.
+ */
+async function readPointBatch({ fetchFn, url, signal, collection }) {
+    const res = await fetchFn(url, {
+        headers: { accept: 'application/json' },
+        signal,
+    })
+    // titiler-pgstac 3.x: NoAssetFound -> 204 No Content.
+    if (res.status === 204) return new Map()
+    if (res.status === 404) {
+        let body = null
+        try {
+            body = await res.json()
+        } catch (e) {
+            body = null
+        }
+        if (isNoAssetDetail(body)) return new Map()
+        throw new TimeSeriesHttpError('Point query', 404)
+    }
+    if (!res.ok) throw new TimeSeriesHttpError('Point query', res.status)
+    let json
+    try {
+        json = await res.json()
+    } catch (e) {
+        throw new Error('Point query returned a response that is not JSON')
+    }
+    if (!json || !Array.isArray(json.assets))
+        throw new Error('Point query returned no assets list')
+    return parsePointResponse(json, collection)
+}
+
+/**
+ * Values at the point for the given items, by item id.
+ *
+ * Items a batch returned nothing for are asked for once more, in their own
+ * batches: pgSTAC's time limit can end a search early without saying so,
+ * and a second, smaller search tells that apart from an item that simply has
+ * no pixel here. Only items still absent after that are "no reading".
+ */
 export async function fetchPointValues({
     fetchFn,
     titilerBase,
@@ -501,38 +714,50 @@ export async function fetchPointValues({
     stacOptions,
     signal,
     limits = TIME_SERIES_LIMITS,
+    run = createLimiter(limits.requestConcurrency),
 }) {
-    const batches = []
-    for (let i = 0; i < ids.length; i += limits.pointBatchSize)
-        batches.push(ids.slice(i, i + limits.pointBatchSize))
-
     const merged = new Map()
-    await mapWithConcurrency(
-        batches,
-        limits.pointConcurrency,
-        async (batch) => {
-            const res = await fetchFn(
-                buildPointUrl(
-                    titilerBase,
-                    collection,
-                    lng,
-                    lat,
-                    batch,
-                    layer,
-                    stacOptions
-                ),
-                { headers: { accept: 'application/json' }, signal }
+    // Once one batch has failed the result is an error: batches still queued
+    // behind it (in the shared limiter) are not started.
+    let failed = false
+    const readAll = async (wanted) => {
+        const batches = []
+        for (let i = 0; i < wanted.length; i += limits.pointBatchSize)
+            batches.push(wanted.slice(i, i + limits.pointBatchSize))
+        await Promise.all(
+            batches.map((batch) =>
+                run(async () => {
+                    if (signal?.aborted)
+                        throw Object.assign(new Error('aborted'), {
+                            name: 'AbortError',
+                        })
+                    if (failed) return
+                    try {
+                        const got = await readPointBatch({
+                            fetchFn,
+                            url: buildPointUrl(
+                                titilerBase,
+                                collection,
+                                lng,
+                                lat,
+                                layer,
+                                { ids: batch, stacOptions }
+                            ),
+                            signal,
+                            collection,
+                        })
+                        got.forEach((v, k) => merged.set(k, v))
+                    } catch (e) {
+                        failed = true
+                        throw e
+                    }
+                })
             )
-            // titiler-pgstac answers NoAssetFound with 204 No Content (404
-            // on some deployments): no item in the batch has a pixel here.
-            if (res.status === 204 || res.status === 404) return
-            if (!res.ok)
-                throw new TimeSeriesHttpError('Point query', res.status)
-            parsePointResponse(await res.json(), collection).forEach((v, k) =>
-                merged.set(k, v)
-            )
-        }
-    )
+        )
+    }
+    await readAll(ids)
+    const absent = ids.filter((id) => !merged.has(id))
+    if (absent.length > 0) await readAll(absent)
     return merged
 }
 
@@ -555,21 +780,14 @@ export function readValue(values, band) {
 }
 
 /**
- * The scale factor and units the Identifier shows for this layer: those
- * configured on the Identifier tool for it, else the layer's cogUnits.
+ * The units a STAC layer's values are shown in, and their scale: the same as
+ * the Identifier's hover readout for STAC layers - the raw TiTiler value in
+ * the layer's `cogUnits` (one per band when it is a list). A reading keeps
+ * the same value and unit in the hover and in the chart.
  */
-export function resolveMeasurement(layer, identifierConfig) {
-    const sf = Number.parseFloat(identifierConfig?.scalefactor)
-    const units =
-        identifierConfig?.unit ??
-        identifierConfig?.units ??
-        layer.cogUnits ??
-        ''
-    return { scalefactor: Number.isFinite(sf) ? sf : 1, units }
+export function resolveMeasurement(layer) {
+    return { scalefactor: 1, units: layer?.cogUnits ?? '' }
 }
-
-const unitFor = (units, bandIndex) =>
-    Array.isArray(units) ? (units[bandIndex] ?? '') : units || ''
 
 /**
  * Turn items + their point values into chart series, one per band.
@@ -613,7 +831,7 @@ export function buildSeries(items, valuesById, measurement = {}) {
     const counts = { missing: 0, missingBands: 0, invalidValues: 0, nodata: 0 }
     const series = bandNames.map((name, b) => ({
         name,
-        units: unitFor(measurement.units, b),
+        units: unitForBand(measurement.units, b),
         points: [],
     }))
     for (const it of sorted) {
@@ -659,28 +877,38 @@ export function buildSeries(items, valuesById, measurement = {}) {
 /**
  * One layer's history at a point.
  *
+ * @param {object} args
+ * @param {object} args.query - snapshotLayerQuery(layer); the live layer is
+ *   also accepted (as `layer`) and snapshotted here
+ * @param {Function} [args.run] - a shared limiter (createLimiter) for every
+ *   request of this point selection
  * @returns {Promise<object>} `{ status: 'ok' | 'empty' | 'error', series,
- *   notes: string[], message }`. Aborts reject with an AbortError.
+ *   notes: string[], incomplete: string[], message, query }`. Aborts reject
+ *   with an AbortError.
  */
 export async function fetchLayerTimeSeries({
+    query,
     layer,
     lng,
     lat,
     fetchFn,
     location,
-    nodeEnv,
     stacOptions = {},
-    identifierConfig,
     signal,
     limits = TIME_SERIES_LIMITS,
+    run,
 }) {
-    const endpoints = resolveStacEndpoints(layer.url, location, nodeEnv)
+    const q = query || snapshotLayerQuery(layer)
+    const limiter = run || createLimiter(limits.requestConcurrency)
+    fetchFn = withRequestTimeout(fetchFn, limits.requestTimeoutMs)
+    const endpoints = resolveStacEndpoints(q.url, location)
     if (!endpoints)
         return {
             status: 'error',
             message: "Couldn't parse the STAC collection URL.",
+            query: q,
         }
-    const datetime = buildDatetimeParam(layer.time)
+    const datetime = buildDatetimeParam(q.time)
 
     let listing
     try {
@@ -693,6 +921,7 @@ export async function fetchLayerTimeSeries({
             datetime,
             signal,
             limits,
+            run: limiter,
         })
     } catch (e) {
         if (e?.name === 'AbortError') throw e
@@ -701,10 +930,12 @@ export async function fetchLayerTimeSeries({
             message: `Couldn't read acquisition times from the STAC API (${
                 e?.message || 'request failed'
             }).`,
+            query: q,
         }
     }
 
     const notes = []
+    const incomplete = [...listing.incomplete]
     if (listing.invalidTimes > 0)
         notes.push(
             `${listing.invalidTimes} item${
@@ -712,12 +943,12 @@ export async function fetchLayerTimeSeries({
             } skipped: no valid acquisition time.`
         )
     if (listing.truncated)
-        notes.push(
-            `Showing ${listing.items.length}${
+        incomplete.push(
+            `showing ${listing.items.length}${
                 listing.numberMatched != null
                     ? ` of ${listing.numberMatched}`
                     : ''
-            } matching items (limit ${limits.maxItems}).`
+            } matching items (limit ${limits.maxItems})`
         )
     if (listing.items.length === 0)
         return {
@@ -725,6 +956,8 @@ export async function fetchLayerTimeSeries({
             message:
                 'No acquisitions cover this point in the selected time range.',
             notes,
+            incomplete,
+            query: q,
         }
 
     let values
@@ -736,10 +969,11 @@ export async function fetchLayerTimeSeries({
             lng,
             lat,
             ids: listing.items.map((it) => it.id),
-            layer,
+            layer: q,
             stacOptions,
             signal,
             limits,
+            run: limiter,
         })
     } catch (e) {
         if (e?.name === 'AbortError') throw e
@@ -749,18 +983,16 @@ export async function fetchLayerTimeSeries({
                 e?.message || 'request failed'
             }).`,
             notes,
+            incomplete,
+            query: q,
         }
     }
 
-    const built = buildSeries(
-        listing.items,
-        values,
-        resolveMeasurement(layer, identifierConfig)
-    )
+    const built = buildSeries(listing.items, values, resolveMeasurement(q))
     const count = (n, one, many) => `${n} ${n === 1 ? one : many}`
     if (built.missing > 0)
         notes.push(
-            `${count(built.missing, 'acquisition', 'acquisitions')} returned no reading here (gaps).`
+            `${count(built.missing, 'acquisition', 'acquisitions')} returned no reading here, asked twice (gaps).`
         )
     if (built.missingBands > 0)
         notes.push(
@@ -784,12 +1016,16 @@ export async function fetchLayerTimeSeries({
                     ? 'Every acquisition here is nodata.'
                     : 'No usable values could be read at this point.',
             notes,
+            incomplete,
+            query: q,
         }
     return {
         status: 'ok',
         series: built.series,
         notes,
-        expression: buildBandParams(layer).expression,
+        incomplete,
+        expression: buildBandParams(q).expression,
+        query: q,
     }
 }
 
@@ -824,22 +1060,20 @@ export function createRequestGuard(
 }
 
 /**
- * Cache key for one layer's history at one point, time window, band
- * selection and measurement (scale factor and units are applied to the
- * cached values, so a change to either must not reuse them).
+ * Cache key for one layer's history at one point: built from the same
+ * snapshot the requests use (snapshotLayerQuery), so a result is only ever
+ * stored under the inputs that produced it.
  */
-export function cacheKey(layerUUID, layer, lng, lat, identifierConfig) {
-    const band = buildBandParams(layer)
-    const m = resolveMeasurement(layer, identifierConfig)
+export function cacheKey(layerUUID, query, lng, lat) {
+    const band = buildBandParams(query)
     return [
         layerUUID,
-        layer.url,
+        query.url,
         lng.toFixed(7),
         lat.toFixed(7),
-        buildDatetimeParam(layer.time),
+        buildDatetimeParam(query.time),
         band.assets,
         band.expression || '',
-        m.scalefactor,
-        JSON.stringify(m.units),
+        JSON.stringify(resolveMeasurement(query).units),
     ].join('|')
 }

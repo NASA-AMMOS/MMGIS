@@ -2433,6 +2433,7 @@ function interfaceWithMMGIS(fromInit) {
 
         // Refresh legends in case they're affected
         LegendTool.refreshLegends()
+        L_.layerQueryChanged(layerUUID)
     })
 
     // Expression Reset button handler
@@ -2481,6 +2482,7 @@ function interfaceWithMMGIS(fromInit) {
 
         // Refresh legends
         LegendTool.refreshLegends()
+        L_.layerQueryChanged(layerUUID)
     })
 
     //Applies slider values to map layers

@@ -49,3 +49,26 @@ export function unsubscribeOnSpecificLayerToggle(L_, fid) {
     if (L_._onSpecificLayerToggleSubscriptions[fid] != null)
         delete L_._onSpecificLayerToggleSubscriptions[fid]
 }
+
+// A layer's raster query inputs changed (its band expression, or its time
+// window set directly). Anything holding results read with the old inputs -
+// the Identifier's pinned time series - can re-read them.
+export function subscribeOnLayerQueryChange(L_, fid, func) {
+    if (typeof func === 'function')
+        L_._onLayerQueryChangeSubscriptions[fid] = func
+}
+
+export function unsubscribeOnLayerQueryChange(L_, fid) {
+    if (L_._onLayerQueryChangeSubscriptions[fid] != null)
+        delete L_._onLayerQueryChangeSubscriptions[fid]
+}
+
+export function layerQueryChanged(L_, layerUUID) {
+    Object.keys(L_._onLayerQueryChangeSubscriptions).forEach((k) => {
+        try {
+            L_._onLayerQueryChangeSubscriptions[k](layerUUID)
+        } catch (err) {
+            console.warn(`Layer query change subscriber '${k}' failed:`, err)
+        }
+    })
+}

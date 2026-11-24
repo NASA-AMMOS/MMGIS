@@ -26,7 +26,7 @@ const PAGE = `<!doctype html><html><head>
 <div id="splitscreens" style="position:absolute;inset:0;width:1000px;height:700px"></div>
 </body></html>`
 
-async function openHarness(page) {
+async function openHarness(page, { withReturnFocus = false } = {}) {
     await page.route(`${ORIGIN}/**`, async (route) => {
         const { pathname } = new URL(route.request().url())
         if (pathname === '/')
@@ -41,7 +41,13 @@ async function openHarness(page) {
         })
     })
     await page.goto(`${ORIGIN}/`)
-    await page.evaluate(async () => {
+    await page.evaluate(async (withReturnFocus) => {
+        // A focusable stand-in for the map container (where keyboard
+        // selection starts and where focus returns on a keyboard close).
+        const mapStandIn = document.createElement('div')
+        mapStandIn.id = 'mapStandIn'
+        mapStandIn.tabIndex = 0
+        document.body.appendChild(mapStandIn)
         const panel =
             await import('/plugins/core/tools/Identifier/IdentifierTimeSeriesPanel.js')
         const chart =
@@ -128,6 +134,9 @@ async function openHarness(page) {
                     chart.createTimeSeriesChart(el, option, {
                         echarts: window.echarts,
                     }),
+                getReturnFocus: withReturnFocus
+                    ? () => document.getElementById('mapStandIn')
+                    : undefined,
             }),
         })
         h.chartEl = () =>
@@ -139,7 +148,7 @@ async function openHarness(page) {
                 ? window.echarts.getInstanceByDom(h.chartEl())
                 : undefined
         window.__h = h
-    })
+    }, withReturnFocus)
 }
 
 test.describe('Identifier time-series panel (browser)', () => {
@@ -184,9 +193,17 @@ test.describe('Identifier time-series panel (browser)', () => {
             'Roads: Vector layer: features carry no raster measurements to chart.',
             'Basemap: Pre-rendered tiles: colours only, no numeric source values.',
         ])
-        await expect(
-            panel.locator('.identifierTimeSeriesPanel_unsupported')
-        ).toBeHidden()
+        // A chart is shown, so the reasons sit behind a closed disclosure:
+        // its summary is visible and counts them; the reasons are not.
+        const notCharted = panel.locator(
+            'details.identifierTimeSeriesPanel_unsupported'
+        )
+        await expect(notCharted).toBeVisible()
+        await expect(notCharted.locator('summary')).toHaveText(
+            'Not charted (2)'
+        )
+        expect(await notCharted.evaluate((d) => d.open)).toBe(false)
+        await expect(unsupported.first()).toBeHidden()
 
         // the chart holds every observation, the nodata one as a gap
         const data = await page.evaluate(() =>
@@ -202,31 +219,163 @@ test.describe('Identifier time-series panel (browser)', () => {
         ])
     })
 
-    test('Not charted only appears when no chart is displayed', async ({ page }) => {
+    test('Not charted: open when nothing is charted, collapsed when a chart is', async ({
+        page,
+    }) => {
         await openHarness(page)
         await page.evaluate(() => {
             window.__h.layers.on.ch4 = false
             window.__h.controller.selectPoint(10, 20)
         })
-        const notCharted = page.locator('.identifierTimeSeriesPanel_unsupported')
-        await expect(notCharted).toBeVisible()
-        await expect(notCharted).toContainText('Not charted')
-        await expect(page.locator('#identifierTimeSeriesPanel canvas')).toHaveCount(0)
+        const notCharted = page.locator(
+            'details.identifierTimeSeriesPanel_unsupported'
+        )
+        const reasons = notCharted.locator('li')
+        // No chart (bare: empty, down: error): reasons shown by default.
+        await expect(
+            page.locator(
+                '[data-layer="down"] .identifierTimeSeriesPanel_status'
+            )
+        ).toHaveText(/HTTP 502/)
+        await expect(
+            page.locator('#identifierTimeSeriesPanel canvas')
+        ).toHaveCount(0)
+        await expect.poll(() => notCharted.evaluate((d) => d.open)).toBe(true)
+        await expect(reasons.first()).toBeVisible()
 
-        // When a real chart appears, the unsupported summary is hidden.
+        // A chart appears: the reasons fold away behind "Not charted (N)".
         await page.evaluate(() => {
             window.__h.layers.on.ch4 = true
             window.__h.controller.refresh()
         })
         await expect(page.locator('[data-layer="ch4"] canvas')).toHaveCount(1)
-        await expect(notCharted).toBeHidden()
+        await expect(notCharted.locator('summary')).toHaveText(
+            'Not charted (2)'
+        )
+        expect(await notCharted.evaluate((d) => d.open)).toBe(false)
+        await expect(reasons.first()).toBeHidden()
 
-        // It reappears after a refresh that cannot plot any chart.
+        // ...and are a keyboard press away.
+        await notCharted.locator('summary').focus()
+        await page.keyboard.press('Enter')
+        await expect(reasons.first()).toBeVisible()
+        await expect(reasons).toHaveText([
+            'Roads: Vector layer: features carry no raster measurements to chart.',
+            'Basemap: Pre-rendered tiles: colours only, no numeric source values.',
+        ])
+
+        // Nothing chartable again: shown again by default on a new render
+        // unless the person opened/closed it themselves (they did: kept).
         await page.evaluate(() => {
             window.__h.layers.on.ch4 = false
             window.__h.controller.refresh()
         })
-        await expect(notCharted).toBeVisible()
+        await expect.poll(() => notCharted.evaluate((d) => d.open)).toBe(true)
+    })
+
+    test('readings table, chart name and status are available to assistive tech', async ({
+        page,
+    }) => {
+        await openHarness(page)
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        const ch4 = page.locator('[data-layer="ch4"]')
+        await expect(ch4.locator('canvas')).toHaveCount(1)
+
+        // the panel is a labelled region with a heading per layer
+        const panel = page.locator('#identifierTimeSeriesPanel')
+        await expect(panel).toHaveAttribute(
+            'aria-labelledby',
+            'identifierTimeSeriesPanel_title'
+        )
+        await expect(
+            page.getByRole('heading', { name: 'Methane' })
+        ).toBeVisible()
+
+        // the chart canvas has an accessible name summarising it
+        const img = ch4.getByRole('img')
+        await expect(img).toHaveAttribute(
+            'aria-label',
+            /Methane: 12 acquisitions from 2024-01-01 00:00:00 UTC to 2024-03-18 00:00:00 UTC, 11 readings with a value/
+        )
+
+        // the readings, one row per acquisition with its id and gap reason
+        const table = ch4.locator('details.identifierTimeSeriesPanel_readings')
+        await expect(table.locator('summary')).toHaveText('Readings table (12)')
+        await table.locator('summary').click()
+        const rows = table.locator('tbody tr')
+        await expect(rows).toHaveCount(12)
+        await expect(table.locator('thead th')).toHaveText([
+            'Acquired (UTC)',
+            'Acquisition ID',
+            'b1 (ppm m)',
+        ])
+        await expect(rows.nth(0).locator('th, td')).toHaveText([
+            '2024-01-01 00:00:00 UTC',
+            'item0',
+            '10',
+        ])
+        await expect(rows.nth(4).locator('th, td')).toHaveText([
+            '2024-01-29 00:00:00 UTC',
+            'item4',
+            'no data',
+        ])
+        await expect(table.locator('caption')).toHaveText(
+            'Methane readings at the selected point'
+        )
+
+        // a polite live region says when the charts are ready
+        await expect(page.getByRole('status')).toHaveText(
+            'Time series ready: 1 chart.'
+        )
+    })
+
+    test('keyboard: Escape and the close button close and return focus', async ({
+        page,
+    }) => {
+        await openHarness(page, { withReturnFocus: true })
+        await page.evaluate(() =>
+            window.__h.controller.selectPoint(1, 2, { fromKeyboard: true })
+        )
+        // opened from the keyboard: focus moves to the panel's heading
+        await expect(
+            page.locator('#identifierTimeSeriesPanel_title')
+        ).toBeFocused()
+        await page.keyboard.press('Escape')
+        await expect(page.locator('#identifierTimeSeriesPanel')).toHaveCount(0)
+        await expect(page.locator('#mapStandIn')).toBeFocused()
+        expect(await page.evaluate(() => window.__h.marker.at)).toBeNull()
+
+        await page.evaluate(() =>
+            window.__h.controller.selectPoint(1, 2, { fromKeyboard: true })
+        )
+        const close = page.getByRole('button', { name: 'Close time series' })
+        await close.focus()
+        await page.keyboard.press('Enter')
+        await expect(page.locator('#identifierTimeSeriesPanel')).toHaveCount(0)
+        await expect(page.locator('#mapStandIn')).toBeFocused()
+    })
+
+    test('a pointer close leaves focus alone and Escape does not reach the map', async ({
+        page,
+    }) => {
+        await openHarness(page, { withReturnFocus: true })
+        await page.evaluate(() => {
+            window.__mapKeys = 0
+            document
+                .getElementById('splitscreens')
+                .addEventListener('keydown', () => window.__mapKeys++)
+            window.__h.controller.selectPoint(1, 2)
+        })
+        // opened by a pointer click: focus is not moved
+        await expect(
+            page.locator('#identifierTimeSeriesPanel_title')
+        ).not.toBeFocused()
+        await page.locator('#identifierTimeSeriesPanel_title').focus()
+        await page.keyboard.press('Escape')
+        expect(await page.evaluate(() => window.__mapKeys)).toBe(0)
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        await page.getByRole('button', { name: 'Close time series' }).click()
+        await expect(page.locator('#mapStandIn')).not.toBeFocused()
     })
 
     test('another click moves the marker and replaces the chart', async ({

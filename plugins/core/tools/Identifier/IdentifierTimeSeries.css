@@ -145,3 +145,129 @@
     font-size: 11px;
     font-style: italic;
 }
+
+/* Headings keep the panel's existing look; they are headings for structure. */
+.identifierTimeSeriesPanel h2.identifierTimeSeriesPanel_title,
+.identifierTimeSeriesPanel h3.identifierTimeSeriesPanel_layerName {
+    margin: 0;
+    font-weight: normal;
+    font-family: inherit;
+    line-height: inherit;
+}
+
+.identifierTimeSeriesPanel h2.identifierTimeSeriesPanel_title {
+    font-size: 13px;
+}
+
+.identifierTimeSeriesPanel h3.identifierTimeSeriesPanel_layerName {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.identifierTimeSeriesPanel_title:focus {
+    outline: none;
+}
+
+.identifierTimeSeriesPanel_title:focus-visible,
+.identifierTimeSeriesPanel summary:focus-visible,
+.identifierTimeSeriesPanel_close:focus-visible {
+    outline: 2px solid var(--color-mmgis, #3ea0e4);
+    outline-offset: 1px;
+}
+
+.identifierTimeSeriesPanel_live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.identifierTimeSeriesPanel summary {
+    cursor: pointer;
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+details.identifierTimeSeriesPanel_unsupported > summary {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+}
+
+.identifierTimeSeriesPanel_incomplete {
+    margin: 2px 0 4px 0;
+    padding: 3px 6px;
+    border-left: 2px solid var(--color-yellow, #e5c07b);
+    color: var(--color-f);
+    font-size: 11px;
+}
+
+.identifierTimeSeriesPanel_incomplete[hidden],
+.identifierTimeSeriesPanel_readings[hidden] {
+    display: none;
+}
+
+.identifierTimeSeriesPanel_tableWrap {
+    max-height: 180px;
+    overflow: auto;
+    margin-top: 4px;
+}
+
+.identifierTimeSeriesPanel_tableWrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.identifierTimeSeriesPanel_tableWrap caption {
+    text-align: left;
+    color: var(--color-a5);
+    padding-bottom: 2px;
+}
+
+.identifierTimeSeriesPanel_tableWrap th,
+.identifierTimeSeriesPanel_tableWrap td {
+    text-align: left;
+    padding: 2px 6px 2px 0;
+    border-bottom: 1px solid var(--color-a2);
+    font-weight: normal;
+    white-space: nowrap;
+}
+
+.identifierTimeSeriesPanel_tableWrap thead th {
+    color: var(--color-a5);
+}
+
+/* Keyboard entry point: hidden until it has focus (skip-link pattern). */
+.identifierTimeSeriesCentre button {
+    position: absolute;
+    left: 50%;
+    top: 52px;
+    transform: translateX(-50%);
+    z-index: 1003;
+    padding: 6px 10px;
+    border: 1px solid var(--color-a1);
+    border-radius: 6px;
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
+    color: var(--color-f);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.identifierTimeSeriesCentre button:not(:focus) {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0;
+    border: 0;
+}
+
+.identifierTimeSeriesCentre button:focus-visible {
+    outline: 2px solid var(--color-mmgis, #3ea0e4);
+    outline-offset: 1px;
+}

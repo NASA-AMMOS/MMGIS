@@ -9,6 +9,12 @@
  * instance and its resize observer, and `dispose()` releases both.
  */
 
+import {
+    parseIdentifierValue,
+    STAC_VALUE_FORMAT,
+    formatStacReading,
+} from './IdentifierValueFormat.js'
+
 const pad = (n) => String(n).padStart(2, '0')
 
 /** UTC, to the second: what STAC datetimes are given in. */
@@ -35,13 +41,141 @@ export function gapLabel(status) {
     return GAP_LABELS[status] || GAP_LABELS.nodata
 }
 
-/** A value for display: up to `sigfigs` decimals, trailing zeros dropped. */
-export function formatValue(value, sigfigs = 4) {
-    if (value == null) return 'no data'
-    if (!Number.isFinite(value)) return 'no data'
-    const abs = Math.abs(value)
-    if (abs !== 0 && (abs >= 1e7 || abs < 1e-4)) return value.toExponential(3)
-    return String(Number.parseFloat(value.toFixed(sigfigs)))
+/**
+ * A value for display, written exactly as the Identifier's hover readout
+ * writes a STAC reading (IdentifierValueFormat), so one reading reads the
+ * same in both places.
+ */
+export function formatValue(value) {
+    if (value == null || !Number.isFinite(value)) return 'no data'
+    return String(
+        parseIdentifierValue(
+            value,
+            STAC_VALUE_FORMAT.sigfigs,
+            STAC_VALUE_FORMAT.scalefactor
+        )
+    )
+}
+
+/**
+ * A point's reading as words: its value with its unit appended verbatim, as
+ * the hover readout writes it (formatStacReading), or why it has none.
+ */
+export function describeReading(point, units) {
+    if (point.value == null) return gapLabel(point.status)
+    return formatStacReading(point.value, units)
+}
+
+/** A unit for a heading or axis title: its text without padding. */
+const unitLabel = (units) => (units || '').trim()
+
+/** When an acquisition was: its range if it has one, else its UTC time. */
+export function describeWhen(point) {
+    return point.range
+        ? `${point.range[0]} – ${point.range[1]}`
+        : formatUtc(point.time)
+}
+
+/**
+ * Readings as a table, one row per acquisition (item), oldest first, with a
+ * column per band - what the chart shows, for screen readers and keyboard
+ * users, and for anyone who wants the numbers.
+ * @returns {{ columns: string[], rows: string[][] }}
+ */
+export function buildReadingsTable(series) {
+    const columns = ['Acquired (UTC)', 'Acquisition ID'].concat(
+        series.map((s) =>
+            unitLabel(s.units) ? `${s.name} (${unitLabel(s.units)})` : s.name
+        )
+    )
+    const rows = []
+    const first = series[0]
+    if (!first) return { columns, rows }
+    first.points.forEach((p, i) => {
+        rows.push(
+            [describeWhen(p), p.itemId].concat(
+                series.map((s) => {
+                    const q = s.points[i]
+                    return q ? describeReading(q, '') : ''
+                })
+            )
+        )
+    })
+    return { columns, rows }
+}
+
+/** A short spoken summary of a chart, for its accessible name. */
+export function describeChart(series, layerName) {
+    const pts = series[0]?.points || []
+    const withValue = series.reduce(
+        (n, s) => n + s.points.filter((p) => p.value != null).length,
+        0
+    )
+    if (pts.length === 0) return `${layerName}: no acquisitions`
+    return (
+        `${layerName}: ${pts.length} acquisition${pts.length === 1 ? '' : 's'} ` +
+        `from ${formatUtc(pts[0].time)} to ${formatUtc(
+            pts[pts.length - 1].time
+        )}, ${withValue} reading${withValue === 1 ? '' : 's'} with a value. ` +
+        'The readings are listed in the table below the chart.'
+    )
+}
+
+/**
+ * The tooltip at one point on the time axis. Several acquisitions can share
+ * that instant, and ECharts then passes every series' reading for every one
+ * of them, so the readings are grouped by acquisition: each group names its
+ * item (and its time range, when it has one) and shows only its own values.
+ */
+export function formatTooltip(params, series) {
+    const list = Array.isArray(params) ? params : [params]
+    if (list.length === 0) return ''
+    const groups = new Map()
+    for (const p of list) {
+        const d = p.data || {}
+        const key = d.itemId ?? `#${p.dataIndex}`
+        if (!groups.has(key)) groups.set(key, { data: d, rows: [] })
+        const s = series[p.seriesIndex] || {}
+        const shown = describeReading(
+            { value: d.value?.[1], status: d.status },
+            s.units
+        )
+        groups
+            .get(key)
+            .rows.push(
+                `${p.marker || ''}${escapeHtml(p.seriesName)}: <b>${escapeHtml(
+                    shown
+                )}</b>`
+            )
+    }
+    const firstData = list[0].data || {}
+    const parts = []
+    const allRanged = [...groups.values()].every((g) => g.data.range)
+    if (!allRanged)
+        parts.push(
+            `<div style="font-size:11px">${formatUtc(firstData.value?.[0])}</div>`
+        )
+    for (const [key, g] of groups) {
+        const head = []
+        if (g.data.itemId != null)
+            head.push(
+                `<div style="font-size:10px;opacity:.7">${escapeHtml(
+                    g.data.itemId
+                )}</div>`
+            )
+        if (g.data.range)
+            head.push(
+                `<div style="font-size:11px">${escapeHtml(
+                    g.data.range[0]
+                )} – ${escapeHtml(g.data.range[1])}</div>`
+            )
+        parts.push(
+            `<div class="identifierTimeSeriesTooltip_item" data-item="${escapeHtml(
+                String(key)
+            )}">${head.join('')}${g.rows.join('<br/>')}</div>`
+        )
+    }
+    return parts.join('')
 }
 
 const escapeHtml = (s) =>
@@ -59,7 +193,7 @@ const escapeHtml = (s) =>
 
 /** A y-axis title: the units if every series shares them. */
 export function axisUnits(series) {
-    const units = [...new Set(series.map((s) => s.units || ''))]
+    const units = [...new Set(series.map((s) => unitLabel(s.units)))]
     return units.length === 1 ? units[0] : ''
 }
 
@@ -85,6 +219,9 @@ export function buildChartOption(series, opts = {}) {
     const pointCount = Math.max(0, ...series.map((s) => s.points.length))
 
     return {
+        // STAC times are UTC instants: draw the time axis in UTC, as the
+        // tooltip and readings table write them, whatever the browser's zone.
+        useUTC: true,
         animation: false,
         textStyle: { color: theme.text, fontSize: 11 },
         grid: { left: 52, right: 14, top: multi ? 30 : 22, bottom: 40 },
@@ -98,34 +235,7 @@ export function buildChartOption(series, opts = {}) {
         tooltip: {
             trigger: 'axis',
             confine: true,
-            formatter: (params) => {
-                const list = Array.isArray(params) ? params : [params]
-                if (list.length === 0) return ''
-                const first = list[0].data || {}
-                const when = first.range
-                    ? `${escapeHtml(first.range[0])} – ${escapeHtml(first.range[1])}`
-                    : formatUtc(first.value?.[0])
-                const rows = list.map((p) => {
-                    const s = series[p.seriesIndex] || {}
-                    const v = p.data?.value?.[1]
-                    const u =
-                        v == null || !s.units ? '' : ` ${escapeHtml(s.units)}`
-                    const shown =
-                        v == null ? gapLabel(p.data?.status) : formatValue(v)
-                    return `${p.marker || ''}${escapeHtml(p.seriesName)}: <b>${escapeHtml(
-                        shown
-                    )}${u}</b>`
-                })
-                return [
-                    `<div style="font-size:11px">${when}</div>`,
-                    ...rows,
-                    first.itemId
-                        ? `<div style="font-size:10px;opacity:.7">${escapeHtml(
-                              first.itemId
-                          )}</div>`
-                        : '',
-                ].join('<br/>')
-            },
+            formatter: (params) => formatTooltip(params, series),
         },
         xAxis: {
             type: 'time',
@@ -149,7 +259,8 @@ export function buildChartOption(series, opts = {}) {
             connectNulls: false,
             // Isolated valid readings surrounded by gaps have no line
             // segments. Without symbols a sparse history looks empty.
-            showSymbol: pointCount <= 200 || s.points.some((p) => p.value == null),
+            showSymbol:
+                pointCount <= 200 || s.points.some((p) => p.value == null),
             symbolSize: 5,
             data: s.points.map((p) => ({
                 value: [p.time, p.value],

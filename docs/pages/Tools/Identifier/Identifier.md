@@ -39,7 +39,11 @@ The following is an example of the Sites Tool's Tool Tab configuration:
 
 When a time-enabled STAC collection layer (`stac-collection:` source) is on, the hover readout ends with _Click for time series_. Hovering never queries history; clicking does.
 
-Clicking the map (or the globe) with the Identifier active places a marker and opens a Time Series panel with one chart per such layer: the value at that point for every acquisition in the layer's current time window (`layer.time.start` to `layer.time.end`, the same window the hover reads), oldest to newest. Clicking elsewhere moves the marker and redraws the charts. Changing the time window or turning layers on and off redraws them in place. Closing the panel, or turning the Identifier off, removes the marker and cancels any requests still running.
+Clicking the map (or the globe) with the Identifier active places a marker and opens a Time Series panel with one chart per such layer: the value at that point for every acquisition in the layer's current time window (`layer.time.start` to `layer.time.end`, the same window the hover reads), oldest to newest. Clicking elsewhere moves the marker and redraws the charts. Changing a layer's time window (including through `setLayerTime`), applying or resetting its band expression in the Layers tool, or turning layers on and off redraws the charts for the same point. Requests for an earlier point or an earlier setting are cancelled, and their late answers are ignored. Closing the panel, or turning the Identifier off, removes the marker and cancels any requests still running.
+
+On a world copy of the map (longitude past ±180°), the point is read at its normalized longitude, and the marker stays where you clicked.
+
+**Keyboard:** with the Identifier active, tabbing into the map reaches a _Chart time series at map centre_ button, shown over the map while it has focus. Pressing Enter charts the point under the centre of the map and moves focus to the panel. The readings are also given as a table under _Readings_. Escape or the close button closes the panel and returns focus to that button.
 
 A click is left to whatever else is using it:
 
@@ -51,11 +55,15 @@ How each chart is built:
 
 - **Times** come from each STAC item's `properties.datetime` (or, for items that only carry a range, `properties.start_datetime`, with the range shown in the tooltip), read from the STAC API with `GET /stac/search` for the items containing the point in the time window. Items without a valid time are skipped and counted. Times are never taken from file names or result order.
 - **Values** are read from TiTiler for exactly those items (`/titilerpgstac/collections/{id}/point/{lng},{lat}?ids=...`), in batches whose `items_limit` equals the batch size, so pgSTAC's per-point item limit can't drop older acquisitions. Each value is matched to its item by name.
-- The layer's runtime or configured band expression, or its queried bands, are used as in the hover readout. Units are the Identifier's `unit` for the layer if set, else the layer's `cogUnits`; the Identifier's `scalefactor` for the layer is applied if set.
-- Every acquisition keeps its place on the time axis. One with no usable reading is a gap in the line, never 0 and never bridged by the line, and the tooltip says why: "no data" (masked/nodata pixel), "no reading" (TiTiler returned nothing for that item or band), or "invalid value" (a non-finite or non-numeric value). The panel counts each kind. Acquisitions sharing a timestamp are all kept, ordered by item id.
-- At most 500 acquisitions are charted per layer and click; the panel says when a history was cut short. Results are cached per point, layer, time window, band selection or expression, scale factor and units, so clicking the same place again doesn't re-query, and changing any of those does.
+- The layer's runtime or configured band expression, or its queried bands, are used as in the hover readout. Each request uses the settings as they were when it started, so an edit made while a chart loads applies to the next load and never to half of this one.
+- Values and units are written as in the hover readout: the layer's `cogUnits` (per band when it's a list), 2 significant figures, unscaled.
+- Every acquisition keeps its place on the time axis. One with no usable reading is a gap in the line, never 0 and never bridged by the line, and the tooltip and table say why: "no data" (masked/nodata pixel), "no reading" (TiTiler returned nothing for that item or band), or "invalid value" (a non-finite or non-numeric value). The panel counts each kind. Acquisitions sharing a timestamp are all kept, ordered by item id, and the tooltip lists each one under its item id.
+- Times on the axis, in the tooltip and in the table are UTC, whatever the browser's time zone.
+- At most 500 acquisitions are charted per layer and click. When a history is cut short, or the STAC API's paging can't be followed to the end, the chart is still drawn and the panel says it may be incomplete.
+- Results are cached per point, layer, time window and band selection or expression. Clicking the same place again (or the same place on a world copy) doesn't re-query, and changing any of those does. Only complete answers are cached. A failure is shown and retried on the next click: an error status, an unexpected 404, a request taking longer than 60 s, or a 200 response that isn't a point reading. TiTiler's 204 and its "no assets/items found" 404 mean the point has no data and are not failures.
+- At most 4 requests run at a time per click, shared by all charted layers. Requests go to the same origin and path MMGIS is served from.
 
-When no chart is displayed, layers that can't be charted are listed under _Not charted_ with the reason: vector layers, pre-rendered tiles (colours only), COGs and Identifier `url` sources (see below), and layers that aren't time-enabled or have no time range set. The _Not charted_ section is hidden while any time-series chart is plotted. The panel only opens when at least one time-enabled layer is on.
+Layers that can't be charted are listed under _Not charted (N)_ with the reason: vector layers, pre-rendered tiles (colours only), COGs and Identifier `url` sources (see below), and layers that aren't time-enabled or have no time range set. The list is open when nothing is charted and collapsed while a chart is shown; once you open or close it, it stays that way until the panel closes. The panel only opens when at least one time-enabled layer is on.
 
 #### COG layers
 
@@ -65,6 +73,5 @@ Charting COG histories needs a source of acquisition times. Options for maintain
 
 1. Catalogue the COGs as a STAC collection (as the Reference Mission does for its blueprint COGs) and use a `stac-collection:` layer. This works today.
 2. Add a layer setting that lists a COG layer's acquisition times explicitly. The Identifier would then read one point per listed time from the resolved URL.
-
 
 For an external collection (`stac-collection:https://host/titilerpgstac/collections/name`), the STAC API is expected beside its TiTiler at `https://host/stac`, as MMGIS serves them. If it isn't there, the panel says acquisition times couldn't be read.
