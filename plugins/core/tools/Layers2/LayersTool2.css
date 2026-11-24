@@ -1655,3 +1655,21 @@
     height: 14px;
     border-width: 2px;
 }
+
+.lt2-heroActions .lt2-closeButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+    padding: 0 12px 0 8px;
+    font-size: 13px;
+}
+
+.lt2-heroActions .lt2-closeButton i {
+    font-size: 18px;
+}
+
+.lt2-heroActions .lt2-closeButton,
+.lt2-hero.lt2-hasSample .lt2-heroActions button {
+    background: color-mix(in srgb, var(--color-a) 82%, transparent);
+}
