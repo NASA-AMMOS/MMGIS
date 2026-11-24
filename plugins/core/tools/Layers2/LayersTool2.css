@@ -1040,6 +1040,39 @@
     width: 100%;
 }
 
+.lt2-shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    margin-top: 6px;
+    color: var(--color-a5);
+    font-size: 12px;
+}
+
+.lt2-shortcut kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 5px;
+    border: 1px solid var(--color-a1);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--color-a);
+    color: var(--color-f);
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.lt2-keyPlus {
+    opacity: 0.7;
+}
+
+.lt2-shortcutText {
+    margin-left: 2px;
+}
+
 .lt2-pathSegment {
     min-width: 0;
     overflow: hidden;

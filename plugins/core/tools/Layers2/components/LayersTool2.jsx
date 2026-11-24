@@ -147,6 +147,15 @@ function sourceDownloadUrl(layer) {
     return typeof url === 'string' && !/\{[zxy]\}/i.test(url) ? url : null
 }
 
+function layerShortcut(layer) {
+    const s = layer?.variables?.shortcutSuffix
+    return typeof s === 'string' &&
+        s.length === 1 &&
+        s.toLowerCase() !== s.toUpperCase()
+        ? s.toUpperCase()
+        : null
+}
+
 function dispatchLayerDataLoaded(layerName) {
     document.dispatchEvent(
         new CustomEvent('layersTool2LayerDataLoaded', {
@@ -1436,6 +1445,7 @@ function SettingsPage({
     drawerClosing,
 }) {
     const layer = row.node
+    const shortcut = layerShortcut(layer)
     const sampleEnabled = RASTER_TYPES.has(layer.type) && previews
     const { sample, markFailed } = useRasterSample(
         layer,
@@ -1540,8 +1550,19 @@ function SettingsPage({
                         </React.Fragment>
                     ))}
                 </div>
+                {shortcut && (
+                    <div className="lt2-shortcut">
+                        <kbd>Alt</kbd>
+                        <span className="lt2-keyPlus">+</span>
+                        <kbd>{shortcut}</kbd>
+                        <span className="lt2-shortcutText">toggles this layer</span>
+                    </div>
+                )}
                 <div className="lt2-actionBar">
                     <Checkbox
+                        aria-keyshortcuts={
+                            shortcut ? `Alt+${shortcut}` : undefined
+                        }
                         checked={visible}
                         onCheckedChange={async (checked) => {
                             await api.toggle(layer.name, checked)

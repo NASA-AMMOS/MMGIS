@@ -1225,6 +1225,44 @@ test.describe('LayersTool2', () => {
         }
     })
 
+    test('shows only single-letter layer shortcuts in settings', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        const layers = [
+            { name: 'Keyboard Shortcut Demo - Alt+K', shortcut: 'K' },
+            { name: 'Elevation - RdYlBu (COG/NPY)', shortcut: null },
+            { name: 'Points Basic', shortcut: null },
+        ]
+
+        for (const { name, shortcut } of layers) {
+            await search.fill(name)
+            await page.waitForTimeout(180)
+            const row = page
+                .locator('.lt2-layerRow')
+                .filter({ hasText: name })
+                .first()
+            await expect(row).toBeVisible()
+            await row.locator('.lt2-title').click()
+            await expect(page.locator('.lt2-settings')).toBeVisible()
+
+            const shortcutHint = page.locator('.lt2-shortcut')
+            if (shortcut) {
+                await expect(shortcutHint).toContainText('Alt')
+                await expect(shortcutHint).toContainText(shortcut)
+                await expect(shortcutHint).toContainText('toggles this layer')
+                await expect(
+                    page.getByRole('checkbox', { name: 'Visible' })
+                ).toHaveAttribute('aria-keyshortcuts', `Alt+${shortcut}`)
+            } else {
+                await expect(shortcutHint).toHaveCount(0)
+            }
+
+            await page.locator('.lt2-closeButton').click()
+        }
+    })
+
     test('focuses the vector Export section without adding a source download', async ({
         page,
     }) => {
