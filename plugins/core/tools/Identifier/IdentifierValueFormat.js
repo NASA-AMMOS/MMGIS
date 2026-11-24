@@ -7,8 +7,9 @@
  */
 
 /**
- * What the hover readout shows for STAC/COG layers: two decimals, unscaled,
- * in the layer's cogUnits.
+ * What the hover readout shows for STAC/COG layers: two decimal places
+ * (parseIdentifierValue's `sigfigs` is a toFixed digit count), unscaled, in
+ * the layer's cogUnits.
  */
 export const STAC_VALUE_FORMAT = Object.freeze({ sigfigs: 2, scalefactor: 1 })
 

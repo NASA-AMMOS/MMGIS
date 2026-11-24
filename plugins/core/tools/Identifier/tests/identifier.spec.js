@@ -895,12 +895,15 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     await expect(page.locator('.leaflet-overlay-pane path[fill="yellow"]')).toHaveCount(1);
 
     // Cesium's link control belongs to the UI, not the globe surface: a tap
-    // on it charts nothing. Linking is switched straight back off: while the
-    // map and globe are linked, moving over the globe hits a pre-existing,
-    // unrelated MMGIS defect (Map_.setPlayerLookat calls map.hasLayer(null) ->
-    // "Cannot use 'in' operator to search for '_leaflet_id' in null"; it
-    // happens with the Identifier closed too), which would otherwise land in
-    // the page-error check below.
+    // on it charts nothing. Linking is switched straight back off because of
+    // a known core defect, not an Identifier one: while the map and globe are
+    // linked, every mouse move over the globe (Globe_.js onMouseMove) calls
+    // Map_.setPlayerLookat, which calls Map_.map.hasLayer(Map_.player.lookat)
+    // while lookat is still null (Map_.js), and Leaflet 1.9.4 throws
+    // "Cannot use 'in' operator to search for '_leaflet_id' in null". It
+    // reproduces on development (c54c70f9) with no tool open - 10 errors for
+    // 10 mouse moves - and this PR doesn't touch Map_ or Globe_. Left linked,
+    // the drag below would hit it. The page-error check below is unfiltered.
     const link = page.locator('#_cesium_control_link');
     if (await link.count()) {
       await link.click();

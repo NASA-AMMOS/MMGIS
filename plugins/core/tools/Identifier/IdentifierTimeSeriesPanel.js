@@ -138,11 +138,10 @@ export function createTimeSeriesController(deps) {
         )
     }
 
+    // Whether a click here should open the panel at all.
+    const wantsClick = () => listActiveLayers(deps.getLayers()).anyTimeEnabled
+
     const controller = {
-        /** Whether a click here should open the panel at all. */
-        wantsClick() {
-            return listActiveLayers(deps.getLayers()).anyTimeEnabled
-        },
         /**
          * Select (or move to) a point and chart it.
          * @param {number} lng - normalised to -180..180; the queries use it
@@ -154,7 +153,7 @@ export function createTimeSeriesController(deps) {
          */
         selectPoint(lng, lat, options = {}) {
             if (!Number.isFinite(lng) || !Number.isFinite(lat)) return false
-            if (!controller.wantsClick()) return false
+            if (!wantsClick()) return false
             point = { lng, lat }
             const mapLng = Number.isFinite(options.mapLng)
                 ? options.mapLng
@@ -498,8 +497,6 @@ export function createPanelView(deps) {
             // A new panel starts from the defaults.
             notChartedChoice = null
         },
-        isOpen: () => root != null,
-        _chartCount: () => charts.size,
     }
     return view
 }

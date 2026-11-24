@@ -343,12 +343,16 @@ export class TimeSeriesHttpError extends Error {
 /**
  * Every item (up to `maxItems`) containing the point in the time window.
  *
- * `truncated` means our own bound (maxItems / maxStacPages) stopped paging.
+ * `truncated` means fewer items were read than the server holds, and
+ * `truncatedBy` says why: 'items' (our maxItems bound), 'pages' (our
+ * maxStacPages bound, with a next page still offered) or 'count' (the
+ * server's numberMatched exceeds what its pages returned). A server count
+ * that every item has been read overrides a page-bound guess.
  * `incomplete` lists reasons the server may hold items that were not read:
- * a next link whose token can't be found, or a full page with no next link
- * and no count to show it was the last.
+ * a next link whose token can't be found, a repeated token, or a full page
+ * with no next link and no count to show it was the last.
  *
- * @returns {Promise<{items: Array, numberMatched: number|null, truncated: boolean, invalidTimes: number, incomplete: string[]}>}
+ * @returns {Promise<{items: Array, numberMatched: number|null, truncated: boolean, truncatedBy: 'items'|'pages'|'count'|null, invalidTimes: number, incomplete: string[]}>}
  */
 export async function fetchStacItems({
     fetchFn,
@@ -365,9 +369,10 @@ export async function fetchStacItems({
     const seen = new Set()
     const incomplete = []
     let invalidTimes = 0
+    let duplicates = 0
     let numberMatched = null
     let token = null
-    let truncated = false
+    let truncatedBy = null
     const seenTokens = new Set()
 
     for (let page = 0; page < limits.maxStacPages; page++) {
@@ -409,15 +414,18 @@ export async function fetchStacItems({
                 invalidTimes++
                 continue
             }
-            if (seen.has(parsed.id)) continue
+            if (seen.has(parsed.id)) {
+                duplicates++
+                continue
+            }
             if (items.length >= limits.maxItems) {
-                truncated = true
+                truncatedBy = 'items'
                 break
             }
             seen.add(parsed.id)
             items.push(parsed)
         }
-        if (truncated) break
+        if (truncatedBy) break
 
         const hasNextLink = (json.links || []).some((l) => l?.rel === 'next')
         token = nextPageToken(json)
@@ -438,7 +446,7 @@ export async function fetchStacItems({
         }
         if (json.features.length === 0) break
         if (items.length >= limits.maxItems) {
-            truncated = true
+            truncatedBy = 'items'
             break
         }
         if (seenTokens.has(token)) {
@@ -448,11 +456,23 @@ export async function fetchStacItems({
         }
         seenTokens.add(token)
         // Out of pages with a next page still offered: say so.
-        if (page === limits.maxStacPages - 1) truncated = true
+        if (page === limits.maxStacPages - 1) truncatedBy = 'pages'
     }
-    if (numberMatched != null && numberMatched > items.length + invalidTimes)
-        truncated = true
-    return { items, numberMatched, truncated, invalidTimes, incomplete }
+    // Every feature read is an item, a timeless one or a repeat.
+    const accounted = items.length + invalidTimes + duplicates
+    if (numberMatched != null) {
+        // The server's count settles it: everything read, or not.
+        if (accounted >= numberMatched) truncatedBy = null
+        else if (!truncatedBy) truncatedBy = 'count'
+    }
+    return {
+        items,
+        numberMatched,
+        truncated: truncatedBy != null,
+        truncatedBy,
+        invalidTimes,
+        incomplete,
+    }
 }
 
 /**
@@ -537,32 +557,6 @@ export function parsePointResponse(json, collection) {
         })
     }
     return byId
-}
-
-/** Run async tasks with at most `limit` in flight; results in input order. */
-export async function mapWithConcurrency(inputs, limit, task) {
-    const out = new Array(inputs.length)
-    let next = 0
-    let failed = false
-    const worker = async () => {
-        // After a failure, start nothing new: the result is already an error.
-        while (!failed && next < inputs.length) {
-            const i = next++
-            try {
-                out[i] = await task(inputs[i], i)
-            } catch (e) {
-                failed = true
-                throw e
-            }
-        }
-    }
-    await Promise.all(
-        Array.from(
-            { length: Math.max(1, Math.min(limit, inputs.length)) },
-            worker
-        )
-    )
-    return out
 }
 
 /**
@@ -942,14 +936,18 @@ export async function fetchLayerTimeSeries({
                 listing.invalidTimes === 1 ? '' : 's'
             } skipped: no valid acquisition time.`
         )
-    if (listing.truncated)
+    if (listing.truncated) {
+        const shown = `showing ${listing.items.length}${
+            listing.numberMatched != null ? ` of ${listing.numberMatched}` : ''
+        } matching items`
         incomplete.push(
-            `showing ${listing.items.length}${
-                listing.numberMatched != null
-                    ? ` of ${listing.numberMatched}`
-                    : ''
-            } matching items (limit ${limits.maxItems})`
+            listing.truncatedBy === 'items'
+                ? `${shown} (limit ${limits.maxItems})`
+                : listing.truncatedBy === 'pages'
+                  ? `${shown}: stopped after ${limits.maxStacPages} STAC pages with more on offer`
+                  : `${shown}: the STAC API counted more items than its pages returned`
         )
+    }
     if (listing.items.length === 0)
         return {
             status: 'empty',

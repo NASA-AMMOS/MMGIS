@@ -608,6 +608,79 @@ test.describe('STAC search paging', () => {
         expect(r.truncated).toBe(true)
     })
 
+    test('maxStacPages: why paging stopped is reported truthfully', async () => {
+        // a server that pages 1 item at a time, forever unless told a count
+        const paging = (count) => {
+            let n = 0
+            const fetchFn = async () => {
+                n++
+                const body = {
+                    features: [item(`x${n}`, '2024-01-01T00:00:00Z')],
+                    links: [
+                        {
+                            rel: 'next',
+                            href: `http://h/search?token=next:${n}`,
+                        },
+                    ],
+                }
+                if (count != null) body.numberMatched = count
+                return jsonResponse(body)
+            }
+            return { fetchFn, pages: () => n }
+        }
+        const read = (fetchFn, extra = {}) =>
+            fetchStacItems({
+                fetchFn,
+                stacBase: STAC_BASE,
+                collection: COLLECTION,
+                lng: 0,
+                lat: 0,
+                limits: { ...TIME_SERIES_LIMITS, maxStacPages: 3, ...extra },
+            })
+
+        // no count, next still offered on the last allowed page -> pages
+        const a = paging(null)
+        const ra = await read(a.fetchFn)
+        expect(a.pages()).toBe(3)
+        expect(ra).toMatchObject({ truncated: true, truncatedBy: 'pages' })
+
+        // a count the 3 pages cover: the dangling next link is not a cut
+        const b = paging(3)
+        expect(await read(b.fetchFn)).toMatchObject({
+            truncated: false,
+            truncatedBy: null,
+        })
+
+        // a count beyond the 3 pages: still the page bound that stopped us
+        const c = paging(10)
+        expect(await read(c.fetchFn)).toMatchObject({
+            truncated: true,
+            truncatedBy: 'pages',
+            numberMatched: 10,
+        })
+
+        // the item bound reached on the same page the page bound is: items
+        const d = paging(10)
+        expect(await read(d.fetchFn, { maxItems: 3 })).toMatchObject({
+            truncatedBy: 'items',
+        })
+    })
+
+    test('a server count above what its pages returned is reported as such', async () => {
+        const { fetchFn } = fakeServers({
+            items: [item('a', '2024-01-01T00:00:00Z')],
+            numberMatched: 4,
+        })
+        const r = await fetchStacItems({
+            fetchFn,
+            stacBase: STAC_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+        })
+        expect(r).toMatchObject({ truncated: true, truncatedBy: 'count' })
+    })
+
     test('duplicate and timeless items', async () => {
         const { fetchFn } = fakeServers({
             items: [
@@ -626,6 +699,8 @@ test.describe('STAC search paging', () => {
         })
         expect(r.items.map((i) => i.id)).toEqual(['a'])
         expect(r.invalidTimes).toBe(1)
+        // the repeat and the timeless item are part of the count of 3
+        expect(r.truncated).toBe(false)
     })
 
     test('an HTTP failure throws with its status', async () => {
@@ -2958,6 +3033,36 @@ test.describe('review 8 - one request budget and incomplete histories', () => {
         expect(cut.incomplete).toEqual([
             'showing 3 of 5 matching items (limit 3)',
         ])
+        // the page bound is named as the page bound, not the item limit
+        let n = 0
+        const pagesOnly = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            fetchFn: async (url, init) => {
+                if (new URL(url).pathname.endsWith('/stac/search')) {
+                    n++
+                    return jsonResponse({
+                        features: [item(`p${n}`, `2024-01-0${n}T00:00:00Z`)],
+                        links: [
+                            { rel: 'next', href: `http://h/s?token=next:${n}` },
+                        ],
+                    })
+                }
+                return fakeServers({
+                    items: [1, 2].map((i) =>
+                        item(`p${i}`, `2024-01-0${i}T00:00:00Z`)
+                    ),
+                    values: { p1: [1], p2: [2] },
+                }).fetchFn(url, init)
+            },
+            location: LOCATION,
+            limits: { ...TIME_SERIES_LIMITS, maxStacPages: 2 },
+        })
+        expect(pagesOnly.status).toBe('ok')
+        expect(pagesOnly.incomplete).toEqual([
+            'showing 2 matching items: stopped after 2 STAC pages with more on offer',
+        ])
     })
 
     test('local collections use the page origin and path - no hard-coded port', () => {
@@ -3112,6 +3217,44 @@ test.describe('step 3 - hover and chart write a reading the same way', () => {
         )
         expect(html).toContain('b1: <b>120.91ppm</b>')
         expect(html).toContain('b2: <b>3 K</b>')
+    })
+
+    test('STAC scaling: an Identifier scalefactor/unit is not applied, as in the hover', async () => {
+        // The hover readout replaces any Identifier data config for a
+        // stac-collection layer with { units: cogUnits, sigfigs: 2,
+        // scalefactor: 1 } (upstream behaviour). The chart must not scale a
+        // value the hover shows raw.
+        const servers = fakeServers({
+            items: [item('a', '2024-01-02T00:00:00Z')],
+            values: { a: [120.91466522216797] },
+        })
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            getIdentifierConfig: () => ({ scalefactor: 10, unit: 'ppb' }),
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    fetchFn: servers.fetchFn,
+                    location: LOCATION,
+                }),
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await settle(10)
+        const r = view.results().at(-1)[2]
+        expect(r.status).toBe('ok')
+        const [band] = r.series
+        expect(band.units).toBe('ppm m')
+        expect(band.points[0].value).toBe(120.91466522216797)
+        expect(buildReadingsTable(r.series).rows[0].at(-1)).toBe('120.91')
+        expect(formatStacReading(band.points[0].value, band.units)).toBe(
+            '120.91ppm m'
+        )
     })
 
     test('the chart draws times in UTC (useUTC) for every browser zone', () => {
