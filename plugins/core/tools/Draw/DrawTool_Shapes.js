@@ -106,7 +106,7 @@ var Shapes = {
                                     ? 'black'
                                     : 'white',
                         })
-                        .html(file.file_name)
+                        .text(file.file_name)
                     if (!skipDOMRebuild) {
                         $('#drawToolShapesFeaturesList').append(headerLi)
                     }
@@ -354,7 +354,7 @@ var Shapes = {
                     "<div class='flexbetween'>",
                     "<div style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                     "<div class='flexbetween' style='padding-left: 8px;'>",
-                        "<div class='drawToolShapeLiItemB'>" + properties.name + "</div>",
+                        "<div class='drawToolShapeLiItemB'>" + F_.escapeHtml(properties.name) + "</div>",
                     "</div>",
                     "</div>",
                     "<div class='flexbetween' style='padding-right: 5px;'>",
@@ -419,7 +419,7 @@ var Shapes = {
                 // create popup contents
                 var customPopup =
                     "<div class='drawToolLabelContent'>" +
-                    pUpfeature.properties.name +
+                    F_.escapeHtml(pUpfeature.properties.name) +
                     '</div>'
 
                 // specify popup options
@@ -1235,7 +1235,7 @@ var Shapes = {
                     "<div class='flexbetween'>",
                     "<div style='height: 100%; width: 7px; background: " + DrawTool.categoryStyles[file.intent].color + "'></div>",
                     "<div class='flexbetween' style='padding-left: 8px;'>",
-                        "<div class='drawToolShapeLiItemB'>" + properties.name + "</div>",
+                        "<div class='drawToolShapeLiItemB'>" + F_.escapeHtml(properties.name) + "</div>",
                     "</div>",
                     "</div>",
                     "<div class='flexbetween' style='padding-right: 5px;'>",

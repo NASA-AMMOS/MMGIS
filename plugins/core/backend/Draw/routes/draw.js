@@ -1313,9 +1313,19 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
   let groups = [];
   if (req.groups) groups = Object.keys(req.groups);
 
+  if (!Array.isArray(req.body.ids)) req.body.ids = [req.body.ids];
   //Add prop_ids to ids if it's not already there
   if (req.body.ids.indexOf(req.body.prop_id) == -1)
     req.body.ids.push(req.body.prop_id);
+  const mergeIds = [...new Set(req.body.ids.map(Number))];
+  if (mergeIds.some((id) => !Number.isInteger(id))) {
+    res.send({
+      status: "failure",
+      message: "Invalid feature ids.",
+      body: {},
+    });
+    return;
+  }
 
   ///Check that the provided file_id is an id that belongs to the current user
   Files.findOne({
@@ -1354,15 +1364,31 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
           body: {},
         });
       } else {
-        Features.findOne({
+        // Every feature being merged, including prop_id, must belong to this file
+        Features.findAll({
           where: {
-            id: req.body.prop_id,
+            id: mergeIds,
+            file_id: file.id,
           },
-        }).then((feature) => {
-          let ids = req.body.ids;
-          if (ids == null) ids = null;
-          if (!Array.isArray(ids)) ids = [ids];
-          if (ids.length === 0) ids = null;
+        }).then((inFile) => {
+          const feature = inFile.find(
+            (f) => f.id === Number(req.body.prop_id)
+          );
+          if (inFile.length !== mergeIds.length || feature == null) {
+            logger(
+              "error",
+              "Failed to merge: features are not all in the file.",
+              req.originalUrl,
+              req
+            );
+            res.send({
+              status: "failure",
+              message: "Failed to merge.",
+              body: {},
+            });
+            return null;
+          }
+          const ids = mergeIds;
 
           let q;
           if (feature.geom.type == "LineString") {
@@ -1386,7 +1412,7 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
               "FROM user_features" +
                 (req.body.test === "true" ? "_tests" : "") +
                 " AS a",
-              "WHERE a.id IN (:ids)",
+              "WHERE a.id IN (:ids) AND a.file_id = :file_id",
               "))",
               "), -0.000001,'join=mitre') AS geom",
               ") AS mergedgeom",
@@ -1395,14 +1421,12 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
           sequelize
             .query(q, {
               replacements: {
-                file_id: req.body.file_id,
+                file_id: file.id,
                 ids: ids,
               },
             })
             .then(([results]) => {
-              let oldIds = req.body.ids.map(function (id) {
-                return parseInt(id, 10);
-              });
+              let oldIds = mergeIds;
 
               let newIds = [];
 

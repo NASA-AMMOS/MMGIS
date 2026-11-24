@@ -646,7 +646,7 @@ function trustProxySetting(v) {
 }
 app.set("trust proxy", trustProxySetting(process.env.TRUST_PROXY));
 
-app.use("/api/", apilimiter);
+app.use(`${ROOT_PATH}/api/`, apilimiter);
 
 // gzip!!
 app.use(compression({ filter: shouldCompress }));
@@ -714,6 +714,10 @@ app.use(principalMiddleware);
 //app.use(logger('dev'));
 //app.use(express.json());
 
+// Large bodies are only parsed for signed-in principals (sessions, providers, tokens);
+// guests fall through to the default limit below
+const forAuthenticated = (parser) => (req, res, next) =>
+  req.principal && req.principal.authenticated ? parser(req, res, next) : next();
 const largeBodyLimit = "500mb";
 for (const route of [
   `${ROOT_PATH}/api/configure`,
@@ -721,18 +725,22 @@ for (const route of [
   `${ROOT_PATH}/api/files`,
   `${ROOT_PATH}/api/geodatasets`,
 ]) {
-  app.use(route, bodyParser.json({ limit: largeBodyLimit }));
+  app.use(route, forAuthenticated(bodyParser.json({ limit: largeBodyLimit })));
   app.use(
     route,
-    bodyParser.urlencoded({ limit: largeBodyLimit, extended: true }),
+    forAuthenticated(
+      bodyParser.urlencoded({ limit: largeBodyLimit, extended: true }),
+    ),
   );
 }
 const mediumBodyLimit = "50mb";
 for (const route of [`${ROOT_PATH}/api/draw`, `${ROOT_PATH}/api/utils`]) {
-  app.use(route, bodyParser.json({ limit: mediumBodyLimit }));
+  app.use(route, forAuthenticated(bodyParser.json({ limit: mediumBodyLimit })));
   app.use(
     route,
-    bodyParser.urlencoded({ limit: mediumBodyLimit, extended: true }),
+    forAuthenticated(
+      bodyParser.urlencoded({ limit: mediumBodyLimit, extended: true }),
+    ),
   );
 }
 app.use(bodyParser.json({ limit: "10mb" })); // support json encoded bodies
