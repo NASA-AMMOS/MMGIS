@@ -1426,9 +1426,7 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
               },
             })
             .then(([results]) => {
-              let oldIds = req.body.ids.map(function (id) {
-                return parseInt(id, 10);
-              });
+              let oldIds = mergeIds;
 
               let newIds = [];
 
