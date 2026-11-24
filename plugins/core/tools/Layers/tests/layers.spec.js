@@ -327,7 +327,9 @@ test.describe('LayersTool', () => {
         const search = page.getByRole('textbox', { name: 'Search layers' })
         await search.fill('Points')
 
-        const count = page.locator('#layersTool .lt-filterBar span')
+        const count = page.locator(
+            '#layersTool .lt-viewSummary > span'
+        )
         await expect(count).toHaveText(/^\d+ of \d+ layers$/)
         const countBeforeCollapse = await count.textContent()
         const matchingRowCount = await page
@@ -373,7 +375,9 @@ test.describe('LayersTool', () => {
         await expect(visible).toHaveAttribute('aria-pressed', 'true')
         await filtered.click()
         await expect(filtered).toHaveAttribute('aria-pressed', 'true')
-        await expect(page.getByText('Clear filters')).toBeVisible()
+        await expect(
+            page.getByRole('button', { name: 'Clear filters' })
+        ).toBeVisible()
     })
 
     test('refreshes the Filter count after a first-time vector load', async ({

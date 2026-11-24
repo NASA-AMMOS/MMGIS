@@ -599,7 +599,7 @@ function ToolTip({ label, children }) {
     return <Tooltip content={label}>{children}</Tooltip>
 }
 
-function SearchBox({ value, onChange, onExpandAll, onCollapseAll, onRestore, tags }) {
+function SearchBox({ value, onChange, tags }) {
     const [query, setQuery] = useState(value)
     const [showTags, setShowTags] = useState(false)
     const timer = useRef(null)
@@ -654,25 +654,6 @@ function SearchBox({ value, onChange, onExpandAll, onCollapseAll, onRestore, tag
                         </IconButton>
                     </ToolTip>
                 )}
-                <ToolTip label="Expand all">
-                    <IconButton size="sm" aria-label="Expand all" onClick={onExpandAll}>
-                        <i className="mdi mdi-arrow-expand-vertical mdi-16px" />
-                    </IconButton>
-                </ToolTip>
-                <ToolTip label="Collapse all">
-                    <IconButton
-                        size="sm"
-                        aria-label="Collapse all"
-                        onClick={onCollapseAll}
-                    >
-                        <i className="mdi mdi-arrow-collapse-vertical mdi-16px" />
-                    </IconButton>
-                </ToolTip>
-                <ToolTip label="Restore default expansion">
-                    <IconButton size="sm" aria-label="Restore default expansion" onClick={onRestore}>
-                        <i className="mdi mdi-restore mdi-16px" />
-                    </IconButton>
-                </ToolTip>
             </div>
             {showTags && matchingTags.length > 0 && (
                 <div className="lt-tagPopup" role="listbox" aria-label="Layer tags">
@@ -1674,6 +1655,8 @@ function LayersToolApp({ vars }) {
     const focused = state.focusedRow
     const listPaneRef = useRef(null)
     const scrollElement = useRef(null)
+    const previousFocusedRef = useRef(focused)
+    const keyboardReorderRowRef = useRef(null)
     const drawerClosingRef = useRef(false)
     const drawerCloseTimerRef = useRef(null)
     const rowElements = useRef({})
@@ -2136,10 +2119,21 @@ function LayersToolApp({ vars }) {
     }, [focused, rows])
 
     useEffect(() => {
-        if (focused == null) return
-        const index = rows.findIndex((row) => row.id === focused)
+        const changed = previousFocusedRef.current !== focused
+        previousFocusedRef.current = focused
+        if (!changed || focused == null) return
+        const index = rowsRef.current.findIndex((row) => row.id === focused)
         if (index >= 0) virtualizer.scrollToIndex(index, { align: 'auto' })
-    }, [focused, rows, virtualizer])
+    }, [focused, virtualizer])
+
+    useEffect(() => {
+        const rowId = keyboardReorderRowRef.current
+        if (rowId == null) return
+        const index = rows.findIndex((row) => row.id === rowId)
+        if (index < 0) return
+        keyboardReorderRowRef.current = null
+        virtualizer.scrollToIndex(index, { align: 'auto' })
+    }, [rows, virtualizer])
 
     const setHeaderExpanded = useCallback(
         (header, onState) => {
@@ -2304,11 +2298,11 @@ function LayersToolApp({ vars }) {
     }
 
     const reorderRows = (activeId, overId) => {
-        if (!overId || activeId === overId) return
+        if (!overId || activeId === overId) return false
         const currentRows = rowsRef.current
         const active = currentRows.find((row) => row.id === activeId)
         const target = currentRows.find((row) => row.id === overId)
-        if (!active || !target) return
+        if (!active || !target) return false
         const currentState = store.getState()
         const flat = replay(
             flatten(L_.configData?.layers),
@@ -2316,7 +2310,7 @@ function LayersToolApp({ vars }) {
         ).flat
         const oldIndex = flat.findIndex((entry) => entry.key === activeId)
         const newIndex = flat.findIndex((entry) => entry.key === overId)
-        if (oldIndex < 0 || newIndex < 0) return
+        if (oldIndex < 0 || newIndex < 0) return false
         const visibleKeys = new Set(rowsRef.current.map((row) => row.id))
         const searchHidden = new Set(
             expandedMapRef.current.searchHidden || []
@@ -2339,7 +2333,7 @@ function LayersToolApp({ vars }) {
         const after = nextFlat
             .map(({ key, depth }) => `${key}:${depth}`)
             .join('|')
-        if (before === after) return
+        if (before === after) return false
         store.updateState({ orderingHistory: history })
         try {
             L_.reorderLayers?.(layerOrder(nextFlat))
@@ -2375,6 +2369,7 @@ function LayersToolApp({ vars }) {
             if (toastHasFocus)
                 requestAnimationFrame(() => scrollElement.current?.focus())
         }, 5000)
+        return true
     }
 
     const undoReorder = () => {
@@ -2502,7 +2497,11 @@ function LayersToolApp({ vars }) {
                 neighbor =
                     currentRows[index + (key === 'Alt+ArrowUp' ? -1 : 1)]
             }
-            if (neighbor) reorderRows(row.id, neighbor.id)
+            if (neighbor) {
+                keyboardReorderRowRef.current = row.id
+                if (!reorderRows(row.id, neighbor.id))
+                    keyboardReorderRowRef.current = null
+            }
         }
     }
 
@@ -2566,16 +2565,55 @@ function LayersToolApp({ vars }) {
                             <div className="mmgisToolTitle">Layers</div>
                             <span className="lt-helpSlot" dangerouslySetInnerHTML={{ __html: Help.getComponent(HELP_KEY) }} />
                         </div>
-                        <div className="right lt-toolbarButtons">
+                    </div>
+                    <SearchBox
+                        value={state.search}
+                        onChange={(search) => {
+                            setQuery(search)
+                            store.updateState({ search })
+                        }}
+                        tags={allTags}
+                    />
+                    <div className="lt-viewBar">
+                        <div className="lt-viewSummary">
+                            {isFiltering ? (
+                                <>
+                                    <span>
+                                        {visibleLayers} of {total} layers
+                                    </span>
+                                    <button
+                                        type="button"
+                                        aria-label="Clear filters"
+                                        onClick={() => {
+                                            setQuery('')
+                                            store.updateState({
+                                                search: '',
+                                                onlyVisible: false,
+                                                onlyFiltered: false,
+                                            })
+                                        }}
+                                    >
+                                        Clear
+                                    </button>
+                                </>
+                            ) : (
+                                <span>Showing all {total}</span>
+                            )}
+                        </div>
+                        <div className="lt-viewPill">
                             <ToolTip label="Show only layers that are on">
                                 <IconButton
                                     size="sm"
                                     aria-label="Show only visible layers"
                                     aria-pressed={state.onlyVisible}
                                     active={state.onlyVisible}
-                                    onClick={() => store.updateState({ onlyVisible: !state.onlyVisible })}
+                                    onClick={() =>
+                                        store.updateState({
+                                            onlyVisible: !state.onlyVisible,
+                                        })
+                                    }
                                 >
-                                    <i className="mdi mdi-eye mdi-18px" />
+                                    <i className="mdi mdi-eye mdi-16px" />
                                 </IconButton>
                             </ToolTip>
                             <ToolTip label="Show only layers with active filters">
@@ -2584,39 +2622,49 @@ function LayersToolApp({ vars }) {
                                     aria-label="Show only filtered layers"
                                     aria-pressed={state.onlyFiltered}
                                     active={state.onlyFiltered}
-                                    onClick={() => store.updateState({ onlyFiltered: !state.onlyFiltered })}
+                                    onClick={() =>
+                                        store.updateState({
+                                            onlyFiltered: !state.onlyFiltered,
+                                        })
+                                    }
                                 >
-                                    <i className="mdi mdi-filter mdi-18px" />
+                                    <i className="mdi mdi-filter mdi-16px" />
+                                </IconButton>
+                            </ToolTip>
+                            <span
+                                className="lt-viewPillDivider"
+                                aria-hidden="true"
+                            />
+                            <ToolTip label="Expand all">
+                                <IconButton
+                                    size="sm"
+                                    aria-label="Expand all"
+                                    onClick={() => expandAll(true)}
+                                >
+                                    <i className="mdi mdi-unfold-more-horizontal mdi-16px" />
+                                </IconButton>
+                            </ToolTip>
+                            <ToolTip label="Collapse all">
+                                <IconButton
+                                    size="sm"
+                                    aria-label="Collapse all"
+                                    onClick={collapseAll}
+                                >
+                                    <i className="mdi mdi-unfold-less-horizontal mdi-16px" />
+                                </IconButton>
+                            </ToolTip>
+                            <ToolTip label="Restore default expansion">
+                                <IconButton
+                                    size="sm"
+                                    aria-label="Restore default expansion"
+                                    onClick={restoreExpansion}
+                                >
+                                    <i className="mdi mdi-restore mdi-16px" />
                                 </IconButton>
                             </ToolTip>
                         </div>
                     </div>
-                    <SearchBox
-                        value={state.search}
-                        onChange={(search) => {
-                            setQuery(search)
-                            store.updateState({ search })
-                        }}
-                        onExpandAll={() => expandAll(true)}
-                        onCollapseAll={collapseAll}
-                        onRestore={restoreExpansion}
-                        tags={allTags}
-                    />
                 </div>
-                {isFiltering && (
-                    <div className="lt-filterBar">
-                        <span>{visibleLayers} of {total} layers</span>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setQuery('')
-                                store.updateState({ search: '', onlyVisible: false, onlyFiltered: false })
-                            }}
-                        >
-                            Clear filters
-                        </button>
-                    </div>
-                )}
                 {isFiltering && visibleLayers === 0 ? (
                     <div className="lt-empty">
                         <i className="mdi mdi-layers-search-outline mdi-36px" />

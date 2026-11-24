@@ -2040,6 +2040,87 @@ test.describe('LayersTool flat ordering parity', () => {
         expect(startup.toolOpen).toBe(false)
     })
 
+    test('keeps scroll position after a pointer reorder', async ({ page }) => {
+        await loadMission(page)
+        await page.locator('#toolButtonLayers').click()
+        await page.getByRole('button', { name: 'Expand all' }).click()
+
+        const scroll = page.locator('#layersTool .lt-scroll')
+        await scroll.evaluate((element) => {
+            element.scrollTop = Math.min(
+                500,
+                element.scrollHeight - element.clientHeight
+            )
+        })
+        await page.waitForTimeout(100)
+        const visibleRows = await scroll.evaluate((element) => {
+            const bounds = element.getBoundingClientRect()
+            return Array.from(
+                element.querySelectorAll('.lt-layerRow')
+            )
+                .map((row) => {
+                    const rect = row.getBoundingClientRect()
+                    return {
+                        id: row.getAttribute('data-row-id'),
+                        top: rect.top,
+                        bottom: rect.bottom,
+                        height: rect.height,
+                    }
+                })
+                .filter(
+                    (row) =>
+                        row.bottom > bounds.top + row.height &&
+                        row.top < bounds.bottom - row.height
+                )
+        })
+        expect(visibleRows.length).toBeGreaterThan(8)
+
+        const source = visibleRows[2]
+        const target = visibleRows[6]
+        const sourceRow = page.locator(orderingRowSelector(source.id))
+        const targetRow = page.locator(orderingRowSelector(target.id))
+        const scrollTopBefore = await scroll.evaluate(
+            (element) => element.scrollTop
+        )
+        const rowHeight = source.height
+        const historyLength = await page.evaluate(
+            () =>
+                window.ToolController_.getTool('LayersTool').orderingHistory
+                    .length
+        )
+
+        await dragWithMouse(
+            page,
+            sourceRow.locator('.lt-drag'),
+            targetRow,
+            0.8
+        )
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        window.ToolController_.getTool('LayersTool')
+                            .orderingHistory.length
+                )
+            )
+            .toBe(historyLength + 1)
+
+        const scrollTopAfter = await scroll.evaluate(
+            (element) => element.scrollTop
+        )
+        expect(
+            Math.abs(scrollTopAfter - scrollTopBefore)
+        ).toBeLessThanOrEqual(rowHeight * 2)
+
+        const movedRow = page.locator(orderingRowSelector(source.id))
+        const isVisible = await movedRow.evaluate((row) => {
+            const bounds = row.closest('.lt-scroll').getBoundingClientRect()
+            const rect = row.getBoundingClientRect()
+            return rect.bottom > bounds.top && rect.top < bounds.bottom
+        })
+        expect(isVisible).toBe(true)
+    })
+
     test('Alt+Down moves an expanded header past its whole subtree', async ({
         page,
     }) => {

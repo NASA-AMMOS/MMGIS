@@ -33,9 +33,8 @@
 }
 
 .lt-toolbarTitle,
-.lt-toolbarButtons,
 .lt-search,
-.lt-filterBar,
+.lt-viewBar,
 .lt-sectionHeader,
 .lt-heroActions,
 .lt-heroActions > div {
@@ -57,25 +56,8 @@
     align-items: center;
 }
 
-.lt-toolbarButtons {
-    gap: 2px;
-    margin-right: 30px;
-}
-
-.lt-toolbarButtons > button {
-    width: 24px;
-    height: 32px;
-    flex: 0 0 24px;
-    margin: 0 3px;
-    padding: 2px;
-}
-
 .lt-helpSlot .mmgisHelpButton {
     margin: 0 4px;
-}
-
-.lt-toolbarButtons [aria-pressed='true'] {
-    color: var(--color-c);
 }
 
 .lt-searchWrap {
@@ -150,16 +132,24 @@
     background: var(--color-a1-5);
 }
 
-.lt-filterBar {
+.lt-viewBar {
+    min-height: 26px;
     flex: 0 0 auto;
     justify-content: space-between;
-    padding: 4px 10px;
-    border-bottom: 1px solid var(--color-a1-5);
-    color: var(--color-a5);
-    font-size: 11px;
+    gap: 8px;
+    margin-top: 6px;
 }
 
-.lt-filterBar button,
+.lt-viewSummary {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 6px;
+    color: var(--color-a5);
+    font-size: 12px;
+}
+
+.lt-viewSummary button,
 .lt-toast button {
     padding: 2px 3px;
     border: 0;
@@ -167,6 +157,50 @@
     color: var(--color-c);
     font: inherit;
     cursor: pointer;
+}
+
+.lt-viewSummary button {
+    font-size: 11px;
+}
+
+.lt-viewPill {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 6px;
+    background: var(--color-d);
+}
+
+.lt-viewPill button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    min-width: 26px;
+    height: 22px;
+    min-height: 22px;
+    flex: 0 0 26px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-a6, #bbb);
+}
+
+.lt-viewPill button[aria-pressed='true'] {
+    background: var(--color-c2);
+    color: var(--color-c2-text, #fff);
+}
+
+.lt-viewPillDivider {
+    width: 1px;
+    height: 14px;
+    flex: 0 0 1px;
+    margin: 0 2px;
+    background: var(--color-a2);
 }
 
 .lt-scroll {
@@ -986,23 +1020,9 @@
     border-bottom: 1px solid var(--color-a1);
 }
 
-.lt-toolbarTitle > .left,
-.lt-toolbarTitle > .right {
+.lt-toolbarTitle > .left {
     display: flex;
     align-items: center;
-}
-
-.lt-toolbarButtons {
-    gap: 2px;
-    margin-right: 30px;
-}
-
-.lt-toolbarButtons > button {
-    flex: 0 0 24px;
-    width: 24px;
-    min-width: 24px;
-    height: 28px;
-    margin: 0 3px;
 }
 
 .lt-search > button {
@@ -1240,7 +1260,7 @@
     overflow: hidden;
 }
 
-#layersTool .lt-filterBar button {
+#layersTool .lt-viewSummary button {
     color: var(--color-c2);
 }
 
