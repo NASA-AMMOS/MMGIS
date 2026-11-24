@@ -54,16 +54,6 @@
     font-variant-numeric: tabular-nums;
 }
 
-.layerSettingsChangedDot {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin-left: 5px;
-    border-radius: 50%;
-    background: var(--color-c);
-    vertical-align: 1px;
-}
-
 .layerSettingsStatusBanner {
     display: flex;
     align-items: center;

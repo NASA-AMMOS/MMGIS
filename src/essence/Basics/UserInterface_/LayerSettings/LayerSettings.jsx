@@ -56,7 +56,6 @@ export function LayerSettingsSlider({
 }) {
     const numeric = Number(value)
     const current = Number.isFinite(numeric) ? numeric : defaultValue
-    const changed = Math.abs(current - defaultValue) > step / 2
     return (
         <div className="layerSettingsSlider">
             <div className="layerSettingsSliderLabel">
@@ -64,12 +63,6 @@ export function LayerSettingsSlider({
                 <span className="layerSettingsSliderValue">
                     {current.toFixed(step < 0.1 ? 2 : 1)}
                     {unit}
-                    {changed && (
-                        <i
-                            className="layerSettingsChangedDot"
-                            title="Changed from default"
-                        />
-                    )}
                 </span>
             </div>
             <Slider

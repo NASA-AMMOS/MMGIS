@@ -615,6 +615,11 @@
     background: rgba(0, 0, 0, 0.35);
     color: #fff;
     cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.lt-drawerScrim:hover {
+    background: rgba(0, 0, 0, 0.175);
 }
 
 .lt-drawerScrim > i {
