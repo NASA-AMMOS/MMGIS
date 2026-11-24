@@ -1317,7 +1317,7 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
   //Add prop_ids to ids if it's not already there
   if (req.body.ids.indexOf(req.body.prop_id) == -1)
     req.body.ids.push(req.body.prop_id);
-  const mergeIds = [...new Set(req.body.ids.map((id) => parseInt(id, 10)))];
+  const mergeIds = [...new Set(req.body.ids.map(Number))];
   if (mergeIds.some((id) => !Number.isInteger(id))) {
     res.send({
       status: "failure",
@@ -1372,7 +1372,7 @@ router.post("/merge", authorize("draw.use"), function (req, res, next) {
           },
         }).then((inFile) => {
           const feature = inFile.find(
-            (f) => f.id === parseInt(req.body.prop_id, 10)
+            (f) => f.id === Number(req.body.prop_id)
           );
           if (inFile.length !== mergeIds.length || feature == null) {
             logger(
