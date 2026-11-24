@@ -1896,26 +1896,37 @@
 }
 
 #layersTool2 .lt-dataShaderSettings .dropy__title {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px;
     align-items: center;
     gap: 4px;
 }
 
 #layersTool2 .lt-dataShaderSettings .dropy__title > span:first-child {
-    flex: 1 1 auto;
     width: 100%;
+    min-width: 0;
 }
 
 #layersTool2 .lt-dataShaderSettings .dropy__title > i {
     display: inline-flex;
-    flex: 0 0 24px;
+    position: static;
     align-items: center;
     justify-content: center;
+    right: auto;
+    transform: none;
     width: 24px;
     height: 22px;
     border: 1px solid var(--color-a1);
     border-radius: 5px;
     background: var(--color-a1-5);
     color: var(--color-f);
+}
+
+#layersTool2
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial::before {
+    content: '';
+    flex: 0 0 12px;
 }
 
 #layersTool2 .lt-dataShaderSettings [class*='_colorize_legend_value_'] {

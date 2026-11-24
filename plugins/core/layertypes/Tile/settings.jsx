@@ -31,6 +31,10 @@ const BLEND_MODES = [
     'luminosity',
 ]
 
+function normalizeBlendMode(value) {
+    return BLEND_MODES.includes(value) ? value : 'unset'
+}
+
 const RAMP_NAMES = Object.keys(colormapData)
     .filter((name) => /^[a-z]/i.test(name))
     .sort()
@@ -198,7 +202,9 @@ function DisplaySettings({ layer, api }) {
                 <span>Blend</span>
                 <Select
                     aria-label="Blend mode"
-                    value={filters['mix-blend-mode'] || layer.style?.blend || 'unset'}
+                    value={normalizeBlendMode(
+                        filters['mix-blend-mode'] ?? layer.style?.blend
+                    )}
                     options={BLEND_MODES.map((value) => ({
                         value,
                         label:

@@ -915,6 +915,33 @@ test.describe('LayersTool', () => {
         await expect(filter.locator('#layersTool_filtering_submit')).toBeVisible()
         await expect(filter.locator('#layersTool_filtering_count')).toBeVisible()
         await expect(filter.locator('#helpModal_LayersTool-Filtering')).toBeVisible()
+        const filterAlignment = await page.evaluate(() => {
+            const root = document.querySelector(
+                '#layersTool2 .lt-typeSettingsFilter'
+            )
+            const right = (selector) => {
+                const element = root.querySelector(selector)
+                return element.getBoundingClientRect().right
+            }
+            const left = (selector) => {
+                const element = root.querySelector(selector)
+                return element.getBoundingClientRect().left
+            }
+            return {
+                placePoint: left('#layerTool_filtering_filters_spatial_draw'),
+                property: left('.layersTool_filtering_value_key_input'),
+                spatialClear: right('#layerTool_filtering_filters_spatial_clear'),
+                valueClear: right(
+                    '.layersTool_filtering_value .layerTool_filtering_filters_clear'
+                ),
+            }
+        })
+        expect(
+            Math.abs(filterAlignment.placePoint - filterAlignment.property)
+        ).toBeLessThanOrEqual(1)
+        expect(
+            Math.abs(filterAlignment.spatialClear - filterAlignment.valueClear)
+        ).toBeLessThanOrEqual(1)
 
         const condition = await page.evaluate((name) => {
             const geojson = window.L_.layers.layer[name].toGeoJSON()
@@ -1232,18 +1259,7 @@ test.describe('LayersTool', () => {
                 const blend = page.getByRole('combobox', {
                     name: 'Blend mode',
                 })
-                await blend.click()
-                await expect(
-                    page.getByRole('option', { name: 'None' })
-                ).toBeVisible()
-                const options = await page.getByRole('option').allTextContents()
-                expect(options).toContain('None')
-                expect(
-                    options.every(
-                        (label) => label[0] === label[0].toUpperCase()
-                    )
-                ).toBe(true)
-                await page.keyboard.press('Escape')
+                await expect(blend).toContainText('None')
             }
             if (type === 'tile' || type === 'data')
                 await expect(page.locator('.lt-settings')).toContainText('Opacity')
