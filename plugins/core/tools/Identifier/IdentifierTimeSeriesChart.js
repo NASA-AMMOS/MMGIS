@@ -69,10 +69,14 @@ export function describeReading(point, units) {
 /** A unit for a heading or axis title: its text without padding. */
 const unitLabel = (units) => (units || '').trim()
 
-/** When an acquisition was: its range if it has one, else its UTC time. */
+/**
+ * When an acquisition was, in UTC: its range (two instants) if it has one,
+ * else its time. The one formatter behind the table, the tooltip and the
+ * chart's accessible name.
+ */
 export function describeWhen(point) {
     return point.range
-        ? `${point.range[0]} – ${point.range[1]}`
+        ? `${formatUtc(point.range[0])} – ${formatUtc(point.range[1])}`
         : formatUtc(point.time)
 }
 
@@ -166,8 +170,8 @@ export function formatTooltip(params, series) {
         if (g.data.range)
             head.push(
                 `<div style="font-size:11px">${escapeHtml(
-                    g.data.range[0]
-                )} – ${escapeHtml(g.data.range[1])}</div>`
+                    describeWhen(g.data)
+                )}</div>`
             )
         parts.push(
             `<div class="identifierTimeSeriesTooltip_item" data-item="${escapeHtml(

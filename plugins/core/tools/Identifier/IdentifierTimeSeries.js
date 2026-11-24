@@ -44,9 +44,10 @@ export const TIME_SERIES_LIMITS = {
     // Requests in flight at once for one selected point, across every layer
     // charted there (STAC pages and TiTiler point batches alike).
     requestConcurrency: 4,
-    // One request (a STAC page or a point batch) taking longer than this is
-    // given up on and reported as an error, so a hung server can't leave a
-    // chart loading forever. MMGIS's titiler-pgstac proxy stops at 30 s.
+    // One request (a STAC page or a point batch), from sending it to having
+    // parsed its body, taking longer than this is given up on and reported as
+    // an error, so a hung server or a stalled body can't leave a chart
+    // loading forever. MMGIS's titiler-pgstac proxy stops at 30 s.
     requestTimeoutMs: 60000,
     // A broken `next` link must not page forever.
     maxStacPages: 20,
@@ -266,7 +267,7 @@ export function parseIsoTime(value) {
  * when the item covers a range instead; then the range's start is used as the
  * point on the axis and the range is kept for the tooltip.
  *
- * @returns {{id: string, time: number, range: [string, string]|null} | null}
+ * @returns {{id: string, time: number, range: [number, number]|null} | null}
  */
 export function parseStacItemTime(feature) {
     if (!feature || typeof feature.id !== 'string' || feature.id === '')
@@ -277,10 +278,14 @@ export function parseStacItemTime(feature) {
     const start = parseIsoTime(p.start_datetime)
     if (start != null && p.datetime == null) {
         const end = parseIsoTime(p.end_datetime)
+        // Kept as instants (ms since the epoch, UTC) like `time`, never as
+        // the item's strings, so every view writes them in UTC whatever
+        // offset the item used. An end that's invalid or before the start
+        // gives no interval rather than a wrong one.
         return {
             id: feature.id,
             time: start,
-            range: end != null ? [p.start_datetime, p.end_datetime] : null,
+            range: end != null && end >= start ? [start, end] : null,
         }
     }
     return null
@@ -378,9 +383,10 @@ export async function fetchStacItems({
         const remaining = limits.maxItems - items.length
         const pageLimit = Math.min(limits.stacPageSize, Math.max(remaining, 1))
         const pageToken = token
-        const json = await run(async () => {
-            const res = await fetchFn(
-                buildStacSearchUrl(
+        const json = await run(() =>
+            runRequest({
+                fetchFn,
+                url: buildStacSearchUrl(
                     stacBase,
                     collection,
                     lng,
@@ -389,17 +395,20 @@ export async function fetchStacItems({
                     pageLimit,
                     pageToken
                 ),
-                {
+                init: {
                     headers: {
                         accept: 'application/geo+json, application/json',
                     },
-                    signal,
-                }
-            )
-            if (!res.ok)
-                throw new TimeSeriesHttpError('STAC search', res.status)
-            return res.json()
-        })
+                },
+                signal,
+                timeoutMs: limits.requestTimeoutMs,
+                read: (res) => {
+                    if (!res.ok)
+                        throw new TimeSeriesHttpError('STAC search', res.status)
+                    return res.json()
+                },
+            })
+        )
         if (!json || !Array.isArray(json.features))
             throw new Error('STAC search returned no feature list')
         if (Number.isFinite(json.numberMatched))
@@ -556,55 +565,78 @@ export function parsePointResponse(json, collection) {
     return byId
 }
 
+const abortError = () =>
+    Object.assign(new Error('The request was cancelled.'), {
+        name: 'AbortError',
+    })
+
 /**
- * `fetchFn` with a per-request time limit. A request that runs past `ms` is
- * aborted and rejects with a TimeoutError - an ordinary failure, reported and
- * retried, unlike a cancellation (AbortError from the caller's own signal),
- * which is silently dropped. No AbortSignal.any/timeout needed.
+ * One HTTP request, start to finish - the fetch, reading the body and
+ * parsing it (`read(res)`) - under one time limit and one cancellation.
+ *
+ *  - The caller's `signal` cancels it at any point, the body read included:
+ *    it rejects with an AbortError, which callers drop silently.
+ *  - Past `timeoutMs` it is aborted and rejects with a TimeoutError, an
+ *    ordinary failure that is reported and retried.
+ *  - It settles as soon as either happens, even if the response body
+ *    ignores the abort, so a stalled body can't hold a concurrency slot or
+ *    leave a chart loading. The abandoned work is aborted, and its late
+ *    rejection is swallowed rather than left unhandled.
+ *  - The timer and the listener on the caller's signal are always removed.
+ *  - An error thrown while the request is aborted is reported as the abort
+ *    (cancellation or timeout), never as e.g. "not JSON".
  */
-export function withRequestTimeout(fetchFn, ms) {
-    if (!Number.isFinite(ms) || ms <= 0) return fetchFn
-    return (url, init = {}) => {
-        const parent = init.signal
-        const controller =
-            typeof AbortController !== 'undefined'
-                ? new AbortController()
-                : null
-        if (!controller) return fetchFn(url, init)
-        let timedOut = false
-        const onAbort = () => controller.abort()
-        if (parent) {
-            if (parent.aborted) controller.abort()
-            else parent.addEventListener('abort', onAbort, { once: true })
-        }
-        const timer = setTimeout(() => {
-            timedOut = true
-            controller.abort()
-        }, ms)
-        const done = () => {
-            clearTimeout(timer)
-            if (parent) parent.removeEventListener('abort', onAbort)
-        }
-        return Promise.resolve()
-            .then(() => fetchFn(url, { ...init, signal: controller.signal }))
-            .then(
-                (res) => {
-                    done()
-                    return res
-                },
-                (e) => {
-                    done()
-                    if (timedOut && !parent?.aborted)
-                        throw Object.assign(
-                            new Error(
-                                `request timed out after ${Math.round(ms / 1000)} s`
-                            ),
-                            { name: 'TimeoutError' }
-                        )
-                    throw e
-                }
-            )
+export function runRequest({
+    fetchFn,
+    url,
+    init = {},
+    signal,
+    timeoutMs,
+    read,
+}) {
+    if (signal?.aborted) return Promise.reject(abortError())
+    const controller = new AbortController()
+    let timedOut = false
+    const reason = () =>
+        timedOut && !signal?.aborted
+            ? Object.assign(
+                  new Error(
+                      `request timed out after ${Math.round(timeoutMs / 1000)} s`
+                  ),
+                  { name: 'TimeoutError' }
+              )
+            : abortError()
+    let rejectAborted
+    const aborted = new Promise((_, reject) => {
+        rejectAborted = reject
+    })
+    const onAbort = () => {
+        controller.abort()
+        rejectAborted(reason())
     }
+    signal?.addEventListener('abort', onAbort)
+    const timer =
+        Number.isFinite(timeoutMs) && timeoutMs > 0
+            ? setTimeout(() => {
+                  timedOut = true
+                  onAbort()
+              }, timeoutMs)
+            : null
+    const work = Promise.resolve()
+        .then(() => fetchFn(url, { ...init, signal: controller.signal }))
+        .then((res) => read(res))
+        .catch((e) => {
+            throw controller.signal.aborted ? reason() : e
+        })
+    // whichever loses the race must not surface as an unhandled rejection
+    work.catch(() => {})
+    aborted.catch(() => {})
+    return Promise.race([work, aborted]).finally(() => {
+        if (timer) clearTimeout(timer)
+        signal?.removeEventListener('abort', onAbort)
+        // anything still running (a stalled body) is stopped
+        if (!controller.signal.aborted) controller.abort()
+    })
 }
 
 /**
@@ -657,11 +689,18 @@ export function isNoAssetDetail(body) {
  * pixel here. Throws (so nothing is cached and the next click retries) on a
  * generic 404, any other error status, or a 200 without an `assets` list.
  */
-async function readPointBatch({ fetchFn, url, signal, collection }) {
-    const res = await fetchFn(url, {
-        headers: { accept: 'application/json' },
+function readPointBatch({ fetchFn, url, signal, collection, timeoutMs }) {
+    return runRequest({
+        fetchFn,
+        url,
+        init: { headers: { accept: 'application/json' } },
         signal,
+        timeoutMs,
+        read: (res) => readPointResponse(res, collection),
     })
+}
+
+async function readPointResponse(res, collection) {
     // titiler-pgstac 3.x: NoAssetFound -> 204 No Content.
     if (res.status === 204) return new Map()
     if (res.status === 404) {
@@ -736,6 +775,7 @@ export async function fetchPointValues({
                             ),
                             signal,
                             collection,
+                            timeoutMs: limits.requestTimeoutMs,
                         })
                         got.forEach((v, k) => merged.set(k, v))
                     } catch (e) {
@@ -891,7 +931,6 @@ export async function fetchLayerTimeSeries({
 }) {
     const q = query || snapshotLayerQuery(layer)
     const limiter = run || createLimiter(limits.requestConcurrency)
-    fetchFn = withRequestTimeout(fetchFn, limits.requestTimeoutMs)
     const endpoints = resolveStacEndpoints(q.url, location)
     if (!endpoints)
         return {
@@ -955,6 +994,8 @@ export async function fetchLayerTimeSeries({
     if (listing.items.length === 0)
         return {
             status: 'empty',
+            // nothing to list, as opposed to 'all-gaps' below
+            kind: 'no-acquisitions',
             message:
                 'No acquisitions cover this point in the selected time range.',
             notes,
@@ -1013,6 +1054,11 @@ export async function fetchLayerTimeSeries({
     if (built.withValue === 0)
         return {
             status: 'empty',
+            // Acquisitions exist but none has a usable value here. Their
+            // ids, times and why each has no value are kept, for the
+            // readings table; there's no line to draw.
+            kind: 'all-gaps',
+            series: built.series,
             message:
                 built.nodata > 0 &&
                 built.missing + built.missingBands + built.invalidValues === 0

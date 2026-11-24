@@ -108,6 +108,9 @@ async function openHarness(page, { withReturnFocus = false } = {}) {
             getLayers: () => h.layers,
             fetchSeries: async ({ layerUUID, lng }) => {
                 h.fetches.push(layerUUID)
+                // a test can set the answer for a layer
+                if (h.responses && h.responses[layerUUID])
+                    return h.responses[layerUUID](lng)
                 if (layerUUID === 'bare')
                     return {
                         status: 'empty',
@@ -486,5 +489,324 @@ test.describe('Identifier time-series panel (browser)', () => {
             page.locator('.identifierTimeSeriesPanel_unsupported li').first()
         ).toContainText('<img src=x')
         expect(await page.evaluate(() => window.__xss)).toBeUndefined()
+    })
+})
+
+test.describe('finding B - acquisitions without a usable value', () => {
+    // every acquisition is a gap, each for its own reason
+    const ALL_GAPS = {
+        status: 'empty',
+        kind: 'all-gaps',
+        message: 'No usable values could be read at this point.',
+        notes: [],
+        incomplete: [],
+        series: [
+            {
+                name: 'b1',
+                units: 'ppm m',
+                points: [
+                    {
+                        time: Date.UTC(2024, 0, 2),
+                        value: null,
+                        status: 'nodata',
+                        itemId: 'g-nodata',
+                        range: null,
+                    },
+                    {
+                        time: Date.UTC(2024, 0, 9),
+                        value: null,
+                        status: 'missing',
+                        itemId: 'g-missing',
+                        range: null,
+                    },
+                    {
+                        time: Date.UTC(2024, 0, 16),
+                        value: null,
+                        status: 'invalid',
+                        itemId: 'g-invalid',
+                        range: null,
+                    },
+                ],
+            },
+        ],
+    }
+    const NONE = {
+        status: 'empty',
+        kind: 'no-acquisitions',
+        message: 'No acquisitions cover this point in the selected time range.',
+        notes: [],
+        incomplete: [],
+    }
+    const section = (page, uuid) =>
+        page.locator(`#identifierTimeSeriesPanel [data-layer="${uuid}"]`)
+
+    async function only(page, responses) {
+        await page.evaluate((r) => {
+            const h = window.__h
+            h.layers.on = { ch4: true }
+            h.responses = Object.fromEntries(
+                Object.entries(r).map(([k, v]) => [k, () => v])
+            )
+        }, responses)
+    }
+
+    test('an all-gap history: no chart, a message, and a readings table with every acquisition and its reason', async ({
+        page,
+    }) => {
+        await openHarness(page)
+        await only(page, { ch4: ALL_GAPS })
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        const s = section(page, 'ch4')
+        await expect(s.locator('.identifierTimeSeriesPanel_status')).toHaveText(
+            'No usable values could be read at this point.'
+        )
+        // no line is drawn, and nothing claims to be a chart
+        await expect(s.locator('canvas')).toHaveCount(0)
+        await expect(s.locator('[role="img"]')).toHaveCount(0)
+        // the table is shown, opened, and lists each acquisition
+        const details = s.locator('details.identifierTimeSeriesPanel_readings')
+        await expect(details).toBeVisible()
+        await expect(details).toHaveJSProperty('open', true)
+        await expect(details.locator('summary')).toHaveText(
+            'Readings table (3)'
+        )
+        const rows = await details
+            .locator('tbody tr')
+            .evaluateAll((trs) =>
+                trs.map((tr) => [...tr.children].map((c) => c.textContent))
+            )
+        expect(rows).toEqual([
+            ['2024-01-02 00:00:00 UTC', 'g-nodata', 'no data'],
+            ['2024-01-09 00:00:00 UTC', 'g-missing', 'no reading'],
+            ['2024-01-16 00:00:00 UTC', 'g-invalid', 'invalid value'],
+        ])
+        // and is reachable by keyboard: Tab reaches its summary
+        await page.locator('.identifierTimeSeriesPanel_title').focus()
+        let reached = false
+        for (let i = 0; i < 15 && !reached; i++) {
+            await page.keyboard.press('Tab')
+            reached = await details
+                .locator('summary')
+                .evaluate((el) => el === document.activeElement)
+        }
+        expect(reached).toBe(true)
+        // every column - the reasons included - fits in view, however long
+        // the STAC item ids are (no sideways scrolling to find the value)
+        const fit = await details.evaluate((d) => {
+            const wrap = d.querySelector('.identifierTimeSeriesPanel_tableWrap')
+            const right = wrap.getBoundingClientRect().right
+            return [...d.querySelectorAll('tr')].map(
+                (tr) =>
+                    tr.lastElementChild.getBoundingClientRect().right - right
+            )
+        })
+        for (const over of fit) expect(over).toBeLessThanOrEqual(1)
+        // the caption names it for assistive tech
+        await expect(details.locator('caption')).toContainText(
+            'readings at the selected point'
+        )
+    })
+
+    test('STAC item ids and band names reach the readings table as text, not markup', async ({
+        page,
+    }) => {
+        await openHarness(page)
+        const evil = '<img src=x onerror="window.__xss=1">'
+        await only(page, {
+            ch4: {
+                ...ALL_GAPS,
+                series: [
+                    {
+                        ...ALL_GAPS.series[0],
+                        name: evil,
+                        points: [
+                            { ...ALL_GAPS.series[0].points[0], itemId: evil },
+                        ],
+                    },
+                ],
+            },
+        })
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        const details = section(page, 'ch4').locator(
+            'details.identifierTimeSeriesPanel_readings'
+        )
+        await expect(details.locator('tbody td').first()).toHaveText(evil)
+        await expect(details.locator('thead th').last()).toHaveText(
+            `${evil} (ppm m)`
+        )
+        await expect(details.locator('img')).toHaveCount(0)
+        expect(await page.evaluate(() => window.__xss)).toBeUndefined()
+    })
+
+    test('real-length STAC item ids wrap; times and values stay in view', async ({
+        page,
+    }) => {
+        await openHarness(page)
+        const long = (n) =>
+            `EMIT_L2B_CH4ENH_002_20240130T2047${n}_2403014_00${n}`
+        await only(page, {
+            ch4: {
+                status: 'ok',
+                notes: [],
+                incomplete: [],
+                series: [
+                    {
+                        name: 'b1',
+                        units: 'ppm',
+                        points: [0, 1, 2].map((i) => ({
+                            time: Date.UTC(2024, 0, 30, 20, 47, i),
+                            value: i === 1 ? null : 240 + i,
+                            status: i === 1 ? 'nodata' : 'ok',
+                            itemId: long(i),
+                            range: null,
+                        })),
+                    },
+                ],
+            },
+        })
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        const details = section(page, 'ch4').locator(
+            'details.identifierTimeSeriesPanel_readings'
+        )
+        await details.locator('summary').click()
+        const cells = await details.evaluate((d) => {
+            const wrap = d.querySelector('.identifierTimeSeriesPanel_tableWrap')
+            const right = wrap.getBoundingClientRect().right
+            return [...d.querySelectorAll('tbody tr')].map((tr) => ({
+                over: tr.lastElementChild.getBoundingClientRect().right - right,
+                text: tr.lastElementChild.textContent,
+                // times and values are kept on one line
+                nowrap: [tr.firstElementChild, tr.lastElementChild].every(
+                    (c) => getComputedStyle(c).whiteSpace === 'nowrap'
+                ),
+            }))
+        })
+        expect(cells.map((c) => c.text)).toEqual(['240', 'no data', '242'])
+        for (const c of cells) {
+            expect(c.over).toBeLessThanOrEqual(1)
+            expect(c.nowrap).toBe(true)
+        }
+        // the whole id is still there, as text
+        await expect(details.locator('tbody td').first()).toHaveText(long(0))
+    })
+
+    test('no acquisitions: the message only, no table', async ({ page }) => {
+        await openHarness(page)
+        await only(page, { ch4: NONE })
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        const s = section(page, 'ch4')
+        await expect(s.locator('.identifierTimeSeriesPanel_status')).toHaveText(
+            'No acquisitions cover this point in the selected time range.'
+        )
+        await expect(
+            s.locator('details.identifierTimeSeriesPanel_readings')
+        ).toBeHidden()
+    })
+
+    test('moving between a chart, an all-gap history and no acquisitions redraws each correctly', async ({
+        page,
+    }) => {
+        await openHarness(page)
+        // lng 1: chart; lng 2: all gaps; lng 3: nothing
+        await page.evaluate(
+            ([gaps, none]) => {
+                const h = window.__h
+                h.layers.on = { ch4: true }
+                h.responses = {
+                    ch4: (lng) =>
+                        lng === 2
+                            ? gaps
+                            : lng === 3
+                              ? none
+                              : {
+                                    status: 'ok',
+                                    notes: [],
+                                    incomplete: [],
+                                    series: [
+                                        {
+                                            name: 'b1',
+                                            units: 'ppm m',
+                                            points: [
+                                                {
+                                                    time: Date.UTC(2024, 0, 2),
+                                                    value: 5,
+                                                    status: 'ok',
+                                                    itemId: 'v1',
+                                                    range: null,
+                                                },
+                                                {
+                                                    time: Date.UTC(2024, 0, 9),
+                                                    value: null,
+                                                    status: 'nodata',
+                                                    itemId: 'v2',
+                                                    range: null,
+                                                },
+                                                {
+                                                    time: Date.UTC(2024, 0, 16),
+                                                    value: 7,
+                                                    status: 'ok',
+                                                    itemId: 'v3',
+                                                    range: null,
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                }
+            },
+            [ALL_GAPS, NONE]
+        )
+        const s = section(page, 'ch4')
+        const details = s.locator('details.identifierTimeSeriesPanel_readings')
+        const cells = () =>
+            details
+                .locator('tbody tr')
+                .evaluateAll((trs) =>
+                    trs.map((tr) => [...tr.children].map((c) => c.textContent))
+                )
+
+        // mixed: a chart, the gap kept as a gap in the table
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        await expect(s.locator('canvas')).toHaveCount(1)
+        expect(await cells()).toEqual([
+            ['2024-01-02 00:00:00 UTC', 'v1', '5'],
+            ['2024-01-09 00:00:00 UTC', 'v2', 'no data'],
+            ['2024-01-16 00:00:00 UTC', 'v3', '7'],
+        ])
+        // the line has a real gap there, not a 0
+        const data = await page.evaluate(() => {
+            const el = document.querySelector(
+                '#identifierTimeSeriesPanel [data-layer="ch4"] .identifierTimeSeriesPanel_chart'
+            )
+            return window.echarts
+                .getInstanceByDom(el)
+                .getOption()
+                .series[0].data.map((d) => d.value[1])
+        })
+        expect(data).toEqual([5, null, 7])
+
+        // all gaps: the chart goes, the table stays with the new rows
+        await page.evaluate(() => window.__h.controller.selectPoint(2, 2))
+        await expect(s.locator('canvas')).toHaveCount(0)
+        await expect(details).toBeVisible()
+        expect((await cells()).map((r) => r[1])).toEqual([
+            'g-nodata',
+            'g-missing',
+            'g-invalid',
+        ])
+
+        // nothing: no table left over from the last point
+        await page.evaluate(() => window.__h.controller.selectPoint(3, 2))
+        await expect(s.locator('.identifierTimeSeriesPanel_status')).toHaveText(
+            'No acquisitions cover this point in the selected time range.'
+        )
+        await expect(details).toBeHidden()
+
+        // and back to a chart
+        await page.evaluate(() => window.__h.controller.selectPoint(1, 2))
+        await expect(s.locator('canvas')).toHaveCount(1)
+        expect(await page.evaluate(() => window.__h.controller.isOpen())).toBe(
+            true
+        )
     })
 })

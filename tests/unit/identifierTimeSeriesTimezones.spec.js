@@ -206,3 +206,93 @@ test('the chart axis, tooltip and table read the same in every timezone', async 
         expect(seen[z].table, z).toEqual(base.table)
     }
 })
+
+/**
+ * Finding C (PR #1171 review): an acquisition range given with an offset is
+ * read as the instants it names and written in UTC - in the table, the
+ * tooltip and the chart's accessible name - whatever the browser's zone.
+ */
+test('an acquisition range with an offset reads as the same UTC interval in every timezone', async ({
+    browser,
+}) => {
+    const zones = [
+        'UTC',
+        'America/Los_Angeles',
+        'Europe/Berlin',
+        'Asia/Kathmandu',
+        'Pacific/Kiritimati',
+    ]
+    const seen = {}
+    for (const timezoneId of zones) {
+        const context = await browser.newContext({ timezoneId })
+        const page = await context.newPage()
+        await page.route(`${ORIGIN}/**`, (route) => {
+            const { pathname } = new URL(route.request().url())
+            if (pathname === '/')
+                return route.fulfill({
+                    body: '<!doctype html><html><body></body></html>',
+                    contentType: 'text/html',
+                })
+            const file = path.join(ROOT, decodeURIComponent(pathname))
+            if (!file.startsWith(ROOT) || !fs.existsSync(file))
+                return route.fulfill({ status: 404, body: '' })
+            route.fulfill({
+                body: fs.readFileSync(file),
+                contentType: 'text/javascript',
+            })
+        })
+        await page.goto(`${ORIGIN}/`)
+        seen[timezoneId] = await page.evaluate(async () => {
+            const ts =
+                await import('/plugins/core/tools/Identifier/IdentifierTimeSeries.js')
+            const ch =
+                await import('/plugins/core/tools/Identifier/IdentifierTimeSeriesChart.js')
+            const it = ts.parseStacItemTime({
+                id: 'ranged',
+                properties: {
+                    datetime: null,
+                    start_datetime: '2024-03-01T08:00:00+02:00',
+                    end_datetime: '2024-03-01T09:00:00+02:00',
+                },
+            })
+            const built = ts.buildSeries(
+                [it],
+                new Map([['ranged', { values: [4], bandNames: ['b1'] }]]),
+                { units: '' }
+            )
+            const opt = ch.buildChartOption(built.series)
+            return {
+                offset: new Date(Date.UTC(2024, 2, 1)).getTimezoneOffset(),
+                item: it,
+                table: ch.buildReadingsTable(built.series).rows[0][0],
+                tip: ch.formatTooltip(
+                    [
+                        {
+                            seriesIndex: 0,
+                            seriesName: 'b1',
+                            dataIndex: 0,
+                            data: opt.series[0].data[0],
+                        },
+                    ],
+                    built.series
+                ),
+            }
+        })
+        await context.close()
+    }
+    expect(seen['Europe/Berlin'].offset).toBe(-60)
+    expect(seen['America/Los_Angeles'].offset).toBe(480)
+    for (const z of zones) {
+        expect(seen[z].item, z).toEqual({
+            id: 'ranged',
+            time: Date.UTC(2024, 2, 1, 6),
+            range: [Date.UTC(2024, 2, 1, 6), Date.UTC(2024, 2, 1, 7)],
+        })
+        expect(seen[z].table, z).toBe(
+            '2024-03-01 06:00:00 UTC – 2024-03-01 07:00:00 UTC'
+        )
+        expect(seen[z].tip, z).toContain(
+            '2024-03-01 06:00:00 UTC – 2024-03-01 07:00:00 UTC'
+        )
+    }
+})

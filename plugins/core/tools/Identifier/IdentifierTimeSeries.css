@@ -240,11 +240,21 @@ details.identifierTimeSeriesPanel_unsupported > summary {
     color: var(--color-a5);
 }
 
-/* Keyboard entry point: hidden until it has focus (skip-link pattern). */
+/* Acquisition ids (STAC item ids) can be long: they wrap, so the time and
+   the values beside them stay in view without scrolling sideways. */
+.identifierTimeSeriesPanel_tableWrap th:nth-child(2),
+.identifierTimeSeriesPanel_tableWrap td:nth-child(2) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Keyboard entry point: hidden until it has focus (skip-link pattern).
+   Shown at the bottom centre of the map: the top centre is where the search
+   bar's dropdown opens, and it stays open as focus tabs on past it. */
 .identifierTimeSeriesCentre button {
     position: absolute;
     left: 50%;
-    top: 52px;
+    bottom: 72px;
     transform: translateX(-50%);
     z-index: 1003;
     padding: 6px 10px;

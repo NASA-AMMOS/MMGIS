@@ -433,26 +433,8 @@ export function createPanelView(deps) {
             const name = section.querySelector(
                 '.identifierTimeSeriesPanel_layerName'
             ).textContent
-            if (result.status === 'ok') {
-                status.textContent = ''
-                status.style.display = 'none'
-                chartEl.classList.add('identifierTimeSeriesPanel_chart--on')
-                chartEl.setAttribute('role', 'img')
-                chartEl.setAttribute(
-                    'aria-label',
-                    describeChart(result.series, name)
-                )
-                charts.set(
-                    uuid,
-                    deps.createChart(
-                        chartEl,
-                        buildChartOption(result.series, {
-                            measurementLabel: result.expression || '',
-                            theme: readTheme(doc, root),
-                        })
-                    )
-                )
-                const table = buildReadingsTable(result.series)
+            const showReadings = (series) => {
+                const table = buildReadingsTable(series)
                 readings.hidden = false
                 readings.querySelector('summary').textContent =
                     `Readings table (${table.rows.length})`
@@ -476,6 +458,27 @@ export function createPanelView(deps) {
                         )
                         .join('') +
                     '</tbody></table>'
+            }
+            if (result.status === 'ok') {
+                status.textContent = ''
+                status.style.display = 'none'
+                chartEl.classList.add('identifierTimeSeriesPanel_chart--on')
+                chartEl.setAttribute('role', 'img')
+                chartEl.setAttribute(
+                    'aria-label',
+                    describeChart(result.series, name)
+                )
+                charts.set(
+                    uuid,
+                    deps.createChart(
+                        chartEl,
+                        buildChartOption(result.series, {
+                            measurementLabel: result.expression || '',
+                            theme: readTheme(doc, root),
+                        })
+                    )
+                )
+                showReadings(result.series)
             } else {
                 status.style.display = ''
                 status.textContent = result.message || 'No data.'
@@ -486,7 +489,13 @@ export function createPanelView(deps) {
                 chartEl.classList.remove('identifierTimeSeriesPanel_chart--on')
                 chartEl.removeAttribute('role')
                 chartEl.removeAttribute('aria-label')
-                readings.hidden = true
+                // Acquisitions with no usable value are still listed - with
+                // their ids, times and why each has none - and the table is
+                // opened, as it's all there is to read.
+                if (result.series?.[0]?.points?.length > 0) {
+                    showReadings(result.series)
+                    readings.open = true
+                } else readings.hidden = true
             }
             if (pending === 0)
                 root.querySelector(

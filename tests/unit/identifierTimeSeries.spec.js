@@ -20,7 +20,7 @@ import {
     fetchLayerTimeSeries,
     snapshotLayerQuery,
     createLimiter,
-    withRequestTimeout,
+    runRequest,
     isNoAssetDetail,
     createRequestGuard,
     cacheKey,
@@ -33,6 +33,7 @@ import {
     axisUnits,
     gapLabel,
     buildReadingsTable,
+    describeWhen,
 } from '../../plugins/core/tools/Identifier/IdentifierTimeSeriesChart.js'
 import {
     listActiveLayers,
@@ -360,8 +361,84 @@ test.describe('acquisition timestamps', () => {
         ).toEqual({
             id: 'r',
             time: Date.UTC(2024, 2, 1),
-            range: ['2024-03-01T00:00:00Z', '2024-03-02T00:00:00Z'],
+            range: [Date.UTC(2024, 2, 1), Date.UTC(2024, 2, 2)],
         })
+    })
+
+    test('finding C: a range with offsets is kept as UTC instants and shown in UTC', () => {
+        const ranged = (id, start, end) =>
+            parseStacItemTime(
+                item(id, null, { start_datetime: start, end_datetime: end })
+            )
+        // the example from the review: 08:00-09:00 at +02:00 is 06:00-07:00 UTC
+        const r = ranged(
+            'plus2',
+            '2024-03-01T08:00:00+02:00',
+            '2024-03-01T09:00:00+02:00'
+        )
+        expect(r).toEqual({
+            id: 'plus2',
+            time: Date.UTC(2024, 2, 1, 6),
+            range: [Date.UTC(2024, 2, 1, 6), Date.UTC(2024, 2, 1, 7)],
+        })
+        expect(describeWhen(r)).toBe(
+            '2024-03-01 06:00:00 UTC – 2024-03-01 07:00:00 UTC'
+        )
+        // a negative offset that crosses midnight into the next UTC day
+        const west = ranged(
+            'minus5',
+            '2024-03-01T22:30:00-05:00',
+            '2024-03-01T23:45:00-05:00'
+        )
+        expect(west.time).toBe(Date.UTC(2024, 2, 2, 3, 30))
+        expect(describeWhen(west)).toBe(
+            '2024-03-02 03:30:00 UTC – 2024-03-02 04:45:00 UTC'
+        )
+        // the end in another offset than the start still reads as UTC
+        expect(
+            describeWhen(
+                ranged(
+                    'mixed',
+                    '2024-03-01T00:00:00Z',
+                    '2024-03-01T05:30:00+05:30'
+                )
+            )
+        ).toBe('2024-03-01 00:00:00 UTC – 2024-03-01 00:00:00 UTC')
+        // Z stays as it is
+        expect(
+            describeWhen(
+                ranged('z', '2024-03-01T10:00:00Z', '2024-03-01T11:00:00Z')
+            )
+        ).toBe('2024-03-01 10:00:00 UTC – 2024-03-01 11:00:00 UTC')
+        // a point acquisition is a time, not an interval
+        expect(
+            describeWhen(
+                parseStacItemTime(item('p', '2024-03-01T08:00:00+02:00'))
+            )
+        ).toBe('2024-03-01 06:00:00 UTC')
+    })
+
+    test('finding C: an unusable range end leaves the start as the time, with no range', () => {
+        const ranged = (start, end) =>
+            parseStacItemTime(
+                item('x', null, { start_datetime: start, end_datetime: end })
+            )
+        // an invalid end: no made-up interval
+        expect(ranged('2024-03-01T08:00:00+02:00', 'nope')).toEqual({
+            id: 'x',
+            time: Date.UTC(2024, 2, 1, 6),
+            range: null,
+        })
+        // an end before its start is not an interval either
+        expect(
+            ranged('2024-03-01T08:00:00+02:00', '2024-03-01T05:00:00Z')
+        ).toEqual({ id: 'x', time: Date.UTC(2024, 2, 1, 6), range: null })
+        // a zero-length range is still a range (start = end)
+        expect(
+            ranged('2024-03-01T08:00:00+02:00', '2024-03-01T06:00:00Z').range
+        ).toEqual([Date.UTC(2024, 2, 1, 6), Date.UTC(2024, 2, 1, 6)])
+        // an invalid start: the item has no time and is skipped
+        expect(ranged('nope', '2024-03-01T06:00:00Z')).toBeNull()
     })
 
     test('items without a valid time or id are rejected, never guessed', () => {
@@ -1340,6 +1417,9 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
         expect(r.status).toBe('empty')
         expect(r.message).toMatch(/No acquisitions/)
         expect(calls.point).toHaveLength(0)
+        // nothing to list: told apart from acquisitions with no value
+        expect(r.kind).toBe('no-acquisitions')
+        expect(r.series).toBeUndefined()
     })
 
     test('every acquisition nodata -> empty, not a line of zeros', async () => {
@@ -1359,6 +1439,73 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
         })
         expect(r.status).toBe('empty')
         expect(r.message).toMatch(/nodata/)
+        // the acquisitions are kept for the readings table (finding B)
+        expect(r.kind).toBe('all-gaps')
+        expect(
+            r.series[0].points.map((p) => [p.itemId, p.value, p.status])
+        ).toEqual([
+            ['a', null, 'nodata'],
+            ['b', null, 'nodata'],
+        ])
+    })
+
+    test('all gaps for different reasons: each kept with its reason, and the table says so', async () => {
+        const { fetchFn } = fakeServers({
+            items: [
+                item('masked', '2024-02-01T00:00:00Z'),
+                item('absent', '2024-03-01T00:00:00Z'),
+                item('bad', '2024-04-01T00:00:00Z'),
+            ],
+            values: { masked: [null], bad: [Infinity] },
+        })
+        const r = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            fetchFn,
+            location: LOCATION,
+        })
+        expect(r).toMatchObject({ status: 'empty', kind: 'all-gaps' })
+        expect(
+            r.series[0].points.map((p) => [p.itemId, p.value, p.status])
+        ).toEqual([
+            ['masked', null, 'nodata'],
+            ['absent', null, 'missing'],
+            ['bad', null, 'invalid'],
+        ])
+        const t = buildReadingsTable(r.series)
+        expect(t.rows).toEqual([
+            ['2024-02-01 00:00:00 UTC', 'masked', 'no data'],
+            ['2024-03-01 00:00:00 UTC', 'absent', 'no reading'],
+            ['2024-04-01 00:00:00 UTC', 'bad', 'invalid value'],
+        ])
+    })
+
+    test('mixed readings and gaps: ok, with gaps as nulls, never zeros', async () => {
+        const { fetchFn } = fakeServers({
+            items: [
+                item('v1', '2024-02-01T00:00:00Z'),
+                item('gap', '2024-03-01T00:00:00Z'),
+                item('v2', '2024-04-01T00:00:00Z'),
+            ],
+            values: { v1: [0], gap: [null], v2: [4] },
+        })
+        const r = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            fetchFn,
+            location: LOCATION,
+        })
+        expect(r.status).toBe('ok')
+        expect(r.series[0].points.map((p) => p.value)).toEqual([0, null, 4])
+        const option = buildChartOption(r.series)
+        expect(option.series[0].data.map((d) => d.value[1])).toEqual([
+            0,
+            null,
+            4,
+        ])
+        expect(option.series[0].connectNulls).not.toBe(true)
     })
 
     test('TiTiler 204 (no asset) for every item -> empty, times kept', async () => {
@@ -2689,7 +2836,7 @@ test.describe('review 3 - acquisitions sharing a timestamp', () => {
                 {
                     id: 'x2',
                     time: T,
-                    range: ['2024-02-01T10:00:00Z', '2024-02-01T11:00:00Z'],
+                    range: [Date.UTC(2024, 1, 1, 10), Date.UTC(2024, 1, 1, 11)],
                 },
             ],
             new Map([
@@ -2705,8 +2852,59 @@ test.describe('review 3 - acquisitions sharing a timestamp', () => {
         expect(g[0][1]).toContain('nir: <b>no data</b>')
         expect(g[1][1]).toContain('red: <b>3 K</b>')
         expect(g[1][1]).toContain('nir: <b>no reading</b>')
-        expect(g[1][1]).toContain('2024-02-01T10:00:00Z – 2024-02-01T11:00:00Z')
+        expect(g[1][1]).toContain(
+            '2024-02-01 10:00:00 UTC – 2024-02-01 11:00:00 UTC'
+        )
         expect(g[0][1]).not.toContain('–')
+    })
+
+    test('finding C: the tooltip, the table and the axis agree on a range in UTC', () => {
+        const items = [
+            parseStacItemTime(
+                item('r2', null, {
+                    start_datetime: '2024-03-01T08:00:00+02:00',
+                    end_datetime: '2024-03-01T09:00:00+02:00',
+                })
+            ),
+            // same start instant, other item: kept, ordered by id
+            parseStacItemTime(
+                item('r1', null, {
+                    start_datetime: '2024-03-01T06:00:00Z',
+                    end_datetime: '2024-03-01T06:30:00Z',
+                })
+            ),
+        ]
+        const r = buildSeries(
+            items,
+            new Map([
+                ['r1', { values: [1], bandNames: ['b1'] }],
+                ['r2', { values: [2], bandNames: ['b1'] }],
+            ]),
+            { units: '' }
+        )
+        const pts = r.series[0].points
+        expect(pts.map((p) => [p.itemId, p.time])).toEqual([
+            ['r1', Date.UTC(2024, 2, 1, 6)],
+            ['r2', Date.UTC(2024, 2, 1, 6)],
+        ])
+        expect(buildReadingsTable(r.series).rows).toEqual([
+            ['2024-03-01 06:00:00 UTC – 2024-03-01 06:30:00 UTC', 'r1', '1'],
+            ['2024-03-01 06:00:00 UTC – 2024-03-01 07:00:00 UTC', 'r2', '2'],
+        ])
+        const option = buildChartOption(r.series)
+        expect(option.series[0].data.map((d) => d.value[0])).toEqual([
+            Date.UTC(2024, 2, 1, 6),
+            Date.UTC(2024, 2, 1, 6),
+        ])
+        const html = option.tooltip.formatter(paramsAt(option, [0, 1]))
+        expect(html).toContain(
+            '2024-03-01 06:00:00 UTC – 2024-03-01 07:00:00 UTC'
+        )
+        expect(html).toContain(
+            '2024-03-01 06:00:00 UTC – 2024-03-01 06:30:00 UTC'
+        )
+        expect(html).not.toContain('+02:00')
+        expect(html).not.toContain('08:00')
     })
 
     test('the readings table gives every shared-time acquisition its own row', () => {
@@ -3182,11 +3380,16 @@ test.describe('review 8 - request time limit', () => {
         expect(view.results().at(-1)[2].status).toBe('ok')
     })
 
-    test('a cancellation stays a cancellation, and timers are cleared', async () => {
+    test('a cancellation stays a cancellation; no limit means none is set', async () => {
         const { fetchFn } = hanging()
         const ctrl = new AbortController()
-        const p = withRequestTimeout(fetchFn, 10000)('http://x/', {
+        const read = (res) => res
+        const p = runRequest({
+            fetchFn,
+            url: 'http://x/',
             signal: ctrl.signal,
+            timeoutMs: 10000,
+            read,
         })
         ctrl.abort()
         await expect(p).rejects.toMatchObject({ name: 'AbortError' })
@@ -3194,18 +3397,393 @@ test.describe('review 8 - request time limit', () => {
         const pre = new AbortController()
         pre.abort()
         await expect(
-            withRequestTimeout(fetchFn, 10000)('http://x/', {
+            runRequest({
+                fetchFn,
+                url: 'http://x/',
                 signal: pre.signal,
+                timeoutMs: 10000,
+                read,
             })
         ).rejects.toMatchObject({ name: 'AbortError' })
         // a fast answer passes through untouched
-        const ok = await withRequestTimeout(async () => 'res', 10000)(
-            'http://x/',
-            {}
+        expect(
+            await runRequest({
+                fetchFn: async () => 'res',
+                url: 'http://x/',
+                timeoutMs: 10000,
+                read,
+            })
+        ).toBe('res')
+        // no limit configured: no timer, the request is only ended by its answer
+        let release
+        const slow = runRequest({
+            fetchFn: () => new Promise((r) => (release = r)),
+            url: 'http://x/',
+            timeoutMs: 0,
+            read,
+        })
+        await new Promise((r) => setTimeout(r, 20))
+        release('late')
+        expect(await slow).toBe('late')
+    })
+})
+
+test.describe('finding A - the time limit and cancellation cover the body', () => {
+    // Headers arrive at once; the body is read through `body(kind, url, init)`,
+    // which may delay, stall forever, or honour the abort as fetch does.
+    const bodyServers = (body) => {
+        const items = ['a', 'b', 'c'].map((id, i) =>
+            item(id, `2024-01-0${i + 1}T00:00:00Z`)
         )
-        expect(ok).toBe('res')
-        // no limit configured: the original fetch is used as-is
-        expect(withRequestTimeout(fetchFn, 0)).toBe(fetchFn)
+        const base = fakeServers({
+            items,
+            values: { a: [1], b: [2], c: [3] },
+        })
+        const stats = { stac: 0, point: 0 }
+        const fetchFn = async (url, init) => {
+            const res = await base.fetchFn(url, init)
+            const kind = new URL(url).pathname.endsWith('/stac/search')
+                ? 'stac'
+                : 'point'
+            stats[kind]++
+            const real = res.json
+            return {
+                ...res,
+                json: () => body(kind, real, init, stats[kind]),
+            }
+        }
+        return { fetchFn, stats }
+    }
+    const never = () => new Promise(() => {})
+    const abortable = (init) =>
+        new Promise((_, reject) => {
+            const fail = () =>
+                reject(
+                    Object.assign(new Error('The operation was aborted.'), {
+                        name: 'AbortError',
+                    })
+                )
+            if (init?.signal?.aborted) return fail()
+            init?.signal?.addEventListener('abort', fail)
+        })
+    // fail fast instead of hanging the suite when a body is never bounded
+    const within = (p, ms = 2000) =>
+        Promise.race([
+            p,
+            new Promise((_, r) =>
+                setTimeout(
+                    () => r(new Error(`still pending after ${ms} ms`)),
+                    ms
+                )
+            ),
+        ])
+    const fast = { ...TIME_SERIES_LIMITS, requestTimeoutMs: 40 }
+
+    for (const [label, stall] of [
+        ['a STAC body that never arrives (and ignores the abort)', 'stac'],
+        ['a point body that never arrives (and ignores the abort)', 'point'],
+    ])
+        test(`${label} times out as an error`, async () => {
+            const srv = bodyServers((kind, real, init) =>
+                kind === stall ? never() : real()
+            )
+            const r = await within(
+                fetchLayerTimeSeries({
+                    layer: stacLayer(),
+                    lng: 0,
+                    lat: 0,
+                    fetchFn: srv.fetchFn,
+                    location: LOCATION,
+                    limits: fast,
+                })
+            )
+            expect(r.status).toBe('error')
+            expect(r.message).toMatch(/request timed out after/)
+            expect(r.message).not.toMatch(/not JSON/)
+        })
+
+    test('a slow body inside the time limit is read, not cut off', async () => {
+        const srv = bodyServers(async (kind, real) => {
+            await new Promise((r) => setTimeout(r, 15))
+            return real()
+        })
+        const r = await within(
+            fetchLayerTimeSeries({
+                layer: stacLayer(),
+                lng: 0,
+                lat: 0,
+                fetchFn: srv.fetchFn,
+                location: LOCATION,
+                limits: { ...TIME_SERIES_LIMITS, requestTimeoutMs: 200 },
+            })
+        )
+        expect(r.status).toBe('ok')
+        expect(r.series[0].points.map((p) => p.value)).toEqual([1, 2, 3])
+    })
+
+    test('the time limit runs from the request, not from the headers', async () => {
+        // headers would arrive in time; header + body together do not
+        const srv = bodyServers(async (kind, real) => {
+            await new Promise((r) => setTimeout(r, 120))
+            return real()
+        })
+        const r = await within(
+            fetchLayerTimeSeries({
+                layer: stacLayer(),
+                lng: 0,
+                lat: 0,
+                fetchFn: srv.fetchFn,
+                location: LOCATION,
+                limits: { ...TIME_SERIES_LIMITS, requestTimeoutMs: 50 },
+            })
+        )
+        expect(r.status).toBe('error')
+        expect(r.message).toMatch(/timed out/)
+    })
+
+    for (const honour of [true, false])
+        test(`closing the panel mid-body cancels quietly, leaves no read pending, and reopening charts (body ${
+            honour ? 'honours' : 'ignores'
+        } the abort)`, async () => {
+            let stallFirst = true
+            const srv = bodyServers((kind, real, init) => {
+                if (kind === 'point' && stallFirst)
+                    return honour ? abortable(init) : never()
+                return real()
+            })
+            const view = fakeView()
+            const reads = []
+            const c = createTimeSeriesController({
+                getLayers: () => ({
+                    data: { ch4: stacLayer() },
+                    on: { ch4: true },
+                }),
+                fetchSeries: (a) => {
+                    const p = fetchLayerTimeSeries({
+                        ...a,
+                        fetchFn: srv.fetchFn,
+                        location: LOCATION,
+                    })
+                    reads.push(p)
+                    return p
+                },
+                marker: fakeMarker(),
+                view,
+                requestConcurrency: 1,
+            })
+            c.selectPoint(1, 2)
+            await settle(10)
+            expect(srv.stats.point).toBe(1)
+            c.close()
+            // the cancelled read ends, as a cancellation - not left hanging
+            await expect(within(reads[0], 500)).rejects.toMatchObject({
+                name: 'AbortError',
+            })
+            await settle(10)
+            // nothing drawn for the cancelled read: no error, no not-JSON
+            expect(view.results()).toEqual([])
+            expect(c._cacheSize()).toBe(0)
+            // reopen: a new read completes
+            stallFirst = false
+            c.selectPoint(1, 2)
+            const r = await within(
+                (async () => {
+                    while (!view.results().length) await settle(2)
+                    return view.results().at(-1)[2]
+                })()
+            )
+            expect(r.status).toBe('ok')
+            expect(c._cacheSize()).toBe(1)
+        })
+
+    test('moving the point mid-body: the stalled read is dropped, the new one charts', async () => {
+        let n = 0
+        const srv = bodyServers((kind, real) => {
+            if (kind === 'point' && ++n === 1) return never()
+            return real()
+        })
+        const view = fakeView()
+        const reads = []
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: (a) => {
+                const p = fetchLayerTimeSeries({
+                    ...a,
+                    fetchFn: srv.fetchFn,
+                    location: LOCATION,
+                })
+                reads.push(p)
+                return p
+            },
+            marker: fakeMarker(),
+            view,
+            requestConcurrency: 1,
+        })
+        c.selectPoint(1, 2)
+        await settle(10)
+        c.selectPoint(3, 4)
+        await expect(within(reads[0], 500)).rejects.toMatchObject({
+            name: 'AbortError',
+        })
+        const r = await within(
+            (async () => {
+                while (!view.results().length) await settle(2)
+                return view.results()
+            })()
+        )
+        expect(r).toHaveLength(1)
+        expect(r[0][2].status).toBe('ok')
+        expect(c.getPoint()).toEqual({ lng: 3, lat: 4 })
+    })
+
+    test('timeout then recovery: the error is not cached and the next click reads again', async () => {
+        let stall = true
+        const srv = bodyServers((kind, real) =>
+            kind === 'point' && stall ? never() : real()
+        )
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    fetchFn: srv.fetchFn,
+                    location: LOCATION,
+                    limits: fast,
+                }),
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await within(
+            (async () => {
+                while (!view.results().length)
+                    await new Promise((r) => setTimeout(r, 5))
+            })()
+        )
+        expect(view.results().at(-1)[2].status).toBe('error')
+        expect(c._cacheSize()).toBe(0)
+        stall = false
+        c.selectPoint(1, 2)
+        await within(
+            (async () => {
+                while (view.results().length < 2) await settle(2)
+            })()
+        )
+        expect(view.results().at(-1)[2].status).toBe('ok')
+        expect(c._cacheSize()).toBe(1)
+    })
+
+    test('concurrent layers: one stalled body does not hold the others back past the limit', async () => {
+        const srv = bodyServers((kind, real, init, nth) =>
+            kind === 'point' && nth === 1 ? never() : real()
+        )
+        const layers = {
+            data: { l1: stacLayer(), l2: stacLayer(), l3: stacLayer() },
+            on: { l1: true, l2: true, l3: true },
+        }
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => layers,
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    fetchFn: srv.fetchFn,
+                    location: LOCATION,
+                    limits: fast,
+                }),
+            marker: fakeMarker(),
+            view,
+            requestConcurrency: 1,
+        })
+        c.selectPoint(1, 2)
+        const results = await within(
+            (async () => {
+                while (view.results().length < 3)
+                    await new Promise((r) => setTimeout(r, 5))
+                return view.results().map((x) => x[2].status)
+            })()
+        )
+        expect(results.sort()).toEqual(['error', 'ok', 'ok'])
+    })
+
+    test('timers, listeners and losing promises are cleaned up', async () => {
+        const unhandled = []
+        const onUnhandled = (e) => unhandled.push(e)
+        process.on('unhandledRejection', onUnhandled)
+        try {
+            const ctrl = new AbortController()
+            let added = 0
+            let removed = 0
+            const add = ctrl.signal.addEventListener.bind(ctrl.signal)
+            const rem = ctrl.signal.removeEventListener.bind(ctrl.signal)
+            ctrl.signal.addEventListener = (...a) => {
+                added++
+                return add(...a)
+            }
+            ctrl.signal.removeEventListener = (...a) => {
+                removed++
+                return rem(...a)
+            }
+            // success, timeout and cancellation, each through runRequest
+            const ok = await runRequest({
+                fetchFn: async () => jsonResponse({ x: 1 }),
+                url: 'http://x/',
+                signal: ctrl.signal,
+                timeoutMs: 1000,
+                read: (res) => res.json(),
+            })
+            expect(ok).toEqual({ x: 1 })
+            await expect(
+                runRequest({
+                    fetchFn: async () => ({
+                        ok: true,
+                        status: 200,
+                        json: never,
+                    }),
+                    url: 'http://x/',
+                    signal: ctrl.signal,
+                    timeoutMs: 20,
+                    read: (res) => res.json(),
+                })
+            ).rejects.toMatchObject({ name: 'TimeoutError' })
+            const pending = runRequest({
+                fetchFn: async () => ({ ok: true, status: 200, json: never }),
+                url: 'http://x/',
+                signal: ctrl.signal,
+                timeoutMs: 10000,
+                read: (res) => res.json(),
+            })
+            await settle(3)
+            ctrl.abort()
+            await expect(pending).rejects.toMatchObject({ name: 'AbortError' })
+            // a signal already aborted never starts the request
+            let started = false
+            await expect(
+                runRequest({
+                    fetchFn: async () => {
+                        started = true
+                        return jsonResponse({})
+                    },
+                    url: 'http://x/',
+                    signal: ctrl.signal,
+                    timeoutMs: 1000,
+                    read: (res) => res.json(),
+                })
+            ).rejects.toMatchObject({ name: 'AbortError' })
+            expect(started).toBe(false)
+            expect(removed).toBe(added)
+            await new Promise((r) => setTimeout(r, 30))
+            expect(unhandled).toEqual([])
+        } finally {
+            process.off('unhandledRejection', onUnhandled)
+        }
     })
 })
 

@@ -753,6 +753,80 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     expect(searches.length).toBe(2);
   });
 
+  test('the global time window (setTime) re-charts the pinned point', async ({ page }) => {
+    const searches = [];
+    page.on('request', (r) => { if (r.url().includes('/stac/search?')) searches.push(new URL(r.url()).searchParams.get('datetime')); });
+    const uuid = await openApp(page);
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    expect(Object.keys(await tableValues(page, uuid))).toHaveLength(3);
+    const before = searches.length;
+    // the time slider's own entry point: every time-enabled layer follows it
+    const ok = await page.evaluate(() =>
+      window.mmgisAPI.setTime('2024-01-01T00:00:00Z', '2024-01-31T00:00:00Z', false, '00:00:00', '2024-01-31T00:00:00Z')
+    );
+    expect(ok).not.toBe(false);
+    await expect.poll(() => searches.length, { timeout: 15000 }).toBeGreaterThan(before);
+    expect(searches.at(-1)).toMatch(/^2024-01-01T00:00:00(\.000)?Z\/2024-01-31T00:00:00(\.000)?Z$/);
+    // only the two January granules remain, at the same point
+    await expect
+      .poll(async () => Object.keys(await tableValues(page, uuid)).sort(), { timeout: 20000 })
+      .toEqual(['EMIT_L2B_CH4ENH_002_20240130T204707_2403014_005', 'EMIT_L2B_CH4ENH_002_20240130T204718_2403014_006']);
+  });
+
+  test('finding B, real data: an all-nodata history shows the message and its readings table', async ({ page }) => {
+    const uuid = await openApp(page);
+    // a window holding only granule _005, which is nodata at this point
+    await page.evaluate((u) => window.mmgisAPI.setLayerTime(u, '2024-01-30T20:47:00Z', '2024-01-30T20:47:10Z'), uuid);
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    const section = page.locator(`#identifierTimeSeriesPanel [data-layer="${uuid}"]`);
+    await expect(section.locator('.identifierTimeSeriesPanel_status')).toHaveText('Every acquisition here is nodata.', { timeout: 20000 });
+    await expect(section.locator('canvas')).toHaveCount(0);
+    const details = section.locator('details.identifierTimeSeriesPanel_readings');
+    await expect(details).toBeVisible();
+    await expect(details).toHaveJSProperty('open', true);
+    const rows = await details.locator('tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.children].map((c) => c.textContent)));
+    expect(rows).toEqual([[expect.stringMatching(/^2024-01-30 20:47:0\d UTC$/), 'EMIT_L2B_CH4ENH_002_20240130T204707_2403014_005', 'no data']]);
+  });
+
+  test('finding A, real browser: a point body that never arrives - close and reopen, or move the point', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    const uuid = await openApp(page);
+    // Point responses get their headers at once and then a body that never
+    // comes (a real Response over a ReadableStream that never closes).
+    await page.evaluate(() => {
+      const real = window.fetch.bind(window);
+      window.__stalls = 0;
+      window.__stall = true;
+      window.fetch = (input, init) => {
+        const url = typeof input === 'string' ? input : input.url;
+        if (window.__stall && url.includes('/point/') && url.includes('ids=')) {
+          window.__stalls++;
+          return Promise.resolve(new Response(new ReadableStream({ start() {} }), { status: 200, headers: { 'content-type': 'application/json' } }));
+        }
+        return real(input, init);
+      };
+    });
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    await expect.poll(() => page.evaluate(() => window.__stalls), { timeout: 15000 }).toBeGreaterThan(0);
+    const panel = page.locator('#identifierTimeSeriesPanel');
+    await expect(panel).toContainText('Loading');
+    // close while the body is outstanding: closed, nothing reported
+    await page.locator('.identifierTimeSeriesPanel_close').click();
+    await expect(panel).toHaveCount(0);
+    expect(await page.evaluate(() => window.ToolController_.getTool('IdentifierTool').timeSeries.isOpen())).toBe(false);
+
+    // reopen at a point whose body also stalls, then move the point once the
+    // server is healthy: the stalled read is dropped and the new one charts
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng + 0.001, lat), [LNG, LAT]);
+    await expect.poll(() => page.evaluate(() => window.__stalls), { timeout: 15000 }).toBeGreaterThan(1);
+    await page.evaluate(() => { window.__stall = false; });
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    expect(Object.keys(await tableValues(page, uuid))).toHaveLength(3);
+    await expect(panel.locator('.identifierTimeSeriesPanel_status--error')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
   test('keyboard: Tab to "Chart time series at map centre", Enter charts; Escape returns focus', async ({ page }) => {
     const uuid = await openApp(page);
     const button = page.getByRole('button', { name: 'Chart time series at map centre' });
@@ -768,6 +842,14 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     }
     expect(reached).toBe(true);
     expect((await button.boundingBox()).width).toBeGreaterThan(50);
+    // focused, it is visible and nothing is drawn over it (WCAG 2.4.11) -
+    // tabbing here passes the search bar, whose dropdown stays open
+    const topmost = await button.evaluate((b) => {
+      const r = b.getBoundingClientRect();
+      const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return at === b || b.contains(at);
+    });
+    expect(topmost).toBe(true);
     await page.keyboard.press('Enter');
     const panel = page.locator('#identifierTimeSeriesPanel');
     await expect(panel).toBeVisible();
