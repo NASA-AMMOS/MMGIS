@@ -30,6 +30,10 @@ function normalizeShaderLegends(host) {
                 row.appendChild(item.firstChild)
             item.replaceWith(row)
         })
+        const hasValues = Array.from(
+            group.querySelectorAll('[class*="_colorize_legend_value_"]')
+        ).some((value) => value.textContent.trim())
+        group.closest('li')?.classList.toggle('lt-emptyShaderLegend', !hasValues)
     })
 }
 

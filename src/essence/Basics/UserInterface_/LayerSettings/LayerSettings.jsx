@@ -109,7 +109,12 @@ export function LayerSettingsStatusBanner({
                 className={`mdi mdi-${failed ? 'alert-circle' : 'cloud-alert'} mdi-16px`}
             />
             <span>{message}</span>
-            <Button size="sm" variant="secondary" onClick={onRetry}>
+            <Button
+                className="lt-secondaryButton"
+                size="sm"
+                variant="secondary"
+                onClick={onRetry}
+            >
                 Retry
             </Button>
         </div>

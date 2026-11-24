@@ -241,7 +241,7 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
     }
     const userSettable = style.userSettable !== false
     return (
-        <div className="lt-typeSettingsList">
+        <div className="lt-typeSettingsList lt-dynamicStyleSettings">
             {userSettable && (
                 <div className="lt-typeSettingsField">
                     <span>Domain</span>
@@ -262,7 +262,6 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                 const enabled = rule.enabled !== false
                 const attribute = attributeOf(rule) || DEFAULT_ATTRIBUTE
                 const range = rangeForRule(rule, attribute)
-                const stats = propertyStats(layer, rulePropertyPath(rule))
                 return (
                     <div
                         className="lt-typeSettingsRule"
@@ -366,21 +365,6 @@ function DynamicStyleSettings({ layer, api, resetToken }) {
                                         </label>
                                     </div>
                                 )}
-                                {stats && (
-                                    <div className="lt-typeSettingsStats">
-                                        <span>
-                                            {stats.scope === 'dataset'
-                                                ? 'Whole dataset'
-                                                : 'Current view'}
-                                        </span>
-                                        <span>Min {formatValue(stats.min)}</span>
-                                        <span>Max {formatValue(stats.max)}</span>
-                                        <span>Avg {formatValue(stats.avg)}</span>
-                                        <span>Std Dev {formatValue(stats.stddev)}</span>
-                                        <span>Count {formatValue(stats.count)}</span>
-                                        <span>Nulls {formatValue(stats.nullCount)}</span>
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
@@ -409,19 +393,24 @@ function StatisticsSettings({ layer }) {
     return (
         <div className="lt-typeSettingsList">
             {rows.map(({ rule, stats }, index) => (
-                <div className="lt-typeSettingsStats" key={`${rulePropertyPath(rule)}-${index}`}>
+                <div
+                    className="lt-typeSettingsStatsGroup"
+                    key={`${rulePropertyPath(rule)}-${index}`}
+                >
                     <strong>{rulePropertyLabel(rule)}</strong>
-                    <span>
+                    <div className="lt-typeSettingsStatsScope">
                         {stats.scope === 'dataset'
                             ? 'Whole dataset'
                             : 'Current view'}
-                    </span>
-                    <span>Min {formatValue(stats.min)}</span>
-                    <span>Max {formatValue(stats.max)}</span>
-                    <span>Average {formatValue(stats.avg)}</span>
-                    <span>Std Dev {formatValue(stats.stddev)}</span>
-                    <span>Count {formatValue(stats.count)}</span>
-                    <span>Nulls {formatValue(stats.nullCount)}</span>
+                    </div>
+                    <div className="lt-typeSettingsStats">
+                        <span>Min {formatValue(stats.min)}</span>
+                        <span>Max {formatValue(stats.max)}</span>
+                        <span>Average {formatValue(stats.avg)}</span>
+                        <span>Std Dev {formatValue(stats.stddev)}</span>
+                        <span>Count {formatValue(stats.count)}</span>
+                        <span>Nulls {formatValue(stats.nullCount)}</span>
+                    </div>
                 </div>
             ))}
         </div>
@@ -465,6 +454,7 @@ export default {
                     label: 'Statistics',
                     icon: 'chart-box-outline',
                     order: 40,
+                    resettable: false,
                     Component: StatisticsSettings,
                 }
             )

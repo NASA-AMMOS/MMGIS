@@ -1252,7 +1252,7 @@ function CoreSettings({ layer, api }) {
                     </div>
                 )}
                 <Button
-                    className="lt-iconTextButton"
+                    className="lt-iconTextButton lt-secondaryButton"
                     size="sm"
                     variant="secondary"
                     disabled={exportBusy}
@@ -1264,6 +1264,7 @@ function CoreSettings({ layer, api }) {
                 {exportBusy && <progress aria-label="Export progress" />}
                 {sourceDownloadUrl(layer) && (
                     <Button
+                        className="lt-secondaryButton"
                         size="sm"
                         variant="secondary"
                         onClick={() => api.download()}
@@ -1286,14 +1287,20 @@ function CoreSettings({ layer, api }) {
                 icon="download-outline"
                 onReset={() => api.reset('export')}
             >
-                <a
-                    className="lt-sourceDownload"
-                    href={layer.variables.downloadURL}
-                    target="_blank"
-                    rel="noreferrer"
+                <Button
+                    className="lt-iconTextButton lt-secondaryButton"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                        window.open(
+                            layer.variables.downloadURL,
+                            '_blank',
+                            'noopener,noreferrer'
+                        )
+                    }
                 >
-                    Download Data
-                </a>
+                    <i className="mdi mdi-download" /> Download data
+                </Button>
             </SettingSection>
         ) : null
 
@@ -1311,6 +1318,7 @@ function CoreSettings({ layer, api }) {
                     min={0}
                     max={1}
                     step={0.05}
+                    defaultValue={1}
                     onChange={(value) => api.setOpacity(value)}
                 />
                 {DisplayComponent && (
@@ -1363,13 +1371,21 @@ function CoreSettings({ layer, api }) {
                     icon="clock-outline"
                     onReset={() => api.reset('time')}
                 >
-                    <div className="lt-field">
+                    <div className="lt-timeField">
                         <span>Data start</span>
-                        <TextInput readOnly value={layer.time.dataStartTime || layer.time.start || ''} />
+                        <TextInput
+                            aria-label="Data start"
+                            readOnly
+                            value={layer.time.dataStartTime || layer.time.start || ''}
+                        />
                     </div>
-                    <div className="lt-field">
+                    <div className="lt-timeField">
                         <span>Data end</span>
-                        <TextInput readOnly value={layer.time.dataEndTime || layer.time.end || ''} />
+                        <TextInput
+                            aria-label="Data end"
+                            readOnly
+                            value={layer.time.dataEndTime || layer.time.end || ''}
+                        />
                     </div>
                     {layer.time.refreshIntervalEnabled === true && (
                         <div className="lt-field">
@@ -1377,7 +1393,12 @@ function CoreSettings({ layer, api }) {
                             <span>{layer.time.refreshIntervalAmount || 60} seconds</span>
                         </div>
                     )}
-                    <Button size="sm" variant="secondary" onClick={() => api.setGlobalTimeToExtent()}>
+                    <Button
+                        className="lt-secondaryButton"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => api.setGlobalTimeToExtent()}
+                    >
                         Set global time to data extent
                     </Button>
                 </SettingSection>
@@ -1411,7 +1432,7 @@ function CoreSettings({ layer, api }) {
                 })}
             <div className="lt-pluginActions">
                 {pluginActions.map((action) => (
-                    <Button className="lt-iconTextButton" key={action.id} size="sm" variant="secondary" onClick={() => {
+                    <Button className="lt-iconTextButton lt-secondaryButton" key={action.id} size="sm" variant="secondary" onClick={() => {
                         setActionError('')
                         try {
                             Promise.resolve(action.onClick?.(pluginContext)).catch((error) =>
@@ -1445,6 +1466,11 @@ function SettingsPage({
     drawerClosing,
 }) {
     const layer = row.node
+    const fullPath = row.path.join(' › ')
+    const pathParts =
+        row.path.length > 2
+            ? [row.path[0], '…', row.path[row.path.length - 1]]
+            : row.path
     const shortcut = layerShortcut(layer)
     const sampleEnabled = RASTER_TYPES.has(layer.type) && previews
     const { sample, markFailed } = useRasterSample(
@@ -1540,16 +1566,20 @@ function SettingsPage({
                     <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
                 </div>
                 <h2 className="lt-settingsName" title={row.label} ref={titleRef} tabIndex={-1}>{row.label}</h2>
-                <div className="lt-path" title={row.path.join(' › ')}>
-                    {row.path.map((part, index) => (
+                <nav
+                    className="lt-path"
+                    aria-label={`Layer path: ${fullPath}`}
+                    title={fullPath}
+                >
+                    {pathParts.map((part, index) => (
                         <React.Fragment key={`${part}-${index}`}>
                             {index > 0 && <span className="lt-pathSeparator">›</span>}
-                            <span className={`lt-pathSegment ${index > 0 && index < row.path.length - 1 ? 'lt-pathMiddle' : ''}`}>
+                            <span className={`lt-pathSegment ${index > 0 && index < pathParts.length - 1 ? 'lt-pathMiddle' : ''}`}>
                                 {part}
                             </span>
                         </React.Fragment>
                     ))}
-                </div>
+                </nav>
                 {shortcut && (
                     <div className="lt-shortcut">
                         <kbd>Alt</kbd>
@@ -1620,7 +1650,7 @@ function SettingsPage({
                 <CoreSettings layer={layer} api={api} />
             </div>
             <div className="lt-settingsFooter">
-                <Button className="lt-iconTextButton" size="sm" variant="secondary" onClick={() => api.resetAll()}>
+                <Button className="lt-iconTextButton lt-secondaryButton" size="sm" variant="secondary" onClick={() => api.resetAll()}>
                     <i className="mdi mdi-restore" /> Reset all settings
                 </Button>
             </div>

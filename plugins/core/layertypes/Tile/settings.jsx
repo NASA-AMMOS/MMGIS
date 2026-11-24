@@ -175,7 +175,7 @@ function DisplaySettings({ layer, api }) {
                 value={getFilter('brightness', 1)}
                 max={3}
                 step={0.05}
-                defaultValue={layer.style?.brightness ?? 1}
+                defaultValue={1}
                 onChange={(value) => api.setTileFilter('brightness', value)}
             />
             <LayerSettingsSlider
@@ -183,7 +183,7 @@ function DisplaySettings({ layer, api }) {
                 value={getFilter('contrast', 1)}
                 max={4}
                 step={0.05}
-                defaultValue={layer.style?.contrast ?? 1}
+                defaultValue={1}
                 onChange={(value) => api.setTileFilter('contrast', value)}
             />
             <LayerSettingsSlider
@@ -191,7 +191,7 @@ function DisplaySettings({ layer, api }) {
                 value={getFilter('saturate', layer.style?.saturation ?? 1)}
                 max={4}
                 step={0.05}
-                defaultValue={layer.style?.saturation ?? 1}
+                defaultValue={1}
                 onChange={(value) => api.setTileFilter('saturate', value)}
             />
             <div className="lt-typeSettingsField">
@@ -201,7 +201,10 @@ function DisplaySettings({ layer, api }) {
                     value={filters['mix-blend-mode'] || layer.style?.blend || 'unset'}
                     options={BLEND_MODES.map((value) => ({
                         value,
-                    label: value === 'unset' ? 'none' : value,
+                        label:
+                            value === 'unset'
+                                ? 'None'
+                                : value[0].toUpperCase() + value.slice(1),
                     }))}
                     onValueChange={(value) => api.setBlend(value)}
                 />
@@ -217,14 +220,17 @@ function CogSettings({ layer, resetToken }) {
     )
     const reset = useRef(resetToken)
     useEffect(() => {
+        if (reset.current !== resetToken) {
+            reset.current = resetToken
+            layer.currentCogMin = layer.cogMin
+            layer.currentCogMax = layer.cogMax
+            layer.currentCogExpression = initial.expression || null
+            layer.cogColormap = initial.colorMap
+            setExpression(initial.expression || '')
+            refreshCog(layer)
+            return
+        }
         setExpression(layer.currentCogExpression || layer.cogExpression || '')
-        if (reset.current === resetToken) return
-        reset.current = resetToken
-        layer.currentCogMin = layer.cogMin
-        layer.currentCogMax = layer.cogMax
-        layer.currentCogExpression = initial.expression || null
-        layer.cogColormap = initial.colorMap
-        refreshCog(layer)
     }, [layer, resetToken, initial])
 
     const minimum =
@@ -254,7 +260,7 @@ function CogSettings({ layer, resetToken }) {
             : 'viridis'
     const colorTable = colorTableEntries(layer.cogColormapJson)
     return (
-        <div className="lt-typeSettingsList">
+        <div className="lt-typeSettingsList lt-cogSettings">
             <div className="lt-typeSettingsCogLegend">
                 <div>Applied rescale: {minimum} — {maximum} {layer.cogUnits || ''}</div>
                 {colorTable.length > 0 ? (
@@ -279,7 +285,7 @@ function CogSettings({ layer, resetToken }) {
                     />
                 )}
             </div>
-            <div className="lt-typeSettingsField">
+            <div className="lt-typeSettingsField lt-cogField">
                 <span>Color ramp</span>
                 <ColorRampPicker
                     value={colormap}
@@ -293,30 +299,38 @@ function CogSettings({ layer, resetToken }) {
                     }}
                 />
             </div>
-            <label className="lt-typeSettingsField">
-                <span>Rescale minimum</span>
-                <span className="lt-typeSettingsInputUnit">
+            <label className="lt-typeSettingsField lt-cogField">
+                <span>Minimum</span>
+                <span className="lt-typeSettingsInputUnit lt-cogUnitInput">
                     <TextInput
+                        aria-label="Minimum"
+                        className="lt-cogNumberInput"
                         type="number"
                         value={minimum}
                         onChange={(event) =>
                             updateRange('min', event.target.value)
                         }
                     />
-                    {layer.cogUnits}
+                    {layer.cogUnits && (
+                        <span className="lt-cogSuffix">{layer.cogUnits}</span>
+                    )}
                 </span>
             </label>
-            <label className="lt-typeSettingsField">
-                <span>Rescale maximum</span>
-                <span className="lt-typeSettingsInputUnit">
+            <label className="lt-typeSettingsField lt-cogField">
+                <span>Maximum</span>
+                <span className="lt-typeSettingsInputUnit lt-cogUnitInput">
                     <TextInput
+                        aria-label="Maximum"
+                        className="lt-cogNumberInput"
                         type="number"
                         value={maximum}
                         onChange={(event) =>
                             updateRange('max', event.target.value)
                         }
                     />
-                    {layer.cogUnits}
+                    {layer.cogUnits && (
+                        <span className="lt-cogSuffix">{layer.cogUnits}</span>
+                    )}
                 </span>
             </label>
             {layer.cogExpressionEditable === true && (
@@ -332,6 +346,7 @@ function CogSettings({ layer, resetToken }) {
                     />
                     <div>
                         <Button
+                            className="lt-secondaryButton"
                             size="sm"
                             variant="secondary"
                             onClick={() => {
@@ -342,6 +357,7 @@ function CogSettings({ layer, resetToken }) {
                             Apply
                         </Button>
                         <Button
+                            className="lt-secondaryButton"
                             size="sm"
                             variant="secondary"
                             onClick={() => {
@@ -357,20 +373,6 @@ function CogSettings({ layer, resetToken }) {
                     </div>
                 </div>
             )}
-            <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                    layer.currentCogMin = layer.cogMin
-                    layer.currentCogMax = layer.cogMax
-                    layer.currentCogExpression = initial.expression || null
-                    layer.cogColormap = initial.colorMap
-                    setExpression(initial.expression || '')
-                    refreshCog(layer)
-                }}
-            >
-                Reset COG
-            </Button>
         </div>
     )
 }
@@ -378,7 +380,7 @@ function CogSettings({ layer, resetToken }) {
 export default {
     sections(layer) {
         const sections = []
-        if (layer.type !== 'image')
+        if (layer.type !== 'image' && layer.type !== 'velocity')
             sections.push({
                 id: 'tile-display',
                 label: 'Display filters',

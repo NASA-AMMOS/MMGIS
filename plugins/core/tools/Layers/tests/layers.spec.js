@@ -1218,6 +1218,33 @@ test.describe('LayersTool', () => {
                     page.locator('.lt-settings').getByText('Opacity')
                 ).toBeVisible()
             }
+            if (type === 'velocity') {
+                await expect(
+                    page.locator('.lt-settings').getByText('Display filters')
+                ).toHaveCount(0)
+                await expect(
+                    page.locator('.lt-settings').getByRole('slider', {
+                        name: 'Brightness',
+                    })
+                ).toHaveCount(0)
+            }
+            if (type === 'tile') {
+                const blend = page.getByRole('combobox', {
+                    name: 'Blend mode',
+                })
+                await blend.click()
+                await expect(
+                    page.getByRole('option', { name: 'None' })
+                ).toBeVisible()
+                const options = await page.getByRole('option').allTextContents()
+                expect(options).toContain('None')
+                expect(
+                    options.every(
+                        (label) => label[0] === label[0].toUpperCase()
+                    )
+                ).toBe(true)
+                await page.keyboard.press('Escape')
+            }
             if (type === 'tile' || type === 'data')
                 await expect(page.locator('.lt-settings')).toContainText('Opacity')
             await page.keyboard.press('Escape')
@@ -1718,10 +1745,19 @@ test.describe('LayersTool', () => {
         await expect(radiusRange.nth(1)).toHaveValue('12')
         const statistics = settings.locator('[data-section="statistics"]')
         await expect(statistics).toBeVisible()
-        const statsRow = statistics.locator('.lt-typeSettingsStats').first()
+        await expect(
+            statistics.getByRole('button', { name: 'Reset Statistics' })
+        ).toHaveCount(0)
+        const statsRow = statistics
+            .locator('.lt-typeSettingsStatsGroup')
+            .first()
         await expect(statsRow).toBeVisible()
         await expect(statsRow).not.toContainText('Loaded features')
         await expect(statsRow).toContainText(/Current view|Whole dataset/)
+        await expect(statsRow.locator('.lt-typeSettingsStatsScope')).toBeVisible()
+        await expect(statsRow.locator('.lt-typeSettingsStats')).toBeVisible()
+        await expect(statsRow).toContainText('Average')
+        await expect(statsRow).not.toContainText(/\bAvg\b/)
         const previousStats = await statsRow.textContent()
         await page.evaluate((name) => {
             const layer = window.L_.layers.data[name]
@@ -1846,6 +1882,18 @@ test.describe('LayersTool', () => {
             if (layer.shader === 'colorize') {
                 const control = settings.locator('.lt-dataShaderSettings select').first()
                 const original = await control.inputValue()
+                const legend = settings.locator(
+                    '.lt-dataShaderSettings [id$="_colorize_legend"]'
+                )
+                if (await legend.count()) {
+                    const values = await legend.locator(
+                        '[class*="_colorize_legend_value_"]'
+                    ).allTextContents()
+                    if (values.every((value) => !value.trim()))
+                        await expect(
+                            settings.locator('.lt-emptyShaderLegend')
+                        ).toBeHidden()
+                }
                 await control.selectOption(original === 'true' ? 'false' : 'true')
                 await settings.getByRole('button', { name: 'Reset Data shader' }).click()
                 await expect(control).toHaveValue(original)
@@ -1896,8 +1944,17 @@ test.describe('LayersTool', () => {
             .locator('.lt-title')
             .click()
         const firstMinimum = page.getByRole('spinbutton', {
-            name: /Rescale minimum/,
+            name: 'Minimum',
         })
+        const originalMinimum = await firstMinimum.inputValue()
+        await firstMinimum.fill('123.5')
+        const cogSection = page.locator('.lt-settings [data-section="cog"]')
+        const resetCog = cogSection.getByRole('button', {
+            name: 'Reset COG',
+        })
+        await expect(resetCog).toHaveCount(1)
+        await resetCog.click()
+        await expect(firstMinimum).toHaveValue(originalMinimum)
         await firstMinimum.fill('123.5')
         await page.locator('.lt-closeButton').click()
 
@@ -1910,7 +1967,7 @@ test.describe('LayersTool', () => {
             .locator('.lt-title')
             .click()
         await expect(
-            page.getByRole('spinbutton', { name: /Rescale minimum/ })
+            page.getByRole('spinbutton', { name: 'Minimum' })
         ).not.toHaveValue('123.5')
     })
 
@@ -2193,7 +2250,9 @@ test.describe('LayersTool', () => {
                 ['tile', 'data'].includes(layer.type) && layer.hasDownloadURL
             if (hasLegacySourceDownload) {
                 await expect(page.locator('[data-section="export"]')).toBeVisible()
-                await expect(page.getByText('Download Data')).toBeVisible()
+                await expect(
+                    page.getByRole('button', { name: 'Download data' })
+                ).toBeVisible()
                 await expect(page.getByRole('combobox', { name: 'Export format' })).toHaveCount(0)
             } else {
                 await expect(page.locator('[data-section="export"]')).toHaveCount(0)

@@ -39,6 +39,7 @@ function VideoSettings({ layer, api }) {
         <div className="lt-videoSettings">
             <div className="lt-videoControls">
                 <Button
+                    className="lt-secondaryButton"
                     size="sm"
                     variant="secondary"
                     aria-label={playing ? 'Pause video' : 'Play video'}
@@ -50,6 +51,7 @@ function VideoSettings({ layer, api }) {
                     <i className={`mdi mdi-${playing ? 'pause' : 'play'} mdi-16px`} />
                 </Button>
                 <Button
+                    className="lt-secondaryButton"
                     size="sm"
                     variant="secondary"
                     aria-label="Restart video"
@@ -62,6 +64,7 @@ function VideoSettings({ layer, api }) {
                     <i className="mdi mdi-restart mdi-16px" />
                 </Button>
                 <Button
+                    className="lt-secondaryButton"
                     size="sm"
                     variant="secondary"
                     aria-label={muted ? 'Unmute video' : 'Mute video'}
@@ -90,9 +93,16 @@ function VideoSettings({ layer, api }) {
                 <span>{Math.floor(duration)}s</span>
             </div>
             {download && (
-                <a href={download} target="_blank" rel="noreferrer">
-                    Download video
-                </a>
+                <Button
+                    className="lt-iconTextButton lt-secondaryButton"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                        window.open(download, '_blank', 'noopener,noreferrer')
+                    }
+                >
+                    <i className="mdi mdi-download" /> Download video
+                </Button>
             )}
             <div className="lt-videoFilters">
                 {[
@@ -115,7 +125,7 @@ function VideoSettings({ layer, api }) {
                         min={0}
                         max={max}
                         step={0.05}
-                        unit="×"
+                        defaultValue={1}
                         onChange={(value) => api.setTileFilter(property, value)}
                     />
                 ))}
