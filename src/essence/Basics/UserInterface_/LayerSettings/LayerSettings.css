@@ -11,35 +11,22 @@
 }
 
 .layerSettingsSectionHeading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex: 1;
     min-width: 0;
     margin: 0;
-}
-
-.layerSettingsSectionToggle {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    gap: 6px;
-    min-width: 0;
-    padding: 7px 4px;
-    border: 0;
-    background: transparent;
     color: var(--color-h);
     font-size: 12px;
     letter-spacing: 0.5px;
-    text-align: left;
     text-transform: uppercase;
-    cursor: pointer;
 }
 
-.layerSettingsSectionToggle > i {
+.layerSettingsSectionIcon {
+    flex: 0 0 16px;
+    font-size: 16px;
     color: var(--color-a5);
-    transition: transform 0.14s ease;
-}
-
-.layerSettingsSectionToggle > i.layerSettingsOpen {
-    transform: rotate(90deg);
 }
 
 .layerSettingsSectionBody {

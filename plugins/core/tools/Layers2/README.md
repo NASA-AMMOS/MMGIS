@@ -28,8 +28,11 @@ layer-scoped object at both call sites:
 The API methods are bound to the current layer. Keep external work in a section
 component or action; `status` should return `null` or `{ kind, message }`.
 
-Each section descriptor has an `id`, `label`, optional `order`,
-`Component`, `resettable`, and `reset(ctx, layer)`. The component receives
+Each section descriptor has an `id`, `label`, optional `order`, `icon`
+(an MDI name without the `mdi-` prefix; defaults to `cog-outline`),
+`Component`, `resettable`, and `reset(ctx, layer)`. Sections are always
+expanded, and the core Export section renders last, after plugin sections and
+actions. The component receives
 `{ layer, api, state, setState, resetToken }`; state is scoped to the layer and
 section. `api` exposes the methods in `ctx.api`. A reset callback should restore
 the layer's defaults; Reset all calls every section reset, including sections

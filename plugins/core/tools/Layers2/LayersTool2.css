@@ -583,12 +583,77 @@
 }
 
 .lt2-settings {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: clamp(28px, 14%, 56px);
+    z-index: 3;
     display: flex;
     flex-direction: column;
-    flex: 1;
     min-height: 0;
     font-size: 13px;
+    border-left: 1px solid var(--color-a1-5);
+    background: var(--color-a);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.45);
     overflow: hidden;
+}
+
+.lt2-drawerScrim {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .lt2-settings {
+        animation: lt2-drawerIn 180ms ease-out;
+    }
+
+    .lt2-drawerScrim {
+        animation: lt2-scrimIn 180ms ease-out;
+    }
+
+    .lt2-settings.lt2-drawerClosing {
+        animation: lt2-drawerOut 180ms ease-in forwards;
+    }
+
+    .lt2-drawerScrim.lt2-drawerClosing {
+        animation: lt2-scrimOut 180ms ease-in forwards;
+    }
+
+    @keyframes lt2-drawerIn {
+        from {
+            transform: translateX(100%);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes lt2-drawerOut {
+        to {
+            transform: translateX(100%);
+        }
+    }
+
+    @keyframes lt2-scrimIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes lt2-scrimOut {
+        to {
+            opacity: 0;
+        }
+    }
 }
 
 .lt2-headerInfo {
@@ -693,16 +758,17 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    margin-top: 10px;
-    padding: 3px 4px 3px 10px;
-    border-radius: 6px;
+    min-height: 38px;
+    margin-top: 12px;
+    padding: 4px 6px 4px 12px;
+    border-radius: 8px;
     background: var(--color-d);
 }
 
 .lt2-actionButtons {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
 }
 
 .lt2-banner {
@@ -733,7 +799,7 @@
 .lt2-settingsSections {
     flex: 1;
     min-height: 0;
-    padding: 4px 8px;
+    padding: 10px 10px 12px;
     overflow-y: auto;
 }
 
@@ -862,10 +928,6 @@
         min-height: 0;
     }
 
-    .lt2-settings {
-        width: 100%;
-    }
-
     .lt2-toolbar {
         padding-right: 6px;
         padding-left: 6px;
@@ -965,15 +1027,20 @@
     flex: 0 0 auto;
 }
 
-.lt2-settingsSections {
-    padding: 6px 12px;
-}
-
 .lt2-settingsSections .layerSettingsSection {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     border-bottom: 0;
     border-radius: 4px;
     background: var(--color-d);
+}
+
+.lt2-settingsSections .layerSettingsSection:last-child {
+    margin-bottom: 0;
+}
+
+.lt2-settingsSections .layerSettingsSectionHeader {
+    min-height: 34px;
+    padding: 6px 6px 0 12px;
 }
 
 .lt2-settingsSections .layerSettingsSection.lt2-sectionFlash {
@@ -992,7 +1059,7 @@
 
 .lt2-settingsSections .layerSettingsSectionBody {
     min-width: 0;
-    padding: 4px 12px 10px 20px;
+    padding: 6px 12px 12px;
 }
 
 .lt2-settingsSections .layerSettingsSlider > div:last-child {

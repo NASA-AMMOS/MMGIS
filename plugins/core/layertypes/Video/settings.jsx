@@ -129,6 +129,7 @@ export default {
         {
             id: 'video-controls',
             label: 'Playback',
+            icon: 'play-circle-outline',
             order: 10,
             Component: VideoSettings,
         },

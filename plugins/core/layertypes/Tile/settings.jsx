@@ -382,6 +382,7 @@ export default {
             sections.push({
                 id: 'tile-display',
                 label: 'Display filters',
+                icon: 'tune-variant',
                 order: 10,
                 Component: DisplaySettings,
             })
@@ -389,6 +390,7 @@ export default {
             sections.push({
                 id: 'cog',
                 label: 'COG',
+                icon: 'image-filter-hdr',
                 order: 20,
                 Component: CogSettings,
             })

@@ -1174,82 +1174,14 @@ function CoreSettings({ layer, api }) {
         }
     }
 
-    return (
-        <>
+    const coreExport =
+        ['vector', 'query'].includes(layer.type) ? (
             <SettingSection
-                id="display"
-                label="Display"
-                onReset={() => api.reset('display')}
+                id="export"
+                label="Export"
+                icon="download-outline"
+                onReset={() => api.reset('export')}
             >
-                <SliderSetting
-                    label="Opacity"
-                    value={opacity}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    onChange={(value) => api.setOpacity(value)}
-                />
-                {DisplayComponent && (
-                    <PluginSectionBoundary key="display-extension">
-                        <DisplayComponent
-                            layer={layer}
-                            api={api}
-                            state={
-                                store.getState().sectionState[layer.name]?.display ||
-                                {}
-                            }
-                            setState={(value) =>
-                                store.setLayerSectionState(
-                                    layer.name,
-                                    'display',
-                                    value
-                                )
-                            }
-                            resetToken={
-                                store.getState().resetTokens[layer.name]
-                                    ?.display || 0
-                            }
-                        />
-                    </PluginSectionBoundary>
-                )}
-            </SettingSection>
-            {Array.isArray(layer.sublayers) && layer.sublayers.length > 0 && (
-                <SettingSection id="composite" label="Composite layers" onReset={() => api.reset('composite')}>
-                    {layer.sublayers.map((child) => (
-                        <Checkbox
-                            key={child.name}
-                            checked={layerIsOn(child)}
-                            onCheckedChange={() => api.toggle(child.name)}
-                            showCheck
-                        >
-                            {layerName(child)}
-                        </Checkbox>
-                    ))}
-                </SettingSection>
-            )}
-            {layer.time?.enabled && (
-                <SettingSection id="time" label="Time" onReset={() => api.reset('time')}>
-                    <div className="lt2-field">
-                        <span>Data start</span>
-                        <TextInput readOnly value={layer.time.dataStartTime || layer.time.start || ''} />
-                    </div>
-                    <div className="lt2-field">
-                        <span>Data end</span>
-                        <TextInput readOnly value={layer.time.dataEndTime || layer.time.end || ''} />
-                    </div>
-                    {layer.time.refreshIntervalEnabled === true && (
-                        <div className="lt2-field">
-                            <span>Auto-refreshes every</span>
-                            <span>{layer.time.refreshIntervalAmount || 60} seconds</span>
-                        </div>
-                    )}
-                    <Button size="sm" variant="secondary" onClick={() => api.setGlobalTimeToExtent()}>
-                        Set global time to data extent
-                    </Button>
-                </SettingSection>
-            )}
-            {['vector', 'query'].includes(layer.type) && (
-                <SettingSection id="export" label="Export" onReset={() => api.reset('export')}>
                 <div className="lt2-field">
                     <label>Format</label>
                     <Select
@@ -1310,8 +1242,15 @@ function CoreSettings({ layer, api }) {
                         />
                     </div>
                 )}
-                <Button className="lt2-iconTextButton" size="sm" variant="secondary" disabled={exportBusy} onClick={exportLayer}>
-                    <i className="mdi mdi-download" /> {exportBusy ? 'Preparing…' : 'Download data'}
+                <Button
+                    className="lt2-iconTextButton"
+                    size="sm"
+                    variant="secondary"
+                    disabled={exportBusy}
+                    onClick={exportLayer}
+                >
+                    <i className="mdi mdi-download" />{' '}
+                    {exportBusy ? 'Preparing…' : 'Download data'}
                 </Button>
                 {exportBusy && <progress aria-label="Export progress" />}
                 {sourceDownloadUrl(layer) && (
@@ -1323,27 +1262,117 @@ function CoreSettings({ layer, api }) {
                         Download source
                     </Button>
                 )}
-                {exportError && <div className="lt2-inlineError" role="alert">{exportError}</div>}
+                {exportError && (
+                    <div className="lt2-inlineError" role="alert">
+                        {exportError}
+                    </div>
+                )}
+            </SettingSection>
+        ) : ['tile', 'data'].includes(layer.type) &&
+          layer.variables?.downloadURL &&
+          sourceDownloadUrl(layer) ? (
+            <SettingSection
+                id="export"
+                label="Export"
+                icon="download-outline"
+                onReset={() => api.reset('export')}
+            >
+                <a
+                    className="lt2-sourceDownload"
+                    href={layer.variables.downloadURL}
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    Download Data
+                </a>
+            </SettingSection>
+        ) : null
+
+    return (
+        <>
+            <SettingSection
+                id="display"
+                label="Display"
+                icon="palette-outline"
+                onReset={() => api.reset('display')}
+            >
+                <SliderSetting
+                    label="Opacity"
+                    value={opacity}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onChange={(value) => api.setOpacity(value)}
+                />
+                {DisplayComponent && (
+                    <PluginSectionBoundary key="display-extension">
+                        <DisplayComponent
+                            layer={layer}
+                            api={api}
+                            state={
+                                store.getState().sectionState[layer.name]?.display ||
+                                {}
+                            }
+                            setState={(value) =>
+                                store.setLayerSectionState(
+                                    layer.name,
+                                    'display',
+                                    value
+                                )
+                            }
+                            resetToken={
+                                store.getState().resetTokens[layer.name]
+                                    ?.display || 0
+                            }
+                        />
+                    </PluginSectionBoundary>
+                )}
+            </SettingSection>
+            {Array.isArray(layer.sublayers) && layer.sublayers.length > 0 && (
+                <SettingSection
+                    id="composite"
+                    label="Composite layers"
+                    icon="layers-outline"
+                    onReset={() => api.reset('composite')}
+                >
+                    {layer.sublayers.map((child) => (
+                        <Checkbox
+                            key={child.name}
+                            checked={layerIsOn(child)}
+                            onCheckedChange={() => api.toggle(child.name)}
+                            showCheck
+                        >
+                            {layerName(child)}
+                        </Checkbox>
+                    ))}
                 </SettingSection>
             )}
-            {['tile', 'data'].includes(layer.type) &&
-                layer.variables?.downloadURL &&
-                sourceDownloadUrl(layer) && (
-                    <SettingSection
-                        id="export"
-                        label="Export"
-                        onReset={() => api.reset('export')}
-                    >
-                        <a
-                            className="lt2-sourceDownload"
-                            href={layer.variables.downloadURL}
-                            target="_blank"
-                            rel="noreferrer"
-                        >
-                            Download Data
-                        </a>
-                    </SettingSection>
-                )}
+            {layer.time?.enabled && (
+                <SettingSection
+                    id="time"
+                    label="Time"
+                    icon="clock-outline"
+                    onReset={() => api.reset('time')}
+                >
+                    <div className="lt2-field">
+                        <span>Data start</span>
+                        <TextInput readOnly value={layer.time.dataStartTime || layer.time.start || ''} />
+                    </div>
+                    <div className="lt2-field">
+                        <span>Data end</span>
+                        <TextInput readOnly value={layer.time.dataEndTime || layer.time.end || ''} />
+                    </div>
+                    {layer.time.refreshIntervalEnabled === true && (
+                        <div className="lt2-field">
+                            <span>Auto-refreshes every</span>
+                            <span>{layer.time.refreshIntervalAmount || 60} seconds</span>
+                        </div>
+                    )}
+                    <Button size="sm" variant="secondary" onClick={() => api.setGlobalTimeToExtent()}>
+                        Set global time to data extent
+                    </Button>
+                </SettingSection>
+            )}
             {pluginSections
                 .filter((section) => section.id !== 'display')
                 .map((section) => {
@@ -1353,9 +1382,9 @@ function CoreSettings({ layer, api }) {
                         key={section.id}
                         id={section.id}
                         label={section.label}
+                        icon={section.icon || 'cog-outline'}
                         resettable={section.resettable !== false}
                         onReset={() => api.reset(section.id)}
-                        defaultOpen={section.defaultOpen !== false}
                     >
                         {Component ? (
                             <PluginSectionBoundary key={`${section.id}-boundary`}>
@@ -1394,11 +1423,18 @@ function CoreSettings({ layer, api }) {
                 ))}
             </div>
             {actionError && <div className="lt2-inlineError" role="alert">{actionError}</div>}
+            {coreExport}
         </>
     )
 }
 
-function SettingsPage({ row, api: baseApi, onBack, previews }) {
+function SettingsPage({
+    row,
+    api: baseApi,
+    onBack,
+    previews,
+    drawerClosing,
+}) {
     const layer = row.node
     const sampleEnabled = RASTER_TYPES.has(layer.type) && previews
     const { sample, markFailed } = useRasterSample(
@@ -1437,8 +1473,6 @@ function SettingsPage({ row, api: baseApi, onBack, previews }) {
             '[data-section="export"]'
         )
         if (!section) return
-        const toggle = section.querySelector('.layerSettingsSectionToggle')
-        if (toggle?.getAttribute('aria-expanded') === 'false') toggle.click()
         requestAnimationFrame(() => {
             section.tabIndex = -1
             section.scrollIntoView({ block: 'nearest' })
@@ -1455,7 +1489,12 @@ function SettingsPage({ row, api: baseApi, onBack, previews }) {
         titleRef.current?.focus()
     }, [layer.name])
     return (
-        <div className="lt2-settings" role="region" aria-label={`${row.label} settings`} ref={settingsRef}>
+        <div
+            className={`lt2-settings ${drawerClosing ? 'lt2-drawerClosing' : ''}`}
+            role="region"
+            aria-label={`${row.label} settings`}
+            ref={settingsRef}
+        >
             <div
                 className={`lt2-hero ${heroSample?.url ? 'lt2-hasSample' : ''}`}
                 style={{ '--layer-color': color }}
@@ -1470,10 +1509,17 @@ function SettingsPage({ row, api: baseApi, onBack, previews }) {
                     />
                 )}
                 <div className="lt2-heroActions">
-                    <ToolTip label="Back to layers (Esc)">
-                        <IconButton size="sm" aria-label="Back to layers" aria-keyshortcuts="Escape" onClick={onBack}>
-                            <i className="mdi mdi-arrow-left mdi-18px" />
-                        </IconButton>
+                    <ToolTip label="Close (Esc)">
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            className="lt2-closeButton"
+                            aria-label="Close settings"
+                            aria-keyshortcuts="Escape"
+                            onClick={onBack}
+                        >
+                            <i className="mdi mdi-close mdi-16px" /> Close
+                        </Button>
                     </ToolTip>
                     <ToolTip label="Information">
                         <IconButton size="sm" aria-label="Layer information" onClick={info}>
@@ -1573,15 +1619,60 @@ function LayersTool2App({ vars }) {
     const [reorderAnnouncement, setReorderAnnouncement] = useState('')
     const [dragPreview, setDragPreview] = useState(null)
     const [activeDragId, setActiveDragId] = useState(null)
+    const [drawerClosing, setDrawerClosing] = useState(false)
     const mobile = L_.UserInterface_.isMobile === true
     const focused = state.focusedRow
+    const listPaneRef = useRef(null)
     const scrollElement = useRef(null)
+    const drawerClosingRef = useRef(false)
+    const drawerCloseTimerRef = useRef(null)
     const rowElements = useRef({})
     const orderedFlatRef = useRef([])
     const rowsRef = useRef([])
     const expandedMapRef = useRef({})
     const toastTimer = useRef(null)
     const rowHeight = mobile ? 44 : 31
+    const closeSettings = useCallback(() => {
+        if (!store.getState().openLayer || drawerClosingRef.current) return
+        drawerClosingRef.current = true
+        setDrawerClosing(true)
+
+        const finishClose = () => {
+            drawerCloseTimerRef.current = null
+            store.updateState({ openLayer: null })
+            requestAnimationFrame(() => scrollElement.current?.focus())
+        }
+
+        if (
+            window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+        ) {
+            finishClose()
+            return
+        }
+
+        drawerCloseTimerRef.current = window.setTimeout(finishClose, 180)
+    }, [])
+    const closeSettingsRef = useRef(closeSettings)
+    closeSettingsRef.current = closeSettings
+    useEffect(() => {
+        drawerClosingRef.current = false
+        setDrawerClosing(false)
+        if (drawerCloseTimerRef.current != null) {
+            window.clearTimeout(drawerCloseTimerRef.current)
+            drawerCloseTimerRef.current = null
+        }
+    }, [state.openLayer])
+    useEffect(
+        () => () => {
+            if (drawerCloseTimerRef.current != null)
+                window.clearTimeout(drawerCloseTimerRef.current)
+        },
+        []
+    )
+    useEffect(() => {
+        if (listPaneRef.current)
+            listPaneRef.current.inert = Boolean(state.openLayer)
+    }, [state.openLayer])
     const replayResult = useMemo(
         () => replay(flatten(tree), state.orderingHistory),
         [tree, state.orderingHistory]
@@ -1978,9 +2069,8 @@ function LayersTool2App({ vars }) {
                 return
             if (store.getState().openLayer) {
                 event.preventDefault()
-                store.updateState({ openLayer: null })
+                closeSettingsRef.current()
                 Modal.remove(true, Modal.top())
-                requestAnimationFrame(() => scrollElement.current?.focus())
             }
         }
         window.addEventListener('keydown', onEscape)
@@ -2416,17 +2506,9 @@ function LayersTool2App({ vars }) {
         <div className={`lt2-root ${mobile ? 'lt2-mobile' : ''}`}>
             <div className="lt2-liveRegion" aria-live="polite" aria-atomic="true">{liveCount}</div>
             <div
+                ref={listPaneRef}
                 className="lt2-listPane"
-                style={
-                    state.openLayer
-                        ? {
-                              visibility: 'hidden',
-                              position: 'absolute',
-                              inset: 0,
-                              pointerEvents: 'none',
-                          }
-                        : undefined
-                }
+                aria-hidden={state.openLayer ? true : undefined}
             >
                 <div id="layersToolHeader" className="lt2-toolbar mmgisToolHeader">
                     <div className="lt2-toolbarTitle">
@@ -2628,6 +2710,15 @@ function LayersTool2App({ vars }) {
                     {reorderAnnouncement}
                 </div>
             </div>
+            {state.openLayer && (
+                <button
+                    type="button"
+                    className={`lt2-drawerScrim ${drawerClosing ? 'lt2-drawerClosing' : ''}`}
+                    aria-label="Close settings"
+                    tabIndex={-1}
+                    onClick={closeSettings}
+                />
+            )}
             {state.openLayer && (() => {
                 const row = settingsRowsByName.get(state.openLayer)
                 const layer = L_.layers.data[state.openLayer] || row?.node
@@ -2637,10 +2728,8 @@ function LayersTool2App({ vars }) {
                         row={row}
                         api={api}
                         previews={vars.previews !== false}
-                        onBack={() => {
-                            store.updateState({ openLayer: null })
-                            requestAnimationFrame(() => scrollElement.current?.focus())
-                        }}
+                        drawerClosing={drawerClosing}
+                        onBack={closeSettings}
                     />
                 )
             })()}

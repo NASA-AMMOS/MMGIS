@@ -1,34 +1,31 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Button, IconButton, Tooltip, Slider } from '@design/components'
 import './LayerSettings.css'
 
 export function LayerSettingsSection({
     id,
     label,
+    icon = 'cog-outline',
     children,
     resettable = true,
     onReset,
-    defaultOpen = true,
 }) {
-    const [open, setOpen] = useState(defaultOpen)
-    const contentId = `layer-settings-${id}-content`
     return (
-        <section className="layerSettingsSection" data-section={id}>
+        <section
+            className="layerSettingsSection"
+            data-section={id}
+            aria-labelledby={`layer-settings-${id}-heading`}
+        >
             <div className="layerSettingsSectionHeader">
-                <h3 className="layerSettingsSectionHeading">
-                    <button
-                        id={`layer-settings-${id}-toggle`}
-                        type="button"
-                        className="layerSettingsSectionToggle"
-                        aria-expanded={open}
-                        aria-controls={contentId}
-                        onClick={() => setOpen((previous) => !previous)}
-                    >
-                        <i
-                            className={`mdi mdi-chevron-right ${open ? 'layerSettingsOpen' : ''}`}
-                        />
-                        <span>{label}</span>
-                    </button>
+                <h3
+                    className="layerSettingsSectionHeading"
+                    id={`layer-settings-${id}-heading`}
+                >
+                    <i
+                        className={`mdi mdi-${icon} layerSettingsSectionIcon`}
+                        aria-hidden="true"
+                    />
+                    <span>{label}</span>
                 </h3>
                 {resettable && (
                     <Tooltip content={`Reset ${label}`}>
@@ -42,9 +39,7 @@ export function LayerSettingsSection({
                     </Tooltip>
                 )}
             </div>
-            {open && (
-                <div id={contentId} className="layerSettingsSectionBody">{children}</div>
-            )}
+            <div className="layerSettingsSectionBody">{children}</div>
         </section>
     )
 }

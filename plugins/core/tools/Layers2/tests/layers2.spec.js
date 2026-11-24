@@ -421,6 +421,7 @@ test.describe('LayersTool2', () => {
         await search.fill('Points Basic')
         await page.waitForTimeout(180)
         const tree = page.getByRole('tree', { name: 'Layers' })
+        const listPane = page.locator('.lt2-listPane')
         await tree.focus()
         for (let attempt = 0; attempt < 12; attempt += 1) {
             const isLayerRow = await page.evaluate(() => {
@@ -437,7 +438,10 @@ test.describe('LayersTool2', () => {
         }
         await page.keyboard.press('Enter')
         await expect(page.locator('.lt2-settings')).toBeVisible()
+        await expect(listPane).toHaveJSProperty('inert', true)
         await page.keyboard.press('Escape')
+        await expect(page.locator('.lt2-settings')).toHaveCount(0)
+        await expect(listPane).toHaveJSProperty('inert', false)
         await expect(tree).toBeVisible()
     })
 
@@ -806,7 +810,7 @@ test.describe('LayersTool2', () => {
             await window.L_.toggleLayer(window.L_.layers.data[name])
         }, layer.name)
         await expect(visible).not.toBeChecked()
-        await page.getByRole('button', { name: 'Back to layers' }).click()
+        await page.locator('.lt2-closeButton').click()
         row = page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first()
         await row.locator('.lt2-title').click()
         await expect(visible).toBeChecked()
@@ -970,7 +974,7 @@ test.describe('LayersTool2', () => {
         await expect(
             filter.locator('.layersTool_filtering_group_operator_select')
         ).toBeVisible()
-        await page.getByRole('button', { name: 'Back to layers' }).click()
+        await page.locator('.lt2-closeButton').click()
         const row = page.locator('.lt2-layerRow').filter({ hasText: layer.label }).first()
         await expect(row.locator('.lt2-statusFiltered')).toBeVisible()
         const filtered = page.getByRole('button', {
@@ -991,7 +995,7 @@ test.describe('LayersTool2', () => {
                 )
             )
             .toBe(before)
-        await page.getByRole('button', { name: 'Back to layers' }).click()
+        await page.locator('.lt2-closeButton').click()
         await expect(row.locator('.lt2-statusFiltered')).toHaveCount(0)
     })
 
@@ -1252,14 +1256,6 @@ test.describe('LayersTool2', () => {
         await download.click()
         await expect(downloadData).toBeFocused()
         await expect(exportSection).toHaveClass(/lt2-sectionFlash/)
-        const exportToggle = exportSection.locator(
-            '.layerSettingsSectionToggle'
-        )
-        await exportToggle.click()
-        await expect(exportToggle).toHaveAttribute('aria-expanded', 'false')
-        await download.click()
-        await expect(exportToggle).toHaveAttribute('aria-expanded', 'true')
-        await expect(downloadData).toBeFocused()
     })
 
     test('shows header downloads only when legacy has an export or source download', async ({
@@ -1346,7 +1342,7 @@ test.describe('LayersTool2', () => {
             })
             if (layer.downloadable) await expect(download).toBeVisible()
             else await expect(download).toHaveCount(0)
-            await page.getByRole('button', { name: 'Back to layers' }).click()
+            await page.locator('.lt2-closeButton').click()
         }
     })
 
@@ -1865,7 +1861,7 @@ test.describe('LayersTool2', () => {
             name: /Rescale minimum/,
         })
         await firstMinimum.fill('123.5')
-        await page.getByRole('button', { name: 'Back to layers' }).click()
+        await page.locator('.lt2-closeButton').click()
 
         await search.fill(cogLayers[1])
         await page.waitForTimeout(180)
@@ -2164,7 +2160,7 @@ test.describe('LayersTool2', () => {
             } else {
                 await expect(page.locator('[data-section="export"]')).toHaveCount(0)
             }
-            await page.getByRole('button', { name: 'Back to layers' }).click()
+            await page.locator('.lt2-closeButton').click()
         }
     })
 
@@ -2320,7 +2316,7 @@ test.describe('LayersTool2', () => {
         const scrollTop = await tree.evaluate((element) => element.scrollTop)
         await row.locator('.lt2-title').click()
         await expect(page.locator('.lt2-settings')).toBeVisible()
-        await page.getByRole('button', { name: 'Back to layers' }).click()
+        await page.locator('.lt2-closeButton').click()
         await expect(tree).toBeVisible()
         await expect(row).toBeVisible()
         expect(await tree.evaluate((element) => element.scrollTop)).toBe(scrollTop)
@@ -2490,7 +2486,7 @@ test.describe('LayersTool2', () => {
                     .click()
                 await expect(page.locator('.lt2-settings')).toBeVisible()
                 await audit(theme, surface.surface)
-                await page.getByRole('button', { name: 'Back to layers' }).click()
+                await page.locator('.lt2-closeButton').click()
             }
         }
         console.log(`Dark Default root background: ${darkBackground}`)

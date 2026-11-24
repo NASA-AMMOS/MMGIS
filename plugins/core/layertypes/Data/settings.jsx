@@ -117,6 +117,7 @@ export default {
             {
                 id: 'data-shader',
                 label: 'Data shader',
+                icon: 'gradient-horizontal',
                 order: 10,
                 Component: ShaderSettings,
             },

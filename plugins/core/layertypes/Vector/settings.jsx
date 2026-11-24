@@ -436,6 +436,7 @@ export default {
             sections.push({
                 id: 'filter',
                 label: 'Filter',
+                icon: 'filter-variant',
                 order: 10,
                 Component: FilterSettings,
             })
@@ -443,6 +444,7 @@ export default {
             sections.push({
                 id: 'composite',
                 label: 'Composite layers',
+                icon: 'layers-outline',
                 order: 20,
                 Component: CompositeSettings,
             })
@@ -454,12 +456,14 @@ export default {
                 {
                     id: 'dynamic-style',
                     label: 'Dynamic style',
+                    icon: 'format-color-fill',
                     order: 30,
                     Component: DynamicStyleSettings,
                 },
                 {
                     id: 'statistics',
                     label: 'Statistics',
+                    icon: 'chart-box-outline',
                     order: 40,
                     Component: StatisticsSettings,
                 }
