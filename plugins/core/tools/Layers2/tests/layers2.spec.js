@@ -824,7 +824,7 @@ test.describe('LayersTool2', () => {
         else await expect(visible).not.toBeChecked()
     })
 
-    test('vector-like rows use one geometry glyph and no type icon', async ({
+    test('vector-like rows use no geometry glyph or type icon', async ({
         page,
     }) => {
         await openLayers2(page)
@@ -832,11 +832,8 @@ test.describe('LayersTool2', () => {
         await search.fill('Points Basic')
         await page.waitForTimeout(180)
         const row = page.locator('.lt2-layerRow').filter({ hasText: 'Points Basic' }).first()
-        await expect(row.locator('.lt2-glyph')).toHaveCount(1)
+        await expect(row.locator('.lt2-glyph')).toHaveCount(0)
         await expect(row.locator('.lt2-typeIcon')).toHaveCount(0)
-        await expect(row.locator('.lt2-glyph')).toHaveClass(
-            /lt2-glyph-(point|line|polygon)/
-        )
     })
 
     test('Vector Filter mounts the legacy controls and filters Points Basic', async ({

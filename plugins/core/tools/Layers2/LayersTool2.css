@@ -1,4 +1,5 @@
 .lt2-root {
+    --lt2-indent: 10px;
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -204,7 +205,7 @@
     width: 100%;
     height: 100%;
     min-width: 0;
-    padding: 0 5px 0 calc(3px + var(--depth, 0) * 14px);
+    padding: 0 5px 0 calc(var(--depth, 0) * var(--lt2-indent));
     gap: 2px;
     overflow: hidden;
     border-bottom: 1px solid color-mix(in srgb, var(--color-a1-5) 60%, transparent);
@@ -213,11 +214,6 @@
 
 .lt2-headerRow {
     font-weight: 500;
-    box-shadow: inset 3px 0 0 var(--lt-color, var(--color-a4));
-}
-
-.lt2-layerRow {
-    box-shadow: inset 3px 0 0 var(--lt-color);
 }
 
 .lt2-row:hover {
@@ -243,23 +239,22 @@
 }
 
 .lt2-row.lt2-selected {
-    box-shadow:
-        inset 3px 0 0 var(--lt-color, var(--color-a4)),
-        inset 0 0 0 1px color-mix(in srgb, var(--color-f) 35%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-f) 35%, transparent);
 }
 
 .lt2-indentGuides {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 18px;
-    width: calc(var(--depth, 0) * 14px);
+    left: 0;
+    width: calc(var(--depth, 0) * var(--lt2-indent));
     background: repeating-linear-gradient(
         90deg,
         transparent 0,
-        transparent 13px,
-        color-mix(in srgb, var(--color-f) 8%, transparent) 13px,
-        color-mix(in srgb, var(--color-f) 8%, transparent) 14px
+        transparent calc(var(--lt2-indent) - 1px),
+        color-mix(in srgb, var(--color-f) 8%, transparent)
+            calc(var(--lt2-indent) - 1px),
+        color-mix(in srgb, var(--color-f) 8%, transparent) var(--lt2-indent)
     );
     pointer-events: none;
 }
@@ -295,16 +290,43 @@
 }
 
 .lt2-drag {
-    width: 24px;
+    width: 12px;
+    flex-basis: 12px;
+    border-right: 1px solid var(--color-a);
+    background: var(--lt-color);
+    color: rgba(255, 255, 255, 0.75);
     cursor: grab;
+}
+
+.lt2-drag i {
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.lt2-row:hover .lt2-drag i,
+.lt2-row.lt2-focused .lt2-drag i {
+    opacity: 1;
 }
 
 .lt2-drag:active {
     cursor: grabbing;
 }
 
+.lt2-headerRow .lt2-status {
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.lt2-headerRow:hover .lt2-status,
+.lt2-headerRow.lt2-focused .lt2-status,
+.lt2-headerRow .lt2-status:focus-visible {
+    opacity: 1;
+}
+
 .lt2-chevron {
-    width: 24px;
+    width: 20px;
+    flex-basis: 20px;
 }
 
 .lt2-chevron i,
@@ -318,7 +340,8 @@
 }
 
 .lt2-chevronSpace {
-    flex: 0 0 24px;
+    width: 20px;
+    flex: 0 0 20px;
 }
 
 .lt2-checkWrap {
@@ -375,55 +398,29 @@
 
 .lt2-name mark {
     border-radius: 2px;
-    background: var(--color-c);
+    padding: 0 1px;
+    background: var(--color-mh);
     color: var(--color-a);
+    text-shadow: none;
 }
 
-.lt2-glyph,
 .lt2-typeIcon {
     flex: 0 0 14px;
     font-size: 14px;
     text-align: center;
 }
 
-.lt2-glyph {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 14px;
-    height: 14px;
-    color: var(--glyph-color);
+.lt2-openIndicator {
+    flex: 0 0 16px;
+    color: var(--color-a5);
+    font-size: 16px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
 }
 
-.lt2-glyph::before {
-    display: block;
-    content: '';
-    background: var(--glyph-color);
-}
-
-.lt2-glyph-point::before {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-}
-
-.lt2-glyph-line::before {
-    width: 12px;
-    height: 2px;
-}
-
-.lt2-glyph-polygon::before {
-    width: 7px;
-    height: 7px;
-}
-
-.lt2-glyph-neutral::before {
-    width: 7px;
-    height: 7px;
-    border: 1px solid var(--glyph-color);
-    background: transparent;
-    transform: rotate(45deg);
+.lt2-layerRow:hover .lt2-openIndicator,
+.lt2-layerRow.lt2-focused .lt2-openIndicator {
+    opacity: 1;
 }
 
 .lt2-layerNotFound .lt2-name {
@@ -529,10 +526,6 @@
     opacity: 0.55;
 }
 
-.lt2-layerRow:not(.lt2-on) .lt2-glyph {
-    opacity: 0.7;
-}
-
 .lt2-title,
 .lt2-status {
     text-shadow: 0 0 4px var(--color-a), 0 0 7px var(--color-a);
@@ -603,6 +596,8 @@
 }
 
 .lt2-hero {
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -610,6 +605,35 @@
     padding: 7px 10px 10px;
     border-bottom: 1px solid var(--color-a1-5);
     background: linear-gradient(180deg, color-mix(in srgb, var(--layer-color) 32%, var(--color-a)), var(--color-a));
+}
+
+.lt2-hero.lt2-hasSample::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--layer-color) 32%, transparent) 0%,
+        color-mix(in srgb, var(--color-a) 55%, transparent) 45%,
+        var(--color-a) 100%
+    );
+    content: '';
+    pointer-events: none;
+}
+
+.lt2-hero > :not(.lt2-heroSample) {
+    position: relative;
+    z-index: 2;
+}
+
+.lt2-heroSample {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
 }
 
 .lt2-heroActions {
@@ -794,11 +818,25 @@
     font-size: 14px;
 }
 
-.lt2-mobile .lt2-drag,
 .lt2-mobile .lt2-chevron,
 .lt2-mobile .lt2-chevronSpace {
-    width: 24px;
-    flex-basis: 24px;
+    width: 20px;
+    flex-basis: 20px;
+}
+
+.lt2-mobile .lt2-drag {
+    width: 12px;
+    flex-basis: 12px;
+}
+
+.lt2-mobile .lt2-drag i {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .lt2-drag i {
+        opacity: 1;
+    }
 }
 
 @media (max-width: 700px) {
@@ -817,7 +855,6 @@
 
     .lt2-row {
         padding-right: 3px;
-        padding-left: calc(3px + var(--depth, 0) * 12px);
     }
 }
 
@@ -1049,8 +1086,11 @@
 }
 
 #layersTool2 .lt2-name mark {
-    background: var(--color-a1) !important;
-    color: var(--color-f) !important;
+    border-radius: 2px;
+    padding: 0 1px;
+    background: var(--color-mh) !important;
+    color: var(--color-a) !important;
+    text-shadow: none;
 }
 
 #layersTool2 .lt2-dataShaderSettings,
@@ -1064,11 +1104,6 @@
     > div
     > div:first-child {
     color: var(--color-f) !important;
-}
-
-.lt2-glyph::before {
-    filter: drop-shadow(0 0 1px var(--color-a))
-        drop-shadow(0 0 1px var(--color-f));
 }
 
 .lt2-stickyPath {

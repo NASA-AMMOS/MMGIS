@@ -81,7 +81,6 @@ const TYPE_ICONS = {
 const RASTER_TYPES = new Set(['tile', 'data', 'image', 'velocity'])
 const VECTOR_TYPES = new Set(['vector', 'vectortile', 'query'])
 const QUASI_LAYERS = new Set(['model', 'query', '3dtiles'])
-const geometryByLayer = new Map()
 
 function openLayerInfo(name, launcher) {
     const launcherElement = launcher || document.activeElement
@@ -395,27 +394,6 @@ function layerStatusContext(layer, api) {
     }
 }
 
-function geometryFor(layer, rendered) {
-    const cached = geometryByLayer.get(layer.name)
-    if (cached) return cached
-    let geometry
-    try {
-        const firstFeature = rendered
-            ?.getLayers?.()
-            ?.find?.((item) => item.feature)
-        geometry =
-            layer.geometryType ||
-            layer.variables?.geometryType ||
-            rendered?.feature?.geometry?.type ||
-            firstFeature?.feature?.geometry?.type ||
-            rendered?.toGeoJSON?.().features?.find(
-                (feature) => feature.geometry
-            )?.geometry?.type
-    } catch (error) {}
-    if (geometry) geometryByLayer.set(layer.name, geometry)
-    return geometry || ''
-}
-
 function sampleTileUrl(layer) {
     try {
         const rendered = L_.layers?.layer?.[layer.name]
@@ -552,9 +530,8 @@ async function colorizeDataTile(url, layer) {
     return output.toDataURL()
 }
 
-function RasterPreview({ layer, enabled, version }) {
+function useRasterSample(layer, enabled, version) {
     const [sample, setSample] = useState(null)
-    const fallback = typeColor(layer.type)
     useEffect(() => {
         if (!enabled) {
             setSample(null)
@@ -587,16 +564,25 @@ function RasterPreview({ layer, enabled, version }) {
             setSample(initial)
         }
     }, [enabled, layer, version])
+
+    const markFailed = () => {
+        if (sample?.key) previewCache.set(sample.key, null)
+        setSample(null)
+    }
+
+    return { sample, markFailed }
+}
+
+function RasterPreview({ layer, enabled, version }) {
+    const { sample, markFailed } = useRasterSample(layer, enabled, version)
+    const fallback = typeColor(layer.type)
     if (!enabled) return null
     return sample?.url ? (
         <img
             className="lt2-preview"
             src={sample.url}
             alt=""
-            onError={() => {
-                previewCache.set(sample.key, null)
-                setSample(null)
-            }}
+            onError={markFailed}
         />
     ) : (
         <span className="lt2-preview lt2-previewFallback" style={{ '--fallback': fallback }} />
@@ -857,32 +843,6 @@ function LayerRow({
     const failed = !!activeError(layer)
     const color = typeColor(layer.type)
     const isRaster = RASTER_TYPES.has(layer.type)
-    const rendered = L_.layers?.layer?.[layer.name]
-    const geometry = geometryFor(layer, rendered)
-    const pointGeometry =
-        /point/i.test(geometry) ||
-        (!geometry &&
-            (layer.style?.radius != null || layer.style?.marker != null))
-    const lineGeometry =
-        /line/i.test(geometry) ||
-        (!geometry &&
-            layer.style?.strokeColor &&
-            layer.style?.fillColor == null)
-    const glyphShape = VECTOR_TYPES.has(layer.type)
-        ? pointGeometry
-            ? 'point'
-            : lineGeometry
-              ? 'line'
-              : /polygon/i.test(geometry)
-                ? 'polygon'
-                : 'neutral'
-        : null
-    const glyphColor =
-        (glyphShape === 'line' ? layer.style?.strokeColor : null) ||
-        layer.style?.fillColor ||
-        layer.style?.strokeColor ||
-        layer.style?.color ||
-        color
     const missing =
         !QUASI_LAYERS.has(layer.type) &&
         L_.layers?.layer?.[layer.name] == null
@@ -910,13 +870,6 @@ function LayerRow({
                 />
             </span>
             <button className="lt2-title" onClick={() => onOpen(row.id)} title={row.label} tabIndex={-1}>
-                {glyphShape && (
-                    <span
-                        className={`lt2-glyph lt2-glyph-${glyphShape}`}
-                        style={{ '--glyph-color': glyphColor }}
-                        aria-hidden="true"
-                    />
-                )}
                 {!isRaster && !VECTOR_TYPES.has(layer.type) && (
                     <i
                         className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'} lt2-typeIcon`}
@@ -924,6 +877,10 @@ function LayerRow({
                     />
                 )}
                 <span className="lt2-name">{highlightText(row.label, query)}</span>
+                <i
+                    className="mdi mdi-chevron-right lt2-openIndicator"
+                    aria-hidden="true"
+                />
                 {row.descriptionOnly && (
                     <span className="lt2-descriptionHit">in description</span>
                 )}
@@ -1421,8 +1378,15 @@ function CoreSettings({ layer, api }) {
     )
 }
 
-function SettingsPage({ row, api: baseApi, onBack }) {
+function SettingsPage({ row, api: baseApi, onBack, previews }) {
     const layer = row.node
+    const sampleEnabled = RASTER_TYPES.has(layer.type) && previews
+    const { sample, markFailed } = useRasterSample(
+        layer,
+        sampleEnabled,
+        store.getState().previewVersions[layer.name] || 0
+    )
+    const heroSample = sampleEnabled ? sample : null
     const api = useMemo(
         () => layerScopedApi(baseApi, layer),
         [baseApi, layer]
@@ -1463,9 +1427,18 @@ function SettingsPage({ row, api: baseApi, onBack }) {
     return (
         <div className="lt2-settings" role="region" aria-label={`${row.label} settings`} ref={settingsRef}>
             <div
-                className="lt2-hero"
+                className={`lt2-hero ${heroSample?.url ? 'lt2-hasSample' : ''}`}
                 style={{ '--layer-color': color }}
             >
+                {heroSample?.url && (
+                    <img
+                        className="lt2-heroSample"
+                        src={heroSample.url}
+                        alt=""
+                        aria-hidden="true"
+                        onError={markFailed}
+                    />
+                )}
                 <div className="lt2-heroActions">
                     <ToolTip label="Back to layers (Esc)">
                         <IconButton size="sm" aria-label="Back to layers" aria-keyshortcuts="Escape" onClick={onBack}>
@@ -2644,6 +2617,7 @@ function LayersTool2App({ vars }) {
                     <SettingsPage
                         row={row}
                         api={api}
+                        previews={vars.previews !== false}
                         onBack={() => {
                             store.updateState({ openLayer: null })
                             requestAnimationFrame(() => scrollElement.current?.focus())
