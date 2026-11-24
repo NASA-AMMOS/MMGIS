@@ -65,6 +65,7 @@ test.describe('validateTitilerUrl', () => {
       expect(call(validate, { method: 'GET', query: { url: '/Missions/Test/a.tif' } }).nextCalled).toBe(true);
       expect(call(validate, { method: 'GET', query: { url: '../../Missions/Test/a.tif' } }).nextCalled).toBe(true);
       expect(call(validate, { method: 'GET', query: { url: '/Missions/Test/../shared/a.tif' } }).nextCalled).toBe(true);
+      expect(call(validate, { method: 'GET', query: { url: '/Missions/.Archive/../shared/a.tif' } }).nextCalled).toBe(true);
       expect(call(validate, { method: 'GET', query: { url: '../../Missions/Test/../shared/a.tif' } }).nextCalled).toBe(true);
       expect(call(validate, { method: 'GET', query: { url: '/Missions/../../shared/a.tif' } }).status).toBe(403);
       expect(call(validate, { method: 'GET', query: { url: '/Missions/..\\..\\x/../shared/a.tif' } }).status).toBe(403);

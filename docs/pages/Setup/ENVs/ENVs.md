@@ -483,14 +483,14 @@ A JSON array of regular expression patterns that define allowed URLs for TiTiler
 
 1. **Default** (local Missions files only):
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^/Missions/(?:(?!\\.)[^/\\\\\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$", "^\\.\\./\\.\\./Missions/(?:(?!\\.)[^/\\\\\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^/Missions/(?:(?!\\.\\.?/)[^/\\\\\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$", "^\\.\\./\\.\\./Missions/(?:(?!\\.\\.?/)[^/\\\\\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
    ```
    - Allows local `/Missions` directory files (e.g., `/Missions/Test/data.tif`), including a mission's `../shared/` paths into `Missions/shared`
    - Blocks path traversal (`..`) and null bytes
 
 2. **Specific Trusted Domains** plus local Missions files:
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^https://data\\.example\\.org/(?!.*\\.\\.)", "^/Missions/(?:(?!\\.)[^/\\\\\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^https://data\\.example\\.org/(?!.*\\.\\.)", "^/Missions/(?:(?!\\.\\.?/)[^/\\\\\\x00]+/\\.\\./shared/)?(?!.*\\.\\.)[^\\x00]*$"]'
    ```
    - Only allows specific trusted domains
 
