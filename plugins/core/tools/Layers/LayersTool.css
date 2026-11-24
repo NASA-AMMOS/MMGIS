@@ -32,6 +32,10 @@
     border-bottom: 1px solid var(--color-a1-5);
 }
 
+#layersTool .lt-toolbar .mmgisToolTitle {
+    padding-left: 2px;
+}
+
 .lt-toolbarTitle,
 .lt-search,
 .lt-viewBar,
@@ -1002,6 +1006,10 @@
     .lt-toolbar {
         padding-right: 6px;
         padding-left: 6px;
+    }
+
+    #layersTool .lt-toolbar .mmgisToolTitle {
+        padding-left: 4px;
     }
 
     .lt-row {
