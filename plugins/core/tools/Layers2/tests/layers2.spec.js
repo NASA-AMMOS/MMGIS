@@ -1246,8 +1246,20 @@ test.describe('LayersTool2', () => {
         await expect(
             exportSection.getByRole('button', { name: 'Download source' })
         ).toHaveCount(0)
+        const downloadData = exportSection.getByRole('button', {
+            name: 'Download data',
+        })
         await download.click()
-        await expect(exportSection).toBeFocused()
+        await expect(downloadData).toBeFocused()
+        await expect(exportSection).toHaveClass(/lt2-sectionFlash/)
+        const exportToggle = exportSection.locator(
+            '.layerSettingsSectionToggle'
+        )
+        await exportToggle.click()
+        await expect(exportToggle).toHaveAttribute('aria-expanded', 'false')
+        await download.click()
+        await expect(exportToggle).toHaveAttribute('aria-expanded', 'true')
+        await expect(downloadData).toBeFocused()
     })
 
     test('shows header downloads only when legacy has an export or source download', async ({
@@ -1465,7 +1477,9 @@ test.describe('LayersTool2', () => {
         const download = page.getByRole('button', { name: 'Download layer' })
         await expect(download).toBeVisible()
         await download.click()
-        await expect(exportSection).toBeFocused()
+        await expect(
+            exportSection.getByRole('button', { name: 'Download data' })
+        ).toBeFocused()
         await expect(
             exportSection.getByRole('button', { name: 'Download source' })
         ).toHaveCount(0)

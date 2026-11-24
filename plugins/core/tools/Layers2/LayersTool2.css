@@ -693,9 +693,10 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    margin-top: 8px;
-    padding-top: 6px;
-    border-top: 1px solid color-mix(in srgb, var(--color-f) 10%, transparent);
+    margin-top: 10px;
+    padding: 3px 4px 3px 10px;
+    border-radius: 6px;
+    background: var(--color-d);
 }
 
 .lt2-actionButtons {
@@ -973,6 +974,20 @@
     border-bottom: 0;
     border-radius: 4px;
     background: var(--color-d);
+}
+
+.lt2-settingsSections .layerSettingsSection.lt2-sectionFlash {
+    animation: lt2-sectionFlash 1.2s ease-out;
+}
+
+@keyframes lt2-sectionFlash {
+    0%,
+    35% {
+        box-shadow: 0 0 0 2px var(--color-c);
+    }
+    100% {
+        box-shadow: 0 0 0 2px transparent;
+    }
 }
 
 .lt2-settingsSections .layerSettingsSectionBody {

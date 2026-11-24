@@ -1437,9 +1437,19 @@ function SettingsPage({ row, api: baseApi, onBack, previews }) {
             '[data-section="export"]'
         )
         if (!section) return
-        section.tabIndex = -1
-        section.scrollIntoView({ block: 'start' })
-        section.focus({ preventScroll: true })
+        const toggle = section.querySelector('.layerSettingsSectionToggle')
+        if (toggle?.getAttribute('aria-expanded') === 'false') toggle.click()
+        requestAnimationFrame(() => {
+            section.tabIndex = -1
+            section.scrollIntoView({ block: 'nearest' })
+            section.classList.remove('lt2-sectionFlash')
+            void section.offsetWidth
+            section.classList.add('lt2-sectionFlash')
+            const exportButton = Array.from(
+                section.querySelectorAll('.layerSettingsSectionBody button')
+            ).find((button) => /^download/i.test(button.textContent.trim()))
+            ;(exportButton || section).focus({ preventScroll: true })
+        })
     }
     useEffect(() => {
         titleRef.current?.focus()
