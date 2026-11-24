@@ -575,17 +575,14 @@ function useRasterSample(layer, enabled, version) {
 
 function RasterPreview({ layer, enabled, version }) {
     const { sample, markFailed } = useRasterSample(layer, enabled, version)
-    const fallback = typeColor(layer.type)
-    if (!enabled) return null
-    return sample?.url ? (
+    if (!enabled || !sample?.url) return null
+    return (
         <img
             className="lt2-preview"
             src={sample.url}
             alt=""
             onError={markFailed}
         />
-    ) : (
-        <span className="lt2-preview lt2-previewFallback" style={{ '--fallback': fallback }} />
     )
 }
 
@@ -774,7 +771,6 @@ function HeaderRow({
             className={`lt2-row lt2-headerRow ${focused ? 'lt2-focused' : ''} ${selected ? 'lt2-selected' : ''}`}
             style={{
                 '--depth': depthOverride ?? row.depth,
-                '--lt-color': typeColor(row.node.type),
             }}
             data-row-id={row.id}
         >
@@ -806,7 +802,6 @@ function HeaderRow({
                     <i className="mdi mdi-information-outline mdi-16px" />
                 </button>
             </ToolTip>
-            {mutedCount > 0 && <span className="lt2-muted">{mutedCount} muted</span>}
             {!expanded && (
                 <span
                     className="lt2-count"

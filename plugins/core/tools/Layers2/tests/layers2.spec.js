@@ -634,11 +634,10 @@ test.describe('LayersTool2', () => {
         await expect(power).toHaveAttribute('aria-pressed', 'false')
         await expect(power.locator('i')).toHaveClass(/mdi-power-off/)
         await power.click()
-        await expect(power).toHaveAttribute('aria-pressed', 'true')
         await expect(power.locator('i')).toHaveClass(
             /(?:^|\s)mdi-power(?:\s|$)/
         )
-        await expect(header.getByText(/muted/i)).toBeVisible()
+        await expect(power).toHaveAttribute('aria-pressed', 'true')
         await power.click()
         await expect(power).toHaveAttribute('aria-pressed', 'false')
         await expect(power.locator('i')).toHaveClass(/mdi-power-off/)

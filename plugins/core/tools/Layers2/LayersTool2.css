@@ -220,10 +220,6 @@
     background-color: color-mix(in srgb, var(--color-a1-5) 75%, var(--color-a));
 }
 
-.lt2-row.lt2-on {
-    background-color: color-mix(in srgb, var(--lt-color, var(--color-a1-5)) 10%, var(--color-a));
-}
-
 .lt2-row.lt2-failed .lt2-name {
     color: var(--color-a5);
 }
@@ -275,7 +271,7 @@
     cursor: pointer;
 }
 
-.lt2-rasterRow .lt2-title {
+.lt2-rasterRow:has(img.lt2-preview) .lt2-title {
     padding-right: 88px;
 }
 
@@ -283,7 +279,7 @@
     width: 48px;
 }
 
-.lt2-longRasterName.lt2-rasterRow .lt2-title {
+.lt2-longRasterName.lt2-rasterRow:has(img.lt2-preview) .lt2-title {
     padding-right: 48px;
 }
 
@@ -492,8 +488,7 @@
 }
 
 .lt2-descriptionHit,
-.lt2-count,
-.lt2-muted {
+.lt2-count {
     flex: 0 0 auto;
     font-size: 10px;
 }
@@ -507,11 +502,6 @@
     border-radius: 8px;
     background: var(--color-a1-5);
     color: var(--color-a5);
-}
-
-.lt2-muted {
-    padding: 0 5px;
-    color: var(--color-c);
 }
 
 .lt2-status {
@@ -550,24 +540,9 @@
     mask-image: linear-gradient(90deg, transparent, #000 86%);
 }
 
-.lt2-previewFallback {
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        color-mix(in srgb, var(--fallback) 45%, transparent) 46%,
-        var(--fallback) 100%
-    );
-    opacity: 0.7;
-}
-
-.lt2-layerRow:not(.lt2-on) .lt2-preview:not(.lt2-previewFallback) {
+.lt2-layerRow:not(.lt2-on) .lt2-preview {
     filter: grayscale(1) brightness(0.6);
     opacity: 0.5;
-}
-
-.lt2-layerRow:not(.lt2-on) .lt2-previewFallback {
-    filter: none;
-    opacity: 0.55;
 }
 
 .lt2-title,
@@ -943,23 +918,6 @@
     min-width: 36px;
     text-align: center;
     white-space: nowrap;
-}
-
-.lt2-previewFallback {
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        color-mix(in srgb, var(--fallback) 65%, transparent) 34%,
-        var(--fallback) 100%
-    );
-    opacity: 0.9;
-    -webkit-mask-image: none;
-    mask-image: none;
-}
-
-.lt2-layerRow:not(.lt2-on) .lt2-previewFallback {
-    filter: none;
-    opacity: 0.55;
 }
 
 .lt2-settingsName {
