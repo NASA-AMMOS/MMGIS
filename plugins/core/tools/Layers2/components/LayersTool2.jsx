@@ -1465,7 +1465,38 @@ function SettingsPage({ row, api: baseApi, onBack, previews }) {
                             <i className="mdi mdi-arrow-left mdi-18px" />
                         </IconButton>
                     </ToolTip>
-                    <div>
+                    <ToolTip label="Information">
+                        <IconButton size="sm" aria-label="Layer information" onClick={info}>
+                            <i className="mdi mdi-information-outline mdi-18px" />
+                        </IconButton>
+                    </ToolTip>
+                </div>
+                <div className="lt2-avatar" aria-hidden="true">
+                    <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
+                </div>
+                <h2 className="lt2-settingsName" title={row.label} ref={titleRef} tabIndex={-1}>{row.label}</h2>
+                <div className="lt2-path" title={row.path.join(' › ')}>
+                    {row.path.map((part, index) => (
+                        <React.Fragment key={`${part}-${index}`}>
+                            {index > 0 && <span className="lt2-pathSeparator">›</span>}
+                            <span className={`lt2-pathSegment ${index > 0 && index < row.path.length - 1 ? 'lt2-pathMiddle' : ''}`}>
+                                {part}
+                            </span>
+                        </React.Fragment>
+                    ))}
+                </div>
+                <div className="lt2-actionBar">
+                    <Checkbox
+                        checked={visible}
+                        onCheckedChange={async (checked) => {
+                            await api.toggle(layer.name, checked)
+                        }}
+                        className="lt2-visible"
+                        showCheck
+                    >
+                        Visible
+                    </Checkbox>
+                    <div className="lt2-actionButtons">
                         <ToolTip label="Zoom to layer">
                             <IconButton size="sm" aria-label="Zoom to layer" onClick={() => api.zoomTo()}>
                                 <i className="mdi mdi-crosshairs-gps mdi-18px" />
@@ -1487,37 +1518,8 @@ function SettingsPage({ row, api: baseApi, onBack, previews }) {
                                 </IconButton>
                             </ToolTip>
                         )}
-                        <ToolTip label="Information">
-                            <IconButton size="sm" aria-label="Layer information" onClick={info}>
-                                <i className="mdi mdi-information-outline mdi-18px" />
-                            </IconButton>
-                        </ToolTip>
                     </div>
                 </div>
-                <div className="lt2-avatar" aria-hidden="true">
-                    <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
-                </div>
-                <h2 className="lt2-settingsName" title={row.label} ref={titleRef} tabIndex={-1}>{row.label}</h2>
-                <div className="lt2-path" title={row.path.join(' › ')}>
-                    {row.path.map((part, index) => (
-                        <React.Fragment key={`${part}-${index}`}>
-                            {index > 0 && <span className="lt2-pathSeparator">›</span>}
-                            <span className={`lt2-pathSegment ${index > 0 && index < row.path.length - 1 ? 'lt2-pathMiddle' : ''}`}>
-                                {part}
-                            </span>
-                        </React.Fragment>
-                    ))}
-                </div>
-                <Checkbox
-                    checked={visible}
-                    onCheckedChange={async (checked) => {
-                        await api.toggle(layer.name, checked)
-                    }}
-                    className="lt2-visible"
-                    showCheck
-                >
-                    Visible
-                </Checkbox>
             </div>
             {(status || typeStatus) && (
                 <LayerSettingsStatusBanner
@@ -1763,8 +1765,6 @@ function LayersTool2App({ vars }) {
         getScrollElement: () => scrollElement.current,
         estimateSize: () => rowHeight,
         overscan: 12,
-        paddingStart: 22,
-        scrollPaddingStart: 22,
     })
     const sortableItems = useMemo(() => rows.map((row) => row.id), [rows])
     const [liveCount, setLiveCount] = useState('')
@@ -2380,11 +2380,6 @@ function LayersTool2App({ vars }) {
     }
 
     const virtualItems = virtualizer.getVirtualItems()
-    const scrollOffset = scrollElement.current?.scrollTop || 0
-    const stickyItem = virtualItems.find(
-        (item) => item.start + item.size > scrollOffset
-    )
-    const stickyPath = rows[stickyItem?.index ?? 0]?.path || []
     const rowLabel = (id) =>
         rowsRef.current.find((candidate) => candidate.id === id)?.label || 'layer'
     const dragAnnouncements = {
@@ -2537,12 +2532,6 @@ function LayersTool2App({ vars }) {
                                 tabIndex={0}
                                 onKeyDown={onTreeKeyDown}
                             >
-                                {stickyPath.length > 0 && (
-                                    <div className="lt2-stickyPath">
-                                        <i className="mdi mdi-folder-outline mdi-14px" />
-                                        {stickyPath.join(' › ')}
-                                    </div>
-                                )}
                                 <div
                                     className="lt2-virtualContent"
                                     role="group"

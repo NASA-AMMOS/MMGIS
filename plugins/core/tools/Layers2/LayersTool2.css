@@ -291,7 +291,7 @@
 }
 
 .lt2-row:hover .lt2-drag i,
-.lt2-row.lt2-focused .lt2-drag i {
+.lt2-scroll:focus-visible .lt2-row.lt2-focused .lt2-drag i {
     opacity: 1;
 }
 
@@ -557,22 +557,6 @@
     text-shadow: 0 0 4px var(--color-a), 0 0 7px var(--color-a);
 }
 
-.lt2-stickyPath {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    min-height: 22px;
-    padding: 2px 9px;
-    border-bottom: 1px solid var(--color-a1-5);
-    background: color-mix(in srgb, var(--color-a) 90%, transparent);
-    color: var(--color-a5);
-    font-size: 10px;
-    pointer-events: none;
-}
-
 .lt2-empty {
     display: flex;
     flex-direction: column;
@@ -704,8 +688,20 @@
     white-space: nowrap;
 }
 
-.lt2-visible {
+.lt2-actionBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
     margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid color-mix(in srgb, var(--color-f) 10%, transparent);
+}
+
+.lt2-actionButtons {
+    display: flex;
+    align-items: center;
+    gap: 2px;
 }
 
 .lt2-banner {
@@ -956,7 +952,7 @@
 }
 
 .lt2-pathMiddle {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
 }
 
@@ -970,6 +966,13 @@
 
 .lt2-settingsSections {
     padding: 6px 12px;
+}
+
+.lt2-settingsSections .layerSettingsSection {
+    margin-bottom: 6px;
+    border-bottom: 0;
+    border-radius: 4px;
+    background: var(--color-d);
 }
 
 .lt2-settingsSections .layerSettingsSectionBody {
@@ -1108,10 +1111,6 @@
     > div
     > div:first-child {
     color: var(--color-f) !important;
-}
-
-.lt2-stickyPath {
-    background: var(--color-a);
 }
 
 .lt2-status {
