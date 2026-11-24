@@ -746,6 +746,12 @@
     gap: 2px;
 }
 
+.lt2-heroActions .lt2-closeButton {
+    width: 48px;
+    height: 36px;
+    border-radius: 6px;
+}
+
 .lt2-avatar {
     display: flex;
     align-items: center;
