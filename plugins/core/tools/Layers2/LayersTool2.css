@@ -259,6 +259,7 @@
 .lt2-drag,
 .lt2-chevron,
 .lt2-status,
+.lt2-power,
 .lt2-title {
     position: relative;
     z-index: 1;
@@ -323,6 +324,26 @@
 .lt2-headerRow.lt2-focused .lt2-status,
 .lt2-headerRow .lt2-status:focus-visible {
     opacity: 1;
+}
+
+.lt2-power {
+    width: 24px;
+    min-width: 24px;
+    height: 100%;
+    margin-left: 2px;
+    color: var(--color-a5);
+    transition:
+        color 0.12s ease,
+        opacity 0.12s ease;
+}
+
+.lt2-power:hover,
+.lt2-power:focus-visible {
+    color: var(--color-f);
+}
+
+.lt2-powerMuted {
+    color: var(--color-h);
 }
 
 .lt2-chevron {

@@ -785,16 +785,6 @@ function HeaderRow({
             <button className="lt2-chevron" aria-label={expanded ? 'Collapse group' : 'Expand group'} tabIndex={-1} onClick={() => onExpand(row.id)}>
                 <i className={`mdi mdi-chevron-right mdi-18px ${expanded ? 'lt2-open' : ''}`} />
             </button>
-            <span className="lt2-checkWrap" title={mutedCount ? `Restore ${mutedCount} muted layers` : 'Mute or restore on layers in this group'}>
-                <Checkbox
-                    checked={rowState.checked}
-                    indeterminate={rowState.partial}
-                    onCheckedChange={() => onMute(row.id)}
-                    aria-label={mutedCount ? `Restore ${mutedCount} muted layers` : 'Mute or restore group layers'}
-                    showCheck
-                    tabIndex={-1}
-                />
-            </span>
             <button className="lt2-title lt2-headerTitle" title={row.label} tabIndex={-1} onClick={() => onTitle(row.id)}>
                 <i
                     className={`mdi mdi-${expanded ? 'folder-open-outline' : 'folder-outline'} lt2-folderIcon`}
@@ -817,14 +807,48 @@ function HeaderRow({
                 </button>
             </ToolTip>
             {mutedCount > 0 && <span className="lt2-muted">{mutedCount} muted</span>}
-        {!expanded && (
-            <span
-                className="lt2-count"
-                aria-label={`${rowState.countOn} of ${rowState.total} layers on`}
+            {!expanded && (
+                <span
+                    className="lt2-count"
+                    aria-label={`${rowState.countOn} of ${rowState.total} layers on`}
+                >
+                    {rowState.countOn}/{rowState.total}
+                </span>
+            )}
+            <ToolTip
+                label={
+                    mutedCount
+                        ? `Restore ${mutedCount} muted layers`
+                        : 'Toggle all inner layers off, or back on'
+                }
             >
-                {rowState.countOn}/{rowState.total}
-            </span>
-        )}
+                <button
+                    type="button"
+                    className={`lt2-power ${mutedCount ? 'lt2-powerMuted' : ''}`}
+                    tabIndex={-1}
+                    aria-pressed={mutedCount > 0}
+                    aria-label={
+                        mutedCount
+                            ? `Restore ${mutedCount} muted layers`
+                            : 'Mute or restore group layers'
+                    }
+                    title={
+                        mutedCount
+                            ? `Restore ${mutedCount} muted layers`
+                            : 'Toggle all inner layers off, or back on'
+                    }
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        onMute(row.id)
+                    }}
+                >
+                    <i
+                        className={`mdi ${
+                            mutedCount ? 'mdi-power' : 'mdi-power-off'
+                        } mdi-18px`}
+                    />
+                </button>
+            </ToolTip>
         </div>
     )
 }

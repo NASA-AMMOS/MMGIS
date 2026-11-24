@@ -584,7 +584,7 @@ test.describe('LayersTool2', () => {
         expect(result.actual).toEqual(result.expected)
     })
 
-    test('header checkbox mutes on descendants and restores those layers', async ({
+    test('header power control mutes descendants and restores those layers', async ({
         page,
     }) => {
         await openLayers2(page)
@@ -629,9 +629,19 @@ test.describe('LayersTool2', () => {
             .locator('.lt2-headerRow')
             .filter({ hasText: groupName })
             .first()
-        await header.getByRole('checkbox').first().click()
+        const power = header.locator('.lt2-power')
+        await expect(header.locator('[role="checkbox"]')).toHaveCount(0)
+        await expect(power).toHaveAttribute('aria-pressed', 'false')
+        await expect(power.locator('i')).toHaveClass(/mdi-power-off/)
+        await power.click()
+        await expect(power).toHaveAttribute('aria-pressed', 'true')
+        await expect(power.locator('i')).toHaveClass(
+            /(?:^|\s)mdi-power(?:\s|$)/
+        )
         await expect(header.getByText(/muted/i)).toBeVisible()
-        await header.getByRole('checkbox').first().click()
+        await power.click()
+        await expect(power).toHaveAttribute('aria-pressed', 'false')
+        await expect(power.locator('i')).toHaveClass(/mdi-power-off/)
         const visibleAfter = await page.evaluate((names) => {
             const on = window.L_.layers.on
             return names.filter((name) => on[name])
