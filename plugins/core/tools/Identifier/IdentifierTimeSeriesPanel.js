@@ -123,7 +123,15 @@ export function createTimeSeriesController(deps) {
                     .then((result) => {
                         if (!token.isCurrent()) return
                         // Failures aren't kept, so the next click retries.
-                        if (result.status !== 'error') remember(key, result)
+                        // Nor is a history marked incomplete, unless the
+                        // reader says re-reading gives the same answer (cut
+                        // short by our own bound; its note is kept with it).
+                        const incomplete = result.incomplete?.length > 0
+                        if (
+                            result.status !== 'error' &&
+                            (!incomplete || result.cacheable === true)
+                        )
+                            remember(key, result)
                         deps.view.renderResult(uuid, result)
                     })
                     .catch((e) => {

@@ -346,8 +346,8 @@ export class TimeSeriesHttpError extends Error {
  * `truncated` means fewer items were read than the server holds, and
  * `truncatedBy` says why: 'items' (our maxItems bound), 'pages' (our
  * maxStacPages bound, with a next page still offered) or 'count' (the
- * server's numberMatched exceeds what its pages returned). A server count
- * that every item has been read overrides a page-bound guess.
+ * server's numberMatched exceeds the distinct items its pages returned). A
+ * server count that every item has been read overrides a page-bound guess.
  * `incomplete` lists reasons the server may hold items that were not read:
  * a next link whose token can't be found, a repeated token, or a full page
  * with no next link and no count to show it was the last.
@@ -369,7 +369,6 @@ export async function fetchStacItems({
     const seen = new Set()
     const incomplete = []
     let invalidTimes = 0
-    let duplicates = 0
     let numberMatched = null
     let token = null
     let truncatedBy = null
@@ -414,10 +413,7 @@ export async function fetchStacItems({
                 invalidTimes++
                 continue
             }
-            if (seen.has(parsed.id)) {
-                duplicates++
-                continue
-            }
+            if (seen.has(parsed.id)) continue
             if (items.length >= limits.maxItems) {
                 truncatedBy = 'items'
                 break
@@ -458,8 +454,9 @@ export async function fetchStacItems({
         // Out of pages with a next page still offered: say so.
         if (page === limits.maxStacPages - 1) truncatedBy = 'pages'
     }
-    // Every feature read is an item, a timeless one or a repeat.
-    const accounted = items.length + invalidTimes + duplicates
+    // Distinct matches read. A repeated item is not a second match: counting
+    // it would let overlapping pages pass for a complete history.
+    const accounted = items.length + invalidTimes
     if (numberMatched != null) {
         // The server's count settles it: everything read, or not.
         if (accounted >= numberMatched) truncatedBy = null
@@ -930,6 +927,13 @@ export async function fetchLayerTimeSeries({
 
     const notes = []
     const incomplete = [...listing.incomplete]
+    // Cut short by our own bound (maxItems / maxStacPages): the same request
+    // gives the same answer, so the result - which keeps its note - may be
+    // cached. Incomplete because of what the server sent (a next link that
+    // can't be followed, a repeated token, a count its pages don't reach):
+    // may differ next time, so it is not cached and the next click re-reads.
+    const cacheable =
+        listing.incomplete.length === 0 && listing.truncatedBy !== 'count'
     if (listing.invalidTimes > 0)
         notes.push(
             `${listing.invalidTimes} item${
@@ -955,6 +959,7 @@ export async function fetchLayerTimeSeries({
                 'No acquisitions cover this point in the selected time range.',
             notes,
             incomplete,
+            cacheable,
             query: q,
         }
 
@@ -1015,6 +1020,7 @@ export async function fetchLayerTimeSeries({
                     : 'No usable values could be read at this point.',
             notes,
             incomplete,
+            cacheable,
             query: q,
         }
     return {
@@ -1022,6 +1028,7 @@ export async function fetchLayerTimeSeries({
         series: built.series,
         notes,
         incomplete,
+        cacheable,
         expression: buildBandParams(q).expression,
         query: q,
     }

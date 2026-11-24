@@ -666,6 +666,47 @@ test.describe('STAC search paging', () => {
         })
     })
 
+    test('overlapping pages do not make an incomplete history look complete', async () => {
+        // 2 matches; page 2 repeats page 1's item instead of giving b
+        const pages = [
+            {
+                features: [item('a', '2024-01-01T00:00:00Z')],
+                links: [{ rel: 'next', href: 'http://h/s?token=next:2' }],
+                numberMatched: 2,
+            },
+            { features: [item('a', '2024-01-01T00:00:00Z')], numberMatched: 2 },
+        ]
+        let n = 0
+        const r = await fetchStacItems({
+            fetchFn: async () => jsonResponse(pages[n++]),
+            stacBase: STAC_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+        })
+        expect(n).toBe(2)
+        expect(r.items.map((i) => i.id)).toEqual(['a'])
+        expect(r).toMatchObject({ truncated: true, truncatedBy: 'count' })
+        // and the same with the page bound reached on the repeat
+        n = 0
+        const capped = await fetchStacItems({
+            fetchFn: async () =>
+                jsonResponse({
+                    ...pages[0],
+                    links: [
+                        { rel: 'next', href: `http://h/s?token=next:${++n}` },
+                    ],
+                }),
+            stacBase: STAC_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+            limits: { ...TIME_SERIES_LIMITS, maxStacPages: 2 },
+        })
+        expect(capped.items).toHaveLength(1)
+        expect(capped).toMatchObject({ truncated: true, truncatedBy: 'pages' })
+    })
+
     test('a server count above what its pages returned is reported as such', async () => {
         const { fetchFn } = fakeServers({
             items: [item('a', '2024-01-01T00:00:00Z')],
@@ -699,8 +740,9 @@ test.describe('STAC search paging', () => {
         })
         expect(r.items.map((i) => i.id)).toEqual(['a'])
         expect(r.invalidTimes).toBe(1)
-        // the repeat and the timeless item are part of the count of 3
-        expect(r.truncated).toBe(false)
+        // 2 distinct items against a count of 3: a repeat is not a second
+        // match, so this may be missing one and is not passed as complete
+        expect(r).toMatchObject({ truncated: true, truncatedBy: 'count' })
     })
 
     test('an HTTP failure throws with its status', async () => {
@@ -3164,6 +3206,166 @@ test.describe('review 8 - request time limit', () => {
         expect(ok).toBe('res')
         // no limit configured: the original fetch is used as-is
         expect(withRequestTimeout(fetchFn, 0)).toBe(fetchFn)
+    })
+})
+
+test.describe('caching incomplete histories', () => {
+    // STAC search that answers per `mode`; TiTiler from fakeServers
+    const servers = (state) => {
+        const ids = ['a', 'b', 'c']
+        const points = fakeServers({
+            items: ids.map((id, i) => item(id, `2024-01-0${i + 1}T00:00:00Z`)),
+            values: { a: [1], b: [2], c: [3] },
+        })
+        const calls = { stac: 0 }
+        const fetchFn = async (url, init) => {
+            const u = new URL(url)
+            if (!u.pathname.endsWith('/stac/search'))
+                return points.fetchFn(url, init)
+            calls.stac++
+            const page = Number(u.searchParams.get('token')?.split(':')[1] || 0)
+            if (state.mode === 'repeat')
+                // the server hands back the same token forever
+                return jsonResponse({
+                    features: [
+                        item(ids[page], `2024-01-0${page + 1}T00:00:00Z`),
+                    ],
+                    links: [{ rel: 'next', href: 'http://h/s?token=next:1' }],
+                })
+            // healthy: one item a page, numberMatched 3
+            return jsonResponse({
+                features: [item(ids[page], `2024-01-0${page + 1}T00:00:00Z`)],
+                numberMatched: 3,
+                links:
+                    page < 2
+                        ? [
+                              {
+                                  rel: 'next',
+                                  href: `http://h/s?token=next:${page + 1}`,
+                              },
+                          ]
+                        : [],
+            })
+        }
+        return { fetchFn, calls }
+    }
+    const controllerFor = (srv, limits = TIME_SERIES_LIMITS) => {
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    fetchFn: srv.fetchFn,
+                    location: LOCATION,
+                    limits,
+                }),
+            marker: fakeMarker(),
+            view,
+        })
+        return { c, view }
+    }
+
+    test('a history incomplete because of the server is shown but not cached; the next click re-reads', async () => {
+        const state = { mode: 'repeat' }
+        const srv = servers(state)
+        const { c, view } = controllerFor(srv)
+        c.selectPoint(1, 2)
+        await settle(10)
+        const first = view.results().at(-1)[2]
+        expect(first.status).toBe('ok')
+        expect(first.incomplete).toEqual(['the STAC API repeated a page token'])
+        expect(first.cacheable).toBe(false)
+        expect(c._cacheSize()).toBe(0)
+        // the server recovers: the same point is read again, completely
+        state.mode = 'ok'
+        const before = srv.calls.stac
+        c.selectPoint(1, 2)
+        await settle(10)
+        const second = view.results().at(-1)[2]
+        expect(srv.calls.stac).toBeGreaterThan(before)
+        expect(second.incomplete).toEqual([])
+        expect(second.series[0].points.map((p) => p.value)).toEqual([1, 2, 3])
+        expect(c._cacheSize()).toBe(1)
+        // complete now, so served from the cache
+        const cached = srv.calls.stac
+        c.selectPoint(1, 2)
+        await settle(10)
+        expect(srv.calls.stac).toBe(cached)
+    })
+
+    test('cut short only by our own bound: cached, with its note kept', async () => {
+        const srv = servers({ mode: 'ok' })
+        const { c, view } = controllerFor(srv, {
+            ...TIME_SERIES_LIMITS,
+            maxItems: 2,
+        })
+        c.selectPoint(1, 2)
+        await settle(10)
+        const r = view.results().at(-1)[2]
+        expect(r.incomplete).toEqual([
+            'showing 2 of 3 matching items (limit 2)',
+        ])
+        expect(r.cacheable).toBe(true)
+        expect(c._cacheSize()).toBe(1)
+        const calls = srv.calls.stac
+        c.selectPoint(1, 2)
+        await settle(10)
+        expect(srv.calls.stac).toBe(calls)
+        expect(view.results().at(-1)[2].incomplete).toEqual([
+            'showing 2 of 3 matching items (limit 2)',
+        ])
+    })
+
+    test('a count its pages do not reach is not cached', async () => {
+        const srv = servers({ mode: 'ok' })
+        const wrapped = {
+            fetchFn: async (url, init) => {
+                const res = await srv.fetchFn(url, init)
+                if (!new URL(url).pathname.endsWith('/stac/search')) return res
+                const body = await res.json()
+                return jsonResponse({ ...body, numberMatched: 4 })
+            },
+        }
+        const { c, view } = controllerFor(wrapped)
+        c.selectPoint(1, 2)
+        await settle(10)
+        const r = view.results().at(-1)[2]
+        expect(r.incomplete).toEqual([
+            'showing 3 of 4 matching items: the STAC API counted more items than its pages returned',
+        ])
+        expect(c._cacheSize()).toBe(0)
+    })
+
+    test('a reader that marks nothing: incomplete results are not cached', async () => {
+        let n = 0
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: async () => {
+                n++
+                return {
+                    status: 'ok',
+                    series: [],
+                    notes: [],
+                    incomplete: ['x'],
+                }
+            },
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await settle(5)
+        c.selectPoint(1, 2)
+        await settle(5)
+        expect(n).toBe(2)
+        expect(c._cacheSize()).toBe(0)
     })
 })
 
