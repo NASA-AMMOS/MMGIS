@@ -52,7 +52,23 @@ test.describe('validateTitilerUrl', () => {
     expect(call(validate, { method: 'POST' }).nextCalled).toBe(true);
   });
 
-  test('no patterns means no check', () => {
-    expect(call(validator([]), { method: 'POST', body: { url: BLOCKED } }).nextCalled).toBe(true);
+  test('unset, empty or invalid patterns only allow local Missions paths', () => {
+    const saved = process.env.TITILER_ALLOWED_URL_PATTERNS;
+    delete process.env.TITILER_ALLOWED_URL_PATTERNS;
+    const unset = createTitilerUrlValidator();
+    if (saved != null) process.env.TITILER_ALLOWED_URL_PATTERNS = saved;
+    for (const validate of [unset, validator([]), validator(['(']), validator([42])]) {
+      expect(call(validate, { method: 'GET', query: { url: BLOCKED } }).status).toBe(403);
+      expect(call(validate, { method: 'POST', body: { url: BLOCKED } }).status).toBe(403);
+      expect(call(validate, { method: 'GET', query: { url: ALLOWED } }).status).toBe(403);
+      expect(call(validate, { method: 'GET', query: { url: '/Missions/../etc/passwd' } }).status).toBe(403);
+      expect(call(validate, { method: 'GET', query: { url: '/Missions/Test/a.tif' } }).nextCalled).toBe(true);
+      expect(call(validate, { method: 'GET', query: { url: '../../Missions/Test/a.tif' } }).nextCalled).toBe(true);
+      expect(call(validate, { method: 'GET' }).nextCalled).toBe(true);
+    }
+  });
+
+  test('allowing every URL needs an explicit pattern', () => {
+    expect(call(validator(['.*']), { method: 'GET', query: { url: ALLOWED } }).nextCalled).toBe(true);
   });
 });

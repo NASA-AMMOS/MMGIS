@@ -13,6 +13,17 @@ import './Description.css'
 
 const NAV_DEFAULT_FIELD = '(Default) Feature Order'
 
+// Only http(s) and relative links may be opened from feature data
+const isSafeLinkUrl = (link) => {
+    if (typeof link !== 'string' || link.trim() === '') return false
+    try {
+        const protocol = new URL(link, window.location.href).protocol
+        return protocol === 'http:' || protocol === 'https:'
+    } catch (err) {
+        return false
+    }
+}
+
 const Description = {
     inited: false,
     waitingOnUpdate: false,
@@ -1117,9 +1128,9 @@ const Description = {
                             activeLayer.feature.properties,
                             v.links[i].replace
                         )
-                        if (link != null && link != '')
+                        if (isSafeLinkUrl(link))
                             links.push({
-                                name: `<span style='display: flex; justify-content: space-between;'>${v.links[i].name}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
+                                name: `<span style='display: flex; justify-content: space-between;'>${F_.escapeHtml(v.links[i].name)}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
                                 link: link,
                                 target: F_.cleanString(v.links[i].name),
                             })
@@ -1141,12 +1152,11 @@ const Description = {
                             const title = asset?.title
                             const roles = asset?.roles
                             if (
-                                link !== null &&
-                                link !== '' &&
+                                isSafeLinkUrl(link) &&
                                 (!roles || roles.indexOf('data') !== -1)
                             )
                                 links.push({
-                                    name: `<span style='display: flex; justify-content: space-between;'>${title}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
+                                    name: `<span style='display: flex; justify-content: space-between;'>${F_.escapeHtml(title)}<i class='mdi mdi-open-in-new mdi-14px' style='margin-left: 4px; margin-top: 1px;'></i></span>`,
                                     link: link,
                                     target: F_.cleanString(title),
                                 })
@@ -1178,14 +1188,16 @@ const Description = {
             }
 
             keyAsName =
-                ` <div style="max-width: 180px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${activeLayer.feature.properties[key]}</div>` +
+                ` <div style="max-width: 180px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">${F_.escapeHtml(activeLayer.feature.properties[key])}</div>` +
                 ' <div class="mainDescPointInnerType" style="font-size: 11px; padding: 0px 3px; opacity: 0.8;">(' +
-                key +
+                F_.escapeHtml(key) +
                 ')</div>'
 
             Description.descPointInner.html(
-                Description.L_.layers.data[activeLayer.options.layerName]
-                    .display_name +
+                F_.escapeHtml(
+                    Description.L_.layers.data[activeLayer.options.layerName]
+                        .display_name
+                ) +
                     ': ' +
                     keyAsName
             )
@@ -1204,7 +1216,7 @@ const Description = {
             Dropy.init(
                 $('#mainDescPointLinks'),
                 function (idx) {
-                    if (links[idx] && links[idx].link)
+                    if (links[idx] && isSafeLinkUrl(links[idx].link))
                         window.open(
                             links[idx].link,
                             links[idx].target || '_blank'

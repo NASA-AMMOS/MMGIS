@@ -182,6 +182,9 @@ export function addArrowToMap(
     }
 }
 
+const isCssColor = (c) =>
+    /^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.%\s,]+\)|[a-z]+)$/i.test(String(c).trim())
+
 export function createAnnotation(
     L_,
     feature,
@@ -202,7 +205,15 @@ export function createAnnotation(
         .parent()
         .remove()
 
-    const s = feature.properties.style
+    const s = { ...feature.properties.style }
+    // Only plain CSS values reach the style attribute
+    if (s.color != null && !isCssColor(s.color)) s.color = null
+    if (s.fillColor != null && !isCssColor(s.fillColor)) s.fillColor = null
+    if (s.fontSize != null && !/^\d+(\.\d+)?(px|em|rem|pt|%)$/.test(String(s.fontSize)))
+        s.fontSize = null
+    if (s.strokeOpacity != null && isNaN(parseFloat(s.strokeOpacity)))
+        s.strokeOpacity = null
+    if (s.weight != null && isNaN(parseFloat(s.weight))) s.weight = null
     const styleString =
         (s.color != null
             ? 'text-shadow: ' +
@@ -238,13 +249,13 @@ export function createAnnotation(
         )
         .setContent(
             "<div>" +
-                `<div id='${id}'` +
-                ` class='${className === 'DrawToolAnnotation' ? 'drawToolAnnotation' : 'mmgisAnnotation'} ${className}_${id1} blackTextBorder'` +
-                " layer='" + id1 +
-                "' layerId='" + layerId + 
+                `<div id='${F_.escapeHtml(id)}'` +
+                ` class='${className === 'DrawToolAnnotation' ? 'drawToolAnnotation' : 'mmgisAnnotation'} ${F_.escapeHtml(className + '_' + id1)} blackTextBorder'` +
+                " layer='" + F_.escapeHtml(id1) +
+                "' layerId='" + F_.escapeHtml(layerId) +
                 (L_.layers.layer[layerId] != null ? "' index='" + L_.layers.layer[layerId].length : '') +
-                "' style='" + styleString + "'>" +
-                `${feature.properties.name.replace(/[<>;{}]/g, '')}`,
+                "' style='" + F_.escapeHtml(styleString) + "'>" +
+                `${F_.escapeHtml(String(feature.properties.name ?? '').replace(/[<>;{}]/g, ''))}`,
                 '</div>' +
             '</div>'
         )

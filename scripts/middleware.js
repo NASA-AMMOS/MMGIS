@@ -6,7 +6,26 @@ const logger = require("../API/logger");
 const rootDir = `${__dirname}/..`;
 const rootDirMissions = `${rootDir}/Missions`;
 
-const dirStore = Object.create(null);
+// Directory listings per time-tile prefix, least recently used first
+const dirStore = new Map();
+const DIR_STORE_MAX_ENTRIES = 2000;
+function getDirStoreEntry(key) {
+  const entry = dirStore.get(key);
+  if (entry == null) return null;
+  if (Date.now() - entry.lastUpdated > DIR_STORE_MAX_AGE) {
+    dirStore.delete(key);
+    return null;
+  }
+  dirStore.delete(key);
+  dirStore.set(key, entry);
+  return entry;
+}
+function setDirStoreEntry(key, dirs) {
+  dirStore.delete(key);
+  dirStore.set(key, { lastUpdated: Date.now(), dirs });
+  while (dirStore.size > DIR_STORE_MAX_ENTRIES)
+    dirStore.delete(dirStore.keys().next().value);
+}
 const DIR_STORE_MAX_AGE =
   process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS == null ||
   isNaN(parseInt(process.env.COMPOSITE_TILE_DIR_STORE_MAX_AGE_MS))
@@ -61,7 +80,7 @@ async function onlyExistingFilepaths(paths) {
 }
 
 function getTimePath(prepath, suffixPath, time, starttime, returnUrls) {
-  let dirs = dirStore[prepath];
+  let dirs = dirStore.get(prepath);
   if (dirs) {
     dirs = dirs.dirs;
     time = time.replace(/:/g, "_").replace("Z", "");
@@ -212,17 +231,7 @@ const middleware = {
         const urlSplit = originalUrl.split("_time_");
         const relUrlSplit = relUrl.split("_time_");
 
-        if (dirStore[relUrlSplit[0]] == null) {
-          dirStore[relUrlSplit[0]] = {
-            lastUpdated: 0,
-            dirs: [],
-          };
-        }
-
-        if (
-          Date.now() - dirStore[relUrlSplit[0]].lastUpdated >
-          DIR_STORE_MAX_AGE
-        ) {
+        if (getDirStoreEntry(relUrlSplit[0]) == null) {
           fs.readdir(
             path.join(rootDir, urlSplit[0]),
             { withFileTypes: true },
@@ -232,8 +241,7 @@ const middleware = {
                   .filter((item) => item.isDirectory())
                   .map((item) => item.name);
 
-                dirStore[relUrlSplit[0]].lastUpdated = Date.now();
-                dirStore[relUrlSplit[0]].dirs = dirs.sort();
+                setDirStoreEntry(relUrlSplit[0], dirs.sort());
 
                 sendImage(req, res, next, relUrlSplit);
               } else {

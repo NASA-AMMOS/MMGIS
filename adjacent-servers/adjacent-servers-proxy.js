@@ -78,8 +78,9 @@ function initAdjacentServersProxy(app, isDocker, ensureAdmin, ensureUserForAdjac
           return;
         }
 
-        // /cog/stac is always admin-only regardless of SITE_ACCESS
-        if (url.includes('/cog/stac')) {
+        // Admin-only regardless of SITE_ACCESS: /cog/stac, and the /stac and /mosaicjson
+        // routers, which make TiTiler fetch URLs nested in documents the URL check can't see
+        if (url.includes('/cog/stac') || /\/titiler\/(stac|mosaicjson)(\/|$)/.test(url)) {
           ensureAdmin()(req, res, next);
           return;
         }

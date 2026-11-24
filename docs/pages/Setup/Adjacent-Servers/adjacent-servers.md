@@ -37,14 +37,14 @@ The TiTiler proxy accepts a `?url=` parameter that specifies which geospatial fi
 - Scan internal ports and services
 - Exfiltrate sensitive data
 
-**Mitigation**: Configure the `TITILER_ALLOWED_URL_PATTERNS` environment variable to restrict URLs to trusted sources. See [ENVs documentation](../ENVs/ENVs.md#titiler_allowed_url_patterns) for detailed configuration instructions.
+**Mitigation**: By default MMGIS only lets TiTiler read local `/Missions` paths. To allow remote sources, set the `TITILER_ALLOWED_URL_PATTERNS` environment variable to patterns naming specific trusted hosts. See [ENVs documentation](../ENVs/ENVs.md#titiler_allowed_url_patterns) for detailed configuration instructions.
 
-**Recommended for Production**:
+**Example**:
 ```bash
-TITILER_ALLOWED_URL_PATTERNS='["^https://(?!.*\\.\\.)(?!.*\\x00).*$"]'
+TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^/Missions/(?!.*\\.\\.)[^\\x00]*$"]'
 ```
 
-This pattern requires HTTPS and blocks common attack vectors (path traversal, null bytes).
+The TiTiler `/stac/*`, `/mosaicjson/*` and `/cog/stac*` endpoints follow URLs inside the documents they read, which the pattern check cannot see, so MMGIS only proxies them for administrators. As defense in depth, restrict the TiTiler service's network egress (for example, block private address ranges and cloud metadata addresses with a firewall or network policy), keep `CPL_VSIL_CURL_ALLOWED_EXTENSIONS` narrow, or disable unused routers with `TITILER_API_DISABLE_STAC` / `TITILER_API_DISABLE_MOSAIC`.
 
 ### Upgrading Python and Installing the Adjacent Services
 

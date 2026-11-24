@@ -439,7 +439,7 @@ var Files = {
                                         `<div class='drawToolDrawFilesGroupElemHead' state='off' group_name='${gEnc}' groupingtype='${groupingType}'>`,
                                             `<div class='${g === 'unassigned' || g === 'untagged' ? 'drawToolDrawFilesGroupElemUn' : ''}'>`,
                                                 `<div class='drawToolDrawFilesGroupElemChevron'><i class='mdi ${iconClass} mdi-18px'></i></div>`,
-                                                `<div>${groupingType === 'alphabetical' ? g.substring(1) : g}</div>`,
+                                                `<div>${F_.escapeHtml(groupingType === 'alphabetical' ? g.substring(1) : g)}</div>`,
                                             `</div>`,
                                             `<div class='drawToolDrawFilesGroupElemCount' count='0'></div>`,
                                         `</div>`,

@@ -465,48 +465,44 @@ Port to proxy titiler on | default `8883`
 
 A JSON array of regular expression patterns that define allowed URLs for TiTiler requests. When configured, any URL passed to TiTiler (via `?url=` parameter) must match at least one pattern or the request will be blocked with HTTP 403 Forbidden.
 
-**Format**: JSON array of regex strings | **Type**: string[] | **Default**: `[]` (allow all)
+**Format**: JSON array of regex strings | **Type**: string[] | **Default**: unset (local `/Missions` paths only)
 
 **Behavior**:
-- **Unset or empty array `[]`**: Allow all URLs (backward compatible with existing deployments)
+- **Unset, empty, `[]`, invalid JSON or no valid regex**: Only the local `/Missions` paths MMGIS itself sends to TiTiler are allowed (`/Missions/...` in Docker, `../../Missions/...` otherwise, with no `..` segments). Invalid patterns are logged and skipped.
 - **Non-empty array**: URL must match at least one regex pattern to be proxied
-- **Invalid JSON or regex**: Logs error, disables validation (allows all URLs)
-- **Important**: To allow TiTiler to read from the local `/Missions` directory, include the file:// pattern in your configuration (see examples below).
+- **Allow all**: Must be explicit with `'[".*"]'` (not recommended)
+- **Important**: When you set your own patterns, include the `/Missions` patterns below if TiTiler should keep reading local Missions files.
+- The TiTiler `/stac/*`, `/mosaicjson/*` and `/cog/stac*` endpoints read URLs nested inside the documents they fetch, which this check cannot see, so MMGIS only proxies them for administrators. Also restrict the TiTiler container's network egress (for example, block private address ranges and cloud metadata addresses) and keep `CPL_VSIL_CURL_ALLOWED_EXTENSIONS` narrow.
 
 **Security Recommendations**:
-- Always configure this in production environments
+- Name specific trusted hosts rather than any `https://` host
 - Use the most restrictive patterns possible for your use case
 - Regularly review logs for blocked requests
 
 **Common Patterns**:
 
-1. **Recommended for Production** (HTTPS + local Missions files):
+1. **Default** (local Missions files only):
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^https://(?!.*\\.\\.)(?!.*\\x00).*$", "^/Missions/(?!.*\\.\\.).*$"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^/Missions/(?!.*\\.\\.)[^\\x00]*$", "^\\.\\./\\.\\./Missions/(?!.*\\.\\.)[^\\x00]*$"]'
    ```
-   - Requires HTTPS protocol for remote URLs
-   - Allows local `/Missions` directory files as relative paths (e.g., `/Missions/Test/data.tif`)
-   - Blocks path traversal (`..`) in both remote and local paths
-   - Blocks null byte injection
+   - Allows local `/Missions` directory files (e.g., `/Missions/Test/data.tif`)
+   - Blocks path traversal (`..`) and null bytes
 
-2. **Specific Trusted Domains**:
+2. **Specific Trusted Domains** plus local Missions files:
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/.*", "^https://data\\.nasa\\.gov/.*"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/(?!.*\\.\\.)", "^https://data\\.example\\.org/(?!.*\\.\\.)", "^/Missions/(?!.*\\.\\.)[^\\x00]*$"]'
    ```
    - Only allows specific trusted domains
 
-3. **S3 Buckets**:
+3. **A specific S3 bucket**:
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^https://[^/]*\\.s3\\.[^/]*\\.amazonaws\\.com/.*"]'
+   TITILER_ALLOWED_URL_PATTERNS='["^https://my-bucket\\.s3\\.us-west-2\\.amazonaws\\.com/(?!.*\\.\\.)"]'
    ```
-   - Allows any S3 bucket URL
 
-4. **Multiple Patterns** (OR logic):
+4. **Allow all URLs** (not recommended):
    ```bash
-   TITILER_ALLOWED_URL_PATTERNS='["^https://tiles\\.example\\.com/.*", "^https://.*\\.s3\\.amazonaws\\.com/.*", "^https://data\\.nasa\\.gov/.*", "^/Missions/.*"]'
+   TITILER_ALLOWED_URL_PATTERNS='[".*"]'
    ```
-   - URLs matching ANY pattern are allowed
-   - Includes local Missions directory access
 
 **Regex Syntax Notes**:
 - Use `\\.` to match literal dots (escape backslash in JSON: `\\\\.`)
