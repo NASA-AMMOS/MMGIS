@@ -101,6 +101,16 @@
     padding: 0;
 }
 
+.lt-search:focus-within {
+    border-color: var(--color-c);
+    box-shadow: 0 0 0 1px var(--color-c);
+}
+
+.lt-search input:focus,
+.lt-search input:focus-visible {
+    outline: none;
+}
+
 .lt-search input::placeholder {
     color: var(--color-a5);
 }
