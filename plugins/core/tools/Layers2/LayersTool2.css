@@ -587,7 +587,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    left: clamp(28px, 14%, 56px);
+    left: var(--lt2-drawerInset);
     z-index: 3;
     display: flex;
     flex-direction: column;
@@ -599,13 +599,38 @@
     overflow: hidden;
 }
 
+.lt2-root {
+    --lt2-drawerInset: 32px;
+}
+
 .lt2-drawerScrim {
     position: absolute;
     inset: 0;
     z-index: 2;
+    display: flex;
+    align-items: center;
     padding: 0;
     border: 0;
     background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    cursor: pointer;
+}
+
+.lt2-drawerScrim > i {
+    width: 24px;
+    height: 24px;
+    margin-left: calc((var(--lt2-drawerInset) - 24px) / 2);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    font-size: 16px;
+    line-height: 24px;
+    text-align: center;
+    opacity: 0.85;
+    transition: opacity 0.12s ease;
+}
+
+.lt2-drawerScrim:hover > i {
+    opacity: 1;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -1656,20 +1681,6 @@
     border-width: 2px;
 }
 
-.lt2-heroActions .lt2-closeButton {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    height: 30px;
-    padding: 0 12px 0 8px;
-    font-size: 13px;
-}
-
-.lt2-heroActions .lt2-closeButton i {
-    font-size: 18px;
-}
-
-.lt2-heroActions .lt2-closeButton,
 .lt2-hero.lt2-hasSample .lt2-heroActions button {
     background: color-mix(in srgb, var(--color-a) 82%, transparent);
 }

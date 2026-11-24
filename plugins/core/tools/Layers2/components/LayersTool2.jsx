@@ -1509,17 +1509,16 @@ function SettingsPage({
                     />
                 )}
                 <div className="lt2-heroActions">
-                    <ToolTip label="Close (Esc)">
-                        <Button
+                    <ToolTip label="Back to layers (Esc)">
+                        <IconButton
                             size="sm"
-                            variant="secondary"
                             className="lt2-closeButton"
                             aria-label="Close settings"
                             aria-keyshortcuts="Escape"
                             onClick={onBack}
                         >
-                            <i className="mdi mdi-close mdi-16px" /> Close
-                        </Button>
+                            <i className="mdi mdi-arrow-left mdi-18px" />
+                        </IconButton>
                     </ToolTip>
                     <ToolTip label="Information">
                         <IconButton size="sm" aria-label="Layer information" onClick={info}>
@@ -2717,7 +2716,9 @@ function LayersTool2App({ vars }) {
                     aria-label="Close settings"
                     tabIndex={-1}
                     onClick={closeSettings}
-                />
+                >
+                    <i className="mdi mdi-arrow-left" aria-hidden="true" />
+                </button>
             )}
             {state.openLayer && (() => {
                 const row = settingsRowsByName.get(state.openLayer)
