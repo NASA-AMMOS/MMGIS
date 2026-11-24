@@ -386,7 +386,7 @@
     justify-content: flex-start;
     flex: 1 1 auto;
     min-width: 0;
-    gap: 5px;
+    gap: 4px;
     color: var(--color-f);
     text-align: left;
     white-space: nowrap;
@@ -404,7 +404,6 @@
 .lt2-folderIcon {
     flex: 0 0 18px;
     width: 18px;
-    margin-right: 3px;
     color: var(--color-a5);
     font-size: 16px;
 }
@@ -437,7 +436,6 @@
     flex: 0 0 18px;
     width: 18px;
     height: 18px;
-    margin-right: 3px;
     border-radius: 4px;
     background: var(--lt-color);
     color: #fff;
