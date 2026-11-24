@@ -824,7 +824,7 @@ test.describe('LayersTool2', () => {
         else await expect(visible).not.toBeChecked()
     })
 
-    test('vector-like rows use no geometry glyph or type icon', async ({
+    test('vector rows use a colored type badge instead of a geometry glyph', async ({
         page,
     }) => {
         await openLayers2(page)
@@ -832,8 +832,55 @@ test.describe('LayersTool2', () => {
         await search.fill('Points Basic')
         await page.waitForTimeout(180)
         const row = page.locator('.lt2-layerRow').filter({ hasText: 'Points Basic' }).first()
+        const badge = row.locator('.lt2-typeBadge')
         await expect(row.locator('.lt2-glyph')).toHaveCount(0)
         await expect(row.locator('.lt2-typeIcon')).toHaveCount(0)
+        await expect(badge).toHaveCount(1)
+        expect(
+            await badge.evaluate((element) => getComputedStyle(element).backgroundColor)
+        ).toBe('rgb(36, 89, 128)')
+    })
+
+    test('headers use expansion folders and off-layer badges are dimmed', async ({
+        page,
+    }) => {
+        await openLayers2(page)
+        await page.getByRole('button', { name: 'Expand all' }).click()
+        const header = page
+            .getByRole('treeitem')
+            .filter({ hasText: 'Geometry Types' })
+            .first()
+        const folderIcon = header.locator('.lt2-folderIcon')
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(folderIcon).toHaveClass(/mdi-folder-open-outline/)
+
+        await header.locator('.lt2-chevron').click()
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await expect(folderIcon).toHaveClass(/mdi-folder-outline/)
+
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points Basic')
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(folderIcon).toHaveClass(/mdi-folder-open-outline/)
+        await search.fill('')
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await expect(folderIcon).toHaveClass(/mdi-folder-outline/)
+
+        await search.fill('Points Styled')
+        const offRow = page
+            .locator('.lt2-layerRow')
+            .filter({ hasText: 'Points Styled' })
+            .first()
+        await expect(offRow).toBeVisible()
+        const checkbox = offRow.getByRole('checkbox')
+        if (await checkbox.isChecked()) await checkbox.click()
+        await expect(offRow).not.toHaveClass(/lt2-on/)
+        const opacity = Number(
+            await offRow
+                .locator('.lt2-typeBadge')
+                .evaluate((element) => getComputedStyle(element).opacity)
+        )
+        expect(opacity).toBeLessThan(1)
     })
 
     test('Vector Filter mounts the legacy controls and filters Points Basic', async ({

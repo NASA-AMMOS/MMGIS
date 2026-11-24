@@ -205,7 +205,7 @@
     width: 100%;
     height: 100%;
     min-width: 0;
-    padding: 0 5px 0 calc(var(--depth, 0) * var(--lt2-indent));
+    padding: 0 5px 0 calc(12px + var(--depth, 0) * var(--lt2-indent));
     gap: 2px;
     overflow: hidden;
     border-bottom: 1px solid color-mix(in srgb, var(--color-a1-5) 60%, transparent);
@@ -246,15 +246,12 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
+    left: 21px;
     width: calc(var(--depth, 0) * var(--lt2-indent));
     background: repeating-linear-gradient(
         90deg,
-        transparent 0,
-        transparent calc(var(--lt2-indent) - 1px),
-        color-mix(in srgb, var(--color-f) 8%, transparent)
-            calc(var(--lt2-indent) - 1px),
-        color-mix(in srgb, var(--color-f) 8%, transparent) var(--lt2-indent)
+        color-mix(in srgb, var(--color-f) 13%, transparent) 0 1px,
+        transparent 1px var(--lt2-indent)
     );
     pointer-events: none;
 }
@@ -290,11 +287,15 @@
 }
 
 .lt2-drag {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
     width: 12px;
-    flex-basis: 12px;
-    border-right: 1px solid var(--color-a);
-    background: var(--lt-color);
-    color: rgba(255, 255, 255, 0.75);
+    height: auto;
+    border: 0;
+    background: none;
+    color: var(--color-a5);
     cursor: grab;
 }
 
@@ -383,6 +384,14 @@
     font-weight: 500;
 }
 
+.lt2-folderIcon {
+    flex: 0 0 18px;
+    width: 18px;
+    margin-right: 3px;
+    color: var(--color-a5);
+    font-size: 16px;
+}
+
 .lt2-name {
     display: block;
     min-width: 0;
@@ -404,10 +413,24 @@
     text-shadow: none;
 }
 
-.lt2-typeIcon {
-    flex: 0 0 14px;
-    font-size: 14px;
-    text-align: center;
+.lt2-typeBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 3px;
+    border-radius: 4px;
+    background: var(--lt-color);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.lt2-layerRow:not(.lt2-on) .lt2-typeBadge {
+    opacity: 0.45;
+    filter: grayscale(0.5);
 }
 
 .lt2-openIndicator {
@@ -822,11 +845,6 @@
 .lt2-mobile .lt2-chevronSpace {
     width: 20px;
     flex-basis: 20px;
-}
-
-.lt2-mobile .lt2-drag {
-    width: 12px;
-    flex-basis: 12px;
 }
 
 .lt2-mobile .lt2-drag i {

@@ -74,12 +74,12 @@ const TYPE_ICONS = {
     data: 'file-table',
     query: 'magnify',
     model: 'cube-outline',
+    '3dtiles': 'cube-scan',
     image: 'image',
     velocity: 'weather-windy',
     video: 'video',
 }
 const RASTER_TYPES = new Set(['tile', 'data', 'image', 'velocity'])
-const VECTOR_TYPES = new Set(['vector', 'vectortile', 'query'])
 const QUASI_LAYERS = new Set(['model', 'query', '3dtiles'])
 
 function openLayerInfo(name, launcher) {
@@ -796,6 +796,10 @@ function HeaderRow({
                 />
             </span>
             <button className="lt2-title lt2-headerTitle" title={row.label} tabIndex={-1} onClick={() => onTitle(row.id)}>
+                <i
+                    className={`mdi mdi-${expanded ? 'folder-open-outline' : 'folder-outline'} lt2-folderIcon`}
+                    aria-hidden="true"
+                />
                 <span className="lt2-name">{highlightText(row.label, query)}</span>
             </button>
             <ToolTip label="Information">
@@ -870,12 +874,9 @@ function LayerRow({
                 />
             </span>
             <button className="lt2-title" onClick={() => onOpen(row.id)} title={row.label} tabIndex={-1}>
-                {!isRaster && !VECTOR_TYPES.has(layer.type) && (
-                    <i
-                        className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'} lt2-typeIcon`}
-                        aria-hidden="true"
-                    />
-                )}
+                <span className="lt2-typeBadge" aria-hidden="true">
+                    <i className={`mdi mdi-${TYPE_ICONS[layer.type] || 'layers'}`} />
+                </span>
                 <span className="lt2-name">{highlightText(row.label, query)}</span>
                 <i
                     className="mdi mdi-chevron-right lt2-openIndicator"
