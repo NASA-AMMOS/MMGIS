@@ -518,11 +518,21 @@
 }
 
 .lt-openIndicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
     color: var(--color-a5);
     font-size: 16px;
+    line-height: 1;
     opacity: 0;
     transition: opacity 0.12s ease;
+}
+
+.lt-openIndicator::before {
+    line-height: 1;
 }
 
 .lt-layerRow:hover .lt-openIndicator,
@@ -1172,7 +1182,18 @@
 
 .lt-settingsSections .layerSettingsSectionHeader {
     min-height: 34px;
-    padding: 6px 6px 0 12px;
+    padding: 6px 12px 5px;
+    border-bottom: 1px solid var(--color-a2);
+}
+
+.lt-settingsSections .layerSettingsSectionHeader > button {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    flex: 0 0 28px;
+    margin: 0;
+    padding: 0;
 }
 
 .lt-settingsSections .layerSettingsSection.lt-sectionFlash {
@@ -2106,10 +2127,21 @@
     background: color-mix(in srgb, var(--color-a) 82%, transparent);
 }
 
-.lt-actionButtons button,
-.lt-actionBar [role='checkbox'] {
+.lt-actionButtons button {
     height: 28px;
     min-height: 28px;
+}
+
+.lt-actionBar .lt-visible {
+    height: 28px;
+    min-height: 28px;
+}
+
+.lt-actionBar .lt-visible [role='checkbox'] {
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+    flex: 0 0 20px;
 }
 
 .lt-actionDivider {
