@@ -243,12 +243,12 @@
 
 .lt-dropBlockedStatus > span {
     display: inline-block;
-    padding: 6px 10px;
-    border: 1px solid var(--color-yellow);
+    padding: 6px 12px;
     border-radius: 4px;
-    background: var(--color-a2);
-    color: var(--color-f);
+    background: var(--color-yellow);
+    color: #000;
     font-size: 12px;
+    font-weight: 600;
     white-space: nowrap;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
