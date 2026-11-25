@@ -167,6 +167,7 @@ export default {
         { id: 'custom', label: 'Custom action', icon: 'information-outline', onClick: (api) => {} },
     ],
     status: (layer, ctx) => null,
+    info: (layer, ctx) => ({ typeLabel: 'raster', featureCount: 0 }),
     export: {
         extents: (layer) => [{ value: 'current', label: 'Current Extent' }],
         getGeoJSON: async (layer, { extent }) => fetchGeoJSON(layer, extent),
@@ -179,6 +180,10 @@ export default {
 object `{ layerName, layerType, api }`; `ctx.api` is layer-scoped. Core uses
 this same contract when it enumerates sections for rendering, reset, and
 reset-all, rather than passing the bare API as the second argument.
+`info(layer, ctx)` is optional; `ctx` contains `{ layerName, layerType }`. It
+returns modal metadata: `typeLabel` replaces the default type label, and a
+numeric `featureCount` adds the feature-count suffix. Core reads this hook
+through `LayerTypeRegistry` rather than branching on built-in type ids.
 
 Section components receive `{ layer, api, state, setState, resetToken }`.
 `state` is persistent per layer and section; `resetToken` changes when that

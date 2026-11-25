@@ -77,7 +77,7 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
  *   time    what the type's time support means to the time bar
  *   source  how the type acquires its data (core keeps extent/staleness)
  *   legend  a legend derived from how the layer is rendered
- *   settings user-facing layer settings, export and download hooks
+ *   settings layer settings, info metadata, export/download hooks
  */
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
@@ -91,7 +91,14 @@ const LAYER_TYPE_CATEGORIES = new Set([
 ]);
 const SOURCE_OPS = ["fetch"];
 const LEGEND_OPS = ["derive"];
-const SETTINGS_OPS = ["sections", "actions", "status", "download", "export"];
+const SETTINGS_OPS = [
+  "sections",
+  "actions",
+  "status",
+  "info",
+  "download",
+  "export",
+];
 
 /**
  * A layer attachment is a single renderable that may straddle both engines (an

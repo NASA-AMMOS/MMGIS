@@ -1,5 +1,6 @@
 import $ from 'jquery'
 import L_ from '@basics/Layers_/Layers_'
+import LayerTypeRegistry from '@basics/Layers_/registry/LayerTypeRegistry'
 import Modal from '@basics/UserInterface_/components/Modal/Modal'
 import marked from '@essence/services/Markdown'
 import { safeHTML, safeLinkUrl } from '@essence/services/Sanitize'
@@ -14,16 +15,16 @@ const LayerInfo = {
 
         if (layer == null) return
 
-        let numberOfFeatures = ''
-        if (layer.type === 'vector')
-            try {
-                numberOfFeatures = ` (${
-                    L_.layers.layer[layerName].getLayers().length
-                } Features)`
-            } catch (e) {}
-
-        let type = layer.type
-        if (type === 'tile') type = 'raster'
+        const layerInfo =
+            LayerTypeRegistry.settings(layer.type)?.info?.(layer, {
+                layerName,
+                layerType: layer.type,
+            }) || {}
+        const numberOfFeatures =
+            layerInfo.featureCount == null
+                ? ''
+                : ` (${layerInfo.featureCount} Features)`
+        const type = layerInfo.typeLabel || layer.type
 
         let attribution = ''
         if (layer.attribution != null && layer.attribution !== '') {

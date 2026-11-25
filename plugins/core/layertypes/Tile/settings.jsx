@@ -384,6 +384,7 @@ function CogSettings({ layer, resetToken }) {
 }
 
 export default {
+    info: () => ({ typeLabel: 'raster' }),
     download(layer) {
         if (layer.type !== 'tile' && layer.type !== 'data') return null
         const url = layer.variables?.downloadURL

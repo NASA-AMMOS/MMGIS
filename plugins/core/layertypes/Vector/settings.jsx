@@ -418,8 +418,19 @@ function StatisticsSettings({ layer }) {
     )
 }
 
+function featureCount(layerName) {
+    try {
+        return L_.layers.layer[layerName].getLayers().length
+    } catch {
+        return null
+    }
+}
+
 export default {
     export: vectorExport,
+    info(layer, { layerName = layer.name } = {}) {
+        return { featureCount: featureCount(layerName) }
+    },
     sections(layer) {
         const attachments = L_.layers.attachments[layer.name] || {}
         const sections = []
