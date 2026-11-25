@@ -33,6 +33,7 @@ export function formatUtc(ms) {
 const GAP_LABELS = {
     nodata: 'no data',
     missing: 'no reading',
+    unresolved: 'not read',
     invalid: 'invalid value',
 }
 

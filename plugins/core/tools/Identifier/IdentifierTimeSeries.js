@@ -41,6 +41,11 @@ export const TIME_SERIES_LIMITS = {
     stacPageSize: 100,
     // Items per TiTiler point request (also its items_limit).
     pointBatchSize: 50,
+    // Ids a multi-id answer left out are asked again in batches of this many,
+    // then one by one, with at most this many extra requests per layer; ids
+    // beyond that are reported as unresolved, never as missing data.
+    retryBatchSize: 10,
+    maxRetryRequests: 20,
     // Requests in flight at once for one selected point, across every layer
     // charted there (STAC pages and TiTiler point batches alike).
     requestConcurrency: 4,
@@ -371,7 +376,11 @@ export async function fetchStacItems({
     run = createLimiter(limits.requestConcurrency),
 }) {
     const items = []
-    const seen = new Set()
+    // Every distinct item id met, valid time or not, with what it said the
+    // first time: a repeat is counted once, whatever page it is on.
+    const seen = new Map()
+    const differing = new Set()
+    let idless = 0
     const incomplete = []
     let invalidTimes = 0
     let numberMatched = null
@@ -417,17 +426,35 @@ export async function fetchStacItems({
             numberMatched = json.context.matched
 
         for (const f of json.features) {
+            const id = typeof f?.id === 'string' && f.id !== '' ? f.id : null
             const parsed = parseStacItemTime(f)
-            if (!parsed) {
+            // Without an id an item can't be told from another: each is
+            // one skipped item.
+            if (id === null) {
+                idless++
                 invalidTimes++
                 continue
             }
-            if (seen.has(parsed.id)) continue
+            const said = parsed
+                ? `${parsed.time}|${parsed.range ? parsed.range.join('/') : ''}`
+                : 'invalid'
+            // Deduplicate by id before validating the time, so a repeat -
+            // valid or not - is never counted twice. The first copy stands;
+            // a later copy that disagrees is flagged, not guessed between.
+            if (seen.has(id)) {
+                if (seen.get(id) !== said) differing.add(id)
+                continue
+            }
+            if (!parsed) {
+                seen.set(id, said)
+                invalidTimes++
+                continue
+            }
             if (items.length >= limits.maxItems) {
                 truncatedBy = 'items'
                 break
             }
-            seen.add(parsed.id)
+            seen.set(id, said)
             items.push(parsed)
         }
         if (truncatedBy) break
@@ -463,9 +490,16 @@ export async function fetchStacItems({
         // Out of pages with a next page still offered: say so.
         if (page === limits.maxStacPages - 1) truncatedBy = 'pages'
     }
-    // Distinct matches read. A repeated item is not a second match: counting
-    // it would let overlapping pages pass for a complete history.
-    const accounted = items.length + invalidTimes
+    if (differing.size > 0)
+        incomplete.push(
+            `the STAC API returned ${differing.size} item${
+                differing.size === 1 ? '' : 's'
+            } with differing times on different pages`
+        )
+    // Distinct matches read (charted, or skipped for their time). A repeat is
+    // not a second match: counting it would let overlapping pages - or a
+    // timeless item sent twice - pass for a complete history.
+    const accounted = seen.size + idless
     if (numberMatched != null) {
         // The server's count settles it: everything read, or not.
         if (accounted >= numberMatched) truncatedBy = null
@@ -732,10 +766,26 @@ async function readPointResponse(res, collection) {
 /**
  * Values at the point for the given items, by item id.
  *
- * Items a batch returned nothing for are asked for once more, in their own
- * batches: pgSTAC's time limit can end a search early without saying so,
- * and a second, smaller search tells that apart from an item that simply has
- * no pixel here. Only items still absent after that are "no reading".
+ * TiTiler (titiler-pgstac) answers a point request for a list of ids by
+ * searching pgSTAC for them and reading each one's pixel. Two things can
+ * leave an item out of a multi-id answer without an error: the search stops
+ * at pgSTAC's time limit (5 s by default) and returns what it found so far,
+ * and an item whose raster doesn't cover the point (PointOutsideBounds) is
+ * dropped. The first is a failure to answer, the second a real "no reading";
+ * a multi-id answer can't tell them apart. A one-id request can: its search
+ * can't be cut short in any practical sense, so leaving that id out (or a
+ * 204) means TiTiler has no reading for it here.
+ *
+ * So: ids left out of a multi-id answer are asked again in smaller batches
+ * (`retryBatchSize`), and those still left out, one by one - within a budget
+ * of `maxRetryRequests` extra requests for the whole call. A value present
+ * in any answer - a number, or null for a masked pixel - is final. An id left
+ * out of a one-id answer is a confirmed "no reading" (absent from the
+ * result). Ids the budget didn't reach are `unresolved`: their value may
+ * exist, and the caller must neither show them as missing data nor cache the
+ * result as complete.
+ *
+ * @returns {Promise<Map<string, object> & {unresolved: Set<string>}>}
  */
 export async function fetchPointValues({
     fetchFn,
@@ -751,6 +801,7 @@ export async function fetchPointValues({
     run = createLimiter(limits.requestConcurrency),
 }) {
     const merged = new Map()
+    const unresolved = new Set()
     // Once one batch has failed the result is an error: batches still queued
     // behind it (in the shared limiter) are not started, and the ones in
     // flight are cancelled - through this call's own signal, which follows
@@ -760,17 +811,15 @@ export async function fetchPointValues({
     const followCaller = () => batchCtrl.abort()
     if (signal?.aborted) batchCtrl.abort()
     else signal?.addEventListener('abort', followCaller)
-    const readAll = async (wanted) => {
-        const batches = []
-        for (let i = 0; i < wanted.length; i += limits.pointBatchSize)
-            batches.push(wanted.slice(i, i + limits.pointBatchSize))
+
+    // Ask for each batch (all through the shared limiter); resolves to the
+    // ids left out of multi-id answers - one-id answers are definitive.
+    const ask = async (batches) => {
+        const leftOut = []
         await Promise.all(
             batches.map((batch) =>
                 run(async () => {
-                    if (signal?.aborted)
-                        throw Object.assign(new Error('aborted'), {
-                            name: 'AbortError',
-                        })
+                    if (signal?.aborted) throw abortError()
                     if (failed) return
                     try {
                         const got = await readPointBatch({
@@ -788,6 +837,9 @@ export async function fetchPointValues({
                             timeoutMs: limits.requestTimeoutMs,
                         })
                         got.forEach((v, k) => merged.set(k, v))
+                        if (batch.length > 1)
+                            for (const id of batch)
+                                if (!merged.has(id)) leftOut.push(id)
                     } catch (e) {
                         if (!failed) {
                             failed = true
@@ -798,11 +850,33 @@ export async function fetchPointValues({
                 })
             )
         )
+        if (signal?.aborted) throw abortError()
+        return leftOut
     }
+    const chunk = (list, size) => {
+        const out = []
+        for (let i = 0; i < list.length; i += size)
+            out.push(list.slice(i, i + size))
+        return out
+    }
+    let budget = Math.max(0, limits.maxRetryRequests ?? 20)
+    const take = (batches) => {
+        const taken = batches.slice(0, budget)
+        budget -= taken.length
+        for (const b of batches.slice(taken.length))
+            b.forEach((id) => unresolved.add(id))
+        return taken
+    }
+
     try {
-        await readAll(ids)
-        const absent = ids.filter((id) => !merged.has(id))
-        if (absent.length > 0) await readAll(absent)
+        let leftOut = await ask(chunk(ids, limits.pointBatchSize))
+        // smaller batches first, if that still means fewer requests
+        const retrySize = Math.max(1, limits.retryBatchSize ?? 10)
+        if (leftOut.length > 1 && retrySize > 1)
+            leftOut = await ask(take(chunk(leftOut, retrySize)))
+        // then one by one
+        if (leftOut.length > 0) await ask(take(chunk(leftOut, 1)))
+        merged.unresolved = unresolved
         return merged
     } finally {
         signal?.removeEventListener('abort', followCaller)
@@ -876,7 +950,16 @@ export function buildSeries(items, valuesById, measurement = {}) {
     // acquisitions show as times without readings.
     if (bandNames.length === 0) bandNames = ['b1']
 
-    const counts = { missing: 0, missingBands: 0, invalidValues: 0, nodata: 0 }
+    // Ids the point reads couldn't settle (see fetchPointValues): a gap whose
+    // value may exist, not a confirmed "no reading".
+    const unresolved = valuesById.unresolved || new Set()
+    const counts = {
+        missing: 0,
+        unresolved: 0,
+        missingBands: 0,
+        invalidValues: 0,
+        nodata: 0,
+    }
     const series = bandNames.map((name, b) => ({
         name,
         units: unitForBand(measurement.units, b),
@@ -884,11 +967,13 @@ export function buildSeries(items, valuesById, measurement = {}) {
     }))
     for (const it of sorted) {
         const v = valuesById.get(it.id)
-        if (!v) counts.missing++
+        const open = !v && unresolved.has(it.id)
+        if (open) counts.unresolved++
+        else if (!v) counts.missing++
         for (let b = 0; b < series.length; b++) {
             const read = v
                 ? readValue(v.values, b)
-                : { value: null, status: 'missing' }
+                : { value: null, status: open ? 'unresolved' : 'missing' }
             if (v && read.status === 'missing') counts.missingBands++
             else if (read.status === 'invalid') counts.invalidValues++
             else if (read.status === 'nodata') counts.nodata++
@@ -988,7 +1073,7 @@ export async function fetchLayerTimeSeries({
     // cached. Incomplete because of what the server sent (a next link that
     // can't be followed, a repeated token, a count its pages don't reach):
     // may differ next time, so it is not cached and the next click re-reads.
-    const cacheable =
+    let cacheable =
         listing.incomplete.length === 0 && listing.truncatedBy !== 'count'
     if (listing.invalidTimes > 0)
         notes.push(
@@ -1053,8 +1138,17 @@ export async function fetchLayerTimeSeries({
     const count = (n, one, many) => `${n} ${n === 1 ? one : many}`
     if (built.missing > 0)
         notes.push(
-            `${count(built.missing, 'acquisition', 'acquisitions')} returned no reading here, asked twice (gaps).`
+            `${count(built.missing, 'acquisition', 'acquisitions')} returned no reading here (gaps).`
         )
+    if (built.unresolved > 0) {
+        incomplete.push(
+            built.unresolved === 1
+                ? '1 acquisition could not be read here (the point service left it out of its answers); its value may exist'
+                : `${built.unresolved} acquisitions could not be read here (the point service left them out of its answers); their values may exist`
+        )
+        // a later read may get them: don't keep this one
+        cacheable = false
+    }
     if (built.missingBands > 0)
         notes.push(
             `${count(built.missingBands, 'band reading was', 'band readings were')} not returned (gaps).`

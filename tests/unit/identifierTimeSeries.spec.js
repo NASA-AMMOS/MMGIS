@@ -958,6 +958,10 @@ test.describe('bands, expressions, point query', () => {
         let inFlight = 0
         let peak = 0
         const seen = []
+        let empties = 0
+        // i0..i49 have a reading here; i50..i119 never do - left out of every
+        // answer. An answer with none of its ids is a 204 or, alternately, a
+        // legacy titiler-pgstac NoAssetFound 404 that says so.
         const fetchFn = async (url) => {
             inFlight++
             peak = Math.max(peak, inFlight)
@@ -965,15 +969,16 @@ test.describe('bands, expressions, point query', () => {
             inFlight--
             const ids = new URL(url).searchParams.get('ids').split(',')
             seen.push(ids.length)
-            if (ids[0] === 'i100') return { ok: true, status: 204 }
-            // legacy titiler-pgstac: NoAssetFound as a 404 that says so
-            if (ids[0] === 'i50')
-                return jsonResponse(
-                    { detail: 'No assets found for point (0,0)' },
-                    404
-                )
+            const have = ids.filter((id) => Number(id.slice(1)) < 50)
+            if (have.length === 0)
+                return empties++ % 2 === 0
+                    ? { ok: true, status: 204 }
+                    : jsonResponse(
+                          { detail: 'No assets found for point (0,0)' },
+                          404
+                      )
             return jsonResponse({
-                assets: ids.map((id) => pointAsset(id, [1])),
+                assets: have.map((id) => pointAsset(id, [1])),
             })
         }
         const ids = Array.from({ length: 120 }, (_, i) => `i${i}`)
@@ -987,10 +992,22 @@ test.describe('bands, expressions, point query', () => {
             layer: {},
             run: createLimiter(2),
         })
-        // 3 batches, then the 70 absent ids asked once more (50 + 20)
-        expect(seen.sort((a, b) => a - b)).toEqual([20, 20, 50, 50, 50])
+        // 3 batches (50, 50, 20); the 70 left out asked again in 7 batches
+        // of 10; then one by one within the 20-request retry budget (13)
+        const ones = (n) => Array(n).fill(1)
+        expect(seen.sort((a, b) => a - b)).toEqual([
+            ...ones(13),
+            ...Array(7).fill(10),
+            20,
+            50,
+            50,
+        ])
         expect(peak).toBeLessThanOrEqual(2)
+        // 204 and the legacy 404 are "no pixel", never an error
         expect(out.size).toBe(50)
+        // 13 confirmed by one-id answers; the 57 the budget didn't reach
+        // are unresolved - not reported as missing data
+        expect(out.unresolved.size).toBe(57)
     })
 
     test('a generic 404 or a 200 without assets is an error, never "no data"', async () => {
@@ -1522,9 +1539,12 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
         })
         expect(r.status).toBe('empty')
         expect(r.message).toMatch(/No usable values/)
+        // one id asked on its own: TiTiler's 204 is a definite answer
         expect(r.notes.join(' ')).toMatch(
-            /1 acquisition returned no reading here, asked twice \(gaps\)/
+            /1 acquisition returned no reading here \(gaps\)/
         )
+        expect(r.incomplete).toEqual([])
+        expect(r.cacheable).toBe(true)
     })
 
     test('a missing acquisition between two readings is a gap, not a bridge', async () => {
@@ -3060,11 +3080,11 @@ test.describe('review 5 - failures stay retryable', () => {
             await settle(10)
             const r = view.results().at(-1)[2]
             expect(r.status).toBe('empty')
-            expect(r.notes.join(' ')).toMatch(
-                /returned no reading here, asked twice/
-            )
-            // asked once, then once more for the absent item
-            expect(servers.pointUrls).toHaveLength(2)
+            expect(r.notes.join(' ')).toMatch(/returned no reading here/)
+            // one item, asked on its own: the answer is definitive, so it
+            // is not asked again, and the gap is a confirmed one
+            expect(servers.pointUrls).toHaveLength(1)
+            expect(r.incomplete).toEqual([])
         }
     })
 })
@@ -3726,9 +3746,7 @@ test.describe('finding A - the time limit and cancellation cover the body', () =
                         resolve({
                             type: 'FeatureCollection',
                             assets: ['a', 'b', 'c'].map((id) => ({
-                                assets: ['asset'],
-                                collection: COLLECTION,
-                                id,
+                                name: `${COLLECTION}/${id}`,
                                 values: [999],
                                 band_names: ['b1'],
                             })),
@@ -4066,6 +4084,438 @@ test.describe('COG-only configurations (#1159 scope)', () => {
     test('the hover prompt is offered only for a layer that can be charted', () => {
         expect(classifyLayer(cogTime).eligible).toBe(false)
         expect(classifyLayer(stacLayer()).eligible).toBe(true)
+    })
+})
+
+test.describe('Devin A - distinct ids before timestamp validation', () => {
+    const read = (pages, extra = {}) => {
+        let n = 0
+        return fetchStacItems({
+            fetchFn: async () => jsonResponse(pages[n++]),
+            stacBase: STAC_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+            ...extra,
+        })
+    }
+    const next = (t) => [{ rel: 'next', href: `http://h/s?token=next:${t}` }]
+
+    test('the review case: [A, invalid B] then [invalid B] against a count of 3 is incomplete', async () => {
+        const r = await read([
+            {
+                numberMatched: 3,
+                features: [
+                    item('A', '2024-01-01T00:00:00Z'),
+                    item('B', 'not-a-time'),
+                ],
+                links: next(2),
+            },
+            { numberMatched: 3, features: [item('B', 'not-a-time')] },
+        ])
+        expect(r.items.map((i) => i.id)).toEqual(['A'])
+        // B is one skipped item, not two
+        expect(r.invalidTimes).toBe(1)
+        // two distinct ids read, three matched: not complete
+        expect(r).toMatchObject({ truncated: true, truncatedBy: 'count' })
+    })
+
+    test('the review case end to end: warned, one skip noted, not cacheable', async () => {
+        const pages = [
+            {
+                numberMatched: 3,
+                features: [
+                    item('A', '2024-01-01T00:00:00Z'),
+                    item('B', 'not-a-time'),
+                ],
+                links: next(2),
+            },
+            { numberMatched: 3, features: [item('B', 'not-a-time')] },
+        ]
+        let n = 0
+        const points = fakeServers({
+            items: [item('A', '2024-01-01T00:00:00Z')],
+            values: { A: [5] },
+        })
+        const r = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            location: LOCATION,
+            fetchFn: (url, init) =>
+                new URL(url).pathname.endsWith('/stac/search')
+                    ? Promise.resolve(jsonResponse(pages[n++]))
+                    : points.fetchFn(url, init),
+        })
+        expect(r.status).toBe('ok')
+        expect(r.notes).toContain('1 item skipped: no valid acquisition time.')
+        expect(r.incomplete).toEqual([
+            'showing 1 of 3 matching items: the STAC API counted more items than its pages returned',
+        ])
+        expect(r.cacheable).toBe(false)
+    })
+
+    test('a repeated valid item is counted once and charted once', async () => {
+        const r = await read([
+            {
+                numberMatched: 2,
+                features: [
+                    item('A', '2024-01-01T00:00:00Z'),
+                    item('B', '2024-01-02T00:00:00Z'),
+                ],
+                links: next(2),
+            },
+            { numberMatched: 2, features: [item('A', '2024-01-01T00:00:00Z')] },
+        ])
+        expect(r.items.map((i) => i.id)).toEqual(['A', 'B'])
+        expect(r.truncated).toBe(false)
+        expect(r.incomplete).toEqual([])
+    })
+
+    test('an item repeated with different metadata is kept as first seen and flagged', async () => {
+        for (const later of [
+            item('A', '2024-03-03T00:00:00Z'), // another time
+            item('A', 'not-a-time'), // valid first, invalid later
+        ]) {
+            const r = await read([
+                {
+                    numberMatched: 2,
+                    features: [
+                        item('A', '2024-01-01T00:00:00Z'),
+                        item('B', '2024-01-02T00:00:00Z'),
+                    ],
+                    links: next(2),
+                },
+                { numberMatched: 2, features: [later] },
+            ])
+            expect(r.items.map((i) => [i.id, i.time])).toEqual([
+                ['A', Date.UTC(2024, 0, 1)],
+                ['B', Date.UTC(2024, 0, 2)],
+            ])
+            expect(r.invalidTimes).toBe(0)
+            expect(r.incomplete).toEqual([
+                'the STAC API returned 1 item with differing times on different pages',
+            ])
+        }
+        // invalid first, valid later: still one item, flagged, not charted
+        // on a guess of which copy is right
+        const r = await read([
+            {
+                numberMatched: 1,
+                features: [item('A', 'not-a-time')],
+                links: next(2),
+            },
+            { numberMatched: 1, features: [item('A', '2024-01-01T00:00:00Z')] },
+        ])
+        expect(r.items).toEqual([])
+        expect(r.invalidTimes).toBe(1)
+        expect(r.incomplete).toHaveLength(1)
+    })
+
+    test('features without an id cannot be told apart: each counts once as skipped', async () => {
+        const noId = (t) => ({ type: 'Feature', properties: { datetime: t } })
+        const r = await read([
+            {
+                numberMatched: 3,
+                features: [
+                    item('A', '2024-01-01T00:00:00Z'),
+                    noId('2024-01-02T00:00:00Z'),
+                    noId('2024-01-03T00:00:00Z'),
+                ],
+            },
+        ])
+        expect(r.items.map((i) => i.id)).toEqual(['A'])
+        expect(r.invalidTimes).toBe(2)
+        expect(r.truncated).toBe(false)
+    })
+
+    test('repeats do not use up the item limit', async () => {
+        const r = await read(
+            [
+                {
+                    numberMatched: 3,
+                    features: [
+                        item('A', '2024-01-01T00:00:00Z'),
+                        item('A', '2024-01-01T00:00:00Z'),
+                        item('B', '2024-01-02T00:00:00Z'),
+                    ],
+                    links: next(2),
+                },
+                {
+                    numberMatched: 3,
+                    features: [item('C', '2024-01-03T00:00:00Z')],
+                },
+            ],
+            { limits: { ...TIME_SERIES_LIMITS, maxItems: 3 } }
+        )
+        expect(r.items.map((i) => i.id)).toEqual(['A', 'B', 'C'])
+        expect(r.truncated).toBe(false)
+    })
+
+    test('through the controller: the review case is not cached; a full answer later is', async () => {
+        let complete = false
+        let stacCalls = 0
+        const points = fakeServers({
+            items: ['A', 'B', 'C'].map((id, i) =>
+                item(id, `2024-01-0${i + 1}T00:00:00Z`)
+            ),
+            values: { A: [1], B: [2], C: [3] },
+        })
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: (a) => {
+                let page = 0
+                return fetchLayerTimeSeries({
+                    ...a,
+                    location: LOCATION,
+                    fetchFn: (url, init) => {
+                        if (!new URL(url).pathname.endsWith('/stac/search'))
+                            return points.fetchFn(url, init)
+                        stacCalls++
+                        page++
+                        if (complete)
+                            return Promise.resolve(
+                                jsonResponse({
+                                    numberMatched: 3,
+                                    features: ['A', 'B', 'C'].map((id, i) =>
+                                        item(id, `2024-01-0${i + 1}T00:00:00Z`)
+                                    ),
+                                })
+                            )
+                        return Promise.resolve(
+                            jsonResponse(
+                                page === 1
+                                    ? {
+                                          numberMatched: 3,
+                                          features: [
+                                              item('A', '2024-01-01T00:00:00Z'),
+                                              item('B', 'not-a-time'),
+                                          ],
+                                          links: next(2),
+                                      }
+                                    : {
+                                          numberMatched: 3,
+                                          features: [item('B', 'not-a-time')],
+                                      }
+                            )
+                        )
+                    },
+                })
+            },
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await settle(10)
+        expect(view.results().at(-1)[2].incomplete).toHaveLength(1)
+        expect(c._cacheSize()).toBe(0)
+        complete = true
+        const before = stacCalls
+        c.selectPoint(1, 2)
+        await settle(10)
+        expect(stacCalls).toBeGreaterThan(before)
+        expect(view.results().at(-1)[2].incomplete).toEqual([])
+        expect(c._cacheSize()).toBe(1)
+    })
+})
+
+test.describe('Devin B - TiTiler omissions are recovered or disclosed, never guessed', () => {
+    // A point server that answers each request through `answer(ids, n)`,
+    // returning the ids to include (values from VALUES; null = nodata).
+    const VALUES = { A: [1], B: [2], C: [3], N: [null] }
+    const pointServer = (answer, { status } = {}) => {
+        const asked = []
+        let inFlight = 0
+        const stats = { peak: 0 }
+        const fetchFn = async (url, init) => {
+            const ids = new URL(url).searchParams.get('ids').split(',')
+            asked.push(ids)
+            inFlight++
+            stats.peak = Math.max(stats.peak, inFlight)
+            await new Promise((r) => setTimeout(r, 2))
+            inFlight--
+            if (init?.signal?.aborted)
+                throw Object.assign(new Error('aborted'), {
+                    name: 'AbortError',
+                })
+            const st = status?.(ids, asked.length)
+            if (st) return { ok: false, status: st, json: async () => ({}) }
+            const include = answer(ids, asked.length)
+            if (include.length === 0)
+                return { ok: true, status: 204, json: async () => null }
+            return jsonResponse({
+                type: 'FeatureCollection',
+                assets: include.map((id) => ({
+                    name: `${COLLECTION}/${id}`,
+                    values: VALUES[id] ?? [9],
+                    band_names: ['b1'],
+                })),
+            })
+        }
+        return { fetchFn, asked, stats }
+    }
+    const values = (srv, ids, extra = {}) =>
+        fetchPointValues({
+            fetchFn: srv.fetchFn,
+            titilerBase: 'https://mmgis.test/titilerpgstac',
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+            ids,
+            layer: stacLayer(),
+            ...extra,
+        })
+
+    test('the review case: [A,B,C] -> A; [B,C] -> B; C is recovered on its own', async () => {
+        const srv = pointServer((ids, n) =>
+            n === 1 ? ['A'] : n === 2 ? ['B'] : ids
+        )
+        const got = await values(srv, ['A', 'B', 'C'])
+        expect(srv.asked).toEqual([['A', 'B', 'C'], ['B', 'C'], ['C']])
+        expect([...got.keys()].sort()).toEqual(['A', 'B', 'C'])
+        expect(got.get('C').values).toEqual([3])
+        expect([...got.unresolved]).toEqual([])
+    })
+
+    test('nodata in a response is a confirmed answer: no re-asking', async () => {
+        const srv = pointServer((ids) => ids)
+        const got = await values(srv, ['A', 'N'])
+        expect(srv.asked).toEqual([['A', 'N']])
+        expect(got.get('N').values).toEqual([null])
+    })
+
+    test('omitted even when asked on its own: a confirmed "no reading", not unresolved', async () => {
+        const srv = pointServer((ids) => ids.filter((id) => id !== 'C'))
+        const got = await values(srv, ['A', 'B', 'C'])
+        expect(srv.asked).toEqual([['A', 'B', 'C'], ['C']])
+        expect(got.has('C')).toBe(false)
+        expect([...got.unresolved]).toEqual([])
+    })
+
+    test('a one-id batch that omits its id is already definitive', async () => {
+        const srv = pointServer(() => [])
+        const got = await values(srv, ['C'])
+        expect(srv.asked).toEqual([['C']])
+        expect([...got.unresolved]).toEqual([])
+    })
+
+    test('omissions beyond the retry budget stay unresolved - bounded requests', async () => {
+        const ids = Array.from({ length: 60 }, (_, i) => `i${i}`)
+        // every multi-id request answers only its first id; singletons answer
+        const srv = pointServer((asked) =>
+            asked.length === 1 ? asked : [asked[0]]
+        )
+        const limits = {
+            ...TIME_SERIES_LIMITS,
+            pointBatchSize: 50,
+            retryBatchSize: 10,
+            maxRetryRequests: 8,
+        }
+        const got = await values(srv, ids, { limits })
+        expect(srv.asked.length).toBeLessThanOrEqual(2 + 8)
+        expect(got.size + got.unresolved.size).toBe(60)
+        expect(got.unresolved.size).toBeGreaterThan(0)
+        // nothing unresolved was turned into a value or a gap
+        for (const id of got.unresolved) expect(got.has(id)).toBe(false)
+    })
+
+    test('a service error during recovery fails the read (nothing cached)', async () => {
+        const srv = pointServer((ids, n) => (n === 1 ? ['A'] : ids), {
+            status: (ids, n) => (n === 2 ? 503 : 0),
+        })
+        await expect(values(srv, ['A', 'B', 'C'])).rejects.toThrow(/HTTP 503/)
+    })
+
+    test('cancellation during recovery stops it', async () => {
+        const ctrl = new AbortController()
+        const srv = pointServer((ids, n) => {
+            if (n === 2) ctrl.abort()
+            return n === 1 ? ['A'] : []
+        })
+        await expect(
+            values(srv, ['A', 'B', 'C'], { signal: ctrl.signal })
+        ).rejects.toMatchObject({ name: 'AbortError' })
+        await settle(5)
+        expect(srv.asked.length).toBe(2)
+    })
+
+    test('recovery stays inside the shared concurrency limit', async () => {
+        const ids = Array.from({ length: 30 }, (_, i) => `i${i}`)
+        const srv = pointServer((asked) =>
+            asked.length === 1 ? asked : asked.slice(0, 2)
+        )
+        const run = createLimiter(3)
+        await values(srv, ids, {
+            run,
+            limits: {
+                ...TIME_SERIES_LIMITS,
+                pointBatchSize: 10,
+                retryBatchSize: 4,
+            },
+        })
+        expect(srv.stats.peak).toBeLessThanOrEqual(3)
+    })
+
+    test('end to end: an unresolved acquisition is a labelled gap, disclosed, and not cached', async () => {
+        const stac = fakeServers({
+            items: ['A', 'B', 'C'].map((id, i) =>
+                item(id, `2024-01-0${i + 1}T00:00:00Z`)
+            ),
+        })
+        let healthy = false
+        // C is left out of every answer until the service recovers
+        const srv = pointServer((ids) =>
+            healthy ? ids : ids.filter((id) => id !== 'C')
+        )
+        // no retry budget: C cannot be resolved
+        const limits = { ...TIME_SERIES_LIMITS, maxRetryRequests: 0 }
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    location: LOCATION,
+                    limits,
+                    fetchFn: (url, init) =>
+                        new URL(url).pathname.endsWith('/stac/search')
+                            ? stac.fetchFn(url, init)
+                            : srv.fetchFn(url, init),
+                }),
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await settle(20)
+        const r = view.results().at(-1)[2]
+        expect(r.status).toBe('ok')
+        const pts = r.series[0].points
+        expect(pts.map((p) => [p.itemId, p.value, p.status])).toEqual([
+            ['A', 1, 'ok'],
+            ['B', 2, 'ok'],
+            ['C', null, 'unresolved'],
+        ])
+        expect(buildReadingsTable(r.series).rows[2][2]).toBe('not read')
+        expect(r.incomplete).toEqual([
+            '1 acquisition could not be read here (the point service left it out of its answers); its value may exist',
+        ])
+        expect(r.cacheable).toBe(false)
+        expect(c._cacheSize()).toBe(0)
+        // the service recovers: the next click reads C and is cached
+        healthy = true
+        c.selectPoint(1, 2)
+        await settle(20)
+        const r2 = view.results().at(-1)[2]
+        expect(r2.series[0].points.map((p) => p.value)).toEqual([1, 2, 3])
+        expect(r2.incomplete).toEqual([])
+        expect(c._cacheSize()).toBe(1)
     })
 })
 

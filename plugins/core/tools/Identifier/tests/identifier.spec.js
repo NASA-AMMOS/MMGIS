@@ -753,6 +753,64 @@ test.describe('Identifier time series - real STAC and TiTiler', () => {
     expect(searches.length).toBe(2);
   });
 
+  test('Devin A, real STAC: a timeless item sent twice is counted once - warned and not cached', async ({ page }) => {
+    let searches = 0;
+    await page.route('**/stac/search?**', async (route) => {
+      searches++;
+      const res = await route.fetch();
+      const body = await res.json();
+      const real = body.features.length;
+      const bad = { type: 'Feature', id: 'B-timeless', collection: COLLECTION, properties: { datetime: 'not-a-time' } };
+      body.features = [...body.features, bad, { ...bad }];
+      // the server claims two items more than the real ones; only one
+      // distinct extra item (B, twice) was actually sent
+      body.numberMatched = real + 2;
+      if (body.context) body.context.matched = real + 2;
+      return route.fulfill({ response: res, json: body });
+    });
+    const uuid = await openApp(page);
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    const section = page.locator(`#identifierTimeSeriesPanel [data-layer="${uuid}"]`);
+    await expect(section).toHaveAttribute('data-settled', 'true', { timeout: 20000 });
+    await expect(section.locator('.identifierTimeSeriesPanel_notes')).toContainText('1 item skipped: no valid acquisition time.');
+    await expect(section.locator('.identifierTimeSeriesPanel_incomplete')).toBeVisible();
+    await expect(section.locator('.identifierTimeSeriesPanel_incomplete')).toContainText('showing 3 of 5 matching items');
+    // not cached: the same point is read again
+    const before = searches;
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    await expect.poll(() => searches, { timeout: 15000 }).toBeGreaterThan(before);
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('Devin B, real TiTiler: items left out of multi-item answers are recovered, not charted as gaps', async ({ page, request }) => {
+    // Real TiTiler answers, but every multi-item answer keeps only its first
+    // entry, as a pgSTAC search cut short by its time limit could - the
+    // review's case: [A,B,C] -> A, then [B,C] -> B. One-item requests pass
+    // through untouched.
+    const asked = [];
+    await page.route('**/titilerpgstac/collections/**/point/**', async (route) => {
+      const url = new URL(route.request().url());
+      const ids = (url.searchParams.get('ids') || '').split(',').filter(Boolean);
+      asked.push(ids.length);
+      const res = await route.fetch();
+      if (ids.length <= 1 || res.status() !== 200) return route.fulfill({ response: res });
+      const body = await res.json();
+      body.assets = body.assets.slice(0, 1);
+      return route.fulfill({ response: res, json: body });
+    });
+    const uuid = await openApp(page);
+    await page.evaluate(([lng, lat]) => window.ToolController_.getTool('IdentifierTool').timeSeries.selectPoint(lng, lat), [LNG, LAT]);
+    const shown = await tableValues(page, uuid);
+    const truth = await itemValues(request, null);
+    expect(Object.keys(shown).sort()).toEqual(Object.keys(truth).sort());
+    for (const [id, v] of Object.entries(truth)) expect(shown[id]).toBe(v == null ? 'no data' : String(Number(v.toFixed(2))));
+    // all three, the two left out again together, then the last on its own
+    expect(asked).toEqual([3, 2, 1]);
+    const section = page.locator(`#identifierTimeSeriesPanel [data-layer="${uuid}"]`);
+    await expect(section.locator('.identifierTimeSeriesPanel_incomplete')).toBeHidden();
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
   test('the global time window (setTime) re-charts the pinned point', async ({ page }) => {
     const searches = [];
     page.on('request', (r) => { if (r.url().includes('/stac/search?')) searches.push(new URL(r.url()).searchParams.get('datetime')); });
