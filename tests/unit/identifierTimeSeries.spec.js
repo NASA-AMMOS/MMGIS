@@ -125,6 +125,11 @@ function fakeServers({
     pointStatus = 200,
     numberMatched,
     reverseTitiler = true,
+    // what a point answer with no values is: 'outside' - the items were
+    // found but their pixel reads raised PointOutsideBounds (a 200 with an
+    // empty assets list, as titiler-pgstac answers); 'noAssets' - TiTiler's
+    // search found none of them (NoAssetFound -> 204)
+    emptyAnswer = 'outside',
 } = {}) {
     const calls = { stac: [], point: [] }
     const fetchFn = async (url, init) => {
@@ -167,7 +172,7 @@ function fakeServers({
                 .map((id) => pointAsset(id, values[id]))
             if (reverseTitiler) assets = assets.reverse()
             // titiler-pgstac 3.1 answers NoAssetFound with 204 No Content
-            if (assets.length === 0)
+            if (assets.length === 0 && emptyAnswer === 'noAssets')
                 return {
                     ok: true,
                     status: 204,
@@ -1003,11 +1008,11 @@ test.describe('bands, expressions, point query', () => {
             50,
         ])
         expect(peak).toBeLessThanOrEqual(2)
-        // 204 and the legacy 404 are "no pixel", never an error
+        // 204 and the legacy 404 are never an error
         expect(out.size).toBe(50)
-        // 13 confirmed by one-id answers; the 57 the budget didn't reach
-        // are unresolved - not reported as missing data
-        expect(out.unresolved.size).toBe(57)
+        // a one-id 204/NoAssetFound is not a confirmed "no reading" (13),
+        // and the budget didn't reach the other 57: all 70 unresolved
+        expect(out.unresolved.size).toBe(70)
     })
 
     test('a generic 404 or a 200 without assets is an error, never "no data"', async () => {
@@ -1525,7 +1530,31 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
         expect(option.series[0].connectNulls).not.toBe(true)
     })
 
-    test('TiTiler 204 (no asset) for every item -> empty, times kept', async () => {
+    test('TiTiler 204 (no asset) for every item -> empty, times kept, unresolved', async () => {
+        const { fetchFn } = fakeServers({
+            items: [item('a', '2024-02-01T00:00:00Z')],
+            values: {},
+            emptyAnswer: 'noAssets',
+        })
+        const r = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            fetchFn,
+            location: LOCATION,
+        })
+        expect(r.status).toBe('empty')
+        expect(r.message).toMatch(/No usable values/)
+        // TiTiler's search didn't find the item the STAC API matched: not
+        // an error, but not a confirmed "no reading" either
+        expect(r.series[0].points[0].status).toBe('unresolved')
+        expect(r.incomplete).toEqual([
+            '1 acquisition could not be read here (the point service left it out of its answers); its value may exist',
+        ])
+        expect(r.cacheable).toBe(false)
+    })
+
+    test('found but no pixel (200, empty assets) for every item -> empty, confirmed', async () => {
         const { fetchFn } = fakeServers({
             items: [item('a', '2024-02-01T00:00:00Z')],
             values: {},
@@ -1538,8 +1567,6 @@ test.describe('fetchLayerTimeSeries - end to end against fake servers', () => {
             location: LOCATION,
         })
         expect(r.status).toBe('empty')
-        expect(r.message).toMatch(/No usable values/)
-        // one id asked on its own: TiTiler's 204 is a definite answer
         expect(r.notes.join(' ')).toMatch(
             /1 acquisition returned no reading here \(gaps\)/
         )
@@ -3055,7 +3082,7 @@ test.describe('review 5 - failures stay retryable', () => {
         })
     }
 
-    test('an explicit no-asset answer (204, or a legacy NoAssetFound 404) is a real gap', async () => {
+    test('an explicit no-asset answer (204, or a legacy NoAssetFound 404) is no error, and not a confirmed gap', async () => {
         for (const answer of [
             () => ({
                 ok: true,
@@ -3080,11 +3107,13 @@ test.describe('review 5 - failures stay retryable', () => {
             await settle(10)
             const r = view.results().at(-1)[2]
             expect(r.status).toBe('empty')
-            expect(r.notes.join(' ')).toMatch(/returned no reading here/)
-            // one item, asked on its own: the answer is definitive, so it
-            // is not asked again, and the gap is a confirmed one
+            // TiTiler's search didn't find the one item the STAC API
+            // matched: shown as "not read", disclosed, retried next click
+            expect(r.series[0].points[0].status).toBe('unresolved')
+            expect(r.incomplete).toHaveLength(1)
+            expect(r.cacheable).toBe(false)
+            expect(c._cacheSize()).toBe(0)
             expect(servers.pointUrls).toHaveLength(1)
-            expect(r.incomplete).toEqual([])
         }
     })
 })
@@ -4345,8 +4374,8 @@ test.describe('Devin B - TiTiler omissions are recovered or disclosed, never gue
             const st = status?.(ids, asked.length)
             if (st) return { ok: false, status: st, json: async () => ({}) }
             const include = answer(ids, asked.length)
-            if (include.length === 0)
-                return { ok: true, status: 204, json: async () => null }
+            // nothing to include: found, but no pixel here (a 200, as
+            // titiler-pgstac answers PointOutsideBounds)
             return jsonResponse({
                 type: 'FeatureCollection',
                 assets: include.map((id) => ({
@@ -4516,6 +4545,200 @@ test.describe('Devin B - TiTiler omissions are recovered or disclosed, never gue
         expect(r2.series[0].points.map((p) => p.value)).toEqual([1, 2, 3])
         expect(r2.incomplete).toEqual([])
         expect(c._cacheSize()).toBe(1)
+    })
+})
+
+test.describe('one-item answers: only a 200 confirms a missing reading', () => {
+    // pgSTAC 0.9.6 checks its time limit only after a match, so a one-item
+    // search cut short still returns the item. A 200 whose `assets` lack it
+    // means the item was found and its pixel read was dropped (no reading).
+    // A 204 / NoAssetFound 404 means TiTiler's search didn't find an item
+    // the STAC API said covers the point - unexplained, so not confirmed.
+    const singleServer = (answer) => {
+        const asked = []
+        const fetchFn = async (url) => {
+            const ids = new URL(url).searchParams.get('ids').split(',')
+            asked.push(ids)
+            return answer(ids)
+        }
+        return { fetchFn, asked }
+    }
+    const empty200 = () => jsonResponse({ coordinates: [0, 0], assets: [] })
+    const noContent = () => ({ ok: true, status: 204, json: async () => null })
+    const legacy404 = () =>
+        jsonResponse({ detail: 'No assets found for point (0,0)' }, 404)
+    const read = (srv, ids = ['C']) =>
+        fetchPointValues({
+            fetchFn: srv.fetchFn,
+            titilerBase: TITILER_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+            ids,
+            layer: {},
+        })
+
+    test('200 with an empty assets list: a confirmed "no reading"', async () => {
+        const got = await read(singleServer(empty200))
+        expect(got.has('C')).toBe(false)
+        expect([...got.unresolved]).toEqual([])
+    })
+
+    for (const [label, answer] of [
+        ['204', noContent],
+        ['legacy NoAssetFound 404', legacy404],
+    ])
+        test(`${label} for one item: unresolved, not a confirmed gap`, async () => {
+            const srv = singleServer(answer)
+            const got = await read(srv)
+            expect(srv.asked).toEqual([['C']])
+            expect(got.has('C')).toBe(false)
+            expect([...got.unresolved]).toEqual(['C'])
+        })
+
+    test('the same after a multi-item answer left the item out', async () => {
+        // [A,C] -> A only; then C alone -> 204: unresolved
+        const srv = singleServer((ids) =>
+            ids.length > 1
+                ? jsonResponse({ assets: [pointAsset('A', [1])] })
+                : noContent()
+        )
+        const got = await read(srv, ['A', 'C'])
+        expect(srv.asked).toEqual([['A', 'C'], ['C']])
+        expect(got.get('A').values).toEqual([1])
+        expect([...got.unresolved]).toEqual(['C'])
+        // and a 200-empty in the same place confirms it instead
+        const srv2 = singleServer((ids) =>
+            ids.length > 1
+                ? jsonResponse({ assets: [pointAsset('A', [1])] })
+                : empty200()
+        )
+        expect([...(await read(srv2, ['A', 'C'])).unresolved]).toEqual([])
+    })
+
+    test('end to end: a 204 for the only item is disclosed and not cached; a 200 later is', async () => {
+        let answer = noContent
+        const stac = fakeServers({ items: [item('C', '2024-01-01T00:00:00Z')] })
+        const view = fakeView()
+        const c = createTimeSeriesController({
+            getLayers: () => ({
+                data: { ch4: stacLayer() },
+                on: { ch4: true },
+            }),
+            fetchSeries: (a) =>
+                fetchLayerTimeSeries({
+                    ...a,
+                    location: LOCATION,
+                    fetchFn: (url, init) =>
+                        new URL(url).pathname.endsWith('/stac/search')
+                            ? stac.fetchFn(url, init)
+                            : Promise.resolve(answer()),
+                }),
+            marker: fakeMarker(),
+            view,
+        })
+        c.selectPoint(1, 2)
+        await settle(10)
+        let r = view.results().at(-1)[2]
+        expect(r).toMatchObject({ status: 'empty', kind: 'all-gaps' })
+        expect(r.series[0].points[0].status).toBe('unresolved')
+        expect(r.incomplete).toEqual([
+            '1 acquisition could not be read here (the point service left it out of its answers); its value may exist',
+        ])
+        expect(r.cacheable).toBe(false)
+        expect(c._cacheSize()).toBe(0)
+        // the service now answers with a 200 that confirms no reading
+        answer = empty200
+        c.selectPoint(1, 2)
+        await settle(10)
+        r = view.results().at(-1)[2]
+        expect(r.series[0].points[0].status).toBe('missing')
+        expect(r.incomplete).toEqual([])
+        expect(c._cacheSize()).toBe(1)
+    })
+})
+
+test.describe('id-less STAC features cannot establish completeness', () => {
+    const noId = (t) => ({ type: 'Feature', properties: { datetime: t } })
+    const next = (t) => [{ rel: 'next', href: `http://h/s?token=next:${t}` }]
+    const read = (pages) => {
+        let n = 0
+        return fetchStacItems({
+            fetchFn: async () => jsonResponse(pages[n++]),
+            stacBase: STAC_BASE,
+            collection: COLLECTION,
+            lng: 0,
+            lat: 0,
+        })
+    }
+
+    test('one id-less feature repeated across pages does not make the count', async () => {
+        // 3 matched; A, and an id-less X sent twice - maybe one item, maybe two
+        const r = await read([
+            {
+                numberMatched: 3,
+                features: [item('A', '2024-01-01T00:00:00Z'), noId('nope')],
+                links: next(2),
+            },
+            { numberMatched: 3, features: [noId('nope')] },
+        ])
+        expect(r.items.map((i) => i.id)).toEqual(['A'])
+        expect(r.invalidTimes).toBe(2)
+        expect(r.incomplete).toEqual([
+            "the STAC API returned 2 items without an id, so it can't be confirmed that every matching item was read",
+        ])
+    })
+
+    test('end to end: warned and not cacheable', async () => {
+        let page = 0
+        const pages = [
+            {
+                numberMatched: 3,
+                features: [item('A', '2024-01-01T00:00:00Z'), noId('nope')],
+                links: next(2),
+            },
+            { numberMatched: 3, features: [noId('nope')] },
+        ]
+        const points = fakeServers({
+            items: [item('A', '2024-01-01T00:00:00Z')],
+            values: { A: [5] },
+        })
+        const r = await fetchLayerTimeSeries({
+            layer: stacLayer(),
+            lng: 0,
+            lat: 0,
+            location: LOCATION,
+            fetchFn: (url, init) =>
+                new URL(url).pathname.endsWith('/stac/search')
+                    ? Promise.resolve(jsonResponse(pages[page++]))
+                    : points.fetchFn(url, init),
+        })
+        expect(r.status).toBe('ok')
+        expect(r.incomplete).toHaveLength(1)
+        expect(r.cacheable).toBe(false)
+    })
+
+    test('distinct ids that already make the count settle it, id-less extras aside', async () => {
+        const r = await read([
+            {
+                numberMatched: 2,
+                features: [
+                    item('A', '2024-01-01T00:00:00Z'),
+                    item('B', '2024-01-02T00:00:00Z'),
+                    noId('nope'),
+                ],
+            },
+        ])
+        expect(r.truncated).toBe(false)
+        expect(r.incomplete).toEqual([])
+    })
+
+    test('without a count, id-less features change nothing', async () => {
+        const r = await read([
+            { features: [item('A', '2024-01-01T00:00:00Z'), noId('nope')] },
+        ])
+        expect(r.truncated).toBe(false)
+        expect(r.incomplete).toEqual([])
     })
 })
 

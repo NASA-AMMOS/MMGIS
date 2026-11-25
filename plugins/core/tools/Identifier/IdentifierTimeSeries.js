@@ -498,11 +498,18 @@ export async function fetchStacItems({
         )
     // Distinct matches read (charted, or skipped for their time). A repeat is
     // not a second match: counting it would let overlapping pages - or a
-    // timeless item sent twice - pass for a complete history.
-    const accounted = seen.size + idless
+    // timeless item sent twice - pass for a complete history. Id-less
+    // features can't be told apart, so they can't make up the count: the
+    // same one sent twice would look like two matches.
     if (numberMatched != null) {
         // The server's count settles it: everything read, or not.
-        if (accounted >= numberMatched) truncatedBy = null
+        if (seen.size >= numberMatched) truncatedBy = null
+        else if (seen.size + idless >= numberMatched)
+            incomplete.push(
+                `the STAC API returned ${idless} item${
+                    idless === 1 ? '' : 's'
+                } without an id, so it can't be confirmed that every matching item was read`
+            )
         else if (!truncatedBy) truncatedBy = 'count'
     }
     return {
@@ -738,9 +745,13 @@ function readPointBatch({ fetchFn, url, signal, collection, timeoutMs }) {
     })
 }
 
+// TiTiler's search found none of the requested items (NoAssetFound): an
+// answer with no values, marked so that it isn't read as "found, no pixel".
+const noAssetsFound = () => Object.assign(new Map(), { noAssetsFound: true })
+
 async function readPointResponse(res, collection) {
     // titiler-pgstac 3.x: NoAssetFound -> 204 No Content.
-    if (res.status === 204) return new Map()
+    if (res.status === 204) return noAssetsFound()
     if (res.status === 404) {
         let body = null
         try {
@@ -748,7 +759,7 @@ async function readPointResponse(res, collection) {
         } catch (e) {
             body = null
         }
-        if (isNoAssetDetail(body)) return new Map()
+        if (isNoAssetDetail(body)) return noAssetsFound()
         throw new TimeSeriesHttpError('Point query', 404)
     }
     if (!res.ok) throw new TimeSeriesHttpError('Point query', res.status)
@@ -772,18 +783,22 @@ async function readPointResponse(res, collection) {
  * at pgSTAC's time limit (5 s by default) and returns what it found so far,
  * and an item whose raster doesn't cover the point (PointOutsideBounds) is
  * dropped. The first is a failure to answer, the second a real "no reading";
- * a multi-id answer can't tell them apart. A one-id request can: its search
- * can't be cut short in any practical sense, so leaving that id out (or a
- * 204) means TiTiler has no reading for it here.
+ * a multi-id answer can't tell them apart. A one-id request can, when it is
+ * a 200: the search found the item (an empty search is a 204, and pgSTAC
+ * 0.9.6's geometrysearch checks its time limit only after adding a match),
+ * so leaving it out of `assets` means its pixel read was dropped - no
+ * reading here. A one-id 204 (or legacy NoAssetFound 404) means
+ * TiTiler's search didn't find the item at all, though the STAC API matched
+ * it: that isn't explained by the item having no pixel, so it is unresolved.
  *
  * So: ids left out of a multi-id answer are asked again in smaller batches
  * (`retryBatchSize`), and those still left out, one by one - within a budget
  * of `maxRetryRequests` extra requests for the whole call. A value present
  * in any answer - a number, or null for a masked pixel - is final. An id left
- * out of a one-id answer is a confirmed "no reading" (absent from the
- * result). Ids the budget didn't reach are `unresolved`: their value may
- * exist, and the caller must neither show them as missing data nor cache the
- * result as complete.
+ * out of a one-id 200 is a confirmed "no reading" (absent from the result).
+ * Ids the budget didn't reach, and ids a one-id request answered with
+ * NoAssetFound, are `unresolved`: their value may exist, and the caller must
+ * neither show them as missing data nor cache the result as complete.
  *
  * @returns {Promise<Map<string, object> & {unresolved: Set<string>}>}
  */
@@ -837,9 +852,17 @@ export async function fetchPointValues({
                             timeoutMs: limits.requestTimeoutMs,
                         })
                         got.forEach((v, k) => merged.set(k, v))
-                        if (batch.length > 1)
-                            for (const id of batch)
-                                if (!merged.has(id)) leftOut.push(id)
+                        for (const id of batch) {
+                            if (merged.has(id)) continue
+                            // A one-id 200 without the id: found, and its
+                            // pixel read dropped - a confirmed "no reading".
+                            // A one-id 204/NoAssetFound: TiTiler's search
+                            // didn't find an item the STAC API matched here -
+                            // unexplained, so not confirmed (and not asked
+                            // again: the next click will).
+                            if (batch.length > 1) leftOut.push(id)
+                            else if (got.noAssetsFound) unresolved.add(id)
+                        }
                     } catch (e) {
                         if (!failed) {
                             failed = true
