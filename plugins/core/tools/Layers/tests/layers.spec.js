@@ -2266,17 +2266,29 @@ test.describe('LayersTool', () => {
                     name: `${layer.label} settings`,
                 })
             ).toBeVisible()
-            await expect(page.locator('[data-section="export"]')).toHaveCount(0)
             const hasSourceDownload =
                 ['tile', 'data'].includes(layer.type) && layer.hasDownloadURL
-            if (hasSourceDownload)
+            if (hasSourceDownload) {
+                const exportSection = page.locator(
+                    '.lt-settings [data-section="export"]'
+                )
+                await expect(exportSection).toBeVisible()
+                await expect(
+                    exportSection.getByRole('button', {
+                        name: 'Download data',
+                    })
+                ).toBeVisible()
                 await expect(
                     page.getByRole('button', { name: 'Download layer' })
                 ).toBeVisible()
-            else
+            } else {
+                await expect(
+                    page.locator('[data-section="export"]')
+                ).toHaveCount(0)
                 await expect(
                     page.getByRole('button', { name: 'Download layer' })
                 ).toHaveCount(0)
+            }
             await page.locator('.lt-closeButton').click()
         }
     })

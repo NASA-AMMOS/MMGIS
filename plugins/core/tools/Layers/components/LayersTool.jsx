@@ -1187,6 +1187,22 @@ function CoreSettings({ layer, api }) {
                     </div>
                 )}
             </SettingSection>
+        ) : downloadUrl ? (
+            <SettingSection
+                id="export"
+                label="Export"
+                icon="download-outline"
+                onReset={() => api.reset('export')}
+            >
+                <Button
+                    className="lt-iconTextButton lt-secondaryButton"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => api.download()}
+                >
+                    <i className="mdi mdi-download" /> Download data
+                </Button>
+            </SettingSection>
         ) : null
 
     return (
