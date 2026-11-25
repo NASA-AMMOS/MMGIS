@@ -800,7 +800,7 @@ function HeaderRow({
                         openLayerInfo(row.node.name, event.currentTarget)
                     }
                 >
-                    <i className="mdi mdi-information-outline mdi-16px" />
+                    <i className="mdi mdi-information-outline mdi-18px" />
                 </button>
             </ToolTip>
             {!expanded && (
@@ -899,7 +899,7 @@ function LayerRow({
                 </span>
                 <span className="lt-name">{highlightText(row.label, query)}</span>
                 <i
-                    className="mdi mdi-chevron-right lt-openIndicator"
+                    className="mdi mdi-tune mdi-16px lt-openIndicator"
                     aria-hidden="true"
                 />
                 {row.descriptionOnly && (
@@ -1162,7 +1162,7 @@ function CoreSettings({ layer, api }) {
                 )}
                 <Button
                     className="lt-iconTextButton lt-secondaryButton"
-                    size="sm"
+                    size="md"
                     variant="secondary"
                     disabled={exportBusy}
                     onClick={exportLayer}
@@ -1196,7 +1196,7 @@ function CoreSettings({ layer, api }) {
             >
                 <Button
                     className="lt-iconTextButton lt-secondaryButton"
-                    size="sm"
+                    size="md"
                     variant="secondary"
                     onClick={() => api.download()}
                 >
@@ -1460,7 +1460,12 @@ function SettingsPage({
                         </IconButton>
                     </ToolTip>
                     <ToolTip label="Information">
-                        <IconButton size="sm" aria-label="Layer information" onClick={info}>
+                        <IconButton
+                            size="sm"
+                            className="lt-infoButton"
+                            aria-label="Layer information"
+                            onClick={info}
+                        >
                             <i className="mdi mdi-information-outline mdi-18px" />
                         </IconButton>
                     </ToolTip>
@@ -1527,6 +1532,21 @@ function SettingsPage({
                                 </IconButton>
                             </ToolTip>
                         )}
+                        {showDownload && (
+                            <span
+                                className="lt-actionDivider"
+                                aria-hidden="true"
+                            />
+                        )}
+                        <ToolTip label="Reset all settings">
+                            <IconButton
+                                size="sm"
+                                aria-label="Reset all settings"
+                                onClick={() => api.resetAll()}
+                            >
+                                <i className="mdi mdi-restore mdi-18px" />
+                            </IconButton>
+                        </ToolTip>
                     </div>
                 </div>
             </div>
@@ -1551,11 +1571,6 @@ function SettingsPage({
             )}
             <div className="lt-settingsSections">
                 <CoreSettings layer={layer} api={api} />
-            </div>
-            <div className="lt-settingsFooter">
-                <Button className="lt-iconTextButton lt-secondaryButton" size="sm" variant="secondary" onClick={() => api.resetAll()}>
-                    <i className="mdi mdi-restore" /> Reset all settings
-                </Button>
             </div>
         </div>
     )
@@ -2222,6 +2237,11 @@ function LayersToolApp({ vars }) {
             allHeaderNodes.filter((header) => header.expanded === true)
         )
     }
+    const hasExpandedGroups = rowModel.rows.some(
+        (row) =>
+            row.isHeader &&
+            effectiveExpandedMap[row.node.name] === true
+    )
 
     const warnOwnSubtreeDrop = () => {
         setDropBlocked(false)
@@ -2540,6 +2560,21 @@ function LayersToolApp({ vars }) {
                             <div className="mmgisToolTitle">Layers</div>
                             <span className="lt-helpSlot" dangerouslySetInnerHTML={{ __html: Help.getComponent(HELP_KEY) }} />
                         </div>
+                        <div className="right">
+                            <ToolTip label="Close Tool">
+                                <IconButton
+                                    size="sm"
+                                    className="lt-toolbarClose"
+                                    aria-label="Close Layers tool"
+                                    title="Close Tool"
+                                    onClick={() =>
+                                        window.ToolController_.closeActiveTool()
+                                    }
+                                >
+                                    <i className="mdi mdi-close mdi-18px" />
+                                </IconButton>
+                            </ToolTip>
+                        </div>
                     </div>
                     <SearchBox
                         value={state.search}
@@ -2610,22 +2645,34 @@ function LayersToolApp({ vars }) {
                                 className="lt-viewPillDivider"
                                 aria-hidden="true"
                             />
-                            <ToolTip label="Expand all">
+                            <ToolTip
+                                label={
+                                    hasExpandedGroups
+                                        ? 'Collapse all'
+                                        : 'Expand all'
+                                }
+                            >
                                 <IconButton
                                     size="sm"
-                                    aria-label="Expand all"
-                                    onClick={() => expandAll(true)}
+                                    aria-label={
+                                        hasExpandedGroups
+                                            ? 'Collapse all'
+                                            : 'Expand all'
+                                    }
+                                    title={
+                                        hasExpandedGroups
+                                            ? 'Collapse all'
+                                            : 'Expand all'
+                                    }
+                                    onClick={() =>
+                                        hasExpandedGroups
+                                            ? collapseAll()
+                                            : expandAll(true)
+                                    }
                                 >
-                                    <i className="mdi mdi-unfold-more-horizontal mdi-16px" />
-                                </IconButton>
-                            </ToolTip>
-                            <ToolTip label="Collapse all">
-                                <IconButton
-                                    size="sm"
-                                    aria-label="Collapse all"
-                                    onClick={collapseAll}
-                                >
-                                    <i className="mdi mdi-unfold-less-horizontal mdi-16px" />
+                                    <i
+                                        className={`mdi mdi-unfold-${hasExpandedGroups ? 'less' : 'more'}-horizontal mdi-16px`}
+                                    />
                                 </IconButton>
                             </ToolTip>
                             <ToolTip label="Restore default expansion">

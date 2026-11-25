@@ -32,6 +32,15 @@ async function loadMission(page) {
     )
 }
 
+async function setAllExpanded(page, expanded) {
+    const toggle = page.getByRole('button', {
+        name: /^(Expand|Collapse) all$/,
+    })
+    const currentLabel = await toggle.getAttribute('aria-label')
+    if (currentLabel !== (expanded ? 'Collapse all' : 'Expand all'))
+        await toggle.click()
+}
+
 async function dragWithMouse(page, handle, target, targetFraction = 0.5) {
     const sourceBox = await handle.boundingBox()
     const targetBox = await target.boundingBox()
@@ -141,7 +150,7 @@ async function prepareDragPage(page) {
         height: Math.min(10000, Math.max(4800, flat.length * 44)),
     })
     await page.locator('#toolButtonLayers').click()
-    await page.getByRole('button', { name: 'Expand all' }).click()
+    await setAllExpanded(page, true)
     const imagery = await page.evaluate(() => {
         const layer = Object.values(window.L_.layers.data).find(
             (candidate) => candidate.display_name === 'ArcGIS World Imagery'
@@ -612,7 +621,7 @@ test.describe('LayersTool ordering behavior', () => {
             height: Math.min(10000, Math.max(4800, flat.length * 44)),
         })
         await page.locator('#toolButtonLayers').click()
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         const imagery = await page.evaluate(() => {
             const layer = Object.values(window.L_.layers.data).find(
                 (candidate) =>
@@ -725,7 +734,7 @@ test.describe('LayersTool ordering behavior', () => {
     test('keeps scroll position after a pointer reorder', async ({ page }) => {
         await loadMission(page)
         await page.locator('#toolButtonLayers').click()
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
 
         const scroll = page.locator('#layersTool .lt-scroll')
         await scroll.evaluate((element) => {
@@ -806,7 +815,7 @@ test.describe('LayersTool ordering behavior', () => {
     test('blocks dragging a group into its own subtree', async ({ page }) => {
         await loadMission(page)
         await page.locator('#toolButtonLayers').click()
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
 
         const ids = await page.evaluate(() => {
             const flat = window.ToolController_
@@ -924,7 +933,7 @@ test.describe('LayersTool ordering behavior', () => {
     }) => {
         await loadMission(page)
         await page.locator('#toolButtonLayers').click()
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         await page.evaluate(() => {
             const flat = window.ToolController_
                 .getTool('LayersTool')
@@ -980,7 +989,7 @@ test.describe('LayersTool ordering behavior', () => {
         await page.locator('#toolButtonLayers').click()
         const tree = page.getByRole('tree', { name: 'Layers' })
         await expect(tree).toBeVisible()
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
 
         const configLayers = await page.evaluate(
             () => window.L_.configData.layers
@@ -1092,7 +1101,7 @@ test.describe('LayersTool ordering behavior', () => {
         await page.locator('#toolButtonLayers').click()
         const tree = page.getByRole('tree', { name: 'Layers' })
         await expect(tree).toBeVisible()
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         const before = await page.evaluate(() =>
             JSON.stringify(window.L_.configData.layers)
         )

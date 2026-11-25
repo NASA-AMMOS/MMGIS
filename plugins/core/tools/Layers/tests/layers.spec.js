@@ -49,6 +49,15 @@ async function openLayers(page) {
     await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
 }
 
+async function setAllExpanded(page, expanded) {
+    const toggle = page.getByRole('button', {
+        name: /^(Expand|Collapse) all$/,
+    })
+    const currentLabel = await toggle.getAttribute('aria-label')
+    if (currentLabel !== (expanded ? 'Collapse all' : 'Expand all'))
+        await toggle.click()
+}
+
 async function getLayer(page, label, type) {
     const layer = await page.evaluate(
         ({ searchLabel, layerType }) => {
@@ -337,7 +346,7 @@ test.describe('LayersTool', () => {
             .count()
         expect(matchingRowCount).toBeGreaterThan(0)
 
-        await page.getByRole('button', { name: 'Collapse all' }).click()
+        await setAllExpanded(page, false)
         await expect(page.getByText(/No layers match/)).toHaveCount(0)
         await expect(count).toHaveText(countBeforeCollapse)
         const vectorHeader = page
@@ -350,7 +359,7 @@ test.describe('LayersTool', () => {
             page.locator('#layersTool .lt-layerRow')
         ).toHaveCount(0)
 
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         await expect(vectorHeader).toHaveAttribute('aria-expanded', 'true')
         await expect(
             page.locator('#layersTool .lt-layerRow')
@@ -361,6 +370,27 @@ test.describe('LayersTool', () => {
                 .filter({ hasText: 'Points Basic' })
                 .first()
         ).toBeVisible()
+    })
+
+    test('view pill uses one context-aware expansion toggle', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const toggle = page.getByRole('button', {
+            name: /^(Expand|Collapse) all$/,
+        })
+        await expect(toggle).toHaveCount(1)
+        const firstLabel = await toggle.getAttribute('aria-label')
+        await toggle.click()
+        await expect(toggle).toHaveAttribute(
+            'aria-label',
+            firstLabel === 'Collapse all' ? 'Expand all' : 'Collapse all'
+        )
+        await toggle.click()
+        await expect(toggle).toHaveAttribute(
+            'aria-label',
+            firstLabel || 'Collapse all'
+        )
     })
 
     test('toggles visible and filtered layer views', async ({ page }) => {
@@ -515,7 +545,7 @@ test.describe('LayersTool', () => {
     test('keyboard reorder round-trips its URL history', async ({ page }) => {
         await openLayers(page)
         const tree = page.getByRole('tree', { name: 'Layers' })
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         const movableLayer = await page.evaluate(() => {
             const flat = window.ToolController_
                 .getTool('LayersTool')
@@ -667,29 +697,6 @@ test.describe('LayersTool', () => {
     test('bulk header expansion emits state events only for changed headers', async ({
         page,
     }) => {
-        const legacyPage = await page.context().newPage()
-        await openLayers(legacyPage)
-        await legacyPage.locator('#toolButtonLayers').click()
-        await legacyPage.locator('#searchLayers > #expand').click()
-        await legacyPage.evaluate(() => {
-            window.__headerEvents = []
-            document.addEventListener('layersToolHeaderStateChange', (event) =>
-                window.__headerEvents.push(event.detail)
-            )
-        })
-        await legacyPage.locator('#searchLayers > #collapse').click()
-        const legacyCollapse = await legacyPage.evaluate(
-            () => window.__headerEvents
-        )
-        await legacyPage.evaluate(() => {
-            window.__headerEvents = []
-        })
-        await legacyPage.locator('#searchLayers > #restore').click()
-        const legacyRestore = await legacyPage.evaluate(
-            () => window.__headerEvents
-        )
-        await legacyPage.close()
-
         await openLayers(page)
         const expected = await page.evaluate(() => {
             const headers = []
@@ -711,15 +718,22 @@ test.describe('LayersTool', () => {
             )
             return headers
         })
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         await page.evaluate(() => {
             window.__layersHeaderEvents = []
         })
-        await page.getByRole('button', { name: 'Collapse all' }).click()
+        await setAllExpanded(page, false)
         const collapseEvents = await page.evaluate(
             () => window.__layersHeaderEvents
         )
-        expect(collapseEvents).toEqual(legacyCollapse)
+        const expectedCollapse = expected
+            .slice()
+            .sort((a, b) => b.depth - a.depth)
+            .map((header) => ({
+                header_id: `header_${header.name}`.split('_')[1],
+                onState: false,
+            }))
+        expect(collapseEvents).toEqual(expectedCollapse)
 
         await page.evaluate(() => {
             window.__layersHeaderEvents = []
@@ -728,17 +742,7 @@ test.describe('LayersTool', () => {
         const restoreEvents = await page.evaluate(
             () => window.__layersHeaderEvents
         )
-        expect(restoreEvents).toEqual(legacyRestore)
-        expect(legacyCollapse).toEqual(
-            expected
-                .slice()
-                .sort((a, b) => b.depth - a.depth)
-                .map((header) => ({
-                    header_id: `header_${header.name}`.split('_')[1],
-                    onState: false,
-                }))
-        )
-        expect(legacyRestore).toEqual(
+        expect(restoreEvents).toEqual(
             expected
                 .filter((header) => header.expanded)
                 .map((header) => ({
@@ -862,7 +866,7 @@ test.describe('LayersTool', () => {
         page,
     }) => {
         await openLayers(page)
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         const header = page
             .getByRole('treeitem')
             .filter({ hasText: 'Geometry Types' })
@@ -1098,7 +1102,7 @@ test.describe('LayersTool', () => {
         const pageErrors = []
         page.on('pageerror', (error) => pageErrors.push(error.message))
         await openLayers(page)
-        await page.getByRole('button', { name: 'Expand all' }).click()
+        await setAllExpanded(page, true)
         const source = page
             .locator('.lt-layerRow')
             .filter({ hasText: 'Points Basic' })

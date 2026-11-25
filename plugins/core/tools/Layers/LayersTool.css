@@ -1011,14 +1011,6 @@
     gap: 5px;
 }
 
-.lt-settingsFooter {
-    display: flex;
-    justify-content: flex-end;
-    flex: 0 0 auto;
-    padding: 7px 8px;
-    border-top: 1px solid var(--color-a1-5);
-}
-
 .lt-mobile .lt-row {
     height: 44px;
     font-size: 14px;
@@ -2022,4 +2014,201 @@
     border-radius: 0;
     background: transparent;
     color: var(--color-a5);
+}
+
+.lt-toolbar {
+    padding: 0 8px 5px;
+    border-bottom: 0;
+}
+
+.lt-toolbarTitle {
+    width: calc(100% + 16px);
+    margin: 0 -8px;
+}
+
+#layersTool .lt-toolbar .mmgisToolTitle {
+    padding-left: 10px;
+    color: var(--color-f, #ccc);
+}
+
+.lt-search {
+    height: 28px;
+    min-height: 28px;
+}
+
+.lt-tagPopup button {
+    min-height: 28px;
+}
+
+.lt-viewBar {
+    min-height: 28px;
+}
+
+.lt-viewPill button {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    flex-basis: 28px;
+}
+
+.lt-viewPill {
+    padding: 0;
+}
+
+.lt-viewSummary button,
+#layersTool .lt-viewSummary button {
+    color: var(--color-f);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.lt-power {
+    opacity: 0.45;
+}
+
+.lt-power:hover,
+.lt-power:focus-visible,
+.lt-headerRow:hover .lt-power,
+.lt-headerRow:focus-within .lt-power,
+.lt-headerRow.lt-focused .lt-power,
+.lt-powerMuted {
+    opacity: 1;
+}
+
+.lt-heroActions .lt-closeButton {
+    width: 32px;
+    height: 28px;
+}
+
+.lt-heroActions .lt-infoButton,
+.lt-toolbarClose {
+    width: 28px;
+    height: 28px;
+}
+
+.lt-heroActions .lt-closeButton,
+.lt-heroActions .lt-infoButton {
+    opacity: 0.7;
+    transition: opacity 0.12s ease;
+}
+
+.lt-heroActions .lt-closeButton:hover,
+.lt-heroActions .lt-infoButton:hover,
+.lt-heroActions .lt-closeButton:focus-visible,
+.lt-heroActions .lt-infoButton:focus-visible {
+    background: transparent;
+    opacity: 1;
+}
+
+.lt-hero.lt-hasSample .lt-heroActions .lt-closeButton,
+.lt-hero.lt-hasSample .lt-heroActions .lt-infoButton {
+    background: color-mix(in srgb, var(--color-a) 82%, transparent);
+}
+
+.lt-actionButtons button,
+.lt-actionBar [role='checkbox'] {
+    height: 28px;
+    min-height: 28px;
+}
+
+.lt-actionDivider {
+    width: 1px;
+    height: 16px;
+    margin: 0 2px;
+    background: var(--color-a2);
+}
+
+.lt-settingsSections .lt-field {
+    min-height: 28px;
+}
+
+.lt-settingsSections .lt-field select,
+.lt-settingsSections input:not([type='checkbox']):not([type='range']),
+.lt-settingsSections select,
+.lt-settingsSections button:not(.lt-sectionToggle) {
+    height: 28px;
+    min-height: 28px;
+}
+
+.lt-settingsSections .lt-sectionToggle {
+    height: auto;
+    min-height: 32px;
+}
+
+.lt-settingsSections .lt-iconTextButton {
+    font-size: 13px;
+}
+
+.lt-field select {
+    height: 28px;
+}
+
+.lt-dataShaderSettings input,
+.lt-dataShaderSettings select {
+    height: 28px;
+    min-height: 28px;
+}
+
+#layersTool .lt-typeSettingsFilter #layerTool_filtering_filters_spatial_radius_wrapper
+    > input {
+    height: 28px;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_header {
+    min-height: 28px;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_count {
+    height: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#layersTool .lt-typeSettingsFilter .mmgisButton5 {
+    height: 28px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_operator_select {
+    height: 28px;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_clear,
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_submit {
+    height: 28px;
+}
+
+#layersTool .lt-dataShaderSettings select {
+    height: 28px;
+}
+
+#layersTool .lt-dataShaderSettings input[parameter='min'],
+#layersTool .lt-dataShaderSettings input[parameter='max'] {
+    height: 28px !important;
+}
+
+#layersTool .lt-dataShaderSettings .dropy__title > i {
+    height: 28px;
+}
+
+.lt-drawerScrim > i {
+    width: 28px;
+    height: 28px;
+    margin-left: calc((var(--lt-drawerInset) - 28px) / 2);
+    line-height: 28px;
+}
+
+@media (max-width: 700px) {
+    .lt-toolbarTitle {
+        width: calc(100% + 12px);
+        margin: 0 -6px;
+    }
+
+    #layersTool .lt-toolbar .mmgisToolTitle {
+        padding-left: 10px;
+    }
 }
