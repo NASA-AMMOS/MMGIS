@@ -498,7 +498,7 @@ async function dragRowInfo(page, tool, label) {
             let rows
             if (toolName === 'old') {
                 rows = Array.from(
-                    document.querySelectorAll('#layersToolList > li')
+                    document.querySelectorAll('#layersToolLegacyList > li')
                 ).map((element) => ({
                     key: element.getAttribute('name'),
                     name: element.getAttribute('name'),
@@ -564,7 +564,7 @@ async function dragRowInfo(page, tool, label) {
 function orderingRow(page, tool, info) {
     return tool === 'old'
         ? page.locator(
-              `#layersToolList > li[name="${info.name.replaceAll('"', '\\"')}"]`
+              `#layersToolLegacyList > li[name="${info.name.replaceAll('"', '\\"')}"]`
           )
         : page.locator(orderingRowSelector(info.key))
 }
@@ -585,7 +585,7 @@ async function expandLegacyHeaders(page) {
     await page.evaluate(() => {
         const tool = window.ToolController_.getTool('LayersToolLegacy')
         Array.from(
-            document.querySelectorAll('#layersToolList > li[type="header"]')
+            document.querySelectorAll('#layersToolLegacyList > li[type="header"]')
         )
             .sort(
                 (a, b) =>
@@ -612,7 +612,7 @@ async function setDragHeaderExpanded(page, tool, label, expanded) {
 
 async function installLegacyDropCapture(page) {
     await page.evaluate(() => {
-        const list = document.getElementById('layersToolList')
+        const list = document.getElementById('layersToolLegacyList')
         const sortable =
             window.Sortable?.get?.(list) ||
             Object.getOwnPropertyNames(list || {})
@@ -707,7 +707,7 @@ async function prepareDragPage(page, tool) {
         height: Math.min(10000, Math.max(4800, flat.length * 44)),
     })
     if (tool === 'old') {
-        await page.locator('#toolButtonLayers').click()
+        await page.locator('#toolButtonLayersLegacy').click()
         await expandLegacyHeaders(page)
     } else {
         await page.locator('#toolButtonLayers').click()
@@ -725,7 +725,7 @@ async function prepareDragPage(page, tool) {
         const row =
             tool === 'old'
                 ? page.locator(
-                      `#layersToolList > li[name="${imagery.name.replaceAll('"', '\\"')}"]`
+                      `#layersToolLegacyList > li[name="${imagery.name.replaceAll('"', '\\"')}"]`
                   )
                 : page
                       .locator('.lt-layerRow')
@@ -773,7 +773,7 @@ async function performSeededDrag(page, tool, planned) {
                     toolName === 'old'
                         ? Array.from(
                               document.querySelectorAll(
-                                  '#layersToolList > li'
+                                  '#layersToolLegacyList > li'
                               )
                           ).map((element) => ({
                               depth: Number.parseInt(
@@ -807,7 +807,7 @@ async function performSeededDrag(page, tool, planned) {
     const sourceRow = orderingRow(page, tool, source)
     const targetRow = orderingRow(page, tool, target)
     const handle = sourceRow.locator(
-        tool === 'old' ? '.layersToolColor' : '.lt-drag'
+        tool === 'old' ? '.layersToolLegacyColor' : '.lt-drag'
     )
     await handle.scrollIntoViewIfNeeded()
     await targetRow.scrollIntoViewIfNeeded()
@@ -822,7 +822,7 @@ async function dragPageState(page, tool) {
         if (toolName === 'old') {
             const tool = window.ToolController_.getTool('LayersToolLegacy')
             const rows = Array.from(
-                document.querySelectorAll('#layersToolList > li')
+                document.querySelectorAll('#layersToolLegacyList > li')
             )
             return {
                 flat: rows.map((row) => ({
@@ -887,8 +887,8 @@ test.describe('LayersTool flat ordering parity', () => {
         page,
     }) => {
         await loadMission(page)
-        await page.locator('#toolButtonLayers').click()
-        await page.waitForSelector('#layersToolList > li')
+        await page.locator('#toolButtonLayersLegacy').click()
+        await page.waitForSelector('#layersToolLegacyList > li')
         await page.evaluate(() =>
             window.ToolController_.closeActiveTool()
         )
@@ -918,7 +918,7 @@ test.describe('LayersTool flat ordering parity', () => {
             const failures = []
             const rows = () =>
                 Array.from(
-                    document.querySelectorAll('#layersToolList > li')
+                    document.querySelectorAll('#layersToolLegacyList > li')
                 ).map((element) => ({
                     name: element.getAttribute('name'),
                     type: element.getAttribute('type'),
@@ -1114,7 +1114,7 @@ test.describe('LayersTool flat ordering parity', () => {
                 height: Math.min(10000, Math.max(1600, flat.length * 44)),
             })
             if (tool === 'old') {
-                await page.locator('#toolButtonLayers').click()
+                await page.locator('#toolButtonLayersLegacy').click()
                 await expandLegacyHeaders(page)
             } else {
                 await page.locator('#toolButtonLayers').click()
@@ -1133,7 +1133,7 @@ test.describe('LayersTool flat ordering parity', () => {
                 const row =
                     tool === 'old'
                         ? page.locator(
-                              `#layersToolList > li[name="${imagery.name}"]`
+                              `#layersToolLegacyList > li[name="${imagery.name}"]`
                           )
                         : page
                               .locator('.lt-layerRow')
@@ -1165,12 +1165,12 @@ test.describe('LayersTool flat ordering parity', () => {
             }
         })
         const oldSource = page.locator(
-            `#layersToolList > li[name="${oldNames.source}"]`
+            `#layersToolLegacyList > li[name="${oldNames.source}"]`
         )
         const oldTarget = page.locator(
-            `#layersToolList > li[name="${oldNames.target}"]`
+            `#layersToolLegacyList > li[name="${oldNames.target}"]`
         )
-        const oldHandle = oldSource.locator('.layersToolColor')
+        const oldHandle = oldSource.locator('.layersToolLegacyColor')
         await dragWithMouse(page, oldHandle, oldTarget, 0.8)
         await expect
             .poll(() =>
@@ -1183,7 +1183,7 @@ test.describe('LayersTool flat ordering parity', () => {
             .toBe(1)
         const oldResult = await page.evaluate(() => ({
             flat: Array.from(
-                document.querySelectorAll('#layersToolList > li')
+                document.querySelectorAll('#layersToolLegacyList > li')
             ).map((row) => ({
                 name: row.getAttribute('name'),
                 type: row.getAttribute('type'),
@@ -1974,7 +1974,7 @@ test.describe('LayersTool flat ordering parity', () => {
                 oldTool.make(null, true)
                 return {
                     flat: Array.from(
-                        document.querySelectorAll('#layersToolList > li')
+                        document.querySelectorAll('#layersToolLegacyList > li')
                     ).map((row) => ({
                         name: row.getAttribute('name'),
                         type: row.getAttribute('type'),
@@ -2329,13 +2329,13 @@ test.describe('LayersTool flat ordering parity', () => {
             await page.goto('/?mission=Reference-Mission')
             await page.waitForLoadState('networkidle', { timeout: 60000 })
             await page.waitForFunction(() => !!window.L_?.layers?.data)
-            await page.locator('#toolButtonLayers').click()
-            await page.locator('#layersToolList > li').first().waitFor()
+            await page.locator('#toolButtonLayersLegacy').click()
+            await page.locator('#layersToolLegacyList > li').first().waitFor()
             const oldTool = await page.evaluate(() => {
                 const tool = window.ToolController_.getTool('LayersToolLegacy')
                 tool.orderingHistory = []
                 document
-                    .querySelectorAll('#layersToolList > li[type="header"]')
+                    .querySelectorAll('#layersToolLegacyList > li[type="header"]')
                     .forEach((header) => {
                         if (header.getAttribute('childrenon') === 'false')
                             tool.toggleHeader(header.id)
@@ -2346,15 +2346,15 @@ test.describe('LayersTool flat ordering parity', () => {
             const fromName = baseFlat[scenario.from].name
             const toName = baseFlat[scenario.to].name
             const fromOld = page.locator(
-                `#layersToolList > li[name="${fromName}"]`
+                `#layersToolLegacyList > li[name="${fromName}"]`
             )
             const toOld = page.locator(
-                `#layersToolList > li[name="${toName}"]`
+                `#layersToolLegacyList > li[name="${toName}"]`
             )
             if (scenario.collapseTarget || scenario.collapseSource) {
                 await page.evaluate((index) => {
                     const row = document.querySelector(
-                        `#layersToolList > li:nth-child(${index + 1})`
+                        `#layersToolLegacyList > li:nth-child(${index + 1})`
                     )
                     if (row?.getAttribute('type') === 'header') {
                         window.ToolController_.getTool('LayersToolLegacy').toggleHeader(
@@ -2363,7 +2363,7 @@ test.describe('LayersTool flat ordering parity', () => {
                     }
                 }, scenario.collapseTarget ? scenario.to : scenario.from)
             }
-            const oldHandle = fromOld.locator('.layersToolColor')
+            const oldHandle = fromOld.locator('.layersToolLegacyColor')
             await installLegacyDropCapture(page)
             await oldHandle.dragTo(toOld, { steps: 80 }).catch(() => {})
             let oldHistory = await page.evaluate(
@@ -2381,7 +2381,7 @@ test.describe('LayersTool flat ordering parity', () => {
             if (!oldHistory.length) {
                 const forceFallback = await page.evaluate(() => {
                     const sortable = window.Sortable?.get?.(
-                        document.getElementById('layersToolList')
+                        document.getElementById('layersToolLegacyList')
                     )
                     if (!sortable) return false
                     sortable.option('forceFallback', true)
@@ -2403,7 +2403,7 @@ test.describe('LayersTool flat ordering parity', () => {
             const oldLive = oldDriven
                 ? await page.evaluate(() => ({
                       flat: Array.from(
-                          document.querySelectorAll('#layersToolList > li')
+                          document.querySelectorAll('#layersToolLegacyList > li')
                       ).map((row) => ({
                           name: row.getAttribute('name'),
                           type: row.getAttribute('type'),
@@ -2485,7 +2485,7 @@ test.describe('LayersTool flat ordering parity', () => {
                 }, newHistory)
                 comparison = await page.evaluate(() => ({
                     flat: Array.from(
-                        document.querySelectorAll('#layersToolList > li')
+                        document.querySelectorAll('#layersToolLegacyList > li')
                     ).map((row) => ({
                         name: row.getAttribute('name'),
                         type: row.getAttribute('type'),
