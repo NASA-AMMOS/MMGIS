@@ -1,0 +1,283 @@
+/* Identifier click-for-time-series panel (#1159) */
+
+.identifierTimeSeriesPanel {
+    position: absolute;
+    /* below the map's top-right controls (attribution, home) */
+    top: 52px;
+    right: 12px;
+    z-index: 1002;
+    width: 380px;
+    max-width: calc(100% - 24px);
+    max-height: calc(
+        100% - 40px - var(--mmgis-sep-tools-bottom-reserve, 120px)
+    );
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
+    border: 1px solid var(--color-a1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px var(--color-shadow);
+    color: var(--color-f);
+    font-size: 12px;
+    overflow: hidden;
+    cursor: default;
+}
+
+.identifierTimeSeriesPanel_header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--color-a1);
+    flex-shrink: 0;
+}
+
+.identifierTimeSeriesPanel_title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.identifierTimeSeriesPanel_coords {
+    flex: 1;
+    color: var(--color-a5);
+    font-family: monospace;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.identifierTimeSeriesPanel_close {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-a5);
+    cursor: pointer;
+}
+
+.identifierTimeSeriesPanel_close:hover {
+    color: var(--color-f);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.identifierTimeSeriesPanel_body {
+    overflow: auto;
+    min-height: 0;
+    padding: 4px 10px 10px 10px;
+}
+
+.identifierTimeSeriesPanel_layer {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--color-a2);
+}
+
+.identifierTimeSeriesPanel_layerName {
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.identifierTimeSeriesPanel_status {
+    color: var(--color-a5);
+    padding: 4px 0;
+}
+
+.identifierTimeSeriesPanel_status--error {
+    color: var(--color-red, #e06c75);
+}
+
+.identifierTimeSeriesPanel_chart {
+    display: none;
+    width: 100%;
+    height: 180px;
+}
+
+.identifierTimeSeriesPanel_chart--on {
+    display: block;
+}
+
+.identifierTimeSeriesPanel_notes {
+    margin: 2px 0 0 0;
+    padding-left: 16px;
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+.identifierTimeSeriesPanel_notes:empty {
+    display: none;
+}
+
+.identifierTimeSeriesPanel_empty {
+    color: var(--color-a5);
+    padding: 8px 0;
+}
+
+.identifierTimeSeriesPanel_unsupported {
+    padding-top: 8px;
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+.identifierTimeSeriesPanel_unsupported ul {
+    margin: 2px 0 0 0;
+    padding-left: 16px;
+}
+
+.identifierTimeSeriesPanel_unsupported span {
+    color: var(--color-f);
+}
+
+.identifierTimeSeriesPanel_subtitle {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+}
+
+.identifierTimeSeriesHint {
+    padding: 3px 9px 4px 9px;
+    border-top: 1px solid var(--color-a2);
+    color: var(--color-a5);
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* Headings keep the panel's existing look; they are headings for structure. */
+.identifierTimeSeriesPanel h2.identifierTimeSeriesPanel_title,
+.identifierTimeSeriesPanel h3.identifierTimeSeriesPanel_layerName {
+    margin: 0;
+    font-weight: normal;
+    font-family: inherit;
+    line-height: inherit;
+}
+
+.identifierTimeSeriesPanel h2.identifierTimeSeriesPanel_title {
+    font-size: 13px;
+}
+
+.identifierTimeSeriesPanel h3.identifierTimeSeriesPanel_layerName {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.identifierTimeSeriesPanel_title:focus {
+    outline: none;
+}
+
+.identifierTimeSeriesPanel_title:focus-visible,
+.identifierTimeSeriesPanel summary:focus-visible,
+.identifierTimeSeriesPanel_close:focus-visible {
+    outline: 2px solid var(--color-mmgis, #3ea0e4);
+    outline-offset: 1px;
+}
+
+.identifierTimeSeriesPanel_live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.identifierTimeSeriesPanel summary {
+    cursor: pointer;
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+details.identifierTimeSeriesPanel_unsupported > summary {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+}
+
+.identifierTimeSeriesPanel_incomplete {
+    margin: 2px 0 4px 0;
+    padding: 3px 6px;
+    border-left: 2px solid var(--color-yellow, #e5c07b);
+    color: var(--color-f);
+    font-size: 11px;
+}
+
+.identifierTimeSeriesPanel_incomplete[hidden],
+.identifierTimeSeriesPanel_readings[hidden] {
+    display: none;
+}
+
+.identifierTimeSeriesPanel_tableWrap {
+    max-height: 180px;
+    overflow: auto;
+    margin-top: 4px;
+}
+
+.identifierTimeSeriesPanel_tableWrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.identifierTimeSeriesPanel_tableWrap caption {
+    text-align: left;
+    color: var(--color-a5);
+    padding-bottom: 2px;
+}
+
+.identifierTimeSeriesPanel_tableWrap th,
+.identifierTimeSeriesPanel_tableWrap td {
+    text-align: left;
+    padding: 2px 6px 2px 0;
+    border-bottom: 1px solid var(--color-a2);
+    font-weight: normal;
+    white-space: nowrap;
+}
+
+.identifierTimeSeriesPanel_tableWrap thead th {
+    color: var(--color-a5);
+}
+
+/* Acquisition ids (STAC item ids) can be long: they wrap, so the time and
+   the values beside them stay in view without scrolling sideways. */
+.identifierTimeSeriesPanel_tableWrap th:nth-child(2),
+.identifierTimeSeriesPanel_tableWrap td:nth-child(2) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Keyboard entry point: hidden until it has focus (skip-link pattern).
+   Shown at the bottom centre of the map: the top centre is where the search
+   bar's dropdown opens, and it stays open as focus tabs on past it. */
+.identifierTimeSeriesCentre button {
+    position: absolute;
+    left: 50%;
+    bottom: 72px;
+    transform: translateX(-50%);
+    z-index: 1003;
+    padding: 6px 10px;
+    border: 1px solid var(--color-a1);
+    border-radius: 6px;
+    background: rgba(var(--color-a-rgb, 29, 31, 32), 0.92);
+    color: var(--color-f);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.identifierTimeSeriesCentre button:not(:focus) {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 0;
+    border: 0;
+}
+
+.identifierTimeSeriesCentre button:focus-visible {
+    outline: 2px solid var(--color-mmgis, #3ea0e4);
+    outline-offset: 1px;
+}

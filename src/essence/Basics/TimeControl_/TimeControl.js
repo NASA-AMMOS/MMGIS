@@ -164,6 +164,7 @@ var TimeControl = {
             $('.endtime.' + F_.getSafeName(layer.name)).text(layer.time.end)
 
             TimeControl.applyTimeParams(layer)
+            L_.layerQueryChanged(layer.name)
         }
         return true
     },
