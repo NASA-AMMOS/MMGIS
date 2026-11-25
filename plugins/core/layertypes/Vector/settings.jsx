@@ -28,6 +28,7 @@ import {
 } from '@basics/Layers_/render/layerDynamicStyle'
 import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerSettings'
 import DynamicStyleRamp from '@basics/UserInterface_/LayerSettings/DynamicStyleRamp'
+import vectorExport from './export'
 import './settings.css'
 
 const ATTRIBUTE_RANGES = {
@@ -418,6 +419,7 @@ function StatisticsSettings({ layer }) {
 }
 
 export default {
+    export: vectorExport,
     sections(layer) {
         const attachments = L_.layers.attachments[layer.name] || {}
         const sections = []

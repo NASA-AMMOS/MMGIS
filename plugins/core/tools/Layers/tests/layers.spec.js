@@ -1343,7 +1343,7 @@ test.describe('LayersTool', () => {
         await expect(exportSection).toHaveClass(/lt-sectionFlash/)
     })
 
-    test('shows header downloads only when legacy has an export or source download', async ({
+    test('shows header downloads only when a type has an export or source download', async ({
         page,
     }) => {
         await page.goto('/?mission=Reference-Mission')
@@ -2266,17 +2266,17 @@ test.describe('LayersTool', () => {
                     name: `${layer.label} settings`,
                 })
             ).toBeVisible()
-            const hasLegacySourceDownload =
+            await expect(page.locator('[data-section="export"]')).toHaveCount(0)
+            const hasSourceDownload =
                 ['tile', 'data'].includes(layer.type) && layer.hasDownloadURL
-            if (hasLegacySourceDownload) {
-                await expect(page.locator('[data-section="export"]')).toBeVisible()
+            if (hasSourceDownload)
                 await expect(
-                    page.getByRole('button', { name: 'Download data' })
+                    page.getByRole('button', { name: 'Download layer' })
                 ).toBeVisible()
-                await expect(page.getByRole('combobox', { name: 'Export format' })).toHaveCount(0)
-            } else {
-                await expect(page.locator('[data-section="export"]')).toHaveCount(0)
-            }
+            else
+                await expect(
+                    page.getByRole('button', { name: 'Download layer' })
+                ).toHaveCount(0)
             await page.locator('.lt-closeButton').click()
         }
     })

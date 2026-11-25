@@ -63,6 +63,7 @@ const LAYER_OPS = [
   "onToggle",
   "setStyle",
   "timeChange",
+  "refresh",
 ];
 const OP_PHASES = ["before", "main", "after"];
 const MAKE_EXTRA_PHASES = ["afterCommit"];
@@ -76,7 +77,7 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
  *   time    what the type's time support means to the time bar
  *   source  how the type acquires its data (core keeps extent/staleness)
  *   legend  a legend derived from how the layer is rendered
- *   settings user-facing layer settings sections, actions and status
+ *   settings user-facing layer settings, export and download hooks
  */
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
@@ -90,7 +91,7 @@ const LAYER_TYPE_CATEGORIES = new Set([
 ]);
 const SOURCE_OPS = ["fetch"];
 const LEGEND_OPS = ["derive"];
-const SETTINGS_OPS = ["sections", "actions", "status"];
+const SETTINGS_OPS = ["sections", "actions", "status", "download", "export"];
 
 /**
  * A layer attachment is a single renderable that may straddle both engines (an
@@ -1905,6 +1906,18 @@ function validateLayerTypeModuleShape(source, label, surface = "map") {
       errors.push(
         `${label}: unknown operation '${op.name}' (expected one of: ${validOps.join(", ")})`
       );
+      continue;
+    }
+    if (surface === "settings" && op.name === "export") {
+      if (op.valueKind === "object" && Array.isArray(op.body)) {
+        for (const hook of op.body) {
+          if (!["extents", "getGeoJSON"].includes(hook.name)) {
+            errors.push(
+              `${label}: unknown export hook '${hook.name}' (expected one of: extents, getGeoJSON)`
+            );
+          }
+        }
+      }
       continue;
     }
     if (op.valueKind === "object" && Array.isArray(op.body)) {

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { Select } from '@design/components'
 import L_ from '@basics/Layers_/Layers_'
 import DataShaders from '@essence/services/DataShaders'
+import TileSettings from '../Tile/settings'
 
 const EMPTY_SHADER = {}
 const shaderDefaults = new WeakMap()
@@ -109,6 +110,7 @@ function DataDisplaySettings({ layer, api }) {
 }
 
 export default {
+    download: TileSettings.download,
     sections() {
         return [
             {

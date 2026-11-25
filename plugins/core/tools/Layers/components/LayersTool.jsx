@@ -36,10 +36,6 @@ import Toast from '@design/components/Toast/Toast'
 import calls from '@pre/calls'
 import * as tokml from '@maphubs/tokml'
 import shpwrite from '@mapbox/shp-write'
-import {
-    fetchKmlAsGeoJSON,
-    isKmlUrl,
-} from '@basics/Layers_/capture/LayerCapturer'
 import F_ from '@basics/Formulae_/Formulae_'
 import {
     applyLiveMove,
@@ -152,18 +148,14 @@ function layerName(layer) {
     return layer.display_name || layer.name
 }
 
-function sourceDownloadUrl(layer) {
+function layerDownloadUrl(layer) {
     if (!layer) return null
-    const downloadURL = layer.variables?.downloadURL
-    let url
-    if (layer.type === 'tile' || layer.type === 'data') {
-        url = downloadURL
-    } else if (layer.type === 'video') {
-        url = downloadURL || layer.url
-    } else {
+    try {
+        const url = LayerTypeRegistry.settings(layer.type)?.download?.(layer)
+        return typeof url === 'string' && url.length > 0 ? url : null
+    } catch (error) {
         return null
     }
-    return typeof url === 'string' && !/\{[zxy]\}/i.test(url) ? url : null
 }
 
 function layerShortcut(layer) {
@@ -999,6 +991,13 @@ function CoreSettings({ layer, api }) {
     }, [layer.name, exportResetToken])
     const plugin = LayerTypeRegistry.settings(layer.type)
     const testPlugin = window.__layersToolTestPluginRegistry?.[layer.type]
+    const exportSurface = plugin?.export ?? testPlugin?.export
+    const downloadUrl = layerDownloadUrl(layer)
+    let exportExtents = []
+    try {
+        const extents = exportSurface?.extents?.(layer)
+        exportExtents = Array.isArray(extents) ? extents : []
+    } catch (error) {}
     const pluginSections = useMemo(() => {
         try {
             return [
@@ -1030,92 +1029,15 @@ function CoreSettings({ layer, api }) {
         setExportBusy(true)
         setExportError('')
         try {
-            const mapLayer = L_.layers?.layer?.[layer.name]
-            if (!mapLayer?.toGeoJSON)
+            if (typeof exportSurface?.getGeoJSON !== 'function')
                 throw new Error('This layer does not expose exportable GeoJSON data.')
             const requestApi = (endpoint, body) =>
                 new Promise((resolve, reject) =>
                     calls.api(endpoint, body, resolve, reject)
                 )
-            let geojson
-            if (
-                exportExtent === 'entire' &&
-                layer.variables?.dynamicExtent === true &&
-                layer.url
-            ) {
-                const urlParts = layer.url.split(':')
-                if (urlParts[0].toLowerCase() === 'geodatasets') {
-                    const data = await requestApi('geodatasets_get', {
-                        layer: urlParts[1],
-                        type: 'geojson',
-                    })
-                    geojson = data.body
-                } else {
-                    const sourceUrl = L_.getUrl(layer.type, layer.url, layer)
-                    if (isKmlUrl(sourceUrl)) {
-                        geojson = await new Promise((resolve, reject) =>
-                            fetchKmlAsGeoJSON(sourceUrl, resolve, reject)
-                        )
-                    } else {
-                        const response = await fetch(sourceUrl)
-                        if (!response.ok)
-                            throw new Error(
-                                `Source export failed (${response.status}).`
-                            )
-                        geojson = await response.json()
-                    }
-                }
-            } else if (
-                exportExtent === 'raw-extent' &&
-                layer._lastGeodatasetRequestBody
-            ) {
-                const body = JSON.parse(
-                    JSON.stringify(layer._lastGeodatasetRequestBody)
-                )
-                delete body._source
-                delete body.noDuplicates
-                geojson = await requestApi('geodatasets_get', body)
-            } else {
-                const precision =
-                    L_.GEOJSON_PRECISION ?? window.L_?.GEOJSON_PRECISION
-                geojson = mapLayer.toGeoJSON(precision)
-            }
-            if (
-                layer.variables?.dynamicExtent === true &&
-                exportExtent === 'current' &&
-                Array.isArray(geojson.features) &&
-                Map_.map?.getBounds
-            ) {
-                const bounds = Map_.map.getBounds()
-                const withinBounds = (feature) => {
-                    let west = Infinity
-                    let east = -Infinity
-                    let south = Infinity
-                    let north = -Infinity
-                    const visit = (coordinates) => {
-                        if (
-                            Array.isArray(coordinates) &&
-                            coordinates.length >= 2 &&
-                            typeof coordinates[0] === 'number'
-                        ) {
-                            west = Math.min(west, coordinates[0])
-                            east = Math.max(east, coordinates[0])
-                            south = Math.min(south, coordinates[1])
-                            north = Math.max(north, coordinates[1])
-                        } else if (Array.isArray(coordinates)) {
-                            coordinates.forEach(visit)
-                        }
-                    }
-                    visit(feature.geometry?.coordinates)
-                    return (
-                        west <= bounds.getEast() &&
-                        east >= bounds.getWest() &&
-                        south <= bounds.getNorth() &&
-                        north >= bounds.getSouth()
-                    )
-                }
-                geojson.features = geojson.features.filter(withinBounds)
-            }
+            let geojson = await exportSurface.getGeoJSON(layer, {
+                extent: exportExtent,
+            })
             if (exportProperties && Array.isArray(geojson.features))
                 geojson.features.forEach((feature) => {
                     feature.properties = feature.properties || {}
@@ -1183,8 +1105,7 @@ function CoreSettings({ layer, api }) {
         }
     }
 
-    const coreExport =
-        ['vector', 'query'].includes(layer.type) ? (
+    const coreExport = exportSurface ? (
             <SettingSection
                 id="export"
                 label="Export"
@@ -1204,26 +1125,14 @@ function CoreSettings({ layer, api }) {
                         ]}
                     />
                 </div>
-                {layer.variables?.dynamicExtent === true && (
+                {exportExtents.length > 1 && (
                     <div className="lt-field">
                         <label>Extent</label>
                         <Select
                             value={exportExtent}
                             onValueChange={setExportExtent}
                             aria-label="Export extent"
-                            options={[
-                                { value: 'current', label: 'Current Extent' },
-                                ...(layer.variables?.getFeaturePropertiesOnClick === true &&
-                                layer._lastGeodatasetRequestBody
-                                    ? [
-                                          {
-                                              value: 'raw-extent',
-                                              label: 'Current Extent w/ Props',
-                                          },
-                                      ]
-                                    : []),
-                                { value: 'entire', label: 'Entire File' },
-                            ]}
+                            options={exportExtents}
                         />
                     </div>
                 )}
@@ -1262,7 +1171,7 @@ function CoreSettings({ layer, api }) {
                     {exportBusy ? 'Preparing…' : 'Download data'}
                 </Button>
                 {exportBusy && <progress aria-label="Export progress" />}
-                {sourceDownloadUrl(layer) && (
+                {downloadUrl && (
                     <Button
                         className="lt-secondaryButton"
                         size="sm"
@@ -1277,30 +1186,6 @@ function CoreSettings({ layer, api }) {
                         {exportError}
                     </div>
                 )}
-            </SettingSection>
-        ) : ['tile', 'data'].includes(layer.type) &&
-          layer.variables?.downloadURL &&
-          sourceDownloadUrl(layer) ? (
-            <SettingSection
-                id="export"
-                label="Export"
-                icon="download-outline"
-                onReset={() => api.reset('export')}
-            >
-                <Button
-                    className="lt-iconTextButton lt-secondaryButton"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() =>
-                        window.open(
-                            layer.variables.downloadURL,
-                            '_blank',
-                            'noopener,noreferrer'
-                        )
-                    }
-                >
-                    <i className="mdi mdi-download" /> Download data
-                </Button>
             </SettingSection>
         ) : null
 
@@ -1488,12 +1373,13 @@ function SettingsPage({
     const settingsRef = useRef(null)
     const color = typeColor(layer.type)
     const status = activeError(layer) || refreshWarning(layer)
-    const downloadUrl = sourceDownloadUrl(layer)
-    const exportAction = ['vector', 'query'].includes(layer.type)
+    const settingsModule = LayerTypeRegistry.settings(layer.type)
+    const downloadUrl = layerDownloadUrl(layer)
+    const exportAction = Boolean(settingsModule?.export)
     const showDownload = Boolean(downloadUrl) || exportAction
     let typeStatus = null
     try {
-        typeStatus = LayerTypeRegistry.settings(layer.type)?.status?.(
+        typeStatus = settingsModule?.status?.(
             layer,
             layerStatusContext(layer, baseApi)
         )
@@ -1956,14 +1842,10 @@ function LayersToolApp({ vars }) {
             },
             reload: async (layerName = state.openLayer) => {
                 const layer = L_.layers.data[layerName]
-                const rendered = L_.layers.layer[layerName]
                 if (!layer) return
-                if (layer.type === 'image' && rendered?.refresh)
-                    rendered.refresh(null, true, {
-                        currentCogExpression: null,
-                    })
-                else if (layer.type !== 'tile')
-                    await Map_.refreshLayer(layer)
+                const refresh = LayerTypeRegistry.get(layer.type)?.map?.refresh
+                if (typeof refresh === 'function') await refresh(layer, {})
+                else await Map_.refreshLayer(layer)
                 dispatchLayerDataLoaded(layerName)
                 store.bumpLayerPreview(layerName)
                 store.updateState({ layerVersion: store.getState().layerVersion + 1 })
@@ -1983,7 +1865,7 @@ function LayersToolApp({ vars }) {
             },
             download: (layerName = state.openLayer) => {
                 const layer = L_.layers.data[layerName]
-                const url = sourceDownloadUrl(layer)
+                const url = layerDownloadUrl(layer)
                 if (url) window.open(url, '_blank', 'noopener')
             },
             refresh: (layerName = state.openLayer) => {
@@ -2006,8 +1888,15 @@ function LayersToolApp({ vars }) {
                     Filtering.applyFilter(name)
                     Filtering.refresh()
                 }
-                const section = (LayerTypeRegistry.settings(layer?.type)?.sections?.(layer, api) || [])
-                    .find((entry) => entry.id === sectionId)
+                const ctx = layer ? layerStatusContext(layer, api) : null
+                const section = layer
+                    ? (
+                          LayerTypeRegistry.settings(layer.type)?.sections?.(
+                              layer,
+                              ctx
+                          ) || []
+                      ).find((entry) => entry.id === sectionId)
+                    : null
                 section?.reset?.(layerScopedApi(api, layer), layer)
                 store.resetLayerSection(name, sectionId)
             },
@@ -2029,10 +1918,8 @@ function LayersToolApp({ vars }) {
                 const settings = LayerTypeRegistry.settings(layer?.type)
                 let sectionIds = []
                 try {
-                    const sections = settings?.sections?.(
-                        layer,
-                        layerStatusContext(layer, api)
-                    ) || []
+                    const ctx = layerStatusContext(layer, api)
+                    const sections = settings?.sections?.(layer, ctx) || []
                     sections.forEach((section) => section.reset?.(layerScopedApi(api, layer), layer))
                     sectionIds = sections.map((section) => section.id)
                 } catch (error) {}

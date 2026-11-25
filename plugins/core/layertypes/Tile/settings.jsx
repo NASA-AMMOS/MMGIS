@@ -384,6 +384,13 @@ function CogSettings({ layer, resetToken }) {
 }
 
 export default {
+    download(layer) {
+        if (layer.type !== 'tile' && layer.type !== 'data') return null
+        const url = layer.variables?.downloadURL
+        return typeof url === 'string' && !/\{[zxy]\}/i.test(url)
+            ? url
+            : null
+    },
     sections(layer) {
         const sections = []
         if (layer.type !== 'image' && layer.type !== 'velocity')

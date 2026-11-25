@@ -135,6 +135,12 @@ function VideoSettings({ layer, api }) {
 }
 
 export default {
+    download(layer) {
+        const url = layer.variables?.downloadURL || layer.url
+        return typeof url === 'string' && !/\{[zxy]\}/i.test(url)
+            ? url
+            : null
+    },
     sections: () => [
         {
             id: 'video-controls',
