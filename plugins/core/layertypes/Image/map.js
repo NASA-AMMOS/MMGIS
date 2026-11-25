@@ -14,6 +14,7 @@
 import $ from 'jquery'
 import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
 import MapRenderer from '@basics/Map_/MapRenderer'
 import calls from '@pre/calls'
 import parseGeoraster from 'georaster'
@@ -255,7 +256,18 @@ function onToggle(layerObj, ctx = {}) {
     layer.redraw()
 }
 
+async function refresh(layerObj, ctx = {}) {
+    void ctx
+    const rendered = L_.layers.layer[layerObj.name]
+    if (rendered?.refresh)
+        rendered.refresh(null, true, {
+            currentCogExpression: null,
+        })
+    else await Map_.refreshLayer(layerObj)
+}
+
 export default {
     make,
     onToggle,
+    refresh,
 }
