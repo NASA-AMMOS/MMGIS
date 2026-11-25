@@ -4,6 +4,7 @@
   "name": "Velocity",
   "type": "layertype",
   "typeId": "velocity",
+  "category": "raster",
   "version": "core",
   "tier": "core",
   "overridable": false,

@@ -79,7 +79,6 @@ const TYPE_ICONS = {
     velocity: 'weather-windy',
     video: 'video',
 }
-const RASTER_TYPES = new Set(['tile', 'data', 'image', 'velocity'])
 const QUASI_LAYERS = new Set(['model', 'query', '3dtiles'])
 const OWN_SUBTREE_BLOCKED_MESSAGE = "You can't drag a group into itself"
 
@@ -875,7 +874,7 @@ function LayerRow({
     const isOn = isOnProp ?? layerIsOn(layer)
     const failed = !!activeError(layer)
     const color = typeColor(layer.type)
-    const isRaster = RASTER_TYPES.has(layer.type)
+    const isRaster = LayerTypeRegistry.category(layer.type) === 'raster'
     const missing =
         !QUASI_LAYERS.has(layer.type) &&
         L_.layers?.layer?.[layer.name] == null
@@ -1473,7 +1472,8 @@ function SettingsPage({
             ? [row.path[0], '…', row.path[row.path.length - 1]]
             : row.path
     const shortcut = layerShortcut(layer)
-    const sampleEnabled = RASTER_TYPES.has(layer.type) && previews
+    const sampleEnabled =
+        LayerTypeRegistry.category(layer.type) === 'raster' && previews
     const { sample, markFailed } = useRasterSample(
         layer,
         sampleEnabled,

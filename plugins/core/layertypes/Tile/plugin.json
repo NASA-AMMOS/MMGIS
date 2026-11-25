@@ -4,6 +4,7 @@
   "name": "Tile",
   "type": "layertype",
   "typeId": "tile",
+  "category": "raster",
   "version": "core",
   "tier": "core",
   "overridable": false,

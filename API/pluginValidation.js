@@ -81,6 +81,13 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
 const TIME_OPS = ["format", "applyTimeParams", "availability"];
+const LAYER_TYPE_CATEGORIES = new Set([
+  "raster",
+  "vector",
+  "media",
+  "model",
+  "structural",
+]);
 const SOURCE_OPS = ["fetch"];
 const LEGEND_OPS = ["derive"];
 const SETTINGS_OPS = ["sections", "actions", "status"];
@@ -681,6 +688,7 @@ const KNOWN_FIELDS = {
     "modules",
     "module",
     "typeId",
+    "category",
     "extends",
     "description",
     "descriptionFull",
@@ -1087,6 +1095,15 @@ function validatePluginConfig(config, pluginName, pluginType) {
     if (typeof config[idField] !== "string" || config[idField].length === 0) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): missing required '${idField}' field (must be a non-empty string)`
+      );
+    }
+    if (
+      pluginType === "layertype" &&
+      config.category !== undefined &&
+      !LAYER_TYPE_CATEGORIES.has(config.category)
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (layertype): 'category' must be one of: raster, vector, media, model, structural`
       );
     }
     // An attachment's settings live in its host layer's config, and its id is

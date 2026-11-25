@@ -4,6 +4,7 @@
   "name": "Image",
   "type": "layertype",
   "typeId": "image",
+  "category": "raster",
   "version": "core",
   "tier": "core",
   "overridable": false,

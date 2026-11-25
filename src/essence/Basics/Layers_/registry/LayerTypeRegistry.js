@@ -98,6 +98,14 @@ const LayerTypeRegistry = {
     getConfig(typeId) {
         return _load().layerTypeConfigs?.[typeId]
     },
+    /** Broad UI and workflow category, inherited when a type omits its own. */
+    category(typeId) {
+        for (const candidate of this.typeChain(typeId)) {
+            const category = this.getConfig(candidate)?.category
+            if (category != null) return category
+        }
+        return null
+    },
     /**
      * Declared capabilities object for a type (renderers, time, filtering…),
      * with an `extends` parent's capabilities as the base so an inheriting type

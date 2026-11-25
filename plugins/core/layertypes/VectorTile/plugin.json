@@ -4,6 +4,7 @@
   "name": "VectorTile",
   "type": "layertype",
   "typeId": "vectortile",
+  "category": "vector",
   "version": "core",
   "tier": "core",
   "overridable": false,

@@ -4,6 +4,7 @@
   "name": "Data",
   "type": "layertype",
   "typeId": "data",
+  "category": "raster",
   "version": "core",
   "tier": "core",
   "overridable": false,
