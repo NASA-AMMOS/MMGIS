@@ -28,6 +28,7 @@ plugins/core/layertypes/<Type>/
   time.js                        # what time means to this type        — optional
   source.js                      # how the type acquires its data      — optional
   legend.js                      # a legend derived from the render     — optional
+  settings.jsx                   # user-facing settings sections/actions — optional
   lib/                           # anything else the type needs
 ```
 
@@ -55,7 +56,7 @@ modules:
 ```
 
 `modules` keys are **surfaces** — `map`, `globe.<engine>`, `config`, `filter`,
-`time`, `source`, `legend` — not export names, which is why this is not the
+`time`, `source`, `legend`, `settings` — not export names, which is why this is not the
 `paths` of tools and interactions (there a key is the export identifier a mission
 names in `"js"`). Every surface is optional: `Header` declares no modules at all
 and `Model` has no `map`.
@@ -67,6 +68,13 @@ A surface a type does not support is `false` (e.g. `"map": false` for a
 globe-only type). **Startup validation cross-checks `capabilities.renderers`
 against the module files actually present** — a declared engine with no module
 (or a module with no declared engine) is an error.
+
+### `category` — a type's broad UI family
+
+An optional top-level `category` classifies a type for shared UI behavior. The
+accepted values are `raster`, `vector`, `media`, `model`, and `structural`.
+Built-in raster-sample behavior uses this category rather than a list of type
+names. A type that omits its category inherits its parent's through `extends`.
 
 ### `extends` — inherit a type you only differ from
 
@@ -145,6 +153,57 @@ core fetches) rather than a renderer at all.
 
 ---
 
+## Settings surface
+
+An optional `modules.settings` module lets a layer type contribute React
+settings to the Layers tool without depending on a tool implementation:
+
+```jsx
+export default {
+    sections: (layer, ctx) => [
+        { id: 'display', label: 'Display', order: 10, Component, resettable: true },
+    ],
+    actions: (layer, ctx) => [
+        { id: 'custom', label: 'Custom action', icon: 'information-outline', onClick: (api) => {} },
+    ],
+    status: (layer, ctx) => null,
+    info: (layer, ctx) => ({ typeLabel: 'raster', featureCount: 0 }),
+    export: {
+        extents: (layer) => [{ value: 'current', label: 'Current Extent' }],
+        getGeoJSON: async (layer, { extent }) => fetchGeoJSON(layer, extent),
+    },
+    download: (layer) => layer.variables?.downloadURL || null,
+}
+```
+
+`sections(layer, ctx)` always receives the layer and the settings context
+object `{ layerName, layerType, api }`; `ctx.api` is layer-scoped. Core uses
+this same contract when it enumerates sections for rendering, reset, and
+reset-all, rather than passing the bare API as the second argument.
+`info(layer, ctx)` is optional; `ctx` contains `{ layerName, layerType }`. It
+returns modal metadata: `typeLabel` replaces the default type label, and a
+numeric `featureCount` adds the feature-count suffix. Core reads this hook
+through `LayerTypeRegistry` rather than branching on built-in type ids.
+
+Section components receive `{ layer, api, state, setState, resetToken }`.
+`state` is persistent per layer and section; `resetToken` changes when that
+section or all settings are reset. `api` exposes named operations supplied by
+Layers for changing the layer, refreshing it, locating it, and resetting
+settings. `sections`, `actions`, and `status` are optional; inherited layer
+types receive this surface through the same `extends` resolution as other
+modules.
+
+`export` is optional and contains `extents(layer) → [{ value, label }]` and
+`async getGeoJSON(layer, { extent }) → GeoJSON`. The type owns extent options
+and source acquisition (for example, the current viewport, a full file, or a
+geodataset request); core owns format, coordinate, and property controls plus
+conversion and download creation. Core shows the Export section only when this
+hook exists. A type may also expose `download(layer) → url | null`; core shows
+the header Download action only for a returned URL. If a type has `export` but
+no download URL, the action focuses its Export section instead.
+
+---
+
 ## The operations (identical on map and globe)
 
 A renderer module is `export default { …operations }`. Both surfaces speak the
@@ -166,6 +225,7 @@ operations take a layer *name* instead, and some take a value: see
 | `onToggle` | the layer finished being toggled, core's bookkeeping settled | optional | nothing extra to do |
 | `setStyle` | dynamic restyle / render-param change (color maps, rescale, feature styles, COG params) | optional | no-op (styling is type-specific) |
 | `timeChange` | the time bar moved | optional | reload the layer |
+| `refresh` | the user chose Reload | optional | `Map_.refreshLayer(layerObj)` |
 
 Data acquisition is not one of these operations. Core fetches, and core owns the
 dynamic-extent refetch on pan/zoom (see `Layers_/capture/LayerCapturer`); a type

@@ -3,7 +3,7 @@ import Dropy from '../../external/Dropy/dropy'
 import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
 import F_ from '../Basics/Formulae_/Formulae_'
-import ToolController_ from '../Basics/ToolController_/ToolController_'
+import { populateCogScale } from '../../../plugins/core/layertypes/Tile/cogLegend'
 
 // Because 0 is a valid value in many datasets yet still special in images being fully transparent,
 // we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
@@ -281,6 +281,7 @@ let DataShaders = {
             ) {
                 DataShaders.colorize.lastMinMax.min = min
                 DataShaders.colorize.lastMinMax.max = max
+                L_.layers.layer[name]._shaderMinMax = { min, max }
                 L_.layers.layer[name].setUniform('minvalue', min)
                 L_.layers.layer[name].setUniform('maxvalue', max)
                 L_.layers.layer[name].reRender()
@@ -294,6 +295,7 @@ let DataShaders = {
                     Math.abs(max - DataShaders.colorize.lastMinMax.max) < 1
                 ) {
                     clearInterval(DataShaders.colorize.intervalMinMax)
+                    L_.layers.layer[name]._shaderMinMax = { min, max }
                     L_.layers.layer[name].setUniform('minvalue', min)
                     L_.layers.layer[name].setUniform('maxvalue', max)
                     L_.layers.layer[name].reRender()
@@ -318,6 +320,10 @@ let DataShaders = {
                 else if (DataShaders.colorize.lastMinMax.min < max)
                     DataShaders.colorize.lastMinMax.max += maxRate
 
+                L_.layers.layer[name]._shaderMinMax = {
+                    min: DataShaders.colorize.lastMinMax.min,
+                    max: DataShaders.colorize.lastMinMax.max,
+                }
                 L_.layers.layer[name].setUniform(
                     'minvalue',
                     DataShaders.colorize.lastMinMax.min
@@ -657,8 +663,7 @@ let DataShaders = {
                     ).val(max.toFixed(sigfigs))
                 }
 
-                const layersTool = ToolController_.getTool('LayersTool')
-                if (layersTool && typeof layersTool.populateCogScale === 'function') layersTool.populateCogScale(name)
+                populateCogScale(name)
             }
         },
         // prettier-ignore

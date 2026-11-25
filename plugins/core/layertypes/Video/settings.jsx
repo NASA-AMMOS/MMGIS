@@ -1,0 +1,158 @@
+import React, { useEffect, useState } from 'react'
+import { Button, Slider } from '@design/components'
+import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerSettings'
+import L_ from '@basics/Layers_/Layers_'
+import './settings.css'
+
+function VideoSettings({ layer, api }) {
+    const [playing, setPlaying] = useState(false)
+    const [muted, setMuted] = useState(false)
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(0)
+    const video = L_.layers.layer[layer.name]?.getElement?.()
+    const filters = L_.layers.filters?.[layer.name] || {}
+    useEffect(() => {
+        if (!video) return
+        const update = () => {
+            setCurrentTime(video.currentTime || 0)
+            setDuration(video.duration || 0)
+            setMuted(video.muted)
+            setPlaying(!video.paused)
+        }
+        video.addEventListener('timeupdate', update)
+        video.addEventListener('loadedmetadata', update)
+        video.addEventListener('volumechange', update)
+        video.addEventListener('play', update)
+        video.addEventListener('pause', update)
+        update()
+        return () => {
+            video.removeEventListener('timeupdate', update)
+            video.removeEventListener('loadedmetadata', update)
+            video.removeEventListener('volumechange', update)
+            video.removeEventListener('play', update)
+            video.removeEventListener('pause', update)
+        }
+    }, [video])
+    if (!video) return <div>Turn on the video layer to load playback controls.</div>
+    const download = layer.variables?.downloadURL || layer.url
+    return (
+        <div className="lt-videoSettings">
+            <div className="lt-videoControls">
+                <Button
+                    className="lt-secondaryButton"
+                    size="sm"
+                    variant="secondary"
+                    aria-label={playing ? 'Pause video' : 'Play video'}
+                    onClick={() => {
+                        if (video.paused) video.play().catch(() => {})
+                        else video.pause()
+                    }}
+                >
+                    <i className={`mdi mdi-${playing ? 'pause' : 'play'} mdi-16px`} />
+                </Button>
+                <Button
+                    className="lt-secondaryButton"
+                    size="sm"
+                    variant="secondary"
+                    aria-label="Restart video"
+                    onClick={() => {
+                        const wasPlaying = !video.paused
+                        video.currentTime = 0
+                        if (wasPlaying) video.play().catch(() => {})
+                    }}
+                >
+                    <i className="mdi mdi-restart mdi-16px" />
+                </Button>
+                <Button
+                    className="lt-secondaryButton"
+                    size="sm"
+                    variant="secondary"
+                    aria-label={muted ? 'Unmute video' : 'Mute video'}
+                    onClick={() => {
+                        const nextMuted = !muted
+                        video.muted = nextMuted
+                        setMuted(nextMuted)
+                    }}
+                >
+                    <i className={`mdi mdi-volume-${muted ? 'off' : 'high'} mdi-16px`} />
+                </Button>
+            </div>
+            <div className="lt-videoScrub">
+                <span>{Math.floor(currentTime)}s</span>
+                <Slider
+                    aria-label="Video playback position"
+                    min={0}
+                    max={Math.max(1, duration)}
+                    step={0.1}
+                    value={currentTime}
+                    onValueChange={(value) => {
+                        video.currentTime = Array.isArray(value) ? value[0] : value
+                        setCurrentTime(video.currentTime)
+                    }}
+                />
+                <span>{Math.floor(duration)}s</span>
+            </div>
+            {download && (
+                <Button
+                    className="lt-iconTextButton lt-secondaryButton"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                        window.open(download, '_blank', 'noopener,noreferrer')
+                    }
+                >
+                    <i className="mdi mdi-download" /> Download video
+                </Button>
+            )}
+            <div className="lt-videoFilters">
+                {[
+                    ['brightness', 'Brightness', 3],
+                    ['contrast', 'Contrast', 4],
+                    ['saturate', 'Saturation', 4],
+                ].map(([property, label, max]) => (
+                    <LayerSettingsSlider
+                        key={property}
+                        label={label}
+                        value={(() => {
+                            const styleProperty =
+                                property === 'saturate' ? 'saturation' : property
+                            const setting =
+                                filters[property] ?? layer.style?.[styleProperty]
+                            return setting == null || setting === ''
+                                ? 1
+                                : Number(setting)
+                        })()}
+                        min={0}
+                        max={max}
+                        step={0.05}
+                        defaultValue={1}
+                        onChange={(value) => api.setTileFilter(property, value)}
+                    />
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export default {
+    download(layer) {
+        const url = layer.variables?.downloadURL || layer.url
+        return typeof url === 'string' && !/\{[zxy]\}/i.test(url)
+            ? url
+            : null
+    },
+    sections: () => [
+        {
+            id: 'video-controls',
+            label: 'Playback',
+            icon: 'play-circle-outline',
+            order: 10,
+            Component: VideoSettings,
+        },
+    ],
+    actions: () => [],
+    status: (layer) =>
+        layer.error
+            ? { kind: 'failed', message: layer.error.message || 'Video failed to load' }
+            : null,
+}

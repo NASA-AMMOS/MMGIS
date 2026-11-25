@@ -1,312 +1,2629 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, devices } from '@playwright/test'
+const fs = require('fs')
+const axeSource = require.resolve('axe-core')
+const LIGHT_DEFAULT_THEME = {
+    '--color-a-5': '#f8fafc',
+    '--color-a': '#ffffff',
+    '--color-accent-active': '#dbeafe',
+    '--color-a1': '#e2e8f0',
+    '--color-a1-5': '#edf2f7',
+    '--color-a2': '#94a3b8',
+    '--color-a3': '#64748b',
+    '--color-a4': '#475569',
+    '--color-a5': '#334155',
+    '--color-a6': '#1e293b',
+    '--color-a7': '#0f172a',
+    '--color-b': '#94a3b8',
+    '--color-c': '#0284c7',
+    '--color-c2': '#0369a1',
+    '--color-d': '#f1f5f9',
+    '--color-e': '#e2e8f0',
+    '--color-f': '#0f172a',
+    '--color-h': '#b45309',
+    '--color-g': '#f8fafc',
+    '--color-i': '#e2e8f0',
+    '--color-j': '#e2e8f0',
+    '--color-k': '#ffffff',
+    '--color-l': '#0f172a',
+    '--color-m': '#475569',
+    '--color-n': '#f1f5f9',
+    '--color-o': '#0369a1',
+    '--color-p': '#64748b',
+    '--color-m1': '#edf2f7',
+    '--color-m2': '#f1f5f9',
+    '--color-m3': '#f8fafc',
+    '--color-mh': '#b45309',
+    '--color-mw': '#1e293b',
+    '--color-mw2': '#334155',
+    '--color-shadow': 'rgba(0, 0, 0, 0.08)',
+}
 
-/**
- * E2E tests for the Layers Tool Panel.
- *
- * The Layers tool allows toggling layer visibility, adjusting opacity,
- * expanding/collapsing header groups, and viewing layer metadata such
- * as descriptions and tags.
- *
- * Reference-Mission layers tested:
- *   - "Points Basic" (vector, under "Geometry Types" header)
- *   - "Lines Basic" (vector)
- *   - "Geodatasets - Basic" (has description)
- *   - "Tags and Description" (has tags: ["demo", "testing", "configuration"])
- */
+async function openLayers(page) {
+    await page.goto('/?mission=Reference-Mission')
+    await page.waitForLoadState('networkidle', { timeout: 60000 })
+    await page.waitForFunction(
+        () => !!(window.mmgisAPI && window.mmgisAPI.map),
+        { timeout: 30000 }
+    )
+    await page.locator('#toolButtonLayers').click()
+    await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+}
 
-test.describe('Layers Tool Panel', () => {
+async function setAllExpanded(page, expanded) {
+    const toggle = page.getByRole('button', {
+        name: /^(Expand|Collapse) all$/,
+    })
+    const currentLabel = await toggle.getAttribute('aria-label')
+    if (currentLabel !== (expanded ? 'Collapse all' : 'Expand all'))
+        await toggle.click()
+}
 
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/?mission=Reference-Mission');
-    await page.waitForLoadState('networkidle', { timeout: 60000 });
-    await page.waitForFunction(() => !!(window.mmgisAPI && window.mmgisAPI.map), {
-      timeout: 30000,
-    });
-  });
+async function getLayer(page, label, type) {
+    const layer = await page.evaluate(
+        ({ searchLabel, layerType }) => {
+            const found = Object.values(window.L_.layers.data).find(
+                (candidate) =>
+                    (candidate.display_name === searchLabel ||
+                        candidate.name === searchLabel) &&
+                    (!layerType || candidate.type === layerType)
+            )
+            return found
+                ? {
+                      name: found.name,
+                      label: found.display_name || found.name,
+                  }
+                : null
+        },
+        { searchLabel: label, layerType: type }
+    )
+    expect(layer, `Layer ${label} (${type || 'any type'}) is configured`).not.toBeNull()
+    return layer
+}
 
-  test('Layers panel opens and shows layer list', async ({ page }) => {
-    // Open the Layers tool
-    const layersBtn = page.locator('#toolButtonLayers').first();
-    await layersBtn.click();
-    await page.waitForTimeout(500);
+async function dragTreeItem(page, sourceLabel, targetLabel) {
+    const sourceRow = page
+        .getByRole('treeitem')
+        .filter({ hasText: sourceLabel })
+        .first()
+    const targetRow = page
+        .getByRole('treeitem')
+        .filter({ hasText: targetLabel })
+        .first()
+    const source = await sourceRow.locator('.lt-drag').boundingBox()
+    const target = await targetRow.boundingBox()
+    if (!source || !target)
+        throw new Error(
+            `Missing drag geometry for ${sourceLabel} -> ${targetLabel}`
+        )
 
-    // Verify the panel is visible (#layersTool is the panel container)
-    const panel = page.locator('#layersTool, #toolPanel').first();
-    const panelVisible = await panel.isVisible({ timeout: 5000 }).catch(() => false);
-    expect(panelVisible).toBeTruthy();
-
-    // Verify known layers appear in the panel text
-    const panelText = await panel.textContent();
-    expect(panelText).toContain('Points Basic');
-    expect(panelText).toContain('Lines Basic');
-  });
-
-  test('toggle "Points Basic" visibility', async ({ page }) => {
-    // Open the Layers tool
-    const layersBtn = page.locator('#toolButtonLayers').first();
-    await layersBtn.click();
-    await page.waitForTimeout(500);
-
-    // Expand "Geometry Types" group if needed
-    const geoHeader = page.locator('[class*="header"], [class*="group"]')
-      .filter({ hasText: 'Geometry Types' })
-      .first();
-    const geoVisible = await geoHeader.isVisible({ timeout: 3000 }).catch(() => false);
-    if (geoVisible) {
-      // Check if it needs expanding
-      const isExpanded = await geoHeader.evaluate((el) =>
-        el.classList.contains('expanded') ||
-        el.classList.contains('open') ||
-        el.getAttribute('aria-expanded') === 'true'
-      ).catch(() => false);
-      if (!isExpanded) {
-        await geoHeader.click();
-        await page.waitForTimeout(300);
-      }
+    const x = source.x + source.width / 2
+    const y = source.y + source.height / 2
+    const toY = target.y + target.height / 2
+    await page.mouse.move(x, y)
+    await page.waitForTimeout(180)
+    await page.mouse.down()
+    await page.waitForTimeout(180)
+    await page.mouse.move(x + 14, y, { steps: 5 })
+    await page.waitForTimeout(180)
+    for (let step = 1; step <= 45; step += 1) {
+        await page.mouse.move(
+            x + (14 * (1 - step / 45)),
+            y + ((toY - y) * step) / 45
+        )
+        await page.waitForTimeout(12)
     }
+    await page.waitForTimeout(250)
+    await page.mouse.up()
+    await page.waitForTimeout(500)
+}
 
-    // Find the "Points Basic" layer row (layers use [id^="layerstart"] divs)
-    const layerRow = page.locator('[id^="layerstart"]')
-      .filter({ hasText: 'Points Basic' })
-      .first();
+test.describe('LayersTool', () => {
+    test('opens, closes, and reopens with its list state intact', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('points')
+        await page.waitForTimeout(200)
+        await expect(search).toHaveValue('points')
 
-    const rowVisible = await layerRow.isVisible({ timeout: 3000 }).catch(() => false);
-    if (!rowVisible) {
-      test.skip(true, 'SKIP: "Points Basic" layer row not visible in Layers panel');
-      return;
-    }
+        await page.evaluate(() =>
+            window.ToolController_.closeActiveTool()
+        )
+        await page.locator('#toolButtonLayers').click()
+        await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+        await expect(
+            page.getByRole('textbox', { name: 'Search layers' })
+        ).toHaveValue('points')
+    })
 
-    // Toggle layer on via L_.toggleLayer() (jQuery click handlers don't fire from Playwright)
-    const toggledOn = await page.evaluate(async (name) => {
-      const data = window.L_?.layers?.data;
-      if (!data) return false;
-      for (const key of Object.keys(data)) {
-        if (data[key]?.display_name === name || data[key]?.name === name) {
-          await window.L_.toggleLayer(data[key]);
-          return true;
+    test('search is case-insensitive and safe for regex metacharacters', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('[')
+        await page.waitForTimeout(200)
+        await expect(page.getByText(/No layers match/)).toBeVisible()
+        await search.fill('(')
+        await page.waitForTimeout(200)
+        await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+        await search.fill('POINTS')
+        await page.waitForTimeout(200)
+        await expect(
+            page.getByRole('treeitem').filter({ hasText: /Points Basic/i })
+        ).toBeVisible()
+    })
+
+    test('search expansion restores collapsed groups and emits state changes', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const headerName = 'Geometry Types'
+        const otherHeaderName = 'Feature Property Styling'
+        const header = page
+            .getByRole('treeitem')
+            .filter({ hasText: headerName })
+            .first()
+        const otherHeader = page
+            .getByRole('treeitem')
+            .filter({ hasText: otherHeaderName })
+            .first()
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(otherHeader).toHaveAttribute('aria-expanded', 'true')
+        const headerEventNames = await page.evaluate(
+            ({ headerName, otherHeaderName }) => {
+                const names = {}
+                const visit = (nodes) =>
+                    (nodes || []).forEach((node) => {
+                        if (node.type === 'header') {
+                            const displayName = node.display_name || node.name
+                            if (displayName === headerName)
+                                names.header = node.name
+                            if (displayName === otherHeaderName)
+                                names.otherHeader = node.name
+                            visit(node.sublayers)
+                        }
+                    })
+                visit(window.L_.configData.layers)
+                return names
+            },
+            { headerName, otherHeaderName }
+        )
+        expect(headerEventNames.header).toBeTruthy()
+        expect(headerEventNames.otherHeader).toBeTruthy()
+
+        await header.locator('.lt-chevron').click()
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await page.evaluate(() => {
+            window.__searchExpansionEvents = []
+            document.addEventListener(
+                'layersToolHeaderStateChange',
+                (event) =>
+                    window.__searchExpansionEvents.push(event.detail)
+            )
+        })
+
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points')
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Basic' })
+                .first()
+        ).toBeVisible()
+        await expect
+            .poll(() =>
+                page.evaluate(() => window.__searchExpansionEvents)
+            )
+            .toEqual([
+                { header_id: headerEventNames.header, onState: true },
+            ])
+
+        await otherHeader.locator('.lt-chevron').click()
+        await expect(otherHeader).toHaveAttribute('aria-expanded', 'false')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Styled' })
+        ).toHaveCount(0)
+
+        await search.fill('')
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Basic' })
+        ).toHaveCount(0)
+        await expect(otherHeader).toHaveAttribute('aria-expanded', 'true')
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Styled' })
+                .first()
+        ).toBeVisible()
+        await expect
+            .poll(() =>
+                page.evaluate(() => window.__searchExpansionEvents)
+            )
+            .toEqual([
+                { header_id: headerEventNames.header, onState: true },
+                { header_id: headerEventNames.otherHeader, onState: false },
+                { header_id: headerEventNames.header, onState: false },
+                { header_id: headerEventNames.otherHeader, onState: true },
+            ])
+    })
+
+    test('search-time drops use transient expansion instead of stored collapse', async ({
+        page,
+    }) => {
+        const headerName = '📄 GeoJSON Data Features'
+        const outcomes = []
+        for (const initiallyExpanded of [false, true]) {
+            const testPage = await page.context().newPage()
+            try {
+                await openLayers(testPage)
+                const header = testPage
+                    .getByRole('treeitem')
+                    .filter({ hasText: headerName })
+                    .first()
+                const isExpanded =
+                    (await header.getAttribute('aria-expanded')) === 'true'
+                if (isExpanded !== initiallyExpanded)
+                    await header.locator('.lt-chevron').click()
+                await expect(header).toHaveAttribute(
+                    'aria-expanded',
+                    String(initiallyExpanded)
+                )
+
+                const search = testPage.getByRole('textbox', {
+                    name: 'Search layers',
+                })
+                await search.fill('Points')
+                await testPage.waitForTimeout(250)
+                await expect(header).toHaveAttribute('aria-expanded', 'true')
+                await expect(
+                    testPage
+                        .getByRole('treeitem')
+                        .filter({ hasText: 'Geometry Types' })
+                        .first()
+                ).toBeVisible()
+                await dragTreeItem(
+                    testPage,
+                    'Points Styled',
+                    'Geometry Types'
+                )
+                await expect
+                    .poll(() =>
+                        testPage.evaluate(
+                            () =>
+                                window.ToolController_
+                                    .getTool('LayersTool')
+                                    .orderingHistory.length
+                        )
+                    )
+                    .toBe(1)
+
+                await search.fill('')
+                await expect(header).toHaveAttribute(
+                    'aria-expanded',
+                    String(initiallyExpanded)
+                )
+                outcomes.push(
+                    await testPage.evaluate(() =>
+                        window.ToolController_
+                            .getTool('LayersTool')
+                            ._debugFlat()
+                            .map(({ name, display_name, type, depth }) => ({
+                                name: display_name || name,
+                                type,
+                                depth,
+                            }))
+                    )
+                )
+            } finally {
+                await testPage.close()
+            }
         }
-      }
-      return false;
-    }, 'Points Basic');
-    expect(toggledOn).toBeTruthy();
-    await page.waitForTimeout(500);
+        expect(outcomes[0]).toEqual(outcomes[1])
+    })
 
-    // Verify layer is on via L_.layers.on
-    const isOn = await page.evaluate(() => {
-      const data = window.L_?.layers?.data;
-      const on = window.L_?.layers?.on;
-      if (!data || !on) return false;
-      for (const key of Object.keys(data)) {
-        if (data[key]?.display_name === 'Points Basic') return !!on[key];
-      }
-      return false;
-    });
-    expect(isOn).toBeTruthy();
+    test('keeps search match counts when all matching groups are collapsed', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points')
 
-    // Toggle layer off
-    await page.evaluate(async (name) => {
-      const data = window.L_?.layers?.data;
-      for (const key of Object.keys(data)) {
-        if (data[key]?.display_name === name || data[key]?.name === name) {
-          await window.L_.toggleLayer(data[key]);
-          return;
+        const count = page.locator(
+            '#layersTool .lt-viewSummary > span'
+        )
+        await expect(count).toHaveText(/^\d+ of \d+ layers$/)
+        const countBeforeCollapse = await count.textContent()
+        const matchingRowCount = await page
+            .locator('#layersTool .lt-layerRow')
+            .count()
+        expect(matchingRowCount).toBeGreaterThan(0)
+
+        await setAllExpanded(page, false)
+        await expect(page.getByText(/No layers match/)).toHaveCount(0)
+        await expect(count).toHaveText(countBeforeCollapse)
+        const vectorHeader = page
+            .getByRole('treeitem')
+            .filter({ hasText: 'Vector Layers' })
+            .first()
+        await expect(vectorHeader).toBeVisible()
+        await expect(vectorHeader).toHaveAttribute('aria-expanded', 'false')
+        await expect(
+            page.locator('#layersTool .lt-layerRow')
+        ).toHaveCount(0)
+
+        await setAllExpanded(page, true)
+        await expect(vectorHeader).toHaveAttribute('aria-expanded', 'true')
+        await expect(
+            page.locator('#layersTool .lt-layerRow')
+        ).toHaveCount(matchingRowCount)
+        await expect(
+            page
+                .getByRole('treeitem')
+                .filter({ hasText: 'Points Basic' })
+                .first()
+        ).toBeVisible()
+    })
+
+    test('view pill uses one context-aware expansion toggle', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const toggle = page.getByRole('button', {
+            name: /^(Expand|Collapse) all$/,
+        })
+        await expect(toggle).toHaveCount(1)
+        const firstLabel = await toggle.getAttribute('aria-label')
+        await toggle.click()
+        await expect(toggle).toHaveAttribute(
+            'aria-label',
+            firstLabel === 'Collapse all' ? 'Expand all' : 'Collapse all'
+        )
+        await toggle.click()
+        await expect(toggle).toHaveAttribute(
+            'aria-label',
+            firstLabel || 'Collapse all'
+        )
+    })
+
+    test('toggles visible and filtered layer views', async ({ page }) => {
+        await openLayers(page)
+        const visible = page.getByRole('button', {
+            name: 'Show only visible layers',
+        })
+        const filtered = page.getByRole('button', {
+            name: 'Show only filtered layers',
+        })
+        await visible.click()
+        await expect(visible).toHaveAttribute('aria-pressed', 'true')
+        await filtered.click()
+        await expect(filtered).toHaveAttribute('aria-pressed', 'true')
+        await expect(
+            page.getByRole('button', { name: 'Clear filters' })
+        ).toBeVisible()
+    })
+
+    test('refreshes the Filter count after a first-time vector load', async ({
+        page,
+    }) => {
+        let releaseRequest
+        const requestGate = new Promise((resolve) => {
+            releaseRequest = resolve
+        })
+        await page.route('**/points-basic.geojson*', async (route) => {
+            await requestGate
+            await route.continue()
+        })
+        try {
+            await openLayers(page)
+            const row = page
+                .locator('.lt-layerRow')
+                .filter({ hasText: 'Points Basic' })
+            await row.locator('.lt-title').click()
+            const count = page.locator('#layersTool_filtering_count')
+            await expect(count).toHaveText('0 of 0 features')
+            releaseRequest()
+            await page.waitForFunction(() => {
+                const layer = Object.values(window.L_.layers.data).find(
+                    (candidate) => candidate.display_name === 'Points Basic'
+                )
+                return (
+                    window.L_.layers.layer[layer?.name]
+                        ?.toGeoJSON?.()
+                        ?.features?.length === 10
+                )
+            })
+            await page.waitForTimeout(2500)
+            await expect(count).toHaveText('10 of 10 features')
+        } finally {
+            releaseRequest()
         }
-      }
-    }, 'Points Basic');
-    await page.waitForTimeout(500);
+    })
 
-    // Verify layer is off
-    const isOff = await page.evaluate(() => {
-      const data = window.L_?.layers?.data;
-      const on = window.L_?.layers?.on;
-      if (!data || !on) return true;
-      for (const key of Object.keys(data)) {
-        if (data[key]?.display_name === 'Points Basic') return !on[key];
-      }
-      return true;
-    });
-    expect(isOff).toBeTruthy();
-  });
-
-  test('expand/collapse header group', async ({ page }) => {
-    // Open the Layers tool
-    const layersBtn = page.locator('#toolButtonLayers').first();
-    await layersBtn.click();
-    await page.waitForTimeout(500);
-
-    // Find the "Geometry Types" header group
-    const geoHeader = page.locator('[class*="header"], [class*="group"]')
-      .filter({ hasText: 'Geometry Types' })
-      .first();
-    const geoVisible = await geoHeader.isVisible({ timeout: 3000 }).catch(() => false);
-
-    if (!geoVisible) {
-      test.skip(true, 'SKIP: "Geometry Types" header group not found in Layers panel');
-      return;
-    }
-
-    // Click to expand
-    await geoHeader.click();
-    await page.waitForTimeout(500);
-
-    // After expanding, child layers like "Points Basic" should be visible in the DOM
-    const childLayer = page.locator('text=Points Basic').first();
-    const childVisible = await childLayer.isVisible({ timeout: 3000 }).catch(() => false);
-
-    // Click to collapse
-    await geoHeader.click();
-    await page.waitForTimeout(500);
-
-    // After collapsing, the same child should be hidden
-    const childHiddenAfter = await childLayer.isVisible({ timeout: 1000 }).catch(() => false);
-
-    // At least one of these states should differ (expand shows, collapse hides)
-    expect(childVisible || !childHiddenAfter).toBeTruthy();
-  });
-
-  test('adjust opacity slider', async ({ page }) => {
-    // Open the Layers tool
-    const layersBtn = page.locator('#toolButtonLayers').first();
-    await layersBtn.click();
-    await page.waitForTimeout(500);
-
-    // Find Points Basic layer row
-    const layerRow = page.locator('[id^="layerstart"]')
-      .filter({ hasText: 'Points Basic' })
-      .first();
-
-    const rowVisible = await layerRow.isVisible({ timeout: 3000 }).catch(() => false);
-    if (!rowVisible) {
-      test.skip(true, 'SKIP: No layer row visible to test opacity slider');
-      return;
-    }
-
-    // Toggle layer on first via L_.toggleLayer()
-    await page.evaluate(async (name) => {
-      const data = window.L_?.layers?.data;
-      for (const key of Object.keys(data)) {
-        if (data[key]?.display_name === name || data[key]?.name === name) {
-          if (!window.L_.layers.on[key]) await window.L_.toggleLayer(data[key]);
-          return;
+    test('keyboard navigation opens settings and Escape returns to the tree', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points Basic')
+        await page.waitForTimeout(180)
+        const tree = page.getByRole('tree', { name: 'Layers' })
+        const listPane = page.locator('.lt-listPane')
+        await tree.focus()
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+            const isLayerRow = await page.evaluate(() => {
+                const treeElement = document.querySelector('[role="tree"]')
+                const activeId = treeElement?.getAttribute(
+                    'aria-activedescendant'
+                )
+                return !!document
+                    .getElementById(activeId)
+                    ?.querySelector('.lt-layerRow')
+            })
+            if (isLayerRow) break
+            await page.keyboard.press('ArrowDown')
         }
-      }
-    }, 'Points Basic');
-    await page.waitForTimeout(500);
+        await page.keyboard.press('Enter')
+        await expect(page.locator('.lt-settings')).toBeVisible()
+        await expect(listPane).toHaveJSProperty('inert', true)
+        await page.keyboard.press('Escape')
+        await expect(page.locator('.lt-settings')).toHaveCount(0)
+        await expect(listPane).toHaveJSProperty('inert', false)
+        await expect(tree).toBeVisible()
+    })
 
-    // Look for an opacity slider or control in the layer row or its settings
-    const slider = layerRow.locator(
-      'input[type="range"], [class*="opacity"], [class*="slider"]'
-    ).first();
-    const sliderVisible = await slider.isVisible({ timeout: 3000 }).catch(() => false);
+    test('LayerInfo closes locally and restores focus to either launcher', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points Basic')
+        await page.waitForTimeout(180)
 
-    if (!sliderVisible) {
-      // May need to open layer settings/details first
-      const settingsBtn = layerRow.locator(
-        '[class*="settings"], [class*="gear"], [class*="more"], [class*="expand"]'
-      ).first();
-      const settingsVisible = await settingsBtn.isVisible({ timeout: 1000 }).catch(() => false);
-      if (settingsVisible) {
-        await settingsBtn.click();
-        await page.waitForTimeout(300);
-      }
-    }
+        const rowInfo = page
+            .locator('.lt-headerRow')
+            .filter({ hasText: 'Geometry Types' })
+            .locator('button.lt-status')
+        await rowInfo.focus()
+        await rowInfo.click()
+        const dialog = page.getByRole('dialog', { name: 'Information' })
+        await expect(dialog).toBeVisible()
+        await expect(dialog).toHaveAttribute('aria-modal', 'true')
+        await page.keyboard.press('Escape')
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () => !document.getElementById('LayerInfoModal')
+                )
+            )
+            .toBe(true)
+        await expect
+            .poll(() =>
+                rowInfo.evaluate(
+                    (element) => element === document.activeElement
+                )
+            )
+            .toBe(true)
+        await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
 
-    const sliderAfter = layerRow.locator(
-      'input[type="range"], [class*="opacity"], [class*="slider"]'
-    ).first();
-    const sliderNowVisible = await sliderAfter.isVisible({ timeout: 2000 }).catch(() => false);
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: 'Points Basic' })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const settingsInfo = page.getByRole('button', {
+            name: 'Layer information',
+        })
+        await settingsInfo.focus()
+        await settingsInfo.click()
+        await expect(dialog).toBeVisible()
+        await page.locator('#LayerInfoModalClose').click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () => !document.getElementById('LayerInfoModal')
+                )
+            )
+            .toBe(true)
+        await expect
+            .poll(() =>
+                settingsInfo.evaluate(
+                    (element) => element === document.activeElement
+                )
+            )
+            .toBe(true)
+    })
 
-    if (sliderNowVisible) {
-      await sliderAfter.fill('0.5');
-      await page.waitForTimeout(300);
-      // Verify the slider value changed
-      const val = await sliderAfter.inputValue().catch(() => null);
-      if (val !== null) {
-        expect(parseFloat(val)).toBeLessThanOrEqual(1);
-      }
-    } else {
-      // Opacity may be controlled through a different UI element
-      test.skip(true, 'SKIP: Opacity slider not found — may use a different UI pattern');
-    }
-  });
+    test('keyboard reorder round-trips its URL history', async ({ page }) => {
+        await openLayers(page)
+        const tree = page.getByRole('tree', { name: 'Layers' })
+        await setAllExpanded(page, true)
+        const movableLayer = await page.evaluate(() => {
+            const flat = window.ToolController_
+                .getTool('LayersTool')
+                ._debugFlat([])
+            for (let index = 0; index < flat.length - 1; index += 1) {
+                const current = flat[index]
+                const next = flat[index + 1]
+                if (
+                    current.type !== 'header' &&
+                    next.type !== 'header' &&
+                    current.depth === next.depth
+                )
+                    return current.displayName
+            }
+            return null
+        })
+        expect(movableLayer, 'Reference Mission has movable sibling layers').not.toBeNull()
+        await tree.focus()
+        let activeName = ''
+        for (let attempt = 0; attempt < 200; attempt += 1) {
+            activeName = await page.evaluate(() => {
+                const activeId = document
+                    .querySelector('[role="tree"]')
+                    ?.getAttribute('aria-activedescendant')
+                return document
+                    .getElementById(activeId)
+                    ?.querySelector('.lt-name')
+                    ?.textContent?.trim()
+            })
+            if (activeName === movableLayer) break
+            await page.keyboard.press('ArrowDown')
+        }
+        expect(activeName).toBe(movableLayer)
+        await page.keyboard.press('Alt+ArrowDown')
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        window.ToolController_.getTool('LayersTool')
+                            .orderingHistory.length
+                )
+            )
+            .toBe(1)
 
-  test('layer descriptions appear', async ({ page }) => {
-    // Open the Layers tool
-    const layersBtn = page.locator('#toolButtonLayers').first();
-    await layersBtn.click();
-    await page.waitForTimeout(500);
+        const result = await page.evaluate(() => {
+            const tool = window.ToolController_.getTool('LayersTool')
+            const originalHistory = tool.orderingHistory
+            const originalTools = window.L_.FUTURES?.tools
+            const expected = originalHistory.map((entry) => [...entry])
+            try {
+                const encoded = tool.getUrlString()
+                const otherTools = (originalTools || []).filter(
+                    (entry) => !String(entry).startsWith('LayersTool$')
+                )
+                window.L_.FUTURES.tools = [
+                    ...otherTools,
+                    `LayersTool$${encoded}`,
+                ]
+                tool.orderingHistory = []
+                tool.finalize()
+                return {
+                    encoded,
+                    expected,
+                    actual: tool.orderingHistory,
+                }
+            } finally {
+                tool.orderingHistory = originalHistory
+                window.L_.FUTURES.tools = originalTools
+            }
+        })
+        expect(result.encoded).toMatch(
+            /^\d+-\d+-\d+-\d+-\d+(?:\.\d+-\d+-\d+-\d+-\d+)*$/
+        )
+        expect(result.actual).toEqual(result.expected)
+    })
 
-    const panel = page.locator('#layersTool, #toolPanel').first();
-    const panelText = await panel.textContent();
+    test('header power control mutes descendants and restores those layers', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const { groupName, headerName, visibleBefore } = await page.evaluate(() => {
+            const childrenOf = (header) => {
+                const leaves = []
+                const visit = (nodes) =>
+                    (nodes || []).forEach((node) =>
+                        node.type === 'header'
+                            ? visit(node.sublayers)
+                            : leaves.push(node)
+                    )
+                visit(header?.sublayers)
+                return leaves
+            }
+            const header = (window.L_.configData.layers || []).find(
+                (node) =>
+                    node.type === 'header' &&
+                    childrenOf(node).some(
+                        (layer) => window.L_.layers.on[layer.name]
+                    )
+            )
+            return {
+                groupName: header?.display_name || header?.name,
+                headerName: header?.name,
+                visibleBefore: childrenOf(header).filter(
+                    (layer) => window.L_.layers.on[layer.name]
+                ).map((layer) => layer.name),
+            }
+        })
+        test.skip(!groupName, 'No header with visible descendants in mission')
+        await page.evaluate(() => {
+            window.__layersHeaderEvents = []
+            window.__layersHeaderListener = (event) =>
+                window.__layersHeaderEvents.push(event.detail)
+            window.mmgisAPI.addEventListener(
+                'layersToolHeaderStateChange',
+                window.__layersHeaderListener
+            )
+        })
+        const header = page
+            .locator('.lt-headerRow')
+            .filter({ hasText: groupName })
+            .first()
+        const power = header.locator('.lt-power')
+        await expect(header.locator('[role="checkbox"]')).toHaveCount(0)
+        await expect(power).toHaveAttribute('aria-pressed', 'false')
+        await expect(power.locator('i')).toHaveClass(/mdi-power-off/)
+        await power.click()
+        await expect(power.locator('i')).toHaveClass(
+            /(?:^|\s)mdi-power(?:\s|$)/
+        )
+        await expect(power).toHaveAttribute('aria-pressed', 'true')
+        await power.click()
+        await expect(power).toHaveAttribute('aria-pressed', 'false')
+        await expect(power.locator('i')).toHaveClass(/mdi-power-off/)
+        const visibleAfter = await page.evaluate((names) => {
+            const on = window.L_.layers.on
+            return names.filter((name) => on[name])
+        }, visibleBefore)
+        expect(visibleAfter.sort()).toEqual(visibleBefore.sort())
+        const headerEvents = await page.evaluate(
+            () => window.__layersHeaderEvents
+        )
+        const legacyHeaderId = `header_${headerName}`.split('_')[1]
+        expect(headerEvents).toEqual([
+            { header_id: legacyHeaderId, onState: false },
+            { header_id: legacyHeaderId, onState: true },
+        ])
+    })
 
-    // "Geodatasets - Basic" has a description about PostGIS-backed geodataset
-    // Check that the description text or a description indicator is present
-    const hasGeoLayer = panelText.includes('Geodatasets');
+    test('bulk header expansion emits state events only for changed headers', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const expected = await page.evaluate(() => {
+            const headers = []
+            const visit = (nodes, depth = 0) =>
+                (nodes || []).forEach((node) => {
+                    if (node.type === 'header') {
+                        headers.push({
+                            name: node.name,
+                            expanded: node.expanded === true,
+                            depth,
+                        })
+                        visit(node.sublayers, depth + 1)
+                    }
+                })
+            visit(window.L_.configData.layers)
+            window.__layersHeaderEvents = []
+            document.addEventListener('layersToolHeaderStateChange', (event) =>
+                window.__layersHeaderEvents.push(event.detail)
+            )
+            return headers
+        })
+        await setAllExpanded(page, true)
+        await page.evaluate(() => {
+            window.__layersHeaderEvents = []
+        })
+        await setAllExpanded(page, false)
+        const collapseEvents = await page.evaluate(
+            () => window.__layersHeaderEvents
+        )
+        const expectedCollapse = expected
+            .slice()
+            .sort((a, b) => b.depth - a.depth)
+            .map((header) => ({
+                header_id: `header_${header.name}`.split('_')[1],
+                onState: false,
+            }))
+        expect(collapseEvents).toEqual(expectedCollapse)
 
-    if (!hasGeoLayer) {
-      test.skip(true, 'SKIP: Geodatasets layers not visible — may need group expansion');
-      return;
-    }
+        await page.evaluate(() => {
+            window.__layersHeaderEvents = []
+        })
+        await page.getByRole('button', { name: 'Restore default expansion' }).click()
+        const restoreEvents = await page.evaluate(
+            () => window.__layersHeaderEvents
+        )
+        expect(restoreEvents).toEqual(
+            expected
+                .filter((header) => header.expanded)
+                .map((header) => ({
+                    header_id: `header_${header.name}`.split('_')[1],
+                    onState: true,
+                }))
+        )
+    })
 
-    // Look for the description text or an info icon near the layer
-    const descLayer = page.locator('[id^="layerstart"], .title')
-      .filter({ hasText: 'Geodatasets - Basic' })
-      .first();
+    test('preserves the legacy setHeader and toggleHeader API', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const headerInfo = await page.evaluate(() => {
+            const header = (window.L_.configData.layers || []).find(
+                (node) => node.type === 'header'
+            )
+            return header && {
+                name: header.name,
+                displayName: header.display_name || header.name,
+            }
+        })
+        test.skip(!headerInfo, 'Reference Mission has no header')
+        const header = page
+            .getByRole('treeitem')
+            .filter({ hasText: headerInfo.displayName })
+            .first()
+        const initialExpanded = (await header.getAttribute('aria-expanded')) === 'true'
+        await page.evaluate((name) => {
+            const tool = window.ToolController_.getTool('LayersTool')
+            window.__layersHeaderEvents = []
+            window.__layersHeaderListener = (event) =>
+                window.__layersHeaderEvents.push(event.detail)
+            window.mmgisAPI.addEventListener(
+                'layersToolHeaderStateChange',
+                window.__layersHeaderListener
+            )
+            tool.setHeader(`header_${name}`)
+            tool.toggleHeader(`header_${name}`)
+        }, headerInfo.name)
+        await expect(header).toHaveAttribute(
+            'aria-expanded',
+            String(!initialExpanded)
+        )
+        const headerEvents = await page.evaluate(
+            () => window.__layersHeaderEvents
+        )
+        expect(headerEvents).toEqual([
+            {
+                header_id: `header_${headerInfo.name}`.split('_')[1],
+                onState: !initialExpanded,
+            },
+        ])
+    })
 
-    const descVisible = await descLayer.isVisible({ timeout: 3000 }).catch(() => false);
-    if (descVisible) {
-      // Check if description is shown inline or via an info button
-      const descText = await descLayer.textContent();
-      // The layer name should at minimum appear
-      expect(descText).toContain('Geodatasets');
-    }
-  });
+    test('settings visibility follows layer toggles and opening an off layer turns it on', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.evaluate(async (name) => {
+            const item = window.L_.layers.data[name]
+            if (!window.L_.layers.on[name]) await window.L_.toggleLayer(item)
+        }, layer.name)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill(layer.label)
+        await page.waitForTimeout(180)
+        let row = page.locator('.lt-layerRow').filter({ hasText: layer.label }).first()
+        await row.locator('.lt-title').click()
+        const visible = page.getByRole('checkbox', { name: 'Visible' })
+        await expect(visible).toBeChecked()
+        await page.evaluate(async (name) => {
+            await window.L_.toggleLayer(window.L_.layers.data[name])
+        }, layer.name)
+        await expect(visible).not.toBeChecked()
+        await page.locator('.lt-closeButton').click()
+        row = page.locator('.lt-layerRow').filter({ hasText: layer.label }).first()
+        await row.locator('.lt-title').click()
+        await expect(visible).toBeChecked()
+        expect(
+            await page.evaluate((name) => window.L_.layers.on[name], layer.name)
+        ).toBe(true)
+    })
 
-  test('tags appear on "Tags and Description" layer', async ({ page }) => {
-    // Open the Layers tool
-    const layersBtn = page.locator('#toolButtonLayers').first();
-    await layersBtn.click();
-    await page.waitForTimeout(500);
+    test('mmgisAPI.toggleLayer updates the visible checkbox while Layers is open', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
+        await page.waitForTimeout(180)
+        const row = page.locator('.lt-layerRow').filter({ hasText: layer.label }).first()
+        const visible = row.getByRole('checkbox')
+        const target = !(await visible.isChecked())
+        await page.evaluate(
+            async ({ name, on }) => window.mmgisAPI.toggleLayer(name, on),
+            { name: layer.name, on: target }
+        )
+        if (target) await expect(visible).toBeChecked()
+        else await expect(visible).not.toBeChecked()
+    })
 
-    const panel = page.locator('#layersTool, #toolPanel').first();
-    const panelText = await panel.textContent();
+    test('vector rows use a colored type badge instead of a geometry glyph', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points Basic')
+        await page.waitForTimeout(180)
+        const row = page.locator('.lt-layerRow').filter({ hasText: 'Points Basic' }).first()
+        const badge = row.locator('.lt-typeBadge')
+        await expect(row.locator('.lt-glyph')).toHaveCount(0)
+        await expect(row.locator('.lt-typeIcon')).toHaveCount(0)
+        await expect(badge).toHaveCount(1)
+        expect(
+            await badge.evaluate((element) => getComputedStyle(element).backgroundColor)
+        ).toBe('rgb(36, 89, 128)')
+    })
 
-    if (!panelText.includes('Tags and Description')) {
-      // May need to expand groups to find it
-      const headers = panel.locator('.layersToolHeader');
-      const count = await headers.count();
-      for (let i = 0; i < count; i++) {
-        await headers.nth(i).click().catch(() => {});
-        await page.waitForTimeout(200);
-      }
-      await page.waitForTimeout(300);
-    }
+    test('headers use expansion folders and off-layer badges are dimmed', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        await setAllExpanded(page, true)
+        const header = page
+            .getByRole('treeitem')
+            .filter({ hasText: 'Geometry Types' })
+            .first()
+        const folderIcon = header.locator('.lt-folderIcon')
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(folderIcon).toHaveClass(/mdi-folder-open-outline/)
 
-    // Find the "Tags and Description" layer
-    const tagLayer = page.locator('[id^="layerstart"]')
-      .filter({ hasText: 'Tags and Description' })
-      .first();
+        await header.locator('.lt-chevron').click()
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await expect(folderIcon).toHaveClass(/mdi-folder-outline/)
 
-    const tagLayerVisible = await tagLayer.isVisible({ timeout: 3000 }).catch(() => false);
-    if (!tagLayerVisible) {
-      test.skip(true, 'SKIP: "Tags and Description" layer not found in Layers panel');
-      return;
-    }
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill('Points Basic')
+        await expect(header).toHaveAttribute('aria-expanded', 'true')
+        await expect(folderIcon).toHaveClass(/mdi-folder-open-outline/)
+        await search.fill('')
+        await expect(header).toHaveAttribute('aria-expanded', 'false')
+        await expect(folderIcon).toHaveClass(/mdi-folder-outline/)
 
-    // Tags in MMGIS are rendered inside the layer's expanded settings panel,
-    // not inline in the layer row. We need to check the full panel text.
-    const allPanelText = await panel.textContent();
-    const hasTags =
-      allPanelText.includes('demo') ||
-      allPanelText.includes('testing') ||
-      allPanelText.includes('configuration');
+        await search.fill('Points Styled')
+        const offRow = page
+            .locator('.lt-layerRow')
+            .filter({ hasText: 'Points Styled' })
+            .first()
+        await expect(offRow).toBeVisible()
+        const checkbox = offRow.getByRole('checkbox')
+        if (await checkbox.isChecked()) await checkbox.click()
+        await expect(offRow).not.toHaveClass(/lt-on/)
+        const opacity = Number(
+            await offRow
+                .locator('.lt-typeBadge')
+                .evaluate((element) => getComputedStyle(element).opacity)
+        )
+        expect(opacity).toBeLessThan(1)
+    })
 
-    if (!hasTags) {
-      // Tags may only appear when clicking layer settings — gracefully skip
-      test.skip(true, 'SKIP: Tags not visible in Layers panel — may require layer settings expansion');
-    } else {
-      expect(hasTags).toBeTruthy();
-    }
-  });
+    test('Vector Filter mounts the legacy controls and filters Points Basic', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        const layerName = layer.name
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
+        await page.waitForTimeout(180)
+        await page.locator('.lt-layerRow').filter({ hasText: layer.label }).first().locator('.lt-title').click()
+        const filter = page.locator('#layersTool_filtering')
+        await expect(filter).toBeVisible()
+        await expect(filter.locator('#layersTool_filtering_empty')).toBeVisible()
+        await filter.locator('#layersTool_filtering_add_value').click()
+        await expect(filter.locator('.layersTool_filtering_value_key_input')).toBeVisible()
+        await expect(filter.locator('.layersTool_filtering_value_operator_select')).toBeVisible()
+        await expect(filter.locator('.layersTool_filtering_value_value_input')).toBeVisible()
+        await expect(filter.locator('#layersTool_filtering_add_value')).toBeVisible()
+        await expect(filter.locator('#layersTool_filtering_add_group')).toBeVisible()
+        await expect(filter.locator('#layersTool_filtering_submit')).toBeVisible()
+        await expect(filter.locator('#layersTool_filtering_count')).toBeVisible()
+        await expect(filter.locator('#helpModal_LayersTool-Filtering')).toBeVisible()
+        const filterAlignment = await page.evaluate(() => {
+            const root = document.querySelector(
+                '#layersTool .lt-typeSettingsFilter'
+            )
+            const right = (selector) => {
+                const element = root.querySelector(selector)
+                return element.getBoundingClientRect().right
+            }
+            const left = (selector) => {
+                const element = root.querySelector(selector)
+                return element.getBoundingClientRect().left
+            }
+            return {
+                placePoint: left('#layerTool_filtering_filters_spatial_draw'),
+                property: left('.layersTool_filtering_value_key_input'),
+                spatialClear: right('#layerTool_filtering_filters_spatial_clear'),
+                valueClear: right(
+                    '.layersTool_filtering_value .layerTool_filtering_filters_clear'
+                ),
+            }
+        })
+        expect(filterAlignment.property).toBeGreaterThan(
+            filterAlignment.placePoint
+        )
+        expect(
+            Math.abs(filterAlignment.spatialClear - filterAlignment.valueClear)
+        ).toBeLessThanOrEqual(1)
 
-});
+        const condition = await page.evaluate((name) => {
+            const geojson = window.L_.layers.layer[name].toGeoJSON()
+            const features = geojson.features || []
+            for (const key of Object.keys(features[0]?.properties || {})) {
+                const values = new Map()
+                for (const feature of features) {
+                    const value = feature.properties?.[key]
+                    if (value != null) values.set(value, (values.get(value) || 0) + 1)
+                }
+                const match = [...values].find(([, count]) => count < features.length)
+                if (match) return { key, value: match[0], total: features.length }
+            }
+            return null
+        }, layerName)
+        expect(condition).not.toBeNull()
+        const before = await page.evaluate(
+            (name) => window.L_.layers.layer[name].toGeoJSON().features.length,
+            layerName
+        )
+        const keyInput = filter.locator('.layersTool_filtering_value_key_input').first()
+        await keyInput.fill(condition.key)
+        await keyInput.press('Tab')
+        const valueInput = filter.locator('.layersTool_filtering_value_value_input').first()
+        await valueInput.fill(String(condition.value))
+        await valueInput.press('Tab')
+        await filter.locator('#layersTool_filtering_submit').click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) => window.L_.layers.layer[name].toGeoJSON().features.length,
+                    layerName
+                )
+            )
+            .toBeLessThan(before)
+        const after = await page.evaluate(
+            (name) => window.L_.layers.layer[name].toGeoJSON().features.length,
+            layerName
+        )
+        await expect(filter.locator('#layersTool_filtering_count')).toHaveText(
+            `${after} of ${before} features`
+        )
+        await page.evaluate((name) => {
+            document.dispatchEvent(
+                new CustomEvent('layersToolLayerDataLoaded', {
+                    detail: { layerName: name },
+                })
+            )
+        }, layerName)
+        await expect(
+            filter.locator('.layersTool_filtering_value_key_input').first()
+        ).toHaveValue(condition.key)
+        await expect(
+            filter.locator('.layersTool_filtering_value_value_input').first()
+        ).toHaveValue(String(condition.value))
+        await filter.locator('#layersTool_filtering_add_group').click()
+        await expect(
+            filter.locator('.layersTool_filtering_group_operator_select')
+        ).toBeVisible()
+        await page.locator('.lt-closeButton').click()
+        const row = page.locator('.lt-layerRow').filter({ hasText: layer.label }).first()
+        await expect(row.locator('.lt-statusFiltered')).toBeVisible()
+        const filtered = page.getByRole('button', {
+            name: 'Show only filtered layers',
+        })
+        await filtered.click()
+        await expect(row).toBeVisible()
+        await filtered.click()
+
+        await row.locator('.lt-title').click()
+        const reopenedFilter = page.locator('#layersTool_filtering')
+        await reopenedFilter.locator('#layersTool_filtering_clear').click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) => window.L_.layers.layer[name].toGeoJSON().features.length,
+                    layerName
+                )
+            )
+            .toBe(before)
+        await page.locator('.lt-closeButton').click()
+        await expect(row.locator('.lt-statusFiltered')).toHaveCount(0)
+    })
+
+    test('shared Filtering cleanup preserves the legacy Layers filter lifecycle', async ({
+        page,
+    }) => {
+        const pageErrors = []
+        page.on('pageerror', (error) => pageErrors.push(error.message))
+        await page.setViewportSize({ width: 1280, height: 900 })
+        await page.goto('/?mission=Reference-Mission')
+        await page.waitForLoadState('networkidle', { timeout: 60000 })
+        await page.waitForFunction(
+            () => !!(window.mmgisAPI && window.mmgisAPI.map),
+            { timeout: 30000 }
+        )
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.locator('#toolButtonLayers').click()
+        const row = page
+            .locator('#layersToolList > li')
+            .filter({ hasText: layer.label })
+            .first()
+        await expect(row).toBeVisible()
+        await row.locator('.gears').click()
+        const filter = page.locator('#layersTool_filtering')
+        await expect(filter).toBeVisible()
+        const initialWidth = await filter.evaluate(
+            (element) => element.getBoundingClientRect().width
+        )
+
+        await filter.locator('#layersTool_filtering_add_value').click()
+        await expect(
+            filter.locator('#layerTool_filtering_filters_list > li')
+        ).toHaveCount(1)
+        await filter.locator('#layersTool_filtering_submit').click()
+        await expect(filter.locator('#layersTool_filtering_submit_text')).toContainText(
+            'Submitted'
+        )
+        await filter.locator('#layerTool_filtering_filters_spatial_draw').click()
+        await expect(
+            filter.locator('#layerTool_filtering_filters_spatial')
+        ).toHaveClass(/drawing/)
+        await page.mouse.click(800, 400)
+        await filter.locator('#layersTool_filtering_clear').click()
+        await expect(
+            filter.locator('#layerTool_filtering_filters_spatial')
+        ).not.toHaveClass(/drawing|drawn/)
+
+        await page.evaluate(() => window.ToolController_.closeActiveTool())
+        await page.locator('#toolButtonLayers').click()
+        const reopenedRow = page
+            .locator('#layersToolList > li')
+            .filter({ hasText: layer.label })
+            .first()
+        await reopenedRow.locator('.gears').click()
+        const reopenedFilter = page.locator('#layersTool_filtering')
+        await expect(reopenedFilter).toBeVisible()
+        await expect(reopenedFilter).toHaveJSProperty(
+            'offsetWidth',
+            initialWidth
+        )
+        expect(pageErrors).toEqual([])
+    })
+
+    test('TouchSensor reorders a layer on iPhone 13 touch emulation', async ({
+        browser,
+    }) => {
+        const context = await browser.newContext({ ...devices['iPhone 13'] })
+        const page = await context.newPage()
+        const pageErrors = []
+        page.on('pageerror', (error) => pageErrors.push(error.message))
+        await openLayers(page)
+        await setAllExpanded(page, true)
+        const source = page
+            .locator('.lt-layerRow')
+            .filter({ hasText: 'Points Basic' })
+            .first()
+        const target = page
+            .locator('.lt-layerRow')
+            .filter({ hasText: 'Lines Basic' })
+            .first()
+        await source.scrollIntoViewIfNeeded()
+        await target.scrollIntoViewIfNeeded()
+        const before = await page.evaluate(() =>
+            window.ToolController_.getTool('LayersTool')
+                ._debugFlat()
+                .filter((row) => !row.type || row.type !== 'header')
+                .map((row) => row.name)
+        )
+        const sourceBox = await source.locator('.lt-drag').boundingBox()
+        const targetBox = await target.boundingBox()
+        expect(sourceBox).not.toBeNull()
+        expect(targetBox).not.toBeNull()
+        const cdp = await context.newCDPSession(page)
+        const x = sourceBox.x + sourceBox.width / 2
+        const y = sourceBox.y + sourceBox.height / 2
+        const targetX = targetBox.x + targetBox.width / 2
+        const targetY = targetBox.y + targetBox.height / 2
+        await cdp.send('Input.dispatchTouchEvent', {
+            type: 'touchStart',
+            touchPoints: [{ id: 1, x, y }],
+        })
+        await page.waitForTimeout(250)
+        for (let step = 1; step <= 8; step += 1) {
+            await cdp.send('Input.dispatchTouchEvent', {
+                type: 'touchMove',
+                touchPoints: [
+                    {
+                        id: 1,
+                        x: x + ((targetX - x) * step) / 8,
+                        y: y + ((targetY - y) * step) / 8,
+                    },
+                ],
+            })
+            await page.waitForTimeout(40)
+        }
+        await cdp.send('Input.dispatchTouchEvent', {
+            type: 'touchEnd',
+            touchPoints: [],
+        })
+        await expect
+            .poll(() =>
+                page.evaluate(() =>
+                    window.ToolController_.getTool('LayersTool')
+                        ._debugFlat()
+                        .filter((row) => !row.type || row.type !== 'header')
+                        .map((row) => row.name)
+                )
+            )
+            .not.toEqual(before)
+        expect(pageErrors).toEqual([])
+        await context.close()
+    })
+
+    test('isolates throwing plugin sections and reports rejected actions', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        await page.evaluate(() => {
+            window.__layersToolTestPluginRegistry = {
+                vector: {
+                    sections: [
+                        {
+                            id: 'injected-throw',
+                            label: 'Injected throwing section',
+                            Component: () => {
+                                throw new Error('Injected section failure')
+                            },
+                        },
+                    ],
+                    actions: [
+                        {
+                            id: 'injected-reject',
+                            label: 'Reject test action',
+                            onClick: () =>
+                                Promise.reject(
+                                    new Error('Injected action rejection')
+                                ),
+                        },
+                    ],
+                },
+            }
+        })
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill('Points Basic')
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: 'Points Basic' })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const settings = page.locator('.lt-settings')
+        await expect(settings.locator('[data-section="display"]')).toBeVisible()
+        await expect(
+            settings.locator('[data-section="injected-throw"] [role="alert"]')
+        ).toContainText('Injected section failure')
+        await settings.getByRole('button', { name: 'Reject test action' }).click()
+        await expect(
+            settings
+                .locator('.lt-inlineError')
+                .filter({ hasText: 'Injected action rejection' })
+        ).toBeVisible()
+        await expect(
+            page.locator('.mmgisToastRoot').getByText(
+                'Injected action rejection'
+            )
+        ).toBeVisible()
+    })
+
+    test('opens settings for each configured layer type', async ({ page }) => {
+        await openLayers(page)
+        const types = await page.evaluate(() => {
+            const found = {}
+            const visit = (nodes) =>
+                (nodes || []).forEach((node) => {
+                    if (node.type === 'header') visit(node.sublayers)
+                    else if (
+                        ['vector', 'vectortile', 'tile', 'data', 'video', 'image', 'velocity', 'model', 'query'].includes(node.type) &&
+                        !found[node.type]
+                    )
+                        found[node.type] = node.display_name || node.name
+                })
+            visit(window.L_.configData.layers)
+            return found
+        })
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        for (const [type, name] of Object.entries(types)) {
+            await search.fill(name)
+            await page.waitForTimeout(180)
+            const row = page.locator('.lt-layerRow').filter({ hasText: name }).first()
+            await expect(row).toBeVisible()
+            await row.locator('.lt-title').click()
+            await expect(page.locator('.lt-settings')).toBeVisible()
+            await expect(page.locator('.lt-settings')).toContainText('Display')
+            if (type === 'image') {
+                await expect(
+                    page.locator('.lt-settings').getByText('Display filters')
+                ).toHaveCount(0)
+                await expect(
+                    page.locator('.lt-settings').getByText('Opacity')
+                ).toBeVisible()
+            }
+            if (type === 'velocity') {
+                await expect(
+                    page.locator('.lt-settings').getByText('Display filters')
+                ).toHaveCount(0)
+                await expect(
+                    page.locator('.lt-settings').getByRole('slider', {
+                        name: 'Brightness',
+                    })
+                ).toHaveCount(0)
+            }
+            if (type === 'tile') {
+                const blend = page.getByRole('combobox', {
+                    name: 'Blend mode',
+                })
+                await expect(blend).toContainText('None')
+            }
+            if (type === 'tile' || type === 'data')
+                await expect(page.locator('.lt-settings')).toContainText('Opacity')
+            await page.keyboard.press('Escape')
+            await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+        }
+    })
+
+    test('shows only single-letter layer shortcuts in settings', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        const layers = [
+            { name: 'Keyboard Shortcut Demo - Alt+K', shortcut: 'K' },
+            { name: 'Elevation - RdYlBu (COG/NPY)', shortcut: null },
+            { name: 'Points Basic', shortcut: null },
+        ]
+
+        for (const { name, shortcut } of layers) {
+            await search.fill(name)
+            await page.waitForTimeout(180)
+            const row = page
+                .locator('.lt-layerRow')
+                .filter({ hasText: name })
+                .first()
+            await expect(row).toBeVisible()
+            await row.locator('.lt-title').click()
+            await expect(page.locator('.lt-settings')).toBeVisible()
+
+            const shortcutHint = page.locator('.lt-shortcut')
+            if (shortcut) {
+                await expect(shortcutHint).toContainText('Alt')
+                await expect(shortcutHint).toContainText(shortcut)
+                await expect(shortcutHint).toContainText('toggles this layer')
+                await expect(
+                    page.getByRole('checkbox', { name: 'Visible' })
+                ).toHaveAttribute('aria-keyshortcuts', `Alt+${shortcut}`)
+            } else {
+                await expect(shortcutHint).toHaveCount(0)
+            }
+
+            await page.locator('.lt-closeButton').click()
+        }
+    })
+
+    test('focuses the vector Export section without adding a source download', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill('Points Basic')
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: 'Points Basic' })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const download = page.getByRole('button', { name: 'Download layer' })
+        await expect(download).toBeVisible()
+        const exportSection = page.locator(
+            '.lt-settings [data-section="export"]'
+        )
+        await expect(exportSection).toBeVisible()
+        await expect(
+            exportSection.getByRole('button', { name: 'Download data' })
+        ).toBeVisible()
+        await expect(
+            exportSection.getByRole('button', { name: 'Download source' })
+        ).toHaveCount(0)
+        const downloadData = exportSection.getByRole('button', {
+            name: 'Download data',
+        })
+        await download.click()
+        await expect(downloadData).toBeFocused()
+        await expect(exportSection).toHaveClass(/lt-sectionFlash/)
+    })
+
+    test('shows header downloads only when a type has an export or source download', async ({
+        page,
+    }) => {
+        await page.goto('/?mission=Reference-Mission')
+        await page.waitForLoadState('networkidle', { timeout: 60000 })
+        await page.waitForFunction(
+            () => !!(window.mmgisAPI && window.mmgisAPI.map),
+            { timeout: 30000 }
+        )
+        const layers = await page.evaluate(() => {
+            const find = (nodes, type) => {
+                for (const node of nodes || []) {
+                    if (node.type === type) return node
+                    if (node.type === 'header') {
+                        const nested = find(node.sublayers, type)
+                        if (nested) return nested
+                    }
+                }
+                return null
+            }
+            const tile = find(window.L_.configData.layers, 'tile')
+            const data = find(window.L_.configData.layers, 'data')
+            const video = find(window.L_.configData.layers, 'video')
+            const image = find(window.L_.configData.layers, 'image')
+            const vector = find(window.L_.configData.layers, 'vector')
+            const query = find(window.L_.configData.layers, 'query')
+            if (![tile, data, video, image, vector, query].every(Boolean))
+                return null
+            tile.variables = {
+                ...tile.variables,
+                downloadURL: '/downloads/test-tile.tif',
+            }
+            data.variables = {
+                ...data.variables,
+                downloadURL: '/downloads/test-data.csv',
+            }
+            video.variables = {
+                ...video.variables,
+                downloadURL: null,
+            }
+            video.url = '/downloads/test-video.mp4'
+            image.variables = {
+                ...image.variables,
+                downloadURL: '/downloads/test-image.tif',
+            }
+            vector.variables = {
+                ...vector.variables,
+                downloadURL: '/downloads/test-vector.geojson',
+            }
+            return [
+                ...[tile, data, video].map((layer) => ({
+                    name: layer.name,
+                    label: layer.display_name || layer.name,
+                    downloadable: true,
+                })),
+                ...[vector, query].map((layer) => ({
+                    name: layer.name,
+                    label: layer.display_name || layer.name,
+                    downloadable: true,
+                })),
+                ...[image].map((layer) => ({
+                    name: layer.name,
+                    label: layer.display_name || layer.name,
+                    downloadable: false,
+                })),
+            ]
+        })
+        expect(layers).not.toBeNull()
+        await page.locator('#toolButtonLayers').click()
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        for (const layer of layers) {
+            await search.fill(layer.label)
+            await page.waitForTimeout(180)
+            await page
+                .locator('.lt-layerRow')
+                .filter({ hasText: layer.label })
+                .first()
+                .locator('.lt-title')
+                .click()
+            const download = page.getByRole('button', {
+                name: 'Download layer',
+            })
+            if (layer.downloadable) await expect(download).toBeVisible()
+            else await expect(download).toHaveCount(0)
+            await page.locator('.lt-closeButton').click()
+        }
+    })
+
+    test('query Export options match legacy formats and conditional controls', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const query = await page.evaluate(() => {
+            const find = (nodes) => {
+                for (const node of nodes || []) {
+                    if (node.type === 'query') return node
+                    if (node.type === 'header') {
+                        const nested = find(node.sublayers)
+                        if (nested) return nested
+                    }
+                }
+                return null
+            }
+            const layer = find(window.L_.configData.layers)
+            return layer
+                ? {
+                      name: layer.name,
+                      label: layer.display_name || layer.name,
+                  }
+                : null
+        })
+        expect(query, 'Reference Mission has a query layer').not.toBeNull()
+        const legacyOptions = await page.evaluate((name) => {
+            const find = (nodes) => {
+                for (const node of nodes || []) {
+                    if (node.name === name) return node
+                    if (node.type === 'header') {
+                        const nested = find(node.sublayers)
+                        if (nested) return nested
+                    }
+                }
+                return null
+            }
+            const layer = find(window.L_.configData.layers)
+            layer.variables = {
+                ...layer.variables,
+                dynamicExtent: true,
+                getFeaturePropertiesOnClick: true,
+            }
+            layer._lastGeodatasetRequestBody = {}
+            const runtimeLayer = window.L_.layers.data[name]
+            if (runtimeLayer && runtimeLayer !== layer) {
+                runtimeLayer.variables = layer.variables
+                runtimeLayer._lastGeodatasetRequestBody = {}
+            }
+            return {
+                hasExtent: layer.variables.dynamicExtent === true,
+                hasExtentWithProps:
+                    layer.variables.getFeaturePropertiesOnClick === true &&
+                    layer._lastGeodatasetRequestBody != null,
+                hasCoordinates: window.L_.Coordinates.mainType !== 'll',
+                convertedCoordinates: window.L_.Coordinates.getMainTypeName(),
+            }
+        }, query.name)
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(query.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: query.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+
+        const exportSection = page.locator(
+            '.lt-settings [data-section="export"]'
+        )
+        await expect(exportSection).toBeVisible()
+        const format = exportSection.getByRole('combobox', {
+            name: 'Export format',
+        })
+        await expect(format).toBeVisible()
+        await format.click()
+        for (const option of ['GeoJSON', 'KML', 'SHP'])
+            await expect(page.getByRole('option', { name: option })).toBeVisible()
+        await page.keyboard.press('Escape')
+        await expect(
+            exportSection.getByRole('combobox', { name: 'Export extent' })
+        ).toHaveCount(legacyOptions.hasExtent ? 1 : 0)
+        await expect(
+            exportSection.getByRole('combobox', {
+                name: 'Export coordinates',
+            })
+        ).toHaveCount(legacyOptions.hasCoordinates ? 1 : 0)
+        if (legacyOptions.hasExtent) {
+            const extent = exportSection.getByRole('combobox', {
+                name: 'Export extent',
+            })
+            await extent.click()
+            await expect(
+                page.getByRole('option', {
+                    name: 'Current Extent',
+                    exact: true,
+                })
+            ).toBeVisible()
+            await expect(
+                page.getByRole('option', { name: 'Entire File' })
+            ).toBeVisible()
+            if (legacyOptions.hasExtentWithProps)
+                await expect(
+                    page.getByRole('option', {
+                        name: 'Current Extent w/ Props',
+                    })
+                ).toBeVisible()
+            await page.keyboard.press('Escape')
+        }
+        if (legacyOptions.hasCoordinates) {
+            const coordinates = exportSection.getByRole('combobox', {
+                name: 'Export coordinates',
+            })
+            await coordinates.click()
+            await expect(
+                page.getByRole('option', { name: 'Source coordinates' })
+            ).toBeVisible()
+            await expect(
+                page.getByRole('option', {
+                    name: `Converted (${legacyOptions.convertedCoordinates})`,
+                    exact: true,
+                })
+            ).toBeVisible()
+            await page.keyboard.press('Escape')
+        }
+
+        const download = page.getByRole('button', { name: 'Download layer' })
+        await expect(download).toBeVisible()
+        await download.click()
+        await expect(
+            exportSection.getByRole('button', { name: 'Download data' })
+        ).toBeFocused()
+        await expect(
+            exportSection.getByRole('button', { name: 'Download source' })
+        ).toHaveCount(0)
+    })
+
+    test('local image and velocity fixtures render on the map', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const fixtures = await page.evaluate(() => {
+            const layers = Object.values(window.L_.layers.data)
+            return ['image', 'velocity'].map(
+                (type) => {
+                    const layer = layers.find((item) => item.type === type)
+                    return layer
+                        ? { name: layer.name, label: layer.display_name || layer.name }
+                        : null
+                }
+            )
+        })
+        expect(fixtures.every(Boolean), 'Image and velocity fixtures exist').toBe(true)
+        for (const fixture of fixtures) {
+            await page.evaluate(
+                async (layerName) => window.mmgisAPI.toggleLayer(layerName, true),
+                fixture.name
+            )
+            await expect
+                .poll(() =>
+                    page.evaluate(
+                        (name) =>
+                            Boolean(
+                                window.L_.Map_.map.hasLayer(
+                                    window.L_.layers.layer[name]
+                                )
+                            ),
+                        fixture.name
+                    )
+                )
+                .toBe(true)
+        }
+    })
+
+    test('video playback controls play, pause, mute, and scrub the fixture', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const video = await page.evaluate(() => {
+            const layer = Object.values(window.L_.layers.data).find(
+                (candidate) => candidate.type === 'video'
+            )
+            return layer
+                ? {
+                      name: layer.name,
+                      label: layer.display_name || layer.name,
+                  }
+                : null
+        })
+        expect(video, 'Reference Mission has a video fixture').not.toBeNull()
+        await page.evaluate((name) => {
+            window.L_.layers.filters[name] = {
+                ...(window.L_.layers.filters[name] || {}),
+                brightness: 0,
+                contrast: 0,
+                saturate: 0,
+            }
+        }, video.name)
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(video.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: video.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const play = page.getByRole('button', { name: 'Play video' })
+        await expect(play).toBeVisible()
+        await play.click()
+        await expect(
+            page.getByRole('button', { name: 'Pause video' })
+        ).toBeVisible()
+        await page.getByRole('button', { name: 'Pause video' }).click()
+        await expect(play).toBeVisible()
+        const mediaState = await page.evaluate((name) => {
+            const videoElement = window.L_.layers.layer[name].getElement()
+            return {
+                paused: videoElement.paused,
+                time: videoElement.currentTime,
+            }
+        }, video.name)
+        await page.getByRole('button', { name: 'Restart video' }).click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) =>
+                        window.L_.layers.layer[name].getElement().currentTime,
+                    video.name
+                )
+            )
+            .toBe(0)
+        expect(mediaState).toMatchObject({ paused: true })
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) =>
+                        window.L_.layers.layer[name].getElement().paused,
+                    video.name
+                )
+            )
+            .toBe(true)
+        await page.getByRole('button', { name: 'Play video' }).click()
+        await expect(
+            page.getByRole('button', { name: 'Pause video' })
+        ).toBeVisible()
+        await page.getByRole('button', { name: 'Restart video' }).click()
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (name) =>
+                        window.L_.layers.layer[name].getElement().paused,
+                    video.name
+                )
+            )
+            .toBe(false)
+        await page.getByRole('button', { name: 'Pause video' }).click()
+        await expect(play).toBeVisible()
+        const mute = page.locator('.lt-videoControls button').nth(2)
+        const previousMuteLabel = await mute.getAttribute('aria-label')
+        expect(['Mute video', 'Unmute video']).toContain(previousMuteLabel)
+        await mute.click()
+        await expect(mute).toHaveAttribute(
+            'aria-label',
+            previousMuteLabel === 'Mute video' ? 'Unmute video' : 'Mute video'
+        )
+        const scrub = page.locator('.lt-videoScrub input[type="range"]').first()
+        await expect(
+            page.getByRole('slider', { name: 'Brightness' })
+        ).toHaveValue('0')
+        await expect(
+            page.getByRole('slider', { name: 'Contrast' })
+        ).toHaveValue('0')
+        await expect(
+            page.getByRole('slider', { name: 'Saturation' })
+        ).toHaveValue('0')
+        await scrub.focus()
+        await scrub.press('ArrowRight')
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    (layerName) =>
+                        window.L_.layers.layer[layerName]
+                            .getElement()
+                            .currentTime,
+                    video.name
+                )
+            )
+            .toBeGreaterThan(0)
+    })
+
+    test('dynamic style and statistics render for a configured vector layer', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await page.evaluate(() => {
+            const visit = (nodes) => {
+                for (const node of nodes || []) {
+                    if (node.type === 'header') {
+                        const nested = visit(node.sublayers)
+                        if (nested) return nested
+                    } else if (
+                        node.type === 'vector' &&
+                        node.variables?.dynamicStyle?.enabled === true
+                    )
+                        return { name: node.name, label: node.display_name || node.name }
+                }
+                return null
+            }
+            return visit(window.L_.configData.layers)
+        })
+        expect(layer, 'Reference Mission has a dynamic-style vector layer').not.toBeNull()
+        await page.evaluate((name) => {
+            const rule =
+                window.L_.layers.data[name].variables.dynamicStyle.rules[0]
+            rule.attribute = 'radius'
+            delete rule.range
+        }, layer.name)
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const settings = page.locator('.lt-settings')
+        const dynamicStyle = settings.locator('[data-section="dynamic-style"]')
+        await expect(dynamicStyle).toBeVisible()
+        await expect(dynamicStyle.locator('.lt-typeSettingsRule')).toHaveCount(3)
+        const radiusRange = dynamicStyle.locator(
+            '.lt-typeSettingsRange input'
+        )
+        await expect(radiusRange.nth(0)).toHaveValue('3')
+        await expect(radiusRange.nth(1)).toHaveValue('12')
+        const statistics = settings.locator('[data-section="statistics"]')
+        await expect(statistics).toBeVisible()
+        await expect(
+            statistics.getByRole('button', { name: 'Reset Statistics' })
+        ).toHaveCount(0)
+        const statsRow = statistics
+            .locator('.lt-typeSettingsStatsGroup')
+            .first()
+        await expect(statsRow).toBeVisible()
+        await expect(statsRow).not.toContainText('Loaded features')
+        await expect(statsRow).toContainText(/Current view|Whole dataset/)
+        await expect(statsRow.locator('.lt-typeSettingsStatsScope')).toBeVisible()
+        await expect(statsRow.locator('.lt-typeSettingsStats')).toBeVisible()
+        await expect(statsRow).toContainText('Average')
+        await expect(statsRow).not.toContainText(/\bAvg\b/)
+        const previousStats = await statsRow.textContent()
+        await page.evaluate((name) => {
+            const layer = window.L_.layers.data[name]
+            const replacement = {
+                min: 98765,
+                max: 98766,
+                avg: 98765.5,
+                stddev: 0.5,
+                count: 12,
+                nullCount: 0,
+            }
+            layer._fieldStats = { ...(layer._fieldStats || {}) }
+            for (const rule of layer.variables.dynamicStyle.rules || []) {
+                const property =
+                    rule.propertyPath || rule.property || rule.key || rule.field
+                if (typeof property === 'string')
+                    layer._fieldStats[property] = replacement
+            }
+            document.dispatchEvent(
+                new CustomEvent('mmgis-dynamic-style-restyled', {
+                    detail: { layer: name },
+                })
+            )
+        }, layer.name)
+        await expect
+            .poll(() => statsRow.textContent())
+            .not.toBe(previousStats)
+    })
+
+    test('Data blend supports the legacy None, Color, and Overlay values', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await page.evaluate(() => {
+            const configured = Object.values(window.L_.layers.data).find(
+                (candidate) => candidate.type === 'data'
+            )
+            return configured
+                ? {
+                      name: configured.name,
+                      label: configured.display_name || configured.name,
+                  }
+                : null
+        })
+        expect(layer, 'Reference Mission has a data layer').not.toBeNull()
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const blend = page.getByRole('combobox', { name: 'Blend mode' })
+        await expect(blend).toBeVisible()
+        await expect(
+            page.locator('.lt-settings [data-section="display"]')
+        ).toHaveCount(1)
+        await expect(
+            page.getByRole('heading', { name: 'Display' })
+        ).toHaveCount(1)
+        for (const [label, value] of [
+            ['Color', 'color'],
+            ['Overlay', 'overlay'],
+            ['None', 'unset'],
+        ]) {
+            await blend.click()
+            await page.getByRole('option', { name: label }).click()
+            await expect
+                .poll(() =>
+                    page.evaluate(
+                        (name) =>
+                            window.L_.layers.filters[name]?.['mix-blend-mode'],
+                        layer.name
+                    )
+                )
+                .toBe(value)
+            await expect(blend).toContainText(label)
+        }
+    })
+
+    test('Data shader variants render and Reset restores the shader controls', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layers = await page.evaluate(() => {
+            const found = []
+            const visit = (nodes) =>
+                (nodes || []).forEach((node) => {
+                    if (node.type === 'header') visit(node.sublayers)
+                    else if (
+                        node.type === 'data' &&
+                        node.variables?.shader?.type
+                    )
+                        found.push({
+                            name: node.display_name || node.name,
+                            layerName: node.name,
+                            shader: node.variables.shader.type,
+                            shaderConfig: JSON.parse(
+                                JSON.stringify(node.variables.shader)
+                            ),
+                        })
+                })
+            visit(window.L_.configData.layers)
+            return found
+        })
+        test.skip(!layers.length, 'Reference Mission has no data shader layers')
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        for (const layer of layers) {
+            await search.fill(layer.name)
+            await page.waitForTimeout(180)
+            await page
+                .locator('.lt-layerRow')
+                .filter({ hasText: layer.name })
+                .first()
+                .locator('.lt-title')
+                .click()
+            const settings = page.locator('.lt-settings')
+            await expect(settings.locator('[data-section="data-shader"]')).toBeVisible()
+            if (layer.shader === 'colorize') {
+                const control = settings.locator('.lt-dataShaderSettings select').first()
+                const original = await control.inputValue()
+                const legend = settings.locator(
+                    '.lt-dataShaderSettings [id$="_colorize_legend"]'
+                )
+                if (await legend.count()) {
+                    const values = await legend.locator(
+                        '[class*="_colorize_legend_value_"]'
+                    ).allTextContents()
+                    if (values.every((value) => !value.trim()))
+                        await expect(
+                            settings.locator('.lt-emptyShaderLegend')
+                        ).toBeHidden()
+                }
+                await control.selectOption(original === 'true' ? 'false' : 'true')
+                await settings.getByRole('button', { name: 'Reset Data shader' }).click()
+                await expect(control).toHaveValue(original)
+            }
+            await page.evaluate((name) => {
+                window.L_.layers.data[name].variables.shader.__layersTest = true
+            }, layer.layerName)
+            await settings.getByRole('button', { name: 'Reset Data shader' }).click()
+            await expect
+                .poll(() =>
+                    page.evaluate(
+                        (name) => window.L_.layers.data[name].variables.shader,
+                        layer.layerName
+                    )
+                )
+                .toEqual(layer.shaderConfig)
+            await page.keyboard.press('Escape')
+        }
+    })
+
+    test('keeps COG rescale values scoped to each layer', async ({ page }) => {
+        await openLayers(page)
+        const cogLayers = await page.evaluate(() => {
+            const names = []
+            const visit = (nodes) =>
+                (nodes || []).forEach((node) => {
+                    if (node.type === 'header') visit(node.sublayers)
+                    else if (
+                        node.type === 'tile' &&
+                        (node.cogTransform === true ||
+                            node.url?.startsWith('COG:') ||
+                            node.url?.startsWith('stac-collection:'))
+                    )
+                        names.push(node.display_name || node.name)
+                })
+            visit(window.L_.configData.layers)
+            return names.slice(0, 2)
+        })
+        test.skip(cogLayers.length < 2, 'Reference Mission has fewer than two COG layers')
+
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill(cogLayers[0])
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: cogLayers[0] })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const firstMinimum = page.getByRole('spinbutton', {
+            name: 'Minimum',
+        })
+        const originalMinimum = await firstMinimum.inputValue()
+        await firstMinimum.fill('123.5')
+        const cogSection = page.locator('.lt-settings [data-section="cog"]')
+        const resetCog = cogSection.getByRole('button', {
+            name: 'Reset COG',
+        })
+        await expect(resetCog).toHaveCount(1)
+        await resetCog.click()
+        await expect(firstMinimum).toHaveValue(originalMinimum)
+        await firstMinimum.fill('123.5')
+        await page.locator('.lt-closeButton').click()
+
+        await search.fill(cogLayers[1])
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: cogLayers[1] })
+            .first()
+            .locator('.lt-title')
+            .click()
+        await expect(
+            page.getByRole('spinbutton', { name: 'Minimum' })
+        ).not.toHaveValue('123.5')
+    })
+
+    test('Escape closes an open COG ramp without closing its settings', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await page.evaluate(() => {
+            const candidate = Object.values(window.L_.layers.data).find(
+                (item) =>
+                    item.type === 'tile' &&
+                    item.cogTransform === true &&
+                    /^(COG|stac-collection):/i.test(item.url || '')
+            )
+            return candidate
+                ? {
+                      name: candidate.name,
+                      label: candidate.display_name || candidate.name,
+                  }
+                : null
+        })
+        expect(layer, 'Reference Mission has a COG layer').not.toBeNull()
+
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+        await expect(page.locator('.lt-settings')).toBeVisible()
+
+        const trigger = page.locator(
+            '.lt-settings [aria-label^="Color ramp:"]'
+        )
+        await expect(trigger).toBeVisible()
+        await trigger.click()
+        await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+        const rampName = (await trigger.getAttribute('aria-label')).replace(
+            /^Color ramp:\s*/,
+            ''
+        )
+        const rampOption = page.getByRole('button', {
+            name: rampName,
+            exact: true,
+        })
+        await expect(rampOption).toBeVisible()
+
+        await page.keyboard.press('Escape')
+        await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+        await expect(page.locator('.lt-settings')).toBeVisible()
+        await expect(trigger).toBeFocused()
+        await expect(rampOption).toHaveCount(0)
+
+        await page.keyboard.press('Escape')
+        await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+    })
+
+    test('Reset all restores display, tile filter, and COG defaults', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await page.evaluate(() => {
+            const layer = Object.values(window.L_.layers.data).find(
+                (candidate) =>
+                    candidate.type === 'tile' &&
+                    (candidate.sourceType === 'COG' ||
+                        candidate.cogTransform === true ||
+                        candidate.url?.startsWith('COG:'))
+            )
+            return layer
+                ? { name: layer.name, label: layer.display_name || layer.name }
+                : null
+        })
+        expect(layer, 'Reference Mission has a configured COG tile').not.toBeNull()
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+        await page.evaluate((layerName) => {
+            window.L_.setLayerOpacity(layerName, 0.37)
+            window.L_.layers.filters[layerName] = {
+                ...(window.L_.layers.filters[layerName] || {}),
+                brightness: 0.42,
+            }
+            const layer = window.L_.layers.data[layerName]
+            layer.currentCogMin = Number(layer.cogMin || 0) + 5
+        }, layer.name)
+        await page.getByRole('button', { name: 'Reset all settings' }).click()
+        await expect
+            .poll(() =>
+                page.evaluate((layerName) => {
+                    const layer = window.L_.layers.data[layerName]
+                    const brightness =
+                        window.L_.layers.filters[layerName]?.brightness
+                    return (
+                        window.L_.layers.opacity[layerName] === 1 &&
+                        (brightness == null || brightness === 1) &&
+                        layer.currentCogMin === layer.cogMin
+                    )
+                }, layer.name)
+            )
+            .toBe(true)
+    })
+
+    test('shows failed-layer status and an inline error for a supported vector export', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.evaluate((name) => {
+            window.L_.layers.data[name].error = 'LayersTool test failure'
+            document.dispatchEvent(new Event('layerRefreshStatusChanged'))
+        }, layer.name)
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        await search.fill(layer.label)
+        await page.waitForTimeout(180)
+        const row = page.locator('.lt-layerRow').filter({ hasText: layer.label })
+        await expect(row.locator('.lt-statusError')).toBeVisible()
+        await row.locator('.lt-title').click()
+        await expect(page.locator('.layerSettingsStatusBanner')).toBeVisible()
+        await page.evaluate((name) => {
+            window.L_.layers.layer[name] = false
+        }, layer.name)
+        await page.getByRole('button', { name: /Download data/ }).click()
+        await expect(page.locator('.lt-inlineError')).toContainText(
+            'does not expose exportable'
+            )
+    })
+
+    test('composite attachment controls reflect their backing state', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const composite = await getLayer(page, 'Points Basic', 'vector')
+        await page.evaluate(
+            async (layerName) =>
+                window.mmgisAPI.toggleLayer(layerName, true),
+            composite.name
+        )
+        await page.evaluate((layerName) => {
+            const name = '__layersTestComposite'
+            const attachment = {
+                title: 'Layers test attachment',
+                on: false,
+                opacity: 0.5,
+                layer: {
+                    dropdown: ['First field', 'Second field'],
+                    dropdownValue: 'First field',
+                    dropdownFunc: () => {},
+                },
+            }
+            window.L_.layers.attachments =
+                window.L_.layers.attachments || {}
+            window.L_.layers.attachments[layerName] = {
+                ...(window.L_.layers.attachments[layerName] || {}),
+                [name]: attachment,
+            }
+            window.L_.toggleSublayer = async (hostName, attachmentName) => {
+                const current =
+                    window.L_.layers.attachments[hostName][attachmentName]
+                current.on = !current.on
+            }
+            window.L_.setSublayerOpacity = (
+                hostName,
+                attachmentName,
+                opacity
+            ) => {
+                window.L_.layers.attachments[hostName][attachmentName].opacity =
+                    opacity
+            }
+        }, composite.name)
+        await page
+            .getByRole('textbox', { name: 'Search layers' })
+            .fill(composite.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: composite.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const section = page.locator('[data-section="composite"]')
+        await expect(section).toBeVisible()
+        const card = section
+            .locator('.lt-typeSettingsComposite')
+            .filter({ hasText: 'Layers test attachment' })
+            .first()
+        const toggle = card.getByRole('checkbox', {
+            name: 'Toggle Layers test attachment',
+        })
+        await expect(toggle).toBeVisible()
+        await toggle.click()
+        const attachmentState = () =>
+            page.evaluate((layerName) => {
+                const attachment =
+                    window.L_.layers.attachments[layerName][
+                        '__layersTestComposite'
+                    ]
+                return {
+                    on: attachment.on,
+                    opacity: attachment.opacity,
+                    dropdownValue: attachment.layer.dropdownValue,
+                }
+            }, composite.name)
+        await expect
+            .poll(() => attachmentState())
+            .toMatchObject({ on: true })
+        await expect(toggle).toHaveAttribute('aria-checked', 'true')
+
+        const dropdown = card.getByRole('combobox', {
+            name: 'Layers test attachment field',
+        })
+        await dropdown.click()
+        await page.getByRole('option', { name: 'Second field' }).click()
+        await expect
+            .poll(() => attachmentState())
+            .toMatchObject({ dropdownValue: 'Second field' })
+        await expect(dropdown).toContainText('Second field')
+
+        const opacity = card.getByRole('slider', { name: 'Opacity' })
+        await opacity.focus()
+        await opacity.press('ArrowRight')
+        const changedOpacity = await page
+            .waitForFunction(
+                (layerName) =>
+                    window.L_.layers.attachments[layerName][
+                        '__layersTestComposite'
+                    ].opacity !== 0.5,
+                composite.name
+            )
+            .then(() => attachmentState())
+        await expect(opacity).toHaveValue(String(changedOpacity.opacity))
+    })
+
+    test('does not show GeoJSON export on raster layer types', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layers = await page.evaluate(() =>
+            ['tile', 'data', 'image']
+                .map((type) => {
+                    const layer = Object.values(window.L_.layers.data).find(
+                        (candidate) => candidate.type === type
+                    )
+                    return layer
+                        ? {
+                              name: layer.name,
+                              label: layer.display_name || layer.name,
+                              type: layer.type,
+                              hasDownloadURL: !!layer.variables?.downloadURL,
+                          }
+                        : null
+                })
+                .filter(Boolean)
+        )
+        const search = page.getByRole('textbox', { name: 'Search layers' })
+        for (const layer of layers) {
+            await search.fill(layer.label)
+            await page.waitForTimeout(100)
+            await page
+                .locator('.lt-layerRow')
+                .filter({ hasText: layer.label })
+                .first()
+                .locator('.lt-title')
+                .click()
+            await expect(
+                page.getByRole('region', {
+                    name: `${layer.label} settings`,
+                })
+            ).toBeVisible()
+            const hasSourceDownload =
+                ['tile', 'data'].includes(layer.type) && layer.hasDownloadURL
+            if (hasSourceDownload) {
+                const exportSection = page.locator(
+                    '.lt-settings [data-section="export"]'
+                )
+                await expect(exportSection).toBeVisible()
+                await expect(
+                    exportSection.getByRole('button', {
+                        name: 'Download data',
+                    })
+                ).toBeVisible()
+                await expect(
+                    page.getByRole('button', { name: 'Download layer' })
+                ).toBeVisible()
+            } else {
+                await expect(
+                    page.locator('[data-section="export"]')
+                ).toHaveCount(0)
+                await expect(
+                    page.getByRole('button', { name: 'Download layer' })
+                ).toHaveCount(0)
+            }
+            await page.locator('.lt-closeButton').click()
+        }
+    })
+
+    test('passes GEOJSON_PRECISION to local GeoJSON export', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        const layer = await getLayer(page, 'Points Basic', 'vector')
+        await page.getByRole('textbox', { name: 'Search layers' }).fill(layer.label)
+        await page.waitForTimeout(180)
+        await page
+            .locator('.lt-layerRow')
+            .filter({ hasText: layer.label })
+            .first()
+            .locator('.lt-title')
+            .click()
+        const geoJSONPrecision = await page.evaluate(
+            () => window.L_.GEOJSON_PRECISION
+        )
+        expect(geoJSONPrecision).toBe(10)
+        await page.evaluate((name) => {
+            const mapLayer = window.L_.layers.layer[name]
+            mapLayer.toGeoJSON = (precision) => {
+                window.__layersExportPrecision = precision
+                return {
+                    type: 'FeatureCollection',
+                    features: [
+                        {
+                            type: 'Feature',
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [-122.123456789, 37.123456789],
+                            },
+                            properties: {},
+                        },
+                    ],
+                }
+            }
+        }, layer.name)
+        const downloadPromise = page.waitForEvent('download')
+        await page.getByRole('button', { name: 'Download data' }).click()
+        const download = await downloadPromise
+        const exported = JSON.parse(
+            await fs.promises.readFile(await download.path(), 'utf8')
+        )
+        expect(
+            await page.evaluate(() => window.__layersExportPrecision)
+        ).toBe(geoJSONPrecision)
+        expect(exported.features[0].geometry.coordinates).toEqual([
+            -122.123456789,
+            37.123456789,
+        ])
+    })
+
+    test('uses 44 pixel rows at mobile viewport widths', async ({ page }) => {
+        await openLayers(page)
+        await page.setViewportSize({ width: 390, height: 844 })
+        await page.evaluate(() => {
+            window.L_.UserInterface_.isMobile = true
+        })
+        await page.getByRole('textbox', { name: 'Search layers' }).fill('points')
+        const row = page.locator('.lt-virtualRow').first()
+        await expect(row).toBeVisible()
+        await expect
+            .poll(() => row.evaluate((element) => element.getBoundingClientRect().height))
+            .toBe(44)
+    })
+
+    test('virtualizes a 600 layer tree', async ({ page }) => {
+        await page.goto('/?mission=Reference-Mission')
+        await page.waitForLoadState('networkidle', { timeout: 60000 })
+        await page.waitForFunction(
+            () => !!(window.mmgisAPI && window.mmgisAPI.map),
+            { timeout: 30000 }
+        )
+        await page.evaluate(() => {
+            const original = window.L_.configData.layers
+            const layers = Array.from({ length: 600 }, (_, index) => ({
+                name: `Layers virtual ${index}`,
+                display_name: `Layers virtual ${index}`,
+                type: 'vector',
+                tags: [],
+                description: '',
+            }))
+            window.L_.configData.layers = [
+                ...original,
+                {
+                    name: 'Layers virtualization test',
+                    type: 'header',
+                    expanded: true,
+                    sublayers: layers,
+                },
+            ]
+        })
+        const openDuration = await page.evaluate(
+            () =>
+                new Promise((resolve) => {
+                    const started = performance.now()
+                    const check = () => {
+                        if (document.querySelector('[role="tree"]')) {
+                            resolve(performance.now() - started)
+                            return
+                        }
+                        requestAnimationFrame(check)
+                    }
+                    document.getElementById('toolButtonLayers').click()
+                    check()
+                })
+        )
+        expect(openDuration).toBeLessThan(500)
+        await expect(page.getByRole('tree', { name: 'Layers' })).toBeVisible()
+        expect(await page.locator('.lt-virtualRow').count()).toBeLessThan(80)
+    })
+
+    test('keeps the large-list scroll position and focus across settings', async ({
+        page,
+    }) => {
+        await page.goto('/?mission=Reference-Mission')
+        await page.waitForLoadState('networkidle', { timeout: 60000 })
+        await page.waitForFunction(
+            () => !!(window.mmgisAPI && window.mmgisAPI.map),
+            { timeout: 30000 }
+        )
+        await page.evaluate(() => {
+            const original = window.L_.configData.layers
+            const layers = Array.from({ length: 600 }, (_, index) => ({
+                name: `Layers focus ${index}`,
+                display_name: `Layers focus ${index}`,
+                type: 'vector',
+                tags: [],
+            }))
+            window.L_.configData.layers = [
+                ...original,
+                {
+                    name: 'Layers focus test',
+                    type: 'header',
+                    expanded: true,
+                    sublayers: layers,
+                },
+            ]
+            document.getElementById('toolButtonLayers').click()
+        })
+        const tree = page.getByRole('tree', { name: 'Layers' })
+        await expect(tree).toBeVisible()
+        const row = page.getByRole('treeitem').filter({
+            hasText: 'Layers focus 500',
+        })
+        await tree.evaluate((element) => {
+            element.scrollTop = 580 * 31
+        })
+        await expect(row).toBeVisible()
+        await row.scrollIntoViewIfNeeded()
+        const scrollTop = await tree.evaluate((element) => element.scrollTop)
+        await row.locator('.lt-title').click()
+        await expect(page.locator('.lt-settings')).toBeVisible()
+        await page.locator('.lt-closeButton').click()
+        await expect(tree).toBeVisible()
+        await expect(row).toBeVisible()
+        expect(await tree.evaluate((element) => element.scrollTop)).toBe(scrollTop)
+        await expect(tree).toHaveAttribute(
+            'aria-activedescendant',
+            await row.getAttribute('id')
+        )
+        await row.locator('.lt-title').click()
+        await expect(page.locator('.lt-settings')).toBeVisible()
+    })
+
+    test('has no serious or critical axe violations on list and settings pages in both themes', async ({
+        page,
+    }) => {
+        await openLayers(page)
+        await page.addScriptTag({ path: axeSource })
+        const themeVariables = Object.keys(LIGHT_DEFAULT_THEME)
+        const originalTheme = await page.evaluate((names) => {
+            const style = document.documentElement.style
+            return Object.fromEntries(
+                names.map((name) => [
+                    name,
+                    {
+                        value: style.getPropertyValue(name),
+                        priority: style.getPropertyPriority(name),
+                    },
+                ])
+            )
+        }, themeVariables)
+        const darkBackground = await page.evaluate(() =>
+            getComputedStyle(document.documentElement)
+                .getPropertyValue('--color-a')
+                .trim()
+        )
+        const setTheme = async (themeName) =>
+            page.evaluate(
+                ({ name, lightTheme, variables, original }) => {
+                    const style = document.documentElement.style
+                    variables.forEach((variable) => {
+                        if (name === 'Light Default') {
+                            style.setProperty(variable, lightTheme[variable])
+                            return
+                        }
+                        const previous = original[variable]
+                        if (previous.value)
+                            style.setProperty(
+                                variable,
+                                previous.value,
+                                previous.priority
+                            )
+                        else style.removeProperty(variable)
+                    })
+                },
+                {
+                    name: themeName,
+                    lightTheme: LIGHT_DEFAULT_THEME,
+                    variables: themeVariables,
+                    original: originalTheme,
+                }
+            )
+        const audit = async (theme, surface) => {
+            const workaround = await page.addStyleTag({
+                content: '* { mix-blend-mode: normal !important; }',
+            })
+            let result
+            try {
+                result = await page.evaluate(async () => {
+                    const root = document.querySelector('#layersTool')
+                    const results = await window.axe.run(root)
+                    const violations = results.violations
+                        .filter((violation) =>
+                            ['serious', 'critical'].includes(violation.impact)
+                        )
+                        .map(({ id, impact, description, nodes }) => ({
+                            id,
+                            impact,
+                            description,
+                            targets: nodes.map((node) => node.target),
+                        }))
+                    return {
+                        violations,
+                        serious: violations
+                            .filter((violation) => violation.impact === 'serious')
+                            .reduce(
+                                (count, violation) =>
+                                    count + violation.targets.length,
+                                0
+                            ),
+                        critical: violations
+                            .filter((violation) => violation.impact === 'critical')
+                            .reduce(
+                                (count, violation) =>
+                                    count + violation.targets.length,
+                                0
+                            ),
+                    }
+                })
+            } finally {
+                await workaround.evaluate((style) => style.remove())
+            }
+            console.log(
+                `Axe ${theme} ${surface}: ${result.serious} serious, ${result.critical} critical`
+            )
+            expect(
+                result.violations,
+                `Axe violations on ${surface} in ${theme}`
+            ).toEqual([])
+        }
+
+        const surfaces = await page.evaluate(() => {
+            const layers = Object.values(window.L_.layers.data)
+            const find = (predicate) => layers.find(predicate)
+            const label = (layer) =>
+                layer ? layer.display_name || layer.name : null
+            const vector = find(
+                (layer) =>
+                    layer.type === 'vector' &&
+                    /points basic/i.test(label(layer) || '')
+            )
+            const cog = find(
+                (layer) =>
+                    layer.type === 'tile' &&
+                    layer.cogTransform === true &&
+                    /^(COG|stac-collection):/i.test(layer.url || '')
+            )
+            const video = find((layer) => layer.type === 'video')
+            const data =
+                find(
+                    (layer) =>
+                        layer.type === 'data' &&
+                        /elev/i.test(label(layer) || '')
+                ) || find((layer) => layer.type === 'data')
+            return [
+                ['Vector', vector],
+                ['COG', cog],
+                ['Video', video],
+                ['Data', data],
+            ].map(([surface, layer]) => ({
+                surface,
+                label: label(layer),
+            }))
+        })
+        expect(
+            surfaces.map(({ label }) => Boolean(label)),
+            'Reference Mission has Vector, COG, Video, and Data fixtures'
+        ).toEqual([true, true, true, true])
+
+        for (const theme of ['Dark Default', 'Light Default']) {
+            await setTheme(theme)
+            const search = page.getByRole('textbox', { name: 'Search layers' })
+            await search.fill('')
+            await page.waitForTimeout(180)
+            await audit(theme, 'list')
+
+            await search.fill('Points Basic')
+            await page.waitForTimeout(180)
+            await audit(theme, 'searched list')
+
+            for (const surface of surfaces) {
+                await search.fill(surface.label)
+                await page.waitForTimeout(180)
+                await page
+                    .locator('.lt-layerRow')
+                    .filter({ hasText: surface.label })
+                    .first()
+                    .locator('.lt-title')
+                    .click()
+                await expect(page.locator('.lt-settings')).toBeVisible()
+                await audit(theme, surface.surface)
+                await page.locator('.lt-closeButton').click()
+            }
+        }
+        console.log(`Dark Default root background: ${darkBackground}`)
+    })
+})

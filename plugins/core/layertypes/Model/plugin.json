@@ -4,6 +4,7 @@
   "name": "Model",
   "type": "layertype",
   "typeId": "model",
+  "category": "model",
   "version": "core",
   "tier": "core",
   "overridable": false,

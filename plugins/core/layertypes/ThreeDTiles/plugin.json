@@ -4,6 +4,7 @@
   "name": "ThreeDTiles",
   "type": "layertype",
   "typeId": "3dtiles",
+  "category": "model",
   "version": "core",
   "tier": "core",
   "overridable": false,

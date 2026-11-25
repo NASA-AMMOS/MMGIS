@@ -12,6 +12,8 @@
  * compatible with older MMGIS versions.
  */
 
+const fs = require("fs");
+const path = require("path");
 const semver = require("semver");
 
 const logger = require("./logger");
@@ -61,6 +63,7 @@ const LAYER_OPS = [
   "onToggle",
   "setStyle",
   "timeChange",
+  "refresh",
 ];
 const OP_PHASES = ["before", "main", "after"];
 const MAKE_EXTRA_PHASES = ["afterCommit"];
@@ -74,12 +77,28 @@ const MAKE_EXTRA_PHASES = ["afterCommit"];
  *   time    what the type's time support means to the time bar
  *   source  how the type acquires its data (core keeps extent/staleness)
  *   legend  a legend derived from how the layer is rendered
+ *   settings layer settings, info metadata, export/download hooks
  */
 const CONFIG_OPS = ["expand", "normalize", "resolveUrl"];
 const FILTER_OPS = ["getAggregations", "filter"];
 const TIME_OPS = ["format", "applyTimeParams", "availability"];
+const LAYER_TYPE_CATEGORIES = new Set([
+  "raster",
+  "vector",
+  "media",
+  "model",
+  "structural",
+]);
 const SOURCE_OPS = ["fetch"];
 const LEGEND_OPS = ["derive"];
+const SETTINGS_OPS = [
+  "sections",
+  "actions",
+  "status",
+  "info",
+  "download",
+  "export",
+];
 
 /**
  * A layer attachment is a single renderable that may straddle both engines (an
@@ -113,6 +132,7 @@ const SURFACES = {
   time: { ops: TIME_OPS, requiresMake: false },
   source: { ops: SOURCE_OPS, requiresMake: false },
   legend: { ops: LEGEND_OPS, requiresMake: false },
+  settings: { ops: SETTINGS_OPS, requiresMake: false },
   attachment: { ops: ATTACHMENT_OPS, requiresMake: true },
   // An attachment that only decorates its host (a bearing turns its host's
   // markers) adds nothing to the map of its own, so it has nothing to `make`.
@@ -676,6 +696,7 @@ const KNOWN_FIELDS = {
     "modules",
     "module",
     "typeId",
+    "category",
     "extends",
     "description",
     "descriptionFull",
@@ -1082,6 +1103,15 @@ function validatePluginConfig(config, pluginName, pluginType) {
     if (typeof config[idField] !== "string" || config[idField].length === 0) {
       errors.push(
         `Plugin '${pluginName}' (${pluginType}): missing required '${idField}' field (must be a non-empty string)`
+      );
+    }
+    if (
+      pluginType === "layertype" &&
+      config.category !== undefined &&
+      !LAYER_TYPE_CATEGORIES.has(config.category)
+    ) {
+      errors.push(
+        `Plugin '${pluginName}' (layertype): 'category' must be one of: raster, vector, media, model, structural`
       );
     }
     // An attachment's settings live in its host layer's config, and its id is
@@ -1885,6 +1915,18 @@ function validateLayerTypeModuleShape(source, label, surface = "map") {
       );
       continue;
     }
+    if (surface === "settings" && op.name === "export") {
+      if (op.valueKind === "object" && Array.isArray(op.body)) {
+        for (const hook of op.body) {
+          if (!["extents", "getGeoJSON"].includes(hook.name)) {
+            errors.push(
+              `${label}: unknown export hook '${hook.name}' (expected one of: extents, getGeoJSON)`
+            );
+          }
+        }
+      }
+      continue;
+    }
     if (op.valueKind === "object" && Array.isArray(op.body)) {
       const allowed =
         op.name === "make" ? [...OP_PHASES, ...MAKE_EXTRA_PHASES] : OP_PHASES;
@@ -1898,6 +1940,17 @@ function validateLayerTypeModuleShape(source, label, surface = "map") {
     }
   }
   return errors;
+}
+
+function resolvePluginModulePath(modulePath) {
+  const candidates = path.extname(modulePath)
+    ? [modulePath]
+    : [`${modulePath}.js`, `${modulePath}.jsx`];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+function validateLayerTypeSettingsModuleShape(source, label) {
+  return validateLayerTypeModuleShape(source, label, "settings");
 }
 
 /**
@@ -1941,6 +1994,8 @@ module.exports = {
   findDuplicateInteractionIds,
   findDuplicateIds,
   validateLayerTypeModuleShape,
+  validateLayerTypeSettingsModuleShape,
+  resolvePluginModulePath,
   surfaceOfModuleKey,
   flattenLayerModules,
   validateLayerTypeInheritance,

@@ -4,6 +4,7 @@
   "name": "Image",
   "type": "layertype",
   "typeId": "image",
+  "category": "raster",
   "version": "core",
   "tier": "core",
   "overridable": false,
@@ -516,6 +517,7 @@
   },
   "modules": {
     "map": "./map",
-    "legend": "./legend"
+    "legend": "./legend",
+    "settings": "./settings"
   }
 }

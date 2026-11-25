@@ -246,13 +246,8 @@ export async function updateLayersHelper(L_, layerQueueList) {
         if (L_.Map_) L_.Map_.orderedBringToFront(true)
 
         // If the user rearranged the layers with the LayersTool, reset the ordering history
-        if (
-            ToolController_.toolModules['LayersTool'] &&
-            ToolController_.toolModules['LayersTool'].orderingHistory
-                .length > 0
-        ) {
-            ToolController_.toolModules['LayersTool'].orderingHistory = []
-        }
+        if (ToolController_.toolModules.LayersTool?.orderingHistory?.length > 0)
+            ToolController_.toolModules.LayersTool.orderingHistory = []
 
         // Update the LayersTool in the ToolController if it is active
         if (ToolController_.activeToolName === 'LayersTool') {

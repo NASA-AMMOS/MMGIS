@@ -23,7 +23,6 @@ const read = (p) => fs.readFileSync(path.resolve(__dirname, '../../', p), 'utf8'
 const LAYER_LEGEND = read('src/essence/Basics/Layers_/legend/LayerLegend.js')
 const SUBLAYERS = read('src/essence/Basics/Layers_/display/sublayers.js')
 const LEGEND_TOOL = read('plugins/core/tools/Legend/LegendTool.js')
-const LAYERS_TOOL = read('plugins/core/tools/Layers/LayersTool.js')
 const UPDATE_TOOLS = read('API/updateTools.js')
 
 const emptyConfig = {
@@ -45,16 +44,11 @@ test.describe('legend surface', () => {
         expect(LAYER_LEGEND).toContain("hasOp(legendModule, 'derive')")
     })
 
-    test('both legend call sites dispatch instead of listing types', () => {
+    test('the Legend tool dispatches instead of listing types', () => {
         expect(LEGEND_TOOL).toContain('deriveLegend(')
         expect(LEGEND_TOOL).toContain('derivesLegend(')
-        expect(LAYERS_TOOL).toContain('deriveLegend(')
-        // neither site decides which types have a derived legend any more
         expect(LEGEND_TOOL).not.toContain("['image', 'tile'].includes")
         expect(LEGEND_TOOL).not.toContain('populateCogScale')
-        expect(LAYERS_TOOL).not.toContain(
-            "F_.getIn(node[i], 'variables.shader.type')"
-        )
     })
 
     test('the types that derive a legend declare the surface', () => {

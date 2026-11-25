@@ -199,4 +199,5 @@ function timeChange(layerObj, ctx = {}) {
 export default {
     make,
     timeChange,
+    refresh: () => {},
 }

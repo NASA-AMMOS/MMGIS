@@ -4,6 +4,7 @@
   "name": "VectorTile",
   "type": "layertype",
   "typeId": "vectortile",
+  "category": "vector",
   "version": "core",
   "tier": "core",
   "overridable": false,
@@ -1121,6 +1122,7 @@
   "modules": {
     "map": "./map",
     "config": "./config",
+    "settings": "./settings",
     "globe": {
       "cesium": "./globe/cesium",
       "lithosphere": "./globe/lithosphere"

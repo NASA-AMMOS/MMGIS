@@ -6,8 +6,6 @@ import TimeControl from '../Basics/TimeControl_/TimeControl'
 import Login from '../Basics/UserInterface_/components/Login/Login'
 import LegendTool from '../../../plugins/core/tools/Legend/LegendTool.js'
 
-import $ from 'jquery'
-
 let L = window.L
 
 var mmgisAPI_ = {
@@ -451,13 +449,7 @@ var mmgisAPI_ = {
             }
 
             if (ToolController_.activeToolName === 'LayersTool') {
-                const id = `#layerstart${F_.getSafeName(layerName)} .checkbox`
-
-                if (L_.layers.on[layerName]) {
-                    $(id).addClass('on')
-                } else {
-                    $(id).removeClass('on')
-                }
+                ToolController_.getTool('LayersTool')?.syncLayer?.(layerName)
             }
         } else {
             console.warn(`'Warning: Unable to find layer named ${layerName}`)

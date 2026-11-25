@@ -41,7 +41,7 @@ function init($container, items, selectedIdx, opts = {}) {
     let currentIdx = selectedIdx
 
     // Render trigger button showing current selection
-    const triggerHtml = `<div class="op-grid-trigger">${items[currentIdx].html}</div>`
+    const triggerHtml = `<div class="op-grid-trigger"><span class="op-grid-trigger-value">${items[currentIdx].html}</span><i class="mdi mdi-menu-down op-grid-trigger-caret" aria-hidden="true"></i></div>`
     $container.html(triggerHtml)
 
     const $trigger = $container.find('.op-grid-trigger')
@@ -97,7 +97,7 @@ function init($container, items, selectedIdx, opts = {}) {
         $popup.on('click', '.op-grid-item', function () {
             const idx = parseInt($(this).attr('data-idx'), 10)
             currentIdx = idx
-            $trigger.html(items[idx].html)
+            $trigger.find('.op-grid-trigger-value').html(items[idx].html)
             onSelect(idx)
             closeActivePopup()
         })

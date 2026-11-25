@@ -4,6 +4,7 @@
   "name": "Vector",
   "type": "layertype",
   "typeId": "vector",
+  "category": "vector",
   "version": "core",
   "tier": "core",
   "overridable": false,
@@ -1780,6 +1781,7 @@
     "map": "./map",
     "config": "./config",
     "filter": "./filter",
+    "settings": "./settings",
     "globe": {
       "cesium": "./globe/cesium",
       "lithosphere": "./globe/lithosphere"

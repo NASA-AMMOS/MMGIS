@@ -4,6 +4,7 @@
   "name": "Video",
   "type": "layertype",
   "typeId": "video",
+  "category": "media",
   "version": "core",
   "tier": "core",
   "overridable": false,
@@ -275,6 +276,7 @@
     ]
   },
   "modules": {
-    "map": "./map"
+    "map": "./map",
+    "settings": "./settings"
   }
 }

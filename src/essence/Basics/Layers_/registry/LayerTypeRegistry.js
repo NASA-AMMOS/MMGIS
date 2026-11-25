@@ -86,6 +86,10 @@ const LayerTypeRegistry = {
     get(typeId) {
         return _effectiveModules(typeId)
     },
+    /** Optional React settings surface, inherited with the rest of a type's modules. */
+    settings(typeId) {
+        return _effectiveModules(typeId)?.settings || null
+    },
     /** Per-engine globe renderer module for a type, e.g. getGlobe('tile','cesium'). */
     getGlobe(typeId, engine) {
         return _effectiveModules(typeId)?.globe?.[engine]
@@ -93,6 +97,14 @@ const LayerTypeRegistry = {
     /** Full plugin manifest for a type. */
     getConfig(typeId) {
         return _load().layerTypeConfigs?.[typeId]
+    },
+    /** Broad UI and workflow category, inherited when a type omits its own. */
+    category(typeId) {
+        for (const candidate of this.typeChain(typeId)) {
+            const category = this.getConfig(candidate)?.category
+            if (category != null) return category
+        }
+        return null
     },
     /**
      * Declared capabilities object for a type (renderers, time, filtering…),

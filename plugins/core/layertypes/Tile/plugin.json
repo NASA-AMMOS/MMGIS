@@ -4,6 +4,7 @@
   "name": "Tile",
   "type": "layertype",
   "typeId": "tile",
+  "category": "raster",
   "version": "core",
   "tier": "core",
   "overridable": false,
@@ -952,6 +953,7 @@
     "config": "./config",
     "time": "./time",
     "legend": "./legend",
+    "settings": "./settings",
     "globe": {
       "cesium": "./globe/cesium",
       "lithosphere": "./globe/lithosphere"

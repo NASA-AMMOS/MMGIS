@@ -1,0 +1,80 @@
+.layerSettingsSection {
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--color-a1-5);
+}
+
+.layerSettingsSectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 32px;
+}
+
+.layerSettingsSectionHeading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    color: var(--color-h);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.layerSettingsSectionIcon {
+    flex: 0 0 16px;
+    font-size: 16px;
+    color: var(--color-a5);
+}
+
+.layerSettingsSectionBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 2px 4px 10px 20px;
+}
+
+.layerSettingsSlider {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.layerSettingsSliderLabel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 26px;
+}
+
+.layerSettingsSliderValue {
+    color: var(--color-a5);
+    font-variant-numeric: tabular-nums;
+}
+
+.layerSettingsStatusBanner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    margin: 7px 8px 2px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.layerSettingsStatusBanner span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.layerSettingsStatusError {
+    background: color-mix(in srgb, var(--color-red2, #e0524f) 22%, var(--color-a1));
+}
+
+.layerSettingsStatusWarning {
+    background: color-mix(in srgb, var(--color-yellow, #e1b000) 18%, var(--color-a1));
+}

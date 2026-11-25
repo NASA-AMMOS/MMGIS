@@ -1,1180 +1,1776 @@
-#layersTool {
-  overflow: hidden;
-  overflow-y: auto;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-flow: column;
-  background: var(--color-k);
-  box-shadow: inset 2px 0px 10px 0px rgba(0, 0, 0, 0.2);
-}
-
-#layersToolHeader {
-  width: 100%;
-}
-
-#layersTool #layersToolHeader .mmgisHelpButton {
-  margin: 0px 4px;
-}
-
-#layersTool #searchLayers {
-  display: flex;
-  height: 36px;
-  line-height: 33px;
-  border-top: 1px solid var(--color-a-5);
-  border-bottom: 1px solid var(--color-a-5);
-  background: var(--color-a1);
-}
-
-#layersTool #filterLayers {
-  display: flex;
-  height: 40px;
-  line-height: 40px;
-  color: #ccc;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--color-a1);
-}
-#layersTool #filterLayers #title {
-  height: 40px;
-  line-height: 40px;
-  font-size: 16px;
-  padding-left: 6px;
-  font-family: "lato-light";
-  text-transform: uppercase;
-  color: var(--color-l);
-}
-#layersTool #filterLayers > div {
-  display: flex;
-  align-items: center;
-}
-#layersTool #filterLayers > .right {
-  margin-right: 30px;
-  gap: 2px;
-}
-#layersTool #filterLayers > .right > div {
-  width: 24px;
-  height: unset;
-  padding: 2px;
-  margin: 0px 3px;
-  text-align: center;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition:
-    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-    border 0.1s cubic-bezier(0.445, 0.05, 0.55, 0.95),
-    color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#layersTool #filterLayers .right > div {
-  color: #999;
-}
-#layersTool #filterLayers .right > div.on {
-  color: #ccc;
-}
-/* Layer-type filter icons take their underline from the per-icon --lt-color
-   (set inline from the layertype manifest). visible/filtered below have their
-   own higher-specificity rules and are unaffected. */
-#layersTool #filterLayers div.on {
-  border-bottom: 4px solid var(--lt-color);
-}
-#layersTool #filterLayers div.visible.on {
-  border-bottom: 4px solid rgba(255, 255, 255, 1);
-}
-#layersTool #filterLayers div.filtered.on {
-  border-bottom: 4px solid #4a9eda;
-}
-#layersTool #searchLayers input {
-  background: var(--color-a1);
-  flex: 1;
-  margin-right: 62px;
-  color: #ccc;
-  padding-left: 28px;
-  border: none;
-  border-right: 1px solid var(--color-a-5);
-}
-#layersTool #searchLayers input::placeholder {
-  color: var(--color-a4);
-}
-#layersTool #searchLayers .mdi-magnify {
-  position: absolute;
-  left: 6px;
-  color: #999;
-  line-height: 35px;
-  pointer-events: none;
+.lt-root {
+    --lt-indent: 10px;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    color: var(--color-f);
+    font-size: 13px;
+    background: var(--color-a);
+    position: relative;
+    overflow: hidden;
+    overflow: clip;
 }
 
-#layersTool .sublayerHeading {
-  color: white;
+.lt-root,
+.lt-root * {
+    box-sizing: border-box;
 }
 
-/* The section headings inside a layer's settings, sitting at the same left edge
-   as the panel's own "Layer Settings" title. */
-#layersTool .dynamicStyleHeading,
-#layersTool .statsRow.sublayerHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 30px;
-  padding: 0 2px 0 0;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-/* The dynamic style's own controls end where the statistics describing them
-   begin. */
-#layersTool .statsRow.sublayerHeading {
-  margin: 4px -6px 0 -12px;
-  padding: 0 8px 0 12px;
-  border-top: 1px solid var(--color-a);
+.lt-listPane {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    position: relative;
 }
 
-#layersTool .dynamicStyleHeadingTitle {
-  display: flex;
-  align-items: center;
+.lt-toolbar {
+    flex: 0 0 auto;
+    padding: 4px 8px 5px;
+    border-bottom: 1px solid var(--color-a1-5);
 }
 
-#layersTool .dynamicStyleHeadingTitle > .dynamicStyleReset {
-  margin-left: 4px;
+#layersTool .lt-toolbar .mmgisToolTitle {
+    padding-left: 2px;
+    color: var(--color-f, #ccc);
 }
 
-#layersTool .dynamicStyleReset {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  color: var(--color-a4);
+.lt-toolbarTitle,
+.lt-search,
+.lt-viewBar,
+.lt-sectionHeader,
+.lt-heroActions,
+.lt-heroActions > div {
+    display: flex;
+    align-items: center;
 }
 
-/* What the Domain choice can't do here, said where the choice is made. */
-#layersTool .dynamicStyleNote {
-  height: auto;
-  padding: 2px 2px 2px 0;
-  color: var(--color-a4);
-  font-size: 10px;
-  line-height: 13px;
-  cursor: help;
+.lt-toolbarTitle {
+    justify-content: space-between;
+    min-height: 40px;
+    line-height: 40px;
+    color: var(--color-f, #ccc);
+    border-bottom: 1px solid var(--color-a1);
 }
 
-/* A label with an explanation beside it, the icon sized to sit on the text. */
-#layersTool .dynamicStyleLabelInfo {
-  display: flex;
-  align-items: center;
+.lt-toolbarTitle > .left,
+.lt-toolbarTitle > .right {
+    display: flex;
+    align-items: center;
 }
 
-#layersTool .dynamicStyleLabelInfo > i {
-  color: var(--color-a4);
-  cursor: help;
-  margin-left: 4px;
-  font-size: 14px;
-  line-height: 14px;
-  width: 14px;
-  height: 14px;
+.lt-helpSlot .mmgisHelpButton {
+    margin: 0 4px;
 }
 
-/* Each rule is headed by what it styles by, with the switch that turns it on.
-   What belongs to a rule is indented under it. */
-#layersTool .dynamicStyleRuleHeading,
-#layersTool .statsProperty {
-  align-items: center;
-  height: 24px;
-  margin-top: 4px;
-  padding-right: 2px;
-  color: var(--color-a6);
-  font-size: 11px;
-  letter-spacing: 0.5px;
+.lt-searchWrap {
+    position: relative;
 }
 
-#layersTool .dynamicStyleRuleHeading {
-  padding-right: 0;
+.lt-search {
+    min-height: 30px;
+    padding: 0 3px 0 7px;
+    gap: 5px;
+    border: 1px solid var(--color-a2, #45494c);
+    border-radius: 4px;
+    background: var(--color-a1-5);
 }
 
-#layersTool .dynamicStyleRuleHeading > .checkboxcont {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 20px;
-  height: 20px;
+.lt-search > i {
+    color: var(--color-a5);
+    flex: 0 0 auto;
 }
 
-/* Flush right so it lines up with the dropdowns beneath, and square whatever
-   the row would otherwise squeeze it into. */
-#layersTool .dynamicStyleRuleHeading .checkbox {
-  flex: 0 0 20px;
-  margin: 0;
+.lt-search input {
+    flex: 1;
+    min-width: 0;
+    height: 28px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--color-f);
+    font: inherit;
 }
 
-/* A style a viewer can't change is just named: what it styles by, and what of.
-   A property name can be long, so it takes the room and gives way to an
-   ellipsis rather than running under the attribute beside it. */
-#layersTool .sublayer.dynamicStyleRuleListed {
-  align-items: center;
-  gap: 8px;
-  height: 22px;
-  padding-right: 4px;
+.lt-search > button {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    padding: 0;
+}
+
+.lt-search:focus-within {
+    border-color: var(--color-c);
+    box-shadow: 0 0 0 1px var(--color-c);
+}
+
+.lt-search input:focus,
+.lt-search input:focus-visible {
+    outline: none;
+}
+
+.lt-search input::placeholder {
+    color: var(--color-a5);
+}
+
+.lt-tagPopup {
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 20px;
+    right: 0;
+    z-index: 10;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 3px;
+    border: 1px solid var(--color-a2, #45494c);
+    border-radius: 4px;
+    background: var(--color-a);
+    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.4);
+}
+
+.lt-tagPopup button {
+    display: block;
+    width: 100%;
+    padding: 5px 7px;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--color-f);
+    text-align: left;
+    cursor: pointer;
+}
+
+.lt-tagPopup button:hover {
+    background: var(--color-a1-5);
+}
+
+.lt-viewBar {
+    min-height: 26px;
+    flex: 0 0 auto;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.lt-viewSummary {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 6px;
+    color: var(--color-a5);
+    font-size: 12px;
+}
+
+.lt-viewSummary button,
+.lt-toast button {
+    padding: 2px 3px;
+    border: 0;
+    background: transparent;
+    color: var(--color-c);
+    font: inherit;
+    cursor: pointer;
+}
+
+.lt-viewSummary button {
+    font-size: 11px;
+}
+
+.lt-viewPill {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 6px;
+    background: var(--color-d);
+}
+
+.lt-viewPill button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    min-width: 26px;
+    height: 22px;
+    min-height: 22px;
+    flex: 0 0 26px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: color-mix(
+        in srgb,
+        var(--color-a6, #bbb) 55%,
+        var(--color-c2-text, #fff)
+    );
 }
 
-#layersTool .sublayer.dynamicStyleRuleListed > div:first-child {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 11px;
+.lt-viewPill button[aria-pressed='true'] {
+    background: var(--color-c2);
+    color: var(--color-c2-text, #fff);
 }
 
-#layersTool .sublayer.dynamicStyleRuleListed > div:last-child {
-  flex: 0 0 auto;
-  color: var(--color-a4);
-  font-size: 10px;
+.lt-viewPillDivider {
+    width: 1px;
+    height: 14px;
+    flex: 0 0 1px;
+    margin: 0 2px;
+    background: var(--color-a2);
 }
 
-#layersTool .sublayer.dynamicStyleRuleRow,
-#layersTool .sublayer.statsValueRow,
-#layersTool .dynamicStyleRuleRow {
-  padding-left: 32px;
+.lt-scroll {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    outline: 0;
+    overscroll-behavior: contain;
 }
 
-/* The two numbers a weight, radius or opacity rule spans, sized to line up
-   with the dropdowns above them. */
-#layersTool .dynamicStyleRangeInputs {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
+.lt-scroll.lt-dropBlocked,
+.lt-scroll.lt-dropBlocked * {
+    cursor: not-allowed !important;
 }
 
-#layersTool .dynamicStyleRangeInputs > div {
-  color: var(--color-a4);
-  padding: 0 4px;
-  font-size: 11px;
+.lt-dropBlockedStatus {
+    position: sticky;
+    top: 8px;
+    z-index: 4;
+    width: 100%;
+    height: 0;
+    text-align: center;
+    pointer-events: none;
 }
-
-#layersTool input.dynamicStyleRange {
-  width: 56px;
-  border: none;
-  height: 24px;
-  background: var(--color-a1);
-  color: var(--color-a7);
-  text-align: right;
-  padding: 0 4px;
-  font-variant-numeric: tabular-nums;
-}
-
-#layersTool .statsProperty {
-  font-size: 12px;
+
+.lt-dropBlockedStatus > span {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: #ffd43b;
+    color: #000;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.lt-scroll:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--color-c);
+}
+
+.lt-virtualContent {
+    position: relative;
+    width: 100%;
+}
+
+.lt-virtualRow {
+    position: absolute;
+    inset: 0 0 auto;
+    width: 100%;
+    overflow: visible;
+}
+
+.lt-sortable {
+    width: 100%;
+    height: 100%;
+}
+
+.lt-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    padding: 0 5px 0 calc(12px + var(--depth, 0) * var(--lt-indent));
+    gap: 2px;
+    overflow: hidden;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-a1-5) 60%, transparent);
+    background-color: var(--color-a);
+}
+
+.lt-headerRow {
+    font-weight: 500;
+}
+
+.lt-row:hover {
+    background-color: color-mix(in srgb, var(--color-a1-5) 75%, var(--color-a));
+}
+
+.lt-row.lt-failed .lt-name {
+    color: var(--color-a5);
+}
+
+.lt-row.lt-focused {
+    outline: none;
+    z-index: 2;
+}
+
+.lt-scroll:focus-visible .lt-row.lt-focused {
+    outline: 2px solid var(--color-c);
+    outline-offset: -2px;
+}
+
+.lt-row.lt-selected {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-f) 35%, transparent);
+}
+
+.lt-indentGuides {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 21px;
+    width: calc(var(--depth, 0) * var(--lt-indent));
+    background: repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-f) 13%, transparent) 0 1px,
+        transparent 1px var(--lt-indent)
+    );
+    pointer-events: none;
+}
+
+.lt-drag,
+.lt-chevron,
+.lt-status,
+.lt-power,
+.lt-title {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-a5);
+    cursor: pointer;
+}
+
+.lt-drag {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 12px;
+    height: auto;
+    border: 0;
+    background: none;
+    color: var(--color-a5);
+    cursor: grab;
+}
+
+.lt-drag i {
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.lt-row:hover .lt-drag i,
+.lt-scroll:focus-visible .lt-row.lt-focused .lt-drag i {
+    opacity: 1;
+}
+
+.lt-drag:active {
+    cursor: grabbing;
+}
+
+.lt-headerRow .lt-status {
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.lt-headerRow:hover .lt-status,
+.lt-headerRow.lt-focused .lt-status,
+.lt-headerRow .lt-status:focus-visible {
+    opacity: 1;
+}
+
+.lt-power {
+    width: 24px;
+    min-width: 24px;
+    height: 100%;
+    margin-left: 2px;
+    color: var(--color-a5);
+    transition:
+        color 0.12s ease,
+        opacity 0.12s ease;
+}
+
+.lt-power:hover,
+.lt-power:focus-visible {
+    color: var(--color-f);
+}
+
+.lt-powerMuted {
+    color: var(--color-h);
+}
+
+.lt-chevron {
+    width: 20px;
+    flex-basis: 20px;
+}
+
+.lt-chevron i,
+.lt-sectionToggle i {
+    transition: transform 0.14s ease;
+}
+
+.lt-chevron .lt-open,
+.lt-sectionToggle .lt-open {
+    transform: rotate(90deg);
+}
+
+.lt-chevronSpace {
+    width: 20px;
+    flex: 0 0 20px;
+}
+
+.lt-checkWrap {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    flex: 0 0 24px;
+    height: 100%;
+    overflow: hidden;
+}
+
+.lt-checkWrap label {
+    margin: 0;
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    justify-content: center;
+}
+
+.lt-title {
+    position: relative;
+    z-index: 1;
+    justify-content: flex-start;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 4px;
+    color: var(--color-f);
+    text-align: left;
+    white-space: nowrap;
+    background: transparent;
+}
+
+.lt-status {
+    background: transparent;
+}
+
+.lt-headerTitle {
+    font-weight: 500;
+}
+
+.lt-folderIcon {
+    flex: 0 0 18px;
+    width: 18px;
+    color: var(--color-a5);
+    font-size: 16px;
+}
+
+.lt-name {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lt-title:hover .lt-name {
+    text-decoration: underline;
+    text-decoration-color: var(--color-a4);
+    text-underline-offset: 3px;
+}
+
+.lt-name mark {
+    border-radius: 2px;
+    padding: 0 1px;
+    background: var(--color-mh);
+    color: var(--color-a);
+    text-shadow: none;
+}
+
+.lt-typeBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: var(--lt-color);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.lt-layerRow:not(.lt-on) .lt-typeBadge {
+    opacity: 0.45;
+    filter: grayscale(0.5);
+}
+
+.lt-openIndicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--color-a5);
+    font-size: 16px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.lt-openIndicator::before {
+    line-height: 1;
+}
+
+.lt-layerRow:hover .lt-openIndicator,
+.lt-layerRow.lt-focused .lt-openIndicator {
+    opacity: 1;
+}
+
+.lt-layerNotFound .lt-name {
+    color: var(--color-red2, #e0524f);
+    text-decoration: line-through;
+}
+
+.lt-liveRegion {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+.lt-root :focus-visible,
+.lt-settings :focus-visible {
+    outline: 2px solid var(--color-c);
+    outline-offset: -2px;
+}
+
+.lt-drag {
+    touch-action: none;
+}
+
+.lt-descriptionHit,
+.lt-count {
+    flex: 0 0 auto;
+    font-size: 10px;
+}
+
+.lt-descriptionHit {
+    color: var(--color-a5);
+}
+
+.lt-count {
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--color-a1-5);
+    color: var(--color-a5);
+}
+
+.lt-status {
+    width: 22px;
+    margin-left: 2px;
+    color: var(--color-a5);
+}
+
+.lt-statusGroup {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+}
+
+.lt-statusError {
+    color: var(--color-red2, #e0524f);
+}
+
+.lt-statusWarning {
+    color: var(--color-yellow, #e1b000);
+}
+
+.lt-rasterRow {
+    --lt-previewLeft: calc(34px + var(--depth, 0) * var(--lt-indent));
+}
+
+.lt-preview {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: var(--lt-previewLeft);
+    z-index: 0;
+    width: calc(100% - var(--lt-previewLeft));
+    height: 100%;
+    object-fit: cover;
+    border-radius: 3px;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 75%, transparent);
+    mask-image: linear-gradient(90deg, #000 75%, transparent);
+}
+
+.lt-rasterRow:has(img.lt-preview)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: var(--lt-previewLeft);
+    z-index: 0;
+    border-radius: 3px;
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--color-a) 78%, transparent),
+        color-mix(in srgb, var(--color-a) 30%, transparent) 70%,
+        transparent
+    );
+    pointer-events: none;
+}
+
+.lt-layerRow:not(.lt-on) .lt-preview {
+    filter: grayscale(1) brightness(0.6);
+}
+
+.lt-title,
+.lt-status {
+    text-shadow: 0 0 4px var(--color-a), 0 0 7px var(--color-a);
+}
+
+.lt-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 40px 18px;
+    color: var(--color-a5);
+    text-align: center;
+}
+
+.lt-toast {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--color-a2, #2b2e30);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.lt-settings {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: var(--lt-drawerInset);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    font-size: 13px;
+    border-left: 1px solid var(--color-a1-5);
+    background: var(--color-a);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.lt-root {
+    --lt-drawerInset: 32px;
+}
+
+.lt-drawerScrim {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.lt-drawerScrim:hover {
+    background: rgba(0, 0, 0, 0.175);
+}
+
+.lt-drawerScrim > i {
+    width: 24px;
+    height: 24px;
+    margin-left: calc((var(--lt-drawerInset) - 24px) / 2);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    font-size: 16px;
+    line-height: 24px;
+    text-align: center;
+    opacity: 0.85;
+    transition: opacity 0.12s ease;
+}
+
+.lt-drawerScrim:hover > i {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .lt-settings {
+        animation: lt-drawerIn 180ms ease-out;
+    }
+
+    .lt-drawerScrim {
+        animation: lt-scrimIn 180ms ease-out;
+    }
+
+    .lt-settings.lt-drawerClosing {
+        animation: lt-drawerOut 180ms ease-in forwards;
+    }
+
+    .lt-drawerScrim.lt-drawerClosing {
+        animation: lt-scrimOut 180ms ease-in forwards;
+    }
+
+    @keyframes lt-drawerIn {
+        from {
+            transform: translateX(100%);
+        }
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes lt-drawerOut {
+        to {
+            transform: translateX(100%);
+        }
+    }
+
+    @keyframes lt-scrimIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes lt-scrimOut {
+        to {
+            opacity: 0;
+        }
+    }
+}
+
+.lt-headerInfo {
+    max-width: 420px;
+    padding: 14px 18px;
+}
+
+.lt-headerInfo h3 {
+    margin: 0 0 8px;
+}
+
+.lt-headerInfo p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.lt-hero {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 0 0 auto;
+    padding: 7px 10px 10px;
+    border-bottom: 1px solid var(--color-a1-5);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--layer-color) 32%, var(--color-a)), var(--color-a));
+}
+
+.lt-hero.lt-hasSample::before {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--layer-color) 32%, transparent) 0%,
+        color-mix(in srgb, var(--color-a) 55%, transparent) 45%,
+        var(--color-a) 100%
+    );
+    content: '';
+    pointer-events: none;
+}
+
+.lt-hero > :not(.lt-heroSample) {
+    position: relative;
+    z-index: 2;
+}
+
+.lt-heroSample {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.lt-heroActions {
+    justify-content: space-between;
+    width: 100%;
+}
+
+.lt-heroActions > div {
+    gap: 2px;
+}
+
+.lt-heroActions .lt-closeButton {
+    width: 48px;
+    height: 36px;
+    border-radius: 6px;
+}
+
+.lt-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    margin-top: -5px;
+    border: 3px solid var(--color-a);
+    border-radius: 50%;
+    background: var(--layer-color);
+    color: #fff;
+    font-size: 22px;
+}
+
+.lt-settingsName {
+    max-width: 100%;
+    margin-top: 7px;
+    overflow-wrap: anywhere;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.lt-path {
+    max-width: 100%;
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--color-a5);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lt-actionBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 38px;
+    margin-top: 12px;
+    padding: 4px 6px 4px 12px;
+    border-radius: 8px;
+    background: var(--color-d);
+}
+
+.lt-actionButtons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lt-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    margin: 7px 8px 2px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.lt-banner span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.lt-bannerError {
+    background: color-mix(in srgb, var(--color-red2, #e0524f) 22%, var(--color-a1));
+}
+
+.lt-bannerWarning {
+    background: color-mix(in srgb, var(--color-yellow, #e1b000) 18%, var(--color-a1));
+}
+
+.lt-settingsSections {
+    flex: 1;
+    min-height: 0;
+    padding: 10px 10px 12px;
+    overflow-y: auto;
+}
+
+.lt-section {
+    margin-bottom: 2px;
+    border-bottom: 1px solid var(--color-a1-5);
+}
+
+.lt-sectionHeader {
+    justify-content: space-between;
+    min-height: 32px;
+}
+
+.lt-sectionToggle {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 6px;
+    min-width: 0;
+    padding: 7px 4px;
+    border: 0;
+    background: transparent;
+    color: var(--color-h);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-align: left;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.lt-sectionToggle i {
+    color: var(--color-a5);
+}
+
+.lt-sectionBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 2px 4px 10px 20px;
+}
+
+.lt-sliderSetting {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lt-sliderLabel,
+.lt-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 26px;
+}
+
+.lt-sliderValue {
+    color: var(--color-a5);
+    font-variant-numeric: tabular-nums;
+}
+
+.lt-changedDot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 5px;
+    border-radius: 50%;
+    background: var(--color-c);
+    vertical-align: 1px;
+}
+
+.lt-field > :last-child {
+    max-width: 65%;
+}
+
+.lt-field select {
+    padding: 4px 6px;
+    border: 1px solid var(--color-a2, #45494c);
+    border-radius: 3px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+.lt-inlineError {
+    color: var(--color-red2, #e0524f);
+    font-size: 11px;
+}
+
+.lt-pluginActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.lt-mobile .lt-row {
+    height: 44px;
+    font-size: 14px;
+}
+
+.lt-mobile .lt-chevron,
+.lt-mobile .lt-chevronSpace {
+    width: 20px;
+    flex-basis: 20px;
+}
+
+.lt-mobile .lt-drag i {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .lt-drag i {
+        opacity: 1;
+    }
+}
+
+@media (max-width: 700px) {
+    .lt-root {
+        min-height: 0;
+    }
+
+    .lt-toolbar {
+        padding-right: 6px;
+        padding-left: 6px;
+    }
+
+    #layersTool .lt-toolbar .mmgisToolTitle {
+        padding-left: 4px;
+    }
+
+    .lt-row {
+        padding-right: 3px;
+    }
+}
+
+.lt-root,
+.lt-root * {
+    box-sizing: border-box;
+}
+
+.lt-toolbarTitle {
+    min-height: 40px;
+    line-height: 40px;
+    border-bottom: 1px solid var(--color-a1);
+}
+
+.lt-toolbarTitle > .left {
+    display: flex;
+    align-items: center;
+}
+
+.lt-search > button {
+    flex: 0 0 28px;
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+}
+
+.lt-helpSlot .mmgisHelpButton {
+    margin: 0 4px;
+}
+
+.lt-count {
+    min-width: 36px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.lt-settingsName {
+    display: -webkit-box;
+    overflow: hidden;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.lt-name,
+.lt-settingsName {
+    font-family: "Roboto", "Arial", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+}
+
+.lt-path {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.lt-shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    margin-top: 6px;
+    color: var(--color-a5);
+    font-size: 12px;
+}
+
+.lt-shortcut kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 5px;
+    border: 1px solid var(--color-a1);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--color-a);
+    color: var(--color-f);
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+.lt-keyPlus {
+    opacity: 0.7;
+}
+
+.lt-shortcutText {
+    margin-left: 2px;
+}
+
+.lt-pathSegment {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lt-pathMiddle {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.lt-pathSegment:not(.lt-pathMiddle) {
+    flex: 0 0 auto;
+}
+
+.lt-pathSeparator {
+    flex: 0 0 auto;
+}
+
+.lt-settingsSections .layerSettingsSection {
+    margin-bottom: 8px;
+    border-bottom: 0;
+    border-radius: 4px;
+    background: var(--color-d);
+}
+
+.lt-settingsSections .layerSettingsSection:last-child {
+    margin-bottom: 0;
+}
+
+.lt-settingsSections .layerSettingsSectionHeader {
+    min-height: 34px;
+    padding: 6px 12px 5px;
+    border-bottom: 1px solid var(--color-a-5);
+}
+
+.lt-settingsSections .layerSettingsSectionHeader > button {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    flex: 0 0 28px;
+    margin: 0;
+    padding: 0;
+}
+
+.lt-settingsSections .layerSettingsSection.lt-sectionFlash {
+    animation: lt-sectionFlash 1.2s ease-out;
+}
+
+@keyframes lt-sectionFlash {
+    0%,
+    35% {
+        box-shadow: 0 0 0 2px var(--color-c);
+    }
+    100% {
+        box-shadow: 0 0 0 2px transparent;
+    }
+}
+
+.lt-settingsSections .layerSettingsSectionBody {
+    min-width: 0;
+    padding: 6px 12px 12px;
+}
+
+.lt-settingsSections .layerSettingsSlider > div:last-child {
+    width: calc(100% - 16px);
+    margin: 0 8px;
+}
+
+.lt-iconTextButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.lt-sortable {
+    transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lt-root *,
+    .lt-root *::before,
+    .lt-root *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+.lt-settingsSections .lt-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.lt-settingsSections .lt-field > :last-child {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.lt-typeSettingsInputUnit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.lt-typeSettingsInputUnit > *:first-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.lt-typeSettingsFilter #layersTool_filtering *,
+.lt-dataShaderSettings,
+.lt-dataShaderSettings * {
+    box-sizing: border-box;
+}
+
+.lt-dataShaderSettings > ul {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lt-dataShaderSettings > ul > li {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.lt-dataShaderSettings > ul > li > div:not([style*="display: block"]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.lt-dataShaderSettings > ul > li:has([id$="_ramps"]) > div,
+.lt-dataShaderSettings > ul > li:has(ul[id$="_legend"]) > div {
+    display: block;
+}
+
+.lt-dataShaderSettings input,
+.lt-dataShaderSettings select {
+    max-width: 100%;
+    min-width: 0;
+    padding: 4px 6px;
+    border: 1px solid color-mix(in srgb, var(--color-f) 25%, transparent) !important;
+    border-radius: 3px;
+    background: var(--color-a);
+    color: var(--color-f);
+    font: inherit;
+}
+
+.lt-dataShaderSettings .dropy__title {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+}
+
+.lt-dataShaderSettings .dropy__title > span:first-child {
+    flex: 1;
+    width: calc(100% - 20px);
+    min-width: 0;
+    overflow: hidden;
+}
+
+#layersTool .lt-viewSummary button {
+    color: var(--color-c2);
+}
+
+#layersTool .lt-name mark {
+    border-radius: 2px;
+    padding: 0 1px;
+    background: var(--color-mh) !important;
+    color: var(--color-a) !important;
+    text-shadow: none;
+}
+
+#layersTool .lt-dataShaderSettings,
+#layersTool .lt-dataShaderSettings > ul > li > div > div:first-child {
+    color: var(--color-f) !important;
+}
+
+#layersTool .lt-dataShaderSettings
+    > ul
+    > li:has([id$='_colorize_legend'])
+    > div
+    > div:first-child {
+    color: var(--color-f) !important;
+}
+
+.lt-status {
+    width: 24px;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+.lt-checkWrap [role='checkbox'] {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    min-height: 20px;
+}
+
+.lt-drag,
+.lt-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lt-title,
+.lt-status {
+    align-items: center;
+}
+
+.lt-status {
+    display: inline-flex;
+    justify-content: center;
+}
+
+.lt-count {
+    width: auto;
+    min-width: 36px;
+    padding: 0 3px;
+    white-space: nowrap;
+}
+
+
+.lt-hero.lt-hasSample .lt-heroActions button {
+    background: color-mix(in srgb, var(--color-a) 82%, transparent);
+}
+
+.lt-settingsSections .lt-timeField {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    min-width: 0;
+}
+
+.lt-settingsSections .lt-timeField > :last-child {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+.lt-settings .lt-secondaryButton:not(:disabled) {
+    border-color: var(--color-a2);
+    color: var(--color-f);
+}
+
+.lt-settings .lt-secondaryButton:not(:disabled):hover {
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+.lt-settingsSections .lt-typeSettingsComposite {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.lt-settingsSections .lt-typeSettingsCogLegend {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.lt-settingsSections .lt-cogField {
+    display: grid;
+    grid-template-columns: 78px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.lt-settingsSections .lt-cogField > :last-child {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+.lt-settingsSections .lt-cogUnitInput {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a);
+}
+
+.lt-settingsSections .lt-cogUnitInput .lt-cogNumberInput {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.lt-settingsSections .lt-cogUnitInput .lt-cogSuffix {
+    padding: 0 8px;
+    color: var(--color-a5);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.lt-settingsSections .lt-dynamicStyleSettings .lt-typeSettingsField,
+.lt-settingsSections .lt-dynamicStyleSettings .dynamicStyleRampRow {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.lt-settingsSections .lt-dynamicStyleSettings .lt-typeSettingsField > :last-child {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+.lt-settingsSections .lt-dynamicStyleSettings .dynamicStyleRampPicker,
+.lt-settingsSections .lt-dynamicStyleSettings input.dynamicStyleBins {
+    width: 100%;
+    min-width: 0;
+}
+
+.lt-settingsSections .lt-dynamicStyleSettings input.dynamicStyleBins {
+    box-sizing: border-box;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a);
+    color: var(--color-f);
+    font: inherit;
+}
+
+.lt-settingsSections .lt-dynamicStyleSettings .lt-typeSettingsRange {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.lt-settingsSections .lt-dynamicStyleSettings .lt-typeSettingsRange label {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.lt-settingsSections .lt-dynamicStyleSettings .lt-typeSettingsRange input {
+    width: 100%;
+    min-width: 0;
+}
+
+.lt-typeSettingsStatsGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lt-typeSettingsStatsGroup > strong {
+    color: var(--color-f);
+}
+
+.lt-typeSettingsStatsScope {
+    color: var(--color-a5);
+    font-size: 11px;
+}
+
+#layersTool .lt-dataShaderSettings select {
+    width: 100%;
+    height: 26px;
+    padding: 0 28px 0 8px;
+    border: 1px solid var(--color-a1) !important;
+    border-radius: 4px;
+    appearance: none;
+    background-color: var(--color-a);
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--color-a5) 50%),
+        linear-gradient(135deg, var(--color-a5) 50%, transparent 50%);
+    background-position:
+        calc(100% - 13px) 50%,
+        calc(100% - 9px) 50%;
+    background-repeat: no-repeat;
+    background-size: 4px 4px;
+    color: var(--color-a5);
+    font-size: 12px;
+    font-family: inherit;
+}
+
+#layersTool .lt-dataShaderSettings input[parameter='min'],
+#layersTool .lt-dataShaderSettings input[parameter='max'] {
+    width: 100% !important;
+    height: 26px !important;
+    margin: 0 !important;
+    padding: 0 8px;
+    border-radius: 4px;
+}
+
+#layersTool .lt-dataShaderSettings .dropy__title {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px;
+    align-items: center;
+    gap: 4px;
+}
+
+#layersTool .lt-dataShaderSettings .dropy__title > span:first-child {
+    width: 100%;
+    min-width: 0;
+}
+
+#layersTool .lt-dataShaderSettings .dropy__title > i {
+    display: inline-flex;
+    position: static;
+    align-items: center;
+    justify-content: center;
+    right: auto;
+    transform: none;
+    width: 24px;
+    height: 22px;
+    border: 1px solid var(--color-a1);
+    border-radius: 5px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+
+#layersTool .lt-dataShaderSettings [class*='_colorize_legend_value_'] {
+    color: var(--color-f) !important;
+}
+
+#layersTool .lt-dataShaderSettings .lt-emptyShaderLegend {
+    display: none;
+}
+
+
+.lt-toolbar {
+    padding: 0 8px 5px;
+    border-bottom: 0;
+}
+
+.lt-toolbarTitle {
+    width: calc(100% + 16px);
+    margin: 0 -8px;
+}
+
+#layersTool .lt-toolbar .mmgisToolTitle {
+    padding-left: 10px;
+    color: var(--color-f, #ccc);
+}
+
+.lt-search {
+    height: 28px;
+    min-height: 28px;
+}
+
+.lt-tagPopup button {
+    min-height: 28px;
+}
+
+.lt-viewBar {
+    min-height: 28px;
+}
+
+.lt-viewPill button {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    min-height: 28px;
+    flex-basis: 28px;
+}
+
+.lt-viewPill {
+    padding: 0;
+}
+
+.lt-viewSummary button,
+#layersTool .lt-viewSummary button {
+    color: var(--color-f);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.lt-power {
+    opacity: 0.45;
+}
+
+.lt-power:hover,
+.lt-power:focus-visible,
+.lt-headerRow:hover .lt-power,
+.lt-headerRow:focus-within .lt-power,
+.lt-headerRow.lt-focused .lt-power,
+.lt-powerMuted {
+    opacity: 1;
+}
+
+.lt-heroActions .lt-closeButton {
+    width: 32px;
+    height: 28px;
+}
+
+.lt-heroActions .lt-infoButton,
+.lt-toolbarClose {
+    width: 28px;
+    height: 28px;
+}
+
+.lt-heroActions .lt-closeButton,
+.lt-heroActions .lt-infoButton {
+    opacity: 0.7;
+    transition: opacity 0.12s ease;
+}
+
+.lt-heroActions .lt-closeButton:hover,
+.lt-heroActions .lt-infoButton:hover,
+.lt-heroActions .lt-closeButton:focus-visible,
+.lt-heroActions .lt-infoButton:focus-visible {
+    background: transparent;
+    opacity: 1;
+}
+
+.lt-hero.lt-hasSample .lt-heroActions .lt-closeButton,
+.lt-hero.lt-hasSample .lt-heroActions .lt-infoButton {
+    background: color-mix(in srgb, var(--color-a) 82%, transparent);
 }
 
-#layersTool .statsProperty > div:last-child {
-  color: var(--color-a4);
-  font-size: 10px;
-  padding-right: 4px;
-}
-
-/* Quieter than the property they belong to, so the headings read first. */
-#layersTool .sublayer.statsValueRow {
-  height: 22px;
-  color: var(--color-a4);
-}
-
-#layersTool .statsValue {
-  color: var(--color-a4);
-  font-variant-numeric: tabular-nums;
-}
-
-#layersTool #searchLayers > div {
-  cursor: pointer;
-  color: #999;
-  transition:
-    color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-    opacity 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-  width: 30px;
-  text-align: center;
-}
-#layersTool #searchLayers > div:hover {
-  color: #fff;
-}
-#layersTool #searchLayers > div#clear {
-  position: absolute;
-  right: 62px;
-  padding-top: 1px;
-  height: 34px;
-  opacity: 0;
-}
-#layersTool #searchLayers > div#clear.shown {
-  opacity: 1;
-}
-#layersTool #searchLayers > div#restore {
-  position: absolute;
-  right: 60px;
-  background: var(--color-a1);
-  padding-top: 1px;
-  height: 34px;
-}
-#layersTool #searchLayers > div#expand {
-  position: absolute;
-  right: 30px;
-  background: var(--color-a1);
-  padding-top: 1px;
-  height: 34px;
-}
-#layersTool #searchLayers > div#collapse {
-  position: absolute;
-  right: 0;
-  background: var(--color-a1);
-  padding-top: 1px;
-  height: 34px;
-}
-
-#layersTool #layersToolList {
-  list-style-type: none;
-  padding: 0;
-  margin: 0px 0px 0px 6px;
-}
-
-#layersToolList > li {
-  height: 30px;
-  overflow-x: hidden;
-  overflow-y: hidden;
-  display: flex;
-  flex-flow: column;
-  font-size: 14px;
-  color: var(--color-f);
+.lt-actionButtons button {
+    height: 28px;
+    min-height: 28px;
 }
-#layersToolList > li.forceOff {
-  height: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  overflow: hidden;
+
+.lt-actionBar .lt-visible {
+    height: 28px;
+    min-height: 28px;
+}
+
+.lt-actionBar .lt-visible [role='checkbox'] {
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+    flex: 0 0 20px;
+}
+
+.lt-actionDivider {
+    width: 1px;
+    height: 16px;
+    margin: 0 2px;
+    background: var(--color-a2);
+}
+
+.lt-settingsSections .lt-field {
+    min-height: 28px;
+}
+
+.lt-settingsSections .lt-field select,
+.lt-settingsSections input:not([type='checkbox']):not([type='range']),
+.lt-settingsSections select,
+.lt-settingsSections button:not(.lt-sectionToggle) {
+    height: 28px;
+    min-height: 28px;
+}
+
+.lt-settingsSections .lt-sectionToggle {
+    height: auto;
+    min-height: 32px;
+}
+
+.lt-settingsSections .lt-iconTextButton {
+    font-size: 13px;
 }
-#layersToolList > li.forceOff3 {
-  height: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  overflow: hidden;
+
+.lt-field select {
+    height: 28px;
+}
+
+.lt-dataShaderSettings input,
+.lt-dataShaderSettings select {
+    height: 28px;
+    min-height: 28px;
+}
+
+
+#layersTool .lt-dataShaderSettings select {
+    height: 28px;
+}
+
+#layersTool .lt-dataShaderSettings input[parameter='min'],
+#layersTool .lt-dataShaderSettings input[parameter='max'] {
+    height: 28px !important;
+}
+
+#layersTool .lt-dataShaderSettings .dropy__title > i {
+    height: 28px;
 }
-#layersToolList > li.forceOff2 {
-  height: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  overflow: hidden;
-}
-#layersTool #layersToolList > li:first-child {
-  margin-top: 0px !important;
-}
-
-#layersToolList .title {
-  height: 30px;
-  line-height: 30px;
-  justify-content: space-between;
-  display: flex;
-  width: 100%;
-  background: var(--color-a1-5);
-}
-
-#layersTool .layerExport,
-#layersTool .settings {
-  height: 0px;
-  opacity: 0;
-  overflow: hidden;
-  color: #ccc;
-}
-#layersTool .layerExport {
-  padding: 0 !important;
-}
-#layersTool .layerExport ul,
-#layersTool .settings ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
+
+.lt-drawerScrim > i {
+    width: 28px;
+    height: 28px;
+    margin-left: calc((var(--lt-drawerInset) - 28px) / 2);
+    line-height: 28px;
 }
-#layersTool .settings .layerTimeTitle {
-  display: flex;
-  height: 30px;
-  line-height: 30px;
-}
-#layersTool .settings .layerTimeTitle > div:first-child {
-  color: var(--color-h);
-  text-transform: uppercase;
-  font-size: 12px;
-}
-
-#layersTool .settings .layerSettingsTitle {
-  display: flex;
-  height: 30px;
-  line-height: 30px;
-}
-#layersTool .settings .layerSettingsTitle > div:first-child {
-  color: var(--color-h);
-  text-transform: uppercase;
-  font-size: 12px;
-}
-#layersTool .settings .layerSettingsTitle > div:last-child {
-}
-#layersTool .settings ul > li {
-  line-height: 30px;
-}
-#layersTool .settings ul > li > div {
-  display: flex;
-  justify-content: space-between;
-}
-
-#layersTool .layerExport li {
-  height: 28px;
-  line-height: 26px;
-  padding: 2px 6px 2px 12px;
-  cursor: pointer;
-  color: #ddd;
-  border-bottom: 1px solid var(--color-a-5);
-  transition: background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#layersTool .layerExport li:hover {
-  background: var(--color-a1);
-}
-
-#layersTool .layerExport ul > li > div:hover {
-  color: white;
-}
-#layersTool .settings ul > li > div > div {
-  font-size: 14px;
-  color: white;
-}
-#layersTool .settings ul > li .right {
-  display: flex;
-  justify-content: space-between;
-}
-
-#layersTool .settings ul > li input[type="number"] {
-  background: #222;
-  width: 80px;
-  color: #ccc;
-  text-align: right;
-  padding: 0px 3px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-#layersTool .settings ul > li input[type="range"] {
-  width: 120px;
-  margin: 6px 0px;
-}
-#layersTool .settings span {
-  font-size: 12px;
-  padding-left: 4px;
-}
-#layersTool .settings span {
-  font-size: 12px;
-  padding-left: 4px;
-}
-#layersTool .settings .dataShader .dropy__title > span {
-  width: calc(100% - 19px);
-}
-#layersTool .settings .dataShader .dropy__title > i {
-  line-height: 13px;
-  right: 0;
-  line-height: 22px;
-  background: var(--color-a1-5);
-  height: 22px;
-  top: -9px;
-}
-
-#layersTool .tileCogMin,
-#layersTool .tileCogMax {
-  margin-right: 34px;
-  z-index: 1;
-  position: relative;
-}
-
-#layersTool .tileCogMin > div:first-child > div:nth-child(2),
-#layersTool .tileCogMax > div:first-child > div:nth-child(2) {
-  display: flex;
-}
-#layersTool .tileCogUnits {
-  background: #222;
-  padding: 0px 2px 0px 2px;
-  height: 28px;
-  margin-top: 1px;
-  color: #ccc;
-  font-size: 12px;
-  border-left: 1px solid #575d60;
-}
-
-#layersTool .tileCogColor {
-  position: relative;
-  top: -269px;
-  margin-bottom: -235px;
-}
-#layersTool .tileCogColormap {
-  display: flex;
-}
-#layersTool .tileCogLegend {
-  line-height: 28px !important;
-  display: flex;
-  justify-content: flex-end;
-  margin-right: 38px;
-  font-size: 13px;
-  color: white;
-}
-#layersTool .tileCogColormapMap {
-  width: 100%;
-  height: 266px;
-  margin-bottom: -29px;
-}
-#layersTool #tileCogColormapMapLines {
-  height: 254px;
-  margin-left: 280px;
-  margin-top: -7px;
-  position: relative;
-}
-#layersTool #tileCogColormapMapLines li {
-  width: 28px;
-  border-top: 2px solid var(--color-a2);
-  float: right;
-}
-#layersTool .tileCogColormap > div {
-  position: relative;
-  margin-top: 2px;
-}
-#layersTool .tileCogColormap > div > div:first-child {
-  position: absolute;
-  left: 0;
-  mix-blend-mode: difference;
-}
-#layersTool .tileCogColormap > div > div:nth-child(2) {
-  position: absolute;
-  right: 5px;
-  letter-spacing: 1px;
-  text-transform: capitalize;
-  mix-blend-mode: difference;
-}
-#layersTool .tileCogColormap img,
-#layersTool .tileCogColormap #titlerCogColormapCSS {
-  width: 254px;
-  height: 28px;
-  transform: rotateZ(-90deg) translateX(-125px) translateY(177px);
-  border-left: 14px solid #222;
-  border-right: 14px solid #222;
-}
-#layersTool .tileCogColormap #titlerCogColormapCSS {
-  display: flex;
-  mix-blend-mode: normal;
-}
-#layersTool .tileCogColormap #titlerCogColormapCSS + #tileCogColormapMapLines {
-  margin-top: -2px;
-}
-#layersTool #layersToolList > li.download_on,
-#layersTool #layersToolList > li.gears_on {
-  height: auto;
-  color: white;
-  background: var(--color-a2);
-}
-#layersToolList > li.gears_on {
-  overflow: visible;
-}
-#layersTool #layersToolList > li.download_on .layerExport,
-#layersTool #layersToolList > li.gears_on .settings {
-  height: auto;
-  opacity: 1;
-  padding: 2px 6px 2px 12px;
-}
-
-#layersTool .reload,
-#layersTool .refreshWarning,
-#layersTool .setGlobalTimeFromExtent,
-#layersTool .reset,
-#layersTool .resetCog,
-#layersTool .tileexpressionreset,
-#layersTool .layerDownload,
-#layersTool .gears,
-#layersTool .locate,
-#layersTool .LayersToolInfo,
-#layersTool .time {
-  width: 30px;
-  height: 100%;
-  text-align: center;
-  line-height: 30px;
-  cursor: pointer;
-  color: #ccc;
-  flex-shrink: 0;
-  transition:
-    color 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95),
-    background 0.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
-}
-#layersTool .reload,
-#layersTool .layerDownload,
-#layersTool .gears,
-#layersTool .locate,
-#layersTool .LayersToolInfo {
-  color: transparent;
-}
-#layersTool .refreshWarning {
-  color: var(--color-h);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-#layersTool .reload:hover,
-#layersTool .layerDownload:hover,
-#layersTool .gears:hover,
-#layersTool .locate:hover,
-#layersTool .LayersToolInfo:hover {
-  background: var(--color-k);
-}
-
-#layersTool .setGlobalTimeFromExtent:hover,
-#layersTool .reset:hover,
-#layersTool .resetCog:hover,
-#layersTool .layerSettingsTitle .tileexpressionreset:hover {
-  color: white;
-}
-
-#layersTool .setGlobalTimeFromExtent,
-#layersTool .reset,
-#layersTool .resetCog,
-#layersTool .layerSettingsTitle .tileexpressionreset {
-  display: none;
-}
-#layersTool #layersToolList > li.gears_on .setGlobalTimeFromExtent,
-#layersTool #layersToolList > li.gears_on .reset,
-#layersTool #layersToolList > li.gears_on .resetCog,
-#layersTool
-  #layersToolList
-  > li.gears_on
-  .layerSettingsTitle
-  .tileexpressionreset {
-  display: block;
-}
-
-#layersTool .headercollapse:hover,
-#layersTool li.download_on .layerDownload,
-#layersTool li:hover .layerDownload,
-#layersTool li.gears_on .gears,
-#layersTool li:hover .reload,
-#layersTool li:hover .gears,
-#layersTool li:hover .locate,
-#layersTool li:hover .LayersToolInfo {
-  color: #fff;
-}
-
-#layersToolContent {
-  flex: 1;
-  overflow-y: scroll;
-}
-#layersToolContent #layersToolList {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-#layersTool .layerName {
-  cursor: pointer;
-  line-height: 31px;
-  height: 100%;
-  flex: 1;
-  min-width: 0;
-  user-select: none;
-  white-space: nowrap;
-}
-#layersTool li:hover .layerName {
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-#layersTool .layerCount {
-  display: none;
-  background: var(--color-a1);
-  font-size: 11px;
-  border-radius: 3px;
-  width: 18px;
-  height: 18px;
-  margin: 6px 0px 6px 6px;
-  color: #ccc;
-  text-align: center;
-  line-height: 19px;
-}
-#layersTool .headerChevron {
-  cursor: pointer;
-}
-
-.layersToolColorOFF {
-  width: 10px;
-  height: 100%;
-}
-.layersToolColor {
-  width: 12px;
-  height: 100%;
-  cursor: ns-resize;
-  color: rgba(255, 255, 255, 0.6);
-  border-right: 1px solid var(--color-a);
-  box-sizing: unset;
-  transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-  /* Background is set inline from the layertype manifest color. */
-  background: var(--lt-color);
-}
-.layersToolColor > i.mdi:before {
-  font-size: 14px;
-  margin-left: -1px;
-}
-.layersToolColor:hover {
-  color: white;
-}
-
-#LayersToolLayer.model {
-  height: 33px;
-  padding: 5px;
-  max-width: 100%;
-  display: flex;
-  border-top: 3px solid black;
-  background: #552f89;
-  user-select: none;
-}
-
-#layersTool .checkboxcont {
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-}
-#layersTool .checkbox {
-  margin: 5px;
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--color-a3);
-  border-radius: 2px;
-  transition:
-    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-    border 0.1s cubic-bezier(0.39, 0.575, 0.565, 1),
-    border-radius 0.1s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-#layersTool .settings .checkbox {
-  border: 1px solid var(--color-a4);
-}
-
-#layersTool .checkbox.on {
-  background: var(--color-a7);
-  border: 0px solid #777;
-}
-#layersTool .checkbox.small.on {
-  background: var(--color-a7);
-}
-#layersTool .checkbox:not(.on):hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-#layersTool .checkbox.loading {
-  background: transparent;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: layerLoadingSpin 1s ease-in-out infinite;
-}
-#layersTool .checkbox.small {
-  width: 16px;
-  height: 16px;
-  margin: 7px;
-}
-#layersTool .checkbox.smaller {
-  width: 12px;
-  height: 12px;
-  margin: 9px;
-}
-#layersTool .checkboxSmall {
-  margin: 3px;
-  width: 12px;
-  height: 13px;
-  border: 2px solid #777;
-  border-radius: 3px;
-  cursor: pointer;
-  transition:
-    background 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-    border 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-#layersTool .checkboxSmall.on {
-  background: white;
-  border: 0px solid #777;
-}
-
-#layersettings {
-  height: 33px;
-  padding: 5px;
-  border-top: 3px solid black;
-}
-
-#dropmenu {
-  max-width: 100%;
-}
-
-#LayersTooltileLayer:hover {
-  font-weight: bolder;
-  color: white;
-}
-
-#LayersToolvectorLayer:hover {
-  font-weight: bolder;
-  color: #ffffff;
-}
-
-#LayersToolmodelLayer:hover {
-  font-weight: bolder;
-  color: white;
-}
-
-#layersettings div.off {
-  font-weight: normal;
-  color: white;
-  background: black;
-}
-
-#LayersToolopacitySlider {
-  background-color: "#333";
-  height: 100%;
-  padding: 0px;
-  margin: 0px;
-}
-
-#LayersToolNav {
-  padding: 0px 10px;
-  text-align: left;
-  background: var(--color-mmgis);
-  box-shadow: 0px 4px 2px rgba(0, 0, 0, 0.2);
-}
-
-#LayersToolNav .LayersToolNavButton {
-  transition: background 0.2s ease-out;
-  height: 30px;
-  display: inline-flex;
-  text-align: center;
-  line-height: 30px;
-  border-radius: 1px;
-  vertical-align: middle;
-  cursor: pointer;
-  padding: 0px 6px 0px 4px;
-  color: rgba(255, 255, 255, 0.5);
-  transition: color 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-
-#layersTool .dynamicStyleRow select.dropdown {
-  width: 177px;
-}
-
-#layersTool .dropdown {
-  background-color: #222;
-  border: none;
-  margin: 1px 0px;
-  width: 120px;
-  height: 28px;
-  font-size: 14px;
-  color: var(--color-f);
-  padding: 0px 2px;
-}
-#layersTool .dropdown2 {
-  background-color: #222;
-  border: none;
-  height: 30px;
-  font-size: 14px;
-  color: var(--color-f);
-  padding-left: 10px;
-}
-#layersTool .sublayerDropdown {
-  width: unset;
-  height: 20px;
-  margin-top: 5px;
-  padding: 0px 2px 1px 2px;
-  line-height: 10px;
-  font-size: 13px;
-}
-
-#layersTool .sublayer {
-  display: flex;
-  justify-content: space-between;
-  height: 30px;
-  padding-left: 20px;
-}
-
-#layersTool .sublayer > div:first-child {
-  font-size: 13px;
-}
-
-#layersTool .layernotfound {
-  cursor: not-allowed;
-}
-#layersTool .layernotfound > div {
-  pointer-events: none;
-  background: #541d1d;
-}
-
-#layersTool .layernotfound .checkboxcont .checkbox {
-  background: transparent !important;
-  border: 2px solid #777 !important;
-}
-
-#layersTool .headerPowerState {
-  color: var(--color-h);
-  padding: 0px 6px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-}
-#layersTool .headerPowerState:hover {
-  color: var(--color-h);
-}
-#layersTool .headerPowerState.on {
-  color: var(--color-a2);
-}
-#layersTool .headerPowerState.on:hover {
-  color: var(--color-a7);
-}
-
-@keyframes layerLoadingSpin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.layersToolExport {
-  cursor: default;
-  height: unset !important;
-}
-.layersToolExport > div {
-  display: flex;
-  margin-bottom: 0px;
-}
-.layersToolExport > div:first-child {
-  margin-bottom: 0px;
-  color: #fff;
-}
-.layersToolExport > div:not(:first-child) {
-  justify-content: space-between;
-  line-height: 27px;
-}
-.layersToolExport > div:first-child > div {
-  padding-left: 4px;
-  color: #eee;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 12px;
-}
-.layersToolExport:hover {
-  background: var(--color-a2) !important;
-}
-.layersToolExport > div > div:first-child {
-  padding-left: 28px;
-  line-height: 29px;
-}
-#layersTool .layersToolExport > div > select.dropdown {
-  background-color: var(--color-a1);
-  color: #ededed;
-  border: none;
-  width: 220px;
-  height: 27px;
-  font-size: 14px;
-  padding: 0px 3px;
-  border-left: 1px solid var(--color-a1-5);
-}
-.layersToolExportGo {
-  display: block;
-  width: 100%;
-  margin-left: 28px;
-  padding-left: 0px !important;
-  height: 27px;
-  line-height: 27px;
-  margin-top: 2px;
-  margin-bottom: 1px;
-  background-color: var(--color-a);
-}
-.layersToolExportGo:hover {
-  background-color: var(--color-a1-5);
-}
-
-#layersTool .videoControls {
-  margin: 8px 0;
-}
-
-#layersTool .videoControlButtons {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-#layersTool .videoControlButtons button {
-  min-width: 30px;
-  height: 30px;
-  padding: 0px 6px;
-  border: 1px solid var(--color-a2);
-  background: var(--color-a1);
-  color: var(--color-l);
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-#layersTool .videoControlButtons button:hover {
-  background: var(--color-a1-5);
-}
-
-#layersTool .videoControlButtons button:active {
-  background: var(--color-a);
-}
-
-#layersTool .videoControlButtons button.playing {
-  background: var(--color-p4);
-  color: white;
-}
-
-#layersTool .videoControlButtons button.unmuted {
-  background: var(--color-c2);
-  color: white;
-}
-
-#layersTool .videoScrubBar {
-  margin-top: 12px;
-  display: flex;
-  justify-content: center;
-  flex-flow: column;
-}
-
-#layersTool .videoScrubContainer {
-  position: relative;
-  width: 100%;
-  height: 20px;
-  display: flex;
-  align-items: center;
-}
-
-#layersTool .videoScrubTrack {
-  position: relative;
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--color-a-5);
-}
-
-#layersTool .videoScrubProgress {
-  position: absolute;
-  top: 1px;
-  left: 1px;
-  height: 4px;
-  background: var(--color-p4);
-  border-radius: 3px;
-  width: 0%;
-  transition: width 0.1s ease-out;
-}
-
-#layersTool .videoScrubSlider {
-  position: absolute;
-  top: -13px;
-  left: 0;
-  width: 100% !important;
-  height: 20px;
-  background: transparent;
-  outline: none;
-  transition: opacity 0.2s;
-  cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-#layersTool .videoScrubSlider:hover {
-  opacity: 1;
-}
-
-#layersTool .videoScrubSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--color-p4);
-  cursor: pointer;
-  border: 2px solid var(--color-a-5);
-}
-
-#layersTool .videoScrubSlider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--color-p4);
-  cursor: pointer;
-  border: 2px solid var(--color-a-5);
-}
-
-#layersTool .videoTimeDisplay {
-  display: flex;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--color-a4);
-  font-family: monospace;
-}
-
-/* Band Math Expression Editor */
-#layersTool .tileCogExpression {
-  padding: 8px 0;
-}
-
-#layersTool .tileCogExpression > div:last-child {
-  display: block !important;
-}
-
-#layersTool .tileCogExpressionl {
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-#layersTool .tileexpression {
-  width: 100%;
-  border: none;
-  background: #222;
-  color: #ddd;
-  height: 30px;
-  padding: 4px 8px;
-  font-family: monospace;
-}
-
-#layersTool .tileexpression:focus {
-  outline: none;
-  border-color: var(--color-p4);
-}
-
-#layersTool .expression-helper-text {
-  font-size: 13px !important;
-  color: var(--color-a6) !important;
-  margin-top: 6px;
-  font-style: italic;
-  line-height: 18px;
-}
-
-#layersTool .expression-stac-info {
-  font-size: 12px;
-  color: var(--color-a6);
-  margin-top: 6px;
-  line-height: 16px;
-  display: none;
-}
-
-#layersTool .stac-header {
-  color: var(--color-a7);
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-#layersTool .stac-band-item {
-  margin-left: 12px;
-  line-height: 18px;
-}
-
-#layersTool .expression-buttons {
-  height: 30px;
-  display: flex;
-}
-
-#layersTool .tileexpressionapply {
-  border: none;
-  padding: 4px 12px;
-  cursor: pointer;
-  font-size: 12px;
-  background: #3b8dd8;
-  color: white;
-}
-
-#layersTool .tileexpressionapply:hover {
-  background: #2a7fc7;
-}
-
-#layersTool .layerDataExtentTitle {
-  display: flex;
-}
-#layersTool .setGlobalTimeFromExtent {
-  text-align: center;
+
+
+@media (max-width: 700px) {
+    .lt-toolbarTitle {
+        width: calc(100% + 12px);
+        margin: 0 -6px;
+    }
+
+    #layersTool .lt-toolbar .mmgisToolTitle {
+        padding-left: 10px;
+    }
 }

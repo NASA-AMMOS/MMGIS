@@ -4,6 +4,7 @@
   "name": "Velocity",
   "type": "layertype",
   "typeId": "velocity",
+  "category": "raster",
   "version": "core",
   "tier": "core",
   "overridable": false,
@@ -610,6 +611,7 @@
   },
   "modules": {
     "map": "./map",
-    "legend": "./legend"
+    "legend": "./legend",
+    "settings": "./settings"
   }
 }

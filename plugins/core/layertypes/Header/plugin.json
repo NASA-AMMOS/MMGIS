@@ -4,6 +4,7 @@
   "name": "Header",
   "type": "layertype",
   "typeId": "header",
+  "category": "structural",
   "version": "core",
   "tier": "core",
   "overridable": false,

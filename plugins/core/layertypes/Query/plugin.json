@@ -4,6 +4,7 @@
   "name": "Query",
   "type": "layertype",
   "typeId": "query",
+  "category": "vector",
   "version": "core",
   "tier": "core",
   "overridable": false,
@@ -1094,6 +1095,7 @@
   "modules": {
     "map": "./map",
     "config": "./config",
-    "filter": "./filter"
+    "filter": "./filter",
+    "settings": "./settings"
   }
 }

@@ -1,0 +1,479 @@
+import React, { useEffect, useRef, useState } from 'react'
+import $ from 'jquery'
+import { Checkbox, Select, TextInput } from '@design/components'
+import Filtering from '@basics/Layers_/Filtering/Filtering'
+import L_ from '@basics/Layers_/Layers_'
+import Map_ from '@basics/Map_/Map_'
+import {
+    COLOR_ATTRIBUTES,
+    DEFAULT_ATTRIBUTE,
+    GROUP_STATS,
+    STYLE_ATTRIBUTES,
+    attributeOf,
+    formatValue,
+    rulePropertyLabel,
+    rulePropertyPath,
+    ruleStatOf,
+} from '@basics/Layers_/render/dynamicStyle'
+import {
+    propertyStats,
+    RESTYLED_EVENT,
+    restyleLayerDynamically,
+} from '@basics/Layers_/render/dynamicStyleRuntime'
+import {
+    getDomainMode,
+    getViewedRules,
+    overrideDynamicStyleRule,
+    setDynamicStyleOverride,
+} from '@basics/Layers_/render/layerDynamicStyle'
+import { LayerSettingsSlider } from '@basics/UserInterface_/LayerSettings/LayerSettings'
+import DynamicStyleRamp from '@basics/UserInterface_/LayerSettings/DynamicStyleRamp'
+import vectorExport from './export'
+import './settings.css'
+
+const ATTRIBUTE_RANGES = {
+    fillOpacity: [0.1, 1],
+    opacity: [0.1, 1],
+    weight: [1, 8],
+    radius: [3, 12],
+}
+
+function rangeForRule(rule, attribute) {
+    const configured = Array.isArray(rule.range) ? rule.range : []
+    const fallback = ATTRIBUTE_RANGES[attribute] || [0, 1]
+    return [
+        Number.isFinite(parseFloat(configured[0]))
+            ? configured[0]
+            : fallback[0],
+        Number.isFinite(parseFloat(configured[1]))
+            ? configured[1]
+            : fallback[1],
+    ]
+}
+
+function useRestyleRevision(layerName) {
+    const [, setVersion] = useState(0)
+    useEffect(() => {
+        const layerUUID = L_.asLayerUUID(layerName)
+        const onRestyled = (event) => {
+            if (
+                event.detail?.layer != null &&
+                L_.asLayerUUID(event.detail.layer) === layerUUID
+            )
+                setVersion((version) => version + 1)
+        }
+        document.addEventListener(RESTYLED_EVENT, onRestyled)
+        return () => document.removeEventListener(RESTYLED_EVENT, onRestyled)
+    }, [layerName])
+}
+
+function FilterSettings({ layer, api }) {
+    const host = useRef(null)
+    useEffect(() => {
+        if (!host.current || !Filtering.isFilterable(layer.name)) return
+        const container = host.current
+        container.classList.add('gears_on')
+        const refreshList = () =>
+            requestAnimationFrame(() => api.refresh())
+        const onFilterStateChange = (event) => {
+            if (event.detail?.layerName !== layer.name) return
+            const total =
+                Filtering.filters[layer.name]?.geojson?.features?.length || 0
+            const filtered =
+                L_.layers.layer[layer.name]?.toGeoJSON?.()?.features?.length ??
+                total
+            Filtering.updateCountText(filtered, total)
+            api.refresh()
+        }
+        const onLayerDataLoaded = (event) => {
+            if (
+                event.detail?.layerName !== layer.name ||
+                Filtering.current.layerName !== layer.name
+            )
+                return
+            Filtering.refresh()
+            api.refresh()
+        }
+        container.addEventListener('input', refreshList)
+        container.addEventListener('change', refreshList)
+        container.addEventListener('click', refreshList)
+        document.addEventListener(
+            'layersToolFilterStateChange',
+            onFilterStateChange
+        )
+        document.addEventListener('layersToolLayerDataLoaded', onLayerDataLoaded)
+        let disposed = false
+        Filtering.current = {
+            layerName: layer.name,
+            layerObj: layer,
+            type: layer.type,
+        }
+        Filtering.currentContainer = $(container)
+        Filtering.make($(container), layer.name)
+            .then(() => {
+                if (
+                    disposed &&
+                    Filtering.current.layerName === layer.name &&
+                    Filtering.currentContainer?.[0] === container
+                ) {
+                    Filtering.destroy()
+                    Filtering.current = {}
+                    Filtering.currentContainer = null
+                }
+            })
+            .catch((error) => {
+                console.error(
+                    `LayersTool filter UI failed for ${layer.display_name || layer.name}`,
+                    error
+                )
+            })
+        return () => {
+            disposed = true
+            container.removeEventListener('input', refreshList)
+            container.removeEventListener('change', refreshList)
+            container.removeEventListener('click', refreshList)
+            document.removeEventListener(
+                'layersToolFilterStateChange',
+                onFilterStateChange
+            )
+            document.removeEventListener(
+                'layersToolLayerDataLoaded',
+                onLayerDataLoaded
+            )
+            if (
+                Filtering.current.layerName === layer.name &&
+                Filtering.currentContainer?.[0] === container
+            ) {
+                Filtering.destroy()
+                Filtering.current = {}
+                Filtering.currentContainer = null
+            }
+        }
+    }, [api, layer.name])
+    return <div className="lt-typeSettingsFilter" ref={host} />
+}
+
+function CompositeSettings({ layer, api }) {
+    const attachments = L_.layers.attachments[layer.name] || {}
+    const entries = Object.entries(attachments).filter(([, attachment]) =>
+        Boolean(attachment)
+    )
+    if (entries.length === 0) return <div>No composite layers.</div>
+    return (
+        <div className="lt-typeSettingsList">
+            {entries.map(([name, attachment]) => (
+                <div className="lt-typeSettingsComposite" key={name}>
+                    <div className="lt-typeSettingsCompositeLine">
+                        <span title={attachment.title || name}>
+                            {attachment.title || name}
+                        </span>
+                        <Checkbox
+                            checked={attachment.on === true}
+                            onCheckedChange={async () => {
+                                await L_.toggleSublayer(layer.name, name)
+                                api.refresh()
+                            }}
+                            aria-label={`Toggle ${attachment.title || name}`}
+                            showCheck
+                        />
+                    </div>
+                    {attachment.layer?.dropdown && (
+                        <Select
+                            aria-label={`${attachment.title || name} field`}
+                            value={
+                                attachment.layer.dropdownValue ||
+                                attachment.layer.dropdown[0]
+                            }
+                            options={attachment.layer.dropdown.map((value) => ({
+                                value,
+                                label: value,
+                            }))}
+                            onValueChange={async (value) => {
+                                attachment.layer.dropdownValue = value
+                                await attachment.layer.dropdownFunc?.(
+                                    layer.name,
+                                    name,
+                                    Map_,
+                                    value
+                                )
+                                api.refresh()
+                            }}
+                        />
+                    )}
+                    {attachment.opacity != null && (
+                        <LayerSettingsSlider
+                            label="Opacity"
+                            value={attachment.opacity}
+                            onChange={(value) => {
+                                L_.setSublayerOpacity(layer.name, name, value)
+                                api.refresh()
+                            }}
+                        />
+                    )}
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function DynamicStyleSettings({ layer, api, resetToken }) {
+    const style = layer.variables?.dynamicStyle
+    const rules = getViewedRules(layer)
+    const reset = useRef(resetToken)
+    useRestyleRevision(layer.name)
+    useEffect(() => {
+        if (reset.current === resetToken) return
+        reset.current = resetToken
+        setDynamicStyleOverride(layer, null)
+        restyleLayerDynamically(layer)
+        api.refresh()
+    }, [resetToken, layer, api])
+    if (style?.enabled !== true || !Array.isArray(style.rules)) return null
+
+    const restyle = () => {
+        restyleLayerDynamically(layer)
+        api.refresh()
+    }
+    const setRule = (index, patch) => {
+        overrideDynamicStyleRule(layer, index, patch)
+        restyle()
+    }
+    const userSettable = style.userSettable !== false
+    return (
+        <div className="lt-typeSettingsList lt-dynamicStyleSettings">
+            {userSettable && (
+                <div className="lt-typeSettingsField">
+                    <span>Domain</span>
+                    <Select
+                        value={getDomainMode(layer)}
+                        options={[
+                            { value: 'dataset', label: 'Whole dataset' },
+                            { value: 'view', label: 'Current view' },
+                        ]}
+                        onValueChange={(domain) => {
+                            setDynamicStyleOverride(layer, { domain })
+                            restyle()
+                        }}
+                    />
+                </div>
+            )}
+            {rules.map((rule, index) => {
+                const enabled = rule.enabled !== false
+                const attribute = attributeOf(rule) || DEFAULT_ATTRIBUTE
+                const range = rangeForRule(rule, attribute)
+                return (
+                    <div
+                        className="lt-typeSettingsRule"
+                        key={`${rulePropertyPath(rule)}-${index}`}
+                    >
+                        <div className="lt-typeSettingsCompositeLine">
+                            <strong>{rulePropertyLabel(rule)}</strong>
+                            {userSettable && (
+                                <Checkbox
+                                    checked={enabled}
+                                    onCheckedChange={(checked) =>
+                                        setRule(index, { enabled: checked })
+                                    }
+                                    aria-label={`Enable ${rulePropertyLabel(rule)} style rule`}
+                                    showCheck
+                                />
+                            )}
+                        </div>
+                        {!userSettable || !enabled ? null : (
+                            <>
+                                {rule.propertyType === 'stats' && (
+                                    <div className="lt-typeSettingsField">
+                                        <span>Statistic</span>
+                                        <Select
+                                            value={ruleStatOf(rule) || 'avg'}
+                                            options={GROUP_STATS.map((value) => ({
+                                                value,
+                                                label: value,
+                                            }))}
+                                            onValueChange={(stat) =>
+                                                setRule(index, { stat })
+                                            }
+                                        />
+                                    </div>
+                                )}
+                                <div className="lt-typeSettingsField">
+                                    <span>Styles</span>
+                                    <Select
+                                        value={attribute}
+                                        options={STYLE_ATTRIBUTES.map((value) => ({
+                                            value,
+                                            label: value,
+                                        }))}
+                                        onValueChange={(next) =>
+                                            setRule(index, {
+                                                attribute: next,
+                                                ...(!COLOR_ATTRIBUTES.includes(next)
+                                                    ? { range: rangeForRule({}, next) }
+                                                    : {}),
+                                            })
+                                        }
+                                    />
+                                </div>
+                                {COLOR_ATTRIBUTES.includes(attribute) ? (
+                                    <DynamicStyleRamp
+                                        ramp={rule.ramp || 'viridis'}
+                                        bins={rule.discrete ? rule.bins || 5 : 0}
+                                        stops={rule.stops}
+                                        domain={
+                                            layer._dynamicStyleResolver?.rules?.[
+                                                index
+                                            ]?.domain
+                                        }
+                                        onChange={(patch) =>
+                                            setRule(index, patch)
+                                        }
+                                    />
+                                ) : (
+                                    <div className="lt-typeSettingsRange">
+                                        <label>
+                                            <span>From</span>
+                                            <TextInput
+                                                type="number"
+                                                step="any"
+                                                value={range[0]}
+                                                onChange={(event) =>
+                                                    setRule(index, {
+                                                        range: [
+                                                            Number(event.target.value),
+                                                            range[1],
+                                                        ],
+                                                    })
+                                                }
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>To</span>
+                                            <TextInput
+                                                type="number"
+                                                step="any"
+                                                value={range[1]}
+                                                onChange={(event) =>
+                                                    setRule(index, {
+                                                        range: [
+                                                            range[0],
+                                                            Number(event.target.value),
+                                                        ],
+                                                    })
+                                                }
+                                            />
+                                        </label>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
+function StatisticsSettings({ layer }) {
+    useRestyleRevision(layer.name)
+    const dynamicStyle = layer.variables?.dynamicStyle
+    if (
+        dynamicStyle?.enabled !== true ||
+        dynamicStyle.showStats === false
+    )
+        return null
+    const rules = getViewedRules(layer)
+    const rows = rules
+        .map((rule) => {
+            const stats = propertyStats(layer, rulePropertyPath(rule))
+            return stats ? { rule, stats } : null
+        })
+        .filter(Boolean)
+    if (!rows.length) return <div>Statistics are not available yet.</div>
+    return (
+        <div className="lt-typeSettingsList">
+            {rows.map(({ rule, stats }, index) => (
+                <div
+                    className="lt-typeSettingsStatsGroup"
+                    key={`${rulePropertyPath(rule)}-${index}`}
+                >
+                    <strong>{rulePropertyLabel(rule)}</strong>
+                    <div className="lt-typeSettingsStatsScope">
+                        {stats.scope === 'dataset'
+                            ? 'Whole dataset'
+                            : 'Current view'}
+                    </div>
+                    <div className="lt-typeSettingsStats">
+                        <span>Min {formatValue(stats.min)}</span>
+                        <span>Max {formatValue(stats.max)}</span>
+                        <span>Average {formatValue(stats.avg)}</span>
+                        <span>Std Dev {formatValue(stats.stddev)}</span>
+                        <span>Count {formatValue(stats.count)}</span>
+                        <span>Nulls {formatValue(stats.nullCount)}</span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function featureCount(layerName) {
+    try {
+        return L_.layers.layer[layerName].getLayers().length
+    } catch {
+        return null
+    }
+}
+
+export default {
+    export: vectorExport,
+    info(layer, { layerName = layer.name } = {}) {
+        return { featureCount: featureCount(layerName) }
+    },
+    sections(layer) {
+        const attachments = L_.layers.attachments[layer.name] || {}
+        const sections = []
+        if (Filtering.isFilterable(layer.name))
+            sections.push({
+                id: 'filter',
+                label: 'Filter',
+                icon: 'filter-variant',
+                order: 10,
+                Component: FilterSettings,
+            })
+        if (Object.values(attachments).some(Boolean))
+            sections.push({
+                id: 'composite',
+                label: 'Composite layers',
+                icon: 'layers-outline',
+                order: 20,
+                Component: CompositeSettings,
+            })
+        if (
+            layer.type === 'vector' &&
+            layer.variables?.dynamicStyle?.enabled === true
+        )
+            sections.push(
+                {
+                    id: 'dynamic-style',
+                    label: 'Dynamic style',
+                    icon: 'format-color-fill',
+                    order: 30,
+                    Component: DynamicStyleSettings,
+                },
+                {
+                    id: 'statistics',
+                    label: 'Statistics',
+                    icon: 'chart-box-outline',
+                    order: 40,
+                    resettable: false,
+                    Component: StatisticsSettings,
+                }
+            )
+        return sections
+    },
+    actions: () => [],
+    status: (layer) =>
+        layer._loading
+            ? { kind: 'loading', message: 'Loading vector layer' }
+            : null,
+}
