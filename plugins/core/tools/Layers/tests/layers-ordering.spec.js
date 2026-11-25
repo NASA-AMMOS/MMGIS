@@ -6,6 +6,7 @@ import {
     replay,
 } from '../ordering.js'
 const fs = require('fs')
+const path = require('path')
 const OWN_SUBTREE_BLOCKED_MESSAGE = "You can't drag a group into itself"
 const LIGHT_BLOCKED_STATE_THEME = {
     '--color-a': '#ffffff',
@@ -18,6 +19,12 @@ const LIGHT_BLOCKED_STATE_THEME = {
     '--color-f': '#0f172a',
     '--color-yellow': '#b45309',
 }
+const legacyOrderingFixture = JSON.parse(
+    fs.readFileSync(
+        path.join(__dirname, 'fixtures', 'legacy-ordering.json'),
+        'utf8'
+    )
+)
 
 const DEFAULT_SEEDED_DRAGS = {
     11: [
@@ -194,16 +201,6 @@ const DEFAULT_SEEDED_DRAGS = {
 }
 
 function seededDragPlans() {
-    const path = process.env.LAYERS2_RANDOM_DRAG_PLAN_FILE
-    if (path) {
-        const supplied = JSON.parse(fs.readFileSync(path, 'utf8'))
-        return Object.entries(supplied)
-            .filter(([, result]) => Array.isArray(result.planned))
-            .map(([seed, result]) => ({
-                seed: Number(seed),
-                planned: result.planned,
-            }))
-    }
     return Object.entries(DEFAULT_SEEDED_DRAGS).map(([seed, planned]) => ({
         seed: Number(seed),
         planned,
@@ -504,199 +501,95 @@ function orderingRowSelector(key) {
     return `#lt-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
 }
 
-async function dragRowInfo(page, tool, label) {
-    return page.evaluate(
-        ({ toolName, requestedLabel }) => {
-            let rows
-            if (toolName === 'old') {
-                rows = Array.from(
-                    document.querySelectorAll('#layersToolLegacyList > li')
-                ).map((element) => ({
-                    key: element.getAttribute('name'),
-                    name: element.getAttribute('name'),
-                    type: element.getAttribute('type'),
-                    depth: Number.parseInt(
-                        element.getAttribute('depth') || '0',
-                        10
-                    ),
-                    label:
-                        element.querySelector('.layerName')?.getAttribute(
-                            'title'
-                        ) ||
-                        element.querySelector('.title')?.textContent?.trim() ||
-                        element.textContent.trim(),
-                    collapsed: element.getAttribute('childrenon') === 'false',
-                }))
-            } else {
-                const tool = window.ToolController_.getTool('LayersTool')
-                rows = tool._debugFlat().map((row) => {
-                    const element = Array.from(
-                        document.querySelectorAll('[data-row-id]')
-                    ).find(
-                        (candidate) =>
-                            candidate.getAttribute('data-row-id') === row.key
-                    )
-                    return {
-                        key: row.key,
-                        name: row.name,
-                        type: row.type,
-                        depth: row.depth,
-                        label: row.displayName || row.name,
-                        collapsed:
-                            element?.querySelector('.lt-chevron')
-                                ?.getAttribute('aria-label') ===
-                            'Expand group',
-                    }
-                })
-            }
-            const index = rows.findIndex(
-                (row) =>
-                    row.label === requestedLabel ||
-                    row.name === requestedLabel
-            )
-            if (index < 0) return null
-            const ancestors = []
-            let depth = rows[index].depth
-            for (let i = index - 1; i >= 0; i -= 1) {
-                if (rows[i].type === 'header' && rows[i].depth < depth) {
-                    ancestors.push(rows[i])
-                    depth = rows[i].depth
+async function dragRowInfo(page, label) {
+    return page.evaluate((requestedLabel) => {
+        const rows = window.ToolController_
+            .getTool('LayersTool')
+            ._debugFlat()
+            .map((row) => {
+                const element = Array.from(
+                    document.querySelectorAll('[data-row-id]')
+                ).find(
+                    (candidate) =>
+                        candidate.getAttribute('data-row-id') === row.key
+                )
+                return {
+                    key: row.key,
+                    name: row.name,
+                    type: row.type,
+                    depth: row.depth,
+                    label: row.displayName || row.name,
+                    collapsed:
+                        element?.querySelector('.lt-chevron')
+                            ?.getAttribute('aria-label') ===
+                        'Expand group',
                 }
+            })
+        const index = rows.findIndex(
+            (row) =>
+                row.label === requestedLabel ||
+                row.name === requestedLabel
+        )
+        if (index < 0) return null
+        const ancestors = []
+        let depth = rows[index].depth
+        for (let i = index - 1; i >= 0; i -= 1) {
+            if (rows[i].type === 'header' && rows[i].depth < depth) {
+                ancestors.push(rows[i])
+                depth = rows[i].depth
             }
-            return {
-                ...rows[index],
-                index,
-                ancestors: ancestors.reverse(),
-            }
-        },
-        { toolName: tool, requestedLabel: label }
-    )
+        }
+        return {
+            ...rows[index],
+            index,
+            ancestors: ancestors.reverse(),
+        }
+    }, label)
 }
 
-function orderingRow(page, tool, info) {
-    return tool === 'old'
-        ? page.locator(
-              `#layersToolLegacyList > li[name="${info.name.replaceAll('"', '\\"')}"]`
-          )
-        : page.locator(orderingRowSelector(info.key))
+function orderingRow(page, info) {
+    return page.locator(orderingRowSelector(info.key))
 }
 
-async function revealDragRow(page, tool, label) {
-    const info = await dragRowInfo(page, tool, label)
-    if (!info) throw new Error(`${tool} drag row not found: ${label}`)
+async function revealDragRow(page, label) {
+    const info = await dragRowInfo(page, label)
+    if (!info) throw new Error(`Layers row not found: ${label}`)
     for (const ancestor of info.ancestors) {
         if (!ancestor.collapsed) continue
-        const row = orderingRow(page, tool, ancestor)
-        await row.locator(tool === 'old' ? '.headerChevron' : '.lt-chevron').click()
+        await orderingRow(page, ancestor).locator('.lt-chevron').click()
     }
-    return dragRowInfo(page, tool, label)
+    return dragRowInfo(page, label)
 }
 
-async function expandLegacyHeaders(page) {
-    await page.locator('#searchLayers > #expand').click()
-    await page.evaluate(() => {
-        const tool = window.ToolController_.getTool('LayersToolLegacy')
-        Array.from(
-            document.querySelectorAll('#layersToolLegacyList > li[type="header"]')
-        )
-            .sort(
-                (a, b) =>
-                    Number.parseInt(a.getAttribute('depth') || '0', 10) -
-                    Number.parseInt(b.getAttribute('depth') || '0', 10)
-            )
-            .forEach((header) => {
-                if (header.getAttribute('childrenon') === 'false')
-                    tool.toggleHeader(header.id)
-            })
-    })
-}
-
-async function setDragHeaderExpanded(page, tool, label, expanded) {
-    const info = await revealDragRow(page, tool, label)
+async function setDragHeaderExpanded(page, label, expanded) {
+    const info = await revealDragRow(page, label)
     if (info.type !== 'header')
         throw new Error(`${label} is not a header`)
     const isExpanded = !info.collapsed
     if (isExpanded === expanded) return
-    await orderingRow(page, tool, info)
-        .locator(tool === 'old' ? '.headerChevron' : '.lt-chevron')
-        .click()
+    await orderingRow(page, info).locator('.lt-chevron').click()
 }
 
-async function installLegacyDropCapture(page) {
-    await page.evaluate(() => {
-        const list = document.getElementById('layersToolLegacyList')
-        const sortable =
-            window.Sortable?.get?.(list) ||
-            Object.getOwnPropertyNames(list || {})
-                .map((property) => list[property])
-                .find(
-                    (candidate) =>
-                        candidate?.el === list &&
-                        typeof candidate.option === 'function'
-                )
-        if (!sortable) throw new Error('Legacy Layers Sortable was not found')
-        if (window.__layersToolSortableCaptureSortable === sortable) return
-        window.__layersToolSortableCaptureSortable = sortable
-        const snapshot = () =>
-            Array.from(list.querySelectorAll(':scope > li')).map((row) => ({
-                id: row.id,
-                name: row.getAttribute('name'),
-                type: row.getAttribute('type'),
-                depth: row.getAttribute('depth'),
-                on: row.getAttribute('on'),
-                childrenon: row.getAttribute('childrenon'),
-                height: Number.parseFloat(
-                    window.getComputedStyle(row).height
-                ),
-            }))
-        const onStart = sortable.option('onStart')
-        const onEnd = sortable.option('onEnd')
-        sortable.option('onStart', function (event) {
-            window.__layersToolSortableCapture = { pre: snapshot() }
-            return onStart?.call(this, event)
-        })
-        sortable.option('onEnd', function (event) {
-            const capture = window.__layersToolSortableCapture || {}
-            capture.indices = {
-                oldIndex: event.oldIndex,
-                newIndex: event.newIndex,
-            }
-            try {
-                return onEnd?.call(this, event)
-            } finally {
-                capture.post = snapshot()
-                window.__layersToolSortableCapture = capture
-            }
-        })
-    })
-}
-
-async function applyLiveOracleFromLegacyCapture(page, capture) {
+async function applyRecordedDropOracle(page, capture) {
     return page.evaluate((drop) => {
-        const flat = drop.pre.map((row) => {
-            const name = row.name || row.id.replace(/^header_/, '')
-            return {
-                key: row.name || row.id,
-                name,
-                type: row.type,
-                depth: Number.parseInt(row.depth, 10),
-                on: row.on !== 'false',
-                height: row.height > 0 ? 1 : 0,
-                childrenon: row.childrenon,
-            }
-        })
+        const flat = drop.pre.map((row) => ({
+            key: row.name,
+            name: row.name,
+            type: row.type,
+            depth: Number.parseInt(row.depth, 10),
+            on: row.on !== 'false',
+            height: row.height > 0 ? 1 : 0,
+            childrenon: row.childrenon,
+        }))
         const expanded = Object.fromEntries(
             drop.pre
                 .filter((row) => row.type === 'header')
-                .map((row) => [
-                    row.name || row.id.replace(/^header_/, ''),
-                    row.childrenon !== 'false',
-                ])
+                .map((row) => [row.name, row.childrenon !== 'false'])
         )
         expanded.searchHidden = new Set(
             drop.pre
                 .filter((row) => row.height === 0)
-                .map((row) => row.name || row.id)
+                .map((row) => row.name)
         )
         return window.ToolController_
             .getTool('LayersTool')
@@ -709,7 +602,7 @@ async function applyLiveOracleFromLegacyCapture(page, capture) {
     }, capture)
 }
 
-async function prepareDragPage(page, tool) {
+async function prepareDragPage(page) {
     await loadMission(page)
     const flat = await page.evaluate(() =>
         window.ToolController_.getTool('LayersTool')._debugFlat([])
@@ -718,13 +611,8 @@ async function prepareDragPage(page, tool) {
         width: 1500,
         height: Math.min(10000, Math.max(4800, flat.length * 44)),
     })
-    if (tool === 'old') {
-        await page.locator('#toolButtonLayersLegacy').click()
-        await expandLegacyHeaders(page)
-    } else {
-        await page.locator('#toolButtonLayers').click()
-        await page.getByRole('button', { name: 'Expand all' }).click()
-    }
+    await page.locator('#toolButtonLayers').click()
+    await page.getByRole('button', { name: 'Expand all' }).click()
     const imagery = await page.evaluate(() => {
         const layer = Object.values(window.L_.layers.data).find(
             (candidate) => candidate.display_name === 'ArcGIS World Imagery'
@@ -734,75 +622,47 @@ async function prepareDragPage(page, tool) {
             : null
     })
     if (imagery?.on) {
-        const row =
-            tool === 'old'
-                ? page.locator(
-                      `#layersToolLegacyList > li[name="${imagery.name.replaceAll('"', '\\"')}"]`
-                  )
-                : page
-                      .locator('.lt-layerRow')
-                      .filter({ hasText: 'ArcGIS World Imagery' })
-                      .first()
-        await row
-            .locator(tool === 'old' ? '.checkbox' : '[role="checkbox"]')
-            .first()
-            .click()
+        const row = orderingRow(
+            page,
+            await dragRowInfo(page, 'ArcGIS World Imagery')
+        )
+        await row.locator('[role="checkbox"]').first().click()
         await page.waitForFunction(
             (name) => window.L_.layers.on[name] === false,
             imagery.name
         )
     }
-    return page.evaluate(() => window.L_.configData.layers)
+    return flat
 }
 
-async function performSeededDrag(page, tool, planned) {
+async function performSeededDrag(page, planned) {
     const spec = { ...planned }
     if (spec.toggle) {
-        await revealDragRow(page, tool, spec.toggle)
-        const toggleInfo = await dragRowInfo(page, tool, spec.toggle)
-        await orderingRow(page, tool, toggleInfo)
-            .locator(tool === 'old' ? '.headerChevron' : '.lt-chevron')
-            .click()
+        const toggleInfo = await revealDragRow(page, spec.toggle)
+        await orderingRow(page, toggleInfo).locator('.lt-chevron').click()
     }
     if (spec.targetState)
         await setDragHeaderExpanded(
             page,
-            tool,
             spec.target,
             spec.targetState === 'expanded'
         )
-    const targetInfo = await revealDragRow(page, tool, spec.target)
-    const sourceInfo = await dragRowInfo(page, tool, spec.source)
-    if (!sourceInfo) throw new Error(`${tool} drag row not found: ${spec.source}`)
+    const targetInfo = await revealDragRow(page, spec.target)
+    const sourceInfo = await dragRowInfo(page, spec.source)
+    if (!sourceInfo) throw new Error(`Layers row not found: ${spec.source}`)
     if (
         spec.targetState === 'collapsed' &&
         sourceInfo.index > targetInfo.index &&
         sourceInfo.depth > targetInfo.depth
     ) {
         const between = await page.evaluate(
-            ({ toolName, start, end, depth }) => {
-                const rows =
-                    toolName === 'old'
-                        ? Array.from(
-                              document.querySelectorAll(
-                                  '#layersToolLegacyList > li'
-                              )
-                          ).map((element) => ({
-                              depth: Number.parseInt(
-                                  element.getAttribute('depth') || '0',
-                                  10
-                              ),
-                          }))
-                        : window.ToolController_
-                              .getTool('LayersTool')
-                              ._debugFlat()
-                              .map((row) => ({ depth: row.depth }))
-                return rows
+            ({ start, end, depth }) =>
+                window.ToolController_
+                    .getTool('LayersTool')
+                    ._debugFlat()
                     .slice(start + 1, end)
-                    .every((row) => row.depth > depth)
-            },
+                    .every((row) => row.depth > depth),
             {
-                toolName: tool,
                 start: targetInfo.index,
                 end: sourceInfo.index,
                 depth: targetInfo.depth,
@@ -814,46 +674,20 @@ async function performSeededDrag(page, tool, planned) {
             spec.position = 'below'
         }
     }
-    const source = await revealDragRow(page, tool, spec.source)
-    const target = await revealDragRow(page, tool, spec.target)
-    const sourceRow = orderingRow(page, tool, source)
-    const targetRow = orderingRow(page, tool, target)
-    const handle = sourceRow.locator(
-        tool === 'old' ? '.layersToolLegacyColor' : '.lt-drag'
-    )
+    const source = await revealDragRow(page, spec.source)
+    const target = await revealDragRow(page, spec.target)
+    const sourceRow = orderingRow(page, source)
+    const targetRow = orderingRow(page, target)
+    const handle = sourceRow.locator('.lt-drag')
     await handle.scrollIntoViewIfNeeded()
     await targetRow.scrollIntoViewIfNeeded()
     const fraction = spec.position === 'above' ? 0.2 : 0.8
-    if (tool === 'old') await installLegacyDropCapture(page)
     await dragWithMouse(page, handle, targetRow, fraction)
     return spec
 }
 
-async function dragPageState(page, tool) {
-    return page.evaluate((toolName) => {
-        if (toolName === 'old') {
-            const tool = window.ToolController_.getTool('LayersToolLegacy')
-            const rows = Array.from(
-                document.querySelectorAll('#layersToolLegacyList > li')
-            )
-            return {
-                flat: rows.map((row) => ({
-                    name: row.getAttribute('name'),
-                    type: row.getAttribute('type'),
-                    depth: Number.parseInt(row.getAttribute('depth'), 10),
-                })),
-                visibility: rows.map((row) => ({
-                    name: row.getAttribute('name'),
-                    height: Number.parseFloat(
-                        window.getComputedStyle(row).height
-                    ),
-                    on: row.getAttribute('on'),
-                    expanded: row.getAttribute('childrenon'),
-                })),
-                order: window.L_._layersOrdered.slice(),
-                history: tool.orderingHistory || [],
-            }
-        }
+async function dragPageState(page) {
+    return page.evaluate(() => {
         const tool = window.ToolController_.getTool('LayersTool')
         const flat = tool._debugFlat()
         const namesByKey = new Map(
@@ -892,186 +726,89 @@ async function dragPageState(page, tool) {
             order: window.L_._layersOrdered.slice(),
             history: tool.orderingHistory || [],
         }
-    }, tool)
+    })
 }
 test.describe('LayersTool flat ordering parity', () => {
-    test('preserves legacy triple replay and translated URL compatibility for 52 histories', async ({
-        page,
-    }) => {
+    test('replays the 52 recorded triple URL histories', async ({ page }) => {
+        const expected = legacyOrderingFixture.urlHistories
         await loadMission(page)
-        await page.locator('#toolButtonLayersLegacy').click()
-        await page.waitForSelector('#layersToolLegacyList > li')
-        await page.evaluate(() =>
-            window.ToolController_.closeActiveTool()
-        )
         const baseFlat = await page.evaluate(() =>
             window.ToolController_.getTool('LayersTool')._debugFlat([])
         )
-        expect(baseFlat.length).toBeGreaterThan(2)
+        const baseSnapshot = baseFlat.map(({ name, type, depth }) => ({
+            name,
+            type,
+            depth,
+        }))
+        expect(baseSnapshot).toEqual(expected.baseFlat)
         const histories = makeHistories(baseFlat)
-        expect(
-            histories.every((history) =>
-                history.every((entry) => entry.length === 3)
-            )
-        ).toBe(true)
+        expect(histories).toEqual(
+            expected.cases.map(({ inputHistory }) => inputHistory)
+        )
+
         const results = await page.evaluate((inputHistories) => {
             const layers = window.L_
-            const oldTool = window.ToolController_.getTool('LayersToolLegacy')
-            const newTool = window.ToolController_.getTool('LayersTool')
+            const tool = window.ToolController_.getTool('LayersTool')
             const savedOrder = layers._layersOrdered.slice()
-            const savedOldHistory = oldTool.orderingHistory
-            const savedNewHistory = newTool.orderingHistory
+            const savedHistory = tool.orderingHistory
             const savedUrlTools = layers.FUTURES?.tools
             const savedGlobe = layers.Globe_
-            // Cesium mutates imagery-layer instances while sorting. Keep the
-            // replay differential isolated; startup ordering is tested with
-            // the live globe in its own fresh page below.
             layers.Globe_ = null
-            const failures = []
-            const rows = () =>
-                Array.from(
-                    document.querySelectorAll('#layersToolLegacyList > li')
-                ).map((element) => ({
-                    name: element.getAttribute('name'),
-                    type: element.getAttribute('type'),
-                    depth: Number.parseInt(element.getAttribute('depth'), 10),
-                }))
             try {
-                inputHistories.forEach((history, historyIndex) => {
-                    let oldResult
-                    let oldError = false
+                return inputHistories.map((history) => {
                     layers._layersOrdered = savedOrder.slice()
-                    oldTool.orderingHistory = history.map((entry) => entry.slice())
-                    try {
-                        oldTool.make(null, true)
-                        oldResult = {
-                            flat: rows(),
-                            order: layers._layersOrdered.slice(),
-                        }
-                    } catch (error) {
-                        oldError = true
-                        oldResult = {
-                            error: String(error.stack || error),
-                        }
-                    } finally {
-                        try {
-                            oldTool.destroy()
-                        } catch (error) {
-                            void error
-                        }
-                    }
-
-                    layers._layersOrdered = savedOrder.slice()
-                    let newResult
-                    let newError = false
-                    try {
-                        const encoded = history
-                            .map((entry) => entry.join('-'))
-                            .join('.')
-                        layers.FUTURES.tools = [
-                            ...(savedUrlTools || []).filter(
-                                (value) =>
-                                    !String(value).startsWith('LayersTool$')
-                            ),
-                            `LayersTool$${encoded}`,
-                        ]
-                        newTool.finalize()
-                        newResult = {
-                            flat: newTool
-                                ._debugFlat()
-                                .map(({ name, type, depth }) => ({
-                                    name,
-                                    type,
-                                    depth,
-                                })),
-                            order: layers._layersOrdered.slice(),
-                        }
-                    } catch (error) {
-                        newError = true
-                        newResult = {
-                            error: String(error.stack || error),
-                        }
-                    }
-
-                    if (oldError !== newError) {
-                        failures.push({
-                            historyIndex,
-                            history,
-                            oldError: oldResult.error,
-                            newError: newResult.error,
-                        })
-                    } else if (
-                        !oldError &&
-                        (JSON.stringify(oldResult.flat) !==
-                            JSON.stringify(newResult.flat) ||
-                            JSON.stringify(oldResult.order) !==
-                                JSON.stringify(newResult.order))
-                    ) {
-                        failures.push({
-                            historyIndex,
-                            history,
-                            old: oldResult,
-                            next: newResult,
-                        })
+                    const encoded = history
+                        .map((entry) => entry.join('-'))
+                        .join('.')
+                    layers.FUTURES.tools = [
+                        ...(savedUrlTools || []).filter(
+                            (value) =>
+                                !String(value).startsWith('LayersTool$')
+                        ),
+                        `LayersTool$${encoded}`,
+                    ]
+                    tool.finalize()
+                    return {
+                        flat: tool
+                            ._debugFlat()
+                            .map(({ name, type, depth }) => ({
+                                name,
+                                type,
+                                depth,
+                            })),
+                        _layersOrdered: layers._layersOrdered.slice(),
+                        historyTriples: tool.orderingHistory.map((entry) =>
+                            entry.slice(0, 3)
+                        ),
                     }
                 })
-                return {
-                    histories: inputHistories.length,
-                    matched: inputHistories.length - failures.length,
-                    failures,
-                }
             } finally {
-                try {
-                    oldTool.destroy()
-                } catch (error) {
-                    void error
-                }
-                oldTool.orderingHistory = savedOldHistory
-                newTool.orderingHistory = savedNewHistory
+                tool.orderingHistory = savedHistory
                 layers.FUTURES.tools = savedUrlTools
                 layers.Globe_ = savedGlobe
                 layers._layersOrdered = savedOrder
             }
         }, histories)
 
-        const differences = results.failures.map((failure) => {
-            const oldRows = failure.old?.flat || []
-            const nextRows = failure.next?.flat || []
-            const firstDivergingRow = oldRows.findIndex(
-                (row, index) =>
-                    JSON.stringify(row) !== JSON.stringify(nextRows[index])
+        results.forEach((result, index) => {
+            const expectedCase = expected.cases[index]
+            expect(result.flat, `history ${index}`).toEqual(expectedCase.flat)
+            expect(result._layersOrdered, `history ${index}`).toEqual(
+                expectedCase._layersOrdered
             )
-            return {
-                historyIndex: failure.historyIndex,
-                history: failure.history,
-                firstDivergingRow:
-                    firstDivergingRow < 0 ? null : firstDivergingRow,
-                oldRowsAtDifference:
-                    firstDivergingRow < 0
-                        ? []
-                        : oldRows.slice(firstDivergingRow, firstDivergingRow + 3),
-                layersRowsAtDifference:
-                    firstDivergingRow < 0
-                        ? []
-                        : nextRows.slice(
-                              firstDivergingRow,
-                              firstDivergingRow + 3
-                          ),
-                downwardMoves: (failure.history || []).filter(
-                    ([oldIndex, newIndex]) => newIndex > oldIndex
-                ),
-            }
+            expect(result.historyTriples, `history ${index}`).toEqual(
+                expectedCase.historyTriples
+            )
+            expect(
+                expectedCase.historyTriples.every((entry) => entry.length === 3)
+            ).toBe(true)
         })
         console.log(
-            `Legacy triple replay: ${JSON.stringify({
-                matched: results.matched,
-                histories: results.histories,
-                differences,
-                note: '3-tuples replay with the legacy pre-move Sortable index compensation.',
+            `Recorded URL histories: ${JSON.stringify({
+                matched: results.length,
+                histories: expected.cases.length,
             })}`
         )
-        expect(results.histories).toBe(histories.length)
-        expect(results.failures).toEqual([])
     })
 
     test('replays legacy triples followed by resolved moves in order', async ({
@@ -1112,727 +849,185 @@ test.describe('LayersTool flat ordering parity', () => {
         )
     })
 
-    test('matches legacy live Sortable for an exact bottom drop', async ({
-        page,
-    }) => {
-        test.setTimeout(180000)
-        const prepareTool = async (tool) => {
-            await loadMission(page)
-            const flat = await page.evaluate(() =>
-                window.ToolController_.getTool('LayersTool')._debugFlat([])
-            )
-            await page.setViewportSize({
-                width: 1500,
-                height: Math.min(10000, Math.max(1600, flat.length * 44)),
-            })
-            if (tool === 'old') {
-                await page.locator('#toolButtonLayersLegacy').click()
-                await expandLegacyHeaders(page)
-            } else {
-                await page.locator('#toolButtonLayers').click()
-                await page.getByRole('button', { name: 'Expand all' }).click()
-            }
-            const imagery = await page.evaluate(() => {
-                const layer = Object.values(window.L_.layers.data).find(
-                    (candidate) =>
-                        candidate.display_name === 'ArcGIS World Imagery'
-                )
-                return layer
-                    ? { name: layer.name, on: window.L_.layers.on[layer.name] }
-                    : null
-            })
-            if (imagery?.on) {
-                const row =
-                    tool === 'old'
-                        ? page.locator(
-                              `#layersToolLegacyList > li[name="${imagery.name}"]`
-                          )
-                        : page
-                              .locator('.lt-layerRow')
-                              .filter({ hasText: 'ArcGIS World Imagery' })
-                              .first()
-                await row
-                    .locator(
-                        tool === 'old' ? '.checkbox' : '[role="checkbox"]'
-                    )
-                    .first()
-                    .click()
-                await page.waitForFunction(
-                    (name) => window.L_.layers.on[name] === false,
-                    imagery.name
-                )
-            }
-            return flat
-        }
+    test('matches the recorded exact bottom drop', async ({ page }) => {
+        const expected = legacyOrderingFixture.exactBottomDrop
+        const baseFlat = await prepareDragPage(page)
+        expect(
+            baseFlat.map(({ name, type, depth }) => ({ name, type, depth }))
+        ).toEqual(expected.baseFlat)
 
-        const oldBase = await prepareTool('old')
-        const oldNames = await page.evaluate(() => {
-            const layerName = (label) =>
-                Object.values(window.L_.layers.data).find(
-                    (layer) => layer.display_name === label
-                ).name
-            return {
-                source: layerName('Points Basic'),
-                target: layerName('Velocity - Sample particles'),
-            }
-        })
-        const oldSource = page.locator(
-            `#layersToolLegacyList > li[name="${oldNames.source}"]`
+        const source = await dragRowInfo(page, expected.sourceDisplayName)
+        const target = await dragRowInfo(page, expected.targetDisplayName)
+        await dragWithMouse(
+            page,
+            orderingRow(page, source).locator('.lt-drag'),
+            orderingRow(page, target),
+            0.8
         )
-        const oldTarget = page.locator(
-            `#layersToolLegacyList > li[name="${oldNames.target}"]`
+        const result = await dragPageState(page)
+        expect(result.flat).toEqual(expected.result.flat)
+        expect(result.order).toEqual(expected.result._layersOrdered)
+        expect(result.history.map((entry) => entry.slice(0, 3))).toEqual(
+            expected.result.historyTriples
         )
-        const oldHandle = oldSource.locator('.layersToolLegacyColor')
-        await dragWithMouse(page, oldHandle, oldTarget, 0.8)
-        await expect
-            .poll(() =>
-                page.evaluate(
-                    () =>
-                        window.ToolController_.getTool('LayersToolLegacy')
-                            .orderingHistory.length
-                )
-            )
-            .toBe(1)
-        const oldResult = await page.evaluate(() => ({
-            flat: Array.from(
-                document.querySelectorAll('#layersToolLegacyList > li')
-            ).map((row) => ({
-                name: row.getAttribute('name'),
-                type: row.getAttribute('type'),
-                depth: Number.parseInt(row.getAttribute('depth'), 10),
-            })),
-            order: window.L_._layersOrdered.slice(),
-            history: window.ToolController_.getTool('LayersToolLegacy').orderingHistory,
-        }))
-
-        const newBase = await prepareTool('new')
-        expect(newBase.map(({ name }) => name)).toEqual(
-            oldBase.map(({ name }) => name)
-        )
-        const newRows = await page.evaluate(() => {
-            const flat = window.ToolController_
-                .getTool('LayersTool')
-                ._debugFlat()
-            return {
-                source: flat.find(
-                    (row) => row.displayName === 'Points Basic'
-                ),
-                target: flat.find(
-                    (row) =>
-                        row.displayName === 'Velocity - Sample particles'
-                ),
-            }
-        })
-        const rowSelector = (key) =>
-            `#lt-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
-        const newSource = page.locator(rowSelector(newRows.source.key))
-        const newTarget = page.locator(rowSelector(newRows.target.key))
-        const newHandle = newSource.locator('.lt-drag')
-        await dragWithMouse(page, newHandle, newTarget, 0.8)
-        await expect
-            .poll(() =>
-                page.evaluate(
-                    () =>
-                        window.ToolController_.getTool('LayersTool')
-                            .orderingHistory.length
-                )
-            )
-            .toBe(1)
-        const newResult = await page.evaluate(() => ({
-            flat: window.ToolController_
-                .getTool('LayersTool')
-                ._debugFlat()
-                .map(({ name, type, depth }) => ({ name, type, depth })),
-            keyedFlat: window.ToolController_
-                .getTool('LayersTool')
-                ._debugFlat()
-                .map(({ key, depth }) => ({ id: key, depth })),
-            order: window.L_._layersOrdered.slice(),
-            history: window.ToolController_.getTool('LayersTool').orderingHistory,
-            dom: Array.from(
-                document.querySelectorAll('#layersTool [role="treeitem"]')
-            ).map((row) => ({
-                id:
-                    row.querySelector('[data-row-id]')?.getAttribute(
-                        'data-row-id'
-                    ) || row.id.replace(/^lt-row-/, ''),
-                depth: Number(row.getAttribute('aria-level')) - 1,
-            })),
-        }))
-        expect(newResult.history.map((entry) => entry.slice(0, 3))).toEqual(
-            oldResult.history
-        )
-        expect(newResult.history[0]).toHaveLength(5)
-        expect(newResult.flat).toEqual(oldResult.flat)
-        expect(newResult.order).toEqual(oldResult.order)
-        expect(newResult.order).toEqual(
-            newResult.flat
+        expect(result.history[0]).toHaveLength(5)
+        expect(result.order).toEqual(
+            result.flat
                 .filter((row) => row.type !== 'header')
                 .map((row) => row.name)
         )
-        expect(newResult.dom).toEqual(newResult.keyedFlat)
-        console.log(
-            `Exact bottom drop: ${JSON.stringify({
-                legacyHistory: oldResult.history,
-                layersHistory: newResult.history,
-                legacyMovedIndex: oldResult.flat.findIndex(
-                    (row) => row.name === oldNames.source
-                ),
-                layersMovedIndex: newResult.flat.findIndex(
-                    (row) => row.name === oldNames.source
-                ),
-                legacyLastRow: oldResult.flat.at(-1)?.name,
-                layersLastRow: newResult.flat.at(-1)?.name,
-            })}`
+        expect(result.dom).toEqual(
+            result.keyedFlat.map(({ key, depth }) => ({ key, depth }))
         )
+        expect(result.flat.at(-1).name).toBe(source.name)
     })
 
-    test('matches legacy collapsed-header placement and its controls', async ({
+    test('matches the recorded collapsed-header placements', async ({
         page,
     }) => {
         test.setTimeout(300000)
-        const oldPage = await page.context().newPage()
-        const newPage = await page.context().newPage()
-        const cases = [
-            {
-                label: 'seed-120 both collapsed',
-                source: '📄 GeoJSON Data Features',
-                sourceExpanded: false,
-                targetExpanded: false,
-                sourceIndex: 3,
-                targetIndex: 57,
-                finalIndex: 34,
-                finalDepth: 2,
-                headerState: 1,
-            },
-            {
-                label: 'source expanded',
-                source: '📄 GeoJSON Data Features',
-                sourceExpanded: true,
-                targetExpanded: false,
-                sourceIndex: 3,
-                targetIndex: 57,
-                finalIndex: 34,
-                finalDepth: 2,
-                headerState: 1,
-            },
-            {
-                label: 'target expanded',
-                source: '📄 GeoJSON Data Features',
-                sourceExpanded: false,
-                targetExpanded: true,
-                sourceIndex: 3,
-                targetIndex: 57,
-                finalIndex: 33,
-                finalDepth: 3,
-                headerState: 2,
-            },
-            {
-                label: 'other collapsed pair',
-                source: 'Geometry Types',
-                sourceExpanded: false,
-                targetExpanded: false,
-                sourceIndex: 4,
-                targetIndex: 57,
-                finalIndex: 53,
-                finalDepth: 2,
-                headerState: 1,
-            },
-        ]
-
-        try {
-            for (const scenario of cases) {
-                await prepareDragPage(oldPage, 'old')
-                await prepareDragPage(newPage, 'new')
-                if (scenario.source === 'Geometry Types') {
-                    await setDragHeaderExpanded(
-                        oldPage,
-                        'old',
-                        '📄 GeoJSON Data Features',
-                        true
-                    )
-                    await setDragHeaderExpanded(
-                        newPage,
-                        'new',
-                        '📄 GeoJSON Data Features',
-                        true
-                    )
-                }
-                await setDragHeaderExpanded(
-                    oldPage,
-                    'old',
-                    scenario.source,
-                    scenario.sourceExpanded
-                )
-                await setDragHeaderExpanded(
-                    newPage,
-                    'new',
-                    scenario.source,
-                    scenario.sourceExpanded
-                )
-                await setDragHeaderExpanded(
-                    oldPage,
-                    'old',
-                    'Filter Tab',
-                    scenario.targetExpanded
-                )
-                await setDragHeaderExpanded(
-                    newPage,
-                    'new',
-                    'Filter Tab',
-                    scenario.targetExpanded
-                )
-
-                const sourceName = (await dragRowInfo(
-                    oldPage,
-                    'old',
-                    scenario.source
-                ))?.name
-                const oldSpec = await performSeededDrag(oldPage, 'old', {
-                    source: scenario.source,
-                    target: 'Filter Tab',
-                    position: 'below',
-                })
-                await performSeededDrag(newPage, 'new', oldSpec)
-
-                const legacyDrop = await oldPage.evaluate(
-                    () => window.__layersToolSortableCapture
-                )
-                const oldState = await dragPageState(oldPage, 'old')
-                const newState = await dragPageState(newPage, 'new')
-                const oldMovedIndex = oldState.flat.findIndex(
-                    (row) => row.name === sourceName
-                )
-                const newMovedIndex = newState.flat.findIndex(
-                    (row) => row.name === sourceName
-                )
-                const oracle = await applyLiveOracleFromLegacyCapture(
-                    oldPage,
-                    legacyDrop
-                )
-                const legacyPost = legacyDrop.post.map((row) => ({
-                    name: row.name || row.id.replace(/^header_/, ''),
-                    type: row.type,
-                    depth: Number.parseInt(row.depth, 10),
+        const expectedCases = legacyOrderingFixture.collapsedHeaderCases
+        for (const expected of expectedCases) {
+            const scenario = expected.scenario
+            const baseFlat = await prepareDragPage(page)
+            expect(
+                baseFlat.map(({ name, type, depth }) => ({
+                    name,
+                    type,
+                    depth,
                 }))
-                const unrelatedDepthTwoRows = legacyDrop.pre.filter(
-                    (row, index) =>
-                        index > scenario.targetIndex &&
-                        Number.parseInt(row.depth, 10) === 2
-                )
+            ).toEqual(legacyOrderingFixture.urlHistories.baseFlat)
+            await setDragHeaderExpanded(
+                page,
+                scenario.source,
+                scenario.sourceExpanded
+            )
+            await setDragHeaderExpanded(
+                page,
+                'Filter Tab',
+                scenario.targetExpanded
+            )
 
-                expect(legacyDrop.indices).toEqual({
-                    oldIndex: scenario.sourceIndex,
-                    newIndex: scenario.targetIndex,
-                })
-                expect(unrelatedDepthTwoRows.length).toBeGreaterThan(0)
-                for (const row of unrelatedDepthTwoRows)
-                    expect(row.height).toBeGreaterThan(0)
-                expect(oldMovedIndex, scenario.label).toBe(
-                    scenario.finalIndex
-                )
-                expect(newMovedIndex, scenario.label).toBe(
-                    scenario.finalIndex
-                )
-                expect(oldState.flat).toEqual(newState.flat)
-                expect(oldState.order).toEqual(newState.order)
-                expect(newState.history.at(-1)).toEqual([
-                    scenario.sourceIndex,
-                    scenario.targetIndex,
-                    scenario.headerState,
-                    scenario.finalIndex,
-                    scenario.finalDepth,
-                ])
-                expect(newState.history.at(-1).slice(0, 3)).toEqual(
-                    oldState.history.at(-1)
-                )
-                expect(
-                    oracle.flat.map(({ name, type, depth }) => ({
-                        name,
-                        type,
-                        depth,
-                    }))
-                ).toEqual(legacyPost)
-                console.log(
-                    `Collapsed-header control ${scenario.label}: ${JSON.stringify({
-                        legacyHistory: oldState.history,
-                        layersHistory: newState.history,
-                        finalIndex: newMovedIndex,
-                        finalDepth: newState.flat[newMovedIndex].depth,
-                    })}`
-                )
-            }
-        } finally {
-            await oldPage.close()
-            await newPage.close()
+            await performSeededDrag(page, {
+                source: scenario.source,
+                target: 'Filter Tab',
+                position: 'below',
+            })
+            const result = await dragPageState(page)
+            const oracle = await applyRecordedDropOracle(
+                page,
+                expected.sortableCapture
+            )
+            const oracleFlat = oracle.flat.map(({ name, type, depth }) => ({
+                name,
+                type,
+                depth,
+            }))
+
+            expect(expected.sortableCapture.indices).toEqual({
+                oldIndex: scenario.sourceIndex,
+                newIndex: scenario.targetIndex,
+            })
+            expect(result.flat, scenario.label).toEqual(expected.flat)
+            expect(result.order, scenario.label).toEqual(
+                expected._layersOrdered
+            )
+            expect(result.history.map((entry) => entry.slice(0, 3))).toEqual(
+                expected.historyTriples
+            )
+            expect(result.history.at(-1)).toEqual([
+                scenario.sourceIndex,
+                scenario.targetIndex,
+                scenario.headerState,
+                scenario.finalIndex,
+                scenario.finalDepth,
+            ])
+            expect(oracleFlat, scenario.label).toEqual(expected.flat)
         }
+        console.log(
+            `Recorded collapsed-header cases: ${expectedCases.length} matched`
+        )
     })
 
-    test('matches seeded real-mouse drags against legacy live Sortable', async ({
+    test('matches seeded real-mouse drags with recorded legacy results', async ({
         page,
     }) => {
-        test.setTimeout(1200000)
-        const newPage = await page.context().newPage()
-        const seedResults = []
-        const indexMapping = { matched: 0, total: 0, failures: [] }
-        const liveAlgorithm = { matched: 0, total: 0, failures: [] }
-        try {
-            for (const { seed, planned } of seededDragPlans()) {
-                const divergences = []
-                const oldConfig = await prepareDragPage(page, 'old')
-                const newConfig = await prepareDragPage(newPage, 'new')
-                expect(
-                    flatten(newConfig).map(({ name, type, depth }) => ({
-                        name,
-                        type,
-                        depth,
-                    }))
-                ).toEqual(
-                    flatten(oldConfig).map(({ name, type, depth }) => ({
-                        name,
-                        type,
-                        depth,
-                    }))
-                )
-                console.log(`Seeded live-drag parity seed ${seed}: ${planned.length} steps`)
-                for (const [index, spec] of planned.entries()) {
-                    const legacySpec = await performSeededDrag(
-                        page,
-                        'old',
-                        spec
-                    )
-                    const layersSpec = await performSeededDrag(
-                        newPage,
-                        'new',
-                        legacySpec
-                    )
-                    const sameDrag =
-                        JSON.stringify(layersSpec) ===
-                        JSON.stringify(legacySpec)
-                    const legacyDrop = await page.evaluate(
-                        () => window.__layersToolSortableCapture
-                    )
-                    const oldState = await dragPageState(page, 'old')
-                    const newState = await dragPageState(newPage, 'new')
-                    const applyLiveOracle =
-                        await applyLiveOracleFromLegacyCapture(
-                            page,
-                            legacyDrop
-                        )
-                    const layersEntry = newState.history.at(-1)
-                    const legacyPost = legacyDrop.post.map((row) => ({
-                        name:
-                            row.name ||
-                            row.id.replace(/^header_/, ''),
-                        type: row.type,
-                        depth: Number.parseInt(row.depth, 10),
-                    }))
-                    const indexMappingMatches =
-                        legacyDrop?.indices?.oldIndex === layersEntry?.[0] &&
-                        legacyDrop?.indices?.newIndex === layersEntry?.[1]
-                    const liveAlgorithmMatches =
-                        JSON.stringify(
-                            applyLiveOracle.flat?.map(
-                                ({ name, type, depth }) => ({
-                                    name,
-                                    type,
-                                    depth,
-                                })
-                            )
-                        ) === JSON.stringify(legacyPost)
-                    indexMapping.total += 1
-                    liveAlgorithm.total += 1
-                    if (indexMappingMatches) indexMapping.matched += 1
-                    else
-                        indexMapping.failures.push({
-                            seed,
-                            step: index + 1,
-                            sortableIndices: legacyDrop?.indices,
-                            layersIndices: layersEntry?.slice(0, 2),
-                        })
-                    if (liveAlgorithmMatches) liveAlgorithm.matched += 1
-                    else
-                        liveAlgorithm.failures.push({
-                            seed,
-                            step: index + 1,
-                            indices: legacyDrop?.indices,
-                            capture: legacyDrop,
-                            predicted: applyLiveOracle.flat,
-                            legacy: oldState.flat,
-                        })
-                    const movedName = flatten(newConfig).find(
-                        ({ node }) => node.display_name === spec.source
-                    )?.name
-                    console.log(
-                        `Seed ${seed}, step ${index + 1} (${spec.source} -> ${spec.target}): ${JSON.stringify({
-                            oldHistory: oldState.history,
-                            layersHistory: newState.history,
-                            oldMovedIndex: oldState.flat.findIndex(
-                                (row) => row.name === movedName
-                            ),
-                            layersMovedIndex: newState.flat.findIndex(
-                                (row) => row.name === movedName
-                            ),
-                        })}`
-                    )
-                    const firstDifferentRow = newState.flat.findIndex(
-                        (row, rowIndex) =>
-                            JSON.stringify(row) !==
-                            JSON.stringify(oldState.flat[rowIndex])
-                    )
-                    let rowHeightEvidence = null
-                    if (firstDifferentRow >= 0) {
-                        const from = Math.max(0, firstDifferentRow - 2)
-                        const to = firstDifferentRow + 8
-                        const nearbyNames = oldState.flat
-                            .slice(from, to)
-                            .map((row) => row.name)
-                        const newHeights = new Map(
-                            newState.visibility.map((row) => [
-                                row.name,
-                                row,
-                            ])
-                        )
-                        rowHeightEvidence = {
-                            old: oldState.visibility.filter((row) =>
-                                nearbyNames.includes(row.name)
-                            ),
-                            layers: nearbyNames.map(
-                                    (name) =>
-                                        newHeights.get(name) || {
-                                            name,
-                                            height: 0,
-                                            expanded: null,
-                                        }
-                                ),
-                        }
-                    }
-                    const matching = {
-                        sameDrag,
-                        orderAndDepth:
-                            JSON.stringify(newState.flat) ===
-                            JSON.stringify(oldState.flat),
-                        mapOrder:
-                            JSON.stringify(newState.order) ===
-                            JSON.stringify(oldState.order),
-                        history:
-                            JSON.stringify(
-                                newState.history.map((entry) =>
-                                    entry.slice(0, 3)
-                                )
-                            ) === JSON.stringify(oldState.history),
-                            historyLength:
-                                oldState.history.length === index + 1 &&
-                                newState.history.length === index + 1,
-                            sortableIndices: indexMappingMatches,
-                            liveAlgorithm: liveAlgorithmMatches,
-                        }
-                    if (Object.values(matching).some((value) => !value)) {
-                        const divergence = {
-                            seed,
-                            step: index + 1,
-                            drag: { old: legacySpec, layers: layersSpec },
-                            histories: {
-                                old: oldState.history,
-                                layers: newState.history,
-                            },
-                            oldMovedIndex: oldState.flat.findIndex(
-                                (row) => row.name === movedName
-                            ),
-                            layersMovedIndex: newState.flat.findIndex(
-                                (row) => row.name === movedName
-                            ),
-                            matching,
-                            rowHeightEvidence,
-                            legacyDrop,
-                            layersIndices: layersEntry?.slice(0, 2),
-                            applyLiveOracle,
-                        }
-                        if (divergences.length === 0)
-                            console.log(
-                                `Seed ${seed}, step ${index + 1} first divergence: ${JSON.stringify(divergence)}`
-                            )
-                        divergences.push(divergence)
-                    }
-                    const expectedReplay = replay(
-                        flatten(newConfig),
-                        newState.history
-                    ).flat
-                    const replayMatchesLive =
-                        JSON.stringify(newState.flat) ===
-                        JSON.stringify(
-                            expectedReplay.map(({ name, type, depth }) => ({
-                            name,
-                            type,
-                            depth,
-                            }))
-                        )
-                    const modelIndex = new Map(
-                        expectedReplay.map((row, rowIndex) => [
-                            row.key,
-                            { rowIndex, depth: row.depth },
-                        ])
-                    )
-                    let renderedDepthsMatch = true
-                    const visibleIndexes = newState.dom.map((row) => {
-                        if (modelIndex.get(row.key)?.depth !== row.depth)
-                            renderedDepthsMatch = false
-                        return modelIndex.get(row.key)?.rowIndex
-                    })
-                    const renderedRowsOrdered =
-                        JSON.stringify(visibleIndexes) ===
-                        JSON.stringify(
-                            visibleIndexes.slice().sort((a, b) => a - b)
-                        )
-                    if (!replayMatchesLive || !renderedDepthsMatch || !renderedRowsOrdered)
-                        divergences.push({
-                            seed,
-                            step: index + 1,
-                            replayMatchesLive,
-                            renderedDepthsMatch,
-                            renderedRowsOrdered,
-                        })
-                }
-                const shared = await newPage.evaluate(() => {
-                    const tool =
-                        window.ToolController_.getTool('LayersTool')
-                    const history = tool.orderingHistory.map((entry) => [
-                        ...entry,
-                    ])
-                    const flat = tool._debugFlat().map(
-                        ({ name, type, depth }) => ({ name, type, depth })
-                    )
-                    const order = window.L_._layersOrdered.slice()
-                    const encoded = tool.getUrlString()
-                    const previousTools = window.L_.FUTURES?.tools
-                    const otherTools = (previousTools || []).filter(
-                        (entry) => !String(entry).startsWith('LayersTool$')
-                    )
-                    window.L_.FUTURES.tools = [
-                        ...otherTools,
-                        `LayersTool$${encoded}`,
-                    ]
-                    tool.orderingHistory = []
-                    tool.finalize()
-                    const replayed = {
-                        flat: tool._debugFlat().map(
-                            ({ name, type, depth }) => ({ name, type, depth })
-                        ),
-                        order: window.L_._layersOrdered.slice(),
-                    }
-                    tool.orderingHistory = history
-                    window.L_.FUTURES.tools = previousTools
-                    return { encoded, flat, order, replayed, history }
-                })
-                expect(shared.encoded).toMatch(/^\d+-\d+-\d+-\d+-\d+/)
-                const selfConsistent =
-                    JSON.stringify(shared.replayed) ===
-                    JSON.stringify({
-                        flat: shared.flat,
-                        order: shared.order,
-                    })
-                const shareUrl = new URL(newPage.url())
-                shareUrl.searchParams.set('mission', 'Reference-Mission')
-                shareUrl.searchParams.set('panePercents', '0,0,100')
-                shareUrl.searchParams.set(
-                    'tools',
-                    `LayersTool$${shared.encoded}`
-                )
-                await newPage.goto(shareUrl.toString())
-                await newPage.waitForLoadState('networkidle', {
-                    timeout: 60000,
-                })
-                await newPage.waitForFunction(
-                    ({ encoded, historyLength }) => {
-                        const tool =
-                            window.ToolController_?.getTool('LayersTool')
-                        return (
-                            tool?.getUrlString?.() === encoded &&
-                            tool.orderingHistory?.length === historyLength
-                        )
-                    },
-                    {
-                        encoded: shared.encoded,
-                        historyLength: shared.history.length,
-                    },
-                    { timeout: 30000 }
-                )
-                const reloaded = await newPage.evaluate(() => {
-                    const tool =
-                        window.ToolController_.getTool('LayersTool')
-                    return {
-                        flat: tool._debugFlat().map(
-                            ({ name, type, depth }) => ({ name, type, depth })
-                        ),
-                        order: window.L_._layersOrdered.slice(),
-                        history: tool.orderingHistory.map((entry) => [
-                            ...entry,
-                        ]),
-                    }
-                })
-                const urlReloadMatchesLive =
-                    JSON.stringify(reloaded) ===
-                    JSON.stringify({
-                        flat: shared.flat,
-                        order: shared.order,
-                        history: shared.history,
-                    })
-                seedResults.push({
-                    seed,
-                    steps: planned.length,
-                    matching:
-                        divergences.length === 0 &&
-                        selfConsistent &&
-                        urlReloadMatchesLive,
-                    selfConsistent: selfConsistent && urlReloadMatchesLive,
-                    urlReloadMatchesLive,
-                    indexMappingMatches: divergences.every(
-                        ({ matching }) => matching?.sortableIndices !== false
-                    ),
-                    liveAlgorithmMatches: divergences.every(
-                        ({ matching }) => matching?.liveAlgorithm !== false
-                    ),
-                    firstDivergence: divergences[0] || null,
-                })
-                console.log(
-                    `Seed ${seed} result: ${JSON.stringify(seedResults.at(-1))}`
-                )
-            }
-            console.log(
-                `Seeded drop oracle totals: ${JSON.stringify({
-                    indexMapping: {
-                        matched: indexMapping.matched,
-                        total: indexMapping.total,
-                        failures: indexMapping.failures,
-                    },
-                    liveAlgorithm: {
-                        matched: liveAlgorithm.matched,
-                        total: liveAlgorithm.total,
-                        failures: liveAlgorithm.failures,
-                    },
-                })}`
-            )
-            expect(indexMapping.matched, 'Sortable index mappings').toBe(
-                indexMapping.total
-            )
-            expect(liveAlgorithm.matched, 'legacy live algorithm oracle').toBe(
-                liveAlgorithm.total
-            )
-            expect(seedResults, 'all eight seeded drags match live and replay').toEqual(
-                seededDragPlans().map(({ seed, planned }) => ({
-                    seed,
-                    steps: planned.length,
-                    matching: true,
-                    selfConsistent: true,
-                    urlReloadMatchesLive: true,
-                    indexMappingMatches: true,
-                    liveAlgorithmMatches: true,
-                    firstDivergence: null,
+        test.setTimeout(900000)
+        const seeds = legacyOrderingFixture.seededDrags
+        let totalSteps = 0
+        for (const expectedSeed of seeds) {
+            const baseFlat = await prepareDragPage(page)
+            expect(
+                baseFlat.map(({ name, type, depth }) => ({
+                    name,
+                    type,
+                    depth,
                 }))
+            ).toEqual(expectedSeed.baseFlat)
+            expect(
+                seededDragPlans().find(({ seed }) => seed === expectedSeed.seed)
+                    ?.planned
+            ).toEqual(expectedSeed.planned)
+
+            for (const expectedStep of expectedSeed.steps) {
+                await performSeededDrag(page, expectedStep.drag)
+                const result = await dragPageState(page)
+                const actualHistoryTriples = result.history.map((entry) =>
+                    entry.slice(0, 3)
+                )
+                const oracle = await applyRecordedDropOracle(
+                    page,
+                    expectedStep.sortableCapture
+                )
+                const oracleFlat = oracle.flat.map(
+                    ({ name, type, depth }) => ({ name, type, depth })
+                )
+                const indices = expectedStep.sortableCapture.indices
+
+                expect(result.flat, `seed ${expectedSeed.seed}, step ${expectedStep.step}`).toEqual(
+                    expectedStep.flat
+                )
+                expect(result.order).toEqual(expectedStep._layersOrdered)
+                expect(actualHistoryTriples).toEqual(
+                    expectedStep.historyTriples
+                )
+                expect(result.history.at(-1)).toHaveLength(5)
+                expect(result.history.at(-1).slice(0, 2)).toEqual([
+                    indices.oldIndex,
+                    indices.newIndex,
+                ])
+                expect(oracleFlat).toEqual(expectedStep.flat)
+                totalSteps += 1
+            }
+
+            const finalExpected = expectedSeed.steps.at(-1)
+            const encodedHistory = await page.evaluate(() =>
+                window.ToolController_.getTool('LayersTool').getUrlString()
             )
-        } finally {
-            await newPage.close()
+            expect(encodedHistory).toMatch(/^\d+-\d+-\d+-\d+-\d+/)
+            const shareUrl = new URL(page.url())
+            shareUrl.searchParams.set('mission', 'Reference-Mission')
+            shareUrl.searchParams.set('panePercents', '0,0,100')
+            shareUrl.searchParams.set('tools', `LayersTool$${encodedHistory}`)
+            await page.goto(shareUrl.toString())
+            await page.waitForLoadState('networkidle', { timeout: 60000 })
+            await page.waitForFunction(
+                (historyLength) =>
+                    window.ToolController_?.getTool('LayersTool')
+                        ?.orderingHistory?.length === historyLength,
+                finalExpected.historyTriples.length,
+                { timeout: 30000 }
+            )
+            const reloaded = await dragPageState(page)
+            expect(reloaded.flat).toEqual(finalExpected.flat)
+            expect(reloaded.order).toEqual(finalExpected._layersOrdered)
+            expect(
+                reloaded.history.map((entry) => entry.slice(0, 3))
+            ).toEqual(finalExpected.historyTriples)
         }
+        console.log(
+            `Recorded seeded mouse drops: ${JSON.stringify({ seeds: seeds.length, drops: totalSteps })}`
+        )
     })
 
     test('keeps LayersTool ordering usable after a globe reorder error', async ({
@@ -1884,16 +1079,14 @@ test.describe('LayersTool flat ordering parity', () => {
         const dragAndCheck = async (sourceLabel, targetLabel, fraction) => {
             const sourceInfo = await revealDragRow(
                 page,
-                'new',
                 sourceLabel
             )
             const targetInfo = await revealDragRow(
                 page,
-                'new',
                 targetLabel
             )
-            const source = orderingRow(page, 'new', sourceInfo)
-            const target = orderingRow(page, 'new', targetInfo)
+            const source = orderingRow(page, sourceInfo)
+            const target = orderingRow(page, targetInfo)
             const historyLength = await page.evaluate(
                 () =>
                     window.ToolController_.getTool('LayersTool')
@@ -1968,52 +1161,19 @@ test.describe('LayersTool flat ordering parity', () => {
         )
     })
 
-    test('loads translated legacy triple URL ordering at startup with the globe active', async ({
+    test('loads recorded translated triple URL ordering with the globe active', async ({
         page,
     }) => {
+        const expected = legacyOrderingFixture.translatedGlobeUrl
         const pageErrors = []
-        page.on('pageerror', (error) => pageErrors.push(error.stack || error.message))
-        await loadMission(page)
-        const history = [[5, 2, 2]]
-        const legacyState = await page.evaluate((entries) => {
-            const oldTool = window.ToolController_.getTool('LayersToolLegacy')
-            const savedOrder = window.L_._layersOrdered.slice()
-            const savedHistory = oldTool.orderingHistory
-            const savedGlobe = window.L_.Globe_
-            window.L_.Globe_ = null
-            oldTool.orderingHistory = entries.map((entry) => entry.slice())
-            try {
-                oldTool.make(null, true)
-                return {
-                    flat: Array.from(
-                        document.querySelectorAll('#layersToolLegacyList > li')
-                    ).map((row) => ({
-                        name: row.getAttribute('name'),
-                        type: row.getAttribute('type'),
-                        depth: Number.parseInt(
-                            row.getAttribute('depth') || '0',
-                            10
-                        ),
-                    })),
-                    order: window.L_._layersOrdered.slice(),
-                }
-            } finally {
-                try {
-                    oldTool.destroy()
-                } catch (error) {
-                    void error
-                }
-                oldTool.orderingHistory = savedHistory
-                window.L_._layersOrdered = savedOrder
-                window.L_.Globe_ = savedGlobe
-            }
-        }, history)
-        const encodedHistory = history.map((entry) => entry.join('-')).join('.')
-        const legacyToolsUrl = `LayersToolLegacy$${encodedHistory}`
-        const translatedToolsUrl = legacyToolsUrl.replace(
-            'LayersToolLegacy$',
-            'LayersTool$'
+        page.on('pageerror', (error) =>
+            pageErrors.push(error.stack || error.message)
         )
+        await loadMission(page)
+        const encodedHistory = expected.historyTriples
+            .map((entry) => entry.join('-'))
+            .join('.')
+        const translatedToolsUrl = `LayersTool$${encodedHistory}`
         pageErrors.length = 0
         await page.goto(
             `/?mission=Reference-Mission&panePercents=0%2C0%2C100&tools=${encodeURIComponent(translatedToolsUrl)}`
@@ -2021,8 +1181,8 @@ test.describe('LayersTool flat ordering parity', () => {
         await page.waitForLoadState('networkidle', { timeout: 60000 })
         await page.waitForFunction(
             (toolUrl) =>
-                window.L_?.FUTURES?.tools?.some((entry) =>
-                    String(entry) === toolUrl
+                window.L_?.FUTURES?.tools?.some(
+                    (entry) => String(entry) === toolUrl
                 ) && window.L_?.Globe_?.litho,
             translatedToolsUrl,
             { timeout: 30000 }
@@ -2045,8 +1205,8 @@ test.describe('LayersTool flat ordering parity', () => {
 
         expect(pageErrors).toEqual([])
         expect(startup.tools).toContain(translatedToolsUrl)
-        expect(startup.flat).toEqual(legacyState.flat)
-        expect(startup.order).toEqual(legacyState.order)
+        expect(startup.flat).toEqual(expected.flat)
+        expect(startup.order).toEqual(expected._layersOrdered)
         expect(startup.globeRenderer).toBeTruthy()
         expect(startup.globeActive).toBe(true)
         expect(startup.toolOpen).toBe(false)
@@ -2266,10 +1426,10 @@ test.describe('LayersTool flat ordering parity', () => {
             scroll.scrollTop = Math.max(0, index * 31 - scroll.clientHeight / 2)
         })
         await page.waitForTimeout(120)
-        const header = await dragRowInfo(page, 'new', 'TiTiler Tile Layers')
-        const targetInfo = await dragRowInfo(page, 'new', 'Basemaps')
-        const source = orderingRow(page, 'new', header)
-        const target = orderingRow(page, 'new', targetInfo)
+        const header = await dragRowInfo(page, 'TiTiler Tile Layers')
+        const targetInfo = await dragRowInfo(page, 'Basemaps')
+        const source = orderingRow(page, header)
+        const target = orderingRow(page, targetInfo)
         await source.scrollIntoViewIfNeeded()
         await target.scrollIntoViewIfNeeded()
         const before = await page.evaluate(() => ({
@@ -2492,360 +1652,98 @@ test.describe('LayersTool flat ordering parity', () => {
         ).toBe(before)
     })
 
-    test('compares live mouse-drop scenarios with legacy Sortable', async ({
+    test('compares live mouse-drop scenarios with recorded results', async ({
         page,
     }) => {
         test.setTimeout(300000)
-        await loadMission(page)
-        const baseFlat = await page.evaluate(() =>
-            window.ToolController_.getTool('LayersTool')._debugFlat([])
-        )
-        await page.setViewportSize({
-            width: 1280,
-            height: Math.min(10000, Math.max(1600, baseFlat.length * 44)),
-        })
-        const scenarios = makeDragScenarios(baseFlat)
-        const outcomes = []
-        for (const scenario of scenarios) {
-            console.log(`Live drag scenario: ${scenario.label}`)
-            await page.goto('/?mission=Reference-Mission')
-            await page.waitForLoadState('networkidle', { timeout: 60000 })
-            await page.waitForFunction(() => !!window.L_?.layers?.data)
-            await page.locator('#toolButtonLayersLegacy').click()
-            await page.locator('#layersToolLegacyList > li').first().waitFor()
-            const oldTool = await page.evaluate(() => {
-                const tool = window.ToolController_.getTool('LayersToolLegacy')
-                tool.orderingHistory = []
-                document
-                    .querySelectorAll('#layersToolLegacyList > li[type="header"]')
-                    .forEach((header) => {
-                        if (header.getAttribute('childrenon') === 'false')
-                            tool.toggleHeader(header.id)
-                    })
-                return true
-            })
-            expect(oldTool).toBeTruthy()
-            const fromName = baseFlat[scenario.from].name
-            const toName = baseFlat[scenario.to].name
-            const fromOld = page.locator(
-                `#layersToolLegacyList > li[name="${fromName}"]`
-            )
-            const toOld = page.locator(
-                `#layersToolLegacyList > li[name="${toName}"]`
-            )
-            if (scenario.collapseTarget || scenario.collapseSource) {
-                await page.evaluate((index) => {
-                    const row = document.querySelector(
-                        `#layersToolLegacyList > li:nth-child(${index + 1})`
-                    )
-                    if (row?.getAttribute('type') === 'header') {
-                        window.ToolController_.getTool('LayersToolLegacy').toggleHeader(
-                            row.id
-                        )
-                    }
-                }, scenario.collapseTarget ? scenario.to : scenario.from)
-            }
-            const oldHandle = fromOld.locator('.layersToolLegacyColor')
-            await installLegacyDropCapture(page)
-            await oldHandle.dragTo(toOld, { steps: 80 }).catch(() => {})
-            let oldHistory = await page.evaluate(
-                () =>
-                    window.ToolController_.getTool('LayersToolLegacy').orderingHistory
-            )
-            if (!oldHistory.length) {
-                await dragWithMouse(page, oldHandle, toOld)
-                oldHistory = await page.evaluate(
-                    () =>
-                        window.ToolController_.getTool('LayersToolLegacy')
-                            .orderingHistory
-                )
-            }
-            if (!oldHistory.length) {
-                const forceFallback = await page.evaluate(() => {
-                    const sortable = window.Sortable?.get?.(
-                        document.getElementById('layersToolLegacyList')
-                    )
-                    if (!sortable) return false
-                    sortable.option('forceFallback', true)
-                    return true
-                })
-                if (forceFallback) {
-                    await dragWithMouse(page, oldHandle, toOld)
-                    oldHistory = await page.evaluate(
-                        () =>
-                            window.ToolController_.getTool('LayersToolLegacy')
-                                .orderingHistory
-                    )
-                }
-            }
-            const oldDropCapture = await page.evaluate(
-                () => window.__layersToolSortableCapture
-            )
-            const oldDriven = oldHistory.length > 0
-            const oldLive = oldDriven
-                ? await page.evaluate(() => ({
-                      flat: Array.from(
-                          document.querySelectorAll('#layersToolLegacyList > li')
-                      ).map((row) => ({
-                          name: row.getAttribute('name'),
-                          type: row.getAttribute('type'),
-                          depth: Number.parseInt(row.getAttribute('depth'), 10),
-                      })),
-                      order: window.L_._layersOrdered.slice(),
-                      url: window.ToolController_.getTool('LayersToolLegacy')
-                          .getUrlString(),
-                      history:
-                          window.ToolController_.getTool('LayersToolLegacy')
-                              .orderingHistory,
-                  }))
-                : null
-            const screenshotSlug = scenario.label.replaceAll(' ', '-')
-            if (
-                oldDriven &&
-                ['into expanded header', 'expanded header with children'].includes(
-                    scenario.label
-                )
-            )
-                await page.screenshot({
-                    path: `/home/ubuntu/work/lt-shots/v3/reorder-${screenshotSlug}-old.png`,
-                })
-            await page.evaluate(() =>
-                window.ToolController_.closeActiveTool()
-            )
-            await page.evaluate(() => {
-                const tool = window.ToolController_.getTool('LayersTool')
-                tool.orderingHistory = []
-            })
-            await page.locator('#toolButtonLayers').click()
-            await page.getByRole('button', { name: 'Expand all' }).click()
-            const rowSelector = (key) =>
-                `#lt-row-${String(key).replace(/[^a-zA-Z0-9_-]/g, '_')}`
-            const newFrom = page.locator(rowSelector(baseFlat[scenario.from].key))
-            const newTo = page.locator(rowSelector(baseFlat[scenario.to].key))
-            if (scenario.collapseTarget || scenario.collapseSource) {
-                const collapseId = baseFlat[
-                    scenario.collapseTarget ? scenario.to : scenario.from
-                ].key
-                await page
-                    .locator(`[data-row-id="${collapseId}"] .lt-chevron`)
-                    .click()
-            }
-            await newFrom.scrollIntoViewIfNeeded()
-            await newTo.scrollIntoViewIfNeeded()
-            const newHandle = newFrom.locator('.lt-drag')
-            const isOwnSubtreeScenario =
-                scenario.label === 'header into own contents'
-            const newBefore = isOwnSubtreeScenario
-                ? await page.evaluate(() => ({
-                      flat: window.ToolController_
-                          .getTool('LayersTool')
-                          ._debugFlat()
-                          .map(({ name, type, depth }) => ({
-                              name,
-                              type,
-                              depth,
-                          })),
-                      order: window.L_._layersOrdered.slice(),
-                  }))
-                : null
-            let newHistory
-            if (isOwnSubtreeScenario) {
-                await dragWithMouse(page, newHandle, newTo)
-                newHistory = await page.evaluate(
-                    () =>
-                        window.ToolController_.getTool('LayersTool')
-                            .orderingHistory
-                )
-            } else {
-                await newHandle.dragTo(newTo, { steps: 80 }).catch(() => {})
-                newHistory = await page.evaluate(
-                    () =>
-                        window.ToolController_.getTool('LayersTool')
-                            .orderingHistory
-                )
-                if (!newHistory.length)
-                    await dragWithMouse(page, newHandle, newTo)
-            }
-            newHistory = await page.evaluate(
-                () =>
-                    window.ToolController_.getTool('LayersTool')
-                        .orderingHistory
-            )
-            let newLive = await page.evaluate(() => ({
-                flat: window.ToolController_
-                    .getTool('LayersTool')
-                    ._debugFlat()
-                    .map(({ name, type, depth }) => ({ name, type, depth })),
-                order: window.L_._layersOrdered.slice(),
-                url: window.ToolController_.getTool('LayersTool').getUrlString(),
-            }))
-            let comparison = oldLive
-            if (isOwnSubtreeScenario) {
-                // Intentional divergence: LayersTool refuses self-subtree drops.
-                expect(oldDriven).toBe(true)
-                expect(oldHistory.length).toBeGreaterThan(0)
-                expect(newHistory).toEqual([])
-                expect(newLive.flat).toEqual(newBefore.flat)
-                expect(newLive.order).toEqual(newBefore.order)
-                await expect(
-                    page.locator('.lt-dropBlockedStatus')
-                ).toHaveText(OWN_SUBTREE_BLOCKED_MESSAGE)
-                comparison = null
-            }
-            if (!oldDriven) {
-                await page.evaluate((history) => {
-                    window.ToolController_.closeActiveTool()
-                    window.L_._layersOrdered = window.L_._layersOrdered.slice()
-                    const oldTool = window.ToolController_.getTool('LayersToolLegacy')
-                    oldTool.orderingHistory = history.map((entry) =>
-                        entry.slice(0, 3)
-                    )
-                    oldTool.make(null, true)
-                }, newHistory)
-                comparison = await page.evaluate(() => ({
-                    flat: Array.from(
-                        document.querySelectorAll('#layersToolLegacyList > li')
-                    ).map((row) => ({
-                        name: row.getAttribute('name'),
-                        type: row.getAttribute('type'),
-                        depth: Number.parseInt(row.getAttribute('depth'), 10),
-                    })),
-                    order: window.L_._layersOrdered.slice(),
-                    url: window.ToolController_.getTool('LayersToolLegacy')
-                        .getUrlString(),
-                    history:
-                        window.ToolController_.getTool('LayersToolLegacy')
-                            .orderingHistory,
-                }))
-                if (
-                    ['into expanded header', 'expanded header with children'].includes(
-                        scenario.label
-                    )
-                )
-                    await page.screenshot({
-                        path: `/home/ubuntu/work/lt-shots/v3/reorder-${screenshotSlug}-old.png`,
-                    })
-            }
-            if (
-                ['into expanded header', 'expanded header with children'].includes(
-                    scenario.label
-                )
-            )
-                await page.screenshot({
-                    path: `/home/ubuntu/work/lt-shots/v3/reorder-${screenshotSlug}-new.png`,
-                })
-            outcomes.push({
-                scenario: scenario.label,
-                oldSortableDriven: oldDriven,
-                compared: !!comparison,
-                intentionalDivergence: isOwnSubtreeScenario,
-                history: newHistory,
-            })
-            console.log(
-                `${scenario.label}: Sortable=${oldDriven}, old history=${JSON.stringify(oldHistory)}, new history=${JSON.stringify(newHistory)}`
-            )
-            if (
-                scenario.label ===
-                'OSM Buildings onto collapsed Geometry Types'
-            ) {
-                const flatRows = baseFlat.map(
-                    ({ key, name, type, depth }) => ({
-                        key,
-                        name,
-                        type,
-                        depth,
-                    })
-                )
-                const expanded = Object.fromEntries(
-                    flatRows
-                        .filter((row) => row.type === 'header')
-                        .map((row) => [row.name, true])
-                )
-                expanded[flatRows[scenario.to].name] = false
-                const simulated = applyLiveMove(
-                    flatRows,
-                    scenario.from,
-                    scenario.to,
-                    expanded
-                ).flat
-                const applyLiveOracle = oldDropCapture?.indices
-                    ? await applyLiveOracleFromLegacyCapture(
-                          page,
-                          oldDropCapture
-                      )
-                    : null
-                const oracleMatchesLegacy =
-                    JSON.stringify(
-                        applyLiveOracle?.flat?.map(
-                            ({ name, type, depth }) => ({
-                                name,
-                                type,
-                                depth,
-                            })
-                        )
-                    ) === JSON.stringify(comparison?.flat)
-                const summarize = (rows) => {
-                    const index = rows.findIndex(
-                        (row) => row.name === flatRows[scenario.from].name
-                    )
-                    return {
-                        index,
-                        rows: rows
-                            .slice(Math.max(0, index - 2), index + 3)
-                            .map(({ name, type, depth }) => ({
-                                name,
-                                type,
-                                depth,
-                            })),
-                    }
-                }
-                console.log(
-                    `Collapsed-header placement: ${JSON.stringify({
-                        old: summarize(comparison?.flat || []),
-                        layers: summarize(newLive.flat),
-                        applyLiveMove: summarize(simulated),
-                        sortableIndices: oldDropCapture?.indices,
-                        oracleMatchesLegacy,
-                        capture: oldDropCapture,
-                    })}`
-                )
-            }
-            if (comparison) {
-                expect(
-                    newLive.order,
-                    `${scenario.label}: map order matches the derived tree order`
-                ).toEqual(
-                    newLive.flat
-                        .filter((row) => row.type !== 'header')
-                        .map((row) => row.name)
-                )
-                expect(
-                    newLive.flat,
-                    `${scenario.label}: new/old depth parity`
-                ).toEqual(comparison.flat)
-                expect(newLive.order, `${scenario.label}: layer order`).toEqual(
-                    comparison.order
-                )
-                expect(
-                    newHistory.every((entry) => entry.length === 5),
-                    `${scenario.label}: Layers records resolved placements`
-                ).toBe(true)
-                expect(
-                    newHistory.map((entry) => entry.slice(0, 3)),
-                    `${scenario.label}: legacy history fields`
-                ).toEqual(comparison.history)
-            }
-        }
-        console.log(`Live Sortable scenarios: ${JSON.stringify(outcomes)}`)
-        expect(outcomes).toHaveLength(scenarios.length)
-        const collapsedGeometryDrop = outcomes.find(
-            (outcome) =>
-                outcome.scenario ===
-                'OSM Buildings onto collapsed Geometry Types'
-        )
+        const expectedCases = legacyOrderingFixture.liveMouseDropScenarios
+        let matchingDrops = 0
+        let intentionalRefusals = 0
+        const scenarioBase = await prepareDragPage(page)
         expect(
-            collapsedGeometryDrop?.oldSortableDriven,
-            'the exact collapsed Geometry Types drop must exercise legacy Sortable'
-        ).toBe(true)
+            makeDragScenarios(scenarioBase).map(
+                ({ label, from, to, collapseTarget, collapseSource }) => ({
+                    label,
+                    from,
+                    to,
+                    ...(collapseTarget ? { collapseTarget } : {}),
+                    ...(collapseSource ? { collapseSource } : {}),
+                })
+            )
+        ).toEqual(expectedCases.map(({ scenario }) => scenario))
+
+        for (const expected of expectedCases) {
+            const baseFlat = await prepareDragPage(page)
+            expect(
+                baseFlat.map(({ name, type, depth }) => ({
+                    name,
+                    type,
+                    depth,
+                }))
+            ).toEqual(expected.baseFlat)
+            const scenario = expected.scenario
+            const sourceLabel = baseFlat[scenario.from].displayName
+            const targetLabel = baseFlat[scenario.to].displayName
+            const source = await dragRowInfo(page, sourceLabel)
+            const target = await dragRowInfo(page, targetLabel)
+            if (scenario.collapseTarget)
+                await setDragHeaderExpanded(page, targetLabel, false)
+            if (scenario.collapseSource)
+                await setDragHeaderExpanded(page, sourceLabel, false)
+
+            const before = await dragPageState(page)
+            await dragWithMouse(
+                page,
+                orderingRow(page, source).locator('.lt-drag'),
+                orderingRow(page, target)
+            )
+            const result = await dragPageState(page)
+            const oracle = await applyRecordedDropOracle(
+                page,
+                expected.sortableCapture
+            )
+            const oracleFlat = oracle.flat.map(({ name, type, depth }) => ({
+                name,
+                type,
+                depth,
+            }))
+            const isOwnSubtree = scenario.label === 'header into own contents'
+
+            if (isOwnSubtree) {
+                // Intentional divergence: LayersTool refuses self-subtree drops.
+                expect(expected.legacyResult.historyTriples.length).toBeGreaterThan(0)
+                expect(result.flat).toEqual(before.flat)
+                expect(result.order).toEqual(before.order)
+                expect(result.history).toEqual(before.history)
+                await expect(page.locator('.lt-dropBlockedStatus')).toHaveText(
+                    OWN_SUBTREE_BLOCKED_MESSAGE
+                )
+                intentionalRefusals += 1
+                continue
+            }
+
+            expect(result.flat, scenario.label).toEqual(
+                expected.legacyResult.flat
+            )
+            expect(result.order, scenario.label).toEqual(
+                expected.legacyResult._layersOrdered
+            )
+            expect(
+                result.history.map((entry) => entry.slice(0, 3)),
+                scenario.label
+            ).toEqual(expected.historyTriples)
+            expect(result.history.at(-1)).toHaveLength(5)
+            expect(oracleFlat, `${scenario.label} oracle`).toEqual(
+                expected.legacyResult.flat
+            )
+            matchingDrops += 1
+        }
+
+        expect(matchingDrops).toBe(7)
+        expect(intentionalRefusals).toBe(1)
+        console.log(
+            `Recorded live mouse drops: ${JSON.stringify({ matchingDrops, intentionalRefusals })}`
+        )
     })
+
 })
