@@ -81,6 +81,26 @@ const TYPE_ICONS = {
 }
 const RASTER_TYPES = new Set(['tile', 'data', 'image', 'velocity'])
 const QUASI_LAYERS = new Set(['model', 'query', '3dtiles'])
+const OWN_SUBTREE_BLOCKED_MESSAGE = "You can't drag a group into itself"
+
+function isOwnSubtreeTarget(activeId, overId, flat) {
+    const activeIndex = flat.findIndex((entry) => entry.key === activeId)
+    const overIndex = flat.findIndex((entry) => entry.key === overId)
+    if (
+        activeIndex < 0 ||
+        overIndex <= activeIndex ||
+        flat[activeIndex].type !== 'header'
+    )
+        return false
+
+    const activeDepth = flat[activeIndex].depth
+    return (
+        flat[overIndex].depth > activeDepth &&
+        flat
+            .slice(activeIndex + 1, overIndex)
+            .every((entry) => entry.depth > activeDepth)
+    )
+}
 
 function openLayerInfo(name, launcher) {
     const launcherElement = launcher || document.activeElement
@@ -1647,9 +1667,12 @@ function LayersToolApp({ vars }) {
     const tree = L_.configData?.layers || []
     const [query, setQuery] = useState(state.search)
     const [toast, setToast] = useState(null)
+    const [toastUndoAvailable, setToastUndoAvailable] = useState(false)
     const [reorderAnnouncement, setReorderAnnouncement] = useState('')
     const [dragPreview, setDragPreview] = useState(null)
     const [activeDragId, setActiveDragId] = useState(null)
+    const [dropBlocked, setDropBlocked] = useState(false)
+    const [dropBlockedStatus, setDropBlockedStatus] = useState('')
     const [drawerClosing, setDrawerClosing] = useState(false)
     const mobile = L_.UserInterface_.isMobile === true
     const focused = state.focusedRow
@@ -2297,6 +2320,19 @@ function LayersToolApp({ vars }) {
         )
     }
 
+    const warnOwnSubtreeDrop = () => {
+        setDropBlocked(false)
+        setDropBlockedStatus(OWN_SUBTREE_BLOCKED_MESSAGE)
+        setToast(OWN_SUBTREE_BLOCKED_MESSAGE)
+        setToastUndoAvailable(false)
+        setReorderAnnouncement(OWN_SUBTREE_BLOCKED_MESSAGE)
+        if (toastTimer.current) clearTimeout(toastTimer.current)
+        toastTimer.current = setTimeout(() => {
+            setToast(null)
+            setDropBlockedStatus('')
+        }, 3000)
+    }
+
     const reorderRows = (activeId, overId) => {
         if (!overId || activeId === overId) return false
         const currentRows = rowsRef.current
@@ -2308,6 +2344,10 @@ function LayersToolApp({ vars }) {
             flatten(L_.configData?.layers),
             currentState.orderingHistory
         ).flat
+        if (isOwnSubtreeTarget(activeId, overId, flat)) {
+            warnOwnSubtreeDrop()
+            return false
+        }
         const oldIndex = flat.findIndex((entry) => entry.key === activeId)
         const newIndex = flat.findIndex((entry) => entry.key === overId)
         if (oldIndex < 0 || newIndex < 0) return false
@@ -2359,6 +2399,7 @@ function LayersToolApp({ vars }) {
             ? `Moved ${active.label} into ${parentLabel}`
             : `Moved ${active.label} ${relation} ${target.label}`
         setToast(message)
+        setToastUndoAvailable(true)
         setReorderAnnouncement('')
         requestAnimationFrame(() => setReorderAnnouncement(message))
         if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -2380,11 +2421,14 @@ function LayersToolApp({ vars }) {
         store.updateState({ orderingHistory: history })
         L_.reorderLayers?.(layerOrder(flat))
         setToast(history.length ? 'Move undone' : null)
+        setToastUndoAvailable(history.length > 0)
     }
 
     const previewReorder = ({ active, over }) => {
         if (!over || active.id === over.id) {
             setDragPreview(null)
+            setDropBlocked(false)
+            setDropBlockedStatus('')
             return
         }
         const currentState = store.getState()
@@ -2396,8 +2440,18 @@ function LayersToolApp({ vars }) {
         const newIndex = flat.findIndex((entry) => entry.key === over.id)
         if (oldIndex < 0 || newIndex < 0) {
             setDragPreview(null)
+            setDropBlocked(false)
+            setDropBlockedStatus('')
             return
         }
+        if (isOwnSubtreeTarget(active.id, over.id, flat)) {
+            setDragPreview(null)
+            setDropBlocked(true)
+            setDropBlockedStatus(OWN_SUBTREE_BLOCKED_MESSAGE)
+            return
+        }
+        setDropBlocked(false)
+        setDropBlockedStatus('')
         const preview = applyLiveMove(
             flat,
             oldIndex,
@@ -2533,12 +2587,30 @@ function LayersToolApp({ vars }) {
         rowsRef.current.find((candidate) => candidate.id === id)?.label || 'layer'
     const dragAnnouncements = {
         onDragStart: ({ active }) => `Picked up ${rowLabel(active.id)}.`,
-        onDragOver: ({ active, over }) =>
-            over
+        onDragOver: ({ active, over }) => {
+            if (
+                over &&
+                isOwnSubtreeTarget(
+                    active.id,
+                    over.id,
+                    orderedFlatRef.current
+                )
+            )
+                return OWN_SUBTREE_BLOCKED_MESSAGE
+            return over
                 ? `${rowLabel(active.id)} is over ${rowLabel(over.id)}.`
-                : `Picked up ${rowLabel(active.id)}.`,
+                : `Picked up ${rowLabel(active.id)}.`
+        },
         onDragEnd: ({ active, over }) => {
             if (!over) return `Reorder cancelled for ${rowLabel(active.id)}.`
+            if (
+                isOwnSubtreeTarget(
+                    active.id,
+                    over.id,
+                    orderedFlatRef.current
+                )
+            )
+                return OWN_SUBTREE_BLOCKED_MESSAGE
             const activeRow = rowsRef.current.find(
                 (row) => row.id === active.id
             )
@@ -2685,11 +2757,20 @@ function LayersToolApp({ vars }) {
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         accessibility={{ announcements: dragAnnouncements }}
-                        onDragStart={({ active }) =>
+                        onDragStart={({ active }) => {
+                            setDropBlocked(false)
+                            setDropBlockedStatus('')
                             setActiveDragId(String(active.id))
-                        }
+                        }}
                         onDragOver={previewReorder}
                         onDragEnd={({ active, over }) => {
+                            const blocked =
+                                over &&
+                                isOwnSubtreeTarget(
+                                    active.id,
+                                    over.id,
+                                    orderedFlatRef.current
+                                )
                             try {
                                 reorderRows(active.id, over?.id)
                             } catch (error) {
@@ -2699,18 +2780,22 @@ function LayersToolApp({ vars }) {
                                 )
                             } finally {
                                 setDragPreview(null)
+                                setDropBlocked(false)
+                                if (!blocked) setDropBlockedStatus('')
                                 setActiveDragId(null)
                             }
                         }}
                         onDragCancel={() => {
                             setDragPreview(null)
+                            setDropBlocked(false)
+                            setDropBlockedStatus('')
                             setActiveDragId(null)
                         }}
                     >
                         <SortableContext items={sortableItems} strategy={verticalListSortingStrategy}>
                             <div
                                 ref={scrollElement}
-                                className="lt-scroll"
+                                className={`lt-scroll ${dropBlocked && activeDragId ? 'lt-dropBlocked' : ''}`}
                                 role="tree"
                                 aria-label="Layers"
                                 data-active-drag-id={activeDragId || ''}
@@ -2722,6 +2807,16 @@ function LayersToolApp({ vars }) {
                                 tabIndex={0}
                                 onKeyDown={onTreeKeyDown}
                             >
+                                {dropBlockedStatus && (
+                                    <div
+                                        className="lt-dropBlockedStatus"
+                                        role="status"
+                                        aria-live="polite"
+                                        aria-atomic="true"
+                                    >
+                                        <span>{dropBlockedStatus}</span>
+                                    </div>
+                                )}
                                 <div
                                     className="lt-virtualContent"
                                     role="group"
@@ -2801,7 +2896,9 @@ function LayersToolApp({ vars }) {
                 {toast && (
                     <div className="lt-toast" role="status">
                         <span>{toast}</span>
-                        <button type="button" onClick={undoReorder}>Undo</button>
+                        {toastUndoAvailable && (
+                            <button type="button" onClick={undoReorder}>Undo</button>
+                        )}
                     </div>
                 )}
                 <div className="lt-liveRegion" aria-live="polite" aria-atomic="true">

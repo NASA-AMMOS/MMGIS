@@ -6,6 +6,18 @@ import {
     replay,
 } from '../ordering.js'
 const fs = require('fs')
+const OWN_SUBTREE_BLOCKED_MESSAGE = "You can't drag a group into itself"
+const LIGHT_BLOCKED_STATE_THEME = {
+    '--color-a': '#ffffff',
+    '--color-a1': '#e2e8f0',
+    '--color-a1-5': '#edf2f7',
+    '--color-a2': '#94a3b8',
+    '--color-a5': '#334155',
+    '--color-a6': '#1e293b',
+    '--color-c': '#0284c7',
+    '--color-f': '#0f172a',
+    '--color-yellow': '#b45309',
+}
 
 const DEFAULT_SEEDED_DRAGS = {
     11: [
@@ -431,7 +443,7 @@ function makeDragScenarios(flat) {
         )
         if (child != null)
             scenarios.push({
-                label: 'header into own child area',
+                label: 'header into own contents',
                 from: headerWithChildren.index,
                 to: child,
             })
@@ -2121,6 +2133,176 @@ test.describe('LayersTool flat ordering parity', () => {
         expect(isVisible).toBe(true)
     })
 
+    test('blocks dragging a group into its own subtree', async ({ page }) => {
+        await loadMission(page)
+        await page.locator('#toolButtonLayers').click()
+        await page.getByRole('button', { name: 'Expand all' }).click()
+
+        const ids = await page.evaluate(() => {
+            const flat = window.ToolController_
+                .getTool('LayersTool')
+                ._debugFlat()
+            const header = flat.find(
+                (row) => row.displayName === 'TiTiler Tile Layers'
+            )
+            const child = flat.find(
+                (row) => row.displayName === 'EMIT Methane Mosaicked'
+            )
+            const scroll = document.querySelector('#layersTool .lt-scroll')
+            const headerIndex = flat.findIndex((row) => row.key === header.key)
+            scroll.scrollTop = Math.max(
+                0,
+                headerIndex * 31 - scroll.clientHeight / 2
+            )
+            return { header: header.key, child: child.key }
+        })
+        const source = page.locator(orderingRowSelector(ids.header))
+        const target = page.locator(orderingRowSelector(ids.child))
+        const handle = source.locator('.lt-drag')
+        await expect(source).toBeVisible()
+        await expect(target).toBeVisible()
+
+        const snapshot = async () =>
+            page.evaluate(() => {
+                const tool = window.ToolController_.getTool('LayersTool')
+                return {
+                    flat: tool
+                        ._debugFlat()
+                        .map(({ key, depth }) => ({ key, depth })),
+                    history: tool.orderingHistory.map((entry) => entry.slice()),
+                    order: window.L_._layersOrdered.slice(),
+                }
+            })
+        const before = await snapshot()
+        await page.evaluate(() => {
+            const layers = window.L_
+            const original = layers.reorderLayers
+            window.__layersReorderSpy = { original, calls: 0 }
+            layers.reorderLayers = function (...args) {
+                window.__layersReorderSpy.calls += 1
+                return original.apply(this, args)
+            }
+        })
+
+        for (const theme of ['dark', 'light']) {
+            if (theme === 'light') {
+                await page.waitForTimeout(3100)
+                await page.evaluate((variables) => {
+                    Object.entries(variables).forEach(([name, value]) =>
+                        document.documentElement.style.setProperty(name, value)
+                    )
+                }, LIGHT_BLOCKED_STATE_THEME)
+            }
+
+            const sourceBox = await handle.boundingBox()
+            const targetBox = await target.boundingBox()
+            expect(sourceBox).not.toBeNull()
+            expect(targetBox).not.toBeNull()
+            const startX = sourceBox.x + sourceBox.width / 2
+            const startY = sourceBox.y + sourceBox.height / 2
+            const targetX = targetBox.x + targetBox.width / 2
+            const targetY = targetBox.y + targetBox.height / 2
+            await page.mouse.move(startX, startY)
+            await page.waitForTimeout(120)
+            await page.mouse.down()
+            await page.waitForTimeout(120)
+            await page.mouse.move(startX + 14, startY, { steps: 6 })
+            await page.mouse.move(targetX, targetY, { steps: 28 })
+            await expect(page.locator('.lt-dropBlockedStatus')).toHaveText(
+                OWN_SUBTREE_BLOCKED_MESSAGE
+            )
+            await expect(page.locator('#layersTool .lt-scroll')).toHaveClass(
+                /lt-dropBlocked/
+            )
+            await page.screenshot({
+                path: `/home/ubuntu/work/lt-shots/audit3/${theme}-own-subtree-blocked-mid-drag.png`,
+            })
+            await page.evaluate(() => {
+                const scroll = document.querySelector('#layersTool .lt-scroll')
+                window.__blockedDropFocus = document.activeElement
+                window.__blockedDropScrollTop = scroll.scrollTop
+            })
+            await page.mouse.up()
+            await expect(page.locator('.lt-dropBlockedStatus')).toHaveText(
+                OWN_SUBTREE_BLOCKED_MESSAGE
+            )
+            await expect(page.locator('.lt-toast')).toHaveText(
+                OWN_SUBTREE_BLOCKED_MESSAGE
+            )
+            await expect.poll(snapshot).toEqual(before)
+            expect(
+                await page.evaluate(
+                    () =>
+                        document.activeElement === window.__blockedDropFocus &&
+                        document.querySelector('#layersTool .lt-scroll')
+                            .scrollTop === window.__blockedDropScrollTop
+                )
+            ).toBe(true)
+        }
+
+        expect(
+            await page.evaluate(() => window.__layersReorderSpy.calls)
+        ).toBe(0)
+        await page.evaluate(() => {
+            window.L_.reorderLayers = window.__layersReorderSpy.original
+            delete window.__layersReorderSpy
+        })
+    })
+
+    test('allows a header with children to move outside its subtree', async ({
+        page,
+    }) => {
+        await loadMission(page)
+        await page.locator('#toolButtonLayers').click()
+        await page.getByRole('button', { name: 'Expand all' }).click()
+        await page.evaluate(() => {
+            const flat = window.ToolController_
+                .getTool('LayersTool')
+                ._debugFlat()
+            const index = flat.findIndex(
+                (row) => row.displayName === 'TiTiler Tile Layers'
+            )
+            const scroll = document.querySelector('#layersTool .lt-scroll')
+            scroll.scrollTop = Math.max(0, index * 31 - scroll.clientHeight / 2)
+        })
+        await page.waitForTimeout(120)
+        const header = await dragRowInfo(page, 'new', 'TiTiler Tile Layers')
+        const targetInfo = await dragRowInfo(page, 'new', 'Basemaps')
+        const source = orderingRow(page, 'new', header)
+        const target = orderingRow(page, 'new', targetInfo)
+        await source.scrollIntoViewIfNeeded()
+        await target.scrollIntoViewIfNeeded()
+        const before = await page.evaluate(() => ({
+            flat: window.ToolController_
+                .getTool('LayersTool')
+                ._debugFlat()
+                .map(({ key, depth }) => ({ key, depth })),
+            history: window.ToolController_.getTool('LayersTool')
+                .orderingHistory.length,
+        }))
+
+        await dragWithMouse(page, source.locator('.lt-drag'), target, 0.8)
+
+        await expect
+            .poll(() =>
+                page.evaluate(
+                    () =>
+                        window.ToolController_.getTool('LayersTool')
+                            .orderingHistory.length
+                )
+            )
+            .toBe(before.history + 1)
+        expect(
+            await page.evaluate(() =>
+                window.ToolController_
+                    .getTool('LayersTool')
+                    ._debugFlat()
+                    .map(({ key, depth }) => ({ key, depth }))
+            )
+        ).not.toEqual(before.flat)
+        await expect(page.locator('.lt-dropBlockedStatus')).toHaveCount(0)
+    })
+
     test('Alt+Down moves an expanded header past its whole subtree', async ({
         page,
     }) => {
@@ -2451,14 +2633,39 @@ test.describe('LayersTool flat ordering parity', () => {
             await newFrom.scrollIntoViewIfNeeded()
             await newTo.scrollIntoViewIfNeeded()
             const newHandle = newFrom.locator('.lt-drag')
-            await newHandle.dragTo(newTo, { steps: 80 }).catch(() => {})
-            let newHistory = await page.evaluate(
-                () =>
-                    window.ToolController_.getTool('LayersTool')
-                        .orderingHistory
-            )
-            if (!newHistory.length)
+            const isOwnSubtreeScenario =
+                scenario.label === 'header into own contents'
+            const newBefore = isOwnSubtreeScenario
+                ? await page.evaluate(() => ({
+                      flat: window.ToolController_
+                          .getTool('LayersTool')
+                          ._debugFlat()
+                          .map(({ name, type, depth }) => ({
+                              name,
+                              type,
+                              depth,
+                          })),
+                      order: window.L_._layersOrdered.slice(),
+                  }))
+                : null
+            let newHistory
+            if (isOwnSubtreeScenario) {
                 await dragWithMouse(page, newHandle, newTo)
+                newHistory = await page.evaluate(
+                    () =>
+                        window.ToolController_.getTool('LayersTool')
+                            .orderingHistory
+                )
+            } else {
+                await newHandle.dragTo(newTo, { steps: 80 }).catch(() => {})
+                newHistory = await page.evaluate(
+                    () =>
+                        window.ToolController_.getTool('LayersTool')
+                            .orderingHistory
+                )
+                if (!newHistory.length)
+                    await dragWithMouse(page, newHandle, newTo)
+            }
             newHistory = await page.evaluate(
                 () =>
                     window.ToolController_.getTool('LayersTool')
@@ -2473,6 +2680,18 @@ test.describe('LayersTool flat ordering parity', () => {
                 url: window.ToolController_.getTool('LayersTool').getUrlString(),
             }))
             let comparison = oldLive
+            if (isOwnSubtreeScenario) {
+                // Intentional divergence: LayersTool refuses self-subtree drops.
+                expect(oldDriven).toBe(true)
+                expect(oldHistory.length).toBeGreaterThan(0)
+                expect(newHistory).toEqual([])
+                expect(newLive.flat).toEqual(newBefore.flat)
+                expect(newLive.order).toEqual(newBefore.order)
+                await expect(
+                    page.locator('.lt-dropBlockedStatus')
+                ).toHaveText(OWN_SUBTREE_BLOCKED_MESSAGE)
+                comparison = null
+            }
             if (!oldDriven) {
                 await page.evaluate((history) => {
                     window.ToolController_.closeActiveTool()
@@ -2519,6 +2738,7 @@ test.describe('LayersTool flat ordering parity', () => {
                 scenario: scenario.label,
                 oldSortableDriven: oldDriven,
                 compared: !!comparison,
+                intentionalDivergence: isOwnSubtreeScenario,
                 history: newHistory,
             })
             console.log(
