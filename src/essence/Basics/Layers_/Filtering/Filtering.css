@@ -347,3 +347,101 @@
 .layersTool_filtering_value .filterDragHandle {
     background: var(--color-a2);
 }
+
+#layersTool_filtering {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    overflow: visible;
+}
+.gears_on #layersTool_filtering {
+    display: flex;
+}
+#layersTool_filtering_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    min-height: 28px;
+}
+#layersTool_filtering_help {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+#layerTool_filtering_filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    overflow: visible;
+}
+#layersTool_filtering_implicit {
+    color: var(--color-a5);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+#layersTool_filtering_empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 12px;
+    border: 1px dashed var(--color-a2);
+    border-radius: 6px;
+    color: var(--color-a5);
+    text-align: center;
+}
+#layersTool_filtering_empty > i {
+    color: var(--color-a4);
+    font-size: 24px;
+}
+#layersTool_filtering_empty > strong {
+    color: var(--color-h);
+    font-size: 14px;
+}
+#layersTool_filtering_empty_actions,
+.layersTool_filtering_empty_actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#layersTool_filtering_adds {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#layersTool_filtering_summary {
+    min-width: 0;
+    color: var(--color-h);
+    font-size: 11px;
+}
+#layersTool_filtering_actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#layersTool_filtering_unapplied {
+    display: none;
+}
+#layerTool_filtering_filters_spatial.collapsed
+    .layersTool_filtering_spatial_header,
+#layerTool_filtering_filters_spatial.collapsed
+    .layersTool_filtering_spatial_radius,
+#layerTool_filtering_filters_spatial.collapsed
+    .layersTool_filtering_spatial_hint,
+#layerTool_filtering_filters_spatial.collapsed
+    #layerTool_filtering_filters_spatial_radius_wrapper,
+#layerTool_filtering_filters_spatial.collapsed
+    #layerTool_filtering_filters_spatial_clear {
+    display: none;
+}
+#layersTool_filtering_submit_loading {
+    display: none;
+}
+#layersTool_filtering_submit_loading.active {
+    display: inline-flex;
+}

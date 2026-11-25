@@ -152,48 +152,63 @@ const Filtering = {
         if (aggs !== undefined) Filtering.filters[layerName].aggs = aggs
         const spatialActive =
             Filtering.filters[layerName].spatial?.center != null
+        const initialFeatures =
+            Filtering.filters[layerName].geojson?.features ||
+            L_.layers.layer[layerName]?.toGeoJSON?.().features ||
+            []
 
         // prettier-ignore
         const markup = [
             "<div id='layersTool_filtering'>",
                 "<div id='layersTool_filtering_header'>",
-                    "<div id='layersTool_filtering_title_left'>",
-                        "<div id='layersTool_filtering_title'>Filter</div>",
-                        Help.getComponent(helpKey),
-                        "<div id='layersTool_filtering_count'></div>",
-                    "</div>",
-                    "<div id='layersTool_filtering_adds'>",
-                        "<div id='layersTool_filtering_add_group' class='mmgisButton5' title='Add New Grouping'><div>Group</div><i class='mdi mdi-plus mdi-18px'></i></div>",
-                        "<div id='layersTool_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><div>Add</div><i class='mdi mdi-plus mdi-18px'></i></div>",
-                    "</div>",
+                    "<div id='layersTool_filtering_count'></div>",
+                    `<div id='layersTool_filtering_help'>${Help.getComponent(helpKey)}</div>`,
                 "</div>",
                 "<div id='layerTool_filtering_filters'>",
+                    "<div id='layersTool_filtering_implicit'>All of</div>",
                     "<ul id='layerTool_filtering_filters_list'></ul>",
-                    `<div id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
-                        `<div id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil mdi-14px'></i><div>${spatialActive ? 'Active' : 'Place Point'}</div></div>`,
-                        "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
-                            "<div>R:</div>",
-                            `<input id='layerTool_filtering_filters_spatial_radius' type='number' aria-label='Spatial filter radius in meters' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
-                            "<div>m</div>",
+                    "<div id='layersTool_filtering_empty'>",
+                        "<i class='mdi mdi-filter-outline' aria-hidden='true'></i>",
+                        "<strong>No filters yet</strong>",
+                        "<span>Add a rule or group to filter the visible features.</span>",
+                        "<div class='layersTool_filtering_empty_actions'>",
+                            "<button type='button' class='layersTool_filtering_empty_add' data-filter-add='value' title='Add New Key-Value Filter'><i class='mdi mdi-plus'></i>Add rule</button>",
+                            "<button type='button' class='layersTool_filtering_empty_add' data-filter-add='group' title='Add New Grouping'><i class='mdi mdi-plus'></i>Add group</button>",
                         "</div>",
-                        "<div id='layerTool_filtering_filters_spatial_clear' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>",
+                    "</div>",
+                    "<div id='layersTool_filtering_adds'>",
+                        "<button type='button' id='layersTool_filtering_add_value' class='mmgisButton5' title='Add New Key-Value Filter'><i class='mdi mdi-plus'></i>Add rule</button>",
+                        "<button type='button' id='layersTool_filtering_add_group' class='mmgisButton5' title='Add New Grouping'><i class='mdi mdi-plus'></i>Add group</button>",
+                    "</div>",
+                    `<div id='layerTool_filtering_filters_spatial' class='${spatialActive ? 'drawn' : ''}'>`,
+                        "<div class='layersTool_filtering_spatial_header'><span>Near point</span><button type='button' id='layerTool_filtering_filters_spatial_clear' class='layerTool_filtering_filters_clear' title='Clear point' aria-label='Clear spatial filter'>×</button></div>",
+                        "<div class='layersTool_filtering_spatial_controls'>",
+                            `<button type='button' id='layerTool_filtering_filters_spatial_draw' class='mmgisButton5' title='Place a point on the map to enable a spatial filter.'><i class='mdi mdi-pencil'></i><div>${spatialActive ? 'Active' : 'Place Point'}</div></button>`,
+                            "<div id='layerTool_filtering_filters_spatial_radius_wrapper' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.'>",
+                                "<span>R:</span>",
+                                `<input id='layerTool_filtering_filters_spatial_radius' type='number' aria-label='Spatial filter radius in meters' placeholder='Radius' value='${Filtering.filters[layerName].spatial.radius || 0}' min='0'></input>`,
+                                "<span>m</span>",
+                                "<i class='mdi mdi-help-circle-outline layersTool_filtering_radius_help' title='Radius\n= 0: Queries for features that contain this point.\n> 0: Queries for features intersecting this circle.' aria-label='Radius help'></i>",
+                            "</div>",
+                        "</div>",
+                        "<div class='layersTool_filtering_spatial_hint'>0 = features containing the point · &gt;0 = features intersecting the circle</div>",
                     "</div>",
                 "</div>",
                 `<div id='layersTool_filtering_footer'>`,
-                    "<div id='layersTool_filtering_clear' class='mmgisButton5'><div>Clear Filter</div></div>",
-                    "<div id='layersTool_filtering_submit' class='mmgisButton5'><div id='layersTool_filtering_submit_loading'><div></div></div><div id='layersTool_filtering_submit_text'>Submit</div><i class='mdi mdi-arrow-right mdi-18px'></i></div>",
+                    "<div id='layersTool_filtering_summary'><span id='layersTool_filtering_summary_count'></span><span id='layersTool_filtering_unapplied'> · Unapplied changes</span></div>",
+                    "<div id='layersTool_filtering_actions'>",
+                        "<button type='button' id='layersTool_filtering_clear' class='mmgisButton5'><span>Clear Filter</span></button>",
+                        "<button type='button' id='layersTool_filtering_submit' class='mmgisButton5'><span id='layersTool_filtering_submit_loading'><span></span></span><span id='layersTool_filtering_submit_text'>Submitted</span><i class='mdi mdi-arrow-right'></i></button>",
+                    "</div>",
                 "</div>",
             "</div>",
         ].join('\n')
 
         Filtering.currentContainer = container
         container.append(markup)
-        const initialFeatures =
-            Filtering.filters[layerName].geojson?.features ||
-            L_.layers.layer[layerName]?.toGeoJSON?.().features ||
-            []
-        $('#layersTool_filtering_count').text(
-            `(${initialFeatures.length}/${initialFeatures.length})`
+        Filtering.updateCountText(
+            initialFeatures.length,
+            initialFeatures.length
         )
 
         // In case of reopening the tool, recreate state
@@ -220,13 +235,8 @@ const Filtering = {
             Filtering.filters[layerName].spatial.center,
             Filtering.filters[layerName].spatial.radius
         )
-
-        // Start with one empty row added
-        if (
-            $('#layerTool_filtering_filters_list .layersTool_filtering_value')
-                .length === 0
-        )
-            Filtering.addValue(layerName)
+        Filtering.updateEmptyState(layerName)
+        Filtering.setSubmitButtonState(false)
 
         Help.finalize(helpKey)
     },
@@ -265,7 +275,13 @@ const Filtering = {
         let id, op
         if (group) {
             id = group.id
-            op = group.op
+            op = group.op || 'OR'
+            if (group.op == null) {
+                const existingGroup = Filtering.filters[
+                    layerName
+                ].values.find((value) => value?.id === id && value.isGroup)
+                if (existingGroup) existingGroup.op = op
+            }
         } else {
             id = Filtering.filters[layerName].values.length
             op = 'OR' // Default to OR since AND is already the higher level op
@@ -276,20 +292,25 @@ const Filtering = {
             `<li class='layersTool_filtering_group' id='layersTool_filtering_group_${F_.getSafeName(
                 layerName
             )}_${id}' idx='${id}'>`,
-                `<div>`,
-                    `<div class='filterDragHandle'><i class="mdi mdi-drag-vertical mdi-12px"></i></div>`,
+                `<div class='filterDragHandle' title='Drag to reorder group'><i class="mdi mdi-drag-vertical mdi-16px"></i></div>`,
+                "<div class='layersTool_filtering_group_content'>",
                     "<div class='layersTool_filtering_group_key'>",
-                        `Group`,
-                    '</div>',
+                        "<span>Group</span>",
+                        `<span class='layersTool_filtering_group_subtitle'>${Filtering.getGroupOperatorName(op)}</span>`,
+                    "</div>",
                     "<div class='layersTool_filtering_group_operator'>",
                         `<div id='layersTool_filtering_group_operator_${F_.getSafeName(
                             layerName
-                        )}_${id}' class='layersTool_filtering_group_operator_select op_${(op || 'AND').toLowerCase()}'></div>`,
+                        )}_${id}' class='layersTool_filtering_group_operator_select op_${op.toLowerCase()}' role='group' aria-label='Group operator'>`,
+                            ...Filtering.groupOperators.map((operator) =>
+                                `<button type='button' class='layersTool_filtering_group_option${operator === op ? ' active' : ''}' data-op='${operator}' aria-pressed='${operator === op}' title='${Filtering.groupOperatorTitles[operator]}'>${Filtering.groupOperatorLabels[operator]}</button>`
+                            ),
+                        "</div>",
                     '</div>',
-                `</div>`,
-                `<div id='layersTool_filtering_group_clear_${F_.getSafeName(
+                "</div>",
+                `<button type='button' id='layersTool_filtering_group_clear_${F_.getSafeName(
                     layerName
-                )}_${id}' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>`,
+                )}_${id}' class='layerTool_filtering_filters_clear' aria-label='Remove group' title='Remove group'>×</button>`,
             '</li>',
         ].join('\n')
 
@@ -301,11 +322,13 @@ const Filtering = {
                 id: id,
                 op: op,
             })
+            Filtering.setSubmitButtonState(true)
         }
 
         Filtering.attachGroupEvents(id, layerName, { op: op })
 
         Filtering.makeFilterListSortable()
+        Filtering.updateEmptyState(layerName)
     },
     addValue: function (layerName, value) {
         let id, key, op, val
@@ -319,21 +342,24 @@ const Filtering = {
         // prettier-ignore
         const valueMarkup = [
             `<li class='layersTool_filtering_value' id='layersTool_filtering_value_${F_.getSafeName(layerName)}_${id}' idx='${id}'>`,
-                `<div class='filterDragHandle'><i class="mdi mdi-drag-vertical mdi-12px"></i></div>`,
-                "<div class='layersTool_filtering_value_key'>",
-                    `<input id='layersTool_filtering_value_key_input_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_key_input' spellcheck='false' type='text'${key} placeholder='Property...'></input>`,
+                `<div class='filterDragHandle' title='Drag to reorder rule'><i class="mdi mdi-drag-vertical mdi-16px"></i></div>`,
+                "<div class='layersTool_filtering_value_content'>",
+                    "<div class='layersTool_filtering_value_key'>",
+                        `<input id='layersTool_filtering_value_key_input_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_key_input' spellcheck='false' type='text'${key} placeholder='Property...' aria-label='Property'></input>`,
+                        "<span class='layersTool_filtering_value_key_error'>Unknown property</span>",
+                    "</div>",
+                    "<div class='layersTool_filtering_value_operator'>",
+                        `<div id='layersTool_filtering_value_operator_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_operator_select' aria-label='Operator'></div>`,
+                    "</div>",
+                    "<div class='layersTool_filtering_value_value'>",
+                        `<input id='layersTool_filtering_value_value_input_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_value_input' spellcheck='false' type='text'${val} placeholder='Value...' aria-label='Value'></input>`,
+                        `<div class='layersTool_filtering_value_value_type'>`,
+                            `<i id='layersTool_filtering_value_value_type_number_${F_.getSafeName(layerName)}_${id}' style='display: none;' class='mdi mdi-numeric mdi-18px'></i>`,
+                            `<i id='layersTool_filtering_value_value_type_string_${F_.getSafeName(layerName)}_${id}' style='display: none;' class='mdi mdi-alphabetical-variant mdi-18px'></i>`,
+                        `</div>`,
+                    "</div>",
                 "</div>",
-                "<div class='layersTool_filtering_value_operator'>",
-                    `<div id='layersTool_filtering_value_operator_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_operator_select'></div>`,
-                "</div>",
-                "<div class='layersTool_filtering_value_value'>",
-                    `<input id='layersTool_filtering_value_value_input_${F_.getSafeName(layerName)}_${id}' class='layersTool_filtering_value_value_input' spellcheck='false' type='text'${val} placeholder='Value...'></input>`,
-                    `<div class='layersTool_filtering_value_value_type'>`,
-                        `<i id='layersTool_filtering_value_value_type_number_${F_.getSafeName(layerName)}_${id}' style='display: none;' class='mdi mdi-numeric mdi-18px'></i>`,
-                        `<i id='layersTool_filtering_value_value_type_string_${F_.getSafeName(layerName)}_${id}' style='display: none;'class='mdi mdi-alphabetical-variant mdi-18px'></i>`,
-                    `</div>`,
-                "</div>",
-                `<div id='layersTool_filtering_value_clear_${F_.getSafeName(layerName)}_${id}' class='mmgisButton5 layerTool_filtering_filters_clear'><i class='mdi mdi-close mdi-18px'></i></div>`,
+                `<button type='button' id='layersTool_filtering_value_clear_${F_.getSafeName(layerName)}_${id}' class='layerTool_filtering_filters_clear' aria-label='Remove rule' title='Remove rule'>×</button>`,
             "</li>",
         ].join('\n')
 
@@ -347,22 +373,78 @@ const Filtering = {
                 op: '=',
                 value: null,
             })
+            Filtering.setSubmitButtonState(true)
         }
 
         Filtering.attachValueEvents(id, layerName, { op: op })
 
         Filtering.makeFilterListSortable()
-
-        // Show footer iff value rows exist
-        $('#layersTool_filtering_footer').css(
-            'display',
-            Filtering.filters[layerName].values.length === 0 ? 'none' : 'flex'
+        Filtering.updateEmptyState(layerName)
+    },
+    groupOperators: ['AND', 'OR', 'NOT_AND', 'NOT_OR'],
+    groupOperatorLabels: {
+        AND: 'All',
+        OR: 'Any',
+        NOT_AND: 'Not all',
+        NOT_OR: 'None',
+    },
+    groupOperatorTitles: {
+        AND: 'All Must Match (AND)',
+        OR: 'Any May Match (OR)',
+        NOT_AND: 'Not All May Match (NOT AND)',
+        NOT_OR: 'None Must Match (NOT OR)',
+    },
+    getGroupOperatorName: function (operator) {
+        return {
+            AND: 'All Must Match',
+            OR: 'Any May Match',
+            NOT_AND: 'Not All May Match',
+            NOT_OR: 'None Must Match',
+        }[operator]
+    },
+    updateCountText: function (filtered, total) {
+        const countText = `${filtered} of ${total} features`
+        $('#layersTool_filtering_count').text(countText)
+        $('#layersTool_filtering_summary_count').text(countText)
+    },
+    updateEmptyState: function (layerName) {
+        const hasValues = (Filtering.filters[layerName]?.values || []).some(
+            Boolean
+        )
+        const spatialActive =
+            Filtering.filters[layerName]?.spatial?.center != null
+        $('#layersTool_filtering').toggleClass('has-filter-values', hasValues)
+        $('#layersTool_filtering_implicit').toggle(hasValues)
+        $('#layerTool_filtering_filters_list').toggle(hasValues)
+        $('#layersTool_filtering_empty').toggle(!hasValues)
+        $('#layersTool_filtering_adds').toggle(hasValues)
+        $('#layerTool_filtering_filters_spatial').toggleClass(
+            'collapsed',
+            !hasValues && !spatialActive
+        )
+    },
+    updatePropertyValidity: function (input, layerName) {
+        const $input = $(input)
+        const key = String($input.val() || '')
+        const isValid =
+            key !== '' && Boolean(Filtering.filters[layerName]?.aggs?.[key])
+        const $container = $input.closest('.layersTool_filtering_value_key')
+        $container.toggleClass('invalid', key !== '' && !isValid)
+        if (key !== '' && !isValid) {
+            $input
+                .css('border', '1px solid var(--color-p4)')
+                .css('border-left', '3px solid var(--color-p4)')
+            return
+        }
+        $input.css('border', '')
+        $input.css(
+            'border-left',
+            isValid ? `3px solid ${F_.stringToColor(key)}` : '3px solid transparent'
         )
     },
     drawSpatialLayer: function (layerName, center, radius) {
         Map_.rmNotNull(Filtering.mapSpatialLayer)
 
-        Filtering.setSubmitButtonState(true)
         if (center == null) return
 
         const style = {
@@ -410,12 +492,15 @@ const Filtering = {
     },
     // To highlight the submit button to indicate a change's been made in the form
     setSubmitButtonState: function (active) {
+        const $submit = $('#layersTool_filtering_submit')
         if (active) {
             $('#layersTool_filtering_submit_text').text('Submit')
-            $('#layersTool_filtering_submit').addClass('active')
-        } else if ($('#layersTool_filtering_submit').hasClass('active')) {
+            $submit.addClass('active')
+            $('#layersTool_filtering_unapplied').show()
+        } else {
             $('#layersTool_filtering_submit_text').text('Submitted')
-            $('#layersTool_filtering_submit').removeClass('active')
+            $submit.removeClass('active')
+            $('#layersTool_filtering_unapplied').hide()
         }
     },
     attachEvents: function (layerName) {
@@ -427,6 +512,14 @@ const Filtering = {
         $('#layersTool_filtering_add_value').on('click', function () {
             Filtering.addValue(layerName)
         })
+        $('#layersTool_filtering_empty').on(
+            'click',
+            '.layersTool_filtering_empty_add',
+            function () {
+                const type = $(this).data('filter-add')
+                $(`#layersTool_filtering_add_${type}`).trigger('click')
+            }
+        )
 
         // Draw
         $('#layerTool_filtering_filters_spatial_draw').on('click', function () {
@@ -455,6 +548,8 @@ const Filtering = {
                 Filtering.filters[layerName].spatial.center,
                 Filtering.filters[layerName].spatial.radius
             )
+            Filtering.updateEmptyState(layerName)
+            Filtering.setSubmitButtonState(true)
         }
         // Draw - Radius
         $('#layerTool_filtering_filters_spatial_radius').on(
@@ -468,6 +563,7 @@ const Filtering = {
                     Filtering.filters[layerName].spatial.center,
                     Filtering.filters[layerName].spatial.radius
                 )
+                Filtering.setSubmitButtonState(true)
             }
         )
         // Draw - Clear
@@ -488,6 +584,8 @@ const Filtering = {
                     Filtering.filters[layerName].spatial.center,
                     Filtering.filters[layerName].spatial.radius
                 )
+                Filtering.updateEmptyState(layerName)
+                Filtering.setSubmitButtonState(true)
             }
         )
 
@@ -526,9 +624,7 @@ const Filtering = {
             // Refilter to show all
             await Filtering.applyFilter(layerName)
 
-            // Reset count
-            $('#layersTool_filtering_count').text('')
-
+            Filtering.updateEmptyState(layerName)
             Filtering.setSubmitButtonState(false)
 
             $(`#layersTool_filtering_submit_loading`).removeClass('active')
@@ -566,35 +662,38 @@ const Filtering = {
                     }
                 }
             }
+            Filtering.updateEmptyState(layerName)
             Filtering.setSubmitButtonState(true)
         })
 
-        // Operator Grid Selector
+        // Inline segmented group operator
         elmId = `#layersTool_filtering_group_operator_${F_.getSafeName(
             layerName
         )}_${id}`
 
-        const ops = ['AND', 'OR', 'NOT_AND', 'NOT_OR']
-        const opId = Math.max(ops.indexOf(options.op), 0)
+        $(elmId).on(
+            'click',
+            '.layersTool_filtering_group_option',
+            function () {
+                const newOp = $(this).data('op')
+                const value = Filtering.filters[layerName].values[id]
+                if (!value || value.isGroup !== true) return
 
-        const groupOpItems = [
-            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>AND</div>`, title: 'All Must Match (AND)' },
-            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>OR</div>`, title: 'Any May Match (OR)' },
-            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>NAND</div>`, title: 'Not All May Match (NOT AND)' },
-            { html: `<div style='font-family: monospace; font-size: 11px; white-space: nowrap;'>NOR</div>`, title: 'None Must Match (NOT OR)' },
-        ]
-
-        OpGridSelector.init($(elmId), groupOpItems, opId, {
-            columns: 4,
-            onSelect: function (idx) {
-                const newOp = ops[idx]
-                Filtering.filters[layerName].values[id].op = newOp
+                value.op = newOp
                 $(elmId)
                     .removeClass('op_and op_or op_not_and op_not_or')
-                    .addClass('op_' + newOp.toLowerCase())
+                    .addClass(`op_${newOp.toLowerCase()}`)
+                    .find('.layersTool_filtering_group_option')
+                    .removeClass('active')
+                    .attr('aria-pressed', 'false')
+                $(this).addClass('active').attr('aria-pressed', 'true')
+                $(elmId)
+                    .closest('.layersTool_filtering_group')
+                    .find('.layersTool_filtering_group_subtitle')
+                    .text(Filtering.getGroupOperatorName(newOp))
                 Filtering.setSubmitButtonState(true)
-            },
-        })
+            }
+        )
     },
     attachValueEvents: function (id, layerName, options) {
         options = options || {}
@@ -606,12 +705,14 @@ const Filtering = {
         elmId = `#layersTool_filtering_value_key_input_${F_.getSafeName(
             layerName
         )}_${id}`
-        $(elmId).on('focus', function () {
+        const $keyInput = $(elmId)
+        $keyInput.on('focus', function () {
             $(this).parent().css('flex', '4 1')
         })
-        $(elmId).on('blur', function () {
+        $keyInput.on('blur', function () {
             $(this).parent().css('flex', '1 1')
         })
+        Filtering.updatePropertyValidity($keyInput, layerName)
         elmId = `#layersTool_filtering_value_value_input_${F_.getSafeName(
             layerName
         )}_${id}`
@@ -645,6 +746,7 @@ const Filtering = {
                     }
                 }
             }
+            Filtering.updateEmptyState(layerName)
             Filtering.setSubmitButtonState(true)
         })
 
@@ -689,16 +791,12 @@ const Filtering = {
                 Filtering.filters[layerName].values[id].key = event.value
                 Filtering.updateValuesAutoComplete(id, layerName)
                 Filtering.setSubmitButtonState(true)
-                $(this).css('border', 'none')
-                $(this).css(
-                    'border-left',
-                    `3px solid ${F_.stringToColor(event.value)}`
-                )
+                Filtering.updatePropertyValidity(this, layerName)
             },
         })
 
-        $(elmId).on('blur', function (event) {
-            const val = event.value || $(this).val()
+        $(elmId).on('blur', function () {
+            const val = $(this).val()
             const property = Filtering.filters[layerName].aggs[val]
             if (property) {
                 if (
@@ -710,12 +808,8 @@ const Filtering = {
                     Filtering.updateValuesAutoComplete(id, layerName)
                     Filtering.setSubmitButtonState(true)
                 }
-                $(this).css('border', 'none')
-                $(this).css(
-                    'border-left',
-                    `3px solid ${F_.stringToColor($(this).val())}`
-                )
-            } else $(this).css('border', '1px solid var(--color-p4)')
+            }
+            Filtering.updatePropertyValidity(this, layerName)
         })
 
         // Operator Grid Selector
@@ -778,8 +872,14 @@ const Filtering = {
         if (operator === 'isnull' || operator === 'isnotnull') {
             $(elmId).prop('disabled', true).css('opacity', '0.3').val('')
             Filtering.filters[layerName].values[id].value = ''
+            $(elmId)
+                .closest('.layersTool_filtering_value_value')
+                .addClass('is-disabled')
         } else {
             $(elmId).prop('disabled', false).css('opacity', '1')
+            $(elmId)
+                .closest('.layersTool_filtering_value_value')
+                .removeClass('is-disabled')
         }
     },
     submit: async function (layerName, updateValuesOrder) {
@@ -810,13 +910,14 @@ const Filtering = {
         const listToSort = document.getElementById(
             'layerTool_filtering_filters_list'
         )
+        Filtering.sortableInstance?.destroy()
         Filtering.sortableInstance = Sortable.create(listToSort, {
             animation: 150,
             easing: 'cubic-bezier(0.39, 0.575, 0.565, 1)',
             handle: '.filterDragHandle',
             onStart: () => {},
             onChange: () => {},
-            onEnd: () => {},
+            onEnd: () => Filtering.setSubmitButtonState(true),
         })
     },
     /**

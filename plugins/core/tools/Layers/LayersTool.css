@@ -2234,6 +2234,941 @@
     line-height: 28px;
 }
 
+#layersTool .lt-typeSettingsFilter #layersTool_filtering {
+    width: 100%;
+    gap: 8px;
+    overflow: visible;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_header {
+    min-height: 28px;
+    height: 28px;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_count {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    padding: 0 2px;
+    background: transparent;
+    color: var(--color-h);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_help {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_help
+    .mmgisHelpButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+}
+
+#layersTool .lt-typeSettingsFilter #layerTool_filtering_filters {
+    width: 100%;
+    gap: 8px;
+    overflow: visible;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_implicit {
+    color: var(--color-a5);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+#layersTool .lt-typeSettingsFilter .layersTool_filtering_value,
+#layersTool .lt-typeSettingsFilter .layersTool_filtering_group {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 52px;
+    padding: 7px;
+    border: 1px solid var(--color-a1);
+    border-radius: 6px;
+    background: var(--color-d);
+}
+
+#layersTool .lt-typeSettingsFilter .layersTool_filtering_group {
+    border-top: 2px solid
+        color-mix(in srgb, var(--color-c2) 55%, var(--color-a1));
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_list
+    > .layersTool_filtering_group
+    > .filterDragHandle,
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_list
+    > .layersTool_filtering_value
+    > .filterDragHandle {
+    display: flex;
+    flex: 0 0 14px;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    width: 14px;
+    height: auto;
+    min-height: 28px;
+    padding: 0;
+    background: transparent;
+    color: var(--color-a4);
+    cursor: grab;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_list
+    .filterDragHandle:hover {
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_list
+    .filterDragHandle
+    > i.mdi::before {
+    margin-left: 0;
+    font-size: 16px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_content {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    gap: 6px;
+    min-width: 0;
+    padding-right: 26px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_key {
+    grid-column: 1 / -1;
+    position: relative;
+    flex: initial;
+    min-width: 0;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_key_input {
+    width: 100%;
+    height: 28px;
+    min-width: 0;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_key.invalid
+    .layersTool_filtering_value_key_input,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_key.invalid
+    .layersTool_filtering_value_key_input:focus {
+    border: 1px solid var(--color-p4);
+    border-left: 3px solid var(--color-p4);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_key_error {
+    display: none;
+    margin-top: 2px;
+    color: var(--color-p4);
+    font-size: 10px;
+    line-height: 12px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_key.invalid
+    .layersTool_filtering_value_key_error {
+    display: block;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_operator {
+    flex: 0 0 72px;
+    width: 72px;
+    height: 28px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_operator_select {
+    width: 72px;
+    height: 28px;
+    overflow: visible;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_operator_select
+    .op-grid-trigger {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 0 5px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_operator_select
+    .op-grid-trigger-value {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_operator_select
+    .op-grid-trigger-value
+    > i {
+    font-size: 16px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_operator_select
+    .op-grid-trigger-caret {
+    flex: 0 0 auto;
+    color: var(--color-a5);
+    font-size: 14px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_value {
+    position: relative;
+    flex: initial;
+    min-width: 0;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_value_input {
+    width: 100%;
+    height: 28px;
+    min-width: 0;
+    padding: 0 30px 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_value_input:disabled {
+    opacity: 0.3;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_value_type {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    right: 2px;
+    width: 26px;
+    height: 28px;
+    line-height: 28px;
+    opacity: 1;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_value_type
+    > i {
+    font-size: 16px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_value.is-disabled
+    .layersTool_filtering_value_value_type {
+    opacity: 0.3;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value_remove
+    .mmgisButton5,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value
+    > .layerTool_filtering_filters_clear,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group
+    > .layerTool_filtering_filters_clear {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    display: flex;
+    flex: 0 0 28px;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    min-height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-a4);
+    font-size: 18px;
+    line-height: 1;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_value
+    > .layerTool_filtering_filters_clear:hover,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group
+    > .layerTool_filtering_filters_clear:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_content {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding-right: 26px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_key {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    color: var(--color-h);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: normal;
+    text-transform: uppercase;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_subtitle {
+    color: var(--color-a5);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_operator {
+    flex: 0 0 auto;
+    width: auto;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_operator_select {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    height: 28px;
+    margin: 0;
+    padding: 2px;
+    overflow: visible;
+    border: 1px solid var(--color-a1);
+    border-radius: 5px;
+    background: var(--color-a1-5);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 28px;
+    height: 22px;
+    padding: 0 4px;
+    border: 0;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--color-a5);
+    font: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_option:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_option.active,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_group_option.active:hover {
+    background: var(--color-c2);
+    color: var(--color-f);
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 20px 12px;
+    border: 1px dashed var(--color-a2);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--color-a5);
+    text-align: center;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_empty
+    > .mdi {
+    color: var(--color-a4);
+    font-size: 24px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_empty
+    > strong {
+    color: var(--color-h);
+    font-size: 14px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_empty_actions,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_empty_actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_adds {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_add_value,
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_add_group,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_empty_add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
+    color: var(--color-c2);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_add_value:hover,
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_add_group:hover,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_empty_add:hover {
+    background: transparent;
+    color: var(--color-c);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_add_value
+    > i,
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_add_group
+    > i,
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_empty_add
+    > i {
+    font-size: 16px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 7px;
+    border: 1px solid var(--color-a1);
+    border-radius: 6px;
+    background: var(--color-d);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial::before {
+    display: none;
+    content: none;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_spatial_header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--color-h);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_spatial_controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 28px;
+    margin: 0;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw:hover {
+    background: var(--color-a1);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.drawn
+    #layerTool_filtering_filters_spatial_draw {
+    border-color: var(--color-c2);
+    background: color-mix(in srgb, var(--color-c2) 16%, var(--color-d));
+    color: var(--color-c2);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.drawing
+    #layerTool_filtering_filters_spatial_draw {
+    border-color: var(--color-c2);
+    color: var(--color-c2);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw
+    > i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 16px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_draw
+    > div {
+    overflow: visible;
+    font-size: 12px;
+    line-height: normal;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+    min-width: 0;
+    height: 28px;
+    padding: 0 7px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper:focus-within {
+    border-color: var(--color-c);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > span {
+    flex: 0 0 auto;
+    color: var(--color-a5);
+    font-size: 12px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_radius_wrapper
+    > input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-f);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_radius_help {
+    flex: 0 0 auto;
+    color: var(--color-a5);
+    font-size: 14px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    .layersTool_filtering_spatial_hint {
+    color: var(--color-a5);
+    font-size: 10px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_clear {
+    position: static;
+    display: flex;
+    flex: 0 0 28px;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-a4);
+    font-size: 18px;
+    margin-right: -4px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial_clear:hover {
+    background: var(--color-a1);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.collapsed {
+    gap: 0;
+    padding: 0;
+    border-color: transparent;
+    background: transparent;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.collapsed
+    .layersTool_filtering_spatial_header,
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.collapsed
+    #layerTool_filtering_filters_spatial_radius_wrapper,
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.collapsed
+    .layersTool_filtering_spatial_hint,
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.collapsed
+    #layerTool_filtering_filters_spatial_clear {
+    display: none;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.collapsed
+    .layersTool_filtering_spatial_controls {
+    display: block;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layerTool_filtering_filters_spatial.collapsed
+    #layerTool_filtering_filters_spatial_draw {
+    width: max-content;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: auto;
+    min-width: 0;
+    padding: 8px 2px 0;
+    border-top: 1px solid var(--color-a1);
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_summary {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--color-h);
+    font-size: 11px;
+}
+
+#layersTool .lt-typeSettingsFilter #layersTool_filtering_actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 5px;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_clear,
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 0;
+    gap: 4px;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--color-a1);
+    border-radius: 4px;
+    background: var(--color-a1-5);
+    color: var(--color-f);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_clear:hover {
+    background: var(--color-a1);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit.active {
+    border-color: var(--color-c2);
+    background: var(--color-c2);
+    color: var(--color-f);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit.active:hover {
+    filter: brightness(1.08);
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit
+    > .mdi-arrow-right {
+    display: none;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit.active
+    > .mdi-arrow-right {
+    display: inline-block;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit_loading {
+    display: none;
+    padding: 0;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit_loading.active {
+    display: inline-flex;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit_loading.active
+    ~ #layersTool_filtering_submit_text,
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit_loading.active
+    ~ .mdi-arrow-right {
+    display: none;
+}
+
+#layersTool
+    .lt-typeSettingsFilter
+    #layersTool_filtering_submit_loading
+    > span {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: submitLoadingSpin 1s ease-in-out infinite;
+}
+
+#layersTool .lt-typeSettingsFilter .autocomplete-suggestions {
+    z-index: 10000;
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid var(--color-a1);
+    border-top: 0;
+    border-radius: 0 0 4px 4px;
+    background: var(--color-a);
+    color: var(--color-f);
+}
+
+#layersTool .lt-typeSettingsFilter .autocomplete-suggestion {
+    padding: 5px 8px;
+    color: var(--color-f);
+    font-size: 12px;
+}
+
+#layersTool .lt-typeSettingsFilter .autocomplete-selected {
+    background: color-mix(in srgb, var(--color-c2) 18%, var(--color-a));
+}
+
 @media (max-width: 700px) {
     .lt-toolbarTitle {
         width: calc(100% + 12px);

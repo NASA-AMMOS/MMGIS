@@ -428,7 +428,7 @@ test.describe('LayersTool', () => {
                 .filter({ hasText: 'Points Basic' })
             await row.locator('.lt-title').click()
             const count = page.locator('#layersTool_filtering_count')
-            await expect(count).toHaveText('(0/0)')
+            await expect(count).toHaveText('0 of 0 features')
             releaseRequest()
             await page.waitForFunction(() => {
                 const layer = Object.values(window.L_.layers.data).find(
@@ -441,7 +441,7 @@ test.describe('LayersTool', () => {
                 )
             })
             await page.waitForTimeout(2500)
-            await expect(count).toHaveText('(10/10)')
+            await expect(count).toHaveText('10 of 10 features')
         } finally {
             releaseRequest()
         }
@@ -915,6 +915,8 @@ test.describe('LayersTool', () => {
         await page.locator('.lt-layerRow').filter({ hasText: layer.label }).first().locator('.lt-title').click()
         const filter = page.locator('#layersTool_filtering')
         await expect(filter).toBeVisible()
+        await expect(filter.locator('#layersTool_filtering_empty')).toBeVisible()
+        await filter.locator('#layersTool_filtering_add_value').click()
         await expect(filter.locator('.layersTool_filtering_value_key_input')).toBeVisible()
         await expect(filter.locator('.layersTool_filtering_value_operator_select')).toBeVisible()
         await expect(filter.locator('.layersTool_filtering_value_value_input')).toBeVisible()
@@ -944,9 +946,9 @@ test.describe('LayersTool', () => {
                 ),
             }
         })
-        expect(
-            Math.abs(filterAlignment.placePoint - filterAlignment.property)
-        ).toBeLessThanOrEqual(1)
+        expect(filterAlignment.property).toBeGreaterThan(
+            filterAlignment.placePoint
+        )
         expect(
             Math.abs(filterAlignment.spatialClear - filterAlignment.valueClear)
         ).toBeLessThanOrEqual(1)
@@ -990,7 +992,7 @@ test.describe('LayersTool', () => {
             layerName
         )
         await expect(filter.locator('#layersTool_filtering_count')).toHaveText(
-            `(${after}/${before})`
+            `${after} of ${before} features`
         )
         await page.evaluate((name) => {
             document.dispatchEvent(
@@ -1063,7 +1065,7 @@ test.describe('LayersTool', () => {
         await filter.locator('#layersTool_filtering_add_value').click()
         await expect(
             filter.locator('#layerTool_filtering_filters_list > li')
-        ).toHaveCount(2)
+        ).toHaveCount(1)
         await filter.locator('#layersTool_filtering_submit').click()
         await expect(filter.locator('#layersTool_filtering_submit_text')).toContainText(
             'Submitted'

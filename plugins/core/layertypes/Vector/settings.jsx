@@ -82,9 +82,7 @@ function FilterSettings({ layer, api }) {
             const filtered =
                 L_.layers.layer[layer.name]?.toGeoJSON?.()?.features?.length ??
                 total
-            $(container)
-                .find('#layersTool_filtering_count')
-                .text(`(${filtered}/${total})`)
+            Filtering.updateCountText(filtered, total)
             api.refresh()
         }
         const onLayerDataLoaded = (event) => {
