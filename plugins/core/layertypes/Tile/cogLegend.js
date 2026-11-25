@@ -2,6 +2,12 @@ import F_ from '@basics/Formulae_/Formulae_'
 import L_ from '@basics/Layers_/Layers_'
 import { evaluate_cmap } from '@external/js-colormaps/js-colormaps.js'
 
+let layersToolStore = null
+
+export function setLayersToolStore(store) {
+    layersToolStore = store
+}
+
 function colorTableLegend(table, units) {
     if (typeof table === 'string') {
         try {
@@ -160,4 +166,25 @@ export default function buildCogLegend(layer) {
     canvas?.remove()
     layer._legend = legend
     return legend
+}
+
+export function populateCogScale(layerName) {
+    const key = L_.asLayerUUID ? L_.asLayerUUID(layerName) : layerName
+    const layer = L_.layers?.data?.[key] || L_.layers?.data?.[layerName]
+    if (!layer || !buildCogLegend(layer) || !layersToolStore) return
+    const old = layersToolStore.getState().sectionState[layer.name] || {}
+    layersToolStore.updateState({
+        sectionState: {
+            ...layersToolStore.getState().sectionState,
+            [layer.name]: {
+                ...old,
+                cog: {
+                    ...(old.cog || {}),
+                    scaleVersion: (old.cog?.scaleVersion || 0) + 1,
+                },
+            },
+        },
+        layerVersion: layersToolStore.getState().layerVersion + 1,
+    })
+    layersToolStore.bumpLayerPreview(layer.name)
 }

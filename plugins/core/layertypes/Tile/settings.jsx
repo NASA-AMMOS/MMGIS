@@ -5,7 +5,7 @@ import {
 } from '@basics/UserInterface_/LayerSettings/LayerSettings'
 import L_ from '@basics/Layers_/Layers_'
 import Map_ from '@basics/Map_/Map_'
-import ToolController_ from '@basics/ToolController_/ToolController_'
+import { populateCogScale } from './cogLegend'
 import {
     data as colormapData,
     evaluate_cmap,
@@ -165,7 +165,7 @@ function refreshCog(layer) {
         currentCogExpression: layer.currentCogExpression,
         cogColormap: layer.cogColormap,
     })
-    ToolController_.getTool('LayersTool')?.populateCogScale?.(layer.name)
+    populateCogScale(layer.name)
 }
 
 function DisplaySettings({ layer, api }) {

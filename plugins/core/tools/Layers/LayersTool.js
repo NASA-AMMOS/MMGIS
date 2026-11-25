@@ -5,11 +5,16 @@ import Filtering from '@basics/Layers_/Filtering/Filtering'
 import LayersToolApp from './components/LayersTool'
 import * as store from './store'
 import { applyLiveMove, flatten, layerOrder, replay } from './ordering'
-import buildCogLegend from '../../layertypes/Tile/cogLegend'
+import {
+    populateCogScale,
+    setLayersToolStore,
+} from '../../layertypes/Tile/cogLegend'
 
 let root = null
 let mountNode = null
 let vars = {}
+
+setLayersToolStore(store)
 
 const LayersTool = {
     initialize() {
@@ -141,27 +146,7 @@ const LayersTool = {
         store.setExpanded(name, onState)
         store.dispatchHeaderStateChange(name, onState)
     },
-    populateCogScale(layerName) {
-        const key = L_.asLayerUUID ? L_.asLayerUUID(layerName) : layerName
-        const layer = L_.layers?.data?.[key] || L_.layers?.data?.[layerName]
-        if (!layer) return
-        if (!buildCogLegend(layer)) return
-        const old = store.getState().sectionState[layer.name] || {}
-        store.updateState({
-            sectionState: {
-                ...store.getState().sectionState,
-                [layer.name]: {
-                    ...old,
-                    cog: {
-                        ...(old.cog || {}),
-                        scaleVersion: (old.cog?.scaleVersion || 0) + 1,
-                    },
-                },
-            },
-            layerVersion: store.getState().layerVersion + 1,
-        })
-        store.bumpLayerPreview(layer.name)
-    },
+    populateCogScale,
     syncLayer(layerName) {
         if (!layerName) return
         store.bumpLayerPreview(layerName)

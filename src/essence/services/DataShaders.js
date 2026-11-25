@@ -3,7 +3,7 @@ import Dropy from '../../external/Dropy/dropy'
 import L_ from '../Basics/Layers_/Layers_'
 import Map_ from '../Basics/Map_/Map_'
 import F_ from '../Basics/Formulae_/Formulae_'
-import ToolController_ from '../Basics/ToolController_/ToolController_'
+import { populateCogScale } from '../../../plugins/core/layertypes/Tile/cogLegend'
 
 // Because 0 is a valid value in many datasets yet still special in images being fully transparent,
 // we're going to encode zero's as 2^31  (2147483648) (79, 0, 0, 0) and have the reader parse it back to 0
@@ -663,7 +663,7 @@ let DataShaders = {
                     ).val(max.toFixed(sigfigs))
                 }
 
-                ToolController_.getTool('LayersTool')?.populateCogScale?.(name)
+                populateCogScale(name)
             }
         },
         // prettier-ignore
